@@ -1,0 +1,243 @@
+threat-modeling-tool/
+│
+├── public/                          # Static assets
+│   ├── index.html
+│   ├── favicon.ico
+│   └── assets/
+│       ├── images/
+│       └── icons/
+│
+├── src/
+│   ├── app/                         # Application Layer
+│   │   ├── app.tsx                  # Main App component
+│   │   ├── app.test.tsx
+│   │   ├── router.tsx               # React Router setup (optional)
+│   │   └── providers/
+│   │       ├── app-providers.tsx    # Combines all providers
+│   │       ├── storage-provider.tsx
+│   │       └── theme-provider.tsx   # Optional: dark mode
+│   │
+│   ├── features/                    # Feature-based modules
+│   │   │
+│   │   ├── projects/                # Project Management Feature
+│   │   │   ├── components/
+│   │   │   │   ├── project-list.tsx
+│   │   │   │   ├── project-sidebar.tsx
+│   │   │   │   ├── recent-projects.tsx
+│   │   │   │   └── dialogs/
+│   │   │   │       ├── new-project-dialog.tsx
+│   │   │   │       ├── delete-dialog.tsx
+│   │   │   │       ├── import-project-dialog.tsx
+│   │   │   │       └── rename-dialog.tsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── use-projects.ts
+│   │   │   │   ├── use-project-mutations.ts
+│   │   │   │   └── use-active-project.ts
+│   │   │   ├── models/
+│   │   │   │   ├── project.types.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── services/
+│   │   │   │   ├── project.service.ts
+│   │   │   │   ├── project-validator.service.ts
+│   │   │   │   ├── project-export.service.ts
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts             # Barrel export
+│   │   │
+│   │   ├── dfd/                     # DFD Feature (Phase 1)
+│   │   │   ├── components/
+│   │   │   │   ├── dfd-tab.tsx
+│   │   │   │   ├── dfd-canvas.tsx
+│   │   │   │   ├── dfd-toolbar.tsx
+│   │   │   │   ├── dfd-preview-dialog.tsx
+│   │   │   │   └── dfd-validation-panel.tsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── use-dfd-editor.ts
+│   │   │   │   ├── use-dfd-validation.ts
+│   │   │   │   └── use-dfd-export.ts
+│   │   │   ├── models/
+│   │   │   │   ├── dfd.types.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── services/
+│   │   │   │   ├── dfd-parser.service.ts
+│   │   │   │   ├── dfd-validator.service.ts
+│   │   │   │   ├── dfd-storage.service.ts
+│   │   │   │   ├── drawio-controller.service.ts
+│   │   │   │   ├── cors-communicator.service.ts
+│   │   │   │   ├── diagram-analyser.service.ts
+│   │   │   │   ├── tables-controller.service.ts
+│   │   │   │   ├── import-controller.service.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── utils/
+│   │   │   │   ├── dfd-converters.ts
+│   │   │   │   └── dfd-constants.ts
+│   │   │   ├── libs/                # External DrawIO libs
+│   │   │   │   ├── convert.js
+│   │   │   │   ├── coretm.json
+│   │   │   │   ├── coretm.xml
+│   │   │   │   └── dataflow-numbering-plugin.js
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── assets/                  # Assets Feature (Phase 2)
+│   │   │   ├── components/
+│   │   │   │   ├── assets-tab.tsx
+│   │   │   │   ├── asset-table.tsx
+│   │   │   │   ├── asset-form.tsx
+│   │   │   │   └── asset-detail-panel.tsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── use-assets.ts
+│   │   │   │   └── use-asset-validation.ts
+│   │   │   ├── models/
+│   │   │   │   ├── asset.types.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── services/
+│   │   │   │   ├── asset.service.ts
+│   │   │   │   ├── asset-validator.service.ts
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── threats/                 # Threats Feature (Phase 3)
+│   │   │   ├── components/
+│   │   │   │   ├── threats-tab.tsx
+│   │   │   │   ├── threat-table.tsx
+│   │   │   │   ├── threat-detail-dialog.tsx
+│   │   │   │   └── threat-statistics.tsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── use-threats.ts
+│   │   │   │   └── use-threat-generation.ts
+│   │   │   ├── models/
+│   │   │   │   ├── threat.types.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── services/
+│   │   │   │   ├── threat.service.ts
+│   │   │   │   ├── threat-generator.service.ts
+│   │   │   │   ├── stride-matrix.service.ts
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── risk/                    # Risk Feature (Phase 4)
+│   │   │   ├── components/
+│   │   │   │   ├── risk-tab.tsx
+│   │   │   │   ├── risk-matrix.tsx
+│   │   │   │   └── risk-detail-panel.tsx
+│   │   │   ├── hooks/
+│   │   │   │   └── use-risk-assessment.ts
+│   │   │   ├── models/
+│   │   │   │   ├── risk.types.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── services/
+│   │   │   │   ├── risk.service.ts
+│   │   │   │   └── index.ts
+│   │   │   └── index.ts
+│   │   │
+│   │   └── overview/                # General Tab / Dashboard
+│   │       ├── components/
+│   │       │   ├── general-tab.tsx
+│   │       │   ├── project-info.tsx
+│   │       │   ├── project-progress.tsx
+│   │       │   ├── project-settings.tsx
+│   │       │   └── activity-log.tsx
+│   │       └── index.ts
+│   │
+│   ├── shared/                      # Shared across features
+│   │   ├── components/
+│   │   │   ├── ui/                  # Basic UI components
+│   │   │   │   ├── button.tsx
+│   │   │   │   ├── badge.tsx
+│   │   │   │   ├── dialog.tsx
+│   │   │   │   ├── toast.tsx
+│   │   │   │   ├── input.tsx
+│   │   │   │   ├── select.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── layout/
+│   │   │   │   ├── main-layout.tsx
+│   │   │   │   ├── empty-state.tsx
+│   │   │   │   └── index.ts
+│   │   │   └── navigation/
+│   │   │       ├── phase-tabs.tsx
+│   │   │       ├── phase-tab.tsx
+│   │   │       └── index.ts
+│   │   ├── hooks/
+│   │   │   ├── use-keyboard-shortcuts.ts
+│   │   │   ├── use-unsaved-changes.ts
+│   │   │   ├── use-local-storage.ts
+│   │   │   └── index.ts
+│   │   ├── models/
+│   │   │   ├── common.types.ts
+│   │   │   ├── stride.types.ts
+│   │   │   └── index.ts
+│   │   ├── services/
+│   │   │   ├── storage.service.ts
+│   │   │   ├── export.service.ts
+│   │   │   ├── validation.service.ts
+│   │   │   └── index.ts
+│   │   └── utils/
+│   │       ├── formatters.ts
+│   │       ├── validators.ts
+│   │       ├── date-utils.ts
+│   │       ├── constants.ts
+│   │       └── index.ts
+│   │
+│   ├── i18n/                        # Internationalization (NEW!)
+│   │   ├── config/
+│   │   │   ├── i18n-config.ts
+│   │   │   ├── supported-languages.ts
+│   │   │   └── index.ts
+│   │   ├── providers/
+│   │   │   ├── i18n-provider.tsx
+│   │   │   └── index.ts
+│   │   ├── hooks/
+│   │   │   ├── use-language.ts
+│   │   │   └── index.ts
+│   │   ├── components/
+│   │   │   ├── language-switcher.tsx
+│   │   │   └── index.ts
+│   │   ├── locales/
+│   │   │   ├── en.json
+│   │   │   ├── de.json
+│   │   │   └── index.ts
+│   │   └── index.ts                 # Barrel export
+│   │
+│   ├── styles/                      # Global styles
+│   │   ├── index.css                # Main CSS entry
+│   │   ├── globals.css
+│   │   ├── variables.css
+│   │   └── themes/
+│   │       ├── light.css
+│   │       └── dark.css
+│   │
+│   ├── tests/                       # Test utilities
+│   │   ├── setup.ts
+│   │   ├── mocks/
+│   │   │   ├── storage-mock.ts
+│   │   │   ├── i18n-mock.ts
+│   │   │   └── project-mock.ts
+│   │   └── utils/
+│   │       ├── test-utils.tsx       # Custom render with providers
+│   │       └── mock-data.ts
+│   │
+│   ├── index.tsx                    # App entry point
+│   └── setupTests.ts                # Test setup
+│
+├── .github/                         # GitHub Actions (optional)
+│   └── workflows/
+│       ├── ci.yml
+│       └── deploy.yml
+│
+├── docs/                            # Documentation
+│   ├── architecture.md
+│   ├── features/
+│   │   ├── dfd.md
+│   │   ├── assets.md
+│   │   └── threats.md
+│   └── api/
+│       └── services.md
+│
+├── .gitignore
+├── .eslintrc.js
+├── .prettierrc
+├── tsconfig.json
+├── tsconfig.paths.json              # Path aliases
+├── vite.config.ts                   # or vitest.config.ts
+├── package.json
+├── package-lock.json
+└── README.md

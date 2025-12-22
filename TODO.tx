@@ -1,0 +1,19 @@
+Pragmatische Lösung für jetzt:
+So lassen wie es ist - für die meisten DFDs mit einfachen Kurven funktioniert es.
+Für komplexe Kurven: User kann manuell Waypoints hinzufügen in Draw.io:
+
+- Rechtsklick auf Dataflow → "Add Waypoint"
+- Diese werden dann im XML gespeichert und unser Parser findet sie
+
+Zukünftige Verbesserung (optional):
+Falls du es später verbessern willst, könntest du:
+
+1. Im useDFDEditor Hook beim Export die Kurven "auflösen" lassen:
+
+```
+typescript   // Draw.io kann Kurven in Waypoints konvertieren
+   graph.setCellStyle('curved=0', [edge]); // Kurve deaktivieren
+   // Jetzt sind die Punkte als echte Waypoints gespeichert
+```
+
+2. Oder: Eine Warnung anzeigen wenn komplexe Kurven ohne Waypoints erkannt werden

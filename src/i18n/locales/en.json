@@ -1,0 +1,364 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "export": "Export",
+    "import": "Import",
+    "close": "Close",
+    "open": "Open",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "add": "Add",
+    "back": "Back",
+    "unknown": "Unknown",
+    "seconds": "seconds",
+    "minutes": "minutes",
+    "complete": "Complete",
+    "continue": "Continue",
+    "inProgress": "In Progress",
+    "errors": "Errors",
+    "actions": "Actions",
+    "remove": "Remove"
+  },
+
+  "project": {
+    "title": "Project",
+    "projects": "Projects",
+    "newProject": "New Project",
+    "openProject": "Open Project",
+    "importProject": "Import Project",
+    "exportProject": "Export Project",
+    "deleteProject": "Delete Project",
+    "closeProject": "Close Project",
+    "saveProject": "Save Project",
+    "name": "Project Name",
+    "description": "Description",
+    "version": "Version",
+    "responsible": "Responsible",
+    "created": "Created",
+    "lastModified": "Last Modified",
+    "status": "Status",
+    "tags": "Tags",
+    "openProjects": "Open Projects",
+    "recentProjects": "Recent Projects",
+    "noOpenProjects": "No open projects",
+    "noRecentProjects": "No recent projects",
+    "team": "Team"
+  },
+
+  "phases": {
+    "general": "General",
+    "dfd": "DFD",
+    "assets": "Assets",
+    "threats": "Threats",
+    "risk": "Risk",
+    "phaseProgress": "Phase Progress",
+    "overallProgress": "Overall Progress"
+  },
+
+  "status": {
+    "notStarted": "Not Started",
+    "inProgress": "In Progress",
+    "incomplete": "Incomplete",
+    "complete": "Complete",
+    "draft": "Draft",
+    "review": "Review"
+  },
+
+  "settings": {
+    "title": "Project Settings",
+    "strictMode": "Strict Mode (all phases required)",
+    "autoSave": "Auto-Save enabled",
+    "language": "Language",
+    "theme": "Theme",
+    "strictModeDescription": "When enabled, all phases must be completed in order. You cannot proceed to the next phase until the previous one is complete.",
+    "autoSaveDescription": "Automatically saves your changes at regular intervals.",
+    "autoSaveInterval": "Auto-Save interval"
+  },
+
+  "validation": {
+    "nameRequired": "Project name is required",
+    "nameMinLength": "Project name must be at least 3 characters",
+    "nameMaxLength": "Project name must be at most 100 characters",
+    "nameEmpty": "Name cannot be empty",
+    "nameUnchanged": "Name has not been changed",
+    "nameExists": "A project with this name already exists",
+    "nameInvalidChars": "Name contains invalid characters: < > : \" / \\ | ? *",
+    "descriptionRequired": "Description is required",
+    "responsibleRequired": "Responsible person is required"
+  },
+
+  "dialogs": {
+    "newProject": {
+      "title": "Create New Project",
+      "namePlaceholder": "e.g. Web Application Security Analysis",
+      "descriptionPlaceholder": "Brief description of the project and its goals...",
+      "responsiblePlaceholder": "Name or team",
+      "predefinedTags": "Predefined tags...",
+      "customTagPlaceholder": "Custom tag... (Enter to add)",
+      "createButton": "Create Project",
+      "infoTitle": "What happens next?",
+      "infoItem1": "The project will be created with default settings",
+      "infoItem2": "You will be redirected to the General tab",
+      "infoItem3": "All phases are initially set to Not Started",
+      "infoItem4": "You can start with DFD creation (Phase 1)"
+    },
+    "deleteProject": {
+      "title": "Delete Project?",
+      "message": "Are you sure you want to delete \"{{name}}\"?",
+      "warning": "This action cannot be undone. All data associated with this project will be permanently removed."
+    },
+    "unsavedChanges": {
+      "title": "Unsaved Changes",
+      "message": "Do you want to save changes to \"{{name}}\" before switching projects?",
+      "discard": "Don't Save"
+    },
+    "closeProject": {
+      "title": "Close Project?",
+      "message": "Project \"{{name}}\" has unsaved changes.",
+      "discard": "Don't Save"
+    },
+    "openProject": {
+      "searchPlaceholder": "Search projects...",
+      "allProjects": "All Projects",
+      "noResults": "No projects found matching \"{{term}}\""
+    },
+    "rename": {
+      "title": "Rename Project",
+      "currentName": "Current name",
+      "newName": "New name",
+      "placeholder": "New project name...",
+      "characters": "characters",
+      "hints": "Notes",
+      "hint1": "At least 3 characters",
+      "hint2": "Maximum 100 characters",
+      "hint3": "No special characters: < > : \" / \\ | ? *",
+      "renameButton": "Rename",
+      "keyboardHint": "Enter to confirm • Esc to cancel"
+    },
+    "import": {
+      "title": "Import Project",
+      "selectFile": "Select project file",
+      "dropzone": "Drag a JSON file here or click to browse",
+      "browseButton": "Browse files",
+      "errorTitle": "Error loading file",
+      "errorJsonOnly": "Only JSON files are supported",
+      "errorFileSize": "File is too large (max. 10MB)",
+      "errorInvalidJson": "Invalid JSON file",
+      "infoTitle": "Supported formats",
+      "infoItem1": "CoReTM project files (.json)",
+      "infoItem2": "Maximum file size: 10MB",
+      "infoItem3": "Projects will be validated before import",
+      "preview": "Project Preview",
+      "fileSize": "Size",
+      "options": "Import Options",
+      "optionNewId": "Generate new project ID",
+      "optionNewIdDesc": "Recommended to avoid conflicts",
+      "optionValidate": "Validate before import",
+      "optionValidateDesc": "Checks data integrity",
+      "importing": "Importing project...",
+      "pleaseWait": "Please wait a moment",
+      "success": "Import successful!",
+      "successMessage": "Project \"{{name}}\" was successfully imported.",
+      "warnings": "Warnings",
+      "failed": "Import failed",
+      "failedMessage": "The project could not be imported.",
+      "errors": "Errors",
+      "goToProject": "Go to Project"
+    }
+  },
+
+  "activity": {
+    "title": "Recent Activity",
+    "created": "Project created",
+    "updated": "Project information updated",
+    "exported": "Project exported",
+    "imported": "Project imported",
+    "phaseChanged": "Phase {{phase}} → {{status}}",
+    "noActivity": "No activity recorded yet"
+  },
+
+  "projectInfo": {
+    "title": "Project Information",
+    "addPredefinedTag": "Add predefined tag...",
+    "customTagPlaceholder": "Custom tag..."
+  },
+
+  "messages": {
+    "projectCreated": "Project \"{{name}}\" created!",
+    "projectDeleted": "Project \"{{name}}\" deleted",
+    "projectExported": "Project \"{{name}}\" exported",
+    "projectImported": "Project \"{{name}}\" imported!",
+    "projectSaved": "Project \"{{name}}\" saved",
+    "importFailed": "Import failed: {{error}}",
+    "saveFailed": "Failed to save: {{error}}",
+    "invalidProjects": "{{count}} invalid project(s) were removed",
+    "strictModeWarning": "⚠️ Warning: Previous phase is not complete. Strict mode is enabled.",
+    "autoNumberComplete": "Labels have been automatically numbered",
+    "autoNumberFailed": "Automatic numbering failed"
+  },
+
+  "emptyState": {
+    "title": "No Project Open",
+    "description": "Create a new project or open an existing one to get started.",
+    "createNew": "Create New Project",
+    "openExisting": "Open Existing Project"
+  },
+
+  "sidebar": {
+    "moreOptions": "More options",
+    "unsavedChanges": "Unsaved changes"
+  },
+
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago"
+  },
+
+  "tabs": {
+    "dfd": {
+      "title": "DFD Editor",
+      "description": "Create and edit your Data Flow Diagram here.",
+      "loading": "Loading DFD Editor...",
+      "proceed": "Continue",
+      "toolbar": {
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fitToScreen": "Fit to Screen",
+        "undo": "Undo",
+        "redo": "Redo",
+        "exportImage": "Export as Image",
+        "refresh": "Refresh Validation",
+        "autoNumber": "Auto-Number Labels"
+      },
+      "preview": {
+        "title": "DFD Preview",
+        "generating": "Generating preview...",
+        "download": "Download"
+      },
+      "stats": {
+        "elements": "Elements",
+        "flows": "Flows"
+      },
+      "validation": {
+        "valid": "Valid",
+        "errors": "Errors",
+        "warnings": "Warnings",
+        "required": "Required",
+        "atLeastOneSecurityGoal": "At least one security goal required"
+      }
+    },
+    "assets": {
+      "title": "Assets Management",
+      "description": "Define and manage your system assets here.",
+      "assets": "Assets",
+      "addAsset": "Add Asset",
+      "syncFromDFD": "Sync from DFD",
+      "configuration": "Impact Configuration",
+      "showDFD": "Show DFD Preview",
+      "hideDFD": "Hide DFD Preview",
+      "missingInDFD": "{{count}} asset(s) not placed in DFD",
+      "notLinked": "Not linked",
+      "noAssets": "No assets defined",
+      "noAssetsHint": "Add assets manually or sync from DFD to get started.",
+      "noDFDImage": "No DFD image available",
+      "noDFDImageHint": "Save the DFD to generate a preview image",
+      "columns": {
+        "id": "ID",
+        "name": "Name",
+        "description": "Description",
+        "overallImpact": "Overall",
+        "securityGoals": "Security Goals",
+        "linkedElements": "DFD Links",
+        "securityGoalsText": "Security Requirements"
+      },
+      "dialog": {
+        "createTitle": "Create Asset",
+        "editTitle": "Edit Asset {{id}}",
+        "basicInfo": "Basic Information",
+        "impactRatings": "Impact Ratings",
+        "overall": "Overall",
+        "securityGoals": "Security Goals (CIANAAA)",
+        "formalDescription": "Formal Security Requirement",
+        "useTemplate": "Use template",
+        "linkedElements": "Linked DFD Elements",
+        "tooManyCriteria": "You have selected more than 6 criteria..."
+      },
+      "config": {
+        "title": "Asset Impact Configuration",
+        "info": "Select 4-6 impact criteria that are relevant for your project. This configuration affects all assets.",
+        "impactScale": "Impact Scale",
+        "scale3": "3-Level (Low, Medium, High)",
+        "scale4": "4-Level (+ Critical)",
+        "scale5": "5-Level (+ Very High)",
+        "calculationMethod": "Overall Impact Calculation",
+        "conservative": "Conservative (Maximum)",
+        "conservativeDesc": "Uses the highest impact value across all criteria",
+        "average": "Average (Arithmetic Mean)",
+        "averageDesc": "Calculates the average of all impact values",
+        "impactCriteria": "Impact Criteria",
+        "businessCriteria": "Business / Organizational",
+        "physicalCriteria": "Physical"
+      },
+      "dfdPreview": {
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fitToScreen": "Fit to Screen",
+        "resetView": "Reset View",
+        "hint": "Drag to pan, scroll to zoom",
+        "regenerate": "Generate preview from DFD",
+        "generating": "Generating preview..."
+      }
+    },
+    "threats": {
+      "title": "Threats Table",
+      "description": "Identify and document threats for your assets."
+    },
+    "risk": {
+      "title": "Risk Assessment",
+      "description": "Evaluate and prioritize risks based on threats."
+    }
+  },
+
+  "dfdValidation": {
+    "noElements": "The DFD contains no elements",
+    "noProcessOrDatastore": "At least one process or data store is required",
+    "noDataflows": "The DFD contains no data flows",
+    "noTrustBoundary": "At least one trust boundary is required",
+    "needTwoTrustBoundaries": "Without external entities, at least two trust boundaries are required",
+    "emptyTrustBoundary": "Trust boundary \"{{name}}\" contains no process or data store",
+    "trustBoundaryMissingId": "Trust boundary \"{{name}}\" is missing a valid ID in square brackets [ID]. Allowed: letters, numbers, - and _",
+    "noElementInsideTrustBoundary": "At least one process or data store must be inside a trust boundary",
+    "elementOutsideAllTrustBoundaries": "{{type}} \"{{name}}\" is outside all trust boundaries",
+    "externalEntityInsideTrustBoundary": "External entity \"{{name}}\" is inside a trust boundary",
+    "noInternalExternalFlow": "At least one data flow between an internal element and an external entity is required",
+    "noCrossBoundaryFlow": "At least one data flow must cross a trust boundary",
+    "unconnectedElement": "{{type}} \"{{name}}\" has no data flow connections",
+    "unconnectedDataflow": "Data flow \"{{name}}\" is not connected to elements",
+    "invalidDataflowSource": "Data flow \"{{name}}\" has an invalid source",
+    "invalidDataflowTarget": "Data flow \"{{name}}\" has an invalid target",
+    "assetNotPlaced": "Asset \"{{name}}\" is not placed on a valid element (Process, Multiprocess, Data Store, or Data Flow)",
+    "interfaceUnused": "Interface \"{{name}}\" is not crossed by any data flow",
+    "elementTypes": {
+      "Process": "Process",
+      "Multiprocess": "Multiprocess",
+      "DataStore": "Data Store",
+      "ExternalEntity": "External Entity",
+      "TrustBoundary": "Trust Boundary",
+      "Interface": "Interface",
+      "Asset": "Asset"
+    }
+  }
+}

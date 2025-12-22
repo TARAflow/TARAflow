@@ -1,0 +1,364 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "close": "Schliessen",
+    "open": "Öffnen",
+    "create": "Erstellen",
+    "search": "Suchen",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolgreich",
+    "warning": "Warnung",
+    "confirm": "Bestätigen",
+    "yes": "Ja",
+    "no": "Nein",
+    "add": "Hinzufügen",
+    "back": "Zurück",
+    "unknown": "Unbekannt",
+    "seconds": "Sekunden",
+    "minutes": "Minuten",
+    "complete": "Abgeschlossen",
+    "continue": "Weiter",
+    "inProgress": "In Bearbeitung",
+    "errors": "Fehler",
+    "actions": "Aktionen",
+    "remove": "Entfernen"
+  },
+
+  "project": {
+    "title": "Projekt",
+    "projects": "Projekte",
+    "newProject": "Neues Projekt",
+    "openProject": "Projekt öffnen",
+    "importProject": "Projekt importieren",
+    "exportProject": "Projekt exportieren",
+    "deleteProject": "Projekt löschen",
+    "closeProject": "Projekt schliessen",
+    "saveProject": "Projekt speichern",
+    "name": "Projektname",
+    "description": "Beschreibung",
+    "version": "Version",
+    "responsible": "Verantwortlich",
+    "created": "Erstellt",
+    "lastModified": "Zuletzt geändert",
+    "status": "Status",
+    "tags": "Tags",
+    "openProjects": "Offene Projekte",
+    "recentProjects": "Kürzlich verwendete Projekte",
+    "noOpenProjects": "Keine offenen Projekte",
+    "noRecentProjects": "Keine kürzlich verwendeten Projekte",
+    "team": "Team"
+  },
+
+  "phases": {
+    "general": "Allgemein",
+    "dfd": "DFD",
+    "assets": "Assets",
+    "threats": "Bedrohungen",
+    "risk": "Risiko",
+    "phaseProgress": "Phasenfortschritt",
+    "overallProgress": "Gesamtfortschritt"
+  },
+
+  "status": {
+    "notStarted": "Nicht begonnen",
+    "inProgress": "In Bearbeitung",
+    "incomplete": "Unvollständig",
+    "complete": "Abgeschlossen",
+    "draft": "Entwurf",
+    "review": "Überprüfung"
+  },
+
+  "settings": {
+    "title": "Projekteinstellungen",
+    "strictMode": "Strikter Modus (alle Phasen erforderlich)",
+    "autoSave": "Automatisches Speichern aktiviert",
+    "language": "Sprache",
+    "theme": "Design",
+    "strictModeDescription": "Wenn aktiviert, müssen alle Phasen der Reihe nach abgeschlossen werden. Sie können erst zur nächsten Phase wechseln, wenn die vorherige abgeschlossen ist.",
+    "autoSaveDescription": "Speichert Ihre Änderungen in regelmässigen Abständen automatisch.",
+    "autoSaveInterval": "Intervall für automatisches Speichern"
+  },
+
+  "validation": {
+    "nameRequired": "Projektname ist erforderlich",
+    "nameMinLength": "Projektname muss mindestens 3 Zeichen lang sein",
+    "nameMaxLength": "Projektname darf maximal 100 Zeichen lang sein",
+    "nameEmpty": "Name darf nicht leer sein",
+    "nameUnchanged": "Name wurde nicht geändert",
+    "nameExists": "Ein Projekt mit diesem Namen existiert bereits",
+    "nameInvalidChars": "Name enthält ungültige Zeichen: < > : \" / \\ | ? *",
+    "descriptionRequired": "Beschreibung ist erforderlich",
+    "responsibleRequired": "Verantwortlicher ist erforderlich"
+  },
+
+  "dialogs": {
+    "newProject": {
+      "title": "Neues Projekt erstellen",
+      "namePlaceholder": "z.B. Web Application Security Analysis",
+      "descriptionPlaceholder": "Kurze Beschreibung des Projekts und seiner Ziele...",
+      "responsiblePlaceholder": "Name oder Team",
+      "predefinedTags": "Vordefinierte Tags...",
+      "customTagPlaceholder": "Eigener Tag... (Enter zum Hinzufügen)",
+      "createButton": "Projekt erstellen",
+      "infoTitle": "Was passiert als Nächstes?",
+      "infoItem1": "Das Projekt wird mit Standardeinstellungen erstellt",
+      "infoItem2": "Sie werden zum Allgemein Tab weitergeleitet",
+      "infoItem3": "Alle Phasen sind zunächst auf Nicht gestartet",
+      "infoItem4": "Sie können mit der DFD-Erstellung beginnen (Phase 1)"
+    },
+    "deleteProject": {
+      "title": "Projekt löschen?",
+      "message": "Sind Sie sicher, dass Sie \"{{name}}\" löschen möchten?",
+      "warning": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten dieses Projekts werden dauerhaft gelöscht."
+    },
+    "unsavedChanges": {
+      "title": "Ungespeicherte Änderungen",
+      "message": "Möchten Sie die Änderungen an \"{{name}}\" speichern, bevor Sie das Projekt wechseln?",
+      "discard": "Nicht speichern"
+    },
+    "closeProject": {
+      "title": "Projekt schliessen?",
+      "message": "Projekt \"{{name}}\" hat ungespeicherte Änderungen.",
+      "discard": "Nicht speichern"
+    },
+    "openProject": {
+      "searchPlaceholder": "Projekte suchen...",
+      "allProjects": "Alle Projekte",
+      "noResults": "Keine Projekte gefunden für \"{{term}}\""
+    },
+    "rename": {
+      "title": "Projekt umbenennen",
+      "currentName": "Aktueller Name",
+      "newName": "Neuer Name",
+      "placeholder": "Neuer Projektname...",
+      "characters": "Zeichen",
+      "hints": "Hinweise",
+      "hint1": "Mindestens 3 Zeichen",
+      "hint2": "Maximal 100 Zeichen",
+      "hint3": "Keine Sonderzeichen: < > : \" / \\ | ? *",
+      "renameButton": "Umbenennen",
+      "keyboardHint": "Enter zum Bestätigen • Esc zum Abbrechen"
+    },
+    "import": {
+      "title": "Projekt importieren",
+      "selectFile": "Projekt-Datei auswählen",
+      "dropzone": "JSON-Datei hierher ziehen oder klicken zum Durchsuchen",
+      "browseButton": "Datei auswählen",
+      "errorTitle": "Fehler beim Laden",
+      "errorJsonOnly": "Nur JSON-Dateien werden unterstützt",
+      "errorFileSize": "Datei ist zu gross (max. 10MB)",
+      "errorInvalidJson": "Ungültige JSON-Datei",
+      "infoTitle": "Unterstützte Formate",
+      "infoItem1": "CoReTM Projektdateien (.json)",
+      "infoItem2": "Maximale Dateigrösse: 10MB",
+      "infoItem3": "Projekte werden vor dem Import validiert",
+      "preview": "Projekt-Vorschau",
+      "fileSize": "Grösse",
+      "options": "Import-Optionen",
+      "optionNewId": "Neue Projekt-ID generieren",
+      "optionNewIdDesc": "Empfohlen, um Konflikte zu vermeiden",
+      "optionValidate": "Vor Import validieren",
+      "optionValidateDesc": "Prüft die Datenintegrität",
+      "importing": "Projekt wird importiert...",
+      "pleaseWait": "Bitte warten Sie einen Moment",
+      "success": "Import erfolgreich!",
+      "successMessage": "Projekt \"{{name}}\" wurde erfolgreich importiert.",
+      "warnings": "Warnungen",
+      "failed": "Import fehlgeschlagen",
+      "failedMessage": "Das Projekt konnte nicht importiert werden.",
+      "errors": "Fehler",
+      "goToProject": "Zum Projekt"
+    }
+  },
+
+  "activity": {
+    "title": "Letzte Aktivitäten",
+    "created": "Projekt erstellt",
+    "updated": "Projektinformationen aktualisiert",
+    "exported": "Projekt exportiert",
+    "imported": "Projekt importiert",
+    "phaseChanged": "Phase {{phase}} → {{status}}",
+    "noActivity": "Noch keine Aktivitäten aufgezeichnet"
+  },
+
+  "projectInfo": {
+    "title": "Projektinformationen",
+    "addPredefinedTag": "Vordefiniertes Tag hinzufügen...",
+    "customTagPlaceholder": "Eigenes Tag..."
+  },
+
+  "messages": {
+    "projectCreated": "Projekt \"{{name}}\" erstellt!",
+    "projectDeleted": "Projekt \"{{name}}\" gelöscht",
+    "projectExported": "Projekt \"{{name}}\" exportiert",
+    "projectImported": "Projekt \"{{name}}\" importiert!",
+    "projectSaved": "Projekt \"{{name}}\" gespeichert",
+    "importFailed": "Import fehlgeschlagen: {{error}}",
+    "saveFailed": "Speichern fehlgeschlagen: {{error}}",
+    "invalidProjects": "{{count}} ungültige(s) Projekt(e) wurden entfernt",
+    "strictModeWarning": "⚠️ Warnung: Vorherige Phase ist nicht abgeschlossen. Strikter Modus ist aktiviert.",
+    "autoNumberComplete": "Labels wurden automatisch nummeriert",
+    "autoNumberFailed": "Automatische Nummerierung fehlgeschlagen"
+  },
+
+  "emptyState": {
+    "title": "Kein Projekt geöffnet",
+    "description": "Erstellen Sie ein neues Projekt oder öffnen Sie ein bestehendes, um zu beginnen.",
+    "createNew": "Neues Projekt erstellen",
+    "openExisting": "Bestehendes Projekt öffnen"
+  },
+
+  "sidebar": {
+    "moreOptions": "Weitere Optionen",
+    "unsavedChanges": "Ungespeicherte Änderungen"
+  },
+
+  "time": {
+    "justNow": "Gerade eben",
+    "minutesAgo": "vor {{count}}m",
+    "hoursAgo": "vor {{count}}h",
+    "yesterday": "Gestern",
+    "daysAgo": "vor {{count}} Tagen"
+  },
+
+  "tabs": {
+    "dfd": {
+      "title": "DFD Editor",
+      "description": "Erstellen und bearbeiten Sie hier Ihr Datenflussdiagramm.",
+      "loading": "DFD Editor wird geladen...",
+      "proceed": "Weiter",
+      "toolbar": {
+        "zoomIn": "Vergrössern",
+        "zoomOut": "Verkleinern",
+        "fitToScreen": "Einpassen",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "exportImage": "Als Bild exportieren",
+        "refresh": "Validierung aktualisieren",
+        "autoNumber": "Labels automatisch nummerieren"
+      },
+      "preview": {
+        "title": "DFD Vorschau",
+        "generating": "Vorschau wird generiert...",
+        "download": "Herunterladen"
+      },
+      "stats": {
+        "elements": "Elemente",
+        "flows": "Datenflüsse"
+      },
+      "validation": {
+        "valid": "Gültig",
+        "errors": "Fehler",
+        "warnings": "Warnungen",
+        "required": "Erforderlich",
+        "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich"
+      }
+    },
+    "assets": {
+      "title": "Assets-Verwaltung",
+      "description": "Definieren und verwalten Sie hier Ihre System-Assets.",
+      "assets": "Assets",
+      "addAsset": "Asset hinzufügen",
+      "syncFromDFD": "Aus DFD synchronisieren",
+      "configuration": "Impact-Konfiguration",
+      "showDFD": "DFD-Vorschau anzeigen",
+      "hideDFD": "DFD-Vorschau ausblenden",
+      "missingInDFD": "{{count}} Asset(s) nicht im DFD platziert",
+      "notLinked": "Nicht verknüpft",
+      "noAssets": "Keine Assets definiert",
+      "noAssetsHint": "Fügen Sie Assets manuell hinzu oder synchronisieren Sie aus dem DFD.",
+      "noDFDImage": "Kein DFD-Bild verfügbar",
+      "noDFDImageHint": "Speichern Sie das DFD, um ein Vorschaubild zu generieren",
+      "columns": {
+        "id": "ID",
+        "name": "Name",
+        "description": "Beschreibung",
+        "overallImpact": "Gesamt",
+        "securityGoals": "Schutzziele",
+        "linkedElements": "DFD-Links",
+        "securityGoalsText": "Sicherheitsanforderungen"
+      },
+      "dialog": {
+        "createTitle": "Asset erstellen",
+        "editTitle": "Asset {{id}} bearbeiten",
+        "basicInfo": "Grundinformationen",
+        "impactRatings": "Impact-Bewertungen",
+        "overall": "Gesamt",
+        "securityGoals": "Schutzziele (CIANAAA)",
+        "formalDescription": "Formale Sicherheitsanforderung",
+        "useTemplate": "Vorlage verwenden",
+        "linkedElements": "Verknüpfte DFD-Elemente"
+      },
+      "config": {
+        "title": "Asset Impact-Konfiguration",
+        "info": "Wählen Sie 4-6 Impact-Kriterien, die für Ihr Projekt relevant sind. Diese Konfiguration gilt für alle Assets.",
+        "impactScale": "Impact-Skala",
+        "scale3": "3-stufig (Niedrig, Mittel, Hoch)",
+        "scale4": "4-stufig (+ Kritisch)",
+        "scale5": "5-stufig (+ Sehr Hoch)",
+        "calculationMethod": "Gesamt-Impact-Berechnung",
+        "conservative": "Konservativ (Maximum)",
+        "conservativeDesc": "Verwendet den höchsten Impact-Wert aller Kriterien",
+        "average": "Durchschnitt (Arithmetisches Mittel)",
+        "averageDesc": "Berechnet den Durchschnitt aller Impact-Werte",
+        "impactCriteria": "Impact-Kriterien",
+        "businessCriteria": "Geschäftlich / Organisatorisch",
+        "physicalCriteria": "Physisch",
+        "tooManyCriteria": "Sie haben mehr als 6 Kriterien ausgewählt..."
+      },
+      "dfdPreview": {
+        "zoomIn": "Vergrössern",
+        "zoomOut": "Verkleinern",
+        "fitToScreen": "Einpassen",
+        "resetView": "Ansicht zurücksetzen",
+        "hint": "Ziehen zum Verschieben, Scrollen zum Zoomen",
+        "regenerate": "Vorschau aus DFD generieren",
+        "generating": "Vorschau wird generiert..."
+      }
+    },
+    "threats": {
+      "title": "Bedrohungstabelle",
+      "description": "Identifizieren und dokumentieren Sie Bedrohungen für Ihre Assets."
+    },
+    "risk": {
+      "title": "Risikobewertung",
+      "description": "Bewerten und priorisieren Sie Risiken basierend auf Bedrohungen."
+    }
+  },
+
+  "dfdValidation": {
+    "noElements": "Das DFD enthält keine Elemente",
+    "noProcessOrDatastore": "Mindestens ein Prozess oder Datenspeicher ist erforderlich",
+    "noDataflows": "Das DFD enthält keine Datenflüsse",
+    "noTrustBoundary": "Mindestens eine Trust Boundary ist erforderlich",
+    "needTwoTrustBoundaries": "Ohne externe Entitäten sind mindestens zwei Trust Boundaries erforderlich",
+    "emptyTrustBoundary": "Trust Boundary \"{{name}}\" enthält keinen Prozess oder Datenspeicher",
+    "trustBoundaryMissingId": "Trust Boundary \"{{name}}\" hat keine gültige ID in eckigen Klammern [ID]. Erlaubt: Buchstaben, Zahlen, - und _",
+    "noElementInsideTrustBoundary": "Mindestens ein Prozess oder Datenspeicher muss innerhalb einer Trust Boundary liegen",
+    "elementOutsideAllTrustBoundaries": "{{type}} \"{{name}}\" liegt ausserhalb aller Trust Boundaries",
+    "externalEntityInsideTrustBoundary": "Externe Entität \"{{name}}\" liegt innerhalb einer Trust Boundary",
+    "noInternalExternalFlow": "Mindestens ein Datenfluss zwischen einem internen Element und einer externen Entität ist erforderlich",
+    "noCrossBoundaryFlow": "Mindestens ein Datenfluss muss eine Trust Boundary überschreiten",
+    "unconnectedElement": "{{type}} \"{{name}}\" hat keine Datenfluss-Verbindungen",
+    "unconnectedDataflow": "Datenfluss \"{{name}}\" ist nicht mit Elementen verbunden",
+    "invalidDataflowSource": "Datenfluss \"{{name}}\" hat eine ungültige Quelle",
+    "invalidDataflowTarget": "Datenfluss \"{{name}}\" hat ein ungültiges Ziel",
+    "assetNotPlaced": "Asset \"{{name}}\" ist nicht auf einem gültigen Element platziert (Prozess, Multiprozess, Datenspeicher oder Datenfluss)",
+    "interfaceUnused": "Interface \"{{name}}\" wird von keinem Datenfluss durchquert",
+    "elementTypes": {
+      "Process": "Prozess",
+      "Multiprocess": "Multiprozess",
+      "DataStore": "Datenspeicher",
+      "ExternalEntity": "Externe Entität",
+      "TrustBoundary": "Trust Boundary",
+      "Interface": "Interface",
+      "Asset": "Asset"
+    }
+  }
+}
