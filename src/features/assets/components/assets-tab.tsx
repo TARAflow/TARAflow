@@ -16,7 +16,6 @@ import React, {
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  Paper,
   IconButton,
   Tooltip,
   Typography,
@@ -30,7 +29,6 @@ import {
   Add as AddIcon,
   Settings as SettingsIcon,
   Sync as SyncIcon,
-  Save as SaveIcon,
   SkipNext as NextIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -121,6 +119,29 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-save when dirty (debounced)
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const timeoutId = setTimeout(() => {
+      const result = assetService.saveAssets(project, assetData);
+
+      if (result.success) {
+        setAssetData(result.assets);
+        setValidation(result.assets.validation ?? null);
+        setIsDirty(false);
+
+        onUpdate({
+          assets: result.assets,
+          phaseStatus: result.phaseStatus,
+          lastModified: result.lastModified,
+        });
+      }
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [isDirty, assetData, project, onUpdate]);
+
   // ==================== DIRTY TRACKING ====================
 
   const markDirty = useCallback(() => {
@@ -193,28 +214,12 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     [assetData, markDirty]
   );
 
-  // ==================== SAVE & PROCEED ====================
+  // ==================== PROCEED ====================
 
-  const handleSave = useCallback(async () => {
-    const result = assetService.saveAssets(assetData, project);
-
-    if (result.success) {
-      setAssetData(result.assets);
-      setValidation(result.assets.validation ?? null);
-      setIsDirty(false);
-
-      onUpdate({
-        assets: result.assets,
-        phaseStatus: result.phaseStatus,
-        lastModified: result.lastModified,
-      });
-    }
-  }, [assetData, project, onUpdate]);
-
-  const handleProceed = useCallback(async () => {
-    await handleSave();
+  const handleProceed = useCallback(() => {
+    // Auto-save handles saving, just proceed to next phase
     onPhaseComplete?.();
-  }, [handleSave, onPhaseComplete]);
+  }, [onPhaseComplete]);
 
   // ==================== DFD SYNC ====================
 
@@ -328,7 +333,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onAddAsset={handleAddAsset}
         onOpenConfig={handleOpenConfig}
         onSyncFromDFD={handleSyncFromDFD}
-        onSave={handleSave}
         onProceed={handleProceed}
       />
 
@@ -468,7 +472,6 @@ interface AssetsToolbarProps {
   onAddAsset: () => void;
   onOpenConfig: () => void;
   onSyncFromDFD: () => void;
-  onSave: () => void;
   onProceed: () => void;
 }
 
@@ -481,7 +484,6 @@ const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
   onAddAsset,
   onOpenConfig,
   onSyncFromDFD,
-  onSave,
   onProceed,
 }) => {
   const { t } = useTranslation();
@@ -575,17 +577,6 @@ const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
       <Chip label={getStatusText()} size="small" color={getStatusColor()} />
 
       <Divider orientation="vertical" flexItem />
-
-      {/* Save */}
-      <Button
-        startIcon={<SaveIcon />}
-        onClick={onSave}
-        disabled={!isDirty}
-        size="small"
-        variant={isDirty ? "contained" : "outlined"}
-      >
-        {t("common.save", { defaultValue: "Save" })}
-      </Button>
 
       {/* Proceed */}
       <Button

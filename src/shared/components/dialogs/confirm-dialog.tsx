@@ -75,12 +75,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full ${config.bgColor} flex items-center justify-center`}>
+            <div
+              className={`w-10 h-10 rounded-full ${config.bgColor} flex items-center justify-center`}
+            >
               <Icon className={`w-5 h-5 ${config.iconColor}`} />
             </div>
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           </div>
           <button
+            aria-label={t("common.cancel")}
             onClick={onCancel}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >

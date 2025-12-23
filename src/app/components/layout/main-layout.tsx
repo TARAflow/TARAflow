@@ -6,7 +6,11 @@ import { EmptyState } from "./empty-state-layout";
 import { GeneralTab } from "features/overview";
 import { DFDTab, DFDUpdateResult } from "features/dfd";
 import { AssetsTab, AssetUpdateResult } from "features/assets";
-import { ThreatsTab } from "features/threats";
+import {
+  ThreatsTab,
+  type ThreatTabProps,
+  type ThreatUpdateResult,
+} from "features/threats";
 import { RiskTab } from "features/risks";
 import {
   NewProjectDialog,
@@ -442,6 +446,27 @@ export const MainLayout: React.FC = () => {
     [activeProject, updateProject]
   );
 
+  // ==================== Threat HANDLER ====================
+  /**
+   * Handle Threats tab updates
+   * Converts ThreatUpdateResult to full Project update
+   */
+  const handleThreatsUpdate = useCallback(
+    async (updates: ThreatUpdateResult) => {
+      if (!activeProject) return;
+
+      const updatedProject: Project = {
+        ...activeProject,
+        threats: updates.threats,
+        phaseStatus: updates.phaseStatus,
+        lastModified: updates.lastModified,
+      };
+
+      await updateProject(updatedProject);
+    },
+    [activeProject, updateProject]
+  );
+
   // ==================== NEW/IMPORT HANDLERS ====================
 
   const handleNewProject = () => {
@@ -540,7 +565,20 @@ export const MainLayout: React.FC = () => {
                 />
               )}
               {activePhase === 3 && (
-                <ThreatsTab /*project={activeProject} onUpdate={updateProject}*/
+                <ThreatsTab
+                  project={{
+                    id: activeProject.id,
+                    name: activeProject.name,
+                    threats: activeProject.threats ?? null,
+                    phaseStatus: activeProject.phaseStatus,
+                    dfdXml: activeProject.dfd?.xml,
+                    dfdElements: activeProject.dfd?.elements,
+                    dfdConnections: activeProject.dfd?.connections,
+                    dfdPreviewImage: activeProject.dfd?.thumbnail,
+                    assetIds: activeProject.assets?.assets?.map((a) => a.id),
+                    lastModified: activeProject.lastModified,
+                  }}
+                  onUpdate={handleThreatsUpdate}
                 />
               )}
               {activePhase === 4 && (

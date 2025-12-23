@@ -1,4 +1,4 @@
-src
+src/
 ├── app
 │   ├── app.test.tsx
 │   ├── app.tsx
@@ -27,6 +27,7 @@ src
 │   │   ├── use-keyboard-shortcuts.ts
 │   │   ├── use-projects.ts
 │   │   └── use-unsaved-changes.ts
+│   ├── index.ts
 │   ├── models
 │   │   └── project-types.ts
 │   └── services
@@ -35,11 +36,17 @@ src
 ├── features
 │   ├── assets
 │   │   ├── components
-│   │   │   └── assets-tab.tsx                                                                                                          
-│   │   ├── hooks                                                                                                                       
+│   │   │   ├── asset-config-dialog.tsx
+│   │   │   ├── asset-dialog.tsx
+│   │   │   ├── assets-tab.tsx
+│   │   │   ├── asset-table.tsx
+│   │   │   └── dfd-preview-panel.tsx
+│   │   ├── hooks
 │   │   ├── index.ts
 │   │   ├── models
+│   │   │   └── asset-types.ts
 │   │   └── services
+│   │       └── asset-service.ts
 │   ├── attacktree
 │   │   ├── components
 │   │   │   └── attacktree-tab.tsx
@@ -56,6 +63,7 @@ src
 │   │   │   └── use-dfd-editor.ts
 │   │   ├── index.ts
 │   │   ├── interfaces
+│   │   │   ├── dfd-editor-interfaces.ts
 │   │   │   └── drawio-interfaces.ts
 │   │   ├── models
 │   │   │   └── dfd-types.ts
@@ -67,10 +75,12 @@ src
 │   │   │   ├── dfd-storage-adapter.ts
 │   │   │   ├── dfd-validator.ts
 │   │   │   ├── diagram-analyser.ts
+│   │   │   ├── drawio-bridge.ts
 │   │   │   ├── drawio-controller.ts
 │   │   │   ├── import-controller.ts
 │   │   │   ├── local-storage-model.ts
-│   │   │   └── variables.ts
+│   │   │   ├── variables.ts
+│   │   │   └── xml-source-manager.ts
 │   │   └── shapes
 │   │       ├── convert.js
 │   │       ├── CoReTM.json
@@ -100,7 +110,9 @@ src
 │   │   ├── hooks
 │   │   ├── index.ts
 │   │   ├── models
+│   │   │   └── overview-types.ts
 │   │   └── services
+│   │       └── phase-helpers.ts
 │   ├── projects
 │   ├── risks
 │   │   ├── components
@@ -111,11 +123,17 @@ src
 │   │   └── services
 │   └── threats
 │       ├── components
-│       │   └── threats-tab.tsx
+│       │   ├── threat-config-dialog.tsx
+│       │   ├── threat-dialog.tsx
+│       │   ├── threats-tab.tsx
+│       │   └── threat-table.tsx
 │       ├── hooks
 │       ├── index.ts
 │       ├── models
+│       │   └── threat-types.ts
 │       └── services
+│           ├── threat-catalog.json
+│           └── threat-service.ts
 ├── i18n
 │   ├── components
 │   │   └── language-switcher.tsx
@@ -126,7 +144,7 @@ src
 │   └── services
 │       ├── i18n.ts
 │       └── supported_languages.ts
-├── index.tsx
+├── main.tsx
 ├── shared
 │   ├── components
 │   │   ├── badge.tsx
@@ -150,4 +168,5 @@ src
 └── tests
     ├── mock-data.ts
     ├── setup-tests.ts
-    └── storage-mock.ts
+    ├── storage-mock.ts
+    └── test-helpers.ts

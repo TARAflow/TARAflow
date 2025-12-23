@@ -17,3 +17,126 @@ typescript   // Draw.io kann Kurven in Waypoints konvertieren
 ```
 
 2. Oder: Eine Warnung anzeigen wenn komplexe Kurven ohne Waypoints erkannt werden
+
+
+Müssen die Sätze länger sein?
+Nein, aber der Kontext muss klarer sein:
+
+✗ "Spoofing of external entity"
+✓ "Spoofing of external entity in incoming communication"
+
+
+Aktuell ist der threat-catalog.json nur gut für pre element geeignet. Für per interaction fehlt context.
+Ich denke es braucht noch Kontext erweiterung wie dieses Beispiel: 
+✗ "Spoofing of external entity" 
+✓ "Spoofing of external entity in incoming communication"
+
+chatgpt meinte noch folgendes. Was meinst du dazu. Noch nichts generieren.
+
+Warum die Kontext-Erweiterung entscheidend ist
+✗ „Spoofing of external entity“
+* abstrakt
+* doppeldeutig
+* nicht deterministisch generierbar
+* schlecht priorisierbar
+✓ „Spoofing of external entity in incoming communication“
+* Richtung klar
+* Opfer klar
+* Interaction-bezogen
+* automatisch ableitbar
+STRIDE per Interaction lebt genau von diesem Zusatz.
+Das zugrunde liegende Muster (formalisiert)
+Was du implizit tust, ist:
+Threat = STRIDE + Element + Rolle + Interaktionskontext
+In deinem Beispiel:
+AspektWertSTRIDESpoofingElementExternal EntityRolleSourceRichtungIncomingKontextCommunication
+Empfehlung: Trenne Basis-Threat und konkrete Instanz
+🔹 1. Abstrakter Threat (Katalog)
+
+```
+{
+  "id": "S-EE-BASE-001",
+  "strideCategory": "S",
+  "elementType": "ExternalEntity",
+  "baseThreat": "Spoofing of external entity identity"
+}
+
+```
+
+🔹 2. Kontextualisierte Instanz (automatisch erzeugt)
+
+```
+{
+  "id": "S-INT-EE-IN-001",
+  "derivedFrom": "S-EE-BASE-001",
+  "context": {
+    "interactionType": "IncomingCommunication",
+    "role": "Source",
+    "crossesTrustBoundary": true
+  },
+  "threat": "Spoofing of external entity in incoming communication"
+}
+
+```
+
+➡️ So vermeidest du:
+* Redundanz im Katalog
+* Explosion der Templates
+* manuelle Pflegehölle
+Minimaler Kontext, der sich immer lohnt
+Für STRIDE per Interaction reichen oft 4 Felder:
+
+```
+"context": {
+  "direction": "incoming | outgoing",
+  "role": "source | destination",
+  "crossesTrustBoundary": true | false,
+  "securityControls": {
+    "authentication": true | false,
+    "encryption": true | false
+  }
+}
+
+```
+
+Damit kannst du:
+* Threats generieren
+* filtern
+* automatisch als not applicable markieren
+Konkrete Spoofing-Varianten (maschinenlesbar)
+Du bekommst damit beide Spoofing-Fälle sauber getrennt:
+🅰 Sender-Spoofing
+Spoofing of external entity in incoming communication
+
+```
+{
+  "role": "source",
+  "direction": "incoming"
+}
+
+```
+
+🅱 Empfänger-Spoofing
+Spoofing of process in outgoing communication
+
+```
+{
+  "role": "destination",
+  "direction": "outgoing"
+}
+
+```
+
+💡 Und plötzlich:
+* stimmen STRIDE-Kategorien
+* sind Threats eindeutig
+* lassen sich Mitigations korrekt zuordnen
+Bonus: Das wirkt sich direkt auf Mitigations aus
+Beispiel:
+* Incoming Spoofing
+   * Mutual Auth
+   * Client Certs
+* Outgoing Spoofing
+   * Server Cert Validation
+   * Endpoint Pinning
+Ohne Kontext → falsche Controls.

@@ -57,6 +57,7 @@ export const SaveDiscardDialog: React.FC<SaveDiscardDialogProps> = ({
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           </div>
           <button
+            aria-label={t("common.cancel")}
             onClick={onCancel}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >

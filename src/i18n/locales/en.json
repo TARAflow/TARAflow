@@ -27,7 +27,11 @@
     "inProgress": "In Progress",
     "errors": "Errors",
     "actions": "Actions",
-    "remove": "Remove"
+    "remove": "Remove",
+    "showDFD": "Show DFD Preview",
+    "hideDFD": "Hide DFD Preview",
+    "all": "All",
+    "deleteAll": "Delete All"
   },
 
   "project": {
@@ -267,8 +271,6 @@
       "addAsset": "Add Asset",
       "syncFromDFD": "Sync from DFD",
       "configuration": "Impact Configuration",
-      "showDFD": "Show DFD Preview",
-      "hideDFD": "Hide DFD Preview",
       "missingInDFD": "{{count}} asset(s) not placed in DFD",
       "notLinked": "Not linked",
       "noAssets": "No assets defined",
@@ -323,12 +325,89 @@
       }
     },
     "threats": {
-      "title": "Threats Table",
-      "description": "Identify and document threats for your assets."
+      "title": "Threat Analysis",
+      "description": "Identify and document threats using STRIDE methodology",
+      "generate": "Generate Threats",
+      "regenerate": "Regenerate",
+      "noThreats": "No threats defined yet",
+      "noThreatsHint": "Click 'Generate Threats' to automatically create threats based on your DFD.",
+      "noDFD": "Please create a DFD in Phase 1 before generating threats.",
+      "threats": "Threats",
+      "dfdReference": "DFD Reference",
+      "editThreat": "Edit Threat",
+      "deleteThreat": "Delete Threat",
+      "deleteConfirm": "Are you sure you want to delete this threat? This action cannot be undone.",
+      "perElement": "STRIDE per Element",
+      "perInteraction": "STRIDE per Interaction",
+      "generateConfirmTitle": "Regenerate Threats?",
+      "generateConfirmMessage": "This will overwrite all existing threats...",
+      "importConfirmTitle": "Import Threats?",
+      "importConfirmMessage": "This will overwrite all existing threats with the imported data. This action cannot be undone.",
+      "importError": "Invalid file format. Please select a valid threats export file.",
+      "importParseError": "Failed to parse file. Please ensure it is a valid JSON file.",
+      "deleteAll": "Delete All Threats",
+      "deleteAllConfirmTitle": "Delete All Threats?",
+      "deleteAllConfirmMessage": "This will permanently delete all threats for the current method ({{method}}). This action cannot be undone.",
+      "element": "Element",
+      "dataFlow": "Data Flow",
+      "threatDescription": "Threat Description",
+      "threatDescriptionPlaceholder": "Describe the threat...",
+      "attackDescription": "Attack Scenario",
+      "attackDescriptionPlaceholder": "Describe how an attacker might exploit this...",
+      "threatActor": "Threat Actor",
+      "mitigation": "Mitigation / Countermeasure",
+      "mitigationPlaceholder": "Describe countermeasures...",
+      "verification": "Verification / Testing",
+      "verificationPlaceholder": "Describe how to verify the mitigation works...",
+      "selectTemplate": "Select template...",
+      "addMitigation": "Add mitigation...",
+      "addVerification": "Add verification...",
+      "noMitigation": "Not defined",
+      "noVerification": "Not defined",
+      "totalThreats": "Total: {{count}} threats",
+      "columns": {
+        "threatId": "T-ID",
+        "element": "Element",
+        "dataFlow": "Data Flow",
+        "threat": "Threat",
+        "actor": "Actor",
+        "mitigation": "Mitigation",
+        "verification": "Verification"
+      },
+      "config": {
+        "title": "Threat Analysis Configuration",
+        "methodTab": "Method",
+        "threatsTab": "Threats",
+        "mitigationsTab": "Mitigations",
+        "verificationsTab": "Verifications",
+        "strideMethod": "STRIDE Analysis Method",
+        "perElement": "STRIDE-per-Element",
+        "perElementDesc": "Analyzes each DFD element individually. Best for closed systems, safety-critical systems, and regulatory compliance.",
+        "perInteraction": "STRIDE-per-Interaction",
+        "perInteractionDesc": "Analyzes data flows between components. Best for web applications, APIs, and distributed systems.",
+        "methodChangeWarning": "Changing the STRIDE method will regenerate all threats. Existing customizations will be lost.",
+        "customThreatsInfo": "Add custom threat templates to the catalog.",
+        "customMitigationsInfo": "Add custom mitigation templates to the catalog.",
+        "customVerificationsInfo": "Add custom verification templates to the catalog.",
+        "threatDescription": "Threat Description",
+        "mitigationDescription": "Mitigation",
+        "verificationDescription": "Verification Method",
+        "noCustomThreats": "No custom threats defined",
+        "noCustomMitigations": "No custom mitigations defined",
+        "noCustomVerifications": "No custom verifications defined"
+      }
     },
     "risk": {
       "title": "Risk Assessment",
       "description": "Evaluate and prioritize risks based on threats."
+    },
+    "attacktree": {
+      "title": "Attack Tree",
+      "description": "Evaluate the likelihood of a threat with attack tree"
+    },
+    "doc": {
+      "title": "Documentation",
+      "description": "Generate the complete documentation for the compliance"
     }
   },
 
@@ -359,6 +438,38 @@
       "TrustBoundary": "Trust Boundary",
       "Interface": "Interface",
       "Asset": "Asset"
+    }
+  },
+  "stride": {
+    "S": {
+      "name": "Spoofing",
+      "property": "Authentication",
+      "description": "Pretending to be something or someone you're not"
+    },
+    "T": {
+      "name": "Tampering",
+      "property": "Integrity",
+      "description": "Modifying something you're not supposed to modify"
+    },
+    "R": {
+      "name": "Repudiation",
+      "property": "Non-repudiation",
+      "description": "Claiming you didn't do something, whether or not you actually did"
+    },
+    "I": {
+      "name": "Information Disclosure",
+      "property": "Confidentiality",
+      "description": "Exposing information to people who aren't authorized to see it"
+    },
+    "D": {
+      "name": "Denial of Service",
+      "property": "Availability",
+      "description": "Taking actions to prevent the system from providing service"
+    },
+    "E": {
+      "name": "Elevation of Privilege",
+      "property": "Authorization",
+      "description": "Being able to perform operations you aren't supposed to be able to do"
     }
   }
 }

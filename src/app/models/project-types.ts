@@ -1,6 +1,7 @@
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
 import { ActivityLogEntry, PhaseStatus, PhaseStatusMap } from "shared";
+import { ThreatData } from "features/threats";
 
 // ==================== PROJECT TYPES ====================
 
@@ -142,9 +143,8 @@ export interface Project {
   status: ProjectStatus;
   activityLog: ActivityLogEntry[];
   dfd: DFDData | null;
-  //assets: Asset[];
   assets: AssetData | null;
-  threats: Threat[];
+  threats: ThreatData | null;
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
 }

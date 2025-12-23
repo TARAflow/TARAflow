@@ -27,7 +27,11 @@
     "inProgress": "In Bearbeitung",
     "errors": "Fehler",
     "actions": "Aktionen",
-    "remove": "Entfernen"
+    "remove": "Entfernen",
+    "showDFD": "DFD-Vorschau anzeigen",
+    "hideDFD": "DFD-Vorschau ausblenden",
+    "all": "Alle",
+    "deleteAll": "Alle löschen"
   },
 
   "project": {
@@ -267,8 +271,6 @@
       "addAsset": "Asset hinzufügen",
       "syncFromDFD": "Aus DFD synchronisieren",
       "configuration": "Impact-Konfiguration",
-      "showDFD": "DFD-Vorschau anzeigen",
-      "hideDFD": "DFD-Vorschau ausblenden",
       "missingInDFD": "{{count}} Asset(s) nicht im DFD platziert",
       "notLinked": "Nicht verknüpft",
       "noAssets": "Keine Assets definiert",
@@ -323,12 +325,89 @@
       }
     },
     "threats": {
-      "title": "Bedrohungstabelle",
-      "description": "Identifizieren und dokumentieren Sie Bedrohungen für Ihre Assets."
+      "title": "Bedrohungsanalyse",
+      "description": "Identifizieren und dokumentieren Sie Bedrohungen mit der STRIDE-Methodik",
+      "generate": "Bedrohungen generieren",
+      "regenerate": "Neu generieren",
+      "noThreats": "Noch keine Bedrohungen definiert",
+      "noThreatsHint": "Klicken Sie auf 'Bedrohungen generieren', um automatisch Bedrohungen basierend auf Ihrem DFD zu erstellen.",
+      "noDFD": "Bitte erstellen Sie zuerst ein DFD in Phase 1, bevor Sie Bedrohungen generieren.",
+      "threats": "Bedrohungen",
+      "dfdReference": "DFD-Referenz",
+      "editThreat": "Bedrohung bearbeiten",
+      "deleteThreat": "Bedrohung löschen",
+      "deleteConfirm": "Sind Sie sicher, dass Sie diese Bedrohung löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "perElement": "STRIDE per Element",
+      "perInteraction": "STRIDE per Interaction",
+      "generateConfirmTitle": "Bedrohungen neu generieren?",
+      "generateConfirmMessage": "Alle bestehenden Bedrohungen werden überschrieben, einschließlich manueller Änderungen. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "importConfirmTitle": "Bedrohungen importieren?",
+      "importConfirmMessage": "Alle bestehenden Bedrohungen werden mit den importierten Daten überschrieben. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "importError": "Ungültiges Dateiformat. Bitte wählen Sie eine gültige Threats-Exportdatei.",
+      "importParseError": "Datei konnte nicht gelesen werden. Bitte stellen Sie sicher, dass es sich um eine gültige JSON-Datei handelt.",
+      "deleteAll": "Alle Bedrohungen löschen",
+      "deleteAllConfirmTitle": "Alle Bedrohungen löschen?",
+      "deleteAllConfirmMessage": "Alle Bedrohungen für die aktuelle Methode ({{method}}) werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "element": "Element",
+      "dataFlow": "Datenfluss",
+      "threatDescription": "Bedrohungsbeschreibung",
+      "threatDescriptionPlaceholder": "Beschreiben Sie die Bedrohung...",
+      "attackDescription": "Angriffsszenario",
+      "attackDescriptionPlaceholder": "Beschreiben Sie, wie ein Angreifer dies ausnutzen könnte...",
+      "threatActor": "Bedrohungsakteur",
+      "mitigation": "Gegenmassnahme",
+      "mitigationPlaceholder": "Beschreiben Sie Gegenmassnahmen...",
+      "verification": "Verifizierung / Test",
+      "verificationPlaceholder": "Beschreiben Sie, wie die Wirksamkeit der Gegenmassnahme überprüft werden kann...",
+      "selectTemplate": "Vorlage auswählen...",
+      "addMitigation": "Gegenmassnahme hinzufügen...",
+      "addVerification": "Verifizierung hinzufügen...",
+      "noMitigation": "Nicht definiert",
+      "noVerification": "Nicht definiert",
+      "totalThreats": "Gesamt: {{count}} Bedrohungen",
+      "columns": {
+        "threatId": "T-ID",
+        "element": "Element",
+        "dataFlow": "Datenfluss",
+        "threat": "Bedrohung",
+        "actor": "Akteur",
+        "mitigation": "Gegenmassnahme",
+        "verification": "Verifizierung"
+      },
+      "config": {
+        "title": "Bedrohungsanalyse-Konfiguration",
+        "methodTab": "Methode",
+        "threatsTab": "Bedrohungen",
+        "mitigationsTab": "Gegenmassnahmen",
+        "verificationsTab": "Verifizierungen",
+        "strideMethod": "STRIDE-Analysemethode",
+        "perElement": "STRIDE-per-Element",
+        "perElementDesc": "Analysiert jedes DFD-Element einzeln. Am besten für geschlossene Systeme, sicherheitskritische Systeme und regulatorische Compliance.",
+        "perInteraction": "STRIDE-per-Interaction",
+        "perInteractionDesc": "Analysiert Datenflüsse zwischen Komponenten. Am besten für Webanwendungen, APIs und verteilte Systeme.",
+        "methodChangeWarning": "Das Ändern der STRIDE-Methode wird alle Bedrohungen neu generieren. Vorhandene Anpassungen gehen verloren.",
+        "customThreatsInfo": "Fügen Sie benutzerdefinierte Bedrohungsvorlagen zum Katalog hinzu.",
+        "customMitigationsInfo": "Fügen Sie benutzerdefinierte Gegenmassnahmenvorlagen zum Katalog hinzu.",
+        "customVerificationsInfo": "Fügen Sie benutzerdefinierte Verifizierungsvorlagen zum Katalog hinzu.",
+        "threatDescription": "Bedrohungsbeschreibung",
+        "mitigationDescription": "Gegenmassnahme",
+        "verificationDescription": "Verifizierungsmethode",
+        "noCustomThreats": "Keine benutzerdefinierten Bedrohungen definiert",
+        "noCustomMitigations": "Keine benutzerdefinierten Gegenmassnahmen definiert",
+        "noCustomVerifications": "Keine benutzerdefinierten Verifizierungen definiert"
+      }
     },
     "risk": {
       "title": "Risikobewertung",
       "description": "Bewerten und priorisieren Sie Risiken basierend auf Bedrohungen."
+    },
+    "attacktree": {
+      "title": "Attack Tree",
+      "description": "Bewerten Sie die Wahrscheinlichkeit einer Bedrohung anhand des Attack Trees"
+    },
+    "doc": {
+      "title": "Dokumentation",
+      "description": "Erstelle die komplette Dokumentation für die Einhaltung der Regularien"
     }
   },
 
@@ -359,6 +438,38 @@
       "TrustBoundary": "Trust Boundary",
       "Interface": "Interface",
       "Asset": "Asset"
+    }
+  },
+  "stride": {
+    "S": {
+      "name": "Spoofing",
+      "property": "Authentifizierung",
+      "description": "Vorgeben, etwas oder jemand anderes zu sein"
+    },
+    "T": {
+      "name": "Manipulation",
+      "property": "Integrität",
+      "description": "Ändern von etwas, das nicht geändert werden sollte"
+    },
+    "R": {
+      "name": "Abstreitbarkeit",
+      "property": "Nichtabstreitbarkeit",
+      "description": "Behaupten, etwas nicht getan zu haben"
+    },
+    "I": {
+      "name": "Informationspreisgabe",
+      "property": "Vertraulichkeit",
+      "description": "Offenlegung von Informationen an Unbefugte"
+    },
+    "D": {
+      "name": "Dienstverweigerung",
+      "property": "Verfügbarkeit",
+      "description": "Aktionen, die das System am Bereitstellen von Diensten hindern"
+    },
+    "E": {
+      "name": "Rechteausweitung",
+      "property": "Autorisierung",
+      "description": "Ausführen von Operationen ohne entsprechende Berechtigung"
     }
   }
 }

@@ -1,0 +1,697 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-01",
+  "description": "Comprehensive global STRIDE threat catalog for both per-element and per-interaction threat modeling, based on bbv TARA documentation and OWASP STRIDE Reference Sheets",
+  
+  "threatTemplates": [
+    {
+      "id": "S-EE-001",
+      "strideCategory": "S",
+      "elementTypes": ["ExternalEntity"],
+      "threat": "Spoofing of external entity identity",
+      "threatDE": "Fälschung der Identität einer externen Entität",
+      "attack": "Attacker impersonates a legitimate external entity to gain unauthorized access",
+      "attackDE": "Angreifer gibt sich als legitime externe Entität aus, um unbefugten Zugang zu erlangen",
+      "isCustom": false
+    },
+    {
+      "id": "S-P-001",
+      "strideCategory": "S",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Unauthorized access to process via identity spoofing",
+      "threatDE": "Unbefugter Zugriff auf Prozess durch Identitätsfälschung",
+      "attack": "Attacker spoofs identity to gain access to protected process",
+      "attackDE": "Angreifer fälscht Identität, um Zugang zu geschütztem Prozess zu erlangen",
+      "isCustom": false
+    },
+    {
+      "id": "S-P-002",
+      "strideCategory": "S",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Process spoofing through malicious process replacement",
+      "threatDE": "Prozess-Spoofing durch böswilligen Prozessaustausch",
+      "attack": "Attacker replaces legitimate process with malicious process using same name",
+      "attackDE": "Angreifer ersetzt legitimen Prozess durch böswilligen Prozess mit gleichem Namen",
+      "isCustom": false
+    },
+    {
+      "id": "S-P-003",
+      "strideCategory": "S",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Session hijacking through improper session handling",
+      "threatDE": "Session-Hijacking durch unsachgemäße Sitzungsverwaltung",
+      "attack": "Attacker takes over user session by exploiting weak session management",
+      "attackDE": "Angreifer übernimmt Benutzersitzung durch Ausnutzung schwacher Sitzungsverwaltung",
+      "isCustom": false
+    },
+    
+    {
+      "id": "T-P-001",
+      "strideCategory": "T",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Tampering with process logic or code",
+      "threatDE": "Manipulation der Prozesslogik oder des Codes",
+      "attack": "Attacker modifies process code or configuration to alter behavior",
+      "attackDE": "Angreifer ändert Prozesscode oder Konfiguration, um Verhalten zu ändern",
+      "isCustom": false
+    },
+    {
+      "id": "T-P-002",
+      "strideCategory": "T",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Memory tampering through buffer overflow",
+      "threatDE": "Speichermanipulation durch Pufferüberlauf",
+      "attack": "Attacker exploits buffer overflow to modify process memory",
+      "attackDE": "Angreifer nutzt Pufferüberlauf aus, um Prozessspeicher zu modifizieren",
+      "isCustom": false
+    },
+    {
+      "id": "T-DF-001",
+      "strideCategory": "T",
+      "elementTypes": ["DataFlow"],
+      "threat": "Data tampering during transmission",
+      "threatDE": "Datenmanipulation während der Übertragung",
+      "attack": "Attacker intercepts and modifies data flowing between components",
+      "attackDE": "Angreifer fängt Daten ab und modifiziert sie während der Übertragung",
+      "isCustom": false
+    },
+    {
+      "id": "T-DF-002",
+      "strideCategory": "T",
+      "elementTypes": ["DataFlow"],
+      "threat": "Man-in-the-middle attack on data flow",
+      "threatDE": "Man-in-the-Middle-Angriff auf Datenfluss",
+      "attack": "Attacker positions themselves between communicating parties to intercept and alter data",
+      "attackDE": "Angreifer positioniert sich zwischen kommunizierenden Parteien, um Daten abzufangen und zu ändern",
+      "isCustom": false
+    },
+    {
+      "id": "T-DS-001",
+      "strideCategory": "T",
+      "elementTypes": ["DataStore"],
+      "threat": "Tampering with stored data",
+      "threatDE": "Manipulation gespeicherter Daten",
+      "attack": "Attacker modifies data directly in storage bypassing application controls",
+      "attackDE": "Angreifer modifiziert Daten direkt im Speicher unter Umgehung der Anwendungskontrollen",
+      "isCustom": false
+    },
+    {
+      "id": "T-DS-002",
+      "strideCategory": "T",
+      "elementTypes": ["DataStore"],
+      "threat": "SQL injection leading to data manipulation",
+      "threatDE": "SQL-Injection führt zu Datenmanipulation",
+      "attack": "Attacker injects malicious SQL to modify database contents",
+      "attackDE": "Angreifer injiziert bösartiges SQL, um Datenbankinhalte zu modifizieren",
+      "isCustom": false
+    },
+    
+    {
+      "id": "R-EE-001",
+      "strideCategory": "R",
+      "elementTypes": ["ExternalEntity"],
+      "threat": "External entity denies performed action",
+      "threatDE": "Externe Entität bestreitet ausgeführte Aktion",
+      "attack": "User or external system claims they did not perform a specific action",
+      "attackDE": "Benutzer oder externes System behauptet, eine bestimmte Aktion nicht ausgeführt zu haben",
+      "isCustom": false
+    },
+    {
+      "id": "R-P-001",
+      "strideCategory": "R",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Process actions cannot be traced to actor",
+      "threatDE": "Prozessaktionen können nicht zum Akteur zurückverfolgt werden",
+      "attack": "Insufficient logging allows attacker to deny performing malicious actions",
+      "attackDE": "Unzureichende Protokollierung ermöglicht es dem Angreifer, böswillige Aktionen abzustreiten",
+      "isCustom": false
+    },
+    {
+      "id": "R-P-002",
+      "strideCategory": "R",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Log tampering to hide malicious activity",
+      "threatDE": "Log-Manipulation, um böswillige Aktivitäten zu verbergen",
+      "attack": "Attacker modifies or deletes logs to hide evidence of their actions",
+      "attackDE": "Angreifer modifiziert oder löscht Protokolle, um Beweise für seine Aktionen zu verbergen",
+      "isCustom": false
+    },
+    {
+      "id": "R-DS-001",
+      "strideCategory": "R",
+      "elementTypes": ["DataStore"],
+      "threat": "Data modifications cannot be attributed",
+      "threatDE": "Datenänderungen können nicht zugeordnet werden",
+      "attack": "Missing audit trail allows denial of data changes",
+      "attackDE": "Fehlender Audit-Trail ermöglicht Abstreiten von Datenänderungen",
+      "isCustom": false
+    },
+    
+    {
+      "id": "I-P-001",
+      "strideCategory": "I",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Information disclosure through error messages",
+      "threatDE": "Informationspreisgabe durch Fehlermeldungen",
+      "attack": "Detailed error messages expose sensitive system information",
+      "attackDE": "Detaillierte Fehlermeldungen legen sensible Systeminformationen offen",
+      "isCustom": false
+    },
+    {
+      "id": "I-P-002",
+      "strideCategory": "I",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Memory disclosure through side-channel attacks",
+      "threatDE": "Speicheroffenlegung durch Seitenkanalangriffe",
+      "attack": "Attacker extracts sensitive data from process memory through timing or cache attacks",
+      "attackDE": "Angreifer extrahiert sensible Daten aus dem Prozessspeicher durch Timing- oder Cache-Angriffe",
+      "isCustom": false
+    },
+    {
+      "id": "I-DF-001",
+      "strideCategory": "I",
+      "elementTypes": ["DataFlow"],
+      "threat": "Eavesdropping on unencrypted data flow",
+      "threatDE": "Abhören unverschlüsselter Datenflüsse",
+      "attack": "Attacker intercepts and reads data transmitted without encryption",
+      "attackDE": "Angreifer fängt unverschlüsselt übertragene Daten ab und liest sie",
+      "isCustom": false
+    },
+    {
+      "id": "I-DF-002",
+      "strideCategory": "I",
+      "elementTypes": ["DataFlow"],
+      "threat": "Traffic analysis reveals sensitive patterns",
+      "threatDE": "Verkehrsanalyse offenbart sensible Muster",
+      "attack": "Attacker analyzes traffic patterns to infer sensitive information",
+      "attackDE": "Angreifer analysiert Verkehrsmuster, um auf sensible Informationen zu schließen",
+      "isCustom": false
+    },
+    {
+      "id": "I-DS-001",
+      "strideCategory": "I",
+      "elementTypes": ["DataStore"],
+      "threat": "Unauthorized access to stored data",
+      "threatDE": "Unbefugter Zugriff auf gespeicherte Daten",
+      "attack": "Attacker bypasses access controls to read sensitive stored data",
+      "attackDE": "Angreifer umgeht Zugriffskontrollen, um sensible gespeicherte Daten zu lesen",
+      "isCustom": false
+    },
+    {
+      "id": "I-DS-002",
+      "strideCategory": "I",
+      "elementTypes": ["DataStore"],
+      "threat": "Data exposure through backup or log files",
+      "threatDE": "Datenexposition durch Backup- oder Protokolldateien",
+      "attack": "Attacker accesses sensitive data through unsecured backups or verbose logs",
+      "attackDE": "Angreifer greift auf sensible Daten über ungesicherte Backups oder ausführliche Protokolle zu",
+      "isCustom": false
+    },
+    
+    {
+      "id": "D-P-001",
+      "strideCategory": "D",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Process crash through malformed input",
+      "threatDE": "Prozessabsturz durch fehlerhafte Eingaben",
+      "attack": "Attacker sends specially crafted input to crash the process",
+      "attackDE": "Angreifer sendet speziell gestaltete Eingaben, um den Prozess zum Absturz zu bringen",
+      "isCustom": false
+    },
+    {
+      "id": "D-P-002",
+      "strideCategory": "D",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Resource exhaustion through excessive requests",
+      "threatDE": "Ressourcenerschöpfung durch übermäßige Anfragen",
+      "attack": "Attacker floods process with requests to consume all resources",
+      "attackDE": "Angreifer überflutet Prozess mit Anfragen, um alle Ressourcen zu verbrauchen",
+      "isCustom": false
+    },
+    {
+      "id": "D-DF-001",
+      "strideCategory": "D",
+      "elementTypes": ["DataFlow"],
+      "threat": "Network flooding disrupts data flow",
+      "threatDE": "Netzwerkflutung unterbricht Datenfluss",
+      "attack": "Attacker floods network to prevent legitimate data transmission",
+      "attackDE": "Angreifer flutet Netzwerk, um legitime Datenübertragung zu verhindern",
+      "isCustom": false
+    },
+    {
+      "id": "D-DS-001",
+      "strideCategory": "D",
+      "elementTypes": ["DataStore"],
+      "threat": "Storage exhaustion through excessive data",
+      "threatDE": "Speichererschöpfung durch übermäßige Daten",
+      "attack": "Attacker fills storage to prevent legitimate data operations",
+      "attackDE": "Angreifer füllt Speicher, um legitime Datenoperationen zu verhindern",
+      "isCustom": false
+    },
+    {
+      "id": "D-DS-002",
+      "strideCategory": "D",
+      "elementTypes": ["DataStore"],
+      "threat": "Database lock through long-running queries",
+      "threatDE": "Datenbanksperren durch lang laufende Abfragen",
+      "attack": "Attacker executes complex queries to lock database resources",
+      "attackDE": "Angreifer führt komplexe Abfragen aus, um Datenbankressourcen zu sperren",
+      "isCustom": false
+    },
+    
+    {
+      "id": "E-P-001",
+      "strideCategory": "E",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Privilege escalation through input validation flaws",
+      "threatDE": "Rechteausweitung durch Eingabevalidierungsfehler",
+      "attack": "Attacker exploits missing input validation to gain elevated privileges",
+      "attackDE": "Angreifer nutzt fehlende Eingabevalidierung aus, um erhöhte Rechte zu erlangen",
+      "isCustom": false
+    },
+    {
+      "id": "E-P-002",
+      "strideCategory": "E",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Unauthorized access through weak authorization",
+      "threatDE": "Unbefugter Zugriff durch schwache Autorisierung",
+      "attack": "Attacker bypasses flawed authorization checks to access restricted functions",
+      "attackDE": "Angreifer umgeht fehlerhafte Autorisierungsprüfungen, um auf eingeschränkte Funktionen zuzugreifen",
+      "isCustom": false
+    },
+    {
+      "id": "E-P-003",
+      "strideCategory": "E",
+      "elementTypes": ["Process", "Multiprocess"],
+      "threat": "Code injection leads to arbitrary code execution",
+      "threatDE": "Code-Injection führt zur Ausführung beliebigen Codes",
+      "attack": "Attacker injects and executes malicious code with process privileges",
+      "attackDE": "Angreifer injiziert und führt bösartigen Code mit Prozessrechten aus",
+      "isCustom": false
+    },
+    {
+      "id": "E-PI-001",
+      "strideCategory": "E",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Physical access enables privilege escalation",
+      "threatDE": "Physischer Zugang ermöglicht Rechteausweitung",
+      "attack": "Attacker with physical access to debug interface gains elevated privileges",
+      "attackDE": "Angreifer mit physischem Zugang zu Debug-Schnittstelle erlangt erhöhte Rechte",
+      "isCustom": false
+    }
+  ],
+  
+  "mitigationTemplates": [
+    {
+      "id": "M-S-001",
+      "strideCategory": "S",
+      "mitigation": "Implement multi-factor authentication (MFA)",
+      "mitigationDE": "Multi-Faktor-Authentifizierung (MFA) implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-S-002",
+      "strideCategory": "S",
+      "mitigation": "Use PKI systems and digital certificates",
+      "mitigationDE": "PKI-Systeme und digitale Zertifikate verwenden",
+      "isCustom": false
+    },
+    {
+      "id": "M-S-003",
+      "strideCategory": "S",
+      "mitigation": "Implement secure session management with proper timeout",
+      "mitigationDE": "Sichere Sitzungsverwaltung mit angemessenem Timeout implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-S-004",
+      "strideCategory": "S",
+      "mitigation": "Use digitally signed packets and authenticate code/data",
+      "mitigationDE": "Digital signierte Pakete verwenden und Code/Daten authentifizieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-S-005",
+      "strideCategory": "S",
+      "mitigation": "Implement IPSec for network communication",
+      "mitigationDE": "IPSec für Netzwerkkommunikation implementieren",
+      "isCustom": false
+    },
+    
+    {
+      "id": "M-T-001",
+      "strideCategory": "T",
+      "mitigation": "Implement integrity controls and checksums",
+      "mitigationDE": "Integritätskontrollen und Prüfsummen implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-T-002",
+      "strideCategory": "T",
+      "mitigation": "Use digital signatures for data integrity",
+      "mitigationDE": "Digitale Signaturen für Datenintegrität verwenden",
+      "isCustom": false
+    },
+    {
+      "id": "M-T-003",
+      "strideCategory": "T",
+      "mitigation": "Implement proper ACLs (Access Control Lists)",
+      "mitigationDE": "Korrekte ACLs (Zugriffskontrolllisten) implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-T-004",
+      "strideCategory": "T",
+      "mitigation": "Implement input validation and data sanitization",
+      "mitigationDE": "Eingabevalidierung und Datenbereinigung implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-T-005",
+      "strideCategory": "T",
+      "mitigation": "Use TLS 1.3 for data in transit",
+      "mitigationDE": "TLS 1.3 für Daten während der Übertragung verwenden",
+      "isCustom": false
+    },
+    
+    {
+      "id": "M-R-001",
+      "strideCategory": "R",
+      "mitigation": "Implement secure, tamper-proof logging",
+      "mitigationDE": "Sichere, manipulationssichere Protokollierung implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-R-002",
+      "strideCategory": "R",
+      "mitigation": "Use digital signatures for non-repudiation",
+      "mitigationDE": "Digitale Signaturen für Nichtabstreitbarkeit verwenden",
+      "isCustom": false
+    },
+    {
+      "id": "M-R-003",
+      "strideCategory": "R",
+      "mitigation": "Implement secure timestamps from trusted source",
+      "mitigationDE": "Sichere Zeitstempel von vertrauenswürdiger Quelle implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-R-004",
+      "strideCategory": "R",
+      "mitigation": "Implement log integrity checks and regular audits",
+      "mitigationDE": "Log-Integritätsprüfungen und regelmäßige Audits implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-R-005",
+      "strideCategory": "R",
+      "mitigation": "Strong authentication with audit trail",
+      "mitigationDE": "Starke Authentifizierung mit Audit-Trail",
+      "isCustom": false
+    },
+    
+    {
+      "id": "M-I-001",
+      "strideCategory": "I",
+      "mitigation": "Encrypt data at rest using AES-256",
+      "mitigationDE": "Daten im Ruhezustand mit AES-256 verschlüsseln",
+      "isCustom": false
+    },
+    {
+      "id": "M-I-002",
+      "strideCategory": "I",
+      "mitigation": "Encrypt data in transit using TLS 1.3",
+      "mitigationDE": "Daten während der Übertragung mit TLS 1.3 verschlüsseln",
+      "isCustom": false
+    },
+    {
+      "id": "M-I-003",
+      "strideCategory": "I",
+      "mitigation": "Implement proper ACLs and role-based access control",
+      "mitigationDE": "Korrekte ACLs und rollenbasierte Zugriffskontrolle implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-I-004",
+      "strideCategory": "I",
+      "mitigation": "Implement secure data storage with proper key management",
+      "mitigationDE": "Sichere Datenspeicherung mit korrekter Schlüsselverwaltung implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-I-005",
+      "strideCategory": "I",
+      "mitigation": "Apply data masking for sensitive information",
+      "mitigationDE": "Datenmaskierung für sensible Informationen anwenden",
+      "isCustom": false
+    },
+    
+    {
+      "id": "M-D-001",
+      "strideCategory": "D",
+      "mitigation": "Implement rate limiting and throttling",
+      "mitigationDE": "Rate Limiting und Throttling implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-D-002",
+      "strideCategory": "D",
+      "mitigation": "Implement quotas and resource limits",
+      "mitigationDE": "Quoten und Ressourcenlimits implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-D-003",
+      "strideCategory": "D",
+      "mitigation": "Use ACLs or filtering to restrict access",
+      "mitigationDE": "ACLs oder Filterung verwenden, um Zugriff zu beschränken",
+      "isCustom": false
+    },
+    {
+      "id": "M-D-004",
+      "strideCategory": "D",
+      "mitigation": "Implement high availability design with redundancy",
+      "mitigationDE": "Hochverfügbarkeitsdesign mit Redundanz implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-D-005",
+      "strideCategory": "D",
+      "mitigation": "Use load balancing to distribute traffic",
+      "mitigationDE": "Load Balancing zur Verteilung des Datenverkehrs verwenden",
+      "isCustom": false
+    },
+    
+    {
+      "id": "M-E-001",
+      "strideCategory": "E",
+      "mitigation": "Apply least privilege principle",
+      "mitigationDE": "Prinzip der geringsten Rechte anwenden",
+      "isCustom": false
+    },
+    {
+      "id": "M-E-002",
+      "strideCategory": "E",
+      "mitigation": "Implement proper ACLs and role-based access control",
+      "mitigationDE": "Korrekte ACLs und rollenbasierte Zugriffskontrolle implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-E-003",
+      "strideCategory": "E",
+      "mitigation": "Implement strict input validation",
+      "mitigationDE": "Strikte Eingabevalidierung implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-E-004",
+      "strideCategory": "E",
+      "mitigation": "Regular security reviews and updates",
+      "mitigationDE": "Regelmäßige Sicherheitsüberprüfungen und Updates",
+      "isCustom": false
+    },
+    {
+      "id": "M-E-005",
+      "strideCategory": "E",
+      "mitigation": "Use sandboxing to isolate processes",
+      "mitigationDE": "Sandboxing zur Isolierung von Prozessen verwenden",
+      "isCustom": false
+    },
+    {
+      "id": "M-E-006",
+      "strideCategory": "E",
+      "mitigation": "Disable debug interfaces in production",
+      "mitigationDE": "Debug-Schnittstellen in der Produktion deaktivieren",
+      "isCustom": false
+    }
+  ],
+  
+  "verificationTemplates": [
+    {
+      "id": "V-S-001",
+      "strideCategory": "S",
+      "verification": "Penetration testing for authentication bypass",
+      "verificationDE": "Penetrationstests für Authentifizierungsumgehung",
+      "isCustom": false
+    },
+    {
+      "id": "V-S-002",
+      "strideCategory": "S",
+      "verification": "Verify MFA implementation with bypass attempts",
+      "verificationDE": "MFA-Implementierung mit Umgehungsversuchen verifizieren",
+      "isCustom": false
+    },
+    {
+      "id": "V-S-003",
+      "strideCategory": "S",
+      "verification": "Certificate validation testing (SSL Labs, testssl.sh)",
+      "verificationDE": "Zertifikatsvalidierungstests (SSL Labs, testssl.sh)",
+      "isCustom": false
+    },
+    {
+      "id": "V-S-004",
+      "strideCategory": "S",
+      "verification": "Session management security testing",
+      "verificationDE": "Sicherheitstests für Sitzungsverwaltung",
+      "isCustom": false
+    },
+    
+    {
+      "id": "V-T-001",
+      "strideCategory": "T",
+      "verification": "Integrity check validation testing",
+      "verificationDE": "Integritätsprüfungsvalidierungstests",
+      "isCustom": false
+    },
+    {
+      "id": "V-T-002",
+      "strideCategory": "T",
+      "verification": "Fuzzing tests for input validation (AFL, Peach, Radamsa)",
+      "verificationDE": "Fuzzing-Tests für Eingabevalidierung (AFL, Peach, Radamsa)",
+      "isCustom": false
+    },
+    {
+      "id": "V-T-003",
+      "strideCategory": "T",
+      "verification": "SQL injection testing (SQLMap, Burp Suite)",
+      "verificationDE": "SQL-Injection-Tests (SQLMap, Burp Suite)",
+      "isCustom": false
+    },
+    {
+      "id": "V-T-004",
+      "strideCategory": "T",
+      "verification": "Code review for buffer overflow vulnerabilities",
+      "verificationDE": "Code-Review für Pufferüberlauf-Schwachstellen",
+      "isCustom": false
+    },
+    
+    {
+      "id": "V-R-001",
+      "strideCategory": "R",
+      "verification": "Audit log completeness and integrity testing",
+      "verificationDE": "Audit-Log-Vollständigkeits- und Integritätstests",
+      "isCustom": false
+    },
+    {
+      "id": "V-R-002",
+      "strideCategory": "R",
+      "verification": "Verify digital signature implementation",
+      "verificationDE": "Digitale Signatur-Implementierung verifizieren",
+      "isCustom": false
+    },
+    {
+      "id": "V-R-003",
+      "strideCategory": "R",
+      "verification": "Timestamp accuracy and source verification",
+      "verificationDE": "Zeitstempelgenauigkeit und Quellenverifizierung",
+      "isCustom": false
+    },
+    
+    {
+      "id": "V-I-001",
+      "strideCategory": "I",
+      "verification": "Encryption strength verification (correct algorithms, key lengths)",
+      "verificationDE": "Verschlüsselungsstärkeverifizierung (korrekte Algorithmen, Schlüssellängen)",
+      "isCustom": false
+    },
+    {
+      "id": "V-I-002",
+      "strideCategory": "I",
+      "verification": "Network traffic analysis for unencrypted data",
+      "verificationDE": "Netzwerkverkehrsanalyse auf unverschlüsselte Daten",
+      "isCustom": false
+    },
+    {
+      "id": "V-I-003",
+      "strideCategory": "I",
+      "verification": "Access control testing with different user roles",
+      "verificationDE": "Zugriffskontrolltests mit verschiedenen Benutzerrollen",
+      "isCustom": false
+    },
+    {
+      "id": "V-I-004",
+      "strideCategory": "I",
+      "verification": "Security scanning (Lynis, Nessus, OpenVAS)",
+      "verificationDE": "Sicherheitsscanning (Lynis, Nessus, OpenVAS)",
+      "isCustom": false
+    },
+    
+    {
+      "id": "V-D-001",
+      "strideCategory": "D",
+      "verification": "Stress testing and load testing (k6, JMeter)",
+      "verificationDE": "Stress- und Lasttests (k6, JMeter)",
+      "isCustom": false
+    },
+    {
+      "id": "V-D-002",
+      "strideCategory": "D",
+      "verification": "DDoS simulation testing",
+      "verificationDE": "DDoS-Simulationstests",
+      "isCustom": false
+    },
+    {
+      "id": "V-D-003",
+      "strideCategory": "D",
+      "verification": "Rate limiting effectiveness testing",
+      "verificationDE": "Effektivitätstests für Rate Limiting",
+      "isCustom": false
+    },
+    {
+      "id": "V-D-004",
+      "strideCategory": "D",
+      "verification": "Failover and recovery testing",
+      "verificationDE": "Failover- und Wiederherstellungstests",
+      "isCustom": false
+    },
+    
+    {
+      "id": "V-E-001",
+      "strideCategory": "E",
+      "verification": "Privilege escalation penetration testing",
+      "verificationDE": "Penetrationstests für Rechteausweitung",
+      "isCustom": false
+    },
+    {
+      "id": "V-E-002",
+      "strideCategory": "E",
+      "verification": "Authorization bypass testing (OWASP ZAP, Burp Suite)",
+      "verificationDE": "Autorisierungsumgehungstests (OWASP ZAP, Burp Suite)",
+      "isCustom": false
+    },
+    {
+      "id": "V-E-003",
+      "strideCategory": "E",
+      "verification": "SAST code review (SonarQube, Checkmarx)",
+      "verificationDE": "SAST Code-Review (SonarQube, Checkmarx)",
+      "isCustom": false
+    },
+    {
+      "id": "V-E-004",
+      "strideCategory": "E",
+      "verification": "Physical security inspection of debug interfaces",
+      "verificationDE": "Physische Sicherheitsinspektion von Debug-Schnittstellen",
+      "isCustom": false
+    }
+  ]
+}
