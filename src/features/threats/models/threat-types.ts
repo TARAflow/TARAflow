@@ -8,6 +8,40 @@ import type { PhaseStatusMap, StrideCategory } from "shared";
 
 export type StrideMethod = "per-element" | "per-interaction";
 
+// ==================== INTERACTION CONTEXT (NEW) ====================
+
+/**
+ * Direction of the threat in the data flow
+ * - incoming: Attacker targets the receiver (spoofs sender, manipulates data going IN)
+ * - outgoing: Attacker targets the sender (spoofs receiver, intercepts data going OUT)
+ */
+export type InteractionDirection = "incoming" | "outgoing";
+
+/**
+ * Role in the interaction being threatened
+ * - source: The sending component
+ * - target: The receiving component
+ */
+export type InteractionRole = "source" | "target";
+
+/**
+ * Context for STRIDE-per-Interaction threat generation
+ * Captures the directional nature of data flow threats
+ */
+export interface InteractionContext {
+  /** Direction of attack relative to data flow */
+  direction: InteractionDirection;
+  
+  /** Which component is being impersonated/attacked */
+  attackedRole: InteractionRole;
+  
+  /** Which component is being deceived/affected */
+  victimRole: InteractionRole;
+  
+  /** Whether this data flow crosses a trust boundary */
+  crossesTrustBoundary: boolean;
+}
+
 // ==================== STRIDE ELEMENT MAPPING ====================
 
 /**
@@ -187,50 +221,57 @@ export interface DataFlowReference {
 
 /**
  * Core Threat data structure
+ * Extended with InteractionContext for per-interaction method
  */
 export interface Threat {
   /** Unique Threat ID */
   id: string;
-  
+
   /** Trust Boundary ID this threat belongs to (null for external entities in per-element) */
   trustBoundaryId: string | null;
-  
+
   /** Trust Boundary name */
   trustBoundaryName: string | null;
-  
+
   /** STRIDE category */
   strideCategory: StrideCategory;
-  
+
   /** Sequential number per STRIDE category */
   sequenceNumber: number;
-  
+
   /** Linked DFD element (for per-element method) */
   linkedElement: LinkedDFDElement | null;
-  
+
   /** Data flow reference (for per-interaction method) */
   dataFlow: DataFlowReference | null;
-  
+
+  /**
+   * Interaction context (for per-interaction method)
+   * Captures direction and role information for contextual threats
+   */
+  interactionContext?: InteractionContext;
+
   /** Threat description */
   threatDescription: string;
-  
+
   /** Possible attack scenario */
   attackDescription: string;
-  
+
   /** Threat actor */
   threatActor: ThreatActorType;
-  
+
   /** Mitigation description */
   mitigation: string;
-  
+
   /** Verification/Testing description */
   verification: string;
-  
+
   /** Linked asset IDs */
   linkedAssetIds: string[];
-  
+
   /** Source: auto-generated or manual */
   source: "auto" | "manual";
-  
+
   /** Timestamps */
   created: string;
   lastModified: string;
@@ -308,6 +349,40 @@ export interface VerificationTemplate {
   verification: string;
   verificationDE: string;
   isCustom: boolean;
+}
+
+// ==================== INTERACTION TEMPLATE TYPES (NEW) ====================
+
+/**
+ * Template for generating directional threats in STRIDE-per-Interaction
+ * Uses placeholders: {{sourceName}}, {{targetName}}, {{dataFlowName}}
+ */
+export interface InteractionThreatTemplate {
+  id: string;
+  strideCategory: StrideCategory;
+  direction: InteractionDirection;
+  
+  /** Template with placeholders */
+  threat: string;
+  threatDE: string;
+  attack: string;
+  attackDE: string;
+  
+  /** Suggested mitigations for this direction */
+  suggestedMitigations: string[];
+  suggestedMitigationsDE: string[];
+}
+
+/**
+ * Placeholders available in interaction templates
+ */
+export interface InteractionTemplatePlaceholders {
+  sourceName: string;
+  targetName: string;
+  sourceType: string;
+  targetType: string;
+  dataFlowName: string;
+  trustBoundaryName: string;
 }
 
 // ==================== THREAT DATA CONTAINER ====================
@@ -409,16 +484,18 @@ export function generateThreatIdPerElement(
 
 /**
  * Generate threat ID for STRIDE-per-interaction method
- * Format: {TrustBoundaryID}-{DataFlowID}-{STRIDE}-{Number}
- * Example: TB-1-DF-1-S-1
+ * Format: {TrustBoundaryID}-{DataFlowID}-{STRIDE}-{Direction}-{Number}
+ * Example: TB1-1-S-IN-1, TB1-1-S-OUT-1
  */
 export function generateThreatIdPerInteraction(
   trustBoundaryId: string,
   dataFlowId: string,
   strideCategory: StrideCategory,
+  direction: InteractionDirection,
   sequenceNumber: number
 ): string {
-  return `${trustBoundaryId}-${dataFlowId}-${strideCategory}-${sequenceNumber}`;
+  const dirSuffix = direction === "incoming" ? "IN" : "OUT";
+  return `${trustBoundaryId}-${dataFlowId}-${strideCategory}-${dirSuffix}-${sequenceNumber}`;
 }
 
 /**
@@ -429,19 +506,34 @@ export function parseThreatId(id: string): {
   trustBoundaryId?: string;
   dataFlowId?: string;
   strideCategory: StrideCategory;
+  direction?: InteractionDirection;
   sequenceNumber: number;
 } | null {
-  // Try per-interaction format first: TB-1-DF-1-S-1
-  const perInteractionMatch = id.match(/^(TB-\d+)-(DF-\d+)-([STRIDE])-(\d+)$/);
-  if (perInteractionMatch) {
+  // Try per-interaction format with direction: TB1-1-S-IN-1 or TB1-1-S-OUT-1
+  const perInteractionWithDir = id.match(
+    /^(TB\d+)-(\d+)-([STRIDE])-(IN|OUT)-(\d+)$/
+  );
+  if (perInteractionWithDir) {
     return {
-      trustBoundaryId: perInteractionMatch[1],
-      dataFlowId: perInteractionMatch[2],
-      strideCategory: perInteractionMatch[3] as StrideCategory,
-      sequenceNumber: parseInt(perInteractionMatch[4], 10),
+      trustBoundaryId: perInteractionWithDir[1],
+      dataFlowId: perInteractionWithDir[2],
+      strideCategory: perInteractionWithDir[3] as StrideCategory,
+      direction: perInteractionWithDir[4] === "IN" ? "incoming" : "outgoing",
+      sequenceNumber: parseInt(perInteractionWithDir[5], 10),
     };
   }
-  
+
+  // Try legacy per-interaction format: TB-1-DF-1-S-1
+  const perInteractionLegacy = id.match(/^(TB-\d+)-(DF-\d+)-([STRIDE])-(\d+)$/);
+  if (perInteractionLegacy) {
+    return {
+      trustBoundaryId: perInteractionLegacy[1],
+      dataFlowId: perInteractionLegacy[2],
+      strideCategory: perInteractionLegacy[3] as StrideCategory,
+      sequenceNumber: parseInt(perInteractionLegacy[4], 10),
+    };
+  }
+
   // Try per-element format: P-1-S-1 or EE-1-S-1
   const perElementMatch = id.match(/^([A-Z]+-\d+)-([STRIDE])-(\d+)$/);
   if (perElementMatch) {
@@ -458,14 +550,18 @@ export function parseThreatId(id: string): {
 /**
  * Get STRIDE definition by type
  */
-export function getStrideDefinition(type: StrideCategory): StrideDefinition | undefined {
-  return STRIDE_DEFINITIONS.find(s => s.type === type);
+export function getStrideDefinition(
+  type: StrideCategory
+): StrideDefinition | undefined {
+  return STRIDE_DEFINITIONS.find((s) => s.type === type);
 }
 
 /**
  * Get applicable STRIDE categories for an element type
  */
-export function getApplicableStrideCategories(elementType: string): StrideCategory[] {
+export function getApplicableStrideCategories(
+  elementType: string
+): StrideCategory[] {
   return STRIDE_PER_ELEMENT_TYPE[elementType] || [];
 }
 
@@ -484,7 +580,9 @@ export function createDefaultThreatData(): ThreatData {
 /**
  * Get active threat tables based on current method
  */
-export function getActiveThreatTables(threatData: ThreatData | null | undefined): ThreatTable[] {
+export function getActiveThreatTables(
+  threatData: ThreatData | null | undefined
+): ThreatTable[] {
   if (!threatData?.configuration) {
     return [];
   }
@@ -501,7 +599,8 @@ export function createEmptyThreat(
   id: string,
   strideCategory: StrideCategory,
   trustBoundaryId: string | null,
-  trustBoundaryName: string | null
+  trustBoundaryName: string | null,
+  interactionContext?: InteractionContext
 ): Threat {
   return {
     id,
@@ -511,6 +610,7 @@ export function createEmptyThreat(
     sequenceNumber: 1,
     linkedElement: null,
     dataFlow: null,
+    interactionContext,
     threatDescription: "",
     attackDescription: "",
     threatActor: "external",
@@ -532,4 +632,22 @@ export function formatDataFlowDisplay(dataFlow: DataFlowReference): string {
   const targetName = dataFlow.targetName || dataFlow.targetId;
   const flowName = dataFlow.dataFlowName || dataFlow.dataFlowId;
   return `${sourceName} → ${targetName}: ${flowName}`;
+}
+
+/**
+ * Format interaction context for display
+ */
+export function formatInteractionContext(
+  context: InteractionContext,
+  locale: "en" | "de" = "en"
+): string {
+  if (locale === "de") {
+    const direction =
+      context.direction === "incoming" ? "Eingehend" : "Ausgehend";
+    const role = context.attackedRole === "source" ? "Sender" : "Empfänger";
+    return `${direction} (${role}-Spoofing)`;
+  }
+  const direction = context.direction === "incoming" ? "Incoming" : "Outgoing";
+  const role = context.attackedRole === "source" ? "Sender" : "Receiver";
+  return `${direction} (${role} Spoofing)`;
 }

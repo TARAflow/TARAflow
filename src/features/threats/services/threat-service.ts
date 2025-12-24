@@ -1,6 +1,13 @@
 // ==================== THREAT SERVICE ====================
 // Single Responsibility: Business logic for Threat operations
 // Supports BOTH per-element and per-interaction methods with separate storage
+// 
+// STRIDE-per-Interaction Enhancement:
+// - Generates TWO threats per STRIDE category per data flow:
+//   1. Incoming (IN): Attacker spoofs sender to deceive receiver
+//   2. Outgoing (OUT): Attacker spoofs receiver to intercept from sender
+// - Uses template-based generation with placeholders
+// - Captures directional context in InteractionContext
 
 import type { PhaseStatus, PhaseStatusMap, StrideCategory } from "shared";
 import {
@@ -20,13 +27,17 @@ import {
   DFDElementReference,
   DFDConnectionReference,
   StrideMethod,
+  InteractionDirection,
+  InteractionContext,
   STRIDE_PER_ELEMENT_TYPE,
   STRIDE_PER_INTERACTION,
   generateThreatIdPerElement,
   generateThreatIdPerInteraction,
   createDefaultThreatData,
-  getActiveThreatTables,
 } from "../models/threat-types";
+
+// No interaction-templates import needed - service is language-neutral
+// UI handles localization via interaction-templates.ts
 
 // Import the catalog
 import threatCatalogData from "./threat-catalog.json";
@@ -117,9 +128,6 @@ export class ThreatService {
 
   // ==================== THREAT GENERATION ====================
 
-  /**
-   * Generate threats for a SINGLE method (active method only)
-   */
   generateThreatsForMethod(
     project: ThreatProjectData,
     configuration: ThreatConfiguration,
@@ -156,9 +164,6 @@ export class ThreatService {
     }
   }
 
-  /**
-   * Generate threats for BOTH methods at once
-   */
   generateAllThreats(
     project: ThreatProjectData,
     configuration: ThreatConfiguration
@@ -176,17 +181,8 @@ export class ThreatService {
         };
       }
 
-      // Generate for per-element method
-      const perElementResult = this.generateThreatsPerElement(
-        elements,
-        connections
-      );
-
-      // Generate for per-interaction method
-      const perInteractionResult = this.generateThreatsPerInteraction(
-        elements,
-        connections
-      );
+      const perElementResult = this.generateThreatsPerElement(elements, connections);
+      const perInteractionResult = this.generateThreatsPerInteraction(elements, connections);
 
       return {
         success: true,
@@ -198,15 +194,13 @@ export class ThreatService {
         success: false,
         perElementTables: [],
         perInteractionTables: [],
-        error:
-          error instanceof Error ? error.message : "Failed to generate threats",
+        error: error instanceof Error ? error.message : "Failed to generate threats",
       };
     }
   }
 
-  /**
-   * Generate threats using STRIDE-per-element method
-   */
+  // ==================== PER-ELEMENT GENERATION ====================
+
   private generateThreatsPerElement(
     elements: DFDElementReference[],
     connections: DFDConnectionReference[]
@@ -214,59 +208,29 @@ export class ThreatService {
     const tables: ThreatTable[] = [];
     let totalCount = 0;
 
-    // Get trust boundaries
     const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    const externalEntities = elements.filter((e) => e.type === "ExternalEntity");
+    const internalElementTypes = ["Process", "Multiprocess", "DataStore", "PhysicalInterface", "Interface"];
+    const internalElements = elements.filter((e) => internalElementTypes.includes(e.type));
 
-    // Get external entities (handled separately)
-    const externalEntities = elements.filter(
-      (e) => e.type === "ExternalEntity"
-    );
-
-    // Get internal elements
-    const internalElementTypes = [
-      "Process",
-      "Multiprocess",
-      "DataStore",
-      "PhysicalInterface",
-      "Interface",
-    ];
-    const internalElements = elements.filter((e) =>
-      internalElementTypes.includes(e.type)
-    );
-
-    // Create table for External Entities
+    // External Entities table
     if (externalEntities.length > 0) {
       const externalTable = this.createThreatTableForElements(
-        externalEntities,
-        connections,
-        null,
-        "External Entities",
-        "[EE]"
+        externalEntities, connections, null, "External Entities", "[EE]"
       );
       tables.push(externalTable);
       totalCount += externalTable.threats.length;
     }
 
-    // Create table for each Trust Boundary
+    // Trust Boundary tables
     for (const tb of trustBoundaries) {
-      const elementsInTB = this.getElementsInsideTrustBoundary(
-        tb,
-        internalElements
-      );
-      const dataFlowsInTB = this.getDataFlowsForElements(
-        elementsInTB,
-        connections,
-        elements
-      );
+      const elementsInTB = this.getElementsInsideTrustBoundary(tb, internalElements);
+      const dataFlowsInTB = this.getDataFlowsForElements(elementsInTB, connections, elements);
       const allElementsForTB = [...elementsInTB, ...dataFlowsInTB];
 
       if (allElementsForTB.length > 0) {
         const tbTable = this.createThreatTableForElements(
-          allElementsForTB,
-          connections,
-          tb.id,
-          tb.name,
-          `[${this.extractTBIdentifier(tb.name)}]`
+          allElementsForTB, connections, tb.id, tb.name, `[${this.extractTBIdentifier(tb.name)}]`
         );
         tables.push(tbTable);
         totalCount += tbTable.threats.length;
@@ -276,66 +240,6 @@ export class ThreatService {
     return { tables, count: totalCount };
   }
 
-  /**
-   * Generate threats using STRIDE-per-interaction method
-   */
-  private generateThreatsPerInteraction(
-    elements: DFDElementReference[],
-    connections: DFDConnectionReference[]
-  ): { tables: ThreatTable[]; count: number } {
-    const tables: ThreatTable[] = [];
-    let totalCount = 0;
-
-    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
-
-    if (trustBoundaries.length === 0) {
-      // No trust boundaries - create single table for all data flows with TB0
-      const allFlowsTable = this.createThreatTableForInteractions(
-        connections,
-        elements,
-        null,
-        "[TB-0] All Data Flows",
-        "[TB0]",
-        0
-      );
-      tables.push(allFlowsTable);
-      totalCount += allFlowsTable.threats.length;
-    } else {
-      // Create table for each Trust Boundary with sequential TB numbers
-      trustBoundaries.forEach((tb, index) => {
-        const relevantFlows = this.getDataFlowsForTrustBoundary(
-          tb,
-          connections,
-          elements
-        );
-
-        if (relevantFlows.length > 0) {
-          // Extract TB identifier or assign based on index
-          const tbId = this.extractTBIdentifier(tb.name, index);
-          const displayName = tb.name.includes("[")
-            ? tb.name
-            : `[${tbId}] ${tb.name}`;
-
-          const tbTable = this.createThreatTableForInteractions(
-            relevantFlows,
-            elements,
-            tb.id,
-            displayName,
-            `[${tbId}]`,
-            index
-          );
-          tables.push(tbTable);
-          totalCount += tbTable.threats.length;
-        }
-      });
-    }
-
-    return { tables, count: totalCount };
-  }
-
-  /**
-   * Create threat table for elements (per-element method)
-   */
   private createThreatTableForElements(
     elements: DFDElementReference[],
     connections: DFDConnectionReference[],
@@ -347,7 +251,6 @@ export class ThreatService {
     const sequenceCounters: Record<string, Record<StrideCategory, number>> = {};
     const typeCounters: Record<string, number> = {};
 
-    // Build a map of raw element ID to formatted ID
     const elementIdMap: Record<string, string> = {};
     for (const element of elements) {
       const formattedId = this.extractFormattedElementId(element, typeCounters);
@@ -359,39 +262,23 @@ export class ThreatService {
       const formattedElementId = elementIdMap[element.id];
 
       for (const strideCategory of applicableCategories) {
-        // Counter per formatted element ID per STRIDE category
         if (!sequenceCounters[formattedElementId]) {
-          sequenceCounters[formattedElementId] = {
-            S: 0,
-            T: 0,
-            R: 0,
-            I: 0,
-            D: 0,
-            E: 0,
-          };
+          sequenceCounters[formattedElementId] = { S: 0, T: 0, R: 0, I: 0, D: 0, E: 0 };
         }
         sequenceCounters[formattedElementId][strideCategory]++;
         const seqNum = sequenceCounters[formattedElementId][strideCategory];
 
-        // Generate T-ID: EE1-S-1 (no dash in element ID)
-        const threatId = generateThreatIdPerElement(
-          formattedElementId,
-          strideCategory,
-          seqNum
-        );
-        const template = this.findBestThreatTemplate(
-          strideCategory,
-          element.type
-        );
+        const threatId = generateThreatIdPerElement(formattedElementId, strideCategory, seqNum);
+        const template = this.findBestThreatTemplate(strideCategory, element.type);
 
-        const threat: Threat = {
+        threats.push({
           id: threatId,
           trustBoundaryId,
           trustBoundaryName,
           strideCategory,
           sequenceNumber: seqNum,
           linkedElement: {
-            elementId: formattedElementId, // Use formatted ID
+            elementId: formattedElementId,
             elementName: element.name,
             elementType: element.type,
           },
@@ -405,24 +292,63 @@ export class ThreatService {
           source: "auto",
           created: new Date().toISOString(),
           lastModified: new Date().toISOString(),
-        };
-
-        threats.push(threat);
+        });
       }
     }
 
-    return {
-      trustBoundaryId,
-      trustBoundaryName,
-      displayIdentifier,
-      threats,
-    };
+    return { trustBoundaryId, trustBoundaryName, displayIdentifier, threats };
+  }
+
+  // ==================== PER-INTERACTION GENERATION (ENHANCED) ====================
+
+  /**
+   * Generate threats using STRIDE-per-interaction method
+   * 
+   * ENHANCED: Generates TWO threats per STRIDE category per data flow:
+   * 1. Incoming (IN): Attack targets the receiver by spoofing sender
+   * 2. Outgoing (OUT): Attack targets the sender by spoofing receiver
+   */
+  private generateThreatsPerInteraction(
+    elements: DFDElementReference[],
+    connections: DFDConnectionReference[]
+  ): { tables: ThreatTable[]; count: number } {
+    const tables: ThreatTable[] = [];
+    let totalCount = 0;
+
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+
+    if (trustBoundaries.length === 0) {
+      const allFlowsTable = this.createThreatTableForInteractions(
+        connections, elements, null, "[TB-0] All Data Flows", "[TB0]", 0
+      );
+      tables.push(allFlowsTable);
+      totalCount += allFlowsTable.threats.length;
+    } else {
+      trustBoundaries.forEach((tb, index) => {
+        const relevantFlows = this.getDataFlowsForTrustBoundary(tb, connections, elements);
+
+        if (relevantFlows.length > 0) {
+          const tbId = this.extractTBIdentifier(tb.name, index);
+          const displayName = tb.name.includes("[") ? tb.name : `[${tbId}] ${tb.name}`;
+
+          const tbTable = this.createThreatTableForInteractions(
+            relevantFlows, elements, tb.id, displayName, `[${tbId}]`, index
+          );
+          tables.push(tbTable);
+          totalCount += tbTable.threats.length;
+        }
+      });
+    }
+
+    return { tables, count: totalCount };
   }
 
   /**
-   * Create threat table for interactions (per-interaction method)
-   * T-ID Format: {TB}{DF}-{STRIDE}-{Number}
-   * Example: TB1-1-S-1 (TrustBoundary1, DataFlow1, Spoofing, Counter1)
+   * Create threat table for interactions with DIRECTIONAL threats
+   * 
+   * For each data flow (A → B) and each STRIDE category, generates:
+   * 1. INCOMING: Attacker attacks from A's direction toward B (B is victim)
+   * 2. OUTGOING: Attacker attacks from B's direction toward A (A is victim)
    */
   private createThreatTableForInteractions(
     connections: DFDConnectionReference[],
@@ -433,22 +359,21 @@ export class ThreatService {
     tbIndex: number = 0
   ): ThreatTable {
     const threats: Threat[] = [];
-    const sequenceCounters: Record<string, Record<StrideCategory, number>> = {};
+    const sequenceCounters: Record<string, number> = {};
 
-    // Extract TB identifier without dashes: "[TB-1]" → "TB1"
     const tbId = this.extractTBIdentifier(trustBoundaryName, tbIndex);
 
-    // Map connection IDs to sequential DF numbers
-    // Also try to extract from label like "[DF-1]"
+    // Map connection IDs to DF numbers
     const dataFlowIdMap: Record<string, string> = {};
     let dfCounter = 1;
     for (const conn of connections) {
       if (!dataFlowIdMap[conn.id]) {
-        const extractedDfNum = this.extractFormattedDataFlowId(conn, dfCounter);
-        dataFlowIdMap[conn.id] = extractedDfNum;
+        dataFlowIdMap[conn.id] = this.extractFormattedDataFlowId(conn, dfCounter);
         dfCounter++;
       }
     }
+
+    const trustBoundary = elements.find(e => e.id === trustBoundaryId);
 
     for (const connection of connections) {
       const sourceElement = elements.find((e) => e.id === connection.from);
@@ -458,176 +383,146 @@ export class ThreatService {
 
       const dfNum = dataFlowIdMap[connection.id];
 
+      // Determine if flow crosses trust boundary
+      const crossesTrustBoundary = trustBoundary
+        ? this.doesDataFlowCrossTrustBoundary(
+            sourceElement,
+            targetElement,
+            trustBoundary
+          )
+        : false;
+
+      // Generate BOTH directions for each STRIDE category
       for (const strideCategory of STRIDE_PER_INTERACTION) {
-        // Counter is per DataFlow per STRIDE category
-        const counterKey = `${tbId}-${dfNum}`;
-        if (!sequenceCounters[counterKey]) {
-          sequenceCounters[counterKey] = { S: 0, T: 0, R: 0, I: 0, D: 0, E: 0 };
+        const directions: InteractionDirection[] = ["incoming", "outgoing"];
+
+        for (const direction of directions) {
+          const counterKey = `${tbId}-${dfNum}-${strideCategory}-${direction}`;
+          sequenceCounters[counterKey] =
+            (sequenceCounters[counterKey] || 0) + 1;
+          const seqNum = sequenceCounters[counterKey];
+
+          const threatId = generateThreatIdPerInteraction(
+            tbId,
+            dfNum,
+            strideCategory,
+            direction,
+            seqNum
+          );
+
+          const interactionContext: InteractionContext = {
+            direction,
+            attackedRole: direction === "incoming" ? "source" : "target",
+            victimRole: direction === "incoming" ? "target" : "source",
+            crossesTrustBoundary,
+          };
+
+          const dataFlowRef: DataFlowReference = {
+            dataFlowId: `DF-${dfNum}`,
+            dataFlowName:
+              connection.label ||
+              `${sourceElement.name} → ${targetElement.name}`,
+            sourceId: connection.from,
+            sourceName: sourceElement.name,
+            sourceType: sourceElement.type,
+            targetId: connection.to,
+            targetName: targetElement.name,
+            targetType: targetElement.type,
+          };
+
+          // Store empty descriptions - UI will localize via interaction-templates
+          threats.push({
+            id: threatId,
+            trustBoundaryId,
+            trustBoundaryName,
+            strideCategory,
+            sequenceNumber: seqNum,
+            linkedElement: null,
+            dataFlow: dataFlowRef,
+            interactionContext,
+            threatDescription: "", // Empty - localized in UI
+            attackDescription: "", // Empty - localized in UI
+            threatActor: "external",
+            mitigation: "", // Empty - user fills or selects from suggestions
+            verification: "",
+            linkedAssetIds: [],
+            source: "auto",
+            created: new Date().toISOString(),
+            lastModified: new Date().toISOString(),
+          });
         }
-        sequenceCounters[counterKey][strideCategory]++;
-        const seqNum = sequenceCounters[counterKey][strideCategory];
-
-        // Generate T-ID: TB1-1-S-1 (TB1, DF1, Spoofing, Counter1)
-        const threatId = `${tbId}-${dfNum}-${strideCategory}-${seqNum}`;
-        const template = this.findBestThreatTemplate(
-          strideCategory,
-          "DataFlow"
-        );
-
-        const dataFlowRef: DataFlowReference = {
-          dataFlowId: `DF-${dfNum}`, // Display as DF-1 in UI
-          dataFlowName:
-            connection.label || `${sourceElement.name} → ${targetElement.name}`,
-          sourceId: connection.from,
-          sourceName: sourceElement.name,
-          sourceType: sourceElement.type,
-          targetId: connection.to,
-          targetName: targetElement.name,
-          targetType: targetElement.type,
-        };
-
-        const threat: Threat = {
-          id: threatId,
-          trustBoundaryId,
-          trustBoundaryName,
-          strideCategory,
-          sequenceNumber: seqNum,
-          linkedElement: null,
-          dataFlow: dataFlowRef,
-          threatDescription: template?.threat || "",
-          attackDescription: template?.attack || "",
-          threatActor: "external",
-          mitigation: "",
-          verification: "",
-          linkedAssetIds: [],
-          source: "auto",
-          created: new Date().toISOString(),
-          lastModified: new Date().toISOString(),
-        };
-
-        threats.push(threat);
       }
     }
 
-    return {
-      trustBoundaryId,
-      trustBoundaryName,
-      displayIdentifier,
-      threats,
+    return { trustBoundaryId, trustBoundaryName, displayIdentifier, threats };
+  }
+
+  private getFallbackThreatDescription(strideCategory: StrideCategory, direction: InteractionDirection): string {
+    const dirLabel = direction === "incoming" ? "Incoming" : "Outgoing";
+    const strideNames: Record<StrideCategory, string> = {
+      S: "Spoofing", T: "Tampering", R: "Repudiation",
+      I: "Information Disclosure", D: "Denial of Service", E: "Elevation of Privilege",
     };
+    return `${dirLabel} ${strideNames[strideCategory]} threat on data flow`;
+  }
+
+  private doesDataFlowCrossTrustBoundary(
+    source: DFDElementReference,
+    target: DFDElementReference,
+    trustBoundary: DFDElementReference
+  ): boolean {
+    const sourceInside = this.isElementInsideTrustBoundary(source, trustBoundary);
+    const targetInside = this.isElementInsideTrustBoundary(target, trustBoundary);
+    return sourceInside !== targetInside;
   }
 
   // ==================== HELPER METHODS ====================
 
-  /**
-   * Extract formatted element ID from name or generate one
-   * Examples:
-   *   "[EE-1] User" → "EE1"
-   *   "[P-1] Process" → "P1"
-   *   "[TB-1] Boundary" → "TB1"
-   *   "[DF-1] Flow" → "DF1"
-   *   "User" (with type ExternalEntity, index 0) → "EE1"
-   */
-  private extractFormattedElementId(
-    element: DFDElementReference,
-    typeCounters: Record<string, number>
-  ): string {
-    // Try to extract ID from name pattern [XX-N] or [XXN]
+  private extractFormattedElementId(element: DFDElementReference, typeCounters: Record<string, number>): string {
     const bracketMatch = element.name.match(/\[([A-Z]+)-?(\d+)\]/i);
     if (bracketMatch) {
-      const prefix = bracketMatch[1].toUpperCase();
-      const number = bracketMatch[2];
-      return `${prefix}${number}`; // Remove dash: "EE-1" → "EE1"
+      return `${bracketMatch[1].toUpperCase()}${bracketMatch[2]}`;
     }
 
-    // Generate ID based on element type
     const typePrefix = this.getTypePrefixForElement(element.type);
-    if (!typeCounters[element.type]) {
-      typeCounters[element.type] = 0;
-    }
+    if (!typeCounters[element.type]) typeCounters[element.type] = 0;
     typeCounters[element.type]++;
     return `${typePrefix}${typeCounters[element.type]}`;
   }
 
-  /**
-   * Extract formatted DataFlow ID from connection
-   * Examples:
-   *   label "[DF-1] Request" → "1"
-   *   label "Request" (index 0) → "1"
-   */
-  private extractFormattedDataFlowId(
-    connection: DFDConnectionReference,
-    dfCounter: number
-  ): string {
-    // Try to extract ID from label pattern [DF-N]
+  private extractFormattedDataFlowId(connection: DFDConnectionReference, dfCounter: number): string {
     const label = connection.label || "";
     const bracketMatch = label.match(/\[DF-?(\d+)\]/i);
-    if (bracketMatch) {
-      return bracketMatch[1]; // Just the number
-    }
-    // Use counter
-    return String(dfCounter);
+    return bracketMatch ? bracketMatch[1] : String(dfCounter);
   }
 
-  /**
-   * Get type prefix for element type
-   */
   private getTypePrefixForElement(elementType: string): string {
     const prefixMap: Record<string, string> = {
-      ExternalEntity: "EE",
-      Process: "P",
-      Multiprocess: "MP",
-      DataStore: "DS",
-      TrustBoundary: "TB",
-      PhysicalInterface: "PI",
-      Interface: "IF",
-      DataFlow: "DF",
+      ExternalEntity: "EE", Process: "P", Multiprocess: "MP",
+      DataStore: "DS", TrustBoundary: "TB", PhysicalInterface: "PI",
+      Interface: "IF", DataFlow: "DF",
     };
     return prefixMap[elementType] || "E";
   }
 
-  /**
-   * Extract Trust Boundary identifier
-   * Examples:
-   *   "[TB-1] Server Zone" → "TB1"
-   *   "Server Zone" (with index) → "TB1"
-   */
   private extractTBIdentifier(name: string, tbIndex?: number): string {
-    // Try to extract [TB-X] pattern
     const tbMatch = name.match(/\[TB-?(\d+)\]/i);
     if (tbMatch) return `TB${tbMatch[1]}`;
 
-    // Try any [XXX] bracket pattern
     const bracketMatch = name.match(/\[([^\]]+)\]/);
-    if (bracketMatch) {
-      // Remove dashes and return
-      return bracketMatch[1].replace(/-/g, "");
-    }
+    if (bracketMatch) return bracketMatch[1].replace(/-/g, "");
 
-    // Use provided index
-    if (tbIndex !== undefined) {
-      return `TB${tbIndex + 1}`;
-    }
+    if (tbIndex !== undefined) return `TB${tbIndex + 1}`;
 
-    // Fallback: abbreviate name
-    return name
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .substring(0, 8)
-      .toUpperCase();
+    return name.replace(/[^a-zA-Z0-9]/g, "").substring(0, 8).toUpperCase();
   }
 
-  private findBestThreatTemplate(
-    strideCategory: StrideCategory,
-    elementType: string
-  ): ThreatTemplate | null {
+  private findBestThreatTemplate(strideCategory: StrideCategory, elementType: string): ThreatTemplate | null {
     const templates = this.getThreatTemplates(strideCategory, elementType);
     return templates.length > 0 ? templates[0] : null;
   }
 
-  private isElementInsideTrustBoundary(
-    element: DFDElementReference,
-    trustBoundary: DFDElementReference
-  ): boolean {
+  private isElementInsideTrustBoundary(element: DFDElementReference, trustBoundary: DFDElementReference): boolean {
     const tbLeft = trustBoundary.position.x;
     const tbRight = trustBoundary.position.x + trustBoundary.size.width;
     const tbTop = trustBoundary.position.y;
@@ -636,242 +531,135 @@ export class ThreatService {
     const elemCenterX = element.position.x + element.size.width / 2;
     const elemCenterY = element.position.y + element.size.height / 2;
 
-    return (
-      elemCenterX >= tbLeft &&
-      elemCenterX <= tbRight &&
-      elemCenterY >= tbTop &&
-      elemCenterY <= tbBottom
-    );
+    return elemCenterX >= tbLeft && elemCenterX <= tbRight && elemCenterY >= tbTop && elemCenterY <= tbBottom;
   }
 
-  private getElementsInsideTrustBoundary(
-    trustBoundary: DFDElementReference,
-    elements: DFDElementReference[]
-  ): DFDElementReference[] {
-    return elements.filter((e) =>
-      this.isElementInsideTrustBoundary(e, trustBoundary)
-    );
+  private getElementsInsideTrustBoundary(trustBoundary: DFDElementReference, elements: DFDElementReference[]): DFDElementReference[] {
+    return elements.filter((e) => this.isElementInsideTrustBoundary(e, trustBoundary));
   }
 
-  private getDataFlowsForElements(
-    elements: DFDElementReference[],
-    connections: DFDConnectionReference[],
-    allElements: DFDElementReference[]
-  ): DFDElementReference[] {
+  private getDataFlowsForElements(elements: DFDElementReference[], connections: DFDConnectionReference[], allElements: DFDElementReference[]): DFDElementReference[] {
     const elementIds = new Set(elements.map((e) => e.id));
-    const relevantFlows: DFDElementReference[] = [];
-
-    for (const conn of connections) {
-      if (elementIds.has(conn.from) || elementIds.has(conn.to)) {
-        relevantFlows.push({
-          id: conn.id,
-          type: "DataFlow",
-          name: conn.label || conn.id,
-          position: { x: 0, y: 0 },
-          size: { width: 0, height: 0 },
-        });
-      }
-    }
-
-    return relevantFlows;
+    return connections
+      .filter(conn => elementIds.has(conn.from) || elementIds.has(conn.to))
+      .map(conn => ({
+        id: conn.id,
+        type: "DataFlow",
+        name: conn.label || conn.id,
+        position: { x: 0, y: 0 },
+        size: { width: 0, height: 0 },
+      }));
   }
 
-  private getDataFlowsForTrustBoundary(
-    trustBoundary: DFDElementReference,
-    connections: DFDConnectionReference[],
-    elements: DFDElementReference[]
-  ): DFDConnectionReference[] {
-    const elementsInTB = elements.filter(
-      (e) =>
-        e.type !== "TrustBoundary" &&
-        this.isElementInsideTrustBoundary(e, trustBoundary)
-    );
+  private getDataFlowsForTrustBoundary(trustBoundary: DFDElementReference, connections: DFDConnectionReference[], elements: DFDElementReference[]): DFDConnectionReference[] {
+    const elementsInTB = elements.filter(e => e.type !== "TrustBoundary" && this.isElementInsideTrustBoundary(e, trustBoundary));
     const elementIds = new Set(elementsInTB.map((e) => e.id));
-
-    return connections.filter(
-      (conn) => elementIds.has(conn.from) || elementIds.has(conn.to)
-    );
+    return connections.filter(conn => elementIds.has(conn.from) || elementIds.has(conn.to));
   }
 
   // ==================== SAVE & VALIDATION ====================
 
-  saveThreatData(
-    project: ThreatProjectData,
-    threatData: ThreatData
-  ): ThreatSaveResult {
+  saveThreatData(project: ThreatProjectData, threatData: ThreatData): ThreatSaveResult {
     const emptyResult: ThreatSaveResult = {
       success: false,
       threats: createDefaultThreatData(),
       phaseStatus: { ...project.phaseStatus },
       lastModified: new Date().toISOString(),
-      validation: {
-        isComplete: false,
-        errors: [],
-        warnings: [],
-        lastValidated: new Date().toISOString(),
-      },
+      validation: { isComplete: false, errors: [], warnings: [], lastValidated: new Date().toISOString() },
     };
 
     try {
-      const activeMethod =
-        threatData.configuration?.activeMethod ?? "per-element";
+      const activeMethod = threatData.configuration?.activeMethod ?? "per-element";
       const validation = this.validateThreatData(threatData, activeMethod);
       const phaseStatus = this.determinePhaseStatus(validation);
       const lastModified = new Date().toISOString();
 
-      const updatedThreats: ThreatData = {
-        ...threatData,
-        validation,
-        lastModified,
-      };
-
-      const updatedPhaseStatus: PhaseStatusMap = {
-        ...project.phaseStatus,
-        3: phaseStatus,
-      };
-
       return {
         success: true,
-        threats: updatedThreats,
-        phaseStatus: updatedPhaseStatus,
+        threats: { ...threatData, validation, lastModified },
+        phaseStatus: { ...project.phaseStatus, 3: phaseStatus },
         lastModified,
         validation,
       };
     } catch (error) {
-      return {
-        ...emptyResult,
-        error:
-          error instanceof Error ? error.message : "Failed to save threats",
-      };
+      return { ...emptyResult, error: error instanceof Error ? error.message : "Failed to save threats" };
     }
   }
 
-  validateThreatData(
-    threatData: ThreatData | null | undefined,
-    activeMethod: StrideMethod
-  ): ThreatValidation {
+  validateThreatData(threatData: ThreatData | null | undefined, activeMethod: StrideMethod): ThreatValidation {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    const tables =
-      activeMethod === "per-element"
-        ? threatData?.perElementTables ?? []
-        : threatData?.perInteractionTables ?? [];
-
+    const tables = activeMethod === "per-element" ? threatData?.perElementTables ?? [] : threatData?.perInteractionTables ?? [];
     const allThreats = tables.flatMap((t) => t.threats);
 
     if (allThreats.length === 0) {
       errors.push("No threats defined");
-      return {
-        isComplete: false,
-        errors,
-        warnings,
-        lastValidated: new Date().toISOString(),
-      };
+      return { isComplete: false, errors, warnings, lastValidated: new Date().toISOString() };
     }
 
-    const threatsWithoutDescription = allThreats.filter(
-      (t) => !t.threatDescription.trim()
-    );
-    if (threatsWithoutDescription.length > 0) {
-      warnings.push(
-        `${threatsWithoutDescription.length} threat(s) have no description`
-      );
-    }
+    const noDesc = allThreats.filter(t => !t.threatDescription.trim()).length;
+    const noMit = allThreats.filter(t => !t.mitigation.trim()).length;
+    const noVer = allThreats.filter(t => !t.verification.trim()).length;
 
-    const threatsWithoutMitigation = allThreats.filter(
-      (t) => !t.mitigation.trim()
-    );
-    if (threatsWithoutMitigation.length > 0) {
-      warnings.push(
-        `${threatsWithoutMitigation.length} threat(s) have no mitigation defined`
-      );
-    }
+    if (noDesc > 0) warnings.push(`${noDesc} threat(s) have no description`);
+    if (noMit > 0) warnings.push(`${noMit} threat(s) have no mitigation defined`);
+    if (noVer > 0) warnings.push(`${noVer} threat(s) have no verification method`);
 
-    const threatsWithoutVerification = allThreats.filter(
-      (t) => !t.verification.trim()
-    );
-    if (threatsWithoutVerification.length > 0) {
-      warnings.push(
-        `${threatsWithoutVerification.length} threat(s) have no verification method`
-      );
-    }
-
-    return {
-      isComplete: errors.length === 0 && warnings.length === 0,
-      errors,
-      warnings,
-      lastValidated: new Date().toISOString(),
-    };
+    return { isComplete: errors.length === 0 && warnings.length === 0, errors, warnings, lastValidated: new Date().toISOString() };
   }
 
   private determinePhaseStatus(validation: ThreatValidation): PhaseStatus {
     if (validation.isComplete) return "complete";
     if (validation.errors.length > 0) return "incomplete";
-    if (validation.warnings.length > 0) return "in-progress";
     return "in-progress";
   }
 
   // ==================== CRUD OPERATIONS ====================
 
-  /**
-   * Create a new threat with generated ID
-   */
   createNewThreat(
     threatData: ThreatData,
     activeMethod: StrideMethod,
     tableIndex: number,
     linkedElement?: LinkedDFDElement,
-    dataFlow?: DataFlowReference
+    dataFlow?: DataFlowReference,
+    direction?: InteractionDirection
   ): Threat {
-    const tables =
-      activeMethod === "per-element"
-        ? threatData.perElementTables ?? []
-        : threatData.perInteractionTables ?? [];
-
+    const tables = activeMethod === "per-element" ? threatData.perElementTables ?? [] : threatData.perInteractionTables ?? [];
     const table = tables[tableIndex];
-    if (!table) {
-      throw new Error(`Table at index ${tableIndex} not found`);
-    }
+    if (!table) throw new Error(`Table at index ${tableIndex} not found`);
 
-    // Default to Spoofing for new threats
     const strideCategory: StrideCategory = "S";
+    const threatDirection = direction || "incoming";
 
-    // Calculate next sequence number for this element/dataflow and STRIDE category
     const existingThreats = table.threats.filter((t) => {
       if (activeMethod === "per-element" && linkedElement) {
-        return (
-          t.linkedElement?.elementId === linkedElement.elementId &&
-          t.strideCategory === strideCategory
-        );
+        return t.linkedElement?.elementId === linkedElement.elementId && t.strideCategory === strideCategory;
       }
       if (activeMethod === "per-interaction" && dataFlow) {
-        return (
-          t.dataFlow?.dataFlowId === dataFlow.dataFlowId &&
-          t.strideCategory === strideCategory
-        );
+        return t.dataFlow?.dataFlowId === dataFlow.dataFlowId && t.strideCategory === strideCategory && t.interactionContext?.direction === threatDirection;
       }
       return false;
     });
 
     const sequenceNumber = existingThreats.length + 1;
 
-    // Generate threat ID
     let threatId: string;
     if (activeMethod === "per-element" && linkedElement) {
       threatId = `${linkedElement.elementId}-${strideCategory}-${sequenceNumber}`;
     } else if (activeMethod === "per-interaction" && dataFlow) {
-      // Extract TB number from table
       const tbId = this.extractTBIdentifier(table.trustBoundaryName);
-      // Extract DF number
       const dfMatch = dataFlow.dataFlowId.match(/DF-(\d+)/);
       const dfNum = dfMatch ? dfMatch[1] : "1";
-      threatId = `${tbId}-${dfNum}-${strideCategory}-${sequenceNumber}`;
+      threatId = generateThreatIdPerInteraction(tbId, dfNum, strideCategory, threatDirection, sequenceNumber);
     } else {
       threatId = `THREAT-${Date.now()}`;
     }
 
     const now = new Date().toISOString();
+    const interactionContext: InteractionContext | undefined = activeMethod === "per-interaction" 
+      ? { direction: threatDirection, attackedRole: threatDirection === "incoming" ? "source" : "target", victimRole: threatDirection === "incoming" ? "target" : "source", crossesTrustBoundary: false }
+      : undefined;
 
     return {
       id: threatId,
@@ -881,6 +669,7 @@ export class ThreatService {
       sequenceNumber,
       linkedElement: linkedElement ?? null,
       dataFlow: dataFlow ?? null,
+      interactionContext,
       threatDescription: "",
       attackDescription: "",
       threatActor: "external",
@@ -893,117 +682,64 @@ export class ThreatService {
     };
   }
 
-  /**
-   * Add a new threat to a table
-   */
-  addThreat(
-    threatData: ThreatData,
-    activeMethod: StrideMethod,
-    tableIndex: number,
-    newThreat: Threat
-  ): ThreatData {
-    const tables =
-      activeMethod === "per-element"
-        ? [...(threatData.perElementTables ?? [])]
-        : [...(threatData.perInteractionTables ?? [])];
-
+  addThreat(threatData: ThreatData, activeMethod: StrideMethod, tableIndex: number, newThreat: Threat): ThreatData {
+    const tables = activeMethod === "per-element" ? [...(threatData.perElementTables ?? [])] : [...(threatData.perInteractionTables ?? [])];
     const table = tables[tableIndex];
     if (!table) return threatData;
 
-    // Add the new threat
-    const updatedThreats = [...table.threats, newThreat];
-    tables[tableIndex] = { ...table, threats: updatedThreats };
+    tables[tableIndex] = { ...table, threats: [...table.threats, newThreat] };
 
     return {
       ...threatData,
-      ...(activeMethod === "per-element"
-        ? { perElementTables: tables }
-        : { perInteractionTables: tables }),
+      ...(activeMethod === "per-element" ? { perElementTables: tables } : { perInteractionTables: tables }),
       lastModified: new Date().toISOString(),
     };
   }
 
-  updateThreat(
-    threatData: ThreatData,
-    activeMethod: StrideMethod,
-    tableIndex: number,
-    threatId: string,
-    updates: Partial<Threat>
-  ): ThreatData {
-    const tables =
-      activeMethod === "per-element"
-        ? [...(threatData.perElementTables ?? [])]
-        : [...(threatData.perInteractionTables ?? [])];
-
+  updateThreat(threatData: ThreatData, activeMethod: StrideMethod, tableIndex: number, threatId: string, updates: Partial<Threat>): ThreatData {
+    const tables = activeMethod === "per-element" ? [...(threatData.perElementTables ?? [])] : [...(threatData.perInteractionTables ?? [])];
     const table = tables[tableIndex];
     if (!table) return threatData;
 
     const threatIndex = table.threats.findIndex((t) => t.id === threatId);
     if (threatIndex === -1) return threatData;
 
-    const updatedThreat: Threat = {
-      ...table.threats[threatIndex],
-      ...updates,
-      lastModified: new Date().toISOString(),
-    };
-
     const updatedThreats = [...table.threats];
-    updatedThreats[threatIndex] = updatedThreat;
-
+    updatedThreats[threatIndex] = { ...table.threats[threatIndex], ...updates, lastModified: new Date().toISOString() };
     tables[tableIndex] = { ...table, threats: updatedThreats };
 
     return {
       ...threatData,
-      ...(activeMethod === "per-element"
-        ? { perElementTables: tables }
-        : { perInteractionTables: tables }),
+      ...(activeMethod === "per-element" ? { perElementTables: tables } : { perInteractionTables: tables }),
       lastModified: new Date().toISOString(),
     };
   }
 
-  deleteThreat(
-    threatData: ThreatData,
-    activeMethod: StrideMethod,
-    tableIndex: number,
-    threatId: string
-  ): ThreatData {
-    const tables =
-      activeMethod === "per-element"
-        ? [...(threatData.perElementTables ?? [])]
-        : [...(threatData.perInteractionTables ?? [])];
-
+  deleteThreat(threatData: ThreatData, activeMethod: StrideMethod, tableIndex: number, threatId: string): ThreatData {
+    const tables = activeMethod === "per-element" ? [...(threatData.perElementTables ?? [])] : [...(threatData.perInteractionTables ?? [])];
     const table = tables[tableIndex];
     if (!table) return threatData;
 
-    const updatedThreats = table.threats.filter((t) => t.id !== threatId);
-    tables[tableIndex] = { ...table, threats: updatedThreats };
+    tables[tableIndex] = { ...table, threats: table.threats.filter((t) => t.id !== threatId) };
 
     return {
       ...threatData,
-      ...(activeMethod === "per-element"
-        ? { perElementTables: tables }
-        : { perInteractionTables: tables }),
+      ...(activeMethod === "per-element" ? { perElementTables: tables } : { perInteractionTables: tables }),
       lastModified: new Date().toISOString(),
     };
   }
 
   // ==================== STATISTICS ====================
 
-  getStatistics(
-    threatData: ThreatData | null | undefined,
-    activeMethod: StrideMethod
-  ): {
+  getStatistics(threatData: ThreatData | null | undefined, activeMethod: StrideMethod): {
     totalThreats: number;
     byStrideCategory: Record<StrideCategory, number>;
     byTrustBoundary: Record<string, number>;
+    byDirection: Record<InteractionDirection, number>;
     withMitigation: number;
     withVerification: number;
   } {
-    const tables =
-      activeMethod === "per-element"
-        ? threatData?.perElementTables ?? []
-        : threatData?.perInteractionTables ?? [];
-
+    const tables = activeMethod === "per-element" ? threatData?.perElementTables ?? [] : threatData?.perInteractionTables ?? [];
     const allThreats = tables.flatMap((t) => t.threats);
 
     const byStrideCategory: Record<StrideCategory, number> = {
@@ -1014,18 +750,21 @@ export class ThreatService {
       D: 0,
       E: 0,
     };
-
     const byTrustBoundary: Record<string, number> = {};
+    const byDirection: Record<InteractionDirection, number> = {
+      incoming: 0,
+      outgoing: 0,
+    };
 
     let withMitigation = 0;
     let withVerification = 0;
 
     for (const threat of allThreats) {
       byStrideCategory[threat.strideCategory]++;
-
       const tbKey = threat.trustBoundaryName || "External";
       byTrustBoundary[tbKey] = (byTrustBoundary[tbKey] || 0) + 1;
-
+      if (threat.interactionContext?.direction)
+        byDirection[threat.interactionContext.direction]++;
       if (threat.mitigation.trim()) withMitigation++;
       if (threat.verification.trim()) withVerification++;
     }
@@ -1034,6 +773,7 @@ export class ThreatService {
       totalThreats: allThreats.length,
       byStrideCategory,
       byTrustBoundary,
+      byDirection,
       withMitigation,
       withVerification,
     };
@@ -1041,38 +781,29 @@ export class ThreatService {
 
   // ==================== IMPORT / EXPORT ====================
 
-  /**
-   * Result of import validation
-   */
   validateImportData(jsonString: string): ImportValidationResult {
     try {
       const data = JSON.parse(jsonString);
       return this.validateImportObject(data);
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: "parse_error",
-        message:
-          "Failed to parse JSON. Please ensure the file contains valid JSON.",
+        message: "Failed to parse JSON.",
       };
     }
   }
 
-  /**
-   * Validate imported data object structure
-   */
   private validateImportObject(data: unknown): ImportValidationResult {
     if (!data || typeof data !== "object") {
       return {
         success: false,
         error: "invalid_format",
-        message: "Invalid file format. Expected a JSON object.",
+        message: "Expected a JSON object.",
       };
     }
 
     const obj = data as Record<string, unknown>;
-
-    // Check for required arrays
     const hasPerElement = Array.isArray(obj.perElementTables);
     const hasPerInteraction = Array.isArray(obj.perInteractionTables);
 
@@ -1080,12 +811,10 @@ export class ThreatService {
       return {
         success: false,
         error: "missing_tables",
-        message:
-          "Invalid file format. File must contain perElementTables or perInteractionTables.",
+        message: "File must contain perElementTables or perInteractionTables.",
       };
     }
 
-    // Validate table structures
     const perElementTables = hasPerElement
       ? this.validateThreatTables(obj.perElementTables as unknown[])
       : [];
@@ -1093,17 +822,13 @@ export class ThreatService {
       ? this.validateThreatTables(obj.perInteractionTables as unknown[])
       : [];
 
-    // Check if at least one table has valid threats
     const totalThreats =
       perElementTables.reduce((sum, t) => sum + t.threats.length, 0) +
       perInteractionTables.reduce((sum, t) => sum + t.threats.length, 0);
 
     return {
       success: true,
-      data: {
-        perElementTables,
-        perInteractionTables,
-      },
+      data: { perElementTables, perInteractionTables },
       stats: {
         perElementTables: perElementTables.length,
         perInteractionTables: perInteractionTables.length,
@@ -1112,58 +837,40 @@ export class ThreatService {
     };
   }
 
-  /**
-   * Validate and sanitize threat tables array
-   */
   private validateThreatTables(tables: unknown[]): ThreatTable[] {
-    const validTables: ThreatTable[] = [];
-
-    for (const table of tables) {
-      if (!table || typeof table !== "object") continue;
-
-      const t = table as Record<string, unknown>;
-
-      // Validate required fields
-      if (typeof t.trustBoundaryName !== "string") continue;
-      if (!Array.isArray(t.threats)) continue;
-
-      const validThreats = this.validateThreats(t.threats);
-
-      validTables.push({
+    return tables
+      .filter(
+        (t): t is Record<string, unknown> =>
+          !!t &&
+          typeof t === "object" &&
+          typeof (t as Record<string, unknown>).trustBoundaryName ===
+            "string" &&
+          Array.isArray((t as Record<string, unknown>).threats)
+      )
+      .map((t) => ({
         trustBoundaryId:
           typeof t.trustBoundaryId === "string" ? t.trustBoundaryId : null,
-        trustBoundaryName: t.trustBoundaryName,
+        trustBoundaryName: t.trustBoundaryName as string,
         displayIdentifier:
           typeof t.displayIdentifier === "string" ? t.displayIdentifier : "[?]",
-        threats: validThreats,
-      });
-    }
-
-    return validTables;
+        threats: this.validateThreats(t.threats as unknown[]),
+      }));
   }
 
-  /**
-   * Validate and sanitize threats array
-   */
   private validateThreats(threats: unknown[]): Threat[] {
-    const validThreats: Threat[] = [];
     const validStrideCategories = ["S", "T", "R", "I", "D", "E"];
-
-    for (const threat of threats) {
-      if (!threat || typeof threat !== "object") continue;
-
-      const t = threat as Record<string, unknown>;
-
-      // Validate required fields
-      if (typeof t.id !== "string" || !t.id) continue;
-      if (
-        typeof t.strideCategory !== "string" ||
-        !validStrideCategories.includes(t.strideCategory)
+    return threats
+      .filter(
+        (t): t is Record<string, unknown> =>
+          !!t &&
+          typeof t === "object" &&
+          typeof (t as Record<string, unknown>).id === "string" &&
+          validStrideCategories.includes(
+            (t as Record<string, unknown>).strideCategory as string
+          )
       )
-        continue;
-
-      validThreats.push({
-        id: t.id,
+      .map((t) => ({
+        id: t.id as string,
         trustBoundaryId:
           typeof t.trustBoundaryId === "string" ? t.trustBoundaryId : null,
         trustBoundaryName:
@@ -1173,6 +880,9 @@ export class ThreatService {
           typeof t.sequenceNumber === "number" ? t.sequenceNumber : 1,
         linkedElement: this.validateLinkedElement(t.linkedElement),
         dataFlow: this.validateDataFlow(t.dataFlow),
+        interactionContext: this.validateInteractionContext(
+          t.interactionContext
+        ),
         threatDescription:
           typeof t.threatDescription === "string" ? t.threatDescription : "",
         attackDescription:
@@ -1193,20 +903,18 @@ export class ThreatService {
           typeof t.lastModified === "string"
             ? t.lastModified
             : new Date().toISOString(),
-      });
-    }
-
-    return validThreats;
+      }));
   }
 
   private validateLinkedElement(elem: unknown): LinkedDFDElement | null {
     if (!elem || typeof elem !== "object") return null;
     const e = elem as Record<string, unknown>;
-
-    if (typeof e.elementId !== "string") return null;
-    if (typeof e.elementName !== "string") return null;
-    if (typeof e.elementType !== "string") return null;
-
+    if (
+      typeof e.elementId !== "string" ||
+      typeof e.elementName !== "string" ||
+      typeof e.elementType !== "string"
+    )
+      return null;
     return {
       elementId: e.elementId,
       elementName: e.elementName,
@@ -1217,9 +925,7 @@ export class ThreatService {
   private validateDataFlow(flow: unknown): DataFlowReference | null {
     if (!flow || typeof flow !== "object") return null;
     const f = flow as Record<string, unknown>;
-
     if (typeof f.dataFlowId !== "string") return null;
-
     return {
       dataFlowId: f.dataFlowId,
       dataFlowName:
@@ -1233,6 +939,29 @@ export class ThreatService {
     };
   }
 
+  private validateInteractionContext(ctx: unknown): InteractionContext | undefined {
+    if (!ctx || typeof ctx !== "object") return undefined;
+    const c = ctx as Record<string, unknown>;
+    const validDirections: InteractionDirection[] = ["incoming", "outgoing"];
+    const validRoles = ["source", "target"];
+    if (!validDirections.includes(c.direction as InteractionDirection))
+      return undefined;
+    if (
+      !validRoles.includes(c.attackedRole as string) ||
+      !validRoles.includes(c.victimRole as string)
+    )
+      return undefined;
+    return {
+      direction: c.direction as InteractionDirection,
+      attackedRole: c.attackedRole as "source" | "target",
+      victimRole: c.victimRole as "source" | "target",
+      crossesTrustBoundary:
+        typeof c.crossesTrustBoundary === "boolean"
+          ? c.crossesTrustBoundary
+          : false,
+    };
+  }
+
   private validateThreatActor(actor: unknown): ThreatActorType {
     const validActors: ThreatActorType[] = [
       "external",
@@ -1242,13 +971,10 @@ export class ThreatService {
       "competitor",
       "other",
     ];
-    if (
-      typeof actor === "string" &&
+    return typeof actor === "string" &&
       validActors.includes(actor as ThreatActorType)
-    ) {
-      return actor as ThreatActorType;
-    }
-    return "external";
+      ? (actor as ThreatActorType)
+      : "external";
   }
 }
 

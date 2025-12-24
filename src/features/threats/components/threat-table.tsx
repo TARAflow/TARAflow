@@ -2,6 +2,10 @@
 // Displays threats grouped by Trust Boundary and Element (per-element)
 // or by Trust Boundary and DataFlow (per-interaction)
 // Uses nested Accordions for better organization
+//
+// LOCALIZATION:
+// For per-interaction threats, uses getEffectiveThreatDescription()
+// to display localized text based on current language
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -39,6 +43,8 @@ import {
   CompareArrows as DataFlowIcon,
   Security as TrustBoundaryIcon,
   Add as AddIcon,
+  ArrowDownward,
+  ArrowUpward,
 } from "@mui/icons-material";
 
 import {
@@ -51,6 +57,11 @@ import {
   THREAT_ACTORS,
   formatDataFlowDisplay,
 } from "../models/threat-types";
+import {
+  getEffectiveThreatDescription,
+  formatInteractionDirection,
+  getDirectionColor,
+} from "../services/interaction-templates";
 import type { StrideCategory } from "shared";
 
 // ==================== TYPES ====================
@@ -144,7 +155,8 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
   onAdd,
 }) => {
   const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const locale = (i18n.language === "de" ? "de" : "en") as "en" | "de";
+  const isGerman = locale === "de";
   const isPerElement = configuration.activeMethod === "per-element";
 
   // Filter state
@@ -179,16 +191,20 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
 
     if (searchText.trim()) {
       const search = searchText.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
+      filtered = filtered.filter((t) => {
+        // Get effective description for search (localized)
+        const effectiveDescription = getEffectiveThreatDescription(t, locale);
+
+        return (
           t.id.toLowerCase().includes(search) ||
-          t.threatDescription.toLowerCase().includes(search) ||
+          effectiveDescription.toLowerCase().includes(search) ||
           t.attackDescription.toLowerCase().includes(search) ||
           t.mitigation.toLowerCase().includes(search) ||
           t.verification.toLowerCase().includes(search) ||
           t.linkedElement?.elementName.toLowerCase().includes(search) ||
           t.dataFlow?.dataFlowName.toLowerCase().includes(search)
-      );
+        );
+      });
     }
 
     return filtered;
@@ -248,7 +264,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
     );
   };
 
-  // ==================== COLUMNS (simplified for nested view) ====================
+  // ==================== COLUMNS (per-element - unchanged) ====================
 
   const createColumnsPerElement = (
     tableIndex: number
@@ -303,7 +319,9 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
             sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
           >
             {params.value || (
-              <em style={{ color: "#9ca3af" }}>No description</em>
+              <em style={{ color: "#9ca3af" }}>
+                {isGerman ? "Keine Beschreibung" : "No description"}
+              </em>
             )}
           </Typography>
         </Tooltip>
@@ -399,7 +417,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       field: "actions",
       type: "actions",
       headerName: "",
-      width: 50,
+      width: 70,
       getActions: (params: GridRowParams<Threat>) => [
         <GridActionsCellItem
           key="edit"
@@ -417,6 +435,8 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       ],
     },
   ];
+
+  // ==================== COLUMNS (per-interaction - WITH LOCALIZATION) ====================
 
   const createColumnsPerInteraction = (
     tableIndex: number
@@ -458,24 +478,92 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
         );
       },
     },
+    // Direction column for per-interaction
+    {
+      field: "interactionContext",
+      headerName: t("tabs.threats.columns.direction", { defaultValue: "Dir" }),
+      width: 60,
+      sortable: true,
+      sortComparator: (v1, v2) => {
+        const d1 = v1?.direction || "";
+        const d2 = v2?.direction || "";
+        return d1.localeCompare(d2);
+      },
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const ctx = params.row.interactionContext;
+        if (!ctx) return null;
+
+        return (
+          <Tooltip title={formatInteractionDirection(ctx.direction, locale)}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                backgroundColor: getDirectionColor(ctx.direction),
+                color: "white",
+              }}
+            >
+              {ctx.direction === "incoming" ? (
+                <ArrowDownward sx={{ fontSize: 18 }} />
+              ) : (
+                <ArrowUpward sx={{ fontSize: 18 }} />
+              )}
+            </Box>
+          </Tooltip>
+        );
+      },
+    },
+    // Threat description with localization
     {
       field: "threatDescription",
       headerName: t("tabs.threats.columns.threat", { defaultValue: "Threat" }),
       flex: 1,
-      minWidth: 180,
+      minWidth: 200,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<Threat>) => (
-        <Tooltip title={params.value || ""}>
-          <Typography
-            variant="body2"
-            sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-          >
-            {params.value || (
-              <em style={{ color: "#9ca3af" }}>No description</em>
-            )}
-          </Typography>
-        </Tooltip>
-      ),
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        // Use localized description
+        const effectiveDescription = getEffectiveThreatDescription(
+          params.row,
+          locale
+        );
+
+        return (
+          <Tooltip title={effectiveDescription || ""}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {effectiveDescription || (
+                <em style={{ color: "#9ca3af" }}>
+                  {isGerman ? "Keine Beschreibung" : "No description"}
+                </em>
+              )}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "threatActor",
+      headerName: t("tabs.threats.columns.actor", { defaultValue: "Actor" }),
+      width: 100,
+      sortable: true,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const actor = THREAT_ACTORS.find((a) => a.type === params.value);
+        const name = isGerman ? actor?.nameDE : actor?.name;
+        return (
+          <Chip
+            label={name || params.value}
+            size="small"
+            variant="outlined"
+            color={params.value === "external" ? "error" : "default"}
+          />
+        );
+      },
     },
     {
       field: "mitigation",
@@ -549,7 +637,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       field: "actions",
       type: "actions",
       headerName: "",
-      width: 50,
+      width: 70,
       getActions: (params: GridRowParams<Threat>) => [
         <GridActionsCellItem
           key="edit"
@@ -593,7 +681,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       (sum, table) => sum + filterThreats(table.threats).length,
       0
     );
-  }, [threatTables, strideFilter, searchText]);
+  }, [threatTables, strideFilter, searchText, locale]);
 
   // ==================== RENDER ====================
 
@@ -653,42 +741,43 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                       sx={{
                         backgroundColor: STRIDE_COLORS[cat],
                         color: "white",
+                        width: 28,
+                        height: 20,
                       }}
                     />
-                    <span>{isGerman ? def?.nameDE : def?.name}</span>
+                    <Typography variant="body2">
+                      {isGerman ? def?.nameDE : def?.name}
+                    </Typography>
                   </Stack>
                 </MenuItem>
               );
             })}
           </Select>
         </FormControl>
+
         <TextField
           size="small"
-          placeholder={t("common.search", { defaultValue: "Search..." })}
+          placeholder={t("tabs.threats.searchPlaceholder", {
+            defaultValue: "Search threats...",
+          })}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          sx={{ flexGrow: 1, maxWidth: 300 }}
+          sx={{ width: 200 }}
         />
-        <Typography variant="caption" color="text.secondary">
-          {t("tabs.threats.totalThreats", {
-            defaultValue: "Total: {{count}} threats",
-            count: totalFilteredThreats,
-          })}
-        </Typography>
-      </Box>
 
-      {/* Threat Tables - Nested Accordions */}
+        <Typography variant="body2" color="text.secondary">
+          {totalFilteredThreats}{" "}
+          {t("tabs.threats.threatsFound", { defaultValue: "threats found" })}
+        </Typography>
+      </Box>;
+
+      {
+        /* Accordion List */
+      }
       <Box sx={{ flexGrow: 1, overflow: "auto" }}>
         {threatTables.map((table, tableIndex) => {
-          const filteredThreats = filterThreats(table.threats);
           const tableId = table.trustBoundaryId || "external";
-
-          // Skip empty tables when filtering
-          if (filteredThreats.length === 0 && (strideFilter || searchText)) {
-            return null;
-          }
-
-          // Group threats by element or dataflow
+          const filteredThreats = filterThreats(table.threats);
           const elementGroups = isPerElement
             ? groupThreatsByElement(filteredThreats)
             : null;
@@ -696,32 +785,47 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
             ? groupThreatsByDataFlow(filteredThreats)
             : null;
 
+          if (filteredThreats.length === 0) return null;
+
           return (
             <Accordion
               key={tableId}
               expanded={isTableExpanded(tableId)}
               onChange={() => toggleTable(tableId)}
-              sx={{ mb: 1 }}
+              sx={{
+                mb: 1,
+                "&:before": { display: "none" },
+                boxShadow: 1,
+              }}
             >
               {/* Trust Boundary Header */}
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  backgroundColor: "primary.50",
+                  "&:hover": { backgroundColor: "primary.100" },
+                }}
+              >
                 <Stack direction="row" spacing={2} alignItems="center">
+                  <TrustBoundaryIcon color="primary" />
                   <Chip
                     label={table.displayIdentifier}
                     size="small"
                     color="primary"
                     variant="outlined"
+                    sx={{ fontFamily: "monospace" }}
                   />
-                  <Typography fontWeight="medium">
+                  <Typography variant="subtitle1" fontWeight="medium">
                     {table.trustBoundaryName}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary">
                     ({filteredThreats.length}{" "}
                     {t("tabs.threats.threats", { defaultValue: "threats" })})
                   </Typography>
                 </Stack>
               </AccordionSummary>
 
+              {/* Nested Accordions */}
               <AccordionDetails sx={{ p: 1 }}>
                 {/* Per-Element: Nested accordions by Element */}
                 {isPerElement &&
@@ -768,12 +872,14 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                                 fontSize: "0.75rem",
                               }}
                             />
-                            <Typography variant="body2" fontWeight="medium">
+                            <Typography variant="body2">
                               {group.elementName}
                             </Typography>
                             <Chip
                               label={group.elementType}
                               size="small"
+                              variant="outlined"
+                              color="default"
                               sx={{ fontSize: "0.7rem" }}
                             />
                             <Typography
@@ -967,7 +1073,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                           <Box
                             sx={{
                               height: Math.min(
-                                300,
+                                400,
                                 group.threats.length * 52 + 56
                               ),
                             }}
@@ -978,7 +1084,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                               pageSizeOptions={[5, 10, 25]}
                               initialState={{
                                 pagination: {
-                                  paginationModel: { pageSize: 10 },
+                                  paginationModel: { pageSize: 12 },
                                 },
                                 sorting: {
                                   sortModel: [
@@ -1003,7 +1109,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
             </Accordion>
           );
         })}
-      </Box>
+      </Box>;
     </Box>
   );
 };
