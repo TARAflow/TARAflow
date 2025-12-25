@@ -292,10 +292,11 @@ export const THREAT_ACTORS: ThreatActorDefinition[] = [
 // ==================== LINKED DFD ELEMENT ====================
 
 export interface LinkedDFDElement {
-  elementId: string;
+  elementId: string; // XML ID (stable) - e.g., "10", "4", "7"
   elementName: string;
   elementType: string;
-}
+  displayId?: string; // Formatted ID for display - e.g., "DF-1", "P-1"
+} 
 
 // ==================== DATA FLOW REFERENCE ====================
 
@@ -534,6 +535,7 @@ export interface DFDElementReference {
   id: string;
   type: string;
   name: string;
+  displayId?: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
 }

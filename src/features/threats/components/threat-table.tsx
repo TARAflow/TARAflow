@@ -83,9 +83,10 @@ interface ThreatTableProps {
 }
 
 interface ElementGroup {
-  elementId: string;
+  elementId: string; // XML ID
   elementName: string;
   elementType: string;
+  displayId?: string; // For display
   threats: Threat[];
 }
 
@@ -224,6 +225,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
           elementId: elem.elementId,
           elementName: elem.elementName,
           elementType: elem.elementType,
+          displayId: elem.displayId,
           threats: [],
         };
       }
@@ -862,7 +864,10 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                           >
                             {getElementIcon(group.elementType)}
                             <Chip
-                              label={formatDisplayId(group.elementId)}
+                              label={
+                                group.displayId ||
+                                formatDisplayId(group.elementId)
+                              }
                               size="small"
                               variant="outlined"
                               sx={{

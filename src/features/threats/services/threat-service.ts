@@ -328,9 +328,10 @@ export class ThreatService {
           strideCategory,
           sequenceNumber: seqNum,
           linkedElement: {
-            elementId: formattedElementId,
+            elementId: element.id,           // XML ID (stable reference)
             elementName: element.name,
             elementType: element.type,
+            displayId: element.displayId,   // Formatted ID (for display)
           },
           dataFlow: null,
           threatDescription: template?.threat || "",
@@ -565,11 +566,19 @@ export class ThreatService {
     element: DFDElementReference,
     typeCounters: Record<string, number>
   ): string {
+    // Priority 1: Use displayId if available (e.g., "DF-1", "P-1")
+    // Remove hyphens for threat ID format (DF-1 -> DF1)
+    if (element.displayId) {
+      return element.displayId.replace(/-/g, "");
+    }
+
+    // Priority 2: Try to extract from name pattern [XX-N]
     const bracketMatch = element.name.match(/\[([A-Z]+)-?(\d+)\]/i);
     if (bracketMatch) {
       return `${bracketMatch[1].toUpperCase()}${bracketMatch[2]}`;
     }
 
+    // Priority 3: Generate based on type counter
     const typePrefix = this.getTypePrefixForElement(element.type);
     if (!typeCounters[element.type]) typeCounters[element.type] = 0;
     typeCounters[element.type]++;
@@ -698,6 +707,7 @@ export class ThreatService {
         id: conn.id,
         type: "DataFlow",
         name: conn.label || conn.id,
+        displayId: conn.displayId,
         position: { x: 0, y: 0 },
         size: { width: 0, height: 0 },
       }));
@@ -1332,12 +1342,14 @@ export class ThreatService {
     const tables = threatData.perElementTables || [];
     const allThreats = tables.flatMap((t) => t.threats);
 
-    // Build lookup maps for DFD elements
-    const elementById = new Map(elements.map((e) => [e.id, e]));
-    const elementByName = new Map(elements.map((e) => [e.name, e]));
+    // Build lookup maps by XML ID (stable)
+    const elementByXmlId = new Map(elements.map((e) => [e.id, e]));
+    const connectionByXmlId = new Map(connections.map((c) => [c.id, c]));
 
-    // Track which elements have threats
+    // Track which elements/connections have threats
     const elementIdsWithThreats = new Set<string>();
+    const connectionIdsWithThreats = new Set<string>();
+
     const orphanedElementIds: string[] = [];
     const orphanedThreatIds: string[] = [];
     const changedElements: ElementChange[] = [];
@@ -1345,39 +1357,78 @@ export class ThreatService {
     for (const threat of allThreats) {
       if (!threat.linkedElement) continue;
 
-      const oldRef = threat.linkedElement;
+      const xmlId = threat.linkedElement.elementId;
+      const elementType = threat.linkedElement.elementType;
 
-      // Try to find matching element by ID first, then by name
-      let matchedElement = elementById.get(oldRef.elementId);
+      if (elementType === "DataFlow") {
+        // Match DataFlow by XML ID
+        const matchedConn = connectionByXmlId.get(xmlId);
 
-      if (!matchedElement) {
-        // ID not found - try by name (element may have been renumbered)
-        matchedElement = elementByName.get(oldRef.elementName);
-      }
+        if (matchedConn) {
+          connectionIdsWithThreats.add(matchedConn.id);
 
-      if (matchedElement) {
-        elementIdsWithThreats.add(matchedElement.id);
-
-        // Check for changes
-        const changes: ("name" | "id" | "type")[] = [];
-        if (oldRef.elementId !== matchedElement.id) changes.push("id");
-        if (oldRef.elementName !== matchedElement.name) changes.push("name");
-        if (oldRef.elementType !== matchedElement.type) changes.push("type");
-
-        if (changes.length > 0) {
-          changedElements.push({
-            threatId: threat.id,
-            oldRef,
-            newRef: matchedElement,
-            changes,
-          });
+          // Check for label changes
+          if (threat.linkedElement.elementName !== matchedConn.label) {
+            changedElements.push({
+              threatId: threat.id,
+              oldRef: {
+                elementId: xmlId,
+                elementName: threat.linkedElement.elementName,
+                elementType: elementType,
+              },
+              newRef: {
+                id: matchedConn.id,
+                name: matchedConn.label || "",
+                type: "DataFlow",
+                displayId: matchedConn.displayId,
+                position: { x: 0, y: 0 },
+                size: { width: 0, height: 0 },
+              },
+              changes: ["name"],
+            });
+          }
+        } else {
+          // DataFlow not found - orphaned
+          if (!orphanedElementIds.includes(xmlId)) {
+            orphanedElementIds.push(xmlId);
+          }
+          orphanedThreatIds.push(threat.id);
         }
       } else {
-        // Element not found at all - orphaned
-        if (!orphanedElementIds.includes(oldRef.elementId)) {
-          orphanedElementIds.push(oldRef.elementId);
+        // Match Element by XML ID
+        const matchedElement = elementByXmlId.get(xmlId);
+
+        if (matchedElement) {
+          elementIdsWithThreats.add(matchedElement.id);
+
+          // Check for changes
+          const changes: ("name" | "type")[] = [];
+          if (threat.linkedElement.elementName !== matchedElement.name) {
+            changes.push("name");
+          }
+          if (threat.linkedElement.elementType !== matchedElement.type) {
+            changes.push("type");
+          }
+
+          if (changes.length > 0) {
+            changedElements.push({
+              threatId: threat.id,
+              oldRef: {
+                elementId: xmlId,
+                elementName: threat.linkedElement.elementName,
+                elementType: threat.linkedElement.elementType,
+              },
+              newRef: matchedElement,
+              changes,
+            });
+          }
+        } else {
+          // Element not found - orphaned
+          if (!orphanedElementIds.includes(xmlId)) {
+            orphanedElementIds.push(xmlId);
+          }
+          orphanedThreatIds.push(threat.id);
         }
-        orphanedThreatIds.push(threat.id);
       }
     }
 
@@ -1389,17 +1440,10 @@ export class ThreatService {
         !elementIdsWithThreats.has(e.id)
     );
 
-    // Also check DataFlows for per-element
-    const connectionById = new Map(connections.map((c) => [c.id, c]));
-    const missingDataFlows = connections.filter((c) => {
-      const hasThreats = allThreats.some(
-        (t) =>
-          t.linkedElement?.elementId === c.id ||
-          (t.linkedElement?.elementType === "DataFlow" &&
-            elementIdsWithThreats.has(c.id))
-      );
-      return !hasThreats;
-    });
+    // Find missing DataFlows
+    const missingDataFlows = connections.filter(
+      (c) => !connectionIdsWithThreats.has(c.id)
+    );
 
     const inSync =
       missingElements.length === 0 &&
@@ -1427,6 +1471,51 @@ export class ThreatService {
       },
       lastChecked: now,
     };
+  }
+
+  // ==================== NEW HELPER METHODS ====================
+
+  /**
+   * Extract formatted ID from element name (e.g., "[P-1]" -> "P-1")
+   * Returns null if no formatted ID found in name
+   */
+  private extractFormattedIdFromElement(
+    element: DFDElementReference
+  ): string | null {
+    // Look for [XX-N] pattern in name, e.g., "MyProcess [P-1]"
+    const bracketMatch = element.name.match(/\[([A-Z]+-?\d+)\]/i);
+    if (bracketMatch) {
+      return bracketMatch[1].toUpperCase();
+    }
+    return null;
+  }
+
+  /**
+   * Extract formatted ID from connection (e.g., "DF-1")
+   * Uses displayId if available, otherwise extracts from label
+   */
+  private extractFormattedIdFromConnection(
+    connection: DFDConnectionReference
+  ): string | null {
+    // Use displayId if available (set by DFD parser from idlabel)
+    if (connection.displayId) {
+      return connection.displayId;
+    }
+
+    // Try to find [DF-N] pattern in label
+    const label = connection.label || "";
+    const dfMatch = label.match(/\[DF-?(\d+)\]/i);
+    if (dfMatch) {
+      return `DF-${dfMatch[1]}`;
+    }
+
+    // Try to extract DF-N from label that starts with it
+    const startMatch = label.match(/^DF-?(\d+)/i);
+    if (startMatch) {
+      return `DF-${startMatch[1]}`;
+    }
+
+    return null;
   }
 
   private checkSyncStatusPerInteraction(
@@ -1657,9 +1746,10 @@ export class ThreatService {
             return {
               ...threat,
               linkedElement: {
-                elementId: change.newRef.id,
+                elementId: threat.linkedElement.elementId,  // Keep XML ID (stable)
                 elementName: change.newRef.name,
                 elementType: change.newRef.type,
+                displayId: change.newRef.displayId,         // Update displayId
               },
               lastModified: new Date().toISOString(),
             };
