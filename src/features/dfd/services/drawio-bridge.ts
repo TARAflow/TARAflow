@@ -28,10 +28,10 @@ export class DrawioBridge implements IDrawioBridge {
     projectName: string
   ) {
     this.iframe = iframe;
-    
+
     // Create project-specific storage key
     const storageKey = `DrawioMsg_${projectId}`;
-    
+
     // Initialize components
     this.localStorageModel = new LocalStorageModel(storageKey);
     this.corsComm = new CORSCommunicator(iframe);
@@ -85,6 +85,10 @@ export class DrawioBridge implements IDrawioBridge {
 
   /**
    * Load XML into Draw.io
+   *
+   * IMPORTANT: This method also persists the XML to localStorage immediately.
+   * Draw.io's autosave only triggers on user interactions, not on programmatic loads.
+   * Without this, changes from auto-numbering would be lost on tab switch.
    */
   loadXml(xml: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -101,6 +105,19 @@ export class DrawioBridge implements IDrawioBridge {
         });
 
         this.iframe.contentWindow!.postMessage(msg, "*");
+
+        // ==================== FIX: Persist XML to localStorage ====================
+        // Draw.io's autosave event only fires on user interactions.
+        // When loading XML programmatically (e.g., after auto-numbering),
+        // we must also write to localStorage to persist the changes.
+        const storageData = JSON.stringify({ xml: xml });
+        this.localStorageModel.write(storageData);
+
+        // Also write to legacy key for compatibility with other components
+        localStorage.setItem("DrawioMsg", storageData);
+
+        console.log("[DrawioBridge] XML loaded and persisted to localStorage");
+        // ===========================================================================
 
         // Give Draw.io time to process
         setTimeout(resolve, 500);

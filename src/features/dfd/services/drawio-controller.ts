@@ -7,13 +7,11 @@ import dfd1 from "../shapes/DFD_1.json";
 import dfd2 from "../shapes/DFD_2.json";
 import CORSCommunicator from "./cors-communicator";
 import LocalStorageModel from "./local-storage-model";
-import DiagramAnalyser from "./diagram-analyser";
 import { ICrossingElements } from "../interfaces/drawio-interfaces";
 
 export default class DrawioController {
   private drawio: CORSCommunicator;
   private storage: LocalStorageModel;
-  private diagramAnalyser: DiagramAnalyser;
   private readonly projectName: string;
   private readonly diagramImage: HTMLImageElement;
   private imageReadyCallback: ((image: HTMLImageElement) => void) | null = null;
@@ -29,7 +27,6 @@ export default class DrawioController {
   ) {
     this.drawio = drawio;
     this.storage = storage;
-    this.diagramAnalyser = new DiagramAnalyser();
     this.projectName = projectName;
     this.diagramImage = new Image();
     this.drawio.receive(this.handleIncomingEvents.bind(this));
@@ -451,56 +448,6 @@ export default class DrawioController {
    */
   getDarkMode(): boolean {
     return this.isDarkMode;
-  }
-
-  parseXml(): {
-    crossingElements: ICrossingElements[];
-    invalidDataflows: boolean;
-  } {
-    // Lese vom projekt-spezifischen Key
-    let xmlDataString: string | null = this.storage.read();
-
-    // Fallback zu legacy Key
-    if (!xmlDataString) {
-      xmlDataString = localStorage.getItem("DrawioMsg");
-    }
-
-    if (!xmlDataString) {
-      console.error("DrawioMsg is missing or empty in LocalStorage.");
-      return { crossingElements: [], invalidDataflows: false };
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(xmlDataString);
-    } catch (error) {
-      console.error("Failed to parse DrawioMsg:", error);
-      return { crossingElements: [], invalidDataflows: false };
-    }
-
-    if (!parsed?.xml) {
-      console.error("Parsed DrawioMsg is missing the xml property.");
-      return { crossingElements: [], invalidDataflows: false };
-    }
-    const xml = parsed.xml;
-
-    let xmlDoc: XMLDocument;
-
-    const parser: DOMParser = new DOMParser();
-    try {
-      xmlDoc = parser.parseFromString(xml, "text/xml");
-    } catch (e) {
-      console.error("Failed to parse XML:", e);
-      return { crossingElements: [], invalidDataflows: false };
-    }
-
-    const { crossingElements, invalidDataflows } =
-      this.diagramAnalyser.parseDifferentDfdElementsFromXml(xmlDoc);
-
-    return {
-      crossingElements: crossingElements,
-      invalidDataflows: invalidDataflows,
-    };
   }
 
   /**

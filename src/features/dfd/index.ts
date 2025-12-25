@@ -81,8 +81,4 @@ export {
   createXmlSourceManager,
 } from "./services/xml-source-manager";
 
-// Legacy exports (for backward compatibility)
-export { default as DiagramAnalyser } from "./services/diagram-analyser";
-export { default as ImportController } from "./services/import-controller";
-
 export { type ICrossingElements } from "./interfaces/drawio-interfaces";
