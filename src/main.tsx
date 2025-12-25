@@ -8,7 +8,7 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-document.title = 'CoReTM 2.0';
+document.title = "TARAflow";
 
 root.render(
   <React.StrictMode>

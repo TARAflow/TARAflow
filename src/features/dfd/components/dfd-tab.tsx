@@ -1,6 +1,9 @@
 // ==================== DFD TAB ====================
 // Single Responsibility: View/UI only - delegates logic to useDFDEditor hook
 // NO dependency on app - uses DFDProjectData from dfd-types
+//
+// ZOOM: Native draw.io zoom is used (Ctrl+Wheel zooms to cursor position)
+// Browser zoom is blocked at Electron level (main.ts)
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -75,7 +78,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // ==================== HANDLERS ====================
 
   const handleIframeLoad = () => {
-    // Initialize when iframe is ready
     console.log("[DFDTab] iframe loaded, calling initialize()");
     initialize();
   };
@@ -95,7 +97,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const handleProceed = () => {
     if (isDirty) {
-      // Could show a snackbar here
       return;
     }
     if (!validation?.isValid) {
@@ -133,14 +134,25 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
 
       {/* Main Content - DrawIO Iframe */}
-      <Box sx={{ flexGrow: 1, position: "relative", bgcolor: "grey.100" }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          position: "relative",
+          bgcolor: "grey.100",
+        }}
+      >
         {isLoading && <LoadingOverlay />}
 
         <iframe
-          key={project.id} // Force remount on project change
+          key={project.id}
           ref={iframeRef as React.RefObject<HTMLIFrameElement>}
           src={DRAWIO_URL}
-          style={{ width: "100%", height: "100%", border: "none" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            pointerEvents: isLoading ? "none" : "auto",
+          }}
           title="DFD Editor"
           onLoad={handleIframeLoad}
         />

@@ -81,6 +81,12 @@ export default class DrawioController {
     const configurationAction = {
       action: "configure",
       config: {
+        // ==================== ZOOM SETTINGS ====================
+        // WICHTIG: Diese Einstellungen kontrollieren das Zoom-Verhalten
+        zoomWheel: false, // false = Ctrl+Wheel für Zoom (Standard)
+        zoomFactor: 1.2, // Zoom-Faktor pro Schritt
+
+        // ==================== CSS STYLING ====================
         css: `
           .geMenubarContainer, .mxWindow {
             background-color: hsl(246, 56%, 90%) !important;
@@ -92,7 +98,7 @@ export default class DrawioController {
             background: hsl(246, 56%, 95%) !important;
           }
           .geSidebarTooltip {
-            box-shadow:0 2px 6px 2px rgba(218, 215, 244, 0.6) !important;
+            box-shadow: 0 2px 6px 2px rgba(218, 215, 244, 0.6) !important;
           }
           .geSidebar .geItem:hover {
             background-color: hsl(246, 56%, 95%) !important;
@@ -104,27 +110,28 @@ export default class DrawioController {
             color: ${cssVariables["--coretm-darkgrey"]} !important;
           }
           .geFormatSection:nth-of-type(3), .geFormatSection:nth-of-type(4) {
-          display: none;
-
-          }
-          .geMenubar {
-          }
-          .geDiagramContainer {
-            overflow: hidden !important;
+            display: none;
           }
           .geToolbarButton[title=Language] {
             display: none;
           }
         `,
+        // ENTFERNT: .geDiagramContainer { overflow: hidden !important; }
+        // Das war der Bug! overflow: hidden verhindert Scrollbars und
+        // stört das Zoom-Verhalten von draw.io
+
+        // ==================== FONTS & UI ====================
         defaultFonts: ["Humor Sans", "Helvetica", "Times New Roman"],
-        ui: "atlas", // kennedy, atlas (default), dark and min
+        ui: "atlas",
         darkMode: false,
+        enableCssDarkMode: false,
+
+        // ==================== LIBRARIES ====================
         defaultLibraries: "dfd1",
         defaultCustomLibraries: ["dfd1"],
-        enabledLibraries: ["dfd1"],
+        enabledLibraries: ["dfd1", "dfd2"],
         expandLibraries: true,
         enableCustomLibraries: true,
-        enableCssDarkMode: false,
         libraries: [
           {
             title: {
