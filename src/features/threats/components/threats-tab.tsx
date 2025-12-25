@@ -4,6 +4,7 @@
 // - Vertical split view with DFD preview (top) and threat tables (bottom)
 // - Toggle between STRIDE per-element and per-interaction
 // - Both method data stored separately to allow switching
+// - SYNC STATUS: Warns when DFD and threats are out of sync
 // - Follows Clean Architecture - only depends on shared types
 
 import React, {
@@ -27,6 +28,8 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   CircularProgress,
+  AlertTitle,
+  Stack,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -41,6 +44,8 @@ import {
   DeleteSweep as DeleteAllIcon,
   GridView as PerElementIcon,
   AccountTree as PerInteractionIcon,
+  Sync as SyncIcon,
+  Error as ErrorIcon,
 } from "@mui/icons-material";
 
 import {
@@ -50,6 +55,7 @@ import {
   ThreatConfiguration,
   ThreatTabProps,
   ThreatValidation,
+  ThreatSyncStatus,
   StrideMethod,
   LinkedDFDElement,
   DataFlowReference,
@@ -103,7 +109,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   onDirtyChange,
   onPhaseComplete,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isGerman = i18n.language === "de";
 
   // ==================== STATE ====================
 
@@ -115,9 +122,14 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   // UI state
   const [isDirty, setIsDirty] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [showDFDPreview, setShowDFDPreview] = useState(true);
   const [dfdPanelHeight, setDfdPanelHeight] = useState(DEFAULT_DFD_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Sync status
+  const [syncStatus, setSyncStatus] = useState<ThreatSyncStatus | null>(null);
+  const [showSyncWarning, setShowSyncWarning] = useState(true);
 
   // Dialog state
   const [selectedThreat, setSelectedThreat] = useState<{
@@ -127,6 +139,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const [showThreatDialog, setShowThreatDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [isNewThreat, setIsNewThreat] = useState(false);
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
 
   // Validation
   const [validation, setValidation] = useState<ThreatValidation | null>(
@@ -138,6 +151,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef<number>(0);
   const startHeightRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ==================== DERIVED STATE ====================
 
@@ -151,6 +165,33 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const stats = useMemo(() => {
     return threatService.getStatistics(threatData, activeMethod);
   }, [threatData, activeMethod]);
+
+  // ==================== SYNC STATUS CHECK ====================
+
+  // Check sync status when DFD changes - use refs to avoid dependency loops
+  const threatDataRef = useRef(threatData);
+  threatDataRef.current = threatData;
+
+  const activeMethodRef = useRef(activeMethod);
+  activeMethodRef.current = activeMethod;
+
+  // Only re-check when DFD actually changes (not on every threatData update)
+  useEffect(() => {
+    if (hasDFD && project.dfdElements && project.dfdConnections) {
+      const status = threatService.checkSyncStatus(
+        project,
+        threatDataRef.current,
+        activeMethodRef.current
+      );
+      setSyncStatus(status);
+      // Show warning if not in sync
+      if (!status.inSync) {
+        setShowSyncWarning(true);
+      }
+    } else {
+      setSyncStatus(null);
+    }
+  }, [project.dfdElements, project.dfdConnections, hasDFD, project]);
 
   // ==================== EFFECTS ====================
 
@@ -274,6 +315,57 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setIsGenerating(false);
     }
   }, [hasDFD, project, threatData, activeMethod, markDirty]);
+
+  // ==================== SYNC HANDLERS ====================
+
+  const handleSyncClick = useCallback(() => {
+    if (!syncStatus || syncStatus.inSync) return;
+
+    // Show confirmation if there are orphaned threats
+    if (syncStatus.orphanedThreats.threatIds.length > 0) {
+      setShowSyncConfirm(true);
+    } else {
+      // No orphaned threats, sync directly (only add new)
+      handleSyncThreats(false);
+    }
+  }, [syncStatus]);
+
+  const handleSyncThreats = useCallback(
+    async (removeOrphaned: boolean) => {
+      if (!hasDFD) return;
+
+      setShowSyncConfirm(false);
+      setIsSyncing(true);
+
+      try {
+        const result = threatService.syncThreats(
+          project,
+          threatData,
+          activeMethod,
+          { removeOrphaned }
+        );
+
+        if (result.success && result.threatData) {
+          setThreatData(result.threatData);
+          setValidation(
+            threatService.validateThreatData(result.threatData, activeMethod)
+          );
+          markDirty();
+
+          // Re-check sync status
+          const newStatus = threatService.checkSyncStatus(
+            project,
+            result.threatData,
+            activeMethod
+          );
+          setSyncStatus(newStatus);
+        }
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [hasDFD, project, threatData, activeMethod, markDirty]
+  );
 
   // ==================== DELETE ALL ====================
 
@@ -401,10 +493,10 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   }, []);
 
   const handleSaveConfig = useCallback(
-    (config: ThreatConfiguration) => {
+    (newConfig: ThreatConfiguration) => {
       const updatedData: ThreatData = {
         ...threatData,
-        configuration: config,
+        configuration: newConfig,
         lastModified: new Date().toISOString(),
       };
 
@@ -415,19 +507,21 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     [threatData, markDirty]
   );
 
-  // ==================== PROCEED ====================
+  // ==================== IMPORT / EXPORT ====================
 
-  const handleProceed = useCallback(() => {
-    onPhaseComplete?.();
-  }, [onPhaseComplete]);
-
-  // ==================== EXPORT ====================
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<{
+    perElementTables: ThreatTableType[];
+    perInteractionTables: ThreatTableType[];
+  } | null>(null);
 
   const handleExport = useCallback(() => {
     const exportData = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      projectId: project.id,
       projectName: project.name,
-      exportDate: new Date().toISOString(),
-      activeMethod,
+      activeMethod: activeMethod,
       perElementTables: threatData.perElementTables,
       perInteractionTables: threatData.perInteractionTables,
     };
@@ -438,64 +532,54 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${project.name}_Threats_${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    a.download = `${project.name.replace(/\s+/g, "_")}_threats.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [project.name, threatData, activeMethod]);
-
-  // ==================== IMPORT ====================
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showImportConfirm, setShowImportConfirm] = useState(false);
-  const [pendingImportData, setPendingImportData] = useState<{
-    perElementTables: ThreatTableType[];
-    perInteractionTables: ThreatTableType[];
-  } | null>(null);
+  }, [project, activeMethod, threatData]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
   const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const result = threatService.validateImportData(content);
 
-        // Validate using service
-        const validationResult = threatService.validateImportData(content);
+        if (result.success && result.data) {
+          // Check if there are existing threats
+          const hasExisting =
+            (threatData.perElementTables?.some((t) => t.threats.length > 0) ??
+              false) ||
+            (threatData.perInteractionTables?.some(
+              (t) => t.threats.length > 0
+            ) ??
+              false);
 
-        if (!validationResult.success) {
-          alert(
-            t(`tabs.threats.import.${validationResult.error}`, {
-              defaultValue: validationResult.message,
-            })
-          );
-          return;
-        }
-
-        const importData = validationResult.data!;
-
-        // If there are existing threats, show confirmation
-        if (hasThreats) {
-          setPendingImportData(importData);
-          setShowImportConfirm(true);
+          if (hasExisting) {
+            setPendingImportData(result.data);
+            setShowImportConfirm(true);
+          } else {
+            applyImport(result.data);
+          }
         } else {
-          // No existing threats, import directly
-          applyImport(importData);
+          // Show error (you might want to add a toast or alert here)
+          console.error("Import failed:", result.message);
         }
       };
       reader.readAsText(file);
 
-      // Reset file input so the same file can be selected again
-      e.target.value = "";
+      // Reset input
+      event.target.value = "";
     },
-    [hasThreats, t]
+    [threatData]
   );
 
   const applyImport = useCallback(
@@ -531,6 +615,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     setShowImportConfirm(false);
     setPendingImportData(null);
   }, []);
+
+  // ==================== NAVIGATION ====================
+
+  const handleProceed = useCallback(() => {
+    onPhaseComplete?.();
+  }, [onPhaseComplete]);
 
   // ==================== SPLIT VIEW RESIZE ====================
 
@@ -586,6 +676,48 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
+  // ==================== SYNC WARNING MESSAGE ====================
+
+  const getSyncWarningMessage = useCallback(() => {
+    if (!syncStatus || syncStatus.inSync) return null;
+
+    const parts: string[] = [];
+
+    if (syncStatus.summary.missingElementCount > 0) {
+      parts.push(
+        isGerman
+          ? `${syncStatus.summary.missingElementCount} Element(e) ohne Bedrohungen`
+          : `${syncStatus.summary.missingElementCount} element(s) without threats`
+      );
+    }
+
+    if (syncStatus.summary.missingDataFlowCount > 0) {
+      parts.push(
+        isGerman
+          ? `${syncStatus.summary.missingDataFlowCount} Datenfluss/-flüsse ohne Bedrohungen`
+          : `${syncStatus.summary.missingDataFlowCount} data flow(s) without threats`
+      );
+    }
+
+    if (syncStatus.summary.orphanedThreatCount > 0) {
+      parts.push(
+        isGerman
+          ? `${syncStatus.summary.orphanedThreatCount} verwaiste Bedrohung(en)`
+          : `${syncStatus.summary.orphanedThreatCount} orphaned threat(s)`
+      );
+    }
+
+    if (syncStatus.summary.changedReferenceCount > 0) {
+      parts.push(
+        isGerman
+          ? `${syncStatus.summary.changedReferenceCount} geänderte Referenz(en)`
+          : `${syncStatus.summary.changedReferenceCount} changed reference(s)`
+      );
+    }
+
+    return parts.join(", ");
+  }, [syncStatus, isGerman]);
+
   // ==================== RENDER ====================
 
   return (
@@ -613,15 +745,18 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       <ThreatsToolbar
         isDirty={isDirty}
         isGenerating={isGenerating}
+        isSyncing={isSyncing}
         validation={validation}
         activeMethod={activeMethod}
         threatCount={stats.totalThreats}
         hasThreats={hasThreats}
         hasDFD={hasDFD}
+        syncStatus={syncStatus}
         showDFDPreview={showDFDPreview}
         onToggleDFDPreview={() => setShowDFDPreview(!showDFDPreview)}
         onMethodChange={handleMethodChange}
         onGenerate={handleGenerateClick}
+        onSync={handleSyncClick}
         onDeleteAll={handleDeleteAllClick}
         onOpenConfig={handleOpenConfig}
         onExport={handleExport}
@@ -641,6 +776,49 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         </Box>
       </Collapse>
 
+      {/* Sync Warning */}
+      <Collapse
+        in={
+          hasDFD && syncStatus !== null && !syncStatus.inSync && showSyncWarning
+        }
+      >
+        <Box sx={{ px: 2, py: 1 }}>
+          <Alert
+            severity="warning"
+            icon={<ErrorIcon />}
+            action={
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="small"
+                  color="inherit"
+                  startIcon={
+                    isSyncing ? <CircularProgress size={16} /> : <SyncIcon />
+                  }
+                  onClick={handleSyncClick}
+                  disabled={isSyncing}
+                >
+                  {isGerman ? "Synchronisieren" : "Sync"}
+                </Button>
+                <Button
+                  size="small"
+                  color="inherit"
+                  onClick={() => setShowSyncWarning(false)}
+                >
+                  {isGerman ? "Ignorieren" : "Dismiss"}
+                </Button>
+              </Stack>
+            }
+          >
+            <AlertTitle>
+              {isGerman
+                ? "DFD und Bedrohungen nicht synchron"
+                : "DFD and threats out of sync"}
+            </AlertTitle>
+            {getSyncWarningMessage()}
+          </Alert>
+        </Box>
+      </Collapse>
+
       {/* Main Content - Split View */}
       <Box
         ref={splitContainerRef}
@@ -650,9 +828,10 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           flexDirection: "column",
           overflow: "hidden",
           position: "relative",
+          minHeight: 0, // Important for flex child to respect overflow
         }}
       >
-        {/* DFD Preview Panel (Top) */}
+        {/* DFD Preview Panel */}
         {showDFDPreview && (
           <>
             <Box
@@ -702,16 +881,25 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           </>
         )}
 
-        {/* Threat Tables (Bottom) */}
+        {/* Threats Table Panel */}
         <Box
           sx={{
             flexGrow: 1,
+            flexShrink: 1,
+            minHeight: 0, // Critical: allows flex child to shrink below content size
             overflow: "auto",
             p: 2,
-            minHeight: MIN_PANEL_HEIGHT,
           }}
         >
-          {!hasThreats ? (
+          {hasThreats ? (
+            <ThreatTable
+              threatTables={activeTables}
+              configuration={threatData.configuration}
+              onEdit={handleEditThreat}
+              onDelete={handleDeleteThreat}
+              onAdd={handleAddThreat}
+            />
+          ) : (
             <Box
               sx={{
                 display: "flex",
@@ -719,6 +907,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 alignItems: "center",
                 justifyContent: "center",
                 height: "100%",
+                minHeight: 300,
                 gap: 2,
               }}
             >
@@ -730,42 +919,30 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               <Typography variant="body2" color="text.secondary">
                 {t("tabs.threats.noThreatsHint", {
                   defaultValue:
-                    "Click 'Generate Threats' to automatically create threats based on your DFD.",
+                    'Click "Generate Threats" to automatically create threats based on your DFD.',
                 })}
               </Typography>
-              {hasDFD && (
-                <Button
-                  variant="contained"
-                  startIcon={
-                    isGenerating ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      <GenerateIcon />
-                    )
-                  }
-                  onClick={handleGenerateThreats}
-                  disabled={isGenerating}
-                >
-                  {t("tabs.threats.generate", {
-                    defaultValue: "Generate Threats",
-                  })}
-                </Button>
-              )}
+              <Button
+                variant="contained"
+                startIcon={<GenerateIcon />}
+                onClick={handleGenerateClick}
+                disabled={!hasDFD || isGenerating}
+              >
+                {isGenerating
+                  ? t("tabs.threats.generating", {
+                      defaultValue: "Generating...",
+                    })
+                  : t("tabs.threats.generate", {
+                      defaultValue: "Generate Threats",
+                    })}
+              </Button>
             </Box>
-          ) : (
-            <ThreatTable
-              threatTables={activeTables}
-              configuration={threatData.configuration}
-              onEdit={handleEditThreat}
-              onDelete={handleDeleteThreat}
-              onAdd={handleAddThreat}
-            />
           )}
         </Box>
       </Box>
 
-      {/* Threat Edit Dialog */}
-      {selectedThreat && (
+      {/* Dialogs */}
+      {showThreatDialog && selectedThreat && (
         <ThreatDialog
           open={showThreatDialog}
           threat={selectedThreat.threat}
@@ -775,14 +952,15 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         />
       )}
 
-      {/* Configuration Dialog */}
-      <ThreatConfigDialog
-        open={showConfigDialog}
-        configuration={threatData.configuration}
-        hasExistingThreats={hasThreats}
-        onSave={handleSaveConfig}
-        onClose={() => setShowConfigDialog(false)}
-      />
+      {showConfigDialog && (
+        <ThreatConfigDialog
+          open={showConfigDialog}
+          configuration={threatData.configuration}
+          hasExistingThreats={hasThreats}
+          onSave={handleSaveConfig}
+          onClose={() => setShowConfigDialog(false)}
+        />
+      )}
 
       {/* Generate Confirmation Dialog */}
       {showGenerateConfirm && (
@@ -792,15 +970,36 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           })}
           message={t("tabs.threats.generateConfirmMessage", {
             defaultValue:
-              "This will overwrite all existing threats, including any manual changes you have made. This action cannot be undone.",
+              "This will replace all existing threats for the current method. Consider using 'Sync' to only add new threats. Continue?",
           })}
           variant="warning"
-          confirmLabel={t("tabs.threats.generate", {
-            defaultValue: "Generate Threats",
+          confirmLabel={t("tabs.threats.regenerate", {
+            defaultValue: "Regenerate",
           })}
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           onConfirm={handleGenerateThreats}
           onCancel={() => setShowGenerateConfirm(false)}
+        />
+      )}
+
+      {/* Sync Confirmation Dialog */}
+      {showSyncConfirm && syncStatus && (
+        <ConfirmDialog
+          title={t("tabs.threats.syncConfirmTitle", {
+            defaultValue: "Sync Threats",
+          })}
+          message={
+            isGerman
+              ? `Es gibt ${syncStatus.summary.orphanedThreatCount} verwaiste Bedrohung(en) (referenzieren gelöschte DFD-Elemente). Möchten Sie diese entfernen?`
+              : `There are ${syncStatus.summary.orphanedThreatCount} orphaned threat(s) (referencing deleted DFD elements). Do you want to remove them?`
+          }
+          variant="warning"
+          confirmLabel={
+            isGerman ? "Entfernen & Synchronisieren" : "Remove & Sync"
+          }
+          cancelLabel={isGerman ? "Nur hinzufügen" : "Only Add New"}
+          onConfirm={() => handleSyncThreats(true)}
+          onCancel={() => handleSyncThreats(false)}
         />
       )}
 
@@ -852,11 +1051,13 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 interface ThreatsToolbarProps {
   isDirty: boolean;
   isGenerating: boolean;
+  isSyncing: boolean;
   validation: ThreatValidation | null;
   activeMethod: StrideMethod;
   threatCount: number;
   hasThreats: boolean;
   hasDFD: boolean;
+  syncStatus: ThreatSyncStatus | null;
   showDFDPreview: boolean;
   onToggleDFDPreview: () => void;
   onMethodChange: (
@@ -864,6 +1065,7 @@ interface ThreatsToolbarProps {
     method: StrideMethod | null
   ) => void;
   onGenerate: () => void;
+  onSync: () => void;
   onDeleteAll: () => void;
   onOpenConfig: () => void;
   onExport: () => void;
@@ -874,22 +1076,26 @@ interface ThreatsToolbarProps {
 const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
   isDirty,
   isGenerating,
+  isSyncing,
   validation,
   activeMethod,
   threatCount,
   hasThreats,
   hasDFD,
+  syncStatus,
   showDFDPreview,
   onToggleDFDPreview,
   onMethodChange,
   onGenerate,
+  onSync,
   onDeleteAll,
   onOpenConfig,
   onExport,
   onImport,
   onProceed,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isGerman = i18n.language === "de";
 
   const getStatusColor = () => {
     if (!validation) return "default";
@@ -909,6 +1115,8 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
       })}`;
     return t("status.inProgress", { defaultValue: "In Progress" });
   };
+
+  const needsSync = syncStatus && !syncStatus.inSync;
 
   return (
     <Box
@@ -993,6 +1201,30 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
         </span>
       </Tooltip>
 
+      {/* Sync Threats */}
+      <Tooltip
+        title={
+          needsSync
+            ? isGerman
+              ? "Bedrohungen synchronisieren"
+              : "Sync Threats"
+            : isGerman
+            ? "Bedrohungen sind synchron"
+            : "Threats are in sync"
+        }
+      >
+        <span>
+          <IconButton
+            onClick={onSync}
+            size="small"
+            color={needsSync ? "warning" : "default"}
+            disabled={!hasDFD || !needsSync || isSyncing}
+          >
+            {isSyncing ? <CircularProgress size={20} /> : <SyncIcon />}
+          </IconButton>
+        </span>
+      </Tooltip>
+
       {/* Configuration */}
       <Tooltip
         title={t("tabs.threats.configuration", {
@@ -1039,6 +1271,17 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
       </Tooltip>
 
       <Box sx={{ flexGrow: 1 }} />
+
+      {/* Sync Status Badge */}
+      {needsSync && (
+        <Chip
+          icon={<WarningIcon />}
+          label={isGerman ? "Nicht synchron" : "Out of sync"}
+          size="small"
+          color="warning"
+          variant="outlined"
+        />
+      )}
 
       {/* Status */}
       <Chip

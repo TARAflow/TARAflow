@@ -672,7 +672,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
   const isTableExpanded = (tableId: string) =>
     expandedTables[tableId] !== false;
   const isElementExpanded = (elementKey: string) =>
-    expandedElements[elementKey] !== false;
+    expandedElements[elementKey] === true; // Default: collapsed
 
   // ==================== TOTAL COUNT ====================
 
@@ -769,11 +769,9 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
           {totalFilteredThreats}{" "}
           {t("tabs.threats.threatsFound", { defaultValue: "threats found" })}
         </Typography>
-      </Box>;
+      </Box>
 
-      {
-        /* Accordion List */
-      }
+      {/* Accordion List */}
       <Box sx={{ flexGrow: 1, overflow: "auto" }}>
         {threatTables.map((table, tableIndex) => {
           const tableId = table.trustBoundaryId || "external";
@@ -1109,7 +1107,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
             </Accordion>
           );
         })}
-      </Box>;
+      </Box>
     </Box>
   );
 };

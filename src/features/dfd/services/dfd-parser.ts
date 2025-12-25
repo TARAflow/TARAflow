@@ -39,6 +39,9 @@ export class DFDParser {
     try {
       const doc = this.parseXmlString(xml);
 
+      // Collect ID labels first (they reference their parent elements)
+      const idLabels = this.collectIdLabels(doc);
+
       // Parse object elements (these contain the type information)
       const objects = doc.getElementsByTagName("object");
       Array.from(objects).forEach((obj) => {
@@ -62,6 +65,10 @@ export class DFDParser {
           stats
         );
       });
+
+      // Assign displayIds from ID labels to connections and elements
+      this.assignDisplayIds(connections, elements, idLabels);
+
     } catch (error) {
       console.error('DFDParser: Failed to parse XML', error);
     }
@@ -101,6 +108,68 @@ export class DFDParser {
       assets: 0,
       interfaces: 0,
     };
+  }
+
+  /**
+   * Collect all ID labels from the document
+   * ID labels are <object type="idlabel"> elements that are children of other elements
+   * They contain the formatted display ID like "DF-1", "P-1", "EE-1", etc.
+   */
+  private collectIdLabels(doc: Document): Map<string, string> {
+    const idLabels = new Map<string, string>();
+    
+    const objects = doc.getElementsByTagName("object");
+    Array.from(objects).forEach((obj) => {
+      const objType = (
+        obj.getAttribute("type") ||
+        obj.getAttribute("Type") ||
+        ""
+      ).toLowerCase();
+
+      if (objType === "idlabel") {
+        // Get the label text (e.g., "DF-1", "P-1")
+        const label = obj.getAttribute("label") || "";
+        const cleanedLabel = this.cleanLabel(label);
+        
+        // Find the parent element ID from the child mxCell
+        const childCells = obj.getElementsByTagName("mxCell");
+        if (childCells.length > 0) {
+          const mxCell = childCells[0];
+          const parentId = mxCell.getAttribute("parent");
+          
+          if (parentId && parentId !== "0" && parentId !== "1") {
+            idLabels.set(parentId, cleanedLabel);
+          }
+        }
+      }
+    });
+
+    return idLabels;
+  }
+
+  /**
+   * Assign display IDs from ID labels to connections and elements
+   */
+  private assignDisplayIds(
+    connections: DFDConnection[],
+    elements: DFDElement[],
+    idLabels: Map<string, string>
+  ): void {
+    // Assign to connections
+    for (const conn of connections) {
+      const displayId = idLabels.get(conn.id);
+      if (displayId) {
+        conn.displayId = displayId;
+      }
+    }
+
+    // Assign to elements
+    for (const elem of elements) {
+      const displayId = idLabels.get(elem.id);
+      if (displayId) {
+        elem.displayId = displayId;
+      }
+    }
   }
 
   /**

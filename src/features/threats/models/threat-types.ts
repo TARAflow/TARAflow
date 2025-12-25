@@ -1,3 +1,85 @@
+// ==================== SYNC STATUS TYPES ====================
+
+/**
+ * Detected change in a DataFlow reference
+ */
+export interface DataFlowChange {
+  threatId: string;
+  oldRef: DataFlowReference;
+  newRef: DFDConnectionReference;
+  changes: ("name" | "id" | "source" | "target")[];
+}
+
+/**
+ * Detected change in an Element reference
+ */
+export interface ElementChange {
+  threatId: string;
+  oldRef: LinkedDFDElement;
+  newRef: DFDElementReference;
+  changes: ("name" | "id" | "type")[];
+}
+
+/**
+ * Status of synchronization between DFD and Threats
+ */
+export interface ThreatSyncStatus {
+  /** Whether threats are in sync with DFD */
+  inSync: boolean;
+
+  /** Elements/DataFlows in DFD but without threats */
+  missingInThreats: {
+    elements: DFDElementReference[];
+    dataFlows: DFDConnectionReference[];
+  };
+
+  /** Threats referencing deleted DFD elements/flows */
+  orphanedThreats: {
+    elementIds: string[];
+    dataFlowIds: string[];
+    threatIds: string[];
+  };
+
+  /** Threats with changed references (name, id, direction) */
+  changedReferences: {
+    elements: ElementChange[];
+    dataFlows: DataFlowChange[];
+  };
+
+  /** Summary counts for UI */
+  summary: {
+    missingElementCount: number;
+    missingDataFlowCount: number;
+    orphanedThreatCount: number;
+    changedReferenceCount: number;
+  };
+
+  /** When sync was last checked */
+  lastChecked: string;
+}
+
+/**
+ * Result of sync operation
+ */
+export interface ThreatSyncResult {
+  success: boolean;
+
+  /** Number of new threats added */
+  added: number;
+
+  /** Number of orphaned threats removed (if requested) */
+  removed: number;
+
+  /** Number of references updated */
+  updated: number;
+
+  /** Updated threat data */
+  threatData?: ThreatData;
+
+  /** Error message if failed */
+  error?: string;
+}
+
 // ==================== THREAT TYPES ====================
 // Core data models for the Threats feature
 // NO dependency on app - follows Dependency Inversion Principle
@@ -31,13 +113,13 @@ export type InteractionRole = "source" | "target";
 export interface InteractionContext {
   /** Direction of attack relative to data flow */
   direction: InteractionDirection;
-  
+
   /** Which component is being impersonated/attacked */
   attackedRole: InteractionRole;
-  
+
   /** Which component is being deceived/affected */
   victimRole: InteractionRole;
-  
+
   /** Whether this data flow crosses a trust boundary */
   crossesTrustBoundary: boolean;
 }
@@ -62,7 +144,14 @@ export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
  * STRIDE categories for per-interaction method
  * All 6 categories apply to each data flow
  */
-export const STRIDE_PER_INTERACTION: StrideCategory[] = ["S", "T", "R", "I", "D", "E"];
+export const STRIDE_PER_INTERACTION: StrideCategory[] = [
+  "S",
+  "T",
+  "R",
+  "I",
+  "D",
+  "E",
+];
 
 // ==================== STRIDE DEFINITIONS ====================
 
@@ -101,7 +190,8 @@ export const STRIDE_DEFINITIONS: StrideDefinition[] = [
     nameDE: "Abstreitbarkeit",
     securityProperty: "Non-repudiation",
     securityPropertyDE: "Nichtabstreitbarkeit",
-    description: "Claiming you didn't do something, whether or not you actually did",
+    description:
+      "Claiming you didn't do something, whether or not you actually did",
     descriptionDE: "Behaupten, etwas nicht getan zu haben",
   },
   {
@@ -110,7 +200,8 @@ export const STRIDE_DEFINITIONS: StrideDefinition[] = [
     nameDE: "Informationspreisgabe",
     securityProperty: "Confidentiality",
     securityPropertyDE: "Vertraulichkeit",
-    description: "Exposing information to people who aren't authorized to see it",
+    description:
+      "Exposing information to people who aren't authorized to see it",
     descriptionDE: "Offenlegung von Informationen an Unbefugte",
   },
   {
@@ -120,7 +211,8 @@ export const STRIDE_DEFINITIONS: StrideDefinition[] = [
     securityProperty: "Availability",
     securityPropertyDE: "Verfügbarkeit",
     description: "Taking actions to prevent the system from providing service",
-    descriptionDE: "Aktionen, die das System am Bereitstellen von Diensten hindern",
+    descriptionDE:
+      "Aktionen, die das System am Bereitstellen von Diensten hindern",
   },
   {
     type: "E",
@@ -128,14 +220,15 @@ export const STRIDE_DEFINITIONS: StrideDefinition[] = [
     nameDE: "Rechteausweitung",
     securityProperty: "Authorization",
     securityPropertyDE: "Autorisierung",
-    description: "Being able to perform operations you aren't supposed to be able to do",
+    description:
+      "Being able to perform operations you aren't supposed to be able to do",
     descriptionDE: "Ausführen von Operationen ohne entsprechende Berechtigung",
   },
 ];
 
 // ==================== THREAT ACTOR ====================
 
-export type ThreatActorType = 
+export type ThreatActorType =
   | "external"
   | "internal"
   | "nation-state"
@@ -207,6 +300,9 @@ export interface LinkedDFDElement {
 // ==================== DATA FLOW REFERENCE ====================
 
 export interface DataFlowReference {
+  /** XML/mxGraph cell ID - stable identifier for matching */
+  connectionId?: string;
+  /** Display ID like "DF-1" - can change when renumbered */
   dataFlowId: string;
   dataFlowName: string;
   sourceId: string;
@@ -282,13 +378,13 @@ export interface Threat {
 export interface ThreatTable {
   /** Trust Boundary ID (null for External Entities table in per-element) */
   trustBoundaryId: string | null;
-  
+
   /** Trust Boundary name */
   trustBoundaryName: string;
-  
+
   /** Display identifier (e.g., "[TB-1]" or "[External Entities]") */
   displayIdentifier: string;
-  
+
   /** Threats in this table */
   threats: Threat[];
 }
@@ -301,13 +397,13 @@ export interface ThreatTable {
 export interface ThreatConfiguration {
   /** Currently active STRIDE analysis method for display */
   activeMethod: StrideMethod;
-  
+
   /** Custom threat templates (additions to catalog) */
   customThreatTemplates: ThreatTemplate[];
-  
+
   /** Custom mitigation templates (additions to catalog) */
   customMitigationTemplates: MitigationTemplate[];
-  
+
   /** Custom verification templates (additions to catalog) */
   customVerificationTemplates: VerificationTemplate[];
 }
@@ -361,13 +457,13 @@ export interface InteractionThreatTemplate {
   id: string;
   strideCategory: StrideCategory;
   direction: InteractionDirection;
-  
+
   /** Template with placeholders */
   threat: string;
   threatDE: string;
   attack: string;
   attackDE: string;
-  
+
   /** Suggested mitigations for this direction */
   suggestedMitigations: string[];
   suggestedMitigationsDE: string[];
@@ -394,16 +490,16 @@ export interface InteractionTemplatePlaceholders {
 export interface ThreatData {
   /** Project-specific configuration */
   configuration: ThreatConfiguration;
-  
+
   /** Threat tables for STRIDE-per-element method */
   perElementTables: ThreatTable[];
-  
+
   /** Threat tables for STRIDE-per-interaction method */
   perInteractionTables: ThreatTable[];
-  
+
   /** Validation state */
   validation?: ThreatValidation;
-  
+
   /** Last modified timestamp */
   lastModified: string;
 }
@@ -447,6 +543,8 @@ export interface DFDConnectionReference {
   from: string;
   to: string;
   label?: string;
+  /** Formatted display ID like "DF-1", extracted from idlabel child element */
+  displayId?: string;
 }
 
 // ==================== THREAT UPDATE RESULT ====================
@@ -543,7 +641,7 @@ export function parseThreatId(id: string): {
       sequenceNumber: parseInt(perElementMatch[3], 10),
     };
   }
-  
+
   return null;
 }
 

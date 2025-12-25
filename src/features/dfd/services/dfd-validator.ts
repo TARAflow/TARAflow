@@ -53,6 +53,11 @@ export const ValidationMessages = {
   // Asset & Interface (NEW)
   ASSET_NOT_PLACED: "dfdValidation.assetNotPlaced",
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
+
+  // Naming & ID Labels
+  ELEMENT_DEFAULT_NAME: "dfdValidation.elementDefaultName",
+  ELEMENT_MISSING_IDLABEL: "dfdValidation.elementMissingIdLabel",
+  DUPLICATE_IDLABEL: "dfdValidation.duplicateIdLabel",
 } as const;
 
 /**
@@ -103,6 +108,15 @@ export class DFDValidator {
 
     // Check basic connection validity
     this.validateConnectionsExist(connections, elements, errors);
+
+    // Check for default/placeholder names
+    this.validateElementNames(elements, warnings);
+
+    // Check for missing ID labels
+    this.validateIdLabels(elements, connections, warnings);
+
+    // Check for duplicate ID labels
+    this.validateDuplicateIdLabels(elements, connections, warnings);
 
     // Determine which scenario applies and validate accordingly
     const hasExternalEntities = stats.externalEntities > 0;
@@ -961,6 +975,196 @@ export class DFDValidator {
       point.y >= rectPos.y &&
       point.y <= rectPos.y + rectSize.height
     );
+  }
+
+  // ==================== NAMING & ID LABEL VALIDATION ====================
+
+  /**
+   * Default/placeholder names that indicate user hasn't renamed the element
+   */
+  private readonly DEFAULT_NAMES = [
+    // English defaults
+    "process",
+    "external entity",
+    "data store",
+    "datastore",
+    "trust boundary",
+    "multiprocess",
+    "asset",
+    "interface",
+    "external",
+    "entity",
+    "boundary",
+    // German defaults
+    "prozess",
+    "externe entität",
+    "datenspeicher",
+    "vertrauensgrenze",
+    "multiprozess",
+    "schnittstelle",
+    // Generic
+    "name",
+    "label",
+    "new",
+    "neu",
+    "untitled",
+    "unbenannt",
+  ];
+
+  /**
+   * Check for elements with default/placeholder names
+   */
+  private validateElementNames(
+    elements: DFDElement[],
+    warnings: string[]
+  ): void {
+    const connectableTypes = [
+      "Process",
+      "Multiprocess",
+      "DataStore",
+      "ExternalEntity",
+      "TrustBoundary",
+    ];
+
+    for (const element of elements) {
+      if (!connectableTypes.includes(element.type)) continue;
+
+      const name = element.name.toLowerCase().trim();
+
+      // Check if name matches a default name
+      const isDefault = this.DEFAULT_NAMES.some(
+        (defaultName) =>
+          name === defaultName ||
+          name.startsWith(defaultName + " ") ||
+          name.endsWith(" " + defaultName)
+      );
+
+      // Also check for very short names (1-2 chars) that aren't ID labels
+      const isTooShort = name.length <= 2 && !name.match(/^[a-z]{1,2}-?\d+$/i);
+
+      if (isDefault || isTooShort) {
+        warnings.push(
+          `${ValidationMessages.ELEMENT_DEFAULT_NAME}:${element.name}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Check for elements and connections missing ID labels (displayId)
+   */
+  private validateIdLabels(
+    elements: DFDElement[],
+    connections: DFDConnection[],
+    warnings: string[]
+  ): void {
+    // Check elements that should have ID labels (excluding TrustBoundary - they have different format)
+    const typesNeedingIds = [
+      "Process",
+      "Multiprocess",
+      "DataStore",
+      "ExternalEntity",
+    ];
+
+    for (const element of elements) {
+      if (!typesNeedingIds.includes(element.type)) continue;
+
+      // Check if element has displayId or [ID] in name
+      const hasDisplayId = Boolean(element.displayId);
+      const hasIdInName = /\[[A-Z]+-?\d+\]/i.test(element.name);
+
+      if (!hasDisplayId && !hasIdInName) {
+        warnings.push(
+          `${ValidationMessages.ELEMENT_MISSING_IDLABEL}:${element.name}`
+        );
+      }
+    }
+
+    // Trust Boundaries have a different ID format - just [XX] without number is valid
+    // This is already validated in validateTrustBoundaryIds()
+
+    // Check connections (DataFlows)
+    for (const connection of connections) {
+      const hasDisplayId = Boolean(connection.displayId);
+      const hasIdInLabel =
+        connection.label && /\[DF-?\d+\]/i.test(connection.label);
+
+      if (!hasDisplayId && !hasIdInLabel) {
+        const label = connection.label || `Connection ${connection.id}`;
+        warnings.push(`${ValidationMessages.ELEMENT_MISSING_IDLABEL}:${label}`);
+      }
+    }
+  }
+
+  /**
+   * Check for duplicate ID labels
+   */
+  private validateDuplicateIdLabels(
+    elements: DFDElement[],
+    connections: DFDConnection[],
+    warnings: string[]
+  ): void {
+    const idLabels = new Map<string, string[]>(); // id -> [element names]
+
+    // Collect element displayIds
+    for (const element of elements) {
+      if (element.displayId) {
+        const id = element.displayId.toUpperCase();
+        if (!idLabels.has(id)) {
+          idLabels.set(id, []);
+        }
+        idLabels.get(id)!.push(element.name);
+      }
+
+      // Also check for [ID] in name
+      const match = element.name.match(/\[([A-Z]+-?\d+)\]/i);
+      if (match) {
+        const id = match[1].toUpperCase();
+        if (!idLabels.has(id)) {
+          idLabels.set(id, []);
+        }
+        // Only add if not already added via displayId
+        if (!element.displayId || element.displayId.toUpperCase() !== id) {
+          idLabels.get(id)!.push(element.name);
+        }
+      }
+    }
+
+    // Collect connection displayIds
+    for (const connection of connections) {
+      if (connection.displayId) {
+        const id = connection.displayId.toUpperCase();
+        if (!idLabels.has(id)) {
+          idLabels.set(id, []);
+        }
+        idLabels.get(id)!.push(connection.label || `DataFlow ${connection.id}`);
+      }
+
+      // Also check for [DF-N] in label
+      if (connection.label) {
+        const match = connection.label.match(/\[(DF-?\d+)\]/i);
+        if (match) {
+          const id = match[1].toUpperCase();
+          if (!idLabels.has(id)) {
+            idLabels.set(id, []);
+          }
+          // Only add if not already added via displayId
+          if (
+            !connection.displayId ||
+            connection.displayId.toUpperCase() !== id
+          ) {
+            idLabels.get(id)!.push(connection.label);
+          }
+        }
+      }
+    }
+
+    // Report duplicates
+    idLabels.forEach((names, id) => {
+      if (names.length > 1) {
+        warnings.push(`${ValidationMessages.DUPLICATE_IDLABEL}:${id}`);
+      }
+    });
   }
 }
 

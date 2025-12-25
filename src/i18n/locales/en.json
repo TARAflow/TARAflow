@@ -31,7 +31,8 @@
     "showDFD": "Show DFD Preview",
     "hideDFD": "Hide DFD Preview",
     "all": "All",
-    "deleteAll": "Delete All"
+    "deleteAll": "Delete All",
+    "unsaved": "Unsaved"
   },
 
   "project": {
@@ -335,10 +336,16 @@
       "threats": "Threats",
       "dfdReference": "DFD Reference",
       "editThreat": "Edit Threat",
+      "addThreat": "Add Threat",
       "deleteThreat": "Delete Threat",
       "deleteConfirm": "Are you sure you want to delete this threat? This action cannot be undone.",
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
+      "showDFD": "Show DFD preview",
+      "hideDFD": "Hde DFD preview",
+      "configuration": "Configuration",
+      "searchPlaceholder": "Search threats...",
+      "threatsFound": "Threats found",
       "generateConfirmTitle": "Regenerate Threats?",
       "generateConfirmMessage": "This will overwrite all existing threats...",
       "importConfirmTitle": "Import Threats?",
@@ -348,6 +355,7 @@
       "deleteAll": "Delete All Threats",
       "deleteAllConfirmTitle": "Delete All Threats?",
       "deleteAllConfirmMessage": "This will permanently delete all threats for the current method ({{method}}). This action cannot be undone.",
+      "syncConfirmTitle": "Sync Threats",
       "element": "Element",
       "dataFlow": "Data Flow",
       "threatDescription": "Threat Description",
@@ -369,6 +377,7 @@
         "threatId": "T-ID",
         "element": "Element",
         "dataFlow": "Data Flow",
+        "direction": "Direction",
         "threat": "Threat",
         "actor": "Actor",
         "mitigation": "Mitigation",
@@ -430,6 +439,9 @@
     "invalidDataflowTarget": "Data flow \"{{name}}\" has an invalid target",
     "assetNotPlaced": "Asset \"{{name}}\" is not placed on a valid element (Process, Multiprocess, Data Store, or Data Flow)",
     "interfaceUnused": "Interface \"{{name}}\" is not crossed by any data flow",
+    "elementDefaultName": "Element \"{{name}}\" has a default/placeholder name. Please provide a meaningful name.",
+    "elementMissingIdLabel": "Element \"{{name}}\" is missing an ID label. Please add an ID label (e.g., [P-1], [EE-1], [DF-1]).",
+    "duplicateIdLabel": "ID label \"{{id}}\" is used multiple times. Each element should have a unique ID.",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",

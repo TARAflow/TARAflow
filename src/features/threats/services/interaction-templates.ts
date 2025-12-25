@@ -495,12 +495,12 @@ export function applyTemplateToInteraction(
 
 /**
  * Get localized threat text for UI display
- *
+ * 
  * Call this from ThreatDialog to get localized text based on:
  * - threat.interactionContext (direction)
  * - threat.dataFlow (source/target names)
  * - current locale from i18n
- *
+ * 
  * @param threat - Threat with interactionContext and dataFlow
  * @param locale - Current UI language ('en' | 'de')
  * @returns Localized text or null if not applicable

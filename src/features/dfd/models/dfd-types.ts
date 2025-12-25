@@ -21,6 +21,7 @@ export interface DFDElement {
   type: DFDElementType;
   name: string;
   description: string;
+  displayId?: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
   properties: Record<string, unknown>;
@@ -31,6 +32,7 @@ export interface DFDConnection {
   from: string;
   to: string;
   label?: string;
+  displayId?: string;
   waypoints?: Array<{ x: number; y: number }>; // For curved/orthogonal dataflows
   properties?: {
     protocol?: string;

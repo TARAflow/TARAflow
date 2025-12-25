@@ -31,7 +31,8 @@
     "showDFD": "DFD-Vorschau anzeigen",
     "hideDFD": "DFD-Vorschau ausblenden",
     "all": "Alle",
-    "deleteAll": "Alle löschen"
+    "deleteAll": "Alle löschen",
+    "unsaved": "Nicht gespeichert"
   },
 
   "project": {
@@ -335,10 +336,16 @@
       "threats": "Bedrohungen",
       "dfdReference": "DFD-Referenz",
       "editThreat": "Bedrohung bearbeiten",
+      "addThreat": "Bedrohung hinzufügen",
       "deleteThreat": "Bedrohung löschen",
       "deleteConfirm": "Sind Sie sicher, dass Sie diese Bedrohung löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
+      "showDFD": "DFD-Vorschau anzeigen",
+      "hideDFD": "DFD-Vorschau ausblenden",
+      "configuration": "Konfiguration",
+      "searchPlaceholder": "Bedrohungen durchsuchen...",
+      "threatsFound": "Bedrohungen gefunden",
       "generateConfirmTitle": "Bedrohungen neu generieren?",
       "generateConfirmMessage": "Alle bestehenden Bedrohungen werden überschrieben, einschließlich manueller Änderungen. Diese Aktion kann nicht rückgängig gemacht werden.",
       "importConfirmTitle": "Bedrohungen importieren?",
@@ -348,6 +355,7 @@
       "deleteAll": "Alle Bedrohungen löschen",
       "deleteAllConfirmTitle": "Alle Bedrohungen löschen?",
       "deleteAllConfirmMessage": "Alle Bedrohungen für die aktuelle Methode ({{method}}) werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "syncConfirmTitle": "Bedrohungen synchronisieren",
       "element": "Element",
       "dataFlow": "Datenfluss",
       "threatDescription": "Bedrohungsbeschreibung",
@@ -369,6 +377,7 @@
         "threatId": "T-ID",
         "element": "Element",
         "dataFlow": "Datenfluss",
+        "direction": "Richtung",
         "threat": "Bedrohung",
         "actor": "Akteur",
         "mitigation": "Gegenmassnahme",
@@ -430,6 +439,9 @@
     "invalidDataflowTarget": "Datenfluss \"{{name}}\" hat ein ungültiges Ziel",
     "assetNotPlaced": "Asset \"{{name}}\" ist nicht auf einem gültigen Element platziert (Prozess, Multiprozess, Datenspeicher oder Datenfluss)",
     "interfaceUnused": "Interface \"{{name}}\" wird von keinem Datenfluss durchquert",
+    "elementDefaultName": "Element \"{{name}}\" hat einen Standard-/Platzhaltername. Bitte geben Sie einen aussagekräftigen Namen ein.",
+    "elementMissingIdLabel": "Element \"{{name}}\" hat kein ID-Label. Bitte fügen Sie ein ID-Label hinzu (z.B. [P-1], [EE-1], [DF-1]).",
+    "duplicateIdLabel": "ID-Label \"{{id}}\" wird mehrfach verwendet. Jedes Element sollte eine eindeutige ID haben.",
     "elementTypes": {
       "Process": "Prozess",
       "Multiprocess": "Multiprozess",
