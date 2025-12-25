@@ -59,7 +59,7 @@ export const createMockProjects = (): Project[] => {
       assets: mockAssetData({
         assets: [{} as any, {} as any, {} as any],
       }),
-      threats: [],
+      threats: null, // FIX: null statt []
       isOpen: true,
       hasUnsavedChanges: false,
     },
@@ -110,7 +110,17 @@ export const createMockProjects = (): Project[] => {
       assets: mockAssetData({
         assets: [{} as any, {} as any, {} as any],
       }),
-      threats: [{} as any, {} as any],
+      threats: {
+        configuration: {
+          activeMethod: "per-interaction",
+          customThreatTemplates: [],
+          customMitigationTemplates: [],
+          customVerificationTemplates: [],
+        },
+        perElementTables: [],
+        perInteractionTables: [],
+        lastModified: "2025-12-05T11:00:00Z",
+      },
       isOpen: true,
       hasUnsavedChanges: true,
     },
@@ -159,7 +169,7 @@ export const createMockProjects = (): Project[] => {
       ],
       dfd: null,
       assets: null,
-      threats: [],
+      threats: null, // FIX: null statt []
       isOpen: true,
       hasUnsavedChanges: false,
     },
@@ -223,7 +233,7 @@ export const createMockProjects = (): Project[] => {
       ],
       dfd: null,
       assets: null,
-      threats: [],
+      threats: null, // FIX: null statt []
       isOpen: false,
       hasUnsavedChanges: false,
     })
@@ -282,7 +292,7 @@ export const createEmptyProject = (
     ],
     dfd: null,
     assets: null,
-    threats: [],
+    threats: null, // FIX: null statt []
     isOpen: true,
     hasUnsavedChanges: false,
   };

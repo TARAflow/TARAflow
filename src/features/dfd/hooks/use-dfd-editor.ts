@@ -33,7 +33,9 @@ export interface UseDFDEditorOptions {
   onSave?: (updates: DFDUpdateResult) => void;
   autoValidateInterval?: number;
   autoNumberOnSave?: boolean;
-  generateThumbnailOnSave?: boolean; // NEW: Generate thumbnail when saving
+  generateThumbnailOnSave?: boolean;
+  darkMode?: boolean;
+  iframeKey?: number; // Used to detect iframe remount (e.g., theme change)
 }
 
 export interface UseDFDEditorDependencies {
@@ -43,7 +45,8 @@ export interface UseDFDEditorDependencies {
   createBridge?: (
     iframe: HTMLIFrameElement,
     projectId: string,
-    projectName: string
+    projectName: string,
+    darkMode?: boolean
   ) => IDrawioBridge;
   createXmlSourceManager?: (
     projectId: string,
@@ -67,7 +70,7 @@ export interface UseDFDEditorReturn {
   save: () => Promise<DFDUpdateResult | null>;
   validate: () => ValidationResult;
   exportImage: () => void;
-  generateThumbnail: () => Promise<string | null>; // NEW: Generate thumbnail on demand
+  generateThumbnail: () => Promise<string | null>;
   sendAction: (action: string) => void;
   autoNumberLabels: () => Promise<void>;
 }
@@ -78,7 +81,7 @@ const defaultDependencies: Required<UseDFDEditorDependencies> = {
   dfdService: dfdService,
   createStorageAdapter: createDFDStorageAdapter,
   createAutoNumbering: () => new DFDAutoNumbering(30),
-  createBridge: (iframe, projectId, projectName) =>
+  createBridge: (iframe, projectId, projectName, _darkMode) =>
     new DrawioBridge(iframe, projectId, projectName),
   createXmlSourceManager: createXmlSourceManager,
 };
@@ -109,7 +112,9 @@ export function useDFDEditor(
     onSave,
     autoValidateInterval = 500,
     autoNumberOnSave = false,
-    generateThumbnailOnSave = true, // NEW: Default to true
+    generateThumbnailOnSave = true,
+    darkMode = false,
+    iframeKey = 0,
   } = options;
 
   // ==================== STATE ====================
@@ -129,10 +134,13 @@ export function useDFDEditor(
   const validateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // NEW: Promise resolver for thumbnail generation
+  // Promise resolver for thumbnail generation
   const thumbnailResolverRef = useRef<((src: string | null) => void) | null>(
     null
   );
+
+  // Track iframeKey to detect theme changes
+  const lastInitializedIframeKeyRef = useRef<number>(-1);
 
   // ==================== VALIDATION ====================
 
@@ -197,10 +205,15 @@ export function useDFDEditor(
 
   const doInitialize = useCallback(
     (iframe: HTMLIFrameElement) => {
-      console.log(`[useDFDEditor] Initializing for project: ${project.id}`);
+      console.log(
+        `[useDFDEditor] Initializing for project: ${project.id}, darkMode: ${darkMode}, iframeKey: ${iframeKey}`
+      );
 
       // Cleanup previous bridge
       bridgeRef.current?.dispose();
+
+      // Track which iframeKey we initialized with
+      lastInitializedIframeKeyRef.current = iframeKey;
 
       // Create storage adapter
       storageAdapterRef.current = deps.createStorageAdapter(project.id);
@@ -208,8 +221,13 @@ export function useDFDEditor(
       // Load DFD data into localStorage
       deps.dfdService.loadDFDForEditing(project);
 
-      // Create bridge
-      const bridge = deps.createBridge(iframe, project.id, project.name);
+      // Create bridge with dark mode support
+      const bridge = deps.createBridge(
+        iframe,
+        project.id,
+        project.name,
+        darkMode
+      );
       bridgeRef.current = bridge;
 
       // Set up callbacks
@@ -234,7 +252,15 @@ export function useDFDEditor(
       // Initial validation
       setTimeout(() => runValidation(), 1000);
     },
-    [project, deps, handleDiagramChange, handleImageReady, runValidation]
+    [
+      project,
+      deps,
+      handleDiagramChange,
+      handleImageReady,
+      runValidation,
+      darkMode,
+      iframeKey,
+    ]
   );
 
   const initialize = useCallback(() => {
@@ -260,15 +286,33 @@ export function useDFDEditor(
       return;
     }
 
-    // Guard: Already initialized for this project
-    if (state.currentProjectId === project.id && state.isInitialized) {
-      console.log(`[useDFDEditor] Already initialized for: ${project.id}`);
+    // Guard: Already initialized for this project AND same iframeKey (no theme change)
+    const sameProject = state.currentProjectId === project.id;
+    const sameIframeKey = lastInitializedIframeKeyRef.current === iframeKey;
+
+    if (sameProject && sameIframeKey && state.isInitialized) {
+      console.log(
+        `[useDFDEditor] Already initialized for: ${project.id}, iframeKey: ${iframeKey}`
+      );
       dispatch({ type: "SET_LOADING", payload: false });
       return;
     }
 
+    // Re-initializing due to theme change
+    if (sameProject && !sameIframeKey) {
+      console.log(
+        `[useDFDEditor] Re-initializing due to theme change (iframeKey: ${lastInitializedIframeKeyRef.current} -> ${iframeKey})`
+      );
+    }
+
     doInitialize(iframe);
-  }, [project.id, state.currentProjectId, state.isInitialized, doInitialize]);
+  }, [
+    project.id,
+    state.currentProjectId,
+    state.isInitialized,
+    doInitialize,
+    iframeKey,
+  ]);
 
   // ==================== CLEANUP ====================
 
@@ -280,6 +324,20 @@ export function useDFDEditor(
       bridgeRef.current?.dispose();
     };
   }, []);
+
+  // Cleanup bridge when iframeKey changes (theme switch)
+  useEffect(() => {
+    // Skip on initial mount
+    if (lastInitializedIframeKeyRef.current === -1) return;
+
+    // If iframeKey changed, the old iframe is being unmounted
+    // Dispose the old bridge (new one will be created in initialize)
+    if (lastInitializedIframeKeyRef.current !== iframeKey) {
+      console.log(`[useDFDEditor] Cleaning up bridge due to iframeKey change`);
+      bridgeRef.current?.dispose();
+      bridgeRef.current = null;
+    }
+  }, [iframeKey]);
 
   // ==================== PROJECT CHANGE ====================
 
@@ -376,7 +434,7 @@ export function useDFDEditor(
       storageAdapterRef.current?.syncFromLegacy();
     }
 
-    // NEW: Generate thumbnail before saving
+    // Generate thumbnail before saving
     let thumbnail: string | undefined;
     if (generateThumbnailOnSave) {
       console.log("[useDFDEditor] Generating thumbnail...");
@@ -387,7 +445,7 @@ export function useDFDEditor(
     const result = deps.dfdService.saveDFD(project);
 
     if (result.success) {
-      // NEW: Add thumbnail to DFD data
+      // Add thumbnail to DFD data
       if (thumbnail) {
         result.dfd.thumbnail = thumbnail;
       }

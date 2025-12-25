@@ -46,6 +46,12 @@ This project is a web application that allows users to either import existing mo
     npm run eject
     ```
     **Note**: This is a one-way operation. Once you eject, you can't go back!
+   
+6. **Build electron**:
+	 npx tsc -p tsconfig.electron.json
+ 	 node scripts/rename-to-cjs.js
+	 npm run dev:electron
+
 
 ## Usage
 1. **Importing a Model**:

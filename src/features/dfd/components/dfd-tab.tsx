@@ -3,9 +3,9 @@
 // NO dependency on app - uses DFDProjectData from dfd-types
 //
 // ZOOM: Native draw.io zoom is used (Ctrl+Wheel zooms to cursor position)
-// Browser zoom is blocked at Electron level (main.ts)
+// Zoom/Undo/Redo buttons are in draw.io's own toolbar, not duplicated here
 
-import React from 'react';
+import React, { useState, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
 import {
   Box,
@@ -14,18 +14,13 @@ import {
   Toolbar,
   IconButton,
   Tooltip,
-  Divider,
   Typography,
   Chip,
   Stack,
   CircularProgress,
-} from '@mui/material';
+  Divider,
+} from "@mui/material";
 import {
-  ZoomIn as ZoomInIcon,
-  ZoomOut as ZoomOutIcon,
-  FitScreen as FitScreenIcon,
-  Undo as UndoIcon,
-  Redo as RedoIcon,
   Save as SaveIcon,
   Image as ImageIcon,
   CheckCircle as CheckCircleIcon,
@@ -34,6 +29,8 @@ import {
   Refresh as RefreshIcon,
   SkipNext as NextIcon,
   FormatListNumbered as AutoNumberIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon,
 } from "@mui/icons-material";
 
 import { DFDStats, DFDTabProps } from "../models/dfd-types";
@@ -44,7 +41,9 @@ import DFDValidationPanel from "./dfd-validation-panel";
 
 // ==================== CONSTANTS ====================
 
-const DRAWIO_URL = 'https://embed.diagrams.net/?embed=1&ui=dark&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1';
+// Base URL - dark mode is controlled via configure message, not URL
+const DRAWIO_BASE_URL =
+  "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
 
 // ==================== COMPONENT ====================
 
@@ -55,6 +54,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   onPhaseComplete,
 }) => {
   const [showPreview, setShowPreview] = React.useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0); // Used to force iframe reload
+
+  // Build URL with dark mode parameter
+  const drawioUrl = darkMode
+    ? `${DRAWIO_BASE_URL}&ui=dark`
+    : `${DRAWIO_BASE_URL}&ui=atlas`;
 
   // Use custom hook for all DFD logic
   const {
@@ -68,11 +74,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     save,
     validate,
     exportImage,
-    sendAction,
     autoNumberLabels,
   } = useDFDEditor(project, {
     onDirtyChange,
     onSave: onUpdate,
+    darkMode,
+    iframeKey, // Pass iframeKey to detect theme changes
   });
 
   // ==================== HANDLERS ====================
@@ -105,6 +112,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     onPhaseComplete?.();
   };
 
+  const handleToggleDarkMode = useCallback(() => {
+    setDarkMode((prev) => !prev);
+    // Force iframe reload to apply new theme
+    setIframeKey((prev) => prev + 1);
+  }, []);
+
   // ==================== RENDER ====================
 
   return (
@@ -116,16 +129,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         overflow: "hidden",
       }}
     >
-      {/* Toolbar */}
+      {/* Toolbar - only CoReTM-specific actions, zoom/undo/redo are in draw.io */}
       <DFDToolbar
         isDirty={isDirty}
         validation={validation}
         stats={stats}
-        onZoomIn={() => sendAction("zoomIn")}
-        onZoomOut={() => sendAction("zoomOut")}
-        onFitScreen={() => sendAction("fit")}
-        onUndo={() => sendAction("undo")}
-        onRedo={() => sendAction("redo")}
+        darkMode={darkMode}
+        onToggleDarkMode={handleToggleDarkMode}
         onExportImage={handleExportImage}
         onRefresh={validate}
         onAutoNumber={handleAutoNumber}
@@ -138,15 +148,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         sx={{
           flexGrow: 1,
           position: "relative",
-          bgcolor: "grey.100",
+          bgcolor: darkMode ? "#1a1a1a" : "grey.100",
         }}
       >
-        {isLoading && <LoadingOverlay />}
+        {isLoading && <LoadingOverlay darkMode={darkMode} />}
 
         <iframe
-          key={project.id}
+          key={`${project.id}-${iframeKey}`} // Force remount on project or theme change
           ref={iframeRef as React.RefObject<HTMLIFrameElement>}
-          src={DRAWIO_URL}
+          src={drawioUrl}
           style={{
             width: "100%",
             height: "100%",
@@ -181,11 +191,8 @@ interface DFDToolbarProps {
   isDirty: boolean;
   validation: ValidationResult | null;
   stats: DFDStats | null;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onFitScreen: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
+  darkMode: boolean;
+  onToggleDarkMode: () => void;
   onExportImage: () => void;
   onRefresh: () => void;
   onAutoNumber: () => void;
@@ -197,11 +204,8 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
   isDirty,
   validation,
   stats,
-  onZoomIn,
-  onZoomOut,
-  onFitScreen,
-  onUndo,
-  onRedo,
+  darkMode,
+  onToggleDarkMode,
   onExportImage,
   onRefresh,
   onAutoNumber,
@@ -213,42 +217,24 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
   return (
     <Paper elevation={1} sx={{ borderRadius: 0 }}>
       <Toolbar variant="dense" sx={{ minHeight: 48, px: 2, gap: 0.5 }}>
-        {/* Zoom Controls */}
+        {/* Dark Mode Toggle */}
         <Tooltip
-          title={t("tabs.dfd.toolbar.zoomIn", { defaultValue: "Zoom In" })}
+          title={
+            darkMode
+              ? t("tabs.dfd.toolbar.lightMode", {
+                  defaultValue: "Switch to Light Mode",
+                })
+              : t("tabs.dfd.toolbar.darkMode", {
+                  defaultValue: "Switch to Dark Mode",
+                })
+          }
         >
-          <IconButton size="small" onClick={onZoomIn}>
-            <ZoomInIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip
-          title={t("tabs.dfd.toolbar.zoomOut", { defaultValue: "Zoom Out" })}
-        >
-          <IconButton size="small" onClick={onZoomOut}>
-            <ZoomOutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip
-          title={t("tabs.dfd.toolbar.fitToScreen", {
-            defaultValue: "Fit to Screen",
-          })}
-        >
-          <IconButton size="small" onClick={onFitScreen}>
-            <FitScreenIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-        {/* Edit Controls */}
-        <Tooltip title={t("tabs.dfd.toolbar.undo", { defaultValue: "Undo" })}>
-          <IconButton size="small" onClick={onUndo}>
-            <UndoIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={t("tabs.dfd.toolbar.redo", { defaultValue: "Redo" })}>
-          <IconButton size="small" onClick={onRedo}>
-            <RedoIcon fontSize="small" />
+          <IconButton size="small" onClick={onToggleDarkMode}>
+            {darkMode ? (
+              <LightModeIcon fontSize="small" />
+            ) : (
+              <DarkModeIcon fontSize="small" />
+            )}
           </IconButton>
         </Tooltip>
 
@@ -329,11 +315,14 @@ const DFDStatsDisplay: React.FC<DFDStatsDisplayProps> = ({ stats }) => {
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mr: 2 }}>
       <Typography variant="caption" color="text.secondary">
-        {stats.totalElements} {t('tabs.dfd.stats.elements', { defaultValue: 'Elements' })}
+        {stats.totalElements}{" "}
+        {t("tabs.dfd.stats.elements", { defaultValue: "Elements" })}
       </Typography>
-      <Typography variant="caption" color="text.secondary">•</Typography>
       <Typography variant="caption" color="text.secondary">
-        {stats.dataFlows} {t('tabs.dfd.stats.flows', { defaultValue: 'Flows' })}
+        •
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        {stats.dataFlows} {t("tabs.dfd.stats.flows", { defaultValue: "Flows" })}
       </Typography>
     </Stack>
   );
@@ -351,19 +340,24 @@ const ValidationChips: React.FC<ValidationChipsProps> = ({ validation }) => {
       {validation.isValid ? (
         <Chip
           icon={<CheckCircleIcon />}
-          label={t('tabs.dfd.validation.valid', { defaultValue: 'Valid' })}
+          label={t("tabs.dfd.validation.valid", { defaultValue: "Valid" })}
           color="success"
           size="small"
           variant="outlined"
         />
-      ) : validation.errors.length > 0 && (
-        <Chip
-          icon={<WarningIcon />}
-          label={`${validation.errors.length} ${t('tabs.dfd.validation.errors', { defaultValue: 'Errors' })}`}
-          color="error"
-          size="small"
-          variant="outlined"
-        />
+      ) : (
+        validation.errors.length > 0 && (
+          <Chip
+            icon={<WarningIcon />}
+            label={`${validation.errors.length} ${t(
+              "tabs.dfd.validation.errors",
+              { defaultValue: "Errors" }
+            )}`}
+            color="error"
+            size="small"
+            variant="outlined"
+          />
+        )
       )}
       {validation.warnings.length > 0 && (
         <Chip
@@ -378,25 +372,32 @@ const ValidationChips: React.FC<ValidationChipsProps> = ({ validation }) => {
   );
 };
 
-const LoadingOverlay: React.FC = () => {
+interface LoadingOverlayProps {
+  darkMode?: boolean;
+}
+
+const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ darkMode }) => {
   const { t } = useTranslation();
 
   return (
     <Box
       sx={{
-        position: 'absolute',
+        position: "absolute",
         inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'background.default',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: darkMode ? "#1a1a1a" : "background.default",
         zIndex: 10,
       }}
     >
-      <CircularProgress size={40} />
-      <Typography sx={{ mt: 2 }} color="text.secondary">
-        {t('tabs.dfd.loading', { defaultValue: 'Loading DFD Editor...' })}
+      <CircularProgress
+        size={40}
+        sx={{ color: darkMode ? "#fff" : undefined }}
+      />
+      <Typography sx={{ mt: 2, color: darkMode ? "#fff" : "text.secondary" }}>
+        {t("tabs.dfd.loading", { defaultValue: "Loading DFD Editor..." })}
       </Typography>
     </Box>
   );

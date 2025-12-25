@@ -36,7 +36,10 @@ const DEFAULT_SETTINGS: ProjectSettingsData = {
 
 class StorageService {
   private isAvailable(): boolean {
-    return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+    return (
+      typeof window !== "undefined" &&
+      typeof window.localStorage !== "undefined"
+    );
   }
 
   private handleError(operation: string, error: any): StorageResult<any> {
@@ -82,12 +85,16 @@ class StorageService {
     }
   }
 
-  async list(prefix: string = STORAGE_PREFIX): Promise<StorageResult<string[]>> {
+  async list(
+    prefix: string = STORAGE_PREFIX
+  ): Promise<StorageResult<string[]>> {
     if (!this.isAvailable())
       return this.handleError("list", new Error("Storage not available"));
 
     try {
-      const keys = Object.keys(localStorage).filter((k) => k.startsWith(prefix));
+      const keys = Object.keys(localStorage).filter((k) =>
+        k.startsWith(prefix)
+      );
       return { success: true, data: keys };
     } catch (error) {
       return this.handleError("list", error);
@@ -102,7 +109,7 @@ class StorageService {
   private repairProject(project: Partial<Project>): Project | null {
     // Minimum required: id and name
     if (!project.id || !project.name) {
-      console.warn('Cannot repair project without id or name:', project);
+      console.warn("Cannot repair project without id or name:", project);
       return null;
     }
 
@@ -129,8 +136,8 @@ class StorageService {
         2: project.phaseStatus?.[2] ?? "not-started",
         3: project.phaseStatus?.[3] ?? "not-started",
         4: project.phaseStatus?.[4] ?? "not-started",
-        5: project.phaseStatus?.[3] ?? "not-started",
-        6: project.phaseStatus?.[4] ?? "not-started",
+        5: project.phaseStatus?.[5] ?? "not-started",
+        6: project.phaseStatus?.[6] ?? "not-started",
       },
 
       // Ensure settings is complete
@@ -145,7 +152,7 @@ class StorageService {
       team: project.team ?? [],
       activityLog: project.activityLog ?? [],
       assets: project.assets ?? null,
-      threats: project.threats ?? [],
+      threats: project.threats ?? null,
 
       // Other fields
       status: project.status ?? "draft",
@@ -163,29 +170,34 @@ class StorageService {
   private isValidProject(project: any): project is Project {
     return (
       project &&
-      typeof project.id === 'string' &&
-      typeof project.name === 'string' &&
+      typeof project.id === "string" &&
+      typeof project.name === "string" &&
       project.phaseStatus &&
-      typeof project.phaseStatus[0] !== 'undefined'
+      typeof project.phaseStatus[0] !== "undefined"
     );
   }
 
   // ==================== PROJECTS ====================
 
   async getProject(projectId: string): Promise<StorageResult<Project>> {
-    const result = await this.get<Partial<Project>>(`${PROJECT_PREFIX}${projectId}`);
-    
+    const result = await this.get<Partial<Project>>(
+      `${PROJECT_PREFIX}${projectId}`
+    );
+
     if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Project not found' };
+      return { success: false, error: result.error || "Project not found" };
     }
 
     // Check if project needs repair
     if (!this.isValidProject(result.data)) {
       console.warn(`Project ${projectId} is incomplete, attempting repair...`);
       const repaired = this.repairProject(result.data);
-      
+
       if (!repaired) {
-        return { success: false, error: 'Project is corrupted and cannot be repaired' };
+        return {
+          success: false,
+          error: "Project is corrupted and cannot be repaired",
+        };
       }
 
       // Save repaired project
@@ -267,7 +279,7 @@ class StorageService {
   public createEmptyProject(
     name: string,
     description: string,
-    responsible: string = ''
+    responsible: string = ""
   ): Project {
     const now = new Date().toISOString();
 
@@ -298,7 +310,7 @@ class StorageService {
       ],
       dfd: null,
       assets: null,
-      threats: [],
+      threats: null,
       isOpen: true,
       hasUnsavedChanges: false,
     };
@@ -306,14 +318,14 @@ class StorageService {
 
   public exportProjectAsJSON(project: Project): void {
     const json = JSON.stringify(project, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
-    const filename = `${project.name.replace(/[^a-z0-9]/gi, '_')}_TARA_${new Date()
-      .toISOString()
-      .split('T')[0]}.json`;
+    const filename = `${project.name.replace(/[^a-z0-9]/gi, "_")}_TARA_${
+      new Date().toISOString().split("T")[0]
+    }.json`;
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     link.click();
@@ -321,16 +333,21 @@ class StorageService {
     URL.revokeObjectURL(url);
   }
 
-  public async importProjectFromJSON(file: File): Promise<StorageResult<Project>> {
+  public async importProjectFromJSON(
+    file: File
+  ): Promise<StorageResult<Project>> {
     try {
       const text = await file.text();
       const rawProject = JSON.parse(text);
 
       // Attempt to repair if incomplete
       const project = this.repairProject(rawProject);
-      
+
       if (!project) {
-        return { success: false, error: 'Invalid project structure - missing id or name' };
+        return {
+          success: false,
+          error: "Invalid project structure - missing id or name",
+        };
       }
 
       // Check for duplicate ID
@@ -348,7 +365,7 @@ class StorageService {
 
       const result = await this.saveProject(project);
       if (!result.success) {
-        return { success: false, error: 'Failed to save imported project' };
+        return { success: false, error: "Failed to save imported project" };
       }
 
       return { success: true, data: result.data };
@@ -382,11 +399,13 @@ class StorageService {
    */
   async clearAllData(): Promise<StorageResult<boolean>> {
     try {
-      const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
-      keys.forEach(k => localStorage.removeItem(k));
+      const keys = Object.keys(localStorage).filter((k) =>
+        k.startsWith(STORAGE_PREFIX)
+      );
+      keys.forEach((k) => localStorage.removeItem(k));
       return { success: true, data: true };
     } catch (error) {
-      return this.handleError('clearAllData', error);
+      return this.handleError("clearAllData", error);
     }
   }
 
@@ -394,11 +413,13 @@ class StorageService {
    * Get storage usage info
    */
   getStorageInfo(): { used: number; available: number; projectCount: number } {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_PREFIX));
-    const projectKeys = keys.filter(k => k.startsWith(PROJECT_PREFIX));
-    
+    const keys = Object.keys(localStorage).filter((k) =>
+      k.startsWith(STORAGE_PREFIX)
+    );
+    const projectKeys = keys.filter((k) => k.startsWith(PROJECT_PREFIX));
+
     let used = 0;
-    keys.forEach(k => {
+    keys.forEach((k) => {
       const item = localStorage.getItem(k);
       if (item) used += item.length * 2; // UTF-16 = 2 bytes per char
     });

@@ -20,6 +20,7 @@ export default class DrawioController {
 
   private loadedFromLocalStorage: boolean = false;
   private changedAfterImported: boolean = false;
+  private isDarkMode: boolean = false;
 
   constructor(
     drawio: CORSCommunicator,
@@ -77,102 +78,239 @@ export default class DrawioController {
     }
   }
 
+  /**
+   * Get CSS for light mode
+   */
+  private getLightModeCSS(): string {
+    return `
+      .geMenubarContainer, .mxWindow {
+        background-color: hsl(246, 56%, 90%) !important;
+      }
+      tr.mxPopupMenuItemHover {
+        background-color: hsl(246, 56%, 90%) !important;
+      }
+      .geSidebarContainer .geTitle:hover {
+        background: hsl(246, 56%, 95%) !important;
+      }
+      .geSidebarTooltip {
+        box-shadow: 0 2px 6px 2px rgba(218, 215, 244, 0.6) !important;
+      }
+      .geSidebar .geItem:hover {
+        background-color: hsl(246, 56%, 95%) !important;
+      }
+      .geSidebarFooter > .geBtn {
+        display: none !important;
+      }
+      .geTitle, .mxWindowTitle, .geFormatSection {
+        color: ${cssVariables["--coretm-darkgrey"]} !important;
+      }
+      .geFormatSection:nth-of-type(3), .geFormatSection:nth-of-type(4) {
+        display: none;
+      }
+      
+      /* ==================== TOOLBAR HIDING ==================== */
+      /* Hide language button */
+      .geButton[title="Language"] { display: none !important; }
+      
+      /* Hide insert template button */
+      .geButton[title="Insert Template..."],
+      .geButton[title="Vorlage einfügen..."] { display: none !important; }
+      
+      /* Hide insert image button */  
+      .geButton[title="Insert Image..."],
+      .geButton[title="Bild einfügen..."] { display: none !important; }
+      
+      /* Hide freehand drawing */
+      .geButton[title="Freehand"],
+      .geButton[title="Freehand (X)"],
+      .geButton[title="Freihand"],
+      .geButton[title="Freihand (X)"] { display: none !important; }
+      
+      /* Hide insert link button */
+      .geButton[title="Insert Link"],
+      .geButton[title="Link einfügen"] { display: none !important; }
+      
+      /* Hide tags button */
+      .geButton[title="Tags"] { display: none !important; }
+      
+      /* Hide find/replace */
+      .geButton[title="Find/Replace..."],
+      .geButton[title="Suchen/Ersetzen..."] { display: none !important; }
+      
+      /* Hide Connection button */
+      .geButton[title="Connection"],
+      .geButton[title="Verbindung"] { display: none !important; }
+      
+      /* Hide Waypoints button */
+      .geButton[title="Waypoints"],
+      .geButton[title="Wegpunkte"] { display: none !important; }
+      
+      /* ==================== SCROLLBAR STYLING ==================== */
+      .geDiagramContainer ::-webkit-scrollbar {
+        width: 12px !important;
+        height: 12px !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-track {
+        background: #f1f1f1 !important;
+        border-radius: 6px !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-thumb {
+        background: #888 !important;
+        border-radius: 6px !important;
+        border: 2px solid #f1f1f1 !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-thumb:hover {
+        background: #555 !important;
+      }
+    `;
+  }
+
+  /**
+   * Get CSS for dark mode with visible scrollbars
+   */
+  private getDarkModeCSS(): string {
+    return `
+      .geSidebarFooter > .geBtn {
+        display: none !important;
+      }
+      .geFormatSection:nth-of-type(3), .geFormatSection:nth-of-type(4) {
+        display: none;
+      }
+      
+      /* ==================== TOOLBAR HIDING ==================== */
+      /* Hide language button */
+      .geButton[title="Language"] { display: none !important; }
+      
+      /* Hide insert template button */
+      .geButton[title="Insert Template..."],
+      .geButton[title="Vorlage einfügen..."] { display: none !important; }
+      
+      /* Hide insert image button */  
+      .geButton[title="Insert Image..."],
+      .geButton[title="Bild einfügen..."] { display: none !important; }
+      
+      /* Hide freehand drawing */
+      .geButton[title="Freehand"],
+      .geButton[title="Freehand (X)"],
+      .geButton[title="Freihand"],
+      .geButton[title="Freihand (X)"] { display: none !important; }
+      
+      /* Hide insert link button */
+      .geButton[title="Insert Link"],
+      .geButton[title="Link einfügen"] { display: none !important; }
+      
+      /* Hide tags button */
+      .geButton[title="Tags"] { display: none !important; }
+      
+      /* Hide find/replace */
+      .geButton[title="Find/Replace..."],
+      .geButton[title="Suchen/Ersetzen..."] { display: none !important; }
+      
+      /* Hide Connection button */
+      .geButton[title="Connection"],
+      .geButton[title="Verbindung"] { display: none !important; }
+      
+      /* Hide Waypoints button */
+      .geButton[title="Waypoints"],
+      .geButton[title="Wegpunkte"] { display: none !important; }
+      
+      /* ==================== SCROLLBAR STYLING - DARK MODE ==================== */
+      .geDiagramContainer ::-webkit-scrollbar {
+        width: 14px !important;
+        height: 14px !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-track {
+        background: #1a1a1a !important;
+        border-radius: 7px !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #666 0%, #888 100%) !important;
+        border-radius: 7px !important;
+        border: 3px solid #1a1a1a !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #888 0%, #aaa 100%) !important;
+      }
+      .geDiagramContainer ::-webkit-scrollbar-corner {
+        background: #1a1a1a !important;
+      }
+      
+      /* Firefox scrollbar */
+      .geDiagramContainer {
+        scrollbar-width: auto !important;
+        scrollbar-color: #666 #1a1a1a !important;
+      }
+    `;
+  }
+
   private configureDrawio() {
+    // Debug: Log library data
+    console.log("[DrawioController] Configuring draw.io...");
+
+    // Ensure libraries are arrays (handle different import formats)
+    const dfd1Data = Array.isArray(dfd1) ? dfd1 : (dfd1 as any)?.default || [];
+    const dfd2Data = Array.isArray(dfd2) ? dfd2 : (dfd2 as any)?.default || [];
+    const coretmData = Array.isArray(coretm)
+      ? coretm
+      : (coretm as any)?.default || [];
+
+    console.log("[DrawioController] Library lengths:", {
+      dfd1: dfd1Data.length,
+      dfd2: dfd2Data.length,
+      coretm: coretmData.length,
+    });
+
+    // Combine all shapes into one array for "DFD Shapes" library
+    const allDFDShapes = [...dfd1Data, ...dfd2Data, ...coretmData];
+    console.log("[DrawioController] Combined shapes:", allDFDShapes.length);
+
     const configurationAction = {
       action: "configure",
       config: {
         // ==================== ZOOM SETTINGS ====================
-        // WICHTIG: Diese Einstellungen kontrollieren das Zoom-Verhalten
-        zoomWheel: false, // false = Ctrl+Wheel für Zoom (Standard)
-        zoomFactor: 1.2, // Zoom-Faktor pro Schritt
+        zoomWheel: false,
+        zoomFactor: 1.2,
 
         // ==================== CSS STYLING ====================
-        css: `
-          .geMenubarContainer, .mxWindow {
-            background-color: hsl(246, 56%, 90%) !important;
-          }
-          tr.mxPopupMenuItemHover {
-            background-color: hsl(246, 56%, 90%) !important;
-          }
-          .geSidebarContainer .geTitle:hover {
-            background: hsl(246, 56%, 95%) !important;
-          }
-          .geSidebarTooltip {
-            box-shadow: 0 2px 6px 2px rgba(218, 215, 244, 0.6) !important;
-          }
-          .geSidebar .geItem:hover {
-            background-color: hsl(246, 56%, 95%) !important;
-          }
-          .geSidebarFooter > .geBtn {
-            display: none !important;
-          }
-          .geTitle, .mxWindowTitle, .geFormatSection {
-            color: ${cssVariables["--coretm-darkgrey"]} !important;
-          }
-          .geFormatSection:nth-of-type(3), .geFormatSection:nth-of-type(4) {
-            display: none;
-          }
-          .geToolbarButton[title=Language] {
-            display: none;
-          }
-        `,
-        // ENTFERNT: .geDiagramContainer { overflow: hidden !important; }
-        // Das war der Bug! overflow: hidden verhindert Scrollbars und
-        // stört das Zoom-Verhalten von draw.io
+        css: this.isDarkMode ? this.getDarkModeCSS() : this.getLightModeCSS(),
 
         // ==================== FONTS & UI ====================
         defaultFonts: ["Humor Sans", "Helvetica", "Times New Roman"],
-        ui: "atlas",
-        darkMode: false,
-        enableCssDarkMode: false,
+        ui: this.isDarkMode ? "dark" : "atlas",
+        darkMode: this.isDarkMode,
+        enableCssDarkMode: this.isDarkMode,
 
         // ==================== LIBRARIES ====================
-        defaultLibraries: "dfd1",
-        defaultCustomLibraries: ["dfd1"],
-        enabledLibraries: ["dfd1", "dfd2"],
-        expandLibraries: true,
         enableCustomLibraries: true,
+        expandLibraries: true,
+        defaultLibraries: "dfd1,dfd2",
+        defaultCustomLibraries: ["dfd1", "dfd2"],
+        enabledLibraries: ["dfd1", "dfd2"],
+
+        // Single combined library with all DFD shapes
+        // Libraries with DFD1 and DFD2 shapes
         libraries: [
           {
             title: {
-              main: "CoReTM",
+              main: "DFD Shapes",
+              de: "DFD Formen",
             },
             entries: [
               {
-                id: "CoReTM",
-                title: {
-                  main: "CoReTM",
-                  de: "CoReTM",
-                },
-                desc: {
-                  main: "CoReTM",
-                  de: "CoReTM",
-                },
-                libs: [
-                  {
-                    title: {
-                      main: "CoReTM",
-                      de: "CoReTM",
-                    },
-                    data: coretm,
-                  },
-                ],
-              },
-              {
                 id: "dfd1",
                 title: {
-                  main: "dfd1",
-                  de: "dfd1",
+                  main: "DFD Shapes (v1)",
+                  de: "DFD Formen (v1)",
                 },
                 desc: {
-                  main: "dfd1",
-                  de: "dfd1",
+                  main: "DFD shapes for threat modeling",
+                  de: "DFD-Formen für Threat Modeling",
                 },
                 libs: [
                   {
                     title: {
-                      main: "dfd1",
-                      de: "dfd1",
+                      main: "DFD Shapes",
+                      de: "DFD Formen",
                     },
                     data: dfd1,
                   },
@@ -181,18 +319,18 @@ export default class DrawioController {
               {
                 id: "dfd2",
                 title: {
-                  main: "dfd2",
-                  de: "dfd2",
+                  main: "DFD Shapes (v2)",
+                  de: "DFD Formen (v2)",
                 },
                 desc: {
-                  main: "dfd2",
-                  de: "dfd2",
+                  main: "DFD shapes for threat modeling",
+                  de: "DFD-Formen für Threat Modeling",
                 },
                 libs: [
                   {
                     title: {
-                      main: "dfd2",
-                      de: "dfd2",
+                      main: "DFD Shapes",
+                      de: "DFD Formen",
                     },
                     data: dfd2,
                   },
@@ -203,6 +341,8 @@ export default class DrawioController {
         ],
       },
     };
+
+    console.log("[DrawioController] Sending configure action");
     this.drawio.send(configurationAction);
   }
 
@@ -297,6 +437,20 @@ export default class DrawioController {
    */
   getStorageKey(): string {
     return this.storage.getStorageKey();
+  }
+
+  /**
+   * Toggle dark mode - requires iframe reload to take effect
+   */
+  setDarkMode(enabled: boolean): void {
+    this.isDarkMode = enabled;
+  }
+
+  /**
+   * Get current dark mode state
+   */
+  getDarkMode(): boolean {
+    return this.isDarkMode;
   }
 
   parseXml(): {

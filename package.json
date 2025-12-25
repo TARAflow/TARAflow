@@ -34,6 +34,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "6.1.5",
     "@testing-library/react": "14.1.2",
+    "@types/jest": "^30.0.0",
     "@types/node": "20.11.10",
     "@vitejs/plugin-react": "4.2.1",
     "concurrently": "^9.2.1",
