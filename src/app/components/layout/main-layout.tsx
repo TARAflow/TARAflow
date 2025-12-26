@@ -7,11 +7,13 @@ import { GeneralTab } from "features/overview";
 import { DFDTab, DFDUpdateResult } from "features/dfd";
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import {
+  StrideMethod,
+  ThreatData,
   ThreatsTab,
   type ThreatTabProps,
   type ThreatUpdateResult,
 } from "features/threats";
-import { RiskTab } from "features/risks";
+import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
 import {
   NewProjectDialog,
   NewProjectData,
@@ -467,6 +469,62 @@ export const MainLayout: React.FC = () => {
     [activeProject, updateProject]
   );
 
+  // ==================== Risk HANDLER ====================
+  /**
+   * Handle Risks tab updates
+   * Converts RiskUpdateResult to full Project update
+   */
+  const handleRisksUpdate = useCallback(
+    async (updates: RiskUpdateResult) => {
+      if (!activeProject) return;
+
+      const updatedProject: Project = {
+        ...activeProject,
+        risks: updates.risks,
+        phaseStatus: updates.phaseStatus,
+        lastModified: updates.lastModified,
+      };
+
+      await updateProject(updatedProject);
+    },
+    [activeProject, updateProject]
+  );
+
+  // ==================== THREAT REFERENCE EXTRACTION ====================
+  /**
+   * Extract ThreatReference array from ThreatData for Risk module
+   */
+  const extractThreatReferences = (
+    threatData: ThreatData | null | undefined,
+    strideMethod: StrideMethod
+  ): ThreatReference[] => {
+    if (!threatData) return [];
+
+    const tables =
+      strideMethod === "per-element"
+        ? threatData.perElementTables
+        : threatData.perInteractionTables;
+
+    if (!tables) return [];
+
+    const references: ThreatReference[] = [];
+    for (const table of tables) {
+      for (const threat of table.threats) {
+        references.push({
+          id: threat.id,
+          strideCategory: threat.strideCategory,
+          threatDescription: threat.threatDescription || "",
+          mitigation: threat.mitigation || "",
+          sourceStrideMethod: strideMethod,
+          elementName: threat.linkedElement?.elementName,
+          dataFlowName: threat.dataFlow?.dataFlowName,
+          trustBoundaryId: table.trustBoundaryId,
+          trustBoundaryName: table.trustBoundaryName,
+        });
+      }
+    }
+    return references;
+  };
   // ==================== NEW/IMPORT HANDLERS ====================
 
   const handleNewProject = () => {
@@ -581,8 +639,27 @@ export const MainLayout: React.FC = () => {
                   onUpdate={handleThreatsUpdate}
                 />
               )}
-              {activePhase === 4 && (
-                <RiskTab /*project={activeProject} onUpdate={updateProject}*/ />
+              {activePhase === 4 && activeProject && (
+                <RisksTab
+                  project={{
+                    id: activeProject.id,
+                    name: activeProject.name,
+                    risks: activeProject.risks ?? null,
+                    phaseStatus: activeProject.phaseStatus,
+                    perElementThreats: extractThreatReferences(
+                      activeProject.threats,
+                      "per-element"
+                    ),
+                    perInteractionThreats: extractThreatReferences(
+                      activeProject.threats,
+                      "per-interaction"
+                    ),
+                    dfdPreviewImage: activeProject.dfd?.thumbnail,
+                    lastModified: activeProject.lastModified,
+                  }}
+                  onUpdate={handleRisksUpdate}
+                  onPhaseComplete={() => setActivePhase(5)}
+                />
               )}
               {activePhase === 5 && (
                 <AttackTreeTab /*project={activeProject} onUpdate={updateProject}*/

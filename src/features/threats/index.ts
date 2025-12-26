@@ -1,5 +1,6 @@
 // ==================== TYPES ====================
 export type {
+  StrideMethod,
   ThreatTabProps,
   ThreatProjectData,
   ThreatData,

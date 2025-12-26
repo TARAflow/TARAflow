@@ -525,8 +525,8 @@ const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
       <Tooltip
         title={
           showDFDPreview
-            ? t("tabs.assets.hideDFD", { defaultValue: "Hide DFD Preview" })
-            : t("tabs.assets.showDFD", { defaultValue: "Show DFD Preview" })
+            ? t("common.hideDFD", { defaultValue: "Hide DFD Preview" })
+            : t("common.showDFD", { defaultValue: "Show DFD Preview" })
         }
       >
         <IconButton onClick={onToggleDFDPreview} size="small">
