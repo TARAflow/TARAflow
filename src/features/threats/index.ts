@@ -17,3 +17,10 @@ export { ThreatConfigDialog } from "./components/threat-config-dialog";
 
 // ==================== SERVICES ====================
 export { threatService, ThreatService } from "./services/threat-service";
+
+export {
+  getLocalizedThreatText,
+  shouldUseTemplateLocalization,
+  getSuggestedMitigations,
+  getEffectiveThreatDescription,
+} from "./services/interaction-templates";

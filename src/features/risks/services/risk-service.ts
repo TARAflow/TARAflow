@@ -93,10 +93,27 @@ export const riskService = {
     // Update threat descriptions for kept risks (in case they changed)
     const updatedKeptRisks = keptRisks.map((risk) => {
       const threat = threats.find((t) => t.id === risk.threatId);
-      if (threat && threat.threatDescription !== risk.threatDescription) {
+      if (!threat) return risk;
+
+      // Check if any fields changed
+      const descChanged = threat.threatDescription !== risk.threatDescription;
+      const mitigationChanged = threat.mitigation !== risk.originalMitigation;
+
+      // Also check if selectedMitigations is empty but we now have a mitigation
+      const needsMitigationInit =
+        risk.selectedMitigations.length === 0 &&
+        threat.mitigation &&
+        threat.mitigation.trim() !== "";
+
+      if (descChanged || mitigationChanged || needsMitigationInit) {
         return {
           ...risk,
           threatDescription: threat.threatDescription,
+          originalMitigation: threat.mitigation || "",
+          // Initialize selectedMitigations if empty and we have a mitigation
+          selectedMitigations: needsMitigationInit
+            ? [threat.mitigation]
+            : risk.selectedMitigations,
           lastModified: new Date().toISOString(),
         };
       }

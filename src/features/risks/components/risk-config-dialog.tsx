@@ -36,11 +36,13 @@ import {
   MenuItem,
   InputLabel,
   Paper,
+  Tooltip,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Functions as FormulaIcon,
+  Info as InfoIcon,
 } from "@mui/icons-material";
 
 import {
@@ -442,10 +444,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column" }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
           <Tab
-            label={t("tabs.risks.config.methodTab", { defaultValue: "Method & Display" })}
+            label={t("tabs.risks.config.methodTab", {
+              defaultValue: "Method & Display",
+            })}
           />
           <Tab
-            label={t("tabs.risks.config.factorsTab", { defaultValue: "Factors" })}
+            label={t("tabs.risks.config.factorsTab", {
+              defaultValue: "Factors",
+            })}
           />
         </Tabs>
 
@@ -470,34 +476,46 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   control={<Radio />}
                   label={
                     <Box>
-                      <Typography fontWeight="medium">
-                        {t("tabs.risks.config.simpleMethod", {
-                          defaultValue: "Simple (DREAD-like)",
-                        })}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography fontWeight="medium">
+                          {t("tabs.risks.config.simpleMethod", {
+                            defaultValue: "Simple (DREAD-like)",
+                          })}
+                        </Typography>
+                        <Tooltip
+                          title={
+                            <Box sx={{ p: 0.5 }}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                              >
+                                <FormulaIcon fontSize="small" />
+                                <Typography
+                                  variant="body2"
+                                  fontFamily="monospace"
+                                >
+                                  Risk = Σ(Factor × Weight) / Σ(Weight)
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          }
+                          arrow
+                          placement="right"
+                        >
+                          <InfoIcon
+                            fontSize="small"
+                            color="action"
+                            sx={{ cursor: "help" }}
+                          />
+                        </Tooltip>
+                      </Stack>
                       <Typography variant="body2" color="text.secondary">
                         {t("tabs.risks.config.simpleDesc", {
                           defaultValue:
                             "Combined factors with single overall risk score. Simpler to use, good for quick assessments.",
                         })}
                       </Typography>
-                      {/* Formula */}
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          mt: 1,
-                          p: 1,
-                          backgroundColor: "grey.50",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1,
-                        }}
-                      >
-                        <FormulaIcon fontSize="small" color="action" />
-                        <Typography variant="caption" fontFamily="monospace">
-                          Risk = Σ(Factor × Weight) / Σ(Weight)
-                        </Typography>
-                      </Paper>
                     </Box>
                   }
                   sx={{ alignItems: "flex-start", mb: 2 }}
@@ -507,42 +525,63 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   control={<Radio />}
                   label={
                     <Box>
-                      <Typography fontWeight="medium">
-                        {t("tabs.risks.config.complexMethod", {
-                          defaultValue: "Complex (OWASP/ETSI-like)",
-                        })}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography fontWeight="medium">
+                          {t("tabs.risks.config.complexMethod", {
+                            defaultValue: "Complex (OWASP/ETSI-like)",
+                          })}
+                        </Typography>
+                        <Tooltip
+                          title={
+                            <Box sx={{ p: 0.5 }}>
+                              <Stack spacing={0.5}>
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                >
+                                  <FormulaIcon fontSize="small" />
+                                  <Typography
+                                    variant="body2"
+                                    fontFamily="monospace"
+                                  >
+                                    Likelihood = Σ(L-Factors × Weight) /
+                                    Σ(Weight)
+                                  </Typography>
+                                </Stack>
+                                <Typography
+                                  variant="body2"
+                                  fontFamily="monospace"
+                                  sx={{ pl: 3 }}
+                                >
+                                  Impact = Σ(I-Factors × Weight) / Σ(Weight)
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  fontFamily="monospace"
+                                  sx={{ pl: 3 }}
+                                >
+                                  Risk = (Impact × Likelihood) / Scale
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          }
+                          arrow
+                          placement="right"
+                        >
+                          <InfoIcon
+                            fontSize="small"
+                            color="action"
+                            sx={{ cursor: "help" }}
+                          />
+                        </Tooltip>
+                      </Stack>
                       <Typography variant="body2" color="text.secondary">
                         {t("tabs.risks.config.complexDesc", {
                           defaultValue:
                             "Separate Impact and Likelihood factors. More detailed analysis, industry standard methodologies.",
                         })}
                       </Typography>
-                      {/* Formula */}
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          mt: 1,
-                          p: 1,
-                          backgroundColor: "grey.50",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 0.5,
-                        }}
-                      >
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <FormulaIcon fontSize="small" color="action" />
-                          <Typography variant="caption" fontFamily="monospace">
-                            Likelihood = Σ(Likelihood Factors × Weight) / Σ(Weight)
-                          </Typography>
-                        </Stack>
-                        <Typography variant="caption" fontFamily="monospace" sx={{ pl: 3.5 }}>
-                          Impact = Σ(Impact Factors × Weight) / Σ(Weight)
-                        </Typography>
-                        <Typography variant="caption" fontFamily="monospace" sx={{ pl: 3.5 }}>
-                          Risk = (Impact × Likelihood) / Scale
-                        </Typography>
-                      </Paper>
                     </Box>
                   }
                   sx={{ alignItems: "flex-start" }}
@@ -592,7 +631,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 {RISK_SCALES[scale].levels.map((level) => (
                   <Chip
                     key={level.value}
-                    label={`${level.value}: ${isGerman ? level.labelDE : level.label}`}
+                    label={`${level.value}: ${
+                      isGerman ? level.labelDE : level.label
+                    }`}
                     size="small"
                     sx={{
                       backgroundColor: level.color,
@@ -641,7 +682,15 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
         {/* Factors Tab */}
         <TabPanel value={tabValue} index={1}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, overflow: "auto", flexGrow: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              overflow: "auto",
+              flexGrow: 1,
+            }}
+          >
             {/* Factor count indicator */}
             <Alert severity={isValidCount ? "info" : "warning"}>
               {t("tabs.risks.config.factorCountInfo", {
@@ -720,7 +769,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   {method === "complex" && (
                     <FormControl size="small" sx={{ minWidth: 150 }}>
                       <InputLabel>
-                        {t("tabs.risks.config.category", { defaultValue: "Category" })}
+                        {t("tabs.risks.config.category", {
+                          defaultValue: "Category",
+                        })}
                       </InputLabel>
                       <Select
                         value={newFactorCategory}
@@ -728,7 +779,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                           defaultValue: "Category",
                         })}
                         onChange={(e) =>
-                          setNewFactorCategory(e.target.value as RiskFactorCategory)
+                          setNewFactorCategory(
+                            e.target.value as RiskFactorCategory
+                          )
                         }
                       >
                         <MenuItem value="likelihood">Likelihood</MenuItem>
@@ -745,7 +798,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     onClick={handleAddCustomFactor}
                     disabled={!newFactorName.trim()}
                   >
-                    {t("tabs.risks.config.addFactor", { defaultValue: "Add Factor" })}
+                    {t("tabs.risks.config.addFactor", {
+                      defaultValue: "Add Factor",
+                    })}
                   </Button>
                 </Stack>
               </Stack>

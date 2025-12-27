@@ -10,7 +10,8 @@ import {
   StrideMethod,
   ThreatData,
   ThreatsTab,
-  type ThreatTabProps,
+  getEffectiveThreatDescription, // ← Gleiche Funktion wie ThreatTable
+  getSuggestedMitigations,
   type ThreatUpdateResult,
 } from "features/threats";
 import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
@@ -492,39 +493,86 @@ export const MainLayout: React.FC = () => {
 
   // ==================== THREAT REFERENCE EXTRACTION ====================
   /**
-   * Extract ThreatReference array from ThreatData for Risk module
+   * Extract ThreatReferences from ThreatData for a specific STRIDE method
+   *
+   * IMPORTANT: Per-interaction threats store empty threatDescription and use
+   * template localization. We use getEffectiveThreatDescription() to get the actual text.
    */
   const extractThreatReferences = (
     threatData: ThreatData | null | undefined,
     strideMethod: StrideMethod
   ): ThreatReference[] => {
-    if (!threatData) return [];
+    if (!threatData) {
+      return [];
+    }
 
+    // Select the correct threat tables based on method
     const tables =
       strideMethod === "per-element"
         ? threatData.perElementTables
         : threatData.perInteractionTables;
 
-    if (!tables) return [];
+    if (!tables || tables.length === 0) {
+      return [];
+    }
 
     const references: ThreatReference[] = [];
+
     for (const table of tables) {
+      // Skip tables with no threats
+      if (!table.threats || table.threats.length === 0) {
+        continue;
+      }
+
       for (const threat of table.threats) {
+        // Extract element/dataflow name based on method
+        let elementName: string | undefined;
+        let dataFlowName: string | undefined;
+
+        if (strideMethod === "per-element") {
+          // Per-element: element info in linkedElement
+          elementName =
+            threat.linkedElement?.elementName ||
+            threat.linkedElement?.elementId;
+        } else {
+          // Per-interaction: dataflow info in dataFlow
+          dataFlowName = threat.dataFlow?.dataFlowName;
+          // Can also use sourceName/targetName for display
+          if (!dataFlowName && threat.dataFlow) {
+            dataFlowName = `${threat.dataFlow.sourceName} → ${threat.dataFlow.targetName}`;
+          }
+        }
+
+        // Get the effective threat description (handles template localization)
+        // This is the same function used by ThreatTable
+        const threatDescription = getEffectiveThreatDescription(threat, "en");
+
+        // Get mitigation - use stored value, only fallback to suggestions if empty
+        let mitigation = threat.mitigation || "";
+        if (!mitigation && threat.interactionContext) {
+          const suggestedMitigations = getSuggestedMitigations(threat, "en");
+          if (suggestedMitigations.length > 0) {
+            mitigation = suggestedMitigations.join("\n");
+          }
+        }
+
         references.push({
           id: threat.id,
           strideCategory: threat.strideCategory,
-          threatDescription: threat.threatDescription || "",
-          mitigation: threat.mitigation || "",
+          threatDescription,
+          mitigation,
           sourceStrideMethod: strideMethod,
-          elementName: threat.linkedElement?.elementName,
-          dataFlowName: threat.dataFlow?.dataFlowName,
+          elementName,
+          dataFlowName,
           trustBoundaryId: table.trustBoundaryId,
           trustBoundaryName: table.trustBoundaryName,
         });
       }
     }
+
     return references;
   };
+
   // ==================== NEW/IMPORT HANDLERS ====================
 
   const handleNewProject = () => {

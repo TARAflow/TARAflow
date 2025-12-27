@@ -1,5 +1,8 @@
 // ==================== RISK MATRIX ====================
-// Visual risk matrix showing Impact vs Likelihood
+// Visual risk display:
+// - Complex method: 2D Matrix showing Impact vs Likelihood
+// - Simple method: Vertical risk levels (Low → Critical)
+// Toggle between Before/After Mitigation view
 // Clickable cells to filter/highlight risks
 // Color-coded based on risk levels
 
@@ -10,15 +13,15 @@ import {
   Typography,
   Tooltip,
   Paper,
-  Badge,
   Stack,
   Chip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 
 import {
   Risk,
   RiskConfiguration,
-  RiskScaleType,
   RISK_SCALES,
   generateRiskMatrix,
   RiskMatrixCell,
@@ -32,10 +35,7 @@ interface RiskMatrixProps {
   onRiskClick?: (risk: Risk) => void;
 }
 
-interface CellRisks {
-  cell: RiskMatrixCell;
-  risks: Risk[];
-}
+type ViewMode = "before" | "after";
 
 // ==================== COMPONENT ====================
 
@@ -46,39 +46,36 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
+  const isSimple = configuration.method === "simple";
 
   const [selectedCell, setSelectedCell] = useState<{
     impact: number;
     likelihood: number;
   } | null>(null);
 
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+
+  // Toggle between Before/After view (default: After if available)
+  const [viewMode, setViewMode] = useState<ViewMode>("after");
+
   const scale = RISK_SCALES[configuration.scale];
   const matrixSize = scale.levels.length;
 
-  // ==================== GENERATE MATRIX ====================
+  // ==================== GENERATE MATRIX (for complex) ====================
 
   const matrix = useMemo(
     () => generateRiskMatrix(configuration.scale),
     [configuration.scale]
   );
 
-  // ==================== MAP RISKS TO CELLS ====================
+  // ==================== MAP RISKS TO CELLS (for complex) ====================
 
   const risksByCell = useMemo(() => {
     const map = new Map<string, Risk[]>();
 
     for (const risk of risks) {
-      // Round to nearest integer for cell placement
-      const impact = Math.round(
-        configuration.method === "simple"
-          ? risk.calculatedRiskBeforeMitigation
-          : risk.calculatedImpact
-      );
-      const likelihood = Math.round(
-        configuration.method === "simple"
-          ? risk.calculatedRiskBeforeMitigation
-          : risk.calculatedLikelihood
-      );
+      const impact = Math.round(risk.calculatedImpact);
+      const likelihood = Math.round(risk.calculatedLikelihood);
 
       // Clamp to valid range
       const clampedImpact = Math.max(1, Math.min(matrixSize, impact));
@@ -92,7 +89,66 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     }
 
     return map;
-  }, [risks, configuration.method, matrixSize]);
+  }, [risks, matrixSize]);
+
+  // ==================== MAP RISKS TO LEVELS (for simple) ====================
+
+  const risksByLevel = useMemo(() => {
+    const map = new Map<number, Risk[]>();
+
+    // Initialize all levels
+    for (const level of scale.levels) {
+      map.set(level.value, []);
+    }
+
+    for (const risk of risks) {
+      // Get the risk value to display based on view mode
+      // - "before": Always show calculatedRiskBeforeMitigation
+      // - "after": Show After if > 0, otherwise show Before
+      let riskValue: number;
+      if (viewMode === "before") {
+        riskValue = risk.calculatedRiskBeforeMitigation;
+      } else {
+        riskValue =
+          risk.calculatedRiskAfterMitigation > 0
+            ? risk.calculatedRiskAfterMitigation
+            : risk.calculatedRiskBeforeMitigation;
+      }
+
+      const roundedValue = Math.round(riskValue);
+      // Skip unrated (0)
+      if (roundedValue === 0) continue;
+
+      // Clamp to valid range
+      const clampedLevel = Math.max(1, Math.min(matrixSize, roundedValue));
+
+      if (!map.has(clampedLevel)) {
+        map.set(clampedLevel, []);
+      }
+      map.get(clampedLevel)!.push(risk);
+    }
+
+    return map;
+  }, [risks, matrixSize, scale.levels, viewMode]);
+
+  // Unrated risks for simple view
+  const unratedRisks = useMemo(() => {
+    return risks.filter((r) => {
+      if (viewMode === "before") {
+        return r.calculatedRiskBeforeMitigation === 0;
+      }
+      // "after" mode: unrated if both Before and After are 0
+      return (
+        r.calculatedRiskBeforeMitigation === 0 &&
+        r.calculatedRiskAfterMitigation === 0
+      );
+    });
+  }, [risks, viewMode]);
+
+  // Count risks with After mitigation rated
+  const risksWithAfterRated = useMemo(() => {
+    return risks.filter((r) => r.calculatedRiskAfterMitigation > 0).length;
+  }, [risks]);
 
   // ==================== HANDLERS ====================
 
@@ -104,14 +160,35 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
       onRiskClick(cellRisks[0]);
     } else if (cellRisks.length > 0) {
       setSelectedCell(
-        selectedCell?.impact === impact && selectedCell?.likelihood === likelihood
+        selectedCell?.impact === impact &&
+          selectedCell?.likelihood === likelihood
           ? null
           : { impact, likelihood }
       );
     }
   };
 
-  // ==================== RENDER CELL ====================
+  const handleLevelClick = (level: number) => {
+    const levelRisks = risksByLevel.get(level) || [];
+
+    if (levelRisks.length === 1 && onRiskClick) {
+      onRiskClick(levelRisks[0]);
+    } else if (levelRisks.length > 0) {
+      setSelectedLevel(selectedLevel === level ? null : level);
+    }
+  };
+
+  const handleViewModeChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newMode: ViewMode | null
+  ) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+      setSelectedLevel(null); // Reset selection on mode change
+    }
+  };
+
+  // ==================== RENDER CELL (for complex matrix) ====================
 
   const renderCell = (cell: RiskMatrixCell) => {
     const key = `${cell.impact}-${cell.likelihood}`;
@@ -121,9 +198,8 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
       selectedCell?.impact === cell.impact &&
       selectedCell?.likelihood === cell.likelihood;
 
-    // Get T-IDs for display
     const threatIds = cellRisks.map((r) => r.threatId);
-    const displayIds = threatIds.slice(0, 3); // Show max 3 T-IDs
+    const displayIds = threatIds.slice(0, 3);
     const hasMore = threatIds.length > 3;
 
     return (
@@ -140,8 +216,10 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
             </Typography>
             <br />
             <Typography variant="caption">
-              {t("tabs.risks.matrix.likelihood", { defaultValue: "Likelihood" })}:{" "}
-              {cell.likelihood}
+              {t("tabs.risks.matrix.likelihood", {
+                defaultValue: "Likelihood",
+              })}
+              : {cell.likelihood}
             </Typography>
             {count > 0 && (
               <>
@@ -152,7 +230,8 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                 <Box sx={{ mt: 0.5 }}>
                   {cellRisks.map((r) => (
                     <Typography key={r.id} variant="caption" display="block">
-                      • {r.threatId}: {r.strideCategory} - {r.threatDescription?.substring(0, 50)}...
+                      • {r.threatId}: {r.strideCategory} -{" "}
+                      {r.threatDescription?.substring(0, 50)}...
                     </Typography>
                   ))}
                 </Box>
@@ -179,7 +258,8 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
             border: isSelected ? "3px solid" : "1px solid",
             borderColor: isSelected ? "primary.main" : "rgba(0,0,0,0.1)",
             transition: "all 0.2s",
-            "&:hover": count > 0 ? { opacity: 0.9, transform: "scale(1.02)" } : {},
+            "&:hover":
+              count > 0 ? { opacity: 0.9, transform: "scale(1.02)" } : {},
             p: 0.5,
           }}
         >
@@ -231,15 +311,433 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     );
   };
 
-  // ==================== SELECTED CELL RISKS ====================
+  // ==================== RENDER LEVEL ROW (for simple view) ====================
+
+  const renderLevelRow = (levelValue: number) => {
+    const level = scale.levels.find((l) => l.value === levelValue);
+    if (!level) return null;
+
+    const levelRisks = risksByLevel.get(levelValue) || [];
+    const count = levelRisks.length;
+    const isSelected = selectedLevel === levelValue;
+
+    return (
+      <Tooltip
+        key={levelValue}
+        title={
+          count > 0 ? (
+            <Box>
+              <Typography variant="body2" fontWeight="bold">
+                {isGerman ? level.labelDE : level.label}
+              </Typography>
+              <Typography variant="caption" fontWeight="bold">
+                {count} {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
+              </Typography>
+              <Box sx={{ mt: 0.5 }}>
+                {levelRisks.slice(0, 5).map((r) => (
+                  <Typography key={r.id} variant="caption" display="block">
+                    • {r.threatId}: {r.strideCategory} (
+                    {r.calculatedRiskBeforeMitigation.toFixed(1)} →{" "}
+                    {r.calculatedRiskAfterMitigation > 0
+                      ? r.calculatedRiskAfterMitigation.toFixed(1)
+                      : "-"}
+                    )
+                  </Typography>
+                ))}
+                {levelRisks.length > 5 && (
+                  <Typography variant="caption" display="block">
+                    ... +{levelRisks.length - 5}{" "}
+                    {t("tabs.risks.matrix.more", { defaultValue: "more" })}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          ) : (
+            <Typography variant="body2">
+              {isGerman ? level.labelDE : level.label} -{" "}
+              {t("tabs.risks.matrix.noRisks", { defaultValue: "No risks" })}
+            </Typography>
+          )
+        }
+        placement="right"
+        arrow
+      >
+        <Box
+          onClick={() => handleLevelClick(levelValue)}
+          sx={{
+            display: "flex",
+            alignItems: "stretch",
+            minHeight: 60,
+            cursor: count > 0 ? "pointer" : "default",
+            border: isSelected ? "3px solid" : "1px solid",
+            borderColor: isSelected ? "primary.main" : "divider",
+            borderRadius: 1,
+            overflow: "hidden",
+            transition: "all 0.2s",
+            "&:hover":
+              count > 0 ? { transform: "scale(1.01)", boxShadow: 2 } : {},
+          }}
+        >
+          {/* Level Label */}
+          <Box
+            sx={{
+              width: 100,
+              backgroundColor: level.color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              p: 1,
+            }}
+          >
+            <Typography
+              variant="body2"
+              fontWeight="bold"
+              sx={{ color: "white", textAlign: "center" }}
+            >
+              {isGerman ? level.labelDE : level.label}
+            </Typography>
+          </Box>
+
+          {/* Risks Container */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              backgroundColor: count > 0 ? `${level.color}15` : "grey.50",
+              display: "flex",
+              alignItems: "center",
+              p: 1,
+              gap: 0.5,
+              flexWrap: "wrap",
+              opacity: count > 0 ? 1 : 0.5,
+            }}
+          >
+            {count === 0 ? (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontStyle: "italic" }}
+              >
+                {t("tabs.risks.matrix.noRisksAtLevel", {
+                  defaultValue: "No risks at this level",
+                })}
+              </Typography>
+            ) : (
+              <>
+                {levelRisks.slice(0, 8).map((risk) => (
+                  <Chip
+                    key={risk.id}
+                    label={risk.threatId}
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRiskClick?.(risk);
+                    }}
+                    sx={{
+                      backgroundColor: level.color,
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      height: 24,
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: level.color,
+                        opacity: 0.8,
+                      },
+                    }}
+                  />
+                ))}
+                {levelRisks.length > 8 && (
+                  <Chip
+                    label={`+${levelRisks.length - 8}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      borderColor: level.color,
+                      color: level.color,
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      height: 24,
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </Box>
+
+          {/* Count Badge */}
+          <Box
+            sx={{
+              width: 50,
+              backgroundColor: count > 0 ? level.color : "grey.300",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography variant="h6" fontWeight="bold" sx={{ color: "white" }}>
+              {count}
+            </Typography>
+          </Box>
+        </Box>
+      </Tooltip>
+    );
+  };
+
+  // ==================== SELECTED RISKS ====================
 
   const selectedCellRisks = selectedCell
     ? risksByCell.get(`${selectedCell.impact}-${selectedCell.likelihood}`) || []
     : [];
 
-  // ==================== RENDER ====================
+  const selectedLevelRisks =
+    selectedLevel !== null ? risksByLevel.get(selectedLevel) || [] : [];
 
-  return (
+  // ==================== RENDER SIMPLE VIEW ====================
+
+  const renderSimpleView = () => (
+    <Box
+      sx={{
+        display: "flex",
+        height: "100%",
+        p: 2,
+        gap: 2,
+      }}
+    >
+      {/* Vertical Level Bars */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          flexGrow: 1,
+          gap: 1,
+        }}
+      >
+        {/* Header with Title and Toggle */}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 1 }}
+        >
+          <Box>
+            <Typography variant="subtitle2">
+              {t("tabs.risks.matrix.riskLevels", {
+                defaultValue: "Risk Levels",
+              })}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {viewMode === "before"
+                ? t("tabs.risks.matrix.showingBefore", {
+                    defaultValue: "Before Mitigation",
+                  })
+                : t("tabs.risks.matrix.showingAfter", {
+                    defaultValue: "After Mitigation (where rated)",
+                  })}
+            </Typography>
+          </Box>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            size="small"
+          >
+            <ToggleButton
+              value="before"
+              sx={{ px: 1.5, py: 0.5, fontSize: "0.75rem" }}
+            >
+              {t("tabs.risks.matrix.before", { defaultValue: "Before" })}
+            </ToggleButton>
+            <ToggleButton
+              value="after"
+              sx={{ px: 1.5, py: 0.5, fontSize: "0.75rem" }}
+            >
+              {t("tabs.risks.matrix.after", { defaultValue: "After" })}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Stack>
+
+        {/* Render levels from highest to lowest */}
+        <Stack spacing={1} sx={{ flexGrow: 1 }}>
+          {scale.levels
+            .slice()
+            .reverse()
+            .map((level) => renderLevelRow(level.value))}
+        </Stack>
+
+        {/* Unrated Section */}
+        {unratedRisks.length > 0 && (
+          <Box
+            sx={{
+              mt: 2,
+              pt: 2,
+              borderTop: "1px dashed",
+              borderColor: "divider",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" gutterBottom>
+              {t("tabs.risks.matrix.unratedRisks", {
+                defaultValue: "Unrated Risks",
+              })}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+              {unratedRisks.slice(0, 10).map((risk) => (
+                <Chip
+                  key={risk.id}
+                  label={risk.threatId}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => onRiskClick?.(risk)}
+                  sx={{ cursor: "pointer" }}
+                />
+              ))}
+              {unratedRisks.length > 10 && (
+                <Chip
+                  label={`+${unratedRisks.length - 10}`}
+                  size="small"
+                  variant="outlined"
+                  color="default"
+                />
+              )}
+            </Box>
+          </Box>
+        )}
+      </Box>
+
+      {/* Legend & Statistics */}
+      <Paper
+        variant="outlined"
+        sx={{
+          width: 200,
+          p: 1.5,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        {/* Statistics */}
+        <Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mb: 0.5 }}
+          >
+            {t("tabs.risks.matrix.statistics", { defaultValue: "Statistics" })}
+          </Typography>
+          <Stack spacing={0.5}>
+            {scale.levels
+              .slice()
+              .reverse()
+              .map((level) => {
+                const count = risksByLevel.get(level.value)?.length || 0;
+                return (
+                  <Stack
+                    key={level.value}
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          backgroundColor: level.color,
+                          borderRadius: 0.5,
+                        }}
+                      />
+                      <Typography variant="caption">
+                        {isGerman ? level.labelDE : level.label}
+                      </Typography>
+                    </Stack>
+                    <Typography variant="caption" fontWeight="bold">
+                      {count}
+                    </Typography>
+                  </Stack>
+                );
+              })}
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ pt: 1, borderTop: "1px solid", borderColor: "divider" }}
+            >
+              <Typography variant="caption" fontWeight="bold">
+                {t("tabs.risks.matrix.total", { defaultValue: "Total" })}
+              </Typography>
+              <Typography variant="caption" fontWeight="bold">
+                {risks.length}
+              </Typography>
+            </Stack>
+            {unratedRisks.length > 0 && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Typography variant="caption" color="text.secondary">
+                  {t("tabs.risks.matrix.unrated", { defaultValue: "Unrated" })}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {unratedRisks.length}
+                </Typography>
+              </Stack>
+            )}
+          </Stack>
+        </Box>
+
+        {/* Mitigation Progress */}
+        <Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mb: 0.5 }}
+          >
+            {t("tabs.risks.matrix.mitigationProgress", {
+              defaultValue: "Mitigation Progress",
+            })}
+          </Typography>
+          <Typography variant="body2">
+            {risksWithAfterRated} / {risks.length}{" "}
+            {t("tabs.risks.matrix.rated", { defaultValue: "rated" })}
+          </Typography>
+        </Box>
+
+        {/* Selected Level Risks */}
+        {selectedLevelRisks.length > 0 && (
+          <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              sx={{ mb: 0.5 }}
+            >
+              {t("tabs.risks.matrix.selectedRisks", {
+                defaultValue: "Selected Risks",
+              })}
+            </Typography>
+            <Stack spacing={0.5}>
+              {selectedLevelRisks.map((risk) => (
+                <Chip
+                  key={risk.id}
+                  label={`${risk.threatId} (${risk.strideCategory})`}
+                  size="small"
+                  onClick={() => onRiskClick?.(risk)}
+                  sx={{ cursor: "pointer" }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
+      </Paper>
+    </Box>
+  );
+
+  // ==================== RENDER COMPLEX VIEW (2D Matrix) ====================
+
+  const renderComplexView = () => (
     <Box
       sx={{
         display: "flex",
@@ -278,10 +776,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
             }}
           >
             <Typography variant="caption" color="text.secondary">
-              {configuration.method === "simple"
-                ? t("tabs.risks.matrix.risk", { defaultValue: "Risk Level" })
-                : t("tabs.risks.matrix.impact", { defaultValue: "Impact" })}
-              {" →"}
+              {t("tabs.risks.matrix.impact", { defaultValue: "Impact" })} →
             </Typography>
           </Box>
 
@@ -346,10 +841,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
 
         {/* X-Axis Label */}
         <Typography variant="caption" align="center" color="text.secondary">
-          {configuration.method === "simple"
-            ? t("tabs.risks.matrix.risk", { defaultValue: "Risk Level" })
-            : t("tabs.risks.matrix.likelihood", { defaultValue: "Likelihood" })}
-          {" →"}
+          {t("tabs.risks.matrix.likelihood", { defaultValue: "Likelihood" })} →
         </Typography>
       </Box>
 
@@ -366,7 +858,12 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
       >
         {/* Legend */}
         <Box>
-          <Typography variant="caption" color="text.secondary" gutterBottom>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mb: 0.5 }}
+          >
             {t("tabs.risks.matrix.legend", { defaultValue: "Legend" })}
           </Typography>
           <Stack spacing={0.5}>
@@ -395,30 +892,46 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
 
         {/* Statistics */}
         <Box>
-          <Typography variant="caption" color="text.secondary" gutterBottom>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mb: 0.5 }}
+          >
             {t("tabs.risks.matrix.statistics", { defaultValue: "Statistics" })}
           </Typography>
-          <Typography variant="body2">
-            {t("tabs.risks.matrix.totalRisks", {
-              count: risks.length,
-              defaultValue: `Total: ${risks.length} risks`,
-            })}
-          </Typography>
-          <Typography variant="body2">
-            {t("tabs.risks.matrix.unrated", {
-              count: risks.filter((r) => r.calculatedRiskBeforeMitigation === 0)
-                .length,
-              defaultValue: `Unrated: ${
-                risks.filter((r) => r.calculatedRiskBeforeMitigation === 0).length
-              }`,
-            })}
-          </Typography>
+          <Stack spacing={0.25}>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="caption">
+                {t("tabs.risks.matrix.total", { defaultValue: "Total" })}
+              </Typography>
+              <Typography variant="caption" fontWeight="bold">
+                {risks.length}
+              </Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="caption" color="text.secondary">
+                {t("tabs.risks.matrix.unrated", { defaultValue: "Unrated" })}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {
+                  risks.filter((r) => r.calculatedRiskBeforeMitigation === 0)
+                    .length
+                }
+              </Typography>
+            </Stack>
+          </Stack>
         </Box>
 
         {/* Selected Cell Risks */}
         {selectedCellRisks.length > 0 && (
           <Box sx={{ flexGrow: 1, overflow: "auto" }}>
-            <Typography variant="caption" color="text.secondary" gutterBottom>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              sx={{ mb: 0.5 }}
+            >
               {t("tabs.risks.matrix.selectedRisks", {
                 defaultValue: "Selected Risks",
               })}
@@ -439,6 +952,10 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
       </Paper>
     </Box>
   );
+
+  // ==================== RENDER ====================
+
+  return isSimple ? renderSimpleView() : renderComplexView();
 };
 
 export default RiskMatrix;

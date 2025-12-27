@@ -282,22 +282,46 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
   const columns = useMemo<GridColDef<Risk>[]>(() => {
     // Helper function to create factor breakdown tooltip
-    const getFactorBreakdownTooltip = (risk: Risk, isMitigated: boolean = false) => {
-      const ratings = isMitigated ? risk.mitigatedFactorRatings : risk.factorRatings;
-      
+    const getFactorBreakdownTooltip = (
+      risk: Risk,
+      isMitigated: boolean = false
+    ) => {
+      const ratings = isMitigated
+        ? risk.mitigatedFactorRatings
+        : risk.factorRatings;
+      const riskValue = isMitigated
+        ? risk.calculatedRiskAfterMitigation
+        : risk.calculatedRiskBeforeMitigation;
+
       if (!ratings || ratings.length === 0) {
-        return t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" });
+        return {
+          factors: t("tabs.risks.dialog.notRated", {
+            defaultValue: "Not rated",
+          }),
+          riskLevel: null,
+          riskColor: null,
+        };
       }
 
-      const lines = ratings.map((rating) => {
-        const def = getFactorDefinition(rating.factorId, configuration.customFactors);
-        if (!def) return null;
-        const factorName = isGerman ? def.nameDE : def.name;
-        const value = rating.value > 0 ? rating.value.toFixed(1) : "-";
-        return `${factorName}: ${value}`;
-      }).filter(Boolean);
+      const lines = ratings
+        .map((rating) => {
+          const def = getFactorDefinition(
+            rating.factorId,
+            configuration.customFactors
+          );
+          if (!def) return null;
+          const factorName = isGerman ? def.nameDE : def.name;
+          const value = rating.value > 0 ? rating.value.toFixed(1) : "-";
+          return `${factorName}: ${value}`;
+        })
+        .filter(Boolean);
 
-      return lines.join("\n");
+      return {
+        factors: lines.join("\n"),
+        riskLevel: getRiskLabel(riskValue, configuration.scale, isGerman),
+        riskColor: getRiskColor(riskValue, configuration.scale),
+        riskValue: riskValue,
+      };
     };
 
     const baseColumns: GridColDef<Risk>[] = [
@@ -372,15 +396,52 @@ export const RiskTable: React.FC<RiskTableProps> = ({
               align: "center",
               renderCell: (params: GridRenderCellParams<Risk>) => {
                 const value = params.value as number;
-                const tooltipContent = getFactorBreakdownTooltip(params.row, false);
+                const tooltipData = getFactorBreakdownTooltip(
+                  params.row,
+                  false
+                );
                 return (
-                  <Tooltip 
+                  <Tooltip
                     title={
                       <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography variant="caption" fontWeight="bold" display="block">
-                          {t("tabs.risks.dialog.riskFactors", { defaultValue: "Factor Breakdown" })}
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          display="block"
+                        >
+                          {t("tabs.risks.dialog.riskFactors", {
+                            defaultValue: "Factor Breakdown",
+                          })}
                         </Typography>
-                        {tooltipContent}
+                        {tooltipData.factors}
+                        {tooltipData.riskLevel && (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              pt: 1,
+                              borderTop: "1px solid rgba(255,255,255,0.3)",
+                            }}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: "50%",
+                                  backgroundColor: tooltipData.riskColor,
+                                  border: "1px solid rgba(255,255,255,0.5)",
+                                }}
+                              />
+                              <Typography variant="caption" fontWeight="bold">
+                                {tooltipData.riskLevel}
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        )}
                       </Box>
                     }
                     arrow
@@ -389,7 +450,10 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       label={value > 0 ? value.toFixed(1) : "-"}
                       size="small"
                       sx={{
-                        backgroundColor: getRiskColor(value, configuration.scale),
+                        backgroundColor: getRiskColor(
+                          value,
+                          configuration.scale
+                        ),
                         color: "white",
                         fontWeight: "bold",
                         cursor: "help",
@@ -408,15 +472,49 @@ export const RiskTable: React.FC<RiskTableProps> = ({
               align: "center",
               renderCell: (params: GridRenderCellParams<Risk>) => {
                 const value = params.value as number;
-                const tooltipContent = getFactorBreakdownTooltip(params.row, true);
+                const tooltipData = getFactorBreakdownTooltip(params.row, true);
                 return (
-                  <Tooltip 
+                  <Tooltip
                     title={
                       <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography variant="caption" fontWeight="bold" display="block">
-                          {t("tabs.risks.dialog.riskFactorsAfter", { defaultValue: "Factor Breakdown (After)" })}
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          display="block"
+                        >
+                          {t("tabs.risks.dialog.riskFactorsAfter", {
+                            defaultValue: "Factor Breakdown (After)",
+                          })}
                         </Typography>
-                        {tooltipContent}
+                        {tooltipData.factors}
+                        {tooltipData.riskLevel && (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              pt: 1,
+                              borderTop: "1px solid rgba(255,255,255,0.3)",
+                            }}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: "50%",
+                                  backgroundColor: tooltipData.riskColor,
+                                  border: "1px solid rgba(255,255,255,0.5)",
+                                }}
+                              />
+                              <Typography variant="caption" fontWeight="bold">
+                                {tooltipData.riskLevel}
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        )}
                       </Box>
                     }
                     arrow
@@ -425,7 +523,10 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       label={value > 0 ? value.toFixed(1) : "-"}
                       size="small"
                       sx={{
-                        backgroundColor: getRiskColor(value, configuration.scale),
+                        backgroundColor: getRiskColor(
+                          value,
+                          configuration.scale
+                        ),
                         color: "white",
                         fontWeight: "bold",
                         cursor: "help",
@@ -439,28 +540,81 @@ export const RiskTable: React.FC<RiskTableProps> = ({
         : [
             {
               field: "calculatedImpact",
-              headerName: t("tabs.risks.columns.impact", { defaultValue: "Impact" }),
+              headerName: t("tabs.risks.columns.impact", {
+                defaultValue: "Impact",
+              }),
               width: 80,
               align: "center",
               renderCell: (params: GridRenderCellParams<Risk>) => {
                 const value = params.value as number;
                 const impactFactors = params.row.factorRatings.filter((r) => {
-                  const def = getFactorDefinition(r.factorId, configuration.customFactors);
+                  const def = getFactorDefinition(
+                    r.factorId,
+                    configuration.customFactors
+                  );
                   return def?.category === "impact";
                 });
-                const tooltipLines = impactFactors.map((r) => {
-                  const def = getFactorDefinition(r.factorId, configuration.customFactors);
-                  return `${isGerman ? def?.nameDE : def?.name}: ${r.value > 0 ? r.value.toFixed(1) : "-"}`;
-                }).join("\n");
-                
+                const tooltipLines = impactFactors
+                  .map((r) => {
+                    const def = getFactorDefinition(
+                      r.factorId,
+                      configuration.customFactors
+                    );
+                    return `${isGerman ? def?.nameDE : def?.name}: ${
+                      r.value > 0 ? r.value.toFixed(1) : "-"
+                    }`;
+                  })
+                  .join("\n");
+
                 return (
-                  <Tooltip 
+                  <Tooltip
                     title={
                       <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography variant="caption" fontWeight="bold" display="block">
-                          {t("tabs.risks.dialog.impactFactors", { defaultValue: "Impact Factors" })}
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          display="block"
+                        >
+                          {t("tabs.risks.dialog.impactFactors", {
+                            defaultValue: "Impact Factors",
+                          })}
                         </Typography>
                         {tooltipLines || "-"}
+                        {value > 0 && (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              pt: 1,
+                              borderTop: "1px solid rgba(255,255,255,0.3)",
+                            }}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: "50%",
+                                  backgroundColor: getRiskColor(
+                                    value,
+                                    configuration.scale
+                                  ),
+                                  border: "1px solid rgba(255,255,255,0.5)",
+                                }}
+                              />
+                              <Typography variant="caption" fontWeight="bold">
+                                {getRiskLabel(
+                                  value,
+                                  configuration.scale,
+                                  isGerman
+                                )}
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        )}
                       </Box>
                     }
                     arrow
@@ -469,7 +623,10 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       label={value > 0 ? value.toFixed(1) : "-"}
                       size="small"
                       sx={{
-                        backgroundColor: getRiskColor(value, configuration.scale),
+                        backgroundColor: getRiskColor(
+                          value,
+                          configuration.scale
+                        ),
                         color: "white",
                         cursor: "help",
                       }}
@@ -487,23 +644,76 @@ export const RiskTable: React.FC<RiskTableProps> = ({
               align: "center",
               renderCell: (params: GridRenderCellParams<Risk>) => {
                 const value = params.value as number;
-                const likelihoodFactors = params.row.factorRatings.filter((r) => {
-                  const def = getFactorDefinition(r.factorId, configuration.customFactors);
-                  return def?.category === "likelihood";
-                });
-                const tooltipLines = likelihoodFactors.map((r) => {
-                  const def = getFactorDefinition(r.factorId, configuration.customFactors);
-                  return `${isGerman ? def?.nameDE : def?.name}: ${r.value > 0 ? r.value.toFixed(1) : "-"}`;
-                }).join("\n");
-                
+                const likelihoodFactors = params.row.factorRatings.filter(
+                  (r) => {
+                    const def = getFactorDefinition(
+                      r.factorId,
+                      configuration.customFactors
+                    );
+                    return def?.category === "likelihood";
+                  }
+                );
+                const tooltipLines = likelihoodFactors
+                  .map((r) => {
+                    const def = getFactorDefinition(
+                      r.factorId,
+                      configuration.customFactors
+                    );
+                    return `${isGerman ? def?.nameDE : def?.name}: ${
+                      r.value > 0 ? r.value.toFixed(1) : "-"
+                    }`;
+                  })
+                  .join("\n");
+
                 return (
-                  <Tooltip 
+                  <Tooltip
                     title={
                       <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography variant="caption" fontWeight="bold" display="block">
-                          {t("tabs.risks.dialog.likelihoodFactors", { defaultValue: "Likelihood Factors" })}
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          display="block"
+                        >
+                          {t("tabs.risks.dialog.likelihoodFactors", {
+                            defaultValue: "Likelihood Factors",
+                          })}
                         </Typography>
                         {tooltipLines || "-"}
+                        {value > 0 && (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              pt: 1,
+                              borderTop: "1px solid rgba(255,255,255,0.3)",
+                            }}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: "50%",
+                                  backgroundColor: getRiskColor(
+                                    value,
+                                    configuration.scale
+                                  ),
+                                  border: "1px solid rgba(255,255,255,0.5)",
+                                }}
+                              />
+                              <Typography variant="caption" fontWeight="bold">
+                                {getRiskLabel(
+                                  value,
+                                  configuration.scale,
+                                  isGerman
+                                )}
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        )}
                       </Box>
                     }
                     arrow
@@ -512,7 +722,10 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       label={value > 0 ? value.toFixed(1) : "-"}
                       size="small"
                       sx={{
-                        backgroundColor: getRiskColor(value, configuration.scale),
+                        backgroundColor: getRiskColor(
+                          value,
+                          configuration.scale
+                        ),
                         color: "white",
                         cursor: "help",
                       }}
@@ -531,15 +744,48 @@ export const RiskTable: React.FC<RiskTableProps> = ({
               renderCell: (params: GridRenderCellParams<Risk>) => {
                 const value = params.value as number;
                 return (
-                  <Chip
-                    label={value > 0 ? value.toFixed(1) : "-"}
-                    size="small"
-                    sx={{
-                      backgroundColor: getRiskColor(value, configuration.scale),
-                      color: "white",
-                      fontWeight: "bold",
-                    }}
-                  />
+                  <Tooltip
+                    title={
+                      value > 0 ? (
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              backgroundColor: getRiskColor(
+                                value,
+                                configuration.scale
+                              ),
+                              border: "1px solid rgba(255,255,255,0.5)",
+                            }}
+                          />
+                          <Typography variant="caption" fontWeight="bold">
+                            {getRiskLabel(value, configuration.scale, isGerman)}
+                          </Typography>
+                        </Stack>
+                      ) : (
+                        t("tabs.risks.dialog.notRated", {
+                          defaultValue: "Not rated",
+                        })
+                      )
+                    }
+                    arrow
+                  >
+                    <Chip
+                      label={value > 0 ? value.toFixed(1) : "-"}
+                      size="small"
+                      sx={{
+                        backgroundColor: getRiskColor(
+                          value,
+                          configuration.scale
+                        ),
+                        color: "white",
+                        fontWeight: "bold",
+                        cursor: "help",
+                      }}
+                    />
+                  </Tooltip>
                 );
               },
             },

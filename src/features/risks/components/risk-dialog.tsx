@@ -36,11 +36,13 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   ContentPaste as PasteIcon,
+  Sync as SyncIcon,
 } from "@mui/icons-material";
 
 import {
   Risk,
   RiskConfiguration,
+  ThreatReference,
   FactorRating,
   MoSCoWPriority,
   RiskStatus,
@@ -59,6 +61,8 @@ interface RiskDialogProps {
   open: boolean;
   risk: Risk;
   configuration: RiskConfiguration;
+  /** Current threat reference - used to detect mitigation changes */
+  threatReference?: ThreatReference;
   onSave: (risk: Risk) => void;
   onClose: () => void;
 }
@@ -84,6 +88,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   open,
   risk,
   configuration,
+  threatReference,
   onSave,
   onClose,
 }) => {
@@ -94,12 +99,26 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   const [editedRisk, setEditedRisk] = useState<Risk>(risk);
   const [tabValue, setTabValue] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showMitigationSyncDialog, setShowMitigationSyncDialog] =
+    useState(false);
 
   const scale = RISK_SCALES[configuration.scale];
   const isSimple = configuration.method === "simple";
 
   // Check if there's original mitigation data from threat
   const hasOriginalMitigation = Boolean(editedRisk.originalMitigation?.trim());
+
+  // Check if threat mitigation has changed since last sync
+  const threatMitigationChanged = useMemo(() => {
+    if (!threatReference) return false;
+    return threatReference.mitigation !== editedRisk.originalMitigation;
+  }, [threatReference, editedRisk.originalMitigation]);
+
+  // Check if threat description has changed
+  const threatDescriptionChanged = useMemo(() => {
+    if (!threatReference) return false;
+    return threatReference.threatDescription !== editedRisk.threatDescription;
+  }, [threatReference, editedRisk.threatDescription]);
 
   // ==================== CALCULATED VALUES ====================
 
@@ -108,7 +127,10 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   }, [editedRisk.factorRatings, configuration]);
 
   const afterValues = useMemo(() => {
-    return calculateRiskValues(editedRisk.mitigatedFactorRatings, configuration);
+    return calculateRiskValues(
+      editedRisk.mitigatedFactorRatings,
+      configuration
+    );
   }, [editedRisk.mitigatedFactorRatings, configuration]);
 
   // ==================== FACTOR GROUPS ====================
@@ -118,7 +140,10 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       .filter((af) => af.enabled)
       .map((af) => ({
         ...af,
-        definition: getFactorDefinition(af.factorId, configuration.customFactors),
+        definition: getFactorDefinition(
+          af.factorId,
+          configuration.customFactors
+        ),
       }))
       .filter((f) => f.definition !== undefined);
 
@@ -182,16 +207,13 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     }));
   }, []);
 
-  const handleMitigationChange = useCallback(
-    (index: number, value: string) => {
-      setEditedRisk((prev) => {
-        const updated = [...prev.selectedMitigations];
-        updated[index] = value;
-        return { ...prev, selectedMitigations: updated };
-      });
-    },
-    []
-  );
+  const handleMitigationChange = useCallback((index: number, value: string) => {
+    setEditedRisk((prev) => {
+      const updated = [...prev.selectedMitigations];
+      updated[index] = value;
+      return { ...prev, selectedMitigations: updated };
+    });
+  }, []);
 
   const handleAddMitigation = useCallback(() => {
     setEditedRisk((prev) => ({
@@ -203,14 +225,16 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   const handleRemoveMitigation = useCallback((index: number) => {
     setEditedRisk((prev) => ({
       ...prev,
-      selectedMitigations: prev.selectedMitigations.filter((_, i) => i !== index),
+      selectedMitigations: prev.selectedMitigations.filter(
+        (_, i) => i !== index
+      ),
     }));
   }, []);
 
   // Copy original mitigation from threat
   const handleCopyOriginalMitigation = useCallback(() => {
     if (!editedRisk.originalMitigation) return;
-    
+
     setEditedRisk((prev) => {
       // Check if already exists
       if (prev.selectedMitigations.includes(prev.originalMitigation)) {
@@ -225,10 +249,33 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       }
       return {
         ...prev,
-        selectedMitigations: [...prev.selectedMitigations, prev.originalMitigation],
+        selectedMitigations: [
+          ...prev.selectedMitigations,
+          prev.originalMitigation,
+        ],
       };
     });
   }, [editedRisk.originalMitigation]);
+
+  // Sync mitigation from threat (when threat mitigation has changed)
+  const handleSyncMitigationFromThreat = useCallback(() => {
+    if (!threatReference) return;
+
+    setEditedRisk((prev) => {
+      const newMitigation = threatReference.mitigation || "";
+
+      // Update originalMitigation
+      // Replace selectedMitigations with new value (user confirmed)
+      return {
+        ...prev,
+        originalMitigation: newMitigation,
+        selectedMitigations: newMitigation ? [newMitigation] : [],
+        threatDescription: threatReference.threatDescription,
+      };
+    });
+
+    setShowMitigationSyncDialog(false);
+  }, [threatReference]);
 
   const handleSave = useCallback(() => {
     const newErrors: Record<string, string> = {};
@@ -281,8 +328,17 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       return (
         <Grid item xs={12} sm={6} md={4} key={factor.factorId}>
           <Paper variant="outlined" sx={{ p: 1.5 }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-              <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ mb: 1 }}
+            >
+              <Typography
+                variant="body2"
+                fontWeight="medium"
+                sx={{ flexGrow: 1 }}
+              >
                 {isGerman ? def.nameDE : def.name}
               </Typography>
               <Tooltip title={isGerman ? def.descriptionDE : def.description}>
@@ -292,14 +348,20 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             <Select
               value={value}
               onChange={(e) =>
-                handleFactorChange(factor.factorId, e.target.value as number, isMitigated)
+                handleFactorChange(
+                  factor.factorId,
+                  e.target.value as number,
+                  isMitigated
+                )
               }
               size="small"
               fullWidth
             >
               <MenuItem value={0}>
                 <em>
-                  {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
+                  {t("tabs.risks.dialog.notRated", {
+                    defaultValue: "Not rated",
+                  })}
                 </em>
               </MenuItem>
               {scale.levels.map((level) => (
@@ -324,7 +386,14 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         </Grid>
       );
     },
-    [editedRisk.factorRatings, editedRisk.mitigatedFactorRatings, scale, handleFactorChange, isGerman, t]
+    [
+      editedRisk.factorRatings,
+      editedRisk.mitigatedFactorRatings,
+      scale,
+      handleFactorChange,
+      isGerman,
+      t,
+    ]
   );
 
   // ==================== RENDER ====================
@@ -370,13 +439,31 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 defaultValue: "Threat Description",
               })}
             </Typography>
-            <Typography variant="body1">{editedRisk.threatDescription}</Typography>
-            
+            <Typography variant="body1">
+              {editedRisk.threatDescription}
+            </Typography>
+
             {/* Original Mitigation from Threat */}
             {hasOriginalMitigation && (
-              <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1 }}>
+              <Box
+                sx={{
+                  mt: 2,
+                  pt: 2,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ mb: 1 }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ flexGrow: 1 }}
+                  >
                     {t("tabs.risks.dialog.originalMitigation", {
                       defaultValue: "Original Mitigation (from Threat)",
                     })}
@@ -410,6 +497,39 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             )}
           </Paper>
 
+          {/* Out-of-Sync Alert */}
+          {(threatDescriptionChanged || threatMitigationChanged) && (
+            <Alert
+              severity="warning"
+              action={
+                <Button
+                  color="warning"
+                  size="small"
+                  startIcon={<SyncIcon />}
+                  onClick={() => setShowMitigationSyncDialog(true)}
+                >
+                  {t("tabs.risks.dialog.syncFromThreat", {
+                    defaultValue: "Sync from Threat",
+                  })}
+                </Button>
+              }
+            >
+              {threatDescriptionChanged && threatMitigationChanged
+                ? t("tabs.risks.dialog.threatAndMitigationChanged", {
+                    defaultValue:
+                      "Threat description and mitigation have changed in the Threats tab.",
+                  })
+                : threatDescriptionChanged
+                ? t("tabs.risks.dialog.threatDescriptionChanged", {
+                    defaultValue:
+                      "Threat description has changed in the Threats tab.",
+                  })
+                : t("tabs.risks.dialog.mitigationChanged", {
+                    defaultValue: "Mitigation has changed in the Threats tab.",
+                  })}
+            </Alert>
+          )}
+
           {/* Tabs for Before/After Mitigation */}
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
@@ -423,7 +543,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     </span>
                     <Chip
                       label={
-                        beforeValues.risk > 0 ? beforeValues.risk.toFixed(1) : "-"
+                        beforeValues.risk > 0
+                          ? beforeValues.risk.toFixed(1)
+                          : "-"
                       }
                       size="small"
                       sx={{
@@ -610,20 +732,31 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 {editedRisk.selectedMitigations.length === 0 ? (
                   <Alert severity="info" sx={{ mb: 1 }}>
                     {t("tabs.risks.dialog.noMitigations", {
-                      defaultValue: "No mitigations selected. Add mitigations to reduce the risk.",
+                      defaultValue:
+                        "No mitigations selected. Add mitigations to reduce the risk.",
                     })}
                   </Alert>
                 ) : (
                   editedRisk.selectedMitigations.map((mitigation, index) => (
-                    <Stack key={index} direction="row" spacing={1} alignItems="flex-start">
+                    <Stack
+                      key={index}
+                      direction="row"
+                      spacing={1}
+                      alignItems="flex-start"
+                    >
                       <TextField
                         fullWidth
                         size="small"
                         value={mitigation}
-                        onChange={(e) => handleMitigationChange(index, e.target.value)}
-                        placeholder={t("tabs.risks.dialog.mitigationPlaceholder", {
-                          defaultValue: "Describe the mitigation...",
-                        })}
+                        onChange={(e) =>
+                          handleMitigationChange(index, e.target.value)
+                        }
+                        placeholder={t(
+                          "tabs.risks.dialog.mitigationPlaceholder",
+                          {
+                            defaultValue: "Describe the mitigation...",
+                          }
+                        )}
                         multiline
                         maxRows={3}
                       />
@@ -723,7 +856,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           <Stack direction="row" spacing={2}>
             <FormControl fullWidth>
               <InputLabel>
-                {t("tabs.risks.dialog.priority", { defaultValue: "MoSCoW Priority" })}
+                {t("tabs.risks.dialog.priority", {
+                  defaultValue: "MoSCoW Priority",
+                })}
               </InputLabel>
               <Select
                 value={editedRisk.moscowPriority}
@@ -758,7 +893,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
               <Select
                 value={editedRisk.status}
                 onChange={handleStatusChange}
-                label={t("tabs.risks.dialog.status", { defaultValue: "Status" })}
+                label={t("tabs.risks.dialog.status", {
+                  defaultValue: "Status",
+                })}
               >
                 {RISK_STATUSES.map((s) => (
                   <MenuItem key={s.value} value={s.value}>
@@ -808,6 +945,130 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           {t("common.save", { defaultValue: "Save" })}
         </Button>
       </DialogActions>
+
+      {/* Sync Confirmation Dialog */}
+      <Dialog
+        open={showMitigationSyncDialog}
+        onClose={() => setShowMitigationSyncDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <SyncIcon color="warning" />
+            <Typography variant="h6">
+              {t("tabs.risks.dialog.syncConfirmTitle", {
+                defaultValue: "Sync from Threat?",
+              })}
+            </Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={3}>
+            {threatDescriptionChanged && (
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  {t("tabs.risks.dialog.currentDescription", {
+                    defaultValue: "Current Description:",
+                  })}
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, mb: 2, backgroundColor: "grey.50" }}
+                >
+                  <Typography variant="body2">
+                    {editedRisk.threatDescription || "(empty)"}
+                  </Typography>
+                </Paper>
+
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  {t("tabs.risks.dialog.newDescription", {
+                    defaultValue: "New Description (from Threat):",
+                  })}
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    borderColor: "primary.main",
+                    backgroundColor: "primary.50",
+                  }}
+                >
+                  <Typography variant="body2">
+                    {threatReference?.threatDescription || "(empty)"}
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
+
+            {threatMitigationChanged && (
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  {t("tabs.risks.dialog.currentMitigation", {
+                    defaultValue: "Current Mitigation:",
+                  })}
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, mb: 2, backgroundColor: "grey.50" }}
+                >
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                    {editedRisk.originalMitigation || "(empty)"}
+                  </Typography>
+                </Paper>
+
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  {t("tabs.risks.dialog.newMitigation", {
+                    defaultValue: "New Mitigation (from Threat):",
+                  })}
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    borderColor: "primary.main",
+                    backgroundColor: "primary.50",
+                  }}
+                >
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                    {threatReference?.mitigation || "(empty)"}
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
+
+            <Alert severity="info">
+              {t("tabs.risks.dialog.syncWarning", {
+                defaultValue:
+                  "This will replace your current selected mitigations with the new value from the Threat.",
+              })}
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowMitigationSyncDialog(false)}>
+            {t("common.cancel", { defaultValue: "Cancel" })}
+          </Button>
+          <Button
+            onClick={handleSyncMitigationFromThreat}
+            variant="contained"
+            color="warning"
+            startIcon={<SyncIcon />}
+          >
+            {t("tabs.risks.dialog.syncConfirm", {
+              defaultValue: "Sync",
+            })}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };

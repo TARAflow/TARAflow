@@ -477,10 +477,52 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const hasWarnings = syncWarnings.length > 0;
 
-  // Check if sync is needed (total threats vs total risks)
-  const totalThreats =
-    project.perElementThreats.length + project.perInteractionThreats.length;
-  const needsSync = hasAnyThreats && totalThreats !== riskData.risks.length;
+  // Check if sync is needed
+  const allThreats = useMemo(
+    () => [...project.perElementThreats, ...project.perInteractionThreats],
+    [project.perElementThreats, project.perInteractionThreats]
+  );
+
+  const totalThreats = allThreats.length;
+
+  // Detailed sync status
+  const syncStatus = useMemo(() => {
+    const threatIds = new Set(allThreats.map((t) => t.id));
+    const riskThreatIds = new Set(riskData.risks.map((r) => r.threatId));
+
+    // New threats without risks
+    const newThreats = allThreats.filter((t) => !riskThreatIds.has(t.id));
+
+    // Orphaned risks (threat deleted)
+    const orphanedRisks = riskData.risks.filter(
+      (r) => !threatIds.has(r.threatId)
+    );
+
+    // Changed threat descriptions
+    const changedDescriptions = riskData.risks.filter((risk) => {
+      const threat = allThreats.find((t) => t.id === risk.threatId);
+      return threat && threat.threatDescription !== risk.threatDescription;
+    });
+
+    // Changed mitigations (originalMitigation differs)
+    const changedMitigations = riskData.risks.filter((risk) => {
+      const threat = allThreats.find((t) => t.id === risk.threatId);
+      return threat && threat.mitigation !== risk.originalMitigation;
+    });
+
+    return {
+      newThreats: newThreats.length,
+      orphanedRisks: orphanedRisks.length,
+      changedDescriptions: changedDescriptions.length,
+      changedMitigations: changedMitigations.length,
+      needsSync:
+        newThreats.length > 0 ||
+        orphanedRisks.length > 0 ||
+        changedDescriptions.length > 0,
+    };
+  }, [allThreats, riskData.risks]);
+
+  const needsSync = hasAnyThreats && syncStatus.needsSync;
 
   // ==================== RENDER ====================
 
@@ -496,7 +538,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     >
       {/* Hidden file input for import */}
       <input
-        aria-label={t("..")}
+        aria-label={t("tabs.risks.importFile", {
+          defaultValue: "Import risk data file",
+        })}
         ref={fileInputRef}
         type="file"
         accept=".json"
@@ -548,6 +592,71 @@ export const RisksTab: React.FC<RiskTabProps> = ({
               {warning}
             </Alert>
           ))}
+        </Box>
+      </Collapse>
+
+      {/* Out-of-Sync Alert */}
+      <Collapse in={needsSync}>
+        <Box sx={{ px: 2, py: 1 }}>
+          <Alert
+            severity="warning"
+            action={
+              <Button
+                color="warning"
+                size="small"
+                onClick={handleSyncClick}
+                disabled={isSyncing}
+              >
+                {t("tabs.risks.syncNow", { defaultValue: "Sync Now" })}
+              </Button>
+            }
+          >
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              flexWrap="wrap"
+            >
+              <Typography variant="body2">
+                {t("tabs.risks.outOfSyncDetails", {
+                  defaultValue: "Risks are out of sync with Threats:",
+                })}
+              </Typography>
+              {syncStatus.newThreats > 0 && (
+                <Chip
+                  label={`${syncStatus.newThreats} ${t(
+                    "tabs.risks.newThreats",
+                    { defaultValue: "new" }
+                  )}`}
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                />
+              )}
+              {syncStatus.orphanedRisks > 0 && (
+                <Chip
+                  label={`${syncStatus.orphanedRisks} ${t(
+                    "tabs.risks.orphaned",
+                    { defaultValue: "orphaned" }
+                  )}`}
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                />
+              )}
+              {syncStatus.changedDescriptions > 0 && (
+                <Chip
+                  label={`${syncStatus.changedDescriptions} ${t(
+                    "tabs.risks.changed",
+                    { defaultValue: "changed" }
+                  )}`}
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+          </Alert>
         </Box>
       </Collapse>
 
@@ -745,6 +854,13 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           open={showRiskDialog}
           risk={selectedRisk}
           configuration={riskData.configuration}
+          threatReference={
+            // Find the matching threat reference
+            [
+              ...project.perElementThreats,
+              ...project.perInteractionThreats,
+            ].find((t) => t.id === selectedRisk.threatId)
+          }
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
         />
