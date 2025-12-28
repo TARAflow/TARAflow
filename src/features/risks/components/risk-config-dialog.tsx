@@ -49,6 +49,7 @@ import {
   RiskConfiguration,
   RiskMethodType,
   RiskScaleType,
+  RiskRoundingMethod,
   ActiveFactor,
   RiskFactorDefinition,
   RiskFactorCategory,
@@ -101,6 +102,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   const [tabValue, setTabValue] = useState(0);
   const [method, setMethod] = useState<RiskMethodType>(configuration.method);
   const [scale, setScale] = useState<RiskScaleType>(configuration.scale);
+  const [roundingMethod, setRoundingMethod] = useState<RiskRoundingMethod>(
+    configuration.roundingMethod || "round"
+  );
   const [activeFactors, setActiveFactors] = useState<ActiveFactor[]>(
     configuration.activeFactors
   );
@@ -216,6 +220,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       ...configuration,
       method,
       scale,
+      roundingMethod,
       activeFactors,
       showIndividualFactors,
       customFactors,
@@ -224,10 +229,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
   // ==================== RENDER FACTOR LIST ====================
 
-  const renderFactorList = (
-    factors: RiskFactorDefinition[],
-    title: string
-  ) => {
+  const renderFactorList = (factors: RiskFactorDefinition[], title: string) => {
     if (factors.length === 0) return null;
 
     return (
@@ -252,7 +254,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   border: "1px solid",
                   borderColor: isEnabled ? "primary.light" : "divider",
                   borderRadius: 1,
-                  backgroundColor: isEnabled ? "action.selected" : "transparent",
+                  backgroundColor: isEnabled
+                    ? "action.selected"
+                    : "transparent",
                 }}
               >
                 <ListItemButton
@@ -277,14 +281,19 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         />
                       </Stack>
                     }
-                    secondary={isGerman ? factor.descriptionDE : factor.description}
+                    secondary={
+                      isGerman ? factor.descriptionDE : factor.description
+                    }
                   />
                 </ListItemButton>
                 {isEnabled && (
                   <Box sx={{ px: 2, minWidth: 150 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
-                        {t("tabs.risks.config.weight", { defaultValue: "Weight" })}:
+                        {t("tabs.risks.config.weight", {
+                          defaultValue: "Weight",
+                        })}
+                        :
                       </Typography>
                       <Slider
                         value={weight}
@@ -325,7 +334,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     return (
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          {t("tabs.risks.config.customFactors", { defaultValue: "Custom Factors" })}
+          {t("tabs.risks.config.customFactors", {
+            defaultValue: "Custom Factors",
+          })}
         </Typography>
         <List dense disablePadding>
           {relevantCustomFactors.map((factor) => {
@@ -354,7 +365,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   border: "1px solid",
                   borderColor: isEnabled ? "primary.light" : "divider",
                   borderRadius: 1,
-                  backgroundColor: isEnabled ? "action.selected" : "transparent",
+                  backgroundColor: isEnabled
+                    ? "action.selected"
+                    : "transparent",
                 }}
               >
                 <ListItemButton
@@ -376,20 +389,27 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                             label={factor.category}
                             size="small"
                             variant="outlined"
-                            color={factor.category === "impact" ? "error" : "info"}
+                            color={
+                              factor.category === "impact" ? "error" : "info"
+                            }
                             sx={{ fontSize: "0.6rem", height: 18 }}
                           />
                         )}
                       </Stack>
                     }
-                    secondary={isGerman ? factor.descriptionDE : factor.description}
+                    secondary={
+                      isGerman ? factor.descriptionDE : factor.description
+                    }
                   />
                 </ListItemButton>
                 {isEnabled && (
                   <Box sx={{ px: 2, minWidth: 150, mr: 4 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
-                        {t("tabs.risks.config.weight", { defaultValue: "Weight" })}:
+                        {t("tabs.risks.config.weight", {
+                          defaultValue: "Weight",
+                        })}
+                        :
                       </Typography>
                       <Slider
                         value={weight}
@@ -642,6 +662,133 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   />
                 ))}
               </Box>
+            </FormControl>
+
+            <Divider />
+
+            {/* Rounding Method */}
+            <FormControl component="fieldset">
+              <FormLabel sx={{ mb: 1.5 }}>
+                {t("tabs.risks.config.roundingMethod", {
+                  defaultValue: "Level Threshold Calculation",
+                })}
+              </FormLabel>
+              <RadioGroup
+                value={roundingMethod}
+                onChange={(e) =>
+                  setRoundingMethod(e.target.value as RiskRoundingMethod)
+                }
+              >
+                <FormControlLabel
+                  value="round"
+                  control={<Radio />}
+                  label={
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography>
+                        {t("tabs.risks.config.roundingRound", {
+                          defaultValue: "Standard",
+                        })}
+                      </Typography>
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 0.5 }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight="bold"
+                              gutterBottom
+                            >
+                              {t("tabs.risks.config.roundingRoundTitle", {
+                                defaultValue: "Standard Rounding (Math.round)",
+                              })}
+                            </Typography>
+                            <Typography variant="body2">
+                              {t("tabs.risks.config.roundingRoundDesc", {
+                                defaultValue:
+                                  "Symmetric thresholds at .5 boundaries",
+                              })}
+                            </Typography>
+                            <Box
+                              sx={{
+                                mt: 1,
+                                fontFamily: "monospace",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              <div>0.5 - 1.49 → Low</div>
+                              <div>1.5 - 2.49 → Medium</div>
+                              <div>2.5 - 3.49 → High</div>
+                              <div>3.5 - 4.00 → Critical</div>
+                            </Box>
+                          </Box>
+                        }
+                        arrow
+                        placement="right"
+                      >
+                        <InfoIcon
+                          fontSize="small"
+                          color="action"
+                          sx={{ cursor: "help" }}
+                        />
+                      </Tooltip>
+                    </Stack>
+                  }
+                />
+                <FormControlLabel
+                  value="ceil"
+                  control={<Radio />}
+                  label={
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography>
+                        {t("tabs.risks.config.roundingCeil", {
+                          defaultValue: "Conservative",
+                        })}
+                      </Typography>
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 0.5 }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight="bold"
+                              gutterBottom
+                            >
+                              {t("tabs.risks.config.roundingCeilTitle", {
+                                defaultValue:
+                                  "Conservative Rounding (Math.ceil)",
+                              })}
+                            </Typography>
+                            <Typography variant="body2">
+                              {t("tabs.risks.config.roundingCeilDesc", {
+                                defaultValue:
+                                  "Always rounds up to higher risk level",
+                              })}
+                            </Typography>
+                            <Box
+                              sx={{
+                                mt: 1,
+                                fontFamily: "monospace",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              <div>0.01 - 1.00 → Low</div>
+                              <div>1.01 - 2.00 → Medium</div>
+                              <div>2.01 - 3.00 → High</div>
+                              <div>3.01 - 4.00 → Critical</div>
+                            </Box>
+                          </Box>
+                        }
+                        arrow
+                        placement="right"
+                      >
+                        <InfoIcon
+                          fontSize="small"
+                          color="action"
+                          sx={{ cursor: "help" }}
+                        />
+                      </Tooltip>
+                    </Stack>
+                  }
+                />
+              </RadioGroup>
             </FormControl>
 
             <Divider />

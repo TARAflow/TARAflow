@@ -551,7 +551,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           beforeValues.risk,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                       }}
@@ -575,7 +576,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           afterValues.risk,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                       }}
@@ -671,7 +673,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 mt: 3,
                 backgroundColor: getRiskColor(
                   beforeValues.risk,
-                  configuration.scale
+                  configuration.scale,
+                  configuration.roundingMethod
                 ),
                 color: "white",
               }}
@@ -687,7 +690,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 </Typography>
               </Stack>
               <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                {getRiskLabel(beforeValues.risk, configuration.scale, isGerman)}
+                {getRiskLabel(
+                  beforeValues.risk,
+                  configuration.scale,
+                  isGerman,
+                  configuration.roundingMethod
+                )}
               </Typography>
             </Paper>
           </TabPanel>
@@ -829,7 +837,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 mt: 3,
                 backgroundColor: getRiskColor(
                   afterValues.risk,
-                  configuration.scale
+                  configuration.scale,
+                  configuration.roundingMethod
                 ),
                 color: "white",
               }}
@@ -845,7 +854,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 </Typography>
               </Stack>
               <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                {getRiskLabel(afterValues.risk, configuration.scale, isGerman)}
+                {getRiskLabel(
+                  afterValues.risk,
+                  configuration.scale,
+                  isGerman,
+                  configuration.roundingMethod
+                )}
               </Typography>
             </Paper>
           </TabPanel>

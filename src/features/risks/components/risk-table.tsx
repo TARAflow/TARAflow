@@ -318,8 +318,17 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
       return {
         factors: lines.join("\n"),
-        riskLevel: getRiskLabel(riskValue, configuration.scale, isGerman),
-        riskColor: getRiskColor(riskValue, configuration.scale),
+        riskLevel: getRiskLabel(
+          riskValue,
+          configuration.scale,
+          isGerman,
+          configuration.roundingMethod
+        ),
+        riskColor: getRiskColor(
+          riskValue,
+          configuration.scale,
+          configuration.roundingMethod
+        ),
         riskValue: riskValue,
       };
     };
@@ -452,7 +461,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           value,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                         fontWeight: "bold",
@@ -525,7 +535,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           value,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                         fontWeight: "bold",
@@ -600,7 +611,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                                   borderRadius: "50%",
                                   backgroundColor: getRiskColor(
                                     value,
-                                    configuration.scale
+                                    configuration.scale,
+                                    configuration.roundingMethod
                                   ),
                                   border: "1px solid rgba(255,255,255,0.5)",
                                 }}
@@ -609,7 +621,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                                 {getRiskLabel(
                                   value,
                                   configuration.scale,
-                                  isGerman
+                                  isGerman,
+                                  configuration.roundingMethod
                                 )}
                               </Typography>
                             </Stack>
@@ -625,7 +638,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           value,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                         cursor: "help",
@@ -699,7 +713,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                                   borderRadius: "50%",
                                   backgroundColor: getRiskColor(
                                     value,
-                                    configuration.scale
+                                    configuration.scale,
+                                    configuration.roundingMethod
                                   ),
                                   border: "1px solid rgba(255,255,255,0.5)",
                                 }}
@@ -708,7 +723,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                                 {getRiskLabel(
                                   value,
                                   configuration.scale,
-                                  isGerman
+                                  isGerman,
+                                  configuration.roundingMethod
                                 )}
                               </Typography>
                             </Stack>
@@ -724,7 +740,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           value,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                         cursor: "help",
@@ -755,13 +772,19 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                               borderRadius: "50%",
                               backgroundColor: getRiskColor(
                                 value,
-                                configuration.scale
+                                configuration.scale,
+                                configuration.roundingMethod
                               ),
                               border: "1px solid rgba(255,255,255,0.5)",
                             }}
                           />
                           <Typography variant="caption" fontWeight="bold">
-                            {getRiskLabel(value, configuration.scale, isGerman)}
+                            {getRiskLabel(
+                              value,
+                              configuration.scale,
+                              isGerman,
+                              configuration.roundingMethod
+                            )}
                           </Typography>
                         </Stack>
                       ) : (
@@ -778,7 +801,8 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                       sx={{
                         backgroundColor: getRiskColor(
                           value,
-                          configuration.scale
+                          configuration.scale,
+                          configuration.roundingMethod
                         ),
                         color: "white",
                         fontWeight: "bold",

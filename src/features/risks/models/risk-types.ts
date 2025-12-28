@@ -19,6 +19,13 @@ import type { PhaseStatusMap, StrideCategory, StrideMethod } from "shared";
  */
 export type RiskMethodType = "simple" | "complex";
 
+/**
+ * Rounding method for risk level thresholds
+ * - round: Standard rounding (1.5-2.49 = Medium, 2.5-3.49 = High)
+ * - ceil: Conservative rounding (1.01-2.0 = Medium, 2.01-3.0 = High)
+ */
+export type RiskRoundingMethod = "round" | "ceil";
+
 // ==================== QUALITATIVE SCALE ====================
 
 /**
@@ -541,6 +548,9 @@ export interface RiskConfiguration {
   /** Rating scale */
   scale: RiskScaleType;
 
+  /** Rounding method for risk level thresholds */
+  roundingMethod: RiskRoundingMethod;
+
   /** Active STRIDE method for display (per-element or per-interaction) */
   activeStrideMethod: StrideMethod;
 
@@ -560,6 +570,7 @@ export interface RiskConfiguration {
 export const DEFAULT_SIMPLE_CONFIGURATION: RiskConfiguration = {
   method: "simple",
   scale: "4-level",
+  roundingMethod: "round",
   activeStrideMethod: "per-element",
   activeFactors: DREAD_FACTORS.map((f) => ({
     factorId: f.id,
@@ -576,6 +587,7 @@ export const DEFAULT_SIMPLE_CONFIGURATION: RiskConfiguration = {
 export const DEFAULT_COMPLEX_CONFIGURATION: RiskConfiguration = {
   method: "complex",
   scale: "4-level",
+  roundingMethod: "round",
   activeStrideMethod: "per-element",
   activeFactors: [
     // Likelihood (subset of OWASP)
@@ -842,14 +854,36 @@ export function getFactorDefinition(
 }
 
 /**
+ * Helper to calculate level index based on rounding method
+ */
+function calculateLevelIndex(
+  value: number,
+  maxLevels: number,
+  roundingMethod: RiskRoundingMethod = "round"
+): number {
+  if (roundingMethod === "ceil") {
+    // Conservative: 2.01-3.0 = High (index 2)
+    return Math.min(Math.max(Math.ceil(value) - 1, 0), maxLevels - 1);
+  } else {
+    // Standard rounding: 2.5-3.49 = High (index 2)
+    return Math.min(Math.max(Math.round(value) - 1, 0), maxLevels - 1);
+  }
+}
+
+/**
  * Get color for risk value based on scale
  */
-export function getRiskColor(value: number, scale: RiskScaleType): string {
+export function getRiskColor(
+  value: number,
+  scale: RiskScaleType,
+  roundingMethod: RiskRoundingMethod = "round"
+): string {
   if (value <= 0) return "#6b7280"; // gray for unrated
   const scaleConfig = RISK_SCALES[scale];
-  const levelIndex = Math.min(
-    Math.max(Math.ceil(value) - 1, 0),
-    scaleConfig.levels.length - 1
+  const levelIndex = calculateLevelIndex(
+    value,
+    scaleConfig.levels.length,
+    roundingMethod
   );
   return scaleConfig.levels[levelIndex].color;
 }
@@ -860,13 +894,15 @@ export function getRiskColor(value: number, scale: RiskScaleType): string {
 export function getRiskLabel(
   value: number,
   scale: RiskScaleType,
-  isGerman: boolean
+  isGerman: boolean,
+  roundingMethod: RiskRoundingMethod = "round"
 ): string {
   if (value <= 0) return "-";
   const scaleConfig = RISK_SCALES[scale];
-  const levelIndex = Math.min(
-    Math.max(Math.ceil(value) - 1, 0),
-    scaleConfig.levels.length - 1
+  const levelIndex = calculateLevelIndex(
+    value,
+    scaleConfig.levels.length,
+    roundingMethod
   );
   return isGerman
     ? scaleConfig.levels[levelIndex].labelDE

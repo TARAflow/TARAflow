@@ -529,7 +529,14 @@
         "weight": "Gewichtung",
         "addFactor": "Faktor hinzufügen",
         "showIndividualFactors": "Einzelne Faktoren in Tabelle anzeigen",
-        "showIndividualFactorsDesc": "Wenn deaktiviert, werden nur aggregierte Auswirkungs-/Wahrscheinlichkeitswerte angezeigt. Details bei Hover."
+        "showIndividualFactorsDesc": "Wenn deaktiviert, werden nur aggregierte Auswirkungs-/Wahrscheinlichkeitswerte angezeigt. Details bei Hover.",
+        "roundingMethod": "Schwellenwert-Berechnung",
+        "roundingRound": "Standard",
+        "roundingRoundTitle": "Standard-Rundung (Math.round)",
+        "roundingRoundDesc": "Symmetrische Schwellen bei .5",
+        "roundingCeil": "Konservativ",
+        "roundingCeilTitle": "Konservative Rundung (Math.ceil)",
+        "roundingCeilDesc": "Rundet immer auf höhere Risikostufe auf"
       },
       "matrix": {
         "title": "Risikomatrix",

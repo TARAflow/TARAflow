@@ -529,7 +529,14 @@
         "weight": "Weight",
         "addFactor": "Add Factor",
         "showIndividualFactors": "Show Individual Factors in Table",
-        "showIndividualFactorsDesc": "When disabled, only aggregated Impact/Likelihood values are shown. Hover shows details."
+        "showIndividualFactorsDesc": "When disabled, only aggregated Impact/Likelihood values are shown. Hover shows details.",
+        "roundingMethod": "Level Threshold Calculation",
+        "roundingRound": "Standard",
+        "roundingRoundTitle": "Standard Rounding (Math.round)",
+        "roundingRoundDesc": "Symmetric thresholds at .5 boundaries",
+        "roundingCeil": "Conservative",
+        "roundingCeilTitle": "Conservative Rounding (Math.ceil)",
+        "roundingCeilDesc": "Always rounds up to higher risk level"
       },
       "matrix": {
         "title": "Risk Matrix",

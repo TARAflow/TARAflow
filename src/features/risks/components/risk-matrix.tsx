@@ -52,7 +52,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     impact: number;
     likelihood: number;
   } | null>(null);
-
+  
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
 
   // Toggle between Before/After view (default: After if available)
@@ -115,21 +115,28 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
             : risk.calculatedRiskBeforeMitigation;
       }
 
-      const roundedValue = Math.round(riskValue);
       // Skip unrated (0)
-      if (roundedValue === 0) continue;
+      if (riskValue <= 0) continue;
 
-      // Clamp to valid range
-      const clampedLevel = Math.max(1, Math.min(matrixSize, roundedValue));
-
-      if (!map.has(clampedLevel)) {
-        map.set(clampedLevel, []);
+      // Use configured rounding method to match getRiskColor/getRiskLabel logic
+      const roundingMethod = configuration.roundingMethod || "round";
+      let levelValue: number;
+      if (roundingMethod === "ceil") {
+        // Conservative: 2.01-3.0 = High
+        levelValue = Math.min(Math.max(Math.ceil(riskValue), 1), matrixSize);
+      } else {
+        // Standard: 2.5-3.49 = High
+        levelValue = Math.min(Math.max(Math.round(riskValue), 1), matrixSize);
       }
-      map.get(clampedLevel)!.push(risk);
+
+      if (!map.has(levelValue)) {
+        map.set(levelValue, []);
+      }
+      map.get(levelValue)!.push(risk);
     }
 
     return map;
-  }, [risks, matrixSize, scale.levels, viewMode]);
+  }, [risks, matrixSize, scale.levels, viewMode, configuration.roundingMethod]);
 
   // Unrated risks for simple view
   const unratedRisks = useMemo(() => {
