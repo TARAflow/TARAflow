@@ -238,7 +238,10 @@ The following table lists all identified assets with their assessment.
 `,
 
   // Threats Chapter Header
-  threatsHeader: (lang: DocLanguage, method: "per-element" | "per-interaction") =>
+  threatsHeader: (
+    lang: DocLanguage,
+    method: "per-element" | "per-interaction"
+  ) =>
     lang === "de"
       ? method === "per-element"
         ? `## Bedrohungsanalyse (STRIDE pro Element)
@@ -263,22 +266,22 @@ The following table shows the identified threats based on the STRIDE-per-Interac
 
 `,
 
-  // Threats table
+  // Threats table - STRIDE column removed, Verification added
   threatsTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `| T-ID | STRIDE | Element/Flow | Bedrohung | Mitigation |
-|------|--------|--------------|-----------|------------|
+      ? `| T-ID | Element/Flow | Bedrohung | Mitigation | Verifikation |
+|------|--------------|-----------|------------|--------------|
 {{threatRows}}
 
 `
-      : `| T-ID | STRIDE | Element/Flow | Threat | Mitigation |
-|------|--------|--------------|--------|------------|
+      : `| T-ID | Element/Flow | Threat | Mitigation | Verification |
+|------|--------------|--------|------------|--------------|
 {{threatRows}}
 
 `,
 
-  // Threat row
-  threatRow: `| {{id}} | {{strideCategory}} | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}} |
+  // Threat row - with anchor AND link to risk table
+  threatRow: `| <a id="threat-{{id}}"></a>[{{id}}](#risk-{{id}}) | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}} | {{verification}} |
 `,
 
   // Threat detail (for appendix or expanded view)
@@ -343,35 +346,35 @@ The following table shows the risk assessment for threats from the STRIDE-per-In
 
 `,
 
-  // Risks table
+  // Risks table - T-ID instead of R-ID, STRIDE removed
   risksTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `| R-ID | STRIDE | Bedrohung | Risiko (vorher) | Mitigation | Risiko (nachher) | MoSCoW | Status |
-|------|--------|-----------|-----------------|------------|------------------|--------|--------|
+      ? `| T-ID | Bedrohung | Risiko (vorher) | Mitigation | Risiko (nachher) | MoSCoW | Status |
+|------|-----------|-----------------|------------|------------------|--------|--------|
 {{riskRows}}
 
 `
-      : `| R-ID | STRIDE | Threat | Risk (Before) | Mitigation | Risk (After) | MoSCoW | Status |
-|------|--------|--------|---------------|------------|--------------|--------|--------|
+      : `| T-ID | Threat | Risk (Before) | Mitigation | Risk (After) | MoSCoW | Status |
+|------|--------|---------------|------------|--------------|--------|--------|
 {{riskRows}}
 
 `,
 
-  // Risk row
-  riskRow: `| {{id}} | {{strideCategory}} | {{threatDescription}} | {{riskBeforeLabel}} | {{mitigations}} | {{riskAfterLabel}} | {{moscowLabel}} | {{statusLabel}} |
+  // Risk row - with anchor AND link to threat table
+  riskRow: `| <a id="risk-{{threatId}}"></a>[{{threatId}}](#threat-{{threatId}}) | {{threatDescription}} | {{riskBeforeLabel}} | {{mitigations}} | {{riskAfterLabel}} | {{moscowLabel}} | {{statusLabel}} |
 `,
 
-  // Accepted Risks Chapter
+  // Accepted Risks Chapter - T-ID instead of R-ID, STRIDE removed
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"
       ? `## Akzeptierte Risiken (Wird nicht behandelt)
 
 Die folgenden Risiken wurden bewertet und aus dokumentierten Gründen als akzeptabel eingestuft.
 
-> ⚠️ **Wichtig**: Jedes akzeptierte Risiko muss eine Begründung enthalten für Compliance-Dokumentation.
+> ⚠️ **Hinweis**: Jedes akzeptierte Risiko muss eine Begründung enthalten für Compliance-Dokumentation.
 
-| R-ID | STRIDE | Bedrohung | Risiko | Begründung |
-|------|--------|-----------|--------|------------|
+| T-ID | Bedrohung | Risiko | Begründung |
+|------|-----------|--------|------------|
 {{wontRiskRows}}
 
 `
@@ -379,16 +382,16 @@ Die folgenden Risiken wurden bewertet und aus dokumentierten Gründen als akzept
 
 The following risks have been assessed and classified as acceptable for documented reasons.
 
-> ⚠️ **Important**: Each accepted risk must include justification for compliance documentation.
+> ⚠️ **Note**: Each accepted risk must include justification for compliance documentation.
 
-| R-ID | STRIDE | Threat | Risk | Justification |
-|------|--------|--------|------|---------------|
+| T-ID | Threat | Risk | Justification |
+|------|--------|------|---------------|
 {{wontRiskRows}}
 
 `,
 
-  // Won't risk row
-  wontRiskRow: `| {{id}} | {{strideCategory}} | {{threatDescription}} | {{riskBeforeLabel}} | {{justification}} |
+  // Won't risk row - with anchor AND link to threat table
+  wontRiskRow: `| <a id="risk-{{threatId}}"></a>[{{threatId}}](#threat-{{threatId}}) | {{threatDescription}} | {{riskBeforeLabel}} | {{justification}} |
 `,
 
   // Appendix
@@ -458,13 +461,13 @@ The following risks have been assessed and classified as acceptable for document
     lang === "de"
       ? `---
 
-*Dieses Dokument wurde automatisch von CoReTM 2.0 generiert.*
+_Dieses Dokument wurde automatisch von CoReTM 2.0 generiert._
 
 {{footerText}}
 `
       : `---
 
-*This document was automatically generated by CoReTM 2.0.*
+_This document was automatically generated by CoReTM 2.0._
 
 {{footerText}}
 `,
@@ -473,24 +476,19 @@ The following risks have been assessed and classified as acceptable for document
 // ==================== ASCIIDOC TEMPLATES ====================
 
 export const ADOC_TEMPLATES = {
-  // Table of contents (handled by :toc: attribute in AsciiDoc)
-  toc: (_lang: DocLanguage) => "",
-
   // Document header with metadata
   header: (lang: DocLanguage) =>
     lang === "de"
       ? `= {{projectName}}
-:author: {{responsible}}
-:revnumber: {{version}}
-:revdate: {{lastModified}}
+:doctype: book
 :toc: left
 :toclevels: 3
 :sectnums:
 :icons: font
-{{#classification}}:classification: {{classification}}{{/classification}}
+:source-highlighter: highlight.js
 
 [.lead]
-*Bedrohungs- und Risikoanalyse*
+_Bedrohungs- und Risikoanalyse_
 
 {{classification}}
 
@@ -498,30 +496,28 @@ export const ADOC_TEMPLATES = {
 |===
 | Eigenschaft | Wert
 
-| Version | {{version}}
-| Verantwortlich | {{responsible}}
-| Erstellt | {{created}}
-| Zuletzt geändert | {{lastModified}}
-| Organisation | {{organization}}
-{{#tags}}| Tags | {{tags}}{{/tags}}
-{{#team}}| Team | {{team}}{{/team}}
+| *Version* | {{version}}
+| *Verantwortlich* | {{responsible}}
+| *Erstellt* | {{created}}
+| *Zuletzt geändert* | {{lastModified}}
+| *Organisation* | {{organization}}
+{{#tags}}| *Tags* | {{tags}}{{/tags}}
+{{#team}}| *Team* | {{team}}{{/team}}
 |===
 
 '''
 
 `
       : `= {{projectName}}
-:author: {{responsible}}
-:revnumber: {{version}}
-:revdate: {{lastModified}}
+:doctype: book
 :toc: left
 :toclevels: 3
 :sectnums:
 :icons: font
-{{#classification}}:classification: {{classification}}{{/classification}}
+:source-highlighter: highlight.js
 
 [.lead]
-*Threat and Risk Analysis*
+_Threat and Risk Analysis_
 
 {{classification}}
 
@@ -529,18 +525,21 @@ export const ADOC_TEMPLATES = {
 |===
 | Property | Value
 
-| Version | {{version}}
-| Responsible | {{responsible}}
-| Created | {{created}}
-| Last Modified | {{lastModified}}
-| Organization | {{organization}}
-{{#tags}}| Tags | {{tags}}{{/tags}}
-{{#team}}| Team | {{team}}{{/team}}
+| *Version* | {{version}}
+| *Responsible* | {{responsible}}
+| *Created* | {{created}}
+| *Last Modified* | {{lastModified}}
+| *Organization* | {{organization}}
+{{#tags}}| *Tags* | {{tags}}{{/tags}}
+{{#team}}| *Team* | {{team}}{{/team}}
 |===
 
 '''
 
 `,
+
+  // Table of contents (handled by :toc: attribute in AsciiDoc)
+  toc: (_lang: DocLanguage) => "",
 
   // Executive Summary
   executiveSummary: (lang: DocLanguage) =>
@@ -559,11 +558,11 @@ Dieses Dokument beschreibt die Bedrohungs- und Risikoanalyse für *{{projectName
 |===
 | Metrik | Wert
 
-| Identifizierte Assets | {{assetCount}}
-| Identifizierte Bedrohungen | {{threatCount}}
-| Bewertete Risiken | {{riskCount}}
-| Akzeptierte Risiken | {{wontRiskCount}}
-| Kritische Risiken | {{criticalRiskCount}}
+| *Identifizierte Assets* | {{assetCount}}
+| *Identifizierte Bedrohungen* | {{threatCount}}
+| *Bewertete Risiken* | {{riskCount}}
+| *Akzeptierte Risiken* | {{wontRiskCount}}
+| *Kritische Risiken* | {{criticalRiskCount}}
 |===
 
 `
@@ -581,11 +580,11 @@ This document describes the threat and risk analysis for *{{projectName}}*.
 |===
 | Metric | Value
 
-| Identified Assets | {{assetCount}}
-| Identified Threats | {{threatCount}}
-| Assessed Risks | {{riskCount}}
-| Accepted Risks | {{wontRiskCount}}
-| Critical Risks | {{criticalRiskCount}}
+| *Identified Assets* | {{assetCount}}
+| *Identified Threats* | {{threatCount}}
+| *Assessed Risks* | {{riskCount}}
+| *Accepted Risks* | {{wontRiskCount}}
+| *Critical Risks* | {{criticalRiskCount}}
 |===
 
 `,
@@ -705,7 +704,10 @@ The following table lists all identified assets with their assessment.
 `,
 
   // Threats Chapter Header
-  threatsHeader: (lang: DocLanguage, method: "per-element" | "per-interaction") =>
+  threatsHeader: (
+    lang: DocLanguage,
+    method: "per-element" | "per-interaction"
+  ) =>
     lang === "de"
       ? method === "per-element"
         ? `== Bedrohungsanalyse (STRIDE pro Element)
@@ -730,28 +732,28 @@ The following table shows the identified threats based on the STRIDE-per-Interac
 
 `,
 
-  // Threats table
+  // Threats table - STRIDE removed, Verification added
   threatsTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `[cols="1,1,2,3,3", options="header"]
+      ? `[cols="1,2,3,3,2", options="header"]
 |===
-| T-ID | STRIDE | Element/Flow | Bedrohung | Mitigation
+| T-ID | Element/Flow | Bedrohung | Mitigation | Verifikation
 
 {{threatRows}}
 |===
 
 `
-      : `[cols="1,1,2,3,3", options="header"]
+      : `[cols="1,2,3,3,2", options="header"]
 |===
-| T-ID | STRIDE | Element/Flow | Threat | Mitigation
+| T-ID | Element/Flow | Threat | Mitigation | Verification
 
 {{threatRows}}
 |===
 
 `,
 
-  // Threat row
-  threatRow: `| {{id}} | {{strideCategory}} | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}}
+  // Threat row - with anchor AND link to risk table
+  threatRow: `| [[threat-{{id}}]]<<risk-{{id}},{{id}}>> | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}} | {{verification}}
 `,
 
   // Risks Chapter Header
@@ -780,31 +782,31 @@ The following table shows the risk assessment for threats from the STRIDE-per-In
 
 `,
 
-  // Risks table
+  // Risks table - T-ID instead of R-ID, STRIDE removed
   risksTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `[cols="1,1,2,1,2,1,1,1", options="header"]
+      ? `[cols="1,2,1,2,1,1,1", options="header"]
 |===
-| R-ID | STRIDE | Bedrohung | Risiko (vorher) | Mitigation | Risiko (nachher) | MoSCoW | Status
+| T-ID | Bedrohung | Risiko (vorher) | Mitigation | Risiko (nachher) | MoSCoW | Status
 
 {{riskRows}}
 |===
 
 `
-      : `[cols="1,1,2,1,2,1,1,1", options="header"]
+      : `[cols="1,2,1,2,1,1,1", options="header"]
 |===
-| R-ID | STRIDE | Threat | Risk (Before) | Mitigation | Risk (After) | MoSCoW | Status
+| T-ID | Threat | Risk (Before) | Mitigation | Risk (After) | MoSCoW | Status
 
 {{riskRows}}
 |===
 
 `,
 
-  // Risk row
-  riskRow: `| {{id}} | {{strideCategory}} | {{threatDescription}} | {{riskBeforeLabel}} | {{mitigations}} | {{riskAfterLabel}} | {{moscowLabel}} | {{statusLabel}}
+  // Risk row - with anchor AND link to threat table
+  riskRow: `| [[risk-{{threatId}}]]<<threat-{{threatId}},{{threatId}}>> | {{threatDescription}} | {{riskBeforeLabel}} | {{mitigations}} | {{riskAfterLabel}} | {{moscowLabel}} | {{statusLabel}}
 `,
 
-  // Accepted Risks Chapter
+  // Accepted Risks Chapter - T-ID instead of R-ID, STRIDE removed
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"
       ? `== Akzeptierte Risiken (Wird nicht behandelt)
@@ -813,9 +815,9 @@ Die folgenden Risiken wurden bewertet und aus dokumentierten Gründen als akzept
 
 WARNING: Jedes akzeptierte Risiko muss eine Begründung enthalten für Compliance-Dokumentation.
 
-[cols="1,1,2,1,3", options="header"]
+[cols="1,2,1,3", options="header"]
 |===
-| R-ID | STRIDE | Bedrohung | Risiko | Begründung
+| T-ID | Bedrohung | Risiko | Begründung
 
 {{wontRiskRows}}
 |===
@@ -827,17 +829,17 @@ The following risks have been assessed and classified as acceptable for document
 
 WARNING: Each accepted risk must include justification for compliance documentation.
 
-[cols="1,1,2,1,3", options="header"]
+[cols="1,2,1,3", options="header"]
 |===
-| R-ID | STRIDE | Threat | Risk | Justification
+| T-ID | Threat | Risk | Justification
 
 {{wontRiskRows}}
 |===
 
 `,
 
-  // Won't risk row
-  wontRiskRow: `| {{id}} | {{strideCategory}} | {{threatDescription}} | {{riskBeforeLabel}} | {{justification}}
+  // Won't risk row - with anchor AND link to threat table
+  wontRiskRow: `| [[risk-{{threatId}}]]<<threat-{{threatId}},{{threatId}}>> | {{threatDescription}} | {{riskBeforeLabel}} | {{justification}}
 `,
 
   // Appendix
@@ -979,4 +981,12 @@ export function formatSecurityGoals(
 export function formatMitigations(mitigations: string[]): string {
   if (!mitigations || mitigations.length === 0) return "-";
   return mitigations.join("; ");
+}
+
+/**
+ * Format text with fallback to "-" if empty
+ */
+export function formatTextOrDash(text: string | undefined | null): string {
+  if (!text || text.trim() === "") return "-";
+  return text;
 }

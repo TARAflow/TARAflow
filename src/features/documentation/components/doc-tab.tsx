@@ -6,13 +6,13 @@
 // - Chapter configuration
 // - Live preview
 // - Export/Download
+// - Collapsible sidebar
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
   Paper,
-  Toolbar,
   IconButton,
   Tooltip,
   Typography,
@@ -24,28 +24,27 @@ import {
   InputLabel,
   Chip,
   Stack,
-  Alert,
-  Collapse,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Checkbox,
-  Switch,
-  FormControlLabel,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
   Download as DownloadIcon,
   Settings as SettingsIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   Visibility as PreviewIcon,
   Code as CodeIcon,
   Warning as WarningIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckIcon,
-  Description as DocIcon,
+  KeyboardArrowLeft as KeyboardArrowLeftIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from "@mui/icons-material";
 
 import type {
@@ -55,11 +54,9 @@ import type {
   DocFormat,
   DocLanguage,
   DocChapterId,
-  DocChapterConfig,
 } from "../models/doc-types";
 import {
   createDefaultDocData,
-  DEFAULT_CHAPTER_CONFIG,
   CHAPTER_TITLES,
   isChapterVisible,
 } from "../models/doc-types";
@@ -67,10 +64,14 @@ import {
   generateDocument,
   validateProjectForDoc,
   generateFilename,
-  getFileExtension,
 } from "../services/doc-generator";
 import { DocPreview } from "./doc-preview";
 import { DocConfigDialog } from "./doc-config-dialog";
+
+// ==================== CONSTANTS ====================
+
+const SIDEBAR_WIDTH = 280;
+const SIDEBAR_COLLAPSED_WIDTH = 0;
 
 // ==================== COMPONENT ====================
 
@@ -95,7 +96,7 @@ export const DocTab: React.FC<DocTabProps> = ({
 
   // UI state
   const [isDirty, setIsDirty] = useState(false);
-  const [showChapters, setShowChapters] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [viewMode, setViewMode] = useState<"preview" | "source">("preview");
 
@@ -233,7 +234,7 @@ export const DocTab: React.FC<DocTabProps> = ({
 
     onUpdate({
       documentation: updatedDocData,
-      phaseStatus: project.phaseStatus, // Could update status here
+      phaseStatus: project.phaseStatus,
       lastModified: now,
     });
   }, [docData, generatedContent, project.phaseStatus, onUpdate]);
@@ -250,274 +251,342 @@ export const DocTab: React.FC<DocTabProps> = ({
       }}
     >
       {/* Toolbar */}
-      <Paper elevation={1} sx={{ borderRadius: 0 }}>
-        <Toolbar variant="dense" sx={{ minHeight: 48, px: 2, gap: 1 }}>
-          {/* Format Selection */}
-          <FormControl size="small" sx={{ minWidth: 130 }}>
-            <InputLabel>
-              {t("tabs.doc.format", { defaultValue: "Format" })}
-            </InputLabel>
-            <Select
-              value={config.format}
-              label={t("tabs.doc.format", { defaultValue: "Format" })}
-              onChange={(e) => handleFormatChange(e.target.value as DocFormat)}
-            >
-              <MenuItem value="markdown">Markdown</MenuItem>
-              <MenuItem value="asciidoc">AsciiDoc</MenuItem>
-            </Select>
-          </FormControl>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 2,
+          py: 1,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.paper",
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Toggle Sidebar */}
+        <Tooltip
+          title={
+            sidebarOpen
+              ? t("tabs.doc.hideSidebar", { defaultValue: "Hide Sidebar" })
+              : t("tabs.doc.showSidebar", { defaultValue: "Show Sidebar" })
+          }
+        >
+          <IconButton
+            size="small"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            color={sidebarOpen ? "primary" : "default"}
+          >
+            {sidebarOpen ? (
+              <ChevronLeftIcon fontSize="small" />
+            ) : (
+              <ChevronRightIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
 
-          {/* Language Selection */}
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>
-              {t("tabs.doc.docLanguage", { defaultValue: "Language" })}
-            </InputLabel>
-            <Select
-              value={config.language}
-              label={t("tabs.doc.docLanguage", { defaultValue: "Language" })}
-              onChange={(e) =>
-                handleLanguageChange(e.target.value as DocLanguage)
-              }
-            >
-              <MenuItem value="en">English</MenuItem>
-              <MenuItem value="de">Deutsch</MenuItem>
-            </Select>
-          </FormControl>
+        <Divider orientation="vertical" flexItem />
 
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+        {/* View Mode Toggle */}
+        <Tooltip
+          title={
+            viewMode === "preview"
+              ? t("tabs.doc.showSource", { defaultValue: "Show Source" })
+              : t("tabs.doc.showPreview", { defaultValue: "Show Preview" })
+          }
+        >
+          <IconButton
+            size="small"
+            onClick={() =>
+              setViewMode(viewMode === "preview" ? "source" : "preview")
+            }
+            color={viewMode === "source" ? "primary" : "default"}
+          >
+            {viewMode === "preview" ? (
+              <CodeIcon fontSize="small" />
+            ) : (
+              <PreviewIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
 
-          {/* View Mode Toggle */}
+        {/* Regenerate */}
+        <Tooltip
+          title={t("tabs.doc.regenerate", { defaultValue: "Regenerate" })}
+        >
+          <IconButton size="small" onClick={handleGenerate}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {/* Settings */}
+        <Tooltip
+          title={t("tabs.doc.settings", {
+            defaultValue: "Template Settings",
+          })}
+        >
+          <IconButton size="small" onClick={() => setShowConfigDialog(true)}>
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Box sx={{ flexGrow: 1 }} />
+
+        {/* Validation Status */}
+        {validation.warnings.length > 0 && (
           <Tooltip
             title={
-              viewMode === "preview"
-                ? t("tabs.doc.showSource", { defaultValue: "Show Source" })
-                : t("tabs.doc.showPreview", { defaultValue: "Show Preview" })
+              <Box>
+                {validation.warnings.map((w, i) => (
+                  <Typography key={i} variant="body2">
+                    • {w}
+                  </Typography>
+                ))}
+              </Box>
             }
           >
-            <IconButton
-              size="small"
-              onClick={() =>
-                setViewMode(viewMode === "preview" ? "source" : "preview")
-              }
-            >
-              {viewMode === "preview" ? (
-                <CodeIcon fontSize="small" />
-              ) : (
-                <PreviewIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-
-          {/* Regenerate */}
-          <Tooltip
-            title={t("tabs.doc.regenerate", { defaultValue: "Regenerate" })}
-          >
-            <IconButton size="small" onClick={handleGenerate}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          {/* Settings */}
-          <Tooltip
-            title={t("tabs.doc.settings", {
-              defaultValue: "Template Settings",
-            })}
-          >
-            <IconButton size="small" onClick={() => setShowConfigDialog(true)}>
-              <SettingsIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Box sx={{ flexGrow: 1 }} />
-
-          {/* Validation Status */}
-          {validation.warnings.length > 0 && (
-            <Tooltip
-              title={
-                <Box>
-                  {validation.warnings.map((w, i) => (
-                    <Typography key={i} variant="body2">
-                      • {w}
-                    </Typography>
-                  ))}
-                </Box>
-              }
-            >
-              <Chip
-                icon={<WarningIcon />}
-                label={`${validation.warnings.length}`}
-                size="small"
-                color="warning"
-                variant="outlined"
-              />
-            </Tooltip>
-          )}
-
-          {validation.isValid && validation.warnings.length === 0 && (
             <Chip
-              icon={<CheckIcon />}
-              label={t("tabs.doc.ready", { defaultValue: "Ready" })}
+              icon={<WarningIcon />}
+              label={`${validation.warnings.length}`}
               size="small"
-              color="success"
+              color="warning"
               variant="outlined"
             />
-          )}
+          </Tooltip>
+        )}
 
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-          {/* Download Button */}
-          <Button
+        {validation.isValid && validation.warnings.length === 0 && (
+          <Chip
+            icon={<CheckIcon />}
+            label={t("tabs.doc.ready", { defaultValue: "Ready" })}
+            size="small"
+            color="success"
             variant="outlined"
-            size="small"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownload}
-            disabled={!generatedContent}
-          >
-            {t("tabs.doc.download", { defaultValue: "Download" })}
-          </Button>
+          />
+        )}
 
-          {/* Save Button */}
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleSave}
-            disabled={!isDirty}
-          >
-            {t("common.save", { defaultValue: "Save" })}
-            {isDirty && " *"}
-          </Button>
-        </Toolbar>
-      </Paper>
+        <Divider orientation="vertical" flexItem />
+
+        {/* Download Button */}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          disabled={!generatedContent}
+        >
+          {t("tabs.doc.download", { defaultValue: "Download" })}
+        </Button>
+
+        {/* Save Button */}
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleSave}
+          disabled={!isDirty}
+        >
+          {t("common.save", { defaultValue: "Save" })}
+          {isDirty && " *"}
+        </Button>
+      </Box>
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
-        {/* Chapter Sidebar */}
-        <Paper
+        {/* Collapsible Sidebar */}
+        <Box
           sx={{
-            width: 280,
-            borderRadius: 0,
-            borderRight: "1px solid",
-            borderColor: "divider",
-            display: "flex",
-            flexDirection: "column",
+            width: sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH,
+            minWidth: sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH,
+            transition: "width 0.2s ease-in-out, min-width 0.2s ease-in-out",
             overflow: "hidden",
           }}
         >
-          {/* Sidebar Header */}
-          <Box
+          <Paper
             sx={{
+              width: SIDEBAR_WIDTH,
+              height: "100%",
+              borderRadius: 0,
+              borderRight: "1px solid",
+              borderColor: "divider",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              px: 2,
-              py: 1,
-              borderBottom: "1px solid",
-              borderColor: "divider",
+              flexDirection: "column",
+              overflow: "hidden",
             }}
           >
-            <Typography variant="subtitle2">
-              {t("tabs.doc.chapters", { defaultValue: "Chapters" })}
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={() => setShowChapters(!showChapters)}
+            {/* Sidebar Content - Scrollable */}
+            <Box
+              sx={{
+                flexGrow: 1,
+                overflow: "auto",
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
-              {showChapters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
+              {/* Format & Language Selection */}
+              <Box
+                sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}
+              >
+                <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+                  {t("tabs.doc.outputSettings", {
+                    defaultValue: "Output Settings",
+                  })}
+                </Typography>
 
-          {/* Chapter List */}
-          <Collapse in={showChapters}>
-            <List dense sx={{ overflow: "auto", flexGrow: 1 }}>
-              {config.chapters.map((chapter) => {
-                const hasContent = chapterHasContent[chapter.id];
-                const isVisible = isChapterVisible(chapter, hasContent);
-                const title =
-                  config.language === "de"
-                    ? CHAPTER_TITLES[chapter.id].de
-                    : CHAPTER_TITLES[chapter.id].en;
+                {/* Format Selection */}
+                <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+                  <InputLabel>
+                    {t("tabs.doc.format", { defaultValue: "Format" })}
+                  </InputLabel>
+                  <Select
+                    value={config.format}
+                    label={t("tabs.doc.format", { defaultValue: "Format" })}
+                    onChange={(e) =>
+                      handleFormatChange(e.target.value as DocFormat)
+                    }
+                  >
+                    <MenuItem value="markdown">Markdown</MenuItem>
+                    <MenuItem value="asciidoc">AsciiDoc</MenuItem>
+                  </Select>
+                </FormControl>
 
-                return (
-                  <ListItem key={chapter.id} disablePadding>
-                    <ListItemButton
-                      dense
-                      onClick={() => handleChapterToggle(chapter.id)}
-                      sx={{
-                        opacity: isVisible ? 1 : 0.5,
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={chapter.enabled}
-                          tabIndex={-1}
-                          disableRipple
-                          size="small"
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={title}
-                        secondary={
-                          !hasContent && chapter.autoHideIfEmpty
-                            ? t("tabs.doc.empty", { defaultValue: "Empty" })
-                            : undefined
-                        }
-                        primaryTypographyProps={{
-                          variant: "body2",
-                          sx: {
-                            textDecoration:
+                {/* Language Selection */}
+                <FormControl size="small" fullWidth>
+                  <InputLabel>
+                    {t("tabs.doc.docLanguage", {
+                      defaultValue: "Document Language",
+                    })}
+                  </InputLabel>
+                  <Select
+                    value={config.language}
+                    label={t("tabs.doc.docLanguage", {
+                      defaultValue: "Document Language",
+                    })}
+                    onChange={(e) =>
+                      handleLanguageChange(e.target.value as DocLanguage)
+                    }
+                  >
+                    <MenuItem value="en">English</MenuItem>
+                    <MenuItem value="de">Deutsch</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Chapter List */}
+              <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+                <Box
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Typography variant="subtitle2">
+                    {t("tabs.doc.chaptersTitle", { defaultValue: "Chapters" })}
+                  </Typography>
+                </Box>
+
+                <List dense sx={{ py: 0 }}>
+                  {config.chapters.map((chapter) => {
+                    const hasContent = chapterHasContent[chapter.id];
+                    const isVisible = isChapterVisible(chapter, hasContent);
+                    const title =
+                      config.language === "de"
+                        ? CHAPTER_TITLES[chapter.id].de
+                        : CHAPTER_TITLES[chapter.id].en;
+
+                    return (
+                      <ListItem key={chapter.id} disablePadding>
+                        <ListItemButton
+                          dense
+                          onClick={() => handleChapterToggle(chapter.id)}
+                          sx={{
+                            py: 0.5,
+                            opacity: isVisible ? 1 : 0.5,
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 36 }}>
+                            <Checkbox
+                              edge="start"
+                              checked={chapter.enabled}
+                              tabIndex={-1}
+                              disableRipple
+                              size="small"
+                            />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={title}
+                            secondary={
                               !hasContent && chapter.autoHideIfEmpty
-                                ? "line-through"
-                                : "none",
-                          },
-                        }}
-                        secondaryTypographyProps={{
-                          variant: "caption",
-                          color: "text.disabled",
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-            </List>
-          </Collapse>
+                                ? t("tabs.doc.empty", { defaultValue: "Empty" })
+                                : undefined
+                            }
+                            primaryTypographyProps={{
+                              variant: "body2",
+                              sx: {
+                                textDecoration:
+                                  !hasContent && chapter.autoHideIfEmpty
+                                    ? "line-through"
+                                    : "none",
+                              },
+                            }}
+                            secondaryTypographyProps={{
+                              variant: "caption",
+                              color: "text.disabled",
+                            }}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              </Box>
 
-          {/* Stats */}
-          <Box
-            sx={{
-              px: 2,
-              py: 1,
-              borderTop: "1px solid",
-              borderColor: "divider",
-              backgroundColor: "grey.50",
-            }}
-          >
-            <Typography variant="caption" color="text.secondary">
-              {t("tabs.doc.stats", { defaultValue: "Statistics" })}
-            </Typography>
-            <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-              <Typography variant="caption">
-                {t("tabs.doc.statsAssets", { defaultValue: "Assets" })}:{" "}
-                {project.assets.length}
-              </Typography>
-              <Typography variant="caption">
-                {t("tabs.doc.statsThreats", { defaultValue: "Threats" })}:{" "}
-                {project.threatsPerElement.length +
-                  project.threatsPerInteraction.length}
-              </Typography>
-              <Typography variant="caption">
-                {t("tabs.doc.statsRisks", { defaultValue: "Risks" })}:{" "}
-                {project.risksPerElement.length +
-                  project.risksPerInteraction.length}
-              </Typography>
-              <Typography variant="caption">
-                {t("tabs.doc.statsWont", { defaultValue: "Accepted" })}:{" "}
-                {project.wontRisks.length}
-              </Typography>
-            </Stack>
-          </Box>
-        </Paper>
+              {/* Stats */}
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1.5,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                  backgroundColor: "grey.50",
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontWeight={500}
+                >
+                  {t("tabs.doc.stats", { defaultValue: "Statistics" })}
+                </Typography>
+                <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("tabs.doc.statsAssets", { defaultValue: "Assets" })}:{" "}
+                    <strong>{project.assets.length}</strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("tabs.doc.statsThreats", { defaultValue: "Threats" })}:{" "}
+                    <strong>
+                      {project.threatsPerElement.length +
+                        project.threatsPerInteraction.length}
+                    </strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("tabs.doc.statsRisks", { defaultValue: "Risks" })}:{" "}
+                    <strong>
+                      {project.risksPerElement.length +
+                        project.risksPerInteraction.length}
+                    </strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("tabs.doc.statsWont", { defaultValue: "Accepted" })}:{" "}
+                    <strong>{project.wontRisks.length}</strong>
+                  </Typography>
+                </Stack>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
 
         {/* Preview/Source Area */}
         <Box sx={{ flexGrow: 1, overflow: "hidden" }}>

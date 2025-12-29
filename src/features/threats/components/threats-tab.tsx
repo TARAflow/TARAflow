@@ -1272,8 +1272,8 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
       <Tooltip
         title={
           showFilters
-            ? t("tabs.threats.hideFilters", { defaultValue: "Hide Filters" })
-            : t("tabs.threats.showFilters", { defaultValue: "Show Filters" })
+            ? t("common.hideFilters", { defaultValue: "Hide Filters" })
+            : t("common.showFilters", { defaultValue: "Show Filters" })
         }
       >
         <IconButton

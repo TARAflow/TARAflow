@@ -27,6 +27,7 @@ import {
   truncateText,
   formatSecurityGoals,
   formatMitigations,
+  formatTextOrDash,
 } from "./doc-templates";
 
 // ==================== TYPES ====================
@@ -200,13 +201,31 @@ function generateChapter(
     case "assets":
       return generateAssetsChapter(ctx, templates, escape, title);
     case "threats-per-element":
-      return generateThreatsChapter(ctx, templates, escape, title, "per-element");
+      return generateThreatsChapter(
+        ctx,
+        templates,
+        escape,
+        title,
+        "per-element"
+      );
     case "threats-per-interaction":
-      return generateThreatsChapter(ctx, templates, escape, title, "per-interaction");
+      return generateThreatsChapter(
+        ctx,
+        templates,
+        escape,
+        title,
+        "per-interaction"
+      );
     case "risks-per-element":
       return generateRisksChapter(ctx, templates, escape, title, "per-element");
     case "risks-per-interaction":
-      return generateRisksChapter(ctx, templates, escape, title, "per-interaction");
+      return generateRisksChapter(
+        ctx,
+        templates,
+        escape,
+        title,
+        "per-interaction"
+      );
     case "accepted-risks":
       return generateAcceptedRisksChapter(ctx, templates, escape, title);
     case "appendix":
@@ -348,7 +367,10 @@ function generateAssetsChapter(
       const values = {
         id: asset.id,
         name: escape(truncateText(asset.name, 50)),
-        description: escape(truncateText(asset.description, 100)),
+        // FIX: Use "-" if description is empty
+        description: escape(
+          truncateText(formatTextOrDash(asset.description), 100)
+        ),
         impactLabel: asset.impactLabel,
         securityGoals: formatSecurityGoals(asset.securityGoals),
       };
@@ -382,7 +404,9 @@ function generateThreatsChapter(
       : project.threatsPerInteraction;
 
   const chapterId: DocChapterId =
-    method === "per-element" ? "threats-per-element" : "threats-per-interaction";
+    method === "per-element"
+      ? "threats-per-element"
+      : "threats-per-interaction";
 
   if (threats.length === 0) {
     return {
@@ -393,7 +417,7 @@ function generateThreatsChapter(
     };
   }
 
-  // Generate threat rows
+  // Generate threat rows - STRIDE removed, Verification added
   const threatRows = threats
     .map((threat) => {
       const values = {
@@ -405,7 +429,8 @@ function generateThreatsChapter(
         threatDescription: escape(truncateText(threat.threatDescription, 80)),
         attackDescription: escape(truncateText(threat.attackDescription, 80)),
         mitigation: escape(truncateText(threat.mitigation, 80)) || "-",
-        verification: escape(truncateText(threat.verification, 80)) || "-",
+        // FIX: Include verification in output
+        verification: escape(truncateText(threat.verification, 60)) || "-",
       };
       return replacePlaceholders(templates.threatRow, values);
     })
@@ -449,11 +474,13 @@ function generateRisksChapter(
     };
   }
 
-  // Generate risk rows
+  // Generate risk rows - FIX: Use threatId instead of id, STRIDE removed
   const riskRows = risks
     .map((risk) => {
       const values = {
         id: risk.id,
+        // FIX: Use threatId for traceability
+        threatId: risk.threatId,
         strideCategory: risk.strideCategory,
         threatDescription: escape(truncateText(risk.threatDescription, 60)),
         riskBeforeLabel: risk.riskBeforeLabel,
@@ -499,11 +526,13 @@ function generateAcceptedRisksChapter(
     };
   }
 
-  // Generate won't risk rows
+  // Generate won't risk rows - FIX: Use threatId instead of id, STRIDE removed
   const wontRiskRows = wontRisks
     .map((risk) => {
       const values = {
         id: risk.id,
+        // FIX: Use threatId for traceability
+        threatId: risk.threatId,
         strideCategory: risk.strideCategory,
         threatDescription: escape(truncateText(risk.threatDescription, 60)),
         riskBeforeLabel: risk.riskBeforeLabel,

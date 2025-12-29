@@ -1070,10 +1070,10 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
       <Tooltip
         title={
           showDfdPreview
-            ? t("tabs.risks.hideDfdPreview", {
+            ? t("common.hideDFD", {
                 defaultValue: "Hide DFD Preview",
               })
-            : t("tabs.risks.showDfdPreview", {
+            : t("common.showDFD", {
                 defaultValue: "Show DFD Preview",
               })
         }
@@ -1226,8 +1226,8 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
       <Tooltip
         title={
           showFilters
-            ? t("tabs.risks.hideFilters", { defaultValue: "Hide Filters" })
-            : t("tabs.risks.showFilters", { defaultValue: "Show Filters" })
+            ? t("common.hideFilters", { defaultValue: "Hide Filters" })
+            : t("common.showFilters", { defaultValue: "Show Filters" })
         }
       >
         <IconButton

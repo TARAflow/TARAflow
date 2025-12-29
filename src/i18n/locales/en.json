@@ -30,9 +30,12 @@
     "remove": "Remove",
     "showDFD": "Show DFD Preview",
     "hideDFD": "Hide DFD Preview",
+    "showFilters": "Show Filters",
+    "hideFilters": "Hide Filters",
     "all": "All",
     "deleteAll": "Delete All",
-    "unsaved": "Unsaved"
+    "unsaved": "Unsaved",
+    "reset": "Reset"
   },
 
   "project": {
@@ -195,7 +198,8 @@
   "projectInfo": {
     "title": "Project Information",
     "addPredefinedTag": "Add predefined tag...",
-    "customTagPlaceholder": "Custom tag..."
+    "customTagPlaceholder": "Custom tag...",
+    "noTags": "No tags"
   },
 
   "messages": {
@@ -435,8 +439,6 @@
       "showMatrix": "Risk Matrix",
       "showWont": "Show Won't Risks",
       "hideWont": "Hide Won't Risks",
-      "showFilters": "Show Filters",
-      "hideFilters": "Hide Filters",
       "importFile": "Import risk data file",
       "searchPlaceholder": "Search risks...",
       "allPriorities": "All Priorities",
@@ -573,12 +575,16 @@
       "description": "Generate the complete documentation for compliance",
       "format": "Format",
       "docLanguage": "Document Language",
+      "outputSettings": "Output Settings",
       "showSource": "Show Source",
       "showPreview": "Show Preview",
+      "showSidebar": "Show Sidebar",
+      "hideSidebar": "Hide Sidebar",
       "regenerate": "Regenerate",
       "settings": "Template Settings",
       "download": "Download",
       "ready": "Ready",
+      "chaptersTitle": "Chapters",
       "chapters": {
         "executiveSummary": "Executive Summary",
         "systemOverview": "System Overview",

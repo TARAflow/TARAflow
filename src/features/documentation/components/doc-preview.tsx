@@ -5,7 +5,7 @@
 
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Typography, Paper, Divider } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
 import type { DocFormat, DocLanguage } from "../models/doc-types";
 
 // ==================== TYPES ====================
@@ -203,6 +203,12 @@ export const DocPreview: React.FC<DocPreviewProps> = ({
               },
             },
 
+            // Internal anchor links in tables
+            "& td a[href^='#']": {
+              color: "#1976d2",
+              fontWeight: 500,
+            },
+
             // Strong/Bold
             "& strong, & b": {
               fontWeight: 600,
@@ -251,6 +257,10 @@ function convertMarkdownToHtml(markdown: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+  // Restore anchor tags that were escaped (from threat table)
+  // Pattern: &lt;a id="..."&gt;&lt;/a&gt;
+  html = html.replace(/&lt;a id="([^"]+)"&gt;&lt;\/a&gt;/g, '<a id="$1"></a>');
+
   // Headers (must be done before other replacements)
   html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
   html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
@@ -274,12 +284,9 @@ function convertMarkdownToHtml(markdown: string): string {
   html = html.replace(/^&gt; (.+)$/gm, "<blockquote><p>$1</p></blockquote>");
 
   // Images
-  html = html.replace(
-    /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" />'
-  );
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
 
-  // Links
+  // Links (including internal anchor links)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
   // Tables
@@ -405,6 +412,25 @@ function convertAsciiDocToHtml(asciidoc: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+  // Classification - MUST come before Bold/Italic
+  html = html.replace(
+    /^\[\.(public|internal|confidential|restricted)\]\n\*(.+)\*$/gm,
+    '<span class="classification">$2</span>'
+  );
+
+  // AsciiDoc anchors: [[id]]text -> <a id="id"></a>text
+  html = html.replace(/\[\[([^\]]+)\]\]/g, '<a id="$1"></a>');
+
+  // AsciiDoc cross-references with custom text: <<id,text>> -> <a href="#id">text</a>
+  // After escaping, << becomes &lt;&lt; and >> becomes &gt;&gt;
+  html = html.replace(
+    /&lt;&lt;([^,&]+),([^&]+)&gt;&gt;/g,
+    '<a href="#$1">$2</a>'
+  );
+
+  // AsciiDoc cross-references without custom text: <<id>> -> <a href="#id">id</a>
+  html = html.replace(/&lt;&lt;([^&]+)&gt;&gt;/g, '<a href="#$1">$1</a>');
+
   // Document title (= Title)
   html = html.replace(/^= (.+)$/gm, "<h1>$1</h1>");
 
@@ -450,12 +476,6 @@ function convertAsciiDocToHtml(asciidoc: string): string {
   html = html.replace(
     /^\[\.lead\]\n(.+)$/gm,
     '<p class="lead"><em>$1</em></p>'
-  );
-
-  // Classification
-  html = html.replace(
-    /^\[\.(public|internal|confidential|restricted)\]\n\*(.+)\*$/gm,
-    '<span class="classification">$2</span>'
   );
 
   // Paragraphs
@@ -511,11 +531,12 @@ function convertAsciiDocTables(html: string): string {
   let hasHeader = false;
 
   for (const line of lines) {
-    if (line.includes("[cols=") && line.includes("options=\"header\"")) {
+    if (line.includes("[cols=") && line.includes('options="header"')) {
       hasHeader = true;
       continue;
     }
     if (line.includes("[cols=")) {
+      hasHeader = true; // Assume header if cols defined
       continue;
     }
     if (line.trim() === "|===") {

@@ -32,7 +32,8 @@
     "hideDFD": "DFD-Vorschau ausblenden",
     "all": "Alle",
     "deleteAll": "Alle löschen",
-    "unsaved": "Nicht gespeichert"
+    "unsaved": "Nicht gespeichert",
+    "reset": "Zurücksetzen"
   },
 
   "project": {
@@ -195,7 +196,8 @@
   "projectInfo": {
     "title": "Projektinformationen",
     "addPredefinedTag": "Vordefiniertes Tag hinzufügen...",
-    "customTagPlaceholder": "Eigenes Tag..."
+    "customTagPlaceholder": "Eigenes Tag...",
+    "noTags": "No tags"
   },
 
   "messages": {
@@ -573,12 +575,16 @@
       "description": "Erstelle die komplette Dokumentation für die Einhaltung der Regularien",
       "format": "Format",
       "docLanguage": "Dokumentsprache",
+      "outputSettings": "Ausgabe-Einstellungen",
       "showSource": "Quellcode anzeigen",
       "showPreview": "Vorschau anzeigen",
+      "showSidebar": "Seitenleiste einblenden",
+      "hideSidebar": "Seitenleiste ausblenden",
       "regenerate": "Neu generieren",
       "settings": "Template-Einstellungen",
       "download": "Herunterladen",
       "ready": "Bereit",
+      "chaptersTitle": "Kapitelübersicht",
       "chapters": {
         "executiveSummary": "Zusammenfassung",
         "systemOverview": "Systemübersicht",

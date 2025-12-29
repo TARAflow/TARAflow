@@ -215,93 +215,103 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Paper elevation={1} sx={{ borderRadius: 0 }}>
-      <Toolbar variant="dense" sx={{ minHeight: 48, px: 2, gap: 0.5 }}>
-        {/* Dark Mode Toggle */}
-        <Tooltip
-          title={
-            darkMode
-              ? t("tabs.dfd.toolbar.lightMode", {
-                  defaultValue: "Switch to Light Mode",
-                })
-              : t("tabs.dfd.toolbar.darkMode", {
-                  defaultValue: "Switch to Dark Mode",
-                })
-          }
-        >
-          <IconButton size="small" onClick={onToggleDarkMode}>
-            {darkMode ? (
-              <LightModeIcon fontSize="small" />
-            ) : (
-              <DarkModeIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Tooltip>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: 2,
+        py: 1,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        backgroundColor: "background.paper",
+        flexWrap: "wrap",
+      }}
+    >
+      {/* Dark Mode Toggle */}
+      <Tooltip
+        title={
+          darkMode
+            ? t("tabs.dfd.toolbar.lightMode", {
+                defaultValue: "Switch to Light Mode",
+              })
+            : t("tabs.dfd.toolbar.darkMode", {
+                defaultValue: "Switch to Dark Mode",
+              })
+        }
+      >
+        <IconButton size="small" onClick={onToggleDarkMode}>
+          {darkMode ? (
+            <LightModeIcon fontSize="small" />
+          ) : (
+            <DarkModeIcon fontSize="small" />
+          )}
+        </IconButton>
+      </Tooltip>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+      <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
-        {/* Export, Refresh & Auto-Number */}
-        <Tooltip
-          title={t("tabs.dfd.toolbar.exportImage", {
-            defaultValue: "Export as Image",
-          })}
-        >
-          <IconButton size="small" onClick={onExportImage}>
-            <ImageIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip
-          title={t("tabs.dfd.toolbar.refresh", {
-            defaultValue: "Refresh Validation",
-          })}
-        >
-          <IconButton size="small" onClick={onRefresh}>
-            <RefreshIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip
-          title={t("tabs.dfd.toolbar.autoNumber", {
-            defaultValue: "Auto-Number Labels",
-          })}
-        >
-          <IconButton size="small" onClick={onAutoNumber}>
-            <AutoNumberIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+      {/* Export, Refresh & Auto-Number */}
+      <Tooltip
+        title={t("tabs.dfd.toolbar.exportImage", {
+          defaultValue: "Export as Image",
+        })}
+      >
+        <IconButton size="small" onClick={onExportImage}>
+          <ImageIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip
+        title={t("tabs.dfd.toolbar.refresh", {
+          defaultValue: "Refresh Validation",
+        })}
+      >
+        <IconButton size="small" onClick={onRefresh}>
+          <RefreshIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip
+        title={t("tabs.dfd.toolbar.autoNumber", {
+          defaultValue: "Auto-Number Labels",
+        })}
+      >
+        <IconButton size="small" onClick={onAutoNumber}>
+          <AutoNumberIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
-        {/* Spacer */}
-        <Box sx={{ flexGrow: 1 }} />
+      {/* Spacer */}
+      <Box sx={{ flexGrow: 1 }} />
 
-        {/* Stats */}
-        {stats && <DFDStatsDisplay stats={stats} />}
+      {/* Stats */}
+      {stats && <DFDStatsDisplay stats={stats} />}
 
-        {/* Validation Status */}
-        {validation && <ValidationChips validation={validation} />}
+      {/* Validation Status */}
+      {validation && <ValidationChips validation={validation} />}
 
-        {/* Action Buttons */}
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<SaveIcon />}
-          onClick={onSave}
-          disabled={!isDirty}
-          sx={{ mr: 1 }}
-        >
-          {t("common.save", { defaultValue: "Save" })}
-          {isDirty && " *"}
-        </Button>
+      {/* Action Buttons */}
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<SaveIcon />}
+        onClick={onSave}
+        disabled={!isDirty}
+        sx={{ mr: 1 }}
+      >
+        {t("common.save", { defaultValue: "Save" })}
+        {isDirty && " *"}
+      </Button>
 
-        <Button
-          variant="contained"
-          size="small"
-          endIcon={<NextIcon />}
-          onClick={onProceed}
-          disabled={!validation?.isValid || isDirty}
-        >
-          {t("tabs.dfd.proceed", { defaultValue: "Continue" })}
-        </Button>
-      </Toolbar>
-    </Paper>
+      <Button
+        variant="contained"
+        size="small"
+        endIcon={<NextIcon />}
+        onClick={onProceed}
+        disabled={!validation?.isValid || isDirty}
+      >
+        {t("tabs.dfd.proceed", { defaultValue: "Continue" })}
+      </Button>
+    </Box>
   );
 };
 
