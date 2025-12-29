@@ -2,6 +2,12 @@
 // Displays risks in a MUI DataGrid with configurable columns
 // Grouped by Trust Boundary (and by Element/DataFlow matching threat-table)
 // Supports both simple and complex methods
+// Features:
+// - Collapsible filter bar (search, priority, status filters)
+// - Sorted by highest risk value first, then alphabetically
+// Column order:
+// - Simple: T-ID, STRIDE, Threat, Risk Before, Mitigation, Risk After, Priority, Status, Actions
+// - Complex: T-ID, STRIDE, Threat, Impact, Likelihood, Risk, Mitigation, Priority, Status, Actions
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,6 +32,7 @@ import {
   TextField,
   InputAdornment,
   LinearProgress,
+  Collapse,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -60,8 +67,13 @@ interface RiskTableProps {
   threats: ThreatReference[];
   configuration: RiskConfiguration;
   strideMethod: StrideMethod;
+  showFilters?: boolean;
   onEdit: (risk: Risk) => void;
-  onPriorityChange: (riskId: string, priority: string, justification?: string) => void;
+  onPriorityChange: (
+    riskId: string,
+    priority: string,
+    justification?: string
+  ) => void;
   onStatusChange: (riskId: string, status: string) => void;
 }
 
@@ -157,6 +169,7 @@ export const RiskTable: React.FC<RiskTableProps> = ({
   threats,
   configuration,
   strideMethod,
+  showFilters = false,
   onEdit,
   onPriorityChange,
   onStatusChange,
@@ -171,9 +184,13 @@ export const RiskTable: React.FC<RiskTableProps> = ({
   const [statusFilter, setStatusFilter] = useState<RiskStatus | "">("");
 
   // Expanded state for Trust Boundary accordions (collapsed by default)
-  const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
+  const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>(
+    {}
+  );
   // Expanded state for Element/DataFlow accordions (collapsed by default)
-  const [expandedElements, setExpandedElements] = useState<Record<string, boolean>>({});
+  const [expandedElements, setExpandedElements] = useState<
+    Record<string, boolean>
+  >({});
 
   // ==================== FILTERING ====================
 
@@ -214,16 +231,19 @@ export const RiskTable: React.FC<RiskTableProps> = ({
       const tbName = threat?.trustBoundaryName || "External Entities";
 
       if (!groups.has(tbId)) {
-        groups.set(tbId, { 
-          id: tbId, 
-          name: tbName, 
-          displayIdentifier: tbId !== "external" ? `TB-${tbId.replace(/\D/g, "") || "X"}` : undefined,
-          risks: [], 
-          elements: [], 
-          dataFlows: [] 
+        groups.set(tbId, {
+          id: tbId,
+          name: tbName,
+          displayIdentifier:
+            tbId !== "external"
+              ? `TB-${tbId.replace(/\D/g, "") || "X"}`
+              : undefined,
+          risks: [],
+          elements: [],
+          dataFlows: [],
         });
       }
-      
+
       const group = groups.get(tbId)!;
       group.risks.push(risk);
 
@@ -231,20 +251,26 @@ export const RiskTable: React.FC<RiskTableProps> = ({
       if (isPerElement && threat?.elementName) {
         // Extract element info from threatId (e.g., "EE1-S-1" -> "EE1")
         const elementIdMatch = risk.threatId.match(/^([A-Z]+\d+)/);
-        const elementId = elementIdMatch ? elementIdMatch[1] : threat.elementName;
-        const elementType =
-          elementId.startsWith("DF") ? "DataFlow"
-          : elementId.startsWith("EE") ? "ExternalEntity"
-          : elementId.startsWith("DS") ? "DataStore"
+        const elementId = elementIdMatch
+          ? elementIdMatch[1]
+          : threat.elementName;
+        const elementType = elementId.startsWith("DF")
+          ? "DataFlow"
+          : elementId.startsWith("EE")
+          ? "ExternalEntity"
+          : elementId.startsWith("DS")
+          ? "DataStore"
           : "Process";
-        
-        let elementGroup = group.elements?.find((e) => e.elementId === elementId);
+
+        let elementGroup = group.elements?.find(
+          (e) => e.elementId === elementId
+        );
         if (!elementGroup) {
-          elementGroup = { 
-            elementId, 
-            elementName: threat.elementName, 
+          elementGroup = {
+            elementId,
+            elementName: threat.elementName,
             elementType,
-            risks: [] 
+            risks: [],
           };
           group.elements!.push(elementGroup);
         }
@@ -255,14 +281,18 @@ export const RiskTable: React.FC<RiskTableProps> = ({
       if (!isPerElement && threat?.dataFlowName) {
         // Extract dataflow info
         const dataFlowIdMatch = risk.threatId.match(/^(DF\d+)/);
-        const dataFlowId = dataFlowIdMatch ? dataFlowIdMatch[1] : `DF-${threat.dataFlowName}`;
-        
-        let dataFlowGroup = group.dataFlows?.find((df) => df.dataFlowId === dataFlowId);
+        const dataFlowId = dataFlowIdMatch
+          ? dataFlowIdMatch[1]
+          : `DF-${threat.dataFlowName}`;
+
+        let dataFlowGroup = group.dataFlows?.find(
+          (df) => df.dataFlowId === dataFlowId
+        );
         if (!dataFlowGroup) {
-          dataFlowGroup = { 
-            dataFlowId, 
+          dataFlowGroup = {
+            dataFlowId,
             dataFlowName: threat.dataFlowName,
-            risks: [] 
+            risks: [],
           };
           group.dataFlows!.push(dataFlowGroup);
         }
@@ -339,17 +369,24 @@ export const RiskTable: React.FC<RiskTableProps> = ({
         headerName: t("tabs.risks.columns.threatId", { defaultValue: "T-ID" }),
         width: 120,
         renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Chip
-            label={params.value}
-            size="small"
-            sx={{
-              backgroundColor:
-                STRIDE_COLORS[params.row.strideCategory] || "#9ca3af",
-              color: "white",
-              fontWeight: "bold",
-              fontSize: "0.75rem",
-            }}
-          />
+          <Tooltip title={params.value || ""} placement="top">
+            <Chip
+              label={params.value}
+              size="small"
+              sx={{
+                backgroundColor:
+                  STRIDE_COLORS[params.row.strideCategory] || "#9ca3af",
+                color: "white",
+                fontWeight: "bold",
+                fontSize: "0.75rem",
+                maxWidth: "100%",
+                "& .MuiChip-label": {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                },
+              }}
+            />
+          </Tooltip>
         ),
       },
       {
@@ -393,7 +430,7 @@ export const RiskTable: React.FC<RiskTableProps> = ({
     ];
 
     // Risk columns based on method
-    const riskColumns: GridColDef<Risk>[] =
+    const riskBeforeColumns: GridColDef<Risk>[] =
       configuration.method === "simple"
         ? [
             {
@@ -420,80 +457,6 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                         >
                           {t("tabs.risks.dialog.riskFactors", {
                             defaultValue: "Factor Breakdown",
-                          })}
-                        </Typography>
-                        {tooltipData.factors}
-                        {tooltipData.riskLevel && (
-                          <Box
-                            sx={{
-                              mt: 1,
-                              pt: 1,
-                              borderTop: "1px solid rgba(255,255,255,0.3)",
-                            }}
-                          >
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                            >
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: "50%",
-                                  backgroundColor: tooltipData.riskColor,
-                                  border: "1px solid rgba(255,255,255,0.5)",
-                                }}
-                              />
-                              <Typography variant="caption" fontWeight="bold">
-                                {tooltipData.riskLevel}
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Chip
-                      label={value > 0 ? value.toFixed(1) : "-"}
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          value,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                        fontWeight: "bold",
-                        cursor: "help",
-                      }}
-                    />
-                  </Tooltip>
-                );
-              },
-            },
-            {
-              field: "calculatedRiskAfterMitigation",
-              headerName: t("tabs.risks.columns.riskAfter", {
-                defaultValue: "Risk (After)",
-              }),
-              width: 100,
-              align: "center",
-              renderCell: (params: GridRenderCellParams<Risk>) => {
-                const value = params.value as number;
-                const tooltipData = getFactorBreakdownTooltip(params.row, true);
-                return (
-                  <Tooltip
-                    title={
-                      <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography
-                          variant="caption"
-                          fontWeight="bold"
-                          display="block"
-                        >
-                          {t("tabs.risks.dialog.riskFactorsAfter", {
-                            defaultValue: "Factor Breakdown (After)",
                           })}
                         </Typography>
                         {tooltipData.factors}
@@ -815,11 +778,92 @@ export const RiskTable: React.FC<RiskTableProps> = ({
             },
           ];
 
+    // Risk After column (only for simple method)
+    const riskAfterColumn: GridColDef<Risk> | null =
+      configuration.method === "simple"
+        ? {
+            field: "calculatedRiskAfterMitigation",
+            headerName: t("tabs.risks.columns.riskAfter", {
+              defaultValue: "Risk (After)",
+            }),
+            width: 100,
+            align: "center",
+            renderCell: (params: GridRenderCellParams<Risk>) => {
+              const value = params.value as number;
+              const tooltipData = getFactorBreakdownTooltip(params.row, true);
+              return (
+                <Tooltip
+                  title={
+                    <Box sx={{ whiteSpace: "pre-line" }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        display="block"
+                      >
+                        {t("tabs.risks.dialog.riskFactorsAfter", {
+                          defaultValue: "Factor Breakdown (After)",
+                        })}
+                      </Typography>
+                      {tooltipData.factors}
+                      {tooltipData.riskLevel && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            pt: 1,
+                            borderTop: "1px solid rgba(255,255,255,0.3)",
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Box
+                              sx={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: "50%",
+                                backgroundColor: tooltipData.riskColor,
+                                border: "1px solid rgba(255,255,255,0.5)",
+                              }}
+                            />
+                            <Typography variant="caption" fontWeight="bold">
+                              {tooltipData.riskLevel}
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      )}
+                    </Box>
+                  }
+                  arrow
+                >
+                  <Chip
+                    label={value > 0 ? value.toFixed(1) : "-"}
+                    size="small"
+                    sx={{
+                      backgroundColor: getRiskColor(
+                        value,
+                        configuration.scale,
+                        configuration.roundingMethod
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      cursor: "help",
+                    }}
+                  />
+                </Tooltip>
+              );
+            },
+          }
+        : null;
+
     // Priority & Status columns
     const priorityStatusColumns: GridColDef<Risk>[] = [
       {
         field: "moscowPriority",
-        headerName: t("tabs.risks.columns.priority", { defaultValue: "Priority" }),
+        headerName: t("tabs.risks.columns.priority", {
+          defaultValue: "Priority",
+        }),
         width: 110,
         renderCell: (params: GridRenderCellParams<Risk>) => {
           const priority = MOSCOW_PRIORITIES.find(
@@ -896,7 +940,9 @@ export const RiskTable: React.FC<RiskTableProps> = ({
     // Mitigation column
     const mitigationColumn: GridColDef<Risk> = {
       field: "selectedMitigations",
-      headerName: t("tabs.risks.columns.mitigation", { defaultValue: "Mitigation" }),
+      headerName: t("tabs.risks.columns.mitigation", {
+        defaultValue: "Mitigation",
+      }),
       flex: 0.8,
       minWidth: 150,
       renderCell: (params: GridRenderCellParams<Risk>) => {
@@ -944,9 +990,10 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
     return [
       ...baseColumns,
-      ...riskColumns,
-      ...priorityStatusColumns,
+      ...riskBeforeColumns,
       mitigationColumn,
+      ...(riskAfterColumn ? [riskAfterColumn] : []),
+      ...priorityStatusColumns,
       actionsColumn,
     ];
   }, [configuration, t, isGerman, onEdit, onPriorityChange, onStatusChange]);
@@ -955,9 +1002,19 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
   const renderProgressChip = (risks: Risk[]) => {
     const progress = calculateProgress(risks);
-    const chipColor = progress.percent === 100 ? "success" : progress.percent > 50 ? "warning" : "default";
-    const progressColor = progress.percent === 100 ? "success" : progress.percent > 50 ? "warning" : "primary";
-    
+    const chipColor =
+      progress.percent === 100
+        ? "success"
+        : progress.percent > 50
+        ? "warning"
+        : "default";
+    const progressColor =
+      progress.percent === 100
+        ? "success"
+        : progress.percent > 50
+        ? "warning"
+        : "primary";
+
     return (
       <Stack direction="row" spacing={1} alignItems="center">
         <Chip
@@ -980,27 +1037,28 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
   // ==================== RENDER DATA GRID ====================
 
-  const renderDataGrid = (risksToShow: Risk[], height?: number) => (
-    <Box sx={{ height: height || Math.min(400, risksToShow.length * 52 + 56) }}>
-      <DataGrid
-        rows={risksToShow}
-        columns={columns}
-        pageSizeOptions={[10, 25, 50]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-          sorting: {
-            sortModel: [{ field: "calculatedRiskBeforeMitigation", sort: "desc" }],
-          },
-        }}
-        disableRowSelectionOnClick
-        density="compact"
-        hideFooter={risksToShow.length <= 10}
-        sx={{
-          border: "none",
-          "& .MuiDataGrid-cell": { py: 0.5 },
-        }}
-      />
-    </Box>
+  const renderDataGrid = (risksToShow: Risk[]) => (
+    <DataGrid
+      rows={risksToShow}
+      columns={columns}
+      pageSizeOptions={[10, 25, 50]}
+      initialState={{
+        pagination: { paginationModel: { pageSize: 25 } },
+        sorting: {
+          sortModel: [
+            { field: "calculatedRiskBeforeMitigation", sort: "desc" },
+          ],
+        },
+      }}
+      disableRowSelectionOnClick
+      density="compact"
+      autoHeight
+      hideFooter={risksToShow.length <= 25}
+      sx={{
+        border: "none",
+        "& .MuiDataGrid-cell": { py: 0.5 },
+      }}
+    />
   );
 
   // ==================== RENDER ====================
@@ -1025,83 +1083,89 @@ export const RiskTable: React.FC<RiskTableProps> = ({
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {/* Filters */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          alignItems: "center",
-          flexWrap: "wrap",
-          pb: 1,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder={t("tabs.risks.searchPlaceholder", {
-            defaultValue: "Search risks...",
-          })}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
+      <Collapse in={showFilters}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "center",
+            flexWrap: "wrap",
+            pb: 1,
+            borderBottom: "1px solid",
+            borderColor: "divider",
           }}
-          sx={{ minWidth: 200 }}
-        />
+        >
+          <TextField
+            size="small"
+            placeholder={t("tabs.risks.searchPlaceholder", {
+              defaultValue: "Search risks...",
+            })}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: 200 }}
+          />
 
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <Select
-            value={priorityFilter}
-            onChange={(e) =>
-              setPriorityFilter(e.target.value as MoSCoWPriority | "")
-            }
-            displayEmpty
-            startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
-          >
-            <MenuItem value="">
-              {t("tabs.risks.allPriorities", { defaultValue: "All Priorities" })}
-            </MenuItem>
-            {MOSCOW_PRIORITIES.filter((p) => p.value !== "wont").map((p) => (
-              <MenuItem key={p.value} value={p.value}>
-                {isGerman ? p.labelDE : p.label}
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={priorityFilter}
+              onChange={(e) =>
+                setPriorityFilter(e.target.value as MoSCoWPriority | "")
+              }
+              displayEmpty
+              startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
+            >
+              <MenuItem value="">
+                {t("tabs.risks.allPriorities", {
+                  defaultValue: "All Priorities",
+                })}
               </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+              {MOSCOW_PRIORITIES.filter((p) => p.value !== "wont").map((p) => (
+                <MenuItem key={p.value} value={p.value}>
+                  {isGerman ? p.labelDE : p.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as RiskStatus | "")}
-            displayEmpty
-          >
-            <MenuItem value="">
-              {t("tabs.risks.allStatuses", { defaultValue: "All Statuses" })}
-            </MenuItem>
-            {RISK_STATUSES.filter((s) => s.value !== "wont-do").map((s) => (
-              <MenuItem key={s.value} value={s.value}>
-                {isGerman ? s.labelDE : s.label}
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as RiskStatus | "")
+              }
+              displayEmpty
+            >
+              <MenuItem value="">
+                {t("tabs.risks.allStatuses", { defaultValue: "All Statuses" })}
               </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+              {RISK_STATUSES.filter((s) => s.value !== "wont-do").map((s) => (
+                <MenuItem key={s.value} value={s.value}>
+                  {isGerman ? s.labelDE : s.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ flexGrow: 1 }} />
 
-        <Typography variant="body2" color="text.secondary">
-          {t("tabs.risks.showingCount", {
-            count: filteredRisks.length,
-            total: risks.length,
-            defaultValue: `Showing ${filteredRisks.length} of ${risks.length}`,
-          })}
-        </Typography>
-      </Box>
+          <Typography variant="body2" color="text.secondary">
+            {t("tabs.risks.showingCount", {
+              count: filteredRisks.length,
+              total: risks.length,
+              defaultValue: `Showing ${filteredRisks.length} of ${risks.length}`,
+            })}
+          </Typography>
+        </Box>
+      </Collapse>
 
       {/* Grouped Tables */}
       {groupedByTrustBoundary.map((group) => (
@@ -1127,7 +1191,12 @@ export const RiskTable: React.FC<RiskTableProps> = ({
               "&:hover": { backgroundColor: "primary.100" },
             }}
           >
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ width: "100%" }}>
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              sx={{ width: "100%" }}
+            >
               <TrustBoundaryIcon color="primary" />
               {group.displayIdentifier && (
                 <Chip
@@ -1148,119 +1217,127 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
           <AccordionDetails sx={{ p: 1 }}>
             {/* Per-element: Show nested accordions for elements */}
-            {isPerElement && group.elements && group.elements.length > 0 ? (
-              group.elements.map((element) => {
-                const elementKey = `${group.id}-${element.elementId}`;
-                
-                return (
-                  <Accordion
-                    key={elementKey}
-                    expanded={expandedElements[elementKey] ?? false}
-                    onChange={() =>
-                      setExpandedElements((prev) => ({
-                        ...prev,
-                        [elementKey]: !prev[elementKey],
-                      }))
-                    }
-                    sx={{
-                      mb: 0.5,
-                      "&:before": { display: "none" },
-                      boxShadow: "none",
-                      border: "1px solid",
-                      borderColor: "divider",
-                      "&:last-child": { mb: 0 },
-                    }}
-                  >
-                    {/* Element Header - matching threat-table style */}
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
+            {isPerElement && group.elements && group.elements.length > 0
+              ? group.elements.map((element) => {
+                  const elementKey = `${group.id}-${element.elementId}`;
+
+                  return (
+                    <Accordion
+                      key={elementKey}
+                      expanded={expandedElements[elementKey] ?? false}
+                      onChange={() =>
+                        setExpandedElements((prev) => ({
+                          ...prev,
+                          [elementKey]: !prev[elementKey],
+                        }))
+                      }
                       sx={{
-                        minHeight: 40,
-                        "&.Mui-expanded": { minHeight: 40 },
-                        "& .MuiAccordionSummary-content": { my: 0.5 },
-                        backgroundColor: "grey.50",
+                        mb: 0.5,
+                        "&:before": { display: "none" },
+                        boxShadow: "none",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        "&:last-child": { mb: 0 },
                       }}
                     >
-                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
-                        {getElementIcon(element.elementType)}
-                        <Chip
-                          label={formatElementId(element.elementId)}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}
-                        />
-                        <Typography variant="body2" fontWeight="medium">
-                          {element.elementName}
-                        </Typography>
-                        <Box sx={{ flexGrow: 1 }} />
-                        {renderProgressChip(element.risks)}
-                      </Stack>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ p: 0 }}>
-                      {renderDataGrid(element.risks)}
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })
-            ) : !isPerElement && group.dataFlows && group.dataFlows.length > 0 ? (
-              // Per-interaction: Show nested accordions for dataflows
-              group.dataFlows.map((dataFlow) => {
-                const flowKey = `${group.id}-${dataFlow.dataFlowId}`;
-                
-                return (
-                  <Accordion
-                    key={flowKey}
-                    expanded={expandedElements[flowKey] ?? false}
-                    onChange={() =>
-                      setExpandedElements((prev) => ({
-                        ...prev,
-                        [flowKey]: !prev[flowKey],
-                      }))
-                    }
-                    sx={{
-                      mb: 0.5,
-                      "&:before": { display: "none" },
-                      boxShadow: "none",
-                      border: "1px solid",
-                      borderColor: "divider",
-                      "&:last-child": { mb: 0 },
-                    }}
-                  >
-                    {/* DataFlow Header - matching threat-table style */}
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
+                      {/* Element Header - matching threat-table style */}
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          minHeight: 40,
+                          "&.Mui-expanded": { minHeight: 40 },
+                          "& .MuiAccordionSummary-content": { my: 0.5 },
+                          backgroundColor: "grey.50",
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          sx={{ width: "100%" }}
+                        >
+                          {getElementIcon(element.elementType)}
+                          <Chip
+                            label={formatElementId(element.elementId)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}
+                          />
+                          <Typography variant="body2" fontWeight="medium">
+                            {element.elementName}
+                          </Typography>
+                          <Box sx={{ flexGrow: 1 }} />
+                          {renderProgressChip(element.risks)}
+                        </Stack>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ p: 0 }}>
+                        {renderDataGrid(element.risks)}
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })
+              : !isPerElement && group.dataFlows && group.dataFlows.length > 0
+              ? // Per-interaction: Show nested accordions for dataflows
+                group.dataFlows.map((dataFlow) => {
+                  const flowKey = `${group.id}-${dataFlow.dataFlowId}`;
+
+                  return (
+                    <Accordion
+                      key={flowKey}
+                      expanded={expandedElements[flowKey] ?? false}
+                      onChange={() =>
+                        setExpandedElements((prev) => ({
+                          ...prev,
+                          [flowKey]: !prev[flowKey],
+                        }))
+                      }
                       sx={{
-                        minHeight: 40,
-                        "&.Mui-expanded": { minHeight: 40 },
-                        "& .MuiAccordionSummary-content": { my: 0.5 },
-                        backgroundColor: "grey.50",
+                        mb: 0.5,
+                        "&:before": { display: "none" },
+                        boxShadow: "none",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        "&:last-child": { mb: 0 },
                       }}
                     >
-                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
-                        <DataFlowIcon fontSize="small" color="action" />
-                        <Chip
-                          label={dataFlow.dataFlowId}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}
-                        />
-                        <Typography variant="body2" fontWeight="medium">
-                          {dataFlow.dataFlowName}
-                        </Typography>
-                        <Box sx={{ flexGrow: 1 }} />
-                        {renderProgressChip(dataFlow.risks)}
-                      </Stack>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ p: 0 }}>
-                      {renderDataGrid(dataFlow.risks)}
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })
-            ) : (
-              // Fallback: Show risks directly if no sub-groups
-              renderDataGrid(group.risks)
-            )}
+                      {/* DataFlow Header - matching threat-table style */}
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          minHeight: 40,
+                          "&.Mui-expanded": { minHeight: 40 },
+                          "& .MuiAccordionSummary-content": { my: 0.5 },
+                          backgroundColor: "grey.50",
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          sx={{ width: "100%" }}
+                        >
+                          <DataFlowIcon fontSize="small" color="action" />
+                          <Chip
+                            label={dataFlow.dataFlowId}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}
+                          />
+                          <Typography variant="body2" fontWeight="medium">
+                            {dataFlow.dataFlowName}
+                          </Typography>
+                          <Box sx={{ flexGrow: 1 }} />
+                          {renderProgressChip(dataFlow.risks)}
+                        </Stack>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ p: 0 }}>
+                        {renderDataGrid(dataFlow.risks)}
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })
+              : // Fallback: Show risks directly if no sub-groups
+                renderDataGrid(group.risks)}
           </AccordionDetails>
         </Accordion>
       ))}

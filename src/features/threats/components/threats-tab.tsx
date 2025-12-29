@@ -1136,8 +1136,8 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
       <Tooltip
         title={
           showDFDPreview
-            ? t("tabs.threats.hideDFD", { defaultValue: "Hide DFD Preview" })
-            : t("tabs.threats.showDFD", { defaultValue: "Show DFD Preview" })
+            ? t("common.hideDFD", { defaultValue: "Hide DFD Preview" })
+            : t("common.showDFD", { defaultValue: "Show DFD Preview" })
         }
       >
         <IconButton onClick={onToggleDFDPreview} size="small">

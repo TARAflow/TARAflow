@@ -1,7 +1,10 @@
 // ==================== RISK MATRIX ====================
 // Visual risk display:
-// - Complex method: 2D Matrix showing Impact vs Likelihood
-// - Simple method: Vertical risk levels (Low → Critical)
+// - Complex method: 2D Matrix showing Impact vs Likelihood (top 3 shown)
+// - Simple method: Vertical risk levels Low → Critical (top 8 shown)
+// - Sorted by: Highest risk value first, then alphabetically by T-ID
+// - Click "+X" to expand and see all risks in sidebar
+// - Won't risks: Displayed with reduced opacity and strikethrough
 // Toggle between Before/After Mitigation view
 // Clickable cells to filter/highlight risks
 // Color-coded based on risk levels
@@ -52,7 +55,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     impact: number;
     likelihood: number;
   } | null>(null);
-  
+
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
 
   // Toggle between Before/After view (default: After if available)
@@ -60,6 +63,18 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
 
   const scale = RISK_SCALES[configuration.scale];
   const matrixSize = scale.levels.length;
+
+  // Helper: Get additional styles for Won't risks
+  const getWontStyles = (risk: Risk) => {
+    if (risk.moscowPriority === "wont") {
+      return {
+        opacity: 0.6,
+        textDecoration: "line-through",
+        border: "2px dashed rgba(255,255,255,0.5)",
+      };
+    }
+    return {};
+  };
 
   // ==================== GENERATE MATRIX (for complex) ====================
 
@@ -195,6 +210,36 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     }
   };
 
+  // ==================== HELPER: Sort risks by priority ====================
+
+  /**
+   * Sort risks by risk value (highest first), then alphabetically by threatId
+   */
+  const sortRisksByPriority = (risksToSort: Risk[]): Risk[] => {
+    return [...risksToSort].sort((a, b) => {
+      // Get the display risk value based on view mode
+      const getDisplayValue = (risk: Risk): number => {
+        if (viewMode === "before") {
+          return risk.calculatedRiskBeforeMitigation;
+        }
+        return risk.calculatedRiskAfterMitigation > 0
+          ? risk.calculatedRiskAfterMitigation
+          : risk.calculatedRiskBeforeMitigation;
+      };
+
+      const valueA = getDisplayValue(a);
+      const valueB = getDisplayValue(b);
+
+      // Higher risk value first
+      if (valueB !== valueA) {
+        return valueB - valueA;
+      }
+
+      // If same value, sort alphabetically by threatId
+      return a.threatId.localeCompare(b.threatId, undefined, { numeric: true });
+    });
+  };
+
   // ==================== RENDER CELL (for complex matrix) ====================
 
   const renderCell = (cell: RiskMatrixCell) => {
@@ -205,9 +250,10 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
       selectedCell?.impact === cell.impact &&
       selectedCell?.likelihood === cell.likelihood;
 
-    const threatIds = cellRisks.map((r) => r.threatId);
-    const displayIds = threatIds.slice(0, 3);
-    const hasMore = threatIds.length > 3;
+    // Sort by priority and get top 3
+    const sortedRisks = sortRisksByPriority(cellRisks);
+    const displayRisks = sortedRisks.slice(0, 3);
+    const hasMore = count > 3;
 
     return (
       <Tooltip
@@ -235,12 +281,18 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                   {count} {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
                 </Typography>
                 <Box sx={{ mt: 0.5 }}>
-                  {cellRisks.map((r) => (
+                  {sortedRisks.slice(0, 5).map((r) => (
                     <Typography key={r.id} variant="caption" display="block">
-                      • {r.threatId}: {r.strideCategory} -{" "}
-                      {r.threatDescription?.substring(0, 50)}...
+                      • {r.threatId}: {r.strideCategory} (
+                      {r.calculatedRiskBeforeMitigation.toFixed(1)})
                     </Typography>
                   ))}
+                  {count > 5 && (
+                    <Typography variant="caption" display="block">
+                      ... +{count - 5}{" "}
+                      {t("tabs.risks.matrix.more", { defaultValue: "more" })}
+                    </Typography>
+                  )}
                 </Box>
               </>
             )}
@@ -279,9 +331,9 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                 gap: 0.25,
               }}
             >
-              {displayIds.map((tid) => (
+              {displayRisks.map((risk) => (
                 <Typography
-                  key={tid}
+                  key={risk.id}
                   variant="caption"
                   sx={{
                     backgroundColor: "rgba(255,255,255,0.9)",
@@ -291,14 +343,26 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                     fontWeight: "bold",
                     fontSize: "0.65rem",
                     lineHeight: 1.2,
+                    ...(risk.moscowPriority === "wont" && {
+                      opacity: 0.6,
+                      textDecoration: "line-through",
+                      border: "1px dashed rgba(0,0,0,0.3)",
+                    }),
                   }}
                 >
-                  {tid}
+                  {risk.threatId}
                 </Typography>
               ))}
               {hasMore && (
                 <Typography
                   variant="caption"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedCell({
+                      impact: cell.impact,
+                      likelihood: cell.likelihood,
+                    });
+                  }}
                   sx={{
                     backgroundColor: "rgba(255,255,255,0.9)",
                     color: cell.color,
@@ -306,9 +370,14 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                     borderRadius: 0.5,
                     fontWeight: "bold",
                     fontSize: "0.6rem",
+                    cursor: "pointer",
+                    "&:hover": {
+                      backgroundColor: "white",
+                      textDecoration: "underline",
+                    },
                   }}
                 >
-                  +{threatIds.length - 3}
+                  +{count - 3}
                 </Typography>
               )}
             </Box>
@@ -328,6 +397,11 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     const count = levelRisks.length;
     const isSelected = selectedLevel === levelValue;
 
+    // Sort by priority (highest risk value first, then alphabetically)
+    const sortedRisks = sortRisksByPriority(levelRisks);
+    const displayRisks = sortedRisks.slice(0, 8);
+    const hasMore = count > 8;
+
     return (
       <Tooltip
         key={levelValue}
@@ -341,7 +415,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                 {count} {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
               </Typography>
               <Box sx={{ mt: 0.5 }}>
-                {levelRisks.slice(0, 5).map((r) => (
+                {sortedRisks.slice(0, 5).map((r) => (
                   <Typography key={r.id} variant="caption" display="block">
                     • {r.threatId}: {r.strideCategory} (
                     {r.calculatedRiskBeforeMitigation.toFixed(1)} →{" "}
@@ -351,9 +425,9 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                     )
                   </Typography>
                 ))}
-                {levelRisks.length > 5 && (
+                {count > 5 && (
                   <Typography variant="caption" display="block">
-                    ... +{levelRisks.length - 5}{" "}
+                    ... +{count - 5}{" "}
                     {t("tabs.risks.matrix.more", { defaultValue: "more" })}
                   </Typography>
                 )}
@@ -430,7 +504,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
               </Typography>
             ) : (
               <>
-                {levelRisks.slice(0, 8).map((risk) => (
+                {displayRisks.map((risk) => (
                   <Chip
                     key={risk.id}
                     label={risk.threatId}
@@ -450,20 +524,29 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                         backgroundColor: level.color,
                         opacity: 0.8,
                       },
+                      ...getWontStyles(risk),
                     }}
                   />
                 ))}
-                {levelRisks.length > 8 && (
+                {hasMore && (
                   <Chip
-                    label={`+${levelRisks.length - 8}`}
+                    label={`+${count - 8}`}
                     size="small"
                     variant="outlined"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedLevel(levelValue);
+                    }}
                     sx={{
                       borderColor: level.color,
                       color: level.color,
                       fontWeight: "bold",
                       fontSize: "0.7rem",
                       height: 24,
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: `${level.color}20`,
+                      },
                     }}
                   />
                 )}
@@ -493,11 +576,16 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
   // ==================== SELECTED RISKS ====================
 
   const selectedCellRisks = selectedCell
-    ? risksByCell.get(`${selectedCell.impact}-${selectedCell.likelihood}`) || []
+    ? sortRisksByPriority(
+        risksByCell.get(`${selectedCell.impact}-${selectedCell.likelihood}`) ||
+          []
+      )
     : [];
 
   const selectedLevelRisks =
-    selectedLevel !== null ? risksByLevel.get(selectedLevel) || [] : [];
+    selectedLevel !== null
+      ? sortRisksByPriority(risksByLevel.get(selectedLevel) || [])
+      : [];
 
   // ==================== RENDER SIMPLE VIEW ====================
 
@@ -594,7 +682,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                   size="small"
                   variant="outlined"
                   onClick={() => onRiskClick?.(risk)}
-                  sx={{ cursor: "pointer" }}
+                  sx={{ cursor: "pointer", ...getWontStyles(risk) }}
                 />
               ))}
               {unratedRisks.length > 10 && (
@@ -732,7 +820,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                   label={`${risk.threatId} (${risk.strideCategory})`}
                   size="small"
                   onClick={() => onRiskClick?.(risk)}
-                  sx={{ cursor: "pointer" }}
+                  sx={{ cursor: "pointer", ...getWontStyles(risk) }}
                 />
               ))}
             </Stack>
@@ -950,7 +1038,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
                   label={`${risk.threatId} (${risk.strideCategory})`}
                   size="small"
                   onClick={() => onRiskClick?.(risk)}
-                  sx={{ cursor: "pointer" }}
+                  sx={{ cursor: "pointer", ...getWontStyles(risk) }}
                 />
               ))}
             </Stack>

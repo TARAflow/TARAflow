@@ -2,8 +2,21 @@
 // Modal dialog for editing a risk assessment
 // Shows factor ratings, mitigation, and calculated values
 // Supports both simple and complex methods
+// Features:
+// - Auto-scroll to Won't justification field when priority is set to Won't
+// - Bidirectional sync between Priority and Status:
+//   - Priority → "wont": Status → "wont-do"
+//   - Priority ← "wont": Status "wont-do" → "open"
+//   - Status → "wont-do": Priority → "wont"
+//   - Status ← "wont-do": Priority "wont" → "should"
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -102,6 +115,22 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   const [showMitigationSyncDialog, setShowMitigationSyncDialog] =
     useState(false);
 
+  // Ref for auto-scroll to Won't justification field
+  const wontJustificationRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to justification field when Won't is selected
+  useEffect(() => {
+    if (editedRisk.moscowPriority === "wont" && wontJustificationRef.current) {
+      // Small delay to ensure the field is rendered
+      setTimeout(() => {
+        wontJustificationRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
+    }
+  }, [editedRisk.moscowPriority]);
+
   const scale = RISK_SCALES[configuration.scale];
   const isSimple = configuration.method === "simple";
 
@@ -192,7 +221,13 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       setEditedRisk((prev) => ({
         ...prev,
         moscowPriority: priority,
-        status: priority === "wont" ? "wont-do" : prev.status,
+        // Sync status: wont → wont-do, leaving wont → open
+        status:
+          priority === "wont"
+            ? "wont-do"
+            : prev.status === "wont-do"
+            ? "open"
+            : prev.status,
       }));
     },
     []
@@ -203,7 +238,13 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     setEditedRisk((prev) => ({
       ...prev,
       status,
-      moscowPriority: status === "wont-do" ? "wont" : prev.moscowPriority,
+      // Sync priority: wont-do → wont, leaving wont-do → should
+      moscowPriority:
+        status === "wont-do"
+          ? "wont"
+          : prev.moscowPriority === "wont"
+          ? "should"
+          : prev.moscowPriority,
     }));
   }, []);
 
@@ -929,24 +970,27 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
           {/* Won't Justification */}
           {editedRisk.moscowPriority === "wont" && (
-            <TextField
-              fullWidth
-              multiline
-              rows={2}
-              label={t("tabs.risks.dialog.wontJustification", {
-                defaultValue: "Justification for Won't",
-              })}
-              value={editedRisk.wontJustification}
-              onChange={(e) =>
-                setEditedRisk((prev) => ({
-                  ...prev,
-                  wontJustification: e.target.value,
-                }))
-              }
-              error={Boolean(errors.wontJustification)}
-              helperText={errors.wontJustification}
-              required
-            />
+            <Box ref={wontJustificationRef}>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label={t("tabs.risks.dialog.wontJustification", {
+                  defaultValue: "Justification for Won't",
+                })}
+                value={editedRisk.wontJustification}
+                onChange={(e) =>
+                  setEditedRisk((prev) => ({
+                    ...prev,
+                    wontJustification: e.target.value,
+                  }))
+                }
+                error={Boolean(errors.wontJustification)}
+                helperText={errors.wontJustification}
+                required
+                autoFocus
+              />
+            </Box>
           )}
         </Box>
       </DialogContent>

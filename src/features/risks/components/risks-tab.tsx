@@ -1,10 +1,12 @@
 // ==================== RISKS TAB (PHASE 4) ====================
 // Main component for risk assessment
 // Features:
-// - Vertical split view with DFD/Risk Matrix (top) and risk table (bottom)
-// - Toggle between DFD preview and Risk Matrix visualization
+// - Toggle between Risk Table and Risk Matrix views
+// - Optional DFD Preview in split view (top panel)
+// - Toggleable filters in Risk Table (search, priority, status)
 // - Configurable assessment methods (Simple/Complex)
 // - MoSCoW prioritization with Won't-Risk filtering
+// - Status-based completion tracking (open → complete)
 // - Follows Clean Architecture - only depends on shared types
 
 import React, {
@@ -36,16 +38,16 @@ import {
   Settings as SettingsIcon,
   Sync as SyncIcon,
   SkipNext as NextIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   Warning as WarningIcon,
   Download as ExportIcon,
   Upload as ImportIcon,
   Image as DFDIcon,
   GridOn as MatrixIcon,
+  TableChart as TableIcon,
   GridView as PerElementIcon,
   AccountTree as PerInteractionIcon,
   DoNotDisturb as WontIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 
 import {
@@ -78,7 +80,7 @@ import { ConfirmDialog } from "shared";
 const MIN_PANEL_HEIGHT = 100;
 const DEFAULT_TOP_HEIGHT = 250;
 
-type TopPanelView = "dfd" | "matrix";
+type MainView = "table" | "matrix";
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -115,11 +117,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   // UI state
   const [isDirty, setIsDirty] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showTopPanel, setShowTopPanel] = useState(true);
-  const [topPanelView, setTopPanelView] = useState<TopPanelView>("dfd");
+  const [showDfdPreview, setShowDfdPreview] = useState(false);
+  const [mainView, setMainView] = useState<MainView>("table");
   const [topPanelHeight, setTopPanelHeight] = useState(DEFAULT_TOP_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
   const [showWontTable, setShowWontTable] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Dialog state
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
@@ -160,6 +163,17 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const hasRisks = riskData.risks.length > 0;
   const hasRisksForMethod = activeRisks.length > 0 || wontRisks.length > 0;
+
+  // Count assessed risks (Before > 0) and completed risks (status !== "open")
+  const assessedRiskCount = useMemo(
+    () =>
+      activeRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
+    [activeRisks]
+  );
+  const completedRiskCount = useMemo(
+    () => activeRisks.filter((r) => r.status !== "open").length,
+    [activeRisks]
+  );
 
   // Get threats for current STRIDE method
   const currentThreats = useMemo(() => {
@@ -316,6 +330,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setShowRiskDialog(false);
       setSelectedRisk(null);
       markDirty();
+
+      // Auto-show Won't table when a risk is set to Won't priority
+      if (risk.moscowPriority === "wont") {
+        setShowWontTable(true);
+      }
     },
     [riskData, markDirty]
   );
@@ -336,6 +355,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
       markDirty();
+
+      // Auto-show Won't table when a risk is set to Won't priority
+      if (priority === "wont") {
+        setShowWontTable(true);
+      }
     },
     [riskData, markDirty]
   );
@@ -552,10 +576,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       <RisksToolbar
         isDirty={isDirty}
         isSyncing={isSyncing}
-        validation={validation}
         riskMethod={riskMethod}
         activeStrideMethod={activeStrideMethod}
         riskCount={activeRisks.length}
+        assessedRiskCount={assessedRiskCount}
+        completedRiskCount={completedRiskCount}
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
@@ -563,17 +588,19 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         hasThreatsForMethod={hasThreatsForMethod}
         hasAnyThreats={hasAnyThreats}
         needsSync={needsSync}
-        showTopPanel={showTopPanel}
-        topPanelView={topPanelView}
+        showDfdPreview={showDfdPreview}
+        mainView={mainView}
         showWontTable={showWontTable}
-        onToggleTopPanel={() => setShowTopPanel(!showTopPanel)}
-        onTopPanelViewChange={(view) => setTopPanelView(view)}
+        showFilters={showFilters}
+        onToggleDfdPreview={() => setShowDfdPreview(!showDfdPreview)}
+        onMainViewChange={(view) => setMainView(view)}
         onStrideMethodChange={handleStrideMethodChange}
         onSync={handleSyncClick}
         onOpenConfig={handleOpenConfig}
         onExport={handleExport}
         onImport={handleImport}
         onToggleWontTable={() => setShowWontTable(!showWontTable)}
+        onToggleFilters={() => setShowFilters(!showFilters)}
         onProceed={handleProceed}
       />
 
@@ -671,8 +698,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           position: "relative",
         }}
       >
-        {/* Top Panel (DFD or Risk Matrix) */}
-        {showTopPanel && (
+        {/* Top Panel (DFD Preview only) */}
+        {showDfdPreview && (
           <>
             <Box
               sx={{
@@ -684,15 +711,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 overflow: "hidden",
               }}
             >
-              {topPanelView === "dfd" ? (
-                <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
-              ) : (
-                <RiskMatrix
-                  risks={activeRisks}
-                  configuration={riskData.configuration}
-                  onRiskClick={handleEditRisk}
-                />
-              )}
+              <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
             </Box>
 
             {/* Resize Handle */}
@@ -724,16 +743,23 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           </>
         )}
 
-        {/* Risk Table(s) */}
+        {/* Main Content Area (Table or Matrix) */}
         <Box
           sx={{
             flexGrow: 1,
+            minHeight: 0,
             overflow: "auto",
-            p: 2,
-            minHeight: MIN_PANEL_HEIGHT,
+            p: mainView === "matrix" ? 0 : 2,
           }}
         >
-          {!hasAnyThreats ? (
+          {mainView === "matrix" ? (
+            // Risk Matrix View - show all risks including Won't
+            <RiskMatrix
+              risks={[...activeRisks, ...wontRisks]}
+              configuration={riskData.configuration}
+              onRiskClick={handleEditRisk}
+            />
+          ) : !hasAnyThreats ? (
             // No threats at all
             <Box
               sx={{
@@ -822,13 +848,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
               </Button>
             </Box>
           ) : (
-            <Stack spacing={2}>
+            <>
               {/* Active Risks Table */}
               <RiskTable
                 risks={activeRisks}
                 threats={currentThreats}
                 configuration={riskData.configuration}
                 strideMethod={activeStrideMethod}
+                showFilters={showFilters}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
                 onStatusChange={handleStatusChange}
@@ -836,14 +863,16 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
               {/* Won't Risks Table (collapsible) */}
               {wontRisks.length > 0 && showWontTable && (
-                <WontRiskTable
-                  risks={wontRisks}
-                  threats={currentThreats}
-                  configuration={riskData.configuration}
-                  onEdit={handleEditRisk}
-                />
+                <Box sx={{ mt: 2 }}>
+                  <WontRiskTable
+                    risks={wontRisks}
+                    threats={currentThreats}
+                    configuration={riskData.configuration}
+                    onEdit={handleEditRisk}
+                  />
+                </Box>
               )}
-            </Stack>
+            </>
           )}
         </Box>
       </Box>
@@ -900,10 +929,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 interface RisksToolbarProps {
   isDirty: boolean;
   isSyncing: boolean;
-  validation: RiskValidation | null;
   riskMethod: RiskMethodType;
   activeStrideMethod: StrideMethod;
   riskCount: number;
+  assessedRiskCount: number;
+  completedRiskCount: number;
   wontCount: number;
   perElementCount: number;
   perInteractionCount: number;
@@ -911,11 +941,12 @@ interface RisksToolbarProps {
   hasThreatsForMethod: boolean;
   hasAnyThreats: boolean;
   needsSync: boolean;
-  showTopPanel: boolean;
-  topPanelView: TopPanelView;
+  showDfdPreview: boolean;
+  mainView: MainView;
   showWontTable: boolean;
-  onToggleTopPanel: () => void;
-  onTopPanelViewChange: (view: TopPanelView) => void;
+  showFilters: boolean;
+  onToggleDfdPreview: () => void;
+  onMainViewChange: (view: MainView) => void;
   onStrideMethodChange: (
     event: React.MouseEvent<HTMLElement>,
     method: StrideMethod | null
@@ -925,16 +956,18 @@ interface RisksToolbarProps {
   onExport: () => void;
   onImport: () => void;
   onToggleWontTable: () => void;
+  onToggleFilters: () => void;
   onProceed: () => void;
 }
 
 const RisksToolbar: React.FC<RisksToolbarProps> = ({
   isDirty,
   isSyncing,
-  validation,
   riskMethod,
   activeStrideMethod,
   riskCount,
+  assessedRiskCount,
+  completedRiskCount,
   wontCount,
   perElementCount,
   perInteractionCount,
@@ -942,37 +975,42 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
   hasThreatsForMethod,
   hasAnyThreats,
   needsSync,
-  showTopPanel,
-  topPanelView,
+  showDfdPreview,
+  mainView,
   showWontTable,
-  onToggleTopPanel,
-  onTopPanelViewChange,
+  showFilters,
+  onToggleDfdPreview,
+  onMainViewChange,
   onStrideMethodChange,
   onSync,
   onOpenConfig,
   onExport,
   onImport,
   onToggleWontTable,
+  onToggleFilters,
   onProceed,
 }) => {
   const { t } = useTranslation();
 
-  const getStatusColor = () => {
-    if (!validation) return "default";
-    if (validation.isComplete) return "success";
-    if (validation.errors.length > 0) return "error";
-    return "warning";
+  const getStatusColor = (): "default" | "success" | "warning" | "error" => {
+    if (riskCount === 0) return "default";
+    // Complete: All risks have status !== "open"
+    if (completedRiskCount === riskCount) return "success";
+    // In progress: At least some risks assessed
+    if (assessedRiskCount > 0) return "warning";
+    // Not started
+    return "default";
   };
 
   const getStatusText = () => {
-    if (!validation)
-      return t("status.inProgress", { defaultValue: "In Progress" });
-    if (validation.isComplete)
+    if (riskCount === 0) {
+      return t("status.notStarted", { defaultValue: "Not Started" });
+    }
+    // Complete: All risks have status !== "open"
+    if (completedRiskCount === riskCount) {
       return t("status.complete", { defaultValue: "Complete" });
-    if (validation.errors.length > 0)
-      return `${validation.errors.length} ${t("common.errors", {
-        defaultValue: "Errors",
-      })}`;
+    }
+    // In progress
     return t("status.inProgress", { defaultValue: "In Progress" });
   };
 
@@ -990,45 +1028,51 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
         flexWrap: "wrap",
       }}
     >
-      {/* Toggle Top Panel */}
+      {/* DFD Preview Toggle */}
       <Tooltip
         title={
-          showTopPanel
-            ? t("common.hideDFD", { defaultValue: "Hide Preview" })
-            : t("common.showDFD", { defaultValue: "Show Preview" })
+          showDfdPreview
+            ? t("common.hideDFD", {
+                defaultValue: "Hide DFD Preview",
+              })
+            : t("common.showDFD", {
+                defaultValue: "Show DFD Preview",
+              })
         }
       >
-        <IconButton onClick={onToggleTopPanel} size="small">
-          {showTopPanel ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        <IconButton
+          onClick={onToggleDfdPreview}
+          size="small"
+          color={showDfdPreview ? "primary" : "default"}
+        >
+          <DFDIcon fontSize="small" />
         </IconButton>
       </Tooltip>
 
-      {/* Top Panel View Toggle */}
-      {showTopPanel && (
-        <ToggleButtonGroup
-          value={topPanelView}
-          exclusive
-          onChange={(_, v) => v && onTopPanelViewChange(v)}
-          size="small"
-        >
-          <ToggleButton value="dfd">
-            <Tooltip
-              title={t("tabs.risks.showDFD", { defaultValue: "DFD Preview" })}
-            >
-              <DFDIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="matrix">
-            <Tooltip
-              title={t("tabs.risks.showMatrix", {
-                defaultValue: "Risk Matrix",
-              })}
-            >
-              <MatrixIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
-      )}
+      <Divider orientation="vertical" flexItem />
+
+      {/* Main View Toggle (Table / Matrix) */}
+      <ToggleButtonGroup
+        value={mainView}
+        exclusive
+        onChange={(_, v) => v && onMainViewChange(v)}
+        size="small"
+      >
+        <ToggleButton value="table">
+          <Tooltip
+            title={t("tabs.risks.showTable", { defaultValue: "Risk Table" })}
+          >
+            <TableIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value="matrix">
+          <Tooltip
+            title={t("tabs.risks.showMatrix", { defaultValue: "Risk Matrix" })}
+          >
+            <MatrixIcon fontSize="small" />
+          </Tooltip>
+        </ToggleButton>
+      </ToggleButtonGroup>
 
       <Divider orientation="vertical" flexItem />
 
@@ -1045,9 +1089,14 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
               defaultValue: "Per-Element",
             })} (${perElementCount})`}
           >
-            <Badge badgeContent={perElementCount} color="primary" max={999}>
+            {/* Badge only on inactive button, only when count > 0 */}
+            {activeStrideMethod !== "per-element" && perElementCount > 0 ? (
+              <Badge badgeContent={perElementCount} color="primary" max={999}>
+                <PerElementIcon fontSize="small" />
+              </Badge>
+            ) : (
               <PerElementIcon fontSize="small" />
-            </Badge>
+            )}
           </Tooltip>
         </ToggleButton>
         <ToggleButton
@@ -1059,9 +1108,19 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
               defaultValue: "Per-Interaction",
             })} (${perInteractionCount})`}
           >
-            <Badge badgeContent={perInteractionCount} color="primary" max={999}>
+            {/* Badge only on inactive button, only when count > 0 */}
+            {activeStrideMethod !== "per-interaction" &&
+            perInteractionCount > 0 ? (
+              <Badge
+                badgeContent={perInteractionCount}
+                color="primary"
+                max={999}
+              >
+                <PerInteractionIcon fontSize="small" />
+              </Badge>
+            ) : (
               <PerInteractionIcon fontSize="small" />
-            </Badge>
+            )}
           </Tooltip>
         </ToggleButton>
       </ToggleButtonGroup>
@@ -1121,6 +1180,23 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
         </IconButton>
       </Tooltip>
 
+      {/* Filters Toggle */}
+      <Tooltip
+        title={
+          showFilters
+            ? t("tabs.risks.hideFilters", { defaultValue: "Hide Filters" })
+            : t("tabs.risks.showFilters", { defaultValue: "Show Filters" })
+        }
+      >
+        <IconButton
+          onClick={onToggleFilters}
+          size="small"
+          color={showFilters ? "primary" : "default"}
+        >
+          <SearchIcon />
+        </IconButton>
+      </Tooltip>
+
       {/* Won't Table Toggle */}
       {wontCount > 0 && (
         <Tooltip
@@ -1155,14 +1231,20 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
         />
       )}
 
-      {/* Stats */}
-      <Chip
-        label={`${riskCount} ${t("tabs.risks.risks", {
-          defaultValue: "Risks",
-        })}`}
-        size="small"
-        variant="outlined"
-      />
+      {/* Stats - n/m format: assessed/total */}
+      <Tooltip
+        title={t("tabs.risks.assessedTooltip", {
+          defaultValue: "Assessed risks / Total risks",
+        })}
+      >
+        <Chip
+          label={`${assessedRiskCount}/${riskCount} ${t("tabs.risks.risks", {
+            defaultValue: "Risks",
+          })}`}
+          size="small"
+          variant="outlined"
+        />
+      </Tooltip>
 
       <Chip label={getStatusText()} size="small" color={getStatusColor()} />
 
@@ -1181,7 +1263,7 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
       <Button
         endIcon={<NextIcon />}
         onClick={onProceed}
-        disabled={!validation?.isComplete}
+        disabled={riskCount === 0 || completedRiskCount !== riskCount}
         size="small"
         variant="outlined"
         color="success"

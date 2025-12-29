@@ -2,6 +2,12 @@
 // Business logic for Risk Assessment feature
 // Handles calculations, validation, sync, and persistence
 // Follows Single Responsibility Principle
+//
+// Priority/Status Sync Logic:
+// - Priority → "wont": Status → "wont-do"
+// - Priority ← "wont": Status "wont-do" → "open"
+// - Status → "wont-do": Priority → "wont"
+// - Status ← "wont-do": Priority "wont" → "should"
 
 import type { PhaseStatusMap } from "shared";
 import {
@@ -236,7 +242,13 @@ export const riskService = {
       moscowPriority: priority,
       wontJustification:
         priority === "wont" ? justification || risk.wontJustification : "",
-      status: priority === "wont" ? "wont-do" : risk.status,
+      // Sync status: wont → wont-do, leaving wont → open
+      status:
+        priority === "wont"
+          ? "wont-do"
+          : risk.status === "wont-do"
+          ? "open"
+          : risk.status,
     };
 
     return this.updateRisk(riskData, updatedRisk);
@@ -256,7 +268,13 @@ export const riskService = {
     const updatedRisk: Risk = {
       ...risk,
       status,
-      moscowPriority: status === "wont-do" ? "wont" : risk.moscowPriority,
+      // Sync priority: wont-do → wont, leaving wont-do → should
+      moscowPriority:
+        status === "wont-do"
+          ? "wont"
+          : risk.moscowPriority === "wont"
+          ? "should"
+          : risk.moscowPriority,
     };
 
     return this.updateRisk(riskData, updatedRisk);
