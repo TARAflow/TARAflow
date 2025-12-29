@@ -33,6 +33,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Warning as WarningIcon,
+  Download as ExportIcon,
+  Upload as ImportIcon,
 } from "@mui/icons-material";
 
 import {
@@ -203,6 +205,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     setShowConfigDialog(true);
   }, []);
 
+  const handleExport = useCallback(() => {
+    //setShowConfigDialog(true);
+  }, []);
+
+  const handleImport = useCallback(() => {
+    //setShowConfigDialog(true);
+  }, []);
+
   const handleSaveConfig = useCallback(
     (config: AssetData["configuration"]) => {
       const updatedData = assetService.updateConfiguration(assetData, config);
@@ -332,6 +342,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onToggleDFDPreview={() => setShowDFDPreview(!showDFDPreview)}
         onAddAsset={handleAddAsset}
         onOpenConfig={handleOpenConfig}
+        onExport={handleExport}
+        onImport={handleImport}
         onSyncFromDFD={handleSyncFromDFD}
         onProceed={handleProceed}
       />
@@ -471,6 +483,8 @@ interface AssetsToolbarProps {
   onToggleDFDPreview: () => void;
   onAddAsset: () => void;
   onOpenConfig: () => void;
+  onExport: () => void;
+  onImport: () => void;
   onSyncFromDFD: () => void;
   onProceed: () => void;
 }
@@ -483,6 +497,8 @@ const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
   onToggleDFDPreview,
   onAddAsset,
   onOpenConfig,
+  onExport,
+  onImport,
   onSyncFromDFD,
   onProceed,
 }) => {
@@ -560,6 +576,22 @@ const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
       >
         <IconButton onClick={onOpenConfig} size="small">
           <SettingsIcon />
+        </IconButton>
+      </Tooltip>
+
+      {/* Export */}
+      <Tooltip title={t("common.export", { defaultValue: "Export" })}>
+        <span>
+          <IconButton onClick={onExport} size="small">
+            <ExportIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+
+      {/* Import */}
+      <Tooltip title={t("common.import", { defaultValue: "Import" })}>
+        <IconButton onClick={onImport} size="small">
+          <ImportIcon />
         </IconButton>
       </Tooltip>
 

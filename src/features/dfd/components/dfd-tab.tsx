@@ -31,6 +31,8 @@ import {
   FormatListNumbered as AutoNumberIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  Download as ExportIcon,
+  Upload as ImportIcon,
 } from "@mui/icons-material";
 
 import { DFDStats, DFDTabProps } from "../models/dfd-types";
@@ -102,6 +104,14 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     await autoNumberLabels();
   };
 
+  const handleExport = async () => {
+    // await autoNumberLabels();
+  };
+
+  const handleImport = async () => {
+    // await autoNumberLabels();
+  };
+
   const handleProceed = () => {
     if (isDirty) {
       return;
@@ -139,6 +149,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onExportImage={handleExportImage}
         onRefresh={validate}
         onAutoNumber={handleAutoNumber}
+        onExport={handleExport}
+        onImport={handleImport}
         onSave={handleSave}
         onProceed={handleProceed}
       />
@@ -196,6 +208,8 @@ interface DFDToolbarProps {
   onExportImage: () => void;
   onRefresh: () => void;
   onAutoNumber: () => void;
+  onExport: () => void;
+  onImport: () => void;
   onSave: () => void;
   onProceed: () => void;
 }
@@ -209,6 +223,8 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
   onExportImage,
   onRefresh,
   onAutoNumber,
+  onExport,
+  onImport,
   onSave,
   onProceed,
 }) => {
@@ -277,6 +293,22 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
       >
         <IconButton size="small" onClick={onAutoNumber}>
           <AutoNumberIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      {/* Export */}
+      <Tooltip title={t("common.export", { defaultValue: "Export" })}>
+        <span>
+          <IconButton onClick={onExport} size="small">
+            <ExportIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+
+      {/* Import */}
+      <Tooltip title={t("common.import", { defaultValue: "Import" })}>
+        <IconButton onClick={onImport} size="small">
+          <ImportIcon />
         </IconButton>
       </Tooltip>
 
