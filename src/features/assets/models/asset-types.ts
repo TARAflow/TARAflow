@@ -286,7 +286,7 @@ export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
     "operational",
     "safety",
   ],
-  impactScale: "5-level",
+  impactScale: "4-level",
   calculationMethod: "conservative",
 };
 

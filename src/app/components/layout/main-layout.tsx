@@ -35,11 +35,14 @@ import { PHASES } from "shared";
 import { getPhaseStatusIcon, getPhaseStatusColor } from "shared";
 import type { GeneralTabData } from "features/overview";
 import { AttackTreeTab } from "features/attacktree";
-import { DocTab } from "features/documentation";
+import { DocTab, DocUpdateResult } from "features/documentation";
+import { transformProjectToDocData } from "app/services/doc-transform";
+import { useTranslation } from "react-i18next";
 
 // ==================== MAIN LAYOUT ====================
 
 export const MainLayout: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState(0);
@@ -573,6 +576,20 @@ export const MainLayout: React.FC = () => {
     return references;
   };
 
+  // ==================== Documentation HANDLER ====================
+  const handleDocUpdate = useCallback(
+    (updates: DocUpdateResult) => {
+      if (!activeProject) return;
+      updateProject({
+        ...activeProject,
+        documentation: updates.documentation,
+        phaseStatus: updates.phaseStatus,
+        lastModified: updates.lastModified,
+      });
+    },
+    [activeProject, updateProject]
+  );
+
   // ==================== NEW/IMPORT HANDLERS ====================
 
   const handleNewProject = () => {
@@ -713,8 +730,14 @@ export const MainLayout: React.FC = () => {
                 <AttackTreeTab /*project={activeProject} onUpdate={updateProject}*/
                 />
               )}
-              {activePhase === 6 && (
-                <DocTab /*project={activeProject} onUpdate={updateProject}*/ />
+              {activePhase === 6 && activeProject && (
+                <DocTab
+                  project={transformProjectToDocData(
+                    activeProject,
+                    i18n.language === "de" ? "de" : "en"
+                  )}
+                  onUpdate={handleDocUpdate}
+                />
               )}
             </div>
           </>

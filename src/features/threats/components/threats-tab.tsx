@@ -5,6 +5,7 @@
 // - Toggle between STRIDE per-element and per-interaction
 // - Both method data stored separately to allow switching
 // - SYNC STATUS: Warns when DFD and threats are out of sync
+// - Toggleable filters in Threat Table (search, STRIDE category)
 // - Follows Clean Architecture - only depends on shared types
 
 import React, {
@@ -46,6 +47,7 @@ import {
   AccountTree as PerInteractionIcon,
   Sync as SyncIcon,
   Error as ErrorIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 
 import {
@@ -126,6 +128,17 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const [showDFDPreview, setShowDFDPreview] = useState(true);
   const [dfdPanelHeight, setDfdPanelHeight] = useState(DEFAULT_DFD_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Filter state with localStorage persistence
+  const [showFilters, setShowFilters] = useState(() => {
+    const saved = localStorage.getItem("threats-tab-showFilters");
+    return saved === "true";
+  });
+
+  // Persist showFilters to localStorage
+  useEffect(() => {
+    localStorage.setItem("threats-tab-showFilters", String(showFilters));
+  }, [showFilters]);
 
   // Sync status
   const [syncStatus, setSyncStatus] = useState<ThreatSyncStatus | null>(null);
@@ -753,7 +766,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         hasDFD={hasDFD}
         syncStatus={syncStatus}
         showDFDPreview={showDFDPreview}
+        showFilters={showFilters}
         onToggleDFDPreview={() => setShowDFDPreview(!showDFDPreview)}
+        onToggleFilters={() => setShowFilters(!showFilters)}
         onMethodChange={handleMethodChange}
         onGenerate={handleGenerateClick}
         onSync={handleSyncClick}
@@ -895,6 +910,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             <ThreatTable
               threatTables={activeTables}
               configuration={threatData.configuration}
+              showFilters={showFilters}
               onEdit={handleEditThreat}
               onDelete={handleDeleteThreat}
               onAdd={handleAddThreat}
@@ -1007,11 +1023,11 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       {showImportConfirm && (
         <ConfirmDialog
           title={t("tabs.threats.importConfirmTitle", {
-            defaultValue: "Import Threats?",
+            defaultValue: "Import Threats",
           })}
           message={t("tabs.threats.importConfirmMessage", {
             defaultValue:
-              "This will overwrite all existing threats with the imported data. This action cannot be undone.",
+              "This will replace all existing threats. Are you sure?",
           })}
           variant="warning"
           confirmLabel={t("common.import", { defaultValue: "Import" })}
@@ -1029,11 +1045,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           })}
           message={t("tabs.threats.deleteAllConfirmMessage", {
             defaultValue:
-              "This will permanently delete all threats for the current method ({{method}}). This action cannot be undone.",
-            method:
-              activeMethod === "per-element"
-                ? "STRIDE per Element"
-                : "STRIDE per Interaction",
+              "This will delete all threats for the current method. This action cannot be undone.",
           })}
           variant="danger"
           confirmLabel={t("common.deleteAll", { defaultValue: "Delete All" })}
@@ -1059,7 +1071,9 @@ interface ThreatsToolbarProps {
   hasDFD: boolean;
   syncStatus: ThreatSyncStatus | null;
   showDFDPreview: boolean;
+  showFilters: boolean;
   onToggleDFDPreview: () => void;
+  onToggleFilters: () => void;
   onMethodChange: (
     event: React.MouseEvent<HTMLElement>,
     method: StrideMethod | null
@@ -1084,7 +1098,9 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
   hasDFD,
   syncStatus,
   showDFDPreview,
+  showFilters,
   onToggleDFDPreview,
+  onToggleFilters,
   onMethodChange,
   onGenerate,
   onSync,
@@ -1249,6 +1265,23 @@ const ThreatsToolbar: React.FC<ThreatsToolbarProps> = ({
       <Tooltip title={t("common.import", { defaultValue: "Import" })}>
         <IconButton onClick={onImport} size="small">
           <ImportIcon />
+        </IconButton>
+      </Tooltip>
+
+      {/* Filters Toggle */}
+      <Tooltip
+        title={
+          showFilters
+            ? t("tabs.threats.hideFilters", { defaultValue: "Hide Filters" })
+            : t("tabs.threats.showFilters", { defaultValue: "Show Filters" })
+        }
+      >
+        <IconButton
+          onClick={onToggleFilters}
+          size="small"
+          color={showFilters ? "primary" : "default"}
+        >
+          <SearchIcon />
         </IconButton>
       </Tooltip>
 

@@ -2,6 +2,9 @@
 // Displays threats grouped by Trust Boundary and Element (per-element)
 // or by Trust Boundary and DataFlow (per-interaction)
 // Uses nested Accordions for better organization
+// Features:
+// - Collapsible filter bar (STRIDE category, search text)
+// - Grouped by Trust Boundary with nested Element/DataFlow accordions
 //
 // LOCALIZATION:
 // For per-interaction threats, uses getEffectiveThreatDescription()
@@ -31,6 +34,7 @@ import {
   FormControl,
   InputLabel,
   IconButton,
+  Collapse,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -77,6 +81,7 @@ export interface AddThreatInfo {
 interface ThreatTableProps {
   threatTables: ThreatTableType[];
   configuration: ThreatConfiguration;
+  showFilters?: boolean;
   onEdit: (tableIndex: number, threat: Threat) => void;
   onDelete: (tableIndex: number, threatId: string) => void;
   onAdd?: (info: AddThreatInfo) => void;
@@ -151,6 +156,7 @@ const formatDisplayId = (id: string): string => {
 export const ThreatTable: React.FC<ThreatTableProps> = ({
   threatTables,
   configuration,
+  showFilters = false,
   onEdit,
   onDelete,
   onAdd,
@@ -717,61 +723,65 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
     <Box
       sx={{ display: "flex", flexDirection: "column", height: "100%", gap: 2 }}
     >
-      {/* Filter Bar */}
-      <Box sx={{ display: "flex", gap: 2, alignItems: "center", px: 1 }}>
-        <FilterIcon color="action" />
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>STRIDE</InputLabel>
-          <Select
-            value={strideFilter}
-            label="STRIDE"
-            onChange={(e) =>
-              setStrideFilter(e.target.value as StrideCategory | "")
-            }
-          >
-            <MenuItem value="">
-              <em>{t("common.all", { defaultValue: "All" })}</em>
-            </MenuItem>
-            {(["S", "T", "R", "I", "D", "E"] as StrideCategory[]).map((cat) => {
-              const def = STRIDE_DEFINITIONS.find((s) => s.type === cat);
-              return (
-                <MenuItem key={cat} value={cat}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip
-                      label={cat}
-                      size="small"
-                      sx={{
-                        backgroundColor: STRIDE_COLORS[cat],
-                        color: "white",
-                        width: 28,
-                        height: 20,
-                      }}
-                    />
-                    <Typography variant="body2">
-                      {isGerman ? def?.nameDE : def?.name}
-                    </Typography>
-                  </Stack>
-                </MenuItem>
-              );
+      {/* Filter Bar - Collapsible */}
+      <Collapse in={showFilters}>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", px: 1 }}>
+          <FilterIcon color="action" />
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>STRIDE</InputLabel>
+            <Select
+              value={strideFilter}
+              label="STRIDE"
+              onChange={(e) =>
+                setStrideFilter(e.target.value as StrideCategory | "")
+              }
+            >
+              <MenuItem value="">
+                <em>{t("common.all", { defaultValue: "All" })}</em>
+              </MenuItem>
+              {(["S", "T", "R", "I", "D", "E"] as StrideCategory[]).map(
+                (cat) => {
+                  const def = STRIDE_DEFINITIONS.find((s) => s.type === cat);
+                  return (
+                    <MenuItem key={cat} value={cat}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          label={cat}
+                          size="small"
+                          sx={{
+                            backgroundColor: STRIDE_COLORS[cat],
+                            color: "white",
+                            width: 28,
+                            height: 20,
+                          }}
+                        />
+                        <Typography variant="body2">
+                          {isGerman ? def?.nameDE : def?.name}
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+                  );
+                }
+              )}
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            placeholder={t("tabs.threats.searchPlaceholder", {
+              defaultValue: "Search threats...",
             })}
-          </Select>
-        </FormControl>
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            sx={{ width: 200 }}
+          />
 
-        <TextField
-          size="small"
-          placeholder={t("tabs.threats.searchPlaceholder", {
-            defaultValue: "Search threats...",
-          })}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          sx={{ width: 200 }}
-        />
-
-        <Typography variant="body2" color="text.secondary">
-          {totalFilteredThreats}{" "}
-          {t("tabs.threats.threatsFound", { defaultValue: "threats found" })}
-        </Typography>
-      </Box>
+          <Typography variant="body2" color="text.secondary">
+            {totalFilteredThreats}{" "}
+            {t("tabs.threats.threatsFound", { defaultValue: "threats found" })}
+          </Typography>
+        </Box>
+      </Collapse>
 
       {/* Accordion List */}
       <Box sx={{ flexGrow: 1, overflow: "auto" }}>

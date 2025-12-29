@@ -7,6 +7,7 @@
 // - Configurable assessment methods (Simple/Complex)
 // - MoSCoW prioritization with Won't-Risk filtering
 // - Status-based completion tracking (open → complete)
+// - UI state persisted to localStorage (DFD preview, view mode, etc.)
 // - Follows Clean Architecture - only depends on shared types
 
 import React, {
@@ -41,7 +42,8 @@ import {
   Warning as WarningIcon,
   Download as ExportIcon,
   Upload as ImportIcon,
-  Image as DFDIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
   GridOn as MatrixIcon,
   TableChart as TableIcon,
   GridView as PerElementIcon,
@@ -114,15 +116,51 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     ensureValidRiskData(project.risks)
   );
 
-  // UI state
+  // UI state with localStorage persistence
   const [isDirty, setIsDirty] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showDfdPreview, setShowDfdPreview] = useState(false);
-  const [mainView, setMainView] = useState<MainView>("table");
-  const [topPanelHeight, setTopPanelHeight] = useState(DEFAULT_TOP_HEIGHT);
+  const [showDfdPreview, setShowDfdPreview] = useState(() => {
+    const saved = localStorage.getItem("risks-tab-showDfdPreview");
+    return saved === "true";
+  });
+  const [mainView, setMainView] = useState<MainView>(() => {
+    const saved = localStorage.getItem("risks-tab-mainView");
+    return saved === "table" || saved === "matrix" ? saved : "table";
+  });
+  const [topPanelHeight, setTopPanelHeight] = useState(() => {
+    const saved = localStorage.getItem("risks-tab-topPanelHeight");
+    return saved ? parseInt(saved, 10) : DEFAULT_TOP_HEIGHT;
+  });
   const [isResizing, setIsResizing] = useState(false);
-  const [showWontTable, setShowWontTable] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showWontTable, setShowWontTable] = useState(() => {
+    const saved = localStorage.getItem("risks-tab-showWontTable");
+    return saved === "true";
+  });
+  const [showFilters, setShowFilters] = useState(() => {
+    const saved = localStorage.getItem("risks-tab-showFilters");
+    return saved === "true";
+  });
+
+  // Persist UI state to localStorage
+  useEffect(() => {
+    localStorage.setItem("risks-tab-showDfdPreview", String(showDfdPreview));
+  }, [showDfdPreview]);
+
+  useEffect(() => {
+    localStorage.setItem("risks-tab-mainView", mainView);
+  }, [mainView]);
+
+  useEffect(() => {
+    localStorage.setItem("risks-tab-topPanelHeight", String(topPanelHeight));
+  }, [topPanelHeight]);
+
+  useEffect(() => {
+    localStorage.setItem("risks-tab-showWontTable", String(showWontTable));
+  }, [showWontTable]);
+
+  useEffect(() => {
+    localStorage.setItem("risks-tab-showFilters", String(showFilters));
+  }, [showFilters]);
 
   // Dialog state
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
@@ -1032,10 +1070,10 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
       <Tooltip
         title={
           showDfdPreview
-            ? t("common.hideDFD", {
+            ? t("tabs.risks.hideDfdPreview", {
                 defaultValue: "Hide DFD Preview",
               })
-            : t("common.showDFD", {
+            : t("tabs.risks.showDfdPreview", {
                 defaultValue: "Show DFD Preview",
               })
         }
@@ -1045,7 +1083,11 @@ const RisksToolbar: React.FC<RisksToolbarProps> = ({
           size="small"
           color={showDfdPreview ? "primary" : "default"}
         >
-          <DFDIcon fontSize="small" />
+          {showDfdPreview ? (
+            <ExpandLessIcon fontSize="small" />
+          ) : (
+            <ExpandMoreIcon fontSize="small" />
+          )}
         </IconButton>
       </Tooltip>
 
