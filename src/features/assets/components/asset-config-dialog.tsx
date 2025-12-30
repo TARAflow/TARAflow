@@ -1,7 +1,7 @@
 // ==================== ASSET CONFIG DIALOG ====================
-// Configuration dialog for impact criteria, scale, and calculation method
+// Configuration dialog for impact criteria, scale, calculation method, and rounding
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -25,12 +25,17 @@ import {
   Divider,
   Alert,
   Chip,
+  Stack,
+  Tooltip,
+  Grid,
 } from "@mui/material";
+import { Info as InfoIcon } from "@mui/icons-material";
 
 import {
   AssetConfiguration,
   ImpactScaleType,
   ImpactCalculationMethod,
+  ImpactRoundingMethod,
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
 } from "../models/asset-types";
@@ -40,7 +45,8 @@ import {
 interface AssetConfigDialogProps {
   open: boolean;
   configuration: AssetConfiguration;
-  onSave: (config: AssetConfiguration) => void;
+  onChange: (config: AssetConfiguration) => void; // NEU: Live-Updates
+  onSave: () => void; // Kein Parameter mehr
   onClose: () => void;
 }
 
@@ -54,44 +60,55 @@ const RECOMMENDED_MAX_CRITERIA = 6;
 export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
   open,
   configuration,
+  onChange,
   onSave,
   onClose,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
 
-  // Local state
-  const [selectedCriteria, setSelectedCriteria] = useState<string[]>(
-    configuration.impactCriteria
-  );
-  const [impactScale, setImpactScale] = useState<ImpactScaleType>(
-    configuration.impactScale
-  );
-  const [calculationMethod, setCalculationMethod] =
-    useState<ImpactCalculationMethod>(configuration.calculationMethod);
-
   // ==================== HANDLERS ====================
 
   const handleToggleCriterion = (criterionId: string) => {
-    setSelectedCriteria((prev) => {
-      if (prev.includes(criterionId)) {
-        // Remove (only if above minimum)
-        if (prev.length > MIN_CRITERIA) {
-          return prev.filter((id) => id !== criterionId);
-        }
-        return prev;
+    const currentCriteria = configuration.impactCriteria;
+
+    let newCriteria: string[];
+    if (currentCriteria.includes(criterionId)) {
+      // Remove (only if above minimum)
+      if (currentCriteria.length > MIN_CRITERIA) {
+        newCriteria = currentCriteria.filter((id) => id !== criterionId);
       } else {
-        // Add (no hard maximum, but show warning)
-        return [...prev, criterionId];
+        return; // Don't allow removal below minimum
       }
+    } else {
+      // Add
+      newCriteria = [...currentCriteria, criterionId];
+    }
+
+    onChange({
+      ...configuration,
+      impactCriteria: newCriteria,
     });
   };
 
-  const handleSave = () => {
-    onSave({
-      impactCriteria: selectedCriteria,
-      impactScale,
-      calculationMethod,
+  const handleScaleChange = (scale: ImpactScaleType) => {
+    onChange({
+      ...configuration,
+      impactScale: scale,
+    });
+  };
+
+  const handleCalculationMethodChange = (method: ImpactCalculationMethod) => {
+    onChange({
+      ...configuration,
+      calculationMethod: method,
+    });
+  };
+
+  const handleRoundingMethodChange = (method: ImpactRoundingMethod) => {
+    onChange({
+      ...configuration,
+      roundingMethod: method,
     });
   };
 
@@ -104,17 +121,83 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
     (c) => c.category === "physical"
   );
 
-  const scale = IMPACT_SCALES[impactScale];
+  const scale = IMPACT_SCALES[configuration.impactScale];
 
   // Criteria count for indicator
-  const criteriaCount = selectedCriteria.length;
+  const criteriaCount = configuration.impactCriteria.length;
   const isOverRecommended = criteriaCount > RECOMMENDED_MAX_CRITERIA;
   const isUnderMinimum = criteriaCount < MIN_CRITERIA;
+
+  // ==================== RENDER CRITERIA LIST ====================
+
+  const renderCriteriaList = (
+    criteria: typeof PREDEFINED_IMPACT_CRITERIA,
+    title: string
+  ) => (
+    <Box sx={{ flex: 1, minWidth: 280 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{ mb: 1, color: "text.secondary", fontWeight: 600 }}
+      >
+        {title}
+      </Typography>
+      <List dense disablePadding sx={{ bgcolor: "grey.50", borderRadius: 1 }}>
+        {criteria.map((criterion) => {
+          const isSelected = configuration.impactCriteria.includes(
+            criterion.id
+          );
+          const canDeselect =
+            configuration.impactCriteria.length > MIN_CRITERIA;
+
+          return (
+            <ListItem key={criterion.id} disablePadding>
+              <ListItemButton
+                onClick={() => handleToggleCriterion(criterion.id)}
+                disabled={isSelected && !canDeselect}
+                dense
+                sx={{
+                  borderRadius: 1,
+                  my: 0.25,
+                  mx: 0.5,
+                  ...(isSelected && {
+                    bgcolor: "primary.50",
+                    "&:hover": { bgcolor: "primary.100" },
+                  }),
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Checkbox
+                    edge="start"
+                    checked={isSelected}
+                    tabIndex={-1}
+                    disableRipple
+                    disabled={isSelected && !canDeselect}
+                    size="small"
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={isGerman ? criterion.nameDE : criterion.name}
+                  secondary={
+                    isGerman ? criterion.descriptionDE : criterion.description
+                  }
+                  primaryTypographyProps={{ variant: "body2" }}
+                  secondaryTypographyProps={{
+                    variant: "caption",
+                    sx: { lineHeight: 1.3 },
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </Box>
+  );
 
   // ==================== RENDER ====================
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         {t("tabs.assets.config.title", {
           defaultValue: "Asset Impact Configuration",
@@ -140,9 +223,9 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
               </FormLabel>
               <RadioGroup
                 row
-                value={impactScale}
+                value={configuration.impactScale}
                 onChange={(e) =>
-                  setImpactScale(e.target.value as ImpactScaleType)
+                  handleScaleChange(e.target.value as ImpactScaleType)
                 }
               >
                 <FormControlLabel
@@ -174,7 +257,9 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
               {scale.levels.map((level) => (
                 <Chip
                   key={level.value}
-                  label={isGerman ? level.labelDE : level.label}
+                  label={`${level.value}: ${
+                    isGerman ? level.labelDE : level.label
+                  }`}
                   size="small"
                   sx={{
                     backgroundColor: getLevelColor(level.color),
@@ -187,74 +272,231 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
 
           <Divider />
 
-          {/* Calculation Method */}
-          <Box>
-            <FormControl component="fieldset">
-              <FormLabel component="legend" sx={{ mb: 1.5 }}>
-                {t("tabs.assets.config.calculationMethod", {
-                  defaultValue: "Overall Impact Calculation",
-                })}
-              </FormLabel>
-              <RadioGroup
-                value={calculationMethod}
-                onChange={(e) =>
-                  setCalculationMethod(
-                    e.target.value as ImpactCalculationMethod
-                  )
-                }
-              >
-                <FormControlLabel
-                  value="conservative"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Typography variant="body2">
-                        {t("tabs.assets.config.conservative", {
-                          defaultValue: "Conservative (Maximum)",
-                        })}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {t("tabs.assets.config.conservativeDesc", {
-                          defaultValue:
-                            "Uses the highest impact value across all criteria",
-                        })}
-                      </Typography>
-                    </Box>
+          {/* Calculation + Rounding Method (Side by Side) */}
+          <Grid container spacing={3}>
+            {/* Overall Impact Calculation */}
+            <Grid item xs={12} md={6}>
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel component="legend" sx={{ mb: 1.5 }}>
+                  {t("tabs.assets.config.calculationMethod", {
+                    defaultValue: "Overall Impact Calculation",
+                  })}
+                </FormLabel>
+                <RadioGroup
+                  value={configuration.calculationMethod}
+                  onChange={(e) =>
+                    handleCalculationMethodChange(
+                      e.target.value as ImpactCalculationMethod
+                    )
                   }
-                />
-                <FormControlLabel
-                  value="average"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Typography variant="body2">
-                        {t("tabs.assets.config.average", {
-                          defaultValue: "Average (Arithmetic Mean)",
-                        })}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {t("tabs.assets.config.averageDesc", {
-                          defaultValue:
-                            "Calculates the average of all impact values",
-                        })}
-                      </Typography>
-                    </Box>
+                >
+                  <FormControlLabel
+                    value="conservative"
+                    control={<Radio />}
+                    label={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2">
+                          {t("tabs.assets.config.conservative", {
+                            defaultValue: "Conservative (Maximum)",
+                          })}
+                        </Typography>
+                        <Tooltip
+                          title={
+                            <Box sx={{ p: 0.5 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                gutterBottom
+                              >
+                                {t("tabs.assets.config.conservative", {
+                                  defaultValue: "Conservative (Maximum)",
+                                })}
+                              </Typography>
+                              <Typography variant="body2">
+                                {t("tabs.assets.config.conservativeDesc", {
+                                  defaultValue:
+                                    "Uses the highest impact value across all criteria",
+                                })}
+                              </Typography>
+                            </Box>
+                          }
+                          arrow
+                          placement="right"
+                        >
+                          <InfoIcon
+                            fontSize="small"
+                            color="action"
+                            sx={{ cursor: "help" }}
+                          />
+                        </Tooltip>
+                      </Stack>
+                    }
+                  />
+
+                  <FormControlLabel
+                    value="average"
+                    control={<Radio />}
+                    label={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2">
+                          {t("tabs.assets.config.average", {
+                            defaultValue: "Average (Arithmetic Mean)",
+                          })}
+                        </Typography>
+                        <Tooltip
+                          title={
+                            <Box sx={{ p: 0.5 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                gutterBottom
+                              >
+                                {t("tabs.assets.config.average", {
+                                  defaultValue: "Average (Arithmetic Mean)",
+                                })}
+                              </Typography>
+                              <Typography variant="body2">
+                                {t("tabs.assets.config.averageDesc", {
+                                  defaultValue:
+                                    "Calculates the average of all impact values",
+                                })}
+                              </Typography>
+                            </Box>
+                          }
+                          arrow
+                          placement="right"
+                        >
+                          <InfoIcon
+                            fontSize="small"
+                            color="action"
+                            sx={{ cursor: "help" }}
+                          />
+                        </Tooltip>
+                      </Stack>
+                    }
+                  />
+                </RadioGroup>
+              </FormControl>
+            </Grid>
+
+            {/* Level Threshold Calculation */}
+            <Grid item xs={12} md={6}>
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel sx={{ mb: 1.5 }}>
+                  {t("tabs.assets.config.roundingMethod", {
+                    defaultValue: "Level Threshold Calculation",
+                  })}
+                </FormLabel>
+                <RadioGroup
+                  value={configuration.roundingMethod}
+                  onChange={(e) =>
+                    handleRoundingMethodChange(
+                      e.target.value as ImpactRoundingMethod
+                    )
                   }
-                />
-              </RadioGroup>
-            </FormControl>
-          </Box>
+                >
+                  <FormControlLabel
+                    value="round"
+                    control={<Radio />}
+                    label={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2">
+                          {t("tabs.assets.config.roundingRound", {
+                            defaultValue: "Standard",
+                          })}
+                        </Typography>
+                        <Tooltip
+                          title={
+                            <Box sx={{ p: 0.5 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                gutterBottom
+                              >
+                                {t("tabs.assets.config.roundingRoundTitle", {
+                                  defaultValue:
+                                    "Standard Rounding (Math.round)",
+                                })}
+                              </Typography>
+                              <Typography variant="body2">
+                                {t("tabs.assets.config.roundingRoundDesc", {
+                                  defaultValue:
+                                    "Symmetric thresholds at .5 boundaries",
+                                })}
+                              </Typography>
+                            </Box>
+                          }
+                          arrow
+                          placement="right"
+                        >
+                          <InfoIcon
+                            fontSize="small"
+                            color="action"
+                            sx={{ cursor: "help" }}
+                          />
+                        </Tooltip>
+                      </Stack>
+                    }
+                  />
+
+                  <FormControlLabel
+                    value="ceil"
+                    control={<Radio />}
+                    label={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2">
+                          {t("tabs.assets.config.roundingCeil", {
+                            defaultValue: "Conservative",
+                          })}
+                        </Typography>
+                        <Tooltip
+                          title={
+                            <Box sx={{ p: 0.5 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                gutterBottom
+                              >
+                                {t("tabs.assets.config.roundingCeilTitle", {
+                                  defaultValue:
+                                    "Conservative Rounding (Math.ceil)",
+                                })}
+                              </Typography>
+                              <Typography variant="body2">
+                                {t("tabs.assets.config.roundingCeilDesc", {
+                                  defaultValue:
+                                    "Always rounds up to higher impact level",
+                                })}
+                              </Typography>
+                            </Box>
+                          }
+                          arrow
+                          placement="right"
+                        >
+                          <InfoIcon
+                            fontSize="small"
+                            color="action"
+                            sx={{ cursor: "help" }}
+                          />
+                        </Tooltip>
+                      </Stack>
+                    }
+                  />
+                </RadioGroup>
+              </FormControl>
+            </Grid>
+          </Grid>
 
           <Divider />
 
-          {/* Impact Criteria Selection */}
+          {/* Impact Criteria Selection - Side by Side */}
           <Box>
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                mb: 1,
+                mb: 2,
               }}
             >
               <FormLabel component="legend">
@@ -286,97 +528,25 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
               </Alert>
             )}
 
-            {/* Business Criteria */}
-            <Typography
-              variant="subtitle2"
-              sx={{ mt: 1, mb: 0.5, color: "text.secondary" }}
-            >
-              {t("tabs.assets.config.businessCriteria", {
-                defaultValue: "Business / Organizational",
-              })}
-            </Typography>
-            <List dense disablePadding>
-              {businessCriteria.map((criterion) => {
-                const isSelected = selectedCriteria.includes(criterion.id);
-                const canDeselect = selectedCriteria.length > MIN_CRITERIA;
-
-                return (
-                  <ListItem key={criterion.id} disablePadding>
-                    <ListItemButton
-                      onClick={() => handleToggleCriterion(criterion.id)}
-                      disabled={isSelected && !canDeselect}
-                      dense
-                    >
-                      <ListItemIcon sx={{ minWidth: 40 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={isSelected}
-                          tabIndex={-1}
-                          disableRipple
-                          disabled={isSelected && !canDeselect}
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={isGerman ? criterion.nameDE : criterion.name}
-                        secondary={
-                          isGerman
-                            ? criterion.descriptionDE
-                            : criterion.description
-                        }
-                        primaryTypographyProps={{ variant: "body2" }}
-                        secondaryTypographyProps={{ variant: "caption" }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-            </List>
-
-            {/* Physical Criteria */}
-            <Typography
-              variant="subtitle2"
-              sx={{ mt: 2, mb: 0.5, color: "text.secondary" }}
-            >
-              {t("tabs.assets.config.physicalCriteria", {
-                defaultValue: "Physical",
-              })}
-            </Typography>
-            <List dense disablePadding>
-              {physicalCriteria.map((criterion) => {
-                const isSelected = selectedCriteria.includes(criterion.id);
-                const canDeselect = selectedCriteria.length > MIN_CRITERIA;
-
-                return (
-                  <ListItem key={criterion.id} disablePadding>
-                    <ListItemButton
-                      onClick={() => handleToggleCriterion(criterion.id)}
-                      disabled={isSelected && !canDeselect}
-                      dense
-                    >
-                      <ListItemIcon sx={{ minWidth: 40 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={isSelected}
-                          tabIndex={-1}
-                          disableRipple
-                          disabled={isSelected && !canDeselect}
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={isGerman ? criterion.nameDE : criterion.name}
-                        secondary={
-                          isGerman
-                            ? criterion.descriptionDE
-                            : criterion.description
-                        }
-                        primaryTypographyProps={{ variant: "body2" }}
-                        secondaryTypographyProps={{ variant: "caption" }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-            </List>
+            {/* Two-column layout for Business and Physical criteria */}
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                {renderCriteriaList(
+                  businessCriteria,
+                  t("tabs.assets.config.businessCriteria", {
+                    defaultValue: "Business / Organizational",
+                  })
+                )}
+              </Grid>
+              <Grid item xs={12} md={6}>
+                {renderCriteriaList(
+                  physicalCriteria,
+                  t("tabs.assets.config.physicalCriteria", {
+                    defaultValue: "Physical",
+                  })
+                )}
+              </Grid>
+            </Grid>
           </Box>
         </Box>
       </DialogContent>
@@ -386,7 +556,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
           {t("common.cancel", { defaultValue: "Cancel" })}
         </Button>
         <Button
-          onClick={handleSave}
+          onClick={onSave}
           variant="contained"
           disabled={criteriaCount < MIN_CRITERIA}
         >

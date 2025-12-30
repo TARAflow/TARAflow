@@ -5,6 +5,7 @@
 // - Configurable impact criteria
 // - CIANAAA security goals with templates
 // - DFD synchronization
+// - Export/Import functionality
 
 import React, {
   useState,
@@ -41,15 +42,25 @@ import {
   Asset,
   AssetData,
   AssetTabProps,
-  AssetUpdateResult,
+  AssetConfiguration,
   AssetValidation,
+  AssetExportData,
+  AssetExportOptions,
+  AssetImportOptions,
   createDefaultAssetData,
+  renumberAssets,
+  migrateAssetConfiguration,
+  calculateOverallImpact,
 } from "../models/asset-types";
 import { assetService } from "../services/asset-service";
 import { AssetTable } from "./asset-table";
 import { AssetDialog } from "./asset-dialog";
 import { AssetConfigDialog } from "./asset-config-dialog";
 import { DFDPreviewPanel } from "./dfd-preview-panel";
+import {
+  AssetExportImportDialog,
+  ExportImportMode,
+} from "./asset-export-import-dialog";
 
 // ==================== CONSTANTS ====================
 
@@ -70,7 +81,12 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Asset data (local working copy)
   const [assetData, setAssetData] = useState<AssetData>(() => {
-    return project.assets ?? createDefaultAssetData();
+    const data = project.assets ?? createDefaultAssetData();
+    // Migrate configuration if needed (for older projects)
+    return {
+      ...data,
+      configuration: migrateAssetConfiguration(data.configuration),
+    };
   });
 
   // UI state
@@ -83,6 +99,10 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [showAssetDialog, setShowAssetDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [tempConfig, setTempConfig] = useState<AssetConfiguration | null>(null);
+  const [showExportImportDialog, setShowExportImportDialog] = useState(false);
+  const [exportImportMode, setExportImportMode] =
+    useState<ExportImportMode>("export");
 
   // Validation
   const [validation, setValidation] = useState<AssetValidation | null>(
@@ -108,18 +128,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // Sync from project when it changes
   useEffect(() => {
     if (project.assets) {
-      setAssetData(project.assets);
-      setValidation(project.assets.validation ?? null);
+      const data = {
+        ...project.assets,
+        configuration: migrateAssetConfiguration(project.assets.configuration),
+      };
+      setAssetData(data);
+      setValidation(data.validation ?? null);
     }
   }, [project.assets]);
-
-  // Auto-sync from DFD on mount if no assets
-  useEffect(() => {
-    if (assetData.assets.length === 0 && project.dfdXml) {
-      handleSyncFromDFD();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Auto-save when dirty (debounced)
   useEffect(() => {
@@ -143,6 +159,48 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
     return () => clearTimeout(timeoutId);
   }, [isDirty, assetData, project, onUpdate]);
+
+  // Recalculate overall impact when calculation or rounding method changes
+  useEffect(() => {
+    const { calculationMethod, roundingMethod } = assetData.configuration;
+
+    const updatedAssets = assetData.assets.map((asset) => {
+      const overallImpact = calculateOverallImpact(
+        asset.impactRatings,
+        calculationMethod,
+        roundingMethod
+      );
+
+      if (overallImpact === asset.overallImpact) {
+        return asset;
+      }
+
+      return {
+        ...asset,
+        overallImpact,
+        lastModified: new Date().toISOString(),
+      };
+    });
+
+    // Only update if something actually changed
+    const changed = updatedAssets.some(
+      (a, i) => a.overallImpact !== assetData.assets[i].overallImpact
+    );
+
+    if (changed) {
+      setAssetData((prev) => ({
+        ...prev,
+        assets: updatedAssets,
+      }));
+      setValidation(
+        assetService.validate({ ...assetData, assets: updatedAssets })
+      );
+      markDirty();
+    }
+  }, [
+    assetData.configuration.calculationMethod,
+    assetData.configuration.roundingMethod,
+  ]);
 
   // ==================== DIRTY TRACKING ====================
 
@@ -202,27 +260,164 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // ==================== CONFIG HANDLERS ====================
 
   const handleOpenConfig = useCallback(() => {
+    setTempConfig({ ...assetData.configuration });
     setShowConfigDialog(true);
+  }, [assetData.configuration]);
+
+  const handleConfigChange = useCallback((config: AssetConfiguration) => {
+    setTempConfig(config);
   }, []);
 
+  const handleSaveConfig = useCallback(() => {
+    if (!tempConfig) return;
+
+    const updatedData = assetService.updateConfiguration(assetData, tempConfig);
+
+    // Update assets to match new configuration
+    updatedData.assets = updatedData.assets.map((asset) => {
+      // Ensure all criteria from new config are present
+      const updatedRatings = tempConfig.impactCriteria.map((criterionId) => {
+        const existingRating = asset.impactRatings.find(
+          (r) => r.criterionId === criterionId
+        );
+        return existingRating || { criterionId, value: 0 };
+      });
+
+      // Recalculate overall impact with new method
+      const overallImpact = calculateOverallImpact(
+        updatedRatings,
+        tempConfig.calculationMethod,
+        tempConfig.roundingMethod
+      );
+
+      return {
+        ...asset,
+        impactRatings: updatedRatings,
+        overallImpact,
+        lastModified: new Date().toISOString(),
+      };
+    });
+
+    setAssetData(updatedData);
+    setValidation(assetService.validate(updatedData));
+    setShowConfigDialog(false);
+    setTempConfig(null);
+    markDirty();
+  }, [tempConfig, assetData, markDirty]);
+
+  const handleCloseConfig = useCallback(() => {
+    // Verwerfe Änderungen
+    setTempConfig(null);
+    setShowConfigDialog(false);
+  }, []);
+
+  // ==================== EXPORT/IMPORT HANDLERS ====================
+
   const handleExport = useCallback(() => {
-    //setShowConfigDialog(true);
+    setExportImportMode("export");
+    setShowExportImportDialog(true);
   }, []);
 
   const handleImport = useCallback(() => {
-    //setShowConfigDialog(true);
+    setExportImportMode("import");
+    setShowExportImportDialog(true);
   }, []);
 
-  const handleSaveConfig = useCallback(
-    (config: AssetData["configuration"]) => {
-      const updatedData = assetService.updateConfiguration(assetData, config);
+  const handleExportComplete = useCallback((options: AssetExportOptions) => {
+    // Export is handled in the dialog, just log completion
+    console.log("Export completed with options:", options);
+  }, []);
+
+  const handleImportComplete = useCallback(
+    (data: AssetExportData, options: AssetImportOptions) => {
+      let updatedData = { ...assetData };
+
+      // Import configuration if selected
+      if (options.importConfiguration && data.configuration) {
+        const migratedConfig = migrateAssetConfiguration(data.configuration);
+        updatedData = assetService.updateConfiguration(
+          updatedData,
+          migratedConfig
+        );
+
+        // WICHTIG: Auch die Assets müssen aktualisiert werden, wenn sich die Config ändert
+        // Besonders wenn sich impactCriteria geändert haben
+        updatedData.assets = updatedData.assets.map((asset) => {
+          // Stelle sicher, dass alle Kriterien aus der neuen Config vorhanden sind
+          const updatedRatings = migratedConfig.impactCriteria.map(
+            (criterionId) => {
+              const existingRating = asset.impactRatings.find(
+                (r) => r.criterionId === criterionId
+              );
+              return existingRating || { criterionId, value: 0 };
+            }
+          );
+
+          // Berechne Overall Impact neu mit neuer Methode
+          const overallImpact = calculateOverallImpact(
+            updatedRatings,
+            migratedConfig.calculationMethod,
+            migratedConfig.roundingMethod
+          );
+
+          return {
+            ...asset,
+            impactRatings: updatedRatings,
+            overallImpact,
+            lastModified: new Date().toISOString(),
+          };
+        });
+
+        console.log("Configuration imported:", migratedConfig);
+      }
+
+      // Import assets if selected
+      if (options.importAssets && data.assets && data.assets.length > 0) {
+        if (options.mergeAssets) {
+          // Merge: update existing by ID, add new ones
+          const existingIds = new Set(updatedData.assets.map((a) => a.id));
+
+          data.assets.forEach((importedAsset) => {
+            if (existingIds.has(importedAsset.id)) {
+              // Update existing
+              updatedData = assetService.updateAsset(
+                updatedData,
+                importedAsset
+              );
+            } else {
+              // Add new
+              updatedData = assetService.addAsset(updatedData, importedAsset);
+            }
+          });
+
+          // Renumber to ensure consistency
+          updatedData = {
+            ...updatedData,
+            assets: renumberAssets(updatedData.assets),
+          };
+        } else {
+          // Replace: clear existing and add imported
+          updatedData = {
+            ...updatedData,
+            assets: renumberAssets(data.assets),
+            lastModified: new Date().toISOString(),
+          };
+        }
+      }
+
+      // Update State
       setAssetData(updatedData);
       setValidation(assetService.validate(updatedData));
-      setShowConfigDialog(false);
       markDirty();
+
+      console.log("Import completed. Updated data:", updatedData);
     },
     [assetData, markDirty]
   );
+
+  const handleCloseExportImportDialog = useCallback(() => {
+    setShowExportImportDialog(false);
+  }, []);
 
   // ==================== PROCEED ====================
 
@@ -247,6 +442,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     // Revalidate
     setValidation(assetService.validate(result.assetData));
   }, [project.dfdXml, assetData, markDirty]);
+
+  // Auto-sync from DFD on mount if no assets
+  useEffect(() => {
+    if (assetData.assets.length === 0 && project.dfdXml) {
+      handleSyncFromDFD();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ==================== SPLIT VIEW RESIZE ====================
 
@@ -291,35 +494,22 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       // Add listeners to document for better tracking
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-      // Prevent text selection while dragging
-      document.body.style.userSelect = "none";
-      document.body.style.cursor = "row-resize";
 
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.userSelect = "";
-        document.body.style.cursor = "";
       };
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  // ==================== COMPUTED VALUES ====================
-
-  const hasErrors = useMemo(
-    () => (validation?.errors.length ?? 0) > 0,
-    [validation]
-  );
-
-  const hasWarnings = useMemo(
-    () => (validation?.warnings.length ?? 0) > 0 || syncWarnings.length > 0,
-    [validation, syncWarnings]
-  );
+  // ==================== COMPUTED ====================
 
   const missingInDFD = useMemo(() => {
     if (!project.dfdXml) return [];
     return assetService.getAssetsMissingInDFD(assetData, project.dfdXml);
   }, [assetData, project.dfdXml]);
+
+  const hasWarnings = syncWarnings.length > 0;
 
   // ==================== RENDER ====================
 
@@ -327,9 +517,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     <Box
       ref={containerRef}
       sx={{
+        height: "100%",
         display: "flex",
         flexDirection: "column",
-        height: "100%",
         overflow: "hidden",
       }}
     >
@@ -465,9 +655,21 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       {/* Configuration Dialog */}
       <AssetConfigDialog
         open={showConfigDialog}
-        configuration={assetData.configuration}
+        configuration={tempConfig || assetData.configuration}
+        onChange={handleConfigChange}
         onSave={handleSaveConfig}
-        onClose={() => setShowConfigDialog(false)}
+        onClose={handleCloseConfig}
+      />
+
+      {/* Export/Import Dialog */}
+      <AssetExportImportDialog
+        open={showExportImportDialog}
+        mode={exportImportMode}
+        assetData={assetData}
+        projectName={project.name}
+        onExport={handleExportComplete}
+        onImport={handleImportComplete}
+        onClose={handleCloseExportImportDialog}
       />
     </Box>
   );
@@ -579,17 +781,25 @@ const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
         </IconButton>
       </Tooltip>
 
+      <Divider orientation="vertical" flexItem />
+
       {/* Export */}
-      <Tooltip title={t("common.export", { defaultValue: "Export" })}>
-        <span>
-          <IconButton onClick={onExport} size="small">
-            <ExportIcon />
-          </IconButton>
-        </span>
+      <Tooltip
+        title={t("tabs.assets.exportAssets", {
+          defaultValue: "Export Assets",
+        })}
+      >
+        <IconButton onClick={onExport} size="small">
+          <ExportIcon />
+        </IconButton>
       </Tooltip>
 
       {/* Import */}
-      <Tooltip title={t("common.import", { defaultValue: "Import" })}>
+      <Tooltip
+        title={t("tabs.assets.importAssets", {
+          defaultValue: "Import Assets",
+        })}
+      >
         <IconButton onClick={onImport} size="small">
           <ImportIcon />
         </IconButton>

@@ -30,6 +30,7 @@ import {
   SECURITY_GOALS,
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  impactValueToLevel,
 } from "../models/asset-types";
 
 // ==================== TYPES ====================
@@ -176,15 +177,14 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           return <Typography color="text.disabled">-</Typography>;
         }
 
+        const level = impactValueToLevel(value, configuration.roundingMethod);
+
         return (
           <Chip
             label={value.toFixed(1)}
             size="small"
             sx={{
-              backgroundColor: getImpactColor(
-                Math.round(value),
-                scale.levels.length
-              ),
+              backgroundColor: getImpactColor(level, scale.levels.length),
               color: "white",
               fontWeight: "bold",
             }}

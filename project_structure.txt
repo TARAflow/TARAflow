@@ -1,170 +1,182 @@
-src/
+src
 ├── app
-│   ├── app.test.tsx
-│   ├── app.tsx
-│   ├── components
-│   │   ├── dialogs
-│   │   │   ├── close-project-dialog.tsx
-│   │   │   ├── delete-project-dialog.tsx
-│   │   │   ├── import-project-dialog.tsx
-│   │   │   ├── new-project-dialog.tsx
-│   │   │   ├── open-project-dialog.tsx
-│   │   │   ├── rename-project-dialog.tsx
-│   │   │   └── unsaved-changes-dialog.tsx
-│   │   ├── layout
-│   │   │   ├── empty-state-layout.tsx
-│   │   │   └── main-layout.tsx
-│   │   ├── navigation
-│   │   │   ├── phase-tab-bar.tsx
-│   │   │   └── phase-tab.tsx
-│   │   ├── project-list.tsx
-│   │   ├── project-sidebar.tsx
-│   │   ├── recent-projects.tsx
-│   │   └── sidebar-actions.tsx
-│   ├── config
-│   │   └── phase-config.ts
-│   ├── hooks
-│   │   ├── use-keyboard-shortcuts.ts
-│   │   ├── use-projects.ts
-│   │   └── use-unsaved-changes.ts
-│   ├── index.ts
-│   ├── models
-│   │   └── project-types.ts
-│   └── services
-│       ├── project-service.ts
-│       └── storage-service.ts
+│   ├── app.test.tsx
+│   ├── app.tsx
+│   ├── components
+│   │   ├── dialogs
+│   │   │   ├── close-project-dialog.tsx
+│   │   │   ├── delete-project-dialog.tsx
+│   │   │   ├── import-project-dialog.tsx
+│   │   │   ├── new-project-dialog.tsx
+│   │   │   ├── open-project-dialog.tsx
+│   │   │   ├── rename-project-dialog.tsx
+│   │   │   └── unsaved-changes-dialog.tsx
+│   │   ├── layout
+│   │   │   ├── empty-state-layout.tsx
+│   │   │   └── main-layout.tsx
+│   │   ├── navigation
+│   │   │   ├── phase-tab-bar.tsx
+│   │   │   └── phase-tab.tsx
+│   │   ├── project-list.tsx
+│   │   ├── project-sidebar.tsx
+│   │   ├── recent-projects.tsx
+│   │   └── sidebar-actions.tsx
+│   ├── config
+│   │   └── phase-config.ts
+│   ├── electron-zoom-fix.tsx
+│   ├── hooks
+│   │   ├── use-keyboard-shortcuts.ts
+│   │   ├── use-projects.ts
+│   │   └── use-unsaved-changes.ts
+│   ├── index.ts
+│   ├── models
+│   │   └── project-types.ts
+│   └── services
+│       ├── doc-transform.ts
+│       ├── project-service.ts
+│       └── storage-service.ts
 ├── features
-│   ├── assets
-│   │   ├── components
-│   │   │   ├── asset-config-dialog.tsx
-│   │   │   ├── asset-dialog.tsx
-│   │   │   ├── assets-tab.tsx
-│   │   │   ├── asset-table.tsx
-│   │   │   └── dfd-preview-panel.tsx
-│   │   ├── hooks
-│   │   ├── index.ts
-│   │   ├── models
-│   │   │   └── asset-types.ts
-│   │   └── services
-│   │       └── asset-service.ts
-│   ├── attacktree
-│   │   ├── components
-│   │   │   └── attacktree-tab.tsx
-│   │   ├── hooks
-│   │   ├── index.ts
-│   │   ├── models
-│   │   └── services
-│   ├── dfd
-│   │   ├── components
-│   │   │   ├── dfd-preview-dialog.tsx
-│   │   │   ├── dfd-tab.tsx
-│   │   │   └── dfd-validation-panel.tsx
-│   │   ├── hooks
-│   │   │   └── use-dfd-editor.ts
-│   │   ├── index.ts
-│   │   ├── interfaces
-│   │   │   ├── dfd-editor-interfaces.ts
-│   │   │   └── drawio-interfaces.ts
-│   │   ├── models
-│   │   │   └── dfd-types.ts
-│   │   ├── services
-│   │   │   ├── cors-communicator.ts
-│   │   │   ├── dfd-auto-numbering.ts
-│   │   │   ├── dfd-parser.ts
-│   │   │   ├── dfd-service.ts
-│   │   │   ├── dfd-storage-adapter.ts
-│   │   │   ├── dfd-validator.ts
-│   │   │   ├── diagram-analyser.ts
-│   │   │   ├── drawio-bridge.ts
-│   │   │   ├── drawio-controller.ts
-│   │   │   ├── import-controller.ts
-│   │   │   ├── local-storage-model.ts
-│   │   │   ├── variables.ts
-│   │   │   └── xml-source-manager.ts
-│   │   └── shapes
-│   │       ├── convert.js
-│   │       ├── CoReTM.json
-│   │       ├── CoReTM.xml
-│   │       ├── dataflow-numbering-plugin.js
-│   │       ├── DFD_1.json
-│   │       ├── DFD_1.xml
-│   │       ├── DFD_2.json
-│   │       ├── DFD_2.xml
-│   │       ├── Threat Modeling 1.xml
-│   │       ├── Threat Modeling 2.xml
-│   │       └── ThreatModeling2.xml
-│   ├── documentation
-│   │   ├── components
-│   │   │   └── doc-tab.tsx
-│   │   ├── hooks
-│   │   ├── index.ts
-│   │   ├── models
-│   │   └── services
-│   ├── overview
-│   │   ├── components
-│   │   │   ├── activity-log.tsx
-│   │   │   ├── general-tab.tsx
-│   │   │   ├── project-info.tsx
-│   │   │   ├── project-progress.tsx
-│   │   │   └── project-settings.tsx
-│   │   ├── hooks
-│   │   ├── index.ts
-│   │   ├── models
-│   │   │   └── overview-types.ts
-│   │   └── services
-│   │       └── phase-helpers.ts
-│   ├── projects
-│   ├── risks
-│   │   ├── components
-│   │   │   └── risks-tab.tsx
-│   │   ├── hooks
-│   │   ├── index.ts
-│   │   ├── models
-│   │   └── services
-│   └── threats
-│       ├── components
-│       │   ├── threat-config-dialog.tsx
-│       │   ├── threat-dialog.tsx
-│       │   ├── threats-tab.tsx
-│       │   └── threat-table.tsx
-│       ├── hooks
-│       ├── index.ts
-│       ├── models
-│       │   └── threat-types.ts
-│       └── services
-│           ├── threat-catalog.json
-│           └── threat-service.ts
+│   ├── assets                                                                                                                          
+│   │   ├── components                                                                                                                  
+│   │   │   ├── asset-config-dialog.tsx
+│   │   │   ├── asset-dialog.tsx
+│   │   │   ├── assets-tab.tsx
+│   │   │   ├── asset-table.tsx
+│   │   │   └── dfd-preview-panel.tsx
+│   │   ├── hooks
+│   │   ├── index.ts
+│   │   ├── models
+│   │   │   └── asset-types.ts
+│   │   └── services
+│   │       └── asset-service.ts
+│   ├── attacktree
+│   │   ├── components
+│   │   │   └── attacktree-tab.tsx
+│   │   ├── hooks
+│   │   ├── index.ts
+│   │   ├── models
+│   │   └── services
+│   ├── dfd
+│   │   ├── components
+│   │   │   ├── dfd-preview-dialog.tsx
+│   │   │   ├── dfd-tab.tsx
+│   │   │   └── dfd-validation-panel.tsx
+│   │   ├── examples
+│   │   │   └── simple.drawio.xml
+│   │   ├── hooks
+│   │   │   └── use-dfd-editor.ts
+│   │   ├── index.ts
+│   │   ├── interfaces
+│   │   │   ├── dfd-editor-interfaces.ts
+│   │   │   └── drawio-interfaces.ts
+│   │   ├── models
+│   │   │   └── dfd-types.ts
+│   │   ├── services
+│   │   │   ├── cors-communicator.ts
+│   │   │   ├── dfd-auto-numbering.ts
+│   │   │   ├── dfd-parser.ts
+│   │   │   ├── dfd-service.ts
+│   │   │   ├── dfd-storage-adapter.ts
+│   │   │   ├── dfd-validator.ts
+│   │   │   ├── drawio-bridge.ts
+│   │   │   ├── drawio-controller.ts
+│   │   │   ├── local-storage-model.ts
+│   │   │   ├── variables.ts
+│   │   │   └── xml-source-manager.ts
+│   │   └── shapes
+│   │       ├── convert.js
+│   │       ├── CoReTM.json
+│   │       ├── CoReTM.xml
+│   │       ├── dataflow-numbering-plugin.js
+│   │       ├── DFD_1.json
+│   │       ├── DFD_1.xml
+│   │       ├── DFD_2.json
+│   │       └── DFD_2.xml
+│   ├── documentation
+│   │   ├── components
+│   │   │   ├── doc-config-dialog.tsx
+│   │   │   ├── doc-preview.tsx
+│   │   │   └── doc-tab.tsx
+│   │   ├── hooks
+│   │   ├── index.ts
+│   │   ├── models
+│   │   │   └── doc-types.ts
+│   │   └── services
+│   │       ├── doc-generator.ts
+│   │       └── doc-templates.ts
+│   ├── overview
+│   │   ├── components
+│   │   │   ├── activity-log.tsx
+│   │   │   ├── general-tab.tsx
+│   │   │   ├── project-info.tsx
+│   │   │   ├── project-progress.tsx
+│   │   │   └── project-settings.tsx
+│   │   ├── hooks
+│   │   ├── index.ts
+│   │   ├── models
+│   │   │   └── overview-types.ts
+│   │   └── services
+│   │       └── phase-helpers.ts
+│   ├── projects
+│   ├── risks
+│   │   ├── components
+│   │   │   ├── risk-config-dialog.tsx
+│   │   │   ├── risk-dialog.tsx
+│   │   │   ├── risk-matrix.tsx
+│   │   │   ├── risks-tab.tsx
+│   │   │   ├── risk-table.tsx
+│   │   │   └── wont-risk-table.tsx
+│   │   ├── hooks
+│   │   ├── index.ts
+│   │   ├── models
+│   │   │   └── risk-types.ts
+│   │   └── services
+│   │       └── risk-service.ts
+│   └── threats
+│       ├── components
+│       │   ├── threat-config-dialog.tsx
+│       │   ├── threat-dialog.tsx
+│       │   ├── threats-tab.tsx
+│       │   └── threat-table.tsx
+│       ├── hooks
+│       ├── index.ts
+│       ├── models
+│       │   └── threat-types.ts
+│       └── services
+│           ├── interaction-templates.ts
+│           ├── threat-catalog.json
+│           └── threat-service.ts
 ├── i18n
-│   ├── components
-│   │   └── language-switcher.tsx
-│   ├── index.ts
-│   ├── locales
-│   │   ├── de.json
-│   │   └── en.json
-│   └── services
-│       ├── i18n.ts
-│       └── supported_languages.ts
+│   ├── components
+│   │   └── language-switcher.tsx
+│   ├── index.ts
+│   ├── locales
+│   │   ├── de.json
+│   │   └── en.json
+│   └── services
+│       ├── i18n.ts
+│       └── supported_languages.ts
 ├── main.tsx
 ├── shared
-│   ├── components
-│   │   ├── badge.tsx
-│   │   ├── button.tsx
-│   │   ├── dialogs
-│   │   │   ├── confirm-delete-dialog.tsx
-│   │   │   ├── confirm-dialog.tsx
-│   │   │   └── save-discard-dialog.tsx
-│   │   └── toast.tsx
-│   ├── hooks
-│   ├── index.ts
-│   ├── models
-│   │   ├── common-types.ts
-│   │   └── feature-interfaces.ts
-│   ├── services
-│   └── utils
-│       ├── formatters.ts
-│       └── theme.ts
+│   ├── components
+│   │   ├── badge.tsx
+│   │   ├── button.tsx
+│   │   ├── dialogs
+│   │   │   ├── confirm-delete-dialog.tsx
+│   │   │   ├── confirm-dialog.tsx
+│   │   │   └── save-discard-dialog.tsx
+│   │   └── toast.tsx
+│   ├── hooks
+│   ├── index.ts
+│   ├── models
+│   │   ├── common-types.ts
+│   │   └── feature-interfaces.ts
+│   ├── services
+│   └── utils
+│       ├── formatters.ts
+│       └── theme.ts
 ├── styles
-│   └── index.css
+│   └── index.css
 └── tests
     ├── mock-data.ts
     ├── setup-tests.ts

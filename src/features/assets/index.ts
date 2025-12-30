@@ -1,36 +1,43 @@
-// ==================== ASSETS FEATURE PUBLIC API ====================
-// Only export what should be used by app and other features
+// ==================== ASSETS FEATURE INDEX ====================
+// Export all public components, types, and services
 
-// ==================== TYPES ====================
+// Components
+export {
+  AssetsTab,
+  default as AssetsTabDefault,
+} from "./components/assets-tab";
+export { AssetTable } from "./components/asset-table";
+export { AssetDialog } from "./components/asset-dialog";
+export { AssetConfigDialog } from "./components/asset-config-dialog";
+export { DFDPreviewPanel } from "./components/dfd-preview-panel";
+export {
+  AssetExportImportDialog,
+  type ExportImportMode,
+} from "./components/asset-export-import-dialog";
+
+// Types
 export type {
-  // Core types
   Asset,
   AssetData,
-  AssetValidation,
   AssetConfiguration,
+  AssetValidation,
   AssetProjectData,
   AssetUpdateResult,
   AssetTabProps,
-
-  // Impact types
+  AssetExportData,
+  AssetExportOptions,
+  AssetImportOptions,
   ImpactScaleType,
-  ImpactScaleConfig,
-  ImpactLevel,
   ImpactCalculationMethod,
-  ImpactCriteriaCategory,
-  ImpactCriterionDefinition,
+  ImpactRoundingMethod,
   ImpactRating,
-
-  // Security goal types
-  SecurityGoalType,
-  SecurityGoalDefinition,
   SecurityGoal,
-
-  // DFD link types
+  SecurityGoalType,
   DFDElementLink,
+  ImpactCriteriaCategory,
 } from "./models/asset-types";
 
-// ==================== CONSTANTS ====================
+// Constants
 export {
   IMPACT_SCALES,
   PREDEFINED_IMPACT_CRITERIA,
@@ -38,28 +45,22 @@ export {
   DEFAULT_ASSET_CONFIGURATION,
 } from "./models/asset-types";
 
-// ==================== HELPERS ====================
+// Helper functions
 export {
+  createDefaultAssetData,
+  createEmptyAsset,
+  calculateOverallImpact,
+  getImpactLevel,
   generateNextAssetId,
   parseAssetId,
   renumberAssets,
-  calculateOverallImpact,
-  createEmptyAsset,
-  createDefaultAssetData,
+  migrateAssetConfiguration,
 } from "./models/asset-types";
 
-// ==================== COMPONENTS ====================
-export { AssetsTab } from "./components/assets-tab";
-export { AssetTable } from "./components/asset-table";
-export { AssetDialog } from "./components/asset-dialog";
-export { AssetConfigDialog } from "./components/asset-config-dialog";
-export { DFDPreviewPanel } from "./components/dfd-preview-panel";
-
-// ==================== SERVICES ====================
+// Service
 export { assetService } from "./services/asset-service";
 export type {
   AssetSaveResult,
   AssetLoadResult,
   DFDAssetParseResult,
-  ParsedDFDAsset,
 } from "./services/asset-service";

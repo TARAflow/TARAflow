@@ -57,6 +57,15 @@ export const IMPACT_SCALES: Record<ImpactScaleType, ImpactScaleConfig> = {
 
 export type ImpactCalculationMethod = "conservative" | "average";
 
+// ==================== LEVEL THRESHOLD CALCULATION ====================
+
+/**
+ * How to round calculated impact values to level thresholds
+ * - "round": Standard rounding (Math.round) - symmetric thresholds at .5
+ * - "ceil": Conservative rounding (Math.ceil) - always round up to higher level
+ */
+export type ImpactRoundingMethod = "round" | "ceil";
+
 // ==================== IMPACT CRITERIA ====================
 
 /**
@@ -267,12 +276,15 @@ export const SECURITY_GOALS: SecurityGoalDefinition[] = [
 export interface AssetConfiguration {
   /** Selected impact criteria IDs (4-6 recommended) */
   impactCriteria: string[];
-  
+
   /** Impact rating scale */
   impactScale: ImpactScaleType;
-  
+
   /** Calculation method for overall impact */
   calculationMethod: ImpactCalculationMethod;
+
+  /** Rounding method for level threshold calculation */
+  roundingMethod: ImpactRoundingMethod;
 }
 
 /**
@@ -288,6 +300,7 @@ export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
   ],
   impactScale: "4-level",
   calculationMethod: "conservative",
+  roundingMethod: "round",
 };
 
 // ==================== ASSET DATA ====================
@@ -386,6 +399,36 @@ export interface AssetValidation {
   lastValidated: string;
 }
 
+// ==================== EXPORT/IMPORT TYPES ====================
+
+/**
+ * Options for asset export
+ */
+export interface AssetExportOptions {
+  includeConfiguration: boolean;
+  includeAssets: boolean;
+}
+
+/**
+ * Exported asset data structure
+ */
+export interface AssetExportData {
+  version: string;
+  exportedAt: string;
+  projectName?: string;
+  configuration?: AssetConfiguration;
+  assets?: Asset[];
+}
+
+/**
+ * Options for asset import
+ */
+export interface AssetImportOptions {
+  importConfiguration: boolean;
+  importAssets: boolean;
+  mergeAssets: boolean; // true = merge with existing, false = replace
+}
+
 // ==================== ASSET PROJECT INTERFACE ====================
 // What Assets feature needs from a project (Dependency Inversion)
 
@@ -467,23 +510,45 @@ export function renumberAssets(assets: Asset[]): Asset[] {
 }
 
 /**
- * Calculate overall impact based on method
+ * Calculate overall impact based on method and rounding
  */
 export function calculateOverallImpact(
   ratings: ImpactRating[],
-  method: ImpactCalculationMethod
+  method: ImpactCalculationMethod,
+  roundingMethod: ImpactRoundingMethod = "round"
 ): number {
   if (ratings.length === 0) return 0;
-  
-  const values = ratings.map(r => r.value).filter(v => v > 0);
+
+  const values = ratings.map((r) => r.value).filter((v) => v > 0);
   if (values.length === 0) return 0;
-  
+
   if (method === "conservative") {
     return Math.max(...values);
   } else {
     const sum = values.reduce((acc, val) => acc + val, 0);
-    return Math.round((sum / values.length) * 10) / 10; // Round to 1 decimal
+    const avg = sum / values.length;
+
+    // Apply rounding method
+    if (roundingMethod === "ceil") {
+      return Math.ceil(avg * 10) / 10; // Round up to 1 decimal
+    }
+    return Math.round(avg * 10) / 10; // Standard rounding to 1 decimal
   }
+}
+
+/**
+ * Get the discrete level for a calculated impact value
+ */
+export function getImpactLevel(
+  value: number,
+  roundingMethod: ImpactRoundingMethod = "round"
+): number {
+  if (value <= 0) return 0;
+
+  if (roundingMethod === "ceil") {
+    return Math.ceil(value);
+  }
+  return Math.round(value);
 }
 
 /**
@@ -494,18 +559,18 @@ export function createEmptyAsset(
   configuration: AssetConfiguration
 ): Asset {
   const numericId = parseAssetId(id);
-  
+
   return {
     id,
     numericId,
     name: "",
     description: "",
-    impactRatings: configuration.impactCriteria.map(criterionId => ({
+    impactRatings: configuration.impactCriteria.map((criterionId) => ({
       criterionId,
       value: 0,
     })),
     overallImpact: 0,
-    securityGoals: SECURITY_GOALS.map(sg => ({
+    securityGoals: SECURITY_GOALS.map((sg) => ({
       type: sg.type,
       enabled: false,
       formalDescription: "",
@@ -527,4 +592,30 @@ export function createDefaultAssetData(): AssetData {
     assets: [],
     lastModified: new Date().toISOString(),
   };
+}
+
+/**
+ * Migrate configuration from older versions (without roundingMethod)
+ */
+export function migrateAssetConfiguration(
+  config: Partial<AssetConfiguration>
+): AssetConfiguration {
+  return {
+    impactCriteria:
+      config.impactCriteria ?? DEFAULT_ASSET_CONFIGURATION.impactCriteria,
+    impactScale: config.impactScale ?? DEFAULT_ASSET_CONFIGURATION.impactScale,
+    calculationMethod:
+      config.calculationMethod ?? DEFAULT_ASSET_CONFIGURATION.calculationMethod,
+    roundingMethod:
+      config.roundingMethod ?? DEFAULT_ASSET_CONFIGURATION.roundingMethod,
+  };
+}
+
+
+export function impactValueToLevel(
+  value: number,
+  rounding: ImpactRoundingMethod
+): number {
+  if (rounding === "ceil") return Math.ceil(value);
+  return Math.round(value);
 }

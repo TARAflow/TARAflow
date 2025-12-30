@@ -17,6 +17,7 @@ import {
   generateNextAssetId,
   renumberAssets,
   parseAssetId,
+  migrateAssetConfiguration,
   PREDEFINED_IMPACT_CRITERIA,
 } from "../models/asset-types";
 
@@ -60,8 +61,10 @@ class AssetService {
    */
   loadAssets(project: AssetProjectData): AssetLoadResult {
     try {
-      const hasData = Boolean(project.assets && project.assets.assets.length > 0);
-      
+      const hasData = Boolean(
+        project.assets && project.assets.assets.length > 0
+      );
+
       return {
         success: true,
         hasData,
@@ -81,14 +84,18 @@ class AssetService {
   /**
    * Save asset data
    */
-  saveAssets(
-    project: AssetProjectData,
-    assetData: AssetData
-  ): AssetSaveResult {
+  saveAssets(project: AssetProjectData, assetData: AssetData): AssetSaveResult {
     try {
+      // Ensure configuration is migrated
+      const migratedConfig = migrateAssetConfiguration(assetData.configuration);
+      const dataWithMigratedConfig = {
+        ...assetData,
+        configuration: migratedConfig,
+      };
+
       // Validate
-      const validation = this.validate(assetData);
-      
+      const validation = this.validate(dataWithMigratedConfig);
+
       // Determine phase status
       const phaseStatus = this.determinePhaseStatus(validation);
       const lastModified = new Date().toISOString();
@@ -101,7 +108,7 @@ class AssetService {
 
       // Update asset data
       const updatedAssetData: AssetData = {
-        ...assetData,
+        ...dataWithMigratedConfig,
         validation,
         lastModified,
       };
@@ -161,7 +168,9 @@ class AssetService {
       asset.securityGoals
         .filter((sg) => sg.enabled && !sg.formalDescription.trim())
         .forEach((sg) => {
-          warnings.push(`validation.assets.noSecurityGoalDescription:${asset.id}:${sg.type}`);
+          warnings.push(
+            `validation.assets.noSecurityGoalDescription:${asset.id}:${sg.type}`
+          );
         });
 
       // Check if linked to DFD
@@ -214,12 +223,15 @@ class AssetService {
    * Update an existing asset
    */
   updateAsset(assetData: AssetData, updatedAsset: Asset): AssetData {
-    // Recalculate overall impact
+    const config = assetData.configuration;
+
+    // Recalculate overall impact with rounding method
     const assetWithImpact: Asset = {
       ...updatedAsset,
       overallImpact: calculateOverallImpact(
         updatedAsset.impactRatings,
-        assetData.configuration.calculationMethod
+        config.calculationMethod,
+        config.roundingMethod
       ),
       lastModified: new Date().toISOString(),
     };
@@ -256,10 +268,13 @@ class AssetService {
     assetData: AssetData,
     configuration: AssetConfiguration
   ): AssetData {
+    // Ensure configuration has all required fields (migration)
+    const migratedConfig = migrateAssetConfiguration(configuration);
+
     // When configuration changes, update all assets
     const updatedAssets = assetData.assets.map((asset) => {
       // Update impact ratings for new criteria
-      const newRatings: ImpactRating[] = configuration.impactCriteria.map(
+      const newRatings: ImpactRating[] = migratedConfig.impactCriteria.map(
         (criterionId) => {
           // Keep existing rating if criterion still exists
           const existing = asset.impactRatings.find(
@@ -269,10 +284,11 @@ class AssetService {
         }
       );
 
-      // Recalculate overall impact
+      // Recalculate overall impact with new settings
       const overallImpact = calculateOverallImpact(
         newRatings,
-        configuration.calculationMethod
+        migratedConfig.calculationMethod,
+        migratedConfig.roundingMethod
       );
 
       return {
@@ -285,7 +301,7 @@ class AssetService {
 
     return {
       ...assetData,
-      configuration,
+      configuration: migratedConfig,
       assets: updatedAssets,
       lastModified: new Date().toISOString(),
     };
@@ -351,7 +367,9 @@ class AssetService {
     dfdAssets.forEach((dfdAsset) => {
       // Skip placeholder labels (A-xx)
       if (dfdAsset.label === "A-xx") {
-        warnings.push(`Unassigned asset label found at position (${dfdAsset.position.x}, ${dfdAsset.position.y})`);
+        warnings.push(
+          `Unassigned asset label found at position (${dfdAsset.position.x}, ${dfdAsset.position.y})`
+        );
         return;
       }
 
@@ -449,6 +467,28 @@ class AssetService {
    */
   initializeAssetData(): AssetData {
     return createDefaultAssetData();
+  }
+
+  /**
+   * Recalculate all asset impacts (useful after config change)
+   */
+  recalculateAllImpacts(assetData: AssetData): AssetData {
+    const config = assetData.configuration;
+
+    const updatedAssets = assetData.assets.map((asset) => ({
+      ...asset,
+      overallImpact: calculateOverallImpact(
+        asset.impactRatings,
+        config.calculationMethod,
+        config.roundingMethod
+      ),
+    }));
+
+    return {
+      ...assetData,
+      assets: updatedAssets,
+      lastModified: new Date().toISOString(),
+    };
   }
 }
 

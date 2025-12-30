@@ -283,6 +283,8 @@
       "noAssetsHint": "Add assets manually or sync from DFD to get started.",
       "noDFDImage": "No DFD image available",
       "noDFDImageHint": "Save the DFD to generate a preview image",
+      "exportAssets": "Export Assets",
+      "importAssets": "Import Assets",
       "columns": {
         "id": "ID",
         "name": "Name",
@@ -318,7 +320,14 @@
         "averageDesc": "Calculates the average of all impact values",
         "impactCriteria": "Impact Criteria",
         "businessCriteria": "Business / Organizational",
-        "physicalCriteria": "Physical"
+        "physicalCriteria": "Physical",
+        "roundingMethod": "Level Threshold Calculation",
+        "roundingRound": "Standard",
+        "roundingRoundTitle": "Standard Rounding (Math.round)",
+        "roundingRoundDesc": "Symmetric thresholds at .5 boundaries",
+        "roundingCeil": "Conservative",
+        "roundingCeilTitle": "Conservative Rounding (Math.ceil)",
+        "roundingCeilDesc": "Always rounds up to higher risk level"
       },
       "dfdPreview": {
         "zoomIn": "Zoom In",
@@ -328,6 +337,15 @@
         "hint": "Drag to pan, scroll to zoom",
         "regenerate": "Generate preview from DFD",
         "generating": "Generating preview..."
+      },
+      "exportImport": {
+        "assetData": "Asset Data",
+        "assetDataDesc": "{{count}} assets with impact ratings and security goals",
+        "configuration": "Configuration",
+        "configurationDesc": "Impact criteria, scale, and calculation settings",
+        "exportInfo": "Select what you want to export. The file can be imported into another project.",
+        "exportTitle": "Export Asset Data",
+        "selectContent": "Select Content to Export"
       }
     },
     "threats": {

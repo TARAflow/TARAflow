@@ -281,6 +281,8 @@
       "noAssetsHint": "Fügen Sie Assets manuell hinzu oder synchronisieren Sie aus dem DFD.",
       "noDFDImage": "Kein DFD-Bild verfügbar",
       "noDFDImageHint": "Speichern Sie das DFD, um ein Vorschaubild zu generieren",
+      "exportAssets": "Export Assets",
+      "importAssets": "Import Assets",
       "columns": {
         "id": "ID",
         "name": "Name",
@@ -316,7 +318,14 @@
         "impactCriteria": "Impact-Kriterien",
         "businessCriteria": "Geschäftlich / Organisatorisch",
         "physicalCriteria": "Physisch",
-        "tooManyCriteria": "Sie haben mehr als 6 Kriterien ausgewählt..."
+        "tooManyCriteria": "Sie haben mehr als 6 Kriterien ausgewählt...",
+        "roundingMethod": "Schwellenwert-Berechnung",
+        "roundingRound": "Standard",
+        "roundingRoundTitle": "Standard-Rundung (Math.round)",
+        "roundingRoundDesc": "Symmetrische Schwellen bei .5",
+        "roundingCeil": "Konservativ",
+        "roundingCeilTitle": "Konservative Rundung (Math.ceil)",
+        "roundingCeilDesc": "Rundet immer auf höhere Risikostufe auf"
       },
       "dfdPreview": {
         "zoomIn": "Vergrössern",
@@ -326,6 +335,15 @@
         "hint": "Ziehen zum Verschieben, Scrollen zum Zoomen",
         "regenerate": "Vorschau aus DFD generieren",
         "generating": "Vorschau wird generiert..."
+      },
+      "exportImport": {
+        "assetData": "Asset Data",
+        "assetDataDesc": "{{count}} assets with impact ratings and security goals",
+        "configuration": "Configuration",
+        "configurationDesc": "Impact criteria, scale, and calculation settings",
+        "exportInfo": "Select what you want to export. The file can be imported into another project.",
+        "exportTitle": "Export Asset Data",
+        "selectContent": "Select Content to Export"
       }
     },
     "threats": {
