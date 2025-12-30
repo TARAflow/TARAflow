@@ -31,6 +31,7 @@ import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
   impactValueToLevel,
+  getImpactLevel,
 } from "../models/asset-types";
 
 // ==================== TYPES ====================
@@ -144,17 +145,64 @@ export const AssetTable: React.FC<AssetTableProps> = ({
               return <Typography color="text.disabled">-</Typography>;
             }
 
+            const criterionInfo = getCriterionInfo(criterionId, isGerman);
+            const levelLabel = getImpactLevelLabel(value, scale, isGerman);
+
             return (
-              <Chip
-                label={value}
-                size="small"
-                sx={{
-                  backgroundColor: getImpactColor(value, scale.levels.length),
-                  color: "white",
-                  fontWeight: "bold",
-                  minWidth: 28,
-                }}
-              />
+              <Tooltip
+                title={
+                  <Box sx={{ p: 0.5 }}>
+                    <Typography variant="body2" fontWeight="bold" gutterBottom>
+                      {criterionInfo.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      sx={{ mb: 1 }}
+                    >
+                      {criterionInfo.description}
+                    </Typography>
+                    <Box
+                      sx={{
+                        pt: 1,
+                        borderTop: "1px solid rgba(255,255,255,0.3)",
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: "50%",
+                            backgroundColor: getImpactColor(
+                              value,
+                              scale.levels.length
+                            ),
+                            border: "1px solid rgba(255,255,255,0.5)",
+                          }}
+                        />
+                        <Typography variant="caption" fontWeight="bold">
+                          {levelLabel} ({value})
+                        </Typography>
+                      </Stack>
+                    </Box>
+                  </Box>
+                }
+                arrow
+                placement="top"
+              >
+                <Chip
+                  label={value}
+                  size="small"
+                  sx={{
+                    backgroundColor: getImpactColor(value, scale.levels.length),
+                    color: "white",
+                    fontWeight: "bold",
+                    minWidth: 28,
+                    cursor: "help",
+                  }}
+                />
+              </Tooltip>
             );
           },
         };
@@ -177,18 +225,120 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           return <Typography color="text.disabled">-</Typography>;
         }
 
-        const level = impactValueToLevel(value, configuration.roundingMethod);
+        const row = params.row;
+        const level = getImpactLevel(value, configuration.roundingMethod);
+        const levelLabel = getImpactLevelLabel(level, scale, isGerman);
+
+        // Build factor breakdown
+        const factorLines = row.impactRatings
+          .filter((r) => r.value > 0)
+          .map((rating) => {
+            const criterionInfo = getCriterionInfo(
+              rating.criterionId,
+              isGerman
+            );
+            return `${criterionInfo.name}: ${rating.value}`;
+          });
+
+        // Calculation method info
+        const methodLabel =
+          configuration.calculationMethod === "conservative"
+            ? isGerman
+              ? "Konservativ (Maximum)"
+              : "Conservative (Maximum)"
+            : isGerman
+            ? "Durchschnitt (Arithm. Mittel)"
+            : "Average (Arithmetic Mean)";
+
+        // Rounding method info
+        const roundingLabel =
+          configuration.roundingMethod === "ceil"
+            ? isGerman
+              ? "Konservativ"
+              : "Conservative"
+            : isGerman
+            ? "Standard"
+            : "Standard";
 
         return (
-          <Chip
-            label={value.toFixed(1)}
-            size="small"
-            sx={{
-              backgroundColor: getImpactColor(level, scale.levels.length),
-              color: "white",
-              fontWeight: "bold",
-            }}
-          />
+          <Tooltip
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="body2" fontWeight="bold" gutterBottom>
+                  {t("tabs.assets.overallImpact", {
+                    defaultValue: "Overall Impact",
+                  })}
+                </Typography>
+                <Typography variant="caption" display="block">
+                  {t("tabs.assets.calculationMethod", {
+                    defaultValue: "Calculation",
+                  })}
+                  : {methodLabel}
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                  {t("tabs.assets.roundingMethod", {
+                    defaultValue: "Threshold",
+                  })}
+                  : {roundingLabel}
+                </Typography>
+
+                <Box sx={{ mb: 1 }}>
+                  <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    display="block"
+                  >
+                    {t("tabs.assets.criteriaBreakdown", {
+                      defaultValue: "Criteria Breakdown:",
+                    })}
+                  </Typography>
+                  <Box sx={{ pl: 1, whiteSpace: "pre-line" }}>
+                    <Typography variant="caption">
+                      {factorLines.join("\n")}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    pt: 1,
+                    borderTop: "1px solid rgba(255,255,255,0.3)",
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        backgroundColor: getImpactColor(
+                          level,
+                          scale.levels.length
+                        ),
+                        border: "1px solid rgba(255,255,255,0.5)",
+                      }}
+                    />
+                    <Typography variant="caption" fontWeight="bold">
+                      {levelLabel} ({value.toFixed(1)})
+                    </Typography>
+                  </Stack>
+                </Box>
+              </Box>
+            }
+            arrow
+            placement="top"
+          >
+            <Chip
+              label={value.toFixed(1)}
+              size="small"
+              sx={{
+                backgroundColor: getImpactColor(level, scale.levels.length),
+                color: "white",
+                fontWeight: "bold",
+                cursor: "help",
+              }}
+            />
+          </Tooltip>
         );
       },
     };
@@ -444,9 +594,51 @@ function getImpactColor(value: number, maxLevels: number): string {
   return palette[Math.min(value - 1, palette.length - 1)] || "#6b7280";
 }
 
-function getSecurityGoalName(type: SecurityGoalType, isGerman: boolean): string {
+function getSecurityGoalName(
+  type: SecurityGoalType,
+  isGerman: boolean
+): string {
   const goal = SECURITY_GOALS.find((g) => g.type === type);
   return isGerman ? goal?.nameDE ?? type : goal?.name ?? type;
+}
+
+/**
+ * Get impact level label (Low, Medium, High, Critical, Very High)
+ */
+function getImpactLevelLabel(
+  value: number,
+  scale: (typeof IMPACT_SCALES)[keyof typeof IMPACT_SCALES],
+  isGerman: boolean
+): string {
+  if (value === 0) return "-";
+
+  const level = scale.levels.find((l) => l.value === Math.round(value));
+  if (!level) return value.toString();
+
+  return isGerman ? level.labelDE : level.label;
+}
+
+/**
+ * Get criterion info (name and description)
+ */
+function getCriterionInfo(
+  criterionId: string,
+  isGerman: boolean
+): {
+  name: string;
+  description: string;
+} {
+  const criterion = PREDEFINED_IMPACT_CRITERIA.find(
+    (c) => c.id === criterionId
+  );
+  if (!criterion) {
+    return { name: criterionId, description: "" };
+  }
+
+  return {
+    name: isGerman ? criterion.nameDE : criterion.name,
+    description: isGerman ? criterion.descriptionDE : criterion.description,
+  };
 }
 
 export default AssetTable;

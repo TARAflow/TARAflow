@@ -611,7 +611,6 @@ export function migrateAssetConfiguration(
   };
 }
 
-
 export function impactValueToLevel(
   value: number,
   rounding: ImpactRoundingMethod
