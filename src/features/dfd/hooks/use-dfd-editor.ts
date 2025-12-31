@@ -7,7 +7,14 @@
 // - D: Depends on abstractions, not concretions
 
 import { useReducer, useEffect, useCallback, useRef, useMemo } from "react";
-import { DFDProjectData, DFDStats, DFDUpdateResult } from "../models/dfd-types";
+import {
+  DFDProjectData,
+  DFDStats,
+  DFDUpdateResult,
+  DFDElement,
+  DFDConnection,
+  DFDExportData,
+} from "../models/dfd-types";
 import { ValidationResult } from "../services/dfd-validator";
 import {
   dfdEditorReducer,
@@ -35,7 +42,7 @@ export interface UseDFDEditorOptions {
   autoNumberOnSave?: boolean;
   generateThumbnailOnSave?: boolean;
   darkMode?: boolean;
-  iframeKey?: number; // Used to detect iframe remount (e.g., theme change)
+  iframeKey?: number;
 }
 
 export interface UseDFDEditorDependencies {
@@ -73,6 +80,20 @@ export interface UseDFDEditorReturn {
   generateThumbnail: () => Promise<string | null>;
   sendAction: (action: string) => void;
   autoNumberLabels: () => Promise<void>;
+
+  // NEW: Description editing
+  updateElementDescription: (
+    elementId: string,
+    updates: Partial<DFDElement>
+  ) => void;
+  updateConnectionDescription: (
+    connectionId: string,
+    updates: Partial<DFDConnection>
+  ) => void;
+
+  // NEW: Export/Import
+  exportDFD: () => DFDExportData | null;
+  importDFD: (data: DFDExportData) => Promise<void>;
 }
 
 // ==================== DEFAULT DEPENDENCIES ====================
@@ -88,20 +109,11 @@ const defaultDependencies: Required<UseDFDEditorDependencies> = {
 
 // ==================== HOOK ====================
 
-/**
- * useDFDEditor - Orchestrates DFD editor functionality
- *
- * This hook follows the Facade pattern - it provides a simple interface
- * to complex subsystems (bridge, xml sources, validation, etc.)
- *
- * Dependencies can be injected for testing or customization.
- */
 export function useDFDEditor(
   project: DFDProjectData,
   options: UseDFDEditorOptions = {},
   dependencies: UseDFDEditorDependencies = {}
 ): UseDFDEditorReturn {
-  // Memoize dependencies to prevent unnecessary re-renders
   const deps = useMemo(
     () => ({ ...defaultDependencies, ...dependencies }),
     [dependencies]
@@ -134,12 +146,9 @@ export function useDFDEditor(
   const validateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Promise resolver for thumbnail generation
   const thumbnailResolverRef = useRef<((src: string | null) => void) | null>(
     null
   );
-
-  // Track iframeKey to detect theme changes
   const lastInitializedIframeKeyRef = useRef<number>(-1);
 
   // ==================== VALIDATION ====================
@@ -175,10 +184,8 @@ export function useDFDEditor(
     dispatch({ type: "SET_DIRTY", payload: true });
     onDirtyChange?.(true);
 
-    // Sync from legacy storage
     storageAdapterRef.current?.syncFromLegacy();
 
-    // Debounced validation
     if (autoValidateInterval > 0) {
       if (validateTimeoutRef.current) {
         clearTimeout(validateTimeoutRef.current);
@@ -189,12 +196,184 @@ export function useDFDEditor(
     }
   }, [onDirtyChange, autoValidateInterval, runValidation]);
 
+  // ==================== DESCRIPTION UPDATES ====================
+
+  /**
+   * Update element description and trigger dirty state
+   */
+  const updateElementDescription = useCallback(
+    (elementId: string, updates: Partial<DFDElement>) => {
+      if (!project.dfd) return;
+
+      const updatedElements = project.dfd.elements.map((el) =>
+        el.id === elementId ? { ...el, ...updates } : el
+      );
+
+      const updatedDFD = {
+        ...project.dfd,
+        elements: updatedElements,
+        lastModified: new Date().toISOString(),
+      };
+
+      // Update stats
+      const describedElements = updatedElements.filter(
+        (el) => el.description && el.description.trim().length > 0
+      ).length;
+
+      updatedDFD.stats = {
+        ...updatedDFD.stats!,
+        describedElements,
+      };
+
+      // Update project
+      const result: DFDUpdateResult = {
+        dfd: updatedDFD,
+        phaseStatus: project.phaseStatus,
+        lastModified: new Date().toISOString(),
+      };
+
+      onSave?.(result);
+      dispatch({ type: "SET_DIRTY", payload: true });
+      onDirtyChange?.(true);
+    },
+    [project, onSave, onDirtyChange]
+  );
+
+  /**
+   * Update connection description and trigger dirty state
+   */
+  const updateConnectionDescription = useCallback(
+    (connectionId: string, updates: Partial<DFDConnection>) => {
+      if (!project.dfd) return;
+
+      const updatedConnections = project.dfd.connections.map((conn) =>
+        conn.id === connectionId ? { ...conn, ...updates } : conn
+      );
+
+      const updatedDFD = {
+        ...project.dfd,
+        connections: updatedConnections,
+        lastModified: new Date().toISOString(),
+      };
+
+      // Update stats
+      const describedConnections = updatedConnections.filter(
+        (conn) => conn.description && conn.description.trim().length > 0
+      ).length;
+
+      updatedDFD.stats = {
+        ...updatedDFD.stats!,
+        describedConnections,
+      };
+
+      // Update project
+      const result: DFDUpdateResult = {
+        dfd: updatedDFD,
+        phaseStatus: project.phaseStatus,
+        lastModified: new Date().toISOString(),
+      };
+
+      onSave?.(result);
+      dispatch({ type: "SET_DIRTY", payload: true });
+      onDirtyChange?.(true);
+    },
+    [project, onSave, onDirtyChange]
+  );
+
+  // ==================== EXPORT/IMPORT ====================
+
+  /**
+   * Export DFD as JSON with XML and descriptions
+   */
+  const exportDFD = useCallback((): DFDExportData | null => {
+    if (!project.dfd || !project.dfd.xml) {
+      console.warn("No DFD data to export");
+      return null;
+    }
+
+    const exportData: DFDExportData = {
+      version: "1.0",
+      projectName: project.name,
+      exportDate: new Date().toISOString(),
+      xml: project.dfd.xml,
+      elements: project.dfd.elements,
+      connections: project.dfd.connections,
+    };
+
+    return exportData;
+  }, [project]);
+
+  /**
+   * Import DFD from JSON file
+   */
+  const importDFD = useCallback(
+    async (data: DFDExportData) => {
+      // Validate import data
+      if (!data.xml || !data.elements || !data.connections) {
+        throw new Error("Invalid DFD import data");
+      }
+
+      // Load XML into draw.io via bridge
+      if (bridgeRef.current) {
+        await bridgeRef.current.loadXml(data.xml);
+      }
+
+      // Calculate stats
+      const stats: DFDStats = {
+        totalElements: data.elements.length,
+        externalEntities: data.elements.filter(
+          (e) => e.type === "ExternalEntity"
+        ).length,
+        processes: data.elements.filter((e) => e.type === "Process").length,
+        multiprocesses: data.elements.filter((e) => e.type === "Multiprocess")
+          .length,
+        dataStores: data.elements.filter((e) => e.type === "DataStore").length,
+        dataFlows: data.connections.length,
+        trustBoundaries: data.elements.filter((e) => e.type === "TrustBoundary")
+          .length,
+        physicalInterfaces: data.elements.filter(
+          (e) => e.type === "PhysicalInterface"
+        ).length,
+        assets: data.elements.filter((e) => e.type === "Asset").length,
+        interfaces: data.elements.filter((e) => e.type === "Interface").length,
+        describedElements: data.elements.filter(
+          (e) => e.description && e.description.trim().length > 0
+        ).length,
+        describedConnections: data.connections.filter(
+          (c) => c.description && c.description.trim().length > 0
+        ).length,
+      };
+
+      // Update project with imported data
+      const updatedDFD = {
+        xml: data.xml,
+        elements: data.elements,
+        connections: data.connections,
+        stats,
+        lastModified: new Date().toISOString(),
+      };
+
+      const result: DFDUpdateResult = {
+        dfd: updatedDFD,
+        phaseStatus: project.phaseStatus,
+        lastModified: new Date().toISOString(),
+      };
+
+      onSave?.(result);
+      dispatch({ type: "SET_DIRTY", payload: false });
+      onDirtyChange?.(false);
+
+      // Re-validate
+      setTimeout(() => runValidation(), 1000);
+    },
+    [project, onSave, onDirtyChange, runValidation]
+  );
+
   // ==================== IMAGE READY HANDLER ====================
 
   const handleImageReady = useCallback((imageSrc: string) => {
     dispatch({ type: "SET_PREVIEW_IMAGE", payload: imageSrc });
 
-    // Resolve pending thumbnail promise if any
     if (thumbnailResolverRef.current) {
       thumbnailResolverRef.current(imageSrc);
       thumbnailResolverRef.current = null;
@@ -209,19 +388,12 @@ export function useDFDEditor(
         `[useDFDEditor] Initializing for project: ${project.id}, darkMode: ${darkMode}, iframeKey: ${iframeKey}`
       );
 
-      // Cleanup previous bridge
       bridgeRef.current?.dispose();
-
-      // Track which iframeKey we initialized with
       lastInitializedIframeKeyRef.current = iframeKey;
 
-      // Create storage adapter
       storageAdapterRef.current = deps.createStorageAdapter(project.id);
-
-      // Load DFD data into localStorage
       deps.dfdService.loadDFDForEditing(project);
 
-      // Create bridge with dark mode support
       const bridge = deps.createBridge(
         iframe,
         project.id,
@@ -230,26 +402,21 @@ export function useDFDEditor(
       );
       bridgeRef.current = bridge;
 
-      // Set up callbacks
       bridge.onDiagramChange(handleDiagramChange);
       bridge.onImageReady(handleImageReady);
 
-      // Create XML source manager
       xmlSourceManagerRef.current = deps.createXmlSourceManager(
         project.id,
         () => bridge.getCurrentXml()
       );
 
-      // Create auto-numbering service
       autoNumberingRef.current = deps.createAutoNumbering();
 
-      // Mark as initialized
       dispatch({
         type: "SET_INITIALIZED",
         payload: { isInitialized: true, projectId: project.id },
       });
 
-      // Initial validation
       setTimeout(() => runValidation(), 1000);
     },
     [
@@ -264,7 +431,6 @@ export function useDFDEditor(
   );
 
   const initialize = useCallback(() => {
-    // Clear pending retry
     if (initRetryTimeoutRef.current) {
       clearTimeout(initRetryTimeoutRef.current);
       initRetryTimeoutRef.current = null;
@@ -272,21 +438,18 @@ export function useDFDEditor(
 
     const iframe = iframeRef.current;
 
-    // Guard: Need iframe
     if (!iframe) {
       console.log("[useDFDEditor] No iframe ref, retrying...");
       initRetryTimeoutRef.current = setTimeout(initialize, 100);
       return;
     }
 
-    // Guard: iframe must be loaded
     if (!iframe.contentWindow) {
       console.log("[useDFDEditor] Iframe not ready, retrying...");
       initRetryTimeoutRef.current = setTimeout(initialize, 100);
       return;
     }
 
-    // Guard: Already initialized for this project AND same iframeKey (no theme change)
     const sameProject = state.currentProjectId === project.id;
     const sameIframeKey = lastInitializedIframeKeyRef.current === iframeKey;
 
@@ -298,7 +461,6 @@ export function useDFDEditor(
       return;
     }
 
-    // Re-initializing due to theme change
     if (sameProject && !sameIframeKey) {
       console.log(
         `[useDFDEditor] Re-initializing due to theme change (iframeKey: ${lastInitializedIframeKeyRef.current} -> ${iframeKey})`
@@ -325,13 +487,9 @@ export function useDFDEditor(
     };
   }, []);
 
-  // Cleanup bridge when iframeKey changes (theme switch)
   useEffect(() => {
-    // Skip on initial mount
     if (lastInitializedIframeKeyRef.current === -1) return;
 
-    // If iframeKey changed, the old iframe is being unmounted
-    // Dispose the old bridge (new one will be created in initialize)
     if (lastInitializedIframeKeyRef.current !== iframeKey) {
       console.log(`[useDFDEditor] Cleaning up bridge due to iframeKey change`);
       bridgeRef.current?.dispose();
@@ -365,30 +523,25 @@ export function useDFDEditor(
   const autoNumberLabels = useCallback(async (): Promise<void> => {
     console.log("[useDFDEditor] Auto-numbering labels...");
 
-    // Sync storage first
     storageAdapterRef.current?.syncFromLegacy();
 
-    // Get XML via source manager
     const currentXml = xmlSourceManagerRef.current?.getXml();
     if (!currentXml) {
       console.warn("[useDFDEditor] No XML found for auto-numbering");
       return;
     }
 
-    // Apply auto-numbering
     const numberedXml = autoNumberingRef.current?.autoNumber(currentXml);
     if (!numberedXml || numberedXml === currentXml) {
       console.log("[useDFDEditor] No changes after auto-numbering");
       return;
     }
 
-    // Load into Draw.io
     await bridgeRef.current?.loadXml(numberedXml);
 
     dispatch({ type: "SET_DIRTY", payload: true });
     onDirtyChange?.(true);
 
-    // Revalidate after short delay
     setTimeout(() => runValidation(), 500);
 
     console.log("[useDFDEditor] Auto-numbering complete");
@@ -396,19 +549,11 @@ export function useDFDEditor(
 
   // ==================== THUMBNAIL GENERATION ====================
 
-  /**
-   * Generate thumbnail and return as Promise
-   * Triggers export and waits for image ready callback
-   */
   const generateThumbnail = useCallback(async (): Promise<string | null> => {
     return new Promise((resolve) => {
-      // Set up resolver
       thumbnailResolverRef.current = resolve;
-
-      // Trigger export
       bridgeRef.current?.exportImage();
 
-      // Timeout fallback (5 seconds)
       setTimeout(() => {
         if (thumbnailResolverRef.current) {
           console.warn("[useDFDEditor] Thumbnail generation timed out");
@@ -434,7 +579,6 @@ export function useDFDEditor(
       storageAdapterRef.current?.syncFromLegacy();
     }
 
-    // Generate thumbnail before saving
     let thumbnail: string | undefined;
     if (generateThumbnailOnSave) {
       console.log("[useDFDEditor] Generating thumbnail...");
@@ -445,7 +589,6 @@ export function useDFDEditor(
     const result = deps.dfdService.saveDFD(project);
 
     if (result.success) {
-      // Add thumbnail to DFD data
       if (thumbnail) {
         result.dfd.thumbnail = thumbnail;
       }
@@ -503,6 +646,10 @@ export function useDFDEditor(
     generateThumbnail,
     sendAction,
     autoNumberLabels,
+    updateElementDescription,
+    updateConnectionDescription,
+    exportDFD,
+    importDFD,
   };
 }
 

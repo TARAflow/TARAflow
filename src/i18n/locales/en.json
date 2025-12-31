@@ -35,7 +35,8 @@
     "all": "All",
     "deleteAll": "Delete All",
     "unsaved": "Unsaved",
-    "reset": "Reset"
+    "reset": "Reset",
+    "none": "None"
   },
 
   "project": {
@@ -251,7 +252,11 @@
         "exportImage": "Export as Image",
         "refresh": "Refresh Validation",
         "autoNumber": "Auto-Number Labels",
-        "darkMode": "Dark Mode"
+        "darkMode": "Dark Mode",
+        "draw": "Draw DFD",
+        "describe": "Describe DFD",
+        "exportDFD": "Export DFD",
+        "importDFD": "Import DFD"
       },
       "preview": {
         "title": "DFD Preview",
@@ -260,7 +265,8 @@
       },
       "stats": {
         "elements": "Elements",
-        "flows": "Flows"
+        "flows": "Flows",
+        "described": "Described"
       },
       "validation": {
         "valid": "Valid",
@@ -268,6 +274,22 @@
         "warnings": "Warnings",
         "required": "Required",
         "atLeastOneSecurityGoal": "At least one security goal required"
+      },
+      "element_description": {
+        "title": "DFD Element Descriptions",
+        "subtitle": "Describe each element and data flow for better threat analysis.",
+        "noElements": "No elements found. Please draw your DFD first.",
+        "complete": "All Described",
+        "required": "Required Fields",
+        "optional": "Threat Modeling Fields (Optional)",
+        "description": "Description",
+        "securityLevel": "Security Level",
+        "dataClassification": "Data Classification",
+        "trustLevel": "Trust Level",
+        "authRequired": "Authentication Required",
+        "encryptionRequired": "Encryption Required",
+        "securityNotes": "Security Notes",
+        "dataFlows": "Data Flows"
       }
     },
     "assets": {

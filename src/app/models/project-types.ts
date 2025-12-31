@@ -7,12 +7,6 @@ import { DocData } from "features/documentation";
 
 // ==================== PROJECT TYPES ====================
 
-// export type PhaseStatus =
-//   | "not-started"
-//   | "in-progress"
-//   | "incomplete"
-//   | "complete";
-
 export type ProjectStatus = "draft" | "in-progress" | "review" | "complete";
 
 export type StrideMethod = "per-element" | "per-interaction";
@@ -24,58 +18,6 @@ export interface ProjectSettings {
   autoSave: boolean;
   autoSaveInterval?: number; // in seconds, default 30
 }
-
-// export interface ActivityLogEntry {
-//   timestamp: string;
-//   action: "CREATE" | "UPDATE" | "DELETE" | "EXPORT" | "IMPORT";
-//   entity?:
-//     | "project"
-//     | "dfd"
-//     | "asset"
-//     | "threat"
-//     | "risk"
-//     | "attacktree"
-//     | "documentation";
-//   entityId?: string;
-//   description: string;
-// }
-
-// export interface PhaseStatusMap {
-//   0: PhaseStatus; // General
-//   1: PhaseStatus; // DFD
-//   2: PhaseStatus; // Assets
-//   3: PhaseStatus; // Threats
-//   4: PhaseStatus; // Risk
-//   5: PhaseStatus; // Attack Tree
-//   6: PhaseStatus; // Documentation
-// }
-
-// export interface Asset {
-//   id: string;
-//   name: string;
-//   category: "Data" | "System" | "Infrastructure" | "Process" | "Human";
-//   description?: string;
-//   linkedDfdElement?: string;
-//   location?: string;
-//   dependencies?: string[];
-//   responsible?: string;
-//   criticality?: {
-//     overall: "Critical" | "High" | "Medium" | "Low";
-//     criteria: Record<string, "Critical" | "High" | "Medium" | "Low">;
-//   };
-//   strideRelevance?: {
-//     S: boolean; // Spoofing
-//     T: boolean; // Tampering
-//     R: boolean; // Repudiation
-//     I: boolean; // Information Disclosure
-//     D: boolean; // Denial of Service
-//     E: boolean; // Elevation of Privilege
-//   };
-//   securityGoals?: Array<{
-//     category: "S" | "T" | "R" | "I" | "D" | "E";
-//     goal: string;
-//   }>;
-// }
 
 export interface ThreatMitigation {
   description: string;

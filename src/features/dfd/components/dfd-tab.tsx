@@ -19,6 +19,8 @@ import {
   Stack,
   CircularProgress,
   Divider,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -33,13 +35,21 @@ import {
   LightMode as LightModeIcon,
   Download as ExportIcon,
   Upload as ImportIcon,
+  Draw as DrawIcon,
+  Description as DescriptionIcon,
 } from "@mui/icons-material";
 
-import { DFDStats, DFDTabProps } from "../models/dfd-types";
+import {
+  DFDStats,
+  DFDTabProps,
+  DFDViewMode,
+  DFDExportData,
+} from "../models/dfd-types";
 import { ValidationResult } from "../services/dfd-validator";
 import { useDFDEditor } from "../hooks/use-dfd-editor";
 import DFDPreviewDialog from "./dfd-preview-dialog";
 import DFDValidationPanel from "./dfd-validation-panel";
+import DFDDescriptionView from "./dfd-description-view";
 
 // ==================== CONSTANTS ====================
 
@@ -57,7 +67,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 }) => {
   const [showPreview, setShowPreview] = React.useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [iframeKey, setIframeKey] = useState(0); // Used to force iframe reload
+  const [iframeKey, setIframeKey] = useState(0);
+  const [viewMode, setViewMode] = useState<DFDViewMode>("draw");
 
   // Build URL with dark mode parameter
   const drawioUrl = darkMode
@@ -77,11 +88,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     validate,
     exportImage,
     autoNumberLabels,
+    updateElementDescription,
+    updateConnectionDescription,
+    exportDFD,
+    importDFD,
   } = useDFDEditor(project, {
     onDirtyChange,
     onSave: onUpdate,
     darkMode,
-    iframeKey, // Pass iframeKey to detect theme changes
+    iframeKey,
   });
 
   // ==================== HANDLERS ====================
@@ -105,11 +120,40 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   };
 
   const handleExport = async () => {
-    // await autoNumberLabels();
+    const exportData = exportDFD();
+    if (!exportData) return;
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project.name}_DFD.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleImport = async () => {
-    // await autoNumberLabels();
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data: DFDExportData = JSON.parse(text);
+        await importDFD(data);
+      } catch (error) {
+        console.error("Failed to import DFD:", error);
+        alert("Failed to import DFD. Please check the file format.");
+      }
+    };
+
+    input.click();
   };
 
   const handleProceed = () => {
@@ -119,14 +163,41 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     if (!validation?.isValid) {
       return;
     }
+
+    // Check if all descriptions are filled
+    const allDescribed =
+      stats &&
+      stats.describedElements === stats.totalElements - stats.dataFlows &&
+      stats.describedConnections === stats.dataFlows;
+
+    if (!allDescribed) {
+      return;
+    }
+
     onPhaseComplete?.();
   };
 
   const handleToggleDarkMode = useCallback(() => {
     setDarkMode((prev) => !prev);
-    // Force iframe reload to apply new theme
     setIframeKey((prev) => prev + 1);
   }, []);
+
+  const handleViewModeChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newMode: DFDViewMode | null
+  ) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
+  };
+
+  // Check if can proceed
+  const canProceed =
+    !isDirty &&
+    (validation?.isValid ?? false) &&
+    stats !== null &&
+    stats.describedElements === stats.totalElements - stats.dataFlows &&
+    stats.describedConnections === stats.dataFlows;
 
   // ==================== RENDER ====================
 
@@ -139,8 +210,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         overflow: "hidden",
       }}
     >
-      {/* Toolbar - only CoReTM-specific actions, zoom/undo/redo are in draw.io */}
+      {/* Toolbar */}
       <DFDToolbar
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
         isDirty={isDirty}
         validation={validation}
         stats={stats}
@@ -153,32 +226,42 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onImport={handleImport}
         onSave={handleSave}
         onProceed={handleProceed}
+        canProceed={canProceed}
       />
 
-      {/* Main Content - DrawIO Iframe */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          position: "relative",
-          bgcolor: darkMode ? "#1a1a1a" : "grey.100",
-        }}
-      >
-        {isLoading && <LoadingOverlay darkMode={darkMode} />}
-
-        <iframe
-          key={`${project.id}-${iframeKey}`} // Force remount on project or theme change
-          ref={iframeRef as React.RefObject<HTMLIFrameElement>}
-          src={drawioUrl}
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            pointerEvents: isLoading ? "none" : "auto",
+      {/* Main Content */}
+      {viewMode === "draw" ? (
+        <Box
+          sx={{
+            flexGrow: 1,
+            position: "relative",
+            bgcolor: darkMode ? "#1a1a1a" : "grey.100",
           }}
-          title="DFD Editor"
-          onLoad={handleIframeLoad}
+        >
+          {isLoading && <LoadingOverlay darkMode={darkMode} />}
+
+          <iframe
+            key={`${project.id}-${iframeKey}`}
+            ref={iframeRef as React.RefObject<HTMLIFrameElement>}
+            src={drawioUrl}
+            style={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              pointerEvents: isLoading ? "none" : "auto",
+            }}
+            title="DFD Editor"
+            onLoad={handleIframeLoad}
+          />
+        </Box>
+      ) : (
+        <DFDDescriptionView
+          elements={project.dfd?.elements || []}
+          connections={project.dfd?.connections || []}
+          onElementUpdate={updateElementDescription}
+          onConnectionUpdate={updateConnectionDescription}
         />
-      </Box>
+      )}
 
       {/* Validation Panel */}
       {validation &&
@@ -200,6 +283,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 // ==================== SUB-COMPONENTS ====================
 
 interface DFDToolbarProps {
+  viewMode: DFDViewMode;
+  onViewModeChange: (
+    event: React.MouseEvent<HTMLElement>,
+    mode: DFDViewMode | null
+  ) => void;
   isDirty: boolean;
   validation: ValidationResult | null;
   stats: DFDStats | null;
@@ -212,9 +300,12 @@ interface DFDToolbarProps {
   onImport: () => void;
   onSave: () => void;
   onProceed: () => void;
+  canProceed: boolean;
 }
 
 const DFDToolbar: React.FC<DFDToolbarProps> = ({
+  viewMode,
+  onViewModeChange,
   isDirty,
   validation,
   stats,
@@ -227,6 +318,7 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
   onImport,
   onSave,
   onProceed,
+  canProceed,
 }) => {
   const { t } = useTranslation();
 
@@ -244,71 +336,101 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
         flexWrap: "wrap",
       }}
     >
-      {/* Dark Mode Toggle */}
-      <Tooltip
-        title={
-          darkMode
-            ? t("tabs.dfd.toolbar.lightMode", {
-                defaultValue: "Switch to Light Mode",
-              })
-            : t("tabs.dfd.toolbar.darkMode", {
-                defaultValue: "Switch to Dark Mode",
-              })
-        }
+      {/* View Mode Toggle */}
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={onViewModeChange}
+        size="small"
       >
-        <IconButton size="small" onClick={onToggleDarkMode}>
-          {darkMode ? (
-            <LightModeIcon fontSize="small" />
-          ) : (
-            <DarkModeIcon fontSize="small" />
-          )}
-        </IconButton>
-      </Tooltip>
+        <ToggleButton value="draw">
+          <DrawIcon fontSize="small" sx={{ mr: 0.5 }} />
+          {t("tabs.dfd.toolbar.draw", { defaultValue: "Draw DFD" })}
+        </ToggleButton>
+        <ToggleButton value="describe">
+          <DescriptionIcon fontSize="small" sx={{ mr: 0.5 }} />
+          {t("tabs.dfd.toolbar.describe", { defaultValue: "Describe DFD" })}
+        </ToggleButton>
+      </ToggleButtonGroup>
 
       <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
-      {/* Export, Refresh & Auto-Number */}
+      {/* Dark Mode Toggle - only in draw mode */}
+      {viewMode === "draw" && (
+        <>
+          <Tooltip
+            title={
+              darkMode
+                ? t("tabs.dfd.toolbar.lightMode", {
+                    defaultValue: "Switch to Light Mode",
+                  })
+                : t("tabs.dfd.toolbar.darkMode", {
+                    defaultValue: "Switch to Dark Mode",
+                  })
+            }
+          >
+            <IconButton size="small" onClick={onToggleDarkMode}>
+              {darkMode ? (
+                <LightModeIcon fontSize="small" />
+              ) : (
+                <DarkModeIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+        </>
+      )}
+
+      {/* Export Image, Refresh & Auto-Number - only in draw mode */}
+      {viewMode === "draw" && (
+        <>
+          <Tooltip
+            title={t("tabs.dfd.toolbar.exportImage", {
+              defaultValue: "Export as Image",
+            })}
+          >
+            <IconButton size="small" onClick={onExportImage}>
+              <ImageIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={t("tabs.dfd.toolbar.refresh", {
+              defaultValue: "Refresh Validation",
+            })}
+          >
+            <IconButton size="small" onClick={onRefresh}>
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={t("tabs.dfd.toolbar.autoNumber", {
+              defaultValue: "Auto-Number Labels",
+            })}
+          >
+            <IconButton size="small" onClick={onAutoNumber}>
+              <AutoNumberIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+        </>
+      )}
+
+      {/* Export & Import */}
       <Tooltip
-        title={t("tabs.dfd.toolbar.exportImage", {
-          defaultValue: "Export as Image",
-        })}
+        title={t("tabs.dfd.toolbar.exportDFD", { defaultValue: "Export DFD" })}
       >
-        <IconButton size="small" onClick={onExportImage}>
-          <ImageIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title={t("tabs.dfd.toolbar.refresh", {
-          defaultValue: "Refresh Validation",
-        })}
-      >
-        <IconButton size="small" onClick={onRefresh}>
-          <RefreshIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title={t("tabs.dfd.toolbar.autoNumber", {
-          defaultValue: "Auto-Number Labels",
-        })}
-      >
-        <IconButton size="small" onClick={onAutoNumber}>
-          <AutoNumberIcon fontSize="small" />
+        <IconButton onClick={onExport} size="small">
+          <ExportIcon fontSize="small" />
         </IconButton>
       </Tooltip>
 
-      {/* Export */}
-      <Tooltip title={t("common.export", { defaultValue: "Export" })}>
-        <span>
-          <IconButton onClick={onExport} size="small">
-            <ExportIcon />
-          </IconButton>
-        </span>
-      </Tooltip>
-
-      {/* Import */}
-      <Tooltip title={t("common.import", { defaultValue: "Import" })}>
+      <Tooltip
+        title={t("tabs.dfd.toolbar.importDFD", { defaultValue: "Import DFD" })}
+      >
         <IconButton onClick={onImport} size="small">
-          <ImportIcon />
+          <ImportIcon fontSize="small" />
         </IconButton>
       </Tooltip>
 
@@ -339,7 +461,7 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
         size="small"
         endIcon={<NextIcon />}
         onClick={onProceed}
-        disabled={!validation?.isValid || isDirty}
+        disabled={!canProceed}
       >
         {t("tabs.dfd.proceed", { defaultValue: "Continue" })}
       </Button>
@@ -354,6 +476,11 @@ interface DFDStatsDisplayProps {
 const DFDStatsDisplay: React.FC<DFDStatsDisplayProps> = ({ stats }) => {
   const { t } = useTranslation();
 
+  const totalCountable = stats.totalElements - stats.dataFlows;
+  const allDescribed =
+    stats.describedElements === totalCountable &&
+    stats.describedConnections === stats.dataFlows;
+
   return (
     <Stack direction="row" spacing={1} alignItems="center" sx={{ mr: 2 }}>
       <Typography variant="caption" color="text.secondary">
@@ -365,6 +492,17 @@ const DFDStatsDisplay: React.FC<DFDStatsDisplayProps> = ({ stats }) => {
       </Typography>
       <Typography variant="caption" color="text.secondary">
         {stats.dataFlows} {t("tabs.dfd.stats.flows", { defaultValue: "Flows" })}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        •
+      </Typography>
+      <Typography
+        variant="caption"
+        color={allDescribed ? "success.main" : "warning.main"}
+      >
+        {stats.describedElements + stats.describedConnections} /{" "}
+        {totalCountable + stats.dataFlows}{" "}
+        {t("tabs.dfd.stats.described", { defaultValue: "Described" })}
       </Typography>
     </Stack>
   );

@@ -16,6 +16,9 @@ export type DFDElementType =
   | "Asset"
   | "Interface";
 
+export type SecurityLevel = "public" | "internal" | "confidential" | "secret";
+export type TrustLevel = "trusted" | "untrusted" | "unknown";
+
 export interface DFDElement {
   id: string;
   type: DFDElementType;
@@ -25,6 +28,14 @@ export interface DFDElement {
   position: { x: number; y: number };
   size: { width: number; height: number };
   properties: Record<string, unknown>;
+
+  // Threat modeling fields (optional, not required for validation)
+  securityLevel?: SecurityLevel;
+  dataClassification?: string;
+  trustLevel?: TrustLevel;
+  authenticationRequired?: boolean;
+  encryptionRequired?: boolean;
+  securityNotes?: string;
 }
 
 export interface DFDConnection {
@@ -32,14 +43,21 @@ export interface DFDConnection {
   from: string;
   to: string;
   label?: string;
+  description: string; // NEW: Required description field
   displayId?: string;
-  waypoints?: Array<{ x: number; y: number }>; // For curved/orthogonal dataflows
+  waypoints?: Array<{ x: number; y: number }>;
   properties?: {
     protocol?: string;
     encrypted?: boolean;
     bidirectional?: boolean;
     dataType?: string;
   };
+
+  // Threat modeling fields (optional)
+  securityLevel?: SecurityLevel;
+  authenticationRequired?: boolean;
+  encryptionRequired?: boolean;
+  securityNotes?: string;
 }
 
 export interface DFDValidation {
@@ -60,6 +78,10 @@ export interface DFDStats {
   physicalInterfaces: number;
   assets: number;
   interfaces: number;
+
+  // Description completion stats
+  describedElements: number;
+  describedConnections: number;
 }
 
 export interface DFDData {
@@ -70,6 +92,17 @@ export interface DFDData {
   stats?: DFDStats;
   lastModified?: string;
   thumbnail?: string;
+}
+
+// ==================== DFD EXPORT/IMPORT ====================
+
+export interface DFDExportData {
+  version: string; // Format version for future compatibility
+  projectName: string;
+  exportDate: string;
+  xml: string;
+  elements: DFDElement[];
+  connections: DFDConnection[];
 }
 
 // ==================== DFD PROJECT INTERFACE ====================
@@ -107,6 +140,10 @@ export interface DFDTabProps {
   onPhaseComplete?: () => void;
 }
 
+// ==================== DFD VIEW MODE ====================
+
+export type DFDViewMode = "draw" | "describe";
+
 // ==================== DFD CONSTANTS ====================
 
 export const DFD_ELEMENT_CONFIG: Record<
@@ -140,7 +177,7 @@ export const DFD_ELEMENT_CONFIG: Record<
     name: "Data Store",
     nameDE: "Datenspeicher",
     description: "Database, file or registry",
-    icon: "╒",
+    icon: "║",
   },
   DataFlow: {
     name: "Data Flow",
@@ -152,7 +189,7 @@ export const DFD_ELEMENT_CONFIG: Record<
     name: "Trust Boundary",
     nameDE: "Trust Boundary",
     description: "Boundary between trust zones",
-    icon: "┄",
+    icon: "┌",
   },
   PhysicalInterface: {
     name: "Physical Interface",

@@ -33,7 +33,8 @@
     "all": "Alle",
     "deleteAll": "Alle löschen",
     "unsaved": "Nicht gespeichert",
-    "reset": "Zurücksetzen"
+    "reset": "Zurücksetzen",
+    "none": "Nichts"
   },
 
   "project": {
@@ -249,7 +250,11 @@
         "exportImage": "Als Bild exportieren",
         "refresh": "Validierung aktualisieren",
         "autoNumber": "Labels automatisch nummerieren",
-        "darkMode": "Dark Mode"
+        "darkMode": "Dark Mode",
+        "draw": "DFD zeichnen",
+        "describe": "DFD beschreiben",
+        "exportDFD": "DFD exportieren",
+        "importDFD": "DFD importieren"
       },
       "preview": {
         "title": "DFD Vorschau",
@@ -258,7 +263,8 @@
       },
       "stats": {
         "elements": "Elemente",
-        "flows": "Datenflüsse"
+        "flows": "Datenflüsse",
+        "described": "Beschrieben"
       },
       "validation": {
         "valid": "Gültig",
@@ -266,6 +272,22 @@
         "warnings": "Warnungen",
         "required": "Erforderlich",
         "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich"
+      },
+      "element_description": {
+        "title": "DFD Element Beschreibungen",
+        "subtitle": "Beschreiben Sie jedes Element und jeden Datenfluss für eine bessere Gefahrenanalyse.",
+        "noElements": "Keine Elemente gefunden. Bitte zeichnen Sie zuerst Ihr DFD.",
+        "complete": "Alle beschrieben",
+        "required": "Pflichtfelder",
+        "optional": "Threat Modeling Felder (Optional)",
+        "description": "Beschreibung",
+        "securityLevel": "Sicherheitsstufe",
+        "dataClassification": "Datenklassifizierung",
+        "trustLevel": "Vertrauensstufe",
+        "authRequired": "Authentifizierung erforderlich",
+        "encryptionRequired": "Verschlüsselung erforderlich",
+        "securityNotes": "Sicherheitshinweise",
+        "dataFlows": "Datenflüsse"
       }
     },
     "assets": {
