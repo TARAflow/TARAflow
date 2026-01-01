@@ -788,20 +788,29 @@ export const MainLayout: React.FC = () => {
         />
       )}
 
-      {/* New Project Dialog */}
       {showNewDialog && (
         <NewProjectDialog
           onCreate={async (data: NewProjectData) => {
             const result = await projectService.createProject({
               name: data.name,
               description: data.description,
+              version: data.version, // ← NEU
               responsible: data.responsible,
             });
             if (result.success && result.data) {
-              setProjects([...projects, result.data]);
-              setActiveProjectId(result.data.id);
+              // Tags separat hinzufügen (falls createProject sie nicht unterstützt)
+              const projectWithTags = {
+                ...result.data,
+                tags: data.tags, // ← NEU
+              };
+
+              // Speichern mit Tags
+              await storageService.saveProject(projectWithTags);
+
+              setProjects([...projects, projectWithTags]);
+              setActiveProjectId(projectWithTags.id);
               setActivePhase(0);
-              setToastMessage(`Project "${result.data.name}" created!`);
+              setToastMessage(`Project "${projectWithTags.name}" created!`);
             } else {
               setToastMessage(`Error: ${result.error}`);
             }

@@ -117,7 +117,12 @@
       "infoItem1": "Das Projekt wird mit Standardeinstellungen erstellt",
       "infoItem2": "Sie werden zum Allgemein Tab weitergeleitet",
       "infoItem3": "Alle Phasen sind zunächst auf Nicht gestartet",
-      "infoItem4": "Sie können mit der DFD-Erstellung beginnen (Phase 1)"
+      "infoItem4": "Sie können mit der DFD-Erstellung beginnen (Phase 1)",
+      "tagCategories": {
+        "domain": "Branche",
+        "platform": "Plattform",
+        "priority": "Priorität"
+      }
     },
     "deleteProject": {
       "title": "Projekt löschen?",

@@ -18,42 +18,85 @@ export interface NewProjectData {
   tags: string[];
 }
 
-export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onCreate }) => {
+// ==================== TAG CATEGORIES ====================
+
+interface TagCategory {
+  key: string;
+  labelKey: string;
+  tags: string[];
+}
+
+const TAG_CATEGORIES: TagCategory[] = [
+  {
+    key: 'domain',
+    labelKey: 'dialogs.newProject.tagCategories.domain',
+    tags: [
+      'Medical',
+      'Railway', 
+      'Aerospace',
+      'Automotive',
+      'Industrial',
+      'Military',
+      'Finance',
+      'Energy',
+    ],
+  },
+  {
+    key: 'platform',
+    labelKey: 'dialogs.newProject.tagCategories.platform',
+    tags: [
+      'Web',
+      'Mobile',
+      'Desktop',
+      'Cloud',
+      'Embedded',
+      'IoT',
+    ],
+  },
+  {
+    key: 'priority',
+    labelKey: 'dialogs.newProject.tagCategories.priority',
+    tags: [
+      'critical',
+      'high-priority',
+      'low-priority',
+    ],
+  },
+];
+
+export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
+  onClose,
+  onCreate,
+}) => {
   const { t } = useTranslation();
 
   const [formData, setFormData] = useState<NewProjectData>({
-    name: '',
-    description: '',
-    version: '1.0',
-    responsible: '',
-    tags: []
+    name: "",
+    description: "",
+    version: "1.0",
+    responsible: "",
+    tags: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [tagInput, setTagInput] = useState('');
-
-  // Vordefinierte Tags zur Auswahl
-  const predefinedTags = [
-    'Web', 'Mobile', 'Cloud', 'Embedded', 'Desktop', 
-    'System', 'IoT', 'high-priority', 'critical'
-  ];
+  const [tagInput, setTagInput] = useState("");
 
   // Validierung
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = t('validation.nameRequired');
+      newErrors.name = t("validation.nameRequired");
     } else if (formData.name.length < 3) {
-      newErrors.name = t('validation.nameMinLength');
+      newErrors.name = t("validation.nameMinLength");
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = t('validation.descriptionRequired');
+      newErrors.description = t("validation.descriptionRequired");
     }
 
     if (!formData.responsible.trim()) {
-      newErrors.responsible = t('validation.responsibleRequired');
+      newErrors.responsible = t("validation.responsibleRequired");
     }
 
     setErrors(newErrors);
@@ -64,26 +107,26 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onC
   const addTag = (tag: string) => {
     const trimmedTag = tag.trim();
     if (trimmedTag && !formData.tags.includes(trimmedTag)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        tags: [...prev.tags, trimmedTag]
+        tags: [...prev.tags, trimmedTag],
       }));
-      setTagInput('');
+      setTagInput("");
     }
   };
 
   // Tag entfernen
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
     }));
   };
 
   // Formular absenden
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validate()) {
       onCreate(formData);
       onClose();
@@ -92,9 +135,14 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onC
 
   // Keyboard Shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       onClose();
     }
+  };
+
+  // Get all predefined tags that are not yet selected
+  const getAvailableTagsForCategory = (category: TagCategory): string[] => {
+    return category.tags.filter((tag) => !formData.tags.includes(tag));
   };
 
   return (
@@ -237,11 +285,10 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onC
                     >
                       {tag}
                       <button
-                        aria-label={t("projectInfo.addPredefinedTag")}
-                        id="add-tag"
                         type="button"
                         onClick={() => removeTag(tag)}
                         className="hover:text-blue-900"
+                        aria-label={t("common.remove")}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -250,27 +297,36 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onC
                 </div>
               )}
 
-              {/* Tag Input */}
-              <div className="flex gap-2">
-                <select
-                  aria-label={"dialogs.newProject.customTagPlaceholder"}
-                  id="enter-tag"
-                  value=""
-                  onChange={(e) => e.target.value && addTag(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">
-                    {t("dialogs.newProject.predefinedTags")}
-                  </option>
-                  {predefinedTags
-                    .filter((tag) => !formData.tags.includes(tag))
-                    .map((tag) => (
-                      <option key={tag} value={tag}>
-                        {tag}
-                      </option>
-                    ))}
-                </select>
+              {/* Tag Categories */}
+              <div className="space-y-3 mb-3">
+                {TAG_CATEGORIES.map((category) => {
+                  const availableTags = getAvailableTagsForCategory(category);
+                  if (availableTags.length === 0) return null;
 
+                  return (
+                    <div key={category.key}>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
+                        {t(category.labelKey, { defaultValue: category.key })}
+                      </label>
+                      <div className="flex flex-wrap gap-1">
+                        {availableTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => addTag(tag)}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
+                          >
+                            + {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Custom Tag Input */}
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={tagInput}
@@ -284,11 +340,11 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onC
                   placeholder={t("dialogs.newProject.customTagPlaceholder")}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-
                 <button
                   type="button"
                   onClick={() => addTag(tagInput)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+                  disabled={!tagInput.trim()}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t("common.add")}
                 </button>

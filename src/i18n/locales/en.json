@@ -119,7 +119,12 @@
       "infoItem1": "The project will be created with default settings",
       "infoItem2": "You will be redirected to the General tab",
       "infoItem3": "All phases are initially set to Not Started",
-      "infoItem4": "You can start with DFD creation (Phase 1)"
+      "infoItem4": "You can start with DFD creation (Phase 1)",
+      "tagCategories": {
+        "domain": "Industry Domain",
+        "platform": "Platform",
+        "priority": "Priority"
+      }
     },
     "deleteProject": {
       "title": "Delete Project?",

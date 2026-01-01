@@ -43,8 +43,8 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {/* Sidebar */}
       <div
         className={`bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 ${
-          isCollapsed ? "w-0" : "w-64"
-        }`}
+          isCollapsed ? "w-0" : "w-56"
+        }`} // w-52 = 208px
       >
         {!isCollapsed && (
           <>
@@ -79,13 +79,21 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       {/* Collapse Button */}
       <button
         onClick={onToggleCollapse}
-        className="absolute left-0 top-4 z-10 bg-white border border-gray-200 rounded-r-lg p-2 hover:bg-gray-50 transition-all"
-        style={{ marginLeft: isCollapsed ? "0" : "256px" }}
+        className="
+    absolute left-0 top-1/2 -translate-y-1/2 z-10
+    bg-white
+    border border-gray-200 border-l-0
+    rounded-r-md
+    px-0.5 py-4
+    hover:bg-gray-50
+    transition-all
+  "
+        style={{ marginLeft: isCollapsed ? "0" : "224px" }}
       >
         {isCollapsed ? (
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4" />
         ) : (
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4" />
         )}
       </button>
     </>
