@@ -17,6 +17,7 @@ export interface ProjectSettings {
   strictMode: boolean;
   autoSave: boolean;
   autoSaveInterval?: number; // in seconds, default 30
+  isHighImpact?: boolean; // Critical system flag - changes workflow order
 }
 
 export interface ThreatMitigation {
@@ -102,6 +103,7 @@ export interface CreateProjectInput {
   description: string;
   version?: string;
   responsible?: string;
+  tags?: string[];
   isHighImpact?: boolean;
 }
 

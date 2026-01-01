@@ -89,7 +89,17 @@
     "theme": "Design",
     "strictModeDescription": "Wenn aktiviert, müssen alle Phasen der Reihe nach abgeschlossen werden. Sie können erst zur nächsten Phase wechseln, wenn die vorherige abgeschlossen ist.",
     "autoSaveDescription": "Speichert Ihre Änderungen in regelmässigen Abständen automatisch.",
-    "autoSaveInterval": "Intervall für automatisches Speichern"
+    "autoSaveInterval": "Intervall für automatisches Speichern",
+    "criticality": "Kritikalität",
+    "validation": "Validierung",
+    "saving": "Speichern",
+    "standardSystem": "Standard System",
+    "criticalSystem": "Kritisches System",
+    "criticalSystemDescription": "Attack Trees werden vor STRIDE-Bedrohungen analysiert",
+    "standardSystemDescription": "Standard STRIDE-first Bedrohungsanalyse-Workflow",
+    "criticalSystemTooltip": "Für sicherheitskritische oder hochgradig wichtige Systeme werden Attack Trees vor STRIDE-Bedrohungen analysiert, um Angriffspfade besser zu verstehen.",
+    "standardWorkflow": "Standard:",
+    "criticalWorkflow": "Kritisch:"
   },
 
   "validation": {
@@ -106,28 +116,21 @@
 
   "dialogs": {
     "newProject": {
-      "title": "Neues Projekt erstellen",
-      "namePlaceholder": "z.B. Web Application Security Analysis",
-      "descriptionPlaceholder": "Kurze Beschreibung des Projekts und seiner Ziele...",
-      "responsiblePlaceholder": "Name oder Team",
-      "predefinedTags": "Vordefinierte Tags...",
-      "customTagPlaceholder": "Eigener Tag... (Enter zum Hinzufügen)",
-      "createButton": "Projekt erstellen",
-      "infoTitle": "Was passiert als Nächstes?",
-      "infoItem1": "Das Projekt wird mit Standardeinstellungen erstellt",
-      "infoItem2": "Sie werden zum Allgemein Tab weitergeleitet",
-      "infoItem3": "Alle Phasen sind zunächst auf Nicht gestartet",
-      "infoItem4": "Sie können mit der DFD-Erstellung beginnen (Phase 1)",
-      "highImpactLabel": "High-Impact System",
-      "criticalityTitle": "Kritikalität",
-      "highCritical": "Hoch Kritisch",
-      "nonCritical": "Nicht Kritisch",
-      "highImpactTooltip": "Aktivieren für kritische Systeme. Dies wählt automatisch den Attack-Tree-first Workflow.",
+      "title": "Neues Projekt",
+      "namePlaceholder": "Projektname eingeben...",
+      "descriptionPlaceholder": "Beschreiben Sie Ihr Projekt...",
+      "responsiblePlaceholder": "Verantwortliche Person...",
+      "customTagPlaceholder": "Eigenes Tag eingeben...",
       "tagCategories": {
         "domain": "Branche",
-        "platform": "Plattform",
-        "priority": "Priorität"
-      }
+        "platform": "Plattform"
+      },
+      "createButton": "Projekt erstellen",
+      "infoTitle": "Was passiert als nächstes?",
+      "infoItem1": "Definieren Sie Ihre Systemarchitektur mit einem Datenflussdiagramm",
+      "infoItem2": "Identifizieren Sie Assets und ihre Sicherheitsanforderungen",
+      "infoItem3": "Analysieren Sie Bedrohungen mit der STRIDE-Methodik",
+      "infoItem4": "Bewerten und mindern Sie Risiken"
     },
     "deleteProject": {
       "title": "Projekt löschen?",
@@ -206,9 +209,25 @@
 
   "projectInfo": {
     "title": "Projektinformationen",
-    "addPredefinedTag": "Vordefiniertes Tag hinzufügen...",
-    "customTagPlaceholder": "Eigenes Tag...",
-    "noTags": "No tags"
+    "tagCategories": {
+      "domain": "Branche",
+      "platform": "Plattform"
+    },
+    "selectedTags": "Ausgewählte Tags",
+    "customTag": "Eigenes Tag",
+    "customTags": "Eigene",
+    "customTagPlaceholder": "Eigenes Tag eingeben...",
+    "selectCategory": "Kategorie wählen",
+    "criticality": "Kritikalität",
+    "criticalSystem": "Kritisches System",
+    "standardSystem": "Standard-System",
+    "criticalSystemTooltip": "Attack Trees werden vor STRIDE-Bedrohungen analysiert. Änderbar in Einstellungen.",
+    "standardSystemTooltip": "Standard STRIDE-first Workflow. Änderbar in Einstellungen.",
+    "noTags": "Keine Tags",
+    "noTeamMembers": "Keine Teammitglieder",
+    "teamMemberPlaceholder": "Teammitglied hinzufügen...",
+    "addTag": "Tag hinzufügen",
+    "addTeamMember": "Teammitglied hinzufügen"
   },
 
   "messages": {

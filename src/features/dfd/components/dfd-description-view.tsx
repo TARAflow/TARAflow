@@ -281,7 +281,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="info">
-          {t("tabs.dfd.description.noElements", {
+          {t("tabs.dfd.element_description.noElements", {
             defaultValue: "No elements found. Please draw your DFD first.",
           })}
         </Alert>
@@ -295,7 +295,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       <Paper sx={{ p: 2, m: 2, mb: 1 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="h6">
-            {t("tabs.dfd.description.title", {
+            {t("tabs.dfd.element_description.title", {
               defaultValue: "DFD Element Descriptions",
             })}
           </Typography>
@@ -305,7 +305,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
           {stats.isComplete ? (
             <Chip
               icon={<CheckCircleIcon />}
-              label={t("tabs.dfd.description.complete", {
+              label={t("tabs.dfd.element_description.complete", {
                 defaultValue: "All Described",
               })}
               color="success"
@@ -322,7 +322,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
         </Stack>
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          {t("tabs.dfd.description.subtitle", {
+          {t("tabs.dfd.element_description.subtitle", {
             defaultValue:
               "Describe each element and data flow for better threat analysis.",
           })}
@@ -399,7 +399,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <DataFlowIcon fontSize="small" sx={{ mr: 1 }} />
                   <Typography variant="subtitle1">
-                    {t("tabs.dfd.description.dataFlows", {
+                    {t("tabs.dfd.element_description.dataFlows", {
                       defaultValue: "Data Flows",
                     })}
                   </Typography>

@@ -91,7 +91,17 @@
     "theme": "Theme",
     "strictModeDescription": "When enabled, all phases must be completed in order. You cannot proceed to the next phase until the previous one is complete.",
     "autoSaveDescription": "Automatically saves your changes at regular intervals.",
-    "autoSaveInterval": "Auto-Save interval"
+    "autoSaveInterval": "Auto-Save interval",
+    "criticality": "Criticality",
+    "validation": "Validation",
+    "saving": "Saving",
+    "standardSystem": "Standard System",
+    "criticalSystem": "Critical System",
+    "criticalSystemDescription": "Attack Trees are analyzed before STRIDE threats",
+    "standardSystemDescription": "Standard STRIDE-first threat analysis workflow",
+    "criticalSystemTooltip": "For safety-critical or high-impact systems, Attack Trees are analyzed before STRIDE threats to better understand attack paths.",
+    "standardWorkflow": "Standard:",
+    "criticalWorkflow": "Critical:"
   },
 
   "validation": {
@@ -108,28 +118,21 @@
 
   "dialogs": {
     "newProject": {
-      "title": "Create New Project",
-      "namePlaceholder": "e.g. Web Application Security Analysis",
-      "descriptionPlaceholder": "Brief description of the project and its goals...",
-      "responsiblePlaceholder": "Name or team",
-      "predefinedTags": "Predefined tags...",
-      "customTagPlaceholder": "Custom tag... (Enter to add)",
-      "createButton": "Create Project",
-      "infoTitle": "What happens next?",
-      "infoItem1": "The project will be created with default settings",
-      "infoItem2": "You will be redirected to the General tab",
-      "infoItem3": "All phases are initially set to Not Started",
-      "infoItem4": "You can start with DFD creation (Phase 1)",
-      "highImpactLabel": "High-Impact System",
-      "criticalityTitle": "Criticality",
-      "highCritical": "High Critical",
-      "nonCritical": "Non-Critical",
-      "highImpactTooltip": "Enable for critical systems. This automatically selects the Attack-Tree-first workflow.",
+      "title": "New Project",
+      "namePlaceholder": "Enter project name...",
+      "descriptionPlaceholder": "Describe your project...",
+      "responsiblePlaceholder": "Person responsible...",
+      "customTagPlaceholder": "Enter custom tag...",
       "tagCategories": {
         "domain": "Industry Domain",
-        "platform": "Platform",
-        "priority": "Priority"
-      }
+        "platform": "Platform"
+      },
+      "createButton": "Create Project",
+      "infoTitle": "What happens next?",
+      "infoItem1": "Define your system architecture with a Data Flow Diagram",
+      "infoItem2": "Identify assets and their security requirements",
+      "infoItem3": "Analyze threats using STRIDE methodology",
+      "infoItem4": "Assess and mitigate risks"
     },
     "deleteProject": {
       "title": "Delete Project?",
@@ -208,9 +211,25 @@
 
   "projectInfo": {
     "title": "Project Information",
-    "addPredefinedTag": "Add predefined tag...",
-    "customTagPlaceholder": "Custom tag...",
-    "noTags": "No tags"
+    "tagCategories": {
+      "domain": "Industry",
+      "platform": "Platform"
+    },
+    "selectedTags": "Selected Tags",
+    "customTag": "Custom Tag",
+    "customTags": "Custom",
+    "customTagPlaceholder": "Enter custom tag...",
+    "selectCategory": "Select category",
+    "criticality": "Criticality",
+    "criticalSystem": "Critical System",
+    "standardSystem": "Standard System",
+    "criticalSystemTooltip": "Attack Trees are analyzed before STRIDE threats. Change in Settings.",
+    "standardSystemTooltip": "Standard STRIDE-first workflow. Change in Settings.",
+    "noTags": "No tags",
+    "noTeamMembers": "No team members",
+    "teamMemberPlaceholder": "Add team member...",
+    "addTag": "Add tag",
+    "addTeamMember": "Add team member"
   },
 
   "messages": {

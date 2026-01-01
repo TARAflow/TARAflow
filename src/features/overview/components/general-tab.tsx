@@ -1,13 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  Button,
-  ConfirmDeleteDialog,
-  PhaseDefinition,
-  PhaseStatus,
-  PhaseStatusMap,
-} from "shared";
-import { ActivityLog, ActivityLogEntry } from "./activity-log";
+import React from "react";
+import { PhaseDefinition, PhaseStatus, PhaseStatusMap } from "shared";
 import { ProjectInfo, ProjectInfoData } from "./project-info";
 import { ProjectProgress } from "./project-progress";
 import { ProjectSettings } from "./project-settings";
@@ -20,11 +12,10 @@ import {
 // ==================== GENERAL TAB ====================
 // Overview/Info phase component
 //
-// This component orchestrates the sub-components and handles
-// the mapping between the full project data and the specific
-// interfaces each component needs.
-//
-// Dependencies are injected via props (Dependency Inversion Principle)
+// Layout:
+// 1. Project Info (editable)
+// 2. Phase Progress
+// 3. Project Settings (Validation, Auto Saving)
 
 export interface GeneralTabData {
   // Project info
@@ -38,14 +29,11 @@ export interface GeneralTabData {
   tags: string[];
   team: string[];
 
-  // Settings
+  // Settings (includes isHighImpact)
   settings: ProjectSettingsData;
 
   // Phase status
   phaseStatus: PhaseStatusMap;
-
-  // Activity
-  activityLog: ActivityLogEntry[];
 
   // DFD validation (for progress display)
   dfdValidation?: {
@@ -69,12 +57,6 @@ interface GeneralTabProps {
 
   /** Callback when data changes */
   onUpdate: (data: GeneralTabData) => void;
-
-  /** Callback to export project (optional, injected from app) */
-  onExport?: () => void;
-
-  /** Callback to delete project (optional, injected from app) */
-  onDelete?: () => void;
 }
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({
@@ -83,12 +65,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   getStatusIcon,
   getStatusColor,
   onUpdate,
-  onExport,
-  onDelete,
 }) => {
-  const { t } = useTranslation();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
   // Map data to ProjectInfoData interface
   const projectInfoData: ProjectInfoData = {
     name: data.name,
@@ -99,11 +76,11 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     lastModified: data.lastModified,
     tags: data.tags,
     team: data.team,
+    isHighImpact: data.settings.isHighImpact,
   };
 
   // Map data to ProjectProgressData interface
-  const progressData: ProjectProgressData = useMemo(() => {
-    // Build validation info for each phase
+  const progressData: ProjectProgressData = React.useMemo(() => {
     const validationInfo: Record<number, PhaseValidationInfo> = {};
 
     // Phase 0: General - check for missing fields
@@ -132,30 +109,33 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     };
   }, [data]);
 
-  // Handle info updates
+  // Handle info updates (includes isHighImpact now)
   const handleInfoUpdate = (info: ProjectInfoData) => {
     onUpdate({
       ...data,
-      ...info,
+      name: info.name,
+      description: info.description,
+      version: info.version,
+      responsible: info.responsible,
+      tags: info.tags,
+      team: info.team,
+      settings: {
+        ...data.settings,
+        isHighImpact: info.isHighImpact,
+      },
     });
   };
 
-  // Handle settings updates
+  // Handle settings updates (only strictMode, autoSave, autoSaveInterval)
   const handleSettingsUpdate = (settings: ProjectSettingsData) => {
     onUpdate({
       ...data,
-      settings,
+      settings: {
+        ...settings,
+        // Preserve isHighImpact from current settings (edited via ProjectInfo)
+        isHighImpact: data.settings.isHighImpact,
+      },
     });
-  };
-
-  // Handle delete
-  const handleDeleteClick = () => {
-    setShowDeleteDialog(true);
-  };
-
-  const handleDeleteConfirm = () => {
-    setShowDeleteDialog(false);
-    onDelete?.();
   };
 
   return (
@@ -173,31 +153,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
         settings={data.settings}
         onUpdate={handleSettingsUpdate}
       />
-
-      <ActivityLog entries={data.activityLog} />
-
-      <div className="flex gap-3">
-        {onExport && (
-          <Button variant="primary" onClick={onExport}>
-            {t("project.exportProject")}
-          </Button>
-        )}
-        {onDelete && (
-          <Button variant="danger" onClick={handleDeleteClick}>
-            {t("project.deleteProject")}
-          </Button>
-        )}
-      </div>
-
-      {/* Delete Confirmation Dialog - from shared */}
-      {showDeleteDialog && (
-        <ConfirmDeleteDialog
-          itemName={data.name}
-          itemType="project"
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setShowDeleteDialog(false)}
-        />
-      )}
     </div>
   );
 };
