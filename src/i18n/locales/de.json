@@ -118,6 +118,11 @@
       "infoItem2": "Sie werden zum Allgemein Tab weitergeleitet",
       "infoItem3": "Alle Phasen sind zunächst auf Nicht gestartet",
       "infoItem4": "Sie können mit der DFD-Erstellung beginnen (Phase 1)",
+      "highImpactLabel": "High-Impact System",
+      "criticalityTitle": "Kritikalität",
+      "highCritical": "Hoch Kritisch",
+      "nonCritical": "Nicht Kritisch",
+      "highImpactTooltip": "Aktivieren für kritische Systeme. Dies wählt automatisch den Attack-Tree-first Workflow.",
       "tagCategories": {
         "domain": "Branche",
         "platform": "Plattform",

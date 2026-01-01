@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { Info as InfoIcon } from "@mui/icons-material";
+
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
+
 // ==================== NEW PROJECT DIALOG ====================
 // Erstellt ein neues Projekt mit allen erforderlichen Feldern
 
@@ -16,6 +20,7 @@ export interface NewProjectData {
   version: string;
   responsible: string;
   tags: string[];
+  isHighImpact?: boolean;
 }
 
 // ==================== TAG CATEGORIES ====================
@@ -28,39 +33,28 @@ interface TagCategory {
 
 const TAG_CATEGORIES: TagCategory[] = [
   {
-    key: 'domain',
-    labelKey: 'dialogs.newProject.tagCategories.domain',
+    key: "domain",
+    labelKey: "dialogs.newProject.tagCategories.domain",
     tags: [
-      'Medical',
-      'Railway', 
-      'Aerospace',
-      'Automotive',
-      'Industrial',
-      'Military',
-      'Finance',
-      'Energy',
+      "Medical",
+      "Railway",
+      "Aerospace",
+      "Automotive",
+      "Industrial",
+      "Military",
+      "Finance",
+      "Energy",
     ],
   },
   {
-    key: 'platform',
-    labelKey: 'dialogs.newProject.tagCategories.platform',
-    tags: [
-      'Web',
-      'Mobile',
-      'Desktop',
-      'Cloud',
-      'Embedded',
-      'IoT',
-    ],
+    key: "platform",
+    labelKey: "dialogs.newProject.tagCategories.platform",
+    tags: ["Web", "Mobile", "Desktop", "Cloud", "Embedded", "IoT"],
   },
   {
-    key: 'priority',
-    labelKey: 'dialogs.newProject.tagCategories.priority',
-    tags: [
-      'critical',
-      'high-priority',
-      'low-priority',
-    ],
+    key: "priority",
+    labelKey: "dialogs.newProject.tagCategories.priority",
+    tags: ["critical", "high-priority", "low-priority"],
   },
 ];
 
@@ -227,8 +221,9 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 
             {/* Version und Verantwortlicher - Nebeneinander */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Version */}
-              <div>
+              {/* Version + High Impact Switch */}
+              <div className="flex flex-col">
+                {/* Version */}
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("project.version")}
                 </label>
@@ -241,10 +236,86 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1.0"
                 />
+
+                {/* High/Critical Impact Switch */}
+                <div className="flex flex-col mt-3">
+                  {/* Titel */}
+                  <span className="text-sm font-medium text-gray-700 mb-1">
+                    {t("dialogs.newProject.highImpactTitle", "Criticality")}
+                  </span>
+
+                  {/* Label mit Border */}
+                  <label className="flex items-center justify-between border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus-within:ring-2 focus-within:ring-blue-500">
+                    <div className="flex items-center gap-2">
+                      {/* Slide Switch */}
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={formData.isHighImpact ?? false}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              isHighImpact: e.target.checked,
+                            }))
+                          }
+                          className="sr-only peer"
+                        />
+                        {/* Track */}
+                        <div className="w-10 h-5 bg-gray-200 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                        {/* Knopf */}
+                        <div
+                          className={`absolute left-0 top-0 w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out
+          ${formData.isHighImpact ? "translate-x-5" : ""}`}
+                        />
+                      </div>
+
+                      {/* Status Text */}
+                      <span
+                        className={`text-sm font-medium select-none transition-colors duration-200 ${
+                          formData.isHighImpact
+                            ? "text-red-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {formData.isHighImpact
+                          ? t(
+                              "dialogs.newProject.highCritical",
+                              "High Critical"
+                            )
+                          : t("dialogs.newProject.nonCritical", "Non-Critical")}
+                      </span>
+
+                      {/* Info Icon mit Tooltip */}
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 0.5 }}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Typography>
+                                {t("dialogs.newProject.highImpactTooltip")}
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        }
+                        arrow
+                        placement="right"
+                      >
+                        <InfoIcon
+                          fontSize="small"
+                          color="action"
+                          sx={{ cursor: "help" }}
+                        />
+                      </Tooltip>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Verantwortlicher */}
-              <div>
+              <div className="flex flex-col">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("project.responsible")}{" "}
                   <span className="text-red-500">*</span>

@@ -102,6 +102,7 @@ export interface CreateProjectInput {
   description: string;
   version?: string;
   responsible?: string;
+  isHighImpact?: boolean;
 }
 
 export interface UpdateProjectInput {

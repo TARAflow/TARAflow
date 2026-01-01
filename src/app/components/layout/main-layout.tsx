@@ -794,17 +794,16 @@ export const MainLayout: React.FC = () => {
             const result = await projectService.createProject({
               name: data.name,
               description: data.description,
-              version: data.version, // ← NEU
+              version: data.version,
               responsible: data.responsible,
+              isHighImpact: data.isHighImpact,
             });
             if (result.success && result.data) {
-              // Tags separat hinzufügen (falls createProject sie nicht unterstützt)
               const projectWithTags = {
                 ...result.data,
-                tags: data.tags, // ← NEU
+                tags: data.tags,
               };
 
-              // Speichern mit Tags
               await storageService.saveProject(projectWithTags);
 
               setProjects([...projects, projectWithTags]);
