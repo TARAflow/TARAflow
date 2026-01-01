@@ -37,13 +37,14 @@ import {
 import {
   Edit as EditIcon,
   ExpandMore as ExpandMoreIcon,
-  Security as TrustBoundaryIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Memory as ProcessIcon,
+  Security as TrustBoundaryIcon,
+  Layers as MultiProcessIcon,
+  Dashboard as ProcessIcon,
   Storage as DataStoreIcon,
   Person as ExternalEntityIcon,
-  CompareArrows as DataFlowIcon,
+  SwapHoriz as DataFlowIcon,
 } from "@mui/icons-material";
 
 import {
@@ -117,10 +118,17 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
 /**
  * Calculate progress statistics for a group of risks
  */
-function calculateProgress(risks: Risk[]): { done: number; total: number; percent: number } {
+function calculateProgress(risks: Risk[]): {
+  done: number;
+  total: number;
+  percent: number;
+} {
   const total = risks.length;
   const done = risks.filter(
-    (r) => r.status === "mitigated" || r.status === "accepted" || r.status === "wont-do"
+    (r) =>
+      r.status === "mitigated" ||
+      r.status === "accepted" ||
+      r.status === "wont-do"
   ).length;
   return {
     done,
@@ -149,8 +157,9 @@ function getElementIcon(elementType: string) {
     case "dataflow":
       return <DataFlowIcon fontSize="small" color="action" />;
     case "process":
-    case "multiprocess":
       return <ProcessIcon fontSize="small" color="action" />;
+    case "multiprocess":
+      return <MultiProcessIcon fontSize="small" color="action" />;
     case "datastore":
     case "data store":
       return <DataStoreIcon fontSize="small" color="action" />;

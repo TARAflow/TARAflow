@@ -47,6 +47,7 @@ import {
 } from "../models/dfd-types";
 import { ValidationResult } from "../services/dfd-validator";
 import { useDFDEditor } from "../hooks/use-dfd-editor";
+import { useDFDUIState } from "../hooks/use-dfd-ui-state";
 import DFDPreviewDialog from "./dfd-preview-dialog";
 import DFDValidationPanel from "./dfd-validation-panel";
 import DFDDescriptionView from "./dfd-description-view";
@@ -66,14 +67,31 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   onPhaseComplete,
 }) => {
   const [showPreview, setShowPreview] = React.useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
-  const [viewMode, setViewMode] = useState<DFDViewMode>("draw");
+
+  // ==================== UI STATE HOOK ====================
+
+  const {
+    viewMode,
+    setViewMode,
+    darkMode,
+    toggleDarkMode,
+    expandedGroups,
+    toggleGroup,
+    isGroupExpanded,
+    expandedElements,
+    toggleElement,
+    isElementExpanded,
+  } = useDFDUIState({
+    projectId: project.id,
+  });
 
   // Build URL with dark mode parameter
   const drawioUrl = darkMode
     ? `${DRAWIO_BASE_URL}&ui=dark`
     : `${DRAWIO_BASE_URL}&ui=atlas`;
+
+  // ==================== EDITOR HOOK ====================
 
   // Use custom hook for all DFD logic
   const {
@@ -98,6 +116,19 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     darkMode,
     iframeKey,
   });
+
+  // ==================== EFFECTS ====================
+
+  // Reinitialize iframe when switching back to draw mode
+  React.useEffect(() => {
+    if (viewMode === "draw" && !isLoading) {
+      // Small delay to ensure iframe is in DOM
+      const timer = setTimeout(() => {
+        initialize();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, initialize, isLoading]);
 
   // ==================== HANDLERS ====================
 
@@ -178,9 +209,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   };
 
   const handleToggleDarkMode = useCallback(() => {
-    setDarkMode((prev) => !prev);
+    toggleDarkMode();
     setIframeKey((prev) => prev + 1);
-  }, []);
+  }, [toggleDarkMode]);
 
   const handleViewModeChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -229,13 +260,22 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         canProceed={canProceed}
       />
 
-      {/* Main Content */}
-      {viewMode === "draw" ? (
+      {/* Main Content Container - holds both views */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Draw Mode */}
         <Box
           sx={{
-            flexGrow: 1,
-            position: "relative",
+            position: "absolute",
+            inset: 0,
             bgcolor: darkMode ? "#1a1a1a" : "grey.100",
+            visibility: viewMode === "draw" ? "visible" : "hidden",
+            pointerEvents: viewMode === "draw" ? "auto" : "none",
           }}
         >
           {isLoading && <LoadingOverlay darkMode={darkMode} />}
@@ -254,14 +294,30 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onLoad={handleIframeLoad}
           />
         </Box>
-      ) : (
-        <DFDDescriptionView
-          elements={project.dfd?.elements || []}
-          connections={project.dfd?.connections || []}
-          onElementUpdate={updateElementDescription}
-          onConnectionUpdate={updateConnectionDescription}
-        />
-      )}
+
+        {/* Description View */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            visibility: viewMode === "describe" ? "visible" : "hidden",
+            pointerEvents: viewMode === "describe" ? "auto" : "none",
+            overflow: "auto",
+          }}
+        >
+          <DFDDescriptionView
+            elements={project.dfd?.elements || []}
+            connections={project.dfd?.connections || []}
+            onElementUpdate={updateElementDescription}
+            onConnectionUpdate={updateConnectionDescription}
+            // Pass accordion state from UI hook
+            expandedGroups={expandedGroups}
+            onToggleGroup={toggleGroup}
+            expandedElements={expandedElements}
+            onToggleElement={toggleElement}
+          />
+        </Box>
+      </Box>
 
       {/* Validation Panel */}
       {validation &&
@@ -343,14 +399,27 @@ const DFDToolbar: React.FC<DFDToolbarProps> = ({
         onChange={onViewModeChange}
         size="small"
       >
-        <ToggleButton value="draw">
-          <DrawIcon fontSize="small" sx={{ mr: 0.5 }} />
-          {t("tabs.dfd.toolbar.draw", { defaultValue: "Draw DFD" })}
-        </ToggleButton>
-        <ToggleButton value="describe">
-          <DescriptionIcon fontSize="small" sx={{ mr: 0.5 }} />
-          {t("tabs.dfd.toolbar.describe", { defaultValue: "Describe DFD" })}
-        </ToggleButton>
+        <Tooltip
+          title={t("tabs.dfd.toolbar.draw", { defaultValue: "Draw DFD" })}
+          arrow
+          placement="bottom"
+        >
+          <ToggleButton value="draw">
+            <DrawIcon fontSize="small" />
+          </ToggleButton>
+        </Tooltip>
+
+        <Tooltip
+          title={t("tabs.dfd.toolbar.describe", {
+            defaultValue: "Describe DFD",
+          })}
+          arrow
+          placement="bottom"
+        >
+          <ToggleButton value="describe">
+            <DescriptionIcon fontSize="small" />
+          </ToggleButton>
+        </Tooltip>
       </ToggleButtonGroup>
 
       <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />

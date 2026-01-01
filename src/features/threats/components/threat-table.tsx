@@ -41,10 +41,11 @@ import {
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
   FilterList as FilterIcon,
-  Memory as ProcessIcon,
+  Layers as MultiProcessIcon,
+  Dashboard as ProcessIcon,
   Storage as DataStoreIcon,
   Person as ExternalEntityIcon,
-  CompareArrows as DataFlowIcon,
+  SwapHoriz as DataFlowIcon,
   Security as TrustBoundaryIcon,
   Add as AddIcon,
   ArrowDownward,
@@ -123,8 +124,9 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
 const getElementIcon = (elementType: string) => {
   switch (elementType) {
     case "Process":
-    case "Multiprocess":
       return <ProcessIcon fontSize="small" />;
+    case "Multiprocess":
+      return <MultiProcessIcon fontSize="small" />;
     case "DataStore":
       return <DataStoreIcon fontSize="small" />;
     case "ExternalEntity":
