@@ -211,7 +211,8 @@
     "title": "Projektinformationen",
     "tagCategories": {
       "domain": "Branche",
-      "platform": "Plattform"
+      "platform": "Plattform",
+      "regulation": "Regulierung"
     },
     "selectedTags": "Ausgewählte Tags",
     "customTag": "Eigenes Tag",
@@ -228,6 +229,27 @@
     "teamMemberPlaceholder": "Teammitglied hinzufügen...",
     "addTag": "Tag hinzufügen",
     "addTeamMember": "Teammitglied hinzufügen"
+  },
+  "tags": {
+    "tooltips": {
+      "cra": "EU Cyber Resilience Act - Sicherheitsanforderungen für Produkte mit digitalen Elementen",
+      "nis2": "EU Netzwerk- und Informationssicherheit Richtlinie - Sicherheit kritischer Infrastrukturen",
+      "gdpr": "Datenschutz-Grundverordnung (DSGVO) - EU-Datenschutzrahmen",
+      "aiAct": "EU KI-Verordnung - Risikobasierte Regulierung für KI-Systeme",
+      "iec62443": "IEC 62443 - Sicherheit für industrielle Automatisierungs- und Steuerungssysteme",
+      "en18031": "EN 18031 - Cybersicherheitsanforderungen der Funkanlagenrichtlinie",
+      "iec81001": "IEC 81001 - Sicherheit, Wirksamkeit und Security von Gesundheitssoftware",
+      "iecTr60601": "IEC TR 60601-4-5 - Sicherheitsleitfaden für medizinische elektrische Geräte",
+      "iso21434": "ISO/SAE 21434 - Cybersicherheit für Straßenfahrzeuge",
+      "clcTs50701": "CLC/TS 50701 - Cybersicherheit für Bahnanwendungen",
+      "iec63452": "IEC 63452 - Sicherheit der Bahnkommunikation und -signalisierung",
+      "iso27001": "ISO/IEC 27001 - Informationssicherheits-Managementsystem (ISMS)",
+      "iso27017": "ISO/IEC 27017 - Cloud-Sicherheitskontrollen",
+      "etsiEn303645": "ETSI EN 303 645 - Cybersicherheits-Grundanforderungen für Consumer-IoT",
+      "en17927": "EN 17927 - Sicherheitsanforderungen für industrielles IoT",
+      "iec62351": "IEC 62351 - Sicherheit für Energiesysteme und Datenaustausch",
+      "en50742": "EN 50742 - Cybersicherheitsanforderungen der Maschinenverordnung"
+    }
   },
 
   "messages": {

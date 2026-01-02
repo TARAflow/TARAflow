@@ -3,6 +3,16 @@ import { useTranslation } from "react-i18next";
 import { Edit3, Save, X, Plus, AlertTriangle, Info } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import type { ProjectInfoData } from "../models/overview-types";
+import {
+  TAG_CATEGORIES,
+  TagCategoryKey,
+  TagCategory,
+  isPredefinedTag,
+  getTagCategory,
+  getTagStyles,
+  getTagDefinition,
+  getAvailablePredefinedTags,
+} from "shared";
 
 // ==================== PROJECT INFO ====================
 // Displays and allows editing of project metadata
@@ -18,93 +28,6 @@ interface ProjectInfoProps {
   info: ProjectInfoData;
   onUpdate: (info: ProjectInfoData) => void;
 }
-
-// ==================== TAG CATEGORIES ====================
-
-type TagCategoryKey = "domain" | "platform";
-
-interface TagCategory {
-  key: TagCategoryKey;
-  labelKey: string;
-  bgColor: string;
-  textColor: string;
-  tags: string[];
-}
-
-const DEFAULT_TAG_CATEGORIES: TagCategory[] = [
-  {
-    key: "domain",
-    labelKey: "projectInfo.tagCategories.domain",
-    bgColor: "bg-purple-100",
-    textColor: "text-purple-700",
-    tags: [
-      "Aerospace",
-      "Aviation",
-      "Energy",
-      "Finance",
-      "Industrial",
-      "Medical",
-      "Military",
-      "Pharma",
-      "Public Sector",
-      "Railway",
-      "Telecom",
-      "Water",
-    ],
-  },
-  {
-    key: "platform",
-    labelKey: "projectInfo.tagCategories.platform",
-    bgColor: "bg-blue-100",
-    textColor: "text-blue-700",
-    tags: ["Web", "Mobile", "Desktop", "Cloud", "Embedded", "IoT", "AI"],
-  },
-];
-
-// Get all predefined tags
-const getAllPredefinedTags = (): string[] => {
-  return DEFAULT_TAG_CATEGORIES.flatMap((cat) => cat.tags);
-};
-
-// Check if tag is predefined
-const isPredefinedTag = (tag: string): boolean => {
-  return getAllPredefinedTags().includes(tag);
-};
-
-// Get category for a tag (checks predefined first, then custom assignment)
-const getTagCategory = (
-  tag: string,
-  customTagCategories: Record<string, TagCategoryKey>
-): TagCategory | null => {
-  // Check predefined tags
-  const predefinedCategory = DEFAULT_TAG_CATEGORIES.find((cat) =>
-    cat.tags.includes(tag)
-  );
-  if (predefinedCategory) return predefinedCategory;
-
-  // Check custom tag assignment
-  const customCategoryKey = customTagCategories[tag];
-  if (customCategoryKey) {
-    return (
-      DEFAULT_TAG_CATEGORIES.find((cat) => cat.key === customCategoryKey) ||
-      null
-    );
-  }
-
-  return null;
-};
-
-// Get styling for a tag
-const getTagStyles = (
-  tag: string,
-  customTagCategories: Record<string, TagCategoryKey>
-): { bg: string; text: string } => {
-  const category = getTagCategory(tag, customTagCategories);
-  if (!category) {
-    return { bg: "bg-gray-100", text: "text-gray-700" };
-  }
-  return { bg: category.bgColor, text: category.textColor };
-};
 
 export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
   const { t } = useTranslation();
@@ -204,7 +127,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
   ): { category: TagCategory; tags: string[] }[] => {
     const result: { category: TagCategory; tags: string[] }[] = [];
 
-    DEFAULT_TAG_CATEGORIES.forEach((category) => {
+    TAG_CATEGORIES.forEach((category) => {
       const categoryTags = tags.filter((tag) => {
         const tagCat = getTagCategory(tag, customTagCategories);
         return tagCat?.key === category.key;
@@ -217,16 +140,93 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
     return result;
   };
 
-  // Get available predefined tags for a category (not yet selected)
-  const getAvailablePredefinedTags = (category: TagCategory): string[] => {
-    return category.tags.filter((tag) => !editData.tags.includes(tag));
+  // ==================== TAG RENDERING HELPERS ====================
+
+  /**
+   * Render a single tag badge with optional tooltip (for regulations)
+   */
+  const renderTagBadge = (
+    tag: string,
+    showRemoveButton: boolean = false,
+    onClick?: () => void
+  ) => {
+    const styles = getTagStyles(tag, customTagCategories);
+    const tagDef = getTagDefinition(tag);
+    const hasTooltip = tagDef?.tooltipKey;
+
+    const badge = (
+      <span
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
+          styles.bg
+        } ${styles.text} ${onClick ? "cursor-pointer" : ""}`}
+        onClick={onClick}
+      >
+        {tag}
+        {showRemoveButton && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              removeTag(tag);
+            }}
+            className="hover:opacity-70"
+            aria-label={t("common.remove")}
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </span>
+    );
+
+    // Wrap with tooltip if regulation tag
+    if (hasTooltip) {
+      return (
+        <Tooltip
+          key={tag}
+          title={t(tagDef.tooltipKey!, { defaultValue: tag })}
+          arrow
+          placement="top"
+        >
+          {badge}
+        </Tooltip>
+      );
+    }
+
+    return <React.Fragment key={tag}>{badge}</React.Fragment>;
   };
 
-  // Get custom tags for a category
-  const getCustomTagsForCategory = (categoryKey: TagCategoryKey): string[] => {
-    return editData.tags.filter(
-      (tag) => !isPredefinedTag(tag) && customTagCategories[tag] === categoryKey
+  /**
+   * Render available tag button with optional tooltip
+   */
+  const renderAvailableTagButton = (tagName: string, category: TagCategory) => {
+    const tagDef = getTagDefinition(tagName);
+    const hasTooltip = tagDef?.tooltipKey;
+
+    const button = (
+      <button
+        type="button"
+        onClick={() => addTag(tagName)}
+        className={`px-2.5 py-1 text-xs border rounded-full transition-colors ${category.bgColor} ${category.textColor} border-transparent hover:opacity-80`}
+      >
+        + {tagName}
+      </button>
     );
+
+    // Wrap with tooltip if regulation tag
+    if (hasTooltip) {
+      return (
+        <Tooltip
+          key={tagName}
+          title={t(tagDef.tooltipKey!, { defaultValue: tagName })}
+          arrow
+          placement="top"
+        >
+          {button}
+        </Tooltip>
+      );
+    }
+
+    return <React.Fragment key={tagName}>{button}</React.Fragment>;
   };
 
   // ==================== RENDER ====================
@@ -348,7 +348,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
 
         {/* Workflow + Slide Switch (1/1) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             {t("settings.criticality", { defaultValue: "Criticality" })}
           </label>
           {isEditing ? (
@@ -358,7 +358,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                 <div className="relative">
                   <input
                     type="checkbox"
-                    checked={editData.isHighImpact}
+                    checked={editData.isHighImpact ?? false}
                     onChange={(e) =>
                       setEditData({
                         ...editData,
@@ -540,46 +540,28 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                           key={category.key}
                           className="flex flex-wrap gap-2"
                         >
-                          <span className="text-xs text-gray-400 self-center mr-1 min-w-[60px]">
+                          <span className="text-xs text-gray-400 self-center mr-1 min-w-[70px]">
                             {t(category.labelKey, {
                               defaultValue: category.key,
                             })}
                             :
                           </span>
-                          {tags.map((tag) => {
-                            const styles = getTagStyles(
-                              tag,
-                              customTagCategories
-                            );
-                            return (
-                              <span
-                                key={tag}
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${styles.bg} ${styles.text}`}
-                              >
-                                {tag}
-                                <button
-                                  type="button"
-                                  onClick={() => removeTag(tag)}
-                                  className="hover:opacity-70"
-                                  aria-label={t("common.remove")}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            );
-                          })}
+                          {tags.map((tag) => renderTagBadge(tag, true))}
                         </div>
                       )
                     )}
                   </div>
                 </div>
               )}
+
               {/* Available Tags by Category */}
               <div className="space-y-3">
-                {DEFAULT_TAG_CATEGORIES.map((category) => {
-                  const availablePredefined =
-                    getAvailablePredefinedTags(category);
-                  if (availablePredefined.length === 0) return null;
+                {TAG_CATEGORIES.map((category) => {
+                  const availableTags = getAvailablePredefinedTags(
+                    category,
+                    editData.tags
+                  );
+                  if (availableTags.length === 0) return null;
 
                   return (
                     <div key={category.key}>
@@ -587,22 +569,16 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                         {t(category.labelKey, { defaultValue: category.key })}
                       </label>
                       <div className="flex flex-wrap gap-1.5">
-                        {availablePredefined.map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => addTag(tag)}
-                            className={`px-2.5 py-1 text-xs border rounded-full transition-colors ${category.bgColor} ${category.textColor} border-transparent hover:opacity-80`}
-                          >
-                            + {tag}
-                          </button>
-                        ))}
+                        {availableTags.map((tagDef) =>
+                          renderAvailableTagButton(tagDef.name, category)
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              ;{/* Custom Tag Input */}
+
+              {/* Custom Tag Input */}
               <div>
                 <label
                   htmlFor="custom-tag-input"
@@ -633,7 +609,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                       defaultValue: "Select category",
                     })}
                   >
-                    {DEFAULT_TAG_CATEGORIES.map((cat) => (
+                    {TAG_CATEGORIES.map((cat) => (
                       <option key={cat.key} value={cat.key}>
                         {t(cat.labelKey, { defaultValue: cat.key })}
                       </option>
@@ -658,20 +634,10 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                 <div className="space-y-2">
                   {getTagsByCategory(info.tags).map(({ category, tags }) => (
                     <div key={category.key} className="flex flex-wrap gap-2">
-                      <span className="text-xs text-gray-400 self-center mr-1 min-w-[60px]">
+                      <span className="text-xs text-gray-400 self-center mr-1 min-w-[70px]">
                         {t(category.labelKey, { defaultValue: category.key })}:
                       </span>
-                      {tags.map((tag) => {
-                        const styles = getTagStyles(tag, customTagCategories);
-                        return (
-                          <span
-                            key={tag}
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${styles.bg} ${styles.text}`}
-                          >
-                            {tag}
-                          </span>
-                        );
-                      })}
+                      {tags.map((tag) => renderTagBadge(tag, false))}
                     </div>
                   ))}
                 </div>

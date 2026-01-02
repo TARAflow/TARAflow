@@ -51,3 +51,17 @@ export {
   getPhaseStatusIcon,
   getPhaseStatusLabel,
 } from "./models/common-types";
+
+// Tag Categories
+export type { TagCategoryKey, TagDefinition, TagCategory } from "./utils/tag-categories";
+
+export {
+  TAG_CATEGORIES,
+  getAllPredefinedTagNames,
+  isPredefinedTag,
+  getTagCategory,
+  getTagDefinition,
+  getTagStyles,
+  getTagsByCategory,
+  getAvailablePredefinedTags,
+} from "./utils/tag-categories";

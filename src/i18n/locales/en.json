@@ -213,7 +213,8 @@
     "title": "Project Information",
     "tagCategories": {
       "domain": "Industry",
-      "platform": "Platform"
+      "platform": "Platform",
+      "regulation": "Regulation"
     },
     "selectedTags": "Selected Tags",
     "customTag": "Custom Tag",
@@ -230,6 +231,27 @@
     "teamMemberPlaceholder": "Add team member...",
     "addTag": "Add tag",
     "addTeamMember": "Add team member"
+  },
+  "tags": {
+    "tooltips": {
+      "cra": "EU Cyber Resilience Act - Security requirements for products with digital elements",
+      "nis2": "EU Network and Information Security Directive - Critical infrastructure security",
+      "gdpr": "General Data Protection Regulation - EU data privacy framework",
+      "aiAct": "EU Artificial Intelligence Act - Risk-based regulation for AI systems",
+      "iec62443": "IEC 62443 - Industrial Automation and Control Systems Security",
+      "en18031": "EN 18031 - Radio Equipment Directive cybersecurity requirements",
+      "iec81001": "IEC 81001 - Health software and health IT systems safety, effectiveness and security",
+      "iecTr60601": "IEC TR 60601-4-5 - Medical electrical equipment security guidance",
+      "iso21434": "ISO/SAE 21434 - Road Vehicles Cybersecurity Engineering",
+      "clcTs50701": "CLC/TS 50701 - Railway applications cybersecurity",
+      "iec63452": "IEC 63452 - Railway communication and signaling security",
+      "iso27001": "ISO/IEC 27001 - Information Security Management System (ISMS)",
+      "iso27017": "ISO/IEC 27017 - Cloud security controls",
+      "etsiEn303645": "ETSI EN 303 645 - Consumer IoT device cybersecurity baseline",
+      "en17927": "EN 17927 - Industrial IoT security requirements",
+      "iec62351": "IEC 62351 - Power systems management and data exchange security",
+      "en50742": "EN 50742 - Machinery Regulation cybersecurity requirements"
+    }
   },
 
   "messages": {

@@ -2,6 +2,16 @@ import React, { useState } from "react";
 import { X, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "@mui/material";
+import {
+  TAG_CATEGORIES,
+  TagCategoryKey,
+  TagCategory,
+  isPredefinedTag,
+  getTagCategory,
+  getTagStyles,
+  getTagDefinition,
+  getAvailablePredefinedTags,
+} from "shared";
 
 // ==================== NEW PROJECT DIALOG ====================
 // Creates a new project with the same layout as project-info
@@ -27,91 +37,6 @@ export interface NewProjectData {
   tags: string[];
   isHighImpact?: boolean;
 }
-
-// ==================== TAG CATEGORIES ====================
-
-type TagCategoryKey = "domain" | "platform";
-
-interface TagCategory {
-  key: TagCategoryKey;
-  labelKey: string;
-  bgColor: string;
-  textColor: string;
-  tags: string[];
-}
-
-const DEFAULT_TAG_CATEGORIES: TagCategory[] = [
-  {
-    key: "domain",
-    labelKey: "projectInfo.tagCategories.domain",
-    bgColor: "bg-purple-100",
-    textColor: "text-purple-700",
-    tags: [
-      "Aerospace",
-      "Aviation",
-      "Energy",
-      "Finance",
-      "Industrial",
-      "Medical",
-      "Military",
-      "Pharma",
-      "Public Sector",
-      "Railway",
-      "Telecom",
-      "Water",
-    ],
-  },
-  {
-    key: "platform",
-    labelKey: "projectInfo.tagCategories.platform",
-    bgColor: "bg-blue-100",
-    textColor: "text-blue-700",
-    tags: ["Web", "Mobile", "Desktop", "Cloud", "Embedded", "IoT", "AI"],
-  },
-];
-
-// Get all predefined tags
-const getAllPredefinedTags = (): string[] => {
-  return DEFAULT_TAG_CATEGORIES.flatMap((cat) => cat.tags);
-};
-
-// Check if tag is predefined
-const isPredefinedTag = (tag: string): boolean => {
-  return getAllPredefinedTags().includes(tag);
-};
-
-// Get category for a tag
-const getTagCategory = (
-  tag: string,
-  customTagCategories: Record<string, TagCategoryKey>
-): TagCategory | null => {
-  const predefinedCategory = DEFAULT_TAG_CATEGORIES.find((cat) =>
-    cat.tags.includes(tag)
-  );
-  if (predefinedCategory) return predefinedCategory;
-
-  const customCategoryKey = customTagCategories[tag];
-  if (customCategoryKey) {
-    return (
-      DEFAULT_TAG_CATEGORIES.find((cat) => cat.key === customCategoryKey) ||
-      null
-    );
-  }
-
-  return null;
-};
-
-// Get styling for a tag
-const getTagStyles = (
-  tag: string,
-  customTagCategories: Record<string, TagCategoryKey>
-): { bg: string; text: string } => {
-  const category = getTagCategory(tag, customTagCategories);
-  if (!category) {
-    return { bg: "bg-gray-100", text: "text-gray-700" };
-  }
-  return { bg: category.bgColor, text: category.textColor };
-};
 
 export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   onClose,
@@ -205,7 +130,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   ): { category: TagCategory; tags: string[] }[] => {
     const result: { category: TagCategory; tags: string[] }[] = [];
 
-    DEFAULT_TAG_CATEGORIES.forEach((category) => {
+    TAG_CATEGORIES.forEach((category) => {
       const categoryTags = tags.filter((tag) => {
         const tagCat = getTagCategory(tag, customTagCategories);
         return tagCat?.key === category.key;
@@ -216,11 +141,6 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     });
 
     return result;
-  };
-
-  // Get available predefined tags for a category
-  const getAvailablePredefinedTags = (category: TagCategory): string[] => {
-    return category.tags.filter((tag) => !formData.tags.includes(tag));
   };
 
   // Form submit
@@ -237,6 +157,83 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     if (e.key === "Escape") {
       onClose();
     }
+  };
+
+  // ==================== TAG RENDERING HELPERS ====================
+
+  /**
+   * Render a single tag badge with optional tooltip (for regulations)
+   */
+  const renderTagBadge = (tag: string, showRemoveButton: boolean = false) => {
+    const styles = getTagStyles(tag, customTagCategories);
+    const tagDef = getTagDefinition(tag);
+    const hasTooltip = tagDef?.tooltipKey;
+
+    const badge = (
+      <span
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${styles.bg} ${styles.text}`}
+      >
+        {tag}
+        {showRemoveButton && (
+          <button
+            type="button"
+            onClick={() => removeTag(tag)}
+            className="hover:opacity-70"
+            aria-label={t("common.remove")}
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </span>
+    );
+
+    if (hasTooltip) {
+      return (
+        <Tooltip
+          key={tag}
+          title={t(tagDef.tooltipKey!, { defaultValue: tag })}
+          arrow
+          placement="top"
+        >
+          {badge}
+        </Tooltip>
+      );
+    }
+
+    return <React.Fragment key={tag}>{badge}</React.Fragment>;
+  };
+
+  /**
+   * Render available tag button with optional tooltip
+   */
+  const renderAvailableTagButton = (tagName: string, category: TagCategory) => {
+    const tagDef = getTagDefinition(tagName);
+    const hasTooltip = tagDef?.tooltipKey;
+
+    const button = (
+      <button
+        type="button"
+        onClick={() => addTag(tagName)}
+        className={`px-2.5 py-1 text-xs border rounded-full transition-colors ${category.bgColor} ${category.textColor} border-transparent hover:opacity-80`}
+      >
+        + {tagName}
+      </button>
+    );
+
+    if (hasTooltip) {
+      return (
+        <Tooltip
+          key={tagName}
+          title={t(tagDef.tooltipKey!, { defaultValue: tagName })}
+          arrow
+          placement="top"
+        >
+          {button}
+        </Tooltip>
+      );
+    }
+
+    return <React.Fragment key={tagName}>{button}</React.Fragment>;
   };
 
   return (
@@ -338,7 +335,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 
             {/* Workflow + Slide Switch (1/1) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t("settings.criticality", { defaultValue: "Criticality" })}
               </label>
               <label className="flex items-center justify-between border border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
@@ -371,18 +368,20 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span
-                      className={`text-sm font-medium transition-colors ${
-                        formData.isHighImpact ? "text-red-600" : "text-gray-700"
-                      }`}
-                    >
-                      {formData.isHighImpact
-                        ? t("settings.criticalSystem", {
-                            defaultValue: "Critical System",
-                          })
-                        : t("settings.standardSystem", {
-                            defaultValue: "Standard System",
-                          })}
-                    </span>
+                        className={`text-sm font-medium transition-colors ${
+                          formData.isHighImpact
+                            ? "text-red-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {formData.isHighImpact
+                          ? t("settings.criticalSystem", {
+                              defaultValue: "Critical System",
+                            })
+                          : t("settings.standardSystem", {
+                              defaultValue: "Standard System",
+                            })}
+                      </span>
 
                       {formData.isHighImpact && (
                         <AlertTriangle className="w-4 h-4 text-red-500" />
@@ -476,34 +475,13 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                           key={category.key}
                           className="flex flex-wrap gap-2"
                         >
-                          <span className="text-xs text-gray-400 self-center mr-1 min-w-[60px]">
+                          <span className="text-xs text-gray-400 self-center mr-1 min-w-[70px]">
                             {t(category.labelKey, {
                               defaultValue: category.key,
                             })}
                             :
                           </span>
-                          {tags.map((tag) => {
-                            const styles = getTagStyles(
-                              tag,
-                              customTagCategories
-                            );
-                            return (
-                              <span
-                                key={tag}
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${styles.bg} ${styles.text}`}
-                              >
-                                {tag}
-                                <button
-                                  type="button"
-                                  onClick={() => removeTag(tag)}
-                                  className="hover:opacity-70"
-                                  aria-label={t("common.remove")}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            );
-                          })}
+                          {tags.map((tag) => renderTagBadge(tag, true))}
                         </div>
                       )
                     )}
@@ -513,8 +491,11 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 
               {/* Available Tags by Category */}
               <div className="space-y-3 mb-3">
-                {DEFAULT_TAG_CATEGORIES.map((category) => {
-                  const availableTags = getAvailablePredefinedTags(category);
+                {TAG_CATEGORIES.map((category) => {
+                  const availableTags = getAvailablePredefinedTags(
+                    category,
+                    formData.tags
+                  );
                   if (availableTags.length === 0) return null;
 
                   return (
@@ -523,16 +504,9 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                         {t(category.labelKey, { defaultValue: category.key })}
                       </label>
                       <div className="flex flex-wrap gap-1.5">
-                        {availableTags.map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => addTag(tag)}
-                            className={`px-2.5 py-1 text-xs border rounded-full transition-colors ${category.bgColor} ${category.textColor} border-transparent hover:opacity-80`}
-                          >
-                            + {tag}
-                          </button>
-                        ))}
+                        {availableTags.map((tagDef) =>
+                          renderAvailableTagButton(tagDef.name, category)
+                        )}
                       </div>
                     </div>
                   );
@@ -566,7 +540,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                       defaultValue: "Select category",
                     })}
                   >
-                    {DEFAULT_TAG_CATEGORIES.map((cat) => (
+                    {TAG_CATEGORIES.map((cat) => (
                       <option key={cat.key} value={cat.key}>
                         {t(cat.labelKey, { defaultValue: cat.key })}
                       </option>

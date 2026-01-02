@@ -1,0 +1,189 @@
+// ==================== TAG CATEGORIES ====================
+// Shared tag definitions for project categorization
+// Used by: project-info.tsx, new-project-dialog.tsx
+
+export type TagCategoryKey = "domain" | "platform" | "regulation";
+
+export interface TagDefinition {
+  name: string;
+  tooltipKey?: string; // i18n key for tooltip (primarily for regulations)
+}
+
+export interface TagCategory {
+  key: TagCategoryKey;
+  labelKey: string;
+  bgColor: string;
+  textColor: string;
+  tags: TagDefinition[];
+}
+
+// ==================== TAG CATEGORIES DEFINITION ====================
+
+export const TAG_CATEGORIES: TagCategory[] = [
+  {
+    key: "domain",
+    labelKey: "projectInfo.tagCategories.domain",
+    bgColor: "bg-purple-100",
+    textColor: "text-purple-700",
+    tags: [
+      { name: "Aerospace" },
+      { name: "Automotive" },
+      { name: "Aviation" },
+      { name: "Energy" },
+      { name: "Finance" },
+      { name: "Industrial" },
+      { name: "Medical" },
+      { name: "Military" },
+      { name: "Pharma" },
+      { name: "Public Sector" },
+      { name: "Railway" },
+      { name: "Telecom" },
+      { name: "Water" },
+    ],
+  },
+  {
+    key: "platform",
+    labelKey: "projectInfo.tagCategories.platform",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
+    tags: [
+      { name: "Web" },
+      { name: "Mobile" },
+      { name: "Desktop" },
+      { name: "Cloud" },
+      { name: "Embedded" },
+      { name: "IoT" },
+      { name: "AI" },
+    ],
+  },
+  {
+    key: "regulation",
+    labelKey: "projectInfo.tagCategories.regulation",
+    bgColor: "bg-green-100",
+    textColor: "text-green-700",
+    tags: [
+      // Generic EU Regulations
+      { name: "CRA", tooltipKey: "tags.tooltips.cra" },
+      { name: "NIS2", tooltipKey: "tags.tooltips.nis2" },
+      { name: "GDPR", tooltipKey: "tags.tooltips.gdpr" },
+      { name: "AI Act", tooltipKey: "tags.tooltips.aiAct" },
+      // Industrial
+      { name: "IEC 62443", tooltipKey: "tags.tooltips.iec62443" },
+      { name: "EN 18031", tooltipKey: "tags.tooltips.en18031" },
+      // Medical
+      { name: "IEC 81001", tooltipKey: "tags.tooltips.iec81001" },
+      { name: "IEC TR 60601", tooltipKey: "tags.tooltips.iecTr60601" },
+      // Automotive
+      { name: "ISO 21434", tooltipKey: "tags.tooltips.iso21434" },
+      // Railway
+      { name: "CLC/TS 50701", tooltipKey: "tags.tooltips.clcTs50701" },
+      { name: "IEC 63452", tooltipKey: "tags.tooltips.iec63452" },
+      // IT Security
+      { name: "ISO 27001", tooltipKey: "tags.tooltips.iso27001" },
+      // Cloud
+      { name: "ISO 27017", tooltipKey: "tags.tooltips.iso27017" },
+      // IoT
+      { name: "ETSI EN 303 645", tooltipKey: "tags.tooltips.etsiEn303645" },
+      { name: "EN 17927", tooltipKey: "tags.tooltips.en17927" },
+      // Energy
+      { name: "IEC 62351", tooltipKey: "tags.tooltips.iec62351" },
+      // Machinery
+      { name: "EN 50742", tooltipKey: "tags.tooltips.en50742" },
+    ],
+  },
+];
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Get all tag names from all categories
+ */
+export const getAllPredefinedTagNames = (): string[] => {
+  return TAG_CATEGORIES.flatMap((cat) => cat.tags.map((t) => t.name));
+};
+
+/**
+ * Check if a tag name is predefined
+ */
+export const isPredefinedTag = (tagName: string): boolean => {
+  return getAllPredefinedTagNames().includes(tagName);
+};
+
+/**
+ * Get category for a tag (checks predefined first, then custom assignment)
+ */
+export const getTagCategory = (
+  tagName: string,
+  customTagCategories: Record<string, TagCategoryKey>
+): TagCategory | null => {
+  // Check predefined tags
+  const predefinedCategory = TAG_CATEGORIES.find((cat) =>
+    cat.tags.some((t) => t.name === tagName)
+  );
+  if (predefinedCategory) return predefinedCategory;
+
+  // Check custom tag assignment
+  const customCategoryKey = customTagCategories[tagName];
+  if (customCategoryKey) {
+    return TAG_CATEGORIES.find((cat) => cat.key === customCategoryKey) || null;
+  }
+
+  return null;
+};
+
+/**
+ * Get tag definition (includes tooltip if available)
+ */
+export const getTagDefinition = (tagName: string): TagDefinition | null => {
+  for (const category of TAG_CATEGORIES) {
+    const tagDef = category.tags.find((t) => t.name === tagName);
+    if (tagDef) return tagDef;
+  }
+  return null;
+};
+
+/**
+ * Get styling for a tag based on its category
+ */
+export const getTagStyles = (
+  tagName: string,
+  customTagCategories: Record<string, TagCategoryKey>
+): { bg: string; text: string } => {
+  const category = getTagCategory(tagName, customTagCategories);
+  if (!category) {
+    return { bg: "bg-gray-100", text: "text-gray-700" };
+  }
+  return { bg: category.bgColor, text: category.textColor };
+};
+
+/**
+ * Get tags grouped by category
+ */
+export const getTagsByCategory = (
+  tags: string[],
+  customTagCategories: Record<string, TagCategoryKey>
+): { category: TagCategory; tags: string[] }[] => {
+  const result: { category: TagCategory; tags: string[] }[] = [];
+
+  TAG_CATEGORIES.forEach((category) => {
+    const categoryTags = tags.filter((tag) => {
+      const tagCat = getTagCategory(tag, customTagCategories);
+      return tagCat?.key === category.key;
+    });
+    if (categoryTags.length > 0) {
+      result.push({ category, tags: categoryTags });
+    }
+  });
+
+  return result;
+};
+
+/**
+ * Get available predefined tags for a category (not yet selected)
+ */
+export const getAvailablePredefinedTags = (
+  category: TagCategory,
+  selectedTags: string[]
+): TagDefinition[] => {
+  return category.tags.filter((t) => !selectedTags.includes(t.name));
+};
