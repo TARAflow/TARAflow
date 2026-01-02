@@ -1,9 +1,11 @@
 import React from "react";
 import { PhaseDefinition, PhaseStatus, PhaseStatusMap } from "shared";
-import { ProjectInfo, ProjectInfoData } from "./project-info";
+import { ProjectInfo } from "./project-info";
 import { ProjectProgress } from "./project-progress";
 import { ProjectSettings } from "./project-settings";
 import {
+  GeneralTabData,
+  ProjectInfoData,
   ProjectProgressData,
   ProjectSettingsData,
   PhaseValidationInfo,
@@ -16,31 +18,6 @@ import {
 // 1. Project Info (editable)
 // 2. Phase Progress
 // 3. Project Settings (Validation, Auto Saving)
-
-export interface GeneralTabData {
-  // Project info
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  responsible: string;
-  created: string;
-  lastModified: string;
-  tags: string[];
-  team: string[];
-
-  // Settings (includes isHighImpact)
-  settings: ProjectSettingsData;
-
-  // Phase status
-  phaseStatus: PhaseStatusMap;
-
-  // DFD validation (for progress display)
-  dfdValidation?: {
-    errors: string[];
-    warnings: string[];
-  };
-}
 
 interface GeneralTabProps {
   /** Project data */
@@ -68,15 +45,15 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 }) => {
   // Map data to ProjectInfoData interface
   const projectInfoData: ProjectInfoData = {
-    name: data.name,
-    description: data.description,
-    version: data.version,
-    responsible: data.responsible,
-    created: data.created,
-    lastModified: data.lastModified,
-    tags: data.tags,
-    team: data.team,
-    isHighImpact: data.settings.isHighImpact,
+    name: data.info.name,
+    description: data.info.description,
+    version: data.info.version,
+    responsible: data.info.responsible,
+    created: data.info.created,
+    lastModified: data.info.lastModified,
+    tags: data.info.tags,
+    team: data.info.team,
+    isHighImpact: data.info.isHighImpact,
   };
 
   // Map data to ProjectProgressData interface
@@ -85,14 +62,16 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 
     // Phase 0: General - check for missing fields
     const missingFields: string[] = [];
-    if (!data.name || data.name.trim().length < 3) missingFields.push("name");
-    if (!data.description || data.description.trim().length === 0)
+    if (!data.info.name || data.info.name.trim().length < 3)
+      missingFields.push("name");
+    if (!data.info.description || data.info.description.trim().length === 0)
       missingFields.push("description");
-    if (!data.version || data.version.trim().length === 0)
+    if (!data.info.version || data.info.version.trim().length === 0)
       missingFields.push("version");
-    if (!data.responsible || data.responsible.trim().length === 0)
+    if (!data.info.responsible || data.info.responsible.trim().length === 0)
       missingFields.push("responsible");
-    if (!data.tags || data.tags.length === 0) missingFields.push("tags");
+    if (!data.info.tags || data.info.tags.length === 0)
+      missingFields.push("tags");
     validationInfo[0] = { errors: 0, warnings: missingFields.length };
 
     // Phase 1: DFD - use validation from data
@@ -113,15 +92,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   const handleInfoUpdate = (info: ProjectInfoData) => {
     onUpdate({
       ...data,
-      name: info.name,
-      description: info.description,
-      version: info.version,
-      responsible: info.responsible,
-      tags: info.tags,
-      team: info.team,
-      settings: {
-        ...data.settings,
-        isHighImpact: info.isHighImpact,
+      info: {
+        ...data.info,
+        ...info,
       },
     });
   };
@@ -132,8 +105,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       ...data,
       settings: {
         ...settings,
-        // Preserve isHighImpact from current settings (edited via ProjectInfo)
-        isHighImpact: data.settings.isHighImpact,
       },
     });
   };

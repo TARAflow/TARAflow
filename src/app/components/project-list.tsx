@@ -178,12 +178,15 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({
 
         {/* Project Name */}
         <span className="flex-1 truncate text-sm font-medium">
-          {project.name}
+          {project.info.name}
         </span>
 
         {/* Unsaved Indicator */}
         {project.hasUnsavedChanges && (
-          <span className="text-yellow-500 text-xs" title={t('sidebar.unsavedChanges')}>
+          <span
+            className="text-yellow-500 text-xs"
+            title={t("sidebar.unsavedChanges")}
+          >
             ●
           </span>
         )}
@@ -192,7 +195,7 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({
         <button
           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
           onClick={handleMoreClick}
-          title={t('sidebar.moreOptions')}
+          title={t("sidebar.moreOptions")}
         >
           <MoreVertical className="w-4 h-4" />
         </button>
@@ -204,7 +207,7 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({
             e.stopPropagation();
             onClose();
           }}
-          title={t('project.closeProject')}
+          title={t("project.closeProject")}
         >
           <X className="w-3 h-3" />
         </button>

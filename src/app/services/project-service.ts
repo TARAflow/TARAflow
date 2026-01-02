@@ -9,7 +9,7 @@ import {
   UpdateProjectInput,
 } from "../models/project-types";
 
-import { ActivityLogEntry, PhaseStatus, formatExportFilename } from "shared";
+import { PhaseStatus, formatExportFilename } from "shared";
 
 // ==================== PROJECT SERVICE CLASS ====================
 
@@ -55,7 +55,6 @@ class ProjectService {
       const project = result.data;
       const now = new Date().toISOString();
 
-      // FIX: Settings immer vollständig machen
       const updatedSettings: ProjectSettings = {
         strictMode: updates.settings?.strictMode ?? project.settings.strictMode,
         autoSave: updates.settings?.autoSave ?? project.settings.autoSave,
@@ -68,17 +67,11 @@ class ProjectService {
         ...project,
         ...updates,
         settings: updatedSettings,
-        lastModified: now,
+        info: {
+          ...project.info,
+          lastModified: now,
+        },
         hasUnsavedChanges: false,
-        activityLog: [
-          {
-            timestamp: now,
-            action: "UPDATE",
-            entity: "project",
-            description: "Project information updated",
-          },
-          ...project.activityLog,
-        ],
       };
 
       return storageService.saveProject(updated);
@@ -114,19 +107,15 @@ class ProjectService {
     const copy: Project = {
       ...original,
       id: newId,
-      name: `${original.name} (Copy)`,
-      created: now,
-      lastModified: now,
+      info: {
+        ...original.info,
+        name: `${original.info.name} (Copy)`,
+        created: now,
+        lastModified: now,
+      },
       lastOpened: now,
       isOpen: true,
       hasUnsavedChanges: false,
-      activityLog: [
-        {
-          timestamp: now,
-          action: "CREATE",
-          description: `Duplicated from ${original.name}`,
-        },
-      ],
     };
 
     return storageService.saveProject(copy);
@@ -145,7 +134,7 @@ class ProjectService {
     const blob = new Blob([JSON.stringify(project, null, 2)], {
       type: "application/json",
     });
-    const filename = formatExportFilename(project.name);
+    const filename = formatExportFilename(project.info.name);
 
     return { success: true, data: { blob, filename } };
   }
@@ -170,18 +159,13 @@ class ProjectService {
       const now = new Date().toISOString();
       const imported: Project = {
         ...project,
-        lastModified: now,
+        info: {
+          ...project.info,
+          lastModified: now,
+        },
         lastOpened: now,
         isOpen: true,
         hasUnsavedChanges: false,
-        activityLog: [
-          {
-            timestamp: now,
-            action: "IMPORT",
-            description: "Project imported",
-          },
-          ...project.activityLog,
-        ],
       };
 
       const result = await storageService.saveProject(imported);
@@ -213,19 +197,15 @@ class ProjectService {
       const imported: Project = {
         ...project,
         id: newId,
-        name: `${project.name} (Imported)`,
-        created: now,
-        lastModified: now,
+        info: {
+          ...project.info,
+          name: `${project.info.name} (Imported)`,
+          created: now,
+          lastModified: now,
+        },
         lastOpened: now,
         isOpen: true,
         hasUnsavedChanges: false,
-        activityLog: [
-          {
-            timestamp: now,
-            action: "IMPORT",
-            description: "Project imported as copy",
-          },
-        ],
       };
 
       const result = await storageService.saveProject(imported);
@@ -261,39 +241,10 @@ class ProjectService {
         ...project.phaseStatus,
         [phase]: status,
       },
-      lastModified: now,
-      activityLog: [
-        {
-          timestamp: now,
-          action: "UPDATE",
-          description: `Phase ${phase} → ${status}`,
-        },
-        ...project.activityLog,
-      ],
-    };
-
-    return storageService.saveProject(updated);
-  }
-
-  /**
-   * Add activity log entry
-   */
-  async addActivityLog(
-    projectId: string,
-    entry: Omit<ActivityLogEntry, "timestamp">
-  ) {
-    const result = await storageService.getProject(projectId);
-    if (!result.success || !result.data) {
-      return { success: false, error: "Project not found" };
-    }
-
-    const project = result.data;
-    const now = new Date().toISOString();
-
-    const updated: Project = {
-      ...project,
-      lastModified: now,
-      activityLog: [{ ...entry, timestamp: now }, ...project.activityLog],
+      info: {
+        ...project.info,
+        lastModified: now,
+      },
     };
 
     return storageService.saveProject(updated);
@@ -361,8 +312,8 @@ class ProjectService {
       .filter((p) => !p.isOpen)
       .sort(
         (a, b) =>
-          new Date(b.lastOpened || b.lastModified).getTime() -
-          new Date(a.lastOpened || a.lastModified).getTime()
+          new Date(b.lastOpened || b.info.lastModified).getTime() -
+          new Date(a.lastOpened || a.info.lastModified).getTime()
       )
       .slice(0, limit);
 

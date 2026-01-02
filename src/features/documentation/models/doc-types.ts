@@ -239,6 +239,7 @@ export interface DocProjectInfo {
   lastModified: string;
   tags: string[];
   team: string[];
+  isHighImpact: boolean;
 }
 
 /**

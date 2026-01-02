@@ -87,24 +87,9 @@ export interface PhaseStatusMap {
 
 // Generic Validation Pattern
 export interface ValidationResult {
+  valid: boolean;
   errors: string[];
   warnings: string[];
-}
-
-// Activity Logging
-export interface ActivityLogEntry {
-  timestamp: string;
-  action: "CREATE" | "UPDATE" | "DELETE" | "EXPORT" | "IMPORT";
-  entity?:
-    | "project"
-    | "dfd"
-    | "asset"
-    | "threat"
-    | "risk"
-    | "attacktree"
-    | "documentation";
-  entityId?: string;
-  description: string;
 }
 
 // ==================== PHASE STATUS CONFIGURATION ====================

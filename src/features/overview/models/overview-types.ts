@@ -2,11 +2,7 @@
 // Data structures for the Overview/General feature
 // These define the shape of data this feature works with
 
-import type {
-  PhaseStatusMap,
-  ValidationResult,
-  ActivityLogEntry,
-} from "shared";
+import type { PhaseStatusMap, ValidationResult } from "shared";
 
 // ==================== OVERVIEW-SPECIFIC TYPES ====================
 /**
@@ -29,7 +25,7 @@ export interface ProjectInfoData {
   lastModified: string;
   tags: string[];
   team: string[];
-  isHighImpact?: boolean; // For display in Project Info
+  isHighImpact: boolean; // Required field
 }
 
 // ==================== PROJECT SETTINGS ====================
@@ -38,7 +34,6 @@ export interface ProjectSettingsData {
   strictMode: boolean;
   autoSave: boolean;
   autoSaveInterval?: number;
-  isHighImpact?: boolean; // Critical System flag - changes workflow order
 }
 
 // ==================== PROJECT PROGRESS ====================
@@ -79,21 +74,15 @@ export const PROJECT_STATUS_CONFIG = {
 
 export interface GeneralTabData {
   // Project info
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  responsible: string;
-  created: string;
-  lastModified: string;
-  tags: string[];
-  team: string[];
+  info: ProjectInfoData;
 
   // Settings
   settings: ProjectSettingsData;
 
+  // Phase status
   phaseStatus: PhaseStatusMap;
-  activityLog: ActivityLogEntry[];
+
+  // Validation results (optional)
   dfdValidation?: ValidationResult;
   assetsValidation?: ValidationResult;
   threatsValidation?: ValidationResult;
@@ -132,9 +121,7 @@ export const CRITICAL_PHASE_ORDER = [0, 1, 2, 5, 3, 4, 6];
 /**
  * Get the workflow mode based on settings
  */
-export const getWorkflowMode = (
-  settings: ProjectSettingsData
-): WorkflowMode => {
+export const getWorkflowMode = (settings: ProjectInfoData): WorkflowMode => {
   return settings.isHighImpact ? "critical" : "standard";
 };
 

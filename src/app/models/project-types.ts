@@ -1,6 +1,7 @@
+import type { ProjectInfoData } from "features/overview";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
-import { ActivityLogEntry, PhaseStatus, PhaseStatusMap } from "shared";
+import { PhaseStatus, PhaseStatusMap } from "shared";
 import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
 import { DocData } from "features/documentation";
@@ -17,7 +18,6 @@ export interface ProjectSettings {
   strictMode: boolean;
   autoSave: boolean;
   autoSaveInterval?: number; // in seconds, default 30
-  isHighImpact?: boolean; // Critical system flag - changes workflow order
 }
 
 export interface ThreatMitigation {
@@ -71,22 +71,14 @@ export interface Threat {
 
 export interface Project {
   id: string;
-  name: string;
-  description: string;
-  version: string;
-  responsible: string;
-  created: string;
-  lastModified: string;
+  info: ProjectInfoData;
   lastOpened?: string;
   currentPhase: number;
   strideMethod: StrideMethod | null;
   methodSelected: boolean;
   phaseStatus: PhaseStatusMap;
   settings: ProjectSettings;
-  tags: string[];
-  team: string[];
   status: ProjectStatus;
-  activityLog: ActivityLogEntry[];
   dfd: DFDData | null;
   assets: AssetData | null;
   threats: ThreatData | null;

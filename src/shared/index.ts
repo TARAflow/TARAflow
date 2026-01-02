@@ -10,7 +10,6 @@ export type {
   StrideCategory,
   PhaseStatusMap,
   PhaseDefinition,
-  ActivityLogEntry,
   ValidationResult,
 } from "./models/common-types";
 

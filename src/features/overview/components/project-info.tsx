@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Edit3, Save, X, Plus, AlertTriangle, Info } from "lucide-react";
 import { Tooltip } from "@mui/material";
+import type { ProjectInfoData } from "../models/overview-types";
 
 // ==================== PROJECT INFO ====================
 // Displays and allows editing of project metadata
@@ -12,18 +13,6 @@ import { Tooltip } from "@mui/material";
 //   Description (1/1)
 //   Created (1/2) | Last Modified (1/2) - read-only
 //   Tags Section (1/1)
-
-export interface ProjectInfoData {
-  name: string;
-  description: string;
-  version: string;
-  responsible: string;
-  created: string;
-  lastModified: string;
-  tags: string[];
-  team: string[];
-  isHighImpact?: boolean;
-}
 
 interface ProjectInfoProps {
   info: ProjectInfoData;
@@ -369,7 +358,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                 <div className="relative">
                   <input
                     type="checkbox"
-                    checked={editData.isHighImpact ?? false}
+                    checked={editData.isHighImpact}
                     onChange={(e) =>
                       setEditData({
                         ...editData,

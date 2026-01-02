@@ -10,7 +10,7 @@ import {
   StrideMethod,
   ThreatData,
   ThreatsTab,
-  getEffectiveThreatDescription, // ← Gleiche Funktion wie ThreatTable
+  getEffectiveThreatDescription,
   getSuggestedMitigations,
   type ThreatUpdateResult,
 } from "features/threats";
@@ -33,7 +33,7 @@ import { CloseProjectDialog } from "../dialogs/close-project-dialog";
 import { Toast } from "shared";
 import { PHASES } from "shared";
 import { getPhaseStatusIcon, getPhaseStatusColor } from "shared";
-import type { GeneralTabData } from "features/overview";
+import type { GeneralTabData, ProjectInfoData } from "features/overview";
 import { AttackTreeTab } from "features/attacktree";
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -73,7 +73,7 @@ export const MainLayout: React.FC = () => {
       if (result.success && result.data) {
         // Filter out invalid/incomplete projects
         const validProjects = result.data.filter((p) => {
-          const isValid = p && p.id && p.name && p.created && p.phaseStatus;
+          const isValid = p && p.id && p.info && p.phaseStatus;
           if (!isValid) {
             console.warn("Skipping invalid project:", p?.id || "unknown");
             // Optionally remove invalid project from storage
@@ -137,8 +137,8 @@ export const MainLayout: React.FC = () => {
       // Auto-close oldest project
       const oldestProject = [...openProjects].sort(
         (a, b) =>
-          new Date(a.lastOpened || a.lastModified).getTime() -
-          new Date(b.lastOpened || b.lastModified).getTime()
+          new Date(a.lastOpened || a.info?.lastModified || 0).getTime() -
+          new Date(b.lastOpened || b.info?.lastModified || 0).getTime()
       )[0];
 
       const closedProject = { ...oldestProject, isOpen: false };
@@ -156,7 +156,9 @@ export const MainLayout: React.FC = () => {
         })
       );
 
-      setToastMessage(`Auto-closed "${oldestProject.name}" (oldest project)`);
+      setToastMessage(
+        `Auto-closed "${oldestProject.info?.name}" (oldest project)`
+      );
     } else {
       const openedProject = { ...project, isOpen: true, lastOpened: now };
       await syncProjectToStorage(openedProject);
@@ -188,7 +190,7 @@ export const MainLayout: React.FC = () => {
       setProjects(
         projects.map((p) => (p.id === activeProject.id ? savedProject : p))
       );
-      setToastMessage(`Project "${activeProject.name}" saved`);
+      setToastMessage(`Project "${activeProject.info?.name}" saved`);
     }
     const newProject = projects.find((p) => p.id === pendingProjectId);
     setActiveProjectId(pendingProjectId);
@@ -237,7 +239,7 @@ export const MainLayout: React.FC = () => {
         setProjects(
           projects.map((p) => (p.id === projectToClose ? savedProject : p))
         );
-        setToastMessage(`Project "${project.name}" saved`);
+        setToastMessage(`Project "${project.info?.name}" saved`);
       }
     }
     closeProject(projectToClose!);
@@ -270,7 +272,7 @@ export const MainLayout: React.FC = () => {
         setActivePhase(remainingOpen[0]?.currentPhase || 0);
       }
 
-      setToastMessage(`Project "${project.name}" deleted`);
+      setToastMessage(`Project "${project.info?.name}" deleted`);
     } else {
       setToastMessage(`Failed to delete: ${result.error}`);
     }
@@ -291,7 +293,7 @@ export const MainLayout: React.FC = () => {
     try {
       // Use StorageService export method
       storageService.exportProjectAsJSON(project);
-      setToastMessage(`Project "${project.name}" exported`);
+      setToastMessage(`Project "${project.info?.name}" exported`);
     } catch (error) {
       setToastMessage(`Export failed: ${error}`);
     }
@@ -300,9 +302,14 @@ export const MainLayout: React.FC = () => {
   // ==================== UPDATE PROJECT ====================
 
   const updateProject = async (updatedProject: Project) => {
-    const projectWithChanges = {
+    const now = new Date().toISOString();
+
+    const projectWithChanges: Project = {
       ...updatedProject,
-      lastModified: new Date().toISOString(),
+      info: {
+        ...updatedProject.info,
+        lastModified: now,
+      },
       hasUnsavedChanges: true,
     };
 
@@ -313,7 +320,11 @@ export const MainLayout: React.FC = () => {
 
     // Auto-save if enabled
     if (updatedProject.settings.autoSave) {
-      const savedProject = { ...projectWithChanges, hasUnsavedChanges: false };
+      const savedProject: Project = {
+        ...projectWithChanges,
+        hasUnsavedChanges: false,
+      };
+
       const success = await syncProjectToStorage(savedProject);
       if (success) {
         setProjects(
@@ -329,16 +340,21 @@ export const MainLayout: React.FC = () => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return;
 
-    const savedProject = {
+    const now = new Date().toISOString();
+
+    const savedProject: Project = {
       ...project,
       hasUnsavedChanges: false,
-      lastModified: new Date().toISOString(),
+      info: {
+        ...project.info,
+        lastModified: now,
+      },
     };
 
     const success = await syncProjectToStorage(savedProject);
     if (success) {
       setProjects(projects.map((p) => (p.id === projectId ? savedProject : p)));
-      setToastMessage(`Project "${project.name}" saved`);
+      setToastMessage(`Project "${project.info.name}" saved`);
     }
   };
 
@@ -368,22 +384,14 @@ export const MainLayout: React.FC = () => {
 
   // ==================== GENERAL TAB DATA & HANDLER ====================
 
-  const generalTabData: GeneralTabData | undefined = activeProject
+  const generalTabData: GeneralTabData | undefined = activeProject?.info
     ? {
-        id: activeProject.id,
-        name: activeProject.name,
-        description: activeProject.description,
-        version: activeProject.version,
-        responsible: activeProject.responsible,
-        created: activeProject.created,
-        lastModified: activeProject.lastModified,
-        tags: activeProject.tags,
-        team: activeProject.team,
+        info: activeProject.info,
         settings: activeProject.settings,
         phaseStatus: activeProject.phaseStatus,
-        activityLog: activeProject.activityLog,
         dfdValidation: activeProject.dfd?.validation
           ? {
+              valid: activeProject.dfd.validation.errors.length === 0,
               errors: activeProject.dfd.validation.errors,
               warnings: activeProject.dfd.validation.warnings,
             }
@@ -396,15 +404,9 @@ export const MainLayout: React.FC = () => {
 
     const updatedProject: Project = {
       ...activeProject,
-      name: data.name,
-      description: data.description,
-      version: data.version,
-      responsible: data.responsible,
-      tags: data.tags,
-      team: data.team,
+      info: data.info,
       settings: data.settings,
       phaseStatus: data.phaseStatus,
-      activityLog: data.activityLog,
     };
 
     updateProject(updatedProject);
@@ -423,12 +425,11 @@ export const MainLayout: React.FC = () => {
         ...activeProject,
         dfd: updates.dfd,
         phaseStatus: updates.phaseStatus,
-        lastModified: updates.lastModified,
       };
 
       await updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject]
   );
 
   // ==================== Asset HANDLER ====================
@@ -444,12 +445,11 @@ export const MainLayout: React.FC = () => {
         ...activeProject,
         assets: updates.assets,
         phaseStatus: updates.phaseStatus,
-        lastModified: updates.lastModified,
       };
 
       await updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject]
   );
 
   // ==================== Threat HANDLER ====================
@@ -465,12 +465,11 @@ export const MainLayout: React.FC = () => {
         ...activeProject,
         threats: updates.threats,
         phaseStatus: updates.phaseStatus,
-        lastModified: updates.lastModified,
       };
 
       await updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject]
   );
 
   // ==================== Risk HANDLER ====================
@@ -486,12 +485,11 @@ export const MainLayout: React.FC = () => {
         ...activeProject,
         risks: updates.risks,
         phaseStatus: updates.phaseStatus,
-        lastModified: updates.lastModified,
       };
 
       await updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject]
   );
 
   // ==================== THREAT REFERENCE EXTRACTION ====================
@@ -584,10 +582,9 @@ export const MainLayout: React.FC = () => {
         ...activeProject,
         documentation: updates.documentation,
         phaseStatus: updates.phaseStatus,
-        lastModified: updates.lastModified,
       });
     },
-    [activeProject, updateProject]
+    [activeProject]
   );
 
   // ==================== NEW/IMPORT HANDLERS ====================
@@ -666,32 +663,40 @@ export const MainLayout: React.FC = () => {
                   getStatusIcon={getPhaseStatusIcon}
                   getStatusColor={getPhaseStatusColor}
                   onUpdate={handleGeneralTabUpdate}
-                  onExport={() => handleExportProject(activeProject.id)}
-                  onDelete={() => handleDeleteRequest(activeProject.id)}
                 />
               )}
-              {activePhase === 1 && (
-                <DFDTab project={activeProject} onUpdate={handleDFDUpdate} />
+              {activePhase === 1 && activeProject && (
+                <DFDTab
+                  project={{
+                    id: activeProject.id,
+                    name: activeProject.info?.name || "",
+                    dfd: activeProject.dfd ?? null,
+                    phaseStatus: activeProject.phaseStatus,
+                    settings: activeProject.settings,
+                    lastModified: activeProject.info?.lastModified || "",
+                  }}
+                  onUpdate={handleDFDUpdate}
+                />
               )}
               {activePhase === 2 && activeProject && (
                 <AssetsTab
                   project={{
                     id: activeProject.id,
-                    name: activeProject.name,
+                    name: activeProject.info?.name || "",
                     assets: activeProject.assets ?? null,
                     phaseStatus: activeProject.phaseStatus,
                     dfdXml: activeProject.dfd?.xml,
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    lastModified: activeProject.lastModified,
+                    lastModified: activeProject.info?.lastModified || "",
                   }}
                   onUpdate={handleAssetsUpdate}
                 />
               )}
-              {activePhase === 3 && (
+              {activePhase === 3 && activeProject && (
                 <ThreatsTab
                   project={{
                     id: activeProject.id,
-                    name: activeProject.name,
+                    name: activeProject.info?.name || "",
                     threats: activeProject.threats ?? null,
                     phaseStatus: activeProject.phaseStatus,
                     dfdXml: activeProject.dfd?.xml,
@@ -699,7 +704,7 @@ export const MainLayout: React.FC = () => {
                     dfdConnections: activeProject.dfd?.connections,
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
                     assetIds: activeProject.assets?.assets?.map((a) => a.id),
-                    lastModified: activeProject.lastModified,
+                    lastModified: activeProject.info?.lastModified || "",
                   }}
                   onUpdate={handleThreatsUpdate}
                 />
@@ -708,7 +713,7 @@ export const MainLayout: React.FC = () => {
                 <RisksTab
                   project={{
                     id: activeProject.id,
-                    name: activeProject.name,
+                    name: activeProject.info?.name || "",
                     risks: activeProject.risks ?? null,
                     phaseStatus: activeProject.phaseStatus,
                     perElementThreats: extractThreatReferences(
@@ -720,7 +725,7 @@ export const MainLayout: React.FC = () => {
                       "per-interaction"
                     ),
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    lastModified: activeProject.lastModified,
+                    lastModified: activeProject.info?.lastModified || "",
                   }}
                   onUpdate={handleRisksUpdate}
                   onPhaseComplete={() => setActivePhase(5)}
@@ -757,7 +762,7 @@ export const MainLayout: React.FC = () => {
 
       {showUnsavedDialog && activeProject && (
         <UnsavedChangesDialog
-          projectName={activeProject.name}
+          projectName={activeProject.info?.name || ""}
           onSave={() => confirmProjectSwitch(true)}
           onDiscard={() => confirmProjectSwitch(false)}
           onCancel={() => setShowUnsavedDialog(false)}
@@ -767,7 +772,7 @@ export const MainLayout: React.FC = () => {
       {showCloseDialog && projectToClose && (
         <CloseProjectDialog
           projectName={
-            projects.find((p) => p.id === projectToClose)?.name || ""
+            projects.find((p) => p.id === projectToClose)?.info?.name || ""
           }
           onSave={() => confirmProjectClose(true)}
           onDiscard={() => confirmProjectClose(false)}
@@ -778,7 +783,9 @@ export const MainLayout: React.FC = () => {
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && projectToDelete && (
         <DeleteProjectDialog
-          itemName={projects.find((p) => p.id === projectToDelete)?.name || ""}
+          itemName={
+            projects.find((p) => p.id === projectToDelete)?.info?.name || ""
+          }
           itemType="project"
           onConfirm={confirmDeleteProject}
           onCancel={() => {
@@ -799,9 +806,13 @@ export const MainLayout: React.FC = () => {
               isHighImpact: data.isHighImpact,
             });
             if (result.success && result.data) {
-              const projectWithTags = {
+              // Add tags to the project info
+              const projectWithTags: Project = {
                 ...result.data,
-                tags: data.tags,
+                info: {
+                  ...result.data.info,
+                  tags: data.tags,
+                },
               };
 
               await storageService.saveProject(projectWithTags);
@@ -809,7 +820,9 @@ export const MainLayout: React.FC = () => {
               setProjects([...projects, projectWithTags]);
               setActiveProjectId(projectWithTags.id);
               setActivePhase(0);
-              setToastMessage(`Project "${projectWithTags.name}" created!`);
+              setToastMessage(
+                `Project "${projectWithTags.info?.name}" created!`
+              );
             } else {
               setToastMessage(`Error: ${result.error}`);
             }
@@ -830,11 +843,11 @@ export const MainLayout: React.FC = () => {
               setProjects([...projects, result.data]);
               setActiveProjectId(result.data.id);
               setActivePhase(0);
-              setToastMessage(`Project "${result.data.name}" imported!`);
+              setToastMessage(`Project "${result.data.info?.name}" imported!`);
               return {
                 success: true,
                 projectId: result.data.id,
-                projectName: result.data.name,
+                projectName: result.data.info?.name || "",
               };
             } else {
               setToastMessage(`Import failed: ${result.error}`);

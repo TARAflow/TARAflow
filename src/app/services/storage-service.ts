@@ -11,7 +11,7 @@ export interface StorageResult<T> {
   error?: string;
 }
 
-const STORAGE_PREFIX = "coretm_";
+const STORAGE_PREFIX = "taraflow_";
 const PROJECT_PREFIX = `${STORAGE_PREFIX}project_`;
 const SETTINGS_KEY = `${STORAGE_PREFIX}settings`;
 const METADATA_KEY = `${STORAGE_PREFIX}metadata`;
@@ -108,7 +108,7 @@ class StorageService {
    */
   private repairProject(project: Partial<Project>): Project | null {
     // Minimum required: id and name
-    if (!project.id || !project.name) {
+    if (!project.id || !project.info) {
       console.warn("Cannot repair project without id or name:", project);
       return null;
     }
@@ -118,12 +118,12 @@ class StorageService {
     const repaired: Project = {
       // Required fields with defaults
       id: project.id,
-      name: project.name,
-      description: project.description ?? "",
-      version: project.version ?? "1.0",
-      responsible: project.responsible ?? "",
-      created: project.created ?? now,
-      lastModified: project.lastModified ?? now,
+      info: {
+        ...project.info,
+        tags: project.info.tags ?? [],
+        team: project.info.team ?? [],
+        lastModified: project.info.lastModified ?? now,
+      },
       lastOpened: project.lastOpened ?? now,
       currentPhase: project.currentPhase ?? 0,
       strideMethod: project.strideMethod ?? null,
@@ -148,11 +148,10 @@ class StorageService {
       },
 
       // Arrays with defaults
-      tags: project.tags ?? [],
-      team: project.team ?? [],
-      activityLog: project.activityLog ?? [],
       assets: project.assets ?? null,
       threats: project.threats ?? null,
+      risks: project.risks ?? null,
+      documentation: null,
 
       // Other fields
       status: project.status ?? "draft",
@@ -285,32 +284,36 @@ class StorageService {
 
     return {
       id: `proj_${Date.now()}`,
-      name,
-      description,
-      version: "1.0",
-      responsible,
-      created: now,
-      lastModified: now,
+
+      // Project metadata
+      info: {
+        name,
+        description,
+        version: "1.0",
+        responsible,
+        created: now,
+        lastModified: now,
+        tags: [],
+        team: responsible ? [responsible] : [],
+        isHighImpact: false,
+      },
+
       lastOpened: now,
       currentPhase: 0,
       strideMethod: null,
       methodSelected: false,
+
       phaseStatus: { ...DEFAULT_PHASE_STATUS },
       settings: { ...DEFAULT_SETTINGS },
-      tags: [],
-      team: responsible ? [responsible] : [],
+
       status: "draft",
-      activityLog: [
-        {
-          timestamp: now,
-          action: "CREATE",
-          entity: "project",
-          description: "Project created",
-        },
-      ],
+
       dfd: null,
       assets: null,
       threats: null,
+      risks: null,
+      documentation: null,
+
       isOpen: true,
       hasUnsavedChanges: false,
     };
@@ -321,7 +324,7 @@ class StorageService {
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
-    const filename = `${project.name.replace(/[^a-z0-9]/gi, "_")}_TARA_${
+    const filename = `${project.info.name.replace(/[^a-z0-9]/gi, "_")}_TARA_${
       new Date().toISOString().split("T")[0]
     }.json`;
 
@@ -358,7 +361,7 @@ class StorageService {
 
       // Update timestamps
       const now = new Date().toISOString();
-      project.lastModified = now;
+      project.info.lastModified = now;
       project.lastOpened = now;
       project.isOpen = true;
       project.hasUnsavedChanges = false;

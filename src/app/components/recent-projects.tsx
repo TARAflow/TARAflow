@@ -127,11 +127,11 @@ const RecentProjectItem: React.FC<RecentProjectItemProps> = ({
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffMinutes < 1) return t('time.justNow');
-    if (diffMinutes < 60) return t('time.minutesAgo', { count: diffMinutes });
-    if (diffHours < 24) return t('time.hoursAgo', { count: diffHours });
-    if (diffDays === 1) return t('time.yesterday');
-    if (diffDays < 7) return t('time.daysAgo', { count: diffDays });
+    if (diffMinutes < 1) return t("time.justNow");
+    if (diffMinutes < 60) return t("time.minutesAgo", { count: diffMinutes });
+    if (diffHours < 24) return t("time.hoursAgo", { count: diffHours });
+    if (diffDays === 1) return t("time.yesterday");
+    if (diffDays < 7) return t("time.daysAgo", { count: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -145,17 +145,17 @@ const RecentProjectItem: React.FC<RecentProjectItemProps> = ({
         <Folder className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-sm truncate font-medium text-gray-700">
-            {project.name}
+            {project.info.name}
           </div>
           <div className="text-xs text-gray-500 flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formatDate(project.lastOpened || project.lastModified)}
+            {formatDate(project.lastOpened || project.info.lastModified)}
           </div>
         </div>
         <button
           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
           onClick={handleMoreClick}
-          title={t('sidebar.moreOptions')}
+          title={t("sidebar.moreOptions")}
         >
           <MoreVertical className="w-4 h-4 text-gray-400" />
         </button>
@@ -198,8 +198,8 @@ export const RecentProjects: React.FC<RecentProjectsProps> = ({
     .filter((p) => !p.isOpen)
     .sort(
       (a, b) =>
-        new Date(b.lastOpened || b.lastModified).getTime() -
-        new Date(a.lastOpened || a.lastModified).getTime()
+        new Date(b.lastOpened || b.info.lastModified).getTime() -
+        new Date(a.lastOpened || a.info.lastModified).getTime()
     )
     .slice(0, maxItems);
 
@@ -210,7 +210,7 @@ export const RecentProjects: React.FC<RecentProjectsProps> = ({
   return (
     <div>
       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-        {t('project.recentProjects')}
+        {t("project.recentProjects")}
       </div>
       <div className="space-y-1">
         {recentProjects.map((project) => (

@@ -57,13 +57,13 @@ export const useProjects = (): UseProjectsReturn => {
 
   const openProjects = projects
     .filter((p) => p.isOpen)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.info.name.localeCompare(b.info.name));
 
   const recentProjects = projects
     .filter((p) => !p.isOpen)
     .sort((a, b) => {
-      const dateA = new Date(b.lastOpened || b.lastModified).getTime();
-      const dateB = new Date(a.lastOpened || a.lastModified).getTime();
+      const dateA = new Date(b.lastOpened || b.info.lastModified).getTime();
+      const dateB = new Date(a.lastOpened || a.info.lastModified).getTime();
       return dateA - dateB;
     })
     .slice(0, 10);
@@ -142,8 +142,12 @@ export const useProjects = (): UseProjectsReturn => {
         if (openProjects.length >= MAX_OPEN_PROJECTS) {
           // Auto-close oldest project
           const oldestProject = [...openProjects].sort((a, b) => {
-            const dateA = new Date(a.lastOpened || a.lastModified).getTime();
-            const dateB = new Date(b.lastOpened || b.lastModified).getTime();
+            const dateA = new Date(
+              a.lastOpened || a.info.lastModified
+            ).getTime();
+            const dateB = new Date(
+              b.lastOpened || b.info.lastModified
+            ).getTime();
             return dateA - dateB;
           })[0];
 
@@ -369,9 +373,11 @@ export const useProjects = (): UseProjectsReturn => {
       const lowerQuery = query.toLowerCase();
       return projects.filter(
         (project) =>
-          project.name.toLowerCase().includes(lowerQuery) ||
-          project.description.toLowerCase().includes(lowerQuery) ||
-          project.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))
+          project.info.name.toLowerCase().includes(lowerQuery) ||
+          project.info.description.toLowerCase().includes(lowerQuery) ||
+          project.info.tags.some((tag) =>
+            tag.toLowerCase().includes(lowerQuery)
+          )
       );
     },
     [projects]
