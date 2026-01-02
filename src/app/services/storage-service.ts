@@ -278,7 +278,9 @@ class StorageService {
   public createEmptyProject(
     name: string,
     description: string,
-    responsible: string = ""
+    version: string = "1.0",
+    responsible: string = "",
+    isHighImpact: boolean = false
   ): Project {
     const now = new Date().toISOString();
 
@@ -289,13 +291,13 @@ class StorageService {
       info: {
         name,
         description,
-        version: "1.0",
+        version,
         responsible,
         created: now,
         lastModified: now,
         tags: [],
         team: responsible ? [responsible] : [],
-        isHighImpact: false,
+        isHighImpact,
       },
 
       lastOpened: now,

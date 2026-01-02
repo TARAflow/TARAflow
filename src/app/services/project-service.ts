@@ -25,7 +25,9 @@ class ProjectService {
       const project = storageService.createEmptyProject(
         input.name,
         input.description,
-        input.responsible
+        input.version,
+        input.responsible,
+        input.isHighImpact
       );
       const result = await storageService.saveProject(project);
       return result; // result hat schon { success: boolean; data?: Project; error?: string }
