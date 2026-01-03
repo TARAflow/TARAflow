@@ -1,12 +1,13 @@
 // ==================== TAG CATEGORIES ====================
 // Shared tag definitions for project categorization
-// Used by: project-info.tsx, new-project-dialog.tsx
+// Used by: project-info.tsx, new-project-dialog.tsx, doc-generator
 
 export type TagCategoryKey = "domain" | "platform" | "regulation";
 
 export interface TagDefinition {
   name: string;
   tooltipKey?: string; // i18n key for tooltip (primarily for regulations)
+  docDescriptionKey?: string; // i18n key for documentation description (longer text)
 }
 
 export interface TagCategory {
@@ -63,32 +64,100 @@ export const TAG_CATEGORIES: TagCategory[] = [
     textColor: "text-green-700",
     tags: [
       // Generic EU Regulations
-      { name: "CRA", tooltipKey: "tags.tooltips.cra" },
-      { name: "NIS2", tooltipKey: "tags.tooltips.nis2" },
-      { name: "GDPR", tooltipKey: "tags.tooltips.gdpr" },
-      { name: "AI Act", tooltipKey: "tags.tooltips.aiAct" },
+      {
+        name: "CRA",
+        tooltipKey: "tags.tooltips.cra",
+        docDescriptionKey: "tags.docDescriptions.cra",
+      },
+      {
+        name: "NIS2",
+        tooltipKey: "tags.tooltips.nis2",
+        docDescriptionKey: "tags.docDescriptions.nis2",
+      },
+      {
+        name: "GDPR",
+        tooltipKey: "tags.tooltips.gdpr",
+        docDescriptionKey: "tags.docDescriptions.gdpr",
+      },
+      {
+        name: "AI Act",
+        tooltipKey: "tags.tooltips.aiAct",
+        docDescriptionKey: "tags.docDescriptions.aiAct",
+      },
       // Industrial
-      { name: "IEC 62443", tooltipKey: "tags.tooltips.iec62443" },
-      { name: "EN 18031", tooltipKey: "tags.tooltips.en18031" },
+      {
+        name: "IEC 62443",
+        tooltipKey: "tags.tooltips.iec62443",
+        docDescriptionKey: "tags.docDescriptions.iec62443",
+      },
+      {
+        name: "EN 18031",
+        tooltipKey: "tags.tooltips.en18031",
+        docDescriptionKey: "tags.docDescriptions.en18031",
+      },
       // Medical
-      { name: "IEC 81001", tooltipKey: "tags.tooltips.iec81001" },
-      { name: "IEC TR 60601", tooltipKey: "tags.tooltips.iecTr60601" },
+      {
+        name: "IEC 81001",
+        tooltipKey: "tags.tooltips.iec81001",
+        docDescriptionKey: "tags.docDescriptions.iec81001",
+      },
+      {
+        name: "IEC TR 60601",
+        tooltipKey: "tags.tooltips.iecTr60601",
+        docDescriptionKey: "tags.docDescriptions.iecTr60601",
+      },
       // Automotive
-      { name: "ISO 21434", tooltipKey: "tags.tooltips.iso21434" },
+      {
+        name: "ISO 21434",
+        tooltipKey: "tags.tooltips.iso21434",
+        docDescriptionKey: "tags.docDescriptions.iso21434",
+      },
       // Railway
-      { name: "CLC/TS 50701", tooltipKey: "tags.tooltips.clcTs50701" },
-      { name: "IEC 63452", tooltipKey: "tags.tooltips.iec63452" },
+      {
+        name: "CLC/TS 50701",
+        tooltipKey: "tags.tooltips.clcTs50701",
+        docDescriptionKey: "tags.docDescriptions.clcTs50701",
+      },
+      {
+        name: "IEC 63452",
+        tooltipKey: "tags.tooltips.iec63452",
+        docDescriptionKey: "tags.docDescriptions.iec63452",
+      },
       // IT Security
-      { name: "ISO 27001", tooltipKey: "tags.tooltips.iso27001" },
+      {
+        name: "ISO 27001",
+        tooltipKey: "tags.tooltips.iso27001",
+        docDescriptionKey: "tags.docDescriptions.iso27001",
+      },
       // Cloud
-      { name: "ISO 27017", tooltipKey: "tags.tooltips.iso27017" },
+      {
+        name: "ISO 27017",
+        tooltipKey: "tags.tooltips.iso27017",
+        docDescriptionKey: "tags.docDescriptions.iso27017",
+      },
       // IoT
-      { name: "ETSI EN 303 645", tooltipKey: "tags.tooltips.etsiEn303645" },
-      { name: "EN 17927", tooltipKey: "tags.tooltips.en17927" },
+      {
+        name: "ETSI EN 303 645",
+        tooltipKey: "tags.tooltips.etsiEn303645",
+        docDescriptionKey: "tags.docDescriptions.etsiEn303645",
+      },
+      {
+        name: "EN 17927",
+        tooltipKey: "tags.tooltips.en17927",
+        docDescriptionKey: "tags.docDescriptions.en17927",
+      },
       // Energy
-      { name: "IEC 62351", tooltipKey: "tags.tooltips.iec62351" },
+      {
+        name: "IEC 62351",
+        tooltipKey: "tags.tooltips.iec62351",
+        docDescriptionKey: "tags.docDescriptions.iec62351",
+      },
       // Machinery
-      { name: "EN 50742", tooltipKey: "tags.tooltips.en50742" },
+      {
+        name: "EN 50742",
+        tooltipKey: "tags.tooltips.en50742",
+        docDescriptionKey: "tags.docDescriptions.en50742",
+      },
     ],
   },
 ];
@@ -186,4 +255,34 @@ export const getAvailablePredefinedTags = (
   selectedTags: string[]
 ): TagDefinition[] => {
   return category.tags.filter((t) => !selectedTags.includes(t.name));
+};
+
+// ==================== REGULATION-SPECIFIC HELPERS ====================
+
+/**
+ * Get all regulation tag names
+ */
+export const getRegulationTagNames = (): string[] => {
+  const regulationCategory = TAG_CATEGORIES.find((c) => c.key === "regulation");
+  return regulationCategory?.tags.map((t) => t.name) ?? [];
+};
+
+/**
+ * Check if a tag is a regulation tag
+ */
+export const isRegulationTag = (tagName: string): boolean => {
+  return getRegulationTagNames().includes(tagName);
+};
+
+/**
+ * Get regulation tags from a list of tag names
+ * Returns full TagDefinition objects for matching tags
+ */
+export const getRegulationTags = (tagNames: string[]): TagDefinition[] => {
+  const regulationCategory = TAG_CATEGORIES.find((c) => c.key === "regulation");
+  if (!regulationCategory) return [];
+
+  return regulationCategory.tags.filter((tagDef) =>
+    tagNames.includes(tagDef.name)
+  );
 };

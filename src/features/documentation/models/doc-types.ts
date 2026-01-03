@@ -3,7 +3,7 @@
 // NO dependency on app - follows Dependency Inversion Principle
 //
 // Architecture:
-// - Configurable document format (Markdown, AsciiDoc)
+// - Configurable document format (Markdown, AsciiDoc, HTML, PDF)
 // - Configurable chapters (enable/disable)
 // - Template customization (header, footer, logo)
 // - Multi-language support (DE/EN independent of UI)
@@ -15,7 +15,7 @@ import type { PhaseStatusMap, StrideMethod } from "shared";
 /**
  * Supported document output formats
  */
-export type DocFormat = "markdown" | "asciidoc";
+export type DocFormat = "markdown" | "asciidoc" | "html" | "pdf";
 
 /**
  * Document language (independent of UI language)
@@ -29,8 +29,10 @@ export type DocLanguage = "en" | "de";
  */
 export type DocChapterId =
   | "executive-summary"
+  | "applicable-regulations"
   | "system-overview"
   | "dfd"
+  | "dfd-descriptions"
   | "assets"
   | "threats-per-element"
   | "threats-per-interaction"
@@ -55,56 +57,67 @@ export interface DocChapterConfig {
 /**
  * Default chapter titles
  */
-export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = {
-  "executive-summary": {
-    en: "Executive Summary",
-    de: "Zusammenfassung",
-  },
-  "system-overview": {
-    en: "System Overview",
-    de: "Systemübersicht",
-  },
-  dfd: {
-    en: "Data Flow Diagram",
-    de: "Datenflussdiagramm",
-  },
-  assets: {
-    en: "Asset Inventory",
-    de: "Asset-Inventar",
-  },
-  "threats-per-element": {
-    en: "Threat Analysis (STRIDE per Element)",
-    de: "Bedrohungsanalyse (STRIDE pro Element)",
-  },
-  "threats-per-interaction": {
-    en: "Threat Analysis (STRIDE per Interaction)",
-    de: "Bedrohungsanalyse (STRIDE pro Interaktion)",
-  },
-  "risks-per-element": {
-    en: "Risk Assessment (STRIDE per Element)",
-    de: "Risikobewertung (STRIDE pro Element)",
-  },
-  "risks-per-interaction": {
-    en: "Risk Assessment (STRIDE per Interaction)",
-    de: "Risikobewertung (STRIDE pro Interaktion)",
-  },
-  "accepted-risks": {
-    en: "Accepted Risks (Won't Address)",
-    de: "Akzeptierte Risiken (Wird nicht behandelt)",
-  },
-  appendix: {
-    en: "Appendix",
-    de: "Anhang",
-  },
-};
+export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> =
+  {
+    "executive-summary": {
+      en: "Executive Summary",
+      de: "Zusammenfassung",
+    },
+    "applicable-regulations": {
+      en: "Applicable Regulations",
+      de: "Anwendbare Regulierungen",
+    },
+    "system-overview": {
+      en: "System Overview",
+      de: "Systemübersicht",
+    },
+    dfd: {
+      en: "Data Flow Diagram",
+      de: "Datenflussdiagramm",
+    },
+    "dfd-descriptions": {
+      en: "DFD Element Descriptions",
+      de: "DFD-Elementbeschreibungen",
+    },
+    assets: {
+      en: "Asset Inventory",
+      de: "Asset-Inventar",
+    },
+    "threats-per-element": {
+      en: "Threat Analysis (STRIDE per Element)",
+      de: "Bedrohungsanalyse (STRIDE pro Element)",
+    },
+    "threats-per-interaction": {
+      en: "Threat Analysis (STRIDE per Interaction)",
+      de: "Bedrohungsanalyse (STRIDE pro Interaktion)",
+    },
+    "risks-per-element": {
+      en: "Risk Assessment (STRIDE per Element)",
+      de: "Risikobewertung (STRIDE pro Element)",
+    },
+    "risks-per-interaction": {
+      en: "Risk Assessment (STRIDE per Interaction)",
+      de: "Risikobewertung (STRIDE pro Interaktion)",
+    },
+    "accepted-risks": {
+      en: "Accepted Risks (Won't Address)",
+      de: "Akzeptierte Risiken (Wird nicht behandelt)",
+    },
+    appendix: {
+      en: "Appendix",
+      de: "Anhang",
+    },
+  };
 
 /**
  * Default chapter configuration
  */
 export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "executive-summary", enabled: true, autoHideIfEmpty: false },
+  { id: "applicable-regulations", enabled: true, autoHideIfEmpty: true },
   { id: "system-overview", enabled: true, autoHideIfEmpty: false },
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
+  { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
   { id: "assets", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-interaction", enabled: true, autoHideIfEmpty: true },
@@ -243,6 +256,65 @@ export interface DocProjectInfo {
 }
 
 /**
+ * Security level for DFD elements
+ */
+export type DocSecurityLevel =
+  | "public"
+  | "internal"
+  | "confidential"
+  | "secret"
+  | "none";
+
+/**
+ * Trust level for DFD elements
+ */
+export type DocTrustLevel = "trusted" | "untrusted" | "unknown" | "none";
+
+/**
+ * DFD Element types for documentation
+ */
+export type DocDFDElementType =
+  | "ExternalEntity"
+  | "Process"
+  | "Multiprocess"
+  | "DataStore"
+  | "TrustBoundary"
+  | "PhysicalInterface"
+  | "Interface";
+
+/**
+ * DFD Element description for documentation
+ */
+export interface DocDFDElement {
+  id: string;
+  displayId?: string;
+  type: DocDFDElementType;
+  name: string;
+  description: string;
+  securityLevel: DocSecurityLevel;
+  trustLevel: DocTrustLevel;
+  authenticationRequired: boolean;
+  encryptionRequired: boolean;
+  securityNotes?: string;
+}
+
+/**
+ * DFD Connection/DataFlow description for documentation
+ */
+export interface DocDFDConnection {
+  id: string;
+  displayId?: string;
+  fromElement: string;
+  toElement: string;
+  label?: string;
+  description: string;
+  securityLevel: DocSecurityLevel;
+  authenticationRequired: boolean;
+  encryptionRequired: boolean;
+  securityNotes?: string;
+}
+
+/**
  * Simplified DFD data for documentation
  */
 export interface DocDFDData {
@@ -259,8 +331,10 @@ export interface DocDFDData {
     dataFlows: number;
     trustBoundaries: number;
   };
-  /** Element descriptions (future feature) */
-  elementDescriptions?: Record<string, string>;
+  /** DFD Elements with descriptions */
+  elements: DocDFDElement[];
+  /** DFD Connections/DataFlows with descriptions */
+  connections: DocDFDConnection[];
 }
 
 /**
@@ -456,4 +530,92 @@ export function getClassificationText(
   };
 
   return labels[classification]?.[language] ?? classification.toUpperCase();
+}
+
+/**
+ * Get criticality text
+ */
+export function getCriticalityText(
+  isHighImpact: boolean,
+  language: DocLanguage
+): string {
+  if (isHighImpact) {
+    return language === "de" ? "Kritisches System" : "Critical System";
+  }
+  return language === "de" ? "Standard System" : "Standard System";
+}
+
+/**
+ * Get security level display text
+ */
+export function getSecurityLevelText(
+  level: DocSecurityLevel,
+  language: DocLanguage
+): string {
+  const labels: Record<DocSecurityLevel, { en: string; de: string }> = {
+    none: { en: "None", de: "Keine" },
+    public: { en: "Public", de: "Öffentlich" },
+    internal: { en: "Internal", de: "Intern" },
+    confidential: { en: "Confidential", de: "Vertraulich" },
+    secret: { en: "Secret", de: "Geheim" },
+  };
+  return labels[level]?.[language] ?? level;
+}
+
+/**
+ * Get trust level display text
+ */
+export function getTrustLevelText(
+  level: DocTrustLevel,
+  language: DocLanguage
+): string {
+  const labels: Record<DocTrustLevel, { en: string; de: string }> = {
+    none: { en: "None", de: "Keine" },
+    trusted: { en: "Trusted", de: "Vertrauenswürdig" },
+    untrusted: { en: "Untrusted", de: "Nicht vertrauenswürdig" },
+    unknown: { en: "Unknown", de: "Unbekannt" },
+  };
+  return labels[level]?.[language] ?? level;
+}
+
+/**
+ * Get DFD element type display text
+ */
+export function getDFDElementTypeText(
+  type: DocDFDElementType,
+  language: DocLanguage
+): string {
+  const labels: Record<DocDFDElementType, { en: string; de: string }> = {
+    ExternalEntity: { en: "External Entities", de: "Externe Entitäten" },
+    Process: { en: "Processes", de: "Prozesse" },
+    Multiprocess: { en: "Multiprocesses", de: "Multiprozesse" },
+    DataStore: { en: "Data Stores", de: "Datenspeicher" },
+    TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
+    PhysicalInterface: { en: "Physical Interfaces", de: "Physische Schnittstellen" },
+    Interface: { en: "Interfaces", de: "Schnittstellen" },
+  };
+  return labels[type]?.[language] ?? type;
+}
+
+/**
+ * Get Yes/No text
+ */
+export function getYesNoText(value: boolean, language: DocLanguage): string {
+  if (value) {
+    return language === "de" ? "Ja" : "Yes";
+  }
+  return language === "de" ? "Nein" : "No";
+}
+
+/**
+ * Get format display name
+ */
+export function getFormatDisplayName(format: DocFormat): string {
+  const names: Record<DocFormat, string> = {
+    markdown: "Markdown",
+    asciidoc: "AsciiDoc",
+    html: "HTML",
+    pdf: "PDF",
+  };
+  return names[format] ?? format;
 }

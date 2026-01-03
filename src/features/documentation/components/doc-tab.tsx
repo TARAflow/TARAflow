@@ -1,7 +1,7 @@
 // ==================== DOCUMENTATION TAB ====================
 // Phase 6: Documentation Generation
 // Features:
-// - Format selection (Markdown, AsciiDoc)
+// - Format selection (Markdown, AsciiDoc, HTML, PDF)
 // - Language selection (EN, DE)
 // - Chapter configuration
 // - Live preview
@@ -63,8 +63,9 @@ import {
 import {
   generateDocument,
   validateProjectForDoc,
-  generateFilename,
-} from "../services/doc-generator";
+  getMimeType,
+} from "../utils/doc-generator";
+import { isRegulationTag } from "shared";
 import { DocPreview } from "./doc-preview";
 import { DocConfigDialog } from "./doc-config-dialog";
 
@@ -84,6 +85,15 @@ export const DocTab: React.FC<DocTabProps> = ({
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
 
+  // ==================== TRANSLATION WRAPPER ====================
+  // Wrapper to adapt i18next TFunction to doc-generator TranslationFn signature
+  const translateFn = useCallback(
+    (key: string, defaultValue?: string): string => {
+      return t(key, { defaultValue: defaultValue ?? key });
+    },
+    [t]
+  );
+
   // ==================== STATE ====================
 
   // Documentation data (local working copy)
@@ -93,6 +103,7 @@ export const DocTab: React.FC<DocTabProps> = ({
 
   // Generated content
   const [generatedContent, setGeneratedContent] = useState<string>("");
+  const [generatedFilename, setGeneratedFilename] = useState<string>("");
 
   // UI state
   const [isDirty, setIsDirty] = useState(false);
@@ -111,8 +122,14 @@ export const DocTab: React.FC<DocTabProps> = ({
   const chapterHasContent = useMemo(() => {
     const map: Record<DocChapterId, boolean> = {
       "executive-summary": true, // Always has content
+      "applicable-regulations": project.info.tags.some((tag) =>
+        isRegulationTag(tag)
+      ),
       "system-overview": true, // Always has content
       dfd: project.dfd.hasDFD,
+      "dfd-descriptions":
+        (project.dfd.elements?.length ?? 0) > 0 ||
+        (project.dfd.connections?.length ?? 0) > 0,
       assets: project.assets.length > 0,
       "threats-per-element": project.threatsPerElement.length > 0,
       "threats-per-interaction": project.threatsPerInteraction.length > 0,
@@ -148,17 +165,18 @@ export const DocTab: React.FC<DocTabProps> = ({
 
   const handleGenerate = useCallback(() => {
     try {
-      const content = generateDocument(project, config);
-      setGeneratedContent(content);
+      const result = generateDocument(project, config, translateFn);
+      setGeneratedContent(result.content);
+      setGeneratedFilename(result.filename);
       setDocData((prev) => ({
         ...prev,
-        generatedContent: content,
+        generatedContent: result.content,
         lastGenerated: new Date().toISOString(),
       }));
     } catch (error) {
       console.error("Failed to generate document:", error);
     }
-  }, [project, config]);
+  }, [project, config, translateFn]);
 
   const handleFormatChange = useCallback((format: DocFormat) => {
     setDocData((prev) => ({
@@ -207,8 +225,17 @@ export const DocTab: React.FC<DocTabProps> = ({
   const handleDownload = useCallback(() => {
     if (!generatedContent) return;
 
-    const filename = generateFilename(project.name, config.format);
-    const blob = new Blob([generatedContent], { type: "text/plain" });
+    const filename =
+      generatedFilename ||
+      `document.${
+        config.format === "markdown"
+          ? "md"
+          : config.format === "asciidoc"
+          ? "adoc"
+          : config.format
+      }`;
+    const mimeType = getMimeType(config.format);
+    const blob = new Blob([generatedContent], { type: mimeType });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
@@ -218,7 +245,7 @@ export const DocTab: React.FC<DocTabProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [generatedContent, project.name, config.format]);
+  }, [generatedContent, generatedFilename, config.format]);
 
   const handleSave = useCallback(() => {
     const now = new Date().toISOString();
@@ -256,15 +283,13 @@ export const DocTab: React.FC<DocTabProps> = ({
           display: "flex",
           alignItems: "center",
           gap: 1,
-          px: 2,
-          py: 1,
+          p: 1,
           borderBottom: "1px solid",
           borderColor: "divider",
-          backgroundColor: "background.paper",
-          flexWrap: "wrap",
+          backgroundColor: "grey.50",
         }}
       >
-        {/* Toggle Sidebar */}
+        {/* Sidebar Toggle */}
         <Tooltip
           title={
             sidebarOpen
@@ -272,16 +297,8 @@ export const DocTab: React.FC<DocTabProps> = ({
               : t("tabs.doc.showSidebar", { defaultValue: "Show Sidebar" })
           }
         >
-          <IconButton
-            size="small"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            color={sidebarOpen ? "primary" : "default"}
-          >
-            {sidebarOpen ? (
-              <ChevronLeftIcon fontSize="small" />
-            ) : (
-              <ChevronRightIcon fontSize="small" />
-            )}
+          <IconButton size="small" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
         </Tooltip>
 
@@ -289,24 +306,15 @@ export const DocTab: React.FC<DocTabProps> = ({
 
         {/* View Mode Toggle */}
         <Tooltip
-          title={
-            viewMode === "preview"
-              ? t("tabs.doc.showSource", { defaultValue: "Show Source" })
-              : t("tabs.doc.showPreview", { defaultValue: "Show Preview" })
-          }
+          title={t("tabs.doc.toggleView", { defaultValue: "Toggle View" })}
         >
           <IconButton
             size="small"
             onClick={() =>
               setViewMode(viewMode === "preview" ? "source" : "preview")
             }
-            color={viewMode === "source" ? "primary" : "default"}
           >
-            {viewMode === "preview" ? (
-              <CodeIcon fontSize="small" />
-            ) : (
-              <PreviewIcon fontSize="small" />
-            )}
+            {viewMode === "preview" ? <CodeIcon /> : <PreviewIcon />}
           </IconButton>
         </Tooltip>
 
@@ -315,18 +323,29 @@ export const DocTab: React.FC<DocTabProps> = ({
           title={t("tabs.doc.regenerate", { defaultValue: "Regenerate" })}
         >
           <IconButton size="small" onClick={handleGenerate}>
-            <RefreshIcon fontSize="small" />
+            <RefreshIcon />
           </IconButton>
+        </Tooltip>
+
+        {/* Download */}
+        <Tooltip title={t("tabs.doc.download", { defaultValue: "Download" })}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleDownload}
+              disabled={!generatedContent}
+            >
+              <DownloadIcon />
+            </IconButton>
+          </span>
         </Tooltip>
 
         {/* Settings */}
         <Tooltip
-          title={t("tabs.doc.settings", {
-            defaultValue: "Template Settings",
-          })}
+          title={t("tabs.doc.settings", { defaultValue: "Template Settings" })}
         >
           <IconButton size="small" onClick={() => setShowConfigDialog(true)}>
-            <SettingsIcon fontSize="small" />
+            <SettingsIcon />
           </IconButton>
         </Tooltip>
 
@@ -338,7 +357,7 @@ export const DocTab: React.FC<DocTabProps> = ({
             title={
               <Box>
                 {validation.warnings.map((w, i) => (
-                  <Typography key={i} variant="body2">
+                  <Typography key={i} variant="caption" display="block">
                     • {w}
                   </Typography>
                 ))}
@@ -347,7 +366,9 @@ export const DocTab: React.FC<DocTabProps> = ({
           >
             <Chip
               icon={<WarningIcon />}
-              label={`${validation.warnings.length}`}
+              label={`${validation.warnings.length} ${t("tabs.doc.warnings", {
+                defaultValue: "warnings",
+              })}`}
               size="small"
               color="warning"
               variant="outlined"
@@ -355,28 +376,23 @@ export const DocTab: React.FC<DocTabProps> = ({
           </Tooltip>
         )}
 
-        {validation.isValid && validation.warnings.length === 0 && (
-          <Chip
-            icon={<CheckIcon />}
-            label={t("tabs.doc.ready", { defaultValue: "Ready" })}
-            size="small"
-            color="success"
-            variant="outlined"
-          />
-        )}
+        {/* Format Chip */}
+        <Chip
+          label={config.format.toUpperCase()}
+          size="small"
+          color="primary"
+          variant="outlined"
+        />
+
+        {/* Language Chip */}
+        <Chip
+          label={config.language.toUpperCase()}
+          size="small"
+          color="secondary"
+          variant="outlined"
+        />
 
         <Divider orientation="vertical" flexItem />
-
-        {/* Download Button */}
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<DownloadIcon />}
-          onClick={handleDownload}
-          disabled={!generatedContent}
-        >
-          {t("tabs.doc.download", { defaultValue: "Download" })}
-        </Button>
 
         {/* Save Button */}
         <Button
@@ -446,6 +462,8 @@ export const DocTab: React.FC<DocTabProps> = ({
                   >
                     <MenuItem value="markdown">Markdown</MenuItem>
                     <MenuItem value="asciidoc">AsciiDoc</MenuItem>
+                    <MenuItem value="html">HTML</MenuItem>
+                    <MenuItem value="pdf">PDF</MenuItem>
                   </Select>
                 </FormControl>
 

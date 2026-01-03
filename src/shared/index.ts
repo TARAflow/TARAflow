@@ -59,9 +59,11 @@ export {
   TAG_CATEGORIES,
   getAllPredefinedTagNames,
   isPredefinedTag,
+  isRegulationTag,
   getTagCategory,
   getTagDefinition,
   getTagStyles,
   getTagsByCategory,
+  getRegulationTags,
   getAvailablePredefinedTags,
 } from "./utils/tag-categories";

@@ -42,20 +42,20 @@ export { DocPreview } from "./components/doc-preview";
 export { DocConfigDialog } from "./components/doc-config-dialog";
 
 // ==================== SERVICES ====================
-export {
-  generateDocument,
-  validateProjectForDoc,
-  generateFilename,
-  getFileExtension,
-} from "./services/doc-generator";
+// export {
+//   generateDocument,
+//   validateProjectForDoc,
+//   generateFilename,
+//   getFileExtension,
+// } from "./services/doc-generator";
 
-export {
-  MD_TEMPLATES,
-  ADOC_TEMPLATES,
-  replacePlaceholders,
-  escapeMarkdownTable,
-  escapeAsciiDocTable,
-  truncateText,
-  formatSecurityGoals,
-  formatMitigations,
-} from "./services/doc-templates";
+// export {
+//   MD_TEMPLATES,
+//   ADOC_TEMPLATES,
+//   replacePlaceholders,
+//   escapeMarkdownTable,
+//   escapeAsciiDocTable,
+//   truncateText,
+//   formatSecurityGoals,
+//   formatMitigations,
+// } from "./services/doc-templates";
