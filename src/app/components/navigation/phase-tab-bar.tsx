@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
 import { Project } from "../../models/project-types";
-import { PHASES, PhaseStatus } from "shared";
+import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
 import { PhaseTab } from "./phase-tab";
 import { LanguageSwitcher } from "i18n";
+import { getWorkflowMode, sortPhasesByWorkflow } from "features/overview";
 
 // ==================== DEFAULT PHASE STATUS ====================
 
@@ -29,47 +30,75 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   activePhase,
   onPhaseChange,
 }) => {
-  // Fallback to default if phaseStatus is undefined
   const phaseStatus = project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
 
-  // Extract validation counts for DFD phase (phase 1)
-  const dfdValidationCounts = useMemo(() => {
-    const validation = project?.dfd?.validation;
-    if (!validation) {
-      return { errors: 0, warnings: 0 };
-    }
-    return {
-      errors: validation.errors?.length ?? 0,
-      warnings: validation.warnings?.length ?? 0,
+  // Determine workflow mode based on isHighImpact
+  const workflowMode = project?.info
+    ? getWorkflowMode(project.info)
+    : "standard";
+
+  // Sort phases based on workflow mode and create display labels
+  const sortedPhases = useMemo(() => {
+    const sorted = sortPhasesByWorkflow(PHASES, workflowMode);
+
+    return sorted.map(
+      (phase, index): PhaseDefinition & { displayLabel: string } => {
+        // Phase 0 (General) keeps its original label
+        if (phase.id === 0) {
+          return {
+            ...phase,
+            displayLabel: phase.label,
+          };
+        }
+
+        // Other phases get numbered labels based on their position in the workflow
+        return {
+          ...phase,
+          displayLabel: `${index} - ${phase.shortLabel}`,
+        };
+      }
+    );
+  }, [workflowMode]);
+
+  // Extract validation counts for each phase
+  const getPhaseValidationCounts = useMemo(() => {
+    return (phaseId: number) => {
+      switch (phaseId) {
+        case 1: {
+          // DFD Phase
+          const validation = project?.dfd?.validation;
+          return {
+            errors: validation?.errors?.length ?? 0,
+            warnings: validation?.warnings?.length ?? 0,
+          };
+        }
+        case 2:
+          // Assets Phase
+          return { errors: 0, warnings: 0 };
+        case 3:
+          // Threats Phase
+          return { errors: 0, warnings: 0 };
+        case 4:
+          // Risk Phase
+          return { errors: 0, warnings: 0 };
+        case 5:
+          // Attack Tree Phase
+          return { errors: 0, warnings: 0 };
+        case 6:
+          // Documentation Phase
+          return { errors: 0, warnings: 0 };
+        default:
+          return { errors: 0, warnings: 0 };
+      }
     };
   }, [project?.dfd?.validation]);
-
-  // Get error/warning counts for a specific phase
-  const getPhaseValidationCounts = (phaseId: number) => {
-    switch (phaseId) {
-      case 1: // DFD Phase
-        return dfdValidationCounts;
-      case 2: // Assets Phase - TODO: Add asset validation
-        return { errors: 0, warnings: 0 };
-      case 3: // Threats Phase - TODO: Add threat validation
-        return { errors: 0, warnings: 0 };
-      case 4: // Risk Phase - TODO: Add risk validation
-        return { errors: 0, warnings: 0 };
-      case 5: // Attack Tree Phase - TODO: Add attack tree validation
-        return { errors: 0, warnings: 0 };
-      case 6: // Documentation Phase - TODO: Add doc validation
-        return { errors: 0, warnings: 0 };
-      default:
-        return { errors: 0, warnings: 0 };
-    }
-  };
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 pt-4">
       <div className="flex items-center justify-between">
-        {/* Phase Tabs - LINKS */}
+        {/* Phase Tabs */}
         <div className="flex gap-1">
-          {PHASES.map((phase) => {
+          {sortedPhases.map((phase) => {
             const status =
               phaseStatus[phase.id as keyof typeof phaseStatus] ??
               "not-started";
@@ -79,7 +108,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
               <PhaseTab
                 key={phase.id}
                 phaseId={phase.id}
-                label={phase.label}
+                label={phase.displayLabel}
                 status={status}
                 isActive={activePhase === phase.id}
                 onClick={() => onPhaseChange(phase.id)}
@@ -90,7 +119,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           })}
         </div>
 
-        {/* Language Switcher - RECHTS */}
+        {/* Language Switcher */}
         <LanguageSwitcher variant="dropdown" />
       </div>
     </div>
