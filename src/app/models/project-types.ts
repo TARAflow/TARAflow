@@ -4,6 +4,7 @@ import { AssetData } from "features/assets";
 import { PhaseStatus, PhaseStatusMap } from "shared";
 import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
+import { AttackTreeProjectData } from "features/attacktree";
 import { DocData } from "features/documentation";
 
 // ==================== PROJECT TYPES ====================
@@ -83,6 +84,7 @@ export interface Project {
   assets: AssetData | null;
   threats: ThreatData | null;
   risks: RiskData | null;
+  attackTrees: AttackTreeProjectData | null;
   documentation: DocData | null;
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;

@@ -36,10 +36,11 @@ src
 │       ├── project-service.ts
 │       └── storage-service.ts
 ├── features
-│   ├── assets                                                                                                                          
-│   │   ├── components                                                                                                                  
+│   ├── assets
+│   │   ├── components
 │   │   │   ├── asset-config-dialog.tsx
 │   │   │   ├── asset-dialog.tsx
+│   │   │   ├── asset-export-import-dialog.tsx
 │   │   │   ├── assets-tab.tsx
 │   │   │   ├── asset-table.tsx
 │   │   │   └── dfd-preview-panel.tsx
@@ -58,13 +59,16 @@ src
 │   │   └── services
 │   ├── dfd
 │   │   ├── components
+│   │   │   ├── dfd-description-view.tsx
 │   │   │   ├── dfd-preview-dialog.tsx
 │   │   │   ├── dfd-tab.tsx
-│   │   │   └── dfd-validation-panel.tsx
+│   │   │   ├── dfd-validation-panel.tsx
+│   │   │   └── element-description-form.tsx
 │   │   ├── examples
 │   │   │   └── simple.drawio.xml
 │   │   ├── hooks
-│   │   │   └── use-dfd-editor.ts
+│   │   │   ├── use-dfd-editor.ts
+│   │   │   └── use-dfd-ui-state.ts
 │   │   ├── index.ts
 │   │   ├── interfaces
 │   │   │   ├── dfd-editor-interfaces.ts
@@ -101,9 +105,21 @@ src
 │   │   ├── index.ts
 │   │   ├── models
 │   │   │   └── doc-types.ts
-│   │   └── services
+│   │   └── utils
 │   │       ├── doc-generator.ts
-│   │       └── doc-templates.ts
+│   │       ├── generators
+│   │       │   ├── asciidoc-generator.ts
+│   │       │   ├── base-generator.ts
+│   │       │   ├── html-generator.ts
+│   │       │   ├── index.ts
+│   │       │   ├── markdown-generator.ts
+│   │       │   └── pdf-generator.ts
+│   │       └── templates
+│   │           ├── asciidoc-templates.ts
+│   │           ├── html-templates.ts
+│   │           ├── index.ts
+│   │           ├── markdown-templates.ts
+│   │           └── template-helpers.ts
 │   ├── overview
 │   │   ├── components
 │   │   │   ├── activity-log.tsx
@@ -174,6 +190,7 @@ src
 │   ├── services
 │   └── utils
 │       ├── formatters.ts
+│       ├── tag-categories.ts
 │       └── theme.ts
 ├── styles
 │   └── index.css

@@ -34,7 +34,15 @@ import { Toast } from "shared";
 import { PHASES } from "shared";
 import { getPhaseStatusIcon, getPhaseStatusColor } from "shared";
 import type { GeneralTabData, ProjectInfoData } from "features/overview";
-import { AttackTreeTab } from "features/attacktree";
+import {
+  AttackTreeTab,
+  AttackTreeUpdateResult,
+  extractAssetReferences,
+  extractThreatReferencesForAttackTree,
+  extractRiskReferences,
+  extractDFDElementReferences,
+  extractMitigationReferences,
+} from "features/attacktree";
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { transformProjectToDocData } from "app/services/doc-transform";
 import { useTranslation } from "react-i18next";
@@ -492,6 +500,26 @@ export const MainLayout: React.FC = () => {
     [activeProject]
   );
 
+  // ==================== Attack Tree HANDLER ====================
+  const handleAttackTreeUpdate = useCallback(
+    (updates: AttackTreeUpdateResult) => {
+      if (!activeProject) return;
+
+      const updatedProject: Project = {
+        ...activeProject,
+        //attackTrees: updates.attackTrees,
+        phaseStatus: updates.phaseStatus,
+        info: {
+          ...activeProject.info,
+          lastModified: updates.lastModified, // beachte Hinweis unten
+        },
+      };
+
+      updateProject(updatedProject);
+    },
+    [activeProject, updateProject]
+  );
+
   // ==================== THREAT REFERENCE EXTRACTION ====================
   /**
    * Extract ThreatReferences from ThreatData for a specific STRIDE method
@@ -731,8 +759,25 @@ export const MainLayout: React.FC = () => {
                   onPhaseComplete={() => setActivePhase(5)}
                 />
               )}
-              {activePhase === 5 && (
-                <AttackTreeTab /*project={activeProject} onUpdate={updateProject}*/
+              {activePhase === 5 && activeProject && (
+                <AttackTreeTab
+                  project={{
+                    id: activeProject.id,
+                    name: activeProject.info?.name || "",
+                    phaseStatus: activeProject.phaseStatus,
+                    isHighImpact: activeProject.info?.isHighImpact || false,
+                    attackTrees: activeProject.attackTrees?.attackTrees ?? null,
+                    assets: extractAssetReferences(activeProject),
+                    threats:
+                      extractThreatReferencesForAttackTree(activeProject),
+                    risks: extractRiskReferences(activeProject),
+                    dfdElements: extractDFDElementReferences(activeProject),
+                    mitigations: extractMitigationReferences(activeProject),
+                    dfdPreviewImage: activeProject.dfd?.thumbnail,
+                    lastModified: activeProject.info?.lastModified || "",
+                  }}
+                  onUpdate={handleAttackTreeUpdate}
+                  onPhaseComplete={() => setActivePhase(6)}
                 />
               )}
               {activePhase === 6 && activeProject && (
