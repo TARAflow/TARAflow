@@ -47,6 +47,8 @@ import {
   Person as ExternalEntityIcon,
   SwapHoriz as DataFlowIcon,
   Security as TrustBoundaryIcon,
+  Cable as CableIcon,
+  SettingsInputComponent as InterfaceIcon,
   Add as AddIcon,
   ArrowDownward,
   ArrowUpward,
@@ -60,7 +62,10 @@ import {
   DataFlowReference,
   STRIDE_DEFINITIONS,
   THREAT_ACTORS,
-  formatDataFlowDisplay,
+  isInterfaceTable,
+  isInterfaceThreat,
+  getDefaultInterfaceThreatDescription,
+  getDefaultInterfaceAttackDescription,
 } from "../models/threat-types";
 import {
   getEffectiveThreatDescription,
@@ -133,6 +138,10 @@ const getElementIcon = (elementType: string) => {
       return <ExternalEntityIcon fontSize="small" />;
     case "DataFlow":
       return <DataFlowIcon fontSize="small" />;
+    case "PhysicalInterface":
+      return <CableIcon fontSize="small" />;
+    case "Interface":
+      return <InterfaceIcon fontSize="small" />;
     default:
       return <TrustBoundaryIcon fontSize="small" />;
   }
@@ -271,6 +280,34 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
 
     return Object.values(groups).sort((a, b) =>
       a.dataFlowId.localeCompare(b.dataFlowId)
+    );
+  };
+
+  /**
+   * Group threats by Interface element
+   * Used in per-interaction mode for interface tables
+   */
+  const groupThreatsByInterface = (threats: Threat[]): ElementGroup[] => {
+    const groups: Record<string, ElementGroup> = {};
+
+    for (const threat of threats) {
+      const elem = threat.linkedElement;
+      if (!elem) continue;
+
+      if (!groups[elem.elementId]) {
+        groups[elem.elementId] = {
+          elementId: elem.elementId,
+          elementName: elem.elementName,
+          elementType: elem.elementType,
+          displayId: elem.displayId,
+          threats: [],
+        };
+      }
+      groups[elem.elementId].threats.push(threat);
+    }
+
+    return Object.values(groups).sort((a, b) =>
+      a.elementId.localeCompare(b.elementId)
     );
   };
 
@@ -666,6 +703,225 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
     },
   ];
 
+  const createColumnsPerInterface = (
+    tableIndex: number
+  ): GridColDef<Threat>[] => [
+    {
+      field: "id",
+      headerName: t("tabs.threats.columns.threatId", { defaultValue: "T-ID" }),
+      width: 150,
+      sortable: true,
+      renderCell: (params: GridRenderCellParams<Threat>) => (
+        <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem">
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "strideCategory",
+      headerName: "STRIDE",
+      width: 80,
+      sortable: true,
+      align: "center",
+      headerAlign: "center",
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const cat = params.value as StrideCategory;
+        const def = STRIDE_DEFINITIONS.find((s) => s.type === cat);
+        const name = isGerman ? def?.nameDE : def?.name;
+        return (
+          <Tooltip title={name || cat}>
+            <Chip
+              label={cat}
+              size="small"
+              sx={{
+                backgroundColor: STRIDE_COLORS[cat],
+                color: "white",
+                fontWeight: "bold",
+              }}
+            />
+          </Tooltip>
+        );
+      },
+    },
+    // Threat description with localization for interfaces
+    {
+      field: "threatDescription",
+      headerName: t("tabs.threats.columns.threat", { defaultValue: "Threat" }),
+      flex: 1,
+      minWidth: 200,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const threat = params.row;
+        // For interface threats, use default descriptions if empty
+        let effectiveDescription = threat.threatDescription;
+
+        if (!effectiveDescription && threat.linkedElement) {
+          effectiveDescription = getDefaultInterfaceThreatDescription(
+            threat.strideCategory,
+            threat.linkedElement.elementName,
+            locale
+          );
+        }
+
+        return (
+          <Tooltip title={effectiveDescription || ""}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {effectiveDescription || (
+                <em style={{ color: "#9ca3af" }}>
+                  {isGerman ? "Keine Beschreibung" : "No description"}
+                </em>
+              )}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "attackDescription",
+      headerName: t("tabs.threats.columns.attack", { defaultValue: "Attack" }),
+      flex: 0.8,
+      minWidth: 180,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const threat = params.row;
+        let effectiveAttack = threat.attackDescription;
+
+        if (!effectiveAttack && threat.linkedElement) {
+          effectiveAttack = getDefaultInterfaceAttackDescription(
+            threat.strideCategory,
+            threat.linkedElement.elementName,
+            locale
+          );
+        }
+
+        return (
+          <Tooltip title={effectiveAttack || ""}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {effectiveAttack || (
+                <em style={{ color: "#9ca3af" }}>
+                  {isGerman ? "Keine Beschreibung" : "No description"}
+                </em>
+              )}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "threatActor",
+      headerName: t("tabs.threats.columns.actor", { defaultValue: "Actor" }),
+      width: 100,
+      sortable: true,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const actor = THREAT_ACTORS.find((a) => a.type === params.value);
+        const name = isGerman ? actor?.nameDE : actor?.name;
+        return (
+          <Chip
+            label={name || params.value}
+            size="small"
+            variant="outlined"
+            color={params.value === "external" ? "error" : "default"}
+          />
+        );
+      },
+    },
+    {
+      field: "mitigation",
+      headerName: t("tabs.threats.columns.mitigation", {
+        defaultValue: "Mitigation",
+      }),
+      flex: 0.8,
+      minWidth: 120,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const value = params.value as string;
+        if (!value) {
+          return (
+            <Chip
+              label={t("tabs.threats.noMitigation", {
+                defaultValue: "Missing",
+              })}
+              size="small"
+              color="warning"
+              variant="outlined"
+            />
+          );
+        }
+        return (
+          <Tooltip title={value}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {value}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "verification",
+      headerName: t("tabs.threats.columns.verification", {
+        defaultValue: "Verification",
+      }),
+      flex: 0.8,
+      minWidth: 120,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const value = params.value as string;
+        if (!value) {
+          return (
+            <Chip
+              label={t("tabs.threats.noVerification", {
+                defaultValue: "Missing",
+              })}
+              size="small"
+              color="warning"
+              variant="outlined"
+            />
+          );
+        }
+        return (
+          <Tooltip title={value}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {value}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "",
+      width: 70,
+      getActions: (params: GridRowParams<Threat>) => [
+        <GridActionsCellItem
+          key="edit"
+          icon={<EditIcon />}
+          label={t("common.edit", { defaultValue: "Edit" })}
+          onClick={() => onEdit(tableIndex, params.row)}
+        />,
+        <GridActionsCellItem
+          key="delete"
+          icon={<DeleteIcon />}
+          label={t("common.delete", { defaultValue: "Delete" })}
+          onClick={() => onDelete(tableIndex, params.row.id)}
+          showInMenu
+        />,
+      ],
+    },
+  ];
+
   // ==================== TOGGLE HELPERS ====================
 
   const toggleTable = (tableId: string) => {
@@ -692,6 +948,16 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       0
     );
   }, [threatTables, strideFilter, searchText, locale]);
+
+  // Check if a table contains interface threats
+  const getTableType = (
+    table: ThreatTableType
+  ): "interface" | "dataflow" | "element" => {
+    if (isInterfaceTable(table)) return "interface";
+    if (!isPerElement && table.threats.length > 0 && table.threats[0].dataFlow)
+      return "dataflow";
+    return "element";
+  };
 
   // ==================== RENDER ====================
 
@@ -790,20 +1056,35 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
         {threatTables.map((table, tableIndex) => {
           const tableId = table.trustBoundaryId || "external";
           const filteredThreats = filterThreats(table.threats);
-          const elementGroups = isPerElement
-            ? groupThreatsByElement(filteredThreats)
-            : null;
-          const dataFlowGroups = !isPerElement
-            ? groupThreatsByDataFlow(filteredThreats)
-            : null;
+
+          // Determine table type
+          const tableType = getTableType(table);
+
+          // FIX: Unique key based on type to avoid conflicts
+          const accordionKey =
+            tableType === "interface" ? `${tableId}-interfaces` : tableId;
+
+          // Group threats based on table type
+          const elementGroups =
+            isPerElement || tableType === "interface"
+              ? groupThreatsByElement(filteredThreats)
+              : null;
+          const dataFlowGroups =
+            tableType === "dataflow"
+              ? groupThreatsByDataFlow(filteredThreats)
+              : null;
+          const interfaceGroups =
+            tableType === "interface"
+              ? groupThreatsByInterface(filteredThreats)
+              : null;
 
           if (filteredThreats.length === 0) return null;
 
           return (
             <Accordion
-              key={tableId}
-              expanded={isTableExpanded(tableId)}
-              onChange={() => toggleTable(tableId)}
+              key={accordionKey}
+              expanded={isTableExpanded(accordionKey)}
+              onChange={() => toggleTable(accordionKey)}
               sx={{
                 mb: 1,
                 "&:before": { display: "none" },
@@ -814,16 +1095,24 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
               <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
                 sx={{
-                  backgroundColor: "primary.50",
-                  "&:hover": { backgroundColor: "primary.100" },
+                  backgroundColor:
+                    tableType === "interface" ? "warning.50" : "primary.50",
+                  "&:hover": {
+                    backgroundColor:
+                      tableType === "interface" ? "warning.100" : "primary.100",
+                  },
                 }}
               >
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <TrustBoundaryIcon color="primary" />
+                  {tableType === "interface" ? (
+                    <CableIcon color="warning" />
+                  ) : (
+                    <TrustBoundaryIcon color="primary" />
+                  )}
                   <Chip
                     label={table.displayIdentifier}
                     size="small"
-                    color="primary"
+                    color={tableType === "interface" ? "warning" : "primary"}
                     variant="outlined"
                     sx={{ fontFamily: "monospace" }}
                   />
@@ -839,8 +1128,8 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
 
               {/* Nested Accordions */}
               <AccordionDetails sx={{ p: 1 }}>
-                {/* Per-Element: Nested accordions by Element */}
-                {isPerElement &&
+                {/* Per-Element OR Interface: Nested accordions by Element */}
+                {(isPerElement || tableType === "interface") &&
                   elementGroups &&
                   elementGroups.map((group) => {
                     const elementKey = `${tableId}-${group.elementId}`;
@@ -865,7 +1154,10 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                             minHeight: 40,
                             "&.Mui-expanded": { minHeight: 40 },
                             "& .MuiAccordionSummary-content": { my: 0.5 },
-                            backgroundColor: "grey.50",
+                            backgroundColor:
+                              tableType === "interface"
+                                ? "warning.50"
+                                : "grey.50",
                           }}
                         >
                           <Stack
@@ -894,7 +1186,11 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                               label={group.elementType}
                               size="small"
                               variant="outlined"
-                              color="default"
+                              color={
+                                tableType === "interface"
+                                  ? "warning"
+                                  : "default"
+                              }
                               sx={{ fontSize: "0.7rem" }}
                             />
                             <Typography
@@ -940,7 +1236,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                           </Stack>
                         </AccordionSummary>
 
-                        {/* Element Threats Table */}
+                        {/* Element/Interface Threats Table */}
                         <AccordionDetails sx={{ p: 0 }}>
                           <Box
                             sx={{
@@ -952,7 +1248,11 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                           >
                             <DataGrid
                               rows={group.threats}
-                              columns={createColumnsPerElement(tableIndex)}
+                              columns={
+                                tableType === "interface"
+                                  ? createColumnsPerInterface(tableIndex)
+                                  : createColumnsPerElement(tableIndex)
+                              }
                               pageSizeOptions={[5, 10, 25]}
                               initialState={{
                                 pagination: {
@@ -979,7 +1279,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                   })}
 
                 {/* Per-Interaction: Nested accordions by DataFlow */}
-                {!isPerElement &&
+                {tableType === "dataflow" &&
                   dataFlowGroups &&
                   dataFlowGroups.map((group) => {
                     const flowKey = `${tableId}-${group.dataFlowId}`;

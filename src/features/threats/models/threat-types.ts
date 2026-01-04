@@ -570,6 +570,26 @@ export interface ThreatTabProps {
 // ==================== HELPER FUNCTIONS ====================
 
 /**
+ * Type guard to check if a ThreatTable contains Interface threats
+ * Interface tables have "Physical Interfaces" in their name
+ */
+export function isInterfaceTable(table: ThreatTable): boolean {
+  return table.trustBoundaryName.includes("Physical Interfaces");
+}
+
+/**
+ * Type guard to check if a Threat is an Interface threat
+ * Interface threats have linkedElement of type Interface/PhysicalInterface
+ */
+export function isInterfaceThreat(threat: Threat): boolean {
+  return (
+    threat.linkedElement !== null &&
+    (threat.linkedElement.elementType === "Interface" ||
+      threat.linkedElement.elementType === "PhysicalInterface")
+  );
+}
+
+/**
  * Generate threat ID for STRIDE-per-element method
  * Format: {ElementID}-{STRIDE}-{Number}
  * Example: P-1-S-1, DS-1-T-1
@@ -598,6 +618,15 @@ export function generateThreatIdPerInteraction(
   return `${trustBoundaryId}-${dataFlowId}-${strideCategory}-${dirSuffix}-${sequenceNumber}`;
 }
 
+export function generateThreatIdForInterface(
+  trustBoundaryId: string,
+  interfaceId: string,
+  strideCategory: StrideCategory,
+  sequenceNumber: number
+): string {
+  return `${trustBoundaryId}-IF-${interfaceId}-${strideCategory}-${sequenceNumber}`;
+}
+
 /**
  * Parse threat ID to extract components
  */
@@ -605,10 +634,24 @@ export function parseThreatId(id: string): {
   elementId?: string;
   trustBoundaryId?: string;
   dataFlowId?: string;
+  interfaceId?: string;
   strideCategory: StrideCategory;
   direction?: InteractionDirection;
   sequenceNumber: number;
+  isInterface?: boolean;
 } | null {
+  // Try interface format: TB1-IF-USB1-T-1
+  const interfaceMatch = id.match(/^(TB\d+)-IF-([A-Z0-9]+)-([STRIDE])-(\d+)$/);
+  if (interfaceMatch) {
+    return {
+      trustBoundaryId: interfaceMatch[1],
+      interfaceId: interfaceMatch[2],
+      strideCategory: interfaceMatch[3] as StrideCategory,
+      sequenceNumber: parseInt(interfaceMatch[4], 10),
+      isInterface: true,
+    };
+  }
+
   // Try per-interaction format with direction: TB1-1-S-IN-1 or TB1-1-S-OUT-1
   const perInteractionWithDir = id.match(
     /^(TB\d+)-(\d+)-([STRIDE])-(IN|OUT)-(\d+)$/
@@ -750,4 +793,71 @@ export function formatInteractionContext(
   const direction = context.direction === "incoming" ? "Incoming" : "Outgoing";
   const role = context.attackedRole === "source" ? "Sender" : "Receiver";
   return `${direction} (${role} Spoofing)`;
+}
+
+/**
+ * Get default threat description for interface threats based on STRIDE category
+ * Used when no custom template is available
+ */
+export function getDefaultInterfaceThreatDescription(
+  strideCategory: StrideCategory,
+  interfaceName: string,
+  locale: "en" | "de" = "en"
+): string {
+  const descriptions = {
+    en: {
+      T: `Physical tampering through ${interfaceName} (e.g., hardware manipulation, voltage injection)`,
+      I: `Information disclosure through ${interfaceName} (e.g., sniffing, side-channel attacks)`,
+      D: `Denial of Service through ${interfaceName} (e.g., short circuit, power surge, connector damage)`,
+      E: `Privilege escalation through ${interfaceName} (e.g., debug access, firmware manipulation)`,
+      S: `Identity spoofing through ${interfaceName} (e.g., impersonating legitimate device)`,
+      R: `Action repudiation through ${interfaceName} (e.g., denying physical access)`,
+    },
+    de: {
+      T: `Physische Manipulation über ${interfaceName} (z.B. Hardware-Manipulation, Spannungsinjektion)`,
+      I: `Informationspreisgabe über ${interfaceName} (z.B. Abhören, Seitenkanalangriffe)`,
+      D: `Dienstverweigerung über ${interfaceName} (z.B. Kurzschluss, Spannungsspitzen, Steckerbeschädigung)`,
+      E: `Rechteausweitung über ${interfaceName} (z.B. Debug-Zugriff, Firmware-Manipulation)`,
+      S: `Identitätsfälschung über ${interfaceName} (z.B. Vortäuschen eines legitimen Geräts)`,
+      R: `Aktionsabstreitbarkeit über ${interfaceName} (z.B. Leugnen des physischen Zugriffs)`,
+    },
+  };
+
+  return (
+    descriptions[locale][strideCategory] ||
+    `Physical threat to ${interfaceName}`
+  );
+}
+
+/**
+ * Get default attack description for interface threats based on STRIDE category
+ */
+export function getDefaultInterfaceAttackDescription(
+  strideCategory: StrideCategory,
+  interfaceName: string,
+  locale: "en" | "de" = "en"
+): string {
+  const descriptions = {
+    en: {
+      T: `Attacker connects manipulated hardware to ${interfaceName} to alter device behavior or data`,
+      I: `Attacker connects monitoring equipment to ${interfaceName} to extract sensitive information`,
+      D: `Attacker deliberately damages ${interfaceName} or causes electrical faults (short circuit, overvoltage)`,
+      E: `Attacker uses ${interfaceName} to gain unauthorized access or escalate privileges (e.g., JTAG debugging)`,
+      S: `Attacker connects fake device to ${interfaceName} to impersonate legitimate hardware`,
+      R: `Attacker performs actions through ${interfaceName} that cannot be traced or logged`,
+    },
+    de: {
+      T: `Angreifer verbindet manipulierte Hardware mit ${interfaceName}, um Geräteverhalten oder Daten zu ändern`,
+      I: `Angreifer verbindet Überwachungsgerät mit ${interfaceName}, um sensible Informationen zu extrahieren`,
+      D: `Angreifer beschädigt ${interfaceName} absichtlich oder verursacht elektrische Fehler (Kurzschluss, Überspannung)`,
+      E: `Angreifer nutzt ${interfaceName}, um unbefugten Zugriff zu erlangen oder Rechte auszuweiten (z.B. JTAG-Debugging)`,
+      S: `Angreifer verbindet gefälschtes Gerät mit ${interfaceName}, um legitime Hardware vorzutäuschen`,
+      R: `Angreifer führt Aktionen über ${interfaceName} aus, die nicht nachvollziehbar oder protokolliert werden können`,
+    },
+  };
+
+  return (
+    descriptions[locale][strideCategory] ||
+    `Physical attack scenario for ${interfaceName}`
+  );
 }

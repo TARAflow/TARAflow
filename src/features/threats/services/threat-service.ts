@@ -38,6 +38,10 @@ import {
   generateThreatIdPerElement,
   generateThreatIdPerInteraction,
   createDefaultThreatData,
+  generateThreatIdForInterface,
+  getDefaultInterfaceThreatDescription,
+  getDefaultInterfaceAttackDescription,
+  isInterfaceTable,
 } from "../models/threat-types";
 
 // No interaction-templates import needed - service is language-neutral
@@ -328,10 +332,10 @@ export class ThreatService {
           strideCategory,
           sequenceNumber: seqNum,
           linkedElement: {
-            elementId: element.id,           // XML ID (stable reference)
+            elementId: element.id, // XML ID (stable reference)
             elementName: element.name,
             elementType: element.type,
-            displayId: element.displayId,   // Formatted ID (for display)
+            displayId: element.displayId, // Formatted ID (for display)
           },
           dataFlow: null,
           threatDescription: template?.threat || "",
@@ -358,6 +362,8 @@ export class ThreatService {
    * ENHANCED: Generates TWO threats per STRIDE category per data flow:
    * 1. Incoming (IN): Attack targets the receiver by spoofing sender
    * 2. Outgoing (OUT): Attack targets the sender by spoofing receiver
+   *
+   * PLUS: Generates threats for physical interfaces
    */
   private generateThreatsPerInteraction(
     elements: DFDElementReference[],
@@ -367,8 +373,12 @@ export class ThreatService {
     let totalCount = 0;
 
     const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    const interfaces = elements.filter(
+      (e) => e.type === "Interface" || e.type === "PhysicalInterface"
+    );
 
     if (trustBoundaries.length === 0) {
+      // All data flows in one table
       const allFlowsTable = this.createThreatTableForInteractions(
         connections,
         elements,
@@ -379,8 +389,23 @@ export class ThreatService {
       );
       tables.push(allFlowsTable);
       totalCount += allFlowsTable.threats.length;
+
+      // All interfaces in one table
+      if (interfaces.length > 0) {
+        const interfacesTable = this.createThreatTableForInterfaces(
+          interfaces,
+          elements,
+          null,
+          "Physical Interfaces [TB-0]",
+          "[TB0]",
+          0
+        );
+        tables.push(interfacesTable);
+        totalCount += interfacesTable.threats.length;
+      }
     } else {
       trustBoundaries.forEach((tb, index) => {
+        // Data flows for this trust boundary
         const relevantFlows = this.getDataFlowsForTrustBoundary(
           tb,
           connections,
@@ -403,6 +428,29 @@ export class ThreatService {
           );
           tables.push(tbTable);
           totalCount += tbTable.threats.length;
+        }
+
+        // Interfaces for this trust boundary
+        const interfacesInTB = this.getInterfacesForTrustBoundary(
+          tb,
+          interfaces
+        );
+        if (interfacesInTB.length > 0) {
+          const tbId = this.extractTBIdentifier(tb.name, index);
+
+          // Format: "Physical Interfaces [TB-ID]"
+          const displayName = `Physical Interfaces [${tbId}]`;
+
+          const interfacesTable = this.createThreatTableForInterfaces(
+            interfacesInTB,
+            elements,
+            tb.id,
+            displayName,
+            `[${tbId}]`,
+            index
+          );
+          tables.push(interfacesTable);
+          totalCount += interfacesTable.threats.length;
         }
       });
     }
@@ -522,6 +570,117 @@ export class ThreatService {
             lastModified: new Date().toISOString(),
           });
         }
+      }
+    }
+
+    return { trustBoundaryId, trustBoundaryName, displayIdentifier, threats };
+  }
+
+  /**
+   * Create threat table for physical interfaces
+   * Generates threats for physical attack vectors (tampering, shorts, etc.)
+   *
+   * For interfaces, we focus on physical STRIDE categories:
+   * - T (Tampering): Hardware manipulation, voltage injection
+   * - I (Information Disclosure): Sniffing, side-channel attacks
+   * - D (Denial of Service): Short circuit, power surge, physical damage
+   * - E (Elevation of Privilege): Debug access, firmware manipulation
+   */
+  private createThreatTableForInterfaces(
+    interfaces: DFDElementReference[],
+    allElements: DFDElementReference[],
+    trustBoundaryId: string | null,
+    trustBoundaryName: string,
+    displayIdentifier: string,
+    tbIndex: number = 0
+  ): ThreatTable {
+    const threats: Threat[] = [];
+    const sequenceCounters: Record<string, Record<StrideCategory, number>> = {};
+
+    const tbId = this.extractTBIdentifier(trustBoundaryName, tbIndex);
+
+    // Determine trust boundary for cross-boundary checks
+    const trustBoundary = allElements.find((e) => e.id === trustBoundaryId);
+
+    for (const interfaceElem of interfaces) {
+      // For interfaces, we focus on physical attack STRIDE categories
+      // T (Tampering), I (Info Disclosure), D (DoS), E (Elevation)
+      const applicableCategories: StrideCategory[] = ["T", "I", "D", "E"];
+
+      // Extract formatted interface ID
+      const interfaceId = this.extractFormattedInterfaceId(interfaceElem);
+
+      for (const strideCategory of applicableCategories) {
+        const counterKey = `${tbId}-IF-${interfaceId}-${strideCategory}`;
+        if (!sequenceCounters[counterKey]) {
+          sequenceCounters[counterKey] = {
+            S: 0,
+            T: 0,
+            R: 0,
+            I: 0,
+            D: 0,
+            E: 0,
+          };
+        }
+        sequenceCounters[counterKey][strideCategory]++;
+        const seqNum = sequenceCounters[counterKey][strideCategory];
+
+        const threatId = generateThreatIdForInterface(
+          tbId,
+          interfaceId,
+          strideCategory,
+          seqNum
+        );
+
+        // Determine if interface is at trust boundary
+        const crossesTrustBoundary = trustBoundary
+          ? this.isElementAtTrustBoundary(interfaceElem, trustBoundary)
+          : false;
+
+        // Create LinkedDFDElement for the interface
+        const linkedElement: LinkedDFDElement = {
+          elementId: interfaceElem.id,
+          elementName: interfaceElem.name,
+          elementType: interfaceElem.type,
+          displayId: interfaceElem.displayId,
+        };
+
+        // Get default descriptions (will be localized in UI)
+        const threatDescription = getDefaultInterfaceThreatDescription(
+          strideCategory,
+          interfaceElem.name,
+          "en"
+        );
+        const attackDescription = getDefaultInterfaceAttackDescription(
+          strideCategory,
+          interfaceElem.name,
+          "en"
+        );
+
+        threats.push({
+          id: threatId,
+          trustBoundaryId,
+          trustBoundaryName,
+          strideCategory,
+          sequenceNumber: seqNum,
+          linkedElement,
+          dataFlow: null,
+          interactionContext: {
+            direction: "incoming", // Interfaces are typically "incoming" physical access
+            attackedRole: "target", // The interface itself is the target
+            victimRole: "target",
+            crossesTrustBoundary,
+          },
+          threatDescription,
+          attackDescription,
+          threatActor: "external",
+          mitigation: "",
+          verification: "",
+          linkedAssetIds: [],
+          source: "auto",
+          created: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+        });
       }
     }
 
@@ -726,6 +885,96 @@ export class ThreatService {
     const elementIds = new Set(elementsInTB.map((e) => e.id));
     return connections.filter(
       (conn) => elementIds.has(conn.from) || elementIds.has(conn.to)
+    );
+  }
+
+  /**
+   * Extract formatted Interface ID from element
+   * Priority: displayId > [IF-N] in name > type prefix + counter
+   */
+  private extractFormattedInterfaceId(
+    interfaceElem: DFDElementReference
+  ): string {
+    // Priority 1: Use displayId if available
+    if (interfaceElem.displayId) {
+      return interfaceElem.displayId.replace(/-/g, "");
+    }
+
+    // Priority 2: Try to extract from name pattern [IF-N] or [USB-N] etc.
+    const bracketMatch = interfaceElem.name.match(/\[([A-Z]+)-?(\d+)\]/i);
+    if (bracketMatch) {
+      return `${bracketMatch[1].toUpperCase()}${bracketMatch[2]}`;
+    }
+
+    // Priority 3: Use element type as prefix
+    const typePrefix = interfaceElem.type === "PhysicalInterface" ? "PI" : "IF";
+
+    // Try to extract number from name if it ends with a digit
+    const numberMatch = interfaceElem.name.match(/(\d+)$/);
+    if (numberMatch) {
+      return `${typePrefix}${numberMatch[1]}`;
+    }
+
+    // Fallback: use element ID
+    return `${typePrefix}${interfaceElem.id}`;
+  }
+
+  /**
+   * Get interfaces that are inside or at the boundary of a trust boundary
+   */
+  private getInterfacesForTrustBoundary(
+    trustBoundary: DFDElementReference,
+    interfaces: DFDElementReference[]
+  ): DFDElementReference[] {
+    return interfaces.filter(
+      (iface) =>
+        this.isElementInsideTrustBoundary(iface, trustBoundary) ||
+        this.isElementAtTrustBoundary(iface, trustBoundary)
+    );
+  }
+
+  /**
+   * Check if element is at the edge/boundary of a trust boundary
+   * Useful for interfaces that might be positioned at TB borders
+   */
+  private isElementAtTrustBoundary(
+    element: DFDElementReference,
+    trustBoundary: DFDElementReference
+  ): boolean {
+    const tbLeft = trustBoundary.position.x;
+    const tbRight = trustBoundary.position.x + trustBoundary.size.width;
+    const tbTop = trustBoundary.position.y;
+    const tbBottom = trustBoundary.position.y + trustBoundary.size.height;
+
+    const elemLeft = element.position.x;
+    const elemRight = element.position.x + element.size.width;
+    const elemTop = element.position.y;
+    const elemBottom = element.position.y + element.size.height;
+
+    // Check if element overlaps with trust boundary border (tolerance: 10px)
+    const tolerance = 10;
+    const atLeftBorder =
+      Math.abs(elemLeft - tbLeft) < tolerance ||
+      Math.abs(elemRight - tbLeft) < tolerance;
+    const atRightBorder =
+      Math.abs(elemLeft - tbRight) < tolerance ||
+      Math.abs(elemRight - tbRight) < tolerance;
+    const atTopBorder =
+      Math.abs(elemTop - tbTop) < tolerance ||
+      Math.abs(elemBottom - tbTop) < tolerance;
+    const atBottomBorder =
+      Math.abs(elemTop - tbBottom) < tolerance ||
+      Math.abs(elemBottom - tbBottom) < tolerance;
+
+    // Element is at boundary if it's near any border AND within TB bounds in other dimension
+    const withinHorizontalBounds =
+      elemLeft >= tbLeft - tolerance && elemRight <= tbRight + tolerance;
+    const withinVerticalBounds =
+      elemTop >= tbTop - tolerance && elemBottom <= tbBottom + tolerance;
+
+    return (
+      ((atLeftBorder || atRightBorder) && withinVerticalBounds) ||
+      ((atTopBorder || atBottomBorder) && withinHorizontalBounds)
     );
   }
 
@@ -1638,6 +1887,76 @@ export class ThreatService {
     };
   }
 
+  /**
+   * Check sync status for interface threats
+   * Similar to data flow sync but for physical interfaces
+   */
+  private checkSyncStatusForInterfaces(
+    elements: DFDElementReference[],
+    interfaceThreats: Threat[],
+    now: string
+  ): {
+    missingInterfaces: DFDElementReference[];
+    orphanedInterfaceThreats: string[];
+    changedInterfaceReferences: ElementChange[];
+  } {
+    const elementById = new Map(elements.map((e) => [e.id, e]));
+    const interfaces = elements.filter(
+      (e) => e.type === "Interface" || e.type === "PhysicalInterface"
+    );
+
+    const interfacesWithThreats = new Set<string>();
+    const orphanedInterfaceThreats: string[] = [];
+    const changedInterfaceReferences: ElementChange[] = [];
+
+    for (const threat of interfaceThreats) {
+      if (!threat.linkedElement) continue;
+
+      const xmlId = threat.linkedElement.elementId;
+      const matchedInterface = elementById.get(xmlId);
+
+      if (matchedInterface) {
+        interfacesWithThreats.add(matchedInterface.id);
+
+        // Check for changes
+        const changes: ("name" | "type")[] = [];
+        if (threat.linkedElement.elementName !== matchedInterface.name) {
+          changes.push("name");
+        }
+        if (threat.linkedElement.elementType !== matchedInterface.type) {
+          changes.push("type");
+        }
+
+        if (changes.length > 0) {
+          changedInterfaceReferences.push({
+            threatId: threat.id,
+            oldRef: {
+              elementId: xmlId,
+              elementName: threat.linkedElement.elementName,
+              elementType: threat.linkedElement.elementType,
+            },
+            newRef: matchedInterface,
+            changes,
+          });
+        }
+      } else {
+        // Interface not found - orphaned
+        orphanedInterfaceThreats.push(threat.id);
+      }
+    }
+
+    // Find missing interfaces (in DFD but no threats)
+    const missingInterfaces = interfaces.filter(
+      (iface) => !interfacesWithThreats.has(iface.id)
+    );
+
+    return {
+      missingInterfaces,
+      orphanedInterfaceThreats,
+      changedInterfaceReferences,
+    };
+  }
+
   // ==================== SYNC THREATS (DELTA GENERATION) ====================
 
   /**
@@ -1746,10 +2065,10 @@ export class ThreatService {
             return {
               ...threat,
               linkedElement: {
-                elementId: threat.linkedElement.elementId,  // Keep XML ID (stable)
+                elementId: threat.linkedElement.elementId, // Keep XML ID (stable)
                 elementName: change.newRef.name,
                 elementType: change.newRef.type,
-                displayId: change.newRef.displayId,         // Update displayId
+                displayId: change.newRef.displayId, // Update displayId
               },
               lastModified: new Date().toISOString(),
             };

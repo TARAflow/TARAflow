@@ -502,12 +502,14 @@
       "noMitigation": "Nicht definiert",
       "noVerification": "Nicht definiert",
       "totalThreats": "Gesamt: {{count}} Bedrohungen",
+      "interfaces": "Physische Interfaces  [{{tbId}}]",
       "columns": {
         "threatId": "T-ID",
         "element": "Element",
         "dataFlow": "Datenfluss",
         "direction": "Richtung",
         "threat": "Bedrohung",
+        "attack": "Angriff",
         "actor": "Akteur",
         "mitigation": "Gegenmassnahme",
         "verification": "Verifizierung"
