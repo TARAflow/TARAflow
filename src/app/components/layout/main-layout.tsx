@@ -507,7 +507,7 @@ export const MainLayout: React.FC = () => {
 
       const updatedProject: Project = {
         ...activeProject,
-        //attackTrees: updates.attackTrees,
+        attackTrees: updates.attackTrees,
         phaseStatus: updates.phaseStatus,
         info: {
           ...activeProject.info,
@@ -766,7 +766,7 @@ export const MainLayout: React.FC = () => {
                     name: activeProject.info?.name || "",
                     phaseStatus: activeProject.phaseStatus,
                     isHighImpact: activeProject.info?.isHighImpact || false,
-                    attackTrees: activeProject.attackTrees?.attackTrees ?? null,
+                    attackTrees: activeProject.attackTrees,
                     assets: extractAssetReferences(activeProject),
                     threats:
                       extractThreatReferencesForAttackTree(activeProject),

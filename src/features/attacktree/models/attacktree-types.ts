@@ -3,8 +3,8 @@
 // Supports both Standard and Critical TARA workflows
 //
 // Architecture: Same pattern as threats-types.ts, risks-types.ts
-// - AttackTreeProjectData interface for props
-// - Direct mapping in main-layout.tsx
+// - AttackTreeData = persisted data in Project (like ThreatData, RiskData)
+// - AttackTreeProjectData = props interface for AttackTreeTab
 
 import type { PhaseStatusMap, StrideCategory } from "shared";
 
@@ -236,11 +236,13 @@ export interface AttackTreeNode {
   selected?: boolean;
 }
 
-// ==================== ATTACK TREE DATA ====================
+// ==================== ATTACK TREE (Single Tree) ====================
 
-export interface AttackTreeData {
+/**
+ * A single attack tree (one per anchor)
+ */
+export interface AttackTree {
   id: string;
-  projectId: string;
   name: string;
   description?: string;
   anchor: AttackTreeAnchor;
@@ -262,14 +264,30 @@ export interface LikelihoodExport {
   lastExported: string;
 }
 
-// ==================== ATTACK TREE COLLECTION ====================
+// ==================== ATTACK TREE DATA (Persisted in Project) ====================
 
-export interface AttackTreeCollection {
-  trees: AttackTreeData[];
+/**
+ * Complete attack tree data for a project
+ * This is what gets stored in Project.attackTrees
+ * Analogous to ThreatData, RiskData, AssetData
+ */
+export interface AttackTreeData {
+  /** All attack trees in the project */
+  trees: AttackTree[];
+
+  /** Project-wide configuration */
   configuration: AttackTreeProjectConfiguration;
+
+  /** Validation state */
+  validation?: AttackTreeDataValidation;
+
+  /** Last modified timestamp */
   lastModified: string;
 }
 
+/**
+ * Project-wide attack tree configuration
+ */
 export interface AttackTreeProjectConfiguration {
   defaultEvaluationMethod: EvaluationMethod;
   autoCreateForSecurityGoals: boolean;
@@ -282,7 +300,17 @@ export const DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION: AttackTreeProjectConfigur
   showLikelihoodExport: true,
 };
 
-// ==================== CONFIGURATION ====================
+/**
+ * Validation for the entire AttackTreeData
+ */
+export interface AttackTreeDataValidation {
+  isComplete: boolean;
+  errors: string[];
+  warnings: string[];
+  lastValidated: string;
+}
+
+// ==================== SINGLE TREE CONFIGURATION ====================
 
 export interface AttackTreeConfiguration {
   evaluationMethod: EvaluationMethod;
@@ -300,7 +328,7 @@ export const DEFAULT_ATTACKTREE_CONFIGURATION: AttackTreeConfiguration = {
   highlightCriticalPath: true,
 };
 
-// ==================== VALIDATION ====================
+// ==================== SINGLE TREE VALIDATION ====================
 
 export interface ValidationError {
   line: number;
@@ -365,26 +393,30 @@ export interface AttackTreeExportData {
   };
 }
 
-// ==================== PROJECT DATA INTERFACE ====================
-// What AttackTreeTab needs (mapped in main-layout.tsx)
+// ==================== PROJECT DATA INTERFACE (Props) ====================
 
+/**
+ * What AttackTreeTab needs as props
+ * Mapped in main-layout.tsx from Project
+ * Analogous to ThreatProjectData, RiskProjectData
+ */
 export interface AttackTreeProjectData {
   id: string;
   name: string;
   phaseStatus: PhaseStatusMap;
   isHighImpact: boolean;
 
-  // Attack tree data
-  attackTrees: AttackTreeCollection | null;
+  /** Attack tree data (from Project.attackTrees) */
+  attackTrees: AttackTreeData | null;
 
-  // References for validation (extracted in main-layout.tsx)
+  /** References for validation (extracted in main-layout.tsx) */
   assets: AssetReference[];
   threats: ThreatReference[];
   risks: RiskReference[];
   dfdElements: DFDElementReference[];
   mitigations: MitigationReference[];
 
-  // DFD preview
+  /** DFD preview */
   dfdPreviewImage?: string;
 
   lastModified: string;
@@ -392,8 +424,12 @@ export interface AttackTreeProjectData {
 
 // ==================== UPDATE RESULT ====================
 
+/**
+ * What AttackTreeTab returns after updates
+ * Analogous to ThreatUpdateResult, RiskUpdateResult
+ */
 export interface AttackTreeUpdateResult {
-  attackTrees: AttackTreeCollection;
+  attackTrees: AttackTreeData;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
 }
@@ -596,16 +632,17 @@ Compromise IoT Device [ASSET_ID];ROOT
 
 // ==================== UTILITY FUNCTIONS ====================
 
+/**
+ * Create empty attack tree with anchor
+ */
 export function createEmptyAttackTree(
-  projectId: string,
   anchor: AttackTreeAnchor,
   configuration?: Partial<AttackTreeConfiguration>
-): AttackTreeData {
+): AttackTree {
   const anchorName = getAnchorDisplayName(anchor);
 
   return {
     id: generateAttackTreeId(),
-    projectId,
     name: "Attack Tree: " + anchorName,
     description: "",
     anchor,
@@ -626,10 +663,19 @@ export function createEmptyAttackTree(
 export function getAnchorDisplayName(anchor: AttackTreeAnchor): string {
   switch (anchor.type) {
     case "asset":
-      const goalSuffix = anchor.securityGoal ? " (" + anchor.securityGoal + ")" : "";
-      return (anchor.assetId || "Asset") + (anchor.assetName ? ": " + anchor.assetName : "") + goalSuffix;
+      const goalSuffix = anchor.securityGoal
+        ? " (" + anchor.securityGoal + ")"
+        : "";
+      return (
+        (anchor.assetId || "Asset") +
+        (anchor.assetName ? ": " + anchor.assetName : "") +
+        goalSuffix
+      );
     case "threat":
-      return (anchor.threatId || "Threat") + (anchor.threatTitle ? ": " + anchor.threatTitle : "");
+      return (
+        (anchor.threatId || "Threat") +
+        (anchor.threatTitle ? ": " + anchor.threatTitle : "")
+      );
     case "risk":
       return (anchor.riskId || "Risk") + " [" + (anchor.riskLevel || "?") + "]";
     case "standalone":
@@ -647,53 +693,94 @@ function generateInitialDSL(anchor: AttackTreeAnchor): string {
       const goalComment = anchor.securityGoal
         ? "# Security Goal: " + anchor.securityGoal
         : "# Security Goal: (not specified)";
-      return "# Attack Tree: " + (anchor.assetName || anchor.assetId || "Asset") + "\n" +
-        "# Asset: " + (anchor.assetId || "A-XX") + "\n" +
-        goalComment + "\n" +
-        "# Created: " + timestamp + "\n" +
+      return (
+        "# Attack Tree: " +
+        (anchor.assetName || anchor.assetId || "Asset") +
+        "\n" +
+        "# Asset: " +
+        (anchor.assetId || "A-XX") +
+        "\n" +
+        goalComment +
+        "\n" +
+        "# Created: " +
+        timestamp +
+        "\n" +
         "# Method: Extended (f,b,i)\n\n" +
-        "Attack Goal [" + (anchor.assetId || "A-XX") + "];ROOT\n" +
+        "Attack Goal [" +
+        (anchor.assetId || "A-XX") +
+        "];ROOT\n" +
         "\t# TODO: Define attack paths\n" +
         "\tAttack Vector 1;OR\n" +
-        "\t\tSub-Attack;0.5,0.5,3\n";
+        "\t\tSub-Attack;0.5,0.5,3\n"
+      );
 
     case "threat":
-      return "# Attack Tree: " + (anchor.threatTitle || anchor.threatId || "Threat Detail") + "\n" +
-        "# Threat: " + (anchor.threatId || "T-XXX") + "\n" +
-        "# STRIDE: " + (anchor.strideCategory || "?") + "\n" +
-        "# Created: " + timestamp + "\n" +
+      return (
+        "# Attack Tree: " +
+        (anchor.threatTitle || anchor.threatId || "Threat Detail") +
+        "\n" +
+        "# Threat: " +
+        (anchor.threatId || "T-XXX") +
+        "\n" +
+        "# STRIDE: " +
+        (anchor.strideCategory || "?") +
+        "\n" +
+        "# Created: " +
+        timestamp +
+        "\n" +
         "# Method: Simple (p,i)\n\n" +
-        (anchor.threatTitle || "Threat Goal") + " [" + (anchor.threatId || "T-XXX") + "];ROOT\n" +
+        (anchor.threatTitle || "Threat Goal") +
+        " [" +
+        (anchor.threatId || "T-XXX") +
+        "];ROOT\n" +
         "\t# TODO: Define detailed attack paths\n" +
         "\tPrimary Attack;OR\n" +
         "\t\tStep 1;p=0.5,i=3\n" +
-        "\t\tStep 2;p=0.5,i=3\n";
+        "\t\tStep 2;p=0.5,i=3\n"
+      );
 
     case "risk":
-      return "# Attack Tree: Risk Detail Analysis\n" +
-        "# Risk: " + (anchor.riskId || "R-XXX") + "\n" +
-        "# Risk Level: " + (anchor.riskLevel || "Unknown") + "\n" +
-        "# Created: " + timestamp + "\n" +
+      return (
+        "# Attack Tree: Risk Detail Analysis\n" +
+        "# Risk: " +
+        (anchor.riskId || "R-XXX") +
+        "\n" +
+        "# Risk Level: " +
+        (anchor.riskLevel || "Unknown") +
+        "\n" +
+        "# Created: " +
+        timestamp +
+        "\n" +
         "# Method: Extended (f,b,i)\n\n" +
-        "Risk Scenario [" + (anchor.riskId || "R-XXX") + "];ROOT\n" +
+        "Risk Scenario [" +
+        (anchor.riskId || "R-XXX") +
+        "];ROOT\n" +
         "\t# TODO: Analyze attack vectors to refine likelihood\n" +
         "\tVector 1;OR\n" +
         "\t\tPath A;0.5,0.5,3\n" +
-        "\t\tPath B;0.5,0.5,3\n";
+        "\t\tPath B;0.5,0.5,3\n"
+      );
 
     case "standalone":
     default:
-      return "# Attack Tree: New Analysis\n" +
-        "# Created: " + timestamp + "\n" +
+      return (
+        "# Attack Tree: New Analysis\n" +
+        "# Created: " +
+        timestamp +
+        "\n" +
         "# Method: Simple (p,i)\n\n" +
         "Root Goal;ROOT\n" +
         "\t# TODO: Define attack tree structure\n" +
         "\tAttack Path;OR\n" +
-        "\t\tLeaf Node;p=0.5,i=3\n";
+        "\t\tLeaf Node;p=0.5,i=3\n"
+      );
   }
 }
 
-export function createEmptyAttackTreeCollection(): AttackTreeCollection {
+/**
+ * Create empty AttackTreeData for new projects
+ */
+export function createDefaultAttackTreeData(): AttackTreeData {
   return {
     trees: [],
     configuration: { ...DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION },
@@ -702,35 +789,36 @@ export function createEmptyAttackTreeCollection(): AttackTreeCollection {
 }
 
 export function getTreesByAnchorType(
-  collection: AttackTreeCollection,
+  data: AttackTreeData,
   type: AttackTreeAnchorType
-): AttackTreeData[] {
-  return collection.trees.filter(function(t) { return t.anchor.type === type; });
+): AttackTree[] {
+  return data.trees.filter(function (t) {
+    return t.anchor.type === type;
+  });
 }
 
-export function getTreesForAsset(
-  collection: AttackTreeCollection,
-  assetId: string
-): AttackTreeData[] {
-  return collection.trees.filter(function(t) {
+export function getTreesForAsset(data: AttackTreeData, assetId: string): AttackTree[] {
+  return data.trees.filter(function (t) {
     return t.anchor.type === "asset" && t.anchor.assetId === assetId;
   });
 }
 
 export function getTreesForSecurityGoal(
-  collection: AttackTreeCollection,
+  data: AttackTreeData,
   assetId: string,
   securityGoal: SecurityGoalType
-): AttackTreeData[] {
-  return collection.trees.filter(function(t) {
-    return t.anchor.type === "asset" &&
+): AttackTree[] {
+  return data.trees.filter(function (t) {
+    return (
+      t.anchor.type === "asset" &&
       t.anchor.assetId === assetId &&
-      t.anchor.securityGoal === securityGoal;
+      t.anchor.securityGoal === securityGoal
+    );
   });
 }
 
 export function checkAssetAttackTreeCoverage(
-  collection: AttackTreeCollection,
+  data: AttackTreeData,
   assetId: string,
   enabledSecurityGoals: SecurityGoalType[]
 ): {
@@ -738,17 +826,21 @@ export function checkAssetAttackTreeCoverage(
   missing: SecurityGoalType[];
   isComplete: boolean;
 } {
-  const assetTrees = getTreesForAsset(collection, assetId);
+  const assetTrees = getTreesForAsset(data, assetId);
   const coveredGoals: { [key: string]: boolean } = {};
 
-  assetTrees.forEach(function(tree) {
+  assetTrees.forEach(function (tree) {
     if (tree.anchor.securityGoal) {
       coveredGoals[tree.anchor.securityGoal] = true;
     }
   });
 
-  const covered = enabledSecurityGoals.filter(function(g) { return coveredGoals[g]; });
-  const missing = enabledSecurityGoals.filter(function(g) { return !coveredGoals[g]; });
+  const covered = enabledSecurityGoals.filter(function (g) {
+    return coveredGoals[g];
+  });
+  const missing = enabledSecurityGoals.filter(function (g) {
+    return !coveredGoals[g];
+  });
 
   return {
     covered: covered,

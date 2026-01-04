@@ -3,12 +3,11 @@
 // Supports both Standard and Critical TARA workflows
 //
 // Architecture: Weak coupling through AttackTreeProjectData interface
-// - Uses attackTreeAdapter for Project <-> AttackTreeProjectData conversion
 // - No direct imports from features/threats, features/risks, features/assets
 
 import {
+  AttackTree,
   AttackTreeData,
-  AttackTreeCollection,
   AttackTreeConfiguration,
   AttackTreeValidation,
   AttackTreeAnchor,
@@ -22,7 +21,7 @@ import {
   RiskReference,
   SecurityGoalType,
   createEmptyAttackTree,
-  createEmptyAttackTreeCollection,
+  createDefaultAttackTreeData,
   ATTACK_TREE_TEMPLATES,
   ATTACK_GOAL_TO_STRIDE,
   getAnchorDisplayName,
@@ -38,22 +37,22 @@ import { attackTreeValidator } from "./attacktree-validator";
  */
 export function saveAttackTree(
   projectData: AttackTreeProjectData,
-  attackTreeData: AttackTreeData
+  attackTree: AttackTree
 ): {
   success: boolean;
-  collection: AttackTreeCollection;
+  attackTreeData: AttackTreeData;
   validation: AttackTreeValidation;
 } {
   // Parse DSL
   const parseResult = attackTreeParser.parse(
-    attackTreeData.dsl,
-    attackTreeData.configuration.evaluationMethod
+    attackTree.dsl,
+    attackTree.configuration.evaluationMethod
   );
 
   // Get anchor asset ID for validation
   const anchorAssetId =
-    attackTreeData.anchor.type === "asset"
-      ? attackTreeData.anchor.assetId
+    attackTree.anchor.type === "asset"
+      ? attackTree.anchor.assetId
       : undefined;
 
   // Validate
@@ -69,40 +68,40 @@ export function saveAttackTree(
   if (parseResult.ast && validation.isValid) {
     pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
       parseResult.ast,
-      attackTreeData.configuration.evaluationMethod
+      attackTree.configuration.evaluationMethod
     );
   }
 
-  // Update attack tree data
-  const updatedData: AttackTreeData = {
-    ...attackTreeData,
+  // Update attack tree
+  const updatedTree: AttackTree = {
+    ...attackTree,
     ast: parseResult.ast,
     validation: validation,
     pathAnalysis: pathAnalysis,
     lastModified: new Date().toISOString(),
   };
 
-  // Get or create collection
-  let collection: AttackTreeCollection;
+  // Get or create AttackTreeData
+  let attackTreeData: AttackTreeData;
   if (projectData.attackTrees) {
-    collection = { ...projectData.attackTrees };
+    attackTreeData = { ...projectData.attackTrees };
     // Update or add tree
-    const existingIndex = collection.trees.findIndex(
-      (t) => t.id === updatedData.id
+    const existingIndex = attackTreeData.trees.findIndex(
+      (t) => t.id === updatedTree.id
     );
     if (existingIndex >= 0) {
-      collection.trees = collection.trees.slice();
-      collection.trees[existingIndex] = updatedData;
+      attackTreeData.trees = attackTreeData.trees.slice();
+      attackTreeData.trees[existingIndex] = updatedTree;
     } else {
-      collection.trees = collection.trees.concat([updatedData]);
+      attackTreeData.trees = attackTreeData.trees.concat([updatedTree]);
     }
-    collection.lastModified = new Date().toISOString();
+    attackTreeData.lastModified = new Date().toISOString();
   } else {
-    collection = {
-      trees: [updatedData],
+    attackTreeData = {
+      trees: [updatedTree],
       configuration: {
         defaultEvaluationMethod:
-          attackTreeData.configuration.evaluationMethod,
+          attackTree.configuration.evaluationMethod,
         autoCreateForSecurityGoals: false,
         showLikelihoodExport: true,
       },
@@ -112,22 +111,44 @@ export function saveAttackTree(
 
   return {
     success: true,
-    collection: collection,
+    attackTreeData: attackTreeData,
     validation: validation,
   };
 }
 
 /**
- * Load attack tree collection
+ * Load attack tree data
  */
-export function loadAttackTreeCollection(
+export function loadAttackTreeData(
   projectData: AttackTreeProjectData
-): AttackTreeCollection {
+): AttackTreeData {
   if (projectData.attackTrees) {
     return projectData.attackTrees;
   }
 
-  return createEmptyAttackTreeCollection();
+  return createDefaultAttackTreeData();
+}
+
+/**
+ * Delete an attack tree from the collection
+ */
+export function deleteAttackTree(
+  projectData: AttackTreeProjectData,
+  treeId: string
+): AttackTreeData {
+  if (!projectData.attackTrees) {
+    return createDefaultAttackTreeData();
+  }
+
+  const updatedTrees = projectData.attackTrees.trees.filter(
+    (t) => t.id !== treeId
+  );
+
+  return {
+    ...projectData.attackTrees,
+    trees: updatedTrees,
+    lastModified: new Date().toISOString(),
+  };
 }
 
 // ==================== TEMPLATE OPERATIONS ====================
@@ -137,9 +158,8 @@ export function loadAttackTreeCollection(
  */
 export function loadTemplate(
   templateId: string,
-  projectId: string,
   anchor?: AttackTreeAnchor
-): AttackTreeData | null {
+): AttackTree | null {
   const template = ATTACK_TREE_TEMPLATES.find((t) => t.id === templateId);
   if (!template) return null;
 
@@ -152,30 +172,15 @@ export function loadTemplate(
     dsl = dsl.replace(/\[THREAT_ID\]/g, "[" + anchor.threatId + "]");
   }
 
-  return {
-    id: "at-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
-    projectId: projectId,
-    name: template.name,
-    description: template.description,
-    anchor: anchor || { type: "standalone" },
-    dsl: dsl,
-    configuration: {
-      evaluationMethod: dsl.indexOf("p=") >= 0 ? "simple" : "extended",
-      autoSave: true,
-      showLineNumbers: true,
-      fontSize: 14,
-      highlightCriticalPath: true,
-    },
-    validation: {
-      isValid: false,
-      errors: [],
-      warnings: [],
-      infos: [],
-      lastValidated: new Date().toISOString(),
-    },
-    created: new Date().toISOString(),
-    lastModified: new Date().toISOString(),
-  };
+  const newTree = createEmptyAttackTree(anchor || { type: "standalone" }, {
+    evaluationMethod: dsl.indexOf("p=") >= 0 ? "simple" : "extended",
+  });
+
+  newTree.name = template.name;
+  newTree.description = template.description;
+  newTree.dsl = dsl;
+
+  return newTree;
 }
 
 // ==================== GENERATE FROM THREAT (Standard Workflow) ====================
@@ -186,7 +191,7 @@ export function loadTemplate(
 export function generateFromThreat(
   projectData: AttackTreeProjectData,
   threatId: string
-): AttackTreeData | null {
+): AttackTree | null {
   // Get threat
   const threat = projectData.threats.find((t) => t.id === threatId);
   if (!threat) return null;
@@ -228,7 +233,7 @@ export function generateFromThreat(
     "\t\tStep 2;p=0.5,i=3\n" +
     "\tAttack Vector 2;p=0.4,i=3\n";
 
-  const newTree = createEmptyAttackTree(projectData.id, anchor, {
+  const newTree = createEmptyAttackTree(anchor, {
     evaluationMethod: "simple",
   });
   newTree.dsl = dsl;
@@ -244,7 +249,7 @@ export function generateFromThreat(
 export function generateFromRisk(
   projectData: AttackTreeProjectData,
   riskId: string
-): AttackTreeData | null {
+): AttackTree | null {
   // Get risk
   const risk = projectData.risks.find((r) => r.id === riskId);
   if (!risk) return null;
@@ -278,7 +283,7 @@ export function generateFromRisk(
     "\t\tPath B;0.4,0.6,3\n" +
     "\tSecondary Vector;0.3,0.4,3\n";
 
-  const newTree = createEmptyAttackTree(projectData.id, anchor, {
+  const newTree = createEmptyAttackTree(anchor, {
     evaluationMethod: "extended",
   });
   newTree.dsl = dsl;
@@ -295,18 +300,10 @@ export function generateFromAsset(
   projectData: AttackTreeProjectData,
   assetId: string,
   securityGoal: SecurityGoalType
-): AttackTreeData | null {
+): AttackTree | null {
   // Get asset
   const asset = projectData.assets.find((a) => a.id === assetId);
   if (!asset) return null;
-
-  // Find matching template
-  const template = ATTACK_TREE_TEMPLATES.find(
-    (t) =>
-      t.category === "critical" &&
-      t.securityGoals &&
-      t.securityGoals.indexOf(securityGoal) >= 0
-  );
 
   // Generate anchor
   const anchor: AttackTreeAnchor = {
@@ -316,21 +313,19 @@ export function generateFromAsset(
     securityGoal: securityGoal,
   };
 
-  if (template) {
-    return loadTemplate(template.id, projectData.id, anchor);
-  }
-
-  // Generate generic DSL
-  const goalName = getSecurityGoalName(securityGoal);
+  // Get attack goal for security goal
   const attackGoal = getDefaultAttackGoal(securityGoal);
+  const goalName = getSecurityGoalName(securityGoal);
 
+  // Generate DSL
   const dsl =
     "# Attack Tree: " + asset.name + " - " + goalName + "\n" +
-    "# Asset: " + assetId + "\n" +
-    "# Security Goal: " + securityGoal + "\n" +
-    "# Created: " + new Date().toISOString().split("T")[0] + "\n" +
+    "# Asset ID: " + assetId + "\n" +
+    "# Security Goal: " + securityGoal + " (" + goalName + ")\n" +
+    "# Impact: " + asset.overallImpact + "\n" +
+    "# Generated: " + new Date().toISOString().split("T")[0] + "\n" +
     "# Method: Extended (f,b,i)\n\n" +
-    goalName + " Violation [" + assetId + "];ROOT @" + attackGoal + "\n" +
+    "Compromise " + goalName + " [" + assetId + "];ROOT @" + attackGoal + "\n" +
     "\t# Define attack vectors for " + goalName + "\n" +
     "\tRemote Attack;OR\n" +
     "\t\tNetwork Exploitation;0.5,0.5,3 @" + attackGoal + "\n" +
@@ -339,7 +334,7 @@ export function generateFromAsset(
     "\t\tInsider Threat;0.3,0.8,4 @" + attackGoal + "\n" +
     "\t\tPhysical Access;0.2,0.5,3 @" + attackGoal + "\n";
 
-  const newTree = createEmptyAttackTree(projectData.id, anchor, {
+  const newTree = createEmptyAttackTree(anchor, {
     evaluationMethod: "extended",
   });
   newTree.dsl = dsl;
@@ -353,7 +348,7 @@ export function generateFromAsset(
 export function generateAllForAsset(
   projectData: AttackTreeProjectData,
   assetId: string
-): AttackTreeData[] {
+): AttackTree[] {
   const asset = projectData.assets.find((a) => a.id === assetId);
   if (!asset) return [];
 
@@ -361,7 +356,7 @@ export function generateAllForAsset(
     .filter((sg) => sg.enabled)
     .map((sg) => sg.type);
 
-  const trees: AttackTreeData[] = [];
+  const trees: AttackTree[] = [];
   enabledGoals.forEach((goal) => {
     const tree = generateFromAsset(projectData, assetId, goal);
     if (tree) {
@@ -378,7 +373,7 @@ export function generateAllForAsset(
  * Export likelihood data to Risk Assessment
  */
 export function exportLikelihoodToRisk(
-  attackTree: AttackTreeData,
+  attackTree: AttackTree,
   targetRiskIds: string[]
 ): LikelihoodExport | null {
   if (!attackTree.pathAnalysis) return null;
@@ -393,7 +388,7 @@ export function exportLikelihoodToRisk(
  * Get suggested likelihood value for a risk based on attack tree analysis
  */
 export function getSuggestedLikelihood(
-  attackTree: AttackTreeData
+  attackTree: AttackTree
 ): {
   value: number;
   level: number;
@@ -423,7 +418,7 @@ export function getSuggestedLikelihood(
  */
 export function exportAttackTree(
   projectData: AttackTreeProjectData,
-  attackTreeData: AttackTreeData
+  attackTree: AttackTree
 ): AttackTreeExportData {
   return {
     version: "2.0",
@@ -431,11 +426,11 @@ export function exportAttackTree(
     projectId: projectData.id,
     projectName: projectData.name,
     attackTree: {
-      name: attackTreeData.name,
-      description: attackTreeData.description,
-      anchor: attackTreeData.anchor,
-      dsl: attackTreeData.dsl,
-      configuration: attackTreeData.configuration,
+      name: attackTree.name,
+      description: attackTree.description,
+      anchor: attackTree.anchor,
+      dsl: attackTree.dsl,
+      configuration: attackTree.configuration,
     },
   };
 }
@@ -444,11 +439,10 @@ export function exportAttackTree(
  * Import attack tree from JSON
  */
 export function importAttackTree(
-  jsonData: string,
-  projectId: string
+  jsonData: string
 ): {
   success: boolean;
-  data?: AttackTreeData;
+  data?: AttackTree;
   error?: string;
 } {
   try {
@@ -462,29 +456,19 @@ export function importAttackTree(
       };
     }
 
-    // Create attack tree data
-    const attackTreeData: AttackTreeData = {
-      id: "at-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
-      projectId: projectId,
-      name: importData.attackTree.name,
-      description: importData.attackTree.description,
-      anchor: importData.attackTree.anchor || { type: "standalone" },
-      dsl: importData.attackTree.dsl,
-      configuration: importData.attackTree.configuration,
-      validation: {
-        isValid: false,
-        errors: [],
-        warnings: [],
-        infos: [],
-        lastValidated: new Date().toISOString(),
-      },
-      created: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-    };
+    // Create attack tree
+    const attackTree = createEmptyAttackTree(
+      importData.attackTree.anchor || { type: "standalone" },
+      importData.attackTree.configuration
+    );
+
+    attackTree.name = importData.attackTree.name;
+    attackTree.description = importData.attackTree.description;
+    attackTree.dsl = importData.attackTree.dsl;
 
     return {
       success: true,
-      data: attackTreeData,
+      data: attackTree,
     };
   } catch (error) {
     return {
@@ -499,8 +483,8 @@ export function importAttackTree(
 /**
  * Export to GraphViz DOT format
  */
-export function exportToGraphViz(attackTreeData: AttackTreeData): string {
-  if (!attackTreeData.ast) {
+export function exportToGraphViz(attackTree: AttackTree): string {
+  if (!attackTree.ast) {
     return "";
   }
 
@@ -532,7 +516,7 @@ export function exportToGraphViz(attackTreeData: AttackTreeData): string {
     });
   }
 
-  exportNode(attackTreeData.ast);
+  exportNode(attackTree.ast);
   lines.push("}");
 
   return lines.join("\n");
@@ -541,8 +525,8 @@ export function exportToGraphViz(attackTreeData: AttackTreeData): string {
 /**
  * Export to Mermaid format
  */
-export function exportToMermaid(attackTreeData: AttackTreeData): string {
-  if (!attackTreeData.ast) {
+export function exportToMermaid(attackTree: AttackTree): string {
+  if (!attackTree.ast) {
     return "";
   }
 
@@ -571,7 +555,7 @@ export function exportToMermaid(attackTreeData: AttackTreeData): string {
     });
   }
 
-  exportNode(attackTreeData.ast);
+  exportNode(attackTree.ast);
   lines.push("");
   lines.push("classDef critical fill:#ffcdd2,stroke:#d32f2f,stroke-width:3px");
 
@@ -612,7 +596,8 @@ function getDefaultAttackGoal(
 
 export const attackTreeService = {
   saveAttackTree,
-  loadAttackTreeCollection,
+  loadAttackTreeData,
+  deleteAttackTree,
   loadTemplate,
   generateFromThreat,
   generateFromRisk,

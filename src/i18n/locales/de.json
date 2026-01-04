@@ -34,7 +34,8 @@
     "deleteAll": "Alle löschen",
     "unsaved": "Nicht gespeichert",
     "reset": "Zurücksetzen",
-    "none": "Nichts"
+    "none": "Nichts",
+    "collapse": "Zuklappen"
   },
 
   "project": {
@@ -695,7 +696,15 @@
     },
     "attacktree": {
       "title": "Attack Tree",
-      "description": "Bewerten Sie die Wahrscheinlichkeit einer Bedrohung anhand des Attack Trees"
+      "description": "Bewerten Sie die Wahrscheinlichkeit einer Bedrohung anhand des Attack Trees",
+      "config": {
+        "title": "Attack Tree Configuration",
+        "evaluationMethod Risk": "Evaluation Method",
+        "editorSettings": "Editor Settings",
+        "autoSave": "Auto-Save",
+        "lineNumbers": "Show Line Numbers",
+        "fontSize": "Font Size"
+      }
     },
     "doc": {
       "title": "Dokumentation",

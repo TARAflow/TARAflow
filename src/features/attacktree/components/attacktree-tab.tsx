@@ -68,8 +68,8 @@ import {
 } from "@mui/icons-material";
 
 import {
+  AttackTree,
   AttackTreeData,
-  AttackTreeCollection,
   AttackTreeConfiguration,
   AttackTreeAnchor,
   AttackTreeAnchorType,
@@ -79,7 +79,7 @@ import {
   ValidationError,
   SecurityGoalType,
   createEmptyAttackTree,
-  createEmptyAttackTreeCollection,
+  createDefaultAttackTreeData,
   getAnchorDisplayName,
   getAnchorTypeIcon,
   ATTACK_TREE_TEMPLATES,
@@ -88,7 +88,7 @@ import {
 import { attackTreeParser } from "../services/attacktree-parser";
 import { attackTreeCalculator } from "../services/attacktree-calculator";
 import { attackTreeValidator } from "../services/attacktree-validator";
-import { attackTreeService } from "../services/attacktree-serivice";
+import { attackTreeService } from "../services/attacktree-service";
 import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeConfigDialog } from "./attacktree-config-dialog";
@@ -108,11 +108,11 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   // ==================== STATE ====================
 
   // Attack tree collection (multiple trees)
-  const [collection, setCollection] = useState<AttackTreeCollection>(() => {
+  const [collection, setCollection] = useState<AttackTreeData>(() => {
     if (project.attackTrees) {
       return project.attackTrees;
     }
-    return createEmptyAttackTreeCollection();
+    return createDefaultAttackTreeData();
   });
 
   // Currently selected tree
@@ -151,7 +151,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
 
   // Group trees by anchor type
   const groupedTrees = useMemo(() => {
-    const groups: Record<AttackTreeAnchorType, AttackTreeData[]> = {
+    const groups: Record<AttackTreeAnchorType, AttackTree[]> = {
       asset: [],
       threat: [],
       risk: [],
@@ -228,7 +228,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       }
 
       // Update tree
-      const updatedTree: AttackTreeData = {
+      const updatedTree: AttackTree = {
         ...selectedTree,
         dsl: dsl,
         ast: parseResult.ast,
@@ -269,7 +269,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     (config: AttackTreeConfiguration) => {
       if (!selectedTree) return;
 
-      const updatedTree: AttackTreeData = {
+      const updatedTree: AttackTree = {
         ...selectedTree,
         configuration: config,
         lastModified: new Date().toISOString(),
@@ -321,21 +321,25 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
 
   const handleCreateTree = useCallback(
     (anchor: AttackTreeAnchor, templateId?: string) => {
-      let newTree: AttackTreeData;
+      let newTree: AttackTree;
+
+      // Hole default evaluation method aus project config
+      const defaultEvalMethod =
+        project.attackTrees?.configuration?.defaultEvaluationMethod || "simple";
 
       if (templateId) {
-        const loaded = attackTreeService.loadTemplate(
-          templateId,
-          project.id,
-          anchor
-        );
+        const loaded = attackTreeService.loadTemplate(templateId, anchor);
         if (loaded) {
           newTree = loaded;
         } else {
-          newTree = createEmptyAttackTree(project.id, anchor);
+          newTree = createEmptyAttackTree(anchor, {
+            evaluationMethod: defaultEvalMethod,
+          });
         }
       } else {
-        newTree = createEmptyAttackTree(project.id, anchor);
+        newTree = createEmptyAttackTree(anchor, {
+          evaluationMethod: defaultEvalMethod,
+        });
       }
 
       setCollection((prev) => ({
@@ -374,7 +378,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       const tree = collection.trees.find((t) => t.id === treeId);
       if (!tree) return;
 
-      const duplicated: AttackTreeData = {
+      const duplicated: AttackTree = {
         ...tree,
         id: "at-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
         name: tree.name + " (Copy)",

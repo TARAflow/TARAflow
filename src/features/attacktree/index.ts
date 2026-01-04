@@ -13,11 +13,14 @@ export { AttackTreeTableView } from "./components/attacktree-tableview";
 // ==================== TYPES ====================
 
 export type {
-  // Core types
-  AttackTreeData,
-  AttackTreeCollection,
+  // Core types - Persisted data
+  AttackTreeData, // Was in Project.attackTrees gespeichert wird
+  AttackTree, // Ein einzelner Attack Tree
   AttackTreeConfiguration,
   AttackTreeProjectConfiguration,
+  AttackTreeDataValidation,
+
+  // Node types
   AttackTreeNode,
   AttackTreeAnchor,
   AttackTreeAnchorType,
@@ -80,7 +83,7 @@ export {
 
 export {
   createEmptyAttackTree,
-  createEmptyAttackTreeCollection,
+  createDefaultAttackTreeData,
   getAnchorDisplayName,
   getAnchorTypeIcon,
   getNodeTypeColor,
@@ -109,4 +112,4 @@ export {
 export { attackTreeParser } from "./services/attacktree-parser";
 export { attackTreeCalculator } from "./services/attacktree-calculator";
 export { attackTreeValidator } from "./services/attacktree-validator";
-export { attackTreeService } from "./services/attacktree-serivice";
+export { attackTreeService } from "./services/attacktree-service";

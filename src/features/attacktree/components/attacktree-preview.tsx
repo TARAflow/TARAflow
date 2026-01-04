@@ -69,17 +69,15 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("tree");
-  const [zoom, setZoom] = useState<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const [currentTransform, setCurrentTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
-
-  if (!ast) {
-    return null;
-  }
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const [currentTransform, setCurrentTransform] = useState<d3.ZoomTransform>(
+    d3.zoomIdentity
+  );
 
   // ==================== D3 TREE RENDERING ====================
 
   const renderTree = useCallback(() => {
-    if (!svgRef.current || !containerRef.current ) return;
+    if (!svgRef.current || !containerRef.current || !ast) return;
 
     const container = containerRef.current;
     const width = container.clientWidth;
@@ -88,28 +86,31 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     // Clear previous content
     d3.select(svgRef.current).selectAll("*").remove();
 
-    const svg = d3.select(svgRef.current)
+    const svg = d3
+      .select(svgRef.current)
       .attr("width", width)
       .attr("height", height);
 
     // Create container group for zoom/pan
-    const g = svg.append("g")
-      .attr("class", "tree-container");
+    const g = svg.append("g").attr("class", "tree-container");
 
     // Create hierarchy
     const root = d3.hierarchy(ast) as D3Node;
 
     // Calculate tree layout
-    const treeLayout = d3.tree<AttackTreeNode>()
+    const treeLayout = d3
+      .tree<AttackTreeNode>()
       .nodeSize([120, 180])
       .separation((a, b) => (a.parent === b.parent ? 1 : 1.5));
 
     treeLayout(root);
 
     // Calculate bounds
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-    root.descendants().forEach(d => {
+    let minX = Infinity,
+      maxX = -Infinity;
+    let minY = Infinity,
+      maxY = -Infinity;
+    root.descendants().forEach((d) => {
       minX = Math.min(minX, d.x);
       maxX = Math.max(maxX, d.x);
       minY = Math.min(minY, d.y);
@@ -125,30 +126,38 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     g.attr("transform", `translate(${initialX}, ${initialY})`);
 
     // Draw links
-    const linkGenerator = d3.linkVertical<d3.HierarchyLink<AttackTreeNode>, d3.HierarchyPointNode<AttackTreeNode>>()
-      .x(d => d.x)
-      .y(d => d.y);
+    const linkGenerator = d3
+      .linkVertical<
+        d3.HierarchyLink<AttackTreeNode>,
+        d3.HierarchyPointNode<AttackTreeNode>
+      >()
+      .x((d) => d.x)
+      .y((d) => d.y);
 
     g.selectAll(".link")
       .data(root.links())
       .enter()
       .append("path")
       .attr("class", "link")
-      .attr("d", d => linkGenerator(d as any))
+      .attr("d", (d) => linkGenerator(d as any))
       .attr("fill", "none")
-      .attr("stroke", d => {
+      .attr("stroke", (d) => {
         // Highlight critical path
-        if (highlightCriticalPath && 
-            (d.source.data as AttackTreeNode).criticalPath && 
-            (d.target.data as AttackTreeNode).criticalPath) {
+        if (
+          highlightCriticalPath &&
+          (d.source.data as AttackTreeNode).criticalPath &&
+          (d.target.data as AttackTreeNode).criticalPath
+        ) {
           return "#d32f2f";
         }
         return "#999";
       })
-      .attr("stroke-width", d => {
-        if (highlightCriticalPath && 
-            (d.source.data as AttackTreeNode).criticalPath && 
-            (d.target.data as AttackTreeNode).criticalPath) {
+      .attr("stroke-width", (d) => {
+        if (
+          highlightCriticalPath &&
+          (d.source.data as AttackTreeNode).criticalPath &&
+          (d.target.data as AttackTreeNode).criticalPath
+        ) {
           return 3;
         }
         return 1.5;
@@ -156,12 +165,13 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       .attr("stroke-opacity", 0.6);
 
     // Draw nodes
-    const nodeGroups = g.selectAll(".node")
+    const nodeGroups = g
+      .selectAll(".node")
       .data(root.descendants())
       .enter()
       .append("g")
       .attr("class", "node")
-      .attr("transform", d => `translate(${d.x}, ${d.y})`)
+      .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
       .style("cursor", "pointer")
       .on("click", (event, d) => {
         event.stopPropagation();
@@ -171,22 +181,23 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       });
 
     // Node background
-    nodeGroups.append("rect")
+    nodeGroups
+      .append("rect")
       .attr("x", -55)
       .attr("y", -25)
       .attr("width", 110)
       .attr("height", 50)
       .attr("rx", 8)
       .attr("ry", 8)
-      .attr("fill", d => {
+      .attr("fill", (d) => {
         // Critical path highlight
         if (highlightCriticalPath && d.data.criticalPath) {
           return "#ffebee";
         }
         return "#fff";
       })
-      .attr("stroke", d => getNodeTypeColor(d.data.type))
-      .attr("stroke-width", d => {
+      .attr("stroke", (d) => getNodeTypeColor(d.data.type))
+      .attr("stroke-width", (d) => {
         if (highlightCriticalPath && d.data.criticalPath) {
           return 3;
         }
@@ -194,34 +205,38 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       });
 
     // Node type badge
-    nodeGroups.append("rect")
+    nodeGroups
+      .append("rect")
       .attr("x", -55)
       .attr("y", -25)
       .attr("width", 35)
       .attr("height", 16)
       .attr("rx", 4)
-      .attr("fill", d => getNodeTypeColor(d.data.type));
+      .attr("fill", (d) => getNodeTypeColor(d.data.type));
 
-    nodeGroups.append("text")
+    nodeGroups
+      .append("text")
       .attr("x", -37)
       .attr("y", -13)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
       .attr("font-size", "10px")
       .attr("font-weight", "bold")
-      .text(d => d.data.type);
+      .text((d) => d.data.type);
 
     // Attack goal badge (if present)
-    nodeGroups.filter(d => Boolean(d.data.attackGoal))
+    nodeGroups
+      .filter((d) => Boolean(d.data.attackGoal))
       .append("rect")
       .attr("x", 20)
       .attr("y", -25)
       .attr("width", 35)
       .attr("height", 16)
       .attr("rx", 4)
-      .attr("fill", d => getAttackGoalColor(d.data.attackGoal!));
+      .attr("fill", (d) => getAttackGoalColor(d.data.attackGoal!));
 
-    nodeGroups.filter(d => Boolean(d.data.attackGoal))
+    nodeGroups
+      .filter((d) => Boolean(d.data.attackGoal))
       .append("text")
       .attr("x", 37)
       .attr("y", -13)
@@ -229,42 +244,48 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       .attr("fill", "white")
       .attr("font-size", "8px")
       .attr("font-weight", "bold")
-      .text(d => getGoalAbbreviation(d.data.attackGoal!));
+      .text((d) => getGoalAbbreviation(d.data.attackGoal!));
 
     // Node name
-    nodeGroups.append("text")
+    nodeGroups
+      .append("text")
       .attr("x", 0)
       .attr("y", 2)
       .attr("text-anchor", "middle")
       .attr("font-size", "11px")
       .attr("font-weight", "500")
-      .text(d => truncateText(d.data.name, 14));
+      .text((d) => truncateText(d.data.name, 14));
 
     // Risk score (for leaf nodes)
-    nodeGroups.filter(d => d.data.riskScore !== undefined && d.data.riskScore > 0)
+    nodeGroups
+      .filter((d) => d.data.riskScore !== undefined && d.data.riskScore > 0)
       .append("text")
       .attr("x", 0)
       .attr("y", 18)
       .attr("text-anchor", "middle")
       .attr("font-size", "10px")
-      .attr("fill", d => {
+      .attr("fill", (d) => {
         const result = calculateRiskLevel(d.data.riskScore!, evaluationMethod);
         return result.color;
       })
-      .text(d => {
+      .text((d) => {
         const result = calculateRiskLevel(d.data.riskScore!, evaluationMethod);
-        return `${getRiskScoreEmoji(result.level)} ${d.data.riskScore!.toFixed(1)}`;
+        return `${getRiskScoreEmoji(result.level)} ${d.data.riskScore!.toFixed(
+          1
+        )}`;
       });
 
     // Mitigation indicator
-    nodeGroups.filter(d => d.data.mitigations.length > 0)
+    nodeGroups
+      .filter((d) => d.data.mitigations.length > 0)
       .append("circle")
       .attr("cx", 50)
       .attr("cy", -20)
       .attr("r", 8)
       .attr("fill", "#4caf50");
 
-    nodeGroups.filter(d => d.data.mitigations.length > 0)
+    nodeGroups
+      .filter((d) => d.data.mitigations.length > 0)
       .append("text")
       .attr("x", 50)
       .attr("y", -16)
@@ -272,19 +293,28 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       .attr("font-size", "10px")
       .attr("fill", "white")
       .attr("font-weight", "bold")
-      .text(d => d.data.mitigations.length);
+      .text((d) => d.data.mitigations.length);
 
     // Setup zoom
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+    const zoomBehavior = d3
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on("zoom", (event) => {
-        g.attr("transform", `translate(${event.transform.x + initialX}, ${event.transform.y + initialY}) scale(${event.transform.k})`);
+        // 🔒 Guard: SVG / g kann beim Re-Render kurz weg sein
+        if (!g.node()) return;
+
+        g.attr(
+          "transform",
+          `translate(${event.transform.x + initialX}, ${
+            event.transform.y + initialY
+          }) scale(${event.transform.k})`
+        );
+
         setCurrentTransform(event.transform);
       });
 
     svg.call(zoomBehavior);
-    setZoom(zoomBehavior);
-
+    zoomRef.current = zoomBehavior;
   }, [ast, evaluationMethod, highlightCriticalPath, onNodeSelect]);
 
   // Re-render on changes
@@ -306,33 +336,42 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, [renderTree, viewMode]);
 
+  useEffect(() => {
+    return () => {
+      if (svgRef.current) {
+        d3.select(svgRef.current).on(".zoom", null);
+      }
+      zoomRef.current = null;
+    };
+  }, []);
+
   // ==================== ZOOM CONTROLS ====================
 
   const handleZoomIn = () => {
-    if (svgRef.current && zoom) {
-      d3.select(svgRef.current)
-        .transition()
-        .duration(300)
-        .call(zoom.scaleBy, 1.3);
-    }
+    if (!svgRef.current || !zoomRef.current) return;
+
+    d3.select(svgRef.current)
+      .transition()
+      .duration(300)
+      .call(zoomRef.current.scaleBy, 1.3);
   };
 
   const handleZoomOut = () => {
-    if (svgRef.current && zoom) {
-      d3.select(svgRef.current)
-        .transition()
-        .duration(300)
-        .call(zoom.scaleBy, 0.7);
-    }
+    if (!svgRef.current || !zoomRef.current) return;
+
+    d3.select(svgRef.current)
+      .transition()
+      .duration(300)
+      .call(zoomRef.current.scaleBy, 0.7);
   };
 
   const handleFit = () => {
-    if (svgRef.current && zoom) {
-      d3.select(svgRef.current)
-        .transition()
-        .duration(500)
-        .call(zoom.transform, d3.zoomIdentity);
-    }
+    if (!svgRef.current || !zoomRef.current) return;
+
+    d3.select(svgRef.current)
+      .transition()
+      .duration(300)
+      .call(zoomRef.current.transform, d3.zoomIdentity);
   };
 
   // ==================== EXPORT ====================
@@ -377,7 +416,9 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       document.body.removeChild(link);
     };
 
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    img.src =
+      "data:image/svg+xml;base64," +
+      btoa(unescape(encodeURIComponent(svgData)));
   };
 
   // ==================== RENDER ====================
@@ -478,22 +519,30 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
 
         {/* Statistics */}
         <Box sx={{ flexGrow: 1 }} />
-        
+
         {pathAnalysis && (
           <Box sx={{ display: "flex", gap: 1 }}>
             <Chip
-              label={`${pathAnalysis.totalPaths} ${isGerman ? "Pfade" : "Paths"}`}
+              label={`${pathAnalysis.totalPaths} ${
+                isGerman ? "Pfade" : "Paths"
+              }`}
               size="small"
               variant="outlined"
             />
             <Chip
-              label={`${pathAnalysis.criticalPaths.length} ${isGerman ? "Kritisch" : "Critical"}`}
+              label={`${pathAnalysis.criticalPaths.length} ${
+                isGerman ? "Kritisch" : "Critical"
+              }`}
               size="small"
               color="error"
-              variant={pathAnalysis.criticalPaths.length > 0 ? "filled" : "outlined"}
+              variant={
+                pathAnalysis.criticalPaths.length > 0 ? "filled" : "outlined"
+              }
             />
             <Chip
-              label={`${isGerman ? "Max" : "Max"}: ${pathAnalysis.maxRiskScore.toFixed(1)}`}
+              label={`${
+                isGerman ? "Max" : "Max"
+              }: ${pathAnalysis.maxRiskScore.toFixed(1)}`}
               size="small"
               color="warning"
               variant="outlined"
@@ -548,31 +597,66 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
           <Typography variant="caption" color="text.secondary">
             {isGerman ? "Legende:" : "Legend:"}
           </Typography>
-          
+
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: "#1976d2" }} />
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: 1,
+                bgcolor: "#1976d2",
+              }}
+            />
             <Typography variant="caption">ROOT</Typography>
           </Box>
-          
+
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: "#ed6c02" }} />
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: 1,
+                bgcolor: "#ed6c02",
+              }}
+            />
             <Typography variant="caption">OR</Typography>
           </Box>
-          
+
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: "#9c27b0" }} />
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: 1,
+                bgcolor: "#9c27b0",
+              }}
+            />
             <Typography variant="caption">AND</Typography>
           </Box>
-          
+
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: 1, bgcolor: "#2e7d32" }} />
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: 1,
+                bgcolor: "#2e7d32",
+              }}
+            />
             <Typography variant="caption">LEAF</Typography>
           </Box>
 
           <Divider orientation="vertical" flexItem />
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: "#4caf50" }} />
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                bgcolor: "#4caf50",
+              }}
+            />
             <Typography variant="caption">
               {isGerman ? "Mit Maßnahmen" : "With Mitigations"}
             </Typography>

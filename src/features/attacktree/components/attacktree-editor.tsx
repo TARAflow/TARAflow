@@ -194,7 +194,7 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
       </Box>
 
       {/* Editor or Collapsed State */}
-      <Collapse in={!collapsed} orientation="horizontal" sx={{ flexGrow: 1 }}>
+      {!collapsed && (
         <Box
           sx={{
             height: "100%",
@@ -312,7 +312,7 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
             </>
           )}
         </Box>
-      </Collapse>
+      )}
     </Box>
   );
 };
