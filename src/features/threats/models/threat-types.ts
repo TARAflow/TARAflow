@@ -136,8 +136,8 @@ export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
   Multiprocess: ["S", "T", "R", "I", "D", "E"],
   DataFlow: ["T", "I", "D"],
   DataStore: ["T", "R", "I", "D"],
-  PhysicalInterface: ["T", "I", "D", "E"],
-  Interface: ["T", "I", "D", "E"],
+  PhysicalInterface: ["S", "T", "R", "I", "D", "E"],
+  Interface: ["S", "T", "R", "I", "D", "E"],
 };
 
 /**
