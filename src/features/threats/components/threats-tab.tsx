@@ -355,6 +355,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           project,
           threatData,
           activeMethod,
+          threatData.configuration,
           { removeOrphaned }
         );
 
@@ -1044,6 +1045,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             defaultValue: "Delete All Threats?",
           })}
           message={t("tabs.threats.deleteAllConfirmMessage", {
+            method: activeMethod,
             defaultValue:
               "This will delete all threats for the current method. This action cannot be undone.",
           })}

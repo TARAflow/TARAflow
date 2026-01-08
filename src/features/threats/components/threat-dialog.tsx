@@ -154,6 +154,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
 
       // Load templates for this STRIDE category
       const elementType = threat.linkedElement?.elementType || "DataFlow";
+
       setThreatTemplates(
         threatService.getThreatTemplates(
           threat.strideCategory,
@@ -161,15 +162,19 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
           configuration.customThreatTemplates
         )
       );
+
       setMitigationTemplates(
         threatService.getMitigationTemplates(
           threat.strideCategory,
+          elementType,
           configuration.customMitigationTemplates
         )
       );
+
       setVerificationTemplates(
         threatService.getVerificationTemplates(
           threat.strideCategory,
+          elementType,
           configuration.customVerificationTemplates
         )
       );
@@ -403,10 +408,12 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               <Autocomplete
                 size="small"
                 options={threatTemplates}
+                value={null}
                 getOptionLabel={(option) =>
                   locale === "de" ? option.threatDE : option.threat
                 }
                 onChange={(_, value) => handleSelectThreatTemplate(value)}
+                freeSolo={false}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -414,6 +421,10 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                       defaultValue: "Select template...",
                     })}
                     sx={{ width: 250 }}
+                    InputProps={{
+                      ...params.InputProps,
+                      readOnly: false, // Allow typing for search
+                    }}
                   />
                 )}
                 renderOption={(props, option) => (
@@ -506,10 +517,12 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               <Autocomplete
                 size="small"
                 options={mitigationTemplates}
+                value={null}
                 getOptionLabel={(option) =>
                   locale === "de" ? option.mitigationDE : option.mitigation
                 }
                 onChange={(_, value) => handleSelectMitigationTemplate(value)}
+                freeSolo={false}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -517,6 +530,10 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                       defaultValue: "Add mitigation...",
                     })}
                     sx={{ width: 250 }}
+                    InputProps={{
+                      ...params.InputProps,
+                      readOnly: false, // Allow typing for search
+                    }}
                   />
                 )}
                 renderOption={(props, option) => (
@@ -590,10 +607,12 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               <Autocomplete
                 size="small"
                 options={verificationTemplates}
+                value={null}
                 getOptionLabel={(option) =>
                   locale === "de" ? option.verificationDE : option.verification
                 }
                 onChange={(_, value) => handleSelectVerificationTemplate(value)}
+                freeSolo={false}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -601,6 +620,10 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                       defaultValue: "Add verification...",
                     })}
                     sx={{ width: 250 }}
+                    InputProps={{
+                      ...params.InputProps,
+                      readOnly: false, // Allow typing for search
+                    }}
                   />
                 )}
                 renderOption={(props, option) => (

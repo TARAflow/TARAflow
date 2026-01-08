@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "lastUpdated": "2025-01-01",
   "description": "Comprehensive global STRIDE threat catalog for both per-element and per-interaction threat modeling, based on bbv TARA documentation and OWASP STRIDE Reference Sheets",
-  
+
   "threatTemplates": [
     {
       "id": "S-EE-001",
@@ -44,7 +44,7 @@
       "attackDE": "Angreifer übernimmt Benutzersitzung durch Ausnutzung schwacher Sitzungsverwaltung",
       "isCustom": false
     },
-    
+
     {
       "id": "T-P-001",
       "strideCategory": "T",
@@ -105,7 +105,7 @@
       "attackDE": "Angreifer injiziert bösartiges SQL, um Datenbankinhalte zu modifizieren",
       "isCustom": false
     },
-    
+
     {
       "id": "R-EE-001",
       "strideCategory": "R",
@@ -146,7 +146,7 @@
       "attackDE": "Fehlender Audit-Trail ermöglicht Abstreiten von Datenänderungen",
       "isCustom": false
     },
-    
+
     {
       "id": "I-P-001",
       "strideCategory": "I",
@@ -207,7 +207,7 @@
       "attackDE": "Angreifer greift auf sensible Daten über ungesicherte Backups oder ausführliche Protokolle zu",
       "isCustom": false
     },
-    
+
     {
       "id": "D-P-001",
       "strideCategory": "D",
@@ -258,7 +258,7 @@
       "attackDE": "Angreifer führt komplexe Abfragen aus, um Datenbankressourcen zu sperren",
       "isCustom": false
     },
-    
+
     {
       "id": "E-P-001",
       "strideCategory": "E",
@@ -290,7 +290,7 @@
       "isCustom": false
     },
     {
-      "id": "E-PI-001",
+      "id": "E-IF-001",
       "strideCategory": "E",
       "elementTypes": ["PhysicalInterface", "Interface"],
       "threat": "Physical access enables privilege escalation",
@@ -298,9 +298,70 @@
       "attack": "Attacker with physical access to debug interface gains elevated privileges",
       "attackDE": "Angreifer mit physischem Zugang zu Debug-Schnittstelle erlangt erhöhte Rechte",
       "isCustom": false
+    },
+
+    {
+      "id": "S-IF-001",
+      "strideCategory": "S",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Identity spoofing through physical interface",
+      "threatDE": "Identitätsfälschung über physische Schnittstelle",
+      "attack": "Attacker connects fake device to impersonate legitimate hardware",
+      "attackDE": "Angreifer verbindet gefälschtes Gerät, um legitime Hardware vorzutäuschen",
+      "isCustom": false
+    },
+    {
+      "id": "T-IF-001",
+      "strideCategory": "T",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Physical tampering through interface (hardware manipulation, voltage injection)",
+      "threatDE": "Physische Manipulation über Schnittstelle (Hardware-Manipulation, Spannungsinjektion)",
+      "attack": "Attacker connects manipulated hardware to alter device behavior or data",
+      "attackDE": "Angreifer verbindet manipulierte Hardware, um Geräteverhalten oder Daten zu ändern",
+      "isCustom": false
+    },
+    {
+      "id": "R-IF-001",
+      "strideCategory": "R",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Action repudiation through physical interface",
+      "threatDE": "Aktionsabstreitbarkeit über physische Schnittstelle",
+      "attack": "Attacker performs actions through interface that cannot be traced or logged",
+      "attackDE": "Angreifer führt Aktionen über Schnittstelle aus, die nicht nachvollziehbar oder protokolliert werden können",
+      "isCustom": false
+    },
+    {
+      "id": "I-IF-001",
+      "strideCategory": "I",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Information disclosure through physical interface (sniffing, side-channel attacks)",
+      "threatDE": "Informationspreisgabe über physische Schnittstelle (Abhören, Seitenkanalangriffe)",
+      "attack": "Attacker connects monitoring equipment to extract sensitive information",
+      "attackDE": "Angreifer verbindet Überwachungsgerät, um sensible Informationen zu extrahieren",
+      "isCustom": false
+    },
+    {
+      "id": "D-IF-001",
+      "strideCategory": "D",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Denial of Service through physical interface (short circuit, power surge, connector damage)",
+      "threatDE": "Dienstverweigerung über physische Schnittstelle (Kurzschluss, Spannungsspitzen, Steckerbeschädigung)",
+      "attack": "Attacker deliberately damages interface or causes electrical faults",
+      "attackDE": "Angreifer beschädigt Schnittstelle absichtlich oder verursacht elektrische Fehler",
+      "isCustom": false
+    },
+    {
+      "id": "E-IF-002",
+      "strideCategory": "E",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "threat": "Privilege escalation through physical interface (debug access, firmware manipulation)",
+      "threatDE": "Rechteausweitung über physische Schnittstelle (Debug-Zugriff, Firmware-Manipulation)",
+      "attack": "Attacker uses interface to gain unauthorized access or escalate privileges (e.g., JTAG debugging)",
+      "attackDE": "Angreifer nutzt Schnittstelle, um unbefugten Zugriff zu erlangen oder Rechte auszuweiten (z.B. JTAG-Debugging)",
+      "isCustom": false
     }
   ],
-  
+
   "mitigationTemplates": [
     {
       "id": "M-S-001",
@@ -337,7 +398,7 @@
       "mitigationDE": "IPSec für Netzwerkkommunikation implementieren",
       "isCustom": false
     },
-    
+
     {
       "id": "M-T-001",
       "strideCategory": "T",
@@ -373,7 +434,7 @@
       "mitigationDE": "TLS 1.3 für Daten während der Übertragung verwenden",
       "isCustom": false
     },
-    
+
     {
       "id": "M-R-001",
       "strideCategory": "R",
@@ -409,7 +470,7 @@
       "mitigationDE": "Starke Authentifizierung mit Audit-Trail",
       "isCustom": false
     },
-    
+
     {
       "id": "M-I-001",
       "strideCategory": "I",
@@ -445,7 +506,7 @@
       "mitigationDE": "Datenmaskierung für sensible Informationen anwenden",
       "isCustom": false
     },
-    
+
     {
       "id": "M-D-001",
       "strideCategory": "D",
@@ -481,7 +542,7 @@
       "mitigationDE": "Load Balancing zur Verteilung des Datenverkehrs verwenden",
       "isCustom": false
     },
-    
+
     {
       "id": "M-E-001",
       "strideCategory": "E",
@@ -523,9 +584,101 @@
       "mitigation": "Disable debug interfaces in production",
       "mitigationDE": "Debug-Schnittstellen in der Produktion deaktivieren",
       "isCustom": false
+    },
+
+    {
+      "id": "M-IF-S-001",
+      "strideCategory": "S",
+      "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)",
+      "mitigationDE": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-T-001",
+      "strideCategory": "T",
+      "mitigation": "Physical tamper detection and secure boot mechanisms",
+      "mitigationDE": "Physische Manipulationserkennung und Secure Boot-Mechanismen",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-T-002",
+      "strideCategory": "T",
+      "mitigation": "Epoxy encapsulation and tamper-evident seals",
+      "mitigationDE": "Epoxid-Verkapselung und manipulationssichere Siegel",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-R-001",
+      "strideCategory": "R",
+      "mitigation": "Log all physical interface access events with timestamps",
+      "mitigationDE": "Alle physischen Schnittstellenzugriffe mit Zeitstempeln protokollieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-I-001",
+      "strideCategory": "I",
+      "mitigation": "Encrypt data on physical buses (CAN encryption, secure protocols)",
+      "mitigationDE": "Daten auf physischen Bussen verschlüsseln (CAN-Verschlüsselung, sichere Protokolle)",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-I-002",
+      "strideCategory": "I",
+      "mitigation": "Shield cables and use EMI protection to prevent eavesdropping",
+      "mitigationDE": "Kabel abschirmen und EMI-Schutz verwenden, um Abhören zu verhindern",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-D-001",
+      "strideCategory": "D",
+      "mitigation": "Implement physical protection (ESD protection, overcurrent protection, fuses)",
+      "mitigationDE": "Physischen Schutz implementieren (ESD-Schutz, Überstromschutz, Sicherungen)",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-D-002",
+      "strideCategory": "D",
+      "mitigation": "Use redundant interfaces for critical functions",
+      "mitigationDE": "Redundante Schnittstellen für kritische Funktionen verwenden",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-E-002",
+      "strideCategory": "E",
+      "mitigation": "Disable or protect debug interfaces in production (JTAG lock, fuse blowing)",
+      "mitigationDE": "Debug-Schnittstellen in Produktion deaktivieren oder schützen (JTAG-Sperre, Fuse-Brennen)",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-E-003",
+      "strideCategory": "E",
+      "mitigation": "Implement firmware signature verification and rollback protection",
+      "mitigationDE": "Firmware-Signaturverifizierung und Rollback-Schutz implementieren",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-T-003",
+      "strideCategory": "T",
+      "mitigation": "Enclose interface in lockable, tamper-evident housing",
+      "mitigationDE": "Schnittstelle in abschliessbarem, manipulationssicherem Gehäuse unterbringen",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-T-004",
+      "strideCategory": "T",
+      "mitigation": "Use potting compound or conformal coating to protect circuit traces",
+      "mitigationDE": "Vergussmasse oder Schutzlack verwenden, um Leiterbahnen zu schützen",
+      "isCustom": false
+    },
+    {
+      "id": "M-IF-E-001",
+      "strideCategory": "E",
+      "mitigation": "Physically separate or remove debug interfaces in production units",
+      "mitigationDE": "Debug-Schnittstellen in Produktionseinheiten physisch trennen oder entfernen",
+      "isCustom": false
     }
   ],
-  
+
   "verificationTemplates": [
     {
       "id": "V-S-001",
@@ -555,7 +708,7 @@
       "verificationDE": "Sicherheitstests für Sitzungsverwaltung",
       "isCustom": false
     },
-    
+
     {
       "id": "V-T-001",
       "strideCategory": "T",
@@ -584,7 +737,7 @@
       "verificationDE": "Code-Review für Pufferüberlauf-Schwachstellen",
       "isCustom": false
     },
-    
+
     {
       "id": "V-R-001",
       "strideCategory": "R",
@@ -606,7 +759,7 @@
       "verificationDE": "Zeitstempelgenauigkeit und Quellenverifizierung",
       "isCustom": false
     },
-    
+
     {
       "id": "V-I-001",
       "strideCategory": "I",
@@ -635,7 +788,7 @@
       "verificationDE": "Sicherheitsscanning (Lynis, Nessus, OpenVAS)",
       "isCustom": false
     },
-    
+
     {
       "id": "V-D-001",
       "strideCategory": "D",
@@ -664,7 +817,7 @@
       "verificationDE": "Failover- und Wiederherstellungstests",
       "isCustom": false
     },
-    
+
     {
       "id": "V-E-001",
       "strideCategory": "E",
@@ -691,6 +844,56 @@
       "strideCategory": "E",
       "verification": "Physical security inspection of debug interfaces",
       "verificationDE": "Physische Sicherheitsinspektion von Debug-Schnittstellen",
+      "isCustom": false
+    },
+
+    {
+      "id": "V-IF-S-001",
+      "strideCategory": "S",
+      "verification": "Hardware authentication testing with unauthorized devices",
+      "verificationDE": "Hardware-Authentifizierungstests mit nicht autorisierten Geräten",
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-T-001",
+      "strideCategory": "T",
+      "verification": "Physical tampering tests (opening case, probing signals)",
+      "verificationDE": "Physische Manipulationstests (Gehäuse öffnen, Signale abhören)",
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-R-001",
+      "strideCategory": "R",
+      "verification": "Review interface access logs for completeness",
+      "verificationDE": "Schnittstellenzugriffsprotokolle auf Vollständigkeit überprüfen",
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-I-001",
+      "strideCategory": "I",
+      "verification": "Side-channel attack testing (power analysis, electromagnetic analysis)",
+      "verificationDE": "Seitenkanalangriffstests (Leistungsanalyse, elektromagnetische Analyse)",
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-D-001",
+      "strideCategory": "D",
+      "verification": "Electrical stress testing (ESD, overvoltage, short circuit)",
+      "verificationDE": "Elektrische Belastungstests (ESD, Überspannung, Kurzschluss)",
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-E-001",
+      "strideCategory": "E",
+      "verification": "Debug interface security testing (JTAG exploitation attempts)",
+      "verificationDE": "Debug-Schnittstellen-Sicherheitstests (JTAG-Exploit-Versuche)",
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-E-002",
+      "strideCategory": "E",
+      "verification": "Firmware verification and secure boot testing",
+      "verificationDE": "Firmware-Verifizierung und Secure-Boot-Tests",
       "isCustom": false
     }
   ]

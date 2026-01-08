@@ -108,27 +108,57 @@ export class ThreatService {
     return templates;
   }
 
+  /**
+   * Get mitigation templates filtered by STRIDE category and optionally by element type
+   * FOR PHYSICAL INTERFACES: Only return templates with "PI" in their ID
+   */
   getMitigationTemplates(
     strideCategory?: StrideCategory,
+    elementType?: string, // ADD THIS PARAMETER
     customTemplates: MitigationTemplate[] = []
   ): MitigationTemplate[] {
     let templates = [...this.catalog.mitigationTemplates, ...customTemplates];
 
+    // Filter by STRIDE category
     if (strideCategory) {
       templates = templates.filter((t) => t.strideCategory === strideCategory);
+    }
+
+    // NEW: Filter by element type for Physical/Interface elements
+    if (elementType === "PhysicalInterface" || elementType === "Interface") {
+      // Only show physical mitigations (those with -PI- in ID)
+      templates = templates.filter((t) => t.id.includes("-IF-"));
+    } else if (elementType) {
+      // For other elements, exclude physical mitigations
+      templates = templates.filter((t) => !t.id.includes("-IF-"));
     }
 
     return templates;
   }
 
+  /**
+   * Get verification templates filtered by STRIDE category and optionally by element type
+   * FOR PHYSICAL INTERFACES: Only return templates with "PI" in their ID
+   */
   getVerificationTemplates(
     strideCategory?: StrideCategory,
+    elementType?: string, // ADD THIS PARAMETER
     customTemplates: VerificationTemplate[] = []
   ): VerificationTemplate[] {
     let templates = [...this.catalog.verificationTemplates, ...customTemplates];
 
+    // Filter by STRIDE category
     if (strideCategory) {
       templates = templates.filter((t) => t.strideCategory === strideCategory);
+    }
+
+    // NEW: Filter by element type for Physical/Interface elements
+    if (elementType === "PhysicalInterface" || elementType === "Interface") {
+      // Only show physical verifications (those with -PI- in ID)
+      templates = templates.filter((t) => t.id.includes("-IF-"));
+    } else if (elementType) {
+      // For other elements, exclude physical verifications
+      templates = templates.filter((t) => !t.id.includes("-IF-"));
     }
 
     return templates;
@@ -156,7 +186,11 @@ export class ThreatService {
       const result =
         method === "per-element"
           ? this.generateThreatsPerElement(elements, connections)
-          : this.generateThreatsPerInteraction(elements, connections);
+          : this.generateThreatsPerInteraction(
+              elements,
+              connections,
+              configuration
+            );
 
       return {
         success: true,
@@ -195,7 +229,8 @@ export class ThreatService {
       );
       const perInteractionResult = this.generateThreatsPerInteraction(
         elements,
-        connections
+        connections,
+        configuration
       );
 
       return {
@@ -325,6 +360,26 @@ export class ThreatService {
           element.type
         );
 
+        let threatDescription = template?.threat || "";
+        let attackDescription = template?.attack || "";
+
+        if (
+          !template &&
+          (element.type === "Interface" || element.type === "PhysicalInterface")
+        ) {
+          // Use default interface descriptions (English - will be localized in UI if needed)
+          threatDescription = getDefaultInterfaceThreatDescription(
+            strideCategory,
+            element.name,
+            "en"
+          );
+          attackDescription = getDefaultInterfaceAttackDescription(
+            strideCategory,
+            element.name,
+            "en"
+          );
+        }
+
         threats.push({
           id: threatId,
           trustBoundaryId,
@@ -367,7 +422,8 @@ export class ThreatService {
    */
   private generateThreatsPerInteraction(
     elements: DFDElementReference[],
-    connections: DFDConnectionReference[]
+    connections: DFDConnectionReference[],
+    configuration: ThreatConfiguration
   ): { tables: ThreatTable[]; count: number } {
     const tables: ThreatTable[] = [];
     let totalCount = 0;
@@ -1595,6 +1651,22 @@ export class ThreatService {
     const elementByXmlId = new Map(elements.map((e) => [e.id, e]));
     const connectionByXmlId = new Map(connections.map((c) => [c.id, c]));
 
+    // Build Trust Boundary lookup to check for name changes
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    const trustBoundaryById = new Map(trustBoundaries.map((tb) => [tb.id, tb]));
+
+    // Check if any Trust Boundary names changed
+    let trustBoundaryNamesChanged = false;
+    for (const table of tables) {
+      if (table.trustBoundaryId) {
+        const tb = trustBoundaryById.get(table.trustBoundaryId);
+        if (tb && tb.name !== table.trustBoundaryName) {
+          trustBoundaryNamesChanged = true;
+          break;
+        }
+      }
+    }
+
     // Track which elements/connections have threats
     const elementIdsWithThreats = new Set<string>();
     const connectionIdsWithThreats = new Set<string>();
@@ -1698,7 +1770,8 @@ export class ThreatService {
       missingElements.length === 0 &&
       missingDataFlows.length === 0 &&
       orphanedThreatIds.length === 0 &&
-      changedElements.length === 0;
+      changedElements.length === 0 &&
+      !trustBoundaryNamesChanged;
 
     return {
       inSync,
@@ -1776,8 +1849,33 @@ export class ThreatService {
     const tables = threatData.perInteractionTables || [];
     const allThreats = tables.flatMap((t) => t.threats);
 
+    // Separate interface threats from data flow threats
+    const dataFlowThreats = allThreats.filter((t) => t.dataFlow !== null);
+    const interfaceThreats = allThreats.filter(
+      (t) =>
+        t.linkedElement &&
+        (t.linkedElement.elementType === "Interface" ||
+          t.linkedElement.elementType === "PhysicalInterface")
+    );
+
     // Build lookup maps
     const elementById = new Map(elements.map((e) => [e.id, e]));
+
+    // Build Trust Boundary lookup to check for name changes
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    const trustBoundaryById = new Map(trustBoundaries.map((tb) => [tb.id, tb]));
+
+    // Check if any Trust Boundary names changed (skip Interface tables)
+    let trustBoundaryNamesChanged = false;
+    for (const table of tables) {
+      if (table.trustBoundaryId && !isInterfaceTable(table)) {
+        const tb = trustBoundaryById.get(table.trustBoundaryId);
+        if (tb && tb.name !== table.trustBoundaryName) {
+          trustBoundaryNamesChanged = true;
+          break;
+        }
+      }
+    }
 
     // Map by displayId for matching (primary)
     const connectionByDisplayId = new Map(
@@ -1833,11 +1931,22 @@ export class ThreatService {
           changes.push("name");
         }
 
-        // Source/Target change (direction changed)
+        // Source/Target ID change (direction changed)
         if (oldRef.sourceId !== matchedConnection.from) {
           changes.push("source");
         }
         if (oldRef.targetId !== matchedConnection.to) {
+          changes.push("target");
+        }
+
+        // NEW: Check if source/target NAMES changed (element renamed)
+        const sourceElem = elementById.get(matchedConnection.from);
+        const targetElem = elementById.get(matchedConnection.to);
+
+        if (sourceElem && oldRef.sourceName !== sourceElem.name) {
+          changes.push("source");
+        }
+        if (targetElem && oldRef.targetName !== targetElem.name) {
           changes.push("target");
         }
 
@@ -1863,25 +1972,47 @@ export class ThreatService {
       return !connectionsWithThreats.has(c.id);
     });
 
+    // Check interface threats
+    const interfaceStatus = this.checkSyncStatusForInterfaces(
+      elements,
+      interfaceThreats,
+      now
+    );
+
+    // Add interface orphaned threats to the main list
+    orphanedThreatIds.push(...interfaceStatus.orphanedInterfaceThreats);
+
+    // Combine element changes (interfaces only for per-interaction)
+    const changedElements = interfaceStatus.changedInterfaceReferences;
+
     const inSync =
       missingDataFlows.length === 0 &&
+      interfaceStatus.missingInterfaces.length === 0 &&
       orphanedThreatIds.length === 0 &&
-      changedDataFlows.length === 0;
+      changedDataFlows.length === 0 &&
+      changedElements.length === 0 &&
+      !trustBoundaryNamesChanged;
 
     return {
       inSync,
-      missingInThreats: { elements: [], dataFlows: missingDataFlows },
+      missingInThreats: {
+        elements: interfaceStatus.missingInterfaces,
+        dataFlows: missingDataFlows,
+      },
       orphanedThreats: {
-        elementIds: [],
+        elementIds: [], // Could add interface IDs here if needed
         dataFlowIds: orphanedDataFlowIds,
         threatIds: orphanedThreatIds,
       },
-      changedReferences: { elements: [], dataFlows: changedDataFlows },
+      changedReferences: {
+        elements: changedElements,
+        dataFlows: changedDataFlows,
+      },
       summary: {
-        missingElementCount: 0,
+        missingElementCount: interfaceStatus.missingInterfaces.length,
         missingDataFlowCount: missingDataFlows.length,
         orphanedThreatCount: orphanedThreatIds.length,
-        changedReferenceCount: changedDataFlows.length,
+        changedReferenceCount: changedDataFlows.length + changedElements.length,
       },
       lastChecked: now,
     };
@@ -1971,6 +2102,7 @@ export class ThreatService {
     project: ThreatProjectData,
     threatData: ThreatData,
     method: StrideMethod,
+    configuration: ThreatConfiguration,
     options: { removeOrphaned?: boolean; updateReferences?: boolean } = {}
   ): ThreatSyncResult {
     const { removeOrphaned = false, updateReferences = true } = options;
@@ -1982,6 +2114,53 @@ export class ThreatService {
         return { success: true, added: 0, removed: 0, updated: 0, threatData };
       }
 
+      // ==================== SIMPLIFIED: Check if all threats deleted ====================
+      const activeTables =
+        method === "per-element"
+          ? threatData.perElementTables
+          : threatData.perInteractionTables;
+
+      const hasNoThreats =
+        !activeTables ||
+        activeTables.length === 0 ||
+        activeTables.every((t) => t.threats.length === 0);
+
+      if (hasNoThreats) {
+        // ALL THREATS DELETED: Simply regenerate (same as Generate Threats button)
+        const result = this.generateThreatsForMethod(
+          project,
+          configuration,
+          method
+        );
+
+        if (result.success) {
+          const updatedData: ThreatData = {
+            ...threatData,
+            ...(method === "per-element"
+              ? { perElementTables: result.tables }
+              : { perInteractionTables: result.tables }),
+            lastModified: new Date().toISOString(),
+          };
+
+          return {
+            success: true,
+            added: result.tables.reduce((sum, t) => sum + t.threats.length, 0),
+            removed: 0,
+            updated: 0,
+            threatData: updatedData,
+          };
+        } else {
+          return {
+            success: false,
+            added: 0,
+            removed: 0,
+            updated: 0,
+            error: result.error,
+          };
+        }
+      }
+
+      // ==================== EXISTING: Delta sync for partial changes ====================
       let updatedData = { ...threatData };
       let added = 0;
       let removed = 0;
@@ -2005,7 +2184,8 @@ export class ThreatService {
           updatedData,
           syncStatus,
           removeOrphaned,
-          updateReferences
+          updateReferences,
+          configuration
         );
         updatedData = result.threatData;
         added = result.added;
@@ -2046,9 +2226,29 @@ export class ThreatService {
     updated: number;
   } {
     let tables = [...(threatData.perElementTables || [])];
+    const elements = project.dfdElements || [];
     let added = 0;
     let removed = 0;
     let updated = 0;
+
+    // Build Trust Boundary lookup for name updates
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    const trustBoundaryById = new Map(trustBoundaries.map((tb) => [tb.id, tb]));
+
+    // Update Trust Boundary names in tables
+    tables = tables.map((table) => {
+      if (!table.trustBoundaryId) return table;
+
+      const tb = trustBoundaryById.get(table.trustBoundaryId);
+      if (tb && tb.name !== table.trustBoundaryName) {
+        updated++;
+        return {
+          ...table,
+          trustBoundaryName: tb.name,
+        };
+      }
+      return table;
+    });
 
     // Update changed references
     if (updateReferences && syncStatus.changedReferences.elements.length > 0) {
@@ -2098,7 +2298,7 @@ export class ThreatService {
       syncStatus.missingInThreats.elements.length > 0 ||
       syncStatus.missingInThreats.dataFlows.length > 0
     ) {
-      const elements = project.dfdElements || [];
+      const allElements = project.dfdElements || [];
       const connections = project.dfdConnections || [];
 
       // Generate new threats only for missing elements
@@ -2110,9 +2310,7 @@ export class ThreatService {
       // Merge new threats into existing tables
       for (const newTable of newThreatsResult.tables) {
         const existingTable = tables.find(
-          (t) =>
-            t.trustBoundaryId === newTable.trustBoundaryId ||
-            t.trustBoundaryName === newTable.trustBoundaryName
+          (t) => t.trustBoundaryName === newTable.trustBoundaryName
         );
 
         if (existingTable) {
@@ -2141,7 +2339,8 @@ export class ThreatService {
     threatData: ThreatData,
     syncStatus: ThreatSyncStatus,
     removeOrphaned: boolean,
-    updateReferences: boolean
+    updateReferences: boolean,
+    configuration: ThreatConfiguration
   ): {
     threatData: ThreatData;
     added: number;
@@ -2157,7 +2356,88 @@ export class ThreatService {
     // Build element lookup for updating source/target names
     const elementById = new Map(elements.map((e) => [e.id, e]));
 
-    // Update changed references
+    // Build Trust Boundary lookup for name updates
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    const trustBoundaryById = new Map(trustBoundaries.map((tb) => [tb.id, tb]));
+
+    // Update Trust Boundary names in tables (BUT NOT for Interface tables)
+    tables = tables.map((table) => {
+      if (!table.trustBoundaryId) return table;
+
+      // Skip interface tables - they have special naming "Physical Interfaces [TB-X]"
+      if (isInterfaceTable(table)) return table;
+
+      const tb = trustBoundaryById.get(table.trustBoundaryId);
+      if (tb && tb.name !== table.trustBoundaryName) {
+        updated++;
+        return {
+          ...table,
+          trustBoundaryName: tb.name,
+        };
+      }
+      return table;
+    });
+
+    // Update source/target names in DataFlow threats when elements change
+    // This handles cases where Process/ExternalEntity names change but connections don't
+    tables = tables.map((table) => ({
+      ...table,
+      threats: table.threats.map((threat) => {
+        if (!threat.dataFlow) return threat;
+
+        const sourceElem = elementById.get(threat.dataFlow.sourceId);
+        const targetElem = elementById.get(threat.dataFlow.targetId);
+
+        const sourceChanged =
+          sourceElem && sourceElem.name !== threat.dataFlow.sourceName;
+        const targetChanged =
+          targetElem && targetElem.name !== threat.dataFlow.targetName;
+
+        if (sourceChanged || targetChanged) {
+          updated++;
+          return {
+            ...threat,
+            dataFlow: {
+              ...threat.dataFlow,
+              sourceName: sourceElem?.name || threat.dataFlow.sourceName,
+              targetName: targetElem?.name || threat.dataFlow.targetName,
+            },
+            lastModified: new Date().toISOString(),
+          };
+        }
+        return threat;
+      }),
+    }));
+
+    // Update changed interface/element references
+    if (updateReferences && syncStatus.changedReferences.elements.length > 0) {
+      const changeMap = new Map(
+        syncStatus.changedReferences.elements.map((c) => [c.threatId, c])
+      );
+
+      tables = tables.map((table) => ({
+        ...table,
+        threats: table.threats.map((threat) => {
+          const change = changeMap.get(threat.id);
+          if (change && threat.linkedElement) {
+            updated++;
+            return {
+              ...threat,
+              linkedElement: {
+                elementId: threat.linkedElement.elementId, // Keep XML ID (stable)
+                elementName: change.newRef.name,
+                elementType: change.newRef.type,
+                displayId: change.newRef.displayId, // Update displayId
+              },
+              lastModified: new Date().toISOString(),
+            };
+          }
+          return threat;
+        }),
+      }));
+    }
+
+    // Update changed data flow references
     if (updateReferences && syncStatus.changedReferences.dataFlows.length > 0) {
       const changeMap = new Map(
         syncStatus.changedReferences.dataFlows.map((c) => [c.threatId, c])
@@ -2227,20 +2507,33 @@ export class ThreatService {
       }));
     }
 
-    // Generate threats for missing data flows
-    if (syncStatus.missingInThreats.dataFlows.length > 0) {
-      // Generate new threats only for missing connections
+    // Generate threats for missing data flows and interfaces
+    if (
+      syncStatus.missingInThreats.dataFlows.length > 0 ||
+      syncStatus.missingInThreats.elements.length > 0 // <-- NEU
+    ) {
+      const connections = project.dfdConnections || [];
+
+      // Filter only missing connections
+      const missingConnections = connections.filter((conn) =>
+        syncStatus.missingInThreats.dataFlows.some(
+          (missing) => missing.id === conn.id
+        )
+      );
+
+      // Generate new threats for missing data flows and interfaces
+      // Note: generateThreatsPerInteraction() automatically generates interface threats
+      // when there are interfaces in the elements array
       const newThreatsResult = this.generateThreatsPerInteraction(
-        elements,
-        syncStatus.missingInThreats.dataFlows
+        elements, // All elements (includes interfaces)
+        missingConnections,
+        configuration
       );
 
       // Merge new threats into existing tables
       for (const newTable of newThreatsResult.tables) {
         const existingTable = tables.find(
-          (t) =>
-            t.trustBoundaryId === newTable.trustBoundaryId ||
-            t.trustBoundaryName === newTable.trustBoundaryName
+          (t) => t.trustBoundaryName === newTable.trustBoundaryName
         );
 
         if (existingTable) {
