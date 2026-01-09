@@ -22,7 +22,6 @@ export interface ParseResult {
  * Single Responsibility: Only handles XML parsing, no storage or validation
  */
 export class DFDParser {
-  
   /**
    * Parse Draw.io XML string to structured data
    */
@@ -32,7 +31,7 @@ export class DFDParser {
     const unconnectedDataflows: string[] = [];
     const stats = this.createEmptyStats();
 
-    if (!xml || xml.trim() === '') {
+    if (!xml || xml.trim() === "") {
       return { elements, connections, stats, unconnectedDataflows };
     }
 
@@ -68,9 +67,8 @@ export class DFDParser {
 
       // Assign displayIds from ID labels to connections and elements
       this.assignDisplayIds(connections, elements, idLabels);
-
     } catch (error) {
-      console.error('DFDParser: Failed to parse XML', error);
+      console.error("DFDParser: Failed to parse XML", error);
     }
 
     return { elements, connections, stats, unconnectedDataflows };
@@ -92,7 +90,7 @@ export class DFDParser {
 
   private parseXmlString(xml: string): Document {
     const parser = new DOMParser();
-    return parser.parseFromString(xml, 'text/xml');
+    return parser.parseFromString(xml, "text/xml");
   }
 
   private createEmptyStats(): DFDStats {
@@ -107,6 +105,8 @@ export class DFDParser {
       physicalInterfaces: 0,
       assets: 0,
       interfaces: 0,
+      describedElements: 0,
+      describedConnections: 0,
     };
   }
 
@@ -117,7 +117,7 @@ export class DFDParser {
    */
   private collectIdLabels(doc: Document): Map<string, string> {
     const idLabels = new Map<string, string>();
-    
+
     const objects = doc.getElementsByTagName("object");
     Array.from(objects).forEach((obj) => {
       const objType = (
@@ -130,13 +130,13 @@ export class DFDParser {
         // Get the label text (e.g., "DF-1", "P-1")
         const label = obj.getAttribute("label") || "";
         const cleanedLabel = this.cleanLabel(label);
-        
+
         // Find the parent element ID from the child mxCell
         const childCells = obj.getElementsByTagName("mxCell");
         if (childCells.length > 0) {
           const mxCell = childCells[0];
           const parentId = mxCell.getAttribute("parent");
-          
+
           if (parentId && parentId !== "0" && parentId !== "1") {
             idLabels.set(parentId, cleanedLabel);
           }
@@ -224,6 +224,7 @@ export class DFDParser {
           from: source,
           to: target,
           label: this.cleanLabel(label),
+          description: "",
           waypoints: waypoints.length > 0 ? waypoints : undefined,
           properties: {
             protocol: "",
@@ -290,14 +291,14 @@ export class DFDParser {
     elements.push(element);
     this.updateStats(stats, elementType);
   }
-  
+
   /**
    * Find object element by ID
    */
   private findObjectById(doc: Document, id: string): Element | null {
-    const objects = doc.getElementsByTagName('object');
+    const objects = doc.getElementsByTagName("object");
     for (let i = 0; i < objects.length; i++) {
-      if (objects[i].getAttribute('id') === id) {
+      if (objects[i].getAttribute("id") === id) {
         return objects[i];
       }
     }
@@ -307,31 +308,33 @@ export class DFDParser {
   /**
    * Extract waypoints from geometry (for curved/orthogonal dataflows)
    */
-  private extractWaypoints(geometry: Element | undefined): Array<{ x: number; y: number }> {
+  private extractWaypoints(
+    geometry: Element | undefined
+  ): Array<{ x: number; y: number }> {
     if (!geometry) return [];
-    
+
     const waypoints: Array<{ x: number; y: number }> = [];
-    
-    const arrays = geometry.getElementsByTagName('Array');
+
+    const arrays = geometry.getElementsByTagName("Array");
     for (let i = 0; i < arrays.length; i++) {
-      if (arrays[i].getAttribute('as') === 'points') {
-        const points = arrays[i].getElementsByTagName('mxPoint');
+      if (arrays[i].getAttribute("as") === "points") {
+        const points = arrays[i].getElementsByTagName("mxPoint");
         for (let j = 0; j < points.length; j++) {
           waypoints.push({
-            x: parseFloat(points[j].getAttribute('x') || '0'),
-            y: parseFloat(points[j].getAttribute('y') || '0')
+            x: parseFloat(points[j].getAttribute("x") || "0"),
+            y: parseFloat(points[j].getAttribute("y") || "0"),
           });
         }
       }
     }
-    
+
     return waypoints;
   }
 
   private processCell(
-    cell: Element, 
-    elements: DFDElement[], 
-    connections: DFDConnection[], 
+    cell: Element,
+    elements: DFDElement[],
+    connections: DFDConnection[],
     unconnectedDataflows: string[],
     stats: DFDStats
   ): void {
@@ -379,7 +382,7 @@ export class DFDParser {
     if (isDataflow) {
       if (source && target) {
         // Properly connected dataflow
-        connections.push(this.createConnection(id, source, target, value));
+        connections.push(this.createConnection(id, source, target, value, ""));
         stats.dataFlows++;
       } else {
         // Unconnected dataflow - has coordinates but not connected to elements
@@ -407,22 +410,24 @@ export class DFDParser {
   }
 
   private isRootCell(id: string): boolean {
-    return id === '0' || id === '1';
+    return id === "0" || id === "1";
   }
 
   private createConnection(
-    id: string, 
-    from: string, 
-    to: string, 
-    label: string
+    id: string,
+    from: string,
+    to: string,
+    label: string,
+    description: string
   ): DFDConnection {
     return {
       id,
       from,
       to,
       label: this.cleanLabel(label),
+      description,
       properties: {
-        protocol: '',
+        protocol: "",
         encrypted: false,
       },
     };
@@ -432,24 +437,27 @@ export class DFDParser {
    * Clean HTML from label (DrawIO sometimes wraps text in divs)
    */
   private cleanLabel(label: string): string {
-    if (!label) return '';
-    
+    if (!label) return "";
+
     // Remove HTML tags and decode entities
     const cleaned = label
-      .replace(/<[^>]*>/g, ' ')  // Replace HTML tags with space
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>/g, " ") // Replace HTML tags with space
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/&nbsp;/g, " ")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
-      .replace(/\s+/g, ' ')      // Collapse multiple spaces
+      .replace(/\s+/g, " ") // Collapse multiple spaces
       .trim();
-    
+
     return cleaned;
   }
 
-  private createElementFromCell(cell: Element, geometry: Element): DFDElement | null {
+  private createElementFromCell(
+    cell: Element,
+    geometry: Element
+  ): DFDElement | null {
     const id = cell.getAttribute("id") || "";
     const value = cell.getAttribute("value") || "";
     const type = this.determineElementType(cell);
@@ -527,10 +535,11 @@ export class DFDParser {
   }
 
   private mapStyleToType(style: string): DFDElementType | null {
-    if (style.includes('ellipse')) return 'Process';
-    if (style.includes('cylinder') || style.includes('parallelogram')) return 'DataStore';
-    if (style.includes('dashed')) return 'TrustBoundary';
-    if (style.includes('rectangle')) return 'ExternalEntity';
+    if (style.includes("ellipse")) return "Process";
+    if (style.includes("cylinder") || style.includes("parallelogram"))
+      return "DataStore";
+    if (style.includes("dashed")) return "TrustBoundary";
+    if (style.includes("rectangle")) return "ExternalEntity";
     return null;
   }
 
