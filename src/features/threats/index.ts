@@ -23,4 +23,5 @@ export {
   shouldUseTemplateLocalization,
   getSuggestedMitigations,
   getEffectiveThreatDescription,
+  getEffectiveAttackDescription,
 } from "./services/interaction-templates";

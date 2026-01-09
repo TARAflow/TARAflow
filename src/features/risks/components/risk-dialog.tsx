@@ -42,6 +42,7 @@ import {
   Alert,
   Paper,
   SelectChangeEvent,
+  Collapse,
 } from "@mui/material";
 import {
   Info as InfoIcon,
@@ -50,6 +51,8 @@ import {
   Delete as DeleteIcon,
   ContentPaste as PasteIcon,
   Sync as SyncIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 
 import {
@@ -114,209 +117,229 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showMitigationSyncDialog, setShowMitigationSyncDialog] =
     useState(false);
+  const [threatInfoExpanded, setThreatInfoExpanded] = React.useState(true);
 
-  // Ref for auto-scroll to Won't justification field
-  const wontJustificationRef = useRef<HTMLDivElement>(null);
+    // Ref for auto-scroll to Won't justification field
+    const wontJustificationRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to justification field when Won't is selected
-  useEffect(() => {
-    if (editedRisk.moscowPriority === "wont" && wontJustificationRef.current) {
-      // Small delay to ensure the field is rendered
-      setTimeout(() => {
-        wontJustificationRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 100);
-    }
-  }, [editedRisk.moscowPriority]);
+    // Auto-scroll to justification field when Won't is selected
+    useEffect(() => {
+      if (
+        editedRisk.moscowPriority === "wont" &&
+        wontJustificationRef.current
+      ) {
+        // Small delay to ensure the field is rendered
+        setTimeout(() => {
+          wontJustificationRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }, 100);
+      }
+    }, [editedRisk.moscowPriority]);
 
-  const scale = RISK_SCALES[configuration.scale];
-  const isSimple = configuration.method === "simple";
+    const scale = RISK_SCALES[configuration.scale];
+    const isSimple = configuration.method === "simple";
 
-  // Check if there's original mitigation data from threat
-  const hasOriginalMitigation = Boolean(editedRisk.originalMitigation?.trim());
-
-  // Check if threat mitigation has changed since last sync
-  const threatMitigationChanged = useMemo(() => {
-    if (!threatReference) return false;
-    return threatReference.mitigation !== editedRisk.originalMitigation;
-  }, [threatReference, editedRisk.originalMitigation]);
-
-  // Check if threat description has changed
-  const threatDescriptionChanged = useMemo(() => {
-    if (!threatReference) return false;
-    return threatReference.threatDescription !== editedRisk.threatDescription;
-  }, [threatReference, editedRisk.threatDescription]);
-
-  // ==================== CALCULATED VALUES ====================
-
-  const beforeValues = useMemo(() => {
-    return calculateRiskValues(editedRisk.factorRatings, configuration);
-  }, [editedRisk.factorRatings, configuration]);
-
-  const afterValues = useMemo(() => {
-    return calculateRiskValues(
-      editedRisk.mitigatedFactorRatings,
-      configuration
+    // Check if there's original mitigation data from threat
+    const hasOriginalMitigation = Boolean(
+      editedRisk.originalMitigation?.trim()
     );
-  }, [editedRisk.mitigatedFactorRatings, configuration]);
 
-  // ==================== FACTOR GROUPS ====================
+    // Check if threat mitigation has changed since last sync
+    const threatMitigationChanged = useMemo(() => {
+      if (!threatReference) return false;
+      return threatReference.mitigation !== editedRisk.originalMitigation;
+    }, [threatReference, editedRisk.originalMitigation]);
 
-  const { impactFactors, likelihoodFactors, combinedFactors } = useMemo(() => {
-    const allFactors = configuration.activeFactors
-      .filter((af) => af.enabled)
-      .map((af) => ({
-        ...af,
-        definition: getFactorDefinition(
-          af.factorId,
-          configuration.customFactors
-        ),
-      }))
-      .filter((f) => f.definition !== undefined);
+    // Check if threat description has changed
+    const threatDescriptionChanged = useMemo(() => {
+      if (!threatReference) return false;
+      return threatReference.threatDescription !== editedRisk.threatDescription;
+    }, [threatReference, editedRisk.threatDescription]);
 
-    return {
-      impactFactors: allFactors.filter(
-        (f) => f.definition!.category === "impact"
-      ),
-      likelihoodFactors: allFactors.filter(
-        (f) => f.definition!.category === "likelihood"
-      ),
-      combinedFactors: allFactors.filter(
-        (f) => f.definition!.category === "combined"
-      ),
-    };
-  }, [configuration]);
+    // Check if threat description has changed
+    const attackDescriptionChanged = useMemo(() => {
+      if (!threatReference) return false;
+      return threatReference.attackDescription !== editedRisk.attackDescription;
+    }, [threatReference, editedRisk.attackDescription]);
 
-  // ==================== HANDLERS ====================
+    // ==================== CALCULATED VALUES ====================
 
-  const handleFactorChange = useCallback(
-    (factorId: string, value: number, isMitigated: boolean) => {
-      setEditedRisk((prev) => {
-        const ratings = isMitigated
-          ? prev.mitigatedFactorRatings
-          : prev.factorRatings;
-        const updatedRatings = ratings.map((r) =>
-          r.factorId === factorId ? { ...r, value } : r
-        );
-        return isMitigated
-          ? { ...prev, mitigatedFactorRatings: updatedRatings }
-          : { ...prev, factorRatings: updatedRatings };
-      });
-    },
-    []
-  );
+    const beforeValues = useMemo(() => {
+      return calculateRiskValues(editedRisk.factorRatings, configuration);
+    }, [editedRisk.factorRatings, configuration]);
 
-  const handleCopyToMitigated = useCallback(() => {
-    setEditedRisk((prev) => ({
-      ...prev,
-      mitigatedFactorRatings: prev.factorRatings.map((r) => ({ ...r })),
-    }));
-  }, []);
+    const afterValues = useMemo(() => {
+      return calculateRiskValues(
+        editedRisk.mitigatedFactorRatings,
+        configuration
+      );
+    }, [editedRisk.mitigatedFactorRatings, configuration]);
 
-  const handlePriorityChange = useCallback(
-    (e: SelectChangeEvent<MoSCoWPriority>) => {
-      const priority = e.target.value as MoSCoWPriority;
+    // ==================== FACTOR GROUPS ====================
+
+    const { impactFactors, likelihoodFactors, combinedFactors } =
+      useMemo(() => {
+        const allFactors = configuration.activeFactors
+          .filter((af) => af.enabled)
+          .map((af) => ({
+            ...af,
+            definition: getFactorDefinition(
+              af.factorId,
+              configuration.customFactors
+            ),
+          }))
+          .filter((f) => f.definition !== undefined);
+
+        return {
+          impactFactors: allFactors.filter(
+            (f) => f.definition!.category === "impact"
+          ),
+          likelihoodFactors: allFactors.filter(
+            (f) => f.definition!.category === "likelihood"
+          ),
+          combinedFactors: allFactors.filter(
+            (f) => f.definition!.category === "combined"
+          ),
+        };
+      }, [configuration]);
+
+    // ==================== HANDLERS ====================
+
+    const handleFactorChange = useCallback(
+      (factorId: string, value: number, isMitigated: boolean) => {
+        setEditedRisk((prev) => {
+          const ratings = isMitigated
+            ? prev.mitigatedFactorRatings
+            : prev.factorRatings;
+          const updatedRatings = ratings.map((r) =>
+            r.factorId === factorId ? { ...r, value } : r
+          );
+          return isMitigated
+            ? { ...prev, mitigatedFactorRatings: updatedRatings }
+            : { ...prev, factorRatings: updatedRatings };
+        });
+      },
+      []
+    );
+
+    const handleCopyToMitigated = useCallback(() => {
       setEditedRisk((prev) => ({
         ...prev,
-        moscowPriority: priority,
-        // Sync status: wont → wont-do, leaving wont → open
-        status:
-          priority === "wont"
-            ? "wont-do"
-            : prev.status === "wont-do"
-            ? "open"
-            : prev.status,
+        mitigatedFactorRatings: prev.factorRatings.map((r) => ({ ...r })),
       }));
-    },
-    []
-  );
+    }, []);
 
-  const handleStatusChange = useCallback((e: SelectChangeEvent<RiskStatus>) => {
-    const status = e.target.value as RiskStatus;
-    setEditedRisk((prev) => ({
-      ...prev,
-      status,
-      // Sync priority: wont-do → wont, leaving wont-do → should
-      moscowPriority:
-        status === "wont-do"
-          ? "wont"
-          : prev.moscowPriority === "wont"
-          ? "should"
-          : prev.moscowPriority,
-    }));
-  }, []);
+    const handlePriorityChange = useCallback(
+      (e: SelectChangeEvent<MoSCoWPriority>) => {
+        const priority = e.target.value as MoSCoWPriority;
+        setEditedRisk((prev) => ({
+          ...prev,
+          moscowPriority: priority,
+          // Sync status: wont → wont-do, leaving wont → open
+          status:
+            priority === "wont"
+              ? "wont-do"
+              : prev.status === "wont-do"
+              ? "open"
+              : prev.status,
+        }));
+      },
+      []
+    );
 
-  const handleMitigationChange = useCallback((index: number, value: string) => {
-    setEditedRisk((prev) => {
-      const updated = [...prev.selectedMitigations];
-      updated[index] = value;
-      return { ...prev, selectedMitigations: updated };
-    });
-  }, []);
+    const handleStatusChange = useCallback(
+      (e: SelectChangeEvent<RiskStatus>) => {
+        const status = e.target.value as RiskStatus;
+        setEditedRisk((prev) => ({
+          ...prev,
+          status,
+          // Sync priority: wont-do → wont, leaving wont-do → should
+          moscowPriority:
+            status === "wont-do"
+              ? "wont"
+              : prev.moscowPriority === "wont"
+              ? "should"
+              : prev.moscowPriority,
+        }));
+      },
+      []
+    );
 
-  const handleAddMitigation = useCallback(() => {
-    setEditedRisk((prev) => ({
-      ...prev,
-      selectedMitigations: [...prev.selectedMitigations, ""],
-    }));
-  }, []);
+    const handleMitigationChange = useCallback(
+      (index: number, value: string) => {
+        setEditedRisk((prev) => {
+          const updated = [...prev.selectedMitigations];
+          updated[index] = value;
+          return { ...prev, selectedMitigations: updated };
+        });
+      },
+      []
+    );
 
-  const handleRemoveMitigation = useCallback((index: number) => {
-    setEditedRisk((prev) => ({
-      ...prev,
-      selectedMitigations: prev.selectedMitigations.filter(
-        (_, i) => i !== index
-      ),
-    }));
-  }, []);
-
-  // Copy original mitigation from threat
-  const handleCopyOriginalMitigation = useCallback(() => {
-    if (!editedRisk.originalMitigation) return;
-
-    setEditedRisk((prev) => {
-      // Check if already exists
-      if (prev.selectedMitigations.includes(prev.originalMitigation)) {
-        return prev;
-      }
-      // Add to list (replace empty or add new)
-      const emptyIndex = prev.selectedMitigations.findIndex((m) => !m.trim());
-      if (emptyIndex >= 0) {
-        const updated = [...prev.selectedMitigations];
-        updated[emptyIndex] = prev.originalMitigation;
-        return { ...prev, selectedMitigations: updated };
-      }
-      return {
+    const handleAddMitigation = useCallback(() => {
+      setEditedRisk((prev) => ({
         ...prev,
-        selectedMitigations: [
-          ...prev.selectedMitigations,
-          prev.originalMitigation,
-        ],
-      };
-    });
-  }, [editedRisk.originalMitigation]);
+        selectedMitigations: [...prev.selectedMitigations, ""],
+      }));
+    }, []);
 
-  // Sync mitigation from threat (when threat mitigation has changed)
-  const handleSyncMitigationFromThreat = useCallback(() => {
-    if (!threatReference) return;
-
-    setEditedRisk((prev) => {
-      const newMitigation = threatReference.mitigation || "";
-
-      // Update originalMitigation
-      // Replace selectedMitigations with new value (user confirmed)
-      return {
+    const handleRemoveMitigation = useCallback((index: number) => {
+      setEditedRisk((prev) => ({
         ...prev,
-        originalMitigation: newMitigation,
-        selectedMitigations: newMitigation ? [newMitigation] : [],
-        threatDescription: threatReference.threatDescription,
-      };
-    });
+        selectedMitigations: prev.selectedMitigations.filter(
+          (_, i) => i !== index
+        ),
+      }));
+    }, []);
 
-    setShowMitigationSyncDialog(false);
-  }, [threatReference]);
+    // Copy original mitigation from threat
+    const handleCopyOriginalMitigation = useCallback(() => {
+      if (!editedRisk.originalMitigation) return;
+
+      setEditedRisk((prev) => {
+        // Check if already exists
+        if (prev.selectedMitigations.includes(prev.originalMitigation)) {
+          return prev;
+        }
+        // Add to list (replace empty or add new)
+        const emptyIndex = prev.selectedMitigations.findIndex((m) => !m.trim());
+        if (emptyIndex >= 0) {
+          const updated = [...prev.selectedMitigations];
+          updated[emptyIndex] = prev.originalMitigation;
+          return { ...prev, selectedMitigations: updated };
+        }
+        return {
+          ...prev,
+          selectedMitigations: [
+            ...prev.selectedMitigations,
+            prev.originalMitigation,
+          ],
+        };
+      });
+    }, [editedRisk.originalMitigation]);
+
+    // Sync mitigation from threat (when threat mitigation has changed)
+    const handleSyncMitigationFromThreat = useCallback(() => {
+      if (!threatReference) return;
+
+      setEditedRisk((prev) => {
+        const newMitigation = threatReference.mitigation || "";
+
+        // Update originalMitigation
+        // Replace selectedMitigations with new value (user confirmed)
+        return {
+          ...prev,
+          originalMitigation: newMitigation,
+          selectedMitigations: newMitigation ? [newMitigation] : [],
+          threatDescription: threatReference.threatDescription,
+          attackDescription: threatReference.attackDescription,
+        };
+      });
+
+      setShowMitigationSyncDialog(false);
+    }, [threatReference]);
 
   const handleSave = useCallback(() => {
     const newErrors: Record<string, string> = {};
@@ -473,73 +496,132 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Threat Description */}
+          {/* Threat Information */}
           <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              {t("tabs.risks.dialog.threatDescription", {
-                defaultValue: "Threat Description",
-              })}
-            </Typography>
-            <Typography variant="body1">
-              {editedRisk.threatDescription}
-            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => setThreatInfoExpanded((prev) => !prev)}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+              }}
+            >
+              {threatInfoExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
 
-            {/* Original Mitigation from Threat */}
-            {hasOriginalMitigation && (
-              <Box
-                sx={{
-                  mt: 2,
-                  pt: 2,
-                  borderTop: "1px solid",
-                  borderColor: "divider",
-                }}
+            <Collapse in={threatInfoExpanded} timeout="auto" unmountOnExit>
+              {/* Threat Description */}
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
               >
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  alignItems="center"
-                  sx={{ mb: 1 }}
-                >
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ flexGrow: 1 }}
-                  >
-                    {t("tabs.risks.dialog.originalMitigation", {
-                      defaultValue: "Original Mitigation (from Threat)",
-                    })}
-                  </Typography>
-                  <Tooltip
-                    title={t("tabs.risks.dialog.copyToMitigations", {
-                      defaultValue: "Copy to Selected Mitigations",
-                    })}
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={handleCopyOriginalMitigation}
-                      color="primary"
-                    >
-                      <PasteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
+                {t("tabs.risks.dialog.threatDescription", {
+                  defaultValue: "Threat Description",
+                })}
+              </Typography>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                {editedRisk.threatDescription}
+              </Typography>
+
+              {/* Attack Description */}
+              <Divider sx={{ my: 2 }} />
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
+                {t("tabs.risks.dialog.attackDescription", {
+                  defaultValue: "Attack Description",
+                })}
+              </Typography>
+
+              {editedRisk.attackDescription?.trim() ? (
+                /* ✅ Gleich wie Threat Description */
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {editedRisk.attackDescription}
+                </Typography>
+              ) : (
+                /* ❌ Fehlerzustand */
                 <Typography
-                  variant="body2"
+                  variant="body1"
                   sx={{
-                    backgroundColor: "grey.50",
-                    p: 1,
+                    backgroundColor: "error.50",
+                    p: 1.5,
                     borderRadius: 1,
+                    border: "1px solid",
+                    borderColor: "error.main",
+                    color: "error.main",
+                    fontStyle: "italic",
                     whiteSpace: "pre-wrap",
                   }}
                 >
-                  {editedRisk.originalMitigation}
+                  {t("tabs.risks.noAttack", {
+                    defaultValue: "No attack description available",
+                  })}
                 </Typography>
-              </Box>
-            )}
+              )}
+
+              {/* Original Mitigation from Threat */}
+              {hasOriginalMitigation && (
+                <Box
+                  sx={{
+                    mt: 2,
+                    pt: 2,
+                    borderTop: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    sx={{ mb: 1 }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ flexGrow: 1 }}
+                    >
+                      {t("tabs.risks.dialog.originalMitigation", {
+                        defaultValue: "Original Mitigation (from Threat)",
+                      })}
+                    </Typography>
+                    <Tooltip
+                      title={t("tabs.risks.dialog.copyToMitigations", {
+                        defaultValue: "Copy to Selected Mitigations",
+                      })}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={handleCopyOriginalMitigation}
+                        color="primary"
+                      >
+                        <PasteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      backgroundColor: "grey.50",
+                      p: 1,
+                      borderRadius: 1,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {editedRisk.originalMitigation}
+                  </Typography>
+                </Box>
+              )}
+            </Collapse>
           </Paper>
 
           {/* Out-of-Sync Alert */}
-          {(threatDescriptionChanged || threatMitigationChanged) && (
+          {(threatDescriptionChanged ||
+            attackDescriptionChanged ||
+            threatMitigationChanged) && (
             <Alert
               severity="warning"
               action={
@@ -555,10 +637,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 </Button>
               }
             >
-              {threatDescriptionChanged && threatMitigationChanged
+              {threatDescriptionChanged &&
+              attackDescriptionChanged &&
+              threatMitigationChanged
                 ? t("tabs.risks.dialog.threatAndMitigationChanged", {
                     defaultValue:
-                      "Threat description and mitigation have changed in the Threats tab.",
+                      "Threat description, attack description and mitigation have changed in the Threats tab.",
                   })
                 : threatDescriptionChanged
                 ? t("tabs.risks.dialog.threatDescriptionChanged", {
@@ -1058,6 +1142,46 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 >
                   <Typography variant="body2">
                     {threatReference?.threatDescription || "(empty)"}
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
+
+            {attackDescriptionChanged && (
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  {t("tabs.risks.dialog.currentAttack", {
+                    defaultValue: "Current Attack:",
+                  })}
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, mb: 2, backgroundColor: "grey.50" }}
+                >
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                    {editedRisk.attackDescription || "(empty)"}
+                  </Typography>
+                </Paper>
+
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  {t("tabs.risks.dialog.newAttack", {
+                    defaultValue: "New Attack (from Threat):",
+                  })}
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    borderColor: "primary.main",
+                    backgroundColor: "primary.50",
+                  }}
+                >
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                    {threatReference?.attackDescription || "(empty)"}
                   </Typography>
                 </Paper>
               </Box>

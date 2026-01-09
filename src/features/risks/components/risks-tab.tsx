@@ -566,6 +566,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       return threat && threat.threatDescription !== risk.threatDescription;
     });
 
+    // Changed attack descriptions
+    const changedAttacks = riskData.risks.filter((risk) => {
+      const threat = allThreats.find((t) => t.id === risk.threatId);
+      return threat && threat.attackDescription !== risk.attackDescription;
+    });
+
     // Changed mitigations (originalMitigation differs)
     const changedMitigations = riskData.risks.filter((risk) => {
       const threat = allThreats.find((t) => t.id === risk.threatId);
@@ -576,6 +582,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       newThreats: newThreats.length,
       orphanedRisks: orphanedRisks.length,
       changedDescriptions: changedDescriptions.length,
+      changedAttacks: changedAttacks.length,
       changedMitigations: changedMitigations.length,
       needsSync:
         newThreats.length > 0 ||
@@ -712,6 +719,17 @@ export const RisksTab: React.FC<RiskTabProps> = ({
               {syncStatus.changedDescriptions > 0 && (
                 <Chip
                   label={`${syncStatus.changedDescriptions} ${t(
+                    "tabs.risks.changed",
+                    { defaultValue: "changed" }
+                  )}`}
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                />
+              )}
+              {syncStatus.changedAttacks > 0 && (
+                <Chip
+                  label={`${syncStatus.changedAttacks} ${t(
                     "tabs.risks.changed",
                     { defaultValue: "changed" }
                   )}`}

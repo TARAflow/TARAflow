@@ -71,6 +71,7 @@ import {
   getEffectiveThreatDescription,
   formatInteractionDirection,
   getDirectionColor,
+  getEffectiveAttackDescription,
 } from "../services/interaction-templates";
 import type { StrideCategory } from "shared";
 
@@ -379,6 +380,38 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       ),
     },
     {
+      field: "attackDescription",
+      headerName: t("tabs.threats.columns.attack", { defaultValue: "Attack" }),
+      flex: 0.8,
+      minWidth: 150,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const value = params.value as string;
+        if (!value) {
+          return (
+            <Chip
+              label={t("tabs.threats.noAttack", {
+                defaultValue: "Missing",
+              })}
+              size="small"
+              color="warning"
+              variant="outlined"
+            />
+          );
+        }
+        return (
+          <Tooltip title={value}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {value}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
       field: "threatActor",
       headerName: t("tabs.threats.columns.actor", { defaultValue: "Actor" }),
       width: 100,
@@ -593,6 +626,41 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                   {isGerman ? "Keine Beschreibung" : "No description"}
                 </em>
               )}
+            </Typography>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "attackDescription",
+      headerName: t("tabs.threats.columns.attack", { defaultValue: "Attack" }),
+      flex: 0.8,
+      minWidth: 150,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<Threat>) => {
+        const effectiveAttack = getEffectiveAttackDescription(
+          params.row,
+          locale
+        );
+        if (!effectiveAttack) {
+          return (
+            <Chip
+              label={t("tabs.threats.noAttack", {
+                defaultValue: "Missing",
+              })}
+              size="small"
+              color="warning"
+              variant="outlined"
+            />
+          );
+        }
+        return (
+          <Tooltip title={effectiveAttack}>
+            <Typography
+              variant="body2"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {effectiveAttack}
             </Typography>
           </Tooltip>
         );

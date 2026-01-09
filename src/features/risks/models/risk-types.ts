@@ -480,6 +480,9 @@ export interface Risk {
   /** Copy of threat description for display (denormalized for performance) */
   threatDescription: string;
 
+  /** Copy of attack description for display (denormalized for performance) */
+  attackDescription: string;
+
   /** Original mitigation from threat (read-only reference) */
   originalMitigation: string;
 
@@ -655,6 +658,7 @@ export interface ThreatReference {
   id: string;
   strideCategory: StrideCategory;
   threatDescription: string;
+  attackDescription: string;
   mitigation: string;
   /** Source STRIDE method */
   sourceStrideMethod: StrideMethod;
@@ -750,6 +754,7 @@ export function createEmptyRisk(
     id: generateRiskId(threatRef.id),
     threatId: threatRef.id,
     threatDescription: threatRef.threatDescription,
+    attackDescription: threatRef.attackDescription || "",
     originalMitigation: threatRef.mitigation || "",
     strideCategory: threatRef.strideCategory,
     sourceStrideMethod: threatRef.sourceStrideMethod,

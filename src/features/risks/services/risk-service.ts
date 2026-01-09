@@ -103,6 +103,7 @@ export const riskService = {
 
       // Check if any fields changed
       const descChanged = threat.threatDescription !== risk.threatDescription;
+      const attackChanged = threat.attackDescription !== risk.attackDescription;
       const mitigationChanged = threat.mitigation !== risk.originalMitigation;
 
       // Also check if selectedMitigations is empty but we now have a mitigation
@@ -111,10 +112,16 @@ export const riskService = {
         threat.mitigation &&
         threat.mitigation.trim() !== "";
 
-      if (descChanged || mitigationChanged || needsMitigationInit) {
+      if (
+        descChanged ||
+        attackChanged ||
+        mitigationChanged ||
+        needsMitigationInit
+      ) {
         return {
           ...risk,
           threatDescription: threat.threatDescription,
+          attackDescription: threat.attackDescription,
           originalMitigation: threat.mitigation || "",
           // Initialize selectedMitigations if empty and we have a mitigation
           selectedMitigations: needsMitigationInit

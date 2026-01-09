@@ -11,6 +11,7 @@ import {
   ThreatData,
   ThreatsTab,
   getEffectiveThreatDescription,
+  getEffectiveAttackDescription,
   getSuggestedMitigations,
   type ThreatUpdateResult,
 } from "features/threats";
@@ -575,6 +576,7 @@ export const MainLayout: React.FC = () => {
         // Get the effective threat description (handles template localization)
         // This is the same function used by ThreatTable
         const threatDescription = getEffectiveThreatDescription(threat, "en");
+        const attackDescription = getEffectiveAttackDescription(threat, "en");
 
         // Get mitigation - use stored value, only fallback to suggestions if empty
         let mitigation = threat.mitigation || "";
@@ -589,6 +591,7 @@ export const MainLayout: React.FC = () => {
           id: threat.id,
           strideCategory: threat.strideCategory,
           threatDescription,
+          attackDescription,
           mitigation,
           sourceStrideMethod: strideMethod,
           elementName,
