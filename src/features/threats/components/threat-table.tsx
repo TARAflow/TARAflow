@@ -249,10 +249,12 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       groups[elem.elementId].threats.push(threat);
     }
 
-    // Sort by element ID
-    return Object.values(groups).sort((a, b) =>
-      a.elementId.localeCompare(b.elementId)
-    );
+    // Sort alphabetically by displayId (DF-1, IF-1, P-1, etc.)
+    return Object.values(groups).sort((a, b) => {
+      const idA = a.displayId || a.elementName || a.elementId;
+      const idB = b.displayId || b.elementName || b.elementId;
+      return idA.localeCompare(idB, undefined, { numeric: true });
+    });
   };
 
   const groupThreatsByDataFlow = (threats: Threat[]): DataFlowGroup[] => {
@@ -306,9 +308,11 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
       groups[elem.elementId].threats.push(threat);
     }
 
-    return Object.values(groups).sort((a, b) =>
-      a.elementId.localeCompare(b.elementId)
-    );
+    return Object.values(groups).sort((a, b) => {
+      const idA = a.displayId || a.elementName || a.elementId;
+      const idB = b.displayId || b.elementName || b.elementId;
+      return idA.localeCompare(idB, undefined, { numeric: true });
+    });
   };
 
   // ==================== COLUMNS (per-element - unchanged) ====================

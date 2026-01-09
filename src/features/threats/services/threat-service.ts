@@ -273,20 +273,7 @@ export class ThreatService {
       internalElementTypes.includes(e.type)
     );
 
-    // External Entities table
-    if (externalEntities.length > 0) {
-      const externalTable = this.createThreatTableForElements(
-        externalEntities,
-        connections,
-        null,
-        "External Entities",
-        "[EE]"
-      );
-      tables.push(externalTable);
-      totalCount += externalTable.threats.length;
-    }
-
-    // Trust Boundary tables
+    // Trust Boundary tables (FIRST)
     for (const tb of trustBoundaries) {
       const elementsInTB = this.getElementsInsideTrustBoundary(
         tb,
@@ -310,6 +297,19 @@ export class ThreatService {
         tables.push(tbTable);
         totalCount += tbTable.threats.length;
       }
+    }
+
+    // External Entities table (LAST)
+    if (externalEntities.length > 0) {
+      const externalTable = this.createThreatTableForElements(
+        externalEntities,
+        connections,
+        null,
+        "External Entities",
+        "[EE]"
+      );
+      tables.push(externalTable);
+      totalCount += externalTable.threats.length;
     }
 
     return { tables, count: totalCount };
@@ -1714,7 +1714,22 @@ export class ThreatService {
           connectionIdsWithThreats.add(matchedConn.id);
 
           // Check for label changes
+          const changes: ("name" | "id")[] = [];
+
           if (threat.linkedElement.elementName !== matchedConn.label) {
+            changes.push("name");
+          }
+
+          // Check for displayId changes (DF-1 → DF-1a)
+          if (
+            threat.linkedElement.displayId &&
+            matchedConn.displayId &&
+            threat.linkedElement.displayId !== matchedConn.displayId
+          ) {
+            changes.push("id");
+          }
+
+          if (changes.length > 0) {
             changedElements.push({
               threatId: threat.id,
               oldRef: {
@@ -1730,7 +1745,7 @@ export class ThreatService {
                 position: { x: 0, y: 0 },
                 size: { width: 0, height: 0 },
               },
-              changes: ["name"],
+              changes,
             });
           }
         } else {
@@ -2289,8 +2304,25 @@ export class ThreatService {
           const change = changeMap.get(threat.id);
           if (change && threat.linkedElement) {
             updated++;
+
+            // Update threat ID if displayId changed (for DataFlow elements)
+            let newThreatId = threat.id;
+            if (
+              change.newRef.type === "DataFlow" &&
+              change.changes.includes("id") &&
+              threat.linkedElement.displayId &&
+              change.newRef.displayId
+            ) {
+              // Replace old displayId with new in threat ID
+              // e.g., DF-1-T-1 → DF-1a-T-1
+              const oldId = threat.linkedElement.displayId.replace(/^DF-/i, "");
+              const newId = change.newRef.displayId.replace(/^DF-/i, "");
+              newThreatId = threat.id.replace(`${oldId}-`, `${newId}-`);
+            }
+
             return {
               ...threat,
+              id: newThreatId,
               linkedElement: {
                 elementId: threat.linkedElement.elementId, // Keep XML ID (stable)
                 elementName: change.newRef.name,
