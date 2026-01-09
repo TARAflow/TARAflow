@@ -534,16 +534,34 @@ export class ThreatService {
 
     const tbId = this.extractTBIdentifier(trustBoundaryName, tbIndex);
 
-    // Map connection IDs to DF numbers
+    // Build mapping: connection.id -> ID ohne DF- Präfix
+    // displayId ist "DF-2" oder "DF-xx" → speichere "2" oder "xx"
     const dataFlowIdMap: Record<string, string> = {};
-    let dfCounter = 1;
     for (const conn of connections) {
       if (!dataFlowIdMap[conn.id]) {
-        dataFlowIdMap[conn.id] = this.extractFormattedDataFlowId(
-          conn,
-          dfCounter
-        );
-        dfCounter++;
+        let dfId: string;
+        
+        if (conn.displayId) {
+          // Entferne "DF-" Präfix: "DF-2" → "2", "DF-xx" → "xx"
+          const match = conn.displayId.match(/^DF-(.+)$/i);
+          dfId = match ? match[1] : conn.displayId;
+        } else {
+          // Fallback: Label oder XML-ID
+          const label = conn.label || "";
+          const bracketMatch = label.match(/\[DF-(.+?)\]/i);
+          if (bracketMatch) {
+            dfId = bracketMatch[1];
+          } else {
+            const startMatch = label.match(/^DF-(.+?)(?:\s|$)/i);
+            if (startMatch) {
+              dfId = startMatch[1];
+            } else {
+              dfId = conn.id; // XML ID
+            }
+          }
+        }
+        
+        dataFlowIdMap[conn.id] = dfId;
       }
     }
 
@@ -593,7 +611,7 @@ export class ThreatService {
 
           const dataFlowRef: DataFlowReference = {
             connectionId: connection.id, // Stable XML ID for matching
-            dataFlowId: connection.displayId || `DF-${dfNum}`,
+            dataFlowId: dfNum, // Speichere ohne DF- (UI fügt es hinzu)
             dataFlowName:
               connection.label ||
               `${sourceElement.name} → ${targetElement.name}`,
@@ -810,38 +828,45 @@ export class ThreatService {
   }
 
   /**
-   * Extract formatted DataFlow ID from a connection reference.
-   * Priority: displayId > [DF-N] in label > existing dataFlowId > fallback
+   * Extract DataFlow ID from connection WITHOUT DF- prefix
+   * Returns "2" or "xx" for use in threat IDs
    */
   private extractDataFlowIdFromConnection(
     connection: DFDConnectionReference,
     existingDataFlowId?: string
   ): string {
-    // 1. Use displayId if available (extracted from idlabel in DFD parser)
+    // Use displayId: "DF-2" → "2", "DF-xx" → "xx"
     if (connection.displayId) {
+      const match = connection.displayId.match(/^DF-(.+)$/i);
+      if (match) {
+        return match[1];
+      }
       return connection.displayId;
     }
 
-    // 2. Try to find [DF-N] pattern in label
+    // Try label
     const label = connection.label || "";
-    const dfMatch = label.match(/\[DF-?(\d+)\]/i);
-    if (dfMatch) {
-      return `DF-${dfMatch[1]}`;
+    const bracketMatch = label.match(/\[DF-(.+?)\]/i);
+    if (bracketMatch) {
+      return bracketMatch[1];
     }
 
-    // 3. Try to extract DF-N from label that starts with it
-    const startMatch = label.match(/^DF-?(\d+)/i);
+    const startMatch = label.match(/^DF-(.+?)(?:\s|$)/i);
     if (startMatch) {
-      return `DF-${startMatch[1]}`;
+      return startMatch[1];
     }
 
-    // 4. If existing dataFlowId is already formatted (DF-N), keep it
-    if (existingDataFlowId && existingDataFlowId.match(/^DF-\d+$/)) {
+    // Use existing if available
+    if (existingDataFlowId) {
+      const match = existingDataFlowId.match(/^DF-(.+)$/i);
+      if (match) {
+        return match[1];
+      }
       return existingDataFlowId;
     }
 
-    // 5. Fallback: use connection.id (XML ID) - this should rarely happen
-    return `DF-${connection.id}`;
+    // Fallback
+    return connection.id;
   }
 
   private getTypePrefixForElement(elementType: string): string {
@@ -1167,8 +1192,8 @@ export class ThreatService {
       threatId = `${linkedElement.elementId}-${strideCategory}-${sequenceNumber}`;
     } else if (activeMethod === "per-interaction" && dataFlow) {
       const tbId = this.extractTBIdentifier(table.trustBoundaryName);
-      const dfMatch = dataFlow.dataFlowId.match(/DF-(\d+)/);
-      const dfNum = dfMatch ? dfMatch[1] : "1";
+      // dataFlowId ist bereits ohne DF-: "2" oder "xx"
+      const dfNum = dataFlow.dataFlowId;
       threatId = generateThreatIdPerInteraction(
         tbId,
         dfNum,
@@ -1906,7 +1931,9 @@ export class ThreatService {
       }
 
       if (!matchedConnection) {
-        matchedConnection = connectionByDisplayId.get(oldRef.dataFlowId);
+        // oldRef.dataFlowId ist ohne DF- ("2"), displayId hat DF- ("DF-2")
+        const displayIdToMatch = `DF-${oldRef.dataFlowId}`;
+        matchedConnection = connectionByDisplayId.get(displayIdToMatch);
       }
 
       if (matchedConnection) {
@@ -1915,12 +1942,12 @@ export class ThreatService {
         // Check for changes
         const changes: ("name" | "id" | "source" | "target")[] = [];
 
-        // ID change (renumbered) - compare displayIds
-        if (
-          matchedConnection.displayId &&
-          oldRef.dataFlowId !== matchedConnection.displayId
-        ) {
-          changes.push("id");
+        // ID change (renumbered) - compare without DF- prefix
+        if (matchedConnection.displayId) {
+          const newId = matchedConnection.displayId.replace(/^DF-/i, '');
+          if (oldRef.dataFlowId !== newId) {
+            changes.push("id");
+          }
         }
 
         // Name change
@@ -2301,27 +2328,45 @@ export class ThreatService {
       const allElements = project.dfdElements || [];
       const connections = project.dfdConnections || [];
 
-      // Generate new threats only for missing elements
+      // IMPORTANT: Pass ALL elements (including Trust Boundaries)
+      // but generateThreatsPerElement will only create threats for missing ones
+      // because existing elements already have threats
       const newThreatsResult = this.generateThreatsPerElement(
-        syncStatus.missingInThreats.elements,
-        syncStatus.missingInThreats.dataFlows
+        allElements, // <-- Changed from missingInThreats.elements
+        connections // <-- Changed from missingInThreats.dataFlows
       );
 
-      // Merge new threats into existing tables
+      // Filter to only keep threats for missing elements/dataflows
+      const missingElementIds = new Set(
+        syncStatus.missingInThreats.elements.map((e) => e.id)
+      );
+      const missingDataFlowIds = new Set(
+        syncStatus.missingInThreats.dataFlows.map((df) => df.id)
+      );
+
       for (const newTable of newThreatsResult.tables) {
         const existingTable = tables.find(
-          (t) => t.trustBoundaryName === newTable.trustBoundaryName
+          (t) => t.trustBoundaryId === newTable.trustBoundaryId
         );
+
+        // Filter new threats to only those for missing elements
+        const threatsForMissing = newTable.threats.filter((threat) => {
+          if (!threat.linkedElement) return false;
+          const elemId = threat.linkedElement.elementId;
+          return (
+            missingElementIds.has(elemId) || missingDataFlowIds.has(elemId)
+          );
+        });
 
         if (existingTable) {
           existingTable.threats = [
             ...existingTable.threats,
-            ...newTable.threats,
+            ...threatsForMissing,
           ];
-          added += newTable.threats.length;
-        } else {
-          tables.push(newTable);
-          added += newTable.threats.length;
+          added += threatsForMissing.length;
+        } else if (threatsForMissing.length > 0) {
+          tables.push({ ...newTable, threats: threatsForMissing });
+          added += threatsForMissing.length;
         }
       }
     }
@@ -2464,9 +2509,9 @@ export class ThreatService {
             // Update threat ID if DataFlow ID changed
             let newThreatId = threat.id;
             if (oldDataFlowId !== newDataFlowId) {
-              // Replace old DF ID with new DF ID in threat ID
-              // e.g., TB-1-DF-1-S-IN-1 → TB-1-DF-2-S-IN-1
-              newThreatId = threat.id.replace(oldDataFlowId, newDataFlowId);
+              // Both IDs are without DF- prefix: "2" or "xx"
+              // Replace: MTB-2-S-IN-1 → MTB-3-S-IN-1
+              newThreatId = threat.id.replace(`-${oldDataFlowId}-`, `-${newDataFlowId}-`);
             }
 
             return {
@@ -2510,41 +2555,54 @@ export class ThreatService {
     // Generate threats for missing data flows and interfaces
     if (
       syncStatus.missingInThreats.dataFlows.length > 0 ||
-      syncStatus.missingInThreats.elements.length > 0 // <-- NEU
+      syncStatus.missingInThreats.elements.length > 0
     ) {
       const connections = project.dfdConnections || [];
 
-      // Filter only missing connections
-      const missingConnections = connections.filter((conn) =>
-        syncStatus.missingInThreats.dataFlows.some(
-          (missing) => missing.id === conn.id
-        )
+      // Build set of missing connection IDs for filtering later
+      const missingConnectionIds = new Set(
+        syncStatus.missingInThreats.dataFlows.map((df) => df.id)
+      );
+      const missingInterfaceIds = new Set(
+        syncStatus.missingInThreats.elements.map((e) => e.id)
       );
 
-      // Generate new threats for missing data flows and interfaces
-      // Note: generateThreatsPerInteraction() automatically generates interface threats
-      // when there are interfaces in the elements array
+      // IMPORTANT: Pass ALL connections so DF numbers are calculated correctly
+      // If we only pass missing connections, DF-4 becomes DF-1
       const newThreatsResult = this.generateThreatsPerInteraction(
         elements, // All elements (includes interfaces)
-        missingConnections,
+        connections, // <-- Changed: ALL connections, not just missing
         configuration
       );
 
-      // Merge new threats into existing tables
+      // Filter to only keep threats for missing dataflows and interfaces
       for (const newTable of newThreatsResult.tables) {
         const existingTable = tables.find(
-          (t) => t.trustBoundaryName === newTable.trustBoundaryName
+          (t) => t.trustBoundaryId === newTable.trustBoundaryId
         );
+
+        // Filter new threats to only those for missing connections or interfaces
+        const threatsForMissing = newTable.threats.filter((threat) => {
+          if (threat.dataFlow) {
+            // DataFlow threat - check if connection is missing
+            const connId = threat.dataFlow.connectionId;
+            return connId ? missingConnectionIds.has(connId) : false;
+          } else if (threat.linkedElement) {
+            // Interface threat - check if interface is missing
+            return missingInterfaceIds.has(threat.linkedElement.elementId);
+          }
+          return false;
+        });
 
         if (existingTable) {
           existingTable.threats = [
             ...existingTable.threats,
-            ...newTable.threats,
+            ...threatsForMissing,
           ];
-          added += newTable.threats.length;
-        } else {
-          tables.push(newTable);
-          added += newTable.threats.length;
+          added += threatsForMissing.length;
+        } else if (threatsForMissing.length > 0) {
+          tables.push({ ...newTable, threats: threatsForMissing });
+          added += threatsForMissing.length;
         }
       }
     }

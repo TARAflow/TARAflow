@@ -1315,7 +1315,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                           >
                             <DataFlowIcon fontSize="small" />
                             <Chip
-                              label={group.dataFlowId}
+                              label={`DF-${group.dataFlowId}`}
                               size="small"
                               variant="outlined"
                               sx={{
