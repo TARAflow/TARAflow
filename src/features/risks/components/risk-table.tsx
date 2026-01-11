@@ -46,6 +46,7 @@ import {
   Person as ExternalEntityIcon,
   SwapHoriz as DataFlowIcon,
   SettingsInputComponent as InterfaceIcon,
+  Cable as CableIcon,
 } from "@mui/icons-material";
 
 import {
@@ -170,6 +171,10 @@ function getElementIcon(elementType: string) {
     case "externalentity":
     case "external entity":
       return <ExternalEntityIcon fontSize="small" color="action" />;
+    case "PhysicalInterface":
+      return <CableIcon fontSize="small" />;
+    case "Interface":
+      return <InterfaceIcon fontSize="small" />;
     default:
       return <ProcessIcon fontSize="small" color="action" />;
   }
@@ -315,10 +320,7 @@ export const RiskTable = React.memo<RiskTableProps>(
           groups.set(tbId, {
             id: tbId,
             name: tbName,
-            displayIdentifier:
-              tbId !== "external"
-                ? `TB-${tbId.replace(/\D/g, "") || "X"}`
-                : undefined,
+            displayIdentifier: tbId !== "external" ? tbId : undefined,
             risks: [],
             elements: [],
             dataFlows: [],

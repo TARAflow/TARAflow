@@ -60,7 +60,9 @@ export function generateThreatIdPerElement(
   strideCategory: StrideCategory,
   sequenceNumber: number
 ): string {
-  return `${elementId}-${strideCategory}-${sequenceNumber}`;
+  // Normalize: "P-1" -> "P1" (remove dashes)
+  const normalizedId = elementId.replace(/-/g, "");
+  return `${normalizedId}-${strideCategory}-${sequenceNumber}`;
 }
 
 /**
@@ -74,7 +76,9 @@ export function generateThreatIdForInterface(
   strideCategory: StrideCategory,
   sequenceNumber: number
 ): string {
-  return `${trustBoundaryId}-IF-${interfaceId}-${strideCategory}-${sequenceNumber}`;
+  // Normalize: "IF-1" -> "IF1" (remove dashes)
+  const normalizedId = interfaceId.replace(/-/g, "");
+  return `${trustBoundaryId}-${normalizedId}-${strideCategory}-${sequenceNumber}`;
 }
 
 // ==================== TYPE GUARDS ====================

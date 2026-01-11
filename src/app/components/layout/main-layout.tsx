@@ -426,222 +426,253 @@ export const MainLayout: React.FC = () => {
    * Handle DFD tab updates
    * Converts DFDUpdateResult to full Project update
    */
-  const handleDFDUpdate = useCallback(
-    async (updates: DFDUpdateResult) => {
-      if (!activeProject) return;
+ const handleDFDUpdate = useCallback(
+   async (updates: DFDUpdateResult) => {
+     if (!activeProject) return;
 
-      const updatedProject: Project = {
-        ...activeProject,
-        dfd: updates.dfd,
-        phaseStatus: updates.phaseStatus,
-      };
+     // Mapping der alten Threats auf neue displayIds
+     const syncedThreats = activeProject.threats
+       ? {
+           ...activeProject.threats,
+           perInteractionTables:
+             activeProject.threats.perInteractionTables?.map((table) => ({
+               ...table,
+               threats: table.threats.map((threat) => {
+                 if (!threat.linkedElement) return threat;
 
-      await updateProject(updatedProject);
-    },
-    [activeProject]
-  );
+                 const elem = updates.dfd?.elements?.find(
+                   (e) => e.id === threat.linkedElement!.elementId
+                 );
+                 if (!elem) return threat;
 
-  // ==================== Asset HANDLER ====================
-  /**
-   * Handle Assets tab updates
-   * Converts AssetUpdateResult to full Project update
-   */
-  const handleAssetsUpdate = useCallback(
-    async (updates: AssetUpdateResult) => {
-      if (!activeProject) return;
+                 return {
+                   ...threat,
+                   linkedElement: {
+                     ...threat.linkedElement,
+                     displayId: elem.displayId, // aktualisierte displayId
+                     elementName: elem.name, // optional
+                   },
+                 };
+               }),
+             })),
+         }
+       : null;
 
-      const updatedProject: Project = {
-        ...activeProject,
-        assets: updates.assets,
-        phaseStatus: updates.phaseStatus,
-      };
+     const updatedProject: Project = {
+       ...activeProject,
+       dfd: updates.dfd,
+       phaseStatus: updates.phaseStatus,
+       threats: syncedThreats,
+     };
 
-      await updateProject(updatedProject);
-    },
-    [activeProject]
-  );
+     await updateProject(updatedProject);
+   },
+   [activeProject]
+ );
 
-  // ==================== Threat HANDLER ====================
-  /**
-   * Handle Threats tab updates
-   * Converts ThreatUpdateResult to full Project update
-   */
-  const handleThreatsUpdate = useCallback(
-    async (updates: ThreatUpdateResult) => {
-      if (!activeProject) return;
+ // ==================== Asset HANDLER ====================
+ /**
+  * Handle Assets tab updates
+  * Converts AssetUpdateResult to full Project update
+  */
+ const handleAssetsUpdate = useCallback(
+   async (updates: AssetUpdateResult) => {
+     if (!activeProject) return;
 
-      const updatedProject: Project = {
-        ...activeProject,
-        threats: updates.threats,
-        phaseStatus: updates.phaseStatus,
-      };
+     const updatedProject: Project = {
+       ...activeProject,
+       assets: updates.assets,
+       phaseStatus: updates.phaseStatus,
+     };
 
-      await updateProject(updatedProject);
-    },
-    [activeProject]
-  );
+     await updateProject(updatedProject);
+   },
+   [activeProject]
+ );
 
-  // ==================== Risk HANDLER ====================
-  /**
-   * Handle Risks tab updates
-   * Converts RiskUpdateResult to full Project update
-   */
-  const handleRisksUpdate = useCallback(
-    async (updates: RiskUpdateResult) => {
-      if (!activeProject) return;
+ // ==================== Threat HANDLER ====================
+ /**
+  * Handle Threats tab updates
+  * Converts ThreatUpdateResult to full Project update
+  */
+ const handleThreatsUpdate = useCallback(
+   async (updates: ThreatUpdateResult) => {
+     if (!activeProject) return;
 
-      const updatedProject: Project = {
-        ...activeProject,
-        risks: updates.risks,
-        phaseStatus: updates.phaseStatus,
-      };
+     const updatedProject: Project = {
+       ...activeProject,
+       threats: updates.threats,
+       phaseStatus: updates.phaseStatus,
+     };
 
-      await updateProject(updatedProject);
-    },
-    [activeProject]
-  );
+     await updateProject(updatedProject);
+   },
+   [activeProject]
+ );
 
-  // ==================== Attack Tree HANDLER ====================
-  const handleAttackTreeUpdate = useCallback(
-    (updates: AttackTreeUpdateResult) => {
-      if (!activeProject) return;
+ // ==================== Risk HANDLER ====================
+ /**
+  * Handle Risks tab updates
+  * Converts RiskUpdateResult to full Project update
+  */
+ const handleRisksUpdate = useCallback(
+   async (updates: RiskUpdateResult) => {
+     if (!activeProject) return;
 
-      const updatedProject: Project = {
-        ...activeProject,
-        attackTrees: updates.attackTrees,
-        phaseStatus: updates.phaseStatus,
-        info: {
-          ...activeProject.info,
-          lastModified: updates.lastModified, // beachte Hinweis unten
-        },
-      };
+     const updatedProject: Project = {
+       ...activeProject,
+       risks: updates.risks,
+       phaseStatus: updates.phaseStatus,
+     };
 
-      updateProject(updatedProject);
-    },
-    [activeProject, updateProject]
-  );
+     await updateProject(updatedProject);
+   },
+   [activeProject]
+ );
 
-  // ==================== THREAT REFERENCE EXTRACTION ====================
-  /**
-   * Extract ThreatReferences from ThreatData for a specific STRIDE method
-   *
-   * IMPORTANT: Per-interaction threats store empty threatDescription and use
-   * template localization. We use getEffectiveThreatDescription() to get the actual text.
-   */
-  const extractThreatReferences = (
-    threatData: ThreatData | null | undefined,
-    strideMethod: StrideMethod
-  ): ThreatReference[] => {
-    if (!threatData) {
-      return [];
-    }
+ // ==================== Attack Tree HANDLER ====================
+ const handleAttackTreeUpdate = useCallback(
+   (updates: AttackTreeUpdateResult) => {
+     if (!activeProject) return;
 
-    // Select the correct threat tables based on method
-    const tables =
-      strideMethod === "per-element"
-        ? threatData.perElementTables
-        : threatData.perInteractionTables;
+     const updatedProject: Project = {
+       ...activeProject,
+       attackTrees: updates.attackTrees,
+       phaseStatus: updates.phaseStatus,
+       info: {
+         ...activeProject.info,
+         lastModified: updates.lastModified, // beachte Hinweis unten
+       },
+     };
 
-    if (!tables || tables.length === 0) {
-      return [];
-    }
+     updateProject(updatedProject);
+   },
+   [activeProject, updateProject]
+ );
 
-    const references: ThreatReference[] = [];
+ // ==================== THREAT REFERENCE EXTRACTION ====================
+ /**
+  * Extract ThreatReferences from ThreatData for a specific STRIDE method
+  *
+  * IMPORTANT: Per-interaction threats store empty threatDescription and use
+  * template localization. We use getEffectiveThreatDescription() to get the actual text.
+  */
+ const extractThreatReferences = (
+   threatData: ThreatData | null | undefined,
+   strideMethod: StrideMethod
+ ): ThreatReference[] => {
+   if (!threatData) {
+     return [];
+   }
 
-    for (const table of tables) {
-      // Skip tables with no threats
-      if (!table.threats || table.threats.length === 0) {
-        continue;
-      }
+   // Select the correct threat tables based on method
+   const tables =
+     strideMethod === "per-element"
+       ? threatData.perElementTables
+       : threatData.perInteractionTables;
 
-      for (const threat of table.threats) {
-        // Extract element/dataflow name based on method
-        let elementName: string | undefined;
-        let dataFlowName: string | undefined;
+   if (!tables || tables.length === 0) {
+     return [];
+   }
 
-        if (strideMethod === "per-element") {
-          // Per-element: element info in linkedElement
-          elementName =
-            threat.linkedElement?.elementName ||
-            threat.linkedElement?.elementId;
-        } else {
-          // Per-interaction: dataflow info in dataFlow
-          dataFlowName = threat.dataFlow?.dataFlowName;
-          // Can also use sourceName/targetName for display
-          if (!dataFlowName && threat.dataFlow) {
-            dataFlowName = `${threat.dataFlow.sourceName} → ${threat.dataFlow.targetName}`;
-          }
-        }
+   const references: ThreatReference[] = [];
 
-        // Get the effective threat description (handles template localization)
-        // This is the same function used by ThreatTable
-        const threatDescription = getEffectiveThreatDescription(threat, "en");
-        const attackDescription = getEffectiveAttackDescription(threat, "en");
+   for (const table of tables) {
+     // Skip tables with no threats
+     if (!table.threats || table.threats.length === 0) {
+       continue;
+     }
 
-        // Get mitigation - use stored value, only fallback to suggestions if empty
-        let mitigation = threat.mitigation || "";
-        if (!mitigation && threat.interactionContext) {
-          const suggestedMitigations = getSuggestedMitigations(threat, "en");
-          if (suggestedMitigations.length > 0) {
-            mitigation = suggestedMitigations.join("\n");
-          }
-        }
+     for (const threat of table.threats) {
+       // Extract element/dataflow name based on method
+       let elementName: string | undefined;
+       let dataFlowName: string | undefined;
 
-        references.push({
-          id: threat.id,
-          strideCategory: threat.strideCategory,
-          threatDescription,
-          attackDescription,
-          mitigation,
-          sourceStrideMethod: strideMethod,
-          elementName,
-          dataFlowName,
-          trustBoundaryId: table.trustBoundaryId,
-          trustBoundaryName: table.trustBoundaryName,
-        });
-      }
-    }
+       if (strideMethod === "per-element") {
+         // Per-element: element info in linkedElement
+         elementName =
+           threat.linkedElement?.elementName || threat.linkedElement?.elementId;
+       } else {
+         // Per-interaction: dataflow info in dataFlow
+         dataFlowName = threat.dataFlow?.dataFlowName;
+         // Can also use sourceName/targetName for display
+         if (!dataFlowName && threat.dataFlow) {
+           dataFlowName = `${threat.dataFlow.sourceName} → ${threat.dataFlow.targetName}`;
+         }
+       }
 
-    return references;
-  };
+       // Get the effective threat description (handles template localization)
+       // This is the same function used by ThreatTable
+       const threatDescription = getEffectiveThreatDescription(threat, "en");
+       const attackDescription = getEffectiveAttackDescription(threat, "en");
 
-  // ==================== Documentation HANDLER ====================
-  const handleDocUpdate = useCallback(
-    (updates: DocUpdateResult) => {
-      if (!activeProject) return;
-      updateProject({
-        ...activeProject,
-        documentation: updates.documentation,
-        phaseStatus: updates.phaseStatus,
-      });
-    },
-    [activeProject]
-  );
+       // Get mitigation - use stored value, only fallback to suggestions if empty
+       let mitigation = threat.mitigation || "";
+       if (!mitigation && threat.interactionContext) {
+         const suggestedMitigations = getSuggestedMitigations(threat, "en");
+         if (suggestedMitigations.length > 0) {
+           mitigation = suggestedMitigations.join("\n");
+         }
+       }
+       console.log(
+         "***************************Trust Boundary:" + table.displayIdentifier
+       );
 
-  // ==================== NEW/IMPORT HANDLERS ====================
+       references.push({
+         id: threat.id,
+         strideCategory: threat.strideCategory,
+         threatDescription,
+         attackDescription,
+         mitigation,
+         sourceStrideMethod: strideMethod,
+         elementName,
+         dataFlowName,
+         trustBoundaryId: table.displayIdentifier,
+         trustBoundaryName: table.trustBoundaryName,
+       });
+     }
+   }
 
-  const handleNewProject = () => {
-    setShowNewDialog(true);
-  };
+   return references;
+ };
 
-  const handleImportProject = () => {
-    setShowImportDialog(true);
-  };
+ // ==================== Documentation HANDLER ====================
+ const handleDocUpdate = useCallback(
+   (updates: DocUpdateResult) => {
+     if (!activeProject) return;
+     updateProject({
+       ...activeProject,
+       documentation: updates.documentation,
+       phaseStatus: updates.phaseStatus,
+     });
+   },
+   [activeProject]
+ );
 
-  // ==================== RENDER ====================
+ // ==================== NEW/IMPORT HANDLERS ====================
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading projects...</div>
-      </div>
-    );
-  }
+ const handleNewProject = () => {
+   setShowNewDialog(true);
+ };
 
-  return (
-    <div className="flex h-screen bg-gray-50">
-      <style>
-        {`
+ const handleImportProject = () => {
+   setShowImportDialog(true);
+ };
+
+ // ==================== RENDER ====================
+
+ if (isLoading) {
+   return (
+     <div className="flex h-screen items-center justify-center bg-gray-50">
+       <div className="text-gray-500">Loading projects...</div>
+     </div>
+   );
+ }
+
+ return (
+   <div className="flex h-screen bg-gray-50">
+     <style>
+       {`
           @keyframes slide-in {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -650,266 +681,265 @@ export const MainLayout: React.FC = () => {
             animation: slide-in 0.3s ease-out;
           }
         `}
-      </style>
+     </style>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
-      )}
+     {/* Toast Notification */}
+     {toastMessage && (
+       <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+     )}
 
-      {/* Sidebar */}
-      <ProjectSidebar
-        projects={projects}
-        activeProjectId={activeProjectId}
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        onProjectSelect={handleProjectSwitch}
-        onProjectClose={handleProjectClose}
-        onProjectOpen={handleProjectOpen}
-        onProjectDelete={handleDeleteRequest}
-        onProjectExport={handleExportProject}
-        onProjectSave={handleSaveProject}
-        onNewProject={handleNewProject}
-        onImportProject={handleImportProject}
-        onOpenDialog={() => setShowOpenDialog(true)}
-      />
+     {/* Sidebar */}
+     <ProjectSidebar
+       projects={projects}
+       activeProjectId={activeProjectId}
+       isCollapsed={sidebarCollapsed}
+       onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+       onProjectSelect={handleProjectSwitch}
+       onProjectClose={handleProjectClose}
+       onProjectOpen={handleProjectOpen}
+       onProjectDelete={handleDeleteRequest}
+       onProjectExport={handleExportProject}
+       onProjectSave={handleSaveProject}
+       onNewProject={handleNewProject}
+       onImportProject={handleImportProject}
+       onOpenDialog={() => setShowOpenDialog(true)}
+     />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {activeProject && generalTabData ? (
-          <>
-            {/* Phase Tabs */}
-            <PhaseTabs
-              project={activeProject}
-              activePhase={activePhase}
-              onPhaseChange={handlePhaseChange}
-            />
+     {/* Main Content */}
+     <div className="flex-1 flex flex-col overflow-hidden">
+       {activeProject && generalTabData ? (
+         <>
+           {/* Phase Tabs */}
+           <PhaseTabs
+             project={activeProject}
+             activePhase={activePhase}
+             onPhaseChange={handlePhaseChange}
+           />
 
-            {/* Main Workspace */}
-            <div className="flex-1 overflow-y-auto">
-              {activePhase === 0 && (
-                <GeneralTab
-                  data={generalTabData}
-                  phases={PHASES}
-                  getStatusIcon={getPhaseStatusIcon}
-                  getStatusColor={getPhaseStatusColor}
-                  onUpdate={handleGeneralTabUpdate}
-                />
-              )}
-              {activePhase === 1 && activeProject && (
-                <DFDTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    dfd: activeProject.dfd ?? null,
-                    phaseStatus: activeProject.phaseStatus,
-                    settings: activeProject.settings,
-                    lastModified: activeProject.info?.lastModified || "",
-                  }}
-                  onUpdate={handleDFDUpdate}
-                />
-              )}
-              {activePhase === 2 && activeProject && (
-                <AssetsTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    assets: activeProject.assets ?? null,
-                    phaseStatus: activeProject.phaseStatus,
-                    dfdXml: activeProject.dfd?.xml,
-                    dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    lastModified: activeProject.info?.lastModified || "",
-                  }}
-                  onUpdate={handleAssetsUpdate}
-                />
-              )}
-              {activePhase === 3 && activeProject && (
-                <ThreatsTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    threats: activeProject.threats ?? null,
-                    phaseStatus: activeProject.phaseStatus,
-                    dfdXml: activeProject.dfd?.xml,
-                    dfdElements: activeProject.dfd?.elements,
-                    dfdConnections: activeProject.dfd?.connections,
-                    dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    assetIds: activeProject.assets?.assets?.map((a) => a.id),
-                    lastModified: activeProject.info?.lastModified || "",
-                  }}
-                  onUpdate={handleThreatsUpdate}
-                />
-              )}
-              {activePhase === 4 && activeProject && (
-                <RisksTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    risks: activeProject.risks ?? null,
-                    phaseStatus: activeProject.phaseStatus,
-                    perElementThreats: extractThreatReferences(
-                      activeProject.threats,
-                      "per-element"
-                    ),
-                    perInteractionThreats: extractThreatReferences(
-                      activeProject.threats,
-                      "per-interaction"
-                    ),
-                    dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    lastModified: activeProject.info?.lastModified || "",
-                  }}
-                  onUpdate={handleRisksUpdate}
-                  onPhaseComplete={() => setActivePhase(5)}
-                />
-              )}
-              {activePhase === 5 && activeProject && (
-                <AttackTreeTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    phaseStatus: activeProject.phaseStatus,
-                    isHighImpact: activeProject.info?.isHighImpact || false,
-                    attackTrees: activeProject.attackTrees,
-                    assets: extractAssetReferences(activeProject),
-                    threats:
-                      extractThreatReferencesForAttackTree(activeProject),
-                    risks: extractRiskReferences(activeProject),
-                    dfdElements: extractDFDElementReferences(activeProject),
-                    mitigations: extractMitigationReferences(activeProject),
-                    dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    lastModified: activeProject.info?.lastModified || "",
-                  }}
-                  onUpdate={handleAttackTreeUpdate}
-                  onPhaseComplete={() => setActivePhase(6)}
-                />
-              )}
-              {activePhase === 6 && activeProject && (
-                <DocTab
-                  project={transformProjectToDocData(
-                    activeProject,
-                    i18n.language === "de" ? "de" : "en"
-                  )}
-                  onUpdate={handleDocUpdate}
-                />
-              )}
-            </div>
-          </>
-        ) : (
-          <EmptyState onOpenProject={() => setShowOpenDialog(true)} />
-        )}
-      </div>
+           {/* Main Workspace */}
+           <div className="flex-1 overflow-y-auto">
+             {activePhase === 0 && (
+               <GeneralTab
+                 data={generalTabData}
+                 phases={PHASES}
+                 getStatusIcon={getPhaseStatusIcon}
+                 getStatusColor={getPhaseStatusColor}
+                 onUpdate={handleGeneralTabUpdate}
+               />
+             )}
+             {activePhase === 1 && activeProject && (
+               <DFDTab
+                 project={{
+                   id: activeProject.id,
+                   name: activeProject.info?.name || "",
+                   dfd: activeProject.dfd ?? null,
+                   phaseStatus: activeProject.phaseStatus,
+                   settings: activeProject.settings,
+                   lastModified: activeProject.info?.lastModified || "",
+                 }}
+                 onUpdate={handleDFDUpdate}
+               />
+             )}
+             {activePhase === 2 && activeProject && (
+               <AssetsTab
+                 project={{
+                   id: activeProject.id,
+                   name: activeProject.info?.name || "",
+                   assets: activeProject.assets ?? null,
+                   phaseStatus: activeProject.phaseStatus,
+                   dfdXml: activeProject.dfd?.xml,
+                   dfdPreviewImage: activeProject.dfd?.thumbnail,
+                   lastModified: activeProject.info?.lastModified || "",
+                 }}
+                 onUpdate={handleAssetsUpdate}
+               />
+             )}
+             {activePhase === 3 && activeProject && (
+               <ThreatsTab
+                 project={{
+                   id: activeProject.id,
+                   name: activeProject.info?.name || "",
+                   threats: activeProject.threats ?? null,
+                   phaseStatus: activeProject.phaseStatus,
+                   dfdXml: activeProject.dfd?.xml,
+                   dfdElements: activeProject.dfd?.elements || [],
+                   dfdConnections: activeProject.dfd?.connections,
+                   dfdPreviewImage: activeProject.dfd?.thumbnail,
+                   assetIds: activeProject.assets?.assets?.map((a) => a.id),
+                   lastModified: activeProject.info?.lastModified || "",
+                 }}
+                 onUpdate={handleThreatsUpdate}
+               />
+             )}
+             {activePhase === 4 && activeProject && (
+               <RisksTab
+                 project={{
+                   id: activeProject.id,
+                   name: activeProject.info?.name || "",
+                   risks: activeProject.risks ?? null,
+                   phaseStatus: activeProject.phaseStatus,
+                   perElementThreats: extractThreatReferences(
+                     activeProject.threats,
+                     "per-element"
+                   ),
+                   perInteractionThreats: extractThreatReferences(
+                     activeProject.threats,
+                     "per-interaction"
+                   ),
+                   dfdPreviewImage: activeProject.dfd?.thumbnail,
+                   lastModified: activeProject.info?.lastModified || "",
+                 }}
+                 onUpdate={handleRisksUpdate}
+                 onPhaseComplete={() => setActivePhase(5)}
+               />
+             )}
+             {activePhase === 5 && activeProject && (
+               <AttackTreeTab
+                 project={{
+                   id: activeProject.id,
+                   name: activeProject.info?.name || "",
+                   phaseStatus: activeProject.phaseStatus,
+                   isHighImpact: activeProject.info?.isHighImpact || false,
+                   attackTrees: activeProject.attackTrees,
+                   assets: extractAssetReferences(activeProject),
+                   threats: extractThreatReferencesForAttackTree(activeProject),
+                   risks: extractRiskReferences(activeProject),
+                   dfdElements: extractDFDElementReferences(activeProject),
+                   mitigations: extractMitigationReferences(activeProject),
+                   dfdPreviewImage: activeProject.dfd?.thumbnail,
+                   lastModified: activeProject.info?.lastModified || "",
+                 }}
+                 onUpdate={handleAttackTreeUpdate}
+                 onPhaseComplete={() => setActivePhase(6)}
+               />
+             )}
+             {activePhase === 6 && activeProject && (
+               <DocTab
+                 project={transformProjectToDocData(
+                   activeProject,
+                   i18n.language === "de" ? "de" : "en"
+                 )}
+                 onUpdate={handleDocUpdate}
+               />
+             )}
+           </div>
+         </>
+       ) : (
+         <EmptyState onOpenProject={() => setShowOpenDialog(true)} />
+       )}
+     </div>
 
-      {/* Dialogs */}
-      {showOpenDialog && (
-        <OpenProjectDialog
-          projects={projects}
-          onOpen={handleProjectOpen}
-          onClose={() => setShowOpenDialog(false)}
-        />
-      )}
+     {/* Dialogs */}
+     {showOpenDialog && (
+       <OpenProjectDialog
+         projects={projects}
+         onOpen={handleProjectOpen}
+         onClose={() => setShowOpenDialog(false)}
+       />
+     )}
 
-      {showUnsavedDialog && activeProject && (
-        <UnsavedChangesDialog
-          projectName={activeProject.info?.name || ""}
-          onSave={() => confirmProjectSwitch(true)}
-          onDiscard={() => confirmProjectSwitch(false)}
-          onCancel={() => setShowUnsavedDialog(false)}
-        />
-      )}
+     {showUnsavedDialog && activeProject && (
+       <UnsavedChangesDialog
+         projectName={activeProject.info?.name || ""}
+         onSave={() => confirmProjectSwitch(true)}
+         onDiscard={() => confirmProjectSwitch(false)}
+         onCancel={() => setShowUnsavedDialog(false)}
+       />
+     )}
 
-      {showCloseDialog && projectToClose && (
-        <CloseProjectDialog
-          projectName={
-            projects.find((p) => p.id === projectToClose)?.info?.name || ""
-          }
-          onSave={() => confirmProjectClose(true)}
-          onDiscard={() => confirmProjectClose(false)}
-          onCancel={() => setShowCloseDialog(false)}
-        />
-      )}
+     {showCloseDialog && projectToClose && (
+       <CloseProjectDialog
+         projectName={
+           projects.find((p) => p.id === projectToClose)?.info?.name || ""
+         }
+         onSave={() => confirmProjectClose(true)}
+         onDiscard={() => confirmProjectClose(false)}
+         onCancel={() => setShowCloseDialog(false)}
+       />
+     )}
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && projectToDelete && (
-        <DeleteProjectDialog
-          itemName={
-            projects.find((p) => p.id === projectToDelete)?.info?.name || ""
-          }
-          itemType="project"
-          onConfirm={confirmDeleteProject}
-          onCancel={() => {
-            setShowDeleteDialog(false);
-            setProjectToDelete(null);
-          }}
-        />
-      )}
+     {/* Delete Confirmation Dialog */}
+     {showDeleteDialog && projectToDelete && (
+       <DeleteProjectDialog
+         itemName={
+           projects.find((p) => p.id === projectToDelete)?.info?.name || ""
+         }
+         itemType="project"
+         onConfirm={confirmDeleteProject}
+         onCancel={() => {
+           setShowDeleteDialog(false);
+           setProjectToDelete(null);
+         }}
+       />
+     )}
 
-      {showNewDialog && (
-        <NewProjectDialog
-          onCreate={async (data: NewProjectData) => {
-            const result = await projectService.createProject({
-              name: data.name,
-              description: data.description,
-              version: data.version,
-              responsible: data.responsible,
-              isHighImpact: data.isHighImpact,
-            });
-            if (result.success && result.data) {
-              // Add tags to the project info
-              const projectWithTags: Project = {
-                ...result.data,
-                info: {
-                  ...result.data.info,
-                  tags: data.tags,
-                },
-              };
+     {showNewDialog && (
+       <NewProjectDialog
+         onCreate={async (data: NewProjectData) => {
+           const result = await projectService.createProject({
+             name: data.name,
+             description: data.description,
+             version: data.version,
+             responsible: data.responsible,
+             isHighImpact: data.isHighImpact,
+           });
+           if (result.success && result.data) {
+             // Add tags to the project info
+             const projectWithTags: Project = {
+               ...result.data,
+               info: {
+                 ...result.data.info,
+                 tags: data.tags,
+               },
+             };
 
-              await storageService.saveProject(projectWithTags);
+             await storageService.saveProject(projectWithTags);
 
-              setProjects([...projects, projectWithTags]);
-              setActiveProjectId(projectWithTags.id);
-              setActivePhase(0);
-              setToastMessage(
-                `Project "${projectWithTags.info?.name}" created!`
-              );
-            } else {
-              setToastMessage(`Error: ${result.error}`);
-            }
-          }}
-          onClose={() => setShowNewDialog(false)}
-        />
-      )}
+             setProjects([...projects, projectWithTags]);
+             setActiveProjectId(projectWithTags.id);
+             setActivePhase(0);
+             setToastMessage(
+               `Project "${projectWithTags.info?.name}" created!`
+             );
+           } else {
+             setToastMessage(`Error: ${result.error}`);
+           }
+         }}
+         onClose={() => setShowNewDialog(false)}
+       />
+     )}
 
-      {/* Import Project Dialog */}
-      {showImportDialog && (
-        <ImportProjectDialog
-          onImport={async (
-            file: File,
-            options: ImportOptions
-          ): Promise<ImportResult> => {
-            const result = await storageService.importProjectFromJSON(file);
-            if (result.success && result.data) {
-              setProjects([...projects, result.data]);
-              setActiveProjectId(result.data.id);
-              setActivePhase(0);
-              setToastMessage(`Project "${result.data.info?.name}" imported!`);
-              return {
-                success: true,
-                projectId: result.data.id,
-                projectName: result.data.info?.name || "",
-              };
-            } else {
-              setToastMessage(`Import failed: ${result.error}`);
-              return {
-                success: false,
-                errors: [result.error || "Unknown error"],
-              };
-            }
-          }}
-          onClose={() => setShowImportDialog(false)}
-        />
-      )}
-    </div>
-  );
+     {/* Import Project Dialog */}
+     {showImportDialog && (
+       <ImportProjectDialog
+         onImport={async (
+           file: File,
+           options: ImportOptions
+         ): Promise<ImportResult> => {
+           const result = await storageService.importProjectFromJSON(file);
+           if (result.success && result.data) {
+             setProjects([...projects, result.data]);
+             setActiveProjectId(result.data.id);
+             setActivePhase(0);
+             setToastMessage(`Project "${result.data.info?.name}" imported!`);
+             return {
+               success: true,
+               projectId: result.data.id,
+               projectName: result.data.info?.name || "",
+             };
+           } else {
+             setToastMessage(`Import failed: ${result.error}`);
+             return {
+               success: false,
+               errors: [result.error || "Unknown error"],
+             };
+           }
+         }}
+         onClose={() => setShowImportDialog(false)}
+       />
+     )}
+   </div>
+ );
 };
 
 export default MainLayout;

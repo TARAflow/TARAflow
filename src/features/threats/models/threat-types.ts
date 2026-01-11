@@ -161,6 +161,8 @@ export interface Threat {
   /** Trust Boundary name */
   trustBoundaryName: string | null;
 
+  trustBoundaryDisplayId: string | null;
+
   /** STRIDE category */
   strideCategory: StrideCategory;
 
@@ -300,7 +302,7 @@ export interface DFDElementReference {
   id: string;
   type: string;
   name: string;
-  displayId?: string;
+  displayId: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
 }
@@ -310,7 +312,7 @@ export interface DFDConnectionReference {
   from: string;
   to: string;
   label?: string;
-  displayId?: string;
+  displayId: string;
 }
 
 // ==================== SYNC STATUS (SHARED) ====================
@@ -391,12 +393,14 @@ export function createEmptyThreat(
   strideCategory: StrideCategory,
   trustBoundaryId: string | null,
   trustBoundaryName: string | null,
+  trustBoundaryDisplayId: string | null,
   interactionContext?: any
 ): Threat {
   return {
     id,
     trustBoundaryId,
     trustBoundaryName,
+    trustBoundaryDisplayId,
     strideCategory,
     sequenceNumber: 1,
     linkedElement: null,

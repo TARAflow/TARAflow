@@ -37,22 +37,22 @@ export class InteractionThreatGenerator {
     for (const tb of trustBoundaries) {
       const threats: Threat[] = [];
 
-      const tbId = this.extractTBIdentifier(tb.name, 0);
-
       // Generate threats for data flows crossing this boundary
       const dataFlowThreats = this.generateDataFlowThreats(
         connections,
         elements,
         tb.id,
-        tb.name
+        tb.name,
+        tb.displayId ?? ""
       );
       threats.push(...dataFlowThreats);
 
       // Generate threats for interfaces in this boundary
       const interfaceThreats = this.generateInterfaceThreats(
         elements,
-        tb.id,
-        tb.name
+        tb.id ?? "",
+        tb.name,
+        tb.displayId ?? ""
       );
       threats.push(...interfaceThreats);
 
@@ -60,7 +60,7 @@ export class InteractionThreatGenerator {
         tables.push({
           trustBoundaryId: tb.id,
           trustBoundaryName: tb.name,
-          displayIdentifier: `[${tbId}]`,
+          displayIdentifier: `[${tb.displayId}]`,
           threats,
         });
       }
@@ -70,31 +70,14 @@ export class InteractionThreatGenerator {
   }
 
   /**
-   * Extract the trust boundary id from name [TB]
-   */
-  private extractTBIdentifier(name: string, tbIndex?: number): string {
-    const tbMatch = name.match(/\[TB-?(\d+)\]/i);
-    if (tbMatch) return `TB${tbMatch[1]}`;
-
-    const bracketMatch = name.match(/\[([^\]]+)\]/);
-    if (bracketMatch) return bracketMatch[1].replace(/-/g, "");
-
-    if (tbIndex !== undefined) return `TB${tbIndex + 1}`;
-
-    return name
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .substring(0, 8)
-      .toUpperCase();
-  }
-
-  /**
    * Generate threats for data flows
    */
   private generateDataFlowThreats(
     connections: DFDConnectionReference[],
     elements: DFDElementReference[],
     trustBoundaryId: string,
-    trustBoundaryName: string
+    trustBoundaryName: string,
+    trustBoundaryDisplayId: string
   ): Threat[] {
     const threats: Threat[] = [];
     const elementMap = new Map(elements.map((e) => [e.id, e]));
@@ -120,6 +103,7 @@ export class InteractionThreatGenerator {
           "incoming",
           trustBoundaryId,
           trustBoundaryName,
+          trustBoundaryDisplayId,
           crossesTrustBoundary
         );
         threats.push(incomingThreat);
@@ -133,6 +117,7 @@ export class InteractionThreatGenerator {
           "outgoing",
           trustBoundaryId,
           trustBoundaryName,
+          trustBoundaryDisplayId,
           crossesTrustBoundary
         );
         threats.push(outgoingThreat);
@@ -153,18 +138,26 @@ export class InteractionThreatGenerator {
     direction: InteractionDirection,
     trustBoundaryId: string,
     trustBoundaryName: string,
+    trustBoundaryDisplayId: string,
     crossesTrustBoundary: boolean
   ): Threat {
-    // Extract data flow ID (remove "DF-" prefix if present)
-    const dataFlowId = (connection.displayId || connection.id).replace(
-      /^DF-/,
-      ""
+    // ✅ Use displayId if available, otherwise fall back to id
+    const displayId = connection.displayId || connection.id;
+
+    // ✅ Extract pure number part (remove "DF-" prefix if present)
+    const dataFlowNumber = displayId.replace(/^DF-/, "");
+
+    // ✅ Construct ID part for threat ID (always "DF" + number)
+    const dataFlowIdPart = `DF${dataFlowNumber}`;
+
+    console.log(
+      `Creating DataFlow Threat: displayId=${displayId}, number=${dataFlowNumber}, idPart=${dataFlowIdPart}`
     );
 
     // Generate threat ID
     const threatId = generateThreatIdPerInteraction(
-      trustBoundaryId,
-      dataFlowId,
+      trustBoundaryDisplayId,
+      dataFlowIdPart,
       strideCategory,
       direction,
       1
@@ -182,14 +175,15 @@ export class InteractionThreatGenerator {
       strideCategory,
       trustBoundaryId,
       trustBoundaryName,
+      trustBoundaryDisplayId,
       interactionContext
     );
 
     // Set data flow reference
     threat.dataFlow = {
       connectionId: connection.id,
-      dataFlowId,
-      dataFlowName: connection.label || `DataFlow ${dataFlowId}`,
+      dataFlowId: displayId, // ✅ Store complete displayId (e.g., "DF-1")
+      dataFlowName: connection.label || `DataFlow ${displayId}`,
       sourceId: source.id,
       sourceName: source.name,
       sourceType: source.type,
@@ -210,7 +204,8 @@ export class InteractionThreatGenerator {
   private generateInterfaceThreats(
     elements: DFDElementReference[],
     trustBoundaryId: string,
-    trustBoundaryName: string
+    trustBoundaryName: string,
+    trustBoundaryDisplayId: string
   ): Threat[] {
     const threats: Threat[] = [];
     const interfaces = elements.filter(
@@ -223,7 +218,8 @@ export class InteractionThreatGenerator {
           iface,
           strideCategory,
           trustBoundaryId,
-          trustBoundaryName
+          trustBoundaryName,
+          trustBoundaryDisplayId
         );
         threats.push(threat);
       }
@@ -239,12 +235,26 @@ export class InteractionThreatGenerator {
     iface: DFDElementReference,
     strideCategory: StrideCategory,
     trustBoundaryId: string,
-    trustBoundaryName: string
+    trustBoundaryName: string,
+    trustBoundaryDisplayId: string
   ): Threat {
+    // ✅ Use displayId if available, otherwise fall back to id
+    const displayId = iface.displayId || iface.id;
+
+    // ✅ Extract pure number part (remove "IF-" prefix if present)
+    const interfaceNumber = displayId.replace(/^IF-/, "");
+
+    // ✅ Construct ID part for threat ID (always "IF" + number)
+    const interfaceIdPart = `IF${interfaceNumber}`;
+
+    console.log(
+      `Creating Interface Threat: displayId=${displayId}, number=${interfaceNumber}, idPart=${interfaceIdPart}`
+    );
+
     // Generate threat ID
     const threatId = generateThreatIdPerInteraction(
-      trustBoundaryId,
-      `IF-${iface.displayId || iface.id}`,
+      trustBoundaryDisplayId,
+      interfaceIdPart,
       strideCategory,
       "incoming", // Interfaces use incoming by convention
       1
@@ -255,7 +265,8 @@ export class InteractionThreatGenerator {
       threatId,
       strideCategory,
       trustBoundaryId,
-      trustBoundaryName
+      trustBoundaryName,
+      trustBoundaryDisplayId
     );
 
     // Set linked element for interface
@@ -263,7 +274,7 @@ export class InteractionThreatGenerator {
       elementId: iface.id,
       elementName: iface.name,
       elementType: iface.type,
-      displayId: iface.displayId,
+      displayId: displayId, // ✅ Store complete displayId (e.g., "IF-1")
     };
 
     // Use default interface descriptions

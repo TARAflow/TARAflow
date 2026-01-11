@@ -24,7 +24,7 @@ export interface DFDElement {
   type: DFDElementType;
   name: string;
   description: string;
-  displayId?: string;
+  displayId: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
   properties: Record<string, unknown>;
@@ -43,21 +43,34 @@ export interface DFDConnection {
   from: string;
   to: string;
   label?: string;
-  description: string; // NEW: Required description field
-  displayId?: string;
+  displayId: string;
+
+  // Visual layout (from draw.io)
   waypoints?: Array<{ x: number; y: number }>;
-  properties?: {
-    protocol?: string;
-    encrypted?: boolean;
+  sourcePoint?: { x: number; y: number };
+  targetPoint?: { x: number; y: number };
+  offset?: { x: number; y: number };
+
+  curved?: boolean;
+  arrow?: {
+    start?: string; // z.B. "classic"
+    end?: string; // z.B. "classic"
     bidirectional?: boolean;
-    dataType?: string;
   };
 
-  // Threat modeling fields (optional)
-  securityLevel?: SecurityLevel;
-  authenticationRequired?: boolean;
-  encryptionRequired?: boolean;
-  securityNotes?: string;
+  // Semantic / logical properties (from description panel)
+  properties?: {
+    description: string;
+    protocol?: string;
+    encrypted?: boolean;
+    dataType?: string;
+
+    // Threat modeling fields (optional)
+    securityLevel?: SecurityLevel;
+    authenticationRequired?: boolean;
+    encryptionRequired?: boolean;
+    securityNotes?: string;
+  };
 }
 
 export interface DFDValidation {

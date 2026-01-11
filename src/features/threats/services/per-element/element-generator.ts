@@ -42,12 +42,11 @@ export class ElementThreatGenerator {
 
       if (elementsInBoundary.length === 0) continue;
 
-      const tbId = this.extractTBIdentifier(tb.name, 0);
-
       const threats = this.generateThreatsForElements(
         elementsInBoundary,
         tb.id,
         tb.name,
+        tb.displayId ?? "",
         catalog
       );
 
@@ -55,7 +54,7 @@ export class ElementThreatGenerator {
         tables.push({
           trustBoundaryId: tb.id,
           trustBoundaryName: tb.name,
-          displayIdentifier: `[${tbId}]`,
+          displayIdentifier: `[${tb.displayId}]`,
           threats,
         });
       }
@@ -67,6 +66,7 @@ export class ElementThreatGenerator {
       dataFlowElements,
       null,
       "Data Flows",
+      "",
       catalog
     );
     if (dfThreats.length > 0) {
@@ -87,6 +87,7 @@ export class ElementThreatGenerator {
         externalEntities,
         null,
         "External Entities",
+        "",
         catalog
       );
       if (threats.length > 0) {
@@ -100,24 +101,6 @@ export class ElementThreatGenerator {
     }
 
     return tables;
-  }
-
-  /**
-   * Extract the trust boundary id from name [TB]
-   */
-  private extractTBIdentifier(name: string, tbIndex?: number): string {
-    const tbMatch = name.match(/\[TB-?(\d+)\]/i);
-    if (tbMatch) return `TB${tbMatch[1]}`;
-
-    const bracketMatch = name.match(/\[([^\]]+)\]/);
-    if (bracketMatch) return bracketMatch[1].replace(/-/g, "");
-
-    if (tbIndex !== undefined) return `TB${tbIndex + 1}`;
-
-    return name
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .substring(0, 8)
-      .toUpperCase();
   }
 
   private getDataFlowsForElements(
@@ -140,6 +123,7 @@ export class ElementThreatGenerator {
     elements: DFDElementReference[],
     trustBoundaryId: string | null,
     trustBoundaryName: string,
+    trustBoundaryDisplayId: string,
     catalog: { threatTemplates: ThreatTemplate[] }
   ): Threat[] {
     const threats: Threat[] = [];
@@ -149,6 +133,7 @@ export class ElementThreatGenerator {
         element,
         trustBoundaryId,
         trustBoundaryName,
+        trustBoundaryDisplayId,
         catalog
       );
       threats.push(...elementThreats);
@@ -164,6 +149,7 @@ export class ElementThreatGenerator {
     element: DFDElementReference,
     trustBoundaryId: string | null,
     trustBoundaryName: string,
+    trustBoundaryDisplayId: string,
     catalog: { threatTemplates: ThreatTemplate[] }
   ): Threat[] {
     const threats: Threat[] = [];
@@ -178,6 +164,7 @@ export class ElementThreatGenerator {
         strideCategory,
         trustBoundaryId,
         trustBoundaryName,
+        trustBoundaryDisplayId,
         isInterface,
         catalog
       );
@@ -196,13 +183,14 @@ export class ElementThreatGenerator {
     strideCategory: StrideCategory,
     trustBoundaryId: string | null,
     trustBoundaryName: string,
+    trustBoundaryDisplayId: string,
     isInterface: boolean,
     catalog: { threatTemplates: ThreatTemplate[] }
   ): Threat {
     // Generate threat ID
     const threatId = isInterface
       ? generateThreatIdForInterface(
-          trustBoundaryId || "TB-EXT",
+          trustBoundaryDisplayId || "TB-EXT",
           element.displayId || element.id,
           strideCategory,
           1
@@ -218,7 +206,8 @@ export class ElementThreatGenerator {
       threatId,
       strideCategory,
       trustBoundaryId,
-      trustBoundaryName
+      trustBoundaryName,
+      trustBoundaryDisplayId
     );
 
     // Link element

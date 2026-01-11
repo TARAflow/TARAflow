@@ -62,6 +62,7 @@ export interface DataFlowReference {
 
 /**
  * Detected change in a DataFlow reference during sync
+ * ✅ UPDATED: Added "displayId" to possible changes
  */
 export interface DataFlowChange {
   threatId: string;
@@ -73,7 +74,7 @@ export interface DataFlowChange {
     label?: string;
     displayId?: string;
   };
-  changes: ("name" | "id" | "source" | "target")[];
+  changes: ("name" | "id" | "source" | "target" | "displayId")[]; // ✅ Added "displayId"
 }
 
 // ==================== STRIDE MAPPING ====================

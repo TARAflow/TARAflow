@@ -173,6 +173,53 @@ export class DFDParser {
   }
 
   /**
+   * Extract trust boundary ID from name.
+   * Must match the same rule as validateTrustBoundaryIds:
+   * /\[([a-zA-Z0-9_-]+)\]\s*$/
+   */
+  private extractTrustBoundaryId(name: string): string | undefined {
+    if (!name) return undefined;
+
+    const match = name.match(/\[([a-zA-Z0-9_-]+)\]\s*$/);
+    if (!match) return undefined;
+
+    return match[1]; // exakt die validierte ID
+  }
+
+  private extractPoint(
+    geometry: Element | undefined,
+    as: string
+  ): { x: number; y: number } | undefined {
+    if (!geometry) return undefined;
+    const p = geometry.querySelector(`mxPoint[as="${as}"]`);
+    if (!p) return undefined;
+    return {
+      x: parseFloat(p.getAttribute("x") || "0"),
+      y: parseFloat(p.getAttribute("y") || "0"),
+    };
+  }
+
+  private parseCurved(style: string): boolean | undefined {
+    const m = /curved=([01])/.exec(style);
+    if (!m) return undefined;
+    return m[1] === "1";
+  }
+
+  private parseArrow(style: string): {
+    start?: string;
+    end?: string;
+    bidirectional?: boolean;
+  } {
+    const start = /startArrow=([^;]+)/.exec(style)?.[1];
+    const end = /endArrow=([^;]+)/.exec(style)?.[1];
+    return {
+      start,
+      end,
+      bidirectional: !!(start && end),
+    };
+  }
+
+  /**
    * Process <object> elements (new stencil format)
    */
   private processObject(
@@ -218,15 +265,36 @@ export class DFDParser {
     // Handle Dataflows (edges with source and target)
     if (objType === "dataflow" || isEdge) {
       if (source && target) {
-        const waypoints = this.extractWaypoints(geometry);
+        const rawWaypoints = this.extractWaypoints(geometry);
+        const waypoints = rawWaypoints.length > 0 ? rawWaypoints : undefined;
+
+        const sourcePoint =
+          this.extractPoint(geometry, "sourcePoint") ?? undefined;
+        const targetPoint =
+          this.extractPoint(geometry, "targetPoint") ?? undefined;
+        const offset = this.extractPoint(geometry, "offset") ?? undefined;
+
+        const curved = this.parseCurved(style);
+        const arrow = this.parseArrow(style);
+
         connections.push({
           id,
           from: source,
           to: target,
           label: this.cleanLabel(label),
-          description: "",
-          waypoints: waypoints.length > 0 ? waypoints : undefined,
+          displayId: undefined, // wird später via idLabels gesetzt
+
+          // Visual layout
+          waypoints,
+          sourcePoint,
+          targetPoint,
+          offset,
+          curved,
+          arrow,
+
+          // Semantic / logical properties
           properties: {
+            description: "",
             protocol: "",
             encrypted: false,
           },
@@ -279,12 +347,15 @@ export class DFDParser {
       position: { x, y },
       size: { width, height },
       properties: {},
+      displayId: this.extractTrustBoundaryId(
+        this.cleanLabel(label) || elementType || ""
+      ),
     };
 
     // Debug log for Trust Boundaries
     if (elementType === "TrustBoundary") {
       console.log(
-        `[DFDParser] TrustBoundary parsed: id=${id}, name="${element.name}", label="${label}"`
+        `[DFDParser] TrustBoundary parsed: id=${id}, name="${element.name}", label="${label}", displayId="${element.displayId}"`
       );
     }
 
@@ -425,8 +496,9 @@ export class DFDParser {
       from,
       to,
       label: this.cleanLabel(label),
-      description,
+
       properties: {
+        description: description || "",
         protocol: "",
         encrypted: false,
       },

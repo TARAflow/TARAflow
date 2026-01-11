@@ -851,23 +851,34 @@ export class DFDValidator {
     if (!sourceEl || !targetEl) return false;
 
     // Get exit and entry points
-    const start = this.getElementConnectionPoint(sourceEl, "exit", connection);
-    const end = this.getElementConnectionPoint(targetEl, "entry", connection);
+    const start =
+      connection.sourcePoint ??
+      this.getElementConnectionPoint(sourceEl, "exit", connection);
+    const end =
+      connection.targetPoint ??
+      this.getElementConnectionPoint(targetEl, "entry", connection);
 
     // If we have explicit waypoints, use them
     if (connection.waypoints && connection.waypoints.length > 0) {
-      const points = [start, ...connection.waypoints, end];
+      const points = [start, ...(connection.waypoints ?? []), end];
+
       for (let i = 0; i < points.length - 1; i++) {
-        if (
-          this.lineIntersectsRect(
-            points[i],
-            points[i + 1],
-            iface.position,
-            iface.size,
-            5
-          )
-        ) {
-          return true;
+        const lineSegments = connection.curved
+          ? this.interpolateLine(points[i], points[i + 1], 5)
+          : [points[i], points[i + 1]];
+
+        for (let j = 0; j < lineSegments.length - 1; j++) {
+          if (
+            this.lineIntersectsRect(
+              lineSegments[j],
+              lineSegments[j + 1],
+              iface.position,
+              iface.size,
+              0 // hier reicht 0 oder kleine Toleranz z.B. 2px
+            )
+          ) {
+            return true; // Datenfluss schneidet Interface
+          }
         }
       }
       return false;
@@ -975,6 +986,21 @@ export class DFDValidator {
       point.y >= rectPos.y &&
       point.y <= rectPos.y + rectSize.height
     );
+  }
+
+  private interpolateLine(
+    p1: { x: number; y: number },
+    p2: { x: number; y: number },
+    steps: number
+  ): { x: number; y: number }[] {
+    const points = [];
+    for (let i = 0; i <= steps; i++) {
+      points.push({
+        x: p1.x + (p2.x - p1.x) * (i / steps),
+        y: p1.y + (p2.y - p1.y) * (i / steps),
+      });
+    }
+    return points;
   }
 
   // ==================== NAMING & ID LABEL VALIDATION ====================
