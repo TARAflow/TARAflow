@@ -40,7 +40,7 @@ import {
   MitigationTemplate,
   VerificationTemplate,
   STRIDE_DEFINITIONS,
-} from "../models/threat-types";
+} from "../../models/threat-types";
 import type { StrideCategory } from "shared";
 
 // ==================== TYPES ====================

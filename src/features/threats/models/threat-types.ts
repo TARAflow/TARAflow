@@ -1,157 +1,12 @@
-// ==================== SYNC STATUS TYPES ====================
-
-/**
- * Detected change in a DataFlow reference
- */
-export interface DataFlowChange {
-  threatId: string;
-  oldRef: DataFlowReference;
-  newRef: DFDConnectionReference;
-  changes: ("name" | "id" | "source" | "target")[];
-}
-
-/**
- * Detected change in an Element reference
- */
-export interface ElementChange {
-  threatId: string;
-  oldRef: LinkedDFDElement;
-  newRef: DFDElementReference;
-  changes: ("name" | "id" | "type")[];
-}
-
-/**
- * Status of synchronization between DFD and Threats
- */
-export interface ThreatSyncStatus {
-  /** Whether threats are in sync with DFD */
-  inSync: boolean;
-
-  /** Elements/DataFlows in DFD but without threats */
-  missingInThreats: {
-    elements: DFDElementReference[];
-    dataFlows: DFDConnectionReference[];
-  };
-
-  /** Threats referencing deleted DFD elements/flows */
-  orphanedThreats: {
-    elementIds: string[];
-    dataFlowIds: string[];
-    threatIds: string[];
-  };
-
-  /** Threats with changed references (name, id, direction) */
-  changedReferences: {
-    elements: ElementChange[];
-    dataFlows: DataFlowChange[];
-  };
-
-  /** Summary counts for UI */
-  summary: {
-    missingElementCount: number;
-    missingDataFlowCount: number;
-    orphanedThreatCount: number;
-    changedReferenceCount: number;
-  };
-
-  /** When sync was last checked */
-  lastChecked: string;
-}
-
-/**
- * Result of sync operation
- */
-export interface ThreatSyncResult {
-  success: boolean;
-
-  /** Number of new threats added */
-  added: number;
-
-  /** Number of orphaned threats removed (if requested) */
-  removed: number;
-
-  /** Number of references updated */
-  updated: number;
-
-  /** Updated threat data */
-  threatData?: ThreatData;
-
-  /** Error message if failed */
-  error?: string;
-}
-
-// ==================== THREAT TYPES ====================
-// Core data models for the Threats feature
-// NO dependency on app - follows Dependency Inversion Principle
+// ==================== THREAT TYPES (SHARED) ====================
+// Core domain model for threat management
+// Contains types used by BOTH per-element and per-interaction methods
 
 import type { PhaseStatusMap, StrideCategory } from "shared";
 
 // ==================== STRIDE METHOD ====================
 
 export type StrideMethod = "per-element" | "per-interaction";
-
-// ==================== INTERACTION CONTEXT (NEW) ====================
-
-/**
- * Direction of the threat in the data flow
- * - incoming: Attacker targets the receiver (spoofs sender, manipulates data going IN)
- * - outgoing: Attacker targets the sender (spoofs receiver, intercepts data going OUT)
- */
-export type InteractionDirection = "incoming" | "outgoing";
-
-/**
- * Role in the interaction being threatened
- * - source: The sending component
- * - target: The receiving component
- */
-export type InteractionRole = "source" | "target";
-
-/**
- * Context for STRIDE-per-Interaction threat generation
- * Captures the directional nature of data flow threats
- */
-export interface InteractionContext {
-  /** Direction of attack relative to data flow */
-  direction: InteractionDirection;
-
-  /** Which component is being impersonated/attacked */
-  attackedRole: InteractionRole;
-
-  /** Which component is being deceived/affected */
-  victimRole: InteractionRole;
-
-  /** Whether this data flow crosses a trust boundary */
-  crossesTrustBoundary: boolean;
-}
-
-// ==================== STRIDE ELEMENT MAPPING ====================
-
-/**
- * STRIDE categories applicable per DFD element type
- * Based on TARA Table 2
- */
-export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
-  ExternalEntity: ["S", "R"],
-  Process: ["S", "T", "R", "I", "D", "E"],
-  Multiprocess: ["S", "T", "R", "I", "D", "E"],
-  DataFlow: ["T", "I", "D"],
-  DataStore: ["T", "R", "I", "D"],
-  PhysicalInterface: ["S", "T", "R", "I", "D", "E"],
-  Interface: ["S", "T", "R", "I", "D", "E"],
-};
-
-/**
- * STRIDE categories for per-interaction method
- * All 6 categories apply to each data flow
- */
-export const STRIDE_PER_INTERACTION: StrideCategory[] = [
-  "S",
-  "T",
-  "R",
-  "I",
-  "D",
-  "E",
-];
 
 // ==================== STRIDE DEFINITIONS ====================
 
@@ -289,42 +144,18 @@ export const THREAT_ACTORS: ThreatActorDefinition[] = [
   },
 ];
 
-// ==================== LINKED DFD ELEMENT ====================
-
-export interface LinkedDFDElement {
-  elementId: string; // XML ID (stable) - e.g., "10", "4", "7"
-  elementName: string;
-  elementType: string;
-  displayId?: string; // Formatted ID for display - e.g., "DF-1", "P-1"
-} 
-
-// ==================== DATA FLOW REFERENCE ====================
-
-export interface DataFlowReference {
-  /** XML/mxGraph cell ID - stable identifier for matching */
-  connectionId?: string;
-  /** Display ID like "DF-1" - can change when renumbered */
-  dataFlowId: string;
-  dataFlowName: string;
-  sourceId: string;
-  sourceName: string;
-  sourceType: string;
-  targetId: string;
-  targetName: string;
-  targetType: string;
-}
-
-// ==================== THREAT ====================
+// ==================== THREAT (CORE) ====================
 
 /**
  * Core Threat data structure
- * Extended with InteractionContext for per-interaction method
+ * Used by both per-element and per-interaction methods
+ * Method-specific fields: linkedElement (per-element), dataFlow + interactionContext (per-interaction)
  */
 export interface Threat {
   /** Unique Threat ID */
   id: string;
 
-  /** Trust Boundary ID this threat belongs to (null for external entities in per-element) */
+  /** Trust Boundary ID this threat belongs to */
   trustBoundaryId: string | null;
 
   /** Trust Boundary name */
@@ -336,17 +167,14 @@ export interface Threat {
   /** Sequential number per STRIDE category */
   sequenceNumber: number;
 
-  /** Linked DFD element (for per-element method) */
-  linkedElement: LinkedDFDElement | null;
+  /** Linked DFD element - used by per-element method */
+  linkedElement: any | null; // Import from per-element/types
 
-  /** Data flow reference (for per-interaction method) */
-  dataFlow: DataFlowReference | null;
+  /** Data flow reference - used by per-interaction method */
+  dataFlow: any | null; // Import from per-interaction/types
 
-  /**
-   * Interaction context (for per-interaction method)
-   * Captures direction and role information for contextual threats
-   */
-  interactionContext?: InteractionContext;
+  /** Interaction context - used by per-interaction method */
+  interactionContext?: any; // Import from per-interaction/types
 
   /** Threat description */
   threatDescription: string;
@@ -374,10 +202,10 @@ export interface Threat {
   lastModified: string;
 }
 
-// ==================== THREAT TABLE (PER TRUST BOUNDARY) ====================
+// ==================== THREAT TABLE ====================
 
 export interface ThreatTable {
-  /** Trust Boundary ID (null for External Entities table in per-element) */
+  /** Trust Boundary ID */
   trustBoundaryId: string | null;
 
   /** Trust Boundary name */
@@ -390,41 +218,12 @@ export interface ThreatTable {
   threats: Threat[];
 }
 
-// ==================== THREAT CONFIGURATION ====================
-
-/**
- * Project-specific threat configuration
- */
-export interface ThreatConfiguration {
-  /** Currently active STRIDE analysis method for display */
-  activeMethod: StrideMethod;
-
-  /** Custom threat templates (additions to catalog) */
-  customThreatTemplates: ThreatTemplate[];
-
-  /** Custom mitigation templates (additions to catalog) */
-  customMitigationTemplates: MitigationTemplate[];
-
-  /** Custom verification templates (additions to catalog) */
-  customVerificationTemplates: VerificationTemplate[];
-}
-
-/**
- * Default configuration for new projects
- */
-export const DEFAULT_THREAT_CONFIGURATION: ThreatConfiguration = {
-  activeMethod: "per-element",
-  customThreatTemplates: [],
-  customMitigationTemplates: [],
-  customVerificationTemplates: [],
-};
-
-// ==================== TEMPLATE TYPES ====================
+// ==================== TEMPLATES ====================
 
 export interface ThreatTemplate {
   id: string;
   strideCategory: StrideCategory;
-  elementTypes: string[]; // Which element types this applies to
+  elementTypes: string[];
   threat: string;
   threatDE: string;
   attack: string;
@@ -448,60 +247,29 @@ export interface VerificationTemplate {
   isCustom: boolean;
 }
 
-// ==================== INTERACTION TEMPLATE TYPES (NEW) ====================
+// ==================== CONFIGURATION ====================
 
-/**
- * Template for generating directional threats in STRIDE-per-Interaction
- * Uses placeholders: {{sourceName}}, {{targetName}}, {{dataFlowName}}
- */
-export interface InteractionThreatTemplate {
-  id: string;
-  strideCategory: StrideCategory;
-  direction: InteractionDirection;
-
-  /** Template with placeholders */
-  threat: string;
-  threatDE: string;
-  attack: string;
-  attackDE: string;
-
-  /** Suggested mitigations for this direction */
-  suggestedMitigations: string[];
-  suggestedMitigationsDE: string[];
+export interface ThreatConfiguration {
+  activeMethod: StrideMethod;
+  customThreatTemplates: ThreatTemplate[];
+  customMitigationTemplates: MitigationTemplate[];
+  customVerificationTemplates: VerificationTemplate[];
 }
 
-/**
- * Placeholders available in interaction templates
- */
-export interface InteractionTemplatePlaceholders {
-  sourceName: string;
-  targetName: string;
-  sourceType: string;
-  targetType: string;
-  dataFlowName: string;
-  trustBoundaryName: string;
-}
+export const DEFAULT_THREAT_CONFIGURATION: ThreatConfiguration = {
+  activeMethod: "per-element",
+  customThreatTemplates: [],
+  customMitigationTemplates: [],
+  customVerificationTemplates: [],
+};
 
-// ==================== THREAT DATA CONTAINER ====================
+// ==================== THREAT DATA ====================
 
-/**
- * Complete threat data for a project
- * Stores BOTH per-element and per-interaction data to allow switching
- */
 export interface ThreatData {
-  /** Project-specific configuration */
   configuration: ThreatConfiguration;
-
-  /** Threat tables for STRIDE-per-element method */
   perElementTables: ThreatTable[];
-
-  /** Threat tables for STRIDE-per-interaction method */
   perInteractionTables: ThreatTable[];
-
-  /** Validation state */
   validation?: ThreatValidation;
-
-  /** Last modified timestamp */
   lastModified: string;
 }
 
@@ -512,25 +280,22 @@ export interface ThreatValidation {
   lastValidated: string;
 }
 
-// ==================== THREAT PROJECT INTERFACE ====================
-// What Threats feature needs from a project (Dependency Inversion)
+// ==================== PROJECT INTERFACE ====================
 
 export interface ThreatProjectData {
   id: string;
   name: string;
   threats: ThreatData | null;
   phaseStatus: PhaseStatusMap;
-  /** DFD data for extracting elements and trust boundaries */
   dfdXml?: string;
   dfdElements?: DFDElementReference[];
   dfdConnections?: DFDConnectionReference[];
   dfdPreviewImage?: string;
-  /** Assets for linking */
   assetIds?: string[];
   lastModified: string;
 }
 
-// Simplified DFD references (no circular dependency)
+// Simplified DFD references
 export interface DFDElementReference {
   id: string;
   type: string;
@@ -545,12 +310,45 @@ export interface DFDConnectionReference {
   from: string;
   to: string;
   label?: string;
-  /** Formatted display ID like "DF-1", extracted from idlabel child element */
   displayId?: string;
 }
 
-// ==================== THREAT UPDATE RESULT ====================
-// What Threats returns to app layer after updates
+// ==================== SYNC STATUS (SHARED) ====================
+
+export interface ThreatSyncStatus {
+  inSync: boolean;
+  missingInThreats: {
+    elements: DFDElementReference[];
+    dataFlows: DFDConnectionReference[];
+  };
+  orphanedThreats: {
+    elementIds: string[];
+    dataFlowIds: string[];
+    threatIds: string[];
+  };
+  changedReferences: {
+    elements: any[]; // ElementChange from per-element
+    dataFlows: any[]; // DataFlowChange from per-interaction
+  };
+  summary: {
+    missingElementCount: number;
+    missingDataFlowCount: number;
+    orphanedThreatCount: number;
+    changedReferenceCount: number;
+  };
+  lastChecked: string;
+}
+
+export interface ThreatSyncResult {
+  success: boolean;
+  added: number;
+  removed: number;
+  updated: number;
+  threatData?: ThreatData;
+  error?: string;
+}
+
+// ==================== UPDATE RESULT ====================
 
 export interface ThreatUpdateResult {
   threats: ThreatData;
@@ -558,7 +356,7 @@ export interface ThreatUpdateResult {
   lastModified: string;
 }
 
-// ==================== THREAT TAB PROPS ====================
+// ==================== TAB PROPS ====================
 
 export interface ThreatTabProps {
   project: ThreatProjectData;
@@ -567,150 +365,8 @@ export interface ThreatTabProps {
   onPhaseComplete?: () => void;
 }
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== HELPERS ====================
 
-/**
- * Type guard to check if a ThreatTable contains Interface threats
- * Interface tables have "Physical Interfaces" in their name
- */
-export function isInterfaceTable(table: ThreatTable): boolean {
-  return table.trustBoundaryName.includes("Physical Interfaces");
-}
-
-/**
- * Type guard to check if a Threat is an Interface threat
- * Interface threats have linkedElement of type Interface/PhysicalInterface
- */
-export function isInterfaceThreat(threat: Threat): boolean {
-  return (
-    threat.linkedElement !== null &&
-    (threat.linkedElement.elementType === "Interface" ||
-      threat.linkedElement.elementType === "PhysicalInterface")
-  );
-}
-
-/**
- * Generate threat ID for STRIDE-per-element method
- * Format: {ElementID}-{STRIDE}-{Number}
- * Example: P-1-S-1, DS-1-T-1
- */
-export function generateThreatIdPerElement(
-  elementId: string,
-  strideCategory: StrideCategory,
-  sequenceNumber: number
-): string {
-  return `${elementId}-${strideCategory}-${sequenceNumber}`;
-}
-
-/**
- * Generate threat ID for STRIDE-per-interaction method
- * Format: {TrustBoundaryID}-{DataFlowID}-{STRIDE}-{Direction}-{Number}
- * Example: TB1-1-S-IN-1, TB1-1-S-OUT-1
- */
-export function generateThreatIdPerInteraction(
-  trustBoundaryId: string,
-  dataFlowId: string,
-  strideCategory: StrideCategory,
-  direction: InteractionDirection,
-  sequenceNumber: number
-): string {
-  const dirSuffix = direction === "incoming" ? "IN" : "OUT";
-  return `${trustBoundaryId}-${dataFlowId}-${strideCategory}-${dirSuffix}-${sequenceNumber}`;
-}
-
-export function generateThreatIdForInterface(
-  trustBoundaryId: string,
-  interfaceId: string,
-  strideCategory: StrideCategory,
-  sequenceNumber: number
-): string {
-  return `${trustBoundaryId}-IF-${interfaceId}-${strideCategory}-${sequenceNumber}`;
-}
-
-/**
- * Parse threat ID to extract components
- */
-export function parseThreatId(id: string): {
-  elementId?: string;
-  trustBoundaryId?: string;
-  dataFlowId?: string;
-  interfaceId?: string;
-  strideCategory: StrideCategory;
-  direction?: InteractionDirection;
-  sequenceNumber: number;
-  isInterface?: boolean;
-} | null {
-  // Try interface format: TB1-IF-USB1-T-1
-  const interfaceMatch = id.match(/^(TB\d+)-IF-([A-Z0-9]+)-([STRIDE])-(\d+)$/);
-  if (interfaceMatch) {
-    return {
-      trustBoundaryId: interfaceMatch[1],
-      interfaceId: interfaceMatch[2],
-      strideCategory: interfaceMatch[3] as StrideCategory,
-      sequenceNumber: parseInt(interfaceMatch[4], 10),
-      isInterface: true,
-    };
-  }
-
-  // Try per-interaction format with direction: TB1-1-S-IN-1 or TB1-1-S-OUT-1
-  const perInteractionWithDir = id.match(
-    /^(TB\d+)-(\d+)-([STRIDE])-(IN|OUT)-(\d+)$/
-  );
-  if (perInteractionWithDir) {
-    return {
-      trustBoundaryId: perInteractionWithDir[1],
-      dataFlowId: perInteractionWithDir[2],
-      strideCategory: perInteractionWithDir[3] as StrideCategory,
-      direction: perInteractionWithDir[4] === "IN" ? "incoming" : "outgoing",
-      sequenceNumber: parseInt(perInteractionWithDir[5], 10),
-    };
-  }
-
-  // Try legacy per-interaction format: TB-1-DF-1-S-1
-  const perInteractionLegacy = id.match(/^(TB-\d+)-(DF-\d+)-([STRIDE])-(\d+)$/);
-  if (perInteractionLegacy) {
-    return {
-      trustBoundaryId: perInteractionLegacy[1],
-      dataFlowId: perInteractionLegacy[2],
-      strideCategory: perInteractionLegacy[3] as StrideCategory,
-      sequenceNumber: parseInt(perInteractionLegacy[4], 10),
-    };
-  }
-
-  // Try per-element format: P-1-S-1 or EE-1-S-1
-  const perElementMatch = id.match(/^([A-Z]+-\d+)-([STRIDE])-(\d+)$/);
-  if (perElementMatch) {
-    return {
-      elementId: perElementMatch[1],
-      strideCategory: perElementMatch[2] as StrideCategory,
-      sequenceNumber: parseInt(perElementMatch[3], 10),
-    };
-  }
-
-  return null;
-}
-
-/**
- * Get STRIDE definition by type
- */
-export function getStrideDefinition(
-  type: StrideCategory
-): StrideDefinition | undefined {
-  return STRIDE_DEFINITIONS.find((s) => s.type === type);
-}
-
-/**
- * Get applicable STRIDE categories for an element type
- */
-export function getApplicableStrideCategories(
-  elementType: string
-): StrideCategory[] {
-  return STRIDE_PER_ELEMENT_TYPE[elementType] || [];
-}
-
-/**
- * Create default ThreatData for new projects
- */
 export function createDefaultThreatData(): ThreatData {
   return {
     configuration: { ...DEFAULT_THREAT_CONFIGURATION },
@@ -720,30 +376,22 @@ export function createDefaultThreatData(): ThreatData {
   };
 }
 
-/**
- * Get active threat tables based on current method
- */
 export function getActiveThreatTables(
   threatData: ThreatData | null | undefined
 ): ThreatTable[] {
-  if (!threatData?.configuration) {
-    return [];
-  }
-  if (threatData.configuration.activeMethod === "per-element") {
-    return threatData.perElementTables ?? [];
-  }
-  return threatData.perInteractionTables ?? [];
+  if (!threatData?.configuration) return [];
+
+  return threatData.configuration.activeMethod === "per-element"
+    ? threatData.perElementTables ?? []
+    : threatData.perInteractionTables ?? [];
 }
 
-/**
- * Create an empty threat with defaults
- */
 export function createEmptyThreat(
   id: string,
   strideCategory: StrideCategory,
   trustBoundaryId: string | null,
   trustBoundaryName: string | null,
-  interactionContext?: InteractionContext
+  interactionContext?: any
 ): Threat {
   return {
     id,
@@ -767,97 +415,21 @@ export function createEmptyThreat(
 }
 
 /**
- * Format data flow display string
- * Format: "Source → Target: DataFlow Name"
+ * Type guard to check if a ThreatTable contains Interface threats
+ * Interface tables have "Physical Interfaces" in their name
  */
-export function formatDataFlowDisplay(dataFlow: DataFlowReference): string {
-  const sourceName = dataFlow.sourceName || dataFlow.sourceId;
-  const targetName = dataFlow.targetName || dataFlow.targetId;
-  const flowName = dataFlow.dataFlowName || dataFlow.dataFlowId;
-  return `${sourceName} → ${targetName}: ${flowName}`;
+export function isInterfaceTable(table: ThreatTable): boolean {
+  return table.trustBoundaryName.includes("Physical Interfaces");
 }
 
 /**
- * Format interaction context for display
+ * Type guard to check if a Threat is an Interface threat
+ * Interface threats have linkedElement of type Interface/PhysicalInterface
  */
-export function formatInteractionContext(
-  context: InteractionContext,
-  locale: "en" | "de" = "en"
-): string {
-  if (locale === "de") {
-    const direction =
-      context.direction === "incoming" ? "Eingehend" : "Ausgehend";
-    const role = context.attackedRole === "source" ? "Sender" : "Empfänger";
-    return `${direction} (${role}-Spoofing)`;
-  }
-  const direction = context.direction === "incoming" ? "Incoming" : "Outgoing";
-  const role = context.attackedRole === "source" ? "Sender" : "Receiver";
-  return `${direction} (${role} Spoofing)`;
-}
-
-/**
- * Get default threat description for interface threats based on STRIDE category
- * Used when no custom template is available
- */
-export function getDefaultInterfaceThreatDescription(
-  strideCategory: StrideCategory,
-  interfaceName: string,
-  locale: "en" | "de" = "en"
-): string {
-  const descriptions = {
-    en: {
-      T: `Physical tampering through ${interfaceName} (e.g., hardware manipulation, voltage injection)`,
-      I: `Information disclosure through ${interfaceName} (e.g., sniffing, side-channel attacks)`,
-      D: `Denial of Service through ${interfaceName} (e.g., short circuit, power surge, connector damage)`,
-      E: `Privilege escalation through ${interfaceName} (e.g., debug access, firmware manipulation)`,
-      S: `Identity spoofing through ${interfaceName} (e.g., impersonating legitimate device)`,
-      R: `Action repudiation through ${interfaceName} (e.g., denying physical access)`,
-    },
-    de: {
-      T: `Physische Manipulation über ${interfaceName} (z.B. Hardware-Manipulation, Spannungsinjektion)`,
-      I: `Informationspreisgabe über ${interfaceName} (z.B. Abhören, Seitenkanalangriffe)`,
-      D: `Dienstverweigerung über ${interfaceName} (z.B. Kurzschluss, Spannungsspitzen, Steckerbeschädigung)`,
-      E: `Rechteausweitung über ${interfaceName} (z.B. Debug-Zugriff, Firmware-Manipulation)`,
-      S: `Identitätsfälschung über ${interfaceName} (z.B. Vortäuschen eines legitimen Geräts)`,
-      R: `Aktionsabstreitbarkeit über ${interfaceName} (z.B. Leugnen des physischen Zugriffs)`,
-    },
-  };
-
+export function isInterfaceThreat(threat: Threat): boolean {
   return (
-    descriptions[locale][strideCategory] ||
-    `Physical threat to ${interfaceName}`
-  );
-}
-
-/**
- * Get default attack description for interface threats based on STRIDE category
- */
-export function getDefaultInterfaceAttackDescription(
-  strideCategory: StrideCategory,
-  interfaceName: string,
-  locale: "en" | "de" = "en"
-): string {
-  const descriptions = {
-    en: {
-      T: `Attacker connects manipulated hardware to ${interfaceName} to alter device behavior or data`,
-      I: `Attacker connects monitoring equipment to ${interfaceName} to extract sensitive information`,
-      D: `Attacker deliberately damages ${interfaceName} or causes electrical faults (short circuit, overvoltage)`,
-      E: `Attacker uses ${interfaceName} to gain unauthorized access or escalate privileges (e.g., JTAG debugging)`,
-      S: `Attacker connects fake device to ${interfaceName} to impersonate legitimate hardware`,
-      R: `Attacker performs actions through ${interfaceName} that cannot be traced or logged`,
-    },
-    de: {
-      T: `Angreifer verbindet manipulierte Hardware mit ${interfaceName}, um Geräteverhalten oder Daten zu ändern`,
-      I: `Angreifer verbindet Überwachungsgerät mit ${interfaceName}, um sensible Informationen zu extrahieren`,
-      D: `Angreifer beschädigt ${interfaceName} absichtlich oder verursacht elektrische Fehler (Kurzschluss, Überspannung)`,
-      E: `Angreifer nutzt ${interfaceName}, um unbefugten Zugriff zu erlangen oder Rechte auszuweiten (z.B. JTAG-Debugging)`,
-      S: `Angreifer verbindet gefälschtes Gerät mit ${interfaceName}, um legitime Hardware vorzutäuschen`,
-      R: `Angreifer führt Aktionen über ${interfaceName} aus, die nicht nachvollziehbar oder protokolliert werden können`,
-    },
-  };
-
-  return (
-    descriptions[locale][strideCategory] ||
-    `Physical attack scenario for ${interfaceName}`
+    threat.linkedElement !== null &&
+    (threat.linkedElement.elementType === "Interface" ||
+      threat.linkedElement.elementType === "PhysicalInterface")
   );
 }

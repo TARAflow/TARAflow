@@ -38,17 +38,19 @@ import {
   ThreatActorType,
   STRIDE_DEFINITIONS,
   THREAT_ACTORS,
-  formatDataFlowDisplay,
-} from "../models/threat-types";
-import { threatService } from "../services/threat-service";
+} from "../../models/threat-types";
+import { formatDataFlowDisplay } from "../../models/per-interaction-types";
+import { elementThreatService } from "../../services/per-element/element-threat-service";
+import { interactionThreatService } from "../../services/per-interaction/interaction-threat-service";
 import {
   getLocalizedThreatText,
   shouldUseTemplateLocalization,
   getSuggestedMitigations,
   formatInteractionDirection,
   getDirectionColor,
-} from "../services/interaction-templates";
+} from "../../services/interaction-templates";
 import type { StrideCategory } from "shared";
+import { STRIDE_COLORS } from "shared";
 
 // ==================== TYPES ====================
 
@@ -59,17 +61,6 @@ interface ThreatDialogProps {
   onSave: (updatedThreat: Partial<Threat>) => void;
   onClose: () => void;
 }
-
-// ==================== STRIDE COLORS ====================
-
-const STRIDE_COLORS: Record<StrideCategory, string> = {
-  S: "#ef4444",
-  T: "#f97316",
-  R: "#eab308",
-  I: "#22c55e",
-  D: "#3b82f6",
-  E: "#a855f7",
-};
 
 // ==================== COMPONENT ====================
 
@@ -152,11 +143,16 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
       setMitigation(threat.mitigation);
       setVerification(threat.verification);
 
+      // ✅ GEÄNDERT: Service Selection basierend auf Threat-Typ
+      const service = threat.interactionContext
+        ? interactionThreatService
+        : elementThreatService;
+
       // Load templates for this STRIDE category
       const elementType = threat.linkedElement?.elementType || "DataFlow";
 
       setThreatTemplates(
-        threatService.getThreatTemplates(
+        service.getThreatTemplates(
           threat.strideCategory,
           elementType,
           configuration.customThreatTemplates
@@ -164,7 +160,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
       );
 
       setMitigationTemplates(
-        threatService.getMitigationTemplates(
+        service.getMitigationTemplates(
           threat.strideCategory,
           elementType,
           configuration.customMitigationTemplates
@@ -172,7 +168,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
       );
 
       setVerificationTemplates(
-        threatService.getVerificationTemplates(
+        service.getVerificationTemplates(
           threat.strideCategory,
           elementType,
           configuration.customVerificationTemplates
@@ -253,20 +249,21 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
     }
   };
 
-  const handleAddSuggestedMitigation = (mitigationText: string) => {
-    setMitigation((prev) =>
-      prev ? `${prev}\n${mitigationText}` : mitigationText
-    );
+  const handleAddSuggestedMitigation = (suggestion: string) => {
+    setMitigation((prev) => (prev ? `${prev}\n${suggestion}` : suggestion));
   };
 
-  // ==================== RENDER HELPERS ====================
+  // ==================== HELPER ====================
 
-  const getStrideDef = (type: StrideCategory) =>
-    STRIDE_DEFINITIONS.find((s) => s.type === type);
+  const getStrideName = (type: StrideCategory): string => {
+    const def = STRIDE_DEFINITIONS.find((s) => s.type === type);
+    return locale === "de" ? def?.nameDE || type : def?.name || type;
+  };
+
+  // ==================== RENDER ====================
 
   if (!threat) return null;
 
-  const strideDef = getStrideDef(threat.strideCategory);
   const hasInteractionContext = !!threat.interactionContext;
 
   return (
@@ -275,20 +272,23 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
         <Stack direction="row" spacing={2} alignItems="center">
           <Chip
             label={threat.strideCategory}
+            size="medium"
             sx={{
               backgroundColor: STRIDE_COLORS[threat.strideCategory],
               color: "white",
               fontWeight: "bold",
             }}
           />
-          {/* Direction badge for per-interaction threats */}
+          <Typography variant="h6">
+            {getStrideName(threat.strideCategory)} - {threat.id}
+          </Typography>
           {hasInteractionContext && threat.interactionContext && (
             <Chip
               icon={
                 threat.interactionContext.direction === "incoming" ? (
-                  <ArrowDownward fontSize="small" />
+                  <ArrowDownward />
                 ) : (
-                  <ArrowUpward fontSize="small" />
+                  <ArrowUpward />
                 )
               }
               label={formatInteractionDirection(
@@ -297,100 +297,83 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               )}
               size="small"
               sx={{
-                backgroundColor: getDirectionColor(
+                bgcolor: getDirectionColor(
                   threat.interactionContext.direction
                 ),
                 color: "white",
-                "& .MuiChip-icon": { color: "white" },
               }}
             />
           )}
-          <Typography variant="h6">
-            {t("tabs.threats.editThreat", { defaultValue: "Edit Threat" })}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            fontFamily="monospace"
-          >
-            {threat.id}
-          </Typography>
         </Stack>
       </DialogTitle>
 
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Info Section */}
-          <Alert severity="info" icon={false}>
-            <Typography variant="subtitle2" gutterBottom>
-              {locale === "de" ? strideDef?.nameDE : strideDef?.name} -{" "}
-              {locale === "de"
-                ? strideDef?.securityPropertyDE
-                : strideDef?.securityProperty}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {locale === "de"
-                ? strideDef?.descriptionDE
-                : strideDef?.description}
-            </Typography>
-          </Alert>
-
-          {/* Element/DataFlow Reference */}
-          <Box sx={{ backgroundColor: "grey.50", p: 2, borderRadius: 1 }}>
+          {/* Context Information */}
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: "background.default",
+              borderRadius: 1,
+              border: 1,
+              borderColor: "divider",
+            }}
+          >
             {threat.linkedElement ? (
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Typography variant="body2" color="text.secondary">
-                  {t("tabs.threats.element", { defaultValue: "Element" })}:
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  {t("tabs.threats.element", { defaultValue: "Element" })}
                 </Typography>
-                <Chip
-                  label={threat.linkedElement.elementType}
-                  size="small"
-                  variant="outlined"
-                />
-                <Typography variant="body2" fontWeight="medium">
-                  {threat.linkedElement.elementName} (
-                  {threat.linkedElement.elementId})
-                </Typography>
-              </Stack>
-            ) : threat.dataFlow ? (
-              <Stack spacing={1}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    {t("tabs.threats.dataFlow", { defaultValue: "Data Flow" })}:
-                  </Typography>
-                  <Typography variant="body2" fontWeight="medium">
-                    {formatDataFlowDisplay(threat.dataFlow)}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Chip
+                    label={threat.linkedElement.elementType}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Typography>
+                    {threat.linkedElement.elementName} (
+                    {threat.linkedElement.elementId})
                   </Typography>
                 </Stack>
-                {/* Show direction context */}
+              </Box>
+            ) : null}
+
+            {threat.dataFlow && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {t("tabs.threats.dataFlow", { defaultValue: "Data Flow" })}
+                </Typography>
+                <Typography>{formatDataFlowDisplay(threat.dataFlow)}</Typography>
                 {hasInteractionContext && threat.interactionContext && (
                   <Typography variant="caption" color="text.secondary">
                     {threat.interactionContext.direction === "incoming"
-                      ? locale === "de"
-                        ? `Angriff aus Richtung ${threat.dataFlow.sourceName} auf ${threat.dataFlow.targetName}`
-                        : `Attack from ${threat.dataFlow.sourceName} direction targeting ${threat.dataFlow.targetName}`
-                      : locale === "de"
-                      ? `Angriff aus Richtung ${threat.dataFlow.targetName} auf ${threat.dataFlow.sourceName}`
-                      : `Attack from ${threat.dataFlow.targetName} direction targeting ${threat.dataFlow.sourceName}`}
+                      ? "→ Into element"
+                      : "→ From element"}
                     {threat.interactionContext.crossesTrustBoundary && (
                       <Chip
-                        label={
-                          locale === "de"
-                            ? "Kreuzt Trust Boundary"
-                            : "Crosses Trust Boundary"
-                        }
+                        label={t("tabs.threats.crossesTB", {
+                          defaultValue: "Crosses Trust Boundary",
+                        })}
                         size="small"
                         color="warning"
-                        sx={{ ml: 1, height: 20 }}
+                        variant="outlined"
+                        sx={{ ml: 1 }}
                       />
                     )}
                   </Typography>
                 )}
-              </Stack>
-            ) : null}
+              </Box>
+            )}
           </Box>
 
-          <Divider />
+          {/* Template Localization Info */}
+          {usesTemplateLocalization && (
+            <Alert severity="info">
+              {locale === "de"
+                ? "Diese Bedrohung verwendet Template-Lokalisierung. Ihre Änderungen werden gespeichert und überschreiben den automatisch generierten Text."
+                : "This threat uses template localization. Your changes will be saved and override the auto-generated text."}
+            </Alert>
+          )}
 
           {/* Threat Description */}
           <Box>

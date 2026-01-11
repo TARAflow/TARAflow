@@ -560,6 +560,26 @@
         "noCustomThreats": "Keine benutzerdefinierten Bedrohungen definiert",
         "noCustomMitigations": "Keine benutzerdefinierten Gegenmassnahmen definiert",
         "noCustomVerifications": "Keine benutzerdefinierten Verifizierungen definiert"
+      },
+      "filters": {
+        "toggle": "Filter ein-/ausblenden",
+        "total": "Gesamt: {{count}} Bedrohungen",
+        "showing": "{{filtered}} von {{total}} Bedrohungen angezeigt",
+        "title": "Filter",
+        "clear": "Filter zurücksetzen",
+        "strideCategory": "STRIDE-Kategorie",
+        "allCategories": "Alle Kategorien",
+        "search": "Suche",
+        "searchPlaceholder": "Bedrohungen durchsuchen..."
+      },
+
+      "table": {
+        "id": "T-ID",
+        "stride": "STRIDE",
+        "direction": "Richtung",
+        "description": "Beschreibung",
+        "mitigation": "Maßnahme",
+        "actions": "Aktionen"
       }
     },
     "risks": {

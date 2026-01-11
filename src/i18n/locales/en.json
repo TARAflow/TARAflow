@@ -562,6 +562,26 @@
         "noCustomThreats": "No custom threats defined",
         "noCustomMitigations": "No custom mitigations defined",
         "noCustomVerifications": "No custom verifications defined"
+      },
+      "filters": {
+        "toggle": "Toggle Filters",
+        "total": "Total: {{count}} threats",
+        "showing": "Showing {{filtered}} of {{total}} threats",
+        "title": "Filters",
+        "clear": "Clear Filters",
+        "strideCategory": "STRIDE Category",
+        "allCategories": "All Categories",
+        "search": "Search",
+        "searchPlaceholder": "Search threats..."
+      },
+
+      "table": {
+        "id": "T-ID",
+        "stride": "STRIDE",
+        "direction": "Direction",
+        "description": "Description",
+        "mitigation": "Mitigation",
+        "actions": "Actions"
       }
     },
     "risks": {

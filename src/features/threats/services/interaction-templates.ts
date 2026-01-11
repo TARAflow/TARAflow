@@ -16,11 +16,11 @@
 //   {{trustBoundaryName}} - Name of the trust boundary
 
 import type { StrideCategory } from "shared";
+import type { Threat } from "../models/threat-types";
 import type {
   InteractionDirection,
   DataFlowReference,
-  Threat,
-} from "../models/threat-types";
+} from "../models/per-interaction-types";
 
 // ==================== TEMPLATE TYPES ====================
 
@@ -31,13 +31,13 @@ export interface InteractionThreatTemplate {
   id: string;
   strideCategory: StrideCategory;
   direction: InteractionDirection;
-  
+
   /** Template with placeholders (English) */
   threat: string;
   threatDE: string;
   attack: string;
   attackDE: string;
-  
+
   /** Suggested mitigations for this direction */
   suggestedMitigations: string[];
   suggestedMitigationsDE: string[];
@@ -396,7 +396,10 @@ const EOP_TEMPLATES: InteractionThreatTemplate[] = [
 
 // ==================== TEMPLATE REGISTRY ====================
 
-export const INTERACTION_THREAT_TEMPLATES: Record<StrideCategory, InteractionThreatTemplate[]> = {
+export const INTERACTION_THREAT_TEMPLATES: Record<
+  StrideCategory,
+  InteractionThreatTemplate[]
+> = {
   S: SPOOFING_TEMPLATES,
   T: TAMPERING_TEMPLATES,
   R: REPUDIATION_TEMPLATES,
@@ -495,12 +498,12 @@ export function applyTemplateToInteraction(
 
 /**
  * Get localized threat text for UI display
- * 
+ *
  * Call this from ThreatDialog to get localized text based on:
  * - threat.interactionContext (direction)
  * - threat.dataFlow (source/target names)
  * - current locale from i18n
- * 
+ *
  * @param threat - Threat with interactionContext and dataFlow
  * @param locale - Current UI language ('en' | 'de')
  * @returns Localized text or null if not applicable
@@ -547,7 +550,7 @@ export function getLocalizedThreatText(
 
 /**
  * Check if threat should use template-based localization
- * 
+ *
  * Returns true if:
  * - Has interactionContext (per-interaction method)
  * - Description is empty OR source is "auto"
@@ -556,7 +559,7 @@ export function shouldUseTemplateLocalization(threat: Threat): boolean {
   if (!threat.interactionContext || !threat.dataFlow) {
     return false;
   }
-  
+
   // Use template if empty or auto-generated
   return !threat.threatDescription.trim() || threat.source === "auto";
 }
@@ -612,7 +615,9 @@ export function formatInteractionDirection(
     en: { incoming: "Incoming", outgoing: "Outgoing" },
     de: { incoming: "Eingehend", outgoing: "Ausgehend" },
   };
-  return labels[locale][direction];
+
+  const normalized = locale.startsWith("de") ? "de" : "en";
+  return labels[normalized][direction];
 }
 
 /**

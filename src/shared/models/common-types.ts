@@ -162,3 +162,14 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
 }
+
+// ==================== Color TYPES ====================
+
+export const STRIDE_COLORS: Record<StrideCategory, string> = {
+  S: "#ef4444", // red
+  T: "#f97316", // orange
+  R: "#eab308", // yellow
+  I: "#22c55e", // green
+  D: "#3b82f6", // blue
+  E: "#a855f7", // purple
+};

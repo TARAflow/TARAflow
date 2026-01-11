@@ -13,7 +13,11 @@ export type {
   ValidationResult,
 } from "./models/common-types";
 
-export { PHASES, PHASE_STATUS_CONFIG } from "./models/common-types";
+export {
+  PHASES,
+  PHASE_STATUS_CONFIG,
+  STRIDE_COLORS,
+} from "./models/common-types";
 
 export type {
   ProjectData,
