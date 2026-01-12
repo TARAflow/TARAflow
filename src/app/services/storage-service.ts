@@ -151,7 +151,9 @@ class StorageService {
       assets: project.assets ?? null,
       threats: project.threats ?? null,
       risks: project.risks ?? null,
+      attackTrees: project.attackTrees ?? null,
       documentation: null,
+      integration: project.integration ?? null,
 
       // Other fields
       status: project.status ?? "draft",
@@ -314,7 +316,9 @@ class StorageService {
       assets: null,
       threats: null,
       risks: null,
+      attackTrees: null,
       documentation: null,
+      integration: null,
 
       isOpen: true,
       hasUnsavedChanges: false,
@@ -400,7 +404,7 @@ class StorageService {
   // ==================== UTILITIES ====================
 
   /**
-   * Clear all CoReTM data from localStorage
+   * Clear all TARAflow data from localStorage
    */
   async clearAllData(): Promise<StorageResult<boolean>> {
     try {

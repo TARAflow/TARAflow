@@ -258,6 +258,8 @@ export function transformProjectToDocData(
       hasDFD: !!project.dfd?.xml,
       imagePath: "./images/dfd.png",
       stats: project.dfd?.stats,
+      connections: [],
+      elements: [],
     },
     assets: docAssets,
     threatsPerElement: docThreatsPerElement,

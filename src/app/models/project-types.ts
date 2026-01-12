@@ -6,6 +6,7 @@ import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
 import { AttackTreeData } from "features/attacktree";
 import { DocData } from "features/documentation";
+import { IntegrationData } from "features/integration";
 
 // ==================== PROJECT TYPES ====================
 
@@ -86,6 +87,7 @@ export interface Project {
   risks: RiskData | null;
   attackTrees: AttackTreeData | null; // <-- Korrigiert: AttackTreeData statt AttackTreeProjectData
   documentation: DocData | null;
+  integration: IntegrationData | null;
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
 }

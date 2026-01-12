@@ -492,13 +492,22 @@ export abstract class BaseDocumentGenerator {
     const values = {
       displayId: element.displayId || element.id,
       name: this.escapeTableText(element.name),
-      description: this.escapeTableText(element.description) || "-",
-      securityLevel: getSecurityLevelText(element.securityLevel, lang),
-      trustLevel: getTrustLevelText(element.trustLevel, lang),
-      authRequired: getYesNoText(element.authenticationRequired, lang),
-      encryptionRequired: getYesNoText(element.encryptionRequired, lang),
-      securityNotes: element.securityNotes 
-        ? this.escapeTableText(element.securityNotes) 
+      description: this.escapeTableText(element.properties.description ?? "-"),
+      securityLevel: getSecurityLevelText(
+        element.properties.securityLevel ?? "none",
+        lang
+      ),
+      trustLevel: getTrustLevelText(element.properties.trustLevel, lang),
+      authRequired: getYesNoText(
+        element.properties.authenticationRequired ?? false,
+        lang
+      ),
+      encryptionRequired: getYesNoText(
+        element.properties.encryptionRequired ?? false,
+        lang
+      ),
+      securityNotes: element.properties.securityNotes
+        ? this.escapeTableText(element.properties.securityNotes)
         : undefined,
     };
 
@@ -514,13 +523,26 @@ export abstract class BaseDocumentGenerator {
       displayId: connection.displayId || connection.id,
       fromElement: this.escapeTableText(connection.fromElement),
       toElement: this.escapeTableText(connection.toElement),
-      label: connection.label ? this.escapeTableText(connection.label) : undefined,
-      description: this.escapeTableText(connection.description) || "-",
-      securityLevel: getSecurityLevelText(connection.securityLevel, lang),
-      authRequired: getYesNoText(connection.authenticationRequired, lang),
-      encryptionRequired: getYesNoText(connection.encryptionRequired, lang),
-      securityNotes: connection.securityNotes 
-        ? this.escapeTableText(connection.securityNotes) 
+      label: connection.label
+        ? this.escapeTableText(connection.label)
+        : undefined,
+      description: this.escapeTableText(
+        connection.properties.description ?? "-"
+      ),
+      securityLevel: getSecurityLevelText(
+        connection.properties.securityLevel ?? "none",
+        lang
+      ),
+      authRequired: getYesNoText(
+        connection.properties.authenticationRequired ?? false,
+        lang
+      ),
+      encryptionRequired: getYesNoText(
+        connection.properties.encryptionRequired ?? false,
+        lang
+      ),
+      securityNotes: connection.properties.securityNotes
+        ? this.escapeTableText(connection.properties.securityNotes)
         : undefined,
     };
 

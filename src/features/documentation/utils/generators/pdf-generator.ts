@@ -199,7 +199,7 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return `
       ${styles}
       <div class="hf-container">
-        <span>CoReTM 2.0</span>
+        <span>TARAflow 1.0</span>
         <span>${dateStr}</span>
         <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
       </div>
@@ -383,5 +383,5 @@ export async function generatePdfFile(
 ): Promise<void> {
   const fs = await import("fs/promises");
   const buffer = await generatePdfBuffer(html, puppeteerOptions);
-  await fs.writeFile(outputPath, buffer);
+  await fs.writeFile(outputPath, buffer as unknown as Uint8Array);
 }

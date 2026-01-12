@@ -119,8 +119,21 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           })}
         </div>
 
-        {/* Language Switcher */}
-        <LanguageSwitcher variant="dropdown" />
+        {/* Right Side: Integration + Language Switcher */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onPhaseChange(7)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activePhase === 7
+                ? "bg-blue-50 text-blue-600 border border-blue-200"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            🔗 Integration
+          </button>
+
+          <LanguageSwitcher variant="dropdown" />
+        </div>
       </div>
     </div>
   );

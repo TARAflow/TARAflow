@@ -177,7 +177,7 @@
       "errorFileSize": "Datei ist zu gross (max. 10MB)",
       "errorInvalidJson": "Ungültige JSON-Datei",
       "infoTitle": "Unterstützte Formate",
-      "infoItem1": "CoReTM Projektdateien (.json)",
+      "infoItem1": "TARAflow Projektdateien (.json)",
       "infoItem2": "Maximale Dateigrösse: 10MB",
       "infoItem3": "Projekte werden vor dem Import validiert",
       "preview": "Projekt-Vorschau",

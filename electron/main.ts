@@ -1,5 +1,16 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "path";
+import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
+
+// ==================== IPC HANDLERS ====================
+
+ipcMain.handle("shell:openExternal", async (_, url: string) => {
+  await shell.openExternal(url);
+});
+
+// ==================== Helper ====================
+
+let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -12,10 +23,12 @@ function createWindow() {
     },
   });
 
+  mainWindow = win;
+
   // ==================== DISABLE BROWSER ZOOM ====================
-  
+
   // Block zoom-changed event and reset immediately
-  win.webContents.on('zoom-changed', (_event, zoomDirection) => {
+  win.webContents.on("zoom-changed", (_event, zoomDirection) => {
     console.log(`[Main] Zoom change blocked: ${zoomDirection}`);
     win.webContents.setZoomLevel(0);
   });
@@ -30,10 +43,10 @@ function createWindow() {
       }
     }
   };
-  
+
   const zoomInterval = setInterval(enforceZoom, 100);
-  
-  win.on('closed', () => {
+
+  win.on("closed", () => {
     clearInterval(zoomInterval);
   });
 
@@ -44,9 +57,20 @@ function createWindow() {
   // Load Vite Dev Server
   win.loadURL("http://localhost:5173");
   win.webContents.openDevTools();
+
+  // Cleanup on close
+  win.on("closed", () => {
+    clearInterval(zoomInterval);
+    mainWindow = null; // ← Reset
+  });
 }
 
-app.whenReady().then(createWindow);
+registerOAuthProtocol();
+
+app.whenReady().then(() => {
+  createWindow();
+  setupOAuthHandler(mainWindow);
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

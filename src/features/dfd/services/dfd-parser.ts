@@ -321,7 +321,7 @@ export class DFDParser {
     // Handle regular elements (must have geometry)
     if (!geometry) return;
 
-    const elementType = this.mapCoretmType(objType);
+    const elementType = this.mapTARAflowType(objType);
     if (!elementType) return;
 
     // Get position - for elements with parent groups, position is relative
@@ -570,10 +570,10 @@ export class DFDParser {
   }
 
   private determineElementType(cell: Element): DFDElementType | null {
-    // CoReTM Library can use either 'type' or 'Type' attribute
-    const coretmType = cell.getAttribute("type") || cell.getAttribute("Type");
-    if (coretmType) {
-      return this.mapCoretmType(coretmType);
+    // TARAflow Library can use either 'type' or 'Type' attribute
+    const taraflowType = cell.getAttribute("type") || cell.getAttribute("Type");
+    if (taraflowType) {
+      return this.mapTARAflowType(taraflowType);
     }
 
     // Fallback: style-based detection
@@ -581,9 +581,9 @@ export class DFDParser {
     return this.mapStyleToType(style);
   }
 
-  private mapCoretmType(type: string): DFDElementType | null {
+  private mapTARAflowType(type: string): DFDElementType | null {
     const typeMap: Record<string, DFDElementType> = {
-      // External entities (various names used in different CoReTM versions)
+      // External entities (various names used in different TARAflow versions)
       externalentity: "ExternalEntity",
       interactor: "ExternalEntity",
       actor: "ExternalEntity",

@@ -290,12 +290,21 @@ export interface DocDFDElement {
   displayId?: string;
   type: DocDFDElementType;
   name: string;
-  description: string;
-  securityLevel: DocSecurityLevel;
-  trustLevel: DocTrustLevel;
-  authenticationRequired: boolean;
-  encryptionRequired: boolean;
-  securityNotes?: string;
+
+  // Semantic / logical properties (from description panel)
+  properties: {
+    description?: string;
+    protocol?: string;
+    encrypted?: boolean;
+    dataType?: string;
+
+    // Threat modeling fields (optional)
+    securityLevel?: DocSecurityLevel;
+    trustLevel: DocTrustLevel;
+    authenticationRequired?: boolean;
+    encryptionRequired?: boolean;
+    securityNotes?: string;
+  };
 }
 
 /**
@@ -307,11 +316,20 @@ export interface DocDFDConnection {
   fromElement: string;
   toElement: string;
   label?: string;
-  description: string;
-  securityLevel: DocSecurityLevel;
-  authenticationRequired: boolean;
-  encryptionRequired: boolean;
-  securityNotes?: string;
+  // Semantic / logical properties (from description panel)
+  properties: {
+    description?: string;
+    protocol?: string;
+    encrypted?: boolean;
+    dataType?: string;
+
+    // Threat modeling fields (optional)
+    securityLevel?: DocSecurityLevel;
+    trustLevel: DocTrustLevel;
+    authenticationRequired?: boolean;
+    encryptionRequired?: boolean;
+    securityNotes?: string;
+  };
 }
 
 /**
