@@ -27,15 +27,20 @@ export interface DFDElement {
   displayId: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
-  properties: Record<string, unknown>;
 
-  // Threat modeling fields (optional, not required for validation)
-  securityLevel?: SecurityLevel;
-  dataClassification?: string;
-  trustLevel?: TrustLevel;
-  authenticationRequired?: boolean;
-  encryptionRequired?: boolean;
-  securityNotes?: string;
+  // Semantic / logical properties (from description panel)
+  properties: Record<string, unknown> & {
+    description?: string;
+    protocol?: string;
+    encrypted?: boolean;
+    dataType?: string;
+
+    // Threat modeling fields (optional)
+    securityLevel?: SecurityLevel;
+    authenticationRequired?: boolean;
+    encryptionRequired?: boolean;
+    securityNotes?: string;
+  };
 }
 
 export interface DFDConnection {
@@ -60,7 +65,7 @@ export interface DFDConnection {
 
   // Semantic / logical properties (from description panel)
   properties?: {
-    description: string;
+    description?: string;
     protocol?: string;
     encrypted?: boolean;
     dataType?: string;

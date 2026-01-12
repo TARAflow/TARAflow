@@ -183,6 +183,21 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
     [onChange]
   );
 
+  const handlePropertyChange = useCallback(
+    <K extends keyof DFDElement["properties"]>(
+      field: K,
+      value: DFDElement["properties"][K]
+    ) => {
+      onChange({
+        properties: {
+          ...element.properties,
+          [field]: value,
+        },
+      });
+    },
+    [onChange, element.properties]
+  );
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -217,9 +232,12 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
           })}
         </InputLabel>
         <Select
-          value={element.securityLevel || ""}
+          value={element.properties.securityLevel || ""}
           onChange={(e) =>
-            handleChange("securityLevel", e.target.value as SecurityLevel)
+            handlePropertyChange(
+              "securityLevel",
+              e.target.value as SecurityLevel
+            )
           }
           label="Security Level"
         >
@@ -239,8 +257,10 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
         label={t("tabs.dfd.element_description.dataClassification", {
           defaultValue: "Data Classification",
         })}
-        value={element.dataClassification || ""}
-        onChange={(e) => handleChange("dataClassification", e.target.value)}
+        value={element.properties.dataClassification || ""}
+        onChange={(e) =>
+          handlePropertyChange("dataClassification", e.target.value)
+        }
         placeholder="e.g., PII, Financial, Health Data"
         sx={{ mb: 2 }}
       />
@@ -253,9 +273,9 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
           })}
         </InputLabel>
         <Select
-          value={element.trustLevel || ""}
+          value={element.properties.trustLevel || ""}
           onChange={(e) =>
-            handleChange("trustLevel", e.target.value as TrustLevel)
+            handlePropertyChange("trustLevel", e.target.value as TrustLevel)
           }
           label="Trust Level"
         >
@@ -273,9 +293,9 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
         <FormControlLabel
           control={
             <Checkbox
-              checked={element.authenticationRequired || false}
+              checked={element.properties.authenticationRequired || false}
               onChange={(e) =>
-                handleChange("authenticationRequired", e.target.checked)
+                handlePropertyChange("authenticationRequired", e.target.checked)
               }
             />
           }
@@ -286,9 +306,9 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
         <FormControlLabel
           control={
             <Checkbox
-              checked={element.encryptionRequired || false}
+              checked={element.properties.encryptionRequired || false}
               onChange={(e) =>
-                handleChange("encryptionRequired", e.target.checked)
+                handlePropertyChange("encryptionRequired", e.target.checked)
               }
             />
           }
@@ -300,8 +320,8 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
 
       {/* Security Notes */}
       <RichTextEditor
-        value={element.securityNotes || ""}
-        onChange={(value) => handleChange("securityNotes", value)}
+        value={element.properties.securityNotes || ""}
+        onChange={(value) => handlePropertyChange("securityNotes", value)}
         label={t("tabs.dfd.element_description.securityNotes", {
           defaultValue: "Security Notes",
         })}
@@ -312,10 +332,9 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
 
 // ==================== CONNECTION FORM ====================
 
-export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps> = ({
-  connection,
-  onChange,
-}) => {
+export const ConnectionDescriptionForm: React.FC<
+  ConnectionDescriptionFormProps
+> = ({ connection, onChange }) => {
   const { t } = useTranslation();
 
   const handleChange = useCallback(
@@ -323,6 +342,21 @@ export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps>
       onChange({ [field]: value });
     },
     [onChange]
+  );
+
+  const handlePropertyChange = useCallback(
+    <K extends keyof NonNullable<DFDConnection["properties"]>>(
+      field: K,
+      value: NonNullable<DFDConnection["properties"]>[K]
+    ) => {
+      onChange({
+        properties: {
+          ...(connection.properties ?? {}),
+          [field]: value,
+        },
+      });
+    },
+    [onChange, connection.properties]
   );
 
   return (
@@ -335,8 +369,8 @@ export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps>
 
       {/* Description - Required */}
       <RichTextEditor
-        value={connection.description || ""}
-        onChange={(value) => handleChange("description", value)}
+        value={connection.properties?.description || ""}
+        onChange={(value) => handlePropertyChange("description", value)}
         label={t("tabs.dfd.element_description.description", {
           defaultValue: "Description",
         })}
@@ -359,9 +393,12 @@ export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps>
           })}
         </InputLabel>
         <Select
-          value={connection.securityLevel || ""}
+          value={connection.properties?.securityLevel || ""}
           onChange={(e) =>
-            handleChange("securityLevel", e.target.value as SecurityLevel)
+            handlePropertyChange(
+              "securityLevel",
+              e.target.value as SecurityLevel
+            )
           }
           label="Security Level"
         >
@@ -380,9 +417,9 @@ export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps>
         <FormControlLabel
           control={
             <Checkbox
-              checked={connection.authenticationRequired || false}
+              checked={connection.properties?.authenticationRequired || false}
               onChange={(e) =>
-                handleChange("authenticationRequired", e.target.checked)
+                handlePropertyChange("authenticationRequired", e.target.checked)
               }
             />
           }
@@ -393,9 +430,9 @@ export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps>
         <FormControlLabel
           control={
             <Checkbox
-              checked={connection.encryptionRequired || false}
+              checked={connection.properties?.encryptionRequired || false}
               onChange={(e) =>
-                handleChange("encryptionRequired", e.target.checked)
+                handlePropertyChange("encryptionRequired", e.target.checked)
               }
             />
           }
@@ -407,8 +444,8 @@ export const ConnectionDescriptionForm: React.FC<ConnectionDescriptionFormProps>
 
       {/* Security Notes */}
       <RichTextEditor
-        value={connection.securityNotes || ""}
-        onChange={(value) => handleChange("securityNotes", value)}
+        value={connection.properties?.securityNotes || ""}
+        onChange={(value) => handlePropertyChange("securityNotes", value)}
         label={t("tabs.dfd.element_description.securityNotes", {
           defaultValue: "Security Notes",
         })}

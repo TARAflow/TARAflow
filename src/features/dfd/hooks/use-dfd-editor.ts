@@ -258,7 +258,9 @@ export function useDFDEditor(
 
       // Update stats
       const describedConnections = updatedConnections.filter(
-        (conn) => conn.description && conn.description.trim().length > 0
+        (conn) =>
+          conn.properties?.description &&
+          conn.properties?.description.trim().length > 0
       ).length;
 
       updatedDFD.stats = {
@@ -340,7 +342,9 @@ export function useDFDEditor(
           (e) => e.description && e.description.trim().length > 0
         ).length,
         describedConnections: data.connections.filter(
-          (c) => c.description && c.description.trim().length > 0
+          (c) =>
+            c.properties?.description &&
+            c.properties?.description.trim().length > 0
         ).length,
       };
 

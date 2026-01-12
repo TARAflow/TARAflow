@@ -168,8 +168,17 @@ export class DFDParser {
       const displayId = idLabels.get(elem.id);
       if (displayId) {
         elem.displayId = displayId;
+        continue;
+      }
+
+      if (elem.type === "Asset") {
+        elem.displayId = elem.name;
       }
     }
+    console.log(
+      "[assignDisplayIds] FINAL elements:",
+      elements.map((e) => ({ id: e.id, type: e.type, displayId: e.displayId }))
+    );
   }
 
   /**
@@ -282,7 +291,7 @@ export class DFDParser {
           from: source,
           to: target,
           label: this.cleanLabel(label),
-          displayId: undefined, // wird später via idLabels gesetzt
+          displayId: "", // wird später via idLabels gesetzt
 
           // Visual layout
           waypoints,
@@ -347,10 +356,13 @@ export class DFDParser {
       position: { x, y },
       size: { width, height },
       properties: {},
-      displayId: this.extractTrustBoundaryId(
-        this.cleanLabel(label) || elementType || ""
-      ),
+      displayId:
+        this.extractTrustBoundaryId(
+          this.cleanLabel(label) || elementType || ""
+        ) || "",
     };
+    if (elementType === "Asset") {
+    }
 
     // Debug log for Trust Boundaries
     if (elementType === "TrustBoundary") {
@@ -496,6 +508,7 @@ export class DFDParser {
       from,
       to,
       label: this.cleanLabel(label),
+      displayId: "",
 
       properties: {
         description: description || "",
@@ -549,6 +562,7 @@ export class DFDParser {
       type,
       name,
       description: "",
+      displayId: name,
       position: { x, y },
       size: { width, height },
       properties: {},

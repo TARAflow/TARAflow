@@ -66,6 +66,7 @@ export class InteractionThreatSync {
         id: e.id,
         type: e.type,
         displayId: e.displayId,
+        name: e.name,
       }))
     );
     console.log(

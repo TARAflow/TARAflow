@@ -79,7 +79,10 @@ const isElementDescribed = (element: DFDElement): boolean => {
 };
 
 const isConnectionDescribed = (connection: DFDConnection): boolean => {
-  return !!connection.description && connection.description.trim().length > 0;
+  return (
+    !!connection.properties?.description &&
+    connection.properties?.description.trim().length > 0
+  );
 };
 
 // ID Label patterns for different element types
