@@ -100,7 +100,13 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
     );
 
     return (
-      <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {/* Filters */}
         {showFilters && (
           <ThreatFilters

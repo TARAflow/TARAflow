@@ -29,24 +29,19 @@ import {
   Select,
   MenuItem,
   FormControl,
-  TextField,
-  InputAdornment,
+  //TextField,
+  //InputAdornment,
   LinearProgress,
   Collapse,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   ExpandMore as ExpandMoreIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
+  //Search as SearchIcon,
+  //FilterList as FilterIcon,
   Security as TrustBoundaryIcon,
-  Layers as MultiProcessIcon,
-  Dashboard as ProcessIcon,
-  Storage as DataStoreIcon,
-  Person as ExternalEntityIcon,
   SwapHoriz as DataFlowIcon,
   SettingsInputComponent as InterfaceIcon,
-  Cable as CableIcon,
 } from "@mui/icons-material";
 
 import {
@@ -61,6 +56,19 @@ import {
   getRiskLabel,
   getFactorDefinition,
 } from "../models/risk-types";
+import {
+  formatElementId,
+  getElementIconComponent,
+  isInterfaceThreat,
+} from "../utils/risk-formatting";
+import {
+  calculateProgress,
+  getProgressColor,
+  getProgressVariant,
+} from "../utils/risk-progress";
+import { RiskFilters } from "./risk-filters";
+import { useRiskFilters } from "../hooks/shared/use-risk-filters";
+import { useAccordionState } from "../hooks/shared/use-accordion-state";
 import type { StrideCategory, StrideMethod } from "shared";
 
 // ==================== TYPES ====================
@@ -73,7 +81,19 @@ interface RiskTableProps {
   threats: ThreatReference[];
   configuration: RiskConfiguration;
   strideMethod: StrideMethod;
+
   showFilters?: boolean;
+  filters: {
+    searchText: string;
+    priorityFilter: MoSCoWPriority | "";
+    statusFilter: RiskStatus | "";
+  };
+  onSearchTextChange: (text: string) => void;
+  onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
+  onStatusFilterChange: (status: RiskStatus | "") => void;
+  onClearFilters: () => void;
+  filteredCount: number;
+
   onEdit: (risk: Risk) => void;
   onPriorityChange: (
     riskId: string,
@@ -121,80 +141,23 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
 // ==================== HELPER FUNCTIONS ====================
 
 /**
- * Calculate progress statistics for a group of risks
- */
-function calculateProgress(risks: Risk[]): {
-  done: number;
-  total: number;
-  percent: number;
-} {
-  const total = risks.length;
-  const done = risks.filter(
-    (r) =>
-      r.status === "mitigated" ||
-      r.status === "accepted" ||
-      r.status === "wont-do"
-  ).length;
-  return {
-    done,
-    total,
-    percent: total > 0 ? (done / total) * 100 : 0,
-  };
-}
-
-/**
- * Format element ID with hyphen (e.g., EE1 -> EE-1)
- */
-function formatElementId(elementId: string): string {
-  // Match pattern like EE1, P2, DS3
-  const match = elementId.match(/^([A-Z]+)(\d+)$/);
-  if (match) {
-    return `${match[1]}-${match[2]}`;
-  }
-  return elementId;
-}
-
-/**
- * Get element icon based on type
- */
-function getElementIcon(elementType: string) {
-  switch (elementType?.toLowerCase()) {
-    case "dataflow":
-      return <DataFlowIcon fontSize="small" color="action" />;
-    case "process":
-      return <ProcessIcon fontSize="small" color="action" />;
-    case "multiprocess":
-      return <MultiProcessIcon fontSize="small" color="action" />;
-    case "datastore":
-    case "data store":
-      return <DataStoreIcon fontSize="small" color="action" />;
-    case "externalentity":
-    case "external entity":
-      return <ExternalEntityIcon fontSize="small" color="action" />;
-    case "PhysicalInterface":
-      return <CableIcon fontSize="small" />;
-    case "Interface":
-      return <InterfaceIcon fontSize="small" />;
-    default:
-      return <ProcessIcon fontSize="small" color="action" />;
-  }
-}
-
-/**
- * Check if a ThreatReference is an Interface threat
- * Interface threats have "Physical Interfaces" in their trustBoundaryName
- */
-function isInterfaceThreat(threat: ThreatReference | undefined): boolean {
-  return threat?.trustBoundaryName?.includes("Physical Interfaces") ?? false;
-}
-
-/**
  * Group interface threats separately
  */
 interface InterfaceGroup {
   id: string;
   name: string;
   risks: Risk[];
+}
+
+export function getElementIcon(elementType: string) {
+  const Icon = getElementIconComponent(elementType);
+
+  return (
+    <div>
+      <Icon fontSize="small" color="action" />
+      {elementType}
+    </div>
+  );
 }
 
 // ==================== COMPONENT ====================
@@ -206,6 +169,12 @@ export const RiskTable = React.memo<RiskTableProps>(
     configuration,
     strideMethod,
     showFilters = false,
+    filters,
+    onSearchTextChange,
+    onPriorityFilterChange,
+    onStatusFilterChange,
+    onClearFilters,
+    filteredCount,
     onEdit,
     onPriorityChange,
     onStatusChange,
@@ -214,83 +183,28 @@ export const RiskTable = React.memo<RiskTableProps>(
     const isGerman = i18n.language === "de";
     const isPerElement = strideMethod === "per-element";
 
-    // Filter state
-    const [searchText, setSearchText] = useState("");
-    const [priorityFilter, setPriorityFilter] = useState<MoSCoWPriority | "">(
-      ""
-    );
-    const [statusFilter, setStatusFilter] = useState<RiskStatus | "">("");
+    const {
+      expanded: expandedTables,
+      toggle: toggleTable,
+      ensureKeys: ensureTableKeys,
+    } = useAccordionState({
+      storageKey: "risk-table-expanded-tables",
+      defaultExpanded: true,
+    });
 
-    const initialExpandedTables = useMemo(
-      () =>
-        risks.reduce<Record<string, boolean>>((acc, risk) => {
-          const threat = threats.find((t) => t.id === risk.threatId);
-          const tbId = threat?.trustBoundaryId || "external";
-          acc[tbId] = true;
-          return acc;
-        }, {}),
-      [risks.length, threats.length]
-    );
-
-    // Expanded state for Trust Boundary accordions (collapsed by default)
-    const [expandedTables, setExpandedTables] = useState<
-      Record<string, boolean>
-    >(initialExpandedTables);
-
-    // Expanded state for Element/DataFlow accordions (collapsed by default)
-    const [expandedElements, setExpandedElements] = useState<
-      Record<string, boolean>
-    >({});
+    const { expanded: expandedElements, toggle: toggleElement } =
+      useAccordionState({
+        storageKey: "risk-table-expanded-elements",
+        defaultExpanded: false,
+      });
 
     useEffect(() => {
-      setExpandedTables((prev) => {
-        const updated = { ...prev };
-        let hasChanges = false;
-
-        risks.forEach((risk) => {
-          const threat = threats.find((t) => t.id === risk.threatId);
-          const tbId = threat?.trustBoundaryId || "external";
-          if (!(tbId in updated)) {
-            updated[tbId] = true;
-            hasChanges = true;
-          }
-        });
-
-        return hasChanges ? updated : prev;
+      const tableKeys = risks.map((risk) => {
+        const threat = threats.find((t) => t.id === risk.threatId);
+        return threat?.trustBoundaryId || "external";
       });
-    }, [risks.length, threats.length]);
-
-    // ==================== FILTERING ====================
-
-    const filteredRisks = useMemo(() => {
-      if (!priorityFilter && !statusFilter && !searchText.trim()) {
-        return risks;
-      }
-
-      let filtered = risks;
-
-      if (priorityFilter) {
-        filtered = filtered.filter((r) => r.moscowPriority === priorityFilter);
-      }
-
-      if (statusFilter) {
-        filtered = filtered.filter((r) => r.status === statusFilter);
-      }
-
-      if (searchText.trim()) {
-        const search = searchText.toLowerCase();
-        filtered = filtered.filter((r) => {
-          return (
-            r.id.toLowerCase().includes(search) ||
-            r.threatId.toLowerCase().includes(search) ||
-            r.threatDescription.toLowerCase().includes(search) ||
-            r.selectedMitigations.some((m) => m.toLowerCase().includes(search))
-          );
-        });
-      }
-
-      return filtered;
-    }, [risks, priorityFilter, statusFilter, searchText]);
+      ensureTableKeys(tableKeys);
+    }, [risks.length, threats.length, ensureTableKeys]);
 
     // ==================== GROUPING ====================
     // Create threats lookup map for O(1) access
@@ -300,13 +214,13 @@ export const RiskTable = React.memo<RiskTableProps>(
 
     // Filter out interface risks from normal trust boundary groups
     const nonInterfaceRisks = useMemo(() => {
-      if (isPerElement) return filteredRisks;
+      if (isPerElement) return risks;
 
-      return filteredRisks.filter((risk) => {
+      return risks.filter((risk) => {
         const threat = threatsMap.get(risk.threatId);
-        return !isInterfaceThreat(threat);
+        return !isInterfaceThreat(threat?.trustBoundaryName);
       });
-    }, [filteredRisks, threatsMap, isPerElement]);
+    }, [risks, threatsMap, isPerElement]);
 
     const groupedByTrustBoundary = useMemo(() => {
       const groups = new Map<string, TrustBoundaryGroup>();
@@ -391,13 +305,21 @@ export const RiskTable = React.memo<RiskTableProps>(
       });
     }, [nonInterfaceRisks, threats, isPerElement]);
 
+    const groupsForRender = useMemo(() => {
+      if (isPerElement) {
+        // Trust Boundaries im per-element Modus umgekehrt rendern
+        return [...groupedByTrustBoundary].reverse();
+      }
+      return groupedByTrustBoundary;
+    }, [groupedByTrustBoundary, isPerElement]);
+
     // Separate interface risks (only for per-interaction mode)
     const interfaceRisks = useMemo(() => {
       if (isPerElement) return null;
 
-      const interfaceRiskList = filteredRisks.filter((risk) => {
+      const interfaceRiskList = risks.filter((risk) => {
         const threat = threatsMap.get(risk.threatId); // Verwendet threatsMap aus PATCH 5!
-        return isInterfaceThreat(threat);
+        return isInterfaceThreat(threat?.trustBoundaryName);
       });
 
       if (interfaceRiskList.length === 0) return null;
@@ -426,7 +348,7 @@ export const RiskTable = React.memo<RiskTableProps>(
       return Array.from(groups.values()).sort((a, b) =>
         a.id.localeCompare(b.id, undefined, { numeric: true })
       );
-    }, [filteredRisks, threatsMap, isPerElement]);
+    }, [risks, threatsMap, isPerElement]);
 
     // ==================== COLUMNS ====================
 
@@ -1134,18 +1056,8 @@ export const RiskTable = React.memo<RiskTableProps>(
 
     const renderProgressChip = (risks: Risk[]) => {
       const progress = calculateProgress(risks);
-      const chipColor =
-        progress.percent === 100
-          ? "success"
-          : progress.percent > 50
-          ? "warning"
-          : "default";
-      const progressColor =
-        progress.percent === 100
-          ? "success"
-          : progress.percent > 50
-          ? "warning"
-          : "primary";
+      const chipColor = getProgressColor(progress.percent);
+      const progressColor = getProgressVariant(progress.percent);
 
       return (
         <Stack direction="row" spacing={1} alignItems="center">
@@ -1219,108 +1131,31 @@ export const RiskTable = React.memo<RiskTableProps>(
     }
 
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <>
         {/* Filters */}
-        <Collapse in={showFilters}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              flexWrap: "wrap",
-              pb: 1,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <TextField
-              size="small"
-              placeholder={t("tabs.risks.searchPlaceholder", {
-                defaultValue: "Search risks...",
-              })}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ minWidth: 200 }}
-            />
-
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <Select
-                value={priorityFilter}
-                onChange={(e) =>
-                  setPriorityFilter(e.target.value as MoSCoWPriority | "")
-                }
-                displayEmpty
-                startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
-              >
-                <MenuItem value="">
-                  {t("tabs.risks.allPriorities", {
-                    defaultValue: "All Priorities",
-                  })}
-                </MenuItem>
-                {MOSCOW_PRIORITIES.filter((p) => p.value !== "wont").map(
-                  (p) => (
-                    <MenuItem key={p.value} value={p.value}>
-                      {isGerman ? p.labelDE : p.label}
-                    </MenuItem>
-                  )
-                )}
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <Select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value as RiskStatus | "")
-                }
-                displayEmpty
-              >
-                <MenuItem value="">
-                  {t("tabs.risks.allStatuses", {
-                    defaultValue: "All Statuses",
-                  })}
-                </MenuItem>
-                {RISK_STATUSES.filter((s) => s.value !== "wont-do").map((s) => (
-                  <MenuItem key={s.value} value={s.value}>
-                    {isGerman ? s.labelDE : s.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Box sx={{ flexGrow: 1 }} />
-
-            <Typography variant="body2" color="text.secondary">
-              {t("tabs.risks.showingCount", {
-                count: filteredRisks.length,
-                total: risks.length,
-                defaultValue: `Showing ${filteredRisks.length} of ${risks.length}`,
-              })}
-            </Typography>
-          </Box>
-        </Collapse>
-
+        <RiskFilters
+          searchText={filters.searchText}
+          priorityFilter={filters.priorityFilter}
+          statusFilter={filters.statusFilter}
+          onSearchTextChange={onSearchTextChange}
+          onPriorityFilterChange={onPriorityFilterChange}
+          onStatusFilterChange={onStatusFilterChange}
+          onClear={onClearFilters}
+          show={showFilters}
+          filteredCount={filteredCount}
+          totalCount={risks.length}
+        />
+        {/* Trust Boundary Header - matching threat-table style */}
         {/* Grouped Tables */}
-        {groupedByTrustBoundary.map((group) => (
+        {groupsForRender.map((group) => (
           <Accordion
             key={group.id}
             expanded={expandedTables[group.id] ?? false}
-            onChange={() =>
-              setExpandedTables((prev) => ({
-                ...prev,
-                [group.id]: !prev[group.id],
-              }))
-            }
+            onChange={(_, __) => toggleTable(group.id)}
             sx={{
               "&:before": { display: "none" },
-              boxShadow: 1,
+              boxShadow: "1",
+              mb: 0.5,
             }}
           >
             {/* Trust Boundary Header - matching threat-table style */}
@@ -1368,12 +1203,7 @@ export const RiskTable = React.memo<RiskTableProps>(
                           <Accordion
                             key={elementKey}
                             expanded={expandedElements[elementKey] ?? false}
-                            onChange={() =>
-                              setExpandedElements((prev) => ({
-                                ...prev,
-                                [elementKey]: !prev[elementKey],
-                              }))
-                            }
+                            onChange={(_, __) => toggleElement(elementKey)}
                             sx={{
                               mb: 0.5,
                               "&:before": { display: "none" },
@@ -1433,12 +1263,7 @@ export const RiskTable = React.memo<RiskTableProps>(
                           <Accordion
                             key={flowKey}
                             expanded={expandedElements[flowKey] ?? false}
-                            onChange={() =>
-                              setExpandedElements((prev) => ({
-                                ...prev,
-                                [flowKey]: !prev[flowKey],
-                              }))
-                            }
+                            onChange={(_, __) => toggleElement(flowKey)}
                             sx={{
                               mb: 0.5,
                               "&:before": { display: "none" },
@@ -1500,16 +1325,12 @@ export const RiskTable = React.memo<RiskTableProps>(
           <Accordion
             key="interfaces"
             expanded={expandedTables["interfaces"] ?? true}
-            onChange={() =>
-              setExpandedTables((prev) => ({
-                ...prev,
-                interfaces: !prev["interfaces"],
-              }))
-            }
+            onChange={(_event, _expanded) => toggleTable("interfaces")}
             sx={{
               "&:before": { display: "none" },
               boxShadow: 1,
-              mt: 1,
+              mt: 0,
+              mb: 1,
             }}
           >
             {/* Interface Header */}
@@ -1552,12 +1373,7 @@ export const RiskTable = React.memo<RiskTableProps>(
                   <Accordion
                     key={groupKey}
                     expanded={expandedElements[groupKey] ?? false}
-                    onChange={() =>
-                      setExpandedElements((prev) => ({
-                        ...prev,
-                        [groupKey]: !prev[groupKey],
-                      }))
-                    }
+                    onChange={(_event, _expanded) => toggleElement(groupKey)}
                     sx={{
                       mb: 0.5,
                       "&:before": { display: "none" },
@@ -1606,7 +1422,7 @@ export const RiskTable = React.memo<RiskTableProps>(
             </AccordionDetails>
           </Accordion>
         )}
-      </Box>
+      </>
     );
   }
 );

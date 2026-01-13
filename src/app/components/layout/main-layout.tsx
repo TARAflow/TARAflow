@@ -630,9 +630,6 @@ export const MainLayout: React.FC = () => {
             mitigation = suggestedMitigations.join("\n");
           }
         }
-        console.log(
-          "***************************Trust Boundary:" + table.displayIdentifier
-        );
 
         references.push({
           id: threat.id,

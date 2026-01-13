@@ -483,7 +483,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         )}
 
         {/* Threats View */}
-        <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
+
+        <Box sx={{ flexGrow: 1, overflow: "hidden", px: 2, pt: 2 }}>
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               project={project}

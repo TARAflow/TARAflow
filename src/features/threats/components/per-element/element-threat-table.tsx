@@ -369,9 +369,9 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
       <Accordion
         defaultExpanded
         sx={{
-          mb: 1,
           "&:before": { display: "none" },
-          boxShadow: 1,
+          boxShadow: "1",
+          mb: 1,
         }}
       >
         {/* Trust Boundary Header */}
