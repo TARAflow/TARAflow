@@ -31,6 +31,9 @@ export type {
 export { Button } from "./components/button";
 export { Toast } from "./components/toast";
 export { Badge } from "./components/badge";
+export { GenericAccordion } from "./components/generic-accordion";
+export { OuterHeader } from "./components/outer-header";
+export { InnerHeader } from "./components/inner-header";
 
 // ==================== DIALOGS ====================
 // ==================== SHARED DIALOGS ====================

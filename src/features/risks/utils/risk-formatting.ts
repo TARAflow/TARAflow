@@ -56,6 +56,7 @@ export function getElementIconComponent(
     case "interface":
       return InterfaceIcon;
     default:
+      console.log("getElementIconComponent" + elementType);
       return ProcessIcon;
   }
 }
@@ -66,7 +67,8 @@ export function getElementIconComponent(
  * Interface threats have "Physical Interfaces" in their trustBoundaryName
  */
 export function isInterfaceThreat(
-  trustBoundaryName: string | undefined | null
+  threatId: string | undefined | null
 ): boolean {
-  return trustBoundaryName?.includes("Physical Interfaces") ?? false;
+  return typeof threatId === "string" && /-IF\d+-/.test(threatId);
+  //return trustBoundaryName?.includes("Physical Interfaces") ?? false;
 }

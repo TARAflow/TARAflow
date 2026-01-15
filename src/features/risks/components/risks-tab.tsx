@@ -41,8 +41,8 @@ import {
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
-import { RiskTable } from "./risk-table";
-import { RiskFilters } from "./risk-filters";
+import { RiskSyncBanner } from "./risk-sync-banner";
+import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
@@ -523,80 +523,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Collapse>
 
       {/* Out-of-Sync Alert */}
-      <Collapse in={needsSync}>
-        <Box sx={{ px: 2, py: 1 }}>
-          <Alert
-            severity="warning"
-            action={
-              <Button
-                color="warning"
-                size="small"
-                onClick={handleSyncClick}
-                disabled={isSyncing}
-              >
-                {t("tabs.risks.syncNow", { defaultValue: "Sync Now" })}
-              </Button>
-            }
-          >
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-              flexWrap="wrap"
-            >
-              <Typography variant="body2">
-                {t("tabs.risks.outOfSyncDetails", {
-                  defaultValue: "Risks are out of sync with Threats:",
-                })}
-              </Typography>
-              {syncStatus.newThreats > 0 && (
-                <Chip
-                  label={`${syncStatus.newThreats} ${t(
-                    "tabs.risks.newThreats",
-                    { defaultValue: "new" }
-                  )}`}
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                />
-              )}
-              {syncStatus.orphanedRisks > 0 && (
-                <Chip
-                  label={`${syncStatus.orphanedRisks} ${t(
-                    "tabs.risks.orphaned",
-                    { defaultValue: "orphaned" }
-                  )}`}
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                />
-              )}
-              {syncStatus.changedDescriptions > 0 && (
-                <Chip
-                  label={`${syncStatus.changedDescriptions} ${t(
-                    "tabs.risks.changed",
-                    { defaultValue: "changed" }
-                  )}`}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              )}
-              {syncStatus.changedAttacks > 0 && (
-                <Chip
-                  label={`${syncStatus.changedAttacks} ${t(
-                    "tabs.risks.changed",
-                    { defaultValue: "changed" }
-                  )}`}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              )}
-            </Stack>
-          </Alert>
-        </Box>
-      </Collapse>
+      <RiskSyncBanner
+        needsSync={needsSync}
+        isSyncing={isSyncing}
+        syncStatus={syncStatus}
+        onSync={handleSyncClick}
+      />
 
       {/* Main Content - Split View */}
       <Box
@@ -762,8 +694,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           ) : (
             <>
               {/* Active Risks Table */}
-              <RiskTable
-                risks={filteredActiveRisks} // ← Statt activeRisks
+              <RiskTableView
+                risks={activeRisks} // ← Statt activeRisks
                 threats={currentThreats}
                 configuration={riskData.configuration}
                 strideMethod={activeStrideMethod}
@@ -773,7 +705,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onPriorityFilterChange={setPriorityFilter}
                 onStatusFilterChange={setStatusFilter}
                 onClearFilters={clearFilters}
-                filteredCount={filteredActiveRisks.length}
+                filteredCount={activeRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
                 onStatusChange={handleStatusChange}

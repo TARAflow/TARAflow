@@ -9,7 +9,7 @@ export { riskService } from "./services/risk-service";
 
 // ==================== COMPONENTS ====================
 export { RisksTab } from "./components/risks-tab";
-export { RiskTable } from "./components/risk-table";
+export { RiskTableView } from "./components/risk-table-view";
 export { RiskDialog } from "./components/risk-dialog";
 export { RiskConfigDialog } from "./components/risk-config-dialog";
 export { RiskMatrix } from "./components/risk-matrix";
