@@ -51,7 +51,7 @@ import { DFDPreviewPanel } from "shared";
 import { ConfirmDialog } from "shared";
 import { RisksToolbar } from "./risk-toolbar";
 import { useRiskSync } from "../hooks/use-risk-sync";
-import { useSplitViewResize } from "../hooks/use-split-view-resize";
+import { useSplitViewResize } from "shared";
 import {
   ensureValidRiskData,
   MIN_PANEL_HEIGHT,

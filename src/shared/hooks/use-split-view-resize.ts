@@ -4,6 +4,11 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 
+// ==================== CONSTANTS ====================
+
+export const MIN_PANEL_HEIGHT = 100;
+export const DEFAULT_TOP_HEIGHT = 250;
+
 interface UseSplitViewResizeOptions {
   defaultHeight: number;
   minHeight: number;

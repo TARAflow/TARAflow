@@ -4,7 +4,7 @@
 
 // ==================== COMPONENTS ====================
 
-export { AttackTreeTab } from "./components/attacktree-tab";
+export { AttackTreeTab } from "./components/attacktree-tab2";
 export { AttackTreeEditor } from "./components/attacktree-editor";
 export { AttackTreePreview } from "./components/attacktree-preview";
 export { AttackTreeConfigDialog } from "./components/attacktree-config-dialog";

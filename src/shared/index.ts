@@ -50,8 +50,11 @@ export { ConfirmDeleteDialog } from "./components/dialogs/confirm-delete-dialog"
 
 export { SaveDiscardDialog } from "./components/dialogs/save-discard-dialog";
 export type { SaveDiscardDialogProps } from "./components/dialogs/save-discard-dialog";
+// ==================== CONSTANTS ====================
+export { MIN_PANEL_HEIGHT, DEFAULT_TOP_HEIGHT } from "./hooks/use-split-view-resize";
 
 // ==================== UTILS ====================
+export { useSplitViewResize } from "./hooks/use-split-view-resize";
 export { formatExportFilename } from "./utils/formatters";
 export {
   getPhaseStatusBgColor,

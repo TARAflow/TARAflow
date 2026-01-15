@@ -9,7 +9,6 @@ export {
 export { AssetTable } from "./components/asset-table";
 export { AssetDialog } from "./components/asset-dialog";
 export { AssetConfigDialog } from "./components/asset-config-dialog";
-export { DFDPreviewPanel } from "./components/dfd-preview-panel";
 export {
   AssetExportImportDialog,
   type ExportImportMode,
