@@ -79,4 +79,3 @@ export {
   getAvailablePredefinedTags,
 } from "./utils/tag-categories";
 
-export { type OAuthCallbackData } from "./models/electron";

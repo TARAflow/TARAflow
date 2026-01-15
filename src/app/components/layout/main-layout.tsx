@@ -46,6 +46,8 @@ import { Toast } from "shared";
 import { PHASES } from "shared";
 import { getPhaseStatusIcon, getPhaseStatusColor } from "shared";
 import type { GeneralTabData, ProjectInfoData } from "features/overview";
+import { AuditTab } from "features/audit";
+import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
 import { useTranslation } from "react-i18next";
@@ -552,10 +554,45 @@ export const MainLayout: React.FC = () => {
     [activeProject, updateProject]
   );
 
+  // ==================== AUDIT TAB HANDLER ====================
+  const handleAuditUpdate = useCallback(
+    (updates: AuditUpdateResult) => {
+      if (!activeProject) return;
+
+      const updatedProject: Project = {
+        ...activeProject,
+        audit: updates.audit,
+        phaseStatus: updates.phaseStatus,
+        info: {
+          ...activeProject.info,
+          lastModified: updates.lastModified,
+        },
+      };
+
+      updateProject(updatedProject);
+    },
+    [activeProject, updateProject]
+  );
+
+  const handleAuditDirtyChange = useCallback(
+    (isDirty: boolean) => {
+      if (!activeProject) return;
+
+      const updatedProject: Project = {
+        ...activeProject,
+        hasUnsavedChanges: isDirty,
+      };
+
+      updateProject(updatedProject);
+    },
+    [activeProject, updateProject]
+  );
+
+  // ==================== Integration HANDLER ====================
+
   const handleIntegrationUpdate = (data: IntegrationTabData) => {
     if (!activeProject) return;
 
-    // ==================== Integration HANDLER ====================
     const updatedProject: Project = {
       ...activeProject,
       integration: data.integration,
@@ -837,6 +874,31 @@ export const MainLayout: React.FC = () => {
                 />
               )}
               {activePhase === 7 && activeProject && (
+                <AuditTab
+                  project={{
+                    id: activeProject.id,
+                    name: activeProject.info?.name || "",
+                    audit: activeProject.audit,
+                    phaseStatus: activeProject.phaseStatus,
+
+                    // Full project snapshot for change detection
+                    info: activeProject.info,
+                    dfd: activeProject.dfd,
+                    assets: activeProject.assets,
+                    threats: activeProject.threats,
+                    risks: activeProject.risks,
+                    attackTrees: activeProject.attackTrees,
+
+                    lastModified: activeProject.info?.lastModified || "",
+                  }}
+                  onUpdate={handleAuditUpdate}
+                  onDirtyChange={handleAuditDirtyChange}
+                  onPhaseComplete={() => {
+                    console.log("Audit phase completed");
+                  }}
+                />
+              )}
+              {activePhase === 8 && activeProject && (
                 <IntegrationTab
                   data={{
                     integration: activeProject.integration ?? null,

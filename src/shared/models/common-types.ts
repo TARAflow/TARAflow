@@ -63,6 +63,13 @@ export const PHASES: PhaseDefinition[] = [
     description: "Threat model documentation and reporting",
     icon: "📄",
   },
+  {
+    id: 7,
+    label: "7 - Audit",
+    shortLabel: "Audit",
+    description: "Version control and change tracking with Git",
+    icon: "🔍",
+  },
 ];
 
 // ==================== COMMON INTERFACES ====================
@@ -83,6 +90,8 @@ export interface PhaseStatusMap {
   4: PhaseStatus; // Risk
   5: PhaseStatus; // Attack Tree
   6: PhaseStatus; // Documentation
+  7: PhaseStatus; // Audit
+  8: PhaseStatus; // Integration
 }
 
 // Generic Validation Pattern
@@ -95,61 +104,67 @@ export interface ValidationResult {
 // ==================== PHASE STATUS CONFIGURATION ====================
 
 export const PHASE_STATUS_CONFIG = {
-  'not-started': {
+  "not-started": {
     icon: "○",
     color: "#9ca3af",
     label: "Not Started",
     bgColor: "#f3f4f6",
-    variant: 'default',
+    variant: "default",
   },
-  'in-progress': {
+  "in-progress": {
     icon: "⚙",
     color: "#2563eb",
     label: "In Progress",
     bgColor: "#dbeafe",
-    variant: 'info',
+    variant: "info",
   },
   incomplete: {
     icon: "⚠",
     color: "#dc2626",
     label: "Incomplete",
     bgColor: "#fee2e2",
-    variant: 'danger',
+    variant: "danger",
   },
   complete: {
     icon: "✓",
     color: "#16a34a",
     label: "Complete",
     bgColor: "#dcfce7",
-    variant: 'success',
+    variant: "success",
   },
-    blocked: {
+  blocked: {
     icon: "⛔",
     color: "#7c2d12",
     label: "Blocked",
     bgColor: "#ffedd5",
-    variant: 'warning',
+    variant: "warning",
   },
   unknown: {
     icon: "?",
     color: "#6b7280",
     label: "Unknown",
     bgColor: "#f9fafb",
-    variant: 'warning',
+    variant: "warning",
   },
 } as const;
 
 export const getPhaseStatusConfig = (status: string) => {
-  return PHASE_STATUS_CONFIG[status as PhaseStatus] ?? PHASE_STATUS_CONFIG.unknown;
+  return (
+    PHASE_STATUS_CONFIG[status as PhaseStatus] ?? PHASE_STATUS_CONFIG.unknown
+  );
 };
 
-export const getPhaseStatusIcon = (status: string) => getPhaseStatusConfig(status).icon;
+export const getPhaseStatusIcon = (status: string) =>
+  getPhaseStatusConfig(status).icon;
 
-export const getPhaseStatusColor = (status: string) => getPhaseStatusConfig(status).color;
+export const getPhaseStatusColor = (status: string) =>
+  getPhaseStatusConfig(status).color;
 
-export const getPhaseStatusLabel = (status: string) => getPhaseStatusConfig(status).label;
+export const getPhaseStatusLabel = (status: string) =>
+  getPhaseStatusConfig(status).label;
 
-export const getPhaseStatusBgColor = (status: string) => getPhaseStatusConfig(status).bgColor;
+export const getPhaseStatusBgColor = (status: string) =>
+  getPhaseStatusConfig(status).bgColor;
 
 // ==================== UI CALLBACK TYPES ====================
 

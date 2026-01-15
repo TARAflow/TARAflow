@@ -25,7 +25,9 @@ const DEFAULT_PHASE_STATUS: PhaseStatusMap = {
   3: "not-started",
   4: "not-started",
   5: "not-started",
-  6: "not-started",
+  6: "not-started", // Documentation
+  7: "not-started", // Audit
+  8: "not-started", // Integration
 };
 
 const DEFAULT_SETTINGS: ProjectSettingsData = {
@@ -138,6 +140,8 @@ class StorageService {
         4: project.phaseStatus?.[4] ?? "not-started",
         5: project.phaseStatus?.[5] ?? "not-started",
         6: project.phaseStatus?.[6] ?? "not-started",
+        7: project.phaseStatus?.[7] ?? "not-started",
+        8: project.phaseStatus?.[7] ?? "not-started",
       },
 
       // Ensure settings is complete
@@ -153,6 +157,7 @@ class StorageService {
       risks: project.risks ?? null,
       attackTrees: project.attackTrees ?? null,
       documentation: null,
+      audit: null,
       integration: project.integration ?? null,
 
       // Other fields
@@ -318,6 +323,7 @@ class StorageService {
       risks: null,
       attackTrees: null,
       documentation: null,
+      audit: null,
       integration: null,
 
       isOpen: true,

@@ -101,13 +101,15 @@ export type WorkflowMode = "standard" | "critical";
  * 4 = Risks
  * 5 = Attack Tree
  * 6 = Documentation
+ * 7 = Audit
+ * 8 = Integration
  */
 
 /**
  * Standard workflow order (non-critical systems):
  * General → DFD → Assets → Threats → Risks → Attack Tree → Documentation
  */
-export const STANDARD_PHASE_ORDER = [0, 1, 2, 3, 4, 5, 6];
+export const STANDARD_PHASE_ORDER = [0, 1, 2, 3, 4, 5, 6, 7];
 
 /**
  * Critical workflow order (high-impact systems):
@@ -116,7 +118,7 @@ export const STANDARD_PHASE_ORDER = [0, 1, 2, 3, 4, 5, 6];
  * Attack Trees come before Threats because for critical systems,
  * understanding attack paths helps inform threat identification.
  */
-export const CRITICAL_PHASE_ORDER = [0, 1, 2, 5, 3, 4, 6];
+export const CRITICAL_PHASE_ORDER = [0, 1, 2, 5, 3, 4, 6, 7];
 
 /**
  * Get the workflow mode based on settings

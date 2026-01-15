@@ -12,4 +12,12 @@ export default defineConfig({
       i18n: "/src/i18n",
     },
   },
+  build: {
+    rollupOptions: {
+      external: ["keytar", "simple-git", "@kwsites/file-exists"],
+    },
+  },
+  optimizeDeps: {
+    exclude: ["keytar", "simple-git", "@kwsites/file-exists"],
+  },
 });

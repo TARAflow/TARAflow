@@ -15,6 +15,7 @@ const DEFAULT_PHASE_STATUS: Record<number, PhaseStatus> = {
   4: "not-started",
   5: "not-started",
   6: "not-started",
+  7: "not-started",
 };
 
 // ==================== PHASE TABS CONTAINER ====================
@@ -87,6 +88,9 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
         case 6:
           // Documentation Phase
           return { errors: 0, warnings: 0 };
+        case 7:
+          // Audit Phase
+          return { errors: 0, warnings: 0 };
         default:
           return { errors: 0, warnings: 0 };
       }
@@ -122,9 +126,9 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
         {/* Right Side: Integration + Language Switcher */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => onPhaseChange(7)}
+            onClick={() => onPhaseChange(8)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activePhase === 7
+              activePhase === 8
                 ? "bg-blue-50 text-blue-600 border border-blue-200"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             }`}

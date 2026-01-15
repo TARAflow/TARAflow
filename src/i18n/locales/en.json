@@ -886,5 +886,61 @@
       "property": "Authorization",
       "description": "Being able to perform operations you aren't supposed to be able to do"
     }
+  },
+  "audit": {
+    "config": {
+      "title": "Git Configuration",
+      "tabs": {
+        "general": "General",
+        "auth": "Authentication",
+        "gpg": "GPG Signing",
+        "rounds": "Round Names"
+      },
+      "provider": "Git Provider",
+      "remoteUrl": "Remote Repository URL",
+      "defaultBranch": "Default Branch",
+      "branchTemplate": "Feature Branch Template",
+      "branchTemplateHelp": "Template for auto-generated branch names (e.g., 'risk-round-' → 'risk-round-1')",
+      "authorName": "Author Name",
+      "authorEmail": "Author Email",
+      "defaultRounds": "Default Round Names",
+      "customRounds": "Custom Round Names",
+      "authMethod": "Authentication Method",
+      "authPAT": "Personal Access Token",
+      "authSSH": "SSH Key",
+      "patInfo": "Personal Access Token will be securely stored in your system keychain.",
+      "patToken": "Personal Access Token",
+      "patHelp": "Enter your PAT with 'repo' permissions. Leave empty to keep existing token.",
+      "enableGPG": "Enable GPG Commit Signing",
+      "sshInfo": "SSH authentication uses your system's SSH keys (~/.ssh/id_rsa or ~/.ssh/id_ed25519).",
+      "sshKeyPath": "SSH Key Path (optional)",
+      "sshKeyPathHelp": "Leave empty to use default SSH key",
+
+      "gpgInfo": "GPG signing ensures your commits are cryptographically verified. Your private key will be securely stored.",
+      "gpgKeyId": "GPG Key ID",
+      "gpgKeyIdHelp": "Enter the last 8 characters of your GPG key ID",
+      "gpgPrivateKey": "GPG Private Key (optional)",
+      "gpgPrivateKeyHelp": "Paste your armored private key. Leave empty to keep existing key or generate new one.",
+      "generateGPGKey": "Generate GPG Key (Coming Soon)"
+    },
+    "diff": {
+      "noChanges": "No changes to display"
+    },
+    "warnings": {
+      "notConfigured": "Git configuration incomplete. Please configure Git settings before committing."
+    },
+    "toolbar": {
+      "configure": "Git Configuration",
+      "refresh": "Refresh Changes",
+      "showDetail": "Show Details",
+      "commit": "Commit",
+      "hideDetail": "Hide Details"
+    },
+    "status": {
+      "notConfigured": "Not Configured"
+    },
+    "summary": {
+      "noChanges": "No changes detected"
+    }
   }
 }

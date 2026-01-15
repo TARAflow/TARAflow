@@ -7,6 +7,7 @@ import { RiskData } from "features/risks";
 import { AttackTreeData } from "features/attacktree";
 import { DocData } from "features/documentation";
 import { IntegrationData } from "features/integration";
+import type { AuditData } from "features/audit/models/audit-types";
 
 // ==================== PROJECT TYPES ====================
 
@@ -85,9 +86,10 @@ export interface Project {
   assets: AssetData | null;
   threats: ThreatData | null;
   risks: RiskData | null;
-  attackTrees: AttackTreeData | null; // <-- Korrigiert: AttackTreeData statt AttackTreeProjectData
+  attackTrees: AttackTreeData | null;
   documentation: DocData | null;
   integration: IntegrationData | null;
+  audit: AuditData | null; // Git/Version Control
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
 }

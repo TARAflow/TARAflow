@@ -30,6 +30,33 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeAllListeners("oauth-callback");
     },
   },
+
+  // Repository
+  isRepository: () => ipcRenderer.invoke("git:isRepository"),
+  initRepository: () => ipcRenderer.invoke("git:initRepository"),
+
+  // Status
+  getStatus: () => ipcRenderer.invoke("git:getStatus"),
+
+  // Commit
+  stageAll: () => ipcRenderer.invoke("git:stageAll"),
+  commit: (message: string, config: any) =>
+    ipcRenderer.invoke("git:commit", message, config),
+
+  // Branches
+  getBranches: () => ipcRenderer.invoke("git:getBranches"),
+  getCurrentBranch: () => ipcRenderer.invoke("git:getCurrentBranch"),
+  createBranch: (name: string, checkout: boolean) =>
+    ipcRenderer.invoke("git:createBranch", name, checkout),
+  checkoutBranch: (name: string) =>
+    ipcRenderer.invoke("git:checkoutBranch", name),
+
+  // Remote
+  addRemote: (name: string, url: string) =>
+    ipcRenderer.invoke("git:addRemote", name, url),
+  remoteExists: (name: string) => ipcRenderer.invoke("git:remoteExists", name),
+  push: (remote: string, branch: string, config: any) =>
+    ipcRenderer.invoke("git:push", remote, branch, config),
 });
 
 console.log("Electron APIs exposed to renderer");
