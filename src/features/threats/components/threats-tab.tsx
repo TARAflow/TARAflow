@@ -26,7 +26,7 @@ import { ThreatConfigDialog } from "./shared/threat-config-dialog";
 import { ThreatSyncBanner } from "./shared/threat-sync-banner";
 import { ElementThreatsView } from "./per-element/element-threats-view";
 import { InteractionThreatsView } from "./per-interaction/interaction-threats-view";
-import { DFDPreviewPanel } from "features/assets/components/dfd-preview-panel";
+import { DFDPreviewPanel } from "shared";
 import { useThreatValidation } from "../hooks/shared/use-threat-validation";
 import { useThreatsExportImport } from "../hooks/shared/use-threat-export-import";
 import { useElementThreats } from "../hooks/per-element/use-element-threats";

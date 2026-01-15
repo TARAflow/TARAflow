@@ -56,7 +56,7 @@ import { assetService } from "../services/asset-service";
 import { AssetTable } from "./asset-table";
 import { AssetDialog } from "./asset-dialog";
 import { AssetConfigDialog } from "./asset-config-dialog";
-import { DFDPreviewPanel } from "./dfd-preview-panel";
+import { DFDPreviewPanel } from "shared";
 import {
   AssetExportImportDialog,
   ExportImportMode,
@@ -584,7 +584,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             >
               <DFDPreviewPanel
                 imageSrc={project.dfdPreviewImage}
-                assets={assetData.assets}
+                //assets={assetData.assets}
               />
             </Box>
 

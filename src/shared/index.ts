@@ -34,6 +34,7 @@ export { Badge } from "./components/badge";
 export { GenericAccordion } from "./components/generic-accordion";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
+export { DFDPreviewPanel } from "./components/dfd-preview-panel";
 
 // ==================== DIALOGS ====================
 // ==================== SHARED DIALOGS ====================

@@ -19,7 +19,7 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 
-import { Asset } from "../models/asset-types";
+//import { Asset } from "../models/asset-types";
 
 // ==================== TYPES ====================
 
@@ -27,7 +27,7 @@ interface DFDPreviewPanelProps {
   /** DFD thumbnail image (base64 SVG or data URL) */
   imageSrc?: string;
   /** Assets for potential highlighting (future feature) */
-  assets?: Asset[];
+  //assets?: Asset[];
   /** Callback to regenerate thumbnail if missing */
   onRegenerateThumbnail?: () => Promise<string | null>;
   /** Loading state while generating */
@@ -44,7 +44,7 @@ const ZOOM_STEP = 0.1;
 
 export const DFDPreviewPanel: React.FC<DFDPreviewPanelProps> = ({
   imageSrc,
-  assets = [],
+ // assets = [],
   onRegenerateThumbnail,
   isGenerating = false,
 }) => {

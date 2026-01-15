@@ -47,7 +47,7 @@ import { RiskDialog } from "./risk-dialog";
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
 import { WontRiskTable } from "./wont-risk-table";
-import { DFDPreviewPanel } from "features/assets/components/dfd-preview-panel";
+import { DFDPreviewPanel } from "shared";
 import { ConfirmDialog } from "shared";
 import { RisksToolbar } from "./risk-toolbar";
 import { useRiskSync } from "../hooks/use-risk-sync";
