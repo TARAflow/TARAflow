@@ -1,14 +1,11 @@
-// ==================== PDF DOCUMENT GENERATOR ====================
-// Generates PDF documents using HTML as intermediate format and puppeteer for rendering
-// Location: features/documentation/utils/generators/pdf-generator.ts
+// ==================== PDF DOCUMENT GENERATOR (Renderer) ====================
+// Generates PDF documents using HTML as intermediate format
+// Location: features/documentation/utils/generators/pdf-generator-renderer.ts
 //
-// Dependencies:
-// - puppeteer or playwright for PDF generation
-// - Install: npm install puppeteer
-//
-// Note: This generator works differently than others:
-// - It first generates HTML content
-// - Then uses a headless browser to render PDF
+// Note: This is the RENDERER-SIDE implementation
+// - Generates HTML content
+// - Communicates with Main process via IPC for actual PDF generation
+// - NO puppeteer imports (those are in electron/pdf-generator-main.ts)
 
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import { formatDocDate } from "../../models/doc-types";
@@ -92,17 +89,11 @@ export class PdfGenerator extends BaseDocumentGenerator {
   /**
    * Generate PDF document
    * 
-   * Note: This returns an object with the HTML content and instructions.
-   * The actual PDF generation must happen in a Node.js environment with puppeteer.
-   * 
-   * For browser environments, use generateHtml() and send to a backend service.
+   * Returns HTML content that can be converted to PDF via IPC
    */
   generate(): DocumentGeneratorResult {
-    // Generate HTML first
     const htmlResult = this.htmlGenerator.generate();
 
-    // Return HTML with PDF metadata
-    // The actual PDF conversion should be done by the caller
     return {
       content: htmlResult.content,
       format: "pdf",
@@ -119,9 +110,9 @@ export class PdfGenerator extends BaseDocumentGenerator {
   }
 
   /**
-   * Get puppeteer options for PDF generation
+   * Get PDF options for Main process generation
    */
-  getPuppeteerOptions(): object {
+  getPdfOptions(): PdfOptions {
     const { lang } = this.ctx;
     const { project, config } = this.ctx;
 
@@ -134,20 +125,52 @@ export class PdfGenerator extends BaseDocumentGenerator {
       : undefined;
 
     return {
-      format: this.pdfOptions.format,
-      landscape: this.pdfOptions.landscape,
-      margin: {
-        top: `${this.pdfOptions.margin?.top || 20}mm`,
-        right: `${this.pdfOptions.margin?.right || 15}mm`,
-        bottom: `${this.pdfOptions.margin?.bottom || 20}mm`,
-        left: `${this.pdfOptions.margin?.left || 15}mm`,
-      },
-      displayHeaderFooter: this.pdfOptions.displayHeaderFooter,
+      ...this.pdfOptions,
       headerTemplate,
       footerTemplate,
-      printBackground: this.pdfOptions.printBackground,
-      scale: this.pdfOptions.scale,
     };
+  }
+
+  /**
+   * Generate PDF buffer via Electron IPC
+   * 
+   * This calls the Main process to generate the actual PDF
+   */
+  async generatePdfBuffer(): Promise<Buffer> {
+    if (!window.pdf) {
+      throw new Error("PDF API not available. Are you running in Electron?");
+    }
+
+    const html = this.generateHtml();
+    const options = this.getPdfOptions();
+
+    const result = await window.pdf.generateBuffer(html, options);
+
+    if (!result.success) {
+      throw new Error(result.error || "PDF generation failed");
+    }
+
+    return result.data!;
+  }
+
+  /**
+   * Generate PDF and save to file via Electron IPC
+   * 
+   * @param outputPath - Path where to save the PDF file
+   */
+  async generatePdfFile(outputPath: string): Promise<void> {
+    if (!window.pdf) {
+      throw new Error("PDF API not available. Are you running in Electron?");
+    }
+
+    const html = this.generateHtml();
+    const options = this.getPdfOptions();
+
+    const result = await window.pdf.generateFile(html, options, outputPath);
+
+    if (!result.success) {
+      throw new Error(result.error || "PDF generation failed");
+    }
   }
 
   private getHeaderFooterTemplate(
@@ -194,7 +217,6 @@ export class PdfGenerator extends BaseDocumentGenerator {
       `;
     }
 
-    // Footer
     const dateStr = formatDocDate(new Date(), this.ctx.config.template.dateFormat);
     return `
       ${styles}
@@ -207,7 +229,6 @@ export class PdfGenerator extends BaseDocumentGenerator {
   }
 
   // ==================== TEMPLATE GETTERS (delegated to HTML) ====================
-  // These are required by base class but we delegate to HtmlGenerator
 
   escapeTableText(text: string): string {
     return this.htmlGenerator.escapeTableText(text);
@@ -224,7 +245,6 @@ export class PdfGenerator extends BaseDocumentGenerator {
   }
 
   protected generateTocContent(chapters: ChapterContent[]): string {
-    // Delegated to HTML generator via generate()
     return "";
   }
 
@@ -323,65 +343,4 @@ export class PdfGenerator extends BaseDocumentGenerator {
   getFooterTemplate(): string {
     return this.htmlGenerator.getFooterTemplate();
   }
-}
-
-// ==================== PDF GENERATION UTILITY ====================
-
-/**
- * Generate PDF from HTML using puppeteer
- * 
- * This function must be called in a Node.js environment with puppeteer installed.
- * 
- * @example
- * ```typescript
- * import { generatePdfBuffer } from "./pdf-generator";
- * 
- * const generator = new PdfGenerator(project, config, t);
- * const html = generator.generateHtml();
- * const options = generator.getPuppeteerOptions();
- * 
- * const pdfBuffer = await generatePdfBuffer(html, options);
- * fs.writeFileSync("document.pdf", pdfBuffer);
- * ```
- */
-export async function generatePdfBuffer(
-  html: string,
-  puppeteerOptions: object
-): Promise<Buffer> {
-  // Dynamic import to avoid bundling puppeteer in browser builds
-  const puppeteer = await import("puppeteer");
-  
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-
-  try {
-    const page = await browser.newPage();
-    
-    // Set content
-    await page.setContent(html, {
-      waitUntil: "networkidle0",
-    });
-
-    // Generate PDF
-    const pdfBuffer = await page.pdf(puppeteerOptions as any);
-
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
-}
-
-/**
- * Generate PDF and save to file
- */
-export async function generatePdfFile(
-  html: string,
-  puppeteerOptions: object,
-  outputPath: string
-): Promise<void> {
-  const fs = await import("fs/promises");
-  const buffer = await generatePdfBuffer(html, puppeteerOptions);
-  await fs.writeFile(outputPath, buffer as unknown as Uint8Array);
 }

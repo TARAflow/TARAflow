@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
+  "description": "TARAflow App – Threat Analysis and Risk Assessment app build",
+  "author": "Johann Mustermann <johann@example.com>",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -15,6 +17,20 @@
     "build:electron-dev": "npm run clean:electron && npm run compile:electron && npm run fix:electron",
     "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build:electron": "electron-builder"
+  },
+  "build": {
+    "appId": "com.taraflow.app",
+    "productName": "Taraflow",
+    "directories": {
+      "output": "dist"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
   },
   "dependencies": {
     "@emotion/react": "11.11.4",
@@ -50,7 +66,7 @@
     "@testing-library/react": "14.1.2",
     "@types/d3": "^7.4.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "20.11.10",
+    "@types/node": "^20.11.10",
     "@vitejs/plugin-react": "4.2.1",
     "concurrently": "^9.2.1",
     "electron": "^39.2.7",

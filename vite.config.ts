@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { builtinModules } from "node:module";
 
 export default defineConfig({
   plugins: [react()],
@@ -14,7 +15,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["keytar", "simple-git", "@kwsites/file-exists"],
+      external: [
+        ...builtinModules, // fs, path, url, tls, http, https, etc.
+        "keytar",
+        "simple-git",
+        "@kwsites/file-exists",
+      ],
     },
   },
   optimizeDeps: {

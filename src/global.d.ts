@@ -33,7 +33,7 @@ declare global {
       };
       file?: {
         saveDialog: (
-          defaultName: string
+          defaultName: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
         openDialog: () => Promise<{
           success: boolean;
@@ -42,10 +42,10 @@ declare global {
         }>;
         writeProject: (
           filePath: string,
-          projectData: string
+          projectData: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
         readProject: (
-          filePath: string
+          filePath: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
       };
       metadata?: {
@@ -55,10 +55,10 @@ declare global {
           error?: string;
         }>;
         saveRecentProjects: (
-          metadata: any[]
+          metadata: any[],
         ) => Promise<{ success: boolean; error?: string }>;
         removeProject: (
-          projectId: string
+          projectId: string,
         ) => Promise<{ success: boolean; error?: string }>;
       };
     };
@@ -72,26 +72,26 @@ declare global {
       stageAll: () => Promise<GitOperationResult<void>>;
       commit: (
         message: string,
-        config: AuditConfig
+        config: AuditConfig,
       ) => Promise<GitOperationResult<GitCommitResult>>;
       getBranches: () => Promise<GitOperationResult<GitBranchSummary>>;
       getCurrentBranch: () => Promise<string | null>;
       createBranch: (
         name: string,
-        checkout: boolean
+        checkout: boolean,
       ) => Promise<GitOperationResult<void>>;
       checkoutBranch: (name: string) => Promise<GitOperationResult<void>>;
       branchExists: (name: string) => Promise<boolean>;
       addRemote: (
         name: string,
-        url: string
+        url: string,
       ) => Promise<GitOperationResult<void>>;
       getRemotes: () => Promise<GitOperationResult<GitRemote[]>>;
       remoteExists: (name: string) => Promise<boolean>;
       push: (
         remote: string,
         branch: string,
-        config?: AuditConfig
+        config?: AuditConfig,
       ) => Promise<GitOperationResult<GitPushResult>>;
       getLog: (maxCount: number) => Promise<GitOperationResult<GitLogSummary>>;
       getLatestCommit: () => Promise<GitOperationResult<any>>;
@@ -110,6 +110,18 @@ declare global {
       hasGPGKey: (keyId: string) => Promise<boolean>;
       saveSSHKeyPath: (identifier: string, keyPath: string) => Promise<void>;
       getSSHKeyPath: (identifier: string) => Promise<string | null>;
+    };
+
+    pdf?: {
+      generateBuffer: (
+        html: string,
+        options: object,
+      ) => Promise<{ success: boolean; data?: Buffer; error?: string }>;
+      generateFile: (
+        html: string,
+        options: object,
+        path: string,
+      ) => Promise<{ success: boolean; data?: string; error?: string }>;
     };
   }
 }

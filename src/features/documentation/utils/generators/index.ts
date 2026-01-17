@@ -13,9 +13,4 @@ export {
 export { MarkdownGenerator } from "./markdown-generator";
 export { AsciidocGenerator } from "./asciidoc-generator";
 export { HtmlGenerator } from "./html-generator";
-export {
-  PdfGenerator,
-  generatePdfBuffer,
-  generatePdfFile,
-  type PdfOptions,
-} from "./pdf-generator";
+export { PdfGenerator, type PdfOptions } from "./pdf-generator-renderer";
