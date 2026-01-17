@@ -3,7 +3,7 @@
 
 import { PhaseStatus, PhaseStatusMap } from "shared";
 import { ProjectSettingsData } from "features/overview";
-import { Project } from "../models/project-types";
+import { Project, ProjectMetadata } from "../models/project-types";
 
 export interface StorageResult<T> {
   success: boolean;
@@ -15,6 +15,7 @@ const STORAGE_PREFIX = "taraflow_";
 const PROJECT_PREFIX = `${STORAGE_PREFIX}project_`;
 const SETTINGS_KEY = `${STORAGE_PREFIX}settings`;
 const METADATA_KEY = `${STORAGE_PREFIX}metadata`;
+const RECENT_PROJECTS_KEY = `${STORAGE_PREFIX}recent_projects`; // Browser fallback
 
 // ==================== DEFAULT VALUES ====================
 
@@ -33,14 +34,23 @@ const DEFAULT_PHASE_STATUS: PhaseStatusMap = {
 const DEFAULT_SETTINGS: ProjectSettingsData = {
   strictMode: false,
   autoSave: true,
-  autoSaveInterval: 30,
+  autoSaveInterval: 2, // Auto-save every 2 seconds
 };
+
+const RECENT_FILES_KEY = `${STORAGE_PREFIX}recent_files`;
 
 class StorageService {
   private isAvailable(): boolean {
     return (
       typeof window !== "undefined" &&
       typeof window.localStorage !== "undefined"
+    );
+  }
+
+  private isElectron(): boolean {
+    return (
+      typeof window !== "undefined" &&
+      typeof (window as any).electron?.file !== "undefined"
     );
   }
 
@@ -183,9 +193,156 @@ class StorageService {
     );
   }
 
+  // ==================== RECENT FILES (METADATA) ====================
+
+  /**
+   * Update recent files metadata
+   * Electron: Uses app.getPath('userData')/recent-projects.json via IPC
+   * Browser: Uses localStorage as fallback
+   */
+  private async updateRecentFile(project: Project): Promise<void> {
+    if (!project.filePath && this.isElectron()) {
+      // Electron mode requires filePath
+      console.warn("Cannot update metadata without filePath in Electron mode");
+      return;
+    }
+
+    const metadata: ProjectMetadata = {
+      id: project.id,
+      filePath: project.filePath || "",
+      lastOpened: project.lastOpened || new Date().toISOString(),
+      info: project.info,
+      status: project.status,
+      currentPhase: project.currentPhase,
+      completedPhases: Object.values(project.phaseStatus).filter(
+        (s) => s === "complete"
+      ).length,
+      totalPhases: Object.keys(project.phaseStatus).length,
+    };
+
+    if (this.isElectron()) {
+      // Electron: Use IPC to save to userData
+      try {
+        const result = await (
+          window as any
+        ).electron.metadata.getRecentProjects();
+        let recentProjects: ProjectMetadata[] =
+          result.success && result.data ? result.data : [];
+
+        // Remove existing entry
+        recentProjects = recentProjects.filter((p) => p.id !== project.id);
+
+        // Add at beginning
+        recentProjects.unshift(metadata);
+
+        // Keep last 20
+        recentProjects = recentProjects.slice(0, 20);
+
+        await (window as any).electron.metadata.saveRecentProjects(
+          recentProjects
+        );
+      } catch (error) {
+        console.error("Failed to update metadata in Electron:", error);
+      }
+    } else {
+      // Browser: Use localStorage fallback
+      const result = await this.get<ProjectMetadata[]>(RECENT_PROJECTS_KEY);
+      let recentProjects: ProjectMetadata[] =
+        result.success && result.data ? result.data : [];
+
+      recentProjects = recentProjects.filter((p) => p.id !== project.id);
+      recentProjects.unshift(metadata);
+      recentProjects = recentProjects.slice(0, 20);
+
+      await this.set(RECENT_PROJECTS_KEY, recentProjects);
+    }
+  }
+
+  /**
+   * Get recent files metadata
+   */
+  public async getRecentFiles(): Promise<ProjectMetadata[]> {
+    if (this.isElectron()) {
+      try {
+        const result = await (
+          window as any
+        ).electron.metadata.getRecentProjects();
+        return result.success && result.data ? result.data : [];
+      } catch (error) {
+        console.error("Failed to get metadata from Electron:", error);
+        return [];
+      }
+    } else {
+      const result = await this.get<ProjectMetadata[]>(RECENT_PROJECTS_KEY);
+      return result.success && result.data ? result.data : [];
+    }
+  }
+
+  /**
+   * Remove from recent files
+   */
+  private async removeRecentFile(projectId: string): Promise<void> {
+    if (this.isElectron()) {
+      try {
+        const result = await (
+          window as any
+        ).electron.metadata.getRecentProjects();
+        if (result.success && result.data) {
+          const filtered = result.data.filter(
+            (p: ProjectMetadata) => p.id !== projectId
+          );
+          await (window as any).electron.metadata.saveRecentProjects(filtered);
+        }
+      } catch (error) {
+        console.error("Failed to remove metadata in Electron:", error);
+      }
+    } else {
+      const recentFiles = await this.getRecentFiles();
+      const filtered = recentFiles.filter((f) => f.id !== projectId);
+      await this.set(RECENT_PROJECTS_KEY, filtered);
+    }
+  }
+
   // ==================== PROJECTS ====================
 
   async getProject(projectId: string): Promise<StorageResult<Project>> {
+    // In Electron mode, try to find filePath from recent files
+    if (this.isElectron()) {
+      const recentFiles = await this.getRecentFiles();
+      const metadata = recentFiles.find((f) => f.id === projectId);
+
+      if (metadata?.filePath) {
+        try {
+          const result = await (window as any).electron.file.readProject(
+            metadata.filePath
+          );
+
+          if (!result.success) {
+            return { success: false, error: result.error };
+          }
+
+          const project = JSON.parse(result.data) as Partial<Project>;
+
+          // Check if project needs repair
+          if (!this.isValidProject(project)) {
+            const repaired = this.repairProject(project);
+            if (!repaired) {
+              return {
+                success: false,
+                error: "Project is corrupted and cannot be repaired",
+              };
+            }
+            return { success: true, data: repaired };
+          }
+
+          return { success: true, data: project as Project };
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
+      }
+    }
+
+    // Browser Mode: localStorage fallback
     const result = await this.get<Partial<Project>>(
       `${PROJECT_PREFIX}${projectId}`
     );
@@ -214,11 +371,40 @@ class StorageService {
     return { success: true, data: result.data as Project };
   }
 
-  saveProject(project: Project) {
-    return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, project);
+  async saveProject(project: Project): Promise<StorageResult<Project>> {
+    if (this.isElectron() && project.filePath) {
+      // Electron Mode: Write to file
+      try {
+        const projectData = JSON.stringify(project, null, 2);
+        const result = await (window as any).electron.file.writeProject(
+          project.filePath,
+          projectData
+        );
+
+        if (!result.success) {
+          return { success: false, error: result.error };
+        }
+
+        // Update metadata for recent files
+        await this.updateRecentFile(project);
+
+        return { success: true, data: project };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    } else {
+      // Browser Mode: localStorage fallback
+      return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, project);
+    }
   }
 
-  deleteProject(projectId: string) {
+  async deleteProject(projectId: string): Promise<StorageResult<boolean>> {
+    // Remove from recent files in Electron mode
+    if (this.isElectron()) {
+      await this.removeRecentFile(projectId);
+    }
+
+    // Delete from localStorage (Browser mode or metadata)
     return this.delete(`${PROJECT_PREFIX}${projectId}`);
   }
 
@@ -234,6 +420,39 @@ class StorageService {
 
   async getAllProjects(): Promise<StorageResult<Project[]>> {
     try {
+      if (this.isElectron()) {
+        // Electron Mode: Load from recent files
+        const recentFiles = await this.getRecentFiles();
+        const projects: Project[] = [];
+        const failedIds: string[] = [];
+
+        for (const metadata of recentFiles) {
+          try {
+            const result = await(window as any).electron.file.readProject(
+              metadata.filePath
+            );
+
+            if (result.success) {
+              const project = JSON.parse(result.data) as Project;
+              projects.push(project);
+            } else {
+              failedIds.push(metadata.id);
+            }
+          } catch (error) {
+            console.warn(`Failed to load project ${metadata.id}:`, error);
+            failedIds.push(metadata.id);
+          }
+        }
+
+        // Remove failed projects from recent files
+        for (const id of failedIds) {
+          await this.removeRecentFile(id);
+        }
+
+        return { success: true, data: projects };
+      }
+
+      // Browser Mode: Load from localStorage
       const listResult = await this.listProjects();
       if (!listResult.success || !listResult.data)
         return { success: false, error: "Failed to list projects" };
@@ -287,7 +506,8 @@ class StorageService {
     description: string,
     version: string = "1.0",
     responsible: string = "",
-    isHighImpact: boolean = false
+    isHighImpact: boolean = false,
+    filePath?: string
   ): Project {
     const now = new Date().toISOString();
 
@@ -328,6 +548,7 @@ class StorageService {
 
       isOpen: true,
       hasUnsavedChanges: false,
+      filePath: filePath,
     };
   }
 
@@ -348,8 +569,57 @@ class StorageService {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * Load project from file (Electron mode)
+   */
+  public async loadProjectFromFile(
+    filePath: string
+  ): Promise<StorageResult<Project>> {
+    if (!this.isElectron()) {
+      return {
+        success: false,
+        error: "File loading only available in Electron mode",
+      };
+    }
+
+    try {
+      const result = await (window as any).electron.file.readProject(filePath);
+
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      const rawProject = JSON.parse(result.data);
+      const project = this.repairProject(rawProject);
+
+      if (!project) {
+        return {
+          success: false,
+          error: "Invalid project structure - missing id or name",
+        };
+      }
+
+      // Set filePath
+      project.filePath = filePath;
+
+      // Update timestamps
+      const now = new Date().toISOString();
+      project.lastOpened = now;
+      project.isOpen = true;
+      project.hasUnsavedChanges = false;
+
+      // Save to update metadata
+      await this.saveProject(project);
+
+      return { success: true, data: project };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
   public async importProjectFromJSON(
-    file: File
+    file: File,
+    filePath?: string
   ): Promise<StorageResult<Project>> {
     try {
       const text = await file.text();
@@ -377,6 +647,11 @@ class StorageService {
       project.lastOpened = now;
       project.isOpen = true;
       project.hasUnsavedChanges = false;
+
+      // Set filePath if provided (Electron mode)
+      if (filePath) {
+        project.filePath = filePath;
+      }
 
       const result = await this.saveProject(project);
       if (!result.success) {

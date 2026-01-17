@@ -4,7 +4,6 @@
 
 // ==================== COMPONENTS ====================
 export { GeneralTab } from "./components/general-tab";
-export { ActivityLog } from "./components/activity-log";
 export { ProjectInfo } from "./components/project-info";
 export { ProjectProgress } from "./components/project-progress";
 export { ProjectSettings } from "./components/project-settings";

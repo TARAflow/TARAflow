@@ -1,4 +1,4 @@
-import type { ProjectInfoData } from "features/overview";
+import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
 import { PhaseStatus, PhaseStatusMap } from "shared";
@@ -16,12 +16,6 @@ export type ProjectStatus = "draft" | "in-progress" | "review" | "complete";
 export type StrideMethod = "per-element" | "per-interaction";
 
 // ==================== INTERFACES ====================
-
-export interface ProjectSettings {
-  strictMode: boolean;
-  autoSave: boolean;
-  autoSaveInterval?: number; // in seconds, default 30
-}
 
 export interface ThreatMitigation {
   description: string;
@@ -80,7 +74,7 @@ export interface Project {
   strideMethod: StrideMethod | null;
   methodSelected: boolean;
   phaseStatus: PhaseStatusMap;
-  settings: ProjectSettings;
+  settings: ProjectSettingsData;
   status: ProjectStatus;
   dfd: DFDData | null;
   assets: AssetData | null;
@@ -92,6 +86,7 @@ export interface Project {
   audit: AuditData | null; // Git/Version Control
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
+  filePath?: string; // Path to .tara.json file (Electron mode)
 }
 
 // ==================== INPUT TYPES ====================
@@ -113,7 +108,7 @@ export interface UpdateProjectInput {
   tags?: string[];
   team?: string[];
   status?: ProjectStatus;
-  settings?: Partial<ProjectSettings>;
+  settings?: Partial<ProjectSettingsData>;
 }
 
 // ==================== VALIDATION TYPES ====================
@@ -129,4 +124,26 @@ export interface PhaseValidation {
   status: PhaseStatus;
   validation: ValidationResult;
   lastValidated: string;
+}
+
+// ==================== PROJECT METADATA ====================
+
+/**
+ * Rich metadata for quick project preview without loading full file
+ * Stored in app.getPath('userData')/recent-projects.json (Electron)
+ * or localStorage (Browser fallback)
+ */
+export interface ProjectMetadata {
+  id: string;
+  filePath: string; // Electron: file path, Browser: empty
+  lastOpened: string;
+
+  // Core project info for preview
+  info: ProjectInfoData;
+  status: ProjectStatus;
+  currentPhase: number;
+
+  // Optional: Phase completion stats
+  completedPhases?: number;
+  totalPhases?: number;
 }

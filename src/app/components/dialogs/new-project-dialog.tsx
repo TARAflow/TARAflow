@@ -36,6 +36,7 @@ export interface NewProjectData {
   responsible: string;
   tags: string[];
   isHighImpact?: boolean;
+  filePath?: string; // Electron mode only
 }
 
 export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
@@ -144,9 +145,37 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   };
 
   // Form submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
+    if (!validate()) return;
+
+    // Check if Electron mode
+    const isElectron =
+      typeof window !== "undefined" &&
+      typeof (window as any).electron?.file !== "undefined";
+
+    if (isElectron) {
+      // Open Save Dialog
+      try {
+        const sanitizedName = formData.name.replace(/[^a-z0-9]/gi, "_");
+        const result = await(window as any).electron.file.saveDialog(
+          sanitizedName
+        );
+
+        if (result.success && result.data) {
+          // Pass filePath to onCreate
+          onCreate({ ...formData, filePath: result.data });
+          onClose();
+        } else if (result.error && result.error !== "Save canceled") {
+          // Show error (will be handled in Etappe 4)
+          console.error("Save dialog error:", result.error);
+        }
+        // If canceled, do nothing (stay in dialog)
+      } catch (error) {
+        console.error("Failed to open save dialog:", error);
+      }
+    } else {
+      // Browser mode: no file dialog
       onCreate(formData);
       onClose();
     }

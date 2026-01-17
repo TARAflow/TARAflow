@@ -2,7 +2,7 @@
 // Core data models for the Audit/Version Control feature
 // NO dependency on app - follows Dependency Inversion Principle
 
-import type { PhaseStatusMap } from "shared";
+import type { PhaseStatusMap } from "shared/models/common-types";
 
 // ==================== GIT PROVIDER ====================
 

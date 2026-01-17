@@ -31,6 +31,26 @@ contextBridge.exposeInMainWorld("electron", {
     },
   },
 
+  // File I/O API
+  file: {
+    saveDialog: (defaultName: string) =>
+      ipcRenderer.invoke("file:saveDialog", defaultName),
+    openDialog: () => ipcRenderer.invoke("file:openDialog"),
+    writeProject: (filePath: string, projectData: string) =>
+      ipcRenderer.invoke("file:writeProject", filePath, projectData),
+    readProject: (filePath: string) =>
+      ipcRenderer.invoke("file:readProject", filePath),
+  },
+
+  // Metadata API (Recent Projects)
+  metadata: {
+    getRecentProjects: () => ipcRenderer.invoke("metadata:getRecentProjects"),
+    saveRecentProjects: (metadata: any[]) =>
+      ipcRenderer.invoke("metadata:saveRecentProjects", metadata),
+    removeProject: (projectId: string) =>
+      ipcRenderer.invoke("metadata:removeProject", projectId),
+  },
+
   // Repository
   isRepository: () => ipcRenderer.invoke("git:isRepository"),
   initRepository: () => ipcRenderer.invoke("git:initRepository"),

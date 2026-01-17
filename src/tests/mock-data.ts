@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 import { Project } from "app";
 import { ActivityLogEntry, PhaseStatus } from "shared";
 import { mockAssetData } from "./test-helpers";

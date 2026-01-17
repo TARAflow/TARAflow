@@ -9,7 +9,7 @@ import type {
   AzureDevOpsCredentials,
   JiraCredentials,
 } from "../models/integration-types";
-import type { OAuthCallbackData } from "shared";
+import type { OAuthCallbackData } from "../../../global";
 
 // ==================== TYPES ====================
 // TypeScript declaration for Electron API

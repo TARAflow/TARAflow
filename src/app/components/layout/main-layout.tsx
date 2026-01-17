@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { CreateProjectInput, Project } from "../../models/project-types";
+import {
+  CreateProjectInput,
+  Project,
+  ProjectMetadata,
+} from "../../models/project-types";
 import { ProjectSidebar } from "../project-sidebar";
 import { PhaseTabs } from "../navigation/phase-tab-bar";
 import { EmptyState } from "./empty-state-layout";
@@ -42,7 +46,6 @@ import storageService from "../../services/storage-service";
 import { OpenProjectDialog } from "../dialogs/open-project-dialog";
 import { UnsavedChangesDialog } from "../dialogs/unsaved-changes-dialog";
 import { CloseProjectDialog } from "../dialogs/close-project-dialog";
-import { Toast } from "shared";
 import { PHASES } from "shared";
 import { getPhaseStatusIcon, getPhaseStatusColor } from "shared";
 import type { GeneralTabData, ProjectInfoData } from "features/overview";
@@ -51,6 +54,10 @@ import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
 import { useTranslation } from "react-i18next";
+import { Toast, ToastContainer, useToast } from "shared";
+import { useAutoSave } from "../../hooks/use-auto-save";
+import { useProjectFileDownload } from "../../hooks/use-project-file-download";
+import { useProjectPersistence } from "../../hooks//use-project-persistence";
 
 // ==================== MAIN LAYOUT ====================
 
@@ -69,13 +76,105 @@ export const MainLayout: React.FC = () => {
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [projectToClose, setProjectToClose] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const MAX_OPEN_PROJECTS = 10;
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const openProjects = projects.filter((p) => p.isOpen);
+
+  const [recentProjectsMetadata, setRecentProjectsMetadata] = useState<
+    ProjectMetadata[]
+  >([]);
+
+  const { downloadProject } = useProjectFileDownload();
+  const persistence = useProjectPersistence();
+
+  console.log("Persistence mode:", persistence.mode);
+
+  // ==================== LOAD RECENT PROJECTS ====================
+  useEffect(() => {
+    loadRecentProjects();
+  }, []);
+
+  const loadRecentProjects = async () => {
+    const metadata = await storageService.getRecentFiles();
+    setRecentProjectsMetadata(metadata);
+  };
+
+  // STEP 3: Add handler for opening from file (add near other handlers)
+  const handleOpenFromFile = async () => {
+    const result = await persistence.openProject();
+
+    if (result.success && result.data?.project) {
+      const project = result.data.project;
+
+      // Save to localStorage (for metadata)
+      await storageService.saveProject(project);
+
+      setProjects([...projects, project]);
+      setActiveProjectId(project.id);
+      setActivePhase(project.currentPhase);
+
+      if (persistence.mode === "file-system-access") {
+        toast.success(
+          `Project "${project.info.name}" opened and linked to file!`,
+        );
+      } else {
+        toast.success(`Project "${project.info.name}" opened!`);
+      }
+
+      await loadRecentProjects();
+    } else if (result.error && result.error !== "User canceled") {
+      toast.error(`Failed to open: ${result.error}`);
+    }
+  };
+
+  const handleImportFile = async (project: any) => {
+    try {
+      // Validate project structure
+      if (!project.id || !project.info || !project.dfd) {
+        throw new Error("Invalid project structure");
+      }
+
+      // Save to localStorage (Browser mode)
+      await storageService.saveProject(project);
+
+      // Add to projects list
+      setProjects([...projects, project]);
+      setActiveProjectId(project.id);
+      setActivePhase(project.currentPhase || 0);
+
+      // Update metadata
+      await loadRecentProjects();
+
+      toast.success(`Project "${project.info.name}" imported successfully!`);
+    } catch (error: any) {
+      console.error("Failed to import project:", error);
+      toast.error(`Failed to import project: ${error.message}`);
+    }
+  };
+
+  // ==================== Setup Auto-Save ====================
+  // Add after activeProject is available
+  const toast = useToast();
+
+  useAutoSave(
+    activeProject ?? null,
+    {
+      enabled: activeProject?.settings.autoSave ?? true,
+      interval: activeProject?.settings.autoSaveInterval ?? 2,
+      onSuccess: (projectId) => {
+        // Optional: Show subtle success indicator
+        // toast.success('Project saved', 1000);
+        console.log(`Auto-saved project ${projectId}`);
+      },
+      onError: (projectId, error) => {
+        toast.error(`Auto-save failed: ${error}`);
+      },
+    },
+    persistence,
+  );
 
   // ==================== LOAD PROJECTS FROM STORAGE ====================
 
@@ -107,16 +206,15 @@ export const MainLayout: React.FC = () => {
         }
 
         if (validProjects.length < (result.data?.length || 0)) {
-          setToastMessage(
+          toast.warning(
             `${
               result.data.length - validProjects.length
-            } invalid project(s) were removed`
+            } invalid project(s) were removed`,
           );
         }
       }
     } catch (error) {
-      console.error("Failed to load projects:", error);
-      setToastMessage("Failed to load projects from storage");
+      toast.error(`Error: ${error}` + " Failed to load projects from storage");
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +229,7 @@ export const MainLayout: React.FC = () => {
   const syncProjectToStorage = async (project: Project): Promise<boolean> => {
     const result = await storageService.saveProject(project);
     if (!result.success) {
-      setToastMessage(`Failed to save: ${result.error}`);
+      toast.error(`Failed to save: ${result.error}`);
       return false;
     }
     return true;
@@ -169,9 +267,7 @@ export const MainLayout: React.FC = () => {
         })
       );
 
-      setToastMessage(
-        `Auto-closed "${oldestProject.info?.name}" (oldest project)`
-      );
+      toast.error(`Auto-closed "${oldestProject.info?.name}" (oldest project)`);
     } else {
       const openedProject = { ...project, isOpen: true, lastOpened: now };
       await syncProjectToStorage(openedProject);
@@ -203,7 +299,7 @@ export const MainLayout: React.FC = () => {
       setProjects(
         projects.map((p) => (p.id === activeProject.id ? savedProject : p))
       );
-      setToastMessage(`Project "${activeProject.info?.name}" saved`);
+      toast.success(`Project "${activeProject.info?.name}" saved`);
     }
     const newProject = projects.find((p) => p.id === pendingProjectId);
     setActiveProjectId(pendingProjectId);
@@ -224,24 +320,28 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-  const closeProject = async (projectId: string) => {
-    const project = projects.find((p) => p.id === projectId);
-    if (!project) return;
+const closeProject = async (projectId: string) => {
+  const project = projects.find((p) => p.id === projectId);
+  if (!project) return;
 
-    const closedProject = { ...project, isOpen: false };
-    await syncProjectToStorage(closedProject);
+  const closedProject = { ...project, isOpen: false };
+  await syncProjectToStorage(closedProject);
 
-    setProjects(projects.map((p) => (p.id === projectId ? closedProject : p)));
+  setProjects(projects.map((p) => (p.id === projectId ? closedProject : p)));
 
-    if (activeProjectId === projectId) {
-      const remainingOpen = openProjects.filter((p) => p.id !== projectId);
-      setActiveProjectId(remainingOpen[0]?.id || null);
-      setActivePhase(remainingOpen[0]?.currentPhase || 0);
-    }
+  if (activeProjectId === projectId) {
+    const remainingOpen = openProjects.filter((p) => p.id !== projectId);
+    setActiveProjectId(remainingOpen[0]?.id || null);
+    setActivePhase(remainingOpen[0]?.currentPhase || 0);
 
-    setShowCloseDialog(false);
-    setProjectToClose(null);
-  };
+    // Clear file reference when closing
+    persistence.clearCurrentFile(); // ← ADD THIS LINE
+  }
+
+  setShowCloseDialog(false);
+  setProjectToClose(null);
+  await loadRecentProjects();
+};
 
   const confirmProjectClose = async (save: boolean) => {
     if (save && projectToClose) {
@@ -252,7 +352,7 @@ export const MainLayout: React.FC = () => {
         setProjects(
           projects.map((p) => (p.id === projectToClose ? savedProject : p))
         );
-        setToastMessage(`Project "${project.info?.name}" saved`);
+        toast.success(`Project "${project.info?.name}" saved`);
       }
     }
     closeProject(projectToClose!);
@@ -285,9 +385,9 @@ export const MainLayout: React.FC = () => {
         setActivePhase(remainingOpen[0]?.currentPhase || 0);
       }
 
-      setToastMessage(`Project "${project.info?.name}" deleted`);
+      toast.success(`Project "${project.info?.name}" deleted`);
     } else {
-      setToastMessage(`Failed to delete: ${result.error}`);
+      toast.error(`Failed to delete: ${result.error}`);
     }
 
     setShowDeleteDialog(false);
@@ -299,16 +399,16 @@ export const MainLayout: React.FC = () => {
   const handleExportProject = async (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) {
-      setToastMessage("Project not found");
+      toast.warning("Project not found");
       return;
     }
 
     try {
       // Use StorageService export method
       storageService.exportProjectAsJSON(project);
-      setToastMessage(`Project "${project.info?.name}" exported`);
+      toast.success(`Project "${project.info?.name}" exported`);
     } catch (error) {
-      setToastMessage(`Export failed: ${error}`);
+      toast.error(`Export failed: ${error}`);
     }
   };
 
@@ -367,7 +467,7 @@ export const MainLayout: React.FC = () => {
     const success = await syncProjectToStorage(savedProject);
     if (success) {
       setProjects(projects.map((p) => (p.id === projectId ? savedProject : p)));
-      setToastMessage(`Project "${project.info.name}" saved`);
+      toast.success(`Project "${project.info.name}" saved`);
     }
   };
 
@@ -383,8 +483,8 @@ export const MainLayout: React.FC = () => {
             (phaseId - 1) as keyof typeof activeProject.phaseStatus
           ];
         if (prevPhase !== "complete") {
-          setToastMessage(
-            "⚠️ Warning: Previous phase is not complete. Strict mode is enabled."
+          toast.warning(
+            "⚠️ Warning: Previous phase is not complete. Strict mode is enabled.",
           );
         }
       }
@@ -734,9 +834,7 @@ export const MainLayout: React.FC = () => {
       </style>
 
       {/* Toast Notification */}
-      {toastMessage && (
-        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
-      )}
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
 
       {/* Sidebar */}
       <ProjectSidebar
@@ -830,11 +928,11 @@ export const MainLayout: React.FC = () => {
                     phaseStatus: activeProject.phaseStatus,
                     perElementThreats: extractThreatReferences(
                       activeProject.threats,
-                      "per-element"
+                      "per-element",
                     ),
                     perInteractionThreats: extractThreatReferences(
                       activeProject.threats,
-                      "per-interaction"
+                      "per-interaction",
                     ),
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
                     lastModified: activeProject.info?.lastModified || "",
@@ -868,7 +966,7 @@ export const MainLayout: React.FC = () => {
                 <DocTab
                   project={transformProjectToDocData(
                     activeProject,
-                    i18n.language === "de" ? "de" : "en"
+                    i18n.language === "de" ? "de" : "en",
                   )}
                   onUpdate={handleDocUpdate}
                 />
@@ -916,8 +1014,12 @@ export const MainLayout: React.FC = () => {
       {/* Dialogs */}
       {showOpenDialog && (
         <OpenProjectDialog
-          projects={projects}
+          recentProjects={recentProjectsMetadata}
           onOpen={handleProjectOpen}
+          onOpenFile={handleOpenFromFile} // Now unified for all modes!
+          onImportFile={
+            persistence.mode === "localStorage" ? handleImportFile : undefined
+          }
           onClose={() => setShowOpenDialog(false)}
         />
       )}
@@ -967,8 +1069,8 @@ export const MainLayout: React.FC = () => {
               responsible: data.responsible,
               isHighImpact: data.isHighImpact,
             });
+
             if (result.success && result.data) {
-              // Add tags to the project info
               const projectWithTags: Project = {
                 ...result.data,
                 info: {
@@ -977,16 +1079,33 @@ export const MainLayout: React.FC = () => {
                 },
               };
 
-              await storageService.saveProject(projectWithTags);
+              // Save with unified persistence
+              const saveResult =
+                await persistence.saveNewProject(projectWithTags);
 
-              setProjects([...projects, projectWithTags]);
-              setActiveProjectId(projectWithTags.id);
-              setActivePhase(0);
-              setToastMessage(
-                `Project "${projectWithTags.info?.name}" created!`
-              );
+              if (saveResult.success) {
+                // Also save to localStorage (for metadata)
+                await storageService.saveProject(projectWithTags);
+
+                setProjects([...projects, projectWithTags]);
+                setActiveProjectId(projectWithTags.id);
+                setActivePhase(0);
+
+                // Mode-specific feedback
+                if (persistence.mode === "file-system-access") {
+                  toast.success(
+                    `Project "${projectWithTags.info.name}" created and linked to file!`,
+                  );
+                } else {
+                  toast.success(
+                    `Project "${projectWithTags.info.name}" created!`,
+                  );
+                }
+              } else if (saveResult.error !== "User canceled") {
+                toast.error(`Failed to save: ${saveResult.error}`);
+              }
             } else {
-              setToastMessage(`Error: ${result.error}`);
+              toast.error(`Failed to create project: ${result.error}`);
             }
           }}
           onClose={() => setShowNewDialog(false)}
@@ -998,21 +1117,21 @@ export const MainLayout: React.FC = () => {
         <ImportProjectDialog
           onImport={async (
             file: File,
-            options: ImportOptions
+            options: ImportOptions,
           ): Promise<ImportResult> => {
             const result = await storageService.importProjectFromJSON(file);
             if (result.success && result.data) {
               setProjects([...projects, result.data]);
               setActiveProjectId(result.data.id);
               setActivePhase(0);
-              setToastMessage(`Project "${result.data.info?.name}" imported!`);
+              toast.success(`Project "${result.data.info?.name}" imported!`);
               return {
                 success: true,
                 projectId: result.data.id,
                 projectName: result.data.info?.name || "",
               };
             } else {
-              setToastMessage(`Import failed: ${result.error}`);
+              toast.error(`Import failed: ${result.error}`);
               return {
                 success: false,
                 errors: [result.error || "Unknown error"],
@@ -1022,6 +1141,17 @@ export const MainLayout: React.FC = () => {
           onClose={() => setShowImportDialog(false)}
         />
       )}
+
+      {persistence.mode === "file-system-access" &&
+        persistence.hasFileReference && (
+          <div className="fixed bottom-4 left-4 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            Linked to local file - auto-save enabled
+          </div>
+        )}
+
+      {/* Toast Container - ALWAYS at the end */}
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
 };

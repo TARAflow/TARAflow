@@ -6,10 +6,14 @@
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && tsc -p tsconfig.electron.json",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "dev:electron": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "clean:electron": "rm -rf dist-electron",
+    "compile:electron": "tsc -p tsconfig.electron.json",
+    "fix:electron": "node scripts/fix-electron-imports.cjs",
+    "build:electron-dev": "npm run clean:electron && npm run compile:electron && npm run fix:electron",
+    "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build:electron": "electron-builder"
   },
   "dependencies": {
@@ -50,7 +54,7 @@
     "@vitejs/plugin-react": "4.2.1",
     "concurrently": "^9.2.1",
     "electron": "^39.2.7",
-    "electron-builder": "^26.0.12",
+    "electron-builder": "^26.4.0",
     "i18next-parser": "^9.3.0",
     "typescript": "5.3.3",
     "vite": "5.0.10",

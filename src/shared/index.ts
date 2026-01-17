@@ -29,7 +29,7 @@ export type {
 
 // ==================== UI COMPONENTS ====================
 export { Button } from "./components/button";
-export { Toast } from "./components/toast";
+export { Toast, ToastContainer } from "./components/toast";
 export { Badge } from "./components/badge";
 export { GenericAccordion } from "./components/generic-accordion";
 export { OuterHeader } from "./components/outer-header";
@@ -51,9 +51,13 @@ export { ConfirmDeleteDialog } from "./components/dialogs/confirm-delete-dialog"
 export { SaveDiscardDialog } from "./components/dialogs/save-discard-dialog";
 export type { SaveDiscardDialogProps } from "./components/dialogs/save-discard-dialog";
 // ==================== CONSTANTS ====================
-export { MIN_PANEL_HEIGHT, DEFAULT_TOP_HEIGHT } from "./hooks/use-split-view-resize";
+export {
+  MIN_PANEL_HEIGHT,
+  DEFAULT_TOP_HEIGHT,
+} from "./hooks/use-split-view-resize";
 
 // ==================== UTILS ====================
+export { useToast } from "./components/toast";
 export { useSplitViewResize } from "./hooks/use-split-view-resize";
 export { formatExportFilename } from "./utils/formatters";
 export {

@@ -91,11 +91,19 @@ export const Toast: React.FC<ToastProps> = ({
 // ==================== TOAST CONTAINER ====================
 
 export interface ToastContainerProps {
-  toasts: Array<{ id: string; message: string; type: ToastType }>;
+  toasts: Array<{
+    id: string;
+    message: string;
+    type: ToastType;
+    duration?: number;
+  }>;
   onRemove: (id: string) => void;
 }
 
-export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
+export const ToastContainer: React.FC<ToastContainerProps> = ({
+  toasts,
+  onRemove,
+}) => {
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
       {toasts.map((toast) => (
@@ -103,6 +111,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove
           key={toast.id}
           message={toast.message}
           type={toast.type}
+          duration={toast.duration}
           onClose={() => onRemove(toast.id)}
         />
       ))}
@@ -116,24 +125,33 @@ export interface ToastState {
   id: string;
   message: string;
   type: ToastType;
+  duration?: number;
 }
 
 export const useToast = () => {
   const [toasts, setToasts] = React.useState<ToastState[]>([]);
 
-  const showToast = (message: string, type: ToastType = 'info') => {
+  const showToast = (
+    message: string,
+    type: ToastType = "info",
+    duration: number = 3000
+  ) => {
     const id = `toast_${Date.now()}_${Math.random()}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => [...prev, { id, message, type, duration }]);
   };
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const success = (message: string) => showToast(message, 'success');
-  const error = (message: string) => showToast(message, 'error');
-  const warning = (message: string) => showToast(message, 'warning');
-  const info = (message: string) => showToast(message, 'info');
+  const success = (message: string, duration?: number) =>
+    showToast(message, "success", duration ?? 3000);
+  const error = (message: string, duration?: number) =>
+    showToast(message, "error", duration ?? 3000);
+  const warning = (message: string, duration?: number) =>
+    showToast(message, "warning", duration ?? 3000);
+  const info = (message: string, duration?: number) =>
+    showToast(message, "info", duration ?? 3000);
 
   return {
     toasts,
@@ -142,7 +160,7 @@ export const useToast = () => {
     success,
     error,
     warning,
-    info
+    info,
   };
 };
 
@@ -164,22 +182,3 @@ export const toastAnimationStyles = `
     animation: slide-in 0.3s ease-out;
   }
 `;
-// import React, { useEffect } from 'react';
-
-// interface ToastProps {
-//   message: string;
-//   onClose: () => void;
-// }
-
-// export const Toast: React.FC<ToastProps> = ({ message, onClose }) => {
-//   useEffect(() => {
-//     const timer = setTimeout(onClose, 3000);
-//     return () => clearTimeout(timer);
-//   }, [onClose]);
-
-//   return (
-//     <div className="fixed top-4 right-4 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg z-50 animate-slide-in">
-//       {message}
-//     </div>
-//   );
-// };

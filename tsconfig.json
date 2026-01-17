@@ -19,9 +19,14 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "paths": {
+      "audit": ["features/audit"],
+      "audit/*": ["features/audit/*"]
+    }
   },
   "include": [
-    "src"
+    "src",
+    "electron"
   ]
 }

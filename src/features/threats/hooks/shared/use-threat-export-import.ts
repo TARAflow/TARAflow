@@ -2,7 +2,7 @@
 // Hook for exporting and importing threat data
 
 import { useCallback } from "react";
-import type { ThreatData, ThreatTable } from "../models/threat-types";
+import type { ThreatData, ThreatTable } from "../../models/threat-types";
 
 // ==================== TYPES ====================
 

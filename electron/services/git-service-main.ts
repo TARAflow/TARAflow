@@ -11,9 +11,9 @@ import type {
   GitLogSummary,
   GitRemote,
   GitOperationResult,
-} from "../models/git-types";
-import type { AuditConfig } from "../models/audit-types";
-import { credentialService } from "./credential-service";
+} from "audit/models/git-types";
+import type { AuditConfig } from "../../src/features/audit/models/audit-types";
+import { credentialService } from "./credential-service-main";
 
 // ==================== GIT SERVICE ====================
 

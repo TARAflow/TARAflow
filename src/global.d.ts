@@ -31,6 +31,36 @@ declare global {
         onCallback: (callback: (data: OAuthCallbackData) => void) => void;
         removeCallback: () => void;
       };
+      file?: {
+        saveDialog: (
+          defaultName: string
+        ) => Promise<{ success: boolean; data?: string; error?: string }>;
+        openDialog: () => Promise<{
+          success: boolean;
+          data?: string;
+          error?: string;
+        }>;
+        writeProject: (
+          filePath: string,
+          projectData: string
+        ) => Promise<{ success: boolean; data?: string; error?: string }>;
+        readProject: (
+          filePath: string
+        ) => Promise<{ success: boolean; data?: string; error?: string }>;
+      };
+      metadata?: {
+        getRecentProjects: () => Promise<{
+          success: boolean;
+          data?: any[];
+          error?: string;
+        }>;
+        saveRecentProjects: (
+          metadata: any[]
+        ) => Promise<{ success: boolean; error?: string }>;
+        removeProject: (
+          projectId: string
+        ) => Promise<{ success: boolean; error?: string }>;
+      };
     };
 
     // Git APIs (für Audit Feature)

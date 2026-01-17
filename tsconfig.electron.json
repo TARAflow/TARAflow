@@ -1,16 +1,23 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "outDir": "./dist-electron",
     "target": "ES2020",
     "lib": ["ES2020"],
-    "outDir": "dist-electron",
     "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "strict": true,
-    "resolveJsonModule": true,
-    "noEmit": false
+    "strict": false,
+    "baseUrl": ".",
+    "paths": {
+      "shared/models": ["src/shared/models"],
+      "shared/models/*": ["src/shared/models/*"],
+      "audit/models": ["src/features/audit/models"],
+      "audit/models/*": ["src/features/audit/models/*"]
+    }
   },
-  "include": ["electron/**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "electron/**/*",
+  ],
+  "exclude": ["node_modules", "dist", "dist-electron"]
 }

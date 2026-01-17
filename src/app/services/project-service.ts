@@ -4,10 +4,10 @@
 import { storageService, type StorageResult } from "./storage-service";
 import {
   Project,
-  ProjectSettings,
   CreateProjectInput,
   UpdateProjectInput,
 } from "../models/project-types";
+import { ProjectSettingsData } from "features/overview";
 
 import { PhaseStatus, formatExportFilename } from "shared";
 
@@ -27,10 +27,11 @@ class ProjectService {
         input.description,
         input.version,
         input.responsible,
-        input.isHighImpact
+        input.isHighImpact,
+        (input as any).filePath // filePath from NewProjectData
       );
       const result = await storageService.saveProject(project);
-      return result; // result hat schon { success: boolean; data?: Project; error?: string }
+      return result;
     } catch (err: any) {
       return { success: false, error: err.message };
     }
@@ -57,7 +58,7 @@ class ProjectService {
       const project = result.data;
       const now = new Date().toISOString();
 
-      const updatedSettings: ProjectSettings = {
+      const updatedSettings: ProjectSettingsData = {
         strictMode: updates.settings?.strictMode ?? project.settings.strictMode,
         autoSave: updates.settings?.autoSave ?? project.settings.autoSave,
         autoSaveInterval:
@@ -320,6 +321,13 @@ class ProjectService {
       .slice(0, limit);
 
     return { success: true, data: recent };
+  }
+
+  /**
+   * Open project from file (Electron mode)
+   */
+  async openProjectFromFile(filePath: string): Promise<StorageResult<Project>> {
+    return storageService.loadProjectFromFile(filePath);
   }
 
   /**
