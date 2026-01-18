@@ -1,32 +1,26 @@
-// ==================== DOCUMENTATION TYPES ====================
-// Core data models for the Documentation Generation feature
-// NO dependency on app - follows Dependency Inversion Principle
-//
-// Architecture:
-// - Configurable document format (Markdown, AsciiDoc, HTML, PDF)
-// - Configurable chapters (enable/disable)
-// - Template customization (header, footer, logo)
-// - Multi-language support (DE/EN independent of UI)
+// ==================== DOCUMENTATION TYPES (HYBRID APPROACH) ====================
+// Direct references to feature types + minimal computed values
+// Location: features/documentation/models/doc-types.ts
 
-import type { PhaseStatusMap, StrideMethod } from "shared";
+import type { PhaseStatusMap, StrideMethod, StrideCategory } from "shared";
+
+// ==================== DIRECT IMPORTS FROM FEATURES ====================
+// Single Source of Truth - no duplication!
+
+import type { ProjectInfoData } from "../../overview/models/overview-types";
+import type { DFDData } from "../../dfd/models/dfd-types";
+import type { AssetData } from "../../assets/models/asset-types";
+import type { ThreatData } from "../../threats/models/threat-types";
+import type { RiskData } from "../../risks/models/risk-types";
+import type { AttackTreeData } from "../../attacktree/models/attacktree-types";
 
 // ==================== DOCUMENT FORMAT ====================
 
-/**
- * Supported document output formats
- */
 export type DocFormat = "markdown" | "asciidoc" | "html" | "pdf";
-
-/**
- * Document language (independent of UI language)
- */
 export type DocLanguage = "en" | "de";
 
 // ==================== CHAPTER CONFIGURATION ====================
 
-/**
- * Available chapters in the document
- */
 export type DocChapterId =
   | "executive-summary"
   | "applicable-regulations"
@@ -39,79 +33,54 @@ export type DocChapterId =
   | "risks-per-element"
   | "risks-per-interaction"
   | "accepted-risks"
+  | "attack-trees"
   | "appendix";
 
-/**
- * Chapter configuration
- */
 export interface DocChapterConfig {
   id: DocChapterId;
   enabled: boolean;
-  /** Auto-hide if content is empty */
   autoHideIfEmpty: boolean;
-  /** Custom title override (optional) */
   customTitle?: string;
   customTitleDE?: string;
 }
 
-/**
- * Default chapter titles
- */
-export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> =
-  {
-    "executive-summary": {
-      en: "Executive Summary",
-      de: "Zusammenfassung",
-    },
-    "applicable-regulations": {
-      en: "Applicable Regulations",
-      de: "Anwendbare Regulierungen",
-    },
-    "system-overview": {
-      en: "System Overview",
-      de: "Systemübersicht",
-    },
-    dfd: {
-      en: "Data Flow Diagram",
-      de: "Datenflussdiagramm",
-    },
-    "dfd-descriptions": {
-      en: "DFD Element Descriptions",
-      de: "DFD-Elementbeschreibungen",
-    },
-    assets: {
-      en: "Asset Inventory",
-      de: "Asset-Inventar",
-    },
-    "threats-per-element": {
-      en: "Threat Analysis (STRIDE per Element)",
-      de: "Bedrohungsanalyse (STRIDE pro Element)",
-    },
-    "threats-per-interaction": {
-      en: "Threat Analysis (STRIDE per Interaction)",
-      de: "Bedrohungsanalyse (STRIDE pro Interaktion)",
-    },
-    "risks-per-element": {
-      en: "Risk Assessment (STRIDE per Element)",
-      de: "Risikobewertung (STRIDE pro Element)",
-    },
-    "risks-per-interaction": {
-      en: "Risk Assessment (STRIDE per Interaction)",
-      de: "Risikobewertung (STRIDE pro Interaktion)",
-    },
-    "accepted-risks": {
-      en: "Accepted Risks (Won't Address)",
-      de: "Akzeptierte Risiken (Wird nicht behandelt)",
-    },
-    appendix: {
-      en: "Appendix",
-      de: "Anhang",
-    },
-  };
+export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = {
+  "executive-summary": { en: "Executive Summary", de: "Zusammenfassung" },
+  "applicable-regulations": {
+    en: "Applicable Regulations",
+    de: "Anwendbare Regulierungen",
+  },
+  "system-overview": { en: "System Overview", de: "Systemübersicht" },
+  dfd: { en: "Data Flow Diagram", de: "Datenflussdiagramm" },
+  "dfd-descriptions": {
+    en: "DFD Element Descriptions",
+    de: "DFD-Elementbeschreibungen",
+  },
+  assets: { en: "Asset Inventory", de: "Asset-Inventar" },
+  "threats-per-element": {
+    en: "Threat Analysis (STRIDE per Element)",
+    de: "Bedrohungsanalyse (STRIDE pro Element)",
+  },
+  "threats-per-interaction": {
+    en: "Threat Analysis (STRIDE per Interaction)",
+    de: "Bedrohungsanalyse (STRIDE pro Interaktion)",
+  },
+  "risks-per-element": {
+    en: "Risk Assessment (STRIDE per Element)",
+    de: "Risikobewertung (STRIDE pro Element)",
+  },
+  "risks-per-interaction": {
+    en: "Risk Assessment (STRIDE per Interaction)",
+    de: "Risikobewertung (STRIDE pro Interaktion)",
+  },
+  "accepted-risks": {
+    en: "Accepted Risks (Won't Address)",
+    de: "Akzeptierte Risiken (Wird nicht behandelt)",
+  },
+  "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
+  appendix: { en: "Appendix", de: "Anhang" },
+};
 
-/**
- * Default chapter configuration
- */
 export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "executive-summary", enabled: true, autoHideIfEmpty: false },
   { id: "applicable-regulations", enabled: true, autoHideIfEmpty: true },
@@ -124,47 +93,25 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "risks-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-interaction", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
+  { id: "attack-trees", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];
 
 // ==================== TEMPLATE CONFIGURATION ====================
 
-/**
- * Template configuration for customization
- */
 export interface DocTemplateConfig {
-  /** Company/Organization name */
   organizationName: string;
-
-  /** Logo path (relative to document) */
   logoPath?: string;
-
-  /** Header text (appears on each page in PDF) */
   headerText?: string;
-
-  /** Footer text (appears on each page in PDF) */
   footerText?: string;
-
-  /** Classification level */
   classification?: "public" | "internal" | "confidential" | "restricted";
-
-  /** Document version (auto or custom) */
   versionMode: "auto" | "custom";
   customVersion?: string;
-
-  /** Include table of contents */
   includeToc: boolean;
-
-  /** Include page numbers (for PDF) */
   includePageNumbers: boolean;
-
-  /** Date format */
   dateFormat: "iso" | "eu" | "us";
 }
 
-/**
- * Default template configuration
- */
 export const DEFAULT_TEMPLATE_CONFIG: DocTemplateConfig = {
   organizationName: "",
   logoPath: undefined,
@@ -180,26 +127,13 @@ export const DEFAULT_TEMPLATE_CONFIG: DocTemplateConfig = {
 
 // ==================== DOCUMENT CONFIGURATION ====================
 
-/**
- * Complete document generation configuration
- */
 export interface DocConfiguration {
-  /** Output format */
   format: DocFormat;
-
-  /** Document language */
   language: DocLanguage;
-
-  /** Chapter configuration */
   chapters: DocChapterConfig[];
-
-  /** Template configuration */
   template: DocTemplateConfig;
 }
 
-/**
- * Default document configuration
- */
 export const DEFAULT_DOC_CONFIGURATION: DocConfiguration = {
   format: "markdown",
   language: "en",
@@ -209,23 +143,11 @@ export const DEFAULT_DOC_CONFIGURATION: DocConfiguration = {
 
 // ==================== DOCUMENT DATA ====================
 
-/**
- * Generated document data
- */
 export interface DocData {
-  /** Current configuration */
   configuration: DocConfiguration;
-
-  /** Generated document content (Markdown or AsciiDoc) */
   generatedContent?: string;
-
-  /** Last generation timestamp */
   lastGenerated?: string;
-
-  /** Validation state */
   validation?: DocValidation;
-
-  /** Last modified timestamp */
   lastModified: string;
 }
 
@@ -236,219 +158,65 @@ export interface DocValidation {
   lastValidated: string;
 }
 
-// ==================== DOCUMENT PROJECT INTERFACE ====================
-// What Documentation feature needs from a project (Dependency Inversion)
+// ==================== COMPUTED VALUES (CACHED) ====================
 
 /**
- * Simplified project info for documentation
+ * Pre-computed values for performance
+ * These are calculated once during transform and cached
  */
-export interface DocProjectInfo {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  responsible: string;
-  created: string;
-  lastModified: string;
-  tags: string[];
-  team: string[];
-  isHighImpact: boolean;
+export interface DocComputedValues {
+  /** Active STRIDE methods based on actual content */
+  activeStrideMethods: StrideMethod[];
+
+  /** Current language for label lookups */
+  language: DocLanguage;
+
+  /** Cached impact labels (asset ID -> label) */
+  impactLabels: Map<string, string>;
+
+  /** Cached risk labels (risk ID -> label) */
+  riskBeforeLabels: Map<string, string>;
+  riskAfterLabels: Map<string, string>;
+
+  /** Cached STRIDE names (category -> name) */
+  strideNames: Map<StrideCategory, string>;
+
+  /** Cached MoSCoW labels (priority -> label) */
+  moscowLabels: Map<string, string>;
+
+  /** Cached status labels (status -> label) */
+  statusLabels: Map<string, string>;
 }
 
-/**
- * Security level for DFD elements
- */
-export type DocSecurityLevel =
-  | "public"
-  | "internal"
-  | "confidential"
-  | "secret"
-  | "none";
+// ==================== COMPLETE PROJECT DATA ====================
 
 /**
- * Trust level for DFD elements
- */
-export type DocTrustLevel = "trusted" | "untrusted" | "unknown" | "none";
-
-/**
- * DFD Element types for documentation
- */
-export type DocDFDElementType =
-  | "ExternalEntity"
-  | "Process"
-  | "Multiprocess"
-  | "DataStore"
-  | "TrustBoundary"
-  | "PhysicalInterface"
-  | "Interface";
-
-/**
- * DFD Element description for documentation
- */
-export interface DocDFDElement {
-  id: string;
-  displayId?: string;
-  type: DocDFDElementType;
-  name: string;
-
-  // Semantic / logical properties (from description panel)
-  properties: {
-    description?: string;
-    protocol?: string;
-    encrypted?: boolean;
-    dataType?: string;
-
-    // Threat modeling fields (optional)
-    securityLevel?: DocSecurityLevel;
-    trustLevel: DocTrustLevel;
-    authenticationRequired?: boolean;
-    encryptionRequired?: boolean;
-    securityNotes?: string;
-  };
-}
-
-/**
- * DFD Connection/DataFlow description for documentation
- */
-export interface DocDFDConnection {
-  id: string;
-  displayId?: string;
-  fromElement: string;
-  toElement: string;
-  label?: string;
-  // Semantic / logical properties (from description panel)
-  properties: {
-    description?: string;
-    protocol?: string;
-    encrypted?: boolean;
-    dataType?: string;
-
-    // Threat modeling fields (optional)
-    securityLevel?: DocSecurityLevel;
-    trustLevel: DocTrustLevel;
-    authenticationRequired?: boolean;
-    encryptionRequired?: boolean;
-    securityNotes?: string;
-  };
-}
-
-/**
- * Simplified DFD data for documentation
- */
-export interface DocDFDData {
-  /** Has DFD content */
-  hasDFD: boolean;
-  /** DFD thumbnail/image path or base64 */
-  imagePath?: string;
-  /** Element count stats */
-  stats?: {
-    totalElements: number;
-    externalEntities: number;
-    processes: number;
-    dataStores: number;
-    dataFlows: number;
-    trustBoundaries: number;
-  };
-  /** DFD Elements with descriptions */
-  elements: DocDFDElement[];
-  /** DFD Connections/DataFlows with descriptions */
-  connections: DocDFDConnection[];
-}
-
-/**
- * Simplified asset for documentation
- */
-export interface DocAsset {
-  id: string;
-  name: string;
-  description: string;
-  overallImpact: number;
-  impactLabel: string;
-  securityGoals: Array<{
-    type: string;
-    description: string;
-  }>;
-  linkedElements: string[];
-}
-
-/**
- * Simplified threat for documentation
- */
-export interface DocThreat {
-  id: string;
-  strideCategory: string;
-  strideName: string;
-  elementOrFlow: string;
-  trustBoundary: string;
-  threatDescription: string;
-  attackDescription: string;
-  mitigation: string;
-  verification: string;
-}
-
-/**
- * Simplified risk for documentation
- */
-export interface DocRisk {
-  id: string;
-  threatId: string;
-  strideCategory: string;
-  strideName: string;
-  threatDescription: string;
-  riskBeforeMitigation: number;
-  riskBeforeLabel: string;
-  selectedMitigations: string[];
-  riskAfterMitigation: number;
-  riskAfterLabel: string;
-  moscowPriority: string;
-  moscowLabel: string;
-  status: string;
-  statusLabel: string;
-  /** Only for Won't risks */
-  wontJustification?: string;
-}
-
-/**
- * Complete project data for documentation generation
+ * Project data for documentation generation
+ * Uses DIRECT REFERENCES to feature types - no duplication!
  */
 export interface DocProjectData {
+  // Basic project metadata
   id: string;
   name: string;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
 
-  /** Project info */
-  info: DocProjectInfo;
+  // Direct references to feature data (Single Source of Truth!)
+  info: ProjectInfoData;
+  dfd: DFDData | null;
+  assets: AssetData | null;
+  threats: ThreatData | null;
+  risks: RiskData | null;
+  attackTree: AttackTreeData | null;
 
-  /** DFD data */
-  dfd: DocDFDData;
+  // Computed values (performance optimization)
+  computed: DocComputedValues;
 
-  /** Assets */
-  assets: DocAsset[];
-
-  /** Threats per element */
-  threatsPerElement: DocThreat[];
-
-  /** Threats per interaction */
-  threatsPerInteraction: DocThreat[];
-
-  /** Risks per element */
-  risksPerElement: DocRisk[];
-
-  /** Risks per interaction */
-  risksPerInteraction: DocRisk[];
-
-  /** Won't risks (accepted) */
-  wontRisks: DocRisk[];
-
-  /** Active STRIDE methods */
-  activeStrideMethods: StrideMethod[];
-
-  /** Documentation configuration */
+  // Documentation state
   documentation: DocData | null;
 }
 
-// ==================== DOCUMENT UPDATE RESULT ====================
+// ==================== UPDATE RESULT ====================
 
 export interface DocUpdateResult {
   documentation: DocData;
@@ -456,7 +224,7 @@ export interface DocUpdateResult {
   lastModified: string;
 }
 
-// ==================== DOCUMENT TAB PROPS ====================
+// ==================== TAB PROPS ====================
 
 export interface DocTabProps {
   project: DocProjectData;
@@ -467,41 +235,31 @@ export interface DocTabProps {
 
 // ==================== HELPER FUNCTIONS ====================
 
-/**
- * Get chapter title based on language
- */
 export function getChapterTitle(
   chapterId: DocChapterId,
   language: DocLanguage,
   customTitle?: string,
-  customTitleDE?: string
+  customTitleDE?: string,
 ): string {
   if (language === "de" && customTitleDE) return customTitleDE;
   if (language === "en" && customTitle) return customTitle;
   return CHAPTER_TITLES[chapterId][language];
 }
 
-/**
- * Check if a chapter should be visible
- */
 export function isChapterVisible(
   chapter: DocChapterConfig,
-  hasContent: boolean
+  hasContent: boolean,
 ): boolean {
   if (!chapter.enabled) return false;
   if (chapter.autoHideIfEmpty && !hasContent) return false;
   return true;
 }
 
-/**
- * Format date according to configuration
- */
 export function formatDocDate(
   date: string | Date,
-  format: DocTemplateConfig["dateFormat"]
+  format: DocTemplateConfig["dateFormat"],
 ): string {
   const d = typeof date === "string" ? new Date(date) : date;
-
   switch (format) {
     case "eu":
       return d.toLocaleDateString("de-DE", {
@@ -521,9 +279,6 @@ export function formatDocDate(
   }
 }
 
-/**
- * Create default DocData for new projects
- */
 export function createDefaultDocData(): DocData {
   return {
     configuration: { ...DEFAULT_DOC_CONFIGURATION },
@@ -531,31 +286,23 @@ export function createDefaultDocData(): DocData {
   };
 }
 
-/**
- * Get classification badge text
- */
 export function getClassificationText(
   classification: DocTemplateConfig["classification"],
-  language: DocLanguage
+  language: DocLanguage,
 ): string {
   if (!classification) return "";
-
   const labels: Record<string, { en: string; de: string }> = {
     public: { en: "PUBLIC", de: "ÖFFENTLICH" },
     internal: { en: "INTERNAL", de: "INTERN" },
     confidential: { en: "CONFIDENTIAL", de: "VERTRAULICH" },
     restricted: { en: "RESTRICTED", de: "EINGESCHRÄNKT" },
   };
-
   return labels[classification]?.[language] ?? classification.toUpperCase();
 }
 
-/**
- * Get criticality text
- */
 export function getCriticalityText(
   isHighImpact: boolean,
-  language: DocLanguage
+  language: DocLanguage,
 ): string {
   if (isHighImpact) {
     return language === "de" ? "Kritisches System" : "Critical System";
@@ -563,71 +310,16 @@ export function getCriticalityText(
   return language === "de" ? "Standard System" : "Standard System";
 }
 
-/**
- * Get security level display text
- */
-export function getSecurityLevelText(
-  level: DocSecurityLevel,
-  language: DocLanguage
-): string {
-  const labels: Record<DocSecurityLevel, { en: string; de: string }> = {
-    none: { en: "None", de: "Keine" },
-    public: { en: "Public", de: "Öffentlich" },
-    internal: { en: "Internal", de: "Intern" },
-    confidential: { en: "Confidential", de: "Vertraulich" },
-    secret: { en: "Secret", de: "Geheim" },
-  };
-  return labels[level]?.[language] ?? level;
-}
-
-/**
- * Get trust level display text
- */
-export function getTrustLevelText(
-  level: DocTrustLevel,
-  language: DocLanguage
-): string {
-  const labels: Record<DocTrustLevel, { en: string; de: string }> = {
-    none: { en: "None", de: "Keine" },
-    trusted: { en: "Trusted", de: "Vertrauenswürdig" },
-    untrusted: { en: "Untrusted", de: "Nicht vertrauenswürdig" },
-    unknown: { en: "Unknown", de: "Unbekannt" },
-  };
-  return labels[level]?.[language] ?? level;
-}
-
-/**
- * Get DFD element type display text
- */
-export function getDFDElementTypeText(
-  type: DocDFDElementType,
-  language: DocLanguage
-): string {
-  const labels: Record<DocDFDElementType, { en: string; de: string }> = {
-    ExternalEntity: { en: "External Entities", de: "Externe Entitäten" },
-    Process: { en: "Processes", de: "Prozesse" },
-    Multiprocess: { en: "Multiprocesses", de: "Multiprozesse" },
-    DataStore: { en: "Data Stores", de: "Datenspeicher" },
-    TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
-    PhysicalInterface: { en: "Physical Interfaces", de: "Physische Schnittstellen" },
-    Interface: { en: "Interfaces", de: "Schnittstellen" },
-  };
-  return labels[type]?.[language] ?? type;
-}
-
-/**
- * Get Yes/No text
- */
 export function getYesNoText(value: boolean, language: DocLanguage): string {
-  if (value) {
-    return language === "de" ? "Ja" : "Yes";
-  }
-  return language === "de" ? "Nein" : "No";
+  return value
+    ? language === "de"
+      ? "Ja"
+      : "Yes"
+    : language === "de"
+      ? "Nein"
+      : "No";
 }
 
-/**
- * Get format display name
- */
 export function getFormatDisplayName(format: DocFormat): string {
   const names: Record<DocFormat, string> = {
     markdown: "Markdown",
@@ -636,4 +328,75 @@ export function getFormatDisplayName(format: DocFormat): string {
     pdf: "PDF",
   };
   return names[format] ?? format;
+}
+
+// ==================== LABEL HELPERS (Use Computed or Calculate) ====================
+
+/**
+ * Get impact label from computed cache or calculate on-demand
+ */
+export function getImpactLabel(
+  impact: number,
+  language: DocLanguage,
+  computed?: DocComputedValues,
+): string {
+  // Try cache first
+  if (computed?.impactLabels) {
+    const cached = computed.impactLabels.get(impact.toString());
+    if (cached) return cached;
+  }
+
+  // Fallback to calculation
+  // This should ideally use the project's impact scale configuration
+  if (impact >= 4) return language === "de" ? "Kritisch" : "Critical";
+  if (impact >= 3) return language === "de" ? "Hoch" : "High";
+  if (impact >= 2) return language === "de" ? "Mittel" : "Medium";
+  return language === "de" ? "Niedrig" : "Low";
+}
+
+/**
+ * Get risk label from computed cache or calculate on-demand
+ */
+export function getRiskLabel(
+  risk: number,
+  language: DocLanguage,
+  computed?: DocComputedValues,
+): string {
+  // Try cache first
+  if (computed?.riskBeforeLabels) {
+    const cached = computed.riskBeforeLabels.get(risk.toString());
+    if (cached) return cached;
+  }
+
+  // Fallback to calculation
+  if (risk >= 4) return language === "de" ? "Kritisch" : "Critical";
+  if (risk >= 3) return language === "de" ? "Hoch" : "High";
+  if (risk >= 2) return language === "de" ? "Mittel" : "Medium";
+  return language === "de" ? "Niedrig" : "Low";
+}
+
+/**
+ * Get STRIDE name from computed cache or calculate on-demand
+ */
+export function getStrideName(
+  category: StrideCategory,
+  language: DocLanguage,
+  computed?: DocComputedValues,
+): string {
+  // Try cache first
+  if (computed?.strideNames) {
+    const cached = computed.strideNames.get(category);
+    if (cached) return cached;
+  }
+
+  // Fallback to lookup
+  const names: Record<StrideCategory, { en: string; de: string }> = {
+    S: { en: "Spoofing", de: "Spoofing" },
+    T: { en: "Tampering", de: "Manipulation" },
+    R: { en: "Repudiation", de: "Abstreitbarkeit" },
+    I: { en: "Information Disclosure", de: "Informationspreisgabe" },
+    D: { en: "Denial of Service", de: "Dienstverweigerung" },
+    E: { en: "Elevation of Privilege", de: "Rechteausweitung" },
+  };
+  return names[category]?.[language] ?? category;
 }

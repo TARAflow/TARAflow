@@ -1,273 +1,211 @@
-// ==================== DOCUMENTATION TRANSFORM ====================
-// App-layer service for transforming Project data to DocProjectData
-// This file belongs to the APP layer, not the Documentation feature!
-//
-// Location: src/app/services/doc-transform.ts
-//
-// This is "glue code" that connects all features to the Documentation feature.
-// It needs knowledge of ALL feature types (Assets, Threats, Risks).
+// ==================== TRANSFORM PROJECT TO DOC DATA ====================
+// Simplified transform - direct references + cached labels only
+// Location: src/app/services/doc-transform.ts (or src/app/utils/doc-transform.ts)
 
-import type { StrideCategory, StrideMethod } from "shared";
-import type { Project } from "app/models/project-types";
-
-// Import Documentation types
+import type { Project } from "../models/project-types";
 import type {
   DocProjectData,
-  DocAsset,
-  DocThreat,
-  DocRisk,
   DocLanguage,
-} from "features/documentation";
+  DocComputedValues,
+} from "../../features/documentation/models/doc-types";
+import type { StrideCategory } from "../../shared";
 
-// ==================== LABEL HELPERS ====================
-
-/**
- * STRIDE category names
- */
-const STRIDE_NAMES: Record<StrideCategory, { en: string; de: string }> = {
-  S: { en: "Spoofing", de: "Spoofing" },
-  T: { en: "Tampering", de: "Manipulation" },
-  R: { en: "Repudiation", de: "Abstreitbarkeit" },
-  I: { en: "Information Disclosure", de: "Informationspreisgabe" },
-  D: { en: "Denial of Service", de: "Dienstverweigerung" },
-  E: { en: "Elevation of Privilege", de: "Rechteausweitung" },
-};
+// ==================== LABEL CALCULATION HELPERS ====================
 
 /**
- * Impact/Risk scale labels
+ * Get scale label (impact or risk) based on scale type
  */
-const SCALE_LABELS: Record<string, Record<number, { en: string; de: string }>> = {
-  "3-level": {
-    1: { en: "Low", de: "Niedrig" },
-    2: { en: "Medium", de: "Mittel" },
-    3: { en: "High", de: "Hoch" },
-  },
-  "4-level": {
-    1: { en: "Low", de: "Niedrig" },
-    2: { en: "Medium", de: "Mittel" },
-    3: { en: "High", de: "Hoch" },
-    4: { en: "Critical", de: "Kritisch" },
-  },
-  "5-level": {
-    1: { en: "Low", de: "Niedrig" },
-    2: { en: "Medium", de: "Mittel" },
-    3: { en: "High", de: "Hoch" },
-    4: { en: "Very High", de: "Sehr Hoch" },
-    5: { en: "Critical", de: "Kritisch" },
-  },
-};
+function getScaleLabel(
+  value: number,
+  scaleType: "3-level" | "4-level" | "5-level",
+  language: DocLanguage,
+): string {
+  const de = language === "de";
 
-/**
- * MoSCoW priority labels
- */
-const MOSCOW_LABELS: Record<string, { en: string; de: string }> = {
-  must: { en: "Must", de: "Muss" },
-  should: { en: "Should", de: "Sollte" },
-  could: { en: "Could", de: "Könnte" },
-  wont: { en: "Won't", de: "Wird nicht" },
-};
+  switch (scaleType) {
+    case "3-level":
+      if (value >= 3) return de ? "Hoch" : "High";
+      if (value >= 2) return de ? "Mittel" : "Medium";
+      return de ? "Niedrig" : "Low";
 
-/**
- * Risk status labels
- */
-const STATUS_LABELS: Record<string, { en: string; de: string }> = {
-  open: { en: "Open", de: "Offen" },
-  "in-review": { en: "In Review", de: "In Prüfung" },
-  mitigated: { en: "Mitigated", de: "Mitigiert" },
-  accepted: { en: "Accepted", de: "Akzeptiert" },
-  "wont-do": { en: "Won't Do", de: "Wird nicht gemacht" },
-};
+    case "4-level":
+      if (value >= 4) return de ? "Kritisch" : "Critical";
+      if (value >= 3) return de ? "Hoch" : "High";
+      if (value >= 2) return de ? "Mittel" : "Medium";
+      return de ? "Niedrig" : "Low";
 
-// ==================== HELPER FUNCTIONS ====================
+    case "5-level":
+      if (value >= 5) return de ? "Kritisch" : "Critical";
+      if (value >= 4) return de ? "Sehr Hoch" : "Very High";
+      if (value >= 3) return de ? "Hoch" : "High";
+      if (value >= 2) return de ? "Mittel" : "Medium";
+      return de ? "Niedrig" : "Low";
+
+    default:
+      return value.toString();
+  }
+}
 
 /**
  * Get STRIDE category name
  */
-export function getStrideName(category: StrideCategory, lang: DocLanguage): string {
-  return STRIDE_NAMES[category]?.[lang] ?? category;
-}
-
-/**
- * Get scale label (for impact or risk)
- */
-export function getScaleLabel(
-  value: number,
-  scale: "3-level" | "4-level" | "5-level",
-  lang: DocLanguage
+function getStrideName(
+  category: StrideCategory,
+  language: DocLanguage,
 ): string {
-  if (value <= 0) return "-";
-  const roundedValue = Math.round(value);
-  const maxLevel = parseInt(scale.charAt(0));
-  const clampedValue = Math.min(Math.max(roundedValue, 1), maxLevel);
-  return SCALE_LABELS[scale]?.[clampedValue]?.[lang] ?? String(value);
+  const names: Record<StrideCategory, { en: string; de: string }> = {
+    S: { en: "Spoofing", de: "Spoofing" },
+    T: { en: "Tampering", de: "Manipulation" },
+    R: { en: "Repudiation", de: "Abstreitbarkeit" },
+    I: { en: "Information Disclosure", de: "Informationspreisgabe" },
+    D: { en: "Denial of Service", de: "Dienstverweigerung" },
+    E: { en: "Elevation of Privilege", de: "Rechteausweitung" },
+  };
+  return names[category]?.[language] ?? category;
 }
 
 /**
  * Get MoSCoW priority label
  */
-export function getMoSCoWLabel(priority: string, lang: DocLanguage): string {
-  return MOSCOW_LABELS[priority]?.[lang] ?? priority;
+function getMoSCoWLabel(priority: string, language: DocLanguage): string {
+  const labels: Record<string, { en: string; de: string }> = {
+    must: { en: "Must", de: "Muss" },
+    should: { en: "Should", de: "Sollte" },
+    could: { en: "Could", de: "Könnte" },
+    wont: { en: "Won't", de: "Wird nicht" },
+  };
+  return labels[priority]?.[language] ?? priority;
 }
 
 /**
  * Get risk status label
  */
-export function getStatusLabel(status: string, lang: DocLanguage): string {
-  return STATUS_LABELS[status]?.[lang] ?? status;
+function getStatusLabel(status: string, language: DocLanguage): string {
+  const labels: Record<string, { en: string; de: string }> = {
+    open: { en: "Open", de: "Offen" },
+    "in-progress": { en: "In Progress", de: "In Bearbeitung" },
+    mitigated: { en: "Mitigated", de: "Gemildert" },
+    accepted: { en: "Accepted", de: "Akzeptiert" },
+  };
+  return labels[status]?.[language] ?? status;
 }
 
-/**
- * Format data flow for display
- */
-export function formatDataFlowDisplay(
-  dataFlow?: { dataFlowName: string; sourceName: string; targetName: string } | null
-): string {
-  if (!dataFlow) return "-";
-  return `${dataFlow.sourceName} → ${dataFlow.targetName}`;
-}
-
-// ==================== MAIN TRANSFORMATION ====================
+// ==================== COMPUTE CACHED VALUES ====================
 
 /**
- * Transform Project to DocProjectData
- * Call this from main-layout.tsx before passing to DocTab
+ * Pre-compute labels and lookups for performance
  */
-export function transformProjectToDocData(
+function computeDocValues(
   project: Project,
-  lang: DocLanguage
-): DocProjectData {
+  language: DocLanguage,
+): DocComputedValues {
   const impactScale = project.assets?.configuration?.impactScale ?? "4-level";
   const riskScale = project.risks?.configuration?.scale ?? "4-level";
 
-  // Transform assets
-  const docAssets: DocAsset[] = (project.assets?.assets ?? []).map((asset) => ({
-    id: asset.id,
-    name: asset.name,
-    description: asset.description,
-    overallImpact: asset.overallImpact,
-    impactLabel: getScaleLabel(asset.overallImpact, impactScale, lang),
-    securityGoals: asset.securityGoals
-      .filter((sg) => sg.enabled)
-      .map((sg) => ({ type: sg.type, description: sg.formalDescription })),
-    linkedElements: asset.linkedDFDElements?.map((e) => e.elementName) ?? [],
-  }));
+  // Cache impact labels (asset ID -> label)
+  const impactLabels = new Map<string, string>();
+  project.assets?.assets?.forEach((asset) => {
+    const label = getScaleLabel(asset.overallImpact, impactScale, language);
+    impactLabels.set(asset.id, label);
+  });
 
-  // Transform threats per element
-  const docThreatsPerElement: DocThreat[] = (
-    project.threats?.perElementTables ?? []
-  ).flatMap((table) =>
-    table.threats.map((threat) => ({
-      id: threat.id,
-      strideCategory: threat.strideCategory,
-      strideName: getStrideName(threat.strideCategory, lang),
-      elementOrFlow: threat.linkedElement?.elementName ?? "-",
-      trustBoundary: table.trustBoundaryName,
-      threatDescription: threat.threatDescription,
-      attackDescription: threat.attackDescription,
-      mitigation: threat.mitigation,
-      verification: threat.verification,
-    }))
-  );
+  // Cache risk labels (risk ID -> label)
+  const riskBeforeLabels = new Map<string, string>();
+  const riskAfterLabels = new Map<string, string>();
+  project.risks?.risks?.forEach((risk) => {
+    const beforeLabel = getScaleLabel(
+      risk.calculatedRiskBeforeMitigation,
+      riskScale,
+      language,
+    );
+    const afterLabel = getScaleLabel(
+      risk.calculatedRiskAfterMitigation,
+      riskScale,
+      language,
+    );
+    riskBeforeLabels.set(risk.id, beforeLabel);
+    riskAfterLabels.set(risk.id, afterLabel);
+  });
 
-  // Transform threats per interaction
-  const docThreatsPerInteraction: DocThreat[] = (
-    project.threats?.perInteractionTables ?? []
-  ).flatMap((table) =>
-    table.threats.map((threat) => ({
-      id: threat.id,
-      strideCategory: threat.strideCategory,
-      strideName: getStrideName(threat.strideCategory, lang),
-      elementOrFlow: formatDataFlowDisplay(threat.dataFlow),
-      trustBoundary: table.trustBoundaryName,
-      threatDescription: threat.threatDescription,
-      attackDescription: threat.attackDescription,
-      mitigation: threat.mitigation,
-      verification: threat.verification,
-    }))
-  );
+  // Cache STRIDE names (category -> name)
+  const strideNames = new Map<StrideCategory, string>();
+  const categories: StrideCategory[] = ["S", "T", "R", "I", "D", "E"];
+  categories.forEach((cat) => {
+    strideNames.set(cat, getStrideName(cat, language));
+  });
 
-  // Transform risks (excluding won't)
-  const transformRisks = (method: StrideMethod): DocRisk[] =>
-    (project.risks?.risks ?? [])
-      .filter((r) => r.sourceStrideMethod === method && r.moscowPriority !== "wont")
-      .map((risk) => ({
-        id: risk.id,
-        threatId: risk.threatId,
-        strideCategory: risk.strideCategory,
-        strideName: getStrideName(risk.strideCategory, lang),
-        threatDescription: risk.threatDescription,
-        riskBeforeMitigation: risk.calculatedRiskBeforeMitigation,
-        riskBeforeLabel: getScaleLabel(risk.calculatedRiskBeforeMitigation, riskScale, lang),
-        selectedMitigations: risk.selectedMitigations,
-        riskAfterMitigation: risk.calculatedRiskAfterMitigation,
-        riskAfterLabel: getScaleLabel(risk.calculatedRiskAfterMitigation, riskScale, lang),
-        moscowPriority: risk.moscowPriority,
-        moscowLabel: getMoSCoWLabel(risk.moscowPriority, lang),
-        status: risk.status,
-        statusLabel: getStatusLabel(risk.status, lang),
-      }));
+  // Cache MoSCoW labels (priority -> label)
+  const moscowLabels = new Map<string, string>();
+  ["must", "should", "could", "wont"].forEach((priority) => {
+    moscowLabels.set(priority, getMoSCoWLabel(priority, language));
+  });
 
-  // Transform won't risks
-  const wontRisks: DocRisk[] = (project.risks?.risks ?? [])
-    .filter((r) => r.moscowPriority === "wont")
-    .map((risk) => ({
-      id: risk.id,
-      threatId: risk.threatId,
-      strideCategory: risk.strideCategory,
-      strideName: getStrideName(risk.strideCategory, lang),
-      threatDescription: risk.threatDescription,
-      riskBeforeMitigation: risk.calculatedRiskBeforeMitigation,
-      riskBeforeLabel: getScaleLabel(risk.calculatedRiskBeforeMitigation, riskScale, lang),
-      selectedMitigations: risk.selectedMitigations,
-      riskAfterMitigation: risk.calculatedRiskAfterMitigation,
-      riskAfterLabel: "-",
-      moscowPriority: risk.moscowPriority,
-      moscowLabel: getMoSCoWLabel(risk.moscowPriority, lang),
-      status: risk.status,
-      statusLabel: getStatusLabel(risk.status, lang),
-      wontJustification: risk.wontJustification,
-    }));
+  // Cache status labels (status -> label)
+  const statusLabels = new Map<string, string>();
+  ["open", "in-progress", "mitigated", "accepted"].forEach((status) => {
+    statusLabels.set(status, getStatusLabel(status, language));
+  });
 
   // Determine active STRIDE methods based on actual content
-  const activeStrideMethods: StrideMethod[] = [];
-  if ((project.threats?.perElementTables ?? []).some((t) => t.threats.length > 0)) {
+  const activeStrideMethods: Array<"per-element" | "per-interaction"> = [];
+  if (project.threats?.perElementTables?.some((t) => t.threats.length > 0)) {
     activeStrideMethods.push("per-element");
   }
-  if ((project.threats?.perInteractionTables ?? []).some((t) => t.threats.length > 0)) {
+  if (
+    project.threats?.perInteractionTables?.some((t) => t.threats.length > 0)
+  ) {
     activeStrideMethods.push("per-interaction");
   }
 
   return {
+    activeStrideMethods,
+    language,
+    impactLabels,
+    riskBeforeLabels,
+    riskAfterLabels,
+    strideNames,
+    moscowLabels,
+    statusLabels,
+  };
+}
+
+// ==================== MAIN TRANSFORM ====================
+
+/**
+ * Transform Project to DocProjectData
+ *
+ * NEW APPROACH:
+ * - Direct references to feature data (no duplication!)
+ * - Only pre-compute labels for performance
+ * - 90% smaller than old transform
+ */
+export function transformProjectToDocData(
+  project: Project,
+  language: DocLanguage,
+): DocProjectData {
+  return {
+    // Basic metadata
     id: project.id,
     name: project.info.name,
     phaseStatus: project.phaseStatus,
     lastModified: project.info.lastModified,
-    info: {
-      id: project.id,
-      name: project.info.name,
-      description: project.info.description,
-      version: project.info.version,
-      responsible: project.info.responsible,
-      created: project.info.created,
-      lastModified: project.info.lastModified,
-      tags: project.info.tags,
-      team: project.info.team,
-      isHighImpact: project.info.isHighImpact,
-    },
-    dfd: {
-      hasDFD: !!project.dfd?.xml,
-      imagePath: "./images/dfd.png",
-      stats: project.dfd?.stats,
-      connections: [],
-      elements: [],
-    },
-    assets: docAssets,
-    threatsPerElement: docThreatsPerElement,
-    threatsPerInteraction: docThreatsPerInteraction,
-    risksPerElement: transformRisks("per-element"),
-    risksPerInteraction: transformRisks("per-interaction"),
-    wontRisks,
-    activeStrideMethods,
+
+    // Direct references (Single Source of Truth!)
+    info: project.info,
+    dfd: project.dfd ?? null,
+    assets: project.assets ?? null,
+    threats: project.threats ?? null,
+    risks: project.risks ?? null,
+    attackTree: project.attackTrees ?? null,
+
+    // Computed values (performance optimization)
+    computed: computeDocValues(project, language),
+
+    // Documentation state
     documentation: project.documentation ?? null,
   };
 }
+
+// ==================== HELPER EXPORTS ====================
+
+export { getScaleLabel, getStrideName, getMoSCoWLabel, getStatusLabel };

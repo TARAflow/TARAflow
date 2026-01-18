@@ -120,25 +120,82 @@ export const DocTab: React.FC<DocTabProps> = ({
 
   // Check which chapters have content
   const chapterHasContent = useMemo(() => {
+    // Helper functions for counting
+    const getAssetCount = () => project.assets?.assets?.length ?? 0;
+    const getThreatsCount = () => {
+      const perElement =
+        project.threats?.perElementTables?.flatMap((t) => t.threats) ?? [];
+      const perInteraction =
+        project.threats?.perInteractionTables?.flatMap((t) => t.threats) ?? [];
+      return {
+        perElement: perElement.length,
+        perInteraction: perInteraction.length,
+      };
+    };
+    const getRisksCount = () => {
+      const allRisks = project.risks?.risks ?? [];
+      const perElement = allRisks.filter(
+        (r) =>
+          r.sourceStrideMethod === "per-element" && r.moscowPriority !== "wont",
+      );
+      const perInteraction = allRisks.filter(
+        (r) =>
+          r.sourceStrideMethod === "per-interaction" &&
+          r.moscowPriority !== "wont",
+      );
+      const wont = allRisks.filter((r) => r.moscowPriority === "wont");
+      return {
+        perElement: perElement.length,
+        perInteraction: perInteraction.length,
+        wont: wont.length,
+      };
+    };
+
+    const threats = getThreatsCount();
+    const risks = getRisksCount();
+
     const map: Record<DocChapterId, boolean> = {
       "executive-summary": true, // Always has content
       "applicable-regulations": project.info.tags.some((tag) =>
-        isRegulationTag(tag)
+        isRegulationTag(tag),
       ),
       "system-overview": true, // Always has content
-      dfd: project.dfd.hasDFD,
+      dfd: project.dfd != null,
       "dfd-descriptions":
-        (project.dfd.elements?.length ?? 0) > 0 ||
-        (project.dfd.connections?.length ?? 0) > 0,
-      assets: project.assets.length > 0,
-      "threats-per-element": project.threatsPerElement.length > 0,
-      "threats-per-interaction": project.threatsPerInteraction.length > 0,
-      "risks-per-element": project.risksPerElement.length > 0,
-      "risks-per-interaction": project.risksPerInteraction.length > 0,
-      "accepted-risks": project.wontRisks.length > 0,
+        (project.dfd?.elements?.length ?? 0) > 0 ||
+        (project.dfd?.connections?.length ?? 0) > 0,
+      assets: getAssetCount() > 0,
+      "threats-per-element": threats.perElement > 0,
+      "threats-per-interaction": threats.perInteraction > 0,
+      "risks-per-element": risks.perElement > 0,
+      "risks-per-interaction": risks.perInteraction > 0,
+      "accepted-risks": risks.wont > 0,
+      "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
       appendix: true, // Always has content
     };
     return map;
+  }, [project]);
+
+  // Calculate statistics for display
+  const projectStats = useMemo(() => {
+    const assetCount = project.assets?.assets?.length ?? 0;
+
+    const perElementThreats =
+      project.threats?.perElementTables?.flatMap((t) => t.threats) ?? [];
+    const perInteractionThreats =
+      project.threats?.perInteractionTables?.flatMap((t) => t.threats) ?? [];
+    const threatCount = perElementThreats.length + perInteractionThreats.length;
+
+    const allRisks = project.risks?.risks ?? [];
+    const activeRisks = allRisks.filter((r) => r.moscowPriority !== "wont");
+    const wontRisks = allRisks.filter((r) => r.moscowPriority === "wont");
+
+    return {
+      assets: assetCount,
+      threats: threatCount,
+      risks: activeRisks.length,
+      wont: wontRisks.length,
+    };
   }, [project]);
 
   // ==================== EFFECTS ====================
@@ -580,25 +637,19 @@ export const DocTab: React.FC<DocTabProps> = ({
                 <Stack spacing={0.25} sx={{ mt: 0.5 }}>
                   <Typography variant="caption" color="text.secondary">
                     {t("tabs.doc.statsAssets", { defaultValue: "Assets" })}:{" "}
-                    <strong>{project.assets.length}</strong>
+                    <strong>{projectStats.assets}</strong>
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {t("tabs.doc.statsThreats", { defaultValue: "Threats" })}:{" "}
-                    <strong>
-                      {project.threatsPerElement.length +
-                        project.threatsPerInteraction.length}
-                    </strong>
+                    <strong>{projectStats.threats}</strong>
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {t("tabs.doc.statsRisks", { defaultValue: "Risks" })}:{" "}
-                    <strong>
-                      {project.risksPerElement.length +
-                        project.risksPerInteraction.length}
-                    </strong>
+                    <strong>{projectStats.risks}</strong>
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {t("tabs.doc.statsWont", { defaultValue: "Accepted" })}:{" "}
-                    <strong>{project.wontRisks.length}</strong>
+                    <strong>{projectStats.wont}</strong>
                   </Typography>
                 </Stack>
               </Box>

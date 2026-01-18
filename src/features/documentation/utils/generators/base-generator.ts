@@ -7,9 +7,6 @@ import type {
   DocProjectData,
   DocLanguage,
   DocChapterId,
-  DocDFDElement,
-  DocDFDConnection,
-  DocDFDElementType,
 } from "../../models/doc-types";
 import {
   getChapterTitle,
@@ -17,10 +14,17 @@ import {
   formatDocDate,
   getClassificationText,
   getCriticalityText,
+} from "../../models/doc-types";
+import type {
+  DFDElement,
+  DFDConnection,
+  DFDElementType,
+} from "../../../dfd/models/dfd-types";
+import {
   getSecurityLevelText,
   getTrustLevelText,
   getDFDElementTypeText,
-} from "../../models/doc-types";
+} from "../../../dfd/models/dfd-types";
 import {
   replacePlaceholders,
   processConditionals,
@@ -70,7 +74,7 @@ export abstract class BaseDocumentGenerator {
   constructor(
     project: DocProjectData,
     config: DocConfiguration,
-    t: TranslationFn
+    t: TranslationFn,
   ) {
     this.ctx = {
       project,
@@ -94,7 +98,7 @@ export abstract class BaseDocumentGenerator {
 
   /** Format tags grouped by category */
   abstract formatTagsGrouped(
-    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>
+    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>,
   ): string;
 
   // Template getters - must be implemented
@@ -112,10 +116,14 @@ export abstract class BaseDocumentGenerator {
   abstract getDfdConnectionEntryTemplate(): string;
   abstract getAssetsTemplate(): string;
   abstract getAssetRowTemplate(): string;
-  abstract getThreatsHeaderTemplate(method: "per-element" | "per-interaction"): string;
+  abstract getThreatsHeaderTemplate(
+    method: "per-element" | "per-interaction",
+  ): string;
   abstract getThreatsTableTemplate(): string;
   abstract getThreatRowTemplate(): string;
-  abstract getRisksHeaderTemplate(method: "per-element" | "per-interaction"): string;
+  abstract getRisksHeaderTemplate(
+    method: "per-element" | "per-interaction",
+  ): string;
   abstract getRisksTableTemplate(): string;
   abstract getRiskRowTemplate(): string;
   abstract getAcceptedRisksTemplate(): string;
@@ -130,18 +138,23 @@ export abstract class BaseDocumentGenerator {
    */
   generate(): DocumentGeneratorResult {
     const chapters = this.generateAllChapters();
-    
+
     let content = "";
     content += this.generateHeader();
     content += this.generateToc(chapters);
-    
+
     for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find((c) => c.id === chapter.id);
-      if (chapterConfig && isChapterVisible(chapterConfig, chapter.hasContent)) {
+      const chapterConfig = this.ctx.config.chapters.find(
+        (c) => c.id === chapter.id,
+      );
+      if (
+        chapterConfig &&
+        isChapterVisible(chapterConfig, chapter.hasContent)
+      ) {
         content += chapter.content;
       }
     }
-    
+
     content += this.generateFooter();
 
     return {
@@ -179,12 +192,14 @@ export abstract class BaseDocumentGenerator {
   }
 
   protected generateChapter(chapterId: DocChapterId): ChapterContent {
-    const chapterConfig = this.ctx.config.chapters.find((c) => c.id === chapterId);
+    const chapterConfig = this.ctx.config.chapters.find(
+      (c) => c.id === chapterId,
+    );
     const title = getChapterTitle(
       chapterId,
       this.ctx.lang,
       chapterConfig?.customTitle,
-      chapterConfig?.customTitleDE
+      chapterConfig?.customTitleDE,
     );
 
     switch (chapterId) {
@@ -233,12 +248,16 @@ export abstract class BaseDocumentGenerator {
     const values = {
       projectName: info.name,
       version:
-        config.template.versionMode === "custom" && config.template.customVersion
+        config.template.versionMode === "custom" &&
+        config.template.customVersion
           ? config.template.customVersion
           : info.version,
       responsible: info.responsible || "-",
       created: formatDocDate(info.created, config.template.dateFormat),
-      lastModified: formatDocDate(info.lastModified, config.template.dateFormat),
+      lastModified: formatDocDate(
+        info.lastModified,
+        config.template.dateFormat,
+      ),
       organization: config.template.organizationName || "-",
       classification: classificationText
         ? this.formatClassification(classificationText)
@@ -276,26 +295,40 @@ export abstract class BaseDocumentGenerator {
   protected generateExecutiveSummary(title: string): ChapterContent {
     const { project } = this.ctx;
 
-    const threatCount =
-      project.threatsPerElement.length + project.threatsPerInteraction.length;
-    const riskCount =
-      project.risksPerElement.length + project.risksPerInteraction.length;
-    const criticalRiskCount = [
-      ...project.risksPerElement,
-      ...project.risksPerInteraction,
-    ].filter((r) => r.riskBeforeMitigation >= 3.5).length;
+    // Count threats from tables
+    const perElementThreats =
+      project.threats?.perElementTables?.flatMap((t) => t.threats) ?? [];
+    const perInteractionThreats =
+      project.threats?.perInteractionTables?.flatMap((t) => t.threats) ?? [];
+    const threatCount = perElementThreats.length + perInteractionThreats.length;
+
+    // Count risks (excluding won't)
+    const allRisks = project.risks?.risks ?? [];
+    const activeRisks = allRisks.filter((r) => r.moscowPriority !== "wont");
+    const riskCount = activeRisks.length;
+    const wontRiskCount = allRisks.filter(
+      (r) => r.moscowPriority === "wont",
+    ).length;
+
+    // Count critical risks (before mitigation >= 3.5)
+    const criticalRiskCount = activeRisks.filter(
+      (r) => r.calculatedRiskBeforeMitigation >= 3.5,
+    ).length;
 
     const values = {
       projectName: project.info.name,
       description: project.info.description || "-",
-      assetCount: project.assets.length,
+      assetCount: project.assets?.assets?.length ?? 0,
       threatCount,
       riskCount,
-      wontRiskCount: project.wontRisks.length,
+      wontRiskCount,
       criticalRiskCount,
     };
 
-    const content = replacePlaceholders(this.getExecutiveSummaryTemplate(), values);
+    const content = replacePlaceholders(
+      this.getExecutiveSummaryTemplate(),
+      values,
+    );
 
     return {
       id: "executive-summary",
@@ -325,7 +358,10 @@ export abstract class BaseDocumentGenerator {
       .map((tagDef) => {
         const description = tagDef.docDescriptionKey
           ? t(tagDef.docDescriptionKey, tagDef.name)
-          : t(`tags.tooltips.${tagDef.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`, tagDef.name);
+          : t(
+              `tags.tooltips.${tagDef.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+              tagDef.name,
+            );
 
         return replacePlaceholders(this.getRegulationEntryTemplate(), {
           regulationName: tagDef.name,
@@ -334,9 +370,12 @@ export abstract class BaseDocumentGenerator {
       })
       .join("");
 
-    const content = replacePlaceholders(this.getApplicableRegulationsTemplate(), {
-      regulationEntries,
-    });
+    const content = replacePlaceholders(
+      this.getApplicableRegulationsTemplate(),
+      {
+        regulationEntries,
+      },
+    );
 
     return {
       id: "applicable-regulations",
@@ -380,7 +419,7 @@ export abstract class BaseDocumentGenerator {
     const { project } = this.ctx;
     const dfd = project.dfd;
 
-    if (!dfd.hasDFD) {
+    if (!dfd) {
       return {
         id: "dfd",
         title,
@@ -399,7 +438,7 @@ export abstract class BaseDocumentGenerator {
     };
 
     const values = {
-      imagePath: dfd.imagePath || "dfd.png",
+      imagePath: dfd.thumbnail || "dfd.png",
       externalEntities: stats.externalEntities,
       processes: stats.processes,
       dataStores: stats.dataStores,
@@ -424,6 +463,15 @@ export abstract class BaseDocumentGenerator {
     const { project, lang } = this.ctx;
     const dfd = project.dfd;
 
+    if (!dfd) {
+      return {
+        id: "dfd-descriptions",
+        title,
+        content: "",
+        hasContent: false,
+      };
+    }
+
     // Safe access with optional chaining
     const elements = dfd.elements ?? [];
     const connections = dfd.connections ?? [];
@@ -440,7 +488,7 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    const elementTypeOrder: DocDFDElementType[] = [
+    const elementTypeOrder: DFDElementType[] = [
       "ExternalEntity",
       "Process",
       "Multiprocess",
@@ -457,9 +505,12 @@ export abstract class BaseDocumentGenerator {
 
       if (elementsOfType.length === 0) continue;
 
-      elementSections += replacePlaceholders(this.getDfdElementTypeHeaderTemplate(), {
-        elementTypeName: getDFDElementTypeText(elementType, lang),
-      });
+      elementSections += replacePlaceholders(
+        this.getDfdElementTypeHeaderTemplate(),
+        {
+          elementTypeName: getDFDElementTypeText(elementType, lang),
+        },
+      );
 
       for (const element of elementsOfType) {
         elementSections += this.generateDfdElementEntry(element);
@@ -486,27 +537,27 @@ export abstract class BaseDocumentGenerator {
     };
   }
 
-  protected generateDfdElementEntry(element: DocDFDElement): string {
+  protected generateDfdElementEntry(element: DFDElement): string {
     const { lang } = this.ctx;
 
     const values = {
       displayId: element.displayId || element.id,
       name: this.escapeTableText(element.name),
-      description: this.escapeTableText(element.properties.description ?? "-"),
+      description: this.escapeTableText(element.properties?.description ?? "-"),
       securityLevel: getSecurityLevelText(
-        element.properties.securityLevel ?? "none",
-        lang
+        element.properties?.securityLevel ?? undefined,
+        lang,
       ),
-      trustLevel: getTrustLevelText(element.properties.trustLevel, lang),
+      trustLevel: getTrustLevelText(element.properties?.trustLevel, lang),
       authRequired: getYesNoText(
-        element.properties.authenticationRequired ?? false,
-        lang
+        element.properties?.authenticationRequired ?? false,
+        lang,
       ),
       encryptionRequired: getYesNoText(
-        element.properties.encryptionRequired ?? false,
-        lang
+        element.properties?.encryptionRequired ?? false,
+        lang,
       ),
-      securityNotes: element.properties.securityNotes
+      securityNotes: element.properties?.securityNotes
         ? this.escapeTableText(element.properties.securityNotes)
         : undefined,
     };
@@ -516,32 +567,40 @@ export abstract class BaseDocumentGenerator {
     return replacePlaceholders(content, values);
   }
 
-  protected generateDfdConnectionEntry(connection: DocDFDConnection): string {
-    const { lang } = this.ctx;
+  protected generateDfdConnectionEntry(connection: DFDConnection): string {
+    const { lang, project } = this.ctx;
+
+    // Lookup element names from IDs
+    const fromElement =
+      project.dfd?.elements?.find((e) => e.id === connection.from)?.name ||
+      connection.from;
+    const toElement =
+      project.dfd?.elements?.find((e) => e.id === connection.to)?.name ||
+      connection.to;
 
     const values = {
       displayId: connection.displayId || connection.id,
-      fromElement: this.escapeTableText(connection.fromElement),
-      toElement: this.escapeTableText(connection.toElement),
+      fromElement: this.escapeTableText(fromElement),
+      toElement: this.escapeTableText(toElement),
       label: connection.label
         ? this.escapeTableText(connection.label)
         : undefined,
       description: this.escapeTableText(
-        connection.properties.description ?? "-"
+        connection.properties?.description ?? "-",
       ),
       securityLevel: getSecurityLevelText(
-        connection.properties.securityLevel ?? "none",
-        lang
+        connection.properties?.securityLevel ?? undefined,
+        lang,
       ),
       authRequired: getYesNoText(
-        connection.properties.authenticationRequired ?? false,
-        lang
+        connection.properties?.authenticationRequired ?? false,
+        lang,
       ),
       encryptionRequired: getYesNoText(
-        connection.properties.encryptionRequired ?? false,
-        lang
+        connection.properties?.encryptionRequired ?? false,
+        lang,
       ),
-      securityNotes: connection.properties.securityNotes
+      securityNotes: connection.properties?.securityNotes
         ? this.escapeTableText(connection.properties.securityNotes)
         : undefined,
     };
@@ -555,7 +614,7 @@ export abstract class BaseDocumentGenerator {
 
   protected generateAssets(title: string): ChapterContent {
     const { project } = this.ctx;
-    const assets = project.assets;
+    const assets = project.assets?.assets ?? [];
 
     if (assets.length === 0) {
       return {
@@ -568,18 +627,32 @@ export abstract class BaseDocumentGenerator {
 
     const assetRows = assets
       .map((asset) => {
+        // Get cached label or calculate
+        const impactLabel =
+          project.computed.impactLabels.get(asset.id) ??
+          asset.overallImpact.toString();
+
+        // Filter enabled goals and map to format expected by formatSecurityGoals
+        const enabledGoals = asset.securityGoals
+          .filter((g) => g.enabled)
+          .map((g) => ({ type: g.type, description: g.formalDescription }));
+
         const values = {
           id: asset.id,
           name: this.escapeTableText(asset.name),
-          description: this.escapeTableText(truncateText(asset.description, 60)),
-          impactLabel: asset.impactLabel,
-          securityGoals: formatSecurityGoals(asset.securityGoals),
+          description: this.escapeTableText(
+            truncateText(asset.description, 60),
+          ),
+          impactLabel,
+          securityGoals: formatSecurityGoals(enabledGoals),
         };
         return replacePlaceholders(this.getAssetRowTemplate(), values);
       })
       .join("");
 
-    const content = replacePlaceholders(this.getAssetsTemplate(), { assetRows });
+    const content = replacePlaceholders(this.getAssetsTemplate(), {
+      assetRows,
+    });
 
     return {
       id: "assets",
@@ -593,13 +666,18 @@ export abstract class BaseDocumentGenerator {
 
   protected generateThreats(
     title: string,
-    method: "per-element" | "per-interaction"
+    method: "per-element" | "per-interaction",
   ): ChapterContent {
     const { project } = this.ctx;
-    const threats =
+
+    // Get threat tables for the method
+    const tables =
       method === "per-element"
-        ? project.threatsPerElement
-        : project.threatsPerInteraction;
+        ? (project.threats?.perElementTables ?? [])
+        : (project.threats?.perInteractionTables ?? []);
+
+    // Flatten tables to get all threats
+    const threats = tables.flatMap((table) => table.threats);
 
     const chapterId: DocChapterId =
       method === "per-element"
@@ -617,23 +695,42 @@ export abstract class BaseDocumentGenerator {
 
     const threatRows = threats
       .map((threat) => {
+        // Get STRIDE name from computed cache
+        const strideName =
+          project.computed.strideNames.get(threat.strideCategory) ??
+          threat.strideCategory;
+
+        // Get element or flow name
+        const elementOrFlow =
+          threat.linkedElement?.elementName ||
+          threat.dataFlow?.dataFlowName ||
+          "-";
+
         const values = {
           id: threat.id,
           strideCategory: threat.strideCategory,
-          strideName: threat.strideName,
-          elementOrFlow: this.escapeTableText(truncateText(threat.elementOrFlow, 40)),
-          trustBoundary: this.escapeTableText(threat.trustBoundary || "-"),
-          threatDescription: this.escapeTableText(truncateText(threat.threatDescription, 80)),
-          attackDescription: this.escapeTableText(truncateText(threat.attackDescription, 80)),
-          mitigation: this.escapeTableText(truncateText(threat.mitigation, 80)) || "-",
-          verification: this.escapeTableText(truncateText(threat.verification, 60)) || "-",
+          strideName,
+          elementOrFlow: this.escapeTableText(truncateText(elementOrFlow, 40)),
+          trustBoundary: this.escapeTableText(threat.trustBoundaryName || "-"),
+          threatDescription: this.escapeTableText(
+            truncateText(threat.threatDescription, 80),
+          ),
+          attackDescription: this.escapeTableText(
+            truncateText(threat.attackDescription, 80),
+          ),
+          mitigation:
+            this.escapeTableText(truncateText(threat.mitigation, 80)) || "-",
+          verification:
+            this.escapeTableText(truncateText(threat.verification, 60)) || "-",
         };
         return replacePlaceholders(this.getThreatRowTemplate(), values);
       })
       .join("");
 
     let content = this.getThreatsHeaderTemplate(method);
-    content += replacePlaceholders(this.getThreatsTableTemplate(), { threatRows });
+    content += replacePlaceholders(this.getThreatsTableTemplate(), {
+      threatRows,
+    });
 
     return {
       id: chapterId,
@@ -647,13 +744,15 @@ export abstract class BaseDocumentGenerator {
 
   protected generateRisks(
     title: string,
-    method: "per-element" | "per-interaction"
+    method: "per-element" | "per-interaction",
   ): ChapterContent {
     const { project } = this.ctx;
-    const risks =
-      method === "per-element"
-        ? project.risksPerElement
-        : project.risksPerInteraction;
+
+    // Filter risks by STRIDE method and exclude won't
+    const allRisks = project.risks?.risks ?? [];
+    const risks = allRisks.filter(
+      (r) => r.sourceStrideMethod === method && r.moscowPriority !== "wont",
+    );
 
     const chapterId: DocChapterId =
       method === "per-element" ? "risks-per-element" : "risks-per-interaction";
@@ -669,18 +768,33 @@ export abstract class BaseDocumentGenerator {
 
     const riskRows = risks
       .map((risk) => {
+        // Get cached labels
+        const riskBeforeLabel =
+          project.computed.riskBeforeLabels.get(risk.id) ??
+          risk.calculatedRiskBeforeMitigation.toString();
+        const riskAfterLabel =
+          project.computed.riskAfterLabels.get(risk.id) ??
+          risk.calculatedRiskAfterMitigation.toString();
+        const moscowLabel =
+          project.computed.moscowLabels.get(risk.moscowPriority) ??
+          risk.moscowPriority;
+        const statusLabel =
+          project.computed.statusLabels.get(risk.status) ?? risk.status;
+
         const values = {
           id: risk.id,
           threatId: risk.threatId,
           strideCategory: risk.strideCategory,
-          threatDescription: this.escapeTableText(truncateText(risk.threatDescription, 60)),
-          riskBeforeLabel: risk.riskBeforeLabel,
-          mitigations: this.escapeTableText(
-            truncateText(formatMitigations(risk.selectedMitigations), 60)
+          threatDescription: this.escapeTableText(
+            truncateText(risk.threatDescription, 60),
           ),
-          riskAfterLabel: risk.riskAfterLabel,
-          moscowLabel: risk.moscowLabel,
-          statusLabel: risk.statusLabel,
+          riskBeforeLabel,
+          mitigations: this.escapeTableText(
+            truncateText(formatMitigations(risk.selectedMitigations), 60),
+          ),
+          riskAfterLabel,
+          moscowLabel,
+          statusLabel,
         };
         return replacePlaceholders(this.getRiskRowTemplate(), values);
       })
@@ -701,7 +815,10 @@ export abstract class BaseDocumentGenerator {
 
   protected generateAcceptedRisks(title: string): ChapterContent {
     const { project } = this.ctx;
-    const wontRisks = project.wontRisks;
+
+    // Filter won't risks
+    const allRisks = project.risks?.risks ?? [];
+    const wontRisks = allRisks.filter((r) => r.moscowPriority === "wont");
 
     if (wontRisks.length === 0) {
       return {
@@ -714,12 +831,19 @@ export abstract class BaseDocumentGenerator {
 
     const wontRiskRows = wontRisks
       .map((risk) => {
+        // Get cached label
+        const riskBeforeLabel =
+          project.computed.riskBeforeLabels.get(risk.id) ??
+          risk.calculatedRiskBeforeMitigation.toString();
+
         const values = {
           id: risk.id,
           threatId: risk.threatId,
           strideCategory: risk.strideCategory,
-          threatDescription: this.escapeTableText(truncateText(risk.threatDescription, 60)),
-          riskBeforeLabel: risk.riskBeforeLabel,
+          threatDescription: this.escapeTableText(
+            truncateText(risk.threatDescription, 60),
+          ),
+          riskBeforeLabel,
           justification: this.escapeTableText(risk.wontJustification || "-"),
         };
         return replacePlaceholders(this.getWontRiskRowTemplate(), values);
@@ -761,7 +885,7 @@ export abstract class BaseDocumentGenerator {
   // ==================== HELPERS ====================
 
   protected getTagsGroupedByCategory(
-    tags: string[]
+    tags: string[],
   ): Array<{ categoryLabel: string; tags: string[] }> {
     const { lang, t } = this.ctx;
     const result: Array<{ categoryLabel: string; tags: string[] }> = [];
@@ -779,7 +903,9 @@ export abstract class BaseDocumentGenerator {
     });
 
     // Custom tags (not in any category)
-    const allCategoryTags = TAG_CATEGORIES.flatMap((c) => c.tags.map((td) => td.name));
+    const allCategoryTags = TAG_CATEGORIES.flatMap((c) =>
+      c.tags.map((td) => td.name),
+    );
     const customTags = tags.filter((tag) => !allCategoryTags.includes(tag));
 
     if (customTags.length > 0) {

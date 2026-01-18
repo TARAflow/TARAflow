@@ -96,40 +96,48 @@ export function validateProjectForDoc(project: DocProjectData): {
   }
 
   // Check for empty sections (warnings)
-  if (!project.dfd.hasDFD) {
+  if (!project.dfd) {
     warnings.push("No DFD available");
   }
 
-  // ← Optional chaining für elements/connections
-  if ((project.dfd.elements?.length ?? 0) === 0 && project.dfd.hasDFD) {
+  // Check DFD elements with optional chaining
+  if (project.dfd && (project.dfd.elements?.length ?? 0) === 0) {
     warnings.push("DFD has no element descriptions");
   }
 
-  if (project.assets.length === 0) {
+  // Check assets
+  const assetCount = project.assets?.assets?.length ?? 0;
+  if (assetCount === 0) {
     warnings.push("No assets defined");
   }
 
-  if (
-    project.threatsPerElement.length === 0 &&
-    project.threatsPerInteraction.length === 0
-  ) {
+  // Check threats from tables
+  const perElementThreats =
+    project.threats?.perElementTables?.flatMap((t) => t.threats) ?? [];
+  const perInteractionThreats =
+    project.threats?.perInteractionTables?.flatMap((t) => t.threats) ?? [];
+  const totalThreats = perElementThreats.length + perInteractionThreats.length;
+
+  if (totalThreats === 0) {
     warnings.push("No threats identified");
   }
 
-  if (
-    project.risksPerElement.length === 0 &&
-    project.risksPerInteraction.length === 0
-  ) {
+  // Check risks (excluding won't)
+  const allRisks = project.risks?.risks ?? [];
+  const activeRisks = allRisks.filter((r) => r.moscowPriority !== "wont");
+
+  if (activeRisks.length === 0) {
     warnings.push("No risks assessed");
   }
 
   // Check for won't risks without justification
-  const missingJustifications = project.wontRisks.filter(
-    (r) => !r.wontJustification || r.wontJustification.trim() === ""
+  const wontRisks = allRisks.filter((r) => r.moscowPriority === "wont");
+  const missingJustifications = wontRisks.filter(
+    (r) => !r.wontJustification || r.wontJustification.trim() === "",
   );
   if (missingJustifications.length > 0) {
     warnings.push(
-      `${missingJustifications.length} accepted risk(s) missing justification`
+      `${missingJustifications.length} accepted risk(s) missing justification`,
     );
   }
 

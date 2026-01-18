@@ -37,6 +37,7 @@ export interface DFDElement {
 
     // Threat modeling fields (optional)
     securityLevel?: SecurityLevel;
+    trustLevel?: TrustLevel;
     authenticationRequired?: boolean;
     encryptionRequired?: boolean;
     securityNotes?: string;
@@ -72,6 +73,7 @@ export interface DFDConnection {
 
     // Threat modeling fields (optional)
     securityLevel?: SecurityLevel;
+    trustLevel?: TrustLevel;
     authenticationRequired?: boolean;
     encryptionRequired?: boolean;
     securityNotes?: string;
@@ -228,3 +230,74 @@ export const DFD_ELEMENT_CONFIG: Record<
     icon: "⊡",
   },
 };
+
+// ==================== HELPER FUNCTIONS ====================
+
+export type DocLanguage = "en" | "de";
+
+/**
+ * Get security level text
+ */
+export function getSecurityLevelText(
+  level: SecurityLevel | undefined,
+  language: DocLanguage = "en"
+): string {
+  if (!level) return language === "de" ? "Keine" : "None";
+  
+  const labels: Record<SecurityLevel, { en: string; de: string }> = {
+    public: { en: "Public", de: "Öffentlich" },
+    internal: { en: "Internal", de: "Intern" },
+    confidential: { en: "Confidential", de: "Vertraulich" },
+    secret: { en: "Secret", de: "Geheim" },
+  };
+  return labels[level]?.[language] ?? level;
+}
+
+/**
+ * Get trust level text
+ */
+export function getTrustLevelText(
+  level: TrustLevel | undefined,
+  language: DocLanguage = "en"
+): string {
+  if (!level) return language === "de" ? "Unbekannt" : "Unknown";
+  
+  const labels: Record<TrustLevel, { en: string; de: string }> = {
+    trusted: { en: "Trusted", de: "Vertrauenswürdig" },
+    untrusted: { en: "Untrusted", de: "Nicht vertrauenswürdig" },
+    unknown: { en: "Unknown", de: "Unbekannt" },
+  };
+  return labels[level]?.[language] ?? level;
+}
+
+/**
+ * Get DFD element type text (singular)
+ */
+export function getDFDElementTypeText(
+  type: DFDElementType,
+  language: DocLanguage = "en"
+): string {
+  const config = DFD_ELEMENT_CONFIG[type];
+  return language === "de" ? config.nameDE : config.name;
+}
+
+/**
+ * Get DFD element type text (plural for section headers)
+ */
+export function getDFDElementTypePluralText(
+  type: DFDElementType,
+  language: DocLanguage = "en"
+): string {
+  const plurals: Record<DFDElementType, { en: string; de: string }> = {
+    ExternalEntity: { en: "External Entities", de: "Externe Entitäten" },
+    Process: { en: "Processes", de: "Prozesse" },
+    Multiprocess: { en: "Multiprocesses", de: "Multiprozesse" },
+    DataStore: { en: "Data Stores", de: "Datenspeicher" },
+    DataFlow: { en: "Data Flows", de: "Datenflüsse" },
+    TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
+    PhysicalInterface: { en: "Physical Interfaces", de: "Physische Schnittstellen" },
+    Asset: { en: "Assets", de: "Assets" },
+    Interface: { en: "Interfaces", de: "Schnittstellen" },
+  };
+  return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);
+}
