@@ -50,9 +50,11 @@ import {
   createDefaultAssetData,
   renumberAssets,
   migrateAssetConfiguration,
-  calculateOverallImpact,
 } from "../models/asset-types";
-import { assetService } from "../services/asset-service";
+
+ import { calculateOverallImpact } from "../models/asset-impact-types";
+
+ import { assetService } from "../services/asset-service";
 import { AssetTable } from "./asset-table";
 import { AssetDialog } from "./asset-dialog";
 import { AssetConfigDialog } from "./asset-config-dialog";
@@ -429,27 +431,55 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // ==================== DFD SYNC ====================
 
   const handleSyncFromDFD = useCallback(() => {
-    if (!project.dfdXml) {
-      setSyncWarnings(["No DFD available for synchronization"]);
+    // Check if DFD assets are available
+    if (!project.dfdAssets || project.dfdAssets.length === 0) {
+      setSyncWarnings(["No DFD assets available for synchronization"]);
       return;
     }
+    const dfdAssets = project.dfdAssets ?? [];
+    const dfdElements = project.dfdElements ?? [];
+    const dfdConnections = project.dfdConnections ?? [];
 
-    const result = assetService.syncFromDFD(assetData, project.dfdXml);
+    // Use the new sync method with AssetDFDAsset interface
+    const result = assetService.syncFromDFD(
+      assetData,
+      dfdAssets,
+      dfdElements,
+      dfdConnections,
+    );
     setAssetData(result.assetData);
     setSyncWarnings(result.warnings);
     markDirty();
 
     // Revalidate
     setValidation(assetService.validate(result.assetData));
-  }, [project.dfdXml, assetData, markDirty]);
+  }, [project.dfdAssets, assetData, markDirty]);
 
   // Auto-sync from DFD on mount if no assets
   useEffect(() => {
-    if (assetData.assets.length === 0 && project.dfdXml) {
+    if (
+      assetData.assets.length === 0 &&
+      project.dfdAssets &&
+      project.dfdAssets.length > 0
+    ) {
       handleSyncFromDFD();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-sync when DFD changes (NEW!)
+  useEffect(() => {
+    if (!project.dfdAssets || project.dfdAssets.length === 0) return;
+    if (assetData.assets.length === 0) return; // Skip if no assets yet (handled by mount effect)
+
+    console.log("[AUTO-SYNC] DFD data changed");
+    handleSyncFromDFD();
+  }, [
+    project.dfdAssets,
+    project.dfdElements,
+    project.dfdConnections,
+    handleSyncFromDFD,
+  ]);
 
   // ==================== SPLIT VIEW RESIZE ====================
 
@@ -505,9 +535,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // ==================== COMPUTED ====================
 
   const missingInDFD = useMemo(() => {
-    if (!project.dfdXml) return [];
-    return assetService.getAssetsMissingInDFD(assetData, project.dfdXml);
-  }, [assetData, project.dfdXml]);
+    if (!project.dfdAssets) return [];
+    return assetService.getAssetsMissingInDFD(assetData, project.dfdAssets);
+  }, [assetData, project.dfdAssets]);
 
   const hasWarnings = syncWarnings.length > 0;
 

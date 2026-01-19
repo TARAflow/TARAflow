@@ -58,6 +58,11 @@ import { Toast, ToastContainer, useToast } from "shared";
 import { useAutoSave } from "../../hooks/use-auto-save";
 import { useProjectFileDownload } from "../../hooks/use-project-file-download";
 import { useProjectPersistence } from "../../hooks//use-project-persistence";
+import {
+  mapDFDAssetsToAssetFeature,
+  mapDFDConnectionsToAssetFeature,
+  mapDFDElementsToAssetFeature,
+} from "../../utils/dfd-to-asset-mapper";
 
 // ==================== MAIN LAYOUT ====================
 
@@ -895,7 +900,20 @@ const closeProject = async (projectId: string) => {
                     name: activeProject.info?.name || "",
                     assets: activeProject.assets ?? null,
                     phaseStatus: activeProject.phaseStatus,
-                    dfdXml: activeProject.dfd?.xml,
+
+                    // Map DFD data to Asset interfaces (NO direct dependency)
+                    dfdAssets: activeProject.dfd?.assets
+                      ? mapDFDAssetsToAssetFeature(activeProject.dfd.assets)
+                      : undefined,
+                    dfdElements: activeProject.dfd?.elements
+                      ? mapDFDElementsToAssetFeature(activeProject.dfd.elements)
+                      : undefined,
+                    dfdConnections: activeProject.dfd?.connections
+                      ? mapDFDConnectionsToAssetFeature(
+                          activeProject.dfd.connections,
+                        )
+                      : undefined,
+
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
                     lastModified: activeProject.info?.lastModified || "",
                   }}

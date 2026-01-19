@@ -1,272 +1,84 @@
 // ==================== ASSET TYPES ====================
 // Core data models for the Assets feature
-// NO dependency on app - follows Dependency Inversion Principle
+// NO dependency on app OR dfd - follows Dependency Inversion Principle
 
 import type { PhaseStatusMap } from "shared";
+import type {
+  ImpactRating,
+  ImpactScaleType,
+  ImpactCalculationMethod,
+  ImpactRoundingMethod,
+} from "./asset-impact-types";
+import type {
+  SecurityGoal,
+  SecurityGoalType,
+} from "./asset-security-goals-types";
+import { SECURITY_GOALS } from "./asset-security-goals-types";
 
-// ==================== IMPACT RATING SCALES ====================
-
-/**
- * Available impact rating scales
- */
-export type ImpactScaleType = "3-level" | "4-level" | "5-level";
-
-export interface ImpactScaleConfig {
-  type: ImpactScaleType;
-  levels: ImpactLevel[];
-}
-
-export interface ImpactLevel {
-  value: number;
-  label: string;
-  labelDE: string;
-  color: string; // Tailwind color class or hex
-}
-
-export const IMPACT_SCALES: Record<ImpactScaleType, ImpactScaleConfig> = {
-  "3-level": {
-    type: "3-level",
-    levels: [
-      { value: 1, label: "Low", labelDE: "Niedrig", color: "green" },
-      { value: 2, label: "Medium", labelDE: "Mittel", color: "yellow" },
-      { value: 3, label: "High", labelDE: "Hoch", color: "red" },
-    ],
-  },
-  "4-level": {
-    type: "4-level",
-    levels: [
-      { value: 1, label: "Low", labelDE: "Niedrig", color: "green" },
-      { value: 2, label: "Medium", labelDE: "Mittel", color: "yellow" },
-      { value: 3, label: "High", labelDE: "Hoch", color: "orange" },
-      { value: 4, label: "Critical", labelDE: "Kritisch", color: "red" },
-    ],
-  },
-  "5-level": {
-    type: "5-level",
-    levels: [
-      { value: 1, label: "Low", labelDE: "Niedrig", color: "green" },
-      { value: 2, label: "Medium", labelDE: "Mittel", color: "yellow" },
-      { value: 3, label: "High", labelDE: "Hoch", color: "orange" },
-      { value: 4, label: "Very High", labelDE: "Sehr Hoch", color: "red" },
-      { value: 5, label: "Critical", labelDE: "Kritisch", color: "purple" },
-    ],
-  },
-};
-
-// ==================== IMPACT CALCULATION ====================
-
-export type ImpactCalculationMethod = "conservative" | "average";
-
-// ==================== LEVEL THRESHOLD CALCULATION ====================
+// ==================== DFD INTERFACE TYPES (Asset's View) ====================
+// What Assets needs to know about DFD elements - NO direct dependency on dfd-types
 
 /**
- * How to round calculated impact values to level thresholds
- * - "round": Standard rounding (Math.round) - symmetric thresholds at .5
- * - "ceil": Conservative rounding (Math.ceil) - always round up to higher level
+ * Minimal DFD Asset info needed by Assets feature
  */
-export type ImpactRoundingMethod = "round" | "ceil";
-
-// ==================== IMPACT CRITERIA ====================
-
-/**
- * Categories for impact criteria
- */
-export type ImpactCriteriaCategory = "business" | "physical";
-
-/**
- * Predefined impact criteria that users can choose from
- */
-export interface ImpactCriterionDefinition {
+export interface AssetDFDAsset {
+  /** Asset ID (e.g. "A-001") */
   id: string;
-  category: ImpactCriteriaCategory;
-  name: string;
-  nameDE: string;
-  description: string;
-  descriptionDE: string;
+
+  /** Display ID (same as id) */
+  displayId: string;
+
+  /** XML element IDs from draw.io */
+  xmlIds: string[];
+
+  /** Positions where this asset is placed */
+  positions: Array<{ x: number; y: number }>;
+
+  /** Sizes of asset labels */
+  sizes: Array<{ width: number; height: number }>;
+
+  /** DFD elements this asset protects (XML IDs) */
+  linkedElements?: string[];
 }
 
 /**
- * All available predefined impact criteria
+ * Minimal DFD Element info needed by Assets feature
  */
-export const PREDEFINED_IMPACT_CRITERIA: ImpactCriterionDefinition[] = [
-  // Business / Organizational
-  {
-    id: "financial_damage",
-    category: "business",
-    name: "Financial Damage",
-    nameDE: "Finanzieller Schaden",
-    description: "Costs from outages, SLA violations, RMA, fines",
-    descriptionDE: "Kosten durch Ausfälle, SLA-Verletzungen, RMA, Bußgelder",
-  },
-  {
-    id: "regulatory_compliance",
-    category: "business",
-    name: "Regulatory / Compliance",
-    nameDE: "Regulatorik / Compliance",
-    description: "Violations of GDPR, ISO 27001, FDA, etc.",
-    descriptionDE: "Verstöße gegen DSGVO, ISO 27001, FDA, etc.",
-  },
-  {
-    id: "reputation",
-    category: "business",
-    name: "Reputation / Brand",
-    nameDE: "Reputation / Marke",
-    description: "Loss of customer trust, negative media",
-    descriptionDE: "Verlust von Kundenvertrauen, negative Medien",
-  },
-  {
-    id: "privacy",
-    category: "business",
-    name: "Privacy / Data Protection",
-    nameDE: "Datenschutz",
-    description: "Sensitivity/amount of affected personal data",
-    descriptionDE: "Sensitivität/Anzahl betroffener personenbezogener Daten",
-  },
-  {
-    id: "operational",
-    category: "business",
-    name: "Operational Impact",
-    nameDE: "Betriebliche Auswirkung",
-    description: "Disruption of critical processes",
-    descriptionDE: "Störung kritischer Prozesse",
-  },
-  {
-    id: "affected_users",
-    category: "business",
-    name: "Affected Users / Systems",
-    nameDE: "Betroffene Nutzer / Systeme",
-    description: "How many users, units, machines or systems are affected",
-    descriptionDE: "Wie viele Nutzer, Einheiten, Maschinen oder Systeme sind betroffen",
-  },
-  {
-    id: "recoverability",
-    category: "business",
-    name: "Recoverability",
-    nameDE: "Wiederherstellbarkeit",
-    description: "Effort and time to restore asset after loss or manipulation",
-    descriptionDE: "Aufwand und Zeit zur Wiederherstellung nach Verlust oder Manipulation",
-  },
-  // Physical
-  {
-    id: "safety",
-    category: "physical",
-    name: "Safety Impact",
-    nameDE: "Sicherheitsauswirkung",
-    description: "Risk to persons through physical damage",
-    descriptionDE: "Gefährdung von Personen durch physische Schäden",
-  },
-  {
-    id: "physical_damage",
-    category: "physical",
-    name: "Physical Asset Damage",
-    nameDE: "Physischer Anlagenschaden",
-    description: "Destruction or damage to physical assets",
-    descriptionDE: "Zerstörung oder Beschädigung physischer Assets",
-  },
-  {
-    id: "environmental",
-    category: "physical",
-    name: "Environmental Impact",
-    nameDE: "Umweltauswirkung",
-    description: "Environmental damage through manipulated processes",
-    descriptionDE: "Umweltschäden durch manipulierte Prozesse",
-  },
-  {
-    id: "supply_chain",
-    category: "physical",
-    name: "Supply Chain / Logistics",
-    nameDE: "Lieferkette / Logistik",
-    description: "Disruption of physical supply and transport chains",
-    descriptionDE: "Störung physischer Liefer- und Transportketten",
-  },
-];
+export interface AssetDFDElement {
+  /** Element ID (XML ID) */
+  id: string;
 
-// ==================== SECURITY GOALS (CIANAAA) ====================
+  /** Element type (Process, DataStore, etc.) */
+  type: string;
 
-export type SecurityGoalType =
-  | "C"    // Confidentiality
-  | "I"    // Integrity
-  | "A"    // Availability
-  | "N"    // Non-repudiation
-  | "AuthZ" // Authorization
-  | "AuthN" // Authentication
-  | "Acc"; // Accountability
-
-export interface SecurityGoalDefinition {
-  type: SecurityGoalType;
+  /** Element name */
   name: string;
-  nameDE: string;
-  description: string;
-  descriptionDE: string;
-  templateEN: string;
-  templateDE: string;
+
+  /** Display ID (e.g. "P-1", "DS-1") */
+  displayId: string;
+
+  /** Assets that protect this element (Asset IDs like "A-001") */
+  linkedAssets?: string[];
 }
 
-export const SECURITY_GOALS: SecurityGoalDefinition[] = [
-  {
-    type: "C",
-    name: "Confidentiality",
-    nameDE: "Vertraulichkeit",
-    description: "Protection against unauthorized disclosure",
-    descriptionDE: "Schutz vor unbefugter Offenlegung",
-    templateEN: "Data must only be accessible by authorized personnel",
-    templateDE: "Daten dürfen nur von autorisierten Personen eingesehen werden",
-  },
-  {
-    type: "I",
-    name: "Integrity",
-    nameDE: "Integrität",
-    description: "Protection against unauthorized modification",
-    descriptionDE: "Schutz vor unbefugter Änderung",
-    templateEN: "Data must be protected against unauthorized modification",
-    templateDE: "Daten müssen vor unbefugter Änderung geschützt werden",
-  },
-  {
-    type: "A",
-    name: "Availability",
-    nameDE: "Verfügbarkeit",
-    description: "Ensuring timely and reliable access",
-    descriptionDE: "Gewährleistung rechtzeitigen und zuverlässigen Zugriffs",
-    templateEN: "System must maintain required availability levels",
-    templateDE: "System muss erforderliche Verfügbarkeitsstufen einhalten",
-  },
-  {
-    type: "N",
-    name: "Non-repudiation",
-    nameDE: "Nichtabstreitbarkeit",
-    description: "Ensuring actions cannot be denied",
-    descriptionDE: "Sicherstellung, dass Aktionen nicht abgestritten werden können",
-    templateEN: "All actions must be traceable and undeniable",
-    templateDE: "Alle Aktionen müssen nachvollziehbar und nicht abstreitbar sein",
-  },
-  {
-    type: "AuthZ",
-    name: "Authorization",
-    nameDE: "Autorisierung",
-    description: "Controlling access rights and permissions",
-    descriptionDE: "Kontrolle von Zugriffsrechten und Berechtigungen",
-    templateEN: "Access must be restricted based on defined permissions",
-    templateDE: "Zugriff muss basierend auf definierten Berechtigungen eingeschränkt werden",
-  },
-  {
-    type: "AuthN",
-    name: "Authentication",
-    nameDE: "Authentifizierung",
-    description: "Verifying identity of users or systems",
-    descriptionDE: "Überprüfung der Identität von Benutzern oder Systemen",
-    templateEN: "Identity must be verified before granting access",
-    templateDE: "Identität muss vor Gewährung des Zugriffs verifiziert werden",
-  },
-  {
-    type: "Acc",
-    name: "Accountability",
-    nameDE: "Rechenschaftspflicht",
-    description: "Tracking and logging of actions",
-    descriptionDE: "Verfolgung und Protokollierung von Aktionen",
-    templateEN: "All actions must be logged for audit purposes",
-    templateDE: "Alle Aktionen müssen zu Prüfungszwecken protokolliert werden",
-  },
-];
+/**
+ * Minimal DFD Connection info needed by Assets feature
+ */
+export interface AssetDFDConnection {
+  /** Connection ID (XML ID) */
+  id: string;
+
+  /** Label/name */
+  label?: string;
+
+  /** Display ID (e.g. "DF-1") */
+  displayId: string;
+
+  /** Assets that protect this connection (Asset IDs like "A-001") */
+  linkedAssets?: string[];
+}
+
+
 
 // ==================== ASSET CONFIGURATION ====================
 
@@ -306,29 +118,13 @@ export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
 // ==================== ASSET DATA ====================
 
 /**
- * Impact rating for a single criterion
- */
-export interface ImpactRating {
-  criterionId: string;
-  value: number; // 1-3, 1-4, or 1-5 depending on scale
-}
-
-/**
- * Security goal with formal description
- */
-export interface SecurityGoal {
-  type: SecurityGoalType;
-  enabled: boolean;
-  formalDescription: string;
-}
-
-/**
- * Link to a DFD element
+ * Link to a DFD element (from Asset's perspective)
  */
 export interface DFDElementLink {
   elementId: string;
   elementName: string;
   elementType: string;
+  displayId: string;
 }
 
 /**
@@ -437,9 +233,19 @@ export interface AssetProjectData {
   name: string;
   assets: AssetData | null;
   phaseStatus: PhaseStatusMap;
-  /** DFD data for extracting asset labels */
-  dfdXml?: string;
+
+  /** DFD assets for asset synchronization and linking */
+  dfdAssets?: AssetDFDAsset[];
+
+  /** DFD elements for linking display */
+  dfdElements?: AssetDFDElement[];
+
+  /** DFD connections for linking display */
+  dfdConnections?: AssetDFDConnection[];
+
+  /** DFD preview image */
   dfdPreviewImage?: string;
+
   lastModified: string;
 }
 
@@ -507,48 +313,6 @@ export function renumberAssets(assets: Asset[]): Asset[] {
         numericId: newNumericId,
       };
     });
-}
-
-/**
- * Calculate overall impact based on method and rounding
- */
-export function calculateOverallImpact(
-  ratings: ImpactRating[],
-  method: ImpactCalculationMethod,
-  roundingMethod: ImpactRoundingMethod = "round"
-): number {
-  if (ratings.length === 0) return 0;
-
-  const values = ratings.map((r) => r.value).filter((v) => v > 0);
-  if (values.length === 0) return 0;
-
-  if (method === "conservative") {
-    return Math.max(...values);
-  } else {
-    const sum = values.reduce((acc, val) => acc + val, 0);
-    const avg = sum / values.length;
-
-    // Apply rounding method
-    if (roundingMethod === "ceil") {
-      return Math.ceil(avg * 10) / 10; // Round up to 1 decimal
-    }
-    return Math.round(avg * 10) / 10; // Standard rounding to 1 decimal
-  }
-}
-
-/**
- * Get the discrete level for a calculated impact value
- */
-export function getImpactLevel(
-  value: number,
-  roundingMethod: ImpactRoundingMethod = "round"
-): number {
-  if (value <= 0) return 0;
-
-  if (roundingMethod === "ceil") {
-    return Math.ceil(value);
-  }
-  return Math.round(value);
 }
 
 /**

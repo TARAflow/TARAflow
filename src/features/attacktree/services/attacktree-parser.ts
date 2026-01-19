@@ -23,7 +23,7 @@ import {
   ATTACK_GOAL_TO_STRIDE,
   ATTACK_GOAL_DEFINITIONS,
 } from "../models/attacktree-types";
-import type { SecurityGoalType } from "features/assets/models/asset-types";
+import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
 
 // ==================== PARSER ====================
 

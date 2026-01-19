@@ -4,6 +4,7 @@
 import {
   DFDElement,
   DFDConnection,
+  DFDAsset,
   DFDStats,
   DFDElementType,
 } from "../models/dfd-types";
@@ -11,10 +12,13 @@ import {
 export interface ParseResult {
   elements: DFDElement[];
   connections: DFDConnection[];
+  assets: DFDAsset[]; // ← NEW: Separate consolidated asset list
   stats: DFDStats;
   /** Labels of dataflows that are not connected to elements (only have coordinates) */
   unconnectedDataflows: string[];
 }
+
+import { dfdAnalyzer } from "../utils/dfd-analyzer";
 
 /**
  * DFDParser - Parses Draw.io XML into structured DFD elements
@@ -28,11 +32,13 @@ export class DFDParser {
   parse(xml: string): ParseResult {
     const elements: DFDElement[] = [];
     const connections: DFDConnection[] = [];
+    const rawAssets: Array<{ id: string; xmlId: string; label: string; position: { x: number; y: number }; size: { width: number; height: number } }> = [];
     const unconnectedDataflows: string[] = [];
     const stats = this.createEmptyStats();
+    let assets: DFDAsset[] = [];  // Declare outside try block
 
     if (!xml || xml.trim() === "") {
-      return { elements, connections, stats, unconnectedDataflows };
+      return { elements, connections, assets: [], stats, unconnectedDataflows };
     }
 
     try {
@@ -48,6 +54,7 @@ export class DFDParser {
           obj,
           elements,
           connections,
+          rawAssets,
           unconnectedDataflows,
           stats
         );
@@ -60,6 +67,7 @@ export class DFDParser {
           cell,
           elements,
           connections,
+          rawAssets,
           unconnectedDataflows,
           stats
         );
@@ -67,11 +75,32 @@ export class DFDParser {
 
       // Assign displayIds from ID labels to connections and elements
       this.assignDisplayIds(connections, elements, idLabels);
+
+      // Consolidate assets: Group by asset name, collect xmlIds/positions/sizes
+      assets = this.consolidateAssets(rawAssets);
+      stats.assets = assets.length;
+
+      assets.forEach((asset) => {
+        const analysis = dfdAnalyzer.findElementsOverlappingAsset(
+          asset,
+          elements,
+          connections
+        );
+
+        // linkedElements mit den XML-IDs der überlappenden Elemente füllen
+        asset.linkedElements = analysis.overlappingElements.map(el => el.elementId);
+
+        if (!analysis.hasValidPlacement) {
+          console.warn(`[DFDParser] Asset ${asset.id} hat keine gültige Platzierung`);
+        }
+      });
+
+
     } catch (error) {
       console.error("DFDParser: Failed to parse XML", error);
     }
 
-    return { elements, connections, stats, unconnectedDataflows };
+    return { elements, connections, assets, stats, unconnectedDataflows };
   }
 
   /**
@@ -106,6 +135,7 @@ export class DFDParser {
       assets: 0,
       interfaces: 0,
       describedElements: 0,
+      describedAssets: 0,
       describedConnections: 0,
     };
   }
@@ -168,11 +198,6 @@ export class DFDParser {
       const displayId = idLabels.get(elem.id);
       if (displayId) {
         elem.displayId = displayId;
-        continue;
-      }
-
-      if (elem.type === "Asset") {
-        elem.displayId = elem.name;
       }
     }
     console.log(
@@ -235,6 +260,7 @@ export class DFDParser {
     obj: Element,
     elements: DFDElement[],
     connections: DFDConnection[],
+    rawAssets: Array<{ id: string; xmlId: string; label: string; position: { x: number; y: number }; size: { width: number; height: number } }>,
     unconnectedDataflows: string[],
     stats: DFDStats
   ): void {
@@ -324,6 +350,42 @@ export class DFDParser {
     const elementType = this.mapTARAflowType(objType);
     if (!elementType) return;
 
+    // Handle Assets separately - check BEFORE creating DFDElement
+    if (elementType === "Asset") {
+      // Get position - for elements with parent groups, position is relative
+      let x = parseFloat(geometry.getAttribute("x") || "0");
+      let y = parseFloat(geometry.getAttribute("y") || "0");
+      const width = parseFloat(geometry.getAttribute("width") || "100");
+      const height = parseFloat(geometry.getAttribute("height") || "100");
+
+      // If element has a parent (group), find parent's position and add it
+      if (parent && parent !== "1" && parent !== "0") {
+        const parentObj = this.findObjectById(obj.ownerDocument!, parent);
+        if (parentObj) {
+          const parentCell = parentObj.getElementsByTagName("mxCell")[0];
+          if (parentCell) {
+            const parentGeom = parentCell.getElementsByTagName("mxGeometry")[0];
+            if (parentGeom) {
+              const parentX = parseFloat(parentGeom.getAttribute("x") || "0");
+              const parentY = parseFloat(parentGeom.getAttribute("y") || "0");
+              x += parentX;
+              y += parentY;
+            }
+          }
+        }
+      }
+
+      rawAssets.push({
+        id: this.cleanLabel(label) || "A-xx",
+        xmlId: id,
+        label: this.cleanLabel(label) || "A-xx",
+        position: { x, y },
+        size: { width, height },
+      });
+      // Don't add to elements or update stats here
+      return;
+    }
+
     // Get position - for elements with parent groups, position is relative
     // We need to check if parent is a group and add parent's position
     let x = parseFloat(geometry.getAttribute("x") || "0");
@@ -350,9 +412,8 @@ export class DFDParser {
 
     const element: DFDElement = {
       id,
-      type: elementType,
+      type: elementType as DFDElementType,  // Now safe - Asset already handled
       name: this.cleanLabel(label) || elementType,
-      description: "",
       position: { x, y },
       size: { width, height },
       properties: {},
@@ -361,8 +422,6 @@ export class DFDParser {
           this.cleanLabel(label) || elementType || ""
         ) || "",
     };
-    if (elementType === "Asset") {
-    }
 
     // Debug log for Trust Boundaries
     if (elementType === "TrustBoundary") {
@@ -372,7 +431,7 @@ export class DFDParser {
     }
 
     elements.push(element);
-    this.updateStats(stats, elementType);
+    this.updateStats(stats, elementType as DFDElementType);
   }
 
   /**
@@ -418,6 +477,7 @@ export class DFDParser {
     cell: Element,
     elements: DFDElement[],
     connections: DFDConnection[],
+    rawAssets: Array<{ id: string; xmlId: string; label: string; position: { x: number; y: number }; size: { width: number; height: number } }>,
     unconnectedDataflows: string[],
     stats: DFDStats
   ): void {
@@ -480,6 +540,32 @@ export class DFDParser {
     // Process element (non-dataflow)
     const geometry = cell.getElementsByTagName("mxGeometry")[0];
     if (geometry) {
+      // Check if this is an asset first
+      const cellType = (
+        cell.getAttribute("type") ||
+        cell.getAttribute("Type") ||
+        ""
+      ).toLowerCase();
+      
+      if (cellType === "asset") {
+        const id = cell.getAttribute("id") || "";
+        const value = cell.getAttribute("value") || "";
+        const x = parseFloat(geometry.getAttribute("x") || "0");
+        const y = parseFloat(geometry.getAttribute("y") || "0");
+        const width = parseFloat(geometry.getAttribute("width") || "100");
+        const height = parseFloat(geometry.getAttribute("height") || "100");
+        
+        rawAssets.push({
+          id: this.cleanLabel(value) || "A-xx",
+          xmlId: id,
+          label: this.cleanLabel(value) || "A-xx",
+          position: { x, y },
+          size: { width, height },
+        });
+        return;
+      }
+      
+      // Regular element
       const element = this.createElementFromCell(cell, geometry);
       if (element) {
         // Check if not already added via object processing
@@ -548,6 +634,9 @@ export class DFDParser {
     const type = this.determineElementType(cell);
 
     if (!type) return null;
+    
+    // Assets should be handled separately, not as regular elements
+    if (type === "Asset") return null;
 
     const x = parseFloat(geometry.getAttribute("x") || "0");
     const y = parseFloat(geometry.getAttribute("y") || "0");
@@ -559,9 +648,8 @@ export class DFDParser {
 
     return {
       id,
-      type,
+      type: type as DFDElementType,  // Safe now - Asset already filtered
       name,
-      description: "",
       displayId: name,
       position: { x, y },
       size: { width, height },
@@ -569,7 +657,7 @@ export class DFDParser {
     };
   }
 
-  private determineElementType(cell: Element): DFDElementType | null {
+  private determineElementType(cell: Element): DFDElementType | "Asset" | null {
     // TARAflow Library can use either 'type' or 'Type' attribute
     const taraflowType = cell.getAttribute("type") || cell.getAttribute("Type");
     if (taraflowType) {
@@ -581,8 +669,8 @@ export class DFDParser {
     return this.mapStyleToType(style);
   }
 
-  private mapTARAflowType(type: string): DFDElementType | null {
-    const typeMap: Record<string, DFDElementType> = {
+  private mapTARAflowType(type: string): DFDElementType | "Asset" | null {
+    const typeMap: Record<string, DFDElementType | "Asset"> = {
       // External entities (various names used in different TARAflow versions)
       externalentity: "ExternalEntity",
       interactor: "ExternalEntity",
@@ -610,7 +698,7 @@ export class DFDParser {
       physicalinterface: "PhysicalInterface",
       interface: "Interface",
 
-      // Asset
+      // Asset - special handling
       asset: "Asset",
 
       // DataFlow - should be handled as connection, but including for completeness
@@ -650,13 +738,63 @@ export class DFDParser {
       case "PhysicalInterface":
         stats.physicalInterfaces++;
         break;
-      case "Asset":
-        stats.assets++;
-        break;
       case "Interface":
         stats.interfaces++;
         break;
     }
+  }
+
+  /**
+   * Consolidate raw assets: Group by asset name, collect xmlIds/positions/sizes
+   */
+  private consolidateAssets(
+    rawAssets: Array<{
+      id: string;
+      xmlId: string;
+      label: string;
+      position: { x: number; y: number };
+      size: { width: number; height: number };
+    }>
+  ): DFDAsset[] {
+    // Group by asset id (name)
+    const assetMap = new Map<
+      string,
+      {
+        xmlIds: string[];
+        positions: Array<{ x: number; y: number }>;
+        sizes: Array<{ width: number; height: number }>;
+      }
+    >();
+
+    rawAssets.forEach((raw) => {
+      if (!assetMap.has(raw.id)) {
+        assetMap.set(raw.id, {
+          xmlIds: [],
+          positions: [],
+          sizes: [],
+        });
+      }
+      const group = assetMap.get(raw.id)!;
+      group.xmlIds.push(raw.xmlId);
+      group.positions.push(raw.position);
+      group.sizes.push(raw.size);
+    });
+
+    // Convert to DFDAsset[]
+    const assets: DFDAsset[] = [];
+    assetMap.forEach((group, id) => {
+      assets.push({
+        id,
+        displayId: id,
+        xmlIds: group.xmlIds,
+        positions: group.positions,
+        sizes: group.sizes,
+        linkedElements: [],
+        properties: {},
+      });
+    });
+
+    return assets;
   }
 }
 

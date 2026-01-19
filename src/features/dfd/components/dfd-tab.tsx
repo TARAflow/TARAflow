@@ -107,6 +107,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     exportImage,
     autoNumberLabels,
     updateElementDescription,
+    updateAssetDescription,
     updateConnectionDescription,
     exportDFD,
     importDFD,
@@ -306,9 +307,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
           }}
         >
           <DFDDescriptionView
+            assets={project.dfd?.assets || []}
             elements={project.dfd?.elements || []}
             connections={project.dfd?.connections || []}
             onElementUpdate={updateElementDescription}
+            onAssetUpdate={updateAssetDescription}
             onConnectionUpdate={updateConnectionDescription}
             // Pass accordion state from UI hook
             expandedGroups={expandedGroups}

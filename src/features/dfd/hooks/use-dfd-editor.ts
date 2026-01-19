@@ -8,6 +8,7 @@
 
 import { useReducer, useEffect, useCallback, useRef, useMemo } from "react";
 import {
+  DFDAsset,
   DFDProjectData,
   DFDStats,
   DFDUpdateResult,
@@ -84,17 +85,22 @@ export interface UseDFDEditorReturn {
   // NEW: Description editing
   updateElementDescription: (
     elementId: string,
-    updates: Partial<DFDElement>
+    updates: Partial<DFDElement>,
   ) => void;
+
+  updateAssetDescription: (assetId: string, updates: Partial<DFDAsset>) => void;
+
   updateConnectionDescription: (
     connectionId: string,
-    updates: Partial<DFDConnection>
+    updates: Partial<DFDConnection>,
   ) => void;
 
   // NEW: Export/Import
   exportDFD: () => DFDExportData | null;
   importDFD: (data: DFDExportData) => Promise<void>;
 }
+
+
 
 // ==================== DEFAULT DEPENDENCIES ====================
 
@@ -217,7 +223,9 @@ export function useDFDEditor(
 
       // Update stats
       const describedElements = updatedElements.filter(
-        (el) => el.description && el.description.trim().length > 0
+        (el) =>
+          el.properties.description &&
+          el.properties.description.trim().length > 0,
       ).length;
 
       updatedDFD.stats = {
@@ -237,6 +245,43 @@ export function useDFDEditor(
       onDirtyChange?.(true);
     },
     [project, onSave, onDirtyChange]
+  );
+
+  const updateAssetDescription = useCallback(
+    (assetId: string, updates: Partial<DFDAsset>) => {
+      if (!project.dfd) return;
+
+      const updatedAssets = project.dfd.assets.map((asset) =>
+        asset.id === assetId ? { ...asset, ...updates } : asset,
+      );
+
+      const updatedDFD = {
+        ...project.dfd,
+        assets: updatedAssets,
+        lastModified: new Date().toISOString(),
+      };
+
+      // Stats aktualisieren
+      const describedAssets = updatedAssets.filter((a) =>
+        a.properties?.description?.trim(),
+      ).length;
+
+      updatedDFD.stats = {
+        ...updatedDFD.stats!,
+        describedAssets,
+      };
+
+      const result: DFDUpdateResult = {
+        dfd: updatedDFD,
+        phaseStatus: project.phaseStatus,
+        lastModified: new Date().toISOString(),
+      };
+
+      onSave?.(result);
+      dispatch({ type: "SET_DIRTY", payload: true });
+      onDirtyChange?.(true);
+    },
+    [project, onSave, onDirtyChange],
   );
 
   /**
@@ -299,6 +344,7 @@ export function useDFDEditor(
       exportDate: new Date().toISOString(),
       xml: project.dfd.xml,
       elements: project.dfd.elements,
+      assets: project.dfd.assets,
       connections: project.dfd.connections,
     };
 
@@ -324,7 +370,7 @@ export function useDFDEditor(
       const stats: DFDStats = {
         totalElements: data.elements.length,
         externalEntities: data.elements.filter(
-          (e) => e.type === "ExternalEntity"
+          (e) => e.type === "ExternalEntity",
         ).length,
         processes: data.elements.filter((e) => e.type === "Process").length,
         multiprocesses: data.elements.filter((e) => e.type === "Multiprocess")
@@ -334,17 +380,24 @@ export function useDFDEditor(
         trustBoundaries: data.elements.filter((e) => e.type === "TrustBoundary")
           .length,
         physicalInterfaces: data.elements.filter(
-          (e) => e.type === "PhysicalInterface"
+          (e) => e.type === "PhysicalInterface",
         ).length,
-        assets: data.elements.filter((e) => e.type === "Asset").length,
+        assets: data.assets.length,
         interfaces: data.elements.filter((e) => e.type === "Interface").length,
         describedElements: data.elements.filter(
-          (e) => e.description && e.description.trim().length > 0
+          (e) =>
+            e.properties.description &&
+            e.properties.description.trim().length > 0,
+        ).length,
+        describedAssets: data.assets.filter(
+          (a) =>
+            a.properties?.description &&
+            a.properties.description.trim().length > 0,
         ).length,
         describedConnections: data.connections.filter(
           (c) =>
             c.properties?.description &&
-            c.properties?.description.trim().length > 0
+            c.properties?.description.trim().length > 0,
         ).length,
       };
 
@@ -352,6 +405,7 @@ export function useDFDEditor(
       const updatedDFD = {
         xml: data.xml,
         elements: data.elements,
+        assets: data.assets,
         connections: data.connections,
         stats,
         lastModified: new Date().toISOString(),
@@ -651,6 +705,7 @@ export function useDFDEditor(
     sendAction,
     autoNumberLabels,
     updateElementDescription,
+    updateAssetDescription,
     updateConnectionDescription,
     exportDFD,
     importDFD,

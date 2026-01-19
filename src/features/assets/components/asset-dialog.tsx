@@ -36,15 +36,18 @@ import {
   Lightbulb as LightbulbIcon,
 } from "@mui/icons-material";
 
+import { Asset, AssetConfiguration } from "../models/asset-types";
+
 import {
-  Asset,
-  AssetConfiguration,
-  SecurityGoalType,
-  SECURITY_GOALS,
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
   calculateOverallImpact,
-} from "../models/asset-types";
+} from "../models/asset-impact-types";
+
+import {
+  SecurityGoalType,
+  SECURITY_GOALS,
+} from "../models/asset-security-goals-types";
 
 // ==================== TYPES ====================
 

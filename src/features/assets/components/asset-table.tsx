@@ -25,14 +25,21 @@ import {
 import {
   Asset,
   AssetConfiguration,
-  SecurityGoalType,
-  SecurityGoal,
-  SECURITY_GOALS,
+  impactValueToLevel,
+} from "../models/asset-types";
+
+import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
-  impactValueToLevel,
   getImpactLevel,
-} from "../models/asset-types";
+} from "../models/asset-impact-types";
+import type {
+  SecurityGoal,
+  SecurityGoalType,
+} from "../models/asset-security-goals-types";
+import { SECURITY_GOALS } from "../models/asset-security-goals-types";
+
+
 
 // ==================== TYPES ====================
 
@@ -463,14 +470,10 @@ export const AssetTable: React.FC<AssetTableProps> = ({
             {links.slice(0, 3).map((link) => (
               <Tooltip
                 key={link.elementId}
-                title={`${link.elementType}: ${link.elementName} (${link.elementId})`}
+                title={`${link.displayId}: ${link.elementName} [${link.elementType}]`}
               >
                 <Chip
-                  label={
-                    link.elementName ||
-                    link.elementType ||
-                    link.elementId.slice(0, 8)
-                  }
+                  label={link.displayId || link.elementId.slice(0, 8)}
                   size="small"
                   variant="outlined"
                   color="default"
@@ -482,7 +485,10 @@ export const AssetTable: React.FC<AssetTableProps> = ({
               <Tooltip
                 title={links
                   .slice(3)
-                  .map((l) => l.elementName)
+                  .map(
+                    (l) =>
+                      `${l.displayId}: ${l.elementName} [${l.elementType}]`,
+                  )
                   .join(", ")}
               >
                 <Chip

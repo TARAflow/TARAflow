@@ -84,6 +84,7 @@ class DFDService {
       dfd: {
         elements: [],
         connections: [],
+        assets: [], // ← NEW
       },
       phaseStatus: { ...project.phaseStatus },
       lastModified: new Date().toISOString(),
@@ -106,17 +107,24 @@ class DFDService {
       const xml = adapter.getXml();
 
       // Parse and validate
-      const { elements, connections, stats, unconnectedDataflows } =
+      const { elements, connections, assets, stats, unconnectedDataflows } =
         this.parser.parse(xml || "");
-      const validation = this.validator.validate(elements, connections, stats, {
-        unconnectedDataflows,
-      });
+      const validation = this.validator.validate(
+        elements,
+        connections,
+        assets,
+        stats,
+        {
+          unconnectedDataflows,
+        },
+      );
 
       // Create DFD data
       const dfdData: DFDData = {
         xml: xml || undefined,
         elements,
         connections,
+        assets, // ← NEW: Include parsed assets
         stats,
         validation: this.validator.createValidationData(validation),
         lastModified: new Date().toISOString(),
@@ -158,10 +166,10 @@ class DFDService {
     adapter.syncFromLegacy();
 
     const xml = adapter.getXml();
-    const { elements, connections, stats, unconnectedDataflows } =
+    const { elements, connections, assets, stats, unconnectedDataflows } =
       this.parser.parse(xml || "");
 
-    return this.validator.validate(elements, connections, stats, {
+    return this.validator.validate(elements, connections, assets, stats, {
       unconnectedDataflows,
     });
   }

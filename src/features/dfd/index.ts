@@ -3,6 +3,7 @@
 
 // ==================== TYPES ====================
 export type {
+  DFDAsset,
   DFDElementType,
   DFDElement,
   DFDConnection,

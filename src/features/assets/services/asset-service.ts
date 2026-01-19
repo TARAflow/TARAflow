@@ -1,6 +1,6 @@
 // ==================== ASSET SERVICE ====================
 // Business logic for Asset operations
-// NO dependency on app - uses AssetProjectData from asset-types
+// NO dependency on app or dfd - uses AssetProjectData from asset-types
 
 import { PhaseStatus, PhaseStatusMap } from "shared";
 import {
@@ -9,17 +9,23 @@ import {
   AssetProjectData,
   AssetValidation,
   AssetConfiguration,
+  AssetDFDAsset,
+  AssetDFDElement,
+  AssetDFDConnection,
   DFDElementLink,
-  ImpactRating,
-  calculateOverallImpact,
   createEmptyAsset,
   createDefaultAssetData,
   generateNextAssetId,
   renumberAssets,
   parseAssetId,
   migrateAssetConfiguration,
-  PREDEFINED_IMPACT_CRITERIA,
 } from "../models/asset-types";
+import {
+  ImpactRating,
+  PREDEFINED_IMPACT_CRITERIA,
+  calculateOverallImpact,
+} from "../models/asset-impact-types";
+
 
 // ==================== RESULT TYPES ====================
 
@@ -39,16 +45,10 @@ export interface AssetLoadResult {
   error?: string;
 }
 
-export interface DFDAssetParseResult {
-  assets: ParsedDFDAsset[];
+export interface DFDAssetSyncResult {
+  assetData: AssetData;
+  newAssets: string[];
   warnings: string[];
-}
-
-export interface ParsedDFDAsset {
-  id: string;
-  label: string;
-  elementId: string;
-  position: { x: number; y: number };
 }
 
 // ==================== ASSET SERVICE ====================
@@ -62,7 +62,7 @@ class AssetService {
   loadAssets(project: AssetProjectData): AssetLoadResult {
     try {
       const hasData = Boolean(
-        project.assets && project.assets.assets.length > 0
+        project.assets && project.assets.assets.length > 0,
       );
 
       return {
@@ -169,7 +169,7 @@ class AssetService {
         .filter((sg) => sg.enabled && !sg.formalDescription.trim())
         .forEach((sg) => {
           warnings.push(
-            `validation.assets.noSecurityGoalDescription:${asset.id}:${sg.type}`
+            `validation.assets.noSecurityGoalDescription:${asset.id}:${sg.type}`,
           );
         });
 
@@ -184,9 +184,6 @@ class AssetService {
         warnings.push(`validation.assets.unratedImpact:${asset.id}`);
       }
     });
-
-    // Check for assets in DFD that are not in asset list
-    // (This would require DFD XML parsing - handled separately)
 
     const isComplete = errors.length === 0 && assetData.assets.length > 0;
 
@@ -231,7 +228,7 @@ class AssetService {
       overallImpact: calculateOverallImpact(
         updatedAsset.impactRatings,
         config.calculationMethod,
-        config.roundingMethod
+        config.roundingMethod,
       ),
       lastModified: new Date().toISOString(),
     };
@@ -239,7 +236,7 @@ class AssetService {
     return {
       ...assetData,
       assets: assetData.assets.map((a) =>
-        a.id === assetWithImpact.id ? assetWithImpact : a
+        a.id === assetWithImpact.id ? assetWithImpact : a,
       ),
       lastModified: new Date().toISOString(),
     };
@@ -266,7 +263,7 @@ class AssetService {
    */
   updateConfiguration(
     assetData: AssetData,
-    configuration: AssetConfiguration
+    configuration: AssetConfiguration,
   ): AssetData {
     // Ensure configuration has all required fields (migration)
     const migratedConfig = migrateAssetConfiguration(configuration);
@@ -278,17 +275,17 @@ class AssetService {
         (criterionId) => {
           // Keep existing rating if criterion still exists
           const existing = asset.impactRatings.find(
-            (r) => r.criterionId === criterionId
+            (r) => r.criterionId === criterionId,
           );
           return existing ?? { criterionId, value: 0 };
-        }
+        },
       );
 
       // Recalculate overall impact with new settings
       const overallImpact = calculateOverallImpact(
         newRatings,
         migratedConfig.calculationMethod,
-        migratedConfig.roundingMethod
+        migratedConfig.roundingMethod,
       );
 
       return {
@@ -310,108 +307,89 @@ class AssetService {
   // ==================== DFD SYNC ====================
 
   /**
-   * Parse asset labels from DFD XML
-   */
-  parseAssetsFromDFD(dfdXml: string): DFDAssetParseResult {
-    const assets: ParsedDFDAsset[] = [];
-    const warnings: string[] = [];
-
-    if (!dfdXml) {
-      return { assets, warnings };
-    }
-
-    try {
-      // Parse XML
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(dfdXml, "text/xml");
-
-      // Find all asset objects: <object type="asset" ...>
-      const assetElements = doc.querySelectorAll('object[type="asset"]');
-
-      assetElements.forEach((element) => {
-        const label = element.getAttribute("label") || "A-xx";
-        const elementId = element.getAttribute("id") || "";
-
-        // Get position from mxCell geometry
-        const mxCell = element.querySelector("mxCell");
-        const geometry = mxCell?.querySelector("mxGeometry");
-        const x = parseFloat(geometry?.getAttribute("x") || "0");
-        const y = parseFloat(geometry?.getAttribute("y") || "0");
-
-        assets.push({
-          id: label,
-          label,
-          elementId,
-          position: { x, y },
-        });
-      });
-    } catch (error) {
-      warnings.push("Failed to parse DFD XML for assets");
-    }
-
-    return { assets, warnings };
-  }
-
-  /**
    * Sync assets from DFD to asset list
+   * Resolves XML IDs to full DFDElementLink objects
+   *
+   * FIXED: Now properly resolves linkedElements XML-IDs to complete DFDElementLink objects
    */
   syncFromDFD(
     assetData: AssetData,
-    dfdXml: string
-  ): { assetData: AssetData; newAssets: string[]; warnings: string[] } {
-    const { assets: dfdAssets, warnings } = this.parseAssetsFromDFD(dfdXml);
+    dfdAssets: AssetDFDAsset[],
+    dfdElements: AssetDFDElement[],
+    dfdConnections: AssetDFDConnection[],
+  ): DFDAssetSyncResult {
+    const warnings: string[] = [];
     const newAssetIds: string[] = [];
 
     let updatedAssetData = { ...assetData };
 
     dfdAssets.forEach((dfdAsset) => {
       // Skip placeholder labels (A-xx)
-      if (dfdAsset.label === "A-xx") {
-        warnings.push(
-          `Unassigned asset label found at position (${dfdAsset.position.x}, ${dfdAsset.position.y})`
-        );
+      if (dfdAsset.id === "A-xx" || dfdAsset.id.includes("xx")) {
+        warnings.push(`Unassigned asset label found: ${dfdAsset.id}`);
         return;
       }
 
+      // Resolve XML IDs to full DFDElementLink objects
+      const linkedDFDElements: DFDElementLink[] = (
+        dfdAsset.linkedElements || []
+      ).map((xmlId) => {
+        const element = dfdElements.find((e) => e.id === xmlId);
+        if (element) {
+          return {
+            elementId: element.id,
+            elementName: element.name,
+            elementType: element.type,
+            displayId: element.displayId,
+          };
+        }
+
+        const connection = dfdConnections.find((c) => c.id === xmlId);
+        if (connection) {
+          return {
+            elementId: connection.id,
+            elementName: connection.label || connection.displayId,
+            elementType: "DataFlow",
+            displayId: connection.displayId,
+          };
+        }
+
+        return {
+          elementId: xmlId,
+          elementName: xmlId,
+          elementType: "unknown",
+          displayId: xmlId,
+        };
+      });
+
+      console.log(`[SYNC] Asset ${dfdAsset.id}:`, {
+        linkedElements: dfdAsset.linkedElements,
+        resolved: linkedDFDElements,
+      });
+
       // Check if asset already exists
-      const existingAsset = assetData.assets.find(
-        (a) => a.id === dfdAsset.label
-      );
+      const existingAsset = assetData.assets.find((a) => a.id === dfdAsset.id);
 
       if (!existingAsset) {
         // Create new asset from DFD
         const newAsset: Asset = {
-          ...createEmptyAsset(dfdAsset.label, assetData.configuration),
-          id: dfdAsset.label,
-          numericId: parseAssetId(dfdAsset.label),
+          ...createEmptyAsset(dfdAsset.id, assetData.configuration),
+          id: dfdAsset.id,
+          numericId: parseAssetId(dfdAsset.id),
+          name: dfdAsset.id,
           source: "dfd",
           syncedWithDFD: true,
-          linkedDFDElements: [
-            {
-              elementId: dfdAsset.elementId,
-              elementName: dfdAsset.label,
-              elementType: "asset",
-            },
-          ],
+          linkedDFDElements,
         };
 
         updatedAssetData = this.addAsset(updatedAssetData, newAsset);
-        newAssetIds.push(dfdAsset.label);
+        newAssetIds.push(dfdAsset.id);
       } else {
-        // Update existing asset's DFD link
+        // Update existing asset's DFD links
         const updatedAsset: Asset = {
           ...existingAsset,
           syncedWithDFD: true,
-          linkedDFDElements: [
-            ...existingAsset.linkedDFDElements.filter(
-              (l) => l.elementId !== dfdAsset.elementId
-            ),
-            {
-              elementId: dfdAsset.elementId,
-              elementName: dfdAsset.label,
-              elementType: "asset",
-            },
-          ],
+          linkedDFDElements,
         };
 
         updatedAssetData = this.updateAsset(updatedAssetData, updatedAsset);
@@ -419,9 +397,9 @@ class AssetService {
     });
 
     // Check for assets not in DFD
+    const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
     updatedAssetData.assets.forEach((asset) => {
-      const inDFD = dfdAssets.some((d) => d.label === asset.id);
-      if (!inDFD && asset.source === "dfd") {
+      if (!dfdAssetIds.has(asset.id) && asset.source === "dfd") {
         warnings.push(`Asset ${asset.id} not found in DFD`);
       }
     });
@@ -436,12 +414,14 @@ class AssetService {
   /**
    * Get assets that are missing in DFD
    */
-  getAssetsMissingInDFD(assetData: AssetData, dfdXml: string): Asset[] {
-    const { assets: dfdAssets } = this.parseAssetsFromDFD(dfdXml);
-    const dfdAssetIds = new Set(dfdAssets.map((a) => a.label));
+  getAssetsMissingInDFD(
+    assetData: AssetData,
+    dfdAssets: AssetDFDAsset[],
+  ): Asset[] {
+    const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
 
     return assetData.assets.filter(
-      (asset) => asset.source === "manual" && !dfdAssetIds.has(asset.id)
+      (asset) => asset.source === "manual" && !dfdAssetIds.has(asset.id),
     );
   }
 
@@ -480,7 +460,7 @@ class AssetService {
       overallImpact: calculateOverallImpact(
         asset.impactRatings,
         config.calculationMethod,
-        config.roundingMethod
+        config.roundingMethod,
       ),
     }));
 

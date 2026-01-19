@@ -31,6 +31,7 @@ import {
 } from "@mui/icons-material";
 
 import type {
+  DFDAsset,
   DFDElement,
   DFDConnection,
   DFDElementType,
@@ -45,11 +46,13 @@ import {
 
 interface DFDDescriptionViewProps {
   elements: DFDElement[];
+  assets: DFDAsset[];
   connections: DFDConnection[];
   onElementUpdate: (elementId: string, updates: Partial<DFDElement>) => void;
+  onAssetUpdate: (assetId: string, updates: Partial<DFDAsset>) => void;
   onConnectionUpdate: (
     connectionId: string,
-    updates: Partial<DFDConnection>
+    updates: Partial<DFDConnection>,
   ) => void;
   // Accordion state controlled from parent
   expandedGroups: string[];
@@ -75,7 +78,10 @@ const groupElementsByType = (elements: DFDElement[]): GroupedElements => {
 };
 
 const isElementDescribed = (element: DFDElement): boolean => {
-  return !!element.description && element.description.trim().length > 0;
+  return (
+    !!element.properties.description &&
+    element.properties.description.trim().length > 0
+  );
 };
 
 const isConnectionDescribed = (connection: DFDConnection): boolean => {
@@ -214,8 +220,6 @@ const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
       return <TrustBoundaryIcon {...iconProps} />;
     case "PhysicalInterface":
       return <PhysicalInterfaceIcon {...iconProps} />;
-    case "Asset":
-      return <AssetIcon {...iconProps} />;
     case "Interface":
       return <InterfaceIcon {...iconProps} />;
     default:
@@ -227,8 +231,10 @@ const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
 
 export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   elements,
+  assets,
   connections,
   onElementUpdate,
+  onAssetUpdate,
   onConnectionUpdate,
   expandedGroups,
   onToggleGroup,
@@ -239,31 +245,40 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
 
   const groupedElements = useMemo(
     () => groupElementsByType(elements),
-    [elements]
+    [elements],
   );
 
   // Calculate completion stats
   const stats = useMemo(() => {
     const describedElements = elements.filter(isElementDescribed).length;
     const describedConnections = connections.filter(
-      isConnectionDescribed
+      isConnectionDescribed,
     ).length;
+    const describedAssets = assets.filter(
+      (a) => !!a.properties?.description?.trim(),
+    ).length;
+
     const totalElements = elements.length;
     const totalConnections = connections.length;
-    const total = totalElements + totalConnections;
-    const described = describedElements + describedConnections;
+    const totalAssets = assets.length;
+
+    const total = totalElements + totalConnections + totalAssets;
+    const described =
+      describedElements + describedConnections + describedAssets;
 
     return {
       describedElements,
       describedConnections,
+      describedAssets,
       totalElements,
       totalConnections,
+      totalAssets,
       total,
       described,
       percentage: total > 0 ? Math.round((described / total) * 100) : 0,
       isComplete: described === total && total > 0,
     };
-  }, [elements, connections]);
+  }, [elements, connections, assets]);
 
   // Handler for group accordion
   const handleGroupChange =
@@ -333,6 +348,54 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       </Paper>
 
       <Box sx={{ p: 2, pt: 0 }}>
+        {/* Assets */}
+        {assets.length > 0 && (
+          <Accordion
+            expanded={expandedGroups.includes("assets")}
+            onChange={handleGroupChange("assets")}
+            sx={{ mb: 1 }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                sx={{ width: "100%" }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <AssetIcon fontSize="small" sx={{ mr: 1 }} />
+                  <Typography variant="subtitle1">Assets</Typography>
+                </Box>
+
+                <Chip
+                  size="small"
+                  label={`${stats.describedAssets} / ${stats.totalAssets}`}
+                  color={
+                    stats.describedAssets === stats.totalAssets
+                      ? "success"
+                      : "default"
+                  }
+                  variant="outlined"
+                />
+              </Stack>
+            </AccordionSummary>
+
+            <AccordionDetails sx={{ p: 0 }}>
+              {assets.map((asset) => (
+                <ElementAccordion
+                  key={asset.id}
+                  element={asset as unknown as DFDElement}
+                  onUpdate={(updates) =>
+                    onAssetUpdate(asset.id, updates as Partial<DFDAsset>)
+                  }
+                  isExpanded={expandedElements.includes(asset.id)}
+                  onToggle={handleElementChange(asset.id)}
+                />
+              ))}
+            </AccordionDetails>
+          </Accordion>
+        )}
+
         {/* Element Groups */}
         {Object.entries(groupedElements).map(([type, typeElements]) => {
           const elementType = type as DFDElementType;

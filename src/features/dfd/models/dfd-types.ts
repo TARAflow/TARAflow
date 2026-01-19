@@ -3,6 +3,7 @@
 
 import type { PhaseStatusMap } from "shared";
 
+
 // ==================== DFD ELEMENT TYPES ====================
 
 export type DFDElementType =
@@ -13,35 +14,72 @@ export type DFDElementType =
   | "DataFlow"
   | "TrustBoundary"
   | "PhysicalInterface"
-  | "Asset"
   | "Interface";
 
 export type SecurityLevel = "public" | "internal" | "confidential" | "secret";
 export type TrustLevel = "trusted" | "untrusted" | "unknown";
 
+/**
+ * Semantic properties for DFD elements and assets
+ */
+export interface ElementProperties {
+  description?: string;
+  protocol?: string;
+  encrypted?: boolean;
+  dataType?: string;
+
+  // Threat modeling fields
+  securityLevel?: SecurityLevel;
+  trustLevel?: TrustLevel;
+  authenticationRequired?: boolean;
+  encryptionRequired?: boolean;
+  securityNotes?: string;
+}
+
+// ==================== DFD ASSET ====================
+
+/**
+ * Asset annotation in DFD
+ * Multiple asset labels with same name are consolidated
+ */
+export interface DFDAsset {
+  /** Asset identifier (e.g. "A-001") - user-defined, can change */
+  id: string;
+
+  /** Display ID (same as id for consistency) */
+  displayId: string;
+
+  /** XML element IDs from draw.io (stable, multiple if placed multiple times) */
+  xmlIds: string[];
+
+  /** Positions where this asset is placed (one per xmlId) */
+  positions: Array<{ x: number; y: number }>;
+
+  /** Sizes of asset labels (one per xmlId) */
+  sizes: Array<{ width: number; height: number }>;
+
+  /** DFD elements this asset protects (XML IDs) */
+  linkedElements?: string[];
+
+  /** Semantic properties */
+  properties?: ElementProperties;
+}
+
+// ==================== DFD ELEMENTS ====================
+
 export interface DFDElement {
   id: string;
   type: DFDElementType;
   name: string;
-  description: string;
   displayId: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
 
-  // Semantic / logical properties (from description panel)
-  properties: Record<string, unknown> & {
-    description?: string;
-    protocol?: string;
-    encrypted?: boolean;
-    dataType?: string;
+  /** Assets that protect this element (Asset IDs like "A-001") */
+  linkedAssets?: string[];
 
-    // Threat modeling fields (optional)
-    securityLevel?: SecurityLevel;
-    trustLevel?: TrustLevel;
-    authenticationRequired?: boolean;
-    encryptionRequired?: boolean;
-    securityNotes?: string;
-  };
+  // Semantic / logical properties (from description panel)
+  properties: Record<string, unknown> & ElementProperties;
 }
 
 export interface DFDConnection {
@@ -64,20 +102,11 @@ export interface DFDConnection {
     bidirectional?: boolean;
   };
 
-  // Semantic / logical properties (from description panel)
-  properties?: {
-    description?: string;
-    protocol?: string;
-    encrypted?: boolean;
-    dataType?: string;
+  /** Assets that protect this connection (Asset IDs like "A-001") */
+  linkedAssets?: string[];
 
-    // Threat modeling fields (optional)
-    securityLevel?: SecurityLevel;
-    trustLevel?: TrustLevel;
-    authenticationRequired?: boolean;
-    encryptionRequired?: boolean;
-    securityNotes?: string;
-  };
+  // Semantic / logical properties (from description panel)
+  properties?: ElementProperties;
 }
 
 export interface DFDValidation {
@@ -96,11 +125,12 @@ export interface DFDStats {
   dataFlows: number;
   trustBoundaries: number;
   physicalInterfaces: number;
-  assets: number;
+  assets: number; // Count of unique asset IDs (not placements)
   interfaces: number;
 
   // Description completion stats
   describedElements: number;
+  describedAssets: number;
   describedConnections: number;
 }
 
@@ -108,6 +138,7 @@ export interface DFDData {
   xml?: string;
   elements: DFDElement[];
   connections: DFDConnection[];
+  assets: DFDAsset[];
   validation?: DFDValidation;
   stats?: DFDStats;
   lastModified?: string;
@@ -122,6 +153,7 @@ export interface DFDExportData {
   exportDate: string;
   xml: string;
   elements: DFDElement[];
+  assets: DFDAsset[];
   connections: DFDConnection[];
 }
 
@@ -217,12 +249,6 @@ export const DFD_ELEMENT_CONFIG: Record<
     description: "USB, UART, JTAG, etc.",
     icon: "▢",
   },
-  Asset: {
-    name: "Asset",
-    nameDE: "Asset",
-    description: "Asset label for elements",
-    icon: "A",
-  },
   Interface: {
     name: "Interface",
     nameDE: "Schnittstelle",
@@ -295,8 +321,10 @@ export function getDFDElementTypePluralText(
     DataStore: { en: "Data Stores", de: "Datenspeicher" },
     DataFlow: { en: "Data Flows", de: "Datenflüsse" },
     TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
-    PhysicalInterface: { en: "Physical Interfaces", de: "Physische Schnittstellen" },
-    Asset: { en: "Assets", de: "Assets" },
+    PhysicalInterface: {
+      en: "Physical Interfaces",
+      de: "Physische Schnittstellen",
+    },
     Interface: { en: "Interfaces", de: "Schnittstellen" },
   };
   return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);

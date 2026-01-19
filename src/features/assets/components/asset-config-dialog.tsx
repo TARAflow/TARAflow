@@ -31,14 +31,15 @@ import {
 } from "@mui/material";
 import { Info as InfoIcon } from "@mui/icons-material";
 
+import { AssetConfiguration } from "../models/asset-types";
+
 import {
-  AssetConfiguration,
   ImpactScaleType,
   ImpactCalculationMethod,
   ImpactRoundingMethod,
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
-} from "../models/asset-types";
+} from "../models/asset-impact-types";
 
 // ==================== TYPES ====================
 

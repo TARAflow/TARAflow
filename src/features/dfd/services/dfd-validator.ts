@@ -2,11 +2,13 @@
 // Single Responsibility: Validate DFD structure and completeness
 
 import {
+  DFDAsset,
   DFDElement,
   DFDConnection,
   DFDStats,
   DFDValidation,
 } from "../models/dfd-types";
+import { dfdAnalyzer } from "../utils/dfd-analyzer";
 
 export interface ValidationResult {
   isValid: boolean;
@@ -65,14 +67,14 @@ export const ValidationMessages = {
  *
  * Supports two validation scenarios:
  *
- * Scenario A — Classic Threat Model DFD (with External Entity)
+ * Scenario A – Classic Threat Model DFD (with External Entity)
  * Valid when:
  * 1. ≥ 1 Trust Boundary exists
  * 2. ≥ 1 internal Process or DataStore
  * 3. ≥ 1 External Entity (outside TB)
  * 4. At least 1 dataflow between internal ↔ external
  *
- * Scenario B — Internal Threat Modelling (without External Entity)
+ * Scenario B – Internal Threat Modelling (without External Entity)
  * Valid when:
  * 1. ≥ 2 Trust Boundaries exist
  * 2. Each TB contains at least one Process or DataStore
@@ -85,8 +87,9 @@ export class DFDValidator {
   validate(
     elements: DFDElement[],
     connections: DFDConnection[],
+    assets: DFDAsset[],
     stats: DFDStats,
-    options?: ValidateOptions
+    options?: ValidateOptions,
   ): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -128,6 +131,9 @@ export class DFDValidator {
       this.validateScenarioB(elements, connections, stats, errors, warnings);
     }
 
+    // Validate Assets and Interfaces
+    this.validateAssetsAndInterfaces(assets, elements, connections, warnings);
+
     return {
       isValid: errors.length === 0,
       isComplete: errors.length === 0 && warnings.length === 0,
@@ -166,7 +172,7 @@ export class DFDValidator {
     connections: DFDConnection[],
     stats: DFDStats,
     errors: string[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     // 1. ≥ 1 Trust Boundary
     if (stats.trustBoundaries === 0) {
@@ -193,11 +199,13 @@ export class DFDValidator {
       (e) =>
         e.type === "Process" ||
         e.type === "Multiprocess" ||
-        e.type === "DataStore"
+        e.type === "DataStore",
     );
 
     const hasElementInsideTB = processesAndStores.some((element) =>
-      trustBoundaries.some((tb) => this.isElementInsideBoundary(element, tb))
+      trustBoundaries.some((tb) =>
+        dfdAnalyzer.isElementInsideBoundary(element, tb),
+      ),
     );
 
     if (!hasElementInsideTB) {
@@ -206,10 +214,12 @@ export class DFDValidator {
 
     // 4. External Entity should be OUTSIDE all Trust Boundaries
     const externalEntities = elements.filter(
-      (e) => e.type === "ExternalEntity"
+      (e) => e.type === "ExternalEntity",
     );
     const externalInsideTB = externalEntities.filter((ext) =>
-      trustBoundaries.some((tb) => this.isElementInsideBoundary(ext, tb))
+      trustBoundaries.some((tb) =>
+        dfdAnalyzer.isElementInsideBoundary(ext, tb),
+      ),
     );
 
     if (externalInsideTB.length > 0) {
@@ -217,7 +227,7 @@ export class DFDValidator {
         warnings.push(
           `${ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB}:${
             ext.name || ext.id
-          }`
+          }`,
         );
       });
     }
@@ -225,7 +235,7 @@ export class DFDValidator {
     // 5. At least 1 dataflow between internal ↔ external
     const hasInternalExternalFlow = this.hasDataflowBetweenInternalAndExternal(
       elements,
-      connections
+      connections,
     );
 
     if (!hasInternalExternalFlow) {
@@ -238,21 +248,18 @@ export class DFDValidator {
         e.type === "Process" ||
         e.type === "Multiprocess" ||
         e.type === "DataStore" ||
-        e.type === "ExternalEntity"
+        e.type === "ExternalEntity",
     );
     this.validateUnconnectedElements(
       allConnectableElements,
       connections,
-      warnings
+      warnings,
     );
 
     // Optional warnings
     if (stats.dataFlows === 0) {
       warnings.push(ValidationMessages.NO_DATAFLOWS);
     }
-
-    // Validate Assets and Interfaces
-    this.validateAssetsAndInterfaces(elements, connections, warnings);
   }
 
   // ==================== SCENARIO B: Internal Threat Model ====================
@@ -262,7 +269,7 @@ export class DFDValidator {
     connections: DFDConnection[],
     stats: DFDStats,
     errors: string[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     // Get trust boundaries first (needed for ID validation even if count < 2)
     const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
@@ -283,7 +290,7 @@ export class DFDValidator {
       (e) =>
         e.type === "Process" ||
         e.type === "Multiprocess" ||
-        e.type === "DataStore"
+        e.type === "DataStore",
     );
 
     // Error if no processes/multiprocesses/datastores at all
@@ -295,12 +302,12 @@ export class DFDValidator {
     // 2. Each TB contains at least one Process/Multiprocess/DataStore
     const emptyBoundaries = this.findEmptyTrustBoundaries(
       trustBoundaries,
-      processesAndStores
+      processesAndStores,
     );
     if (emptyBoundaries.length > 0) {
       emptyBoundaries.forEach((tb) => {
         errors.push(
-          `${ValidationMessages.EMPTY_TRUST_BOUNDARY}:${tb.name || tb.id}`
+          `${ValidationMessages.EMPTY_TRUST_BOUNDARY}:${tb.name || tb.id}`,
         );
       });
     }
@@ -308,14 +315,14 @@ export class DFDValidator {
     // 3. Elements outside Trust Boundaries (WARNING - might be intentional)
     const elementsOutsideTB = this.findElementsOutsideAllBoundaries(
       trustBoundaries,
-      processesAndStores
+      processesAndStores,
     );
     if (elementsOutsideTB.length > 0) {
       elementsOutsideTB.forEach((element) => {
         warnings.push(
           `${ValidationMessages.ELEMENT_OUTSIDE_ALL_TB}:${element.type}:${
             element.name || element.id
-          }`
+          }`,
         );
       });
     }
@@ -324,7 +331,7 @@ export class DFDValidator {
     const hasCrossBoundaryFlow = this.hasDataflowCrossingTrustBoundary(
       elements,
       connections,
-      trustBoundaries
+      trustBoundaries,
     );
 
     if (!hasCrossBoundaryFlow) {
@@ -333,9 +340,6 @@ export class DFDValidator {
 
     // 5. Check for unconnected elements (WARNING)
     this.validateUnconnectedElements(processesAndStores, connections, warnings);
-
-    // Validate Assets and Interfaces
-    this.validateAssetsAndInterfaces(elements, connections, warnings);
   }
 
   /**
@@ -343,11 +347,11 @@ export class DFDValidator {
    */
   private findElementsOutsideAllBoundaries(
     trustBoundaries: DFDElement[],
-    elements: DFDElement[]
+    elements: DFDElement[],
   ): DFDElement[] {
     return elements.filter((element) => {
       const isInsideAnyTB = trustBoundaries.some((tb) =>
-        this.isElementInsideBoundary(element, tb)
+        dfdAnalyzer.isElementInsideBoundary(element, tb),
       );
       return !isInsideAnyTB;
     });
@@ -359,7 +363,7 @@ export class DFDValidator {
   private validateUnconnectedElements(
     elements: DFDElement[],
     connections: DFDConnection[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     // Get all element IDs that are connected
     const connectedIds = new Set<string>();
@@ -374,7 +378,7 @@ export class DFDValidator {
         warnings.push(
           `${ValidationMessages.UNCONNECTED_ELEMENT}:${element.type}:${
             element.name || element.id
-          }`
+          }`,
         );
       }
     });
@@ -388,10 +392,10 @@ export class DFDValidator {
    */
   private hasDataflowBetweenInternalAndExternal(
     elements: DFDElement[],
-    connections: DFDConnection[]
+    connections: DFDConnection[],
   ): boolean {
     const externalIds = new Set(
-      elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id)
+      elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id),
     );
     const internalIds = new Set(
       elements
@@ -399,9 +403,9 @@ export class DFDValidator {
           (e) =>
             e.type === "Process" ||
             e.type === "Multiprocess" ||
-            e.type === "DataStore"
+            e.type === "DataStore",
         )
-        .map((e) => e.id)
+        .map((e) => e.id),
     );
 
     return connections.some((conn) => {
@@ -421,44 +425,15 @@ export class DFDValidator {
    */
   private findEmptyTrustBoundaries(
     trustBoundaries: DFDElement[],
-    processesAndStores: DFDElement[]
+    processesAndStores: DFDElement[],
   ): DFDElement[] {
     return trustBoundaries.filter((tb) => {
       // Check if any process/store is geometrically inside this TB
       const hasContent = processesAndStores.some((element) =>
-        this.isElementInsideBoundary(element, tb)
+        dfdAnalyzer.isElementInsideBoundary(element, tb),
       );
       return !hasContent;
     });
-  }
-
-  /**
-   * Check if an element is geometrically inside a Trust Boundary
-   */
-  private isElementInsideBoundary(
-    element: DFDElement,
-    boundary: DFDElement
-  ): boolean {
-    const ex = element.position.x;
-    const ey = element.position.y;
-    const ew = element.size.width;
-    const eh = element.size.height;
-
-    const bx = boundary.position.x;
-    const by = boundary.position.y;
-    const bw = boundary.size.width;
-    const bh = boundary.size.height;
-
-    // Element center must be inside boundary
-    const elementCenterX = ex + ew / 2;
-    const elementCenterY = ey + eh / 2;
-
-    return (
-      elementCenterX >= bx &&
-      elementCenterX <= bx + bw &&
-      elementCenterY >= by &&
-      elementCenterY <= by + bh
-    );
   }
 
   /**
@@ -477,7 +452,7 @@ export class DFDValidator {
    */
   private validateTrustBoundaryIds(
     trustBoundaries: DFDElement[],
-    errors: string[]
+    errors: string[],
   ): void {
     // Pattern: [ID] at the end, where ID is alphanumeric with - and _
     const idPattern = /\[([a-zA-Z0-9_-]+)\]\s*$/;
@@ -487,7 +462,7 @@ export class DFDValidator {
 
       if (!idPattern.test(name)) {
         errors.push(
-          `${ValidationMessages.TRUST_BOUNDARY_MISSING_ID}:${name || tb.id}`
+          `${ValidationMessages.TRUST_BOUNDARY_MISSING_ID}:${name || tb.id}`,
         );
       }
     });
@@ -510,7 +485,7 @@ export class DFDValidator {
   private hasDataflowCrossingTrustBoundary(
     elements: DFDElement[],
     connections: DFDConnection[],
-    trustBoundaries: DFDElement[]
+    trustBoundaries: DFDElement[],
   ): boolean {
     if (trustBoundaries.length < 2) return false;
 
@@ -521,7 +496,7 @@ export class DFDValidator {
       if (element.type === "TrustBoundary") return;
 
       const containingTB = trustBoundaries.find((tb) =>
-        this.isElementInsideBoundary(element, tb)
+        dfdAnalyzer.isElementInsideBoundary(element, tb),
       );
       elementToBoundary.set(element.id, containingTB?.id || null);
     });
@@ -542,7 +517,7 @@ export class DFDValidator {
   private validateConnectionsExist(
     connections: DFDConnection[],
     elements: DFDElement[],
-    errors: string[]
+    errors: string[],
   ): void {
     const elementIds = new Set(elements.map((e) => e.id));
 
@@ -563,7 +538,7 @@ export class DFDValidator {
    */
   private validateUnconnectedDataflows(
     unconnectedDataflows: string[] | undefined,
-    warnings: string[]
+    warnings: string[],
   ): void {
     if (!unconnectedDataflows || unconnectedDataflows.length === 0) return;
 
@@ -578,12 +553,12 @@ export class DFDValidator {
    * Validate Assets and Interfaces
    */
   private validateAssetsAndInterfaces(
+    assets: DFDAsset[],
     elements: DFDElement[],
     connections: DFDConnection[],
-    warnings: string[]
+    warnings: string[],
   ): void {
-    // Separate assets and interfaces
-    const assets = elements.filter((e) => e.type === "Asset");
+    // Separate interfaces from elements
     const interfaces = elements.filter((e) => e.type === "Interface");
 
     // Validate Assets (must overlap with Process, Multiprocess, DataStore, OR Dataflow)
@@ -597,56 +572,23 @@ export class DFDValidator {
    * Validate that Assets are placed on valid elements (with partial overlap)
    */
   private validateAssetPlacement(
-    assets: DFDElement[],
+    assets: DFDAsset[],
     allElements: DFDElement[],
     connections: DFDConnection[],
-    warnings: string[]
+    warnings: string[],
   ): void {
-    const validTargetTypes = ["Process", "Multiprocess", "DataStore"];
-
     assets.forEach((asset) => {
-      // Check if asset overlaps with any valid element (Process, Multiprocess, DataStore)
-      const overlapsWithElement = allElements.some((element) => {
-        if (!validTargetTypes.includes(element.type)) return false;
-        return this.rectanglesOverlap(asset, element);
-      });
-
-      // OR check if asset overlaps with any dataflow line
-      const overlapsWithDataflow = connections.some((conn) =>
-        this.assetIntersectsDataflow(conn, asset, allElements)
+      // Use DFDAnalyzer to check if asset has valid placement
+      const hasValidPlacement = dfdAnalyzer.validateAssetPlacement(
+        asset,
+        allElements,
+        connections,
       );
 
-      if (!overlapsWithElement && !overlapsWithDataflow) {
-        warnings.push(
-          `${ValidationMessages.ASSET_NOT_PLACED}:${asset.name || asset.id}`
-        );
+      if (!hasValidPlacement) {
+        warnings.push(`${ValidationMessages.ASSET_NOT_PLACED}:${asset.id}`);
       }
     });
-  }
-
-  /**
-   * Check if two rectangles overlap (even partially)
-   */
-  private rectanglesOverlap(a: DFDElement, b: DFDElement): boolean {
-    const aLeft = a.position.x;
-    const aRight = a.position.x + a.size.width;
-    const aTop = a.position.y;
-    const aBottom = a.position.y + a.size.height;
-
-    const bLeft = b.position.x;
-    const bRight = b.position.x + b.size.width;
-    const bTop = b.position.y;
-    const bBottom = b.position.y + b.size.height;
-
-    // Check for overlap (returns true if rectangles touch or overlap)
-    return !(
-      (
-        aRight < bLeft || // A is completely left of B
-        aLeft > bRight || // A is completely right of B
-        aBottom < bTop || // A is completely above B
-        aTop > bBottom
-      ) // A is completely below B
-    );
   }
 
   /**
@@ -656,351 +598,22 @@ export class DFDValidator {
     interfaces: DFDElement[],
     connections: DFDConnection[],
     allElements: DFDElement[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     interfaces.forEach((iface) => {
-      // Check if any dataflow intersects with this interface
-      const hasDataflowThrough = connections.some((conn) =>
-        this.dataflowIntersectsInterface(conn, iface, allElements)
+      // Use DFDAnalyzer to find dataflows through interface
+      const dataflowsThrough = dfdAnalyzer.findDataflowsThroughInterface(
+        iface,
+        connections,
+        allElements,
       );
 
-      if (!hasDataflowThrough) {
+      if (dataflowsThrough.length === 0) {
         warnings.push(
-          `${ValidationMessages.INTERFACE_UNUSED}:${iface.name || iface.id}`
+          `${ValidationMessages.INTERFACE_UNUSED}:${iface.name || iface.id}`,
         );
       }
     });
-  }
-
-  /**
-   * Check if an asset (rectangle) intersects with a dataflow (line segments)
-   * Supports curved/orthogonal dataflows
-   */
-  private assetIntersectsDataflow(
-    connection: DFDConnection,
-    asset: DFDElement,
-    allElements: DFDElement[]
-  ): boolean {
-    const sourceEl = allElements.find((e) => e.id === connection.from);
-    const targetEl = allElements.find((e) => e.id === connection.to);
-
-    if (!sourceEl || !targetEl) return false;
-
-    // Get exit and entry points (use center as default)
-    const start = this.getElementConnectionPoint(sourceEl, "exit", connection);
-    const end = this.getElementConnectionPoint(targetEl, "entry", connection);
-
-    // If we have explicit waypoints, use them
-    if (connection.waypoints && connection.waypoints.length > 0) {
-      const points = [start, ...connection.waypoints, end];
-      for (let i = 0; i < points.length - 1; i++) {
-        if (
-          this.lineIntersectsRect(
-            points[i],
-            points[i + 1],
-            asset.position,
-            asset.size,
-            5
-          )
-        ) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    // For orthogonal curved paths, calculate the 5-point path
-    const pathPoints = this.calculateOrthogonalCurvedPath(start, end);
-
-    // Check if asset intersects any segment of the path
-    for (let i = 0; i < pathPoints.length - 1; i++) {
-      if (
-        this.lineIntersectsRect(
-          pathPoints[i],
-          pathPoints[i + 1],
-          asset.position,
-          asset.size,
-          8
-        )
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Get the connection point on an element (where dataflow exits or enters)
-   */
-  private getElementConnectionPoint(
-    element: DFDElement,
-    type: "exit" | "entry",
-    connection: DFDConnection
-  ): { x: number; y: number } {
-    // Default to center of element
-    return {
-      x: element.position.x + element.size.width / 2,
-      y: element.position.y + element.size.height / 2,
-    };
-  }
-
-  /**
-   * Calculate the path points for an orthogonal curved edge
-   * Returns 5+ points: start, control1, middle, control2, end
-   */
-  private calculateOrthogonalCurvedPath(
-    start: { x: number; y: number },
-    end: { x: number; y: number }
-  ): Array<{ x: number; y: number }> {
-    const points: Array<{ x: number; y: number }> = [];
-
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    // Midpoint
-    const midX = (start.x + end.x) / 2;
-    const midY = (start.y + end.y) / 2;
-
-    points.push(start);
-
-    if (absDy > absDx) {
-      // Primarily vertical movement
-      // Path: Start → vertical → curve → horizontal → curve → vertical → End
-
-      // First segment goes vertically from start
-      const firstBend = { x: start.x, y: midY };
-      points.push(firstBend);
-
-      // Middle point (horizontal transition)
-      const middle = { x: midX, y: midY };
-      points.push(middle);
-
-      // Second bend before end
-      const secondBend = { x: end.x, y: midY };
-      points.push(secondBend);
-    } else {
-      // Primarily horizontal movement
-      // Path: Start → horizontal → curve → vertical → curve → horizontal → End
-
-      // First segment goes horizontally from start
-      const firstBend = { x: midX, y: start.y };
-      points.push(firstBend);
-
-      // Middle point (vertical transition)
-      const middle = { x: midX, y: midY };
-      points.push(middle);
-
-      // Second bend before end
-      const secondBend = { x: midX, y: end.y };
-      points.push(secondBend);
-    }
-
-    points.push(end);
-
-    // Add intermediate points for curves between bends
-    return this.addCurveIntermediatePoints(points);
-  }
-
-  /**
-   * Add intermediate points between bends to approximate curves
-   */
-  private addCurveIntermediatePoints(
-    bendPoints: Array<{ x: number; y: number }>
-  ): Array<{ x: number; y: number }> {
-    if (bendPoints.length < 3) return bendPoints;
-
-    const result: Array<{ x: number; y: number }> = [];
-
-    for (let i = 0; i < bendPoints.length - 1; i++) {
-      const p1 = bendPoints[i];
-      const p2 = bendPoints[i + 1];
-
-      result.push(p1);
-
-      // Add intermediate points (subdivide each segment)
-      const steps = 4;
-      for (let j = 1; j < steps; j++) {
-        const t = j / steps;
-        result.push({
-          x: p1.x + (p2.x - p1.x) * t,
-          y: p1.y + (p2.y - p1.y) * t,
-        });
-      }
-    }
-
-    result.push(bendPoints[bendPoints.length - 1]);
-
-    return result;
-  }
-
-  /**
-   * Check if a dataflow (line segments) intersects with an interface rectangle
-   * Supports curved/orthogonal dataflows
-   */
-  private dataflowIntersectsInterface(
-    connection: DFDConnection,
-    iface: DFDElement,
-    allElements: DFDElement[]
-  ): boolean {
-    const sourceEl = allElements.find((e) => e.id === connection.from);
-    const targetEl = allElements.find((e) => e.id === connection.to);
-
-    if (!sourceEl || !targetEl) return false;
-
-    // Get exit and entry points
-    const start =
-      connection.sourcePoint ??
-      this.getElementConnectionPoint(sourceEl, "exit", connection);
-    const end =
-      connection.targetPoint ??
-      this.getElementConnectionPoint(targetEl, "entry", connection);
-
-    // If we have explicit waypoints, use them
-    if (connection.waypoints && connection.waypoints.length > 0) {
-      const points = [start, ...(connection.waypoints ?? []), end];
-
-      for (let i = 0; i < points.length - 1; i++) {
-        const lineSegments = connection.curved
-          ? this.interpolateLine(points[i], points[i + 1], 5)
-          : [points[i], points[i + 1]];
-
-        for (let j = 0; j < lineSegments.length - 1; j++) {
-          if (
-            this.lineIntersectsRect(
-              lineSegments[j],
-              lineSegments[j + 1],
-              iface.position,
-              iface.size,
-              0 // hier reicht 0 oder kleine Toleranz z.B. 2px
-            )
-          ) {
-            return true; // Datenfluss schneidet Interface
-          }
-        }
-      }
-      return false;
-    }
-
-    // For orthogonal curved paths, calculate the path
-    const pathPoints = this.calculateOrthogonalCurvedPath(start, end);
-
-    // Check if interface intersects any segment of the path
-    for (let i = 0; i < pathPoints.length - 1; i++) {
-      if (
-        this.lineIntersectsRect(
-          pathPoints[i],
-          pathPoints[i + 1],
-          iface.position,
-          iface.size,
-          10
-        )
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if a line segment intersects with a rectangle (with tolerance)
-   */
-  private lineIntersectsRect(
-    p1: { x: number; y: number },
-    p2: { x: number; y: number },
-    rectPos: { x: number; y: number },
-    rectSize: { width: number; height: number },
-    tolerance: number = 0
-  ): boolean {
-    // Expand rectangle by tolerance
-    const left = rectPos.x - tolerance;
-    const right = rectPos.x + rectSize.width + tolerance;
-    const top = rectPos.y - tolerance;
-    const bottom = rectPos.y + rectSize.height + tolerance;
-
-    // Check if line intersects any of the 4 edges of the rectangle
-    const topLeft = { x: left, y: top };
-    const topRight = { x: right, y: top };
-    const bottomLeft = { x: left, y: bottom };
-    const bottomRight = { x: right, y: bottom };
-
-    return (
-      this.lineSegmentsIntersect(p1, p2, topLeft, topRight) || // Top edge
-      this.lineSegmentsIntersect(p1, p2, topRight, bottomRight) || // Right edge
-      this.lineSegmentsIntersect(p1, p2, bottomLeft, bottomRight) || // Bottom edge
-      this.lineSegmentsIntersect(p1, p2, topLeft, bottomLeft) || // Left edge
-      this.pointInRect(
-        p1,
-        { x: left, y: top },
-        { width: right - left, height: bottom - top }
-      ) || // p1 inside rect
-      this.pointInRect(
-        p2,
-        { x: left, y: top },
-        { width: right - left, height: bottom - top }
-      ) // p2 inside rect
-    );
-  }
-
-  /**
-   * Check if two line segments intersect
-   * Uses parametric line intersection algorithm
-   */
-  private lineSegmentsIntersect(
-    p1: { x: number; y: number },
-    p2: { x: number; y: number },
-    p3: { x: number; y: number },
-    p4: { x: number; y: number }
-  ): boolean {
-    const denominator =
-      (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
-
-    // Lines are parallel
-    if (denominator === 0) return false;
-
-    const ua =
-      ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) /
-      denominator;
-    const ub =
-      ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) /
-      denominator;
-
-    // Check if intersection point is on both line segments
-    return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
-  }
-
-  /**
-   * Check if a point is inside a rectangle
-   */
-  private pointInRect(
-    point: { x: number; y: number },
-    rectPos: { x: number; y: number },
-    rectSize: { width: number; height: number }
-  ): boolean {
-    return (
-      point.x >= rectPos.x &&
-      point.x <= rectPos.x + rectSize.width &&
-      point.y >= rectPos.y &&
-      point.y <= rectPos.y + rectSize.height
-    );
-  }
-
-  private interpolateLine(
-    p1: { x: number; y: number },
-    p2: { x: number; y: number },
-    steps: number
-  ): { x: number; y: number }[] {
-    const points = [];
-    for (let i = 0; i <= steps; i++) {
-      points.push({
-        x: p1.x + (p2.x - p1.x) * (i / steps),
-        y: p1.y + (p2.y - p1.y) * (i / steps),
-      });
-    }
-    return points;
   }
 
   // ==================== NAMING & ID LABEL VALIDATION ====================
@@ -1042,7 +655,7 @@ export class DFDValidator {
    */
   private validateElementNames(
     elements: DFDElement[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     const connectableTypes = [
       "Process",
@@ -1062,7 +675,7 @@ export class DFDValidator {
         (defaultName) =>
           name === defaultName ||
           name.startsWith(defaultName + " ") ||
-          name.endsWith(" " + defaultName)
+          name.endsWith(" " + defaultName),
       );
 
       // Also check for very short names (1-2 chars) that aren't ID labels
@@ -1070,7 +683,7 @@ export class DFDValidator {
 
       if (isDefault || isTooShort) {
         warnings.push(
-          `${ValidationMessages.ELEMENT_DEFAULT_NAME}:${element.name}`
+          `${ValidationMessages.ELEMENT_DEFAULT_NAME}:${element.name}`,
         );
       }
     }
@@ -1082,7 +695,7 @@ export class DFDValidator {
   private validateIdLabels(
     elements: DFDElement[],
     connections: DFDConnection[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     // Check elements that should have ID labels (excluding TrustBoundary - they have different format)
     const typesNeedingIds = [
@@ -1101,7 +714,7 @@ export class DFDValidator {
 
       if (!hasDisplayId && !hasIdInName) {
         warnings.push(
-          `${ValidationMessages.ELEMENT_MISSING_IDLABEL}:${element.name}`
+          `${ValidationMessages.ELEMENT_MISSING_IDLABEL}:${element.name}`,
         );
       }
     }
@@ -1128,7 +741,7 @@ export class DFDValidator {
   private validateDuplicateIdLabels(
     elements: DFDElement[],
     connections: DFDConnection[],
-    warnings: string[]
+    warnings: string[],
   ): void {
     const idLabels = new Map<string, string[]>(); // id -> [element names]
 

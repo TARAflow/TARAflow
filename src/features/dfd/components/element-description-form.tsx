@@ -208,8 +208,8 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
 
       {/* Description - Required */}
       <RichTextEditor
-        value={element.description || ""}
-        onChange={(value) => handleChange("description", value)}
+        value={element.properties.description || ""}
+        onChange={(value) => handlePropertyChange("description", value)}
         label={t("tabs.dfd.element_description.description", {
           defaultValue: "Description",
         })}
@@ -236,7 +236,7 @@ export const ElementDescriptionForm: React.FC<ElementDescriptionFormProps> = ({
           onChange={(e) =>
             handlePropertyChange(
               "securityLevel",
-              e.target.value as SecurityLevel
+              e.target.value as SecurityLevel,
             )
           }
           label="Security Level"

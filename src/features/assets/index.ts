@@ -18,6 +18,9 @@ export {
 export type {
   Asset,
   AssetData,
+  AssetDFDAsset,
+  AssetDFDElement,
+  AssetDFDConnection,
   AssetConfiguration,
   AssetValidation,
   AssetProjectData,
@@ -26,40 +29,50 @@ export type {
   AssetExportData,
   AssetExportOptions,
   AssetImportOptions,
-  ImpactScaleType,
-  ImpactCalculationMethod,
-  ImpactRoundingMethod,
-  ImpactRating,
-  SecurityGoal,
-  SecurityGoalType,
   DFDElementLink,
-  ImpactCriteriaCategory,
 } from "./models/asset-types";
 
+export type {
+  ImpactRating,
+  ImpactScaleType,
+  ImpactCalculationMethod,
+  ImpactCriteriaCategory,
+  ImpactRoundingMethod,
+} from "./models/asset-impact-types";
+
+export type {
+  SecurityGoal,
+  SecurityGoalType,
+} from "./models/asset-security-goals-types";
+
 // Constants
+export { DEFAULT_ASSET_CONFIGURATION } from "./models/asset-types";
+
 export {
   IMPACT_SCALES,
   PREDEFINED_IMPACT_CRITERIA,
-  SECURITY_GOALS,
-  DEFAULT_ASSET_CONFIGURATION,
-} from "./models/asset-types";
+} from "./models/asset-impact-types";
+
+export { SECURITY_GOALS } from "./models/asset-security-goals-types";
 
 // Helper functions
 export {
   createDefaultAssetData,
   createEmptyAsset,
-  calculateOverallImpact,
-  getImpactLevel,
   generateNextAssetId,
   parseAssetId,
   renumberAssets,
   migrateAssetConfiguration,
 } from "./models/asset-types";
 
+export {
+  calculateOverallImpact,
+  getImpactLevel,
+} from "./models/asset-impact-types";
+
 // Service
 export { assetService } from "./services/asset-service";
 export type {
   AssetSaveResult,
   AssetLoadResult,
-  DFDAssetParseResult,
 } from "./services/asset-service";
