@@ -1,7 +1,8 @@
-// ==================== ATTACK TREE EDITOR ====================
-// Monaco Editor with DSL syntax highlighting
+// ==================== ATTACK TREE EDITOR (CodeMirror 6) ====================
+// CodeMirror 6 Editor with DSL syntax highlighting
+// Replaces Monaco Editor for better React integration and smaller bundle size
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, IconButton, Tooltip, Collapse, Divider } from "@mui/material";
 import {
@@ -11,8 +12,10 @@ import {
   Warning as WarningIcon,
   Info as InfoIcon,
 } from "@mui/icons-material";
-import Editor, { OnMount } from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
+import CodeMirror from "@uiw/react-codemirror";
+import { StreamLanguage } from "@codemirror/language";
+import { linter, Diagnostic } from "@codemirror/lint";
+import { EditorView } from "@codemirror/view";
 
 import {
   AttackTreeConfiguration,
@@ -30,9 +33,151 @@ interface AttackTreeEditorProps {
   onToggleCollapse: () => void;
 }
 
+// ==================== CUSTOM LANGUAGE DEFINITION ====================
+
+/**
+ * Attack Tree DSL Language Definition for CodeMirror
+ *
+ * Syntax:
+ * Node Name [Refs];TYPE evaluation @goal [Mitigations]
+ */
+const attackTreeLanguage = StreamLanguage.define({
+  token(stream, state) {
+    // Comments
+    if (stream.match(/^#.*/)) {
+      return "comment";
+    }
+
+    // Node types: ;ROOT, ;OR, ;AND
+    if (stream.match(/;(ROOT|OR|AND)\b/)) {
+      return "keyword";
+    }
+
+    // References: [A-001], [T-001], [DS-01]
+    if (stream.match(/\[[A-Z][A-Z0-9-]*\]/)) {
+      return "variableName";
+    }
+
+    // Mitigations: [M-001] or [M-001,M-002]
+    if (stream.match(/\[M-[0-9]+(?:,\s*M-[0-9]+)*\]/)) {
+      return "string";
+    }
+
+    // Attack Goals: @disclosure, @manipulation, etc.
+    if (stream.match(/@[a-z-]+/)) {
+      return "attributeName";
+    }
+
+    // Simple Evaluation: p=0.5, i=3
+    if (stream.match(/p=[\d.]+/)) {
+      return "number";
+    }
+    if (stream.match(/i=\d+/)) {
+      return "number";
+    }
+
+    // Extended Evaluation: 0.8,0.9,4
+    if (stream.match(/\d+\.?\d*,\d+\.?\d*,\d+/)) {
+      return "number";
+    }
+
+    // Operators
+    if (stream.match(/[,;]/)) {
+      return "punctuation";
+    }
+
+    // Advance one character
+    stream.next();
+    return null;
+  },
+});
+
+// ==================== LINTER (Error Markers) ====================
+
+/**
+ * Convert ValidationErrors to CodeMirror Diagnostics
+ */
+function createLinter(validationErrors: ValidationError[]) {
+  return linter((view) => {
+    const diagnostics: Diagnostic[] = [];
+    const doc = view.state.doc;
+
+    validationErrors.forEach((error) => {
+      // Get line position
+      const lineNumber = Math.max(1, Math.min(error.line, doc.lines));
+      const line = doc.line(lineNumber);
+
+      // Calculate positions
+      const from = line.from + (error.column ? error.column - 1 : 0);
+      const to = Math.min(from + 50, line.to); // Highlight up to 50 chars
+
+      diagnostics.push({
+        from,
+        to,
+        severity: error.severity,
+        message: error.message,
+      });
+    });
+
+    return diagnostics;
+  });
+}
+
+// ==================== THEME / STYLING ====================
+
+/**
+ * Custom theme for Attack Tree DSL
+ */
+const attackTreeTheme = EditorView.theme({
+  "&": {
+    fontSize: "14px",
+    height: "100%",
+  },
+  ".cm-content": {
+    fontFamily: "'Fira Code', 'Consolas', 'Monaco', monospace",
+    padding: "8px 0",
+  },
+  ".cm-gutters": {
+    backgroundColor: "#fafafa",
+    borderRight: "1px solid #e0e0e0",
+  },
+  ".cm-activeLineGutter": {
+    backgroundColor: "#e3f2fd",
+  },
+  ".cm-activeLine": {
+    backgroundColor: "#f5f5f5",
+  },
+  ".cm-selectionBackground": {
+    backgroundColor: "#bbdefb !important",
+  },
+  // Error/Warning underlines
+  ".cm-diagnostic-error": {
+    borderBottom: "2px wavy #d32f2f",
+  },
+  ".cm-diagnostic-warning": {
+    borderBottom: "2px wavy #ed6c02",
+  },
+  ".cm-diagnostic-info": {
+    borderBottom: "1px dotted #0288d1",
+  },
+});
+
+/**
+ * Syntax highlighting styles
+ */
+const syntaxHighlighting = EditorView.baseTheme({
+  ".cm-comment": { color: "#6a9955", fontStyle: "italic" },
+  ".cm-keyword": { color: "#0000ff", fontWeight: "bold" },
+  ".cm-variableName": { color: "#267f99" },
+  ".cm-string": { color: "#a31515" },
+  ".cm-number": { color: "#098658" },
+  ".cm-attributeName": { color: "#9c27b0", fontWeight: "bold" },
+  ".cm-punctuation": { color: "#000000" },
+});
+
 // ==================== COMPONENT ====================
 
-export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
+const AttackTreeEditorComponent: React.FC<AttackTreeEditorProps> = ({
   dsl,
   configuration,
   validation,
@@ -41,122 +186,69 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
   onToggleCollapse,
 }) => {
   const { t } = useTranslation();
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<any>(null);
 
-  const [showValidation, setShowValidation] = useState(true);
+  // DEBUG: Log what changed
+  const renderCountRef = React.useRef(0);
+  const prevPropsRef = React.useRef({
+    dsl,
+    validation,
+    collapsed,
+    configuration,
+  });
+  React.useEffect(() => {
+    renderCountRef.current++;
+    const prev = prevPropsRef.current;
+    const changes = [];
 
-  // Setup Monaco Editor
-  const handleEditorDidMount: OnMount = (editor, monaco) => {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
+    if (prev.dsl !== dsl) changes.push(`dsl`);
+    if (prev.validation !== validation)
+      changes.push(`validation (${validation.length} errors)`);
+    if (prev.collapsed !== collapsed) changes.push("collapsed");
+    if (prev.configuration !== configuration) changes.push("configuration");
 
-    // Register custom language
-    monaco.languages.register({ id: "attacktree" });
+    prevPropsRef.current = { dsl, validation, collapsed, configuration };
+  });
 
-    // Define tokens
-    monaco.languages.setMonarchTokensProvider("attacktree", {
-      tokenizer: {
-        root: [
-          // Comments
-          [/#.*$/, "comment"],
+  // Internal editor state (prevents cursor jump)
+  const [internalDsl, setInternalDsl] = React.useState(dsl);
 
-          // Node types
-          [/;(ROOT|OR|AND)\b/, "keyword"],
-
-          // References [A001], [T-001], [DS-01]
-          [/\[[A-Z][A-Z0-9-]*\]/, "type"],
-
-          // Mitigations [M-001]
-          [/\[M-[0-9]+(?:,\s*M-[0-9]+)*\]/, "string"],
-
-          // Evaluation (p=0.5,i=3 or 0.8,0.9,3)
-          [/p=[\d.]+/, "number"],
-          [/i=\d+/, "number"],
-          [/[\d.]+,[\d.]+,\d+/, "number"],
-
-          // Operators
-          [/[,;]/, "delimiter"],
-        ],
-      },
-    });
-
-    // Define theme
-    monaco.editor.defineTheme("attacktree-theme", {
-      base: "vs",
-      inherit: true,
-      rules: [
-        { token: "comment", foreground: "6A9955", fontStyle: "italic" },
-        { token: "keyword", foreground: "0000FF", fontStyle: "bold" },
-        { token: "type", foreground: "267F99" },
-        { token: "string", foreground: "A31515" },
-        { token: "number", foreground: "098658" },
-        { token: "delimiter", foreground: "000000" },
-      ],
-      colors: {
-        "editor.foreground": "#000000",
-        "editor.background": "#FFFFFF",
-      },
-    });
-
-    monaco.editor.setTheme("attacktree-theme");
-
-    // Set editor options
-    editor.updateOptions({
-      fontSize: configuration.fontSize,
-      lineNumbers: configuration.showLineNumbers ? "on" : "off",
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      wordWrap: "on",
-      tabSize: 1, // Tabs for indentation
-      insertSpaces: false,
-    });
-  };
-
-  // Update editor when configuration changes
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.updateOptions({
-        fontSize: configuration.fontSize,
-        lineNumbers: configuration.showLineNumbers ? "on" : "off",
-      });
+  // Sync external changes ONLY when tree changes (not during typing)
+  const prevDslRef = React.useRef(dsl);
+  React.useEffect(() => {
+    // Only update if DSL changed externally (e.g., tree selection)
+    // Not from our own onChange
+    if (dsl !== internalDsl && dsl !== prevDslRef.current) {
+      setInternalDsl(dsl);
     }
-  }, [configuration.fontSize, configuration.showLineNumbers]);
+    prevDslRef.current = dsl;
+  }, [dsl, internalDsl]);
 
-  // Update markers when validation changes
-  useEffect(() => {
-    if (editorRef.current && monacoRef.current) {
-      const model = editorRef.current.getModel();
-      if (model) {
-        const markers = validation.map((error) => ({
-          severity:
-            error.severity === "error"
-              ? monacoRef.current.MarkerSeverity.Error
-              : error.severity === "warning"
-              ? monacoRef.current.MarkerSeverity.Warning
-              : monacoRef.current.MarkerSeverity.Info,
-          startLineNumber: error.line,
-          startColumn: error.column || 1,
-          endLineNumber: error.line,
-          endColumn: error.column ? error.column + 10 : 100,
-          message: error.message,
-        }));
-
-        monacoRef.current.editor.setModelMarkers(model, "attacktree", markers);
-      }
-    }
+  // Create linter extension from validation errors
+  const linterExtension = useMemo(() => {
+    return createLinter(validation);
   }, [validation]);
 
-  const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      onDslChange(value);
-    }
-  };
+  // Combine all extensions (TEMPORARY: without dynamic linter)
+  const extensions = useMemo(() => {
+    const exts = [
+      attackTreeLanguage,
+      attackTreeTheme,
+      syntaxHighlighting,
+      // linterExtension, // DISABLED FOR TESTING
+    ];
+
+    // Tab size
+    exts.push(EditorView.lineWrapping);
+
+    return exts;
+  }, []); // Empty deps = nur 1x erstellt
 
   // Group validation by severity
   const errors = validation.filter((v) => v.severity === "error");
   const warnings = validation.filter((v) => v.severity === "warning");
   const infos = validation.filter((v) => v.severity === "info");
+
+  const [showValidation, setShowValidation] = React.useState(true);
 
   return (
     <Box
@@ -202,20 +294,47 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
             flexDirection: "column",
           }}
         >
-          {/* Editor */}
-          <Box sx={{ flexGrow: 1, position: "relative" }}>
-            <Editor
+          {/* CodeMirror Editor */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              position: "relative",
+              overflow: "hidden",
+              "& .cm-editor": {
+                height: "100%",
+              },
+              "& .cm-scroller": {
+                overflow: "auto",
+              },
+            }}
+          >
+            <CodeMirror
+              value={internalDsl}
               height="100%"
-              language="attacktree"
-              value={dsl}
-              onChange={handleEditorChange}
-              onMount={handleEditorDidMount}
-              options={{
-                automaticLayout: true,
-                scrollbar: {
-                  vertical: "visible",
-                  horizontal: "visible",
-                },
+              extensions={extensions}
+              onChange={(value) => {
+                setInternalDsl(value);
+                onDslChange(value);
+              }}
+              basicSetup={{
+                lineNumbers: configuration.showLineNumbers,
+                highlightActiveLineGutter: true,
+                highlightActiveLine: true,
+                foldGutter: false,
+                dropCursor: true,
+                allowMultipleSelections: true,
+                indentOnInput: true,
+                bracketMatching: true,
+                closeBrackets: true,
+                autocompletion: false, // We'll add this later if needed
+                rectangularSelection: true,
+                crosshairCursor: false,
+                highlightSelectionMatches: true,
+                closeBracketsKeymap: true,
+                searchKeymap: true,
+                foldKeymap: true,
+                completionKeymap: false,
+                lintKeymap: true,
               }}
             />
           </Box>
@@ -298,8 +417,8 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
                             error.severity === "error"
                               ? "error.main"
                               : error.severity === "warning"
-                              ? "warning.main"
-                              : "info.main",
+                                ? "warning.main"
+                                : "info.main",
                         }}
                       >
                         <span>[Line {error.line}]</span>
@@ -315,6 +434,48 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
       )}
     </Box>
   );
-};
+};;
+
+// Export with React.memo and custom comparison
+export const AttackTreeEditor = React.memo(
+  AttackTreeEditorComponent,
+  arePropsEqual,
+);
+
+AttackTreeEditor.displayName = "AttackTreeEditor";
 
 export default AttackTreeEditor;
+
+// Custom comparison function for React.memo
+// Only re-render if DSL or critical props change
+function arePropsEqual(
+  prev: AttackTreeEditorProps,
+  next: AttackTreeEditorProps,
+): boolean {
+  // Always re-render if collapsed state changes
+  if (prev.collapsed !== next.collapsed) {
+    return false;
+  }
+
+  // Always re-render if DSL changes
+  if (prev.dsl !== next.dsl) {
+    return false;
+  }
+
+  // Re-render if line numbers setting changes
+  if (
+    prev.configuration.showLineNumbers !== next.configuration.showLineNumbers
+  ) {
+    return false;
+  }
+
+  // Re-render if font size changes
+  if (prev.configuration.fontSize !== next.configuration.fontSize) {
+    return false;
+  }
+
+  // Don't re-render for validation changes (handled by linter)
+  // Don't re-render for callback changes
+
+  return true;
+}

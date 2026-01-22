@@ -405,7 +405,7 @@ interface EvalParseResult {
 function parseEvaluation(
   evalStr: string,
   lineNumber: number,
-  method: EvaluationMethod
+  method: EvaluationMethod,
 ): EvalParseResult {
   // Try simple format first: p=0.5,i=3
   const simpleMatch = evalStr.match(/p\s*=\s*([\d.]+)\s*,\s*i\s*=\s*(\d+)/i);
@@ -444,14 +444,17 @@ function parseEvaluation(
     };
   }
 
-  // Try extended format: 0.8,0.9,3 (f,b,i)
-  const extendedMatch = evalStr.match(
-    /^([\d.]+)\s*,\s*([\d.]+)\s*,\s*(\d+)$/
+  // Try extended format: f=0.8,b=0.9,i=3 OR 0.8,0.9,3
+  const extendedExplicitMatch = evalStr.match(
+    /f\s*=\s*([\d.]+)\s*,\s*b\s*=\s*([\d.]+)\s*,\s*i\s*=\s*(\d+)/i,
   );
-  if (extendedMatch) {
-    const feasibility = parseFloat(extendedMatch[1]);
-    const benefits = parseFloat(extendedMatch[2]);
-    const impact = parseInt(extendedMatch[3]);
+  const extendedMatch = evalStr.match(/^([\d.]+)\s*,\s*([\d.]+)\s*,\s*(\d+)$/);
+  const match = extendedExplicitMatch || extendedMatch;
+
+  if (match) {
+    const feasibility = parseFloat(match[1]);
+    const benefits = parseFloat(match[2]);
+    const impact = parseInt(match[3]);
 
     if (feasibility < 0 || feasibility > 1) {
       return {
@@ -505,11 +508,11 @@ function parseEvaluation(
       message:
         method === "simple"
           ? `Invalid evaluation format. Expected: p=0.0-1.0,i=1-5`
-          : `Invalid evaluation format. Expected: f,b,i (three comma-separated values)`,
+          : `Invalid evaluation format. Expected: f=0.0-1.0,b=0.0-1.0,i=1-5 or 0.0-1.0,0.0-1.0,1-5`,
       messageDE:
         method === "simple"
           ? `Ungültiges Bewertungsformat. Erwartet: p=0.0-1.0,i=1-5`
-          : `Ungültiges Bewertungsformat. Erwartet: f,b,i (drei kommagetrennte Werte)`,
+          : `Ungültiges Bewertungsformat. Erwartet: f=0.0-1.0,b=0.0-1.0,i=1-5 oder 0.0-1.0,0.0-1.0,1-5`,
       context: evalStr,
     },
   };

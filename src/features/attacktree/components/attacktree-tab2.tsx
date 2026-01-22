@@ -1,124 +1,74 @@
-// ==================== ATTACK TREE TAB (PHASE 5) ====================
+// ==================== ATTACK TREE TAB (PHASE 5) - REFACTORED ====================
 // Main component for attack tree modeling
-// Features:
-// - Toggle between Overview (Accordion) and Editor (Split) views
-// - Overview: Grouped accordions by Asset/Threat with path tables
-// - Editor: Monaco DSL editor + D3 tree visualization
-// - Critical Workflow: Auto-create trees for all asset security goals
-// - Standard Workflow: Manual tree creation from threats/risks
-// - Sync from Assets for Critical Workflow
-// - UI state persisted to localStorage
+// Refactored to use custom hooks for better maintainability
+//
+// Architecture:
+// - useAttackTreeData: Data management and CRUD
+// - useAttackTreeEditor: DSL editing with debouncing
+// - useAttackTreeUI: UI state and dialogs
+// - attackTreeOperations: Pure helper functions
 
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect,
-} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  IconButton,
-  Tooltip,
   Typography,
-  Button,
-  Divider,
-  Chip,
-  Alert,
-  Collapse,
-  ToggleButtonGroup,
-  ToggleButton,
-  CircularProgress,
-  AlertTitle,
   Stack,
-  Badge,
+  Paper,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  Badge,
+  Alert,
+  AlertTitle,
+  CircularProgress,
+  Button,
 } from "@mui/material";
 import {
-  Settings as SettingsIcon,
-  Sync as SyncIcon,
-  SkipNext as NextIcon,
-  Warning as WarningIcon,
-  Download as ExportIcon,
-  Upload as ImportIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
   Edit as EditIcon,
-  ViewList as OverviewIcon,
-  AccountTree as TreeIcon,
-  Security as AssetIcon,
-  BugReport as ThreatIcon,
-  Assessment as RiskIcon,
-  Search as SearchIcon,
+  Delete as DeleteIcon,
   CheckCircle as ValidIcon,
   Error as InvalidIcon,
+  Sync as SyncIcon,
 } from "@mui/icons-material";
 
 import {
   AttackTree,
-  AttackTreeData,
   AttackTreeProjectData,
   AttackTreeUpdateResult,
   AttackTreeTabProps,
-  AttackTreeAnchor,
-  AttackTreeAnchorType,
   SecurityGoalType,
   AssetReference,
   ThreatReference,
-  RiskReference,
-  createEmptyAttackTree,
-  createDefaultAttackTreeData,
-  getTreesForAsset,
-  getTreesByAnchorType,
   checkAssetAttackTreeCoverage,
   getAnchorDisplayName,
-  getAnchorTypeIcon,
   getRiskScoreEmoji,
-  DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION,
 } from "../models/attacktree-types";
-import { attackTreeService } from "../services/attacktree-service";
-import { attackTreeParser } from "../services/attacktree-parser";
-import { attackTreeValidator } from "../services/attacktree-validator";
-import { attackTreeCalculator } from "../services/attacktree-calculator";
-import { AttackTreeToolbar, MainView } from "./attacktree-toolbar";
+
+// Custom Hooks
+import { useAttackTreeData } from "../hooks/use-attacktree-data";
+import { useAttackTreeEditor } from "../hooks/use-attacktree-editor";
+import { useAttackTreeUI, MainView } from "../hooks/use-attacktree-ui";
+
+// Components
+import { AttackTreeToolbar } from "./attacktree-toolbar";
 import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeCreateDialog } from "./attacktree-create-dialog";
 import { AttackTreeConfigDialog } from "./attacktree-config-dialog";
 import { AttackTreeTableView } from "./attacktree-tableview";
 import { DFDPreviewPanel, ConfirmDialog } from "shared";
-import { useSplitViewResize, MIN_PANEL_HEIGHT, DEFAULT_TOP_HEIGHT } from "shared";
+import { useSplitViewResize, MIN_PANEL_HEIGHT } from "shared";
 
 // ==================== CONSTANTS ====================
 
 const MIN_PANEL_WIDTH = 300;
-const DEFAULT_EDITOR_WIDTH_PERCENT = 50;
 
 // ==================== HELPER FUNCTIONS ====================
-
-function ensureValidAttackTreeData(
-  data: AttackTreeData | null | undefined
-): AttackTreeData {
-  if (!data) return createDefaultAttackTreeData();
-  return {
-    trees: data.trees ?? [],
-    configuration:
-      data.configuration ?? DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION,
-    lastModified: data.lastModified ?? new Date().toISOString(),
-  };
-}
-
-// ==================== GROUPED TREE STRUCTURE ====================
 
 interface TreeGroup {
   id: string;
@@ -133,7 +83,7 @@ interface TreeGroup {
 function groupTrees(
   trees: AttackTree[],
   assets: AssetReference[],
-  threats: ThreatReference[]
+  threats: ThreatReference[],
 ): TreeGroup[] {
   const groups: TreeGroup[] = [];
   const assetGroups: { [key: string]: AttackTree[] } = {};
@@ -167,7 +117,6 @@ function groupTrees(
     const asset = assets.find((a) => a.id === assetId);
     const assetTrees = assetGroups[assetId];
 
-    // Check coverage
     const enabledGoals =
       asset?.securityGoals.filter((sg) => sg.enabled).map((sg) => sg.type) ||
       [];
@@ -217,6 +166,104 @@ function groupTrees(
   return groups;
 }
 
+// ==================== MEMOIZED EDITOR VIEW ====================
+
+interface AttackTreeEditorViewProps {
+  selectedTree: AttackTree;
+  localDsl: string;
+  editorCollapsed: boolean;
+  editorWidthPercent: number;
+  handleDslChange: (dsl: string) => void;
+  toggleEditorCollapsed: () => void;
+}
+
+const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
+  ({
+    selectedTree,
+    localDsl,
+    editorCollapsed,
+    editorWidthPercent,
+    handleDslChange,
+    toggleEditorCollapsed,
+  }) => {
+    // Memoize validation errors to prevent new array on every render
+    const validationErrors = React.useMemo(
+      () => selectedTree.validation?.errors || [],
+      [selectedTree.validation?.errors],
+    );
+
+    return (
+      <Box sx={{ display: "flex", height: "100%", overflow: "hidden" }}>
+        {/* Editor Pane */}
+        <Box
+          sx={{
+            width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
+            minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
+            height: "100%",
+            transition: "width 0.2s",
+            borderRight: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <AttackTreeEditor
+            dsl={localDsl}
+            configuration={selectedTree.configuration}
+            validation={validationErrors}
+            collapsed={editorCollapsed}
+            onDslChange={handleDslChange}
+            onToggleCollapse={toggleEditorCollapsed}
+          />
+        </Box>
+
+        {/* Preview Pane */}
+        <Box sx={{ flexGrow: 1, height: "100%", overflow: "hidden" }}>
+          <AttackTreePreview
+            ast={selectedTree.ast}
+            pathAnalysis={selectedTree.pathAnalysis}
+            evaluationMethod={selectedTree.configuration.evaluationMethod}
+            highlightCriticalPath={
+              selectedTree.configuration.highlightCriticalPath
+            }
+            onNodeSelect={() => {}}
+          />
+        </Box>
+      </Box>
+    );
+  },
+  // Custom comparison: only re-render if critical props change
+  (prevProps, nextProps) => {
+    // Re-render if tree ID changes (different tree selected)
+    if (prevProps.selectedTree.id !== nextProps.selectedTree.id) {
+      return false;
+    }
+
+    // Re-render if DSL changes
+    if (prevProps.localDsl !== nextProps.localDsl) {
+      return false;
+    }
+
+    // Re-render if collapsed state changes
+    if (prevProps.editorCollapsed !== nextProps.editorCollapsed) {
+      return false;
+    }
+
+    // Re-render if width changes
+    if (prevProps.editorWidthPercent !== nextProps.editorWidthPercent) {
+      return false;
+    }
+
+    const prevValidation = prevProps.selectedTree.validation?.errors || [];
+    const nextValidation = nextProps.selectedTree.validation?.errors || [];
+    if (JSON.stringify(prevValidation) !== JSON.stringify(nextValidation)) {
+      return false;
+    }
+
+    return true;
+  },
+);
+
+AttackTreeEditorView.displayName = "AttackTreeEditorView";
+
 // ==================== COMPONENT ====================
 
 export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
@@ -228,95 +275,75 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
 
-  // ==================== STATE ====================
+  // ==================== CUSTOM HOOKS ====================
 
-  // Attack tree data (local working copy)
-  const [attackTreeData, setAttackTreeData] = useState<AttackTreeData>(() =>
-    ensureValidAttackTreeData(project.attackTrees),
+  // Data Management
+  const {
+    attackTreeData,
+    selectedTree,
+    selectedTreeId,
+    isDirty,
+    hasTrees,
+    validTreeCount,
+    setSelectedTreeId,
+    createTree,
+    updateTree,
+    deleteTree,
+    syncFromAssets,
+    updateConfiguration,
+    importTree,
+  } = useAttackTreeData(project, onUpdate, onDirtyChange);
+
+  // Editor Logic (with debounced parsing)
+  const { localDsl, handleDslChange } = useAttackTreeEditor(
+    selectedTree,
+    project,
+    updateTree,
   );
 
-  // UI state with localStorage persistence
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [showDfdPreview, setShowDfdPreview] = useState(() => {
-    const saved = localStorage.getItem("attacktree-tab-showDfdPreview");
-    return saved === "true";
-  });
-  const [mainView, setMainView] = useState<MainView>(() => {
-    const saved = localStorage.getItem("attacktree-tab-mainView");
-    return saved === "overview" || saved === "editor" ? saved : "overview";
-  });
-  const [editorWidthPercent, setEditorWidthPercent] = useState(() => {
-    const saved = localStorage.getItem("attacktree-tab-editorWidth");
-    return saved ? parseInt(saved, 10) : DEFAULT_EDITOR_WIDTH_PERCENT;
-  });
-  const [topPanelHeight, setTopPanelHeight] = useState(() => {
-    const saved = localStorage.getItem("attacktree-tab-topPanelHeight");
-    return saved ? parseInt(saved, 10) : 200;
-  });
-  const [editorCollapsed, setEditorCollapsed] = useState(false);
+  // UI State
+  const {
+    showDfdPreview,
+    mainView,
+    editorCollapsed,
+    editorWidthPercent,
+    topPanelHeight,
+    showConfigDialog,
+    showCreateDialog,
+    showDeleteConfirm,
+    showSyncConfirm,
+    expandedGroups,
+    treeToDelete,
+    setShowDfdPreview,
+    setMainView,
+    setEditorCollapsed,
+    setEditorWidthPercent,
+    setTopPanelHeight,
+    setShowConfigDialog,
+    setShowCreateDialog,
+    setShowDeleteConfirm,
+    setShowSyncConfirm,
+    toggleGroupExpanded,
+    startDeleteTree,
+    cancelDelete,
+  } = useAttackTreeUI();
 
-  // Selected tree for editor
-  const [selectedTreeId, setSelectedTreeId] = useState<string | null>(() => {
-    // Select first tree if available
-    const data = ensureValidAttackTreeData(project.attackTrees);
-    return data.trees.length > 0 ? data.trees[0].id : null;
-  });
+  // Toggle editor collapsed
+  const toggleEditorCollapsed = useCallback(() => {
+    setEditorCollapsed(!editorCollapsed);
+  }, [editorCollapsed, setEditorCollapsed]);
 
-  // Persist UI state to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      "attacktree-tab-showDfdPreview",
-      String(showDfdPreview),
-    );
-  }, [showDfdPreview]);
+  // ==================== REFS ====================
 
-  useEffect(() => {
-    localStorage.setItem("attacktree-tab-mainView", mainView);
-  }, [mainView]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "attacktree-tab-editorWidth",
-      String(editorWidthPercent),
-    );
-  }, [editorWidthPercent]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "attacktree-tab-topPanelHeight",
-      String(topPanelHeight),
-    );
-  }, [topPanelHeight]);
-
-  // Dialog state
-  const [showConfigDialog, setShowConfigDialog] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [treeToDelete, setTreeToDelete] = useState<string | null>(null);
-  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
-
-  // Expanded accordions
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-
-  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ==================== DERIVED STATE ====================
 
-  const selectedTree = useMemo(() => {
-    if (!selectedTreeId) return null;
-    return attackTreeData.trees.find((t) => t.id === selectedTreeId) || null;
-  }, [attackTreeData.trees, selectedTreeId]);
-
   const treeGroups = useMemo(() => {
     return groupTrees(attackTreeData.trees, project.assets, project.threats);
   }, [attackTreeData.trees, project.assets, project.threats]);
 
-  const hasTrees = attackTreeData.trees.length > 0;
-
-  // Critical workflow checks
   const isCriticalWorkflow = project.isHighImpact;
 
   const criticalCoverage = useMemo(() => {
@@ -366,12 +393,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     };
   }, [isCriticalWorkflow, project.assets, attackTreeData]);
 
-  // Valid trees count
-  const validTreeCount = useMemo(() => {
-    return attackTreeData.trees.filter((t) => t.validation?.isValid).length;
-  }, [attackTreeData.trees]);
-
-  // Needs sync (assets changed since last sync)
   const needsSync = useMemo(() => {
     if (!isCriticalWorkflow) return false;
     return (
@@ -379,364 +400,53 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     );
   }, [isCriticalWorkflow, criticalCoverage]);
 
-  // ==================== EFFECTS ====================
+  const canProceed = useMemo(() => {
+    if (isCriticalWorkflow) {
+      return criticalCoverage?.isAllComplete || false;
+    }
+    return true; // Standard workflow
+  }, [isCriticalWorkflow, criticalCoverage]);
 
-  // Split view resize
+  // ==================== SPLIT VIEW RESIZE ====================
+
   const {
     topPanelHeight: resizedHeight,
     isResizing,
     handleMouseDown,
     splitContainerRef,
   } = useSplitViewResize({
-    defaultHeight: topPanelHeight, // Use state value, not hardcoded
+    defaultHeight: topPanelHeight,
     minHeight: MIN_PANEL_HEIGHT,
   });
 
-  // Update topPanelHeight when resized
-  useEffect(() => {
+  // Sync resized height to state
+  React.useEffect(() => {
     if (!isResizing && resizedHeight !== topPanelHeight) {
       setTopPanelHeight(resizedHeight);
     }
-  }, [isResizing, resizedHeight, topPanelHeight]);
-
-  // Sync resizedHeight to topPanelHeight for localStorage persistence
-  useEffect(() => {
-    if (!isResizing && resizedHeight !== topPanelHeight) {
-      setTopPanelHeight(resizedHeight);
-    }
-  }, [isResizing, resizedHeight, topPanelHeight]);
-
-  // Update dirty state
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
-
-  // Sync from project when it changes
-  useEffect(() => {
-    setAttackTreeData(ensureValidAttackTreeData(project.attackTrees));
-  }, [project.attackTrees]);
-
-  // Parse trees that don't have AST yet (initial load or after import)
-  useEffect(() => {
-    let needsUpdate = false;
-    const updatedTrees = attackTreeData.trees.map((tree) => {
-      // Skip trees that already have AST
-      if (tree.ast) return tree;
-
-      needsUpdate = true;
-
-      // Parse DSL and generate AST
-      const parseResult = attackTreeParser.parse(
-        tree.dsl,
-        tree.configuration.evaluationMethod,
-      );
-
-      // Get anchor asset ID for validation
-      const anchorAssetId =
-        tree.anchor.type === "asset" ? tree.anchor.assetId : undefined;
-
-      // Validate
-      const validation = attackTreeValidator.validateAttackTree(
-        parseResult.ast,
-        project,
-        parseResult.errors,
-        anchorAssetId,
-      );
-
-      // Calculate path analysis if valid
-      let pathAnalysis = undefined;
-      if (parseResult.ast && validation.isValid) {
-        pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
-          parseResult.ast,
-          tree.configuration.evaluationMethod,
-        );
-      }
-
-      // Return updated tree
-      return {
-        ...tree,
-        ast: parseResult.ast,
-        validation: validation,
-        pathAnalysis: pathAnalysis,
-      };
-    });
-
-    if (needsUpdate) {
-      setAttackTreeData((prev) => ({
-        ...prev,
-        trees: updatedTrees,
-      }));
-    }
-  }, [attackTreeData.trees, project]);
-
-  // Auto-save when dirty (debounced)
-  useEffect(() => {
-    if (!isDirty) return;
-
-    const timeoutId = setTimeout(() => {
-      const result: AttackTreeUpdateResult = {
-        attackTrees: attackTreeData,
-        phaseStatus: project.phaseStatus,
-        lastModified: new Date().toISOString(),
-      };
-
-      onUpdate(result);
-      setIsDirty(false);
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
-  }, [isDirty, attackTreeData, project.phaseStatus, onUpdate]);
+  }, [isResizing, resizedHeight, topPanelHeight, setTopPanelHeight]);
 
   // ==================== HANDLERS ====================
 
-  const handleToggleDfdPreview = useCallback(() => {
-    setShowDfdPreview((prev) => !prev);
-  }, []);
-
-  const handleMainViewChange = useCallback((view: MainView) => {
-    setMainView(view);
-  }, []);
-
-  const handleTreeSelect = useCallback((treeId: string) => {
-    setSelectedTreeId(treeId);
-    setMainView("editor");
-  }, []);
-
-  const handleDslChange = useCallback(
-    (newDsl: string) => {
-      if (!selectedTreeId) return;
-
-      setAttackTreeData((prev) => {
-        const treeIndex = prev.trees.findIndex((t) => t.id === selectedTreeId);
-        if (treeIndex < 0) return prev;
-
-        const currentTree = prev.trees[treeIndex];
-        const updatedTree = {
-          ...currentTree,
-          dsl: newDsl,
-          lastModified: new Date().toISOString(),
-        };
-
-        // Parse DSL and generate AST
-        const parseResult = attackTreeParser.parse(
-          newDsl,
-          currentTree.configuration.evaluationMethod,
-        );
-
-        // Get anchor asset ID for validation
-        const anchorAssetId =
-          currentTree.anchor.type === "asset"
-            ? currentTree.anchor.assetId
-            : undefined;
-
-        // Validate
-        const validation = attackTreeValidator.validateAttackTree(
-          parseResult.ast,
-          project,
-          parseResult.errors,
-          anchorAssetId,
-        );
-
-        // Calculate path analysis if valid
-        let pathAnalysis = undefined;
-        if (parseResult.ast && validation.isValid) {
-          pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
-            parseResult.ast,
-            currentTree.configuration.evaluationMethod,
-          );
-        }
-
-        // Update tree with AST and validation
-        updatedTree.ast = parseResult.ast;
-        updatedTree.validation = validation;
-        updatedTree.pathAnalysis = pathAnalysis;
-
-        const updatedTrees = [...prev.trees];
-        updatedTrees[treeIndex] = updatedTree;
-
-        return {
-          ...prev,
-          trees: updatedTrees,
-          lastModified: new Date().toISOString(),
-        };
-      });
-      setIsDirty(true);
-    },
-    [selectedTreeId, project],
-  );
-
-  const handleSaveTree = useCallback(() => {
-    if (!selectedTree) return;
-
-    const result = attackTreeService.saveAttackTree(project, selectedTree);
-    if (result.success) {
-      setAttackTreeData(result.attackTreeData);
-      setIsDirty(true);
-    }
-  }, [project, selectedTree]);
-
-  const handleCreateTree = useCallback(
-    (anchor: AttackTreeAnchor) => {
-      const defaultEvalMethod =
-        attackTreeData.configuration?.defaultEvaluationMethod || "simple";
-
-      const newTree = createEmptyAttackTree(anchor, {
-        evaluationMethod: defaultEvalMethod,
-      });
-
-      // Parse initial DSL and generate AST
-      const parseResult = attackTreeParser.parse(
-        newTree.dsl,
-        newTree.configuration.evaluationMethod,
-      );
-
-      // Get anchor asset ID for validation
-      const anchorAssetId =
-        newTree.anchor.type === "asset" ? newTree.anchor.assetId : undefined;
-
-      // Validate
-      const validation = attackTreeValidator.validateAttackTree(
-        parseResult.ast,
-        project,
-        parseResult.errors,
-        anchorAssetId,
-      );
-
-      // Calculate path analysis if valid
-      let pathAnalysis = undefined;
-      if (parseResult.ast && validation.isValid) {
-        pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
-          parseResult.ast,
-          newTree.configuration.evaluationMethod,
-        );
-      }
-
-      // Update tree with AST and validation
-      newTree.ast = parseResult.ast;
-      newTree.validation = validation;
-      newTree.pathAnalysis = pathAnalysis;
-
-      setAttackTreeData((prev) => ({
-        ...prev,
-        trees: [...prev.trees, newTree],
-        lastModified: new Date().toISOString(),
-      }));
-
-      setSelectedTreeId(newTree.id);
+  const handleTreeSelect = useCallback(
+    (treeId: string) => {
+      setSelectedTreeId(treeId);
       setMainView("editor");
-      setIsDirty(true);
-      setShowCreateDialog(false);
     },
-    [attackTreeData.configuration, project],
+    [setSelectedTreeId, setMainView],
   );
 
-  const handleDeleteTree = useCallback((treeId: string) => {
-    setTreeToDelete(treeId);
-    setShowDeleteConfirm(true);
-  }, []);
-
-  const handleConfirmDelete = useCallback(() => {
-    if (!treeToDelete) return;
-
-    const updatedData = attackTreeService.deleteAttackTree(
-      project,
-      treeToDelete,
-    );
-    setAttackTreeData(updatedData);
-
-    // Select another tree if current was deleted
-    if (selectedTreeId === treeToDelete) {
-      setSelectedTreeId(
-        updatedData.trees.length > 0 ? updatedData.trees[0].id : null,
-      );
-    }
-
-    setIsDirty(true);
-    setShowDeleteConfirm(false);
-    setTreeToDelete(null);
-  }, [treeToDelete, project, selectedTreeId]);
-
-  const handleSyncFromAssets = useCallback(() => {
-    if (!isCriticalWorkflow || !criticalCoverage) return;
-
-    setIsSyncing(true);
-
-    // Generate trees for missing goals
-    const newTrees: AttackTree[] = [];
-    criticalCoverage.assets.forEach((assetCov) => {
-      assetCov.missingGoals.forEach((goal) => {
-        const tree = attackTreeService.generateFromAsset(
-          project,
-          assetCov.assetId,
-          goal,
-        );
-        if (tree) {
-          // Parse DSL and generate AST for the new tree
-          const parseResult = attackTreeParser.parse(
-            tree.dsl,
-            tree.configuration.evaluationMethod,
-          );
-
-          // Get anchor asset ID for validation
-          const anchorAssetId =
-            tree.anchor.type === "asset" ? tree.anchor.assetId : undefined;
-
-          // Validate
-          const validation = attackTreeValidator.validateAttackTree(
-            parseResult.ast,
-            project,
-            parseResult.errors,
-            anchorAssetId,
-          );
-
-          // Calculate path analysis if valid
-          let pathAnalysis = undefined;
-          if (parseResult.ast && validation.isValid) {
-            pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
-              parseResult.ast,
-              tree.configuration.evaluationMethod,
-            );
-          }
-
-          // Update tree with AST and validation
-          tree.ast = parseResult.ast;
-          tree.validation = validation;
-          tree.pathAnalysis = pathAnalysis;
-
-          newTrees.push(tree);
-        }
-      });
-    });
-
-    if (newTrees.length > 0) {
-      setAttackTreeData((prev) => ({
-        ...prev,
-        trees: [...prev.trees, ...newTrees],
-        lastModified: new Date().toISOString(),
-      }));
-      setIsDirty(true);
-    }
-
-    setIsSyncing(false);
+  const handleSyncConfirmed = useCallback(() => {
+    syncFromAssets();
     setShowSyncConfirm(false);
-  }, [isCriticalWorkflow, criticalCoverage, project]);
+  }, [syncFromAssets, setShowSyncConfirm]);
 
-  const handleOpenConfig = useCallback(() => {
-    setShowConfigDialog(true);
-  }, []);
-
-  const handleSaveConfig = useCallback(
-    (newConfig: AttackTreeData["configuration"]) => {
-      setAttackTreeData((prev) => ({
-        ...prev,
-        configuration: newConfig,
-        lastModified: new Date().toISOString(),
-      }));
-      setIsDirty(true);
-      setShowConfigDialog(false);
-    },
-    [],
-  );
+  const handleDeleteConfirmed = useCallback(() => {
+    if (treeToDelete) {
+      deleteTree(treeToDelete);
+    }
+    cancelDelete();
+  }, [treeToDelete, deleteTree, cancelDelete]);
 
   const handleExport = useCallback(() => {
     const exportData = JSON.stringify(attackTreeData, null, 2);
@@ -761,126 +471,58 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        const result = attackTreeService.importAttackTree(content);
-        if (result.success && result.data) {
-          const importedTree = result.data;
-
-          // Parse DSL and generate AST for imported tree
-          const parseResult = attackTreeParser.parse(
-            importedTree.dsl,
-            importedTree.configuration.evaluationMethod,
-          );
-
-          // Get anchor asset ID for validation
-          const anchorAssetId =
-            importedTree.anchor.type === "asset"
-              ? importedTree.anchor.assetId
-              : undefined;
-
-          // Validate
-          const validation = attackTreeValidator.validateAttackTree(
-            parseResult.ast,
-            project,
-            parseResult.errors,
-            anchorAssetId,
-          );
-
-          // Calculate path analysis if valid
-          let pathAnalysis = undefined;
-          if (parseResult.ast && validation.isValid) {
-            pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
-              parseResult.ast,
-              importedTree.configuration.evaluationMethod,
-            );
-          }
-
-          // Update tree with AST and validation
-          importedTree.ast = parseResult.ast;
-          importedTree.validation = validation;
-          importedTree.pathAnalysis = pathAnalysis;
-
-          setAttackTreeData((prev) => ({
-            ...prev,
-            trees: [...prev.trees, importedTree],
-            lastModified: new Date().toISOString(),
-          }));
-          setSelectedTreeId(importedTree.id);
+        const success = importTree(content);
+        if (success) {
           setMainView("editor");
-          setIsDirty(true);
         }
       };
       reader.readAsText(file);
-
-      // Reset input
       event.target.value = "";
     },
-    [project],
+    [importTree, setMainView],
   );
 
-  const handleAccordionChange = useCallback(
-    (groupId: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
-      setExpandedGroups((prev) =>
-        isExpanded ? [...prev, groupId] : prev.filter((id) => id !== groupId),
-      );
+  const handleSaveConfig = useCallback(
+    (config: { evaluationMethod: "simple" | "extended" }) => {
+      updateConfiguration({
+        ...attackTreeData.configuration,
+        defaultEvaluationMethod: config.evaluationMethod,
+      });
+      setShowConfigDialog(false);
     },
-    [],
+    [attackTreeData.configuration, updateConfiguration, setShowConfigDialog],
   );
 
-  const handleProceed = useCallback(() => {
-    onPhaseComplete?.();
-  }, [onPhaseComplete]);
+  // ==================== RENDER HELPERS ====================
 
-  // ==================== COMPLETION CHECK ====================
-
-  const canProceed = useMemo(() => {
-    if (isCriticalWorkflow) {
-      // Critical: All assets must have trees for all enabled security goals
-      return criticalCoverage?.isAllComplete || false;
-    } else {
-      // Standard: At least 0 valid trees (optional phase)
-      return true;
-    }
-  }, [isCriticalWorkflow, criticalCoverage]);
-
-  // ==================== RENDER ====================
-
-  // TopToolBar Component
-  // Top Toolbar using extracted component
   const renderToolbar = () => (
     <AttackTreeToolbar
       mainView={mainView}
-      onMainViewChange={handleMainViewChange}
+      onMainViewChange={setMainView}
       showDfdPreview={showDfdPreview}
-      onToggleDfdPreview={handleToggleDfdPreview}
-      selectedTreeId={selectedTreeId}
-      onTreeSelect={setSelectedTreeId}
-      trees={attackTreeData.trees}
-      hasTrees={hasTrees}
+      onToggleDfdPreview={() => setShowDfdPreview(!showDfdPreview)}
+      onOpenConfig={() => setShowConfigDialog(true)}
       onCreateTree={() => setShowCreateDialog(true)}
-      onSyncFromAssets={
-        isCriticalWorkflow ? () => setShowSyncConfirm(true) : undefined
-      }
-      onOpenConfig={handleOpenConfig}
       onExport={handleExport}
       onImport={handleImport}
-      onProceed={handleProceed}
+      onProceed={() => onPhaseComplete?.()}
+      hasTrees={hasTrees}
+      isDirty={isDirty}
+      selectedTreeId={selectedTreeId}
+      onTreeSelect={handleTreeSelect}
+      trees={attackTreeData.trees}
       isCriticalWorkflow={isCriticalWorkflow}
-      isSyncing={isSyncing}
+      isSyncing={false}
       needsSync={needsSync}
+      canProceed={canProceed}
       validTreeCount={validTreeCount}
       totalTreeCount={attackTreeData.trees.length}
-      completeAssets={criticalCoverage?.completeAssets}
-      totalAssets={criticalCoverage?.totalAssets}
-      isDirty={isDirty}
-      canProceed={canProceed}
-      fileInputRef={fileInputRef}
     />
   );
 
-  // Overview View with grouped accordions
   const OverviewView = () => (
-    <Box sx={{ p: 2, overflow: "auto", height: "100%" }}>
-      {treeGroups.length === 0 ? (
+    <Box sx={{ p: 2, overflowY: "auto", height: "100%" }}>
+      {!hasTrees ? (
         <Box
           sx={{
             display: "flex",
@@ -903,31 +545,56 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                 ? "Klicken Sie auf '+', um einen neuen Tree zu erstellen"
                 : "Click '+' to create a new tree"}
           </Typography>
-          <Button
-            startIcon={isCriticalWorkflow ? <SyncIcon /> : <AddIcon />}
-            variant="contained"
-            onClick={() =>
-              isCriticalWorkflow
-                ? setShowSyncConfirm(true)
-                : setShowCreateDialog(true)
-            }
-          >
-            {isCriticalWorkflow
-              ? isGerman
-                ? "Trees generieren"
-                : "Generate Trees"
-              : isGerman
-                ? "Tree erstellen"
-                : "Create Tree"}
-          </Button>
+          {isCriticalWorkflow && (
+            <Button
+              variant="contained"
+              startIcon={<SyncIcon />}
+              onClick={() => setShowSyncConfirm(true)}
+            >
+              {isGerman ? "Synchronisieren" : "Sync from Assets"}
+            </Button>
+          )}
         </Box>
       ) : (
-        <Stack spacing={1}>
+        <Stack spacing={2}>
+          {/* Critical Workflow Status */}
+          {isCriticalWorkflow && criticalCoverage && (
+            <Alert
+              severity={criticalCoverage.isAllComplete ? "success" : "warning"}
+              action={
+                !criticalCoverage.isAllComplete && needsSync ? (
+                  <Button
+                    color="inherit"
+                    size="small"
+                    startIcon={<SyncIcon />}
+                    onClick={() => setShowSyncConfirm(true)}
+                  >
+                    {isGerman ? "Sync" : "Sync"}
+                  </Button>
+                ) : undefined
+              }
+            >
+              <AlertTitle>
+                {isGerman ? "Abdeckung" : "Coverage"}:{" "}
+                {criticalCoverage.completeAssets} /{" "}
+                {criticalCoverage.totalAssets}
+              </AlertTitle>
+              {!criticalCoverage.isAllComplete && (
+                <Typography variant="body2">
+                  {isGerman
+                    ? "Einige Assets haben fehlende Schutzziele. Klicken Sie auf Sync um Trees zu erstellen."
+                    : "Some assets have missing security goals. Click Sync to create trees."}
+                </Typography>
+              )}
+            </Alert>
+          )}
+
+          {/* Grouped Trees */}
           {treeGroups.map((group) => (
             <Accordion
               key={group.id}
               expanded={expandedGroups.includes(group.id)}
-              onChange={handleAccordionChange(group.id)}
+              onChange={() => toggleGroupExpanded(group.id)}
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box
@@ -938,44 +605,31 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                     width: "100%",
                   }}
                 >
-                  <Typography sx={{ fontSize: "1.2rem" }}>
-                    {group.icon}
-                  </Typography>
-                  <Typography fontWeight="bold">{group.name}</Typography>
-                  <Chip
-                    label={`${group.trees.length} ${
-                      group.trees.length === 1 ? "Tree" : "Trees"
-                    }`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  {group.type === "asset" && (
-                    <>
-                      {group.isComplete ? (
-                        <Chip
-                          icon={<ValidIcon />}
-                          label={isGerman ? "Vollständig" : "Complete"}
-                          size="small"
-                          color="success"
-                        />
-                      ) : (
-                        <Chip
-                          icon={<WarningIcon />}
-                          label={`${
-                            isGerman ? "Fehlt" : "Missing"
-                          }: ${group.missingGoals?.join(", ")}`}
-                          size="small"
-                          color="warning"
-                        />
-                      )}
-                    </>
+                  <span>{group.icon}</span>
+                  <Typography sx={{ flexGrow: 1 }}>{group.name}</Typography>
+                  <Chip label={`${group.trees.length} Trees`} size="small" />
+                  {group.isComplete !== undefined && (
+                    <Chip
+                      icon={group.isComplete ? <ValidIcon /> : <InvalidIcon />}
+                      label={
+                        group.isComplete
+                          ? isGerman
+                            ? "Vollständig"
+                            : "Complete"
+                          : isGerman
+                            ? "Unvollständig"
+                            : "Incomplete"
+                      }
+                      color={group.isComplete ? "success" : "warning"}
+                      size="small"
+                    />
                   )}
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
                 <Stack spacing={2}>
                   {group.trees.map((tree) => (
-                    <Paper key={tree.id} variant="outlined" sx={{ p: 2 }}>
+                    <Paper key={tree.id} sx={{ p: 2 }}>
                       <Box
                         sx={{
                           display: "flex",
@@ -984,38 +638,32 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                           mb: 2,
                         }}
                       >
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <Typography variant="subtitle1" fontWeight="bold">
+                        <Box>
+                          <Typography variant="subtitle1">
                             {tree.name}
                           </Typography>
-                          {tree.anchor.securityGoal && (
-                            <Chip
-                              label={tree.anchor.securityGoal}
-                              size="small"
-                              color="primary"
-                            />
+                          {tree.description && (
+                            <Typography variant="body2" color="text.secondary">
+                              {tree.description}
+                            </Typography>
                           )}
+                        </Box>
+                        <Box sx={{ display: "flex", gap: 1 }}>
                           {tree.validation?.isValid ? (
                             <Chip
                               icon={<ValidIcon />}
-                              label={isGerman ? "Valide" : "Valid"}
-                              size="small"
+                              label="Valid"
                               color="success"
+                              size="small"
                             />
                           ) : (
                             <Chip
                               icon={<InvalidIcon />}
-                              label={`${tree.validation?.errors?.length || 0} ${
-                                isGerman ? "Fehler" : "Errors"
-                              }`}
-                              size="small"
+                              label={`${tree.validation?.errors.length || 0} Errors`}
                               color="error"
+                              size="small"
                             />
                           )}
-                        </Box>
-                        <Box>
                           <Tooltip title={isGerman ? "Bearbeiten" : "Edit"}>
                             <IconButton
                               size="small"
@@ -1028,7 +676,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                             <IconButton
                               size="small"
                               color="error"
-                              onClick={() => handleDeleteTree(tree.id)}
+                              onClick={() => startDeleteTree(tree.id)}
                             >
                               <DeleteIcon />
                             </IconButton>
@@ -1036,7 +684,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                         </Box>
                       </Box>
 
-                      {/* Path Analysis Table */}
                       {tree.pathAnalysis &&
                       tree.pathAnalysis.paths.length > 0 ? (
                         <AttackTreeTableView
@@ -1046,8 +693,8 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                       ) : (
                         <Typography color="text.secondary" sx={{ py: 2 }}>
                           {isGerman
-                            ? "Keine Pfadanalyse verfügbar - Tree bearbeiten um zu generieren"
-                            : "No path analysis available - edit tree to generate"}
+                            ? "Keine Pfadanalyse verfügbar"
+                            : "No path analysis available"}
                         </Typography>
                       )}
                     </Paper>
@@ -1061,76 +708,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     </Box>
   );
 
-  // Editor View with split panes
-  const EditorView = () => {
-    if (!selectedTree) {
-      return (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-          }}
-        >
-          <Typography color="text.secondary">
-            {isGerman ? "Kein Tree ausgewählt" : "No tree selected"}
-          </Typography>
-        </Box>
-      );
-    }
-
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      >
-        {/* Editor Pane */}
-        <Box
-          sx={{
-            width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
-            minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
-            height: "100%",
-            transition: "width 0.2s",
-            borderRight: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <AttackTreeEditor
-            dsl={selectedTree.dsl}
-            configuration={selectedTree.configuration}
-            validation={selectedTree.validation?.errors || []}
-            collapsed={editorCollapsed}
-            onDslChange={handleDslChange}
-            onToggleCollapse={() => setEditorCollapsed((prev) => !prev)}
-          />
-        </Box>
-
-        {/* Preview Pane */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            height: "100%",
-            overflow: "hidden",
-          }}
-        >
-          <AttackTreePreview
-            ast={selectedTree.ast}
-            pathAnalysis={selectedTree.pathAnalysis}
-            evaluationMethod={selectedTree.configuration.evaluationMethod}
-            highlightCriticalPath={
-              selectedTree.configuration.highlightCriticalPath
-            }
-            // configuration={selectedTree.configuration}
-            onNodeSelect={() => {}}
-          />
-        </Box>
-      </Box>
-    );
-  };
+  // ==================== MAIN RENDER ====================
 
   return (
     <Box
@@ -1142,10 +720,10 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
         overflow: "hidden",
       }}
     >
-      {/* Top Toolbar */}
+      {/* Toolbar */}
       {renderToolbar()}
 
-      {/* DFD Preview Panel (collapsible) */}
+      {/* DFD Preview Panel */}
       {showDfdPreview && (
         <>
           <Box
@@ -1190,32 +768,54 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
         </>
       )}
 
-      {/* Main Content Area */}
-
+      {/* Main Content */}
       <Box ref={splitContainerRef} sx={{ flexGrow: 1, overflow: "hidden" }}>
-        {mainView === "overview" ? <OverviewView /> : <EditorView />}
+        {mainView === "overview" ? (
+          <OverviewView />
+        ) : !selectedTree ? (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+            }}
+          >
+            <Typography color="text.secondary">
+              {isGerman ? "Kein Tree ausgewählt" : "No tree selected"}
+            </Typography>
+          </Box>
+        ) : (
+          <AttackTreeEditorView
+            selectedTree={selectedTree}
+            localDsl={localDsl}
+            editorCollapsed={editorCollapsed}
+            editorWidthPercent={editorWidthPercent}
+            handleDslChange={handleDslChange}
+            toggleEditorCollapsed={toggleEditorCollapsed}
+          />
+        )}
       </Box>
 
-      {/* Hidden file input for import */}
+      {/* Hidden file input */}
       <input
-        placeholder={t("...")}
         ref={fileInputRef}
         type="file"
         accept=".json"
         style={{ display: "none" }}
         onChange={handleFileChange}
+        aria-label="Import attack tree file"
       />
 
-      {/* Create Tree Dialog */}
+      {/* Dialogs */}
       <AttackTreeCreateDialog
         project={project}
         isCriticalWorkflow={isCriticalWorkflow}
-        onCreate={handleCreateTree}
+        onCreate={createTree}
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
       />
 
-      {/* Config Dialog */}
       {showConfigDialog && (
         <AttackTreeConfigDialog
           open={showConfigDialog}
@@ -1228,17 +828,11 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             highlightCriticalPath: true,
           }}
           hasExistingTree={hasTrees}
-          onSave={(config) => {
-            handleSaveConfig({
-              ...attackTreeData.configuration,
-              defaultEvaluationMethod: config.evaluationMethod,
-            });
-          }}
+          onSave={handleSaveConfig}
           onClose={() => setShowConfigDialog(false)}
         />
       )}
 
-      {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <ConfirmDialog
           title={isGerman ? "Tree löschen" : "Delete Tree"}
@@ -1249,19 +843,11 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
           }
           confirmLabel={isGerman ? "Löschen" : "Delete"}
           cancelLabel={isGerman ? "Abbrechen" : "Cancel"}
-          onConfirm={() => {
-            handleConfirmDelete();
-            setShowDeleteConfirm(false); // optional, aber sauber
-            setTreeToDelete(null);
-          }}
-          onCancel={() => {
-            setShowDeleteConfirm(false);
-            setTreeToDelete(null);
-          }}
+          onConfirm={handleDeleteConfirmed}
+          onCancel={cancelDelete}
         />
       )}
 
-      {/* Sync Confirmation */}
       {showSyncConfirm && (
         <ConfirmDialog
           title={isGerman ? "Von Assets synchronisieren" : "Sync from Assets"}
@@ -1282,10 +868,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
           }
           confirmLabel={isGerman ? "Synchronisieren" : "Sync"}
           cancelLabel={isGerman ? "Abbrechen" : "Cancel"}
-          onConfirm={() => {
-            handleSyncFromAssets();
-            setShowSyncConfirm(false); // optional, aber sauber
-          }}
+          onConfirm={handleSyncConfirmed}
           onCancel={() => setShowSyncConfirm(false)}
         />
       )}
