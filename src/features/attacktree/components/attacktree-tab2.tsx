@@ -87,6 +87,9 @@ import {
   DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION,
 } from "../models/attacktree-types";
 import { attackTreeService } from "../services/attacktree-service";
+import { attackTreeParser } from "../services/attacktree-parser";
+import { attackTreeValidator } from "../services/attacktree-validator";
+import { attackTreeCalculator } from "../services/attacktree-calculator";
 import { AttackTreeToolbar, MainView } from "./attacktree-toolbar";
 import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
@@ -229,7 +232,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
 
   // Attack tree data (local working copy)
   const [attackTreeData, setAttackTreeData] = useState<AttackTreeData>(() =>
-    ensureValidAttackTreeData(project.attackTrees)
+    ensureValidAttackTreeData(project.attackTrees),
   );
 
   // UI state with localStorage persistence
@@ -264,7 +267,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   useEffect(() => {
     localStorage.setItem(
       "attacktree-tab-showDfdPreview",
-      String(showDfdPreview)
+      String(showDfdPreview),
     );
   }, [showDfdPreview]);
 
@@ -275,14 +278,14 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   useEffect(() => {
     localStorage.setItem(
       "attacktree-tab-editorWidth",
-      String(editorWidthPercent)
+      String(editorWidthPercent),
     );
   }, [editorWidthPercent]);
 
   useEffect(() => {
     localStorage.setItem(
       "attacktree-tab-topPanelHeight",
-      String(topPanelHeight)
+      String(topPanelHeight),
     );
   }, [topPanelHeight]);
 
@@ -338,7 +341,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       const coverage = checkAssetAttackTreeCoverage(
         attackTreeData,
         asset.id,
-        enabledGoals
+        enabledGoals,
       );
 
       assetCoverage.push({
@@ -379,15 +382,15 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   // ==================== EFFECTS ====================
 
   // Split view resize
-const {
-  topPanelHeight: resizedHeight,
-  isResizing,
-  handleMouseDown,
-  splitContainerRef,
-} = useSplitViewResize({
-  defaultHeight: topPanelHeight, // Use state value, not hardcoded
-  minHeight: MIN_PANEL_HEIGHT,
-});
+  const {
+    topPanelHeight: resizedHeight,
+    isResizing,
+    handleMouseDown,
+    splitContainerRef,
+  } = useSplitViewResize({
+    defaultHeight: topPanelHeight, // Use state value, not hardcoded
+    minHeight: MIN_PANEL_HEIGHT,
+  });
 
   // Update topPanelHeight when resized
   useEffect(() => {
@@ -412,6 +415,59 @@ const {
   useEffect(() => {
     setAttackTreeData(ensureValidAttackTreeData(project.attackTrees));
   }, [project.attackTrees]);
+
+  // Parse trees that don't have AST yet (initial load or after import)
+  useEffect(() => {
+    let needsUpdate = false;
+    const updatedTrees = attackTreeData.trees.map((tree) => {
+      // Skip trees that already have AST
+      if (tree.ast) return tree;
+
+      needsUpdate = true;
+
+      // Parse DSL and generate AST
+      const parseResult = attackTreeParser.parse(
+        tree.dsl,
+        tree.configuration.evaluationMethod,
+      );
+
+      // Get anchor asset ID for validation
+      const anchorAssetId =
+        tree.anchor.type === "asset" ? tree.anchor.assetId : undefined;
+
+      // Validate
+      const validation = attackTreeValidator.validateAttackTree(
+        parseResult.ast,
+        project,
+        parseResult.errors,
+        anchorAssetId,
+      );
+
+      // Calculate path analysis if valid
+      let pathAnalysis = undefined;
+      if (parseResult.ast && validation.isValid) {
+        pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
+          parseResult.ast,
+          tree.configuration.evaluationMethod,
+        );
+      }
+
+      // Return updated tree
+      return {
+        ...tree,
+        ast: parseResult.ast,
+        validation: validation,
+        pathAnalysis: pathAnalysis,
+      };
+    });
+
+    if (needsUpdate) {
+      setAttackTreeData((prev) => ({
+        ...prev,
+        trees: updatedTrees,
+      }));
+    }
+  }, [attackTreeData.trees, project]);
 
   // Auto-save when dirty (debounced)
   useEffect(() => {
@@ -454,12 +510,49 @@ const {
         const treeIndex = prev.trees.findIndex((t) => t.id === selectedTreeId);
         if (treeIndex < 0) return prev;
 
-        const updatedTrees = [...prev.trees];
-        updatedTrees[treeIndex] = {
-          ...updatedTrees[treeIndex],
+        const currentTree = prev.trees[treeIndex];
+        const updatedTree = {
+          ...currentTree,
           dsl: newDsl,
           lastModified: new Date().toISOString(),
         };
+
+        // Parse DSL and generate AST
+        const parseResult = attackTreeParser.parse(
+          newDsl,
+          currentTree.configuration.evaluationMethod,
+        );
+
+        // Get anchor asset ID for validation
+        const anchorAssetId =
+          currentTree.anchor.type === "asset"
+            ? currentTree.anchor.assetId
+            : undefined;
+
+        // Validate
+        const validation = attackTreeValidator.validateAttackTree(
+          parseResult.ast,
+          project,
+          parseResult.errors,
+          anchorAssetId,
+        );
+
+        // Calculate path analysis if valid
+        let pathAnalysis = undefined;
+        if (parseResult.ast && validation.isValid) {
+          pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
+            parseResult.ast,
+            currentTree.configuration.evaluationMethod,
+          );
+        }
+
+        // Update tree with AST and validation
+        updatedTree.ast = parseResult.ast;
+        updatedTree.validation = validation;
+        updatedTree.pathAnalysis = pathAnalysis;
+
+        const updatedTrees = [...prev.trees];
+        updatedTrees[treeIndex] = updatedTree;
 
         return {
           ...prev,
@@ -469,7 +562,7 @@ const {
       });
       setIsDirty(true);
     },
-    [selectedTreeId]
+    [selectedTreeId, project],
   );
 
   const handleSaveTree = useCallback(() => {
@@ -491,6 +584,38 @@ const {
         evaluationMethod: defaultEvalMethod,
       });
 
+      // Parse initial DSL and generate AST
+      const parseResult = attackTreeParser.parse(
+        newTree.dsl,
+        newTree.configuration.evaluationMethod,
+      );
+
+      // Get anchor asset ID for validation
+      const anchorAssetId =
+        newTree.anchor.type === "asset" ? newTree.anchor.assetId : undefined;
+
+      // Validate
+      const validation = attackTreeValidator.validateAttackTree(
+        parseResult.ast,
+        project,
+        parseResult.errors,
+        anchorAssetId,
+      );
+
+      // Calculate path analysis if valid
+      let pathAnalysis = undefined;
+      if (parseResult.ast && validation.isValid) {
+        pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
+          parseResult.ast,
+          newTree.configuration.evaluationMethod,
+        );
+      }
+
+      // Update tree with AST and validation
+      newTree.ast = parseResult.ast;
+      newTree.validation = validation;
+      newTree.pathAnalysis = pathAnalysis;
+
       setAttackTreeData((prev) => ({
         ...prev,
         trees: [...prev.trees, newTree],
@@ -502,7 +627,7 @@ const {
       setIsDirty(true);
       setShowCreateDialog(false);
     },
-    [attackTreeData.configuration]
+    [attackTreeData.configuration, project],
   );
 
   const handleDeleteTree = useCallback((treeId: string) => {
@@ -515,14 +640,14 @@ const {
 
     const updatedData = attackTreeService.deleteAttackTree(
       project,
-      treeToDelete
+      treeToDelete,
     );
     setAttackTreeData(updatedData);
 
     // Select another tree if current was deleted
     if (selectedTreeId === treeToDelete) {
       setSelectedTreeId(
-        updatedData.trees.length > 0 ? updatedData.trees[0].id : null
+        updatedData.trees.length > 0 ? updatedData.trees[0].id : null,
       );
     }
 
@@ -543,9 +668,41 @@ const {
         const tree = attackTreeService.generateFromAsset(
           project,
           assetCov.assetId,
-          goal
+          goal,
         );
         if (tree) {
+          // Parse DSL and generate AST for the new tree
+          const parseResult = attackTreeParser.parse(
+            tree.dsl,
+            tree.configuration.evaluationMethod,
+          );
+
+          // Get anchor asset ID for validation
+          const anchorAssetId =
+            tree.anchor.type === "asset" ? tree.anchor.assetId : undefined;
+
+          // Validate
+          const validation = attackTreeValidator.validateAttackTree(
+            parseResult.ast,
+            project,
+            parseResult.errors,
+            anchorAssetId,
+          );
+
+          // Calculate path analysis if valid
+          let pathAnalysis = undefined;
+          if (parseResult.ast && validation.isValid) {
+            pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
+              parseResult.ast,
+              tree.configuration.evaluationMethod,
+            );
+          }
+
+          // Update tree with AST and validation
+          tree.ast = parseResult.ast;
+          tree.validation = validation;
+          tree.pathAnalysis = pathAnalysis;
+
           newTrees.push(tree);
         }
       });
@@ -578,7 +735,7 @@ const {
       setIsDirty(true);
       setShowConfigDialog(false);
     },
-    []
+    [],
   );
 
   const handleExport = useCallback(() => {
@@ -606,12 +763,48 @@ const {
         const content = e.target?.result as string;
         const result = attackTreeService.importAttackTree(content);
         if (result.success && result.data) {
+          const importedTree = result.data;
+
+          // Parse DSL and generate AST for imported tree
+          const parseResult = attackTreeParser.parse(
+            importedTree.dsl,
+            importedTree.configuration.evaluationMethod,
+          );
+
+          // Get anchor asset ID for validation
+          const anchorAssetId =
+            importedTree.anchor.type === "asset"
+              ? importedTree.anchor.assetId
+              : undefined;
+
+          // Validate
+          const validation = attackTreeValidator.validateAttackTree(
+            parseResult.ast,
+            project,
+            parseResult.errors,
+            anchorAssetId,
+          );
+
+          // Calculate path analysis if valid
+          let pathAnalysis = undefined;
+          if (parseResult.ast && validation.isValid) {
+            pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
+              parseResult.ast,
+              importedTree.configuration.evaluationMethod,
+            );
+          }
+
+          // Update tree with AST and validation
+          importedTree.ast = parseResult.ast;
+          importedTree.validation = validation;
+          importedTree.pathAnalysis = pathAnalysis;
+
           setAttackTreeData((prev) => ({
             ...prev,
-            trees: [...prev.trees, result.data!],
+            trees: [...prev.trees, importedTree],
             lastModified: new Date().toISOString(),
           }));
-          setSelectedTreeId(result.data.id);
+          setSelectedTreeId(importedTree.id);
           setMainView("editor");
           setIsDirty(true);
         }
@@ -621,16 +814,16 @@ const {
       // Reset input
       event.target.value = "";
     },
-    []
+    [project],
   );
 
   const handleAccordionChange = useCallback(
     (groupId: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
       setExpandedGroups((prev) =>
-        isExpanded ? [...prev, groupId] : prev.filter((id) => id !== groupId)
+        isExpanded ? [...prev, groupId] : prev.filter((id) => id !== groupId),
       );
     },
-    []
+    [],
   );
 
   const handleProceed = useCallback(() => {
@@ -653,34 +846,36 @@ const {
 
   // TopToolBar Component
   // Top Toolbar using extracted component
-const renderToolbar = () => (
-  <AttackTreeToolbar
-    mainView={mainView}
-    onMainViewChange={handleMainViewChange}
-    showDfdPreview={showDfdPreview}
-    onToggleDfdPreview={handleToggleDfdPreview}
-    selectedTreeId={selectedTreeId}
-    onTreeSelect={setSelectedTreeId}
-    trees={attackTreeData.trees}
-    hasTrees={hasTrees}
-    onCreateTree={() => setShowCreateDialog(true)}
-    onSyncFromAssets={isCriticalWorkflow ? () => setShowSyncConfirm(true) : undefined}
-    onOpenConfig={handleOpenConfig}
-    onExport={handleExport}
-    onImport={handleImport}
-    onProceed={handleProceed}
-    isCriticalWorkflow={isCriticalWorkflow}
-    isSyncing={isSyncing}
-    needsSync={needsSync}
-    validTreeCount={validTreeCount}
-    totalTreeCount={attackTreeData.trees.length}
-    completeAssets={criticalCoverage?.completeAssets}
-    totalAssets={criticalCoverage?.totalAssets}
-    isDirty={isDirty}
-    canProceed={canProceed}
-    fileInputRef={fileInputRef}
-  />
-);
+  const renderToolbar = () => (
+    <AttackTreeToolbar
+      mainView={mainView}
+      onMainViewChange={handleMainViewChange}
+      showDfdPreview={showDfdPreview}
+      onToggleDfdPreview={handleToggleDfdPreview}
+      selectedTreeId={selectedTreeId}
+      onTreeSelect={setSelectedTreeId}
+      trees={attackTreeData.trees}
+      hasTrees={hasTrees}
+      onCreateTree={() => setShowCreateDialog(true)}
+      onSyncFromAssets={
+        isCriticalWorkflow ? () => setShowSyncConfirm(true) : undefined
+      }
+      onOpenConfig={handleOpenConfig}
+      onExport={handleExport}
+      onImport={handleImport}
+      onProceed={handleProceed}
+      isCriticalWorkflow={isCriticalWorkflow}
+      isSyncing={isSyncing}
+      needsSync={needsSync}
+      validTreeCount={validTreeCount}
+      totalTreeCount={attackTreeData.trees.length}
+      completeAssets={criticalCoverage?.completeAssets}
+      totalAssets={criticalCoverage?.totalAssets}
+      isDirty={isDirty}
+      canProceed={canProceed}
+      fileInputRef={fileInputRef}
+    />
+  );
 
   // Overview View with grouped accordions
   const OverviewView = () => (
@@ -705,8 +900,8 @@ const renderToolbar = () => (
                 ? "Klicken Sie auf 'Sync', um Trees für alle Assets zu erstellen"
                 : "Click 'Sync' to create trees for all assets"
               : isGerman
-              ? "Klicken Sie auf '+', um einen neuen Tree zu erstellen"
-              : "Click '+' to create a new tree"}
+                ? "Klicken Sie auf '+', um einen neuen Tree zu erstellen"
+                : "Click '+' to create a new tree"}
           </Typography>
           <Button
             startIcon={isCriticalWorkflow ? <SyncIcon /> : <AddIcon />}
@@ -722,8 +917,8 @@ const renderToolbar = () => (
                 ? "Trees generieren"
                 : "Generate Trees"
               : isGerman
-              ? "Tree erstellen"
-              : "Create Tree"}
+                ? "Tree erstellen"
+                : "Create Tree"}
           </Button>
         </Box>
       ) : (
@@ -996,7 +1191,7 @@ const renderToolbar = () => (
       )}
 
       {/* Main Content Area */}
-      
+
       <Box ref={splitContainerRef} sx={{ flexGrow: 1, overflow: "hidden" }}>
         {mainView === "overview" ? <OverviewView /> : <EditorView />}
       </Box>
@@ -1014,7 +1209,7 @@ const renderToolbar = () => (
       {/* Create Tree Dialog */}
       <AttackTreeCreateDialog
         project={project}
-        isCriticalWorkflow={isCriticalWorkflow}        
+        isCriticalWorkflow={isCriticalWorkflow}
         onCreate={handleCreateTree}
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
@@ -1075,13 +1270,13 @@ const renderToolbar = () => (
               ? `Es werden Attack Trees für ${
                   criticalCoverage?.assets.reduce(
                     (acc, a) => acc + a.missingGoals.length,
-                    0
+                    0,
                   ) || 0
                 } fehlende Schutzziele erstellt.`
               : `Attack trees will be created for ${
                   criticalCoverage?.assets.reduce(
                     (acc, a) => acc + a.missingGoals.length,
-                    0
+                    0,
                   ) || 0
                 } missing security goals.`
           }
@@ -1096,6 +1291,6 @@ const renderToolbar = () => (
       )}
     </Box>
   );
-};
+};;
 
 export default AttackTreeTab;
