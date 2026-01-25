@@ -379,9 +379,6 @@ export function useDFDEditor(
         dataFlows: data.connections.length,
         trustBoundaries: data.elements.filter((e) => e.type === "TrustBoundary")
           .length,
-        physicalInterfaces: data.elements.filter(
-          (e) => e.type === "PhysicalInterface",
-        ).length,
         assets: data.assets.length,
         interfaces: data.elements.filter((e) => e.type === "Interface").length,
         describedElements: data.elements.filter(

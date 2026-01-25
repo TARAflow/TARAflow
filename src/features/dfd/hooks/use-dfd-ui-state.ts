@@ -5,6 +5,61 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { DFDViewMode } from "../models/dfd-types";
 
+// ======================================================
+// External Entity – Default Heuristics
+// Applied when entityType is set and fields are empty
+// ======================================================
+
+import type { ExternalEntityProperties } from "../models/element-properties";
+
+export const EXTERNAL_ENTITY_TYPE_DEFAULTS: Record<
+  string,
+  Partial<ExternalEntityProperties>
+> = {
+  user: {
+    trustLevel: "low",
+    authenticationMethod: "password",
+    threatActor: "curious",
+  },
+  admin_user: {
+    trustLevel: "medium",
+    authenticationMethod: "mfa",
+    threatActor: "insider",
+  },
+  partner: {},
+  thirdparty: {}, 
+  service: {}, 
+  identity_provider: {
+    trustLevel: "high",
+    authenticationMethod: "saml",
+    threatActor: "advanced",
+  },
+  payment: {
+    trustLevel: "medium",
+    authenticationMethod: "certificate",
+    threatActor: "malicious",
+  },
+  contractor: {}, // keine Defaults
+  bot: {
+    trustLevel: "low",
+    authenticationMethod: "apikey",
+    threatActor: "compromised",
+  },
+  webhook: {
+    trustLevel: "low",
+    authenticationMethod: "none",
+    threatActor: "malicious",
+  },
+  mobile_app: {}, // keine Defaults
+  iot: {
+    trustLevel: "low",
+    authenticationMethod: "certificate",
+    threatActor: "compromised",
+  },
+};
+
+
+
 // ==================== TYPES ====================
 
 interface DFDUIState {
@@ -69,6 +124,22 @@ const saveState = (projectId: string, state: DFDUIState): void => {
     console.warn("[useDFDUIState] Failed to save state:", error);
   }
 };
+
+export function applyExternalEntityTypeDefaults(
+  entityType: string,
+  current: ExternalEntityProperties,
+): Partial<ExternalEntityProperties> {
+  const defaults = EXTERNAL_ENTITY_TYPE_DEFAULTS[entityType];
+  if (!defaults) return {};
+
+  return Object.fromEntries(
+    Object.entries(defaults).filter(
+      ([key, value]) =>
+        current[key as keyof ExternalEntityProperties] == null &&
+        value !== undefined,
+    ),
+  ) as Partial<ExternalEntityProperties>;
+}
 
 // ==================== HOOK ====================
 

@@ -1,8 +1,8 @@
 // ==================== DFD DESCRIPTION VIEW ====================
 // Single Responsibility: Display and edit DFD element descriptions grouped by type
-// Accordion state is controlled from parent via props for persistence
+// Now uses element-specific forms with asset relation support
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -25,9 +25,8 @@ import {
   Storage as DataStoreIcon,
   Person as ExternalEntityIcon,
   SwapHoriz as DataFlowIcon,
-  DeviceHub as InterfaceIcon,
+  Cable as InterfaceIcon,
   MonetizationOnOutlined as AssetIcon,
-  Cable as PhysicalInterfaceIcon,
 } from "@mui/icons-material";
 
 import type {
@@ -37,10 +36,16 @@ import type {
   DFDElementType,
 } from "../models/dfd-types";
 import { DFD_ELEMENT_CONFIG } from "../models/dfd-types";
-import {
-  ElementDescriptionForm,
-  ConnectionDescriptionForm,
-} from "./element-description-form";
+
+// Import element-specific forms
+import { ProcessDescriptionForm } from "./forms/process-description-form";
+import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
+import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
+import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
+import { InterfaceDescriptionForm } from "./forms/interface-description-form";
+import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
+import { AssetDescriptionForm } from "./forms/asset-description-form";
+import type { AvailableAsset } from "./forms/asset-relation-selector";
 
 // ==================== TYPES ====================
 
@@ -54,7 +59,6 @@ interface DFDDescriptionViewProps {
     connectionId: string,
     updates: Partial<DFDConnection>,
   ) => void;
-  // Accordion state controlled from parent
   expandedGroups: string[];
   onToggleGroup: (groupKey: string) => void;
   expandedElements: string[];
@@ -91,117 +95,63 @@ const isConnectionDescribed = (connection: DFDConnection): boolean => {
   );
 };
 
-// ID Label patterns for different element types
-const ID_PATTERNS: Record<string, RegExp> = {
-  Process: /^P-\d+$/i,
-  Multiprocess: /^MP-\d+$/i,
-  DataStore: /^DS-\d+$/i,
-  ExternalEntity: /^EE-\d+$/i,
-  TrustBoundary: /^TB-\d+$/i,
-  Asset: /^A-\d+$/i,
-  Interface: /^IF-\d+$/i,
-  PhysicalInterface: /^PI-\d+$/i,
-  DataFlow: /^DF-\d+$/i,
-};
-
-// Generic pattern to match any ID label
 const GENERIC_ID_PATTERN = /^(P|MP|DS|EE|TB|A|IF|PI|DF)-\d+$/i;
 
-/**
- * Intelligently extract displayId and name from element data.
- * Handles cases where:
- * - displayId is properly set
- * - displayId is missing but embedded in name
- * - name contains both ID and actual name
- * - name ends with custom ID in brackets like "My Trust Boundary [MTB]"
- */
 const formatElementLabel = (
   element: DFDElement
 ): { displayId: string; name: string } => {
   let displayId = element.displayId || "";
   let name = element.name || "";
 
-  // Case 1: displayId is already set correctly and name doesn't contain ID patterns
   if (
     displayId &&
     !GENERIC_ID_PATTERN.test(name) &&
-    !name.includes(`[${displayId}]`)
+    !name.includes(displayId)
   ) {
     return { displayId, name };
   }
 
-  // Case 2: name IS the ID (e.g., Asset with label="A-1")
   if (!displayId && GENERIC_ID_PATTERN.test(name)) {
     return { displayId: name, name: element.type };
   }
 
-  // Case 3: name contains standard ID at start (e.g., "P-1 My Process")
   const startMatch = name.match(/^((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+)\s+(.+)$/i);
   if (startMatch) {
     return { displayId: startMatch[1], name: startMatch[2] };
   }
 
-  // Case 4: name contains standard ID at end (e.g., "My Process P-1")
   const endMatch = name.match(/^(.+?)\s+((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+)$/i);
   if (endMatch) {
     return { displayId: endMatch[2], name: endMatch[1] };
   }
 
-  // Case 5: name ends with custom ID in brackets (e.g., "My Trust Boundary [MTB]")
   const bracketMatch = name.match(/^(.+?)\s*\[([^\]]+)\]$/);
   if (bracketMatch) {
     return { displayId: bracketMatch[2], name: bracketMatch[1] };
   }
 
-  // Case 6: displayId embedded in name - clean it up
-  if (displayId && name.includes(displayId)) {
-    const cleanedName = name
-      .replace(new RegExp(`\\[?${displayId}\\]?`, "gi"), "")
-      .trim();
-    return { displayId, name: cleanedName || element.type };
-  }
-
-  // Default: return as-is
-  return { displayId, name: name || element.type };
+  return { displayId: displayId || "", name: name || element.type };
 };
 
-/**
- * Format connection label similarly
- */
 const formatConnectionLabel = (
   connection: DFDConnection,
   elements: DFDElement[]
 ): { displayId: string; label: string } => {
-  let displayId = connection.displayId || "";
-  let label = connection.label || "";
+  const sourceElem = elements.find((e) => e.id === connection.from);
+  const targetElem = elements.find((e) => e.id === connection.to);
 
-  // If no label, build from source/target
-  if (!label) {
-    const fromElement = elements.find((e) => e.id === connection.from);
-    const toElement = elements.find((e) => e.id === connection.to);
-    label = `${fromElement?.name || "?"} → ${toElement?.name || "?"}`;
-  }
+  const sourceName = sourceElem?.name || "Unknown";
+  const targetName = targetElem?.name || "Unknown";
 
-  // Check if label is actually just an ID
-  if (!displayId && GENERIC_ID_PATTERN.test(label)) {
-    const fromElement = elements.find((e) => e.id === connection.from);
-    const toElement = elements.find((e) => e.id === connection.to);
-    return {
-      displayId: label,
-      label: `${fromElement?.name || "?"} → ${toElement?.name || "?"}`,
-    };
-  }
-
-  // Check if label contains ID
-  const startMatch = label.match(/^(DF-\d+)\s+(.+)$/i);
-  if (startMatch) {
-    return { displayId: startMatch[1], label: startMatch[2] };
-  }
+  const displayId = connection.displayId || connection.id;
+  const label = `${sourceName} → ${targetName}`;
 
   return { displayId, label };
 };
 
-// Icon mapping for DFD element types
+/**
+ * Get the appropriate Material-UI icon for a DFD element type
+ */
 const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
   const iconProps = { fontSize: "small" as const, sx: { mr: 1 } };
 
@@ -214,20 +164,31 @@ const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
       return <MultiProcessIcon {...iconProps} />;
     case "DataStore":
       return <DataStoreIcon {...iconProps} />;
-    case "DataFlow":
-      return <DataFlowIcon {...iconProps} />;
-    case "TrustBoundary":
-      return <TrustBoundaryIcon {...iconProps} />;
-    case "PhysicalInterface":
-      return <PhysicalInterfaceIcon {...iconProps} />;
     case "Interface":
       return <InterfaceIcon {...iconProps} />;
+    case "TrustBoundary":
+      return <TrustBoundaryIcon {...iconProps} />;
     default:
       return null;
   }
 };
 
-// ==================== COMPONENT ====================
+/**
+ * Convert DFDAsset[] to AvailableAsset[] for form dropdowns
+ */
+const assetsToAvailableAssets = (assets: DFDAsset[]): AvailableAsset[] => {
+  return assets.map((asset) => {
+    const { displayId, name } = formatElementLabel(asset as unknown as DFDElement);
+    return {
+      id: asset.id,
+      name: name || "Unnamed Asset",
+      displayId: displayId || asset.id,
+      protectionNeed: asset.properties?.protectionNeed,
+    };
+  });
+};
+
+// ==================== MAIN COMPONENT ====================
 
 export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   elements,
@@ -243,6 +204,13 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // Convert assets to AvailableAsset format for forms
+  const availableAssets = useMemo(
+    () => assetsToAvailableAssets(assets),
+    [assets],
+  );
+
+  // Group elements by type for better organization
   const groupedElements = useMemo(
     () => groupElementsByType(elements),
     [elements],
@@ -258,97 +226,145 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       (a) => !!a.properties?.description?.trim(),
     ).length;
 
-    const totalElements = elements.length;
-    const totalConnections = connections.length;
-    const totalAssets = assets.length;
-
-    const total = totalElements + totalConnections + totalAssets;
-    const described =
-      describedElements + describedConnections + describedAssets;
-
     return {
+      totalElements: elements.length,
       describedElements,
+      totalConnections: connections.length,
       describedConnections,
+      totalAssets: assets.length,
       describedAssets,
-      totalElements,
-      totalConnections,
-      totalAssets,
-      total,
-      described,
-      percentage: total > 0 ? Math.round((described / total) * 100) : 0,
-      isComplete: described === total && total > 0,
     };
   }, [elements, connections, assets]);
 
-  // Handler for group accordion
-  const handleGroupChange =
+  // Handler wrappers to maintain typing
+  const handleGroupChange = useCallback(
     (groupKey: string) =>
-    (_event: React.SyntheticEvent, isExpanded: boolean) => {
-      onToggleGroup(groupKey);
-    };
+      (event: React.SyntheticEvent, isExpanded: boolean) => {
+        onToggleGroup(groupKey);
+      },
+    [onToggleGroup],
+  );
 
-  // Handler for element accordion
-  const handleElementChange =
+  const handleElementChange = useCallback(
     (elementId: string) =>
-    (_event: React.SyntheticEvent, isExpanded: boolean) => {
-      onToggleElement(elementId);
-    };
+      (event: React.SyntheticEvent, isExpanded: boolean) => {
+        onToggleElement(elementId);
+      },
+    [onToggleElement],
+  );
 
-  // No elements yet
-  if (elements.length === 0 && connections.length === 0) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          {t("tabs.dfd.element_description.noElements", {
-            defaultValue: "No elements found. Please draw your DFD first.",
-          })}
-        </Alert>
-      </Box>
-    );
-  }
+  // ==================== RENDER ====================
+
+  // Define element type order for grouping
+  const elementTypeOrder: DFDElementType[] = [
+    "Process",
+    "Multiprocess",
+    "ExternalEntity",
+    "DataStore",
+    "Interface",
+    "TrustBoundary",
+  ];
 
   return (
-    <Box sx={{ height: "100%", overflow: "auto", bgcolor: "grey.50" }}>
-      {/* Header with Stats */}
-      <Paper sx={{ p: 2, m: 2, mb: 1 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="h6">
+    <Box sx={{ height: "100%", overflow: "auto" }}>
+      <Box sx={{ p: 2 }}>
+        {/* Header with overall stats */}
+        <Paper sx={{ p: 2, mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
             {t("tabs.dfd.element_description.title", {
-              defaultValue: "DFD Element Descriptions",
+              defaultValue: "Element Descriptions",
             })}
           </Typography>
-
-          <Box sx={{ flexGrow: 1 }} />
-
-          {stats.isComplete ? (
+          <Stack direction="row" spacing={2}>
             <Chip
-              icon={<CheckCircleIcon />}
-              label={t("tabs.dfd.element_description.complete", {
-                defaultValue: "All Described",
-              })}
-              color="success"
-              variant="outlined"
+              label={`Elements: ${stats.describedElements} / ${stats.totalElements}`}
+              color={
+                stats.describedElements === stats.totalElements
+                  ? "success"
+                  : "default"
+              }
+              size="small"
             />
-          ) : (
             <Chip
-              icon={<WarningIcon />}
-              label={`${stats.described} / ${stats.total} (${stats.percentage}%)`}
-              color="warning"
-              variant="outlined"
+              label={`Data Flows: ${stats.describedConnections} / ${stats.totalConnections}`}
+              color={
+                stats.describedConnections === stats.totalConnections
+                  ? "success"
+                  : "default"
+              }
+              size="small"
             />
-          )}
-        </Stack>
+            <Chip
+              label={`Assets: ${stats.describedAssets} / ${stats.totalAssets}`}
+              color={
+                stats.describedAssets === stats.totalAssets
+                  ? "success"
+                  : "default"
+              }
+              size="small"
+            />
+          </Stack>
+        </Paper>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          {t("tabs.dfd.element_description.subtitle", {
-            defaultValue:
-              "Describe each element and data flow for better threat analysis.",
-          })}
-        </Typography>
-      </Paper>
+        {/* Element Type Groups */}
+        {elementTypeOrder.map((type) => {
+          const elementsOfType = groupedElements[type] || [];
+          if (elementsOfType.length === 0) return null;
 
-      <Box sx={{ p: 2, pt: 0 }}>
-        {/* Assets */}
+          const config = DFD_ELEMENT_CONFIG[type];
+          const describedCount =
+            elementsOfType.filter(isElementDescribed).length;
+          const groupKey = `type-${type}`;
+
+          return (
+            <Accordion
+              key={type}
+              expanded={expandedGroups.includes(groupKey)}
+              onChange={handleGroupChange(groupKey)}
+              sx={{ mb: 1 }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                  sx={{ width: "100%" }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    {getElementTypeIcon(type)}
+                    <Typography variant="subtitle1">{config.name}</Typography>
+                  </Box>
+
+                  <Chip
+                    size="small"
+                    label={`${describedCount} / ${elementsOfType.length}`}
+                    color={
+                      describedCount === elementsOfType.length
+                        ? "success"
+                        : "default"
+                    }
+                    variant="outlined"
+                  />
+                </Stack>
+              </AccordionSummary>
+
+              <AccordionDetails sx={{ p: 0 }}>
+                {elementsOfType.map((element) => (
+                  <ElementAccordion
+                    key={element.id}
+                    element={element}
+                    availableAssets={availableAssets}
+                    onUpdate={(updates) => onElementUpdate(element.id, updates)}
+                    isExpanded={expandedElements.includes(element.id)}
+                    onToggle={handleElementChange(element.id)}
+                  />
+                ))}
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
+
+        {/* Assets Group */}
         {assets.length > 0 && (
           <Accordion
             expanded={expandedGroups.includes("assets")}
@@ -364,7 +380,11 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
               >
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <AssetIcon fontSize="small" sx={{ mr: 1 }} />
-                  <Typography variant="subtitle1">Assets</Typography>
+                  <Typography variant="subtitle1">
+                    {t("tabs.dfd.element_description.assets", {
+                      defaultValue: "Assets",
+                    })}
+                  </Typography>
                 </Box>
 
                 <Chip
@@ -382,12 +402,12 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
 
             <AccordionDetails sx={{ p: 0 }}>
               {assets.map((asset) => (
-                <ElementAccordion
+                <AssetAccordion
                   key={asset.id}
-                  element={asset as unknown as DFDElement}
-                  onUpdate={(updates) =>
-                    onAssetUpdate(asset.id, updates as Partial<DFDAsset>)
-                  }
+                  asset={asset}
+                  elements={elements}
+                  connections={connections}
+                  onUpdate={(updates) => onAssetUpdate(asset.id, updates)}
                   isExpanded={expandedElements.includes(asset.id)}
                   onToggle={handleElementChange(asset.id)}
                 />
@@ -396,59 +416,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
           </Accordion>
         )}
 
-        {/* Element Groups */}
-        {Object.entries(groupedElements).map(([type, typeElements]) => {
-          const elementType = type as DFDElementType;
-          const config = DFD_ELEMENT_CONFIG[elementType];
-          const describedCount = typeElements.filter(isElementDescribed).length;
-          const totalCount = typeElements.length;
-
-          return (
-            <Accordion
-              key={type}
-              expanded={expandedGroups.includes(type)}
-              onChange={handleGroupChange(type)}
-              sx={{ mb: 1 }}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  alignItems="center"
-                  sx={{ width: "100%" }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    {getElementTypeIcon(elementType)}
-                    <Typography variant="subtitle1">{config.name}</Typography>
-                  </Box>
-
-                  <Chip
-                    size="small"
-                    label={`${describedCount} / ${totalCount}`}
-                    color={
-                      describedCount === totalCount ? "success" : "default"
-                    }
-                    variant="outlined"
-                  />
-                </Stack>
-              </AccordionSummary>
-
-              <AccordionDetails sx={{ p: 0 }}>
-                {typeElements.map((element) => (
-                  <ElementAccordion
-                    key={element.id}
-                    element={element}
-                    onUpdate={(updates) => onElementUpdate(element.id, updates)}
-                    isExpanded={expandedElements.includes(element.id)}
-                    onToggle={handleElementChange(element.id)}
-                  />
-                ))}
-              </AccordionDetails>
-            </Accordion>
-          );
-        })}
-
-        {/* Data Flows / Connections */}
+        {/* Data Flows Group */}
         {connections.length > 0 && (
           <Accordion
             expanded={expandedGroups.includes("connections")}
@@ -490,6 +458,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                   key={connection.id}
                   connection={connection}
                   elements={elements}
+                  availableAssets={availableAssets}
                   onUpdate={(updates) =>
                     onConnectionUpdate(connection.id, updates)
                   }
@@ -503,12 +472,13 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       </Box>
     </Box>
   );
-};
+};;
 
 // ==================== SUB-COMPONENTS ====================
 
 interface ElementAccordionProps {
   element: DFDElement;
+  availableAssets: AvailableAsset[];
   onUpdate: (updates: Partial<DFDElement>) => void;
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
@@ -516,12 +486,65 @@ interface ElementAccordionProps {
 
 const ElementAccordion: React.FC<ElementAccordionProps> = ({
   element,
+  availableAssets,
   onUpdate,
   isExpanded,
   onToggle,
 }) => {
   const isDescribed = isElementDescribed(element);
   const { displayId, name } = formatElementLabel(element);
+
+  // Select correct form based on element type
+  const renderForm = () => {
+    switch (element.type) {
+      case "Process":
+      case "Multiprocess":
+        return (
+          <ProcessDescriptionForm
+            element={element}
+            onChange={onUpdate}
+            availableAssets={availableAssets}
+          />
+        );
+      case "DataStore":
+        return (
+          <DataStoreDescriptionForm
+            element={element}
+            onChange={onUpdate}
+            availableAssets={availableAssets}
+          />
+        );
+      case "ExternalEntity":
+        return (
+          <ExternalEntityDescriptionForm
+            element={element}
+            onChange={onUpdate}
+            availableAssets={availableAssets}
+          />
+        );
+      case "Interface":
+        return (
+          <InterfaceDescriptionForm
+            element={element}
+            onChange={onUpdate}
+            availableAssets={availableAssets}
+          />
+        );
+      case "TrustBoundary":
+        return (
+          <TrustBoundaryDescriptionForm element={element} onChange={onUpdate} />
+        );
+      default:
+        return (
+          <Box sx={{ p: 2 }}>
+            <Alert severity="info">
+              No specific form available for {element.type}. Please add the form
+              or use generic description.
+            </Alert>
+          </Box>
+        );
+    }
+  };
 
   return (
     <Accordion
@@ -542,21 +565,22 @@ const ElementAccordion: React.FC<ElementAccordionProps> = ({
             <WarningIcon fontSize="small" color="warning" />
           )}
           <Typography variant="body2">
-            {displayId ? `[${displayId}]` : ""} {name || "Unnamed"}
+            {displayId ? `[${displayId}]` : ""} {name}
           </Typography>
         </Stack>
       </AccordionSummary>
 
       <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
-        <ElementDescriptionForm element={element} onChange={onUpdate} />
+        {renderForm()}
       </AccordionDetails>
     </Accordion>
   );
-};
+};;
 
 interface ConnectionAccordionProps {
   connection: DFDConnection;
   elements: DFDElement[];
+  availableAssets: AvailableAsset[];
   onUpdate: (updates: Partial<DFDConnection>) => void;
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
@@ -565,12 +589,16 @@ interface ConnectionAccordionProps {
 const ConnectionAccordion: React.FC<ConnectionAccordionProps> = ({
   connection,
   elements,
+  availableAssets,
   onUpdate,
   isExpanded,
   onToggle,
 }) => {
   const isDescribed = isConnectionDescribed(connection);
   const { displayId, label } = formatConnectionLabel(connection, elements);
+
+  // TODO: Implement auto-detection if connection crosses trust boundary
+  const crossesTrustBoundary = false; // Placeholder
 
   return (
     <Accordion
@@ -597,9 +625,69 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = ({
       </AccordionSummary>
 
       <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
-        <ConnectionDescriptionForm
+        <DataFlowDescriptionForm
           connection={connection}
           onChange={onUpdate}
+          crossesTrustBoundary={crossesTrustBoundary}
+          availableAssets={availableAssets}
+        />
+      </AccordionDetails>
+    </Accordion>
+  );
+};
+
+interface AssetAccordionProps {
+  asset: DFDAsset;
+  elements: DFDElement[];
+  connections: DFDConnection[];
+  onUpdate: (updates: Partial<DFDAsset>) => void;
+  isExpanded: boolean;
+  onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
+}
+
+const AssetAccordion: React.FC<AssetAccordionProps> = ({
+  asset,
+  elements,
+  connections,
+  onUpdate,
+  isExpanded,
+  onToggle,
+}) => {
+  const isDescribed = !!asset.properties?.description?.trim();
+  const { displayId, name } = formatElementLabel(
+    asset as unknown as DFDElement,
+  );
+
+  return (
+    <Accordion
+      expanded={isExpanded}
+      onChange={onToggle}
+      sx={{
+        "&:before": { display: "none" },
+        boxShadow: "none",
+        borderTop: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {isDescribed ? (
+            <CheckCircleIcon fontSize="small" color="success" />
+          ) : (
+            <WarningIcon fontSize="small" color="warning" />
+          )}
+          <Typography variant="body2">
+            {displayId ? `[${displayId}]` : ""} {name || "Unnamed Asset"}
+          </Typography>
+        </Stack>
+      </AccordionSummary>
+
+      <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
+        <AssetDescriptionForm
+          asset={asset}
+          onChange={onUpdate}
+          elements={elements}
+          connections={connections}
         />
       </AccordionDetails>
     </Accordion>

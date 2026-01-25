@@ -255,9 +255,32 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
             </Grid>
           </Box>
 
-          <Divider />
+          {/* Linked DFD Elements (read-only display) */}
+          {editedAsset.linkedDFDElements.length > 0 && (
+            <>
+              <Divider />
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t("tabs.assets.dialog.linkedElements", {
+                    defaultValue: "Linked DFD Elements",
+                  })}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {editedAsset.linkedDFDElements.map((link) => (
+                    <Chip
+                      key={link.elementId}
+                      label={link.elementName}
+                      variant="outlined"
+                      size="small"
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            </>
+          )}
 
           {/* Impact Ratings with Dropdowns */}
+          <Divider />
           <Box>
             <Box
               sx={{
@@ -288,7 +311,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
             <Grid container spacing={2}>
               {editedAsset.impactRatings.map((rating) => {
                 const criterion = PREDEFINED_IMPACT_CRITERIA.find(
-                  (c) => c.id === rating.criterionId
+                  (c) => c.id === rating.criterionId,
                 );
                 const name = isGerman ? criterion?.nameDE : criterion?.name;
                 const description = isGerman
@@ -369,7 +392,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
             {SECURITY_GOALS.map((goalDef) => {
               const goal = editedAsset.securityGoals.find(
-                (sg) => sg.type === goalDef.type
+                (sg) => sg.type === goalDef.type,
               );
               const isEnabled = goal?.enabled ?? false;
 
@@ -424,7 +447,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                         onChange={(e) =>
                           handleSecurityGoalDescription(
                             goalDef.type,
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         fullWidth
@@ -453,30 +476,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               );
             })}
           </Box>
-
-          {/* Linked DFD Elements (read-only display) */}
-          {editedAsset.linkedDFDElements.length > 0 && (
-            <>
-              <Divider />
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  {t("tabs.assets.dialog.linkedElements", {
-                    defaultValue: "Linked DFD Elements",
-                  })}
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {editedAsset.linkedDFDElements.map((link) => (
-                    <Chip
-                      key={link.elementId}
-                      label={link.elementName}
-                      variant="outlined"
-                      size="small"
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            </>
-          )}
         </Box>
       </DialogContent>
 

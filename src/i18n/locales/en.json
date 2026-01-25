@@ -388,20 +388,216 @@
         "atLeastOneSecurityGoal": "At least one security goal required"
       },
       "element_description": {
-        "title": "DFD Element Descriptions",
-        "subtitle": "Describe each element and data flow for better threat analysis.",
-        "noElements": "No elements found. Please draw your DFD first.",
-        "complete": "All Described",
-        "required": "Required Fields",
-        "optional": "Threat Modeling Fields (Optional)",
-        "description": "Description",
-        "securityLevel": "Security Level",
-        "dataClassification": "Data Classification",
-        "trustLevel": "Trust Level",
-        "authRequired": "Authentication Required",
-        "encryptionRequired": "Encryption Required",
-        "securityNotes": "Security Notes",
-        "dataFlows": "Data Flows"
+        "title": "Element Descriptions",
+        "assets": "Assets",
+        "dataFlows": "Data Flows",
+        "process": {
+          "sections": {
+            "required": "Required Fields",
+            "security": "Security & Execution Context",
+            "advanced": "Advanced / Optional"
+          },
+          "fields": {
+            "description": {
+              "label": "Description",
+              "helperText": "What does this process do?"
+            },
+            "purpose": {
+              "label": "Purpose / Function",
+              "placeholder": "e.g., User authentication, Data transformation"
+            },
+            "runsAs": {
+              "label": "Runs as",
+              "options": {
+                "not_specified": "Not specified",
+                "user": "User Context",
+                "service": "Service Account",
+                "system": "System Account",
+                "container": "Container / Isolated"
+              }
+            },
+            "privilegeLevel": {
+              "label": "Privilege Level",
+              "options": {
+                "not_specified": "Not specified",
+                "low": "Low (User)",
+                "medium": "Medium (Service)",
+                "high": "High (Admin)",
+                "root": "Root / SYSTEM"
+              }
+            },
+            "authenticationRequired": {
+              "label": "Authentication Required",
+              "options": {
+                "not_specified": "Not specified",
+                "no": "No",
+                "yes": "Yes",
+                "optional": "Optional",
+                "oauth": "OAuth / OIDC",
+                "saml": "SAML",
+                "certificate": "Certificate-based",
+                "apikey": "API Key"
+              }
+            },
+            "authorizationModel": {
+              "label": "Authorization Model",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None",
+                "rbac": "RBAC (Role-Based)",
+                "abac": "ABAC (Attribute-Based)",
+                "acl": "ACL (Access Control List)",
+                "custom": "Custom"
+              }
+            },
+            "inputValidation": {
+              "label": "Input Validation",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None",
+                "basic": "Basic (Type checking)",
+                "strict": "Strict (Whitelist + Sanitization)",
+                "schema": "Schema Validation"
+              }
+            },
+            "errorHandling": {
+              "label": "Error Handling",
+              "options": {
+                "not_specified": "Not specified",
+                "silent": "Silent (No details)",
+                "verbose": "Verbose (Stack traces)",
+                "sanitized": "Sanitized (User-friendly)"
+              }
+            },
+            "securityControls": {
+              "label": "Security Controls",
+              "placeholder": "e.g., Sandboxing, Rate limiting, WAF"
+            },
+            "exposedToInternet": {
+              "label": "Exposed to Internet"
+            },
+            "technology": {
+              "label": "Technology",
+              "options": {
+                "not_specified": "Not specified",
+                "api": "API (REST/GraphQL)",
+                "batch": "Batch Job",
+                "ui": "UI / Frontend",
+                "microservice": "Microservice",
+                "lambda": "Serverless / Lambda",
+                "daemon": "Background Daemon"
+              }
+            },
+            "owner": {
+              "label": "Owner",
+              "placeholder": "Team or person responsible"
+            },
+            "notes": {
+              "label": "Additional Notes"
+            }
+          },
+          "stride_hint": {
+            "title": "STRIDE Relevance: All (S, T, R, I, D, E)",
+            "description": "Processes are critical attack surfaces. Ensure authentication, authorization, and input validation are properly configured."
+          }
+        },
+        "external_entity": {
+          "sections": {
+            "required": "Required Fields",
+            "security": "Trust & Access Control",
+            "advanced": "Advanced / Optional"
+          },
+          "fields": {
+            "description": {
+              "label": "Description",
+              "helperText": "Who or what is this external entity?"
+            },
+            "entityType": {
+              "label": "Entity Type",
+              "options": {
+                "not_specified": "Not specified",
+                "user": "User (Human)",
+                "admin_user": "Administrator (Human)",
+                "partner": "Partner System",
+                "thirdparty": "Third-party API",
+                "service": "External Service / SaaS",
+                "identity_provider": "Identity Provider (IdP)",
+                "payment": "Payment Provider",
+                "contractor": "Contractor / Vendor",
+                "bot": "Bot / Automated System",
+                "webhook": "Webhook Source",
+                "mobile_app": "Mobile App",
+                "iot": "IoT Device"
+              }
+            },
+            "trustLevel": {
+              "label": "Trust Level",
+              "options": {
+                "not_specified": "Not specified",
+                "low": "Low (Untrusted / Public)",
+                "medium": "Medium (Known Partner)",
+                "high": "High (Verified / Internal)"
+              }
+            },
+            "authenticationMethod": {
+              "label": "Authentication Method",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None (Anonymous)",
+                "password": "Username / Password",
+                "mfa": "Multi-Factor Authentication",
+                "oauth": "OAuth / OIDC",
+                "saml": "SAML",
+                "certificate": "Certificate-based",
+                "apikey": "API Key",
+                "mutual_tls": "Mutual TLS (mTLS)",
+                "jwt": "Signed Token (JWT)"
+              }
+            },
+            "ownership": {
+              "label": "Ownership",
+              "options": {
+                "not_specified": "Not specified",
+                "internal": "Internal (Same Organization)",
+                "external": "External (Third Party)",
+                "partner": "Partner / Affiliate"
+              }
+            },
+            "threatActor": {
+              "label": "Assumed Threat Actor",
+              "options": {
+                "not_specified": "Not specified",
+                "benign": "Benign (Trusted User)",
+                "curious": "Curious (Low Motivation)",
+                "malicious": "Malicious (Active Attacker)",
+                "advanced": "Advanced Persistent Threat (APT)",
+                "insider": "Insider (Misuse / Error)",
+                "compromised": "Compromised Entity"
+              }
+            },
+            "authorizationScope": {
+              "label": "Authorization Scope",
+              "placeholder": "e.g., Read-only, Specific endpoints, Limited operations"
+            },
+            "contractExists": {
+              "label": "Contract / SLA Exists"
+            },
+            "rateLimited": {
+              "label": "Rate Limited"
+            },
+            "owner": {
+              "label": "Contact / Owner",
+              "placeholder": "Contact person or team"
+            },
+            "notes": {
+              "label": "Additional Notes"
+            }
+          },
+          "stride_hint": {
+            "title": "STRIDE Relevance: S (Spoofing), R (Repudiation)",
+            "description": "External entities are outside your control. Enforce strong authentication, least privilege, and non-repudiation."
+          }
+        }
       }
     },
     "assets": {
@@ -845,6 +1041,8 @@
     "elementDefaultName": "Element \"{{name}}\" has a default/placeholder name. Please provide a meaningful name.",
     "elementMissingIdLabel": "Element \"{{name}}\" is missing an ID label. Please add an ID label (e.g., [P-1], [EE-1], [DF-1]).",
     "duplicateIdLabel": "ID label \"{{id}}\" is used multiple times. Each element should have a unique ID.",
+    "assetMarkerNoRelation": "The asset has no associated relation",
+    "assetRelationInconsistent": "The asset's relation is inconsistent",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",

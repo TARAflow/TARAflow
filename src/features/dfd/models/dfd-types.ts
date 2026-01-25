@@ -2,6 +2,15 @@
 // Single Responsibility: Type definitions for DFD-related data structures
 
 import type { PhaseStatusMap } from "shared";
+import type {
+  ProcessProperties,
+  ExternalEntityProperties,
+  DataStoreProperties,
+  DataFlowProperties,
+  InterfaceProperties,
+  TrustBoundaryProperties,
+  AssetProperties,
+} from "./element-properties";
 
 
 // ==================== DFD ELEMENT TYPES ====================
@@ -13,14 +22,76 @@ export type DFDElementType =
   | "DataStore"
   | "DataFlow"
   | "TrustBoundary"
-  | "PhysicalInterface"
   | "Interface";
 
 export type SecurityLevel = "public" | "internal" | "confidential" | "secret";
 export type TrustLevel = "trusted" | "untrusted" | "unknown";
 
+// ==================== ASSET RELATIONS ====================
+
+/**
+ * Types of relationships between DFD elements and assets
+ */
+export type AssetRelationType =
+  | "stores"      // Element stores the asset (DataStore)
+  | "processes"   // Element processes the asset (Process, ExternalEntity)
+  | "creates"     // Element creates/destroys the asset (Process, ExternalEntity)
+  | "transports"; // Element transports the asset (DataFlow, Interface)
+
+/**
+ * Asset relation from Element perspective (Element → Asset)
+ */
+export interface AssetRelation {
+  /** Asset ID (e.g., "A-001") */
+  assetId: string;
+  
+  /** Types of relations (multiple possible for same asset) */
+  relationTypes: AssetRelationType[];
+  
+  /** Optional notes about this relationship */
+  notes?: string;
+}
+
+/**
+ * Element relation from Asset perspective (Asset → Element)
+ * This is the mirrored representation stored in DFDAsset
+ */
+export interface ElementRelation {
+  /** Element XML ID */
+  elementId: string;
+  
+  /** Element name */
+  elementName: string;
+  
+  /** Element type */
+  elementType: DFDElementType;
+  
+  /** Display ID (e.g., "P-1", "DS-1") */
+  displayId: string;
+  
+  /** Types of relations (mirrored from AssetRelation) */
+  relationTypes: AssetRelationType[];
+  
+  /** Optional notes about this relationship */
+  notes?: string;
+}
+
+/**
+ * Allowed asset relation types per DFD element type
+ */
+export const ALLOWED_ASSET_RELATIONS: Record<DFDElementType, AssetRelationType[]> = {
+  Process: ["processes", "creates"],
+  ExternalEntity: ["processes", "creates"],
+  DataStore: ["stores"],
+  DataFlow: ["transports"],
+  Multiprocess: ["processes", "creates"],
+  Interface: ["transports", "processes", "stores"],
+  TrustBoundary: [], // No asset relations for trust boundaries
+};
+
 /**
  * Semantic properties for DFD elements and assets
+ * @deprecated Use specific property interfaces from element-properties.ts
  */
 export interface ElementProperties {
   description?: string;
@@ -49,6 +120,9 @@ export interface DFDAsset {
   /** Display ID (same as id for consistency) */
   displayId: string;
 
+  /** Asset name */
+  name: string;
+
   /** XML element IDs from draw.io (stable, multiple if placed multiple times) */
   xmlIds: string[];
 
@@ -58,11 +132,11 @@ export interface DFDAsset {
   /** Sizes of asset labels (one per xmlId) */
   sizes: Array<{ width: number; height: number }>;
 
-  /** DFD elements this asset protects (XML IDs) */
-  linkedElements?: string[];
+  /** DFD elements this asset is related to (with relation types) */
+  linkedElements?: ElementRelation[];
 
-  /** Semantic properties */
-  properties?: ElementProperties;
+  /** Asset-specific properties */
+  properties?: AssetProperties;
 }
 
 // ==================== DFD ELEMENTS ====================
@@ -75,11 +149,16 @@ export interface DFDElement {
   position: { x: number; y: number };
   size: { width: number; height: number };
 
-  /** Assets that protect this element (Asset IDs like "A-001") */
-  linkedAssets?: string[];
+  /** Asset relations (Element → Assets with relation types) */
+  assetRelations?: AssetRelation[];
 
-  // Semantic / logical properties (from description panel)
-  properties: Record<string, unknown> & ElementProperties;
+  /** Element-specific properties (type depends on element.type) */
+  properties:
+    | ProcessProperties
+    | ExternalEntityProperties
+    | DataStoreProperties
+    | InterfaceProperties
+    | TrustBoundaryProperties;
 }
 
 export interface DFDConnection {
@@ -102,11 +181,11 @@ export interface DFDConnection {
     bidirectional?: boolean;
   };
 
-  /** Assets that protect this connection (Asset IDs like "A-001") */
-  linkedAssets?: string[];
+  /** Asset relations (DataFlow → Assets) */
+  assetRelations?: AssetRelation[];
 
-  // Semantic / logical properties (from description panel)
-  properties?: ElementProperties;
+  /** DataFlow-specific properties */
+  properties?: DataFlowProperties;
 }
 
 export interface DFDValidation {
@@ -124,9 +203,8 @@ export interface DFDStats {
   dataStores: number;
   dataFlows: number;
   trustBoundaries: number;
-  physicalInterfaces: number;
+  interfaces: number; // Includes former PhysicalInterface elements
   assets: number; // Count of unique asset IDs (not placements)
-  interfaces: number;
 
   // Description completion stats
   describedElements: number;
@@ -243,17 +321,11 @@ export const DFD_ELEMENT_CONFIG: Record<
     description: "Boundary between trust zones",
     icon: "┌",
   },
-  PhysicalInterface: {
-    name: "Physical Interface",
-    nameDE: "Physische Schnittstelle",
-    description: "USB, UART, JTAG, etc.",
-    icon: "▢",
-  },
   Interface: {
     name: "Interface",
     nameDE: "Schnittstelle",
-    description: "Interface connection point",
-    icon: "⊡",
+    description: "Physical/logical interface (USB, UART, Ethernet, etc.)",
+    icon: "▢",
   },
 };
 
@@ -321,11 +393,42 @@ export function getDFDElementTypePluralText(
     DataStore: { en: "Data Stores", de: "Datenspeicher" },
     DataFlow: { en: "Data Flows", de: "Datenflüsse" },
     TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
-    PhysicalInterface: {
-      en: "Physical Interfaces",
-      de: "Physische Schnittstellen",
-    },
     Interface: { en: "Interfaces", de: "Schnittstellen" },
   };
   return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);
+}
+
+/**
+ * Get allowed asset relation types for a given element type
+ */
+export function getAllowedAssetRelations(
+  elementType: DFDElementType
+): AssetRelationType[] {
+  return ALLOWED_ASSET_RELATIONS[elementType] || [];
+}
+
+/**
+ * Check if a relation type is allowed for an element type
+ */
+export function isAssetRelationAllowed(
+  elementType: DFDElementType,
+  relationType: AssetRelationType
+): boolean {
+  return ALLOWED_ASSET_RELATIONS[elementType]?.includes(relationType) ?? false;
+}
+
+/**
+ * Get human-readable text for asset relation type
+ */
+export function getAssetRelationTypeText(
+  relationType: AssetRelationType,
+  language: DocLanguage = "en"
+): string {
+  const labels: Record<AssetRelationType, { en: string; de: string }> = {
+    stores: { en: "Stores", de: "Speichert" },
+    processes: { en: "Processes", de: "Verarbeitet" },
+    creates: { en: "Creates/Destroys", de: "Erzeugt/Vernichtet" },
+    transports: { en: "Transports", de: "Transportiert" },
+  };
+  return labels[relationType]?.[language] ?? relationType;
 }

@@ -386,20 +386,216 @@
         "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich"
       },
       "element_description": {
-        "title": "DFD Element Beschreibungen",
-        "subtitle": "Beschreiben Sie jedes Element und jeden Datenfluss für eine bessere Gefahrenanalyse.",
-        "noElements": "Keine Elemente gefunden. Bitte zeichnen Sie zuerst Ihr DFD.",
-        "complete": "Alle beschrieben",
-        "required": "Pflichtfelder",
-        "optional": "Threat Modeling Felder (Optional)",
-        "description": "Beschreibung",
-        "securityLevel": "Sicherheitsstufe",
-        "dataClassification": "Datenklassifizierung",
-        "trustLevel": "Vertrauensstufe",
-        "authRequired": "Authentifizierung erforderlich",
-        "encryptionRequired": "Verschlüsselung erforderlich",
-        "securityNotes": "Sicherheitshinweise",
-        "dataFlows": "Datenflüsse"
+        "title": "Element-Beschreibungen",
+        "assets": "Assets",
+        "dataFlows": "Datenflüsse",
+        "process": {
+          "sections": {
+            "required": "Pflichtfelder",
+            "security": "Sicherheit & Ausführungskontext",
+            "advanced": "Erweitert / Optional"
+          },
+          "fields": {
+            "description": {
+              "label": "Beschreibung",
+              "helperText": "Was macht dieser Prozess?"
+            },
+            "purpose": {
+              "label": "Zweck / Funktion",
+              "placeholder": "z.B. Benutzerauthentifizierung, Datentransformation"
+            },
+            "runsAs": {
+              "label": "Läuft als",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "user": "Benutzerkontext",
+                "service": "Dienstkonto",
+                "system": "Systemkonto",
+                "container": "Container / Isoliert"
+              }
+            },
+            "privilegeLevel": {
+              "label": "Berechtigungsstufe",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig (Benutzer)",
+                "medium": "Mittel (Dienst)",
+                "high": "Hoch (Admin)",
+                "root": "Root / SYSTEM"
+              }
+            },
+            "authenticationRequired": {
+              "label": "Authentifizierung erforderlich",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "no": "Nein",
+                "yes": "Ja",
+                "optional": "Optional",
+                "oauth": "OAuth / OIDC",
+                "saml": "SAML",
+                "certificate": "Zertifikatbasiert",
+                "apikey": "API-Schlüssel"
+              }
+            },
+            "authorizationModel": {
+              "label": "Autorisierungsmodell",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "rbac": "RBAC (Rollenbasiert)",
+                "abac": "ABAC (Attributbasiert)",
+                "acl": "ACL (Zugriffskontrollliste)",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "inputValidation": {
+              "label": "Eingabevalidierung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "basic": "Basis (Typprüfung)",
+                "strict": "Streng (Whitelist + Bereinigung)",
+                "schema": "Schema-Validierung"
+              }
+            },
+            "errorHandling": {
+              "label": "Fehlerbehandlung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "silent": "Still (Keine Details)",
+                "verbose": "Ausführlich (Stack-Traces)",
+                "sanitized": "Bereinigt (Benutzerfreundlich)"
+              }
+            },
+            "securityControls": {
+              "label": "Sicherheitskontrollen",
+              "placeholder": "z.B. Sandboxing, Rate Limiting, WAF"
+            },
+            "exposedToInternet": {
+              "label": "Im Internet exponiert"
+            },
+            "technology": {
+              "label": "Technologie",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "api": "API (REST/GraphQL)",
+                "batch": "Batch-Job",
+                "ui": "UI / Frontend",
+                "microservice": "Microservice",
+                "lambda": "Serverless / Lambda",
+                "daemon": "Hintergrunddienst"
+              }
+            },
+            "owner": {
+              "label": "Verantwortlich",
+              "placeholder": "Team oder verantwortliche Person"
+            },
+            "notes": {
+              "label": "Zusätzliche Notizen"
+            }
+          },
+          "stride_hint": {
+            "title": "STRIDE-Relevanz: Alle (S, T, R, I, D, E)",
+            "description": "Prozesse sind kritische Angriffsflächen. Stellen Sie sicher, dass Authentifizierung, Autorisierung und Eingabevalidierung korrekt konfiguriert sind."
+          }
+        },
+        "external_entity": {
+          "sections": {
+            "required": "Pflichtfelder",
+            "security": "Vertrauen & Zugriffskontrolle",
+            "advanced": "Erweitert / Optional"
+          },
+          "fields": {
+            "description": {
+              "label": "Beschreibung",
+              "helperText": "Wer oder was ist diese externe Entität?"
+            },
+            "entityType": {
+              "label": "Entitätstyp",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "user": "Benutzer (Mensch)",
+                "admin_user": "Administrator (Mensch)",
+                "partner": "Partnersystem",
+                "thirdparty": "Drittanbieter-API",
+                "service": "Externer Dienst / SaaS",
+                "identity_provider": "Identitätsanbieter (IdP)",
+                "payment": "Zahlungsdienstleister",
+                "contractor": "Dienstleister / Lieferant",
+                "bot": "Bot / Automatisiertes System",
+                "webhook": "Webhook-Quelle",
+                "mobile_app": "Mobile App",
+                "iot": "IoT-Gerät"
+              }
+            },
+            "trustLevel": {
+              "label": "Vertrauensstufe",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig (Nicht vertrauenswürdig / Öffentlich)",
+                "medium": "Mittel (Bekannter Partner)",
+                "high": "Hoch (Verifiziert / Intern)"
+              }
+            },
+            "authenticationMethod": {
+              "label": "Authentifizierungsmethode",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine (Anonym)",
+                "password": "Benutzername / Passwort",
+                "mfa": "Multi-Faktor-Authentifizierung",
+                "oauth": "OAuth / OIDC",
+                "saml": "SAML",
+                "certificate": "Zertifikatbasiert",
+                "apikey": "API-Schlüssel",
+                "mutual_tls": "Mutual TLS (beidseitige Zertifikatsauthentifizierung)",
+                "jwt": "Signiertes Token (JWT)"
+              }
+            },
+            "ownership": {
+              "label": "Eigentümerschaft",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "internal": "Intern (Gleiche Organisation)",
+                "external": "Extern (Drittpartei)",
+                "partner": "Partner / Affiliate"
+              }
+            },
+            "threatActor": {
+              "label": "Angenommener Bedrohungsakteur",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "benign": "Gutartig (Vertrauenswürdiger Benutzer)",
+                "curious": "Neugierig (Geringe Motivation)",
+                "malicious": "Böswillig (Aktiver Angreifer)",
+                "advanced": "Advanced Persistent Threat (APT)",
+                "insider": "Insider (Fehlverhalten / Fehlbedienung)",
+                "compromised": "Kompromittierte Entität"
+              }
+            },
+            "authorizationScope": {
+              "label": "Autorisierungsumfang",
+              "placeholder": "z.B. Nur-Lesen, Bestimmte Endpunkte, Eingeschränkte Operationen"
+            },
+            "contractExists": {
+              "label": "Vertrag / SLA vorhanden"
+            },
+            "rateLimited": {
+              "label": "Rate-limitiert"
+            },
+            "owner": {
+              "label": "Kontakt / Verantwortlich",
+              "placeholder": "Kontaktperson oder Team"
+            },
+            "notes": {
+              "label": "Zusätzliche Notizen"
+            }
+          },
+          "stride_hint": {
+            "title": "STRIDE-Relevanz: S (Spoofing), R (Repudiation)",
+            "description": "Externe Entitäten sind außerhalb Ihrer Kontrolle. Starke Authentifizierung, geringste Berechtigungen (Least Privilege) und Nichtabstreitbarkeit sicherstellen."
+          }
+        }
       }
     },
     "assets": {
@@ -845,6 +1041,8 @@
     "elementDefaultName": "Element \"{{name}}\" hat einen Standard-/Platzhaltername. Bitte geben Sie einen aussagekräftigen Namen ein.",
     "elementMissingIdLabel": "Element \"{{name}}\" hat kein ID-Label. Bitte fügen Sie ein ID-Label hinzu (z.B. [P-1], [EE-1], [DF-1]).",
     "duplicateIdLabel": "ID-Label \"{{id}}\" wird mehrfach verwendet. Jedes Element sollte eine eindeutige ID haben.",
+    "assetMarkerNoRelation": "Das Asset hat keine zugeordnete Beziehung",
+    "assetRelationInconsistent": "Die Beziehung des Assets ist inkonsistent",
     "elementTypes": {
       "Process": "Prozess",
       "Multiprocess": "Multiprozess",
