@@ -8,7 +8,16 @@ export interface ProcessProperties {
   description?: string;
 
   // Execution Context
-  runsAs?: "user" | "service" | "system" | "container";
+  runsAs?:
+    | "not_specified"
+    | "user"
+    | "admin_user"
+    | "root"
+    | "system"
+    | "service"
+    | "guest"
+    | "anonymous"
+    | "contractor";
   privilegeLevel?: "low" | "medium" | "high" | "root";
 
   // Authentication & Authorization
@@ -19,7 +28,9 @@ export interface ProcessProperties {
     | "oauth"
     | "saml"
     | "certificate"
-    | "apikey";
+    | "apikey"
+    | "jwt"
+    | "mtls";
   authorizationModel?: "none" | "rbac" | "abac" | "acl" | "custom";
 
   // Input Validation & Error Handling
@@ -31,7 +42,19 @@ export interface ProcessProperties {
   exposedToInternet?: boolean;
 
   // Technology & Ownership
-  technology?: "api" | "batch" | "ui" | "microservice" | "lambda" | "daemon";
+  technology?:
+    | "api" // Service for REST, GraphQL, or similar
+    | "batch" // Batch processing
+    | "ui" // Frontend/UI
+    | "microservice" // Distributed units
+    | "lambda" // Serverless function
+    | "daemon" // Background process
+    | "websocket" // Real-time communication
+    | "event" // Message- or event-driven
+    | "cli" // Command-line tools/scripts
+    | "database" // Database services
+    | "cron" // Scheduled tasks
+    | "iot"; // Specialized IoT systems
   owner?: string;
   notes?: string;
 }

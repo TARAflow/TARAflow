@@ -411,9 +411,13 @@
               "options": {
                 "not_specified": "Not specified",
                 "user": "User Context",
-                "service": "Service Account",
+                "admin_user": "Admin User",
+                "root": "Root",
                 "system": "System Account",
-                "container": "Container / Isolated"
+                "service": "Service Account",
+                "guest": "Guest",
+                "anonymous": "Anonymous",
+                "contractor": "Contractor"
               }
             },
             "privilegeLevel": {
@@ -436,7 +440,9 @@
                 "oauth": "OAuth / OIDC",
                 "saml": "SAML",
                 "certificate": "Certificate-based",
-                "apikey": "API Key"
+                "apikey": "API Key",
+                "jwt": "JWT (JSON Web Token)",
+                "mtls": "Mutual TLS (mTLS)"
               }
             },
             "authorizationModel": {
@@ -485,7 +491,13 @@
                 "ui": "UI / Frontend",
                 "microservice": "Microservice",
                 "lambda": "Serverless / Lambda",
-                "daemon": "Background Daemon"
+                "daemon": "Background Daemon",
+                "websocket": "WebSocket",
+                "event": "Event-driven",
+                "cli": "CLI Tool",
+                "database": "Database Service",
+                "cron": "Scheduled Task (Cron)",
+                "iot": "IoT System"
               }
             },
             "owner": {
@@ -597,6 +609,51 @@
             "title": "STRIDE Relevance: S (Spoofing), R (Repudiation)",
             "description": "External entities are outside your control. Enforce strong authentication, least privilege, and non-repudiation."
           }
+        },
+        "asset": {
+          "name": "Asset Name",
+          "nameHelper": "Short, unique identifier",
+          "nameTooltip": "Use a concrete name like 'Customer Database' instead of generic terms like 'Data'",
+          "category": "Category",
+          "categoryGuidance": "Choose the category that best describes what needs protection",
+          "categoryData": "Data",
+          "categoryDataDesc": "(Sensor data, production data, configuration)",
+          "categorySystem": "Systems",
+          "categorySystemDesc": "Servers, APIs, SCADA, cloud services",
+          "categoryInfrastructure": "Infrastructure",
+          "categoryInfrastructureDesc": "Machines, network devices",
+          "categoryProcess": "Processes",
+          "categoryProcessDesc": "Firmware updates, SOPs, procedures",
+          "categoryHuman": "Humans",
+          "categoryHumanDesc": "Operators, administrators, contractors",
+          "description": "Description",
+          "descriptionHelper": "What does this asset represent and why is it valuable?",
+          "descriptionTooltip": "Start with a short description. Details can be refined later.",
+          "protectionNeed": "Protection Need",
+          "protectionNeedGuidance": "Consider the impact if this asset is lost, manipulated, or misused",
+          "protectionLow": "Low – loss is inconvenient",
+          "protectionMedium": "Medium – impacts operations",
+          "protectionHigh": "High – causes serious damage",
+          "protectionCritical": "Critical – threatens business or safety",
+          "referencedIn": "Referenced in System",
+          "referencedInGuidance": "These elements reference this asset in the DFD. Use this to validate your description.",
+          "categoryDetails": "{{category}}-Specific Details",
+          "categoryDetailsGuidance": "Additional details specific to this asset type. Optional but helpful.",
+          "dataType": "Data Type",
+          "lifecycle": "Lifecycle",
+          "criticality": "Criticality for Operations",
+          "exposure": "Exposure",
+          "physicalAccess": "Physical Access Possible",
+          "location": "Location",
+          "automated": "Automated",
+          "changeFrequency": "Change Frequency",
+          "role": "Role",
+          "securityRelevant": "Security Relevant (has access to critical systems)",
+          "advanced": "Advanced / Optional",
+          "advancedGuidance": "Optional fields for refinement. Not required for initial analysis.",
+          "owner": "Owner / Responsible",
+          "ownerPlaceholder": "Team or person responsible",
+          "notes": "Additional Notes"
         }
       }
     },

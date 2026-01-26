@@ -4,13 +4,102 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { DFDViewMode } from "../models/dfd-types";
+import type { ProcessProperties } from "../models/element-properties";
+import type { ExternalEntityProperties } from "../models/element-properties";
+
+const PROCESS_RUNSAS_DEFAULTS: Record<string, Partial<ProcessProperties>> = {
+  user: { privilegeLevel: "low", authenticationRequired: "optional" },
+  admin_user: { privilegeLevel: "medium", authenticationRequired: "yes" },
+  root: { privilegeLevel: "root", authenticationRequired: "yes" },
+  system: { privilegeLevel: "high", authenticationRequired: "yes" },
+  service: { privilegeLevel: "medium", authenticationRequired: "yes" },
+  guest: { privilegeLevel: "low", authenticationRequired: "no" },
+  anonymous: { privilegeLevel: "low", authenticationRequired: "no" },
+  contractor: { privilegeLevel: "medium", authenticationRequired: "yes" },
+};
+
+export const PROCESS_TECH_DEFAULTS: Record<
+  NonNullable<ProcessProperties["technology"]>,
+  Partial<ProcessProperties>
+> = {
+  api: {
+    authenticationRequired: "oauth",
+    authorizationModel: "rbac",
+    inputValidation: "schema",
+    errorHandling: "sanitized",
+  },
+  ui: {
+    authenticationRequired: "yes",
+    authorizationModel: "rbac",
+    inputValidation: "basic",
+    errorHandling: "sanitized",
+  },
+  microservice: {
+    authenticationRequired: "oauth",
+    authorizationModel: "rbac",
+    inputValidation: "schema",
+    errorHandling: "sanitized",
+  },
+  batch: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "none",
+    errorHandling: "silent",
+  },
+  lambda: {
+    authenticationRequired: "oauth",
+    authorizationModel: "custom",
+    inputValidation: "schema",
+    errorHandling: "sanitized",
+  },
+  daemon: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "basic",
+    errorHandling: "silent",
+  },
+  websocket: {
+    authenticationRequired: "oauth",
+    authorizationModel: "rbac",
+    inputValidation: "strict",
+    errorHandling: "sanitized",
+  },
+  event: {
+    authenticationRequired: "oauth",
+    authorizationModel: "custom",
+    inputValidation: "none",
+    errorHandling: "silent",
+  },
+  cli: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "basic",
+    errorHandling: "verbose",
+  },
+  database: {
+    authenticationRequired: "certificate",
+    authorizationModel: "acl",
+    inputValidation: "strict",
+    errorHandling: "silent",
+  },
+  cron: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "none",
+    errorHandling: "silent",
+  },
+  iot: {
+    authenticationRequired: "certificate",
+    authorizationModel: "custom",
+    inputValidation: "strict",
+    errorHandling: "sanitized",
+  },
+};
 
 // ======================================================
 // External Entity – Default Heuristics
 // Applied when entityType is set and fields are empty
 // ======================================================
-
-import type { ExternalEntityProperties } from "../models/element-properties";
 
 export const EXTERNAL_ENTITY_TYPE_DEFAULTS: Record<
   string,
@@ -124,6 +213,91 @@ const saveState = (projectId: string, state: DFDUIState): void => {
     console.warn("[useDFDUIState] Failed to save state:", error);
   }
 };
+
+export function getProcessDefaults(
+  current: ProcessProperties,
+  updates: Partial<ProcessProperties>,
+): ProcessProperties {
+  let next: ProcessProperties = { ...current, ...updates };
+
+  // Determine Defaults for runsAs or technology
+  const defaults =
+    (updates.runsAs && PROCESS_RUNSAS_DEFAULTS[updates.runsAs]) ||
+    (updates.technology && PROCESS_TECH_DEFAULTS[updates.technology]) ||
+    {};
+
+  // Merge Defaults
+  Object.entries(defaults).forEach(([key, value]) => {
+    if (!(key in updates)) {
+      next[key as keyof ProcessProperties] = value as any;
+    }
+  });
+
+  return next;
+}
+
+export function enforceProcessSecurityConstraints(
+  props: ProcessProperties,
+): ProcessProperties {
+  const next = { ...props };
+
+  // Kein Auth → keine Authorization
+  if (next.authenticationRequired === "no") {
+    next.authorizationModel = "none";
+  }
+
+  // Authorization ohne Auth ist Unsinn
+  if (
+    next.authorizationModel &&
+    next.authorizationModel !== "none" &&
+    next.authenticationRequired === "no"
+  ) {
+    next.authorizationModel = "none";
+  }
+
+  return next;
+}
+
+export function enforceInternetExposureRules(
+  props: ProcessProperties,
+): ProcessProperties {
+  if (!props.exposedToInternet) return props;
+
+  return {
+    ...props,
+    authenticationRequired:
+      props.authenticationRequired === "no"
+        ? "yes"
+        : props.authenticationRequired,
+    inputValidation: props.inputValidation ?? "strict",
+    errorHandling: props.errorHandling ?? "sanitized",
+  };
+}
+
+export function normalizeProcessProperties(
+  props: ProcessProperties,
+): ProcessProperties {
+  let next = { ...props };
+
+  next = getProcessDefaults(next, {
+    technology: next.technology,
+    runsAs: next.runsAs,
+  });
+
+  next = enforceProcessSecurityConstraints(next);
+  next = enforceInternetExposureRules(next);
+
+  return next;
+}
+
+export function updateProcessProperties(
+  current: ProcessProperties,
+  updates: Partial<ProcessProperties>,
+): ProcessProperties {
+  const merged = { ...current, ...updates };
+  return normalizeProcessProperties(merged);
+}
+
 
 export function applyExternalEntityTypeDefaults(
   entityType: string,

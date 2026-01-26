@@ -66,25 +66,66 @@ export function parseElementFromObject(obj: Element): DFDElement | null {
   const label = obj.getAttribute("label") || "";
   const objType = getXmlElementType(obj);
 
+  if (!id) {
+    console.warn("Skipping object with missing ID.");
+    return null;
+  }
+
+  if (!label || label.trim() === "") {
+    console.warn(`Skipping object without valid Label. ID: ${id}`);
+    return null;
+  }
+
+  if (!objType) {
+    console.warn(
+      `Skipping object without valid Type. ID: ${id}, Label: ${label}`,
+    );
+    return null;
+  }
+
+  const style = obj.querySelector("mxCell")?.getAttribute("style") || "";
+  if (style.includes("group")) {
+    console.info(`Skipping group element with ID: ${id}`);
+    return null;
+  }
+
   // Skip if no type or is idlabel or asset
   if (!objType || objType === "idlabel" || objType === "asset") return null;
 
+  if (objType === "trustboundary") {
+    // Ein Label ist erforderlich, und es muss im Format "[...]" sein
+    const cleanLabel = label.trim();
+    const validLabelRegex = /\[.*\]/; // Labels müssen eckige Klammern haben
+    if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
+      return null; // Ignoriere Trust Boundaries ohne gültiges Label
+    }
+  }
+
   // Get child mxCell
   const cells = obj.getElementsByTagName("mxCell");
-  if (cells.length === 0) return null;
+    if (cells.length === 0) {
+      console.warn(`Object has no mxCell: ID=${id}`);
+      return null;
+    }
 
-  const cell = cells[0];
-  
   // Skip edges (connections)
-  if (cell.getAttribute("edge") === "1") return null;
+  const cell = cells[0];
+  if (cell.getAttribute("edge") === "1") {
+    console.info(`Skipping edge object with ID: ${id}`);
+    return null;
+  }
 
   const geometry = getGeometry(cell);
-  if (!geometry) return null;
+  if (!geometry) {
+    console.warn(`Skipping object with missing geometry. ID=${id}`);
+    return null;
+  }
 
   const type = determineElementType(obj);
   if (!type || type === "Asset") return null;
 
   const name = cleanLabel(label) || type;
+  console.log(` - Computed Name: ${name}`);
 
   const element: DFDElement = {
     id,
@@ -114,22 +155,43 @@ export function parseElementFromObject(obj: Element): DFDElement | null {
  * Parse element from DrawIO mxCell (fallback for old format)
  */
 export function parseElementFromCell(cell: Element): DFDElement | null {
-  const id = cell.getAttribute("id") || "";
-  
+  const id = cell.getAttribute("id") || null;
+  const value = cell.getAttribute("value") || null;
+  const parent = cell.getAttribute("parent") || null;
+
+  console.log("Parsing mxCell:");
+  console.log(` - ID: ${id}`);
+  console.log(` - Value: ${value}`);
+  console.log(` - Parent: ${parent}`);
+
   // Skip root cells
-  if (id === "0" || id === "1") return null;
+  if (!id || id === "0" || id === "1") {
+    console.warn(`Skipping invalid or root mxCell. ID: ${id}`);
+    return null;
+  }
+
+  if (!value) {
+    console.warn(`Skipping mxCell with missing Value. ID: ${id}`);
+    return null;
+  }
   
   // Skip edges
   if (cell.getAttribute("edge") === "1") return null;
 
-  const value = cell.getAttribute("value") || "";
   const geometry = getGeometry(cell);
-  if (!geometry) return null;
+  if (!geometry) {
+    console.warn(`Skipping mxCell with ID: ${id} due to missing geometry`);
+    return null;
+  }
 
-  const type = determineElementType(cell);
-  if (!type || type === "Asset") return null;
+  const type = determineElementType(cell); // Typ festlegen
+  if (!type || type === "Asset") {
+    console.warn(`No valid type found for mxCell with ID: ${id}`);
+    return null;
+  }
 
   const name = cleanLabel(value) || type;
+  console.log(` - Computed Name: ${name}`);
 
   const element: DFDElement = {
     id,
@@ -166,6 +228,9 @@ export function parseElements(doc: Document): DFDElement[] {
   const objects = doc.getElementsByTagName("object");
   Array.from(objects).forEach((obj) => {
     const element = parseElementFromObject(obj);
+    console.log(
+      "parseElementFromObject Id: " + element?.id + " Name: " + element?.name,
+    );
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);
@@ -174,13 +239,58 @@ export function parseElements(doc: Document): DFDElement[] {
 
   // Parse direct mxCell elements (backwards compatibility)
   const cells = doc.getElementsByTagName("mxCell");
-  Array.from(cells).forEach((cell) => {
+  const validCells = filterValidCells(cells); // Nur relevante mxCell verarbeiten
+  validCells.forEach((cell) => {
     const element = parseElementFromCell(cell);
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);
     }
   });
+  // Array.from(cells).forEach((cell) => {
+  //   const element = parseElementFromCell(cell);
+  //   console.log(
+  //     "parseElementFromCell Id: " + element?.id + " Name: " + element?.name,
+  //   );
+  //   if (element && !seenIds.has(element.id)) {
+  //     elements.push(element);
+  //     seenIds.add(element.id);
+  //   }
+  // });
 
   return elements;
+}
+
+/**
+ * Pre-Filter für mxCell-Elemente
+ */
+function filterValidCells(cells: HTMLCollectionOf<Element>): Element[] {
+  const validCells: Element[] = [];
+  Array.from(cells).forEach((cell) => {
+    const id = cell.getAttribute("id") || null;
+    const value = cell.getAttribute("value") || null;
+    const edge = cell.getAttribute("edge") || null;
+
+    // Zellen ohne ID oder mit Root-IDs überspringen
+    if (!id || id === "0" || id === "1") {
+      console.warn(`Skipping root mxCell. ID: ${id}`);
+      return;
+    }
+
+    // Zellen mit `edge` können separat behandelt werden (falls notwendig)
+    if (edge === "1") {
+      console.info(`Skipping edge mxCell. ID: ${id}, Value: ${value}`);
+      return;
+    }
+
+    // Fehlt der Wert? Überspringen, außer speziell markierte
+    if (!value) {
+      console.warn(`Skipping mxCell due to missing Value. ID: ${id}`);
+      return;
+    }
+
+    validCells.push(cell);
+  });
+
+  return validCells;
 }

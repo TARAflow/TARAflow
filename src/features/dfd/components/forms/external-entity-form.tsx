@@ -353,6 +353,18 @@ export const ExternalEntityDescriptionForm: React.FC<
         sx={{ mb: 2 }}
       />
 
+      {/* Asset Relations Section */}
+      <Divider sx={{ my: 3 }} />
+
+      <AssetRelationSelector
+        assetRelations={element.assetRelations || []}
+        elementType={element.type}
+        availableAssets={availableAssets}
+        onChange={(relations) => {
+          onChange({ assetRelations: relations });
+        }}
+      />
+
       <Divider sx={{ my: 3 }} />
 
       {/* Advanced / Optional Section */}
@@ -416,18 +428,6 @@ export const ExternalEntityDescriptionForm: React.FC<
           </Stack>
         </AccordionDetails>
       </Accordion>
-
-      {/* Asset Relations Section */}
-      <Divider sx={{ my: 3 }} />
-
-      <AssetRelationSelector
-        assetRelations={element.assetRelations || []}
-        elementType={element.type}
-        availableAssets={availableAssets}
-        onChange={(relations) => {
-          onChange({ assetRelations: relations });
-        }}
-      />
 
       {/* STRIDE Hint */}
       <Alert severity="info" sx={{ mt: 2 }}>

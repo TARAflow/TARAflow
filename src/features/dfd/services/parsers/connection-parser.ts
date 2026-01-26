@@ -81,9 +81,15 @@ export function parseConnectionFromCell(cell: Element): {
   unconnected: string | null;
 } {
   const id = cell.getAttribute("id") || "";
-  
-  // Skip root cells
-  if (id === "0" || id === "1") {
+
+  // Skip root cells and cells without ID
+  if (!id || id === "0" || id === "1") {
+    return { connection: null, unconnected: null };
+  }
+
+  // Skip mxCells that are children of <object> elements (already parsed)
+  const parent = cell.parentElement;
+  if (parent && parent.tagName.toLowerCase() === "object") {
     return { connection: null, unconnected: null };
   }
 
@@ -92,7 +98,7 @@ export function parseConnectionFromCell(cell: Element): {
   const target = cell.getAttribute("target");
   const isEdge = cell.getAttribute("edge") === "1";
   const style = cell.getAttribute("style") || "";
-  
+
   // Check if this is a dataflow
   const cellType = getXmlElementType(cell);
   const isDataflow = cellType === "dataflow" || isEdge;
@@ -111,7 +117,7 @@ export function parseConnectionFromCell(cell: Element): {
       target,
       value,
       geometry,
-      style
+      style,
     );
     return { connection, unconnected: null };
   } else if (geometry) {
@@ -193,18 +199,53 @@ export function parseConnections(doc: Document): {
 
   // Parse direct mxCell elements (backwards compatibility)
   const cells = doc.getElementsByTagName("mxCell");
-  Array.from(cells).forEach((cell) => {
+  const validCells = filterValidConnectionCells(cells);
+  validCells.forEach((cell) => {
     const result = parseConnectionFromCell(cell);
-    
+
     if (result.connection && !seenIds.has(result.connection.id)) {
       connections.push(result.connection);
       seenIds.add(result.connection.id);
     }
-    
+
     if (result.unconnected) {
       unconnectedDataflows.push(result.unconnected);
     }
   });
 
   return { connections, unconnectedDataflows };
+}
+
+/**
+ * Pre-filter for mxCell elements to avoid duplicates
+ * Filters out mxCells that are already part of <object> elements
+ */
+function filterValidConnectionCells(cells: HTMLCollectionOf<Element>): Element[] {
+  const validCells: Element[] = [];
+  
+  Array.from(cells).forEach((cell) => {
+    const id = cell.getAttribute("id") || null;
+    const edge = cell.getAttribute("edge") || null;
+
+    // Skip cells without ID or with root IDs
+    if (!id || id === "0" || id === "1") {
+      return;
+    }
+
+    // Skip non-edge cells (we only want dataflows here)
+    if (edge !== "1") {
+      return;
+    }
+
+    // Skip mxCells that are children of <object> elements (already parsed)
+    const parent = cell.parentElement;
+    if (parent && parent.tagName.toLowerCase() === "object") {
+      console.info(`Skipping mxCell ${id} - already parsed as part of object`);
+      return;
+    }
+
+    validCells.push(cell);
+  });
+
+  return validCells;
 }

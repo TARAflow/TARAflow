@@ -408,10 +408,14 @@
               "label": "Läuft als",
               "options": {
                 "not_specified": "Nicht angegeben",
-                "user": "Benutzerkontext",
-                "service": "Dienstkonto",
+                "user": "Benutzer",
+                "admin_user": "Administrator",
+                "root": "Root / Superuser",
                 "system": "Systemkonto",
-                "container": "Container / Isoliert"
+                "service": "Service-Konto",
+                "guest": "Gast / eingeschränkter Benutzer",
+                "anonymous": "Anonym / Öffentlichkeit",
+                "contractor": "Externe Person / Auftragnehmer"
               }
             },
             "privilegeLevel": {
@@ -434,7 +438,9 @@
                 "oauth": "OAuth / OIDC",
                 "saml": "SAML",
                 "certificate": "Zertifikatbasiert",
-                "apikey": "API-Schlüssel"
+                "apikey": "API-Schlüssel",
+                "jwt": "JWT (JSON Web Token)",
+                "mtls": "Mutual TLS (mTLS)"
               }
             },
             "authorizationModel": {
@@ -483,7 +489,13 @@
                 "ui": "UI / Frontend",
                 "microservice": "Microservice",
                 "lambda": "Serverless / Lambda",
-                "daemon": "Hintergrunddienst"
+                "daemon": "Hintergrunddienst",
+                "websocket": "WebSocket",
+                "event": "Ereignisgesteuert",
+                "cli": "CLI-Tool",
+                "database": "Datenbankdienst",
+                "cron": "Geplante Aufgabe (Cron)",
+                "iot": "IoT-System"
               }
             },
             "owner": {
@@ -595,6 +607,51 @@
             "title": "STRIDE-Relevanz: S (Spoofing), R (Repudiation)",
             "description": "Externe Entitäten sind außerhalb Ihrer Kontrolle. Starke Authentifizierung, geringste Berechtigungen (Least Privilege) und Nichtabstreitbarkeit sicherstellen."
           }
+        },
+        "asset": {
+          "name": "Asset Name",
+          "nameHelper": "Kurze, eindeutige Bezeichnung",
+          "nameTooltip": "Verwenden Sie konkrete Namen wie 'Kundendatenbank' statt generische Begriffe wie 'Daten'",
+          "category": "Kategorie",
+          "categoryGuidance": "Wählen Sie die Kategorie, die am besten beschreibt, was geschützt werden muss",
+          "categoryData": "Daten",
+          "categoryDataDesc": "Sensordaten, Produktionsdaten, Konfiguration",
+          "categorySystem": "Systeme",
+          "categorySystemDesc": "Server, APIs, SCADA, Cloud-Dienste",
+          "categoryInfrastructure": "Infrastruktur",
+          "categoryInfrastructureDesc": "Maschinen, Netzwerkgeräte",
+          "categoryProcess": "Prozesse",
+          "categoryProcessDesc": "Firmware-Updates, SOPs, Verfahren",
+          "categoryHuman": "Personen",
+          "categoryHumanDesc": "Operatoren, Administratoren, Auftragnehmer",
+          "description": "Beschreibung",
+          "descriptionHelper": "Was repräsentiert dieses Asset und warum ist es wertvoll?",
+          "descriptionTooltip": "Beginnen Sie mit einer kurzen Beschreibung. Details können später verfeinert werden.",
+          "protectionNeed": "Schutzbedarf",
+          "protectionNeedGuidance": "Berücksichtigen Sie die Auswirkungen, wenn dieses Asset verloren geht, manipuliert oder missbraucht wird",
+          "protectionLow": "Niedrig – Verlust ist unangenehm",
+          "protectionMedium": "Mittel – beeinträchtigt den Betrieb",
+          "protectionHigh": "Hoch – verursacht erhebliche Schäden",
+          "protectionCritical": "Kritisch – bedroht Geschäft oder Sicherheit",
+          "referencedIn": "Referenziert im System",
+          "referencedInGuidance": "Diese Elemente referenzieren dieses Asset im DFD. Nutzen Sie dies zur Validierung Ihrer Beschreibung.",
+          "categoryDetails": "{{category}}-spezifische Details",
+          "categoryDetailsGuidance": "Zusätzliche Details spezifisch für diesen Asset-Typ. Optional aber hilfreich.",
+          "dataType": "Datentyp",
+          "lifecycle": "Lebenszyklus",
+          "criticality": "Kritikalität für Betrieb",
+          "exposure": "Exponierung",
+          "physicalAccess": "Physischer Zugriff möglich",
+          "location": "Standort",
+          "automated": "Automatisiert",
+          "changeFrequency": "Änderungsfrequenz",
+          "role": "Rolle",
+          "securityRelevant": "Sicherheitsrelevant (hat Zugriff auf kritische Systeme)",
+          "advanced": "Erweitert / Optional",
+          "advancedGuidance": "Optionale Felder zur Verfeinerung. Nicht erforderlich für initiale Analyse.",
+          "owner": "Verantwortlicher / Eigentümer",
+          "ownerPlaceholder": "Team oder Person verantwortlich",
+          "notes": "Zusätzliche Notizen"
         }
       }
     },

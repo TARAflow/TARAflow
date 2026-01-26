@@ -33,9 +33,10 @@ export type TrustLevel = "trusted" | "untrusted" | "unknown";
  * Types of relationships between DFD elements and assets
  */
 export type AssetRelationType =
-  | "stores"      // Element stores the asset (DataStore)
-  | "processes"   // Element processes the asset (Process, ExternalEntity)
-  | "creates"     // Element creates/destroys the asset (Process, ExternalEntity)
+  | "stores" // Element stores the asset (DataStore)
+  | "processes_read" // Element reads or computes on the asset without modifying it
+  | "processes_modify" // Element actively modifies or overwrites the asset
+  | "creates" // Element creates/destroys the asset (Process, ExternalEntity)
   | "transports"; // Element transports the asset (DataFlow, Interface)
 
 /**
@@ -80,12 +81,12 @@ export interface ElementRelation {
  * Allowed asset relation types per DFD element type
  */
 export const ALLOWED_ASSET_RELATIONS: Record<DFDElementType, AssetRelationType[]> = {
-  Process: ["processes", "creates"],
-  ExternalEntity: ["processes", "creates"],
+  Process: ["processes_read", "processes_modify", "creates"],
+  ExternalEntity: ["processes_read", "processes_modify", "creates"],
   DataStore: ["stores"],
   DataFlow: ["transports"],
-  Multiprocess: ["processes", "creates"],
-  Interface: ["transports", "processes", "stores"],
+  Multiprocess: ["processes_read", "processes_modify", "creates"],
+  Interface: ["transports", "processes_read", "stores"], // stores only if the interface provides buffering or persistence
   TrustBoundary: [], // No asset relations for trust boundaries
 };
 
@@ -425,10 +426,31 @@ export function getAssetRelationTypeText(
   language: DocLanguage = "en"
 ): string {
   const labels: Record<AssetRelationType, { en: string; de: string }> = {
-    stores: { en: "Stores", de: "Speichert" },
-    processes: { en: "Processes", de: "Verarbeitet" },
-    creates: { en: "Creates/Destroys", de: "Erzeugt/Vernichtet" },
-    transports: { en: "Transports", de: "Transportiert" },
+    stores: {
+      en: "Stores",
+      de: "Speichert",
+    },
+
+    processes_read: {
+      en: "Processes (read / compute)",
+      de: "Verarbeitet (lesen / berechnen)",
+    },
+
+    processes_modify: {
+      en: "Processes (modify / change)",
+      de: "Verarbeitet (verändert)",
+    },
+
+    creates: {
+      en: "Creates / Destroys",
+      de: "Erzeugt / Vernichtet",
+    },
+
+    transports: {
+      en: "Transports",
+      de: "Transportiert",
+    },
   };
+
   return labels[relationType]?.[language] ?? relationType;
 }

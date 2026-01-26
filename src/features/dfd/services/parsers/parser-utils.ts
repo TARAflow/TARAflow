@@ -80,7 +80,7 @@ export function determineElementType(cell: Element): DFDElementType | "Asset" | 
 export function extractTrustBoundaryId(name: string): string | undefined {
   if (!name) return undefined;
 
-  const match = name.match(/\[([a-zA-Z0-9_-]+)\]\s*$/);
+  const match = name.match(/\[([a-zA-Z0-9_-]+)\]/);
   if (!match) return undefined;
 
   return match[1];

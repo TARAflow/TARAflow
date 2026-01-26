@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   CreateProjectInput,
   Project,
@@ -254,7 +254,7 @@ export const MainLayout: React.FC = () => {
       const oldestProject = [...openProjects].sort(
         (a, b) =>
           new Date(a.lastOpened || a.info?.lastModified || 0).getTime() -
-          new Date(b.lastOpened || b.info?.lastModified || 0).getTime()
+          new Date(b.lastOpened || b.info?.lastModified || 0).getTime(),
       )[0];
 
       const closedProject = { ...oldestProject, isOpen: false };
@@ -269,7 +269,7 @@ export const MainLayout: React.FC = () => {
           if (p.id === oldestProject.id) return closedProject;
           if (p.id === projectId) return openedProject;
           return p;
-        })
+        }),
       );
 
       toast.error(`Auto-closed "${oldestProject.info?.name}" (oldest project)`);
@@ -278,7 +278,7 @@ export const MainLayout: React.FC = () => {
       await syncProjectToStorage(openedProject);
 
       setProjects(
-        projects.map((p) => (p.id === projectId ? openedProject : p))
+        projects.map((p) => (p.id === projectId ? openedProject : p)),
       );
     }
 
@@ -302,7 +302,7 @@ export const MainLayout: React.FC = () => {
       const savedProject = { ...activeProject, hasUnsavedChanges: false };
       await syncProjectToStorage(savedProject);
       setProjects(
-        projects.map((p) => (p.id === activeProject.id ? savedProject : p))
+        projects.map((p) => (p.id === activeProject.id ? savedProject : p)),
       );
       toast.success(`Project "${activeProject.info?.name}" saved`);
     }
@@ -325,28 +325,28 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-const closeProject = async (projectId: string) => {
-  const project = projects.find((p) => p.id === projectId);
-  if (!project) return;
+  const closeProject = async (projectId: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
 
-  const closedProject = { ...project, isOpen: false };
-  await syncProjectToStorage(closedProject);
+    const closedProject = { ...project, isOpen: false };
+    await syncProjectToStorage(closedProject);
 
-  setProjects(projects.map((p) => (p.id === projectId ? closedProject : p)));
+    setProjects(projects.map((p) => (p.id === projectId ? closedProject : p)));
 
-  if (activeProjectId === projectId) {
-    const remainingOpen = openProjects.filter((p) => p.id !== projectId);
-    setActiveProjectId(remainingOpen[0]?.id || null);
-    setActivePhase(remainingOpen[0]?.currentPhase || 0);
+    if (activeProjectId === projectId) {
+      const remainingOpen = openProjects.filter((p) => p.id !== projectId);
+      setActiveProjectId(remainingOpen[0]?.id || null);
+      setActivePhase(remainingOpen[0]?.currentPhase || 0);
 
-    // Clear file reference when closing
-    persistence.clearCurrentFile(); // ← ADD THIS LINE
-  }
+      // Clear file reference when closing
+      persistence.clearCurrentFile(); // ← ADD THIS LINE
+    }
 
-  setShowCloseDialog(false);
-  setProjectToClose(null);
-  await loadRecentProjects();
-};
+    setShowCloseDialog(false);
+    setProjectToClose(null);
+    await loadRecentProjects();
+  };
 
   const confirmProjectClose = async (save: boolean) => {
     if (save && projectToClose) {
@@ -355,7 +355,7 @@ const closeProject = async (projectId: string) => {
         const savedProject = { ...project, hasUnsavedChanges: false };
         await syncProjectToStorage(savedProject);
         setProjects(
-          projects.map((p) => (p.id === projectToClose ? savedProject : p))
+          projects.map((p) => (p.id === projectToClose ? savedProject : p)),
         );
         toast.success(`Project "${project.info?.name}" saved`);
       }
@@ -433,7 +433,9 @@ const closeProject = async (projectId: string) => {
 
     // Update local state immediately for responsiveness
     setProjects(
-      projects.map((p) => (p.id === updatedProject.id ? projectWithChanges : p))
+      projects.map((p) =>
+        p.id === updatedProject.id ? projectWithChanges : p,
+      ),
     );
 
     // Auto-save if enabled
@@ -446,7 +448,7 @@ const closeProject = async (projectId: string) => {
       const success = await syncProjectToStorage(savedProject);
       if (success) {
         setProjects(
-          projects.map((p) => (p.id === updatedProject.id ? savedProject : p))
+          projects.map((p) => (p.id === updatedProject.id ? savedProject : p)),
         );
       }
     }
@@ -550,7 +552,7 @@ const closeProject = async (projectId: string) => {
                   if (!threat.linkedElement) return threat;
 
                   const elem = updates.dfd?.elements?.find(
-                    (e) => e.id === threat.linkedElement!.elementId
+                    (e) => e.id === threat.linkedElement!.elementId,
                   );
                   if (!elem) return threat;
 
@@ -576,7 +578,7 @@ const closeProject = async (projectId: string) => {
 
       await updateProject(updatedProject);
     },
-    [activeProject]
+    [activeProject],
   );
 
   // ==================== Asset HANDLER ====================
@@ -596,7 +598,7 @@ const closeProject = async (projectId: string) => {
 
       await updateProject(updatedProject);
     },
-    [activeProject]
+    [activeProject],
   );
 
   // ==================== Threat HANDLER ====================
@@ -616,7 +618,7 @@ const closeProject = async (projectId: string) => {
 
       await updateProject(updatedProject);
     },
-    [activeProject]
+    [activeProject],
   );
 
   // ==================== Risk HANDLER ====================
@@ -636,7 +638,7 @@ const closeProject = async (projectId: string) => {
 
       await updateProject(updatedProject);
     },
-    [activeProject]
+    [activeProject],
   );
 
   // ==================== Attack Tree HANDLER ====================
@@ -656,7 +658,7 @@ const closeProject = async (projectId: string) => {
 
       updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject, updateProject],
   );
 
   // ==================== AUDIT TAB HANDLER ====================
@@ -676,7 +678,7 @@ const closeProject = async (projectId: string) => {
 
       updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject, updateProject],
   );
 
   const handleAuditDirtyChange = useCallback(
@@ -690,7 +692,7 @@ const closeProject = async (projectId: string) => {
 
       updateProject(updatedProject);
     },
-    [activeProject, updateProject]
+    [activeProject, updateProject],
   );
 
   // ==================== Integration HANDLER ====================
@@ -716,7 +718,7 @@ const closeProject = async (projectId: string) => {
    */
   const extractThreatReferences = (
     threatData: ThreatData | null | undefined,
-    strideMethod: StrideMethod
+    strideMethod: StrideMethod,
   ): ThreatReference[] => {
     if (!threatData) {
       return [];
@@ -801,7 +803,7 @@ const closeProject = async (projectId: string) => {
         phaseStatus: updates.phaseStatus,
       });
     },
-    [activeProject]
+    [activeProject],
   );
 
   // ==================== NEW/IMPORT HANDLERS ====================
@@ -813,6 +815,28 @@ const closeProject = async (projectId: string) => {
   const handleImportProject = () => {
     setShowImportDialog(true);
   };
+
+  // ==================== MEMOIZED DFD DATA ====================
+  // Prevent unnecessary re-renders by memoizing mapped DFD data
+  // These only change when activeProject.dfd content actually changes
+
+  const memoizedDFDAssets = useMemo(() => {
+    return activeProject?.dfd?.assets
+      ? mapDFDAssetsToAssetFeature(activeProject.dfd.assets)
+      : undefined;
+  }, [activeProject?.dfd?.assets]);
+
+  const memoizedDFDElements = useMemo(() => {
+    return activeProject?.dfd?.elements
+      ? mapDFDElementsToAssetFeature(activeProject.dfd.elements)
+      : undefined;
+  }, [activeProject?.dfd?.elements]);
+
+  const memoizedDFDConnections = useMemo(() => {
+    return activeProject?.dfd?.connections
+      ? mapDFDConnectionsToAssetFeature(activeProject.dfd.connections)
+      : undefined;
+  }, [activeProject?.dfd?.connections]);
 
   // ==================== RENDER ====================
 
@@ -901,18 +925,10 @@ const closeProject = async (projectId: string) => {
                     assets: activeProject.assets ?? null,
                     phaseStatus: activeProject.phaseStatus,
 
-                    // Map DFD data to Asset interfaces (NO direct dependency)
-                    dfdAssets: activeProject.dfd?.assets
-                      ? mapDFDAssetsToAssetFeature(activeProject.dfd.assets)
-                      : undefined,
-                    dfdElements: activeProject.dfd?.elements
-                      ? mapDFDElementsToAssetFeature(activeProject.dfd.elements)
-                      : undefined,
-                    dfdConnections: activeProject.dfd?.connections
-                      ? mapDFDConnectionsToAssetFeature(
-                          activeProject.dfd.connections,
-                        )
-                      : undefined,
+                    // Use memoized DFD data (stable references)
+                    dfdAssets: memoizedDFDAssets,
+                    dfdElements: memoizedDFDElements,
+                    dfdConnections: memoizedDFDConnections,
 
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
                     lastModified: activeProject.info?.lastModified || "",

@@ -67,6 +67,11 @@ export class DFDValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // Im Validator vor dem Aufruf
+    console.log("DfdValidator Elements:", elements);
+    console.log("DfdValidator Assets:", assets);
+    console.log("DfdValidator Trust Boundaries:", elements.filter(e => e.type === "TrustBoundary"));
+
     // Early return if no elements
     if (stats.totalElements === 0) {
       errors.push(ValidationMessages.NO_ELEMENTS);

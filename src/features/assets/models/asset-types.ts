@@ -133,34 +133,58 @@ export interface DFDElementLink {
 export interface Asset {
   /** Unique ID (e.g., "A-001", "A-01", "A-1") */
   id: string;
-  
+
   /** Numeric part for sorting and renumbering */
   numericId: number;
-  
+
   /** Asset name/description */
   name: string;
-  
+
   /** Detailed description */
   description: string;
-  
+
   /** Impact ratings per criterion */
   impactRatings: ImpactRating[];
-  
+
   /** Calculated overall impact (based on configuration) */
   overallImpact: number;
-  
+
   /** Selected security goals with formal descriptions */
   securityGoals: SecurityGoal[];
-  
+
   /** Linked DFD elements */
   linkedDFDElements: DFDElementLink[];
-  
+
   /** Source: was this created from DFD or manually? */
   source: "dfd" | "manual";
-  
+
   /** Is this asset synced with DFD? */
   syncedWithDFD: boolean;
-  
+
+  /** Additional properties (optional extended fields) */
+  properties?: {
+    category?: "data" | "system" | "infrastructure" | "process" | "human";
+    protectionNeed?: "low" | "medium" | "high" | "critical";
+    owner?: string;
+    notes?: string;
+    // Category-specific fields
+    dataType?: string;
+    dataClassification?: string;
+    retentionPeriod?: string;
+    systemType?: string;
+    criticality?: string;
+    backupInterval?: string;
+    infrastructureType?: string;
+    location?: string;
+    redundancy?: string;
+    processType?: string;
+    updateFrequency?: string;
+    dependencies?: string;
+    role?: string;
+    clearanceLevel?: string;
+    trainingRequired?: string;
+  };
+
   /** Timestamps */
   created: string;
   lastModified: string;
