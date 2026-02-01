@@ -308,9 +308,10 @@ class AssetService {
 
   /**
    * Sync assets from DFD to asset list
-   * Resolves XML IDs to full DFDElementLink objects
    *
-   * FIXED: Now properly resolves linkedElements XML-IDs to complete DFDElementLink objects
+   * FIXED: Properly handles linkedElements structure from DFD
+   * - dfdAsset.linkedElements is already an array of ElementRelation objects
+   * - We just need to map them to DFDElementLink format
    */
   syncFromDFD(
     assetData: AssetData,
@@ -330,41 +331,25 @@ class AssetService {
         return;
       }
 
-      // Resolve XML IDs to full DFDElementLink objects
+      // ✅ CRITICAL FIX: linkedElements is already properly structured
+      // DFDAsset.linkedElements is ElementRelation[] with { elementId, elementName, elementType, displayId, relationTypes }
+      // We just need to map it to DFDElementLink format
       const linkedDFDElements: DFDElementLink[] = (
         dfdAsset.linkedElements || []
-      ).map((xmlId) => {
-        const element = dfdElements.find((e) => e.id === xmlId);
-        if (element) {
-          return {
-            elementId: element.id,
-            elementName: element.name,
-            elementType: element.type,
-            displayId: element.displayId,
-          };
-        }
-
-        const connection = dfdConnections.find((c) => c.id === xmlId);
-        if (connection) {
-          return {
-            elementId: connection.id,
-            elementName: connection.label || connection.displayId,
-            elementType: "DataFlow",
-            displayId: connection.displayId,
-          };
-        }
-
-        return {
-          elementId: xmlId,
-          elementName: xmlId,
-          elementType: "unknown",
-          displayId: xmlId,
-        };
-      });
+      ).map((link) => ({
+        elementId: String(link.elementId || ""),
+        elementName: String(link.elementName || ""),
+        elementType: String(link.elementType || "unknown"),
+        displayId: String(link.displayId || ""),
+        relationTypes: link.relationTypes
+          ? Array.from(link.relationTypes)
+          : undefined, // ✅ PRESERVE!
+        notes: link.notes,
+      }));
 
       console.log(`[SYNC] Asset ${dfdAsset.id}:`, {
-        linkedElements: dfdAsset.linkedElements,
-        resolved: linkedDFDElements,
+        rawLinkedElements: dfdAsset.linkedElements,
+        resolvedLinks: linkedDFDElements,
       });
 
       // Check if asset already exists
@@ -376,10 +361,10 @@ class AssetService {
           ...createEmptyAsset(dfdAsset.id, assetData.configuration),
           id: dfdAsset.id,
           numericId: parseAssetId(dfdAsset.id),
-          name: dfdAsset.id,
+          name: dfdAsset.name || dfdAsset.id,
           source: "dfd",
           syncedWithDFD: true,
-          linkedDFDElements,
+          linkedDFDElements, // ✅ Correctly structured array
         };
 
         updatedAssetData = this.addAsset(updatedAssetData, newAsset);
@@ -388,8 +373,10 @@ class AssetService {
         // Update existing asset's DFD links
         const updatedAsset: Asset = {
           ...existingAsset,
+          name: dfdAsset.name || existingAsset.name,
           syncedWithDFD: true,
-          linkedDFDElements,
+          linkedDFDElements, // ✅ Correctly structured array
+          lastModified: new Date().toISOString(),
         };
 
         updatedAssetData = this.updateAsset(updatedAssetData, updatedAsset);

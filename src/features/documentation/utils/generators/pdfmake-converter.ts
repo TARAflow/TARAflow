@@ -457,7 +457,7 @@ export class PdfMakeConverter {
       tableBody.push([
         { text: asset.id },
         { text: asset.name },
-        { text: asset.description || "-" },
+        { text: asset.properties?.description || "-" },
         { text: impactLabel, alignment: "center" },
         { text: enabledGoals },
       ]);

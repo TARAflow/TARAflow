@@ -13,11 +13,13 @@ import type {
 } from "../../models/threat-types";
 import { elementThreatService } from "../../services/per-element/element-threat-service";
 import type { StatisticsResult } from "../../services/threat-service";
+import { DFDAnalysisContext } from "shared";
 
 // ==================== TYPES ====================
 
 export interface UseElementThreatsOptions {
   project: ThreatProjectData;
+  dfdContext: DFDAnalysisContext;
   configuration: ThreatConfiguration;
   onUpdate?: (data: ThreatData) => void;
 }
@@ -49,13 +51,14 @@ export interface UseElementThreatsResult {
 
 export function useElementThreats({
   project,
+  dfdContext,
   configuration,
   onUpdate,
 }: UseElementThreatsOptions): UseElementThreatsResult {
   // ==================== STATE ====================
 
   const [tables, setTables] = useState<ThreatTable[]>(
-    () => project.threats?.perElementTables ?? []
+    () => project.threats?.perElementTables ?? [],
   );
   const [syncStatus, setSyncStatus] = useState<ThreatSyncStatus | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -89,7 +92,7 @@ export function useElementThreats({
         lastModified: new Date().toISOString(),
       });
     },
-    [configuration, onUpdate]
+    [configuration, onUpdate],
   );
 
   useEffect(() => {
@@ -103,7 +106,8 @@ export function useElementThreats({
     try {
       const result = elementThreatService.generateThreats(
         project,
-        configuration
+        dfdContext,
+        configuration,
       );
 
       if (result.success) {
@@ -138,9 +142,10 @@ export function useElementThreats({
       try {
         const result = elementThreatService.synchronizeThreats(
           project,
+          dfdContext,
           tables,
           syncStatus,
-          options
+          options,
         );
 
         if (result.success && result.threatData) {
@@ -157,7 +162,7 @@ export function useElementThreats({
         setIsSyncing(false);
       }
     },
-    [syncStatus, project, tables, notifyUpdate]
+    [syncStatus, project, tables, notifyUpdate],
   );
 
   // ==================== IMMUTABLE STATE UPDATES ====================
@@ -171,7 +176,7 @@ export function useElementThreats({
         if (!oldTable) return prev;
 
         const threatIndex = oldTable.threats.findIndex(
-          (t) => t.id === updatedThreat.id
+          (t) => t.id === updatedThreat.id,
         );
         if (threatIndex === -1) return prev;
 
@@ -192,7 +197,7 @@ export function useElementThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   const deleteThreat = useCallback(
@@ -214,7 +219,7 @@ export function useElementThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   const addThreat = useCallback(
@@ -243,7 +248,7 @@ export function useElementThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   const updateTable = useCallback(
@@ -255,7 +260,7 @@ export function useElementThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   // ==================== RETURN ====================

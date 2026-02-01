@@ -1,154 +1,20 @@
 // ==================== DFD UI STATE HOOK ====================
 // Single Responsibility: Persist and restore DFD UI state (view mode, accordion states)
-// Uses localStorage for persistence, sessionStorage for "first visit" detection
+// Uses localStorage for persistence
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { DFDViewMode } from "../models/dfd-types";
-import type { ProcessProperties } from "../models/element-properties";
-import type { ExternalEntityProperties } from "../models/element-properties";
+import type {
+  ExternalEntityProperties,
+  ProcessProperties,
+} from "../models/element-properties";
+import {
+  EXTERNAL_ENTITY_TYPE_DEFAULTS,
+  PROCESS_RUNSAS_DEFAULTS,
+  PROCESS_TECH_DEFAULTS,
+} from "../models/element-property-defaults";
 
-const PROCESS_RUNSAS_DEFAULTS: Record<string, Partial<ProcessProperties>> = {
-  user: { privilegeLevel: "low", authenticationRequired: "optional" },
-  admin_user: { privilegeLevel: "medium", authenticationRequired: "yes" },
-  root: { privilegeLevel: "root", authenticationRequired: "yes" },
-  system: { privilegeLevel: "high", authenticationRequired: "yes" },
-  service: { privilegeLevel: "medium", authenticationRequired: "yes" },
-  guest: { privilegeLevel: "low", authenticationRequired: "no" },
-  anonymous: { privilegeLevel: "low", authenticationRequired: "no" },
-  contractor: { privilegeLevel: "medium", authenticationRequired: "yes" },
-};
-
-export const PROCESS_TECH_DEFAULTS: Record<
-  NonNullable<ProcessProperties["technology"]>,
-  Partial<ProcessProperties>
-> = {
-  api: {
-    authenticationRequired: "oauth",
-    authorizationModel: "rbac",
-    inputValidation: "schema",
-    errorHandling: "sanitized",
-  },
-  ui: {
-    authenticationRequired: "yes",
-    authorizationModel: "rbac",
-    inputValidation: "basic",
-    errorHandling: "sanitized",
-  },
-  microservice: {
-    authenticationRequired: "oauth",
-    authorizationModel: "rbac",
-    inputValidation: "schema",
-    errorHandling: "sanitized",
-  },
-  batch: {
-    authenticationRequired: "no",
-    authorizationModel: "none",
-    inputValidation: "none",
-    errorHandling: "silent",
-  },
-  lambda: {
-    authenticationRequired: "oauth",
-    authorizationModel: "custom",
-    inputValidation: "schema",
-    errorHandling: "sanitized",
-  },
-  daemon: {
-    authenticationRequired: "no",
-    authorizationModel: "none",
-    inputValidation: "basic",
-    errorHandling: "silent",
-  },
-  websocket: {
-    authenticationRequired: "oauth",
-    authorizationModel: "rbac",
-    inputValidation: "strict",
-    errorHandling: "sanitized",
-  },
-  event: {
-    authenticationRequired: "oauth",
-    authorizationModel: "custom",
-    inputValidation: "none",
-    errorHandling: "silent",
-  },
-  cli: {
-    authenticationRequired: "no",
-    authorizationModel: "none",
-    inputValidation: "basic",
-    errorHandling: "verbose",
-  },
-  database: {
-    authenticationRequired: "certificate",
-    authorizationModel: "acl",
-    inputValidation: "strict",
-    errorHandling: "silent",
-  },
-  cron: {
-    authenticationRequired: "no",
-    authorizationModel: "none",
-    inputValidation: "none",
-    errorHandling: "silent",
-  },
-  iot: {
-    authenticationRequired: "certificate",
-    authorizationModel: "custom",
-    inputValidation: "strict",
-    errorHandling: "sanitized",
-  },
-};
-
-// ======================================================
-// External Entity – Default Heuristics
-// Applied when entityType is set and fields are empty
-// ======================================================
-
-export const EXTERNAL_ENTITY_TYPE_DEFAULTS: Record<
-  string,
-  Partial<ExternalEntityProperties>
-> = {
-  user: {
-    trustLevel: "low",
-    authenticationMethod: "password",
-    threatActor: "curious",
-  },
-  admin_user: {
-    trustLevel: "medium",
-    authenticationMethod: "mfa",
-    threatActor: "insider",
-  },
-  partner: {},
-  thirdparty: {}, 
-  service: {}, 
-  identity_provider: {
-    trustLevel: "high",
-    authenticationMethod: "saml",
-    threatActor: "advanced",
-  },
-  payment: {
-    trustLevel: "medium",
-    authenticationMethod: "certificate",
-    threatActor: "malicious",
-  },
-  contractor: {}, // keine Defaults
-  bot: {
-    trustLevel: "low",
-    authenticationMethod: "apikey",
-    threatActor: "compromised",
-  },
-  webhook: {
-    trustLevel: "low",
-    authenticationMethod: "none",
-    threatActor: "malicious",
-  },
-  mobile_app: {}, // keine Defaults
-  iot: {
-    trustLevel: "low",
-    authenticationMethod: "certificate",
-    threatActor: "compromised",
-  },
-};
-
-
-
+// ==================== TYPES ====================
 // ==================== TYPES ====================
 
 interface DFDUIState {

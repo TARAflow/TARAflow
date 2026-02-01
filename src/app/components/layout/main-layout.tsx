@@ -8,7 +8,7 @@ import { ProjectSidebar } from "../project-sidebar";
 import { PhaseTabs } from "../navigation/phase-tab-bar";
 import { EmptyState } from "./empty-state-layout";
 import { GeneralTab } from "features/overview";
-import { DFDTab, DFDUpdateResult } from "features/dfd";
+import { DFDTab, DFDUpdateResult, DFDGraphAnalysisContext } from "features/dfd";
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import {
   StrideMethod,
@@ -58,6 +58,7 @@ import { Toast, ToastContainer, useToast } from "shared";
 import { useAutoSave } from "../../hooks/use-auto-save";
 import { useProjectFileDownload } from "../../hooks/use-project-file-download";
 import { useProjectPersistence } from "../../hooks//use-project-persistence";
+import { useBidirectionalAssetSync } from "../../hooks/use-bidirectional-asset-sync";
 import {
   mapDFDAssetsToAssetFeature,
   mapDFDConnectionsToAssetFeature,
@@ -239,6 +240,37 @@ export const MainLayout: React.FC = () => {
     }
     return true;
   };
+
+  useBidirectionalAssetSync({
+    project: activeProject,
+    onUpdate: (updates) => {
+      if (!activeProject) return;
+
+      const graph = activeProject.dfd?.graph;
+      if (updates.dfd && !graph) {
+        throw new Error("[AssetSync] graph missing during DFD merge");
+      }
+
+      const updatedProject = {
+        ...activeProject,
+        ...updates,
+        dfd: updates.dfd
+          ? {
+              ...activeProject.dfd,
+              ...updates.dfd,
+              graph: activeProject.dfd?.graph,
+            }
+          : activeProject.dfd,
+        info: {
+          ...activeProject.info,
+          lastModified: new Date().toISOString(),
+        },
+      };
+
+      updateProject(updatedProject);
+    },
+    enabled: true,
+  });
 
   // ==================== PROJECT HANDLERS ====================
 
@@ -541,6 +573,13 @@ export const MainLayout: React.FC = () => {
     async (updates: DFDUpdateResult) => {
       if (!activeProject) return;
 
+      const graph = updates.dfd?.graph ?? activeProject.dfd?.graph;
+      if (!graph) {
+        throw new Error(
+          "[DFD] Invariant violation: graph must exist after DFD update",
+        );
+      }
+
       // Mapping der alten Threats auf neue displayIds
       const syncedThreats = activeProject.threats
         ? {
@@ -571,7 +610,11 @@ export const MainLayout: React.FC = () => {
 
       const updatedProject: Project = {
         ...activeProject,
-        dfd: updates.dfd,
+        dfd: {
+          ...activeProject.dfd,
+          ...updates.dfd,
+          graph,
+        },
         phaseStatus: updates.phaseStatus,
         threats: syncedThreats,
       };
@@ -617,6 +660,8 @@ export const MainLayout: React.FC = () => {
       };
 
       await updateProject(updatedProject);
+
+      console.log("🟣 handleThreatsUpdate called but disabled for test");
     },
     [activeProject],
   );
@@ -821,9 +866,14 @@ export const MainLayout: React.FC = () => {
   // These only change when activeProject.dfd content actually changes
 
   const memoizedDFDAssets = useMemo(() => {
-    return activeProject?.dfd?.assets
+    console.debug("[DEBUG] Original DFD Assets:", activeProject?.dfd?.assets);
+
+    const mappedAssets = activeProject?.dfd?.assets
       ? mapDFDAssetsToAssetFeature(activeProject.dfd.assets)
       : undefined;
+
+    console.debug("[DEBUG] Mapped DFD Assets:", mappedAssets);
+    return mappedAssets;
   }, [activeProject?.dfd?.assets]);
 
   const memoizedDFDElements = useMemo(() => {
@@ -837,6 +887,51 @@ export const MainLayout: React.FC = () => {
       ? mapDFDConnectionsToAssetFeature(activeProject.dfd.connections)
       : undefined;
   }, [activeProject?.dfd?.connections]);
+
+  // const dfdContext = useMemo(() => {
+  //   console.log("🟪 [MainLayout] useMemo TRIGGERED");
+  //   console.log(
+  //     "🟪 [MainLayout] activeProject?.dfd?.graph:",
+  //     activeProject?.dfd?.graph,
+  //   );
+  //   console.log("🟪 [MainLayout] activeProject.id:", activeProject?.id);
+
+  //   // Stack trace um zu sehen WER das triggert:
+  //   console.trace("🟪 [MainLayout] Stack trace:");
+
+  //   if (activeProject?.dfd?.graph) {
+  //     const newContext = new DFDGraphAnalysisContext(activeProject.dfd.graph);
+  //     console.log("🟪 [MainLayout] Returning REAL context");
+  //     return newContext;
+  //   }
+
+  //   console.log(
+  //     "🟪 [MainLayout] Returning DUMMY context!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+  //   );
+  //   return DFDGraphAnalysisContext.createDummyGraph();
+  // }, [activeProject?.dfd?.graph]);
+
+  const memoizedDFDContext = useMemo(() => {
+    if (!activeProject?.dfd?.graph) {
+      console.log(
+        "🟪 [MainLayout] Returning DUMMY context!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      );
+      return null;
+    }
+    return new DFDGraphAnalysisContext(activeProject.dfd.graph);
+  }, [activeProject?.dfd?.graph]);
+
+  // ==================== DEBUG: Global Access ====================
+  useEffect(() => {
+    // @ts-ignore
+    window.__DEBUG__ = {
+      projects,
+      activeProject,
+      activeProjectId,
+      graph: activeProject?.dfd?.graph,
+    };
+  }, [projects, activeProject, activeProjectId]);
+  // ==============================================================
 
   // ==================== RENDER ====================
 
@@ -936,23 +1031,28 @@ export const MainLayout: React.FC = () => {
                   onUpdate={handleAssetsUpdate}
                 />
               )}
-              {activePhase === 3 && activeProject && (
-                <ThreatsTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    threats: activeProject.threats ?? null,
-                    phaseStatus: activeProject.phaseStatus,
-                    dfdXml: activeProject.dfd?.xml,
-                    dfdElements: activeProject.dfd?.elements || [],
-                    dfdConnections: activeProject.dfd?.connections,
-                    dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    assetIds: activeProject.assets?.assets?.map((a) => a.id),
-                    lastModified: activeProject.info?.lastModified || "",
-                  }}
-                  onUpdate={handleThreatsUpdate}
-                />
-              )}
+              {activePhase === 3 &&
+                activeProject &&
+                activeProject.dfd?.graph &&
+                memoizedDFDContext && (
+                  <ThreatsTab
+                    project={{
+                      id: activeProject.id,
+                      name: activeProject.info?.name || "",
+                      threats: activeProject.threats ?? null,
+                      phaseStatus: activeProject.phaseStatus,
+                      dfdXml: activeProject.dfd?.xml,
+                      dfdElements: activeProject.dfd?.elements || [],
+                      dfdConnections: activeProject.dfd?.connections,
+                      dfdPreviewImage: activeProject.dfd?.thumbnail,
+                      assetIds: activeProject.assets?.assets?.map((a) => a.id),
+                      lastModified: activeProject.info?.lastModified || "",
+                      dfdGraph: activeProject.dfd?.graph,
+                    }}
+                    dfdContext={memoizedDFDContext}
+                    onUpdate={handleThreatsUpdate}
+                  />
+                )}
               {activePhase === 4 && activeProject && (
                 <RisksTab
                   project={{
@@ -1188,6 +1288,6 @@ export const MainLayout: React.FC = () => {
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
-};
+};;
 
 export default MainLayout;

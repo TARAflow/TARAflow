@@ -83,3 +83,5 @@ export {
   getAvailablePredefinedTags,
 } from "./utils/tag-categories";
 
+export { type DFDAnalysisContext } from "./ports/dfd-analysis-context";
+

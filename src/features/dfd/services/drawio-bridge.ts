@@ -30,7 +30,7 @@ export class DrawioBridge implements IDrawioBridge {
     this.iframe = iframe;
 
     // Create project-specific storage key
-    const storageKey = `DrawioMsg_${projectId}`;
+    const storageKey = `project:${projectId}:DrawioMsg`;
 
     // Initialize components
     this.localStorageModel = new LocalStorageModel(storageKey);

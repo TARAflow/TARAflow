@@ -28,6 +28,8 @@ import {
   impactValueToLevel,
 } from "../models/asset-types";
 
+import { DFDElementLink } from "../models/dfd-reference-types";
+
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
@@ -60,6 +62,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
+    console.debug("AssetTable: Assets passed to the table:", assets);
 
   // ==================== COLUMNS ====================
 
@@ -447,12 +450,13 @@ export const AssetTable: React.FC<AssetTableProps> = ({
       sortable: false,
       renderCell: (params: GridRenderCellParams<Asset>) => {
         const row = params.row;
+
         if (!row || !row.linkedDFDElements) {
           return <Typography color="text.disabled">-</Typography>;
         }
 
-        const links = row.linkedDFDElements;
-        if (links.length === 0) {
+        const links: DFDElementLink[] = row.linkedDFDElements;
+        if (!Array.isArray(links) || links.length === 0) {
           return (
             <Chip
               label={t("tabs.assets.notLinked", { defaultValue: "Not linked" })}
@@ -464,30 +468,50 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           );
         }
 
-        // Show linked element names/types
         return (
           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-            {links.slice(0, 3).map((link) => (
-              <Tooltip
-                key={link.elementId}
-                title={`${link.displayId}: ${link.elementName} [${link.elementType}]`}
-              >
-                <Chip
-                  label={link.displayId || link.elementId.slice(0, 8)}
-                  size="small"
-                  variant="outlined"
-                  color="default"
-                  sx={{ fontSize: "0.65rem", height: 20 }}
-                />
-              </Tooltip>
-            ))}
+            {links.slice(0, 3).map((link, index) => {
+              if (!link || typeof link.displayId !== "string") {
+                console.warn(
+                  `Invalid link encountered at index ${index}:`,
+                  link,
+                );
+                return null; // Überspringe ungültige Einträge
+              }
+
+              const label =
+                link.displayId ||
+                (link.elementId ? link.elementId.slice(0, 8) : "Unknown"); // Fallback-Label
+
+              return (
+                <Tooltip
+                  key={link.elementId || index} // Sicherer Fallback für key
+                  title={`${link.displayId || "Unknown"}: ${link.elementName || "No name"} [${
+                    link.elementType || "Unknown Type"
+                  }]`}
+                >
+                  <Chip
+                    label={label}
+                    size="small"
+                    variant="outlined"
+                    color="default"
+                    sx={{ fontSize: "0.65rem", height: 20 }}
+                  />
+                </Tooltip>
+              );
+            })}
+
             {links.length > 3 && (
               <Tooltip
                 title={links
                   .slice(3)
+                  .filter(
+                    (link) =>
+                      link?.displayId && link.elementName && link.elementType,
+                  )
                   .map(
-                    (l) =>
-                      `${l.displayId}: ${l.elementName} [${l.elementType}]`,
+                    (filteredLink) =>
+                      `${filteredLink.displayId}: ${filteredLink.elementName} [${filteredLink.elementType}]`,
                   )
                   .join(", ")}
               >

@@ -63,6 +63,7 @@ import {
   AssetExportImportDialog,
   ExportImportMode,
 } from "./asset-export-import-dialog";
+import { useAssetDFDSync } from "../hooks/use-asset-dfd-sync";
 
 // ==================== CONSTANTS ====================
 
@@ -78,6 +79,10 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   onPhaseComplete,
 }) => {
   const { t } = useTranslation();
+  console.debug(
+    "***************AssetTab: Assets passed to the assets-tab:",
+    project.dfdElements,
+  );
 
   // ==================== STATE ====================
 
@@ -108,7 +113,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Validation
   const [validation, setValidation] = useState<AssetValidation | null>(
-    project.assets?.validation ?? null
+    project.assets?.validation ?? null,
   );
 
   // Sync warnings
@@ -171,7 +176,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       const overallImpact = calculateOverallImpact(
         asset.impactRatings,
         calculationMethod,
-        roundingMethod
+        roundingMethod,
       );
 
       if (overallImpact === asset.overallImpact) {
@@ -187,7 +192,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
     // Only update if something actually changed
     const changed = updatedAssets.some(
-      (a, i) => a.overallImpact !== assetData.assets[i].overallImpact
+      (a, i) => a.overallImpact !== assetData.assets[i].overallImpact,
     );
 
     if (changed) {
@@ -196,7 +201,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         assets: updatedAssets,
       }));
       setValidation(
-        assetService.validate({ ...assetData, assets: updatedAssets })
+        assetService.validate({ ...assetData, assets: updatedAssets }),
       );
       markDirty();
     }
@@ -242,7 +247,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       setSelectedAsset(null);
       markDirty();
     },
-    [assetData, markDirty]
+    [assetData, markDirty],
   );
 
   const handleDeleteAsset = useCallback(
@@ -252,7 +257,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       setValidation(assetService.validate(updatedData));
       markDirty();
     },
-    [assetData, markDirty]
+    [assetData, markDirty],
   );
 
   const handleCloseAssetDialog = useCallback(() => {
@@ -281,7 +286,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       // Ensure all criteria from new config are present
       const updatedRatings = tempConfig.impactCriteria.map((criterionId) => {
         const existingRating = asset.impactRatings.find(
-          (r) => r.criterionId === criterionId
+          (r) => r.criterionId === criterionId,
         );
         return existingRating || { criterionId, value: 0 };
       });
@@ -290,7 +295,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       const overallImpact = calculateOverallImpact(
         updatedRatings,
         tempConfig.calculationMethod,
-        tempConfig.roundingMethod
+        tempConfig.roundingMethod,
       );
 
       return {
@@ -340,7 +345,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         const migratedConfig = migrateAssetConfiguration(data.configuration);
         updatedData = assetService.updateConfiguration(
           updatedData,
-          migratedConfig
+          migratedConfig,
         );
 
         // WICHTIG: Auch die Assets müssen aktualisiert werden, wenn sich die Config ändert
@@ -350,17 +355,17 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           const updatedRatings = migratedConfig.impactCriteria.map(
             (criterionId) => {
               const existingRating = asset.impactRatings.find(
-                (r) => r.criterionId === criterionId
+                (r) => r.criterionId === criterionId,
               );
               return existingRating || { criterionId, value: 0 };
-            }
+            },
           );
 
           // Berechne Overall Impact neu mit neuer Methode
           const overallImpact = calculateOverallImpact(
             updatedRatings,
             migratedConfig.calculationMethod,
-            migratedConfig.roundingMethod
+            migratedConfig.roundingMethod,
           );
 
           return {
@@ -385,7 +390,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
               // Update existing
               updatedData = assetService.updateAsset(
                 updatedData,
-                importedAsset
+                importedAsset,
               );
             } else {
               // Add new
@@ -415,7 +420,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
       console.log("Import completed. Updated data:", updatedData);
     },
-    [assetData, markDirty]
+    [assetData, markDirty],
   );
 
   const handleCloseExportImportDialog = useCallback(() => {
@@ -431,78 +436,43 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // ==================== DFD SYNC ====================
 
+  const { sync: triggerSync, isSyncing } = useAssetDFDSync({
+    assetData,
+    dfdAssets: project.dfdAssets,
+    dfdElements: project.dfdElements,
+    dfdConnections: project.dfdConnections,
+    onSync: (result) => {
+      console.log("[ASSETS-TAB] Sync completed:", result);
+
+      setAssetData(result.assetData);
+      setSyncWarnings(result.warnings);
+
+      // Revalidate after sync
+      setValidation(assetService.validate(result.assetData));
+      markDirty();
+    },
+    onWarning: (warnings) => {
+      // Just set warnings, no toast needed
+      setSyncWarnings(warnings);
+    },
+    autoSync: true, // Auto-sync when DFD changes
+    initialSync: true, // Sync on mount if no assets
+  });
+
+  // Manual sync handler (for toolbar button)
   const handleSyncFromDFD = useCallback(() => {
-    // Prevent concurrent syncs
-    if (syncInProgressRef.current) {
-      console.log("[AUTO-SYNC] Sync already in progress, skipping");
+    if (isSyncing) {
+      console.log("[ASSETS-TAB] Sync already in progress");
       return;
     }
 
-    // Check if DFD assets are available
     if (!project.dfdAssets || project.dfdAssets.length === 0) {
       setSyncWarnings(["No DFD assets available for synchronization"]);
       return;
     }
 
-    syncInProgressRef.current = true;
-
-    try {
-      const dfdAssets = project.dfdAssets ?? [];
-      const dfdElements = project.dfdElements ?? [];
-      const dfdConnections = project.dfdConnections ?? [];
-
-      // Use the new sync method with AssetDFDAsset interface
-      const result = assetService.syncFromDFD(
-        assetData,
-        dfdAssets,
-        dfdElements,
-        dfdConnections,
-      );
-      setAssetData(result.assetData);
-      setSyncWarnings(result.warnings);
-      markDirty();
-
-      // Revalidate
-      setValidation(assetService.validate(result.assetData));
-    } finally {
-      syncInProgressRef.current = false;
-    }
-  }, [
-    project.dfdAssets,
-    project.dfdElements,
-    project.dfdConnections,
-    assetData,
-    markDirty,
-  ]);
-
-  // Auto-sync from DFD on mount if no assets
-  useEffect(() => {
-    if (
-      assetData.assets.length === 0 &&
-      project.dfdAssets &&
-      project.dfdAssets.length > 0
-    ) {
-      handleSyncFromDFD();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Auto-sync when DFD changes (NEW!)
-  useEffect(() => {
-    if (!project.dfdAssets || project.dfdAssets.length === 0) return;
-    if (assetData.assets.length === 0) return; // Skip if no assets yet (handled by mount effect)
-
-    console.log("[AUTO-SYNC] DFD data changed");
-    handleSyncFromDFD();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    project.dfdAssets,
-    project.dfdElements,
-    project.dfdConnections,
-    // NOTE: handleSyncFromDFD is intentionally omitted from dependencies
-    // to prevent infinite loop. We only want to sync when DFD data changes,
-    // not when the function itself is recreated (which happens when assetData changes).
-  ]);
+    triggerSync();
+  }, [isSyncing, project.dfdAssets, triggerSync]);
 
   // ==================== SPLIT VIEW RESIZE ====================
 
@@ -515,7 +485,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       startHeightRef.current = dfdPanelHeight;
       setIsResizing(true);
     },
-    [dfdPanelHeight]
+    [dfdPanelHeight],
   );
 
   const handleMouseMove = useCallback(
@@ -530,12 +500,12 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
       const newHeight = Math.max(
         MIN_PANEL_HEIGHT,
-        Math.min(maxHeight, startHeightRef.current + deltaY)
+        Math.min(maxHeight, startHeightRef.current + deltaY),
       );
 
       setDfdPanelHeight(newHeight);
     },
-    [isResizing]
+    [isResizing],
   );
 
   const handleMouseUp = useCallback(() => {

@@ -23,6 +23,7 @@ type TextFormat = "bold" | "italic" | "underline" | "bulletList" | "numberedList
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   label: string;
   required?: boolean;
   helperText?: string;
@@ -31,6 +32,7 @@ interface RichTextEditorProps {
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
+  onBlur,
   label,
   required = false,
   helperText,
@@ -39,14 +41,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const handleFormatChange = (
     _event: React.MouseEvent<HTMLElement>,
-    newFormats: TextFormat[]
+    newFormats: TextFormat[],
   ) => {
     setFormats(newFormats);
   };
 
   const applyFormat = (format: TextFormat) => {
     const textarea = document.querySelector(
-      `textarea[aria-label="${label}"]`
+      `textarea[aria-label="${label}"]`,
     ) as HTMLTextAreaElement;
     if (!textarea) return;
 
@@ -94,7 +96,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   return (
     <Paper variant="outlined" sx={{ mb: 2 }}>
-      <Toolbar variant="dense" sx={{ minHeight: 40, gap: 0.5, bgcolor: "grey.50" }}>
+      <Toolbar
+        variant="dense"
+        sx={{ minHeight: 40, gap: 0.5, bgcolor: "grey.50" }}
+      >
         <ToggleButtonGroup
           value={formats}
           onChange={handleFormatChange}
@@ -107,7 +112,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <ToggleButton value="italic" onClick={() => applyFormat("italic")}>
             <FormatItalic fontSize="small" />
           </ToggleButton>
-          <ToggleButton value="underline" onClick={() => applyFormat("underline")}>
+          <ToggleButton
+            value="underline"
+            onClick={() => applyFormat("underline")}
+          >
             <FormatUnderlined fontSize="small" />
           </ToggleButton>
         </ToggleButtonGroup>
@@ -115,7 +123,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
 
         <ToggleButtonGroup size="small">
-          <ToggleButton value="bulletList" onClick={() => applyFormat("bulletList")}>
+          <ToggleButton
+            value="bulletList"
+            onClick={() => applyFormat("bulletList")}
+          >
             <FormatListBulleted fontSize="small" />
           </ToggleButton>
           <ToggleButton
@@ -132,6 +143,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         multiline
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         placeholder={`Enter ${label.toLowerCase()}...`}
         required={required}
         helperText={helperText}

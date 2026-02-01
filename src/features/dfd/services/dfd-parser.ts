@@ -68,6 +68,7 @@ export class DFDParser {
 
       // 3. Parse elements
       const elements = parseElements(doc);
+      console.debug("assignElementDisplayIds: ", elements, idLabels);
       assignElementDisplayIds(elements, idLabels);
 
       // 4. Parse connections

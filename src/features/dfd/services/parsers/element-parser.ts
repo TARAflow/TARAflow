@@ -2,6 +2,7 @@
 // Single Responsibility: Parse DFD elements from DrawIO XML
 
 import type { DFDElement, DFDElementType } from "../../models/dfd-types";
+import type { TrustBoundaryProperties } from "../../models/element-properties";
 import {
   cleanLabel,
   getGeometry,
@@ -11,6 +12,34 @@ import {
   determineElementType,
   extractTrustBoundaryId,
 } from "./parser-utils";
+
+/**
+ * Collect positions of all group elements
+ * Groups have style="group" and contain position but no actual element
+ */
+function collectGroupPositions(doc: Document): Map<string, { x: number; y: number }> {
+  const groupPositions = new Map<string, { x: number; y: number }>();
+
+  const objects = doc.getElementsByTagName("object");
+  Array.from(objects).forEach((obj) => {
+    const id = obj.getAttribute("id");
+    if (!id) return;
+
+    const cell = obj.querySelector("mxCell");
+    if (!cell) return;
+
+    const style = cell.getAttribute("style") || "";
+    if (style.includes("group")) {
+      const geometry = getGeometry(cell);
+      if (geometry) {
+        groupPositions.set(id, { x: geometry.x, y: geometry.y });
+        console.log(`Collected group position: ID=${id}, x=${geometry.x}, y=${geometry.y}`);
+      }
+    }
+  });
+
+  return groupPositions;
+}
 
 /**
  * Collect all ID labels from the document
@@ -61,10 +90,17 @@ export function assignDisplayIds(
 /**
  * Parse element from DrawIO object
  */
-export function parseElementFromObject(obj: Element): DFDElement | null {
+export function parseElementFromObject(
+  obj: Element,
+  groupPositions?: Map<string, { x: number; y: number }>,
+): DFDElement | null {
   const id = obj.getAttribute("id") || "";
   const label = obj.getAttribute("label") || "";
   const objType = getXmlElementType(obj);
+
+  console.log(
+    `parseElementFromObject [PARSE] ID: ${id}, Label: ${label}, Type: ${objType}`,
+  );
 
   if (!id) {
     console.warn("Skipping object with missing ID.");
@@ -93,20 +129,19 @@ export function parseElementFromObject(obj: Element): DFDElement | null {
   if (!objType || objType === "idlabel" || objType === "asset") return null;
 
   if (objType === "trustboundary") {
-    // Ein Label ist erforderlich, und es muss im Format "[...]" sein
     const cleanLabel = label.trim();
-    const validLabelRegex = /\[.*\]/; // Labels müssen eckige Klammern haben
+    const validLabelRegex = /\[.*\]/;
     if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
-      return null; // Ignoriere Trust Boundaries ohne gültiges Label
+      return null;
     }
   }
 
   // Get child mxCell
   const cells = obj.getElementsByTagName("mxCell");
-    if (cells.length === 0) {
-      console.warn(`Object has no mxCell: ID=${id}`);
-      return null;
-    }
+  if (cells.length === 0) {
+    console.warn(`Object has no mxCell: ID=${id}`);
+    return null;
+  }
 
   // Skip edges (connections)
   const cell = cells[0];
@@ -121,6 +156,18 @@ export function parseElementFromObject(obj: Element): DFDElement | null {
     return null;
   }
 
+  // Check if element is child of a group and use parent position
+  const parentId = cell.getAttribute("parent");
+  let position = { x: geometry.x, y: geometry.y };
+
+  if (parentId && groupPositions?.has(parentId)) {
+    const parentPos = groupPositions.get(parentId)!;
+    position = { x: parentPos.x, y: parentPos.y };
+    console.log(
+      `Using parent group position: ID=${id}, parent=${parentId}, x=${position.x}, y=${position.y}`,
+    );
+  }
+
   const type = determineElementType(obj);
   if (!type || type === "Asset") return null;
 
@@ -132,7 +179,7 @@ export function parseElementFromObject(obj: Element): DFDElement | null {
     type: type as DFDElementType,
     name,
     displayId: name,
-    position: { x: geometry.x, y: geometry.y },
+    position: position,
     size: { width: geometry.width, height: geometry.height },
     properties: {},
   };
@@ -141,10 +188,11 @@ export function parseElementFromObject(obj: Element): DFDElement | null {
   if (type === "TrustBoundary") {
     const tbId = extractTrustBoundaryId(name);
     if (tbId) {
+      element.displayId = tbId;
       element.properties = {
         ...element.properties,
         boundaryId: tbId,
-      };
+      } as TrustBoundaryProperties;
     }
   }
 
@@ -159,10 +207,10 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
   const value = cell.getAttribute("value") || null;
   const parent = cell.getAttribute("parent") || null;
 
-  console.log("Parsing mxCell:");
-  console.log(` - ID: ${id}`);
-  console.log(` - Value: ${value}`);
-  console.log(` - Parent: ${parent}`);
+  console.log("parseElementFromCellParsing mxCell:");
+  console.log(`parseElementFromCell - ID: ${id}`);
+  console.log(`parseElementFromCell - Value: ${value}`);
+  console.log(`parseElementFromCell - Parent: ${parent}`);
 
   // Skip root cells
   if (!id || id === "0" || id === "1") {
@@ -210,7 +258,7 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
       element.properties = {
         ...element.properties,
         boundaryId: tbId,
-      };
+      } as TrustBoundaryProperties;
     }
   }
 
@@ -224,24 +272,38 @@ export function parseElements(doc: Document): DFDElement[] {
   const elements: DFDElement[] = [];
   const seenIds = new Set<string>();
 
-  // Parse object elements (new stencil format)
+  // STEP 1: Collect group positions (id -> position)
+  const groupPositions = collectGroupPositions(doc);
+
+  // STEP 2: Parse object elements (new stencil format)
   const objects = doc.getElementsByTagName("object");
+
+  Array.from(objects).forEach((obj, index) => {
+    const id = obj.getAttribute("id");
+    const label = obj.getAttribute("label");
+    const type = obj.getAttribute("type");
+    console.log(`[FOUND ${index}] ID: ${id}, Label: ${label}, Type: ${type}`);
+  });
+
   Array.from(objects).forEach((obj) => {
-    const element = parseElementFromObject(obj);
-    console.log(
-      "parseElementFromObject Id: " + element?.id + " Name: " + element?.name,
-    );
+    const element = parseElementFromObject(obj, groupPositions);
+    console.log("parseElementFromObject Id: ", element);
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);
     }
   });
 
+  console.debug("parseElements 1: ", elements);
+
   // Parse direct mxCell elements (backwards compatibility)
   const cells = doc.getElementsByTagName("mxCell");
   const validCells = filterValidCells(cells); // Nur relevante mxCell verarbeiten
   validCells.forEach((cell) => {
     const element = parseElementFromCell(cell);
+    console.log(
+      "parseElementFromCell Id: " + element?.id + " Name: " + element?.name,
+    );
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);
@@ -257,7 +319,7 @@ export function parseElements(doc: Document): DFDElement[] {
   //     seenIds.add(element.id);
   //   }
   // });
-
+  console.debug("parseElements 2: ", elements);
   return elements;
 }
 

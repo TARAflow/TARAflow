@@ -54,11 +54,14 @@ export class DFDStorageAdapter {
    */
   loadToLocalStorage(dfd: DFDData | null): void {
     this.clearLocalStorage();
-    
+
+    if (!dfd || !dfd.xml) {
+      DFDStorageAdapter.clearLegacyStorage();
+    }
+
     if (dfd?.xml) {
       const drawioMsg = JSON.stringify({ xml: dfd.xml });
       localStorage.setItem(this.keys.drawioMsg, drawioMsg);
-      // Also set legacy key for DrawioController compatibility
       localStorage.setItem(DFD_STORAGE_KEYS.LEGACY_DRAWIO_MSG, drawioMsg);
     }
   }

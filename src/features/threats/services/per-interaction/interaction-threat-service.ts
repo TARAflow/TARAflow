@@ -23,6 +23,7 @@ import type {
 import { interactionThreatGenerator } from "./interaction-generator";
 import { interactionThreatSync } from "./interaction-sync";
 import threatCatalogData from "../threat-catalog.json";
+import { type DFDAnalysisContext } from "shared";
 
 // ==================== INTERACTION THREAT SERVICE ====================
 
@@ -37,12 +38,13 @@ export class InteractionThreatService implements ThreatService {
 
   generateThreats(
     project: ThreatProjectData,
-    configuration: ThreatConfiguration
+    dfdContext: DFDAnalysisContext,
+    configuration: ThreatConfiguration,
   ): GenerationResult {
     try {
       const elements = project.dfdElements || [];
       const connections = project.dfdConnections || [];
-
+      console.debug("generateThreats ", project);
       if (elements.length === 0) {
         return {
           success: false,
@@ -52,7 +54,8 @@ export class InteractionThreatService implements ThreatService {
       }
 
       const tables = interactionThreatGenerator.generateThreatsForProject(
-        project
+        project,
+        dfdContext,
       );
 
       return {
@@ -135,25 +138,27 @@ export class InteractionThreatService implements ThreatService {
 
   checkSyncStatus(
     project: ThreatProjectData,
-    tables: ThreatTable[]
+    tables: ThreatTable[],
   ): ThreatSyncStatus {
     return interactionThreatSync.checkSyncStatus(project, tables);
   }
 
   synchronizeThreats(
     project: ThreatProjectData,
+    dfdContext: DFDAnalysisContext,
     tables: ThreatTable[],
     syncStatus: ThreatSyncStatus,
     options: {
       updateReferences: boolean;
       removeOrphaned: boolean;
-    }
+    },
   ): ThreatSyncResult {
     return interactionThreatSync.synchronizeThreats(
       project,
+      dfdContext,
       tables,
       syncStatus,
-      options
+      options,
     );
   }
 
@@ -162,7 +167,7 @@ export class InteractionThreatService implements ThreatService {
   getThreatTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates: ThreatTemplate[] = []
+    customTemplates: ThreatTemplate[] = [],
   ): ThreatTemplate[] {
     // Per-interaction doesn't use catalog templates directly
     // It uses interaction-templates.ts instead
@@ -172,7 +177,7 @@ export class InteractionThreatService implements ThreatService {
   getMitigationTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates: MitigationTemplate[] = []
+    customTemplates: MitigationTemplate[] = [],
   ): MitigationTemplate[] {
     let templates = [...this.catalog.mitigationTemplates, ...customTemplates];
 
@@ -193,7 +198,7 @@ export class InteractionThreatService implements ThreatService {
   getVerificationTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates: VerificationTemplate[] = []
+    customTemplates: VerificationTemplate[] = [],
   ): VerificationTemplate[] {
     let templates = [...this.catalog.verificationTemplates, ...customTemplates];
 

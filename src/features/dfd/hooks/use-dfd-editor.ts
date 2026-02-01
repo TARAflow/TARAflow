@@ -1,65 +1,39 @@
-// ==================== USE DFD EDITOR HOOK ====================
-// Refactored following SOLID principles:
-// - S: Orchestrates sub-hooks, doesn't implement details
-// - O: Extensible via dependency injection
-// - L: Uses interfaces, implementations are swappable
-// - I: Small, focused interfaces
-// - D: Depends on abstractions, not concretions
+// ==================== USE DFD EDITOR HOOK (REFACTORED) ====================
+// Single Responsibility: Orchestrate atomic hooks into unified API
+// Follows Facade Pattern - simple interface, complex implementation
 
-import { useReducer, useEffect, useCallback, useRef, useMemo } from "react";
-import {
-  DFDAsset,
+import { useCallback, useEffect } from "react";
+import type {
   DFDProjectData,
-  DFDStats,
   DFDUpdateResult,
   DFDElement,
+  DFDAsset,
   DFDConnection,
+  DFDStats,
   DFDExportData,
 } from "../models/dfd-types";
-import { ValidationResult } from "../services/dfd-validator";
-import {
-  dfdEditorReducer,
-  createInitialEditorState,
-  IDrawioBridge,
-  IXmlSourceManager,
-  IAutoNumbering,
-  IDFDService,
-  IDFDStorageAdapter,
-} from "../interfaces/dfd-editor-interfaces";
+import type { ValidationResult } from "../services/dfd-validator";
 
-// Default implementations
-import dfdService from "../services/dfd-service";
-import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
-import { DFDAutoNumbering } from "../services/dfd-auto-numbering";
-import { DrawioBridge } from "../services/drawio-bridge";
-import { createXmlSourceManager } from "../services/xml-source-manager";
+// Atomic hooks
+import { useDFDData } from "./use-dfd-data";
+import { useDrawioBridge } from "./use-drawio-bridge";
+import { useDFDValidation } from "./use-dfd-validation";
+import { useDFDPersistence } from "./use-dfd-persistence";
+import { useDFDThumbnail } from "./use-dfd-thumbnail";
+import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
+import { useDFDExportImport } from "./use-dfd-export-import";
+import { useDFDCompletion } from "./use-dfd-completion";
 
 // ==================== TYPES ====================
 
 export interface UseDFDEditorOptions {
   onDirtyChange?: (isDirty: boolean) => void;
-  onSave?: (updates: DFDUpdateResult) => void;
+  onUpdate?: (updates: DFDUpdateResult) => void;
+  onPhaseComplete?: () => void;
+  darkMode?: boolean;
   autoValidateInterval?: number;
   autoNumberOnSave?: boolean;
   generateThumbnailOnSave?: boolean;
-  darkMode?: boolean;
-  iframeKey?: number;
-}
-
-export interface UseDFDEditorDependencies {
-  dfdService?: IDFDService;
-  createStorageAdapter?: (projectId: string) => IDFDStorageAdapter;
-  createAutoNumbering?: () => IAutoNumbering;
-  createBridge?: (
-    iframe: HTMLIFrameElement,
-    projectId: string,
-    projectName: string,
-    darkMode?: boolean
-  ) => IDrawioBridge;
-  createXmlSourceManager?: (
-    projectId: string,
-    getControllerXml?: () => string | null
-  ) => IXmlSourceManager;
 }
 
 export interface UseDFDEditorReturn {
@@ -67,645 +41,291 @@ export interface UseDFDEditorReturn {
   isLoading: boolean;
   isDirty: boolean;
   validation: ValidationResult | null;
-  stats: DFDStats | null;
+  stats: DFDStats | undefined;
   previewImage: string | null;
 
   // Refs
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  iframeKey: number;
 
-  // Actions
+  // Lifecycle
   initialize: () => void;
+
+  // Save operations
   save: () => Promise<DFDUpdateResult | null>;
+
+  // Validation
   validate: () => ValidationResult;
+
+  // Image operations
   exportImage: () => void;
   generateThumbnail: () => Promise<string | null>;
+
+  // Editor operations
   sendAction: (action: string) => void;
+  getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
 
-  // NEW: Description editing
+  // Description editing (triggers debounced save)
   updateElementDescription: (
     elementId: string,
     updates: Partial<DFDElement>,
   ) => void;
-
   updateAssetDescription: (assetId: string, updates: Partial<DFDAsset>) => void;
-
   updateConnectionDescription: (
     connectionId: string,
     updates: Partial<DFDConnection>,
   ) => void;
 
-  // NEW: Export/Import
+  // Export/Import
   exportDFD: () => DFDExportData | null;
   importDFD: (data: DFDExportData) => Promise<void>;
+
+  // Utility
+  flushDebouncedSave: () => void;
+
+  // Completion
+  canProceed: boolean;
 }
-
-
-
-// ==================== DEFAULT DEPENDENCIES ====================
-
-const defaultDependencies: Required<UseDFDEditorDependencies> = {
-  dfdService: dfdService,
-  createStorageAdapter: createDFDStorageAdapter,
-  createAutoNumbering: () => new DFDAutoNumbering(30),
-  createBridge: (iframe, projectId, projectName, _darkMode) =>
-    new DrawioBridge(iframe, projectId, projectName),
-  createXmlSourceManager: createXmlSourceManager,
-};
 
 // ==================== HOOK ====================
 
 export function useDFDEditor(
   project: DFDProjectData,
   options: UseDFDEditorOptions = {},
-  dependencies: UseDFDEditorDependencies = {}
 ): UseDFDEditorReturn {
-  const deps = useMemo(
-    () => ({ ...defaultDependencies, ...dependencies }),
-    [dependencies]
-  );
-
   const {
     onDirtyChange,
-    onSave,
+    onUpdate,
+    onPhaseComplete,
+    darkMode = false,
     autoValidateInterval = 500,
     autoNumberOnSave = false,
     generateThumbnailOnSave = true,
-    darkMode = false,
-    iframeKey = 0,
   } = options;
 
-  // ==================== STATE ====================
+  // ==================== ATOMIC HOOKS ====================
 
-  const [state, dispatch] = useReducer(
-    dfdEditorReducer,
-    createInitialEditorState()
-  );
+  // Data consistency layer
+  const data = useDFDData(project);
 
-  // ==================== REFS ====================
+  // iframe communication layer
+  const bridge = useDrawioBridge(project, {
+    darkMode,
+    onDiagramChange: () => {
+      persistence.markDirty();
+      validation.scheduleValidation(autoValidateInterval);
+    },
+  });
 
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const bridgeRef = useRef<IDrawioBridge | null>(null);
-  const storageAdapterRef = useRef<IDFDStorageAdapter | null>(null);
-  const xmlSourceManagerRef = useRef<IXmlSourceManager | null>(null);
-  const autoNumberingRef = useRef<IAutoNumbering | null>(null);
-  const validateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const initRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Validation layer
+  const validation = useDFDValidation(project, {
+    autoValidateDelay: autoValidateInterval,
+  });
 
-  const thumbnailResolverRef = useRef<((src: string | null) => void) | null>(
-    null
-  );
-  const lastInitializedIframeKeyRef = useRef<number>(-1);
+  // Persistence layer
+  const persistence = useDFDPersistence(project, {
+    onUpdate,
+    onDirtyChange,
+  });
 
-  // ==================== VALIDATION ====================
+  // Thumbnail layer
+  const thumbnail = useDFDThumbnail(bridge, project, {
+    restoreFromProject: true,
+  });
 
-  const runValidation = useCallback((): ValidationResult => {
+  // Auto-numbering layer
+  const autoNumbering = useDFDAutoNumbering(bridge, validation, persistence, {
+    startNumber: 30,
+    validateAfter: true,
+    validationDelay: 500,
+  });
+
+  // Export/Import layer
+  const exportImport = useDFDExportImport(project, bridge, persistence);
+
+  // Completion business rules
+  const completion = useDFDCompletion(validation, persistence, data.stats, {
+    onPhaseComplete,
+  });
+
+  // ==================== COORDINATED OPERATIONS ====================
+
+  /**
+   * Save with optional auto-numbering and thumbnail generation
+   */
+  const save = useCallback(async (): Promise<DFDUpdateResult | null> => {
+    console.log("[useDFDEditor] Save operation started");
+
     try {
-      const result = deps.dfdService.validateCurrentState(project.id);
-      const stats = deps.dfdService.getCurrentStats(project.id);
+      // Step 1: Auto-number if enabled
+      if (autoNumberOnSave) {
+        console.log("[useDFDEditor] Auto-numbering before save...");
+        await autoNumbering.autoNumber();
 
-      dispatch({
-        type: "VALIDATION_COMPLETE",
-        payload: { validation: result, stats },
-      });
+        // Wait for draw.io to update
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      // Step 2: Generate thumbnail if enabled
+      let thumbnailData: string | undefined;
+      if (generateThumbnailOnSave) {
+        console.log("[useDFDEditor] Generating thumbnail...");
+        const generated = await thumbnail.generate();
+        thumbnailData = generated || undefined;
+      }
+
+      // Step 3: Execute save
+      const result = await persistence.save(thumbnailData);
+
+      if (result) {
+        console.log("[useDFDEditor] Save completed successfully");
+
+        // Update validation state
+        validation.validate();
+      }
 
       return result;
     } catch (error) {
-      console.error("[useDFDEditor] Validation failed:", error);
-      const emptyResult: ValidationResult = {
-        isValid: false,
-        isComplete: false,
-        errors: [],
-        warnings: [],
-        scenario: null,
-      };
-      dispatch({ type: "SET_VALIDATION", payload: emptyResult });
-      return emptyResult;
+      console.error("[useDFDEditor] Save failed:", error);
+      return null;
     }
-  }, [project.id, deps.dfdService]);
-
-  // ==================== CHANGE HANDLING ====================
-
-  const handleDiagramChange = useCallback(() => {
-    dispatch({ type: "SET_DIRTY", payload: true });
-    onDirtyChange?.(true);
-
-    storageAdapterRef.current?.syncFromLegacy();
-
-    if (autoValidateInterval > 0) {
-      if (validateTimeoutRef.current) {
-        clearTimeout(validateTimeoutRef.current);
-      }
-      validateTimeoutRef.current = setTimeout(() => {
-        runValidation();
-      }, autoValidateInterval);
-    }
-  }, [onDirtyChange, autoValidateInterval, runValidation]);
-
-  // ==================== DESCRIPTION UPDATES ====================
+  }, [
+    autoNumberOnSave,
+    generateThumbnailOnSave,
+    autoNumbering,
+    thumbnail,
+    persistence,
+    validation,
+  ]);
 
   /**
-   * Update element description and trigger dirty state
+   * Update element and schedule debounced save
    */
   const updateElementDescription = useCallback(
     (elementId: string, updates: Partial<DFDElement>) => {
-      if (!project.dfd) return;
+      // Update data (rebuilds graph)
+      const updatedDFD = data.updateElement(elementId, updates);
 
-      const updatedElements = project.dfd.elements.map((el) =>
-        el.id === elementId ? { ...el, ...updates } : el
-      );
-
-      const updatedDFD = {
-        ...project.dfd,
-        elements: updatedElements,
-        lastModified: new Date().toISOString(),
-      };
-
-      // Update stats
-      const describedElements = updatedElements.filter(
-        (el) =>
-          el.properties.description &&
-          el.properties.description.trim().length > 0,
-      ).length;
-
-      updatedDFD.stats = {
-        ...updatedDFD.stats!,
-        describedElements,
-      };
-
-      // Update project
+      // Schedule debounced save
       const result: DFDUpdateResult = {
         dfd: updatedDFD,
         phaseStatus: project.phaseStatus,
-        lastModified: new Date().toISOString(),
+        lastModified: updatedDFD.lastModified!,
       };
 
-      onSave?.(result);
-      dispatch({ type: "SET_DIRTY", payload: true });
-      onDirtyChange?.(true);
+      persistence.scheduleSave(result);
     },
-    [project, onSave, onDirtyChange]
-  );
-
-  const updateAssetDescription = useCallback(
-    (assetId: string, updates: Partial<DFDAsset>) => {
-      if (!project.dfd) return;
-
-      const updatedAssets = project.dfd.assets.map((asset) =>
-        asset.id === assetId ? { ...asset, ...updates } : asset,
-      );
-
-      const updatedDFD = {
-        ...project.dfd,
-        assets: updatedAssets,
-        lastModified: new Date().toISOString(),
-      };
-
-      // Stats aktualisieren
-      const describedAssets = updatedAssets.filter((a) =>
-        a.properties?.description?.trim(),
-      ).length;
-
-      updatedDFD.stats = {
-        ...updatedDFD.stats!,
-        describedAssets,
-      };
-
-      const result: DFDUpdateResult = {
-        dfd: updatedDFD,
-        phaseStatus: project.phaseStatus,
-        lastModified: new Date().toISOString(),
-      };
-
-      onSave?.(result);
-      dispatch({ type: "SET_DIRTY", payload: true });
-      onDirtyChange?.(true);
-    },
-    [project, onSave, onDirtyChange],
+    [data, project.phaseStatus, persistence],
   );
 
   /**
-   * Update connection description and trigger dirty state
+   * Update asset and schedule debounced save
+   */
+  const updateAssetDescription = useCallback(
+    (assetId: string, updates: Partial<DFDAsset>) => {
+      // Update data (rebuilds graph, re-syncs linkedElements)
+      const updatedDFD = data.updateAsset(assetId, updates);
+
+      // Schedule debounced save
+      const result: DFDUpdateResult = {
+        dfd: updatedDFD,
+        phaseStatus: project.phaseStatus,
+        lastModified: updatedDFD.lastModified!,
+      };
+
+      persistence.scheduleSave(result);
+    },
+    [data, project.phaseStatus, persistence],
+  );
+
+  /**
+   * Update connection and schedule debounced save
    */
   const updateConnectionDescription = useCallback(
     (connectionId: string, updates: Partial<DFDConnection>) => {
-      if (!project.dfd) return;
+      // Update data (rebuilds graph)
+      const updatedDFD = data.updateConnection(connectionId, updates);
 
-      const updatedConnections = project.dfd.connections.map((conn) =>
-        conn.id === connectionId ? { ...conn, ...updates } : conn
-      );
-
-      const updatedDFD = {
-        ...project.dfd,
-        connections: updatedConnections,
-        lastModified: new Date().toISOString(),
-      };
-
-      // Update stats
-      const describedConnections = updatedConnections.filter(
-        (conn) =>
-          conn.properties?.description &&
-          conn.properties?.description.trim().length > 0
-      ).length;
-
-      updatedDFD.stats = {
-        ...updatedDFD.stats!,
-        describedConnections,
-      };
-
-      // Update project
+      // Schedule debounced save
       const result: DFDUpdateResult = {
         dfd: updatedDFD,
         phaseStatus: project.phaseStatus,
-        lastModified: new Date().toISOString(),
+        lastModified: updatedDFD.lastModified!,
       };
 
-      onSave?.(result);
-      dispatch({ type: "SET_DIRTY", payload: true });
-      onDirtyChange?.(true);
+      persistence.scheduleSave(result);
     },
-    [project, onSave, onDirtyChange]
+    [data, project.phaseStatus, persistence],
   );
-
-  // ==================== EXPORT/IMPORT ====================
 
   /**
-   * Export DFD as JSON with XML and descriptions
+   * Export image and update preview
    */
-  const exportDFD = useCallback((): DFDExportData | null => {
-    if (!project.dfd || !project.dfd.xml) {
-      console.warn("No DFD data to export");
-      return null;
-    }
-
-    const exportData: DFDExportData = {
-      version: "1.0",
-      projectName: project.name,
-      exportDate: new Date().toISOString(),
-      xml: project.dfd.xml,
-      elements: project.dfd.elements,
-      assets: project.dfd.assets,
-      connections: project.dfd.connections,
-    };
-
-    return exportData;
-  }, [project]);
-
-  /**
-   * Import DFD from JSON file
-   */
-  const importDFD = useCallback(
-    async (data: DFDExportData) => {
-      // Validate import data
-      if (!data.xml || !data.elements || !data.connections) {
-        throw new Error("Invalid DFD import data");
-      }
-
-      // Load XML into draw.io via bridge
-      if (bridgeRef.current) {
-        await bridgeRef.current.loadXml(data.xml);
-      }
-
-      // Calculate stats
-      const stats: DFDStats = {
-        totalElements: data.elements.length,
-        externalEntities: data.elements.filter(
-          (e) => e.type === "ExternalEntity",
-        ).length,
-        processes: data.elements.filter((e) => e.type === "Process").length,
-        multiprocesses: data.elements.filter((e) => e.type === "Multiprocess")
-          .length,
-        dataStores: data.elements.filter((e) => e.type === "DataStore").length,
-        dataFlows: data.connections.length,
-        trustBoundaries: data.elements.filter((e) => e.type === "TrustBoundary")
-          .length,
-        assets: data.assets.length,
-        interfaces: data.elements.filter((e) => e.type === "Interface").length,
-        describedElements: data.elements.filter(
-          (e) =>
-            e.properties.description &&
-            e.properties.description.trim().length > 0,
-        ).length,
-        describedAssets: data.assets.filter(
-          (a) =>
-            a.properties?.description &&
-            a.properties.description.trim().length > 0,
-        ).length,
-        describedConnections: data.connections.filter(
-          (c) =>
-            c.properties?.description &&
-            c.properties?.description.trim().length > 0,
-        ).length,
-      };
-
-      // Update project with imported data
-      const updatedDFD = {
-        xml: data.xml,
-        elements: data.elements,
-        assets: data.assets,
-        connections: data.connections,
-        stats,
-        lastModified: new Date().toISOString(),
-      };
-
-      const result: DFDUpdateResult = {
-        dfd: updatedDFD,
-        phaseStatus: project.phaseStatus,
-        lastModified: new Date().toISOString(),
-      };
-
-      onSave?.(result);
-      dispatch({ type: "SET_DIRTY", payload: false });
-      onDirtyChange?.(false);
-
-      // Re-validate
-      setTimeout(() => runValidation(), 1000);
-    },
-    [project, onSave, onDirtyChange, runValidation]
-  );
-
-  // ==================== IMAGE READY HANDLER ====================
-
-  const handleImageReady = useCallback((imageSrc: string) => {
-    dispatch({ type: "SET_PREVIEW_IMAGE", payload: imageSrc });
-
-    if (thumbnailResolverRef.current) {
-      thumbnailResolverRef.current(imageSrc);
-      thumbnailResolverRef.current = null;
-    }
-  }, []);
-
-  // ==================== INITIALIZATION ====================
-
-  const doInitialize = useCallback(
-    (iframe: HTMLIFrameElement) => {
-      console.log(
-        `[useDFDEditor] Initializing for project: ${project.id}, darkMode: ${darkMode}, iframeKey: ${iframeKey}`
-      );
-
-      bridgeRef.current?.dispose();
-      lastInitializedIframeKeyRef.current = iframeKey;
-
-      storageAdapterRef.current = deps.createStorageAdapter(project.id);
-      deps.dfdService.loadDFDForEditing(project);
-
-      const bridge = deps.createBridge(
-        iframe,
-        project.id,
-        project.name,
-        darkMode
-      );
-      bridgeRef.current = bridge;
-
-      bridge.onDiagramChange(handleDiagramChange);
-      bridge.onImageReady(handleImageReady);
-
-      xmlSourceManagerRef.current = deps.createXmlSourceManager(
-        project.id,
-        () => bridge.getCurrentXml()
-      );
-
-      autoNumberingRef.current = deps.createAutoNumbering();
-
-      dispatch({
-        type: "SET_INITIALIZED",
-        payload: { isInitialized: true, projectId: project.id },
-      });
-
-      setTimeout(() => runValidation(), 1000);
-    },
-    [
-      project,
-      deps,
-      handleDiagramChange,
-      handleImageReady,
-      runValidation,
-      darkMode,
-      iframeKey,
-    ]
-  );
-
-  const initialize = useCallback(() => {
-    if (initRetryTimeoutRef.current) {
-      clearTimeout(initRetryTimeoutRef.current);
-      initRetryTimeoutRef.current = null;
-    }
-
-    const iframe = iframeRef.current;
-
-    if (!iframe) {
-      console.log("[useDFDEditor] No iframe ref, retrying...");
-      initRetryTimeoutRef.current = setTimeout(initialize, 100);
-      return;
-    }
-
-    if (!iframe.contentWindow) {
-      console.log("[useDFDEditor] Iframe not ready, retrying...");
-      initRetryTimeoutRef.current = setTimeout(initialize, 100);
-      return;
-    }
-
-    const sameProject = state.currentProjectId === project.id;
-    const sameIframeKey = lastInitializedIframeKeyRef.current === iframeKey;
-
-    if (sameProject && sameIframeKey && state.isInitialized) {
-      console.log(
-        `[useDFDEditor] Already initialized for: ${project.id}, iframeKey: ${iframeKey}`
-      );
-      dispatch({ type: "SET_LOADING", payload: false });
-      return;
-    }
-
-    if (sameProject && !sameIframeKey) {
-      console.log(
-        `[useDFDEditor] Re-initializing due to theme change (iframeKey: ${lastInitializedIframeKeyRef.current} -> ${iframeKey})`
-      );
-    }
-
-    doInitialize(iframe);
-  }, [
-    project.id,
-    state.currentProjectId,
-    state.isInitialized,
-    doInitialize,
-    iframeKey,
-  ]);
-
-  // ==================== CLEANUP ====================
-
-  useEffect(() => {
-    return () => {
-      if (validateTimeoutRef.current) clearTimeout(validateTimeoutRef.current);
-      if (initRetryTimeoutRef.current)
-        clearTimeout(initRetryTimeoutRef.current);
-      bridgeRef.current?.dispose();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (lastInitializedIframeKeyRef.current === -1) return;
-
-    if (lastInitializedIframeKeyRef.current !== iframeKey) {
-      console.log(`[useDFDEditor] Cleaning up bridge due to iframeKey change`);
-      bridgeRef.current?.dispose();
-      bridgeRef.current = null;
-    }
-  }, [iframeKey]);
-
-  // ==================== PROJECT CHANGE ====================
-
-  useEffect(() => {
-    if (
-      state.currentProjectId !== null &&
-      state.currentProjectId !== project.id
-    ) {
-      console.log(
-        `[useDFDEditor] Project changed: ${state.currentProjectId} -> ${project.id}`
-      );
-
-      if (initRetryTimeoutRef.current) {
-        clearTimeout(initRetryTimeoutRef.current);
-        initRetryTimeoutRef.current = null;
-      }
-
-      bridgeRef.current?.dispose();
-      dispatch({ type: "RESET_FOR_PROJECT_CHANGE" });
-    }
-  }, [project.id, state.currentProjectId]);
-
-  // ==================== AUTO NUMBERING ====================
-
-  const autoNumberLabels = useCallback(async (): Promise<void> => {
-    console.log("[useDFDEditor] Auto-numbering labels...");
-
-    storageAdapterRef.current?.syncFromLegacy();
-
-    const currentXml = xmlSourceManagerRef.current?.getXml();
-    if (!currentXml) {
-      console.warn("[useDFDEditor] No XML found for auto-numbering");
-      return;
-    }
-
-    const numberedXml = autoNumberingRef.current?.autoNumber(currentXml);
-    if (!numberedXml || numberedXml === currentXml) {
-      console.log("[useDFDEditor] No changes after auto-numbering");
-      return;
-    }
-
-    await bridgeRef.current?.loadXml(numberedXml);
-
-    dispatch({ type: "SET_DIRTY", payload: true });
-    onDirtyChange?.(true);
-
-    setTimeout(() => runValidation(), 500);
-
-    console.log("[useDFDEditor] Auto-numbering complete");
-  }, [onDirtyChange, runValidation]);
-
-  // ==================== THUMBNAIL GENERATION ====================
-
-  const generateThumbnail = useCallback(async (): Promise<string | null> => {
-    return new Promise((resolve) => {
-      thumbnailResolverRef.current = resolve;
-      bridgeRef.current?.exportImage();
-
-      setTimeout(() => {
-        if (thumbnailResolverRef.current) {
-          console.warn("[useDFDEditor] Thumbnail generation timed out");
-          thumbnailResolverRef.current(state.previewImage);
-          thumbnailResolverRef.current = null;
-        }
-      }, 5000);
-    });
-  }, [state.previewImage]);
-
-  // ==================== PUBLIC ACTIONS ====================
-
-  const validate = useCallback((): ValidationResult => {
-    return runValidation();
-  }, [runValidation]);
-
-  const save = useCallback(async (): Promise<DFDUpdateResult | null> => {
-    storageAdapterRef.current?.syncFromLegacy();
-
-    if (autoNumberOnSave) {
-      await autoNumberLabels();
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      storageAdapterRef.current?.syncFromLegacy();
-    }
-
-    let thumbnail: string | undefined;
-    if (generateThumbnailOnSave) {
-      console.log("[useDFDEditor] Generating thumbnail...");
-      const generatedThumbnail = await generateThumbnail();
-      thumbnail = generatedThumbnail || undefined;
-    }
-
-    const result = deps.dfdService.saveDFD(project);
-
-    if (result.success) {
-      if (thumbnail) {
-        result.dfd.thumbnail = thumbnail;
-      }
-
-      dispatch({
-        type: "SAVE_SUCCESS",
-        payload: { validation: result.validation },
-      });
-      onDirtyChange?.(false);
-
-      const updateResult: DFDUpdateResult = {
-        dfd: result.dfd,
-        phaseStatus: result.phaseStatus,
-        lastModified: result.lastModified,
-      };
-
-      onSave?.(updateResult);
-      return updateResult;
-    }
-
-    console.error("[useDFDEditor] Save failed:", result.error);
-    return null;
-  }, [
-    project,
-    deps.dfdService,
-    autoNumberOnSave,
-    autoNumberLabels,
-    generateThumbnailOnSave,
-    generateThumbnail,
-    onDirtyChange,
-    onSave,
-  ]);
-
   const exportImage = useCallback(() => {
-    bridgeRef.current?.exportImage();
-  }, []);
+    thumbnail.generate();
+  }, [thumbnail]);
 
-  const sendAction = useCallback((action: string) => {
-    bridgeRef.current?.sendAction(action);
-  }, []);
+  // ==================== INITIAL VALIDATION ====================
 
-  // ==================== RETURN ====================
+  // Run initial validation after bridge initializes
+  useEffect(() => {
+    if (!bridge.isLoading) {
+      // Small delay to ensure draw.io is ready
+      const timer = setTimeout(() => {
+        validation.validate();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [bridge.isLoading, validation]);
+
+  // ==================== RETURN UNIFIED API ====================
 
   return {
-    isLoading: state.isLoading,
-    isDirty: state.isDirty,
-    validation: state.validation,
-    stats: state.stats,
-    previewImage: state.previewImage,
-    iframeRef,
-    initialize,
+    // State
+    isLoading: bridge.isLoading,
+    isDirty: persistence.isDirty,
+    validation: validation.current,
+    stats: data.stats,
+    previewImage: thumbnail.preview,
+
+    // Refs
+    iframeRef: bridge.iframeRef,
+    iframeKey: bridge.iframeKey,
+
+    // Lifecycle
+    initialize: bridge.initialize,
+
+    // Save operations
     save,
-    validate,
+
+    // Validation
+    validate: validation.validate,
+
+    // Image operations
     exportImage,
-    generateThumbnail,
-    sendAction,
-    autoNumberLabels,
+    generateThumbnail: thumbnail.generate,
+
+    // Editor operations
+    sendAction: bridge.sendAction,
+    getCurrentXML: async () => bridge.getCurrentXML(), 
+    autoNumberLabels: autoNumbering.autoNumber,
+
+    // Description editing
     updateElementDescription,
     updateAssetDescription,
     updateConnectionDescription,
-    exportDFD,
-    importDFD,
+
+    // Export/Import
+    exportDFD: exportImport.exportDFD,
+    importDFD: exportImport.importDFD,
+
+    // Utility
+    flushDebouncedSave: persistence.flush,
+
+    // Completion
+    canProceed: completion.canProceed,
   };
 }
 

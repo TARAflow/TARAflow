@@ -1,37 +1,82 @@
-// dfdToAsset.mapper.ts
+// ==================== FIXED DFD TO ASSET MAPPER ====================
+// Problem: relationTypes wurden beim Mapping nicht übertragen!
+
 import type { DFDAsset, DFDElement, DFDConnection } from "features/dfd";
-import type { 
-  AssetDFDAsset, 
-  AssetDFDElement, 
-  AssetDFDConnection 
+import type {
+  DFDAssetReference,
+  DFDElementReference,
+  DFDConnectionReference,
 } from "features/assets";
 
-export function mapDFDAssetsToAssetFeature(dfdAssets: DFDAsset[]): AssetDFDAsset[] {
-  return dfdAssets.map(asset => ({
+/**
+ * Map DFD Assets to Asset Feature references
+ *
+ * FIX: linkedElements must include relationTypes!
+ */
+export function mapDFDAssetsToAssetFeature(
+  dfdAssets: DFDAsset[],
+): DFDAssetReference[] {
+  return dfdAssets.map((asset) => ({
     id: asset.id,
     displayId: asset.displayId,
-    xmlIds: asset.xmlIds,
+    name: asset.name,
+
+    // ✅ FIX: Include relationTypes in linkedElements!
+    linkedElements: asset.linkedElements?.map((link) => ({
+      elementId: link.elementId,
+      elementName: link.elementName,
+      elementType: link.elementType,
+      displayId: link.displayId,
+      // ✅ CRITICAL: Add relationTypes!
+      relationTypes: link.relationTypes || [],
+    })),
+
+    // Geometric info (optional)
     positions: asset.positions,
     sizes: asset.sizes,
-    linkedElements: asset.linkedElements,
+    xmlIds: asset.xmlIds,
   }));
 }
 
-export function mapDFDElementsToAssetFeature(dfdElements: DFDElement[]): AssetDFDElement[] {
-  return dfdElements.map(element => ({
+/**
+ * Map DFD Elements to Asset Feature references
+ */
+export function mapDFDElementsToAssetFeature(
+  dfdElements: DFDElement[],
+): DFDElementReference[] {
+  return dfdElements.map((element) => ({
     id: element.id,
     type: element.type,
     name: element.name,
     displayId: element.displayId,
-    linkedAssets: element.linkedAssets,
+
+    // ✅ assetRelations with relationTypes
+    assetRelations: element.assetRelations?.map((relation) => ({
+      assetId: relation.assetId,
+      relationTypes: Array.from(relation.relationTypes || []),
+      notes: relation.notes,
+    })),
   }));
 }
 
-export function mapDFDConnectionsToAssetFeature(dfdConnections: DFDConnection[]): AssetDFDConnection[] {
-  return dfdConnections.map(conn => ({
+/**
+ * Map DFD Connections to Asset Feature references
+ */
+export function mapDFDConnectionsToAssetFeature(
+  dfdConnections: DFDConnection[],
+): DFDConnectionReference[] {
+  return dfdConnections.map((conn) => ({
     id: conn.id,
+    from: conn.from,
+    to: conn.to,
     label: conn.label,
     displayId: conn.displayId,
-    linkedAssets: conn.linkedAssets,
+
+    // ✅ assetRelations with relationTypes
+    assetRelations: conn.assetRelations?.map((relation) => ({
+      assetId: relation.assetId,
+      relationTypes: Array.from(relation.relationTypes || []),
+      notes: relation.notes,
+    })),
   }));
 }

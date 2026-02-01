@@ -12,7 +12,8 @@ import type {
   AssetProperties,
 } from "./element-properties";
 
-
+import { DFDGraph } from "./dfd-graph-types";
+import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 // ==================== DFD ELEMENT TYPES ====================
 
 export type DFDElementType =
@@ -34,9 +35,10 @@ export type TrustLevel = "trusted" | "untrusted" | "unknown";
  */
 export type AssetRelationType =
   | "stores" // Element stores the asset (DataStore)
-  | "processes_read" // Element reads or computes on the asset without modifying it
-  | "processes_modify" // Element actively modifies or overwrites the asset
-  | "creates" // Element creates/destroys the asset (Process, ExternalEntity)
+  | "read" // Element reads or computes on the asset without modifying it
+  | "modify" // Element actively modifies or overwrites the asset
+  | "creates" // Element creates the asset (Process, ExternalEntity)
+  | "deletes" //  Element destroys the asset (Process, ExternalEntity)
   | "transports"; // Element transports the asset (DataFlow, Interface)
 
 /**
@@ -45,10 +47,10 @@ export type AssetRelationType =
 export interface AssetRelation {
   /** Asset ID (e.g., "A-001") */
   assetId: string;
-  
+
   /** Types of relations (multiple possible for same asset) */
   relationTypes: AssetRelationType[];
-  
+
   /** Optional notes about this relationship */
   notes?: string;
 }
@@ -60,55 +62,30 @@ export interface AssetRelation {
 export interface ElementRelation {
   /** Element XML ID */
   elementId: string;
-  
+
   /** Element name */
   elementName: string;
-  
+
   /** Element type */
   elementType: DFDElementType;
-  
+
   /** Display ID (e.g., "P-1", "DS-1") */
   displayId: string;
-  
+
   /** Types of relations (mirrored from AssetRelation) */
   relationTypes: AssetRelationType[];
-  
+
   /** Optional notes about this relationship */
   notes?: string;
 }
 
 /**
  * Allowed asset relation types per DFD element type
+ * @see dfd-constants.ts for the actual configuration
  */
-export const ALLOWED_ASSET_RELATIONS: Record<DFDElementType, AssetRelationType[]> = {
-  Process: ["processes_read", "processes_modify", "creates"],
-  ExternalEntity: ["processes_read", "processes_modify", "creates"],
-  DataStore: ["stores"],
-  DataFlow: ["transports"],
-  Multiprocess: ["processes_read", "processes_modify", "creates"],
-  Interface: ["transports", "processes_read", "stores"], // stores only if the interface provides buffering or persistence
-  TrustBoundary: [], // No asset relations for trust boundaries
-};
+export { ALLOWED_ASSET_RELATIONS } from "./dfd-constants";
 
-/**
- * Semantic properties for DFD elements and assets
- * @deprecated Use specific property interfaces from element-properties.ts
- */
-export interface ElementProperties {
-  description?: string;
-  protocol?: string;
-  encrypted?: boolean;
-  dataType?: string;
-
-  // Threat modeling fields
-  securityLevel?: SecurityLevel;
-  trustLevel?: TrustLevel;
-  authenticationRequired?: boolean;
-  encryptionRequired?: boolean;
-  securityNotes?: string;
-}
-
-// ==================== DFD ASSET ====================
+// ==================== DFD ELEMENTS ====================
 
 /**
  * Asset annotation in DFD
@@ -222,6 +199,7 @@ export interface DFDData {
   stats?: DFDStats;
   lastModified?: string;
   thumbnail?: string;
+  graph?: DFDGraph;
 }
 
 // ==================== DFD EXPORT/IMPORT ====================
@@ -275,182 +253,18 @@ export interface DFDTabProps {
 
 export type DFDViewMode = "draw" | "describe";
 
-// ==================== DFD CONSTANTS ====================
+// ==================== RE-EXPORTS FROM OTHER FILES ====================
+// These are re-exported for backward compatibility
+// Import directly from dfd-constants.ts or dfd-formatters.ts in new code
 
-export const DFD_ELEMENT_CONFIG: Record<
-  DFDElementType,
-  {
-    name: string;
-    nameDE: string;
-    description: string;
-    icon: string;
-  }
-> = {
-  ExternalEntity: {
-    name: "External Entity",
-    nameDE: "Externe Entität",
-    description: "User, external system or device",
-    icon: "▭",
-  },
-  Process: {
-    name: "Process",
-    nameDE: "Prozess",
-    description: "Processes or transforms data",
-    icon: "○",
-  },
-  Multiprocess: {
-    name: "Multiprocess",
-    nameDE: "Multiprozess",
-    description: "Multiple instances of a process",
-    icon: "◎",
-  },
-  DataStore: {
-    name: "Data Store",
-    nameDE: "Datenspeicher",
-    description: "Database, file or registry",
-    icon: "║",
-  },
-  DataFlow: {
-    name: "Data Flow",
-    nameDE: "Datenfluss",
-    description: "Data transfer between elements",
-    icon: "→",
-  },
-  TrustBoundary: {
-    name: "Trust Boundary",
-    nameDE: "Trust Boundary",
-    description: "Boundary between trust zones",
-    icon: "┌",
-  },
-  Interface: {
-    name: "Interface",
-    nameDE: "Schnittstelle",
-    description: "Physical/logical interface (USB, UART, Ethernet, etc.)",
-    icon: "▢",
-  },
-};
-
-// ==================== HELPER FUNCTIONS ====================
-
-export type DocLanguage = "en" | "de";
-
-/**
- * Get security level text
- */
-export function getSecurityLevelText(
-  level: SecurityLevel | undefined,
-  language: DocLanguage = "en"
-): string {
-  if (!level) return language === "de" ? "Keine" : "None";
-  
-  const labels: Record<SecurityLevel, { en: string; de: string }> = {
-    public: { en: "Public", de: "Öffentlich" },
-    internal: { en: "Internal", de: "Intern" },
-    confidential: { en: "Confidential", de: "Vertraulich" },
-    secret: { en: "Secret", de: "Geheim" },
-  };
-  return labels[level]?.[language] ?? level;
-}
-
-/**
- * Get trust level text
- */
-export function getTrustLevelText(
-  level: TrustLevel | undefined,
-  language: DocLanguage = "en"
-): string {
-  if (!level) return language === "de" ? "Unbekannt" : "Unknown";
-  
-  const labels: Record<TrustLevel, { en: string; de: string }> = {
-    trusted: { en: "Trusted", de: "Vertrauenswürdig" },
-    untrusted: { en: "Untrusted", de: "Nicht vertrauenswürdig" },
-    unknown: { en: "Unknown", de: "Unbekannt" },
-  };
-  return labels[level]?.[language] ?? level;
-}
-
-/**
- * Get DFD element type text (singular)
- */
-export function getDFDElementTypeText(
-  type: DFDElementType,
-  language: DocLanguage = "en"
-): string {
-  const config = DFD_ELEMENT_CONFIG[type];
-  return language === "de" ? config.nameDE : config.name;
-}
-
-/**
- * Get DFD element type text (plural for section headers)
- */
-export function getDFDElementTypePluralText(
-  type: DFDElementType,
-  language: DocLanguage = "en"
-): string {
-  const plurals: Record<DFDElementType, { en: string; de: string }> = {
-    ExternalEntity: { en: "External Entities", de: "Externe Entitäten" },
-    Process: { en: "Processes", de: "Prozesse" },
-    Multiprocess: { en: "Multiprocesses", de: "Multiprozesse" },
-    DataStore: { en: "Data Stores", de: "Datenspeicher" },
-    DataFlow: { en: "Data Flows", de: "Datenflüsse" },
-    TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
-    Interface: { en: "Interfaces", de: "Schnittstellen" },
-  };
-  return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);
-}
-
-/**
- * Get allowed asset relation types for a given element type
- */
-export function getAllowedAssetRelations(
-  elementType: DFDElementType
-): AssetRelationType[] {
-  return ALLOWED_ASSET_RELATIONS[elementType] || [];
-}
-
-/**
- * Check if a relation type is allowed for an element type
- */
-export function isAssetRelationAllowed(
-  elementType: DFDElementType,
-  relationType: AssetRelationType
-): boolean {
-  return ALLOWED_ASSET_RELATIONS[elementType]?.includes(relationType) ?? false;
-}
-
-/**
- * Get human-readable text for asset relation type
- */
-export function getAssetRelationTypeText(
-  relationType: AssetRelationType,
-  language: DocLanguage = "en"
-): string {
-  const labels: Record<AssetRelationType, { en: string; de: string }> = {
-    stores: {
-      en: "Stores",
-      de: "Speichert",
-    },
-
-    processes_read: {
-      en: "Processes (read / compute)",
-      de: "Verarbeitet (lesen / berechnen)",
-    },
-
-    processes_modify: {
-      en: "Processes (modify / change)",
-      de: "Verarbeitet (verändert)",
-    },
-
-    creates: {
-      en: "Creates / Destroys",
-      de: "Erzeugt / Vernichtet",
-    },
-
-    transports: {
-      en: "Transports",
-      de: "Transportiert",
-    },
-  };
-
-  return labels[relationType]?.[language] ?? relationType;
-}
+export { DFD_ELEMENT_CONFIG } from "./dfd-constants";
+export {
+  type DocLanguage,
+  getSecurityLevelText,
+  getTrustLevelText,
+  getDFDElementTypeText,
+  getDFDElementTypePluralText,
+  getAllowedAssetRelations,
+  isAssetRelationAllowed,
+  getAssetRelationTypeText,
+} from "./dfd-formatters";

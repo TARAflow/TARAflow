@@ -1,5 +1,7 @@
 // ==================== DOCUMENTATION TAB ====================
 // Phase 6: Documentation Generation
+// Refactored version using useDocumentGeneration hook and DocToolbar component
+//
 // Features:
 // - Format selection (Markdown, AsciiDoc, HTML, PDF)
 // - Language selection (EN, DE)
@@ -8,21 +10,16 @@
 // - Export/Download
 // - Collapsible sidebar
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
   Paper,
-  IconButton,
-  Tooltip,
   Typography,
-  Button,
-  Divider,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Chip,
   Stack,
   List,
   ListItem,
@@ -31,43 +28,13 @@ import {
   ListItemText,
   Checkbox,
 } from "@mui/material";
-import {
-  Refresh as RefreshIcon,
-  Download as DownloadIcon,
-  Settings as SettingsIcon,
-  Visibility as PreviewIcon,
-  Code as CodeIcon,
-  Warning as WarningIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  CheckCircle as CheckIcon,
-  KeyboardArrowLeft as KeyboardArrowLeftIcon,
-  KeyboardArrowRight as KeyboardArrowRightIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-} from "@mui/icons-material";
 
-import type {
-  DocTabProps,
-  DocData,
-  DocConfiguration,
-  DocFormat,
-  DocLanguage,
-  DocChapterId,
-} from "../models/doc-types";
-import {
-  createDefaultDocData,
-  CHAPTER_TITLES,
-  isChapterVisible,
-} from "../models/doc-types";
-import {
-  generateDocument,
-  validateProjectForDoc,
-  getMimeType,
-} from "../utils/doc-generator";
-import { isRegulationTag } from "shared";
+import type { DocTabProps, DocFormat, DocLanguage } from "../models/doc-types";
+import { CHAPTER_TITLES, isChapterVisible } from "../models/doc-types";
 import { DocPreview } from "./doc-preview";
 import { DocConfigDialog } from "./doc-config-dialog";
+import { DocToolbar } from "./doc-toolbar";
+import { useDocumentGeneration } from "../hooks/use-document-generation";
 
 // ==================== CONSTANTS ====================
 
@@ -82,246 +49,50 @@ export const DocTab: React.FC<DocTabProps> = ({
   onDirtyChange,
   onPhaseComplete,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
-  // ==================== TRANSLATION WRAPPER ====================
-  // Wrapper to adapt i18next TFunction to doc-generator TranslationFn signature
-  const translateFn = useCallback(
-    (key: string, defaultValue?: string): string => {
-      return t(key, { defaultValue: defaultValue ?? key });
-    },
-    [t]
-  );
+  // ==================== HOOK ====================
 
-  // ==================== STATE ====================
+  const {
+    // State
+    config,
+    generatedContent,
+    isDirty,
+    sidebarOpen,
+    showConfigDialog,
+    viewMode,
 
-  // Documentation data (local working copy)
-  const [docData, setDocData] = useState<DocData>(() => {
-    return project.documentation ?? createDefaultDocData();
+    // Computed values
+    validation,
+    chapterHasContent,
+    projectStats,
+
+    // Handlers
+    handleGenerate,
+    handleFormatChange,
+    handleLanguageChange,
+    handleChapterToggle,
+    handleConfigSave,
+    handleDownload,
+    handleSave,
+    setSidebarOpen,
+    setShowConfigDialog,
+    setViewMode,
+  } = useDocumentGeneration({
+    project,
+    onUpdate,
+    onDirtyChange,
   });
 
-  // Generated content
-  const [generatedContent, setGeneratedContent] = useState<string>("");
-  const [generatedFilename, setGeneratedFilename] = useState<string>("");
+  // ==================== TOOLBAR ACTIONS ====================
 
-  // UI state
-  const [isDirty, setIsDirty] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showConfigDialog, setShowConfigDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<"preview" | "source">("preview");
+  const handleSidebarToggle = () => setSidebarOpen(!sidebarOpen);
 
-  // Validation
-  const validation = useMemo(() => validateProjectForDoc(project), [project]);
+  const handleViewModeToggle = () => {
+    setViewMode(viewMode === "preview" ? "source" : "preview");
+  };
 
-  // ==================== DERIVED STATE ====================
-
-  const config = docData.configuration;
-
-  // Check which chapters have content
-  const chapterHasContent = useMemo(() => {
-    // Helper functions for counting
-    const getAssetCount = () => project.assets?.assets?.length ?? 0;
-    const getThreatsCount = () => {
-      const perElement =
-        project.threats?.perElementTables?.flatMap((t) => t.threats) ?? [];
-      const perInteraction =
-        project.threats?.perInteractionTables?.flatMap((t) => t.threats) ?? [];
-      return {
-        perElement: perElement.length,
-        perInteraction: perInteraction.length,
-      };
-    };
-    const getRisksCount = () => {
-      const allRisks = project.risks?.risks ?? [];
-      const perElement = allRisks.filter(
-        (r) =>
-          r.sourceStrideMethod === "per-element" && r.moscowPriority !== "wont",
-      );
-      const perInteraction = allRisks.filter(
-        (r) =>
-          r.sourceStrideMethod === "per-interaction" &&
-          r.moscowPriority !== "wont",
-      );
-      const wont = allRisks.filter((r) => r.moscowPriority === "wont");
-      return {
-        perElement: perElement.length,
-        perInteraction: perInteraction.length,
-        wont: wont.length,
-      };
-    };
-
-    const threats = getThreatsCount();
-    const risks = getRisksCount();
-
-    const map: Record<DocChapterId, boolean> = {
-      "executive-summary": true, // Always has content
-      "applicable-regulations": project.info.tags.some((tag) =>
-        isRegulationTag(tag),
-      ),
-      "system-overview": true, // Always has content
-      dfd: project.dfd != null,
-      "dfd-descriptions":
-        (project.dfd?.elements?.length ?? 0) > 0 ||
-        (project.dfd?.connections?.length ?? 0) > 0,
-      assets: getAssetCount() > 0,
-      "threats-per-element": threats.perElement > 0,
-      "threats-per-interaction": threats.perInteraction > 0,
-      "risks-per-element": risks.perElement > 0,
-      "risks-per-interaction": risks.perInteraction > 0,
-      "accepted-risks": risks.wont > 0,
-      "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
-      appendix: true, // Always has content
-    };
-    return map;
-  }, [project]);
-
-  // Calculate statistics for display
-  const projectStats = useMemo(() => {
-    const assetCount = project.assets?.assets?.length ?? 0;
-
-    const perElementThreats =
-      project.threats?.perElementTables?.flatMap((t) => t.threats) ?? [];
-    const perInteractionThreats =
-      project.threats?.perInteractionTables?.flatMap((t) => t.threats) ?? [];
-    const threatCount = perElementThreats.length + perInteractionThreats.length;
-
-    const allRisks = project.risks?.risks ?? [];
-    const activeRisks = allRisks.filter((r) => r.moscowPriority !== "wont");
-    const wontRisks = allRisks.filter((r) => r.moscowPriority === "wont");
-
-    return {
-      assets: assetCount,
-      threats: threatCount,
-      risks: activeRisks.length,
-      wont: wontRisks.length,
-    };
-  }, [project]);
-
-  // ==================== EFFECTS ====================
-
-  // Update dirty state
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
-
-  // Sync from project when it changes
-  useEffect(() => {
-    if (project.documentation) {
-      setDocData(project.documentation);
-    }
-  }, [project.documentation]);
-
-  // Auto-generate on mount and when config changes
-  useEffect(() => {
-    handleGenerate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.format, config.language, config.chapters]);
-
-  // ==================== HANDLERS ====================
-
-  const handleGenerate = useCallback(() => {
-    try {
-      const result = generateDocument(project, config, translateFn);
-      setGeneratedContent(result.content);
-      setGeneratedFilename(result.filename);
-      setDocData((prev) => ({
-        ...prev,
-        generatedContent: result.content,
-        lastGenerated: new Date().toISOString(),
-      }));
-    } catch (error) {
-      console.error("Failed to generate document:", error);
-    }
-  }, [project, config, translateFn]);
-
-  const handleFormatChange = useCallback((format: DocFormat) => {
-    setDocData((prev) => ({
-      ...prev,
-      configuration: {
-        ...prev.configuration,
-        format,
-      },
-    }));
-    setIsDirty(true);
-  }, []);
-
-  const handleLanguageChange = useCallback((language: DocLanguage) => {
-    setDocData((prev) => ({
-      ...prev,
-      configuration: {
-        ...prev.configuration,
-        language,
-      },
-    }));
-    setIsDirty(true);
-  }, []);
-
-  const handleChapterToggle = useCallback((chapterId: DocChapterId) => {
-    setDocData((prev) => ({
-      ...prev,
-      configuration: {
-        ...prev.configuration,
-        chapters: prev.configuration.chapters.map((ch) =>
-          ch.id === chapterId ? { ...ch, enabled: !ch.enabled } : ch
-        ),
-      },
-    }));
-    setIsDirty(true);
-  }, []);
-
-  const handleConfigSave = useCallback((newConfig: DocConfiguration) => {
-    setDocData((prev) => ({
-      ...prev,
-      configuration: newConfig,
-    }));
-    setIsDirty(true);
-    setShowConfigDialog(false);
-  }, []);
-
-  const handleDownload = useCallback(() => {
-    if (!generatedContent) return;
-
-    const filename =
-      generatedFilename ||
-      `document.${
-        config.format === "markdown"
-          ? "md"
-          : config.format === "asciidoc"
-          ? "adoc"
-          : config.format
-      }`;
-    const mimeType = getMimeType(config.format);
-    const blob = new Blob([generatedContent], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [generatedContent, generatedFilename, config.format]);
-
-  const handleSave = useCallback(() => {
-    const now = new Date().toISOString();
-    const updatedDocData: DocData = {
-      ...docData,
-      generatedContent,
-      lastGenerated: now,
-      lastModified: now,
-    };
-
-    setDocData(updatedDocData);
-    setIsDirty(false);
-
-    onUpdate({
-      documentation: updatedDocData,
-      phaseStatus: project.phaseStatus,
-      lastModified: now,
-    });
-  }, [docData, generatedContent, project.phaseStatus, onUpdate]);
+  const handleOpenSettings = () => setShowConfigDialog(true);
 
   // ==================== RENDER ====================
 
@@ -335,133 +106,20 @@ export const DocTab: React.FC<DocTabProps> = ({
       }}
     >
       {/* Toolbar */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          p: 1,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          backgroundColor: "grey.50",
-        }}
-      >
-        {/* Sidebar Toggle */}
-        <Tooltip
-          title={
-            sidebarOpen
-              ? t("tabs.doc.hideSidebar", { defaultValue: "Hide Sidebar" })
-              : t("tabs.doc.showSidebar", { defaultValue: "Show Sidebar" })
-          }
-        >
-          <IconButton size="small" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </IconButton>
-        </Tooltip>
-
-        <Divider orientation="vertical" flexItem />
-
-        {/* View Mode Toggle */}
-        <Tooltip
-          title={t("tabs.doc.toggleView", { defaultValue: "Toggle View" })}
-        >
-          <IconButton
-            size="small"
-            onClick={() =>
-              setViewMode(viewMode === "preview" ? "source" : "preview")
-            }
-          >
-            {viewMode === "preview" ? <CodeIcon /> : <PreviewIcon />}
-          </IconButton>
-        </Tooltip>
-
-        {/* Regenerate */}
-        <Tooltip
-          title={t("tabs.doc.regenerate", { defaultValue: "Regenerate" })}
-        >
-          <IconButton size="small" onClick={handleGenerate}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
-
-        {/* Download */}
-        <Tooltip title={t("tabs.doc.download", { defaultValue: "Download" })}>
-          <span>
-            <IconButton
-              size="small"
-              onClick={handleDownload}
-              disabled={!generatedContent}
-            >
-              <DownloadIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
-
-        {/* Settings */}
-        <Tooltip
-          title={t("tabs.doc.settings", { defaultValue: "Template Settings" })}
-        >
-          <IconButton size="small" onClick={() => setShowConfigDialog(true)}>
-            <SettingsIcon />
-          </IconButton>
-        </Tooltip>
-
-        <Box sx={{ flexGrow: 1 }} />
-
-        {/* Validation Status */}
-        {validation.warnings.length > 0 && (
-          <Tooltip
-            title={
-              <Box>
-                {validation.warnings.map((w, i) => (
-                  <Typography key={i} variant="caption" display="block">
-                    • {w}
-                  </Typography>
-                ))}
-              </Box>
-            }
-          >
-            <Chip
-              icon={<WarningIcon />}
-              label={`${validation.warnings.length} ${t("tabs.doc.warnings", {
-                defaultValue: "warnings",
-              })}`}
-              size="small"
-              color="warning"
-              variant="outlined"
-            />
-          </Tooltip>
-        )}
-
-        {/* Format Chip */}
-        <Chip
-          label={config.format.toUpperCase()}
-          size="small"
-          color="primary"
-          variant="outlined"
-        />
-
-        {/* Language Chip */}
-        <Chip
-          label={config.language.toUpperCase()}
-          size="small"
-          color="secondary"
-          variant="outlined"
-        />
-
-        <Divider orientation="vertical" flexItem />
-
-        {/* Save Button */}
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleSave}
-          disabled={!isDirty}
-        >
-          {t("common.save", { defaultValue: "Save" })}
-          {isDirty && " *"}
-        </Button>
-      </Box>
+      <DocToolbar
+        sidebarOpen={sidebarOpen}
+        viewMode={viewMode}
+        isDirty={isDirty}
+        config={config}
+        generatedContent={generatedContent}
+        warnings={validation.warnings}
+        onSidebarToggle={handleSidebarToggle}
+        onViewModeToggle={handleViewModeToggle}
+        onRegenerate={handleGenerate}
+        onDownload={handleDownload}
+        onOpenSettings={handleOpenSettings}
+        onSave={handleSave}
+      />
 
       {/* Main Content */}
       <Box sx={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>

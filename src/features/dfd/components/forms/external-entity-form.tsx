@@ -31,10 +31,7 @@ import {
   type AvailableAsset,
 } from "./asset-relation-selector";
 
-import {
-  EXTERNAL_ENTITY_TYPE_DEFAULTS,
-  useDFDUIState,
-} from "../../hooks/use-dfd-ui-state";
+import { EXTERNAL_ENTITY_TYPE_DEFAULTS } from "../../models/element-property-defaults";
 
 interface ExternalEntityFormProps {
   element: DFDElement;
@@ -46,11 +43,42 @@ function asExternalEntityProperties(props: any): ExternalEntityProperties {
   return props as ExternalEntityProperties;
 }
 
-export const ExternalEntityDescriptionForm: React.FC<
-  ExternalEntityFormProps
-> = ({ element, onChange, availableAssets = [] }) => {
+export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = ({
+  element,
+  onChange,
+  availableAssets = [],
+}) => {
   const { t } = useTranslation();
   const props = asExternalEntityProperties(element.properties);
+
+  // Local state for multiline fields
+  const [localDescription, setLocalDescription] = React.useState(
+    element.properties.description || "",
+  );
+  const [localAuthScope, setLocalAuthScope] = React.useState(
+    props.authorizationScope || "",
+  );
+  const [localOwner, setLocalOwner] = React.useState(props.owner || "");
+  const [localNotes, setLocalNotes] = React.useState(
+    element.properties.notes || "",
+  );
+
+  // Sync when element changes
+  React.useEffect(() => {
+    setLocalDescription(element.properties.description || "");
+  }, [element.properties.description]);
+
+  React.useEffect(() => {
+    setLocalAuthScope(props.authorizationScope || "");
+  }, [props.authorizationScope]);
+
+  React.useEffect(() => {
+    setLocalOwner(props.owner || "");
+  }, [props.owner]);
+
+  React.useEffect(() => {
+    setLocalNotes(element.properties.notes || "");
+  }, [element.properties.notes]);
 
   const threatActorOptions: ExternalEntityProperties["threatActor"][] = [
     "benign",
@@ -100,8 +128,13 @@ export const ExternalEntityDescriptionForm: React.FC<
       </Typography>
 
       <RichTextEditor
-        value={element.properties.description || ""}
-        onChange={(value) => handlePropertyChange("description", value)}
+        value={localDescription}
+        onChange={setLocalDescription}
+        onBlur={() => {
+          if (localDescription !== element.properties.description) {
+            handlePropertyChange("description", localDescription);
+          }
+        }}
         label={t(
           "tabs.dfd.element_description.external_entity.fields.description.label",
         )}
@@ -341,10 +374,13 @@ export const ExternalEntityDescriptionForm: React.FC<
         label={t(
           "tabs.dfd.element_description.external_entity.fields.authorizationScope.label",
         )}
-        value={props.authorizationScope || ""}
-        onChange={(e) =>
-          handlePropertyChange("authorizationScope", e.target.value)
-        }
+        value={localAuthScope}
+        onChange={(e) => setLocalAuthScope(e.target.value)}
+        onBlur={() => {
+          if (localAuthScope !== props.authorizationScope) {
+            handlePropertyChange("authorizationScope", localAuthScope);
+          }
+        }}
         placeholder={t(
           "tabs.dfd.element_description.external_entity.fields.authorizationScope.placeholder",
         )}
@@ -411,16 +447,26 @@ export const ExternalEntityDescriptionForm: React.FC<
               label={t(
                 "tabs.dfd.element_description.external_entity.fields.owner.label",
               )}
-              value={props.owner || ""}
-              onChange={(e) => handlePropertyChange("owner", e.target.value)}
+              value={localOwner}
+              onChange={(e) => setLocalOwner(e.target.value)}
+              onBlur={() => {
+                if (localOwner !== props.owner) {
+                  handlePropertyChange("owner", localOwner);
+                }
+              }}
               placeholder={t(
                 "tabs.dfd.element_description.external_entity.fields.owner.placeholder",
               )}
             />
 
             <RichTextEditor
-              value={element.properties.notes || ""}
-              onChange={(value) => handlePropertyChange("notes", value)}
+              value={localNotes}
+              onChange={setLocalNotes}
+              onBlur={() => {
+                if (localNotes !== element.properties.notes) {
+                  handlePropertyChange("notes", localNotes);
+                }
+              }}
               label={t(
                 "tabs.dfd.element_description.external_entity.fields.notes.label",
               )}
@@ -442,4 +488,4 @@ export const ExternalEntityDescriptionForm: React.FC<
       </Alert>
     </Box>
   );
-};
+};;

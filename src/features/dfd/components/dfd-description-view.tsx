@@ -35,7 +35,7 @@ import type {
   DFDConnection,
   DFDElementType,
 } from "../models/dfd-types";
-import { DFD_ELEMENT_CONFIG } from "../models/dfd-types";
+import { DFD_ELEMENT_CONFIG } from "../models/dfd-constants";
 
 // Import element-specific forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
@@ -58,6 +58,10 @@ interface DFDDescriptionViewProps {
   onConnectionUpdate: (
     connectionId: string,
     updates: Partial<DFDConnection>,
+  ) => void;
+  onAssetFeatureUpdate?: (
+    assetId: string,
+    updates: { name?: string; properties?: any },
   ) => void;
   expandedGroups: string[];
   onToggleGroup: (groupKey: string) => void;
@@ -197,6 +201,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   onElementUpdate,
   onAssetUpdate,
   onConnectionUpdate,
+  onAssetFeatureUpdate,
   expandedGroups,
   onToggleGroup,
   expandedElements,
@@ -251,6 +256,14 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
         onToggleElement(elementId);
       },
     [onToggleElement],
+  );
+
+  // Stable callback for element updates
+  const handleElementUpdate = useCallback(
+    (elementId: string) => (updates: Partial<DFDElement>) => {
+      onElementUpdate(elementId, updates);
+    },
+    [onElementUpdate],
   );
 
   // ==================== RENDER ====================
@@ -354,7 +367,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                     key={element.id}
                     element={element}
                     availableAssets={availableAssets}
-                    onUpdate={(updates) => onElementUpdate(element.id, updates)}
+                    onUpdate={handleElementUpdate(element.id)}
                     isExpanded={expandedElements.includes(element.id)}
                     onToggle={handleElementChange(element.id)}
                   />
@@ -408,6 +421,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                   elements={elements}
                   connections={connections}
                   onUpdate={(updates) => onAssetUpdate(asset.id, updates)}
+                  onAssetFeatureUpdate={onAssetFeatureUpdate}
                   isExpanded={expandedElements.includes(asset.id)}
                   onToggle={handleElementChange(asset.id)}
                 />
@@ -472,7 +486,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       </Box>
     </Box>
   );
-};;
+};;;
 
 // ==================== SUB-COMPONENTS ====================
 
@@ -484,98 +498,111 @@ interface ElementAccordionProps {
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
 }
 
-const ElementAccordion: React.FC<ElementAccordionProps> = ({
-  element,
-  availableAssets,
-  onUpdate,
-  isExpanded,
-  onToggle,
-}) => {
-  const isDescribed = isElementDescribed(element);
-  const { displayId, name } = formatElementLabel(element);
+const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
+  ({ element, availableAssets, onUpdate, isExpanded, onToggle }) => {
+    const isDescribed = isElementDescribed(element);
+    const { displayId, name } = formatElementLabel(element);
 
-  // Select correct form based on element type
-  const renderForm = () => {
-    switch (element.type) {
-      case "Process":
-      case "Multiprocess":
-        return (
-          <ProcessDescriptionForm
-            element={element}
-            onChange={onUpdate}
-            availableAssets={availableAssets}
-          />
-        );
-      case "DataStore":
-        return (
-          <DataStoreDescriptionForm
-            element={element}
-            onChange={onUpdate}
-            availableAssets={availableAssets}
-          />
-        );
-      case "ExternalEntity":
-        return (
-          <ExternalEntityDescriptionForm
-            element={element}
-            onChange={onUpdate}
-            availableAssets={availableAssets}
-          />
-        );
-      case "Interface":
-        return (
-          <InterfaceDescriptionForm
-            element={element}
-            onChange={onUpdate}
-            availableAssets={availableAssets}
-          />
-        );
-      case "TrustBoundary":
-        return (
-          <TrustBoundaryDescriptionForm element={element} onChange={onUpdate} />
-        );
-      default:
-        return (
-          <Box sx={{ p: 2 }}>
-            <Alert severity="info">
-              No specific form available for {element.type}. Please add the form
-              or use generic description.
-            </Alert>
-          </Box>
-        );
-    }
-  };
+    // Select correct form based on element type
+    const renderForm = () => {
+      switch (element.type) {
+        case "Process":
+        case "Multiprocess":
+          return (
+            <ProcessDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+            />
+          );
+        case "DataStore":
+          return (
+            <DataStoreDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+            />
+          );
+        case "ExternalEntity":
+          return (
+            <ExternalEntityDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+            />
+          );
+        case "Interface":
+          return (
+            <InterfaceDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+            />
+          );
+        case "TrustBoundary":
+          return (
+            <TrustBoundaryDescriptionForm
+              element={element}
+              onChange={onUpdate}
+            />
+          );
+        default:
+          return (
+            <Box sx={{ p: 2 }}>
+              <Alert severity="info">
+                No specific form available for {element.type}. Please add the
+                form or use generic description.
+              </Alert>
+            </Box>
+          );
+      }
+    };
 
-  return (
-    <Accordion
-      expanded={isExpanded}
-      onChange={onToggle}
-      sx={{
-        "&:before": { display: "none" },
-        boxShadow: "none",
-        borderTop: "1px solid",
-        borderColor: "divider",
-      }}
-    >
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          {isDescribed ? (
-            <CheckCircleIcon fontSize="small" color="success" />
-          ) : (
-            <WarningIcon fontSize="small" color="warning" />
-          )}
-          <Typography variant="body2">
-            {displayId ? `[${displayId}]` : ""} {name}
-          </Typography>
-        </Stack>
-      </AccordionSummary>
+    return (
+      <Accordion
+        expanded={isExpanded}
+        onChange={onToggle}
+        sx={{
+          "&:before": { display: "none" },
+          boxShadow: "none",
+          borderTop: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {isDescribed ? (
+              <CheckCircleIcon fontSize="small" color="success" />
+            ) : (
+              <WarningIcon fontSize="small" color="warning" />
+            )}
+            <Typography variant="body2">
+              {displayId ? `[${displayId}]` : ""} {name}
+            </Typography>
+          </Stack>
+        </AccordionSummary>
 
-      <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
-        {renderForm()}
-      </AccordionDetails>
-    </Accordion>
-  );
-};;
+        <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
+          {renderForm()}
+        </AccordionDetails>
+      </Accordion>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison - only re-render if relevant data changed
+    return (
+      prevProps.element.id === nextProps.element.id &&
+      prevProps.element.displayId === nextProps.element.displayId &&
+      prevProps.element.name === nextProps.element.name &&
+      JSON.stringify(prevProps.element.properties) ===
+        JSON.stringify(nextProps.element.properties) &&
+      JSON.stringify(prevProps.element.assetRelations) ===
+        JSON.stringify(nextProps.element.assetRelations) &&
+      prevProps.isExpanded === nextProps.isExpanded &&
+      prevProps.availableAssets.length === nextProps.availableAssets.length
+    );
+  },
+);
 
 interface ConnectionAccordionProps {
   connection: DFDConnection;
@@ -641,6 +668,10 @@ interface AssetAccordionProps {
   elements: DFDElement[];
   connections: DFDConnection[];
   onUpdate: (updates: Partial<DFDAsset>) => void;
+  onAssetFeatureUpdate?: (
+    assetId: string,
+    updates: { name?: string; properties?: any },
+  ) => void;
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
 }
@@ -650,6 +681,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = ({
   elements,
   connections,
   onUpdate,
+  onAssetFeatureUpdate,
   isExpanded,
   onToggle,
 }) => {
@@ -686,6 +718,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = ({
         <AssetDescriptionForm
           asset={asset}
           onChange={onUpdate}
+          onAssetFeatureUpdate={onAssetFeatureUpdate}
           elements={elements}
           connections={connections}
         />

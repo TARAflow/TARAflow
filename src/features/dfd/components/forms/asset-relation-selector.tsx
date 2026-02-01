@@ -31,10 +31,8 @@ import type {
   AssetRelationType,
   DFDElementType,
 } from "../../models/dfd-types";
-import {
-  ALLOWED_ASSET_RELATIONS,
-  getAssetRelationTypeText,
-} from "../../models/dfd-types";
+import { ALLOWED_ASSET_RELATIONS } from "../../models/dfd-constants";
+import { getAssetRelationTypeText } from "../../models/dfd-formatters";
 
 // ==================== TYPES ====================
 
@@ -78,6 +76,9 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
   const [newAssetId, setNewAssetId] = useState("");
   const [newRelationTypes, setNewRelationTypes] = useState<AssetRelationType[]>([]);
   const [newNotes, setNewNotes] = useState("");
+  const [localRelationNotes, setLocalRelationNotes] = React.useState<
+    Record<string, string>
+  >({});
 
   // Get allowed relation types for this element
   const allowedTypes = ALLOWED_ASSET_RELATIONS[elementType] || [];
@@ -199,9 +200,10 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
                   {/* Asset Info */}
                   <Box display="flex" alignItems="center" gap={1}>
                     <Typography variant="subtitle2" sx={{ flex: 1 }}>
-                      {asset?.displayId || relation.assetId}: {asset?.name || "Unknown Asset"}
+                      {asset?.displayId || relation.assetId}:{" "}
+                      {asset?.name || "Unknown Asset"}
                     </Typography>
-                    
+
                     {asset?.protectionNeed && (
                       <Chip
                         label={asset.protectionNeed.toUpperCase()}
@@ -209,7 +211,7 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
                         size="small"
                       />
                     )}
-                    
+
                     {!hasMarker && (
                       <Chip
                         icon={<WarningIcon />}
@@ -239,7 +241,9 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
                           key={type}
                           control={
                             <Checkbox
-                              checked={relation.relationTypes?.includes(type) || false}
+                              checked={
+                                relation.relationTypes?.includes(type) || false
+                              }
                               onChange={() =>
                                 handleToggleRelationType(relation.assetId, type)
                               }
@@ -257,10 +261,26 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
                     fullWidth
                     size="small"
                     label="Notes"
-                    value={relation.notes || ""}
-                    onChange={(e) =>
-                      handleUpdate(relation.assetId, { notes: e.target.value })
+                    value={
+                      localRelationNotes[relation.assetId] ??
+                      relation.notes ??
+                      ""
                     }
+                    onChange={(e) => {
+                      setLocalRelationNotes((prev) => ({
+                        ...prev,
+                        [relation.assetId]: e.target.value,
+                      }));
+                    }}
+                    onBlur={() => {
+                      const localValue = localRelationNotes[relation.assetId];
+                      if (
+                        localValue !== undefined &&
+                        localValue !== relation.notes
+                      ) {
+                        handleUpdate(relation.assetId, { notes: localValue });
+                      }
+                    }}
                     placeholder="Optional description of this relationship"
                     multiline
                     rows={2}

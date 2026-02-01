@@ -75,7 +75,7 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
     project: DocProjectData,
     config: DocConfiguration,
     t: TranslationFn,
-    pdfOptions?: Partial<PdfOptions>
+    pdfOptions?: Partial<PdfOptions>,
   ) {
     super(project, config, t);
     this.htmlGenerator = new HtmlGenerator(project, config, t);
@@ -135,7 +135,7 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   /**
    * Generate PDF buffer using best available method
-   * 
+   *
    * @returns Buffer (Puppeteer) or Blob (pdfMake)
    */
   async generatePdfBuffer(): Promise<Buffer | Blob> {
@@ -153,7 +153,7 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   /**
    * Generate PDF and save to file
-   * 
+   *
    * @param outputPath - Path where to save (only for Puppeteer)
    */
   async generatePdfFile(outputPath?: string): Promise<void> {
@@ -165,7 +165,9 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
       }
       await this.generatePuppeteerFile(outputPath);
     } else {
-      throw new Error("File generation only supported in Electron (use generatePdfBuffer + save)");
+      throw new Error(
+        "File generation only supported in Electron (use generatePdfBuffer + save)",
+      );
     }
   }
 
@@ -228,7 +230,11 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
     const { project, config } = this.ctx;
 
     const headerTemplate = this.pdfOptions.displayHeaderFooter
-      ? this.getHeaderFooterTemplate("header", project.info.name, config.template.classification)
+      ? this.getHeaderFooterTemplate(
+          "header",
+          project.info.name,
+          config.template.classification,
+        )
       : undefined;
 
     const footerTemplate = this.pdfOptions.displayHeaderFooter
@@ -261,12 +267,12 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
     // Initialize fonts - handle different pdfMake versions
     // Try different possible structures for compatibility
-    const vfs = 
-      (pdfFonts as any).pdfFonts?.pdfMake?.vfs ||  // Older versions
-      (pdfFonts as any).default?.pdfMake?.vfs ||   // Some versions
-      (pdfFonts as any).vfs ||                     // Newer versions
-      pdfFonts;                                     // Direct export
-    
+    const vfs =
+      (pdfFonts as any).pdfFonts?.pdfMake?.vfs || // Older versions
+      (pdfFonts as any).default?.pdfMake?.vfs || // Some versions
+      (pdfFonts as any).vfs || // Newer versions
+      pdfFonts; // Direct export
+
     if (vfs) {
       (pdfMake.default as any).vfs = vfs;
     } else {
@@ -275,7 +281,7 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
     // Generate document definition
     const docDefinition = this.pdfMakeConverter.createDocumentDefinition(
-      this.pdfOptions
+      this.pdfOptions,
     );
 
     // Create PDF
@@ -294,7 +300,7 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
   private getHeaderFooterTemplate(
     type: "header" | "footer",
     projectName?: string,
-    classification?: string
+    classification?: string,
   ): string {
     const { lang } = this.ctx;
 
@@ -337,7 +343,9 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
     }
 
     // Footer
-    const dateStr = new Date().toLocaleDateString(lang === "de" ? "de-DE" : "en-US");
+    const dateStr = new Date().toLocaleDateString(
+      lang === "de" ? "de-DE" : "en-US",
+    );
     return `
       ${styles}
       <div class="hf-container">
@@ -355,7 +363,7 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
   }
 
   formatTagsGrouped(
-    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>
+    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>,
   ): string {
     return this.htmlGenerator.formatTagsGrouped(tagsByCategory);
   }
@@ -458,6 +466,46 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   getAppendixTemplate(): string {
     return this.htmlGenerator.getAppendixTemplate();
+  }
+
+  getDfdElementOverviewTableTemplate(): string {
+    return this.htmlGenerator.getDfdElementOverviewTableTemplate();
+  }
+
+  getElementOverviewRowTemplate(): string {
+    return this.htmlGenerator.getElementOverviewRowTemplate();
+  }
+
+  getDfdElementDetailedEntryTemplate(): string {
+    return this.htmlGenerator.getDfdElementDetailedEntryTemplate();
+  }
+
+  getDfdConnectionDetailedEntryTemplate(): string {
+    return this.htmlGenerator.getDfdConnectionDetailedEntryTemplate();
+  }
+
+  getPropertyGroupTemplate(): string {
+    return this.htmlGenerator.getPropertyGroupTemplate();
+  }
+
+  getPropertyEntryTemplate(): string {
+    return this.htmlGenerator.getPropertyEntryTemplate();
+  }
+
+  getAssetElementRelationsTemplate(): string {
+    return this.htmlGenerator.getAssetElementRelationsTemplate();
+  }
+
+  getAssetRelationSectionTemplate(): string {
+    return this.htmlGenerator.getAssetRelationSectionTemplate();
+  }
+
+  getElementRelationEntryTemplate(): string {
+    return this.htmlGenerator.getElementRelationEntryTemplate();
+  }
+
+  getNoAssetRelationsTemplate(): string {
+    return this.htmlGenerator.getNoAssetRelationsTemplate();
   }
 
   getFooterTemplate(): string {

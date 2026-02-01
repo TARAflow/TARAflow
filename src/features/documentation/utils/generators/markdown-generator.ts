@@ -14,12 +14,13 @@ import {
   formatTagsGroupedMarkdown,
   replacePlaceholders,
 } from "../templates";
+import { MD_EXTENDED_TEMPLATES } from "../templates/markdown-templates-extended";
 
 export class MarkdownGenerator extends BaseDocumentGenerator {
   constructor(
     project: DocProjectData,
     config: DocConfiguration,
-    t: TranslationFn
+    t: TranslationFn,
   ) {
     super(project, config, t);
   }
@@ -41,7 +42,7 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
   }
 
   formatTagsGrouped(
-    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>
+    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>,
   ): string {
     return formatTagsGroupedMarkdown(tagsByCategory);
   }
@@ -57,7 +58,9 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     let chapterNum = 1;
 
     for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find((c) => c.id === chapter.id);
+      const chapterConfig = this.ctx.config.chapters.find(
+        (c) => c.id === chapter.id,
+      );
       if (chapterConfig && chapter.hasContent) {
         const anchor = chapter.title.toLowerCase().replace(/[^a-z0-9]/g, "-");
         tocLines.push(`${chapterNum}. [${chapter.title}](#${anchor})`);
@@ -170,5 +173,45 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   getFooterTemplate(): string {
     return MD_TEMPLATES.footer(this.ctx.lang);
+  }
+
+  getDfdElementOverviewTableTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdElementOverviewTable(this.ctx.lang);
+  }
+
+  getElementOverviewRowTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdElementDetailedEntryTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdElementDetailedEntry(this.ctx.lang);
+  }
+
+  getDfdConnectionDetailedEntryTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdConnectionDetailedEntry(this.ctx.lang);
+  }
+
+  getPropertyGroupTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.propertyGroup(this.ctx.lang);
+  }
+
+  getPropertyEntryTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.propertyEntry;
+  }
+
+  getAssetElementRelationsTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.assetElementRelations(this.ctx.lang);
+  }
+
+  getAssetRelationSectionTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.assetRelationSection(this.ctx.lang);
+  }
+
+  getElementRelationEntryTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.elementRelationEntry(this.ctx.lang);
+  }
+
+  getNoAssetRelationsTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.noAssetRelations(this.ctx.lang);
   }
 }

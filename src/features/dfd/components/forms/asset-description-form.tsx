@@ -2,7 +2,7 @@
 // Clean UI with tooltips, all category-specific fields included
 // Used in DFD phase for describing assets placed in diagram
 
-import React, { useState, useMemo } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -61,6 +61,10 @@ interface AssetDescriptionFormProps {
   onChange: (changes: Partial<DFDAsset>) => void;
   elements?: DFDElement[];
   connections?: DFDConnection[];
+  onAssetFeatureUpdate?: (
+    assetId: string,
+    updates: { name?: string; properties?: any },
+  ) => void;
 }
 
 interface ElementReference {
@@ -88,9 +92,10 @@ const getElementTypeIcon = (type: DFDElementType | "DataFlow") => {
 const getRelationTypeColor = (relationType: AssetRelationType) => {
   const colorMap: Record<AssetRelationType, any> = {
     stores: "success",
-    processes_read: "info",
-    processes_modify: "warning",
+    read: "info",
+    modify: "warning",
     creates: "secondary",
+    deletes: "primary",
     transports: "primary",
   };
   return colorMap[relationType] || "default";
@@ -142,9 +147,34 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
   onChange,
   elements = [],
   connections = [],
+  onAssetFeatureUpdate,
 }) => {
   const { t } = useTranslation();
   const [category, setCategory] = useState(asset.properties?.category || "");
+
+  // Local state for RichTextEditor
+  const [localDescription, setLocalDescription] = React.useState(
+    asset.properties?.description || "",
+  );
+  const [localNotes, setLocalNotes] = React.useState(
+    asset.properties?.notes || "",
+  );
+  const [localOwner, setLocalOwner] = React.useState(
+    asset.properties?.owner || "",
+  );
+
+  // Sync when asset changes
+  React.useEffect(() => {
+    setLocalDescription(asset.properties?.description || "");
+  }, [asset.properties?.description]);
+
+  React.useEffect(() => {
+    setLocalNotes(asset.properties?.notes || "");
+  }, [asset.properties?.notes]);
+
+  React.useEffect(() => {
+    setLocalOwner(asset.properties?.owner || "");
+  }, [asset.properties?.owner]);
 
   const referencingElements = useMemo(
     () => getElementsReferencingAsset(asset.id, elements, connections),
@@ -152,20 +182,46 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
   );
 
   // ==================== HANDLERS ====================
+  const handleNameChange = useCallback(
+    (newName: string) => {
+      // Update DFDAsset
+      onChange({ name: newName });
 
-  const handlePropertyChange = (key: string, value: any) => {
-    onChange({
-      properties: {
+      // ✅ CRITICAL: Also update Asset in Assets feature
+      if (onAssetFeatureUpdate) {
+        onAssetFeatureUpdate(asset.id, { name: newName });
+      }
+    },
+    [asset.id, onChange, onAssetFeatureUpdate],
+  );
+
+  const handlePropertyChange = useCallback(
+    (key: string, value: any) => {
+      const updatedProperties = {
         ...asset.properties,
         [key]: value,
-      },
-    });
-  };
+      };
 
-  const handleCategoryChange = (newCategory: string) => {
-    setCategory(newCategory);
-    handlePropertyChange("category", newCategory);
-  };
+      // Update DFDAsset
+      onChange({
+        properties: updatedProperties,
+      });
+
+      // ✅ CRITICAL: Also update Asset in Assets feature
+      if (onAssetFeatureUpdate) {
+        onAssetFeatureUpdate(asset.id, { properties: updatedProperties });
+      }
+    },
+    [asset.id, asset.properties, onChange, onAssetFeatureUpdate],
+  );
+
+  const handleCategoryChange = useCallback(
+    (newCategory: string) => {
+      setCategory(newCategory);
+      handlePropertyChange("category", newCategory);
+    },
+    [handlePropertyChange],
+  );
 
   // ==================== RENDER ====================
 
@@ -178,7 +234,7 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
             fullWidth
             label={t("tabs.dfd.element_description.asset.name")}
             value={asset.name || ""}
-            onChange={(e) => onChange({ name: e.target.value })}
+            onChange={(e) => handleNameChange(e.target.value)}
             required
             helperText={t("tabs.dfd.element_description.asset.nameHelper")}
           />
@@ -670,8 +726,13 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
         </Box>
 
         <RichTextEditor
-          value={asset.properties?.description || ""}
-          onChange={(value) => handlePropertyChange("description", value)}
+          value={localDescription}
+          onChange={setLocalDescription}
+          onBlur={() => {
+            if (localDescription !== asset.properties?.description) {
+              handlePropertyChange("description", localDescription);
+            }
+          }}
           label=""
           helperText={t("tabs.dfd.element_description.asset.descriptionHelper")}
         />
@@ -699,16 +760,26 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
             <TextField
               fullWidth
               label={t("tabs.dfd.element_description.asset.owner")}
-              value={asset.properties?.owner || ""}
-              onChange={(e) => handlePropertyChange("owner", e.target.value)}
+              value={localOwner}
+              onChange={(e) => setLocalOwner(e.target.value)}
+              onBlur={() => {
+                if (localOwner !== asset.properties?.owner) {
+                  handlePropertyChange("owner", localOwner);
+                }
+              }}
               placeholder={t(
                 "tabs.dfd.element_description.asset.ownerPlaceholder",
               )}
             />
 
             <RichTextEditor
-              value={asset.properties?.notes || ""}
-              onChange={(value) => handlePropertyChange("notes", value)}
+              value={localNotes}
+              onChange={setLocalNotes}
+              onBlur={() => {
+                if (localNotes !== asset.properties?.notes) {
+                  handlePropertyChange("notes", localNotes);
+                }
+              }}
               label={t("tabs.dfd.element_description.asset.notes")}
             />
           </Stack>
@@ -716,6 +787,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
       </Accordion>
     </Box>
   );
-};;
+};;;;;
 
 export default AssetDescriptionForm;

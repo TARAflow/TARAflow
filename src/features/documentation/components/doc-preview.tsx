@@ -29,11 +29,20 @@ export const DocPreview: React.FC<DocPreviewProps> = ({
   const htmlContent = useMemo(() => {
     if (!content) return "";
 
+    // HTML and PDF already contain HTML - use directly
+    if (format === "html" || format === "pdf") {
+      return content;
+    }
+
+    // Convert Markdown and AsciiDoc to HTML
     if (format === "markdown") {
       return convertMarkdownToHtml(content);
-    } else {
+    } else if (format === "asciidoc") {
       return convertAsciiDocToHtml(content);
     }
+
+    // Fallback
+    return content;
   }, [content, format]);
 
   if (!content) {

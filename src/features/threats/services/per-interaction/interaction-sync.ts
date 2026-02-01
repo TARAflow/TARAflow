@@ -16,6 +16,7 @@ import {
   parseThreatIdPerInteraction,
 } from "../../models/per-interaction-types";
 import { interactionThreatGenerator } from "./interaction-generator";
+import { DFDAnalysisContext } from "shared";
 
 // ==================== ELEMENT CHANGE ====================
 
@@ -44,7 +45,7 @@ export class InteractionThreatSync {
    */
   checkSyncStatus(
     project: ThreatProjectData,
-    tables: ThreatTable[]
+    tables: ThreatTable[],
   ): ThreatSyncStatus {
     const elements = project.dfdElements || [];
     const connections = project.dfdConnections || [];
@@ -55,9 +56,9 @@ export class InteractionThreatSync {
     const interfaceIds = new Set(
       elements
         .filter((e) =>
-          ["interface", "physicalinterface"].includes(e.type.toLowerCase())
+          ["interface", "physicalinterface"].includes(e.type.toLowerCase()),
         )
-        .map((e) => e.id)
+        .map((e) => e.id),
     );
 
     console.log(
@@ -67,7 +68,7 @@ export class InteractionThreatSync {
         type: e.type,
         displayId: e.displayId,
         name: e.name,
-      }))
+      })),
     );
     console.log(
       "Connections:",
@@ -77,7 +78,7 @@ export class InteractionThreatSync {
         to: c.to,
         label: c.label,
         displayId: c.displayId,
-      }))
+      })),
     );
     console.log("InterfaceIds:", Array.from(interfaceIds));
 
@@ -141,19 +142,19 @@ export class InteractionThreatSync {
             )[] = [];
 
             const currentTB = trustBoundaryById.get(
-              threat.trustBoundaryId || ""
+              threat.trustBoundaryId || "",
             );
             if (currentTB) {
               const dataFlowIdPart = (connection.displayId || "").replace(
                 /^DF-/,
-                ""
+                "",
               );
               const expectedId = generateThreatIdPerInteraction(
                 currentTB.displayId || "",
                 `DF${dataFlowIdPart}`,
                 threat.strideCategory,
                 threat.interactionContext.direction,
-                threat.sequenceNumber
+                threat.sequenceNumber,
               );
 
               if (threat.id !== expectedId) {
@@ -211,19 +212,19 @@ export class InteractionThreatSync {
             }
 
             const currentTB = trustBoundaryById.get(
-              threat.trustBoundaryId || ""
+              threat.trustBoundaryId || "",
             );
             if (currentTB) {
               const interfaceIdPart = (element.displayId || "").replace(
                 /^IF-/,
-                ""
+                "",
               );
               const expectedId = generateThreatIdPerInteraction(
                 currentTB.displayId || "",
                 `IF${interfaceIdPart}`,
                 threat.strideCategory,
                 "incoming",
-                threat.sequenceNumber
+                threat.sequenceNumber,
               );
 
               if (threat.id !== expectedId) {
@@ -318,12 +319,13 @@ export class InteractionThreatSync {
    */
   synchronizeThreats(
     project: ThreatProjectData,
+    dfdContext: DFDAnalysisContext,
     tables: ThreatTable[],
     syncStatus: ThreatSyncStatus,
     options: {
       updateReferences: boolean;
       removeOrphaned: boolean;
-    }
+    },
   ): ThreatSyncResult {
     let updatedTables = [...tables];
     let added = 0;
@@ -389,7 +391,7 @@ export class InteractionThreatSync {
       syncStatus.changedReferences.elements.length > 0
     ) {
       const elementChangeMap = new Map(
-        syncStatus.changedReferences.elements.map((c) => [c.threatId, c])
+        syncStatus.changedReferences.elements.map((c) => [c.threatId, c]),
       );
 
       updatedTables = updatedTables.map((table) => ({
@@ -401,7 +403,7 @@ export class InteractionThreatSync {
 
             // ✅ Hole AKTUELLE Trust Boundary displayId
             const currentTB = trustBoundaryById.get(
-              threat.trustBoundaryId || ""
+              threat.trustBoundaryId || "",
             );
             const interfaceId = (change.newDisplayId || "").replace(/^IF-/, "");
 
@@ -411,11 +413,11 @@ export class InteractionThreatSync {
               `IF${interfaceId}`,
               threat.strideCategory,
               "incoming",
-              threat.sequenceNumber
+              threat.sequenceNumber,
             );
 
             console.log(
-              `Regenerating Interface Threat ID: ${threat.id} → ${newThreatId}`
+              `Regenerating Interface Threat ID: ${threat.id} → ${newThreatId}`,
             );
 
             return {
@@ -440,7 +442,7 @@ export class InteractionThreatSync {
       syncStatus.changedReferences.dataFlows.length > 0
     ) {
       const changeMap = new Map(
-        syncStatus.changedReferences.dataFlows.map((c) => [c.threatId, c])
+        syncStatus.changedReferences.dataFlows.map((c) => [c.threatId, c]),
       );
 
       updatedTables = updatedTables.map((table) => ({
@@ -456,11 +458,11 @@ export class InteractionThreatSync {
 
             // ✅ Hole AKTUELLE Trust Boundary displayId
             const currentTB = trustBoundaryById.get(
-              threat.trustBoundaryId || ""
+              threat.trustBoundaryId || "",
             );
             const dataFlowId = (connection?.displayId || "").replace(
               /^DF-/,
-              ""
+              "",
             );
 
             // ✅ Regeneriere Threat-ID mit AKTUELLEN Werten
@@ -469,11 +471,11 @@ export class InteractionThreatSync {
               `DF${dataFlowId}`,
               threat.strideCategory,
               threat.interactionContext.direction,
-              threat.sequenceNumber
+              threat.sequenceNumber,
             );
 
             console.log(
-              `Regenerating DataFlow Threat ID: ${threat.id} → ${newThreatId}`
+              `Regenerating DataFlow Threat ID: ${threat.id} → ${newThreatId}`,
             );
 
             return {
@@ -523,20 +525,22 @@ export class InteractionThreatSync {
       syncStatus.missingInThreats.dataFlows.length > 0 ||
       syncStatus.missingInThreats.elements.length > 0
     ) {
-      const newThreats =
-        interactionThreatGenerator.generateThreatsForProject(project);
+      const newThreats = interactionThreatGenerator.generateThreatsForProject(
+        project,
+        dfdContext,
+      );
 
       // Filter to only keep threats for missing items
       const missingConnectionIds = new Set(
-        syncStatus.missingInThreats.dataFlows.map((df) => df.id)
+        syncStatus.missingInThreats.dataFlows.map((df) => df.id),
       );
       const missingInterfaceIds = new Set(
-        syncStatus.missingInThreats.elements.map((e) => e.id)
+        syncStatus.missingInThreats.elements.map((e) => e.id),
       );
 
       for (const newTable of newThreats) {
         const existingTable = updatedTables.find(
-          (t) => t.trustBoundaryId === newTable.trustBoundaryId
+          (t) => t.trustBoundaryId === newTable.trustBoundaryId,
         );
 
         const threatsForMissing = newTable.threats.filter((threat) => {

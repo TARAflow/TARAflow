@@ -245,7 +245,7 @@ export class DiffService {
           type: "added",
           id: asset.id,
           name: asset.name || asset.id,
-          description: `Asset added: ${asset.description || "No description"}`,
+          description: `Asset added: ${asset.properties?.description || "No description"}`,
           details: [
             {
               field: "overallImpact",
@@ -266,7 +266,7 @@ export class DiffService {
           type: "deleted",
           id: asset.id,
           name: asset.name || asset.id,
-          description: `Asset deleted: ${asset.description || "No description"}`,
+          description: `Asset deleted: ${asset.properties?.description || "No description"}`,
         });
       }
     });
@@ -309,12 +309,12 @@ export class DiffService {
     }
 
     // Description
-    if (current.description !== previous.description) {
+    if (current.properties?.description !== previous.properties?.description) {
       details.push({
         field: "description",
         fieldLabel: "Description",
-        oldValue: previous.description,
-        newValue: current.description,
+        oldValue: previous.properties?.description,
+        newValue: current.properties?.description,
         valueType: "string",
       });
     }

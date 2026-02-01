@@ -15,6 +15,8 @@ export type {
   DFDTabProps,
 } from "./models/dfd-types";
 
+export { DFDGraphAnalysisContext } from "./adapters/dfd-graph-analysis-context";
+
 // ==================== INTERFACES ====================
 export type {
   IXmlSource,
@@ -37,6 +39,12 @@ export {
 // ==================== CONSTANTS ====================
 export { DFD_ELEMENT_CONFIG } from "./models/dfd-types";
 
+export type {
+  DFDGraph,
+  DataFlowAnalysis,
+  TrustBoundaryAnalysis,
+} from "./models/dfd-graph-types";
+
 // ==================== COMPONENTS ====================
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
 export { DFDTab } from "./components/dfd-tab";
@@ -46,7 +54,6 @@ export { DFDValidationPanel } from "./components/dfd-validation-panel";
 export { useDFDEditor } from "./hooks/use-dfd-editor";
 export type {
   UseDFDEditorOptions,
-  UseDFDEditorDependencies,
   UseDFDEditorReturn,
 } from "./hooks/use-dfd-editor";
 

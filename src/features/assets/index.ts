@@ -33,6 +33,12 @@ export type {
 } from "./models/asset-types";
 
 export type {
+  DFDAssetReference,
+  DFDElementReference,
+  DFDConnectionReference,
+} from "./models/dfd-reference-types";
+
+export type {
   ImpactRating,
   ImpactScaleType,
   ImpactCalculationMethod,

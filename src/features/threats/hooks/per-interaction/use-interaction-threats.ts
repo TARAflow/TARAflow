@@ -2,7 +2,7 @@
 // Hook for managing per-interaction threat state and operations
 // CORRECTED: Proper immutability for React.memo compatibility
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type {
   Threat,
   ThreatTable,
@@ -13,11 +13,13 @@ import type {
 } from "../../models/threat-types";
 import { interactionThreatService } from "../../services/per-interaction/interaction-threat-service";
 import type { StatisticsResult } from "../../services/threat-service";
+import type { DFDAnalysisContext } from "shared";
 
 // ==================== TYPES ====================
 
 export interface UseInteractionThreatsOptions {
   project: ThreatProjectData;
+  dfdContext: DFDAnalysisContext;
   configuration: ThreatConfiguration;
   onUpdate?: (data: ThreatData) => void;
 }
@@ -49,20 +51,34 @@ export interface UseInteractionThreatsResult {
 
 export function useInteractionThreats({
   project,
+  dfdContext,
   configuration,
   onUpdate,
 }: UseInteractionThreatsOptions): UseInteractionThreatsResult {
+  const projectRef = useRef<ThreatProjectData>(project);
+  const dfdContextRef = useRef<DFDAnalysisContext | null>(
+    dfdContext && !dfdContext.isDummy() ? dfdContext : null,
+  );
+
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
+
+  useEffect(() => {
+    if (dfdContext && !dfdContext.isDummy()) {
+      dfdContextRef.current = dfdContext;
+    }
+  }, [dfdContext]);
   // ==================== STATE ====================
 
   const [tables, setTables] = useState<ThreatTable[]>(
-    () => project.threats?.perInteractionTables ?? []
+    () => project.threats?.perInteractionTables ?? [],
   );
   const [syncStatus, setSyncStatus] = useState<ThreatSyncStatus | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // ==================== SYNC STATUS CHECK ====================
-
   useEffect(() => {
     if (
       project.dfdElements &&
@@ -93,7 +109,7 @@ export function useInteractionThreats({
         lastModified: new Date().toISOString(),
       });
     },
-    [configuration, onUpdate]
+    [project, configuration, onUpdate],
   );
 
   useEffect(() => {
@@ -101,13 +117,23 @@ export function useInteractionThreats({
   }, [project.threats?.perInteractionTables]);
 
   // ==================== OPERATIONS ====================
-
   const generateThreats = useCallback(async (): Promise<boolean> => {
+    const ctx = dfdContextRef.current || dfdContext;
+    const proj = projectRef.current;
+
+    if (!ctx || ctx.isDummy()) {
+      console.warn(
+        "🔥 DFDContext noch nicht bereit, warte auf Aktualisierung...",
+      );
+      return false; // oder optional: retry mit setTimeout
+    }
+
     setIsGenerating(true);
     try {
       const result = interactionThreatService.generateThreats(
-        project,
-        configuration
+        proj,
+        ctx,
+        configuration,
       );
 
       if (result.success) {
@@ -118,18 +144,35 @@ export function useInteractionThreats({
 
       console.error("Generation failed:", result.error);
       return false;
-    } catch (error) {
-      console.error("Generation error:", error);
-      return false;
     } finally {
       setIsGenerating(false);
     }
-  }, [project, configuration, notifyUpdate]);
+  }, [configuration, notifyUpdate]);
 
   const deleteAllThreats = useCallback(() => {
     setTables([]);
+
+    // Aktuelle Threats oder Default
+    const oldThreats: ThreatData = projectRef.current.threats ?? {
+      configuration,
+      perElementTables: [],
+      perInteractionTables: [],
+      lastModified: new Date().toISOString(),
+    };
+
+    // Aktualisiere projectRef
+    projectRef.current = {
+      ...projectRef.current,
+      threats: {
+        ...oldThreats,
+        perInteractionTables: [],
+        lastModified: new Date().toISOString(),
+      },
+    };
+
+    // Notify parent
     notifyUpdate([]);
-  }, [notifyUpdate]);
+  }, [configuration, notifyUpdate]);
 
   const synchronizeThreats = useCallback(
     async (options: {
@@ -142,9 +185,10 @@ export function useInteractionThreats({
       try {
         const result = interactionThreatService.synchronizeThreats(
           project,
+          dfdContext,
           tables,
           syncStatus,
-          options
+          options,
         );
 
         if (result.success && result.threatData) {
@@ -161,7 +205,7 @@ export function useInteractionThreats({
         setIsSyncing(false);
       }
     },
-    [syncStatus, project, tables, notifyUpdate]
+    [project, configuration, notifyUpdate],
   );
 
   // ==================== IMMUTABLE STATE UPDATES ====================
@@ -175,7 +219,7 @@ export function useInteractionThreats({
         if (!oldTable) return prev;
 
         const threatIndex = oldTable.threats.findIndex(
-          (t) => t.id === updatedThreat.id
+          (t) => t.id === updatedThreat.id,
         );
         if (threatIndex === -1) return prev;
 
@@ -196,7 +240,7 @@ export function useInteractionThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   const deleteThreat = useCallback(
@@ -218,7 +262,7 @@ export function useInteractionThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   const addThreat = useCallback(
@@ -247,7 +291,7 @@ export function useInteractionThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   const updateTable = useCallback(
@@ -259,7 +303,7 @@ export function useInteractionThreats({
         return newTables;
       });
     },
-    [notifyUpdate]
+    [notifyUpdate],
   );
 
   // ==================== RETURN ====================

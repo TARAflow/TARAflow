@@ -20,10 +20,12 @@ import type {
   DFDConnection,
   DFDElementType,
 } from "../../../dfd/models/dfd-types";
+import type { Asset } from "../../../assets/models/asset-types";
 import {
   getSecurityLevelText,
   getTrustLevelText,
   getDFDElementTypeText,
+  getDFDElementTypePluralText,
 } from "../../../dfd/models/dfd-types";
 import {
   replacePlaceholders,
@@ -41,6 +43,24 @@ import {
   TAG_CATEGORIES,
   getRegulationTags,
 } from "../../../../shared/utils/tag-categories";
+import {
+  getElementSecurityLevel,
+  getElementTrustLevel,
+  isElementAuthenticationRequired,
+  isElementEncryptionRequired,
+  getElementSecurityNotes,
+  getConnectionSecurityLevel,
+  isConnectionAuthenticationRequired,
+  isConnectionEncryptionRequired,
+  getConnectionSecurityNotes,
+  getElementPropertiesGrouped,
+  getConnectionPropertiesGrouped,
+  formatElementAssetRelations,
+  formatConnectionAssetRelations,
+  getAssetIdList,
+  getRelationTypeLabel,
+  type PropertyGroup,
+} from "./property-doc-mappers";
 
 // ==================== TYPES ====================
 
@@ -130,6 +150,16 @@ export abstract class BaseDocumentGenerator {
   abstract getWontRiskRowTemplate(): string;
   abstract getAppendixTemplate(): string;
   abstract getFooterTemplate(): string;
+  abstract getDfdElementOverviewTableTemplate(): string;
+  abstract getElementOverviewRowTemplate(): string;
+  abstract getDfdElementDetailedEntryTemplate(): string;
+  abstract getDfdConnectionDetailedEntryTemplate(): string;
+  abstract getPropertyGroupTemplate(): string;
+  abstract getPropertyEntryTemplate(): string;
+  abstract getAssetElementRelationsTemplate(): string;
+  abstract getAssetRelationSectionTemplate(): string;
+  abstract getElementRelationEntryTemplate(): string;
+  abstract getNoAssetRelationsTemplate(): string;
 
   // ==================== PUBLIC API ====================
 
@@ -215,6 +245,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateDfdDescriptions(title);
       case "assets":
         return this.generateAssets(title);
+      case "asset-element-relations": // <-- ADD THIS CASE
+        return this.generateAssetElementRelations(title);
       case "threats-per-element":
         return this.generateThreats(title, "per-element");
       case "threats-per-interaction":
@@ -461,9 +493,12 @@ export abstract class BaseDocumentGenerator {
 
   protected generateDfdDescriptions(title: string): ChapterContent {
     const { project, lang } = this.ctx;
-    const dfd = project.dfd;
 
-    if (!dfd) {
+    if (
+      !project.dfd ||
+      !project.dfd.elements ||
+      project.dfd.elements.length === 0
+    ) {
       return {
         id: "dfd-descriptions",
         title,
@@ -472,62 +507,70 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    // Safe access with optional chaining
-    const elements = dfd.elements ?? [];
-    const connections = dfd.connections ?? [];
+    const elements = project.dfd.elements;
+    const connections = project.dfd.connections ?? [];
 
-    const hasElements = elements.length > 0;
-    const hasConnections = connections.length > 0;
+    // Generate overview table
+    const elementRows = elements
+      .map((element) => {
+        const values = {
+          displayId: element.displayId || element.id,
+          name: this.escapeTableText(element.name),
+          type: getDFDElementTypeText(element.type, lang),
+          description: this.escapeTableText(
+            truncateText(element.properties?.description ?? "-", 60),
+          ),
+          assets: this.escapeTableText(getAssetIdList(element)),
+        };
+        return replacePlaceholders(
+          this.getElementOverviewRowTemplate(),
+          values,
+        );
+      })
+      .join("");
 
-    if (!hasElements && !hasConnections) {
-      return {
-        id: "dfd-descriptions",
-        title,
-        content: "",
-        hasContent: false,
-      };
-    }
+    let content = replacePlaceholders(
+      this.getDfdElementOverviewTableTemplate(),
+      {
+        elementRows,
+      },
+    );
 
-    const elementTypeOrder: DFDElementType[] = [
-      "ExternalEntity",
-      "Process",
-      "Multiprocess",
-      "DataStore",
-      "TrustBoundary",
-      "PhysicalInterface",
-      "Interface",
-    ];
+    // Group elements by type
+    const elementsByType = new Map<DFDElementType, DFDElement[]>();
+    elements.forEach((elem) => {
+      if (!elementsByType.has(elem.type)) {
+        elementsByType.set(elem.type, []);
+      }
+      elementsByType.get(elem.type)!.push(elem);
+    });
 
-    let elementSections = "";
+    // Generate detailed sections for each type
+    for (const [elementType, typeElements] of elementsByType) {
+      // Skip DataFlow as it's handled separately
+      if (elementType === "DataFlow") continue;
 
-    for (const elementType of elementTypeOrder) {
-      const elementsOfType = elements.filter((e) => e.type === elementType);
-
-      if (elementsOfType.length === 0) continue;
-
-      elementSections += replacePlaceholders(
+      const typeHeader = replacePlaceholders(
         this.getDfdElementTypeHeaderTemplate(),
         {
-          elementTypeName: getDFDElementTypeText(elementType, lang),
+          elementTypeName: getDFDElementTypePluralText(elementType, lang),
         },
       );
+      content += typeHeader;
 
-      for (const element of elementsOfType) {
-        elementSections += this.generateDfdElementEntry(element);
+      for (const element of typeElements) {
+        content += this.generateDfdElementDetailedEntry(element);
       }
     }
 
-    if (hasConnections) {
-      elementSections += this.getDfdDataFlowsHeaderTemplate();
+    // Data Flows section
+    if (connections.length > 0) {
+      content += this.getDfdDataFlowsHeaderTemplate();
 
       for (const connection of connections) {
-        elementSections += this.generateDfdConnectionEntry(connection);
+        content += this.generateDfdConnectionDetailedEntry(connection);
       }
     }
-
-    const content = replacePlaceholders(this.getDfdDescriptionsTemplate(), {
-      elementSections,
-    });
 
     return {
       id: "dfd-descriptions",
@@ -535,6 +578,199 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  /**
+   * Generate detailed element entry with grouped properties
+   */
+  protected generateDfdElementDetailedEntry(element: DFDElement): string {
+    const { lang } = this.ctx;
+
+    const propertyGroups = getElementPropertiesGrouped(element, lang);
+    const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
+    const assetRelations = formatElementAssetRelations(element, lang);
+
+    const values = {
+      displayId: element.displayId || element.id,
+      name: this.escapeTableText(element.name),
+      propertyGroups: propertyGroupsText,
+      assetRelations:
+        assetRelations !== "N/A"
+          ? this.escapeTableText(assetRelations)
+          : undefined,
+    };
+
+    let content = this.getDfdElementDetailedEntryTemplate();
+    content = processConditionals(content, values);
+    return replacePlaceholders(content, values);
+  }
+
+  /**
+   * Generate detailed connection entry with grouped properties
+   */
+  protected generateDfdConnectionDetailedEntry(
+    connection: DFDConnection,
+  ): string {
+    const { lang, project } = this.ctx;
+
+    // Lookup element names from IDs
+    const fromElement =
+      project.dfd?.elements?.find((e) => e.id === connection.from)?.name ||
+      connection.from;
+    const toElement =
+      project.dfd?.elements?.find((e) => e.id === connection.to)?.name ||
+      connection.to;
+
+    const propertyGroups = getConnectionPropertiesGrouped(connection, lang);
+    const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
+    const assetRelations = formatConnectionAssetRelations(connection, lang);
+
+    const values = {
+      displayId: connection.displayId || connection.id,
+      fromElement: this.escapeTableText(fromElement),
+      toElement: this.escapeTableText(toElement),
+      label: connection.label
+        ? this.escapeTableText(connection.label)
+        : undefined,
+      propertyGroups: propertyGroupsText,
+      assetRelations:
+        assetRelations !== "N/A"
+          ? this.escapeTableText(assetRelations)
+          : undefined,
+    };
+
+    let content = this.getDfdConnectionDetailedEntryTemplate();
+    content = processConditionals(content, values);
+    return replacePlaceholders(content, values);
+  }
+
+  /**
+   * Format property groups into template string
+   */
+  protected formatPropertyGroups(groups: PropertyGroup[]): string {
+    return groups
+      .map((group) => {
+        const propertiesText = group.properties
+          .map((prop) => {
+            const values = {
+              label: prop.label,
+              value: this.escapeTableText(prop.value),
+            };
+            return replacePlaceholders(this.getPropertyEntryTemplate(), values);
+          })
+          .join("");
+
+        const values = {
+          groupName: group.groupName,
+          properties: propertiesText,
+        };
+        return replacePlaceholders(this.getPropertyGroupTemplate(), values);
+      })
+      .join("\n");
+  }
+
+  /**
+   * Generate Asset-Element Relations chapter
+   */
+  protected generateAssetElementRelations(title: string): ChapterContent {
+    const { project, lang } = this.ctx;
+
+    const assets = project.assets?.assets ?? [];
+
+    if (assets.length === 0) {
+      return {
+        id: "asset-element-relations",
+        title,
+        content: "",
+        hasContent: false,
+      };
+    }
+
+    // Check if any asset has element relations
+    const hasRelations = assets.some(
+      (asset) => asset.linkedDFDElements && asset.linkedDFDElements.length > 0,
+    );
+
+    if (!hasRelations) {
+      const content = this.getAssetElementRelationsTemplate().replace(
+        "{{assetSections}}",
+        this.getNoAssetRelationsTemplate(),
+      );
+      return {
+        id: "asset-element-relations",
+        title,
+        content,
+        hasContent: false,
+      };
+    }
+
+    // Generate sections for each asset with relations
+    const assetSections = assets
+      .filter(
+        (asset) =>
+          asset.linkedDFDElements && asset.linkedDFDElements.length > 0,
+      )
+      .map((asset) => this.generateAssetRelationSection(asset))
+      .join("");
+
+    const content = replacePlaceholders(
+      this.getAssetElementRelationsTemplate(),
+      {
+        assetSections,
+      },
+    );
+
+    return {
+      id: "asset-element-relations",
+      title,
+      content,
+      hasContent: true,
+    };
+  }
+
+  /**
+   * Generate section for one asset's element relations
+   */
+  protected generateAssetRelationSection(asset: Asset): string {
+    const { lang } = this.ctx;
+
+    const elementRelations = (asset.linkedDFDElements ?? [])
+      .map((elemRel) => {
+        const relationTypes = (elemRel.relationTypes ?? [])
+          .map((rt) => getRelationTypeLabel(rt, lang))
+          .join(", ");
+
+        const values = {
+          elementDisplayId: elemRel.displayId,
+          elementType: getDFDElementTypeText(
+            elemRel.elementType as DFDElementType,
+            lang,
+          ),
+          elementName: this.escapeTableText(elemRel.elementName),
+          relationTypes: this.escapeTableText(relationTypes),
+          notes: elemRel.notes
+            ? this.escapeTableText(elemRel.notes)
+            : undefined,
+        };
+
+        let content = this.getElementRelationEntryTemplate();
+        content = processConditionals(content, values);
+        return replacePlaceholders(content, values);
+      })
+      .join("");
+
+    const values = {
+      assetId: asset.id,
+      assetName: this.escapeTableText(asset.name),
+      assetDescription: asset.properties?.description
+        ? this.escapeTableText(asset.properties.description)
+        : undefined,
+      elementRelations,
+    };
+
+    let content = this.getAssetRelationSectionTemplate();
+    content = processConditionals(content, values);
+    return replacePlaceholders(content, values);
   }
 
   protected generateDfdElementEntry(element: DFDElement): string {
@@ -545,20 +781,20 @@ export abstract class BaseDocumentGenerator {
       name: this.escapeTableText(element.name),
       description: this.escapeTableText(element.properties?.description ?? "-"),
       securityLevel: getSecurityLevelText(
-        element.properties?.securityLevel ?? undefined,
+        getElementSecurityLevel(element),
         lang,
       ),
-      trustLevel: getTrustLevelText(element.properties?.trustLevel, lang),
+      trustLevel: getTrustLevelText(getElementTrustLevel(element), lang),
       authRequired: getYesNoText(
-        element.properties?.authenticationRequired ?? false,
+        isElementAuthenticationRequired(element),
         lang,
       ),
       encryptionRequired: getYesNoText(
-        element.properties?.encryptionRequired ?? false,
+        isElementEncryptionRequired(element),
         lang,
       ),
-      securityNotes: element.properties?.securityNotes
-        ? this.escapeTableText(element.properties.securityNotes)
+      securityNotes: getElementSecurityNotes(element)
+        ? this.escapeTableText(getElementSecurityNotes(element)!)
         : undefined,
     };
 
@@ -589,19 +825,19 @@ export abstract class BaseDocumentGenerator {
         connection.properties?.description ?? "-",
       ),
       securityLevel: getSecurityLevelText(
-        connection.properties?.securityLevel ?? undefined,
+        getConnectionSecurityLevel(connection),
         lang,
       ),
       authRequired: getYesNoText(
-        connection.properties?.authenticationRequired ?? false,
+        isConnectionAuthenticationRequired(connection),
         lang,
       ),
       encryptionRequired: getYesNoText(
-        connection.properties?.encryptionRequired ?? false,
+        isConnectionEncryptionRequired(connection),
         lang,
       ),
-      securityNotes: connection.properties?.securityNotes
-        ? this.escapeTableText(connection.properties.securityNotes)
+      securityNotes: getConnectionSecurityNotes(connection)
+        ? this.escapeTableText(getConnectionSecurityNotes(connection)!)
         : undefined,
     };
 
@@ -641,7 +877,7 @@ export abstract class BaseDocumentGenerator {
           id: asset.id,
           name: this.escapeTableText(asset.name),
           description: this.escapeTableText(
-            truncateText(asset.description, 60),
+            truncateText(asset.properties?.description ?? "-", 60),
           ),
           impactLabel,
           securityGoals: formatSecurityGoals(enabledGoals),

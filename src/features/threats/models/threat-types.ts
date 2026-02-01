@@ -294,6 +294,7 @@ export interface ThreatProjectData {
   dfdConnections?: DFDConnectionReference[];
   dfdPreviewImage?: string;
   assetIds?: string[];
+  dfdGraph?: DFDGraphReference;
   lastModified: string;
 }
 
@@ -303,8 +304,6 @@ export interface DFDElementReference {
   type: string;
   name: string;
   displayId: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
 }
 
 export interface DFDConnectionReference {
@@ -313,6 +312,55 @@ export interface DFDConnectionReference {
   to: string;
   label?: string;
   displayId: string;
+}
+
+export interface DFDGraphReference {
+  elementsById: Map<string, DFDElementReference>;
+  connectionsById: Map<string, DFDConnectionReference>;
+  assetsById: Map<string, DFDAssetReference>;
+
+  outgoingConnections: Map<string, string[]>; // elementId -> connectionIds
+  incomingConnections: Map<string, string[]>; // elementId -> connectionIds
+
+  elementTrustBoundaries: Map<string, string[]>; // elementId -> trustBoundaryIds
+  trustBoundaryElements: Map<string, string[]>; // trustBoundaryId -> elementIds
+
+  dataFlowAnalysis: Map<string, DataFlowAnalysisReference>;
+  trustBoundaryHierarchy: Map<string, TrustBoundaryAnalysisReference>;
+  effectiveElementTrustBoundary: Map<string, string | undefined>;
+}
+
+export interface DFDConnectionReference {
+  id: string;
+  from: string;
+  to: string;
+  label?: string;
+}
+
+export interface DFDAssetReference {
+  id: string;
+  name: string;
+}
+
+export interface DataFlowAnalysisReference {
+  connectionId: string;
+  fromElementId: string;
+  toElementId: string;
+  fromElementType: string; // DFDElementType als string
+  toElementType: string;
+  fromTrustBoundaryIds: string[];
+  toTrustBoundaryIds: string[];
+  fromEffectiveTrustBoundary?: string | null;
+  toEffectiveTrustBoundary?: string | null;
+  crossesTrustBoundary: boolean;
+  crossesMultipleTrustBoundaries: boolean;
+  viaInterface?: boolean;
+  crossingType?: "none" | "inbound" | "outbound" | "lateral";
+}
+export interface TrustBoundaryAnalysisReference {
+  trustBoundaryId: string;
+  parentTrustBoundaryId?: string;
+  depth: number; // 0 = outermost
 }
 
 // ==================== SYNC STATUS (SHARED) ====================
@@ -356,15 +404,6 @@ export interface ThreatUpdateResult {
   threats: ThreatData;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
-}
-
-// ==================== TAB PROPS ====================
-
-export interface ThreatTabProps {
-  project: ThreatProjectData;
-  onUpdate: (updates: ThreatUpdateResult) => void;
-  onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== HELPERS ====================

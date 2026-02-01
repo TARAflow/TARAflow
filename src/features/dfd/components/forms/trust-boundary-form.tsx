@@ -24,10 +24,15 @@ import {
 import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
 import type { DFDElement } from "../../models/dfd-types";
 import { RichTextEditor } from "../shared/rich-text-editor";
+import type { TrustBoundaryProperties } from "../../models/element-properties";
 
 interface TrustBoundaryFormProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
+}
+
+function asTrustBoundaryProperties(props: any): TrustBoundaryProperties {
+  return props as TrustBoundaryProperties;
 }
 
 export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
@@ -35,17 +40,18 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
   onChange,
 }) => {
   const { t } = useTranslation();
+  const props = asTrustBoundaryProperties(element.properties);
 
   const handlePropertyChange = useCallback(
     (field: string, value: any) => {
       onChange({
         properties: {
-          ...element.properties,
+          ...props,
           [field]: value,
         },
       });
     },
-    [onChange, element.properties]
+    [onChange, props],
   );
 
   return (
@@ -56,7 +62,8 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
           ⚠️ Trust Boundaries are critical!
         </Typography>
         <Typography variant="caption">
-          Any data flow crossing this boundary requires extra scrutiny for all STRIDE threats.
+          Any data flow crossing this boundary requires extra scrutiny for all
+          STRIDE threats.
         </Typography>
       </Alert>
 
@@ -66,7 +73,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
       </Typography>
 
       <RichTextEditor
-        value={element.properties.description || ""}
+        value={props.description || ""}
         onChange={(value) => handlePropertyChange("description", value)}
         label="Description"
         required
@@ -76,7 +83,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
       <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel>Boundary Type</InputLabel>
         <Select
-          value={element.properties.boundaryType || ""}
+          value={props.boundaryType || ""}
           onChange={(e) => handlePropertyChange("boundaryType", e.target.value)}
           label="Boundary Type"
         >
@@ -102,7 +109,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
       <TextField
         fullWidth
         label="Security Assumptions"
-        value={element.properties.securityAssumptions || ""}
+        value={props.securityAssumptions || ""}
         onChange={(e) =>
           handlePropertyChange("securityAssumptions", e.target.value)
         }
@@ -116,7 +123,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
       <TextField
         fullWidth
         label="Controls at Boundary"
-        value={element.properties.boundaryControls || ""}
+        value={props.boundaryControls || ""}
         onChange={(e) =>
           handlePropertyChange("boundaryControls", e.target.value)
         }
@@ -130,7 +137,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
       <FormControlLabel
         control={
           <Checkbox
-            checked={element.properties.monitoringEnabled || false}
+            checked={props.monitoringEnabled || false}
             onChange={(e) =>
               handlePropertyChange("monitoringEnabled", e.target.checked)
             }
@@ -154,7 +161,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
             <TextField
               fullWidth
               label="Compliance Relevance"
-              value={element.properties.complianceRelevance || ""}
+              value={props.complianceRelevance || ""}
               onChange={(e) =>
                 handlePropertyChange("complianceRelevance", e.target.value)
               }
@@ -165,13 +172,13 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
             <TextField
               fullWidth
               label="Owner / Responsible Team"
-              value={element.properties.owner || ""}
+              value={props.owner || ""}
               onChange={(e) => handlePropertyChange("owner", e.target.value)}
               placeholder="Who maintains this boundary?"
             />
 
             <RichTextEditor
-              value={element.properties.notes || ""}
+              value={props.notes || ""}
               onChange={(value) => handlePropertyChange("notes", value)}
               label="Additional Notes"
             />
@@ -185,8 +192,9 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
           STRIDE Relevance: ALL (S, T, R, I, D, E)
         </Typography>
         <Typography variant="caption">
-          Trust boundaries automatically trigger threat analysis for any crossing data flows. 
-          Ensure all crossings have proper authentication, encryption, and monitoring!
+          Trust boundaries automatically trigger threat analysis for any
+          crossing data flows. Ensure all crossings have proper authentication,
+          encryption, and monitoring!
         </Typography>
       </Alert>
     </Box>

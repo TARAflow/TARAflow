@@ -15,7 +15,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
   constructor(
     project: DocProjectData,
     config: DocConfiguration,
-    t: TranslationFn
+    t: TranslationFn,
   ) {
     super(project, config, t);
   }
@@ -48,7 +48,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
   }
 
   formatTagsGrouped(
-    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>
+    tagsByCategory: Array<{ categoryLabel: string; tags: string[] }>,
   ): string {
     if (tagsByCategory.length === 0) return "<p>-</p>";
 
@@ -56,7 +56,10 @@ export class HtmlGenerator extends BaseDocumentGenerator {
       .map(({ categoryLabel, tags }) => {
         const categoryClass = this.getCategoryClass(categoryLabel);
         const tagSpans = tags
-          .map((tag) => `<span class="tag ${categoryClass}">${this.escapeHtml(tag)}</span>`)
+          .map(
+            (tag) =>
+              `<span class="tag ${categoryClass}">${this.escapeHtml(tag)}</span>`,
+          )
           .join(" ");
         return `<div class="tag-group"><span class="tag-label">${this.escapeHtml(categoryLabel)}:</span> ${tagSpans}</div>`;
       })
@@ -65,7 +68,11 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
   private getCategoryClass(categoryLabel: string): string {
     const label = categoryLabel.toLowerCase();
-    if (label.includes("domain") || label.includes("branche") || label.includes("industry")) {
+    if (
+      label.includes("domain") ||
+      label.includes("branche") ||
+      label.includes("industry")
+    ) {
       return "tag-domain";
     }
     if (label.includes("platform") || label.includes("plattform")) {
@@ -78,7 +85,8 @@ export class HtmlGenerator extends BaseDocumentGenerator {
   }
 
   formatClassification(text: string): string {
-    const classification = this.ctx.config.template.classification || "internal";
+    const classification =
+      this.ctx.config.template.classification || "internal";
     return `<span class="classification-badge classification-${classification}">${this.escapeHtml(text)}</span>`;
   }
 
@@ -93,7 +101,9 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     innerContent += this.generateToc(chapters);
 
     for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find((c) => c.id === chapter.id);
+      const chapterConfig = this.ctx.config.chapters.find(
+        (c) => c.id === chapter.id,
+      );
       if (chapterConfig && chapter.hasContent) {
         innerContent += chapter.content;
       }
@@ -107,7 +117,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
       {
         projectName: this.ctx.project.info.name,
         content: innerContent,
-      }
+      },
     );
 
     return {
@@ -123,7 +133,9 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     const tocItems: string[] = [];
 
     for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find((c) => c.id === chapter.id);
+      const chapterConfig = this.ctx.config.chapters.find(
+        (c) => c.id === chapter.id,
+      );
       if (chapterConfig && chapter.hasContent) {
         const anchor = chapter.title
           .toLowerCase()
@@ -133,7 +145,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
           replacePlaceholders(HTML_TEMPLATES.tocItem, {
             anchor,
             title: chapter.title,
-          })
+          }),
         );
       }
     }
@@ -239,6 +251,46 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
   getAppendixTemplate(): string {
     return HTML_TEMPLATES.appendix(this.ctx.lang);
+  }
+
+  getDfdElementOverviewTableTemplate(): string {
+    return HTML_TEMPLATES.dfdElementOverviewTable(this.ctx.lang);
+  }
+
+  getElementOverviewRowTemplate(): string {
+    return HTML_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdElementDetailedEntryTemplate(): string {
+    return HTML_TEMPLATES.dfdElementDetailedEntry(this.ctx.lang);
+  }
+
+  getDfdConnectionDetailedEntryTemplate(): string {
+    return HTML_TEMPLATES.dfdConnectionDetailedEntry(this.ctx.lang);
+  }
+
+  getPropertyGroupTemplate(): string {
+    return HTML_TEMPLATES.propertyGroup(this.ctx.lang);
+  }
+
+  getPropertyEntryTemplate(): string {
+    return HTML_TEMPLATES.propertyEntry;
+  }
+
+  getAssetElementRelationsTemplate(): string {
+    return HTML_TEMPLATES.assetElementRelations(this.ctx.lang);
+  }
+
+  getAssetRelationSectionTemplate(): string {
+    return HTML_TEMPLATES.assetRelationSection(this.ctx.lang);
+  }
+
+  getElementRelationEntryTemplate(): string {
+    return HTML_TEMPLATES.elementRelationEntry(this.ctx.lang);
+  }
+
+  getNoAssetRelationsTemplate(): string {
+    return HTML_TEMPLATES.noAssetRelations(this.ctx.lang);
   }
 
   getFooterTemplate(): string {

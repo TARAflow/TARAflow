@@ -16,11 +16,13 @@ import { useInteractionThreats } from "../../hooks/per-interaction/use-interacti
 import { useThreatFilters } from "../../hooks/shared/use-threat-filters";
 import { ThreatFilters } from "../shared/threat-filters";
 import { InteractionThreatTable } from "./interaction-threat-table";
+import type { DFDAnalysisContext } from "shared";
 
 // ==================== TYPES ====================
 
 export interface InteractionThreatsViewProps {
   project: ThreatProjectData;
+  dfdContext: DFDAnalysisContext;
   configuration: ThreatConfiguration;
   onUpdate: (data: ThreatData) => void;
   onOpenEditDialog: (tableIndex: number, threat: Threat) => void;
@@ -32,6 +34,7 @@ export interface InteractionThreatsViewProps {
 export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
   ({
     project,
+    dfdContext,
     configuration,
     onUpdate,
     onOpenEditDialog,
@@ -41,6 +44,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
     const { tables, deleteThreat, isGenerating, generateThreats } =
       useInteractionThreats({
         project,
+        dfdContext,
         configuration,
         onUpdate,
       });
@@ -71,7 +75,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
     // Calculate counts
     const totalThreats = React.useMemo(
       () => tables.reduce((sum, t) => sum + t.threats.length, 0),
-      [tables]
+      [tables],
     );
 
     useEffect(() => {
@@ -80,7 +84,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
 
     const filteredThreats = React.useMemo(
       () => filteredTables.reduce((sum, t) => sum + t.threats.length, 0),
-      [filteredTables]
+      [filteredTables],
     );
 
     // Handle edit - just open dialog
@@ -88,7 +92,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
       (tableIndex: number, threat: Threat) => {
         onOpenEditDialog(tableIndex, threat);
       },
-      [onOpenEditDialog]
+      [onOpenEditDialog],
     );
 
     // Handle delete - use hook directly
@@ -96,7 +100,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
       (tableIndex: number, threatId: string) => {
         deleteThreat(tableIndex, threatId);
       },
-      [deleteThreat]
+      [deleteThreat],
     );
 
     return (
@@ -171,7 +175,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
         )}
       </Box>
     );
-  }
+  },
 );
 
 InteractionThreatsView.displayName = "InteractionThreatsView";

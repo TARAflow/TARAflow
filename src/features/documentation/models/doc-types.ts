@@ -28,6 +28,7 @@ export type DocChapterId =
   | "dfd"
   | "dfd-descriptions"
   | "assets"
+  | "asset-element-relations"
   | "threats-per-element"
   | "threats-per-interaction"
   | "risks-per-element"
@@ -57,6 +58,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     de: "DFD-Elementbeschreibungen",
   },
   assets: { en: "Asset Inventory", de: "Asset-Inventar" },
+  "asset-element-relations": {
+    en: "Asset-Element Relations",
+    de: "Asset-Element-Beziehungen",
+  },
   "threats-per-element": {
     en: "Threat Analysis (STRIDE per Element)",
     de: "Bedrohungsanalyse (STRIDE pro Element)",
@@ -88,6 +93,7 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
   { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
   { id: "assets", enabled: true, autoHideIfEmpty: true },
+  { id: "asset-element-relations", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-interaction", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-element", enabled: true, autoHideIfEmpty: true },

@@ -361,6 +361,46 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.getAppendixTemplate();
   }
 
+  getDfdElementOverviewTableTemplate(): string {
+    return this.htmlGenerator.getDfdElementOverviewTableTemplate();
+  }
+
+  getElementOverviewRowTemplate(): string {
+    return this.htmlGenerator.getElementOverviewRowTemplate();
+  }
+
+  getDfdElementDetailedEntryTemplate(): string {
+    return this.htmlGenerator.getDfdElementDetailedEntryTemplate();
+  }
+
+  getDfdConnectionDetailedEntryTemplate(): string {
+    return this.htmlGenerator.getDfdConnectionDetailedEntryTemplate();
+  }
+
+  getPropertyGroupTemplate(): string {
+    return this.htmlGenerator.getPropertyGroupTemplate();
+  }
+
+  getPropertyEntryTemplate(): string {
+    return this.htmlGenerator.getPropertyEntryTemplate();
+  }
+
+  getAssetElementRelationsTemplate(): string {
+    return this.htmlGenerator.getAssetElementRelationsTemplate();
+  }
+
+  getAssetRelationSectionTemplate(): string {
+    return this.htmlGenerator.getAssetRelationSectionTemplate();
+  }
+
+  getElementRelationEntryTemplate(): string {
+    return this.htmlGenerator.getElementRelationEntryTemplate();
+  }
+
+  getNoAssetRelationsTemplate(): string {
+    return this.htmlGenerator.getNoAssetRelationsTemplate();
+  }
+
   getFooterTemplate(): string {
     return this.htmlGenerator.getFooterTemplate();
   }

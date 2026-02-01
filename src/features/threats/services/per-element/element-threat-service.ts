@@ -12,7 +12,7 @@ import type {
   MitigationTemplate,
   VerificationTemplate,
 } from "../../models/threat-types";
-import type {  StrideCategory } from "shared";
+import type { DFDAnalysisContext, StrideCategory } from "shared";
 import type {
   ThreatService,
   ThreatCatalog,
@@ -37,7 +37,8 @@ export class ElementThreatService implements ThreatService {
 
   generateThreats(
     project: ThreatProjectData,
-    configuration: ThreatConfiguration
+    dfdContext: DFDAnalysisContext,
+    configuration: ThreatConfiguration,
   ): GenerationResult {
     try {
       const elements = project.dfdElements || [];
@@ -52,7 +53,7 @@ export class ElementThreatService implements ThreatService {
 
       const tables = elementThreatGenerator.generateThreatsForProject(
         project,
-        this.catalog
+        this.catalog,
       );
 
       return {
@@ -141,26 +142,28 @@ export class ElementThreatService implements ThreatService {
 
   checkSyncStatus(
     project: ThreatProjectData,
-    tables: ThreatTable[]
+    tables: ThreatTable[],
   ): ThreatSyncStatus {
     return elementThreatSync.checkSyncStatus(project, tables);
   }
 
   synchronizeThreats(
     project: ThreatProjectData,
+    dfdContext: DFDAnalysisContext,
     tables: ThreatTable[],
     syncStatus: ThreatSyncStatus,
     options: {
       updateReferences: boolean;
       removeOrphaned: boolean;
-    }
+    },
   ): ThreatSyncResult {
     return elementThreatSync.synchronizeThreats(
       project,
+      dfdContext,
       tables,
       syncStatus,
       options,
-      this.catalog
+      this.catalog,
     );
   }
 
@@ -169,7 +172,7 @@ export class ElementThreatService implements ThreatService {
   getThreatTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates: ThreatTemplate[] = []
+    customTemplates: ThreatTemplate[] = [],
   ): ThreatTemplate[] {
     let templates = [...this.catalog.threatTemplates, ...customTemplates];
 
@@ -187,7 +190,7 @@ export class ElementThreatService implements ThreatService {
   getMitigationTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates: MitigationTemplate[] = []
+    customTemplates: MitigationTemplate[] = [],
   ): MitigationTemplate[] {
     let templates = [...this.catalog.mitigationTemplates, ...customTemplates];
 
@@ -208,7 +211,7 @@ export class ElementThreatService implements ThreatService {
   getVerificationTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates: VerificationTemplate[] = []
+    customTemplates: VerificationTemplate[] = [],
   ): VerificationTemplate[] {
     let templates = [...this.catalog.verificationTemplates, ...customTemplates];
 

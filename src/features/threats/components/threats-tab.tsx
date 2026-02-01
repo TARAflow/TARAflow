@@ -15,7 +15,8 @@ import type {
   Threat,
   ThreatData,
   ThreatConfiguration,
-  ThreatTabProps,
+  ThreatProjectData,
+  ThreatUpdateResult,
   StrideMethod,
 } from "../models/threat-types";
 import type { PhaseStatusMap } from "shared";
@@ -32,6 +33,7 @@ import { useThreatsExportImport } from "../hooks/shared/use-threat-export-import
 import { useElementThreats } from "../hooks/per-element/use-element-threats";
 import { useInteractionThreats } from "../hooks/per-interaction/use-interaction-threats";
 import { ConfirmDialog } from "shared";
+import type { DFDAnalysisContext } from "shared";
 
 // ==================== HELPER ====================
 
@@ -54,25 +56,36 @@ function ensureValidThreatData(
 const MIN_PANEL_HEIGHT = 100;
 const DEFAULT_DFD_HEIGHT = 250;
 
+// ==================== TAB PROPS ====================
+
+export interface ThreatTabProps {
+  project: ThreatProjectData;
+  dfdContext: DFDAnalysisContext;
+  onUpdate: (updates: ThreatUpdateResult) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onPhaseComplete?: () => void;
+}
+
 // ==================== COMPONENT ====================
 
 export const ThreatsTab: React.FC<ThreatTabProps> = ({
   project,
+  dfdContext,
   onUpdate,
   onDirtyChange,
   onPhaseComplete,
 }) => {
   const { t } = useTranslation();
-
+  console.log("🟦 [ThreatsTab render] dfdContext:", dfdContext);
   // ==================== STATE ====================
 
   const [activeMethod, setActiveMethod] = useState<StrideMethod>(
-    () => project.threats?.configuration?.activeMethod ?? "per-element"
+    () => project.threats?.configuration?.activeMethod ?? "per-element",
   );
 
   const threatData = useMemo(
     () => ensureValidThreatData(project.threats),
-    [project.threats]
+    [project.threats],
   );
 
   const configuration: ThreatConfiguration = useMemo(
@@ -80,7 +93,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       ...threatData.configuration,
       activeMethod,
     }),
-    [threatData.configuration, activeMethod]
+    [threatData.configuration, activeMethod],
   );
 
   const [isDirty, setIsDirty] = useState(false);
@@ -123,19 +136,23 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       onDirtyChange?.(true);
       setIsDirty(true);
     },
-    [activeMethod, onUpdate, onDirtyChange]
+    [activeMethod, onUpdate, onDirtyChange],
   );
 
   // Element threats hook
   const elementHook = useElementThreats({
     project,
+    dfdContext,
     configuration,
     onUpdate: handleUpdate,
   });
 
   // Interaction threats hook
+  console.log("🟢 [ThreatsTab] Passing dfdContext to Hook:", dfdContext);
+
   const interactionHook = useInteractionThreats({
     project,
+    dfdContext,
     configuration,
     onUpdate: handleUpdate,
   });
@@ -175,7 +192,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         },
       });
     },
-    [threatData, handleUpdate]
+    [threatData, handleUpdate],
   );
 
   const handleMethodChangeFromToolbar = useCallback(
@@ -183,16 +200,24 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       if (!method) return;
       handleMethodChange(method);
     },
-    [handleMethodChange]
+    [handleMethodChange],
   );
-
   const handleGenerateConfirm = useCallback(async () => {
+    console.log("🟨 [Generate click] TAB sees dfdContext:", dfdContext);
     setShowGenerateConfirm(false);
-    const success = await activeHook.generateThreats();
+
+    let success = false;
+
+    if (activeMethod === "per-element") {
+      success = await elementHook.generateThreats();
+    } else {
+      success = await interactionHook.generateThreats();
+    }
+
     if (success) {
       setShowSyncWarning(true);
     }
-  }, [activeHook]);
+  }, [activeMethod, elementHook, interactionHook]);
 
   const handleDeleteAllConfirm = useCallback(() => {
     activeHook.deleteAllThreats();
@@ -204,7 +229,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setSelectedThreat({ tableIndex, threat });
       setShowThreatDialog(true);
     },
-    []
+    [],
   );
 
   const handleSaveThreat = useCallback(
@@ -220,7 +245,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setShowThreatDialog(false);
       setSelectedThreat(null);
     },
-    [selectedThreat, activeHook]
+    [selectedThreat, activeHook],
   );
 
   const handleCloseThreatDialog = useCallback(() => {
@@ -236,7 +261,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       });
       setShowConfigDialog(false);
     },
-    [threatData, handleUpdate]
+    [threatData, handleUpdate],
   );
 
   const handleImportClick = useCallback(() => {
@@ -271,7 +296,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       reader.readAsText(file);
       event.target.value = "";
     },
-    [threatData, validateImportData]
+    [threatData, validateImportData],
   );
 
   const applyImport = useCallback(
@@ -284,7 +309,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setShowImportConfirm(false);
       setPendingImportData(null);
     },
-    [threatData, handleUpdate]
+    [threatData, handleUpdate],
   );
 
   const handleConfirmImport = useCallback(() => {
@@ -303,7 +328,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       startHeightRef.current = dfdPanelHeight;
       setIsResizing(true);
     },
-    [dfdPanelHeight]
+    [dfdPanelHeight],
   );
 
   const handleMouseMove = useCallback(
@@ -317,12 +342,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
       const newHeight = Math.max(
         MIN_PANEL_HEIGHT,
-        Math.min(maxHeight, startHeightRef.current + deltaY)
+        Math.min(maxHeight, startHeightRef.current + deltaY),
       );
 
       setDfdPanelHeight(newHeight);
     },
-    [isResizing]
+    [isResizing],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -488,6 +513,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               project={project}
+              dfdContext={dfdContext}
               configuration={configuration}
               onUpdate={handleUpdate}
               onOpenEditDialog={handleOpenEditDialog}
@@ -496,6 +522,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           ) : (
             <InteractionThreatsView
               project={project}
+              dfdContext={dfdContext}
               configuration={configuration}
               onUpdate={handleUpdate}
               onOpenEditDialog={handleOpenEditDialog}

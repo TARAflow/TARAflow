@@ -15,6 +15,7 @@ import {
   STRIDE_PER_ELEMENT_TYPE,
 } from "../../models/per-element-types";
 import { elementThreatGenerator } from "./element-generator";
+import { DFDAnalysisContext } from "shared";
 
 // ==================== TRUST BOUNDARY CHANGE ====================
 
@@ -33,7 +34,7 @@ export class ElementThreatSync {
    */
   checkSyncStatus(
     project: ThreatProjectData,
-    tables: ThreatTable[]
+    tables: ThreatTable[],
   ): ThreatSyncStatus {
     const elements = project.dfdElements || [];
     const connections = project.dfdConnections || [];
@@ -83,7 +84,7 @@ export class ElementThreatSync {
             // ✅ Generiere erwartete Threat-ID
             const dataFlowIdNormalized = (conn.displayId || "").replace(
               /-/g,
-              ""
+              "",
             );
             const expectedId = `${dataFlowIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
 
@@ -151,13 +152,13 @@ export class ElementThreatSync {
         if (isInterface && currentTB) {
           const interfaceIdNormalized = (element.displayId || "").replace(
             /-/g,
-            ""
+            "",
           );
           expectedId = `${currentTB.displayId}-${interfaceIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         } else {
           const elementIdNormalized = (element.displayId || element.id).replace(
             /-/g,
-            ""
+            "",
           );
           expectedId = `${elementIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         }
@@ -185,8 +186,6 @@ export class ElementThreatSync {
               name: element.name,
               type: element.type,
               displayId: element.displayId,
-              position: element.position,
-              size: element.size,
             } as DFDElementReference,
             changes: elemChanges,
           });
@@ -253,13 +252,14 @@ export class ElementThreatSync {
    */
   synchronizeThreats(
     project: ThreatProjectData,
+    dfdContext: DFDAnalysisContext,
     tables: ThreatTable[],
     syncStatus: ThreatSyncStatus,
     options: {
       updateReferences: boolean;
       removeOrphaned: boolean;
     },
-    catalog: { threatTemplates: any[] }
+    catalog: { threatTemplates: any[] },
   ): ThreatSyncResult {
     let updatedTables = [...tables];
     let added = 0;
@@ -334,13 +334,13 @@ export class ElementThreatSync {
         if (isInterface && currentTB) {
           const interfaceIdNormalized = (element.displayId || "").replace(
             /-/g,
-            ""
+            "",
           );
           newThreatId = `${currentTB.displayId}-${interfaceIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         } else {
           const elementIdNormalized = (element.displayId || element.id).replace(
             /-/g,
-            ""
+            "",
           );
           newThreatId = `${elementIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         }
@@ -371,7 +371,7 @@ export class ElementThreatSync {
       syncStatus.changedReferences.elements.length > 0
     ) {
       const changeMap = new Map(
-        syncStatus.changedReferences.elements.map((c) => [c.threatId, c])
+        syncStatus.changedReferences.elements.map((c) => [c.threatId, c]),
       );
 
       updatedTables = updatedTables.map((table) => ({
@@ -426,7 +426,11 @@ export class ElementThreatSync {
       for (const missingElement of syncStatus.missingInThreats.elements) {
         // TB-Zugehörigkeit (vereinfachte Logik)
         const tb = trustBoundaries.find((tb) =>
-          this.elementBelongsToTrustBoundary(elements, missingElement.id, tb.id)
+          this.elementBelongsToTrustBoundary(
+            elements,
+            missingElement.id,
+            tb.id,
+          ),
         );
 
         const trustBoundaryId = tb?.id || null;
@@ -439,14 +443,14 @@ export class ElementThreatSync {
           trustBoundaryId,
           trustBoundaryName,
           trustBoundaryDisplayId,
-          catalog
+          catalog,
         );
 
         // Tabelle finden oder erstellen
         let table = updatedTables.find(
           (t) =>
             t.trustBoundaryId === trustBoundaryId &&
-            t.trustBoundaryName === trustBoundaryName
+            t.trustBoundaryName === trustBoundaryName,
         );
         if (!table) {
           table = {
@@ -466,7 +470,7 @@ export class ElementThreatSync {
     // ==================== Add missing DataFlow threats ====================
     if (syncStatus.missingInThreats.dataFlows.length > 0) {
       const missingConnIds = new Set(
-        syncStatus.missingInThreats.dataFlows.map((df) => df.id)
+        syncStatus.missingInThreats.dataFlows.map((df) => df.id),
       );
 
       // Für jede fehlende Verbindung DataFlow-Pseudo-Element bauen und Threats generieren
@@ -479,8 +483,6 @@ export class ElementThreatSync {
               conn.label ||
               (conn.displayId ? conn.displayId : `DataFlow ${conn.id}`),
             displayId: conn.displayId,
-            position: { x: 0, y: 0 },
-            size: { width: 0, height: 0 },
           };
           // Generator für EIN Element nutzen
           return elementThreatGenerator["generateThreatsForElement"](
@@ -488,15 +490,15 @@ export class ElementThreatSync {
             null, // DataFlows gehören nicht zu einer TB
             "Data Flows", // Eigene Tabelle
             "",
-            catalog
+            catalog,
           );
-        }
+        },
       );
 
       // "Data Flows"-Tabelle finden oder anlegen
       let dfTable = updatedTables.find(
         (t) =>
-          t.trustBoundaryId === null && t.trustBoundaryName === "Data Flows"
+          t.trustBoundaryId === null && t.trustBoundaryName === "Data Flows",
       );
       if (!dfTable) {
         dfTable = {
@@ -513,7 +515,7 @@ export class ElementThreatSync {
         (t) =>
           t.linkedElement?.elementType === "DataFlow" &&
           t.linkedElement?.elementId &&
-          missingConnIds.has(t.linkedElement.elementId)
+          missingConnIds.has(t.linkedElement.elementId),
       );
 
       dfTable.threats.push(...threatsForMissing);
@@ -545,7 +547,7 @@ export class ElementThreatSync {
   private elementBelongsToTrustBoundary(
     elements: DFDElementReference[],
     elementId: string,
-    trustBoundaryId: string
+    trustBoundaryId: string,
   ): boolean {
     // TODO: Implement proper boundary membership logic
     // For now, return true (simplified)

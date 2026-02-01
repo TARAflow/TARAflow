@@ -1,7 +1,6 @@
 // ==================== TYPES ====================
 export type {
   StrideMethod,
-  ThreatTabProps,
   ThreatProjectData,
   ThreatData,
   ThreatUpdateResult,
@@ -13,6 +12,7 @@ export type {
   VerificationTemplate,
   ThreatSyncStatus,
   ThreatSyncResult,
+  DFDConnectionReference,
 } from "./models/threat-types";
 
 export type { LinkedDFDElement } from "./models/per-element-types";
@@ -22,6 +22,12 @@ export type {
   InteractionContext,
   InteractionDirection,
 } from "./models/per-interaction-types";
+
+export type {
+  DFDGraphReference,
+  DataFlowAnalysisReference,
+  TrustBoundaryAnalysisReference,
+} from "./models/threat-types";
 
 // ==================== COMPONENTS ====================
 export { ThreatsTab } from "./components/threats-tab";

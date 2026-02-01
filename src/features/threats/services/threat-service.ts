@@ -13,7 +13,7 @@ import type {
   MitigationTemplate,
   VerificationTemplate,
 } from "../models/threat-types";
-import type { StrideCategory } from "shared";
+import type { DFDAnalysisContext, StrideCategory } from "shared";
 
 // ==================== CATALOG INTERFACE ====================
 
@@ -55,7 +55,8 @@ export interface ThreatService {
    */
   generateThreats(
     project: ThreatProjectData,
-    configuration: ThreatConfiguration
+    dfdContext: DFDAnalysisContext,
+    configuration: ThreatConfiguration,
   ): GenerationResult;
 
   /**
@@ -73,7 +74,7 @@ export interface ThreatService {
    */
   checkSyncStatus(
     project: ThreatProjectData,
-    tables: ThreatTable[]
+    tables: ThreatTable[],
   ): ThreatSyncStatus;
 
   /**
@@ -81,12 +82,13 @@ export interface ThreatService {
    */
   synchronizeThreats(
     project: ThreatProjectData,
+    dfdContext: DFDAnalysisContext,
     tables: ThreatTable[],
     syncStatus: ThreatSyncStatus,
     options: {
       updateReferences: boolean;
       removeOrphaned: boolean;
-    }
+    },
   ): ThreatSyncResult;
 
   /**
@@ -95,7 +97,7 @@ export interface ThreatService {
   getThreatTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates?: ThreatTemplate[]
+    customTemplates?: ThreatTemplate[],
   ): ThreatTemplate[];
 
   /**
@@ -104,7 +106,7 @@ export interface ThreatService {
   getMitigationTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates?: MitigationTemplate[]
+    customTemplates?: MitigationTemplate[],
   ): MitigationTemplate[];
 
   /**
@@ -113,6 +115,6 @@ export interface ThreatService {
   getVerificationTemplates(
     strideCategory?: StrideCategory,
     elementType?: string,
-    customTemplates?: VerificationTemplate[]
+    customTemplates?: VerificationTemplate[],
   ): VerificationTemplate[];
 }

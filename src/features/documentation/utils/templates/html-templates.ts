@@ -3,304 +3,8 @@
 // Location: features/documentation/utils/templates/html-templates.ts
 
 import type { DocLanguage } from "../../models/doc-types";
-
-// ==================== CSS STYLES ====================
-
-const CSS_STYLES = `
-:root {
-  --color-primary: #1e40af;
-  --color-secondary: #64748b;
-  --color-success: #16a34a;
-  --color-warning: #ca8a04;
-  --color-danger: #dc2626;
-  --color-bg: #ffffff;
-  --color-bg-alt: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-text: #1e293b;
-  --color-text-muted: #64748b;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-text);
-  background: var(--color-bg);
-  margin: 0;
-  padding: 0;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 40px;
-}
-
-/* Typography */
-h1 { font-size: 2.5em; margin: 0 0 0.5em; color: var(--color-primary); }
-h2 { font-size: 1.75em; margin: 2em 0 0.75em; padding-bottom: 0.3em; border-bottom: 2px solid var(--color-border); }
-h3 { font-size: 1.35em; margin: 1.5em 0 0.5em; color: var(--color-secondary); }
-h4 { font-size: 1.1em; margin: 1.25em 0 0.5em; }
-p { margin: 0.75em 0; }
-
-/* Header */
-.doc-header {
-  margin-bottom: 2em;
-  padding-bottom: 1.5em;
-  border-bottom: 3px solid var(--color-primary);
-}
-
-.doc-subtitle {
-  font-size: 1.2em;
-  color: var(--color-secondary);
-  margin: 0.5em 0 1em;
-}
-
-.classification-badge {
-  display: inline-block;
-  padding: 0.25em 0.75em;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.85em;
-  margin-bottom: 1em;
-}
-
-.classification-public { background: #dcfce7; color: #166534; }
-.classification-internal { background: #dbeafe; color: #1e40af; }
-.classification-confidential { background: #fef3c7; color: #92400e; }
-.classification-restricted { background: #fee2e2; color: #991b1b; }
-
-/* Metadata table */
-.metadata-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1em 0;
-  font-size: 0.95em;
-}
-
-.metadata-table th,
-.metadata-table td {
-  padding: 0.6em 1em;
-  text-align: left;
-  border: 1px solid var(--color-border);
-}
-
-.metadata-table th {
-  background: var(--color-bg-alt);
-  font-weight: 600;
-  width: 180px;
-}
-
-/* Tags */
-.tag-group {
-  margin: 0.5em 0;
-}
-
-.tag-label {
-  font-weight: 600;
-  margin-right: 0.5em;
-}
-
-.tag {
-  display: inline-block;
-  padding: 0.2em 0.6em;
-  border-radius: 4px;
-  font-size: 0.85em;
-  margin: 0.2em;
-}
-
-.tag-domain { background: #f3e8ff; color: #7c3aed; }
-.tag-platform { background: #dbeafe; color: #2563eb; }
-.tag-regulation { background: #dcfce7; color: #16a34a; }
-.tag-other { background: #f1f5f9; color: #475569; }
-
-/* Tables */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1em 0;
-  font-size: 0.9em;
-}
-
-th, td {
-  padding: 0.75em;
-  text-align: left;
-  border: 1px solid var(--color-border);
-  vertical-align: top;
-}
-
-th {
-  background: var(--color-bg-alt);
-  font-weight: 600;
-}
-
-tr:nth-child(even) {
-  background: var(--color-bg-alt);
-}
-
-/* Stats table */
-.stats-table {
-  max-width: 400px;
-}
-
-.stats-table td:last-child {
-  text-align: right;
-  font-weight: 600;
-}
-
-/* Risk colors */
-.risk-critical { color: #991b1b; font-weight: 600; }
-.risk-high { color: #c2410c; font-weight: 600; }
-.risk-medium { color: #a16207; }
-.risk-low { color: #15803d; }
-.risk-minimal { color: #64748b; }
-
-/* Status badges */
-.status-badge {
-  display: inline-block;
-  padding: 0.2em 0.5em;
-  border-radius: 3px;
-  font-size: 0.85em;
-  font-weight: 500;
-}
-
-.status-open { background: #fee2e2; color: #991b1b; }
-.status-in-progress { background: #fef3c7; color: #92400e; }
-.status-done { background: #dcfce7; color: #166534; }
-
-/* MoSCoW badges */
-.moscow-must { color: #991b1b; font-weight: 600; }
-.moscow-should { color: #c2410c; }
-.moscow-could { color: #a16207; }
-.moscow-wont { color: #64748b; }
-
-/* TOC */
-.toc {
-  background: var(--color-bg-alt);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 1.5em 2em;
-  margin: 2em 0;
-}
-
-.toc h2 {
-  margin: 0 0 0.75em;
-  padding: 0;
-  border: none;
-  font-size: 1.25em;
-}
-
-.toc ol {
-  margin: 0;
-  padding-left: 1.5em;
-}
-
-.toc li {
-  margin: 0.4em 0;
-}
-
-.toc a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.toc a:hover {
-  text-decoration: underline;
-}
-
-/* DFD Image */
-.dfd-image {
-  max-width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  margin: 1em 0;
-}
-
-/* Element description card */
-.element-card {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  margin: 1em 0;
-  overflow: hidden;
-}
-
-.element-card-header {
-  background: var(--color-bg-alt);
-  padding: 0.75em 1em;
-  font-weight: 600;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.element-card-body {
-  padding: 0;
-}
-
-.element-card table {
-  margin: 0;
-  border: none;
-}
-
-.element-card th,
-.element-card td {
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.element-card tr:last-child th,
-.element-card tr:last-child td {
-  border-bottom: none;
-}
-
-/* Regulation section */
-.regulation-entry {
-  margin: 1.5em 0;
-  padding: 1.5em;
-  background: var(--color-bg-alt);
-  border-radius: 8px;
-  border-left: 4px solid var(--color-primary);
-}
-
-.regulation-entry h3 {
-  margin: 0 0 0.75em;
-  color: var(--color-primary);
-}
-
-/* Warning box */
-.warning-box {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: 8px;
-  padding: 1em 1.5em;
-  margin: 1em 0;
-}
-
-.warning-box::before {
-  content: "⚠️ ";
-}
-
-/* Footer */
-.doc-footer {
-  margin-top: 3em;
-  padding-top: 1.5em;
-  border-top: 2px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 0.9em;
-}
-
-/* Print styles */
-@media print {
-  body { font-size: 11pt; }
-  .container { max-width: none; padding: 0; }
-  h2 { page-break-after: avoid; }
-  table { page-break-inside: avoid; }
-  .element-card { page-break-inside: avoid; }
-}
-`;
+import { HTML_EXTENDED_TEMPLATES } from "./html-templates-extended";
+import { CSS_STYLES } from "./html-templates-styles"; 
 
 export const HTML_TEMPLATES = {
   // ==================== DOCUMENT WRAPPER ====================
@@ -689,7 +393,7 @@ export const HTML_TEMPLATES = {
   // ==================== THREATS ====================
   threatsHeader: (
     lang: DocLanguage,
-    method: "per-element" | "per-interaction"
+    method: "per-element" | "per-interaction",
   ) =>
     lang === "de"
       ? `<section id="bedrohungsanalyse-${method}">
@@ -758,7 +462,10 @@ export const HTML_TEMPLATES = {
 `,
 
   // ==================== RISKS ====================
-  risksHeader: (lang: DocLanguage, method: "per-element" | "per-interaction") =>
+  risksHeader: (
+    lang: DocLanguage,
+    method: "per-element" | "per-interaction",
+  ) =>
     lang === "de"
       ? `<section id="risikobewertung-${method}">
   <h2>Risikobewertung (STRIDE pro ${
@@ -984,4 +691,6 @@ export const HTML_TEMPLATES = {
   {{#footerText}}<p>{{footerText}}</p>{{/footerText}}
 </footer>
 `,
+  ...HTML_EXTENDED_TEMPLATES,
 };
+

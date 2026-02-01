@@ -239,11 +239,11 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   label={t("tabs.assets.columns.description", {
                     defaultValue: "Description",
                   })}
-                  value={editedAsset.description}
+                  value={editedAsset.properties?.description}
                   onChange={(e) =>
                     setEditedAsset({
                       ...editedAsset,
-                      description: e.target.value,
+                      properties: { description: e.target.value },
                     })
                   }
                   fullWidth

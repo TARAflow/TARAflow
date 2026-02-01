@@ -14,6 +14,12 @@ import type {
   SecurityGoalType,
 } from "./asset-security-goals-types";
 import { SECURITY_GOALS } from "./asset-security-goals-types";
+import type {
+  DFDAssetReference as AssetDFDAsset,
+  DFDElementReference as AssetDFDElement,
+  DFDConnectionReference as AssetDFDConnection,
+  DFDElementLink,
+} from "./dfd-reference-types";
 
 // ==================== DFD INTERFACE TYPES (Asset's View) ====================
 // What Assets needs to know about DFD elements - NO direct dependency on dfd-types
@@ -21,64 +27,12 @@ import { SECURITY_GOALS } from "./asset-security-goals-types";
 /**
  * Minimal DFD Asset info needed by Assets feature
  */
-export interface AssetDFDAsset {
-  /** Asset ID (e.g. "A-001") */
-  id: string;
-
-  /** Display ID (same as id) */
-  displayId: string;
-
-  /** XML element IDs from draw.io */
-  xmlIds: string[];
-
-  /** Positions where this asset is placed */
-  positions: Array<{ x: number; y: number }>;
-
-  /** Sizes of asset labels */
-  sizes: Array<{ width: number; height: number }>;
-
-  /** DFD elements this asset protects (XML IDs) */
-  linkedElements?: string[];
-}
-
-/**
- * Minimal DFD Element info needed by Assets feature
- */
-export interface AssetDFDElement {
-  /** Element ID (XML ID) */
-  id: string;
-
-  /** Element type (Process, DataStore, etc.) */
-  type: string;
-
-  /** Element name */
-  name: string;
-
-  /** Display ID (e.g. "P-1", "DS-1") */
-  displayId: string;
-
-  /** Assets that protect this element (Asset IDs like "A-001") */
-  linkedAssets?: string[];
-}
-
-/**
- * Minimal DFD Connection info needed by Assets feature
- */
-export interface AssetDFDConnection {
-  /** Connection ID (XML ID) */
-  id: string;
-
-  /** Label/name */
-  label?: string;
-
-  /** Display ID (e.g. "DF-1") */
-  displayId: string;
-
-  /** Assets that protect this connection (Asset IDs like "A-001") */
-  linkedAssets?: string[];
-}
-
-
+export type {
+  AssetDFDAsset,
+  AssetDFDElement,
+  AssetDFDConnection,
+  DFDElementLink,
+};
 
 // ==================== ASSET CONFIGURATION ====================
 
@@ -118,16 +72,6 @@ export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
 // ==================== ASSET DATA ====================
 
 /**
- * Link to a DFD element (from Asset's perspective)
- */
-export interface DFDElementLink {
-  elementId: string;
-  elementName: string;
-  elementType: string;
-  displayId: string;
-}
-
-/**
  * Core Asset data structure
  */
 export interface Asset {
@@ -139,9 +83,6 @@ export interface Asset {
 
   /** Asset name/description */
   name: string;
-
-  /** Detailed description */
-  description: string;
 
   /** Impact ratings per criterion */
   impactRatings: ImpactRating[];
@@ -161,8 +102,8 @@ export interface Asset {
   /** Is this asset synced with DFD? */
   syncedWithDFD: boolean;
 
-  /** Additional properties (optional extended fields) */
   properties?: {
+    description: string;
     category?: "data" | "system" | "infrastructure" | "process" | "human";
     protectionNeed?: "low" | "medium" | "high" | "critical";
     owner?: string;
@@ -352,7 +293,6 @@ export function createEmptyAsset(
     id,
     numericId,
     name: "",
-    description: "",
     impactRatings: configuration.impactCriteria.map((criterionId) => ({
       criterionId,
       value: 0,

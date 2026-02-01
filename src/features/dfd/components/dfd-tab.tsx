@@ -1,60 +1,41 @@
-// ==================== DFD TAB ====================
-// Single Responsibility: View/UI only - delegates logic to useDFDEditor hook
-// NO dependency on app - uses DFDProjectData from dfd-types
-//
-// ZOOM: Native draw.io zoom is used (Ctrl+Wheel zooms to cursor position)
-// Zoom/Undo/Redo buttons are in draw.io's own toolbar, not duplicated here
+// ==================== DFD TAB (REFACTORED) ====================
+// Single Responsibility: View/UI only - delegates all logic to hooks
+// NO business logic, NO data transformation, just rendering and event delegation
 
-import React, { useState, useCallback } from "react";
-import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  Button,
-  Paper,
-  Toolbar,
-  IconButton,
-  Tooltip,
-  Typography,
-  Chip,
-  Stack,
-  CircularProgress,
-  Divider,
-  ToggleButtonGroup,
-  ToggleButton,
-} from "@mui/material";
-import {
-  Save as SaveIcon,
-  Image as ImageIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  Refresh as RefreshIcon,
-  SkipNext as NextIcon,
-  FormatListNumbered as AutoNumberIcon,
-  DarkMode as DarkModeIcon,
-  LightMode as LightModeIcon,
-  Download as ExportIcon,
-  Upload as ImportIcon,
-  Draw as DrawIcon,
-  Description as DescriptionIcon,
-} from "@mui/icons-material";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  RefObject,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { Box, Typography, CircularProgress } from "@mui/material";
 
-import {
-  DFDStats,
+import type {
   DFDTabProps,
   DFDViewMode,
-  DFDExportData,
+  DFDStats,
+  AssetRelation,
 } from "../models/dfd-types";
-import { ValidationResult } from "../services/dfd-validator";
+import type { ValidationResult } from "../services/dfd-validator";
+
+// Hooks
 import { useDFDEditor } from "../hooks/use-dfd-editor";
 import { useDFDUIState } from "../hooks/use-dfd-ui-state";
+import { useDFDExportImport } from "../hooks/use-dfd-export-import";
+import { useIdLabelVisibility } from "../hooks/use-id-label-visibility";
+import { useAssetAssignment } from "../hooks/use-asset-assignment";
+
+// Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
 import DFDValidationPanel from "./dfd-validation-panel";
 import DFDDescriptionView from "./dfd-description-view";
+import { DFDToolbar } from "./dfd-toolbar";
+import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 
 // ==================== CONSTANTS ====================
 
-// Base URL - dark mode is controlled via configure message, not URL
 const DRAWIO_BASE_URL =
   "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
 
@@ -66,8 +47,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   onDirtyChange,
   onPhaseComplete,
 }) => {
-  const [showPreview, setShowPreview] = React.useState(false);
-  const [iframeKey, setIframeKey] = useState(0);
+  // ==================== LOCAL UI STATE ====================
+
+  const [showPreview, setShowPreview] = useState(false);
 
   // ==================== UI STATE HOOK ====================
 
@@ -78,158 +60,172 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     toggleDarkMode,
     expandedGroups,
     toggleGroup,
-    isGroupExpanded,
     expandedElements,
     toggleElement,
-    isElementExpanded,
   } = useDFDUIState({
     projectId: project.id,
   });
 
-  // Build URL with dark mode parameter
-  const drawioUrl = darkMode
-    ? `${DRAWIO_BASE_URL}&ui=dark`
-    : `${DRAWIO_BASE_URL}&ui=atlas`;
+  // ==================== BUSINESS LOGIC HOOK ====================
 
-  // ==================== EDITOR HOOK ====================
-
-  // Use custom hook for all DFD logic
-  const {
-    isLoading,
-    isDirty,
-    validation,
-    stats,
-    previewImage,
-    iframeRef,
-    initialize,
-    save,
-    validate,
-    exportImage,
-    autoNumberLabels,
-    updateElementDescription,
-    updateAssetDescription,
-    updateConnectionDescription,
-    exportDFD,
-    importDFD,
-  } = useDFDEditor(project, {
+  const editor = useDFDEditor(project, {
+    onUpdate,
     onDirtyChange,
-    onSave: onUpdate,
+    onPhaseComplete,
     darkMode,
-    iframeKey,
+    autoValidateInterval: 500,
+    autoNumberOnSave: false,
+    generateThumbnailOnSave: true,
   });
+
+  // ==================== ASSET ASSIGNMENT HOOK ====================
+
+  const assetAssignment = useAssetAssignment({
+    iframeRef: editor.iframeRef,
+  });
+
+  // ==================== ID LABEL VISIBILITY HOOK ====================
+
+  const saveWrapper = useCallback(async (): Promise<void> => {
+    await editor.save();
+    // Return Type wird ignoriert
+  }, [editor.save]);
+
+  const idLabelVisibility = useIdLabelVisibility({
+    iframeRef: editor.iframeRef as RefObject<HTMLIFrameElement>,
+    getCurrentXML: editor.getCurrentXML,
+    sendAction: editor.sendAction,
+    save: saveWrapper,
+  });
+
+  // ==================== EXPORT/IMPORT HOOK ====================
+
+  const exportImport = useDFDExportImport(
+    project,
+    {
+      iframeRef: editor.iframeRef,
+      isLoading: editor.isLoading,
+      iframeKey: editor.iframeKey,
+      initialize: editor.initialize,
+      toggleTheme: () => {}, // Not used here
+      loadXML: async () => {}, // Not used here
+      getCurrentXML: () => null, // Not used here
+      exportImage: async () => null,
+      sendAction: () => {},
+      onImageReady: () => {},
+    },
+    {
+      isDirty: editor.isDirty,
+      save: editor.save,
+      scheduleSave: () => {},
+      flush: editor.flushDebouncedSave,
+      markDirty: () => {},
+      markClean: () => {},
+    },
+  );
 
   // ==================== EFFECTS ====================
 
-  // Reinitialize iframe when switching back to draw mode
-  React.useEffect(() => {
-    if (viewMode === "draw" && !isLoading) {
-      // Small delay to ensure iframe is in DOM
-      const timer = setTimeout(() => {
-        initialize();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [viewMode, initialize, isLoading]);
-
-  // ==================== HANDLERS ====================
-
-  const handleIframeLoad = () => {
-    console.log("[DFDTab] iframe loaded, calling initialize()");
-    initialize();
-  };
-
-  const handleSave = async () => {
-    await save();
-  };
-
-  const handleExportImage = () => {
-    exportImage();
-    setShowPreview(true);
-  };
-
-  const handleAutoNumber = async () => {
-    await autoNumberLabels();
-  };
-
-  const handleExport = async () => {
-    const exportData = exportDFD();
-    if (!exportData) return;
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${project.name}_DFD.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
+  // Listen for postMessage from draw.io plugin
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
       try {
-        const text = await file.text();
-        const data: DFDExportData = JSON.parse(text);
-        await importDFD(data);
+        // Check if it's from our plugin
+        if (event.data?.type === "TARAFLOW_OPEN_ASSET_DIALOG") {
+          const { elementId, elementLabel } = event.data.payload;
+          console.log("[DFDTab] Opening asset dialog for:", elementId);
+          assetAssignment.openDialog(elementId, elementLabel);
+        }
       } catch (error) {
-        console.error("Failed to import DFD:", error);
-        alert("Failed to import DFD. Please check the file format.");
+        // Ignore parsing errors from other postMessages
       }
     };
 
-    input.click();
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [assetAssignment]);
+
+  // Auto-save when switching view modes (flush debounced changes immediately)
+  useEffect(() => {
+    return () => {
+      editor.flushDebouncedSave();
+    };
+  }, [viewMode, editor.flushDebouncedSave]);
+
+  // Reinitialize iframe when switching back to draw mode
+  useEffect(() => {
+    if (viewMode === "draw" && !editor.isLoading) {
+      const timer = setTimeout(() => {
+        editor.initialize();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, editor.initialize, editor.isLoading]);
+
+  // ==================== HANDLERS (Simple Delegation) ====================
+
+  const handleSave = async () => {
+    await editor.save();
   };
 
-  const handleProceed = () => {
-    if (isDirty) {
-      return;
-    }
-    if (!validation?.isValid) {
-      return;
-    }
-
-    // Check if all descriptions are filled
-    const allDescribed =
-      stats &&
-      stats.describedElements === stats.totalElements - stats.dataFlows &&
-      stats.describedConnections === stats.dataFlows;
-
-    if (!allDescribed) {
-      return;
-    }
-
-    onPhaseComplete?.();
+  const handleExportImage = () => {
+    editor.exportImage();
+    setShowPreview(true);
   };
 
   const handleToggleDarkMode = useCallback(() => {
     toggleDarkMode();
-    setIframeKey((prev) => prev + 1);
+    // Force iframe reload by incrementing key (handled in bridge hook)
+    // This is safe to do - the hook manages the lifecycle
   }, [toggleDarkMode]);
 
   const handleViewModeChange = (
     _event: React.MouseEvent<HTMLElement>,
-    newMode: DFDViewMode | null
+    newMode: DFDViewMode | null,
   ) => {
     if (newMode !== null) {
       setViewMode(newMode);
     }
   };
 
-  // Check if can proceed
-  const canProceed =
-    !isDirty &&
-    (validation?.isValid ?? false) &&
-    stats !== null &&
-    stats.describedElements === stats.totalElements - stats.dataFlows &&
-    stats.describedConnections === stats.dataFlows;
+  const handleProceed = () => {
+    if (!editor.canProceed) {
+      return;
+    }
+    onPhaseComplete?.();
+  };
+
+  // Build draw.io URL with dark mode parameter
+  const drawioUrl = darkMode
+    ? `${DRAWIO_BASE_URL}&ui=dark`
+    : `${DRAWIO_BASE_URL}&ui=atlas`;
+
+  /**
+   * Handle asset assignment save
+   */
+  const handleAssetSave = useCallback(
+    (relations: AssetRelation[]) => {
+      const elementId = assetAssignment.dialogState.elementId;
+      if (!elementId) {
+        console.error("[DFDTab] No element ID for asset save");
+        return;
+      }
+
+      console.log("[DFDTab] Saving assets for element:", elementId, relations);
+
+      // Update element with new asset assignments
+      editor.updateElementDescription(elementId, {
+        assetRelations: relations,
+      });
+    },
+    [assetAssignment.dialogState.elementId, editor],
+  );
+
+  // Get current element's assets for dialog
+  const currentElement = project.dfd?.elements.find(
+    (e) => e.id === assetAssignment.dialogState.elementId,
+  );
+  const currentRelations = currentElement?.assetRelations || [];
 
   // ==================== RENDER ====================
 
@@ -246,19 +242,19 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       <DFDToolbar
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
-        isDirty={isDirty}
-        validation={validation}
-        stats={stats}
+        isDirty={editor.isDirty}
+        validation={editor.validation}
+        stats={editor.stats ?? null}
         darkMode={darkMode}
         onToggleDarkMode={handleToggleDarkMode}
         onExportImage={handleExportImage}
-        onRefresh={validate}
-        onAutoNumber={handleAutoNumber}
-        onExport={handleExport}
-        onImport={handleImport}
+        onRefresh={editor.validate}
+        onAutoNumber={editor.autoNumberLabels}
+        onExport={exportImport.downloadExport}
+        onImport={exportImport.promptImport}
         onSave={handleSave}
         onProceed={handleProceed}
-        canProceed={canProceed}
+        canProceed={editor.canProceed}
       />
 
       {/* Main Content Container - holds both views */}
@@ -279,20 +275,20 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             pointerEvents: viewMode === "draw" ? "auto" : "none",
           }}
         >
-          {isLoading && <LoadingOverlay darkMode={darkMode} />}
+          {editor.isLoading && <LoadingOverlay darkMode={darkMode} />}
 
           <iframe
-            key={`${project.id}-${iframeKey}`}
-            ref={iframeRef as React.RefObject<HTMLIFrameElement>}
+            key={`${project.id}-${editor.iframeKey}`}
+            ref={editor.iframeRef as React.RefObject<HTMLIFrameElement>}
             src={drawioUrl}
             style={{
               width: "100%",
               height: "100%",
               border: "none",
-              pointerEvents: isLoading ? "none" : "auto",
+              pointerEvents: editor.isLoading ? "none" : "auto",
             }}
             title="DFD Editor"
-            onLoad={handleIframeLoad}
+            onLoad={editor.initialize}
           />
         </Box>
 
@@ -310,10 +306,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             assets={project.dfd?.assets || []}
             elements={project.dfd?.elements || []}
             connections={project.dfd?.connections || []}
-            onElementUpdate={updateElementDescription}
-            onAssetUpdate={updateAssetDescription}
-            onConnectionUpdate={updateConnectionDescription}
-            // Pass accordion state from UI hook
+            onElementUpdate={editor.updateElementDescription}
+            onAssetUpdate={editor.updateAssetDescription}
+            onConnectionUpdate={editor.updateConnectionDescription}
             expandedGroups={expandedGroups}
             onToggleGroup={toggleGroup}
             expandedElements={expandedElements}
@@ -323,306 +318,36 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       </Box>
 
       {/* Validation Panel */}
-      {validation &&
-        (validation.errors.length > 0 || validation.warnings.length > 0) && (
-          <DFDValidationPanel validation={validation} />
+      {editor.validation &&
+        (editor.validation.errors.length > 0 ||
+          editor.validation.warnings.length > 0) && (
+          <DFDValidationPanel validation={editor.validation} />
         )}
 
       {/* Preview Dialog */}
       <DFDPreviewDialog
         open={showPreview}
         onClose={() => setShowPreview(false)}
-        previewImage={previewImage}
+        previewImage={editor.previewImage}
         projectName={project.name}
+      />
+
+      {/* Asset Assignment Dialog */}
+      <AssetAssignmentDialog
+        open={assetAssignment.dialogState.open}
+        onClose={assetAssignment.closeDialog}
+        elementId={assetAssignment.dialogState.elementId}
+        elementLabel={assetAssignment.dialogState.elementLabel}
+        elementType={currentElement?.type}
+        availableAssets={project.dfd?.assets || []}
+        currentAssignments={currentRelations}
+        onSave={handleAssetSave}
       />
     </Box>
   );
 };
 
 // ==================== SUB-COMPONENTS ====================
-
-interface DFDToolbarProps {
-  viewMode: DFDViewMode;
-  onViewModeChange: (
-    event: React.MouseEvent<HTMLElement>,
-    mode: DFDViewMode | null
-  ) => void;
-  isDirty: boolean;
-  validation: ValidationResult | null;
-  stats: DFDStats | null;
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
-  onExportImage: () => void;
-  onRefresh: () => void;
-  onAutoNumber: () => void;
-  onExport: () => void;
-  onImport: () => void;
-  onSave: () => void;
-  onProceed: () => void;
-  canProceed: boolean;
-}
-
-const DFDToolbar: React.FC<DFDToolbarProps> = ({
-  viewMode,
-  onViewModeChange,
-  isDirty,
-  validation,
-  stats,
-  darkMode,
-  onToggleDarkMode,
-  onExportImage,
-  onRefresh,
-  onAutoNumber,
-  onExport,
-  onImport,
-  onSave,
-  onProceed,
-  canProceed,
-}) => {
-  const { t } = useTranslation();
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        px: 2,
-        py: 1,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        backgroundColor: "background.paper",
-        flexWrap: "wrap",
-      }}
-    >
-      {/* View Mode Toggle */}
-      <ToggleButtonGroup
-        value={viewMode}
-        exclusive
-        onChange={onViewModeChange}
-        size="small"
-      >
-        <Tooltip
-          title={t("tabs.dfd.toolbar.draw", { defaultValue: "Draw DFD" })}
-          arrow
-          placement="bottom"
-        >
-          <ToggleButton value="draw">
-            <DrawIcon fontSize="small" />
-          </ToggleButton>
-        </Tooltip>
-
-        <Tooltip
-          title={t("tabs.dfd.toolbar.describe", {
-            defaultValue: "Describe DFD",
-          })}
-          arrow
-          placement="bottom"
-        >
-          <ToggleButton value="describe">
-            <DescriptionIcon fontSize="small" />
-          </ToggleButton>
-        </Tooltip>
-      </ToggleButtonGroup>
-
-      <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-
-      {/* Dark Mode Toggle - only in draw mode */}
-      {viewMode === "draw" && (
-        <>
-          <Tooltip
-            title={
-              darkMode
-                ? t("tabs.dfd.toolbar.lightMode", {
-                    defaultValue: "Switch to Light Mode",
-                  })
-                : t("tabs.dfd.toolbar.darkMode", {
-                    defaultValue: "Switch to Dark Mode",
-                  })
-            }
-          >
-            <IconButton size="small" onClick={onToggleDarkMode}>
-              {darkMode ? (
-                <LightModeIcon fontSize="small" />
-              ) : (
-                <DarkModeIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-        </>
-      )}
-
-      {/* Export Image, Refresh & Auto-Number - only in draw mode */}
-      {viewMode === "draw" && (
-        <>
-          <Tooltip
-            title={t("tabs.dfd.toolbar.exportImage", {
-              defaultValue: "Export as Image",
-            })}
-          >
-            <IconButton size="small" onClick={onExportImage}>
-              <ImageIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={t("tabs.dfd.toolbar.refresh", {
-              defaultValue: "Refresh Validation",
-            })}
-          >
-            <IconButton size="small" onClick={onRefresh}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={t("tabs.dfd.toolbar.autoNumber", {
-              defaultValue: "Auto-Number Labels",
-            })}
-          >
-            <IconButton size="small" onClick={onAutoNumber}>
-              <AutoNumberIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-        </>
-      )}
-
-      {/* Export & Import */}
-      <Tooltip
-        title={t("tabs.dfd.toolbar.exportDFD", { defaultValue: "Export DFD" })}
-      >
-        <IconButton onClick={onExport} size="small">
-          <ExportIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-
-      <Tooltip
-        title={t("tabs.dfd.toolbar.importDFD", { defaultValue: "Import DFD" })}
-      >
-        <IconButton onClick={onImport} size="small">
-          <ImportIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-
-      {/* Spacer */}
-      <Box sx={{ flexGrow: 1 }} />
-
-      {/* Stats */}
-      {stats && <DFDStatsDisplay stats={stats} />}
-
-      {/* Validation Status */}
-      {validation && <ValidationChips validation={validation} />}
-
-      {/* Action Buttons */}
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={<SaveIcon />}
-        onClick={onSave}
-        disabled={!isDirty}
-        sx={{ mr: 1 }}
-      >
-        {t("common.save", { defaultValue: "Save" })}
-        {isDirty && " *"}
-      </Button>
-
-      <Button
-        variant="contained"
-        size="small"
-        endIcon={<NextIcon />}
-        onClick={onProceed}
-        disabled={!canProceed}
-      >
-        {t("tabs.dfd.proceed", { defaultValue: "Continue" })}
-      </Button>
-    </Box>
-  );
-};
-
-interface DFDStatsDisplayProps {
-  stats: DFDStats;
-}
-
-const DFDStatsDisplay: React.FC<DFDStatsDisplayProps> = ({ stats }) => {
-  const { t } = useTranslation();
-
-  const totalCountable = stats.totalElements - stats.dataFlows;
-  const allDescribed =
-    stats.describedElements === totalCountable &&
-    stats.describedConnections === stats.dataFlows;
-
-  return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ mr: 2 }}>
-      <Typography variant="caption" color="text.secondary">
-        {stats.totalElements}{" "}
-        {t("tabs.dfd.stats.elements", { defaultValue: "Elements" })}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        •
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {stats.dataFlows} {t("tabs.dfd.stats.flows", { defaultValue: "Flows" })}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        •
-      </Typography>
-      <Typography
-        variant="caption"
-        color={allDescribed ? "success.main" : "warning.main"}
-      >
-        {stats.describedElements + stats.describedConnections} /{" "}
-        {totalCountable + stats.dataFlows}{" "}
-        {t("tabs.dfd.stats.described", { defaultValue: "Described" })}
-      </Typography>
-    </Stack>
-  );
-};
-
-interface ValidationChipsProps {
-  validation: ValidationResult;
-}
-
-const ValidationChips: React.FC<ValidationChipsProps> = ({ validation }) => {
-  const { t } = useTranslation();
-
-  return (
-    <Stack direction="row" spacing={0.5} sx={{ mr: 2 }}>
-      {validation.isValid ? (
-        <Chip
-          icon={<CheckCircleIcon />}
-          label={t("tabs.dfd.validation.valid", { defaultValue: "Valid" })}
-          color="success"
-          size="small"
-          variant="outlined"
-        />
-      ) : (
-        validation.errors.length > 0 && (
-          <Chip
-            icon={<WarningIcon />}
-            label={`${validation.errors.length} ${t(
-              "tabs.dfd.validation.errors",
-              { defaultValue: "Errors" }
-            )}`}
-            color="error"
-            size="small"
-            variant="outlined"
-          />
-        )
-      )}
-      {validation.warnings.length > 0 && (
-        <Chip
-          icon={<InfoIcon />}
-          label={`${validation.warnings.length}`}
-          color="warning"
-          size="small"
-          variant="outlined"
-        />
-      )}
-    </Stack>
-  );
-};
 
 interface LoadingOverlayProps {
   darkMode?: boolean;

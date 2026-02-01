@@ -98,14 +98,14 @@ class StorageService {
   }
 
   async list(
-    prefix: string = STORAGE_PREFIX
+    prefix: string = STORAGE_PREFIX,
   ): Promise<StorageResult<string[]>> {
     if (!this.isAvailable())
       return this.handleError("list", new Error("Storage not available"));
 
     try {
       const keys = Object.keys(localStorage).filter((k) =>
-        k.startsWith(prefix)
+        k.startsWith(prefix),
       );
       return { success: true, data: keys };
     } catch (error) {
@@ -215,7 +215,7 @@ class StorageService {
       status: project.status,
       currentPhase: project.currentPhase,
       completedPhases: Object.values(project.phaseStatus).filter(
-        (s) => s === "complete"
+        (s) => s === "complete",
       ).length,
       totalPhases: Object.keys(project.phaseStatus).length,
     };
@@ -239,7 +239,7 @@ class StorageService {
         recentProjects = recentProjects.slice(0, 20);
 
         await (window as any).electron.metadata.saveRecentProjects(
-          recentProjects
+          recentProjects,
         );
       } catch (error) {
         console.error("Failed to update metadata in Electron:", error);
@@ -289,7 +289,7 @@ class StorageService {
         ).electron.metadata.getRecentProjects();
         if (result.success && result.data) {
           const filtered = result.data.filter(
-            (p: ProjectMetadata) => p.id !== projectId
+            (p: ProjectMetadata) => p.id !== projectId,
           );
           await (window as any).electron.metadata.saveRecentProjects(filtered);
         }
@@ -314,7 +314,7 @@ class StorageService {
       if (metadata?.filePath) {
         try {
           const result = await (window as any).electron.file.readProject(
-            metadata.filePath
+            metadata.filePath,
           );
 
           if (!result.success) {
@@ -344,7 +344,7 @@ class StorageService {
 
     // Browser Mode: localStorage fallback
     const result = await this.get<Partial<Project>>(
-      `${PROJECT_PREFIX}${projectId}`
+      `${PROJECT_PREFIX}${projectId}`,
     );
 
     if (!result.success || !result.data) {
@@ -372,29 +372,37 @@ class StorageService {
   }
 
   async saveProject(project: Project): Promise<StorageResult<Project>> {
-    if (this.isElectron() && project.filePath) {
+    const projectToSave: Project = {
+      ...project,
+      dfd: project.dfd
+        ? {
+            ...project.dfd,
+            graph: undefined,
+          }
+        : null,
+    };
+
+    if (this.isElectron() && projectToSave.filePath) {
       // Electron Mode: Write to file
       try {
-        const projectData = JSON.stringify(project, null, 2);
+        const projectData = JSON.stringify(projectToSave, null, 2);
         const result = await (window as any).electron.file.writeProject(
-          project.filePath,
-          projectData
+          projectToSave.filePath,
+          projectData,
         );
 
         if (!result.success) {
           return { success: false, error: result.error };
         }
 
-        // Update metadata for recent files
-        await this.updateRecentFile(project);
-
+        await this.updateRecentFile(projectToSave);
         return { success: true, data: project };
       } catch (error: any) {
         return { success: false, error: error.message };
       }
     } else {
       // Browser Mode: localStorage fallback
-      return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, project);
+      return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, projectToSave);
     }
   }
 
@@ -428,8 +436,8 @@ class StorageService {
 
         for (const metadata of recentFiles) {
           try {
-            const result = await(window as any).electron.file.readProject(
-              metadata.filePath
+            const result = await (window as any).electron.file.readProject(
+              metadata.filePath,
             );
 
             if (result.success) {
@@ -507,7 +515,7 @@ class StorageService {
     version: string = "1.0",
     responsible: string = "",
     isHighImpact: boolean = false,
-    filePath?: string
+    filePath?: string,
   ): Project {
     const now = new Date().toISOString();
 
@@ -573,7 +581,7 @@ class StorageService {
    * Load project from file (Electron mode)
    */
   public async loadProjectFromFile(
-    filePath: string
+    filePath: string,
   ): Promise<StorageResult<Project>> {
     if (!this.isElectron()) {
       return {
@@ -619,7 +627,7 @@ class StorageService {
 
   public async importProjectFromJSON(
     file: File,
-    filePath?: string
+    filePath?: string,
   ): Promise<StorageResult<Project>> {
     try {
       const text = await file.text();
@@ -690,7 +698,7 @@ class StorageService {
   async clearAllData(): Promise<StorageResult<boolean>> {
     try {
       const keys = Object.keys(localStorage).filter((k) =>
-        k.startsWith(STORAGE_PREFIX)
+        k.startsWith(STORAGE_PREFIX),
       );
       keys.forEach((k) => localStorage.removeItem(k));
       return { success: true, data: true };
@@ -704,7 +712,7 @@ class StorageService {
    */
   getStorageInfo(): { used: number; available: number; projectCount: number } {
     const keys = Object.keys(localStorage).filter((k) =>
-      k.startsWith(STORAGE_PREFIX)
+      k.startsWith(STORAGE_PREFIX),
     );
     const projectKeys = keys.filter((k) => k.startsWith(PROJECT_PREFIX));
 
