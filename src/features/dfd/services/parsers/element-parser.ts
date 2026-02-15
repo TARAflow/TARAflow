@@ -33,7 +33,7 @@ function collectGroupPositions(doc: Document): Map<string, { x: number; y: numbe
       const geometry = getGeometry(cell);
       if (geometry) {
         groupPositions.set(id, { x: geometry.x, y: geometry.y });
-        console.log(`Collected group position: ID=${id}, x=${geometry.x}, y=${geometry.y}`);
+        // console.log(`Collected group position: ID=${id}, x=${geometry.x}, y=${geometry.y}`);
       }
     }
   });
@@ -98,9 +98,9 @@ export function parseElementFromObject(
   const label = obj.getAttribute("label") || "";
   const objType = getXmlElementType(obj);
 
-  console.log(
-    `parseElementFromObject [PARSE] ID: ${id}, Label: ${label}, Type: ${objType}`,
-  );
+  // console.log(
+  //   `parseElementFromObject [PARSE] ID: ${id}, Label: ${label}, Type: ${objType}`,
+  // );
 
   if (!id) {
     console.warn("Skipping object with missing ID.");
@@ -163,16 +163,16 @@ export function parseElementFromObject(
   if (parentId && groupPositions?.has(parentId)) {
     const parentPos = groupPositions.get(parentId)!;
     position = { x: parentPos.x, y: parentPos.y };
-    console.log(
-      `Using parent group position: ID=${id}, parent=${parentId}, x=${position.x}, y=${position.y}`,
-    );
+    // console.log(
+    //   `Using parent group position: ID=${id}, parent=${parentId}, x=${position.x}, y=${position.y}`,
+    // );
   }
 
   const type = determineElementType(obj);
   if (!type || type === "Asset") return null;
 
   const name = cleanLabel(label) || type;
-  console.log(` - Computed Name: ${name}`);
+  // console.log(` - Computed Name: ${name}`);
 
   const element: DFDElement = {
     id,
@@ -207,10 +207,10 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
   const value = cell.getAttribute("value") || null;
   const parent = cell.getAttribute("parent") || null;
 
-  console.log("parseElementFromCellParsing mxCell:");
-  console.log(`parseElementFromCell - ID: ${id}`);
-  console.log(`parseElementFromCell - Value: ${value}`);
-  console.log(`parseElementFromCell - Parent: ${parent}`);
+  // console.log("parseElementFromCellParsing mxCell:");
+  // console.log(`parseElementFromCell - ID: ${id}`);
+  // console.log(`parseElementFromCell - Value: ${value}`);
+  // console.log(`parseElementFromCell - Parent: ${parent}`);
 
   // Skip root cells
   if (!id || id === "0" || id === "1") {
@@ -222,7 +222,7 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
     console.warn(`Skipping mxCell with missing Value. ID: ${id}`);
     return null;
   }
-  
+
   // Skip edges
   if (cell.getAttribute("edge") === "1") return null;
 
@@ -239,7 +239,7 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
   }
 
   const name = cleanLabel(value) || type;
-  console.log(` - Computed Name: ${name}`);
+  // console.log(` - Computed Name: ${name}`);
 
   const element: DFDElement = {
     id,
@@ -282,12 +282,12 @@ export function parseElements(doc: Document): DFDElement[] {
     const id = obj.getAttribute("id");
     const label = obj.getAttribute("label");
     const type = obj.getAttribute("type");
-    console.log(`[FOUND ${index}] ID: ${id}, Label: ${label}, Type: ${type}`);
+    // console.log(`[FOUND ${index}] ID: ${id}, Label: ${label}, Type: ${type}`);
   });
 
   Array.from(objects).forEach((obj) => {
     const element = parseElementFromObject(obj, groupPositions);
-    console.log("parseElementFromObject Id: ", element);
+    // console.log("parseElementFromObject Id: ", element);
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);
@@ -301,9 +301,9 @@ export function parseElements(doc: Document): DFDElement[] {
   const validCells = filterValidCells(cells); // Nur relevante mxCell verarbeiten
   validCells.forEach((cell) => {
     const element = parseElementFromCell(cell);
-    console.log(
-      "parseElementFromCell Id: " + element?.id + " Name: " + element?.name,
-    );
+    // console.log(
+    //   "parseElementFromCell Id: " + element?.id + " Name: " + element?.name,
+    // );
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);

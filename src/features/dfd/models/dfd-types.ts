@@ -13,7 +13,6 @@ import type {
 } from "./element-properties";
 
 import { DFDGraph } from "./dfd-graph-types";
-import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 // ==================== DFD ELEMENT TYPES ====================
 
 export type DFDElementType =

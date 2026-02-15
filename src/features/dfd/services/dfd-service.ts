@@ -65,108 +65,107 @@ class DFDService {
    * Load DFD data from project into localStorage for DrawIO
    */
   loadDFDForEditing(project: DFDProjectData): DFDLoadResult {
-  try {
-    const emptyContext = DFDGraphAnalysisContext.createDummyGraph();
-    const adapter = createDFDStorageAdapter(project.id);
-    adapter.loadToLocalStorage(project.dfd);
+    try {
+      const emptyContext = DFDGraphAnalysisContext.createDummyGraph();
+      const adapter = createDFDStorageAdapter(project.id);
+      adapter.loadToLocalStorage(project.dfd);
 
-    const hasData = Boolean(project.dfd?.xml);
+      const hasData = Boolean(project.dfd?.xml);
 
-    if (!hasData) {
+      if (!hasData) {
+        project.dfd = {
+          xml: undefined,
+          elements: [],
+          connections: [],
+          assets: [],
+          stats: undefined,
+          lastModified: new Date().toISOString(),
+        };
+        return {
+          success: true,
+          hasData: false,
+          stats: project.dfd.stats,
+          graphContext: emptyContext,
+        };
+      }
+
+      // Parse XML
+      const parseResult = this.parser.parse(project.dfd!.xml!);
+      const { elements, connections, assets, unconnectedDataflows } =
+        parseResult;
+
+      // Merge with existing user properties
+      const mergedElements = this.mergeElementProperties(
+        elements,
+        project.dfd?.elements || [],
+      );
+      const mergedConnections = this.mergeConnectionProperties(
+        connections,
+        project.dfd?.connections || [],
+      );
+      const mergedAssets = this.mergeAssetProperties(
+        assets,
+        project.dfd?.assets || [],
+      );
+
+      // Sync linkedElements
+      const syncedAssets = this.syncAssetLinkedElements(
+        mergedElements,
+        mergedConnections,
+        mergedAssets,
+      );
+
+      // Recalculate stats **nach merge**
+      const stats = calculateStats(
+        mergedElements,
+        mergedConnections,
+        syncedAssets,
+      );
+
+      // Build DFD graph
+      const graphBuilder = new DefaultDFDGraphBuilder();
+      const graph = graphBuilder.build({
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+      });
+
+      const graphContext = new DFDGraphAnalysisContext(graph);
+
+      // Run initial validation
+      const validation = this.validator.validate(
+        mergedElements,
+        mergedConnections,
+        syncedAssets,
+        stats,
+        {
+          unconnectedDataflows,
+        },
+        graph,
+      );
+
+      // Assign fully initialized DFD to project
       project.dfd = {
-        xml: undefined,
-        elements: [],
-        connections: [],
-        assets: [],
-        stats: undefined,
+        xml: project.dfd!.xml,
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+        stats,
+        validation: this.validator.createValidationData(validation),
         lastModified: new Date().toISOString(),
+        graph: graph,
       };
+
+      return { success: true, hasData: true, stats, graphContext };
+    } catch (error) {
       return {
-        success: true,
+        success: false,
         hasData: false,
-        stats: project.dfd.stats,
-        graphContext: emptyContext,
+        error: error instanceof Error ? error.message : "Failed to load DFD",
+        graphContext: DFDGraphAnalysisContext.createDummyGraph(),
       };
     }
-
-    // Parse XML
-    const parseResult = this.parser.parse(project.dfd!.xml!);
-    const { elements, connections, assets, unconnectedDataflows } = parseResult;
-
-    // Merge with existing user properties
-    const mergedElements = this.mergeElementProperties(
-      elements,
-      project.dfd?.elements || [],
-    );
-    const mergedConnections = this.mergeConnectionProperties(
-      connections,
-      project.dfd?.connections || [],
-    );
-    const mergedAssets = this.mergeAssetProperties(
-      assets,
-      project.dfd?.assets || [],
-    );
-
-    // Sync linkedElements
-    const syncedAssets = this.syncAssetLinkedElements(
-      mergedElements,
-      mergedConnections,
-      mergedAssets,
-    );
-
-    // Recalculate stats **nach merge**
-    const stats = calculateStats(
-      mergedElements,
-      mergedConnections,
-      syncedAssets,
-    );
-
-    // Build DFD graph
-    const graphBuilder = new DefaultDFDGraphBuilder();
-    const graph = graphBuilder.build({
-      xml: project.dfd!.xml,
-      elements: mergedElements,
-      connections: mergedConnections,
-      assets: syncedAssets,
-      stats,
-    });
-
-    const graphContext = new DFDGraphAnalysisContext(graph);
-
-    // Run initial validation
-    const validation = this.validator.validate(
-      mergedElements,
-      mergedConnections,
-      syncedAssets,
-      stats,
-      {
-        unconnectedDataflows,
-      },
-    );
-
-    // Assign fully initialized DFD to project
-    project.dfd = {
-      xml: project.dfd!.xml,
-      elements: mergedElements,
-      connections: mergedConnections,
-      assets: syncedAssets,
-      stats,
-      validation: this.validator.createValidationData(validation),
-      lastModified: new Date().toISOString(),
-      graph: graph,
-    };
-
-    return { success: true, hasData: true, stats, graphContext };
-  } catch (error) {
-    return {
-      success: false,
-      hasData: false,
-      error: error instanceof Error ? error.message : "Failed to load DFD",
-      graphContext: DFDGraphAnalysisContext.createDummyGraph(),
-    };
   }
-}
-
 
   // ==================== SAVE OPERATIONS ====================
 
@@ -401,11 +400,9 @@ class DFDService {
 
       const graphBuilder = new DefaultDFDGraphBuilder();
       const dfdGraph = graphBuilder.build({
-        xml: xml || undefined,
         elements: mergedElements,
         connections: mergedConnections,
         assets: syncedAssets,
-        stats,
       });
 
       console.debug("[saveDFD] DFDGraph ready", dfdGraph);
@@ -419,6 +416,7 @@ class DFDService {
         {
           unconnectedDataflows,
         },
+        dfdGraph,
       );
 
       // Create DFD data
@@ -464,17 +462,31 @@ class DFDService {
   /**
    * Validate current DFD state (without saving)
    */
-  validateCurrentState(projectId: string): ValidationResult {
-    const adapter = createDFDStorageAdapter(projectId);
+  validateCurrentState(project: DFDProjectData): ValidationResult {
+    const adapter = createDFDStorageAdapter(project.id);
     adapter.syncFromLegacy();
 
     const xml = adapter.getXml();
     const { elements, connections, assets, stats, unconnectedDataflows } =
       this.parser.parse(xml || "");
 
-    return this.validator.validate(elements, connections, assets, stats, {
-      unconnectedDataflows,
+    const graphBuilder = new DefaultDFDGraphBuilder();
+    const graph = graphBuilder.build({
+      elements,
+      connections,
+      assets,
     });
+
+    return this.validator.validate(
+      elements,
+      connections,
+      assets,
+      stats,
+      {
+        unconnectedDataflows,
+      },
+      graph,
+    );
   }
 
   /**

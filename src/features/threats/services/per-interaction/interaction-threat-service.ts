@@ -1,6 +1,7 @@
 // ==================== INTERACTION THREAT SERVICE ====================
 // Main service for STRIDE per-interaction threat operations
 // Delegates to generator and sync services
+// Now requires DFDGraph for all operations
 
 import type {
   ThreatTable,
@@ -12,7 +13,7 @@ import type {
   MitigationTemplate,
   VerificationTemplate,
 } from "../../models/threat-types";
-import type {  StrideCategory } from "shared";
+import type { StrideCategory } from "shared";
 import type {
   ThreatService,
   ThreatCatalog,
@@ -42,21 +43,39 @@ export class InteractionThreatService implements ThreatService {
     configuration: ThreatConfiguration,
   ): GenerationResult {
     try {
-      const elements = project.dfdElements || [];
-      const connections = project.dfdConnections || [];
-      console.debug("generateThreats ", project);
-      if (elements.length === 0) {
+      // Validate graph exists
+      if (!project.dfdGraph) {
         return {
           success: false,
           tables: [],
-          error: "No DFD elements found",
+          error:
+            "DFD graph not initialized. Please ensure DFD is properly parsed.",
         };
       }
 
+      // Check if graph has any elements
+      if (project.dfdGraph.elementsById.size === 0) {
+        return {
+          success: false,
+          tables: [],
+          error: "No DFD elements found in graph",
+        };
+      }
+
+      // Generate threats using graph-based generator
       const tables = interactionThreatGenerator.generateThreatsForProject(
         project,
         dfdContext,
       );
+
+      if (tables.length === 0) {
+        return {
+          success: false,
+          tables: [],
+          error:
+            "No threats generated. Ensure DFD has trust boundaries with data flows or interfaces.",
+        };
+      }
 
       return {
         success: true,

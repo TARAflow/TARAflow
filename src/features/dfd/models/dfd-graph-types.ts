@@ -61,11 +61,14 @@ export interface DataFlowAnalysis {
   fromEffectiveTrustBoundary?: string;
   toEffectiveTrustBoundary?: string;
 
-  /** Optional: indicates whether flow passes through an Interface */
-  viaInterface?: boolean;
+  /** IDs of Interfaces this dataflow passes through geometrically */
+  interfaceIds: string[];
 
-  /** Optional: lateral/inbound/outbound/etc. */
-  crossingType?: "none" | "inbound" | "outbound" | "lateral";
+  /** Whether flow passes through at least one Interface */
+  viaInterface: boolean;
+
+  /** Direction of trust boundary crossing */
+  crossingType: "none" | "inbound" | "outbound" | "lateral";
 }
 
 // ==================== INTERNAL HELPERS ====================

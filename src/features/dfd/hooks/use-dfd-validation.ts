@@ -47,7 +47,7 @@ export function useDFDValidation(
     try {
       console.log("[useDFDValidation] Running validation...");
 
-      const result = dfdService.validateCurrentState(project.id);
+      const result = dfdService.validateCurrentState(project);
       setValidation(result);
 
       console.log(

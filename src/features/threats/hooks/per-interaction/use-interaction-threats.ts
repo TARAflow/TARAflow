@@ -125,7 +125,7 @@ export function useInteractionThreats({
       console.warn(
         "🔥 DFDContext noch nicht bereit, warte auf Aktualisierung...",
       );
-      return false; // oder optional: retry mit setTimeout
+      return false;
     }
 
     setIsGenerating(true);
@@ -205,7 +205,7 @@ export function useInteractionThreats({
         setIsSyncing(false);
       }
     },
-    [project, configuration, notifyUpdate],
+    [syncStatus, project, dfdContext, tables, notifyUpdate],
   );
 
   // ==================== IMMUTABLE STATE UPDATES ====================

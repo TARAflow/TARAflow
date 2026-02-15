@@ -1,64 +1,115 @@
 // ==================== DFD GRAPH BUILDER ====================
-// Builds the analysis graph from persisted DFDData
+// Builds analysis graph from DFDData with TB membership logic
 
-import type {
-  DFDData,
-  DFDElement,
-  DFDConnection,
-} from "../models/dfd-types";
-
+import type { DFDElement, DFDConnection, DFDAsset } from "../models/dfd-types";
 import type {
   DFDGraph,
   DataFlowAnalysis,
   BoundingBox,
   TrustBoundaryAnalysis,
 } from "../models/dfd-graph-types";
+import { dfdAnalyzer } from "../utils/dfd-analyzer";
 
-// ==================== BUILDER API ====================
+// ==================== GEOMETRY HELPERS ====================
+
+/**
+ * Check if two bounding boxes overlap (even partially)
+ */
+function boundingBoxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
+  const aLeft = a.x;
+  const aRight = a.x + a.width;
+  const aTop = a.y;
+  const aBottom = a.y + a.height;
+
+  const bLeft = b.x;
+  const bRight = b.x + b.width;
+  const bTop = b.y;
+  const bBottom = b.y + b.height;
+
+  // Check for overlap (returns true if rectangles touch or overlap)
+  return !(
+    aRight < bLeft || // A is completely left of B
+    aLeft > bRight || // A is completely right of B
+    aBottom < bTop || // A is completely above B
+    aTop > bBottom // A is completely below B
+  );
+}
+
+/**
+ * Check if box A is completely contained within box B
+ */
+function isCompletelyContained(
+  inner: BoundingBox,
+  outer: BoundingBox,
+): boolean {
+  return (
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    inner.x + inner.width <= outer.x + outer.width &&
+    inner.y + inner.height <= outer.y + outer.height
+  );
+}
+
+/**
+ * Extract bounding box from DFDElement
+ */
+function getBoundingBox(element: DFDElement): BoundingBox {
+  return {
+    x: element.position.x,
+    y: element.position.y,
+    width: element.size.width,
+    height: element.size.height,
+  };
+}
+
+// ==================== GRAPH BUILDER ====================
+
+export interface DFDGraphBuilderInput {
+  elements: DFDElement[];
+  connections: DFDConnection[];
+  assets: DFDAsset[];
+}
 
 export interface DFDGraphBuilder {
-  build(dfd: DFDData): DFDGraph;
+  build(input: DFDGraphBuilderInput): DFDGraph;
 }
 
 // ==================== DEFAULT IMPLEMENTATION ====================
 
 export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
-  // ==================== ENTRY POINT ====================
+  build(input: DFDGraphBuilderInput): DFDGraph {
+    const { elements, connections, assets } = input;
 
-  build(dfd: DFDData): DFDGraph {
-    const elementsById = this.indexById(dfd.elements);
-    const connectionsById = this.indexById(dfd.connections);
-    const assetsById = this.indexById(dfd.assets);
+    // 1. Basic lookup maps
+    const elementsById = new Map(elements.map((e) => [e.id, e]));
+    const connectionsById = new Map(connections.map((c) => [c.id, c]));
+    const assetsById = new Map(assets.map((a) => [a.id, a]));
 
-    const outgoingConnections = this.buildOutgoing(dfd.connections);
-    const incomingConnections = this.buildIncoming(dfd.connections);
+    // 2. Topology maps
+    const { outgoingConnections, incomingConnections } =
+      this.buildTopologyMaps(connections);
 
-    const trustBoundaries = dfd.elements.filter(
-      e => e.type === "TrustBoundary"
+    // 3. Trust Boundary membership (overlap-based)
+    const { elementTrustBoundaries, trustBoundaryElements } =
+      this.buildTrustBoundaryMembership(elements);
+
+    // 4. Trust Boundary hierarchy (containment-based)
+    const trustBoundaryHierarchy = this.buildTrustBoundaryHierarchy(elements);
+
+    // 5. Effective TB (deepest nested)
+    const effectiveElementTrustBoundary = this.computeEffectiveTrustBoundaries(
+      elements,
+      elementTrustBoundaries,
+      trustBoundaryHierarchy,
     );
 
-    const elementTrustBoundaries =
-      this.resolveElementTrustBoundaries(dfd.elements, trustBoundaries);
-
-    const trustBoundaryElements =
-      this.buildReverseTrustBoundaryIndex(elementTrustBoundaries);
-
-    const trustBoundaryHierarchy =
-      this.resolveTrustBoundaryHierarchy(trustBoundaries);
-
-    const effectiveElementTrustBoundary =
-      this.resolveEffectiveElementTrustBoundary(
-        elementTrustBoundaries,
-        trustBoundaryHierarchy
-      );
-
-    const dataFlowAnalysis =
-      this.analyzeDataFlows(
-        dfd.connections,
-        elementsById,
-        elementTrustBoundaries,
-        effectiveElementTrustBoundary
-      );
+    // 6. DataFlow analysis
+    const dataFlowAnalysis = this.buildDataFlowAnalysis(
+      connections,
+      elementsById,
+      elementTrustBoundaries,
+      effectiveElementTrustBoundary,
+    );
 
     return {
       elementsById,
@@ -68,248 +119,288 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       incomingConnections,
       elementTrustBoundaries,
       trustBoundaryElements,
+      dataFlowAnalysis,
       trustBoundaryHierarchy,
       effectiveElementTrustBoundary,
-      dataFlowAnalysis,
     };
   }
 
-  // ==================== INDEXING ====================
+  // ==================== TOPOLOGY ====================
 
-  private indexById<T extends { id: string }>(items: T[]): Map<string, T> {
-    return new Map(items.map(item => [item.id, item]));
-  }
+  private buildTopologyMaps(connections: DFDConnection[]): {
+    outgoingConnections: Map<string, string[]>;
+    incomingConnections: Map<string, string[]>;
+  } {
+    const outgoingConnections = new Map<string, string[]>();
+    const incomingConnections = new Map<string, string[]>();
 
-  // ==================== GRAPH TOPOLOGY ====================
+    for (const conn of connections) {
+      // Outgoing from source
+      const outgoing = outgoingConnections.get(conn.from) || [];
+      outgoing.push(conn.id);
+      outgoingConnections.set(conn.from, outgoing);
 
-  private buildOutgoing(connections: DFDConnection[]): Map<string, string[]> {
-    const map = new Map<string, string[]>();
-
-    for (const c of connections) {
-      if (!map.has(c.from)) map.set(c.from, []);
-      map.get(c.from)!.push(c.id);
+      // Incoming to target
+      const incoming = incomingConnections.get(conn.to) || [];
+      incoming.push(conn.id);
+      incomingConnections.set(conn.to, incoming);
     }
 
-    return map;
+    return { outgoingConnections, incomingConnections };
   }
 
-  private buildIncoming(connections: DFDConnection[]): Map<string, string[]> {
-    const map = new Map<string, string[]>();
+  // ==================== TRUST BOUNDARY MEMBERSHIP ====================
 
-    for (const c of connections) {
-      if (!map.has(c.to)) map.set(c.to, []);
-      map.get(c.to)!.push(c.id);
-    }
+  /**
+   * Build TB membership based on geometric overlap
+   * Rule: Interface, Process, DataStore use overlap detection
+   * External Entities are never members
+   */
+  private buildTrustBoundaryMembership(elements: DFDElement[]): {
+    elementTrustBoundaries: Map<string, string[]>;
+    trustBoundaryElements: Map<string, string[]>;
+  } {
+    const elementTrustBoundaries = new Map<string, string[]>();
+    const trustBoundaryElements = new Map<string, string[]>();
 
-    return map;
-  }
+    // Get all trust boundaries
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
 
-  // ==================== TRUST BOUNDARY RESOLUTION ====================
-
-  private resolveElementTrustBoundaries(
-    elements: DFDElement[],
-    trustBoundaries: DFDElement[]
-  ): Map<string, string[]> {
-    const result = new Map<string, string[]>();
-
-    const tbBoxes = trustBoundaries.map(tb => ({
-      id: tb.id,
-      box: this.toBoundingBox(tb),
-    }));
-
+    // For each non-TB, non-EE element, find overlapping TBs
     for (const element of elements) {
+      // Skip Trust Boundaries (handled separately)
       if (element.type === "TrustBoundary") continue;
 
-      const elementBox = this.toBoundingBox(element);
-      const containedIn: string[] = [];
+      // Skip External Entities (never inside TB)
+      if (element.type === "ExternalEntity") {
+        elementTrustBoundaries.set(element.id, []);
+        continue;
+      }
 
-      for (const tb of tbBoxes) {
-        if (this.isContained(elementBox, tb.box)) {
-          containedIn.push(tb.id);
+      // Check overlap with each TB
+      const memberTBs: string[] = [];
+      const elementBox = getBoundingBox(element);
+
+      for (const tb of trustBoundaries) {
+        const tbBox = getBoundingBox(tb);
+
+        if (boundingBoxesOverlap(elementBox, tbBox)) {
+          memberTBs.push(tb.id);
+
+          // Also update reverse map
+          const tbElements = trustBoundaryElements.get(tb.id) || [];
+          tbElements.push(element.id);
+          trustBoundaryElements.set(tb.id, tbElements);
         }
       }
 
-      result.set(element.id, containedIn);
+      elementTrustBoundaries.set(element.id, memberTBs);
     }
 
-    return result;
-  }
-
-  private buildReverseTrustBoundaryIndex(
-    elementTBs: Map<string, string[]>
-  ): Map<string, string[]> {
-    const reverse = new Map<string, string[]>();
-
-    for (const [elementId, tbIds] of elementTBs) {
-      for (const tbId of tbIds) {
-        if (!reverse.has(tbId)) reverse.set(tbId, []);
-        reverse.get(tbId)!.push(elementId);
-      }
-    }
-
-    return reverse;
+    return { elementTrustBoundaries, trustBoundaryElements };
   }
 
   // ==================== TRUST BOUNDARY HIERARCHY ====================
 
-  private resolveTrustBoundaryHierarchy(
-    trustBoundaries: DFDElement[]
+  /**
+   * Build TB hierarchy based on complete containment
+   * Rule: TB must be COMPLETELY contained in parent TB
+   */
+  private buildTrustBoundaryHierarchy(
+    elements: DFDElement[],
   ): Map<string, TrustBoundaryAnalysis> {
-    const result = new Map<string, TrustBoundaryAnalysis>();
+    const hierarchy = new Map<string, TrustBoundaryAnalysis>();
 
-    const boxes = trustBoundaries.map(tb => ({
-      id: tb.id,
-      box: this.toBoundingBox(tb),
-    }));
+    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
 
+    // For each TB, find its parent (if any)
     for (const tb of trustBoundaries) {
-      let parent: string | undefined;
-      let minArea = Infinity;
+      const tbBox = getBoundingBox(tb);
+      let parentTB: DFDElement | undefined = undefined;
+      let smallestParentArea = Infinity;
 
-      const box = this.toBoundingBox(tb);
+      // Find the smallest TB that completely contains this TB
+      for (const potentialParent of trustBoundaries) {
+        if (potentialParent.id === tb.id) continue;
 
-      for (const candidate of boxes) {
-        if (candidate.id === tb.id) continue;
+        const parentBox = getBoundingBox(potentialParent);
 
-        if (this.isContained(box, candidate.box)) {
-          const area = candidate.box.width * candidate.box.height;
-          if (area < minArea) {
-            minArea = area;
-            parent = candidate.id;
+        if (isCompletelyContained(tbBox, parentBox)) {
+          const parentArea = parentBox.width * parentBox.height;
+
+          // Pick the smallest containing TB (most direct parent)
+          if (parentArea < smallestParentArea) {
+            parentTB = potentialParent;
+            smallestParentArea = parentArea;
           }
         }
       }
 
-      result.set(tb.id, {
+      // Store initial analysis (depth will be computed later)
+      hierarchy.set(tb.id, {
         trustBoundaryId: tb.id,
-        parentTrustBoundaryId: parent,
-        depth: 0,
+        parentTrustBoundaryId: parentTB?.id,
+        depth: 0, // Will be computed in next pass
       });
     }
 
-    const computeDepth = (id: string): number => {
-      const tb = result.get(id)!;
-      if (!tb.parentTrustBoundaryId) return 0;
-      return 1 + computeDepth(tb.parentTrustBoundaryId);
-    };
+    // Compute depths
+    this.computeDepths(hierarchy);
 
-    result.forEach(tb => {
-      tb.depth = computeDepth(tb.trustBoundaryId);
-    });
-
-    return result;
+    return hierarchy;
   }
 
-  private resolveEffectiveElementTrustBoundary(
-    elementTBs: Map<string, string[]>,
-    hierarchy: Map<string, TrustBoundaryAnalysis>
-  ): Map<string, string | undefined> {
-    const result = new Map<string, string | undefined>();
+  /**
+   * Compute depth for each TB in hierarchy
+   */
+  private computeDepths(hierarchy: Map<string, TrustBoundaryAnalysis>): void {
+    const computeDepth = (
+      tbId: string,
+      visited = new Set<string>(),
+    ): number => {
+      // Avoid infinite loops
+      if (visited.has(tbId)) return 0;
+      visited.add(tbId);
 
-    for (const [elementId, tbIds] of elementTBs) {
-      if (tbIds.length === 0) {
-        result.set(elementId, undefined);
+      const analysis = hierarchy.get(tbId);
+      if (!analysis || !analysis.parentTrustBoundaryId) {
+        return 0; // Root level
+      }
+
+      return 1 + computeDepth(analysis.parentTrustBoundaryId, visited);
+    };
+
+    for (const [tbId, analysis] of hierarchy) {
+      analysis.depth = computeDepth(tbId);
+    }
+  }
+
+  // ==================== EFFECTIVE TRUST BOUNDARY ====================
+
+  /**
+   * Compute the "effective" TB for each element
+   * This is the DEEPEST nested TB the element is in
+   */
+  private computeEffectiveTrustBoundaries(
+    elements: DFDElement[],
+    elementTrustBoundaries: Map<string, string[]>,
+    trustBoundaryHierarchy: Map<string, TrustBoundaryAnalysis>,
+  ): Map<string, string | undefined> {
+    const effective = new Map<string, string | undefined>();
+
+    for (const element of elements) {
+      if (element.type === "TrustBoundary") continue;
+
+      const memberTBs = elementTrustBoundaries.get(element.id) || [];
+
+      if (memberTBs.length === 0) {
+        effective.set(element.id, undefined);
         continue;
       }
 
-      const deepest = tbIds.reduce((a, b) =>
-        hierarchy.get(a)!.depth > hierarchy.get(b)!.depth ? a : b
-      );
+      // Find the TB with the highest depth (most nested)
+      let deepestTB: string | undefined = undefined;
+      let maxDepth = -1;
 
-      result.set(elementId, deepest);
+      for (const tbId of memberTBs) {
+        const analysis = trustBoundaryHierarchy.get(tbId);
+        const depth = analysis?.depth ?? 0;
+
+        if (depth > maxDepth) {
+          maxDepth = depth;
+          deepestTB = tbId;
+        }
+      }
+
+      effective.set(element.id, deepestTB);
     }
 
-    return result;
+    return effective;
   }
 
-  // ==================== DATA FLOW ANALYSIS ====================
+  // ==================== DATAFLOW ANALYSIS ====================
 
-  private analyzeDataFlows(
+  /**
+   * Build DataFlow analysis for each connection
+   */
+  private buildDataFlowAnalysis(
     connections: DFDConnection[],
     elementsById: Map<string, DFDElement>,
-    elementTBs: Map<string, string[]>,
-    effectiveElementTB: Map<string, string | undefined>
+    elementTrustBoundaries: Map<string, string[]>,
+    effectiveElementTrustBoundary: Map<string, string | undefined>,
   ): Map<string, DataFlowAnalysis> {
-    const result = new Map<string, DataFlowAnalysis>();
+    const analysis = new Map<string, DataFlowAnalysis>();
 
-    for (const c of connections) {
-      const fromElement = elementsById.get(c.from);
-      const toElement = elementsById.get(c.to);
+    // Get all interfaces for geometric intersection checks
+    const interfaces = Array.from(elementsById.values()).filter(
+      (e) => e.type === "Interface",
+    );
+    const allElements = Array.from(elementsById.values());
+
+    for (const conn of connections) {
+      const fromElement = elementsById.get(conn.from);
+      const toElement = elementsById.get(conn.to);
 
       if (!fromElement || !toElement) continue;
 
-      const fromTBs = elementTBs.get(c.from) ?? [];
-      const toTBs = elementTBs.get(c.to) ?? [];
+      const fromTBs = elementTrustBoundaries.get(conn.from) || [];
+      const toTBs = elementTrustBoundaries.get(conn.to) || [];
 
-      const fromEffectiveTB = effectiveElementTB.get(c.from);
-      const toEffectiveTB = effectiveElementTB.get(c.to);
+      const fromEffectiveTB = effectiveElementTrustBoundary.get(conn.from);
+      const toEffectiveTB = effectiveElementTrustBoundary.get(conn.to);
 
-      const crosses = !this.sameSet(fromTBs, toTBs);
+      // Check if crossing TBs
+      const crossesTrustBoundary = fromEffectiveTB !== toEffectiveTB;
 
-      const crossingType = this.determineCrossingType(
-        fromEffectiveTB,
-        toEffectiveTB
-      );
+      // Count unique TBs crossed
+      const allTBs = new Set([...fromTBs, ...toTBs]);
+      const crossesMultipleTrustBoundaries = allTBs.size > 1;
 
-      const viaInterface =
-        fromElement.type === "Interface" ||
-        toElement.type === "Interface";
+      // Determine crossing type
+      let crossingType: "none" | "inbound" | "outbound" | "lateral" = "none";
+      if (crossesTrustBoundary) {
+        if (!fromEffectiveTB && toEffectiveTB) {
+          crossingType = "inbound"; // From outside to inside
+        } else if (fromEffectiveTB && !toEffectiveTB) {
+          crossingType = "outbound"; // From inside to outside
+        } else {
+          crossingType = "lateral"; // Between different TBs
+        }
+      }
 
-      result.set(c.id, {
-        connectionId: c.id,
-        fromElementId: c.from,
-        toElementId: c.to,
+      // Check which interfaces this dataflow passes through (geometric intersection)
+      const interfaceIds: string[] = [];
+      for (const iface of interfaces) {
+        const dataflowsThrough = dfdAnalyzer.findDataflowsThroughInterface(
+          iface,
+          [conn],
+          allElements,
+        );
+        if (dataflowsThrough.length > 0) {
+          interfaceIds.push(iface.id);
+        }
+      }
+
+      const viaInterface = interfaceIds.length > 0;
+
+      analysis.set(conn.id, {
+        connectionId: conn.id,
+        fromElementId: conn.from,
+        toElementId: conn.to,
         fromElementType: fromElement.type,
         toElementType: toElement.type,
         fromTrustBoundaryIds: fromTBs,
         toTrustBoundaryIds: toTBs,
+        crossesTrustBoundary,
+        crossesMultipleTrustBoundaries,
         fromEffectiveTrustBoundary: fromEffectiveTB,
         toEffectiveTrustBoundary: toEffectiveTB,
-        crossesTrustBoundary: crosses,
-        crossesMultipleTrustBoundaries:
-          crosses && (fromTBs.length + toTBs.length > 1),
+        interfaceIds,
         viaInterface,
         crossingType,
       });
     }
 
-    return result;
-  }
-
-  private determineCrossingType(
-    from?: string,
-    to?: string
-  ): "none" | "inbound" | "outbound" | "lateral" {
-    if (!from && !to) return "none";
-    if (!from && to) return "inbound";
-    if (from && !to) return "outbound";
-    if (from !== to) return "lateral";
-    return "none";
-  }
-
-  // ==================== GEOMETRY HELPERS ====================
-
-  private toBoundingBox(element: DFDElement): BoundingBox {
-    return {
-      x: element.position.x,
-      y: element.position.y,
-      width: element.size.width,
-      height: element.size.height,
-    };
-  }
-
-  private isContained(inner: BoundingBox, outer: BoundingBox): boolean {
-    return (
-      inner.x >= outer.x &&
-      inner.y >= outer.y &&
-      inner.x + inner.width <= outer.x + outer.width &&
-      inner.y + inner.height <= outer.y + outer.height
-    );
-  }
-
-  private sameSet(a: string[], b: string[]): boolean {
-    if (a.length !== b.length) return false;
-    const setA = new Set(a);
-    return b.every(x => setA.has(x));
+    return analysis;
   }
 }

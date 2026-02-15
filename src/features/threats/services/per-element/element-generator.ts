@@ -1,5 +1,6 @@
 // ==================== ELEMENT THREAT GENERATOR ====================
 // Single Responsibility: Generate threats using STRIDE per-element method
+// Now using DFDGraph for efficient element analysis
 
 import type { StrideCategory } from "shared";
 import type {
@@ -8,7 +9,7 @@ import type {
   ThreatTemplate,
   ThreatProjectData,
   DFDElementReference,
-  DFDConnectionReference,
+  DFDGraphReference,
 } from "../../models/threat-types";
 import {
   LinkedDFDElement,
@@ -22,98 +23,196 @@ import { createEmptyThreat } from "../../models/threat-types";
 
 export class ElementThreatGenerator {
   /**
-   * Generate threats for all elements in project
+   * Generate threats for all elements in project using DFDGraph
    */
   generateThreatsForProject(
     project: ThreatProjectData,
-    catalog: { threatTemplates: ThreatTemplate[] }
+    catalog: { threatTemplates: ThreatTemplate[] },
   ): ThreatTable[] {
-    const elements = project.dfdElements || [];
-    const connections = project.dfdConnections || [];
-    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+    // Early exit if no graph
+    if (!project.dfdGraph) {
+      return [];
+    }
+
+    const graph = project.dfdGraph;
     const tables: ThreatTable[] = [];
 
-    // Generate table for each trust boundary
-    for (const tb of trustBoundaries) {
-      const elementsInBoundary = this.getElementsInTrustBoundary(
-        elements,
-        tb.id
-      );
+    // ==================== TRUST BOUNDARY TABLES ====================
+    // Generate one table per trust boundary
+    for (const [trustBoundaryId, elementIds] of graph.trustBoundaryElements) {
+      const trustBoundary = graph.elementsById.get(trustBoundaryId);
+      if (!trustBoundary) continue;
 
-      if (elementsInBoundary.length === 0) continue;
+      // Filter for elements with applicable STRIDE categories
+      const applicableElements = elementIds
+        .map((id) => graph.elementsById.get(id))
+        .filter((el): el is NonNullable<typeof el> => {
+          if (!el) return false;
+
+          // Skip Trust Boundaries and External Entities
+          if (el.type === "TrustBoundary" || el.type === "ExternalEntity") {
+            return false;
+          }
+
+          // Check if element has applicable STRIDE categories
+          const applicableStride = STRIDE_PER_ELEMENT_TYPE[el.type];
+          return applicableStride && applicableStride.length > 0;
+        });
+
+      if (applicableElements.length === 0) continue;
 
       const threats = this.generateThreatsForElements(
-        elementsInBoundary,
-        tb.id,
-        tb.name,
-        tb.displayId ?? "",
-        catalog
+        applicableElements,
+        trustBoundaryId,
+        trustBoundary.name,
+        trustBoundary.displayId ?? "",
+        catalog,
       );
 
       if (threats.length > 0) {
         tables.push({
-          trustBoundaryId: tb.id,
-          trustBoundaryName: tb.name,
-          displayIdentifier: `[${tb.displayId}]`,
+          trustBoundaryId: trustBoundaryId,
+          trustBoundaryName: trustBoundary.name,
+          displayIdentifier: `[${trustBoundary.displayId}]`,
           threats,
         });
       }
     }
 
-    // Generate table for dataflows
-    const dataFlowElements = this.getDataFlowsForElements(connections);
-    const dfThreats = this.generateThreatsForElements(
-      dataFlowElements,
-      null,
-      "Data Flows",
-      "",
-      catalog
-    );
-    if (dfThreats.length > 0) {
+    // ==================== DATA FLOWS TABLE ====================
+    const dataFlowThreats = this.generateDataFlowThreats(graph, catalog);
+    if (dataFlowThreats.length > 0) {
       tables.push({
         trustBoundaryId: null,
         trustBoundaryName: "Data Flows",
         displayIdentifier: "[DF]",
-        threats: dfThreats,
+        threats: dataFlowThreats,
       });
     }
 
-    // Generate table for external entities (outside trust boundaries)
-    const externalEntities = elements.filter(
-      (e) => e.type === "ExternalEntity"
+    // ==================== EXTERNAL ENTITIES TABLE ====================
+    const externalEntityThreats = this.generateExternalEntityThreats(
+      graph,
+      catalog,
     );
-    if (externalEntities.length > 0) {
-      const threats = this.generateThreatsForElements(
-        externalEntities,
-        null,
-        "External Entities",
-        "",
-        catalog
-      );
-      if (threats.length > 0) {
-        tables.push({
-          trustBoundaryId: null,
-          trustBoundaryName: "External Entities",
-          displayIdentifier: `[EE]`,
-          threats,
-        });
-      }
+    if (externalEntityThreats.length > 0) {
+      tables.push({
+        trustBoundaryId: null,
+        trustBoundaryName: "External Entities",
+        displayIdentifier: "[EE]",
+        threats: externalEntityThreats,
+      });
+    }
+
+    // ==================== PHYSICAL INTERFACES TABLE ====================
+    // Interfaces without Trust Boundary assignment
+    const interfaceThreats = this.generateInterfacesWithoutTB(graph, catalog);
+    if (interfaceThreats.length > 0) {
+      tables.push({
+        trustBoundaryId: null,
+        trustBoundaryName: "Physical Interfaces",
+        displayIdentifier: "[IF]",
+        threats: interfaceThreats,
+      });
     }
 
     return tables;
   }
 
-  private getDataFlowsForElements(
-    connections: DFDConnectionReference[]
-  ): DFDElementReference[] {
-    return connections.map((conn) => ({
-      id: conn.id,
-      type: "DataFlow",
-      name: conn.label || conn.id,
-      displayId: conn.displayId,
-      position: { x: 0, y: 0 },
-      size: { width: 0, height: 0 },
-    }));
+  /**
+   * Generate threats for Interfaces without Trust Boundary from graph
+   */
+  private generateInterfacesWithoutTB(
+    graph: DFDGraphReference,
+    catalog: { threatTemplates: ThreatTemplate[] },
+  ): Threat[] {
+    const threats: Threat[] = [];
+
+    for (const element of graph.elementsById.values()) {
+      // Only Interfaces
+      if (
+        element.type !== "Interface" &&
+        element.type !== "PhysicalInterface"
+      ) {
+        continue;
+      }
+
+      // Only those WITHOUT effective TB
+      const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
+      if (effectiveTB !== undefined) {
+        continue; // This interface has a TB, will be in TB table
+      }
+
+      const elementThreats = this.generateThreatsForElement(
+        element,
+        null, // No trust boundary
+        "Physical Interfaces",
+        "",
+        catalog,
+      );
+
+      threats.push(...elementThreats);
+    }
+
+    return threats;
+  }
+
+  /**
+   * Generate threats for Data Flows from graph
+   */
+  private generateDataFlowThreats(
+    graph: DFDGraphReference,
+    catalog: { threatTemplates: ThreatTemplate[] },
+  ): Threat[] {
+    const threats: Threat[] = [];
+
+    for (const connection of graph.connectionsById.values()) {
+      const dataFlowElement: DFDElementReference = {
+        id: connection.id,
+        type: "DataFlow",
+        name: connection.label || connection.id,
+        displayId: connection.displayId,
+      };
+
+      const elementThreats = this.generateThreatsForElement(
+        dataFlowElement,
+        null,
+        "Data Flows",
+        "",
+        catalog,
+      );
+
+      threats.push(...elementThreats);
+    }
+
+    return threats;
+  }
+
+  /**
+   * Generate threats for External Entities from graph
+   * All External Entities go into separate table
+   */
+  private generateExternalEntityThreats(
+    graph: DFDGraphReference,
+    catalog: { threatTemplates: ThreatTemplate[] },
+  ): Threat[] {
+    const threats: Threat[] = [];
+
+    for (const element of graph.elementsById.values()) {
+      if (element.type !== "ExternalEntity") continue;
+
+      const elementThreats = this.generateThreatsForElement(
+        element,
+        null,
+        "External Entities",
+        "",
+        catalog,
+      );
+
+      threats.push(...elementThreats);
+    }
+
+    return threats;
   }
 
   /**
@@ -124,7 +223,7 @@ export class ElementThreatGenerator {
     trustBoundaryId: string | null,
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
-    catalog: { threatTemplates: ThreatTemplate[] }
+    catalog: { threatTemplates: ThreatTemplate[] },
   ): Threat[] {
     const threats: Threat[] = [];
 
@@ -134,7 +233,7 @@ export class ElementThreatGenerator {
         trustBoundaryId,
         trustBoundaryName,
         trustBoundaryDisplayId,
-        catalog
+        catalog,
       );
       threats.push(...elementThreats);
     }
@@ -150,7 +249,7 @@ export class ElementThreatGenerator {
     trustBoundaryId: string | null,
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
-    catalog: { threatTemplates: ThreatTemplate[] }
+    catalog: { threatTemplates: ThreatTemplate[] },
   ): Threat[] {
     const threats: Threat[] = [];
     const applicableStride = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
@@ -166,7 +265,7 @@ export class ElementThreatGenerator {
         trustBoundaryName,
         trustBoundaryDisplayId,
         isInterface,
-        catalog
+        catalog,
       );
 
       threats.push(threat);
@@ -185,7 +284,7 @@ export class ElementThreatGenerator {
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
     isInterface: boolean,
-    catalog: { threatTemplates: ThreatTemplate[] }
+    catalog: { threatTemplates: ThreatTemplate[] },
   ): Threat {
     // Generate threat ID
     const threatId = isInterface
@@ -193,12 +292,12 @@ export class ElementThreatGenerator {
           trustBoundaryDisplayId || "TB-EXT",
           element.displayId || element.id,
           strideCategory,
-          1
+          1,
         )
       : generateThreatIdPerElement(
           element.displayId || element.id,
           strideCategory,
-          1
+          1,
         );
 
     // Create base threat
@@ -207,7 +306,7 @@ export class ElementThreatGenerator {
       strideCategory,
       trustBoundaryId,
       trustBoundaryName,
-      trustBoundaryDisplayId
+      trustBoundaryDisplayId,
     );
 
     // Link element
@@ -222,7 +321,7 @@ export class ElementThreatGenerator {
     const template = this.findTemplateForElement(
       element.type,
       strideCategory,
-      catalog.threatTemplates
+      catalog.threatTemplates,
     );
 
     if (template) {
@@ -240,35 +339,13 @@ export class ElementThreatGenerator {
   private findTemplateForElement(
     elementType: string,
     strideCategory: StrideCategory,
-    templates: ThreatTemplate[]
+    templates: ThreatTemplate[],
   ): ThreatTemplate | undefined {
     return templates.find(
       (t) =>
         t.strideCategory === strideCategory &&
-        t.elementTypes.includes(elementType)
+        t.elementTypes.includes(elementType),
     );
-  }
-
-  /**
-   * Get elements within a trust boundary
-   */
-  private getElementsInTrustBoundary(
-    elements: DFDElementReference[],
-    trustBoundaryId: string
-  ): DFDElementReference[] {
-    // Filter applicable elements (not trust boundaries themselves)
-    return elements.filter((e) => {
-      if (e.type === "TrustBoundary") return false;
-      if (e.type === "ExternalEntity") return false; // External entities in separate table
-
-      // Check if element has applicable STRIDE categories
-      const applicableStride = STRIDE_PER_ELEMENT_TYPE[e.type];
-      if (!applicableStride || applicableStride.length === 0) return false;
-
-      // TODO: Add proper boundary membership logic
-      // For now, include all applicable elements
-      return true;
-    });
   }
 }
 

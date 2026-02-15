@@ -1,6 +1,7 @@
 // ==================== ELEMENT THREAT SERVICE ====================
 // Main service for STRIDE per-element threat operations
 // Delegates to generator and sync services
+// Now requires DFDGraph for all operations
 
 import type {
   ThreatTable,
@@ -41,20 +42,39 @@ export class ElementThreatService implements ThreatService {
     configuration: ThreatConfiguration,
   ): GenerationResult {
     try {
-      const elements = project.dfdElements || [];
-
-      if (elements.length === 0) {
+      // Validate graph exists
+      if (!project.dfdGraph) {
         return {
           success: false,
           tables: [],
-          error: "No DFD elements found",
+          error:
+            "DFD graph not initialized. Please ensure DFD is properly parsed.",
         };
       }
 
+      // Check if graph has any elements
+      if (project.dfdGraph.elementsById.size === 0) {
+        return {
+          success: false,
+          tables: [],
+          error: "No DFD elements found in graph",
+        };
+      }
+
+      // Generate threats using graph-based generator
       const tables = elementThreatGenerator.generateThreatsForProject(
         project,
         this.catalog,
       );
+
+      if (tables.length === 0) {
+        return {
+          success: false,
+          tables: [],
+          error:
+            "No threats generated. Ensure DFD has elements with applicable STRIDE categories.",
+        };
+      }
 
       return {
         success: true,

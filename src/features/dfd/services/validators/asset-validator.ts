@@ -1,8 +1,13 @@
 // ==================== ASSET VALIDATOR ====================
 // Single Responsibility: Validate DFD assets and interfaces
 
-import type { DFDAsset, DFDElement, DFDConnection } from "../../models/dfd-types";
+import type {
+  DFDAsset,
+  DFDElement,
+  DFDConnection,
+} from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
+import type { DFDGraph } from "../../models/dfd-graph-types";
 
 /**
  * Validate assets and interfaces
@@ -12,7 +17,8 @@ export function validateAssetsAndInterfaces(
   elements: DFDElement[],
   connections: DFDConnection[],
   warnings: string[],
-  dfdAnalyzer: any
+  dfdAnalyzer: any,
+  graph?: DFDGraph,
 ): void {
   // Separate interfaces from elements
   const interfaces = elements.filter((e) => e.type === "Interface");
@@ -21,7 +27,7 @@ export function validateAssetsAndInterfaces(
   validateAssetPlacement(assets, elements, connections, warnings, dfdAnalyzer);
 
   // Validate Interfaces (must have dataflow passing through)
-  validateInterfaceUsage(interfaces, connections, elements, warnings, dfdAnalyzer);
+  validateInterfaceUsage(interfaces, warnings, graph);
 }
 
 /**
@@ -32,14 +38,14 @@ function validateAssetPlacement(
   allElements: DFDElement[],
   connections: DFDConnection[],
   warnings: string[],
-  dfdAnalyzer: any
+  dfdAnalyzer: any,
 ): void {
   assets.forEach((asset) => {
     // Use DFDAnalyzer to check if asset has valid placement
     const hasValidPlacement = dfdAnalyzer.validateAssetPlacement(
       asset,
       allElements,
-      connections
+      connections,
     );
 
     if (!hasValidPlacement) {
@@ -53,22 +59,23 @@ function validateAssetPlacement(
  */
 function validateInterfaceUsage(
   interfaces: DFDElement[],
-  connections: DFDConnection[],
-  allElements: DFDElement[],
   warnings: string[],
-  dfdAnalyzer: any
+  graph?: DFDGraph,
 ): void {
   interfaces.forEach((iface) => {
-    // Use DFDAnalyzer to find dataflows through interface
-    const dataflowsThrough = dfdAnalyzer.findDataflowsThroughInterface(
-      iface,
-      connections,
-      allElements
-    );
+    // Check if any dataflow passes through this interface (via graph)
+    let hasDataflow = false;
 
-    if (dataflowsThrough.length === 0) {
+    if (graph) {
+      // Use pre-computed graph analysis
+      hasDataflow = Array.from(graph.dataFlowAnalysis.values()).some(
+        (analysis) => analysis.interfaceIds.includes(iface.id),
+      );
+    }
+
+    if (!hasDataflow) {
       warnings.push(
-        `${ValidationMessages.INTERFACE_UNUSED}:${iface.name || iface.id}`
+        `${ValidationMessages.INTERFACE_UNUSED}:${iface.name || iface.id}`,
       );
     }
   });

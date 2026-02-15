@@ -92,7 +92,7 @@ export function useElementThreats({
         lastModified: new Date().toISOString(),
       });
     },
-    [configuration, onUpdate],
+    [configuration, project, onUpdate],
   );
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export function useElementThreats({
     } finally {
       setIsGenerating(false);
     }
-  }, [project, configuration, notifyUpdate]);
+  }, [project, dfdContext, configuration, notifyUpdate]);
 
   const deleteAllThreats = useCallback(() => {
     setTables([]);
@@ -162,7 +162,7 @@ export function useElementThreats({
         setIsSyncing(false);
       }
     },
-    [syncStatus, project, tables, notifyUpdate],
+    [syncStatus, project, dfdContext, tables, notifyUpdate],
   );
 
   // ==================== IMMUTABLE STATE UPDATES ====================

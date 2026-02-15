@@ -44,7 +44,7 @@ export class DFDAnalyzer {
   findElementsOverlappingAsset(
     asset: DFDAsset,
     elements: DFDElement[],
-    connections: DFDConnection[]
+    connections: DFDConnection[],
   ): AssetElementAnalysis {
     const overlappingElements: DFDElementLink[] = [];
 
@@ -73,7 +73,7 @@ export class DFDAnalyzer {
         if (geometryAnalyzer.rectanglesOverlap(assetPlacement, element)) {
           // Check if not already added
           const exists = overlappingElements.find(
-            (link) => link.elementId === element.id
+            (link) => link.elementId === element.id,
           );
           if (!exists) {
             overlappingElements.push({
@@ -91,7 +91,7 @@ export class DFDAnalyzer {
         if (this.assetIntersectsDataflow(conn, assetPlacement, elements)) {
           // Check if not already added
           const exists = overlappingElements.find(
-            (link) => link.elementId === conn.id
+            (link) => link.elementId === conn.id,
           );
           if (!exists) {
             overlappingElements.push({
@@ -119,12 +119,12 @@ export class DFDAnalyzer {
   validateAssetPlacement(
     asset: DFDAsset,
     elements: DFDElement[],
-    connections: DFDConnection[]
+    connections: DFDConnection[],
   ): boolean {
     const analysis = this.findElementsOverlappingAsset(
       asset,
       elements,
-      connections
+      connections,
     );
     return analysis.hasValidPlacement;
   }
@@ -135,10 +135,10 @@ export class DFDAnalyzer {
   findDataflowsThroughInterface(
     iface: DFDElement,
     connections: DFDConnection[],
-    elements: DFDElement[]
+    elements: DFDElement[],
   ): DFDConnection[] {
     return connections.filter((conn) =>
-      this.dataflowIntersectsInterface(conn, iface, elements)
+      this.dataflowIntersectsInterface(conn, iface, elements),
     );
   }
 
@@ -151,7 +151,7 @@ export class DFDAnalyzer {
   private assetIntersectsDataflow(
     connection: DFDConnection,
     assetPlacement: GeometricElement,
-    allElements: DFDElement[]
+    allElements: DFDElement[],
   ): boolean {
     const sourceEl = allElements.find((e) => e.id === connection.from);
     const targetEl = allElements.find((e) => e.id === connection.to);
@@ -167,7 +167,7 @@ export class DFDAnalyzer {
       assetPlacement,
       start,
       end,
-      connection.waypoints
+      connection.waypoints,
     );
   }
 
@@ -178,7 +178,7 @@ export class DFDAnalyzer {
   private dataflowIntersectsInterface(
     connection: DFDConnection,
     iface: DFDElement,
-    allElements: DFDElement[]
+    allElements: DFDElement[],
   ): boolean {
     return this.assetIntersectsDataflow(connection, iface, allElements);
   }
@@ -189,9 +189,17 @@ export class DFDAnalyzer {
   private getElementConnectionPoint(
     element: DFDElement,
     type: "exit" | "entry",
-    connection: DFDConnection
+    connection: DFDConnection,
   ): { x: number; y: number } {
-    // Default to center of element
+    // Use sourcePoint/targetPoint if available
+    if (type === "exit" && connection.sourcePoint) {
+      return connection.sourcePoint;
+    }
+    if (type === "entry" && connection.targetPoint) {
+      return connection.targetPoint;
+    }
+
+    // Fallback to center
     return {
       x: element.position.x + element.size.width / 2,
       y: element.position.y + element.size.height / 2,
@@ -201,10 +209,7 @@ export class DFDAnalyzer {
   /**
    * Check if an element is geometrically inside a Trust Boundary
    */
-  isElementInsideBoundary(
-    element: DFDElement,
-    boundary: DFDElement
-  ): boolean {
+  isElementInsideBoundary(element: DFDElement, boundary: DFDElement): boolean {
     // Use GeometryAnalyzer's duck-typed method
     return geometryAnalyzer.elementInsideBoundary(element, boundary);
   }

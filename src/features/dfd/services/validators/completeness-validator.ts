@@ -3,6 +3,7 @@
 
 import type { DFDElement, DFDConnection, DFDAsset, DFDStats } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
+import type { DFDGraph } from "../../models/dfd-graph-types";
 
 /**
  * Check if DFD is complete (all required fields filled)
@@ -47,16 +48,16 @@ export function validateScenario(
   stats: DFDStats,
   errors: string[],
   warnings: string[],
-  dfdAnalyzer: any
-): 'A' | 'B' | null {
+  graph?: DFDGraph,
+): "A" | "B" | null {
   // Determine which scenario applies
   const hasExternalEntities = stats.externalEntities > 0;
   const scenario = hasExternalEntities ? "A" : "B";
 
   if (scenario === "A") {
-    validateScenarioA(elements, connections, stats, errors, warnings, dfdAnalyzer);
+    validateScenarioA(elements, connections, stats, errors, warnings, graph);
   } else {
-    validateScenarioB(elements, connections, stats, errors, warnings, dfdAnalyzer);
+    validateScenarioB(elements, connections, stats, errors, warnings, graph);
   }
 
   return errors.length === 0 ? scenario : null;
@@ -71,7 +72,7 @@ function validateScenarioA(
   stats: DFDStats,
   errors: string[],
   warnings: string[],
-  dfdAnalyzer: any
+  graph?: DFDGraph,
 ): void {
   // 1. ≥ 1 Trust Boundary
   if (stats.trustBoundaries === 0) {
@@ -94,35 +95,29 @@ function validateScenarioA(
     (e) =>
       e.type === "Process" ||
       e.type === "Multiprocess" ||
-      e.type === "DataStore"
+      e.type === "DataStore",
   );
 
-  const hasElementInsideTB = processesAndStores.some((element) =>
-    trustBoundaries.some((tb) =>
-      dfdAnalyzer.isElementInsideBoundary(element, tb)
-    )
-  );
+  const hasElementInsideTB = processesAndStores.some((element) => {
+    const memberTBs = graph?.elementTrustBoundaries.get(element.id) || [];
+    return memberTBs.length > 0;
+  });
 
   if (!hasElementInsideTB) {
     errors.push(ValidationMessages.NO_ELEMENT_INSIDE_TB);
   }
 
   // 4. External Entity should be OUTSIDE all Trust Boundaries
-  const externalEntities = elements.filter(
-    (e) => e.type === "ExternalEntity"
-  );
-  const externalInsideTB = externalEntities.filter((ext) =>
-    trustBoundaries.some((tb) =>
-      dfdAnalyzer.isElementInsideBoundary(ext, tb)
-    )
-  );
+  const externalEntities = elements.filter((e) => e.type === "ExternalEntity");
+  const externalInsideTB = externalEntities.filter((ext) => {
+    const memberTBs = graph?.elementTrustBoundaries.get(ext.id) || [];
+    return memberTBs.length > 0;
+  });
 
   if (externalInsideTB.length > 0) {
     externalInsideTB.forEach((ext) => {
       warnings.push(
-        `${ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB}:${
-          ext.name || ext.id
-        }`
+        `${ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB}:${ext.name || ext.id}`,
       );
     });
   }
@@ -130,7 +125,7 @@ function validateScenarioA(
   // 5. At least 1 dataflow between internal ↔ external
   const hasInternalExternalFlow = hasDataflowBetweenInternalAndExternal(
     elements,
-    connections
+    connections,
   );
 
   if (!hasInternalExternalFlow) {
@@ -152,7 +147,7 @@ function validateScenarioB(
   stats: DFDStats,
   errors: string[],
   warnings: string[],
-  dfdAnalyzer: any
+  graph?: DFDGraph,
 ): void {
   // 1. ≥ 2 Trust Boundaries
   if (stats.trustBoundaries < 2) {
@@ -167,14 +162,21 @@ function validateScenarioB(
     (e) =>
       e.type === "Process" ||
       e.type === "Multiprocess" ||
-      e.type === "DataStore"
+      e.type === "DataStore",
   );
 
   const emptyBoundaries = trustBoundaries.filter((tb) => {
-    const hasElements = processesAndStores.some((element) =>
-      dfdAnalyzer.isElementInsideBoundary(element, tb)
-    );
-    return !hasElements;
+    const tbElements = graph?.trustBoundaryElements.get(tb.id) || [];
+    const hasProcessOrStore = tbElements.some((elemId) => {
+      const elem = elements.find((e) => e.id === elemId);
+      return (
+        elem &&
+        (elem.type === "Process" ||
+          elem.type === "Multiprocess" ||
+          elem.type === "DataStore")
+      );
+    });
+    return !hasProcessOrStore;
   });
 
   if (emptyBoundaries.length > 0) {
@@ -184,26 +186,25 @@ function validateScenarioB(
   }
 
   // 3. At least 1 dataflow crosses a Trust Boundary
-  const hasCrossBoundaryFlow = connections.some((conn) =>
-    dfdAnalyzer.doesDataflowCrossBoundary(conn, elements)
-  );
+  const hasCrossBoundaryFlow = connections.some((conn) => {
+    const analysis = graph?.dataFlowAnalysis.get(conn.id);
+    return analysis?.crossesTrustBoundary || false;
+  });
 
   if (!hasCrossBoundaryFlow) {
     errors.push(ValidationMessages.NO_CROSS_BOUNDARY_FLOW);
   }
 
   // Optional: All Process/Multiprocess/DataStore should be inside a TB
-  const elementsOutside = processesAndStores.filter(
-    (element) =>
-      !trustBoundaries.some((tb) =>
-        dfdAnalyzer.isElementInsideBoundary(element, tb)
-      )
-  );
+  const elementsOutside = processesAndStores.filter((element) => {
+    const memberTBs = graph?.elementTrustBoundaries.get(element.id) || [];
+    return memberTBs.length === 0;
+  });
 
   if (elementsOutside.length > 0) {
     elementsOutside.forEach((element) => {
       warnings.push(
-        `${ValidationMessages.ELEMENT_OUTSIDE_ALL_TB}:${element.name}`
+        `${ValidationMessages.ELEMENT_OUTSIDE_ALL_TB}:${element.name}`,
       );
     });
   }

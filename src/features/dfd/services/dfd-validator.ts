@@ -28,6 +28,7 @@ import {
 } from "./validators/completeness-validator";
 import { dfdAnalyzer } from "../utils/dfd-analyzer";
 import { ValidationMessages } from "./validators/validator-utils";
+import type { DFDGraph } from "../models/dfd-graph-types";
 
 export interface ValidationResult {
   isValid: boolean;
@@ -63,6 +64,7 @@ export class DFDValidator {
     assets: DFDAsset[],
     stats: DFDStats,
     options?: ValidateOptions,
+    graph?: DFDGraph,
   ): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -70,7 +72,10 @@ export class DFDValidator {
     // Im Validator vor dem Aufruf
     console.log("DfdValidator Elements:", elements);
     console.log("DfdValidator Assets:", assets);
-    console.log("DfdValidator Trust Boundaries:", elements.filter(e => e.type === "TrustBoundary"));
+    console.log(
+      "DfdValidator Trust Boundaries:",
+      elements.filter((e) => e.type === "TrustBoundary"),
+    );
 
     // Early return if no elements
     if (stats.totalElements === 0) {
@@ -101,6 +106,7 @@ export class DFDValidator {
       connections,
       warnings,
       dfdAnalyzer,
+      graph,
     );
 
     // 4. Validate Asset Relations (NEW)
@@ -113,7 +119,7 @@ export class DFDValidator {
       stats,
       errors,
       warnings,
-      dfdAnalyzer,
+      graph,
     );
 
     const complete = isComplete(

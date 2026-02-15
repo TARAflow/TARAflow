@@ -1,5 +1,6 @@
 // ==================== INTERACTION THREAT SYNC ====================
 // Single Responsibility: Synchronize per-interaction threats with DFD changes
+// Now using DFDGraph for efficient element analysis
 
 import type {
   ThreatTable,
@@ -8,12 +9,12 @@ import type {
   ThreatSyncResult,
   DFDElementReference,
   DFDConnectionReference,
+  DFDGraphReference,
 } from "../../models/threat-types";
 import {
   DataFlowReference,
   DataFlowChange,
   generateThreatIdPerInteraction,
-  parseThreatIdPerInteraction,
 } from "../../models/per-interaction-types";
 import { interactionThreatGenerator } from "./interaction-generator";
 import { DFDAnalysisContext } from "shared";
@@ -41,55 +42,28 @@ interface TrustBoundaryChange {
 
 export class InteractionThreatSync {
   /**
-   * Check if threats are in sync with DFD connections
+   * Check if threats are in sync with DFD connections using DFDGraph
    */
   checkSyncStatus(
     project: ThreatProjectData,
     tables: ThreatTable[],
   ): ThreatSyncStatus {
-    const elements = project.dfdElements || [];
-    const connections = project.dfdConnections || [];
-    const elementById = new Map(elements.map((e) => [e.id, e]));
+    // Early exit if no graph
+    if (!project.dfdGraph) {
+      return this.createEmptySyncStatus();
+    }
 
-    // Build sets for quick lookup
-    const connectionIds = new Set(connections.map((c) => c.id));
+    const graph = project.dfdGraph;
+
+    // Build sets for quick lookup from graph
+    const connectionIds = new Set(graph.connectionsById.keys());
     const interfaceIds = new Set(
-      elements
+      Array.from(graph.elementsById.values())
         .filter((e) =>
-          ["interface", "physicalinterface"].includes(e.type.toLowerCase()),
+          ["interface", "physicalinterface"].includes(e.type.toLowerCase())
         )
-        .map((e) => e.id),
+        .map((e) => e.id)
     );
-
-    console.log(
-      "Elements:",
-      elements.map((e) => ({
-        id: e.id,
-        type: e.type,
-        displayId: e.displayId,
-        name: e.name,
-      })),
-    );
-    console.log(
-      "Connections:",
-      connections.map((c) => ({
-        id: c.id,
-        from: c.from,
-        to: c.to,
-        label: c.label,
-        displayId: c.displayId,
-      })),
-    );
-    console.log("InterfaceIds:", Array.from(interfaceIds));
-
-    tables.forEach((table) => {
-      table.threats.forEach((threat) => {
-        if (threat.dataFlow)
-          console.log("Checking threat dataFlow", threat.dataFlow);
-        if (threat.linkedElement)
-          console.log("Checking threat linkedElement", threat.linkedElement);
-      });
-    });
 
     const threatenedConnections = new Set<string>();
     const threatenedInterfaces = new Set<string>();
@@ -99,13 +73,11 @@ export class InteractionThreatSync {
 
     // ==================== Check Trust Boundary changes ====================
     const trustBoundaryChanges: TrustBoundaryChange[] = [];
-    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
-    const trustBoundaryById = new Map(trustBoundaries.map((tb) => [tb.id, tb]));
 
     tables.forEach((table, tableIndex) => {
       if (!table.trustBoundaryId) return;
 
-      const tb = trustBoundaryById.get(table.trustBoundaryId);
+      const tb = graph.elementsById.get(table.trustBoundaryId);
       if (tb && tb.name !== table.trustBoundaryName) {
         trustBoundaryChanges.push({
           tableIndex,
@@ -125,8 +97,8 @@ export class InteractionThreatSync {
           if (connId) {
             threatenedConnections.add(connId);
 
-            // Check if connection still exists
-            const connection = connections.find((c) => c.id === connId);
+            // Check if connection still exists in graph
+            const connection = graph.connectionsById.get(connId);
             if (!connection) {
               orphanedThreatIds.push(threat.id);
               continue;
@@ -141,7 +113,7 @@ export class InteractionThreatSync {
               | "displayId"
             )[] = [];
 
-            const currentTB = trustBoundaryById.get(
+            const currentTB = graph.elementsById.get(
               threat.trustBoundaryId || "",
             );
             if (currentTB) {
@@ -158,7 +130,6 @@ export class InteractionThreatSync {
               );
 
               if (threat.id !== expectedId) {
-                // Threat-ID ist inkonsistent!
                 changes.push("id");
               }
             }
@@ -173,8 +144,8 @@ export class InteractionThreatSync {
               changes.push("target");
             }
 
-            const sourceElem = elementById.get(connection.from);
-            const targetElem = elementById.get(connection.to);
+            const sourceElem = graph.elementsById.get(connection.from);
+            const targetElem = graph.elementsById.get(connection.to);
             if (sourceElem && sourceElem.name !== threat.dataFlow.sourceName) {
               changes.push("source");
             }
@@ -204,14 +175,14 @@ export class InteractionThreatSync {
           ) {
             threatenedInterfaces.add(elementId);
 
-            // Check if interface still exists
-            const element = elementById.get(elementId);
+            // Check if interface still exists in graph
+            const element = graph.elementsById.get(elementId);
             if (!element) {
               orphanedThreatIds.push(threat.id);
               continue;
             }
 
-            const currentTB = trustBoundaryById.get(
+            const currentTB = graph.elementsById.get(
               threat.trustBoundaryId || "",
             );
             if (currentTB) {
@@ -228,7 +199,6 @@ export class InteractionThreatSync {
               );
 
               if (threat.id !== expectedId) {
-                // Threat-ID ist inkonsistent!
                 changedElements.push({
                   threatId: threat.id,
                   oldDisplayId: threat.linkedElement.displayId || "",
@@ -239,45 +209,45 @@ export class InteractionThreatSync {
               }
             }
 
-            // ✅ Check if interface displayId changed
+            // Check if interface displayId changed
             if (
               element.displayId &&
               element.displayId !== threat.linkedElement.displayId
             ) {
-              changedElements.push({
-                threatId: threat.id,
-                oldDisplayId: threat.linkedElement.displayId || "",
-                newDisplayId: element.displayId,
-                elementId: element.id,
-                elementType: element.type,
-              });
+              if (!changedElements.find((c) => c.threatId === threat.id)) {
+                changedElements.push({
+                  threatId: threat.id,
+                  oldDisplayId: threat.linkedElement.displayId || "",
+                  newDisplayId: element.displayId,
+                  elementId: element.id,
+                  elementType: element.type,
+                });
+              }
             }
           }
         }
       }
     }
 
-    // Find missing connections
+    // Find missing data flows
     const missingConnections: DFDConnectionReference[] = [];
-    for (const connection of connections) {
-      if (!threatenedConnections.has(connection.id)) {
+    for (const [connId, connection] of graph.connectionsById) {
+      if (!threatenedConnections.has(connId)) {
         missingConnections.push(connection);
       }
     }
 
     // Find missing interfaces
     const missingInterfaces: DFDElementReference[] = [];
-    for (const element of elements) {
-      if (
-        (element.type === "Interface" ||
-          element.type === "PhysicalInterface") &&
-        !threatenedInterfaces.has(element.id)
-      ) {
-        missingInterfaces.push(element);
+    for (const interfaceId of interfaceIds) {
+      if (!threatenedInterfaces.has(interfaceId)) {
+        const element = graph.elementsById.get(interfaceId);
+        if (element) {
+          missingInterfaces.push(element);
+        }
       }
     }
 
-    // ✅ Include all types of changes in sync status
     const inSync =
       missingConnections.length === 0 &&
       missingInterfaces.length === 0 &&
@@ -293,8 +263,8 @@ export class InteractionThreatSync {
         dataFlows: missingConnections,
       },
       orphanedThreats: {
-        elementIds: [],
-        dataFlowIds: orphanedThreatIds,
+        elementIds: orphanedThreatIds,
+        dataFlowIds: [],
         threatIds: orphanedThreatIds,
       },
       changedReferences: {
@@ -315,7 +285,7 @@ export class InteractionThreatSync {
   }
 
   /**
-   * Synchronize threats with DFD changes
+   * Synchronize threats with DFD changes using DFDGraph
    */
   synchronizeThreats(
     project: ThreatProjectData,
@@ -327,24 +297,38 @@ export class InteractionThreatSync {
       removeOrphaned: boolean;
     },
   ): ThreatSyncResult {
+    // Early exit if no graph
+    if (!project.dfdGraph) {
+      return {
+        success: false,
+        added: 0,
+        removed: 0,
+        updated: 0,
+        threatData: project.threats || {
+          configuration: {
+            activeMethod: "per-interaction",
+            customThreatTemplates: [],
+            customMitigationTemplates: [],
+            customVerificationTemplates: [],
+          },
+          perElementTables: [],
+          perInteractionTables: tables,
+          lastModified: new Date().toISOString(),
+        },
+      };
+    }
+
+    const graph = project.dfdGraph;
     let updatedTables = [...tables];
     let added = 0;
     let removed = 0;
     let updated = 0;
 
-    const elements = project.dfdElements || [];
-    const connections = project.dfdConnections || [];
-    const elementById = new Map(elements.map((e) => [e.id, e]));
-    const connectionById = new Map(connections.map((c) => [c.id, c]));
-
-    // Update Trust Boundary names
-    const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
-    const trustBoundaryById = new Map(trustBoundaries.map((tb) => [tb.id, tb]));
-
+    // ==================== Update Trust Boundary names ====================
     updatedTables = updatedTables.map((table) => {
       if (!table.trustBoundaryId) return table;
 
-      const tb = trustBoundaryById.get(table.trustBoundaryId);
+      const tb = graph.elementsById.get(table.trustBoundaryId);
       if (tb && tb.name !== table.trustBoundaryName) {
         updated++;
         return {
@@ -355,14 +339,14 @@ export class InteractionThreatSync {
       return table;
     });
 
-    // Update source/target names when elements change
+    // ==================== Update source/target names when elements change ====================
     updatedTables = updatedTables.map((table) => ({
       ...table,
       threats: table.threats.map((threat) => {
         if (!threat.dataFlow) return threat;
 
-        const sourceElem = elementById.get(threat.dataFlow.sourceId);
-        const targetElem = elementById.get(threat.dataFlow.targetId);
+        const sourceElem = graph.elementsById.get(threat.dataFlow.sourceId);
+        const targetElem = graph.elementsById.get(threat.dataFlow.targetId);
 
         const sourceChanged =
           sourceElem && sourceElem.name !== threat.dataFlow.sourceName;
@@ -401,29 +385,23 @@ export class InteractionThreatSync {
           if (change && threat.linkedElement) {
             updated++;
 
-            // ✅ Hole AKTUELLE Trust Boundary displayId
-            const currentTB = trustBoundaryById.get(
+            const currentTB = graph.elementsById.get(
               threat.trustBoundaryId || "",
             );
             const interfaceId = (change.newDisplayId || "").replace(/^IF-/, "");
 
-            // ✅ Regeneriere Threat-ID mit AKTUELLEN Werten
             const newThreatId = generateThreatIdPerInteraction(
-              currentTB?.displayId || "", // ✅ Aktuelle TB displayId
+              currentTB?.displayId || "",
               `IF${interfaceId}`,
               threat.strideCategory,
               "incoming",
               threat.sequenceNumber,
             );
 
-            console.log(
-              `Regenerating Interface Threat ID: ${threat.id} → ${newThreatId}`,
-            );
-
             return {
               ...threat,
-              id: newThreatId, // ✅ Neue ID
-              trustBoundaryDisplayId: currentTB?.displayId || "", // ✅ Update displayId
+              id: newThreatId,
+              trustBoundaryDisplayId: currentTB?.displayId || "",
               linkedElement: {
                 ...threat.linkedElement,
                 displayId: change.newDisplayId,
@@ -452,12 +430,11 @@ export class InteractionThreatSync {
           if (change && threat.dataFlow) {
             updated++;
 
-            const connection = connectionById.get(change.newRef.id);
-            const sourceElem = elementById.get(change.newRef.from);
-            const targetElem = elementById.get(change.newRef.to);
+            const connection = graph.connectionsById.get(change.newRef.id);
+            const sourceElem = graph.elementsById.get(change.newRef.from);
+            const targetElem = graph.elementsById.get(change.newRef.to);
 
-            // ✅ Hole AKTUELLE Trust Boundary displayId
-            const currentTB = trustBoundaryById.get(
+            const currentTB = graph.elementsById.get(
               threat.trustBoundaryId || "",
             );
             const dataFlowId = (connection?.displayId || "").replace(
@@ -465,23 +442,18 @@ export class InteractionThreatSync {
               "",
             );
 
-            // ✅ Regeneriere Threat-ID mit AKTUELLEN Werten
             const newThreatId = generateThreatIdPerInteraction(
-              currentTB?.displayId || "", // ✅ Aktuelle TB displayId (nicht aus alter ID!)
+              currentTB?.displayId || "",
               `DF${dataFlowId}`,
               threat.strideCategory,
               threat.interactionContext.direction,
               threat.sequenceNumber,
             );
 
-            console.log(
-              `Regenerating DataFlow Threat ID: ${threat.id} → ${newThreatId}`,
-            );
-
             return {
               ...threat,
-              id: newThreatId, // ✅ Neue ID
-              trustBoundaryDisplayId: currentTB?.displayId || "", // ✅ Update displayId
+              id: newThreatId,
+              trustBoundaryDisplayId: currentTB?.displayId || "",
               dataFlow: {
                 connectionId: change.newRef.id,
                 dataFlowId: connection?.displayId || threat.dataFlow.dataFlowId,
@@ -502,7 +474,7 @@ export class InteractionThreatSync {
       }));
     }
 
-    // Remove orphaned threats
+    // ==================== Remove orphaned threats ====================
     if (
       options.removeOrphaned &&
       syncStatus.orphanedThreats.threatIds.length > 0
@@ -520,7 +492,7 @@ export class InteractionThreatSync {
       }));
     }
 
-    // Add missing threats
+    // ==================== Add missing threats ====================
     if (
       syncStatus.missingInThreats.dataFlows.length > 0 ||
       syncStatus.missingInThreats.elements.length > 0
@@ -539,8 +511,11 @@ export class InteractionThreatSync {
       );
 
       for (const newTable of newThreats) {
+        // Match by BOTH ID AND name to avoid mixing tables with null IDs
         const existingTable = updatedTables.find(
-          (t) => t.trustBoundaryId === newTable.trustBoundaryId,
+          (t) => 
+            t.trustBoundaryId === newTable.trustBoundaryId &&
+            t.trustBoundaryName === newTable.trustBoundaryName
         );
 
         const threatsForMissing = newTable.threats.filter((threat) => {
@@ -579,6 +554,35 @@ export class InteractionThreatSync {
         perInteractionTables: updatedTables,
         lastModified: new Date().toISOString(),
       },
+    };
+  }
+
+  /**
+   * Create empty sync status for error cases
+   */
+  private createEmptySyncStatus(): ThreatSyncStatus {
+    return {
+      inSync: true,
+      missingInThreats: {
+        elements: [],
+        dataFlows: [],
+      },
+      orphanedThreats: {
+        elementIds: [],
+        dataFlowIds: [],
+        threatIds: [],
+      },
+      changedReferences: {
+        elements: [],
+        dataFlows: [],
+      },
+      summary: {
+        missingElementCount: 0,
+        missingDataFlowCount: 0,
+        orphanedThreatCount: 0,
+        changedReferenceCount: 0,
+      },
+      lastChecked: new Date().toISOString(),
     };
   }
 }
