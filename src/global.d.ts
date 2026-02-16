@@ -63,6 +63,19 @@ declare global {
       };
     };
 
+    // ✅ NEU: ElectronAPI für DrawIO Plugin Injection
+    electronAPI?: {
+      injectDrawioPlugin: () => Promise<{
+        success: boolean;
+        error?: string;
+        message?: string;
+        availableFrames?: string[];
+        globals?: string[];
+        drawKeys?: string[];
+        stack?: string;
+      }>;
+    };
+
     // Git APIs (für Audit Feature)
     git?: {
       isRepository: () => Promise<boolean>;

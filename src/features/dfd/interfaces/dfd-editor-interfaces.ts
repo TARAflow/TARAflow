@@ -49,18 +49,27 @@ export interface IXmlSourceManager {
 export interface IDrawioBridge {
   /** Check if the bridge is ready (iframe loaded) */
   isReady(): boolean;
+
   /** Send an action to Draw.io (zoom, undo, redo, etc.) */
   sendAction(action: string): void;
+
   /** Load XML into Draw.io */
   loadXml(xml: string): Promise<void>;
+
   /** Export diagram as image */
   exportImage(): void;
+
   /** Set callback for when image export is ready */
   onImageReady(callback: (imageSrc: string) => void): void;
+
   /** Set callback for diagram changes */
   onDiagramChange(callback: () => void): void;
+
+  onSelectionChanged(callback: (cells: any[]) => void): void;
+
   /** Get current XML from controller (if available) */
   getCurrentXml(): string | null;
+
   /** Cleanup resources */
   dispose(): void;
 }

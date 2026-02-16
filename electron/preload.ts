@@ -79,4 +79,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("git:push", remote, branch, config),
 });
 
+contextBridge.exposeInMainWorld("electronAPI", {
+  // DrawIO Plugin Injection
+  injectDrawioPlugin: () => {
+    console.log("[Preload] injectDrawioPlugin called");
+    return ipcRenderer.invoke("drawio:injectPlugin");
+  },
+});
+
 console.log("Electron APIs exposed to renderer");

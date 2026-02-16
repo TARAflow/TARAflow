@@ -13,12 +13,14 @@ import dfdService from "../services/dfd-service";
 export interface UseDrawioBridgeOptions {
   darkMode?: boolean;
   onDiagramChange?: () => void;
+  onSelectionChanged?: (cells: any[]) => void; // ✅ NEU
 }
 
 export interface UseDrawioBridgeReturn {
   // State
   isLoading: boolean;
   iframeKey: number;
+  selectedCells: any[]; // ✅ NEU
 
   // Refs
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
@@ -43,12 +45,13 @@ export function useDrawioBridge(
   project: DFDProjectData,
   options: UseDrawioBridgeOptions = {},
 ): UseDrawioBridgeReturn {
-  const { darkMode = false, onDiagramChange } = options;
+  const { darkMode = false, onDiagramChange, onSelectionChanged } = options; // ✅ NEU: onSelectionChanged
 
   // ==================== STATE ====================
 
   const [isLoading, setIsLoading] = useState(true);
   const [iframeKey, setIframeKey] = useState(0);
+  const [selectedCells, setSelectedCells] = useState<any[]>([]); // ✅ NEU
 
   // ==================== REFS ====================
 
@@ -66,7 +69,6 @@ export function useDrawioBridge(
 
   const doInitialize = useCallback(
     (iframe: HTMLIFrameElement) => {
-      console.log("[useDrawioBridge] Initializing bridge...");
       setIsLoading(true);
 
       // Load DFD data to localStorage (for draw.io)
@@ -97,6 +99,16 @@ export function useDrawioBridge(
         });
       }
 
+      bridge.onSelectionChanged((cells) => {
+        setSelectedCells(cells);
+
+        if (onSelectionChanged) {
+          onSelectionChanged(cells);
+        } else {
+          console.warn("[useDrawioBridge] ⚠️ No parent callback!"); // ✅ NEU
+        }
+      });
+
       bridge.onImageReady((imageData: string) => {
         // Resolve promise if waiting
         if (imageResolverRef.current) {
@@ -110,14 +122,42 @@ export function useDrawioBridge(
         }
       });
 
+      const injectPlugin = async () => {
+        // Warte bis DrawIO vollständig geladen ist
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        // Check if running in Electron
+        if (window.electronAPI?.injectDrawioPlugin) {
+
+          try {
+            const result = await window.electronAPI.injectDrawioPlugin();
+
+            if (!result.success) {
+              console.error(
+                "[useDrawioBridge] ❌ Plugin loading failed:",
+                result.error,
+              );
+              console.error("[useDrawioBridge] Details:", result);
+            }
+          } catch (error) {
+            console.error(
+              "[useDrawioBridge] ❌ Plugin injection threw error:",
+              error,
+            );
+          }
+        } 
+      };
+
+      // Start plugin injection (non-blocking)
+      injectPlugin();
+
       // Mark as initialized
       lastInitializedProjectRef.current = project.id;
       lastInitializedKeyRef.current = iframeKey;
 
       setIsLoading(false);
-      console.log("[useDrawioBridge] Bridge initialized");
     },
-    [project, onDiagramChange, iframeKey],
+    [project, onDiagramChange, onSelectionChanged, iframeKey],
   );
 
   const initialize = useCallback(() => {
@@ -131,7 +171,6 @@ export function useDrawioBridge(
 
     // Wait for iframe to be ready
     if (!iframe?.contentWindow) {
-      console.log("[useDrawioBridge] Iframe not ready, retrying...");
       initRetryTimeoutRef.current = setTimeout(initialize, 100);
       return;
     }
@@ -141,15 +180,12 @@ export function useDrawioBridge(
     const sameKey = lastInitializedKeyRef.current === iframeKey;
 
     if (sameProject && sameKey) {
-      console.log(
-        `[useDrawioBridge] Already initialized (project: ${project.id}, key: ${iframeKey})`,
-      );
       setIsLoading(false);
       return;
     }
 
     if (sameProject && !sameKey) {
-      console.log(
+      console.info(
         `[useDrawioBridge] Re-initializing due to theme change (key: ${lastInitializedKeyRef.current} -> ${iframeKey})`,
       );
     }
@@ -236,9 +272,6 @@ export function useDrawioBridge(
     if (lastInitializedKeyRef.current === -1) return;
 
     if (lastInitializedKeyRef.current !== iframeKey) {
-      console.log(
-        `[useDrawioBridge] Cleaning up bridge due to iframeKey change`,
-      );
       bridgeRef.current?.dispose();
       bridgeRef.current = null;
     }
@@ -250,9 +283,6 @@ export function useDrawioBridge(
       lastInitializedProjectRef.current !== null &&
       lastInitializedProjectRef.current !== project.id
     ) {
-      console.log(
-        `[useDrawioBridge] Project changed: ${lastInitializedProjectRef.current} -> ${project.id}`,
-      );
 
       if (initRetryTimeoutRef.current) {
         clearTimeout(initRetryTimeoutRef.current);
@@ -269,6 +299,7 @@ export function useDrawioBridge(
   return {
     isLoading,
     iframeKey,
+    selectedCells, // ✅ NEU
     iframeRef,
     initialize,
     toggleTheme,

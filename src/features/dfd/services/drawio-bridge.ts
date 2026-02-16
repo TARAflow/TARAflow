@@ -20,12 +20,13 @@ export class DrawioBridge implements IDrawioBridge {
   private corsComm: CORSCommunicator;
   private imageReadyCallback: ((imageSrc: string) => void) | null = null;
   private diagramChangeCallback: (() => void) | null = null;
+  private selectionCallback: ((cells: any[]) => void) | null = null;
   private disposed = false;
 
   constructor(
     iframe: HTMLIFrameElement,
     projectId: string,
-    projectName: string
+    projectName: string,
   ) {
     this.iframe = iframe;
 
@@ -38,7 +39,7 @@ export class DrawioBridge implements IDrawioBridge {
     this.controller = new DrawioController(
       this.corsComm,
       this.localStorageModel,
-      projectName
+      projectName,
     );
 
     // Set up internal callbacks
@@ -60,7 +61,20 @@ export class DrawioBridge implements IDrawioBridge {
           this.imageReadyCallback(image.src);
         }
       });
+
+      this.controller.onSelectionChanged((cells: any[]) => {
+        if (!this.disposed && this.selectionCallback) {
+          this.selectionCallback(cells);
+        }
+      });
     }
+  }
+
+  /**
+   * Set callback for selection changes
+   */
+  onSelectionChanged(callback: (cells: any[]) => void): void {
+    this.selectionCallback = callback;
   }
 
   /**
@@ -115,8 +129,6 @@ export class DrawioBridge implements IDrawioBridge {
 
         // Also write to legacy key for compatibility with other components
         localStorage.setItem("DrawioMsg", storageData);
-
-        console.log("[DrawioBridge] XML loaded and persisted to localStorage");
         // ===========================================================================
 
         // Give Draw.io time to process
@@ -178,6 +190,7 @@ export class DrawioBridge implements IDrawioBridge {
     this.controller = null;
     this.imageReadyCallback = null;
     this.diagramChangeCallback = null;
+    this.selectionCallback = null;
   }
 }
 

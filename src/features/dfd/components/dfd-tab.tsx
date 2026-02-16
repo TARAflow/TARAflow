@@ -11,13 +11,20 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Typography, CircularProgress } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import { IconButton } from "@mui/material";
 
 import type {
   DFDTabProps,
   DFDViewMode,
   DFDStats,
   AssetRelation,
+  DFDProjectData,
+  DFDElement,
+  DFDConnection,
 } from "../models/dfd-types";
+
+import type { DFDGraph } from "../models/dfd-graph-types";
 import type { ValidationResult } from "../services/dfd-validator";
 
 // Hooks
@@ -33,11 +40,12 @@ import DFDValidationPanel from "./dfd-validation-panel";
 import DFDDescriptionView from "./dfd-description-view";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
+import { DFDElementDescription } from "./dfd-element-description";
+
 
 // ==================== CONSTANTS ====================
-
-const DRAWIO_BASE_URL =
-  "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
+// "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
+const DRAWIO_BASE_URL = "https://embed.diagrams.net/?embed=1&spin=1&proto=json&plugins=1&configure=1&modified=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1";
 
 // ==================== COMPONENT ====================
 
@@ -50,6 +58,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // ==================== LOCAL UI STATE ====================
 
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(
+    null,
+  );
+  const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
 
   // ==================== UI STATE HOOK ====================
 
@@ -66,6 +78,30 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     projectId: project.id,
   });
 
+  const handleSelectionChanged = useCallback(
+    (cells: any[]) => {
+      const selectedCell = cells[0];
+      const cellId = selectedCell?.xmlId || selectedCell?.id;
+
+      if (!cellId) {
+        setSelectedElementId(null);
+        setDetailsPanelOpen(false);
+        return;
+      }
+
+      const element = project.dfd?.elements.find((e) => e.id === cellId);
+      const connection = project.dfd?.connections.find((c) => c.id === cellId);
+
+      if (element || connection) {
+        setSelectedElementId(cellId);
+        setDetailsPanelOpen(true);
+      } else {
+        console.warn("[DFDTab] ⚠️ Nothing found for ID:", cellId);
+      }
+    },
+    [project],
+  );
+
   // ==================== BUSINESS LOGIC HOOK ====================
 
   const editor = useDFDEditor(project, {
@@ -76,26 +112,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     autoValidateInterval: 500,
     autoNumberOnSave: false,
     generateThumbnailOnSave: true,
+    onSelectionChanged: handleSelectionChanged,
   });
 
   // ==================== ASSET ASSIGNMENT HOOK ====================
 
   const assetAssignment = useAssetAssignment({
     iframeRef: editor.iframeRef,
-  });
-
-  // ==================== ID LABEL VISIBILITY HOOK ====================
-
-  const saveWrapper = useCallback(async (): Promise<void> => {
-    await editor.save();
-    // Return Type wird ignoriert
-  }, [editor.save]);
-
-  const idLabelVisibility = useIdLabelVisibility({
-    iframeRef: editor.iframeRef as RefObject<HTMLIFrameElement>,
-    getCurrentXML: editor.getCurrentXML,
-    sendAction: editor.sendAction,
-    save: saveWrapper,
   });
 
   // ==================== EXPORT/IMPORT HOOK ====================
@@ -113,6 +136,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       exportImage: async () => null,
       sendAction: () => {},
       onImageReady: () => {},
+      selectedCells: editor.selectedCells || [],
     },
     {
       isDirty: editor.isDirty,
@@ -130,14 +154,37 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       try {
-        // Check if it's from our plugin
+        // Plugin Status (new!)
+        if (event.data?.type === "TARAFLOW_PLUGIN_STATUS") {
+          console.log("📊 [DFDTab] Plugin status:", event.data.payload);
+        }
+
+        // Plugin Loaded
+        if (event.data?.type === "TARAFLOW_PLUGIN_LOADED") {
+          const { plugin, version } = event.data.payload;
+          console.log(`✅ [DFDTab] Plugin loaded: ${plugin} v${version}`);
+        }
+
+        // Plugin Error
+        if (event.data?.type === "TARAFLOW_PLUGIN_ERROR") {
+          const { plugin, error } = event.data.payload;
+          console.error(`❌ [DFDTab] Plugin error: ${plugin} - ${error}`);
+        }
+
+        // Selection Changed
+        if (event.data?.type === "TARAFLOW_SELECTION_CHANGED") {
+          const { count, elements } = event.data.payload;
+          console.log(`🎯 [DFDTab] Selection: ${count} elements`, elements);
+          //setSelectedElements(elements);
+        }
+
+        // Asset Dialog (existing)
         if (event.data?.type === "TARAFLOW_OPEN_ASSET_DIALOG") {
           const { elementId, elementLabel } = event.data.payload;
-          console.log("[DFDTab] Opening asset dialog for:", elementId);
           assetAssignment.openDialog(elementId, elementLabel);
         }
       } catch (error) {
-        // Ignore parsing errors from other postMessages
+        console.error("[DFDTab] Error handling message:", error);
       }
     };
 
@@ -227,6 +274,21 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
   const currentRelations = currentElement?.assetRelations || [];
 
+  // Get Selected Item (simplified)
+  const selectedElement = selectedElementId
+    ? project.dfd?.graph?.elementsById.get(selectedElementId)
+    : undefined;
+
+  const selectedConnection = selectedElementId
+    ? project.dfd?.graph?.connectionsById.get(selectedElementId)
+    : undefined;
+
+  // Check if connection crosses trust boundary (use pre-computed analysis!)
+  const crossesTrustBoundary = selectedConnection
+    ? (project.dfd?.graph?.dataFlowAnalysis.get(selectedConnection.id)
+        ?.crossesTrustBoundary ?? false)
+    : false;
+
   // ==================== RENDER ====================
 
   return (
@@ -257,64 +319,140 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         canProceed={editor.canProceed}
       />
 
-      {/* Main Content Container - holds both views */}
+      {/* Main Content Container with Drawer */}
       <Box
         sx={{
           flexGrow: 1,
-          position: "relative",
+          display: "flex",
           overflow: "hidden",
         }}
       >
-        {/* Draw Mode */}
+        {/* Left: DFD Canvas (Draw/Describe Views) */}
         <Box
           sx={{
-            position: "absolute",
-            inset: 0,
-            bgcolor: darkMode ? "#1a1a1a" : "grey.100",
-            visibility: viewMode === "draw" ? "visible" : "hidden",
-            pointerEvents: viewMode === "draw" ? "auto" : "none",
+            flexGrow: 1,
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          {editor.isLoading && <LoadingOverlay darkMode={darkMode} />}
-
-          <iframe
-            key={`${project.id}-${editor.iframeKey}`}
-            ref={editor.iframeRef as React.RefObject<HTMLIFrameElement>}
-            src={drawioUrl}
-            style={{
-              width: "100%",
-              height: "100%",
-              border: "none",
-              pointerEvents: editor.isLoading ? "none" : "auto",
+          {/* Draw Mode */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              bgcolor: darkMode ? "#1a1a1a" : "grey.100",
+              visibility: viewMode === "draw" ? "visible" : "hidden",
+              pointerEvents: viewMode === "draw" ? "auto" : "none",
             }}
-            title="DFD Editor"
-            onLoad={editor.initialize}
-          />
+          >
+            {editor.isLoading && <LoadingOverlay darkMode={darkMode} />}
+
+            <iframe
+              key={`${project.id}-${editor.iframeKey}`}
+              ref={editor.iframeRef as React.RefObject<HTMLIFrameElement>}
+              src={drawioUrl}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                pointerEvents: editor.isLoading ? "none" : "auto",
+              }}
+              title="DFD Editor"
+              onLoad={editor.initialize}
+            />
+          </Box>
+
+          {/* Description View */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: viewMode === "describe" ? "visible" : "hidden",
+              pointerEvents: viewMode === "describe" ? "auto" : "none",
+              overflow: "auto",
+            }}
+          >
+            <DFDDescriptionView
+              assets={project.dfd?.assets || []}
+              elements={project.dfd?.elements || []}
+              connections={project.dfd?.connections || []}
+              onElementUpdate={editor.updateElementDescription}
+              onAssetUpdate={editor.updateAssetDescription}
+              onConnectionUpdate={editor.updateConnectionDescription}
+              expandedGroups={expandedGroups}
+              onToggleGroup={toggleGroup}
+              expandedElements={expandedElements}
+              onToggleElement={toggleElement}
+            />
+          </Box>
         </Box>
 
-        {/* Description View */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            visibility: viewMode === "describe" ? "visible" : "hidden",
-            pointerEvents: viewMode === "describe" ? "auto" : "none",
-            overflow: "auto",
-          }}
-        >
-          <DFDDescriptionView
-            assets={project.dfd?.assets || []}
-            elements={project.dfd?.elements || []}
-            connections={project.dfd?.connections || []}
-            onElementUpdate={editor.updateElementDescription}
-            onAssetUpdate={editor.updateAssetDescription}
-            onConnectionUpdate={editor.updateConnectionDescription}
-            expandedGroups={expandedGroups}
-            onToggleGroup={toggleGroup}
-            expandedElements={expandedElements}
-            onToggleElement={toggleElement}
-          />
-        </Box>
+        {/* Right: Details Drawer */}
+        {detailsPanelOpen && (
+          <Box
+            sx={{
+              width: 400,
+              borderLeft: 1,
+              borderColor: "divider",
+              display: "flex",
+              flexDirection: "column",
+              bgcolor: "background.paper",
+            }}
+          >
+            {/* Header */}
+            <Box
+              sx={{
+                p: 2,
+                borderBottom: 1,
+                borderColor: "divider",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography variant="h6">
+                  {selectedElement?.displayId ||
+                    selectedConnection?.displayId ||
+                    "Details"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedElement?.name || selectedConnection?.label || ""}
+                </Typography>
+              </Box>
+              <IconButton
+                onClick={() => setDetailsPanelOpen(false)}
+                size="small"
+                sx={{ ml: 1 }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            {/* Content */}
+            <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+              <DFDElementDescription
+                element={selectedElement}
+                connection={selectedConnection}
+                onChange={(updates) => {
+                  if (selectedElement) {
+                    editor.updateElementDescription(
+                      selectedElement.id,
+                      updates,
+                    );
+                  } else if (selectedConnection) {
+                    editor.updateConnectionDescription(
+                      selectedConnection.id,
+                      updates,
+                    );
+                  }
+                }}
+                availableAssets={project.dfd?.assets || []}
+                crossesTrustBoundary={crossesTrustBoundary}
+              />
+            </Box>
+          </Box>
+        )}
       </Box>
 
       {/* Validation Panel */}
@@ -345,7 +483,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};
+};;;;;;;;;
 
 // ==================== SUB-COMPONENTS ====================
 

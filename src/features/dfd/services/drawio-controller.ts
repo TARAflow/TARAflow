@@ -2,12 +2,10 @@
 // Single Responsibility: Control communication with embedded draw.io iframe
 
 import cssVariables from "./variables";
-import coretm from "../shapes/CoReTM.json";
 import dfd1 from "../shapes/DFD_1.json";
 import dfd2 from "../shapes/DFD_2.json";
 import CORSCommunicator from "./cors-communicator";
 import LocalStorageModel from "./local-storage-model";
-import { ICrossingElements } from "../interfaces/drawio-interfaces";
 
 export default class DrawioController {
   private drawio: CORSCommunicator;
@@ -20,17 +18,22 @@ export default class DrawioController {
   private changedAfterImported: boolean = false;
   private isDarkMode: boolean = false;
 
+  private selectionCallback: ((cells: any[]) => void) | null = null;
+
   constructor(
     drawio: CORSCommunicator,
     storage: LocalStorageModel,
-    projectName: string
+    projectName: string,
   ) {
     this.drawio = drawio;
     this.storage = storage;
     this.projectName = projectName;
     this.diagramImage = new Image();
+    // ==================== REGISTER PLUGINS ====================
+
     this.drawio.receive(this.handleIncomingEvents.bind(this));
   }
+
 
   private isJsonString = (str: unknown): boolean => {
     if (typeof str !== "string") return false;
@@ -43,6 +46,8 @@ export default class DrawioController {
   };
 
   private handleIncomingEvents(message: MessageEvent) {
+    console.log("[DrawioController] Parsed Message Event:", message);
+    if (!message.origin.includes("diagrams.net")) return;
     if (
       !message.data ||
       (typeof message.data === "string" && message.data.length <= 0)
@@ -55,23 +60,56 @@ export default class DrawioController {
     const msg = JSON.parse(message.data);
 
     switch (msg.event) {
+      case "configure":
+        console.log("[DrawioController] 1️⃣ Configure event received");
+        this.configureDrawio();
+        break;
+
+      case "init":
+        console.log("[DrawioController] 2️⃣ Init event received - loading data");
+        this.loadDrawio();
+        break;
+
+      case "load":
+        console.log("[DrawioController] LOAD confirmed");
+        break;
+
       case "autosave":
         this.autoSaveDiagram(msg);
         break;
       case "export":
         this.storeDiagram(msg);
         break;
-      case "init":
-        this.loadDrawio();
+      case "selection":
+        console.log("[DrawioController] 🎯 Selection received:", msg.selection);
+        this.handleSelectionChange(msg.selection);
         break;
-      case "configure":
-        this.configureDrawio();
-        break;
-      case "load":
-        console.log("Stencil loaded: ", msg);
-        break;
+
       default:
         console.error("Unknown event: ", msg.event);
+    }
+  }
+
+  public onSelectionChanged(callback: (cells: any[]) => void): void {
+    this.selectionCallback = callback;
+  }
+
+  private handleSelectionChange(selection: any[]): void {
+    if (this.selectionCallback) {
+      // Convert to expected format (array of objects with xmlId)
+      const cells = selection.map((item) => {
+        // If it's already in correct format {id, value, type}
+        if (typeof item === "object" && item.id) {
+          return { xmlId: item.id };
+        }
+        // If it's just a string ID
+        if (typeof item === "string") {
+          return { xmlId: item };
+        }
+        return item;
+      });
+
+      this.selectionCallback(cells);
     }
   }
 
@@ -95,6 +133,7 @@ export default class DrawioController {
       .geSidebar .geItem:hover {
         background-color: hsl(246, 56%, 95%) !important;
       }
+      /* ================== Remove More Shapes Button ================ */
       .geSidebarFooter > .geBtn {
         display: none !important;
       }
@@ -116,6 +155,18 @@ export default class DrawioController {
       /* Hide insert image button */  
       .geButton[title="Insert Image..."],
       .geButton[title="Bild einfügen..."] { display: none !important; }
+
+      /* Hide Insert button */
+      .geButton[title="Insert (Doubleclick to insert text)"],
+      .geButton[title="Einfügen (Doppelklick zum Einfügen von Text)"] {
+        display: none !important;
+      }
+
+      /* Hide Table button */
+      .geButton[title="Table"],
+      .geButton[title="Tabelle"] {
+        display: none !important;
+      }
       
       /* Hide freehand drawing */
       .geButton[title="Freehand"],
@@ -244,91 +295,46 @@ export default class DrawioController {
     // Debug: Log library data
     console.log("[DrawioController] Configuring draw.io...");
 
-    // Ensure libraries are arrays (handle different import formats)
-    const dfd1Data = Array.isArray(dfd1) ? dfd1 : (dfd1 as any)?.default || [];
-    const dfd2Data = Array.isArray(dfd2) ? dfd2 : (dfd2 as any)?.default || [];
-    const coretmData = Array.isArray(coretm)
-      ? coretm
-      : (coretm as any)?.default || [];
-
-    console.log("[DrawioController] Library lengths:", {
-      dfd1: dfd1Data.length,
-      dfd2: dfd2Data.length,
-      coretm: coretmData.length,
-    });
-
-    // Combine all shapes into one array for "DFD Shapes" library
-    const allDFDShapes = [...dfd1Data, ...dfd2Data, ...coretmData];
-    console.log("[DrawioController] Combined shapes:", allDFDShapes.length);
-
     const configurationAction = {
       action: "configure",
       config: {
+        modified: true,
+        status: true,
+        selectionEnabled: true,
+        updateSelection: true,
+        ready: "selection",
         // ==================== ZOOM SETTINGS ====================
         zoomWheel: false,
         zoomFactor: 1.2,
-
         // ==================== CSS STYLING ====================
         css: this.isDarkMode ? this.getDarkModeCSS() : this.getLightModeCSS(),
-
         // ==================== FONTS & UI ====================
         defaultFonts: ["Humor Sans", "Helvetica", "Times New Roman"],
         ui: this.isDarkMode ? "dark" : "atlas",
         darkMode: this.isDarkMode,
         enableCssDarkMode: this.isDarkMode,
-
         // ==================== LIBRARIES ====================
         enableCustomLibraries: true,
         expandLibraries: true,
-        defaultLibraries: "dfd1,dfd2",
-        defaultCustomLibraries: ["dfd1", "dfd2"],
-        enabledLibraries: ["dfd1", "dfd2"],
-
-        // Single combined library with all DFD shapes
-        // Libraries with DFD1 and DFD2 shapes
+        enabledLibraries: ["general", "dfd1", "dfd2"],
         libraries: [
           {
-            title: {
-              main: "DFD Shapes",
-              de: "DFD Formen",
-            },
+            title: { main: "DFD Shapes", de: "DFD Formen" },
             entries: [
               {
                 id: "dfd1",
-                title: {
-                  main: "DFD Shapes (v1)",
-                  de: "DFD Formen (v1)",
-                },
+                title: { main: "DFD Shapes (v1)", de: "DFD Formen (v1)" },
                 desc: {
                   main: "DFD shapes for threat modeling",
                   de: "DFD-Formen für Threat Modeling",
                 },
                 libs: [
                   {
-                    title: {
-                      main: "DFD Shapes",
-                      de: "DFD Formen",
-                    },
+                    title: { main: "DFD Shapes v1", de: "DFD Formen v1" },
                     data: dfd1,
                   },
-                ],
-              },
-              {
-                id: "dfd2",
-                title: {
-                  main: "DFD Shapes (v2)",
-                  de: "DFD Formen (v2)",
-                },
-                desc: {
-                  main: "DFD shapes for threat modeling",
-                  de: "DFD-Formen für Threat Modeling",
-                },
-                libs: [
                   {
-                    title: {
-                      main: "DFD Shapes",
-                      de: "DFD Formen",
-                    },
+                    title: { main: "DFD Shapes v2", de: "DFD Formen v2" },
                     data: dfd2,
                   },
                 ],
@@ -339,7 +345,6 @@ export default class DrawioController {
       },
     };
 
-    console.log("[DrawioController] Sending configure action");
     this.drawio.send(configurationAction);
   }
 
@@ -361,6 +366,10 @@ export default class DrawioController {
           autosave: 1,
           xml: parsedDraft.xml,
           title: this.projectName,
+          page: {
+            format: "A3",
+            orientation: "landscape",
+          },
         };
         const statusAction = {
           action: "status",
@@ -386,9 +395,13 @@ export default class DrawioController {
     const loadAction = {
       action: "load",
       autosave: 1,
-      xml: "",
       title: this.projectName,
+      page: {
+        format: "A3",
+        orientation: "landscape",
+      },
     };
+
     this.drawio.send(loadAction);
   }
 

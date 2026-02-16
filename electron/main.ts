@@ -49,6 +49,112 @@ ipcMain.handle("shell:openExternal", async (_, url: string) => {
   await shell.openExternal(url);
 });
 
+// ==================== DRAWIO PLUGIN INJECTION ====================
+
+ipcMain.handle('drawio:injectPlugin', async (event) => {
+  try {
+    const webContents = event.sender;
+    
+    // Warte kurz damit DrawIO ready ist
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Finde alle frames
+    const frames = webContents.mainFrame.frames;
+    console.log('[Main] Available frames:', frames.map(f => f.url));
+    
+    // Finde DrawIO iframe
+    const drawioFrame = frames.find(f => 
+      f.url.includes('embed.diagrams.net') || 
+      f.url.includes('diagrams.net')
+    );
+    
+    if (!drawioFrame) {
+      console.error('[Main] DrawIO frame not found');
+      return { 
+        success: false, 
+        error: 'DrawIO frame not found',
+        availableFrames: frames.map(f => f.url)
+      };
+    }
+    
+    console.log('[Main] Found DrawIO frame:', drawioFrame.url);
+    
+    // Plugin Code
+    const pluginCode = `
+      (function() {
+        console.log('[Plugin Injection] Starting...');
+        console.log('[Plugin Injection] typeof Draw:', typeof Draw);
+        console.log('[Plugin Injection] typeof mxEvent:', typeof mxEvent);
+        
+        if (typeof Draw === 'undefined') {
+          return { 
+            success: false, 
+            error: 'Draw object not found',
+            globals: Object.keys(window).filter(k => k.includes('draw') || k.includes('Draw') || k.includes('mx'))
+          };
+        }
+        
+        if (!Draw.loadPlugin) {
+          return { 
+            success: false, 
+            error: 'Draw.loadPlugin not available',
+            drawKeys: Object.keys(Draw)
+          };
+        }
+        
+        try {
+          Draw.loadPlugin(function(ui) {
+            console.log('[Plugin] ✅ Selection Plugin loaded successfully!');
+            console.log('[Plugin] UI:', ui);
+            console.log('[Plugin] Graph:', ui.editor.graph);
+            
+            // Setup selection listener
+            ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
+              var cells = ui.editor.graph.getSelectionCells();
+              var selection = cells.map(function(c) {
+                return { 
+                  id: c.id, 
+                  value: c.value,
+                  type: c.getAttribute ? c.getAttribute('type') : null
+                };
+              });
+              
+              console.log('[Plugin] Selection changed:', selection);
+              
+              window.parent.postMessage(JSON.stringify({
+                event: 'selection',
+                selection: selection
+              }), '*');
+            });
+          });
+          
+          return { success: true, message: 'Plugin loaded successfully' };
+        } catch (error) {
+          return { 
+            success: false, 
+            error: 'Plugin load failed: ' + error.message,
+            stack: error.stack
+          };
+        }
+      })();
+    `;
+    
+    // Execute in DrawIO frame
+    const result = await drawioFrame.executeJavaScript(pluginCode);
+    console.log('[Main] Plugin injection result:', result);
+    
+    return result || { success: true };
+    
+  } catch (error: any) {
+    console.error('[Main] Plugin injection error:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      stack: error.stack
+    };
+  }
+});
+
 // ==================== GIT SERVICE ====================
 
 let gitService: GitService;

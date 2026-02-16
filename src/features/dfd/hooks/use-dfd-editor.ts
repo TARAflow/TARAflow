@@ -30,6 +30,7 @@ export interface UseDFDEditorOptions {
   onDirtyChange?: (isDirty: boolean) => void;
   onUpdate?: (updates: DFDUpdateResult) => void;
   onPhaseComplete?: () => void;
+  onSelectionChanged?: (cells: any[]) => void;
   darkMode?: boolean;
   autoValidateInterval?: number;
   autoNumberOnSave?: boolean;
@@ -43,6 +44,7 @@ export interface UseDFDEditorReturn {
   validation: ValidationResult | null;
   stats: DFDStats | undefined;
   previewImage: string | null;
+  selectedCells: any[];
 
   // Refs
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
@@ -98,6 +100,7 @@ export function useDFDEditor(
     onDirtyChange,
     onUpdate,
     onPhaseComplete,
+    onSelectionChanged,
     darkMode = false,
     autoValidateInterval = 500,
     autoNumberOnSave = false,
@@ -109,15 +112,6 @@ export function useDFDEditor(
   // Data consistency layer
   const data = useDFDData(project);
 
-  // iframe communication layer
-  const bridge = useDrawioBridge(project, {
-    darkMode,
-    onDiagramChange: () => {
-      persistence.markDirty();
-      validation.scheduleValidation(autoValidateInterval);
-    },
-  });
-
   // Validation layer
   const validation = useDFDValidation(project, {
     autoValidateDelay: autoValidateInterval,
@@ -127,6 +121,18 @@ export function useDFDEditor(
   const persistence = useDFDPersistence(project, {
     onUpdate,
     onDirtyChange,
+  });
+
+  // iframe communication layer
+  const handleDiagramChange = useCallback(() => {
+    persistence.markDirty();
+    validation.scheduleValidation(autoValidateInterval);
+  }, [persistence, validation, autoValidateInterval]);
+
+  const bridge = useDrawioBridge(project, {
+    darkMode,
+    onDiagramChange: handleDiagramChange,
+    onSelectionChanged,
   });
 
   // Thumbnail layer
@@ -155,12 +161,9 @@ export function useDFDEditor(
    * Save with optional auto-numbering and thumbnail generation
    */
   const save = useCallback(async (): Promise<DFDUpdateResult | null> => {
-    console.log("[useDFDEditor] Save operation started");
-
     try {
       // Step 1: Auto-number if enabled
       if (autoNumberOnSave) {
-        console.log("[useDFDEditor] Auto-numbering before save...");
         await autoNumbering.autoNumber();
 
         // Wait for draw.io to update
@@ -170,7 +173,6 @@ export function useDFDEditor(
       // Step 2: Generate thumbnail if enabled
       let thumbnailData: string | undefined;
       if (generateThumbnailOnSave) {
-        console.log("[useDFDEditor] Generating thumbnail...");
         const generated = await thumbnail.generate();
         thumbnailData = generated || undefined;
       }
@@ -179,8 +181,6 @@ export function useDFDEditor(
       const result = await persistence.save(thumbnailData);
 
       if (result) {
-        console.log("[useDFDEditor] Save completed successfully");
-
         // Update validation state
         validation.validate();
       }
@@ -271,14 +271,12 @@ export function useDFDEditor(
   // Run initial validation after bridge initializes
   useEffect(() => {
     if (!bridge.isLoading) {
-      // Small delay to ensure draw.io is ready
       const timer = setTimeout(() => {
         validation.validate();
       }, 1000);
-
       return () => clearTimeout(timer);
     }
-  }, [bridge.isLoading, validation]);
+  }, [bridge.isLoading]);
 
   // ==================== RETURN UNIFIED API ====================
 
@@ -289,6 +287,7 @@ export function useDFDEditor(
     validation: validation.current,
     stats: data.stats,
     previewImage: thumbnail.preview,
+    selectedCells: bridge.selectedCells,
 
     // Refs
     iframeRef: bridge.iframeRef,
@@ -309,7 +308,7 @@ export function useDFDEditor(
 
     // Editor operations
     sendAction: bridge.sendAction,
-    getCurrentXML: async () => bridge.getCurrentXML(), 
+    getCurrentXML: async () => bridge.getCurrentXML(),
     autoNumberLabels: autoNumbering.autoNumber,
 
     // Description editing
