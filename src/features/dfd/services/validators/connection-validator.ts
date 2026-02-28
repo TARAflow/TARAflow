@@ -30,12 +30,12 @@ function validateConnectionsExist(
   for (const conn of connections) {
     if (!elementIds.has(conn.from)) {
       errors.push(
-        `${ValidationMessages.INVALID_DATAFLOW_SOURCE}:${conn.label || conn.id}`
+        `${ValidationMessages.INVALID_DATAFLOW_SOURCE}:${conn.name || conn.id}`,
       );
     }
     if (!elementIds.has(conn.to)) {
       errors.push(
-        `${ValidationMessages.INVALID_DATAFLOW_TARGET}:${conn.label || conn.id}`
+        `${ValidationMessages.INVALID_DATAFLOW_TARGET}:${conn.name || conn.id}`,
       );
     }
   }
@@ -51,10 +51,10 @@ function validateConnectionIdLabels(
   for (const connection of connections) {
     const hasDisplayId = Boolean(connection.displayId);
     const hasIdInLabel =
-      connection.label && /\[DF-?\d+\]/i.test(connection.label);
+      connection.name && /\[DF-?\d+\]/i.test(connection.name);
 
     if (!hasDisplayId && !hasIdInLabel) {
-      const label = connection.label || `Connection ${connection.id}`;
+      const label = connection.name || `Connection ${connection.id}`;
       warnings.push(`${ValidationMessages.ELEMENT_MISSING_IDLABEL}:${label}`);
     }
   }
@@ -75,12 +75,12 @@ export function validateDuplicateConnectionIdLabels(
       if (!idLabels.has(id)) {
         idLabels.set(id, []);
       }
-      idLabels.get(id)!.push(connection.label || `DataFlow ${connection.id}`);
+      idLabels.get(id)!.push(connection.name || `DataFlow ${connection.id}`);
     }
 
     // Also check for [DF-N] in label
-    if (connection.label) {
-      const match = connection.label.match(/\[(DF-?\d+)\]/i);
+    if (connection.name) {
+      const match = connection.name.match(/\[(DF-?\d+)\]/i);
       if (match) {
         const id = match[1].toUpperCase();
         if (!idLabels.has(id)) {
@@ -91,7 +91,7 @@ export function validateDuplicateConnectionIdLabels(
           !connection.displayId ||
           connection.displayId.toUpperCase() !== id
         ) {
-          idLabels.get(id)!.push(connection.label);
+          idLabels.get(id)!.push(connection.name);
         }
       }
     }

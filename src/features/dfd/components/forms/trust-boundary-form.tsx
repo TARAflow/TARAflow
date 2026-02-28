@@ -73,7 +73,7 @@ export const TrustBoundaryDescriptionForm: React.FC<TrustBoundaryFormProps> = ({
       </Typography>
 
       <RichTextEditor
-        value={props.description || ""}
+        value={element.description || ""}
         onChange={(value) => handlePropertyChange("description", value)}
         label="Description"
         required

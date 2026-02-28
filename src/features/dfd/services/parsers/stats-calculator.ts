@@ -38,7 +38,7 @@ export function calculateStats(
  */
 function countDescribedElements(elements: DFDElement[]): number {
   return elements.filter((e) => {
-    const desc = e.properties?.description;
+    const desc = e.description;
     return desc && desc.trim().length > 0;
   }).length;
 }
@@ -48,7 +48,7 @@ function countDescribedElements(elements: DFDElement[]): number {
  */
 function countDescribedConnections(connections: DFDConnection[]): number {
   return connections.filter((c) => {
-    const desc = c.properties?.description;
+    const desc = c.description;
     return desc && desc.trim().length > 0;
   }).length;
 }
@@ -58,7 +58,7 @@ function countDescribedConnections(connections: DFDConnection[]): number {
  */
 function countDescribedAssets(assets: DFDAsset[]): number {
   return assets.filter((a) => {
-    const desc = a.properties?.description;
+    const desc = a.description;
     return desc && desc.trim().length > 0;
   }).length;
 }

@@ -119,7 +119,7 @@ export function extractDFDElementReferences(project: Project): DFDElementReferen
         elements.push({
           id: conn.displayId,
           type: "DataFlow",
-          name: conn.label || conn.displayId,
+          name: conn.name || conn.displayId,
         });
       }
     });

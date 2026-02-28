@@ -13,26 +13,26 @@ import type {
 interface UseAssetDFDSyncOptions {
   /** Current asset data */
   assetData: AssetData;
-  
+
   /** DFD assets from project */
   dfdAssets?: AssetDFDAsset[];
-  
+
   /** DFD elements for resolving links */
   dfdElements?: AssetDFDElement[];
-  
+
   /** DFD connections for resolving links */
   dfdConnections?: AssetDFDConnection[];
-  
+
   /** Callback when sync completes */
   onSync: (result: AssetDFDSyncResult) => void;
-  
+
   /** Callback for warnings */
   onWarning?: (warnings: string[]) => void;
-  
+
   /** Enable auto-sync on DFD changes (default: true) */
   autoSync?: boolean;
-  
-  /** Enable initial sync on mount if no assets (default: true) */
+
+  /** Enable initial sync on mount if no assets exist (default: true) */
   initialSync?: boolean;
 }
 
@@ -44,7 +44,7 @@ interface AssetDFDSyncResult {
 
 /**
  * Hook for managing Asset-DFD synchronization
- * 
+ *
  * Features:
  * - Auto-sync when DFD data changes
  * - Initial sync on mount if no assets exist
@@ -68,28 +68,24 @@ export function useAssetDFDSync({
    * Core sync logic - resolves DFD assets to full Asset objects
    */
   const performSync = useCallback((): AssetDFDSyncResult | null => {
-    // Guard: Prevent concurrent syncs
+    // Guard: prevent concurrent syncs
     if (syncInProgressRef.current) {
-      console.log('[ASSET-SYNC] Sync already in progress, skipping');
+      console.log("[ASSET-SYNC] Sync already in progress, skipping");
       return null;
     }
 
-    // Guard: Check if DFD data is available
+    // Guard: check if DFD data is available
     if (!dfdAssets || dfdAssets.length === 0) {
-      console.log('[ASSET-SYNC] No DFD assets available');
-      const warnings = ['No DFD assets available for synchronization'];
+      console.log("[ASSET-SYNC] No DFD assets available");
+      const warnings = ["No DFD assets available for synchronization"];
       onWarning?.(warnings);
-      return {
-        assetData,
-        newAssets: [],
-        warnings,
-      };
+      return { assetData, newAssets: [], warnings };
     }
 
     syncInProgressRef.current = true;
 
     try {
-      console.log('[ASSET-SYNC] Starting sync...', {
+      console.log("[ASSET-SYNC] Starting sync...", {
         dfdAssetCount: dfdAssets.length,
         existingAssetCount: assetData.assets.length,
       });
@@ -99,37 +95,38 @@ export function useAssetDFDSync({
       const updatedAssets = [...assetData.assets];
       const processedIds = new Set<string>();
 
-      // Process each DFD asset
       for (const dfdAsset of dfdAssets) {
         // Skip placeholder labels
-        if (dfdAsset.id === 'A-xx' || dfdAsset.id.includes('xx')) {
+        if (dfdAsset.id === "A-xx" || dfdAsset.id.includes("xx")) {
           warnings.push(`Skipped placeholder: ${dfdAsset.id}`);
           continue;
         }
 
         processedIds.add(dfdAsset.id);
 
-        // ✅ CRITICAL FIX: Properly resolve linkedElements
-        const linkedDFDElements = (dfdAsset.linkedElements || []).map((link) => {
-          // linkedElements is already an array of { elementId, elementName, elementType, displayId, relationTypes }
-          // We just need to ensure the structure is correct
-          return {
-            elementId: String(link.elementId || ''),
-            elementName: String(link.elementName || ''),
-            elementType: String(link.elementType || 'unknown'),
-            displayId: String(link.displayId || ''),
-            relationTypes: link.relationTypes ? Array.from(link.relationTypes) : undefined,  // ✅ PRESERVE!
+        // Map linkedElements to DFDElementLink format
+        // Each link now has a single relationType + optional qualifier
+        // instead of the old relationTypes[] array
+        const linkedDFDElements = (dfdAsset.linkedElements || []).map(
+          (link) => ({
+            elementId: String(link.elementId || ""),
+            elementName: String(link.elementName || ""),
+            elementType: String(link.elementType || "unknown"),
+            displayId: String(link.displayId || ""),
+            relationType: String(link.relationType || ""),
+            qualifier: link.qualifier,
             notes: link.notes,
-          };
-        });
+          }),
+        );
 
         console.log(`[ASSET-SYNC] Processing ${dfdAsset.id}:`, {
           rawLinks: dfdAsset.linkedElements,
           resolved: linkedDFDElements,
         });
 
-        // Find existing asset
-        const existingIndex = updatedAssets.findIndex((a) => a.id === dfdAsset.id);
+        const existingIndex = updatedAssets.findIndex(
+          (a) => a.id === dfdAsset.id,
+        );
 
         if (existingIndex >= 0) {
           // Update existing asset
@@ -144,17 +141,19 @@ export function useAssetDFDSync({
           // Create new asset
           const newAsset = {
             id: dfdAsset.id,
-            numericId: parseInt(dfdAsset.id.replace(/\D/g, ''), 10) || 0,
+            numericId: parseInt(dfdAsset.id.replace(/\D/g, ""), 10) || 0,
             name: dfdAsset.name || dfdAsset.id,
-            description: '',
-            impactRatings: assetData.configuration.impactCriteria.map((criterionId) => ({
-              criterionId,
-              value: 0,
-            })),
+            description: "",
+            impactRatings: assetData.configuration.impactCriteria.map(
+              (criterionId) => ({
+                criterionId,
+                value: 0,
+              }),
+            ),
             overallImpact: 0,
             securityGoals: [],
             linkedDFDElements,
-            source: 'dfd' as const,
+            source: "dfd" as const,
             syncedWithDFD: true,
             created: new Date().toISOString(),
             lastModified: new Date().toISOString(),
@@ -165,15 +164,12 @@ export function useAssetDFDSync({
         }
       }
 
-      // Mark assets not in DFD as out of sync
+      // Mark assets no longer in DFD as out of sync
       for (let i = 0; i < updatedAssets.length; i++) {
         if (!processedIds.has(updatedAssets[i].id)) {
-          updatedAssets[i] = {
-            ...updatedAssets[i],
-            syncedWithDFD: false,
-          };
+          updatedAssets[i] = { ...updatedAssets[i], syncedWithDFD: false };
 
-          if (updatedAssets[i].source === 'dfd') {
+          if (updatedAssets[i].source === "dfd") {
             warnings.push(`Asset ${updatedAssets[i].id} no longer in DFD`);
           }
         }
@@ -192,7 +188,7 @@ export function useAssetDFDSync({
         warnings,
       };
 
-      console.log('[ASSET-SYNC] Sync completed:', {
+      console.log("[ASSET-SYNC] Sync completed:", {
         totalAssets: updatedAssets.length,
         newAssets: newAssetIds.length,
         warnings: warnings.length,
@@ -204,54 +200,44 @@ export function useAssetDFDSync({
     }
   }, [assetData, dfdAssets, dfdElements, dfdConnections]);
 
-  /**
-   * Manual sync trigger
-   */
+  /** Manually trigger a sync */
   const triggerSync = useCallback(() => {
     const result = performSync();
-    if (result) {
-      onSync(result);
-    }
+    if (result) onSync(result);
   }, [performSync, onSync]);
 
   // ==================== EFFECTS ====================
 
-  /**
-   * Initial sync on mount if no assets exist
-   */
+  /** Initial sync on mount if no assets exist */
   useEffect(() => {
     if (!initialSync || initialSyncDoneRef.current) return;
     if (assetData.assets.length > 0) return;
     if (!dfdAssets || dfdAssets.length === 0) return;
 
-    console.log('[ASSET-SYNC] Running initial sync');
+    console.log("[ASSET-SYNC] Running initial sync");
     initialSyncDoneRef.current = true;
     triggerSync();
   }, [initialSync, assetData.assets.length, dfdAssets, triggerSync]);
 
-  /**
-   * Auto-sync when DFD data changes
-   */
+  /** Auto-sync when DFD data changes */
   useEffect(() => {
     if (!autoSync) return;
-    if (!initialSyncDoneRef.current) return; // Wait for initial sync
+    if (!initialSyncDoneRef.current) return;
     if (!dfdAssets || dfdAssets.length === 0) return;
-    if (assetData.assets.length === 0) return; // Skip if no assets yet
+    if (assetData.assets.length === 0) return;
 
-    console.log('[ASSET-SYNC] DFD data changed, triggering auto-sync');
+    console.log("[ASSET-SYNC] DFD data changed, triggering auto-sync");
     triggerSync();
-    
-    // NOTE: triggerSync is intentionally the only dependency
-    // We want to sync when DFD data (dfdAssets, dfdElements, dfdConnections) changes
-    // but NOT when triggerSync itself is recreated (which happens when assetData changes)
+
+    // NOTE: triggerSync is intentionally the only dependency here.
+    // We sync when DFD data changes, not when triggerSync is recreated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dfdAssets, dfdElements, dfdConnections]);
 
   return {
     /** Manually trigger a sync */
     sync: triggerSync,
-    
-    /** Is a sync currently in progress? */
+    /** Whether a sync is currently in progress */
     isSyncing: syncInProgressRef.current,
   };
 }

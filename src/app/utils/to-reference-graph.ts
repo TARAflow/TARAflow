@@ -33,9 +33,9 @@ export function toReferenceGraph(graph: DFDGraph): DFDGraphReference {
         id: c.id,
         from: c.from,
         to: c.to,
-        label: c.label,
+        label: c.name,
       },
-    ])
+    ]),
   );
 
   const assetRefs = Object.fromEntries(

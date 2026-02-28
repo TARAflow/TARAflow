@@ -1,7 +1,11 @@
 // ==================== ASSET ASSIGNMENT DIALOG ====================
-// Dialog to assign assets to DFD elements with relation types
+// Context-menu triggered dialog for quick asset assignment to DFD elements.
+// Uses the new single-relationType model (discriminated union).
+//
+// Note: Long-term this workflow will be replaced by the form-based
+// asset relation editor in element description forms.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -18,15 +22,30 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  FormGroup,
-  FormControlLabel,
-  Collapse,
   Divider,
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import type { DFDAsset, AssetRelation, AssetRelationType } from '../models/dfd-types';
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import type {
+  DFDAsset,
+  AssetRelation,
+  DFDElementType,
+} from "../models/dfd-types";
+import type {
+  AssetGroup,
+  AnyAssetRelationType,
+} from "../models/asset-relation-types";
+import {
+  getAllowedRelations,
+  ASSET_GROUP_TAB_ORDER,
+} from "../models/asset-constants";
+import {
+  getAssetGroupText,
+  getRelationTypeText,
+} from "../models/dfd-formatters";
 
 // ==================== TYPES ====================
 
@@ -35,54 +54,32 @@ interface AssetAssignmentDialogProps {
   onClose: () => void;
   elementId: string | null;
   elementLabel: string | null;
-  elementType: string | null | undefined;
+  elementType: DFDElementType | null | undefined;
   availableAssets: DFDAsset[];
   currentAssignments: AssetRelation[];
   onSave: (relations: AssetRelation[]) => void;
 }
 
-// ==================== RELATION TYPE MAPPING ====================
+// ==================== HELPERS ====================
 
-const ELEMENT_RELATION_TYPES: Record<string, AssetRelationType[]> = {
-  process: ['creates', 'deletes', 'read', 'modify'],
-  datastore: ['stores', 'deletes'],
-  dataflow: ['transports'],
-  interface: ['transports', 'stores'],
-  externalentity: [],
-  trustboundary: [],
-};
+function getDefaultRelationType(
+  elementType: DFDElementType,
+  assetGroup: AssetGroup,
+): AnyAssetRelationType | undefined {
+  const allowed = getAllowedRelations(elementType, assetGroup);
+  return allowed[0] as AnyAssetRelationType | undefined;
+}
 
-const RELATION_TYPE_LABELS: Record<AssetRelationType, string> = {
-  stores: 'Stores',
-  read: 'Read',
-  modify: 'Modify',
-  creates: 'Creates',
-  deletes: 'Deletes',
-  transports: 'Transports',
-};
-
-// Asset category icons
-const getCategoryIcon = (category?: string): string => {
-  switch (category?.toLowerCase()) {
-    case 'daten':
-    case 'data':
-      return '📄';
-    case 'systeme':
-    case 'systems':
-      return '💻';
-    case 'infrastruktur':
-    case 'infrastructure':
-      return '🏭';
-    case 'prozesse':
-    case 'processes':
-      return '🔄';
-    case 'menschen':
-    case 'people':
-      return '👤';
-    default:
-      return '📦';
+function buildRelation(
+  assetId: string,
+  assetGroup: AssetGroup,
+  relationType: AnyAssetRelationType,
+): AssetRelation {
+  if (relationType === "is_an") {
+    return { relationType: "is_an", assetId, assetGroup } as AssetRelation;
   }
-};
+  return { relationType, assetId, assetGroup } as AssetRelation;
+}
 
 // ==================== COMPONENT ====================
 
@@ -97,129 +94,137 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
   onSave,
 }) => {
   const [relations, setRelations] = useState<AssetRelation[]>(currentAssignments);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [expandedAsset, setExpandedAsset] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [assetConfig, setAssetConfig] = useState<
+    Record<
+      string,
+      { assetGroup: AssetGroup; relationType: AnyAssetRelationType }
+    >
+  >({});
 
-  // Get allowed relation types for this element type
-  const allowedTypes = elementType ? ELEMENT_RELATION_TYPES[elementType.toLowerCase()] || [] : [];
-  const canAssignAssets = allowedTypes.length > 0;
-
-  // Update relations when dialog opens with new data
   useEffect(() => {
     if (open) {
       setRelations(currentAssignments);
-      setSearchQuery('');
-      setExpandedAsset(null);
+      setSearchQuery("");
+      setAssetConfig({});
     }
   }, [open, currentAssignments]);
 
-  // Filter assets based on search
-  const filteredAssets = availableAssets.filter(asset =>
-    asset.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.properties?.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const allowedGroups = elementType
+    ? ASSET_GROUP_TAB_ORDER.filter(
+        (g) => getAllowedRelations(elementType, g).length > 0,
+      )
+    : [];
+
+  const canAssignAssets = allowedGroups.length > 0;
+
+  const filteredAssets = availableAssets.filter(
+    (asset) =>
+      asset.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      asset.description?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // Check if asset is assigned
-  const isAssetAssigned = (assetId: string): boolean => {
-    return relations.some(r => r.assetId === assetId);
+  const isAssetAssigned = (assetId: string) =>
+    relations.some((r) => r.assetId === assetId);
+
+  const getConfigForAsset = (assetId: string, fallbackGroup?: AssetGroup) => {
+    if (assetConfig[assetId]) return assetConfig[assetId];
+    const group = fallbackGroup ?? allowedGroups[0];
+    const relationType = elementType
+      ? (getDefaultRelationType(elementType, group) ??
+        ("reads" as AnyAssetRelationType))
+      : ("reads" as AnyAssetRelationType);
+    return { assetGroup: group, relationType };
   };
 
-  // Get relation types for an asset
-  const getAssetRelationTypes = (assetId: string): AssetRelationType[] => {
-    const relation = relations.find(r => r.assetId === assetId);
-    return relation?.relationTypes || [];
-  };
-
-  // Get notes for an asset
-  const getAssetNotes = (assetId: string): string => {
-    const relation = relations.find(r => r.assetId === assetId);
-    return relation?.notes || '';
-  };
-
-  // Toggle asset assignment
-  const handleToggleAsset = (assetId: string) => {
+  const handleToggleAsset = (assetId: string, fallbackGroup?: AssetGroup) => {
     if (isAssetAssigned(assetId)) {
-      // Remove relation
-      setRelations(prev => prev.filter(r => r.assetId !== assetId));
-      if (expandedAsset === assetId) {
-        setExpandedAsset(null);
-      }
+      setRelations((prev) => prev.filter((r) => r.assetId !== assetId));
     } else {
-      // Add relation with all types selected by default
-      setRelations(prev => [
+      const config = getConfigForAsset(assetId, fallbackGroup);
+      setRelations((prev) => [
         ...prev,
-        { assetId, relationTypes: [...allowedTypes] }
+        buildRelation(assetId, config.assetGroup, config.relationType),
       ]);
-      setExpandedAsset(assetId);
     }
   };
 
-  // Toggle individual relation type for an asset
-  const handleToggleRelationType = (assetId: string, relationType: AssetRelationType) => {
-    setRelations(prev => prev.map(relation => {
-      if (relation.assetId === assetId) {
-        const hasType = relation.relationTypes.includes(relationType);
-        return {
-          ...relation,
-          relationTypes: hasType
-            ? relation.relationTypes.filter(t => t !== relationType)
-            : [...relation.relationTypes, relationType]
-        };
-      }
-      return relation;
-    }));
+  const handleGroupChange = (assetId: string, assetGroup: AssetGroup) => {
+    const relationType = elementType
+      ? (getDefaultRelationType(elementType, assetGroup) ??
+        ("reads" as AnyAssetRelationType))
+      : ("reads" as AnyAssetRelationType);
+    const newConfig = { assetGroup, relationType };
+    setAssetConfig((prev) => ({ ...prev, [assetId]: newConfig }));
+    if (isAssetAssigned(assetId)) {
+      setRelations((prev) =>
+        prev.map((r) =>
+          r.assetId === assetId
+            ? buildRelation(assetId, assetGroup, relationType)
+            : r,
+        ),
+      );
+    }
   };
 
-  // Update notes for an asset
-  const handleNotesChange = (assetId: string, notes: string) => {
-    setRelations(prev => prev.map(relation => {
-      if (relation.assetId === assetId) {
-        return { ...relation, notes: notes || undefined };
-      }
-      return relation;
+  const handleRelationTypeChange = (
+    assetId: string,
+    relationType: AnyAssetRelationType,
+  ) => {
+    const group = assetConfig[assetId]?.assetGroup ?? allowedGroups[0];
+    setAssetConfig((prev) => ({
+      ...prev,
+      [assetId]: { assetGroup: group, relationType },
     }));
+    if (isAssetAssigned(assetId)) {
+      setRelations((prev) =>
+        prev.map((r) =>
+          r.assetId === assetId
+            ? buildRelation(assetId, group, relationType)
+            : r,
+        ),
+      );
+    }
   };
 
   const handleSave = () => {
     if (elementId) {
-      // Filter out relations with no types
-      const validRelations = relations.filter(r => r.relationTypes.length > 0);
-      onSave(validRelations);
+      onSave(relations);
       onClose();
     }
   };
 
-  const handleCancel = () => {
-    setRelations(currentAssignments); // Reset
-    onClose();
-  };
-
   const assignedCount = relations.length;
-  const hasChanges = JSON.stringify(relations.sort((a, b) => a.assetId.localeCompare(b.assetId))) 
-    !== JSON.stringify(currentAssignments.sort((a, b) => a.assetId.localeCompare(b.assetId)));
+  const hasChanges =
+    JSON.stringify(
+      [...relations].sort((a, b) => a.assetId.localeCompare(b.assetId)),
+    ) !==
+    JSON.stringify(
+      [...currentAssignments].sort((a, b) =>
+        a.assetId.localeCompare(b.assetId),
+      ),
+    );
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleCancel} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: { height: '75vh' }
-      }}
+      PaperProps={{ sx: { height: "75vh" } }}
     >
       <DialogTitle>
         <Box>
           <Typography variant="h6" gutterBottom>
             Manage Assets
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
             <Typography variant="body2" color="text.secondary">
               Element: <strong>{elementLabel || elementId}</strong>
             </Typography>
-            <Chip 
-              label={elementType || 'unknown'} 
-              size="small" 
+            <Chip
+              label={elementType || "unknown"}
+              size="small"
               variant="outlined"
             />
           </Box>
@@ -228,14 +233,14 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
 
       <DialogContent dividers>
         {!canAssignAssets ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Box sx={{ textAlign: "center", py: 4 }}>
             <Typography color="text.secondary">
-              Elements of type <strong>{elementType}</strong> cannot have assets assigned.
+              Elements of type <strong>{elementType}</strong> cannot have assets
+              assigned.
             </Typography>
           </Box>
         ) : (
           <>
-            {/* Search Bar */}
             <TextField
               fullWidth
               size="small"
@@ -252,21 +257,20 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
               sx={{ mb: 2 }}
             />
 
-            {/* Selection Summary */}
-            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="body2" color="text.secondary">
                 Assigned:
               </Typography>
-              <Chip 
-                label={assignedCount} 
-                size="small" 
-                color={assignedCount > 0 ? 'primary' : 'default'}
+              <Chip
+                label={assignedCount}
+                size="small"
+                color={assignedCount > 0 ? "primary" : "default"}
               />
               {hasChanges && (
-                <Chip 
-                  label="Modified" 
-                  size="small" 
-                  color="warning" 
+                <Chip
+                  label="Modified"
+                  size="small"
+                  color="warning"
                   variant="outlined"
                 />
               )}
@@ -274,34 +278,36 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
 
             <Divider sx={{ mb: 2 }} />
 
-            {/* Asset List */}
             {filteredAssets.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Box sx={{ textAlign: "center", py: 4 }}>
                 <Typography color="text.secondary">
-                  {searchQuery ? 'No assets match your search' : 'No assets available'}
+                  {searchQuery
+                    ? "No assets match your search"
+                    : "No assets available"}
                 </Typography>
               </Box>
             ) : (
               <List sx={{ pt: 0 }}>
-                {filteredAssets.map(asset => {
+                {filteredAssets.map((asset) => {
                   const assigned = isAssetAssigned(asset.id);
-                  const relationTypes = getAssetRelationTypes(asset.id);
-                  const notes = getAssetNotes(asset.id);
-                  const isExpanded = expandedAsset === asset.id;
-                  const categoryIcon = getCategoryIcon(asset.properties?.category);
+                  const config = getConfigForAsset(
+                    asset.id,
+                    asset.assetGroup ?? allowedGroups[0],
+                  );
+                  const allowedTypes = elementType
+                    ? getAllowedRelations(elementType, config.assetGroup)
+                    : [];
 
                   return (
                     <Box key={asset.id} sx={{ mb: 1 }}>
-                      {/* Asset Selection */}
                       <ListItem
-                        button
-                        onClick={() => handleToggleAsset(asset.id)}
+                        onClick={() =>
+                          handleToggleAsset(asset.id, asset.assetGroup)
+                        }
                         sx={{
                           borderRadius: 1,
-                          bgcolor: assigned ? 'action.selected' : undefined,
-                          '&:hover': {
-                            bgcolor: assigned ? 'action.selected' : 'action.hover',
-                          },
+                          cursor: "pointer",
+                          bgcolor: assigned ? "action.selected" : undefined,
                         }}
                       >
                         <ListItemIcon>
@@ -312,77 +318,66 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
                             disableRipple
                           />
                         </ListItemIcon>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
-                          <Typography>{categoryIcon}</Typography>
-                        </ListItemIcon>
                         <ListItemText
                           primary={asset.name}
-                          secondary={asset.properties?.description || 'No description'}
+                          secondary={asset.description || "No description"}
                           primaryTypographyProps={{
                             fontWeight: assigned ? 600 : 400,
                           }}
                         />
-                        {assigned && (
-                          <Box
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedAsset(isExpanded ? null : asset.id);
-                            }}
-                            sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5 }}
-                          >
-                            <Chip 
-                              label={`${relationTypes.length} type${relationTypes.length !== 1 ? 's' : ''}`}
-                              size="small" 
-                              color="primary"
-                              variant="outlined"
-                            />
-                            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                          </Box>
-                        )}
                       </ListItem>
 
-                      {/* Relation Type Selection (Expandable) */}
+                      {/* Group + RelationType selectors shown when assigned */}
                       {assigned && (
-                        <Collapse in={isExpanded} timeout="auto">
-                          <Box sx={{ pl: 9, pr: 2, py: 2, bgcolor: 'action.hover', borderRadius: 1, mt: 0.5 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                              Select relation types:
-                            </Typography>
-                            <FormGroup row>
-                              {allowedTypes.map(relationType => (
-                                <FormControlLabel
-                                  key={relationType}
-                                  control={
-                                    <Checkbox
-                                      size="small"
-                                      checked={relationTypes.includes(relationType)}
-                                      onChange={() => handleToggleRelationType(asset.id, relationType)}
-                                    />
-                                  }
-                                  label={RELATION_TYPE_LABELS[relationType] || relationType}
-                                />
+                        <Box
+                          sx={{ pl: 9, pr: 2, pb: 1, display: "flex", gap: 1 }}
+                        >
+                          <FormControl size="small" sx={{ minWidth: 130 }}>
+                            <InputLabel>Group</InputLabel>
+                            <Select
+                              value={config.assetGroup}
+                              label="Group"
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                handleGroupChange(
+                                  asset.id,
+                                  e.target.value as AssetGroup,
+                                )
+                              }
+                            >
+                              {allowedGroups.map((g) => (
+                                <MenuItem key={g} value={g}>
+                                  {getAssetGroupText(g, "en")}
+                                </MenuItem>
                               ))}
-                            </FormGroup>
-                            {relationTypes.length === 0 && (
-                              <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
-                                ⚠️ At least one relation type must be selected
-                              </Typography>
-                            )}
-                            
-                            {/* Notes Field */}
-                            <TextField
-                              fullWidth
-                              multiline
-                              rows={2}
-                              size="small"
-                              label="Notes (optional)"
-                              placeholder="Add notes about this relationship..."
-                              value={notes}
-                              onChange={(e) => handleNotesChange(asset.id, e.target.value)}
-                              sx={{ mt: 2 }}
-                            />
-                          </Box>
-                        </Collapse>
+                            </Select>
+                          </FormControl>
+
+                          <FormControl size="small" sx={{ minWidth: 160 }}>
+                            <InputLabel>Relation</InputLabel>
+                            <Select
+                              value={config.relationType}
+                              label="Relation"
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                handleRelationTypeChange(
+                                  asset.id,
+                                  e.target.value as AnyAssetRelationType,
+                                )
+                              }
+                            >
+                              {allowedTypes.map((t) => (
+                                <MenuItem key={t} value={t}>
+                                  {getRelationTypeText(
+                                    t as AnyAssetRelationType,
+                                    config.assetGroup,
+                                    "en",
+                                  )}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Box>
                       )}
                     </Box>
                   );
@@ -394,11 +389,9 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleCancel}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleSave} 
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={handleSave}
           variant="contained"
           disabled={!hasChanges || !canAssignAssets}
         >

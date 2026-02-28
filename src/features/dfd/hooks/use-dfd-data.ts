@@ -14,6 +14,10 @@ import type {
   DFDStats,
   ElementRelation,
 } from "../models/dfd-types";
+import {
+  isSystemUsesRelation,
+  isInfraAccessesRelation,
+} from "../models/asset-relation-types";
 import { DefaultDFDGraphBuilder } from "../services/dfd-graph-builder";
 import { calculateStats } from "../services/parsers/stats-calculator";
 import type { DFDGraph } from "../models/dfd-graph-types";
@@ -54,45 +58,51 @@ function syncAssetLinkedElements(
 
   // Process all elements
   elements.forEach((element) => {
-    if (!element.assetRelations || element.assetRelations.length === 0) {
-      return;
-    }
+    if (!element.assetRelations || element.assetRelations.length === 0) return;
 
     element.assetRelations.forEach((relation) => {
+      // ← missing loop
       const elementRelation: ElementRelation = {
         elementId: element.id,
         elementName: element.name,
         elementType: element.type,
         displayId: element.displayId,
-        relationTypes: relation.relationTypes,
+        relationType: relation.relationType,
+        qualifier:
+          isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
+            ? relation.qualifier
+            : undefined,
         notes: relation.notes,
       };
 
       const existing = assetLinksMap.get(relation.assetId) || [];
       assetLinksMap.set(relation.assetId, [...existing, elementRelation]);
-    });
+    }); // ← closing inner forEach
   });
 
-  // Process all connections (DataFlows can also have assetRelations)
-  connections.forEach((connection) => {
-    if (!connection.assetRelations || connection.assetRelations.length === 0) {
-      return;
-    }
+connections.forEach((connection) => {
+  if (!connection.assetRelations || connection.assetRelations.length === 0)
+    return;
 
-    connection.assetRelations.forEach((relation) => {
-      const elementRelation: ElementRelation = {
-        elementId: connection.id,
-        elementName: connection.label || "Unnamed DataFlow",
-        elementType: "DataFlow",
-        displayId: connection.displayId,
-        relationTypes: relation.relationTypes,
-        notes: relation.notes,
-      };
+  connection.assetRelations.forEach((relation) => {
+    // ← missing loop
+    const elementRelation: ElementRelation = {
+      elementId: connection.id,
+      elementName: connection.name || "Unnamed DataFlow",
+      elementType: "DataFlow",
+      displayId: connection.displayId,
+      relationType: relation.relationType,
+      qualifier:
+        isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
+          ? relation.qualifier
+          : undefined,
+      notes: relation.notes,
+    };
 
-      const existing = assetLinksMap.get(relation.assetId) || [];
-      assetLinksMap.set(relation.assetId, [...existing, elementRelation]);
-    });
-  });
+    const existing = assetLinksMap.get(relation.assetId) || [];
+    assetLinksMap.set(relation.assetId, [...existing, elementRelation]);
+  }); // ← closing inner forEach
+});
 
   // Update all assets with computed linkedElements
   return assets.map((asset) => ({

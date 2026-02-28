@@ -90,17 +90,11 @@ const groupElementsByType = (elements: DFDElement[]): GroupedElements => {
 };
 
 const isElementDescribed = (element: DFDElement): boolean => {
-  return (
-    !!element.properties.description &&
-    element.properties.description.trim().length > 0
-  );
+  return !!element.description && element.description.trim().length > 0;
 };
 
 const isConnectionDescribed = (connection: DFDConnection): boolean => {
-  return (
-    !!connection.properties?.description &&
-    connection.properties?.description.trim().length > 0
-  );
+  return !!connection.description && connection.description.trim().length > 0;
 };
 
 const GENERIC_ID_PATTERN = /^(P|MP|DS|EE|TB|A|IF|PI|DF)-\d+$/i;
@@ -257,7 +251,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       isConnectionDescribed,
     ).length;
     const describedAssets = assets.filter(
-      (a) => !!a.properties?.description?.trim(),
+      (a) => !!a.description?.trim(),
     ).length;
 
     return {
@@ -781,7 +775,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
     isExpanded,
     onToggle,
   }) => {
-    const isDescribed = !!asset.properties?.description?.trim();
+    const isDescribed = !!asset.description?.trim();
     const { displayId, name } = formatElementLabel(
       asset as unknown as DFDElement,
     );

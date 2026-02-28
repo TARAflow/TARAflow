@@ -126,7 +126,7 @@ export const ProcessDescriptionForm = React.memo<ProcessFormProps>(
 
     // Local state for RichTextEditor - prevents lag on typing
     const [localDescription, setLocalDescription] = React.useState(
-      element.properties.description || "",
+      element.description || "",
     );
     const [localNotes, setLocalNotes] = React.useState(
       element.properties.notes || "",
@@ -137,8 +137,8 @@ export const ProcessDescriptionForm = React.memo<ProcessFormProps>(
 
     // Sync local state when element changes from outside
     React.useEffect(() => {
-      setLocalDescription(element.properties.description || "");
-    }, [element.properties.description]);
+      setLocalDescription(element.description || "");
+    }, [element.description]);
 
     React.useEffect(() => {
       setLocalNotes(element.properties.notes || "");
@@ -327,8 +327,8 @@ export const ProcessDescriptionForm = React.memo<ProcessFormProps>(
           value={localDescription}
           onChange={setLocalDescription}
           onBlur={() => {
-            if (localDescription !== element.properties.description) {
-              handlePropertyChange("description", localDescription);
+            if (localDescription !== element.description) {
+              onChange({ description: localDescription });
             }
           }}
           label={t(

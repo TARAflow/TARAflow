@@ -7,6 +7,7 @@ import type {
   DFDElementReference,
   DFDConnectionReference,
 } from "features/assets";
+import { isSystemUsesRelation, isInfraAccessesRelation } from "features/dfd";
 
 /**
  * Map DFD Assets to Asset Feature references
@@ -20,21 +21,19 @@ export function mapDFDAssetsToAssetFeature(
     id: asset.id,
     displayId: asset.displayId,
     name: asset.name,
+    description: asset.description,
+    assetGroup: asset.assetGroup,
+    protectionNeed: asset.protectionNeed,
 
-    // ✅ FIX: Include relationTypes in linkedElements!
     linkedElements: asset.linkedElements?.map((link) => ({
       elementId: link.elementId,
       elementName: link.elementName,
       elementType: link.elementType,
       displayId: link.displayId,
-      // ✅ CRITICAL: Add relationTypes!
-      relationTypes: link.relationTypes || [],
+      relationType: link.relationType,
+      qualifier: link.qualifier,
+      notes: link.notes,
     })),
-
-    // Geometric info (optional)
-    positions: asset.positions,
-    sizes: asset.sizes,
-    xmlIds: asset.xmlIds,
   }));
 }
 
@@ -50,10 +49,16 @@ export function mapDFDElementsToAssetFeature(
     name: element.name,
     displayId: element.displayId,
 
-    // ✅ assetRelations with relationTypes
     assetRelations: element.assetRelations?.map((relation) => ({
       assetId: relation.assetId,
-      relationTypes: Array.from(relation.relationTypes || []),
+      assetGroup: relation.assetGroup,
+      relationType: relation.relationType,
+      // Qualifier nur bei uses (System) und accesses (Infra)
+      qualifier: isSystemUsesRelation(relation)
+        ? relation.qualifier
+        : isInfraAccessesRelation(relation)
+          ? relation.qualifier
+          : undefined,
       notes: relation.notes,
     })),
   }));
@@ -69,13 +74,18 @@ export function mapDFDConnectionsToAssetFeature(
     id: conn.id,
     from: conn.from,
     to: conn.to,
-    label: conn.label,
+    name: conn.name, // war: conn.label
     displayId: conn.displayId,
 
-    // ✅ assetRelations with relationTypes
     assetRelations: conn.assetRelations?.map((relation) => ({
       assetId: relation.assetId,
-      relationTypes: Array.from(relation.relationTypes || []),
+      assetGroup: relation.assetGroup,
+      relationType: relation.relationType,
+      qualifier: isSystemUsesRelation(relation)
+        ? relation.qualifier
+        : isInfraAccessesRelation(relation)
+          ? relation.qualifier
+          : undefined,
       notes: relation.notes,
     })),
   }));

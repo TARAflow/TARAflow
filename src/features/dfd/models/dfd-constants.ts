@@ -1,8 +1,8 @@
 // ==================== DFD CONSTANTS ====================
-// Configuration constants for DFD elements and assets
+// Configuration constants for DFD elements
 // NO types here - only constant data
 
-import type { DFDElementType, AssetRelationType } from "./dfd-types";
+import type { DFDElementType } from "./dfd-types";
 
 // ==================== DFD ELEMENT CONFIGURATION ====================
 
@@ -63,20 +63,4 @@ export const DFD_ELEMENT_CONFIG: Record<
     description: "Physical/logical interface (USB, UART, Ethernet, etc.)",
     icon: "▢",
   },
-};
-
-// ==================== ASSET RELATION CONFIGURATION ====================
-
-/**
- * Allowed asset relation types per DFD element type
- * Defines which relationship types each element can have with assets
- */
-export const ALLOWED_ASSET_RELATIONS: Record<DFDElementType, AssetRelationType[]> = {
-  Process: ["read", "modify", "creates", "deletes"],
-  ExternalEntity: [],
-  DataStore: ["stores","deletes"],
-  DataFlow: ["transports"],
-  Multiprocess: ["read", "modify", "creates", "deletes"],
-  Interface: ["transports",  "stores"], // stores only if interface provides buffering/persistence
-  TrustBoundary: [], // No asset relations for trust boundaries
 };

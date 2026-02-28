@@ -6,9 +6,9 @@ import type {
   DFDAsset,
   DFDElement,
   DFDConnection,
-  AssetRelationType,
 } from "../../models/dfd-types";
-import { ALLOWED_ASSET_RELATIONS, isAssetRelationAllowed } from "../../models/dfd-types";
+import type { AnyAssetRelationType } from "../../models/asset-relation-types";
+import { getAllowedRelations } from "../../models/asset-constants";
 import { ValidationMessages } from "./validator-utils";
 
 /**
@@ -59,36 +59,39 @@ function validateElementAssetRelations(
       return;
     }
 
-    const allowedTypes = ALLOWED_ASSET_RELATIONS[element.type] || [];
-
     element.assetRelations.forEach((relation) => {
       // Check if asset exists
       const asset = assetMap.get(relation.assetId);
       if (!asset) {
         errors.push(
-          `${ValidationMessages.ASSET_RELATION_NO_MARKER}:${element.name}→${relation.assetId}`
+          `${ValidationMessages.ASSET_RELATION_NO_MARKER}:${element.name}→${relation.assetId}`,
         );
         return;
       }
 
       // Check if element has marker for this asset
       const hasMarker = asset.linkedElements?.some(
-        (link) => link.elementId === element.id
+        (link) => link.elementId === element.id,
       );
       if (!hasMarker) {
         errors.push(
-          `${ValidationMessages.ASSET_RELATION_NO_MARKER}:${element.name}→${relation.assetId}`
+          `${ValidationMessages.ASSET_RELATION_NO_MARKER}:${element.name}→${relation.assetId}`,
         );
       }
 
       // Check if relation types are allowed for this element type
-      relation.relationTypes.forEach((relationType) => {
-        if (!isAssetRelationAllowed(element.type, relationType)) {
-          errors.push(
-            `${ValidationMessages.ASSET_RELATION_TYPE_INVALID}:${element.name}→${relation.assetId} (${relationType})`
-          );
-        }
-      });
+      const allowedTypes = getAllowedRelations(
+        element.type,
+        relation.assetGroup,
+      );
+      if (
+        relation.relationType &&
+        !allowedTypes.includes(relation.relationType)
+      ) {
+        errors.push(
+          `${ValidationMessages.ASSET_RELATION_TYPE_INVALID}:${element.name}→${relation.assetId} (${relation.relationType})`,
+        );
+      }
     });
   });
 
@@ -98,26 +101,22 @@ function validateElementAssetRelations(
       return;
     }
 
-    const allowedTypes = ["transports"] as AssetRelationType[]; // DataFlows can only transport
-
     connection.assetRelations.forEach((relation) => {
       // Check if asset exists
       const asset = assetMap.get(relation.assetId);
       if (!asset) {
         errors.push(
-          `${ValidationMessages.ASSET_RELATION_NO_MARKER}:${connection.label || connection.id}→${relation.assetId}`
+          `${ValidationMessages.ASSET_RELATION_NO_MARKER}:${connection.name || connection.id}→${relation.assetId}`,
         );
         return;
       }
 
       // Check if relation types are valid for DataFlow
-      relation.relationTypes.forEach((relationType) => {
-        if (!allowedTypes.includes(relationType)) {
-          errors.push(
-            `${ValidationMessages.ASSET_RELATION_TYPE_INVALID}:${connection.label || connection.id}→${relation.assetId} (${relationType})`
-          );
-        }
-      });
+      if (relation.relationType && relation.relationType !== "transports") {
+        errors.push(
+          `${ValidationMessages.ASSET_RELATION_TYPE_INVALID}:${connection.name || connection.id}→${relation.assetId} (${relation.relationType})`,
+        );
+      }
     });
   });
 }
@@ -152,7 +151,12 @@ function validateAssetElementRelations(
 
       // Get allowed relation types for this element
       const elementType = 'type' in element ? element.type : 'DataFlow';
-      const allowedTypes = ALLOWED_ASSET_RELATIONS[elementType] || [];
+      const assetRelation = (
+        "assetRelations" in element ? element.assetRelations : undefined
+      )?.find((r) => r.assetId === asset.id);
+      const allowedTypes = assetRelation
+        ? getAllowedRelations(elementType, assetRelation.assetGroup)
+        : [];
 
       // Check if element type allows asset relations
       if (allowedTypes.length === 0) {
@@ -162,9 +166,9 @@ function validateAssetElementRelations(
       }
 
       // Check if relation has defined types
-      if (!link.relationTypes || link.relationTypes.length === 0) {
+      if (!link.relationType) {
         warnings.push(
-          `${ValidationMessages.ASSET_MARKER_NO_RELATION}:${asset.id}→${link.elementName || link.elementId}`
+          `${ValidationMessages.ASSET_MARKER_NO_RELATION}:${asset.id}→${link.elementName || link.elementId}`,
         );
       }
     });
@@ -198,7 +202,7 @@ function validateBidirectionalConsistency(
       );
 
       if (!hasBacklink) {
-        const elementName = 'name' in element ? element.name : element.label || element.id;
+        const elementName = element.name || element.id;
         warnings.push(
           `${ValidationMessages.ASSET_RELATION_INCONSISTENT}:${elementName}→${relation.assetId} (missing backlink)`
         );

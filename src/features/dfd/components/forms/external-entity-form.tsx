@@ -53,7 +53,7 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
 
   // Local state for multiline fields
   const [localDescription, setLocalDescription] = React.useState(
-    element.properties.description || "",
+    element.description || "",
   );
   const [localAuthScope, setLocalAuthScope] = React.useState(
     props.authorizationScope || "",
@@ -65,8 +65,8 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
 
   // Sync when element changes
   React.useEffect(() => {
-    setLocalDescription(element.properties.description || "");
-  }, [element.properties.description]);
+    setLocalDescription(element.description || "");
+  }, [element.description]);
 
   React.useEffect(() => {
     setLocalAuthScope(props.authorizationScope || "");
@@ -131,7 +131,7 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
         value={localDescription}
         onChange={setLocalDescription}
         onBlur={() => {
-          if (localDescription !== element.properties.description) {
+          if (localDescription !== element.description) {
             handlePropertyChange("description", localDescription);
           }
         }}

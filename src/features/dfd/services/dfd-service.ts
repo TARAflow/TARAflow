@@ -22,6 +22,10 @@ import {
 import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { calculateStats } from "./parsers/stats-calculator";
+import {
+  isSystemUsesRelation,
+  isInfraAccessesRelation,
+} from "../models/asset-relation-types";
 
 export interface DFDSaveResult {
   success: boolean;
@@ -230,10 +234,10 @@ class DFDService {
       return {
         id: parsed.id,
         displayId: parsed.displayId,
-        xmlIds: parsed.xmlIds,
-        positions: parsed.positions,
-        sizes: parsed.sizes,
         name: existing.name || parsed.name,
+        description: existing.description,
+        assetGroup: existing.assetGroup ?? parsed.assetGroup,
+        protectionNeed: existing.protectionNeed,
         properties: existing.properties || parsed.properties,
         linkedElements: [], // Will be set by syncAssetLinkedElements()
       };
@@ -268,7 +272,12 @@ class DFDService {
           elementName: element.name,
           elementType: element.type,
           displayId: element.displayId,
-          relationTypes: relation.relationTypes,
+          relationType: relation.relationType,
+          qualifier: isSystemUsesRelation(relation)
+            ? relation.qualifier
+            : isInfraAccessesRelation(relation)
+              ? relation.qualifier
+              : undefined,
           notes: relation.notes,
         };
 
@@ -289,10 +298,15 @@ class DFDService {
       connection.assetRelations.forEach((relation) => {
         const elementRelation: ElementRelation = {
           elementId: connection.id,
-          elementName: connection.label || "Unnamed DataFlow",
+          elementName: connection.name || "Unnamed DataFlow",
           elementType: "DataFlow",
           displayId: connection.displayId,
-          relationTypes: relation.relationTypes,
+          relationType: relation.relationType,
+          qualifier: isSystemUsesRelation(relation)
+            ? relation.qualifier
+            : isInfraAccessesRelation(relation)
+              ? relation.qualifier
+              : undefined,
           notes: relation.notes,
         };
 

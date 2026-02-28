@@ -518,7 +518,7 @@ export abstract class BaseDocumentGenerator {
           name: this.escapeTableText(element.name),
           type: getDFDElementTypeText(element.type, lang),
           description: this.escapeTableText(
-            truncateText(element.properties?.description ?? "-", 60),
+            truncateText(element.description ?? "-", 60),
           ),
           assets: this.escapeTableText(getAssetIdList(element)),
         };
@@ -629,8 +629,8 @@ export abstract class BaseDocumentGenerator {
       displayId: connection.displayId || connection.id,
       fromElement: this.escapeTableText(fromElement),
       toElement: this.escapeTableText(toElement),
-      label: connection.label
-        ? this.escapeTableText(connection.label)
+      label: connection.name
+        ? this.escapeTableText(connection.name)
         : undefined,
       propertyGroups: propertyGroupsText,
       assetRelations:
@@ -736,9 +736,9 @@ export abstract class BaseDocumentGenerator {
 
     const elementRelations = (asset.linkedDFDElements ?? [])
       .map((elemRel) => {
-        const relationTypes = (elemRel.relationTypes ?? [])
-          .map((rt) => getRelationTypeLabel(rt, lang))
-          .join(", ");
+        const relationTypes = elemRel.relationType
+          ? getRelationTypeLabel(elemRel.relationType, lang)
+          : "";
 
         const values = {
           elementDisplayId: elemRel.displayId,
@@ -779,7 +779,7 @@ export abstract class BaseDocumentGenerator {
     const values = {
       displayId: element.displayId || element.id,
       name: this.escapeTableText(element.name),
-      description: this.escapeTableText(element.properties?.description ?? "-"),
+      description: this.escapeTableText(element.description ?? "-"),
       securityLevel: getSecurityLevelText(
         getElementSecurityLevel(element),
         lang,
@@ -818,12 +818,10 @@ export abstract class BaseDocumentGenerator {
       displayId: connection.displayId || connection.id,
       fromElement: this.escapeTableText(fromElement),
       toElement: this.escapeTableText(toElement),
-      label: connection.label
-        ? this.escapeTableText(connection.label)
+      label: connection.name
+        ? this.escapeTableText(connection.name)
         : undefined,
-      description: this.escapeTableText(
-        connection.properties?.description ?? "-",
-      ),
+      description: this.escapeTableText(connection.description ?? "-"),
       securityLevel: getSecurityLevelText(
         getConnectionSecurityLevel(connection),
         lang,

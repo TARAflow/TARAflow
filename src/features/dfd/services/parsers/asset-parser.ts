@@ -133,11 +133,10 @@ export function consolidateAssets(
     assets.push({
       id,
       displayId: id,
-      name: id, // Default name = id, can be customized in description form
-      xmlIds: group.xmlIds,
-      positions: group.positions,
-      sizes: group.sizes,
-      linkedElements: [], // Will be filled by linkAssetsToElements()
+      name: id,
+      description: "",
+      assetGroup: "data", // default - overridden in description form
+      linkedElements: [],
       properties: {},
     });
   });
@@ -173,9 +172,7 @@ export function linkAssetsToElements(
         ? ('type' in element ? element.type : 'DataFlow')
         : 'Process'; // Fallback
 
-      const elementName = element 
-        ? ('name' in element ? element.name : element.label || '')
-        : '';
+      const elementName = element?.name || "";
 
       const displayId = element 
         ? ('displayId' in element ? element.displayId : '')
@@ -186,7 +183,6 @@ export function linkAssetsToElements(
         elementName,
         elementType,
         displayId,
-        relationTypes: [], // Empty - will be filled in description forms
       };
 
       return relation;

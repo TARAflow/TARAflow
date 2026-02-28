@@ -144,7 +144,7 @@ function createConnection(
     id,
     from,
     to,
-    label: cleanLabel(label),
+    name: cleanLabel(label),
     displayId: "",
     properties: {},
   };

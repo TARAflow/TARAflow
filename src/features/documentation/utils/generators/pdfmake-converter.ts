@@ -410,7 +410,7 @@ export class PdfMakeConverter {
           margin: [0, 10, 0, 5],
         });
         content.push({
-          text: element.properties?.description || "-",
+          text: element.description || "-",
           margin: [0, 0, 0, 10],
         });
       }

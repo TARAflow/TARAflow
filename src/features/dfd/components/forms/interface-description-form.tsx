@@ -67,7 +67,7 @@ export const InterfaceDescriptionForm: React.FC<InterfaceFormProps> = ({
       </Typography>
 
       <RichTextEditor
-        value={element.properties.description || ""}
+        value={element.description || ""}
         onChange={(value) => handlePropertyChange("description", value)}
         label="Description"
         required
@@ -107,7 +107,9 @@ export const InterfaceDescriptionForm: React.FC<InterfaceFormProps> = ({
         <InputLabel>Access Control</InputLabel>
         <Select
           value={props.accessControl || ""}
-          onChange={(e) => handlePropertyChange("accessControl", e.target.value)}
+          onChange={(e) =>
+            handlePropertyChange("accessControl", e.target.value)
+          }
           label="Access Control"
         >
           <MenuItem value="">
@@ -135,7 +137,9 @@ export const InterfaceDescriptionForm: React.FC<InterfaceFormProps> = ({
           </MenuItem>
           <MenuItem value="low">Low (e.g., Serial, GPIO)</MenuItem>
           <MenuItem value="medium">Medium (e.g., USB 2.0, Wi-Fi)</MenuItem>
-          <MenuItem value="high">High (e.g., USB 3.0, Fiber, Ethernet 1Gbps+)</MenuItem>
+          <MenuItem value="high">
+            High (e.g., USB 3.0, Fiber, Ethernet 1Gbps+)
+          </MenuItem>
         </Select>
       </FormControl>
 
@@ -196,11 +200,13 @@ export const InterfaceDescriptionForm: React.FC<InterfaceFormProps> = ({
       {/* STRIDE Hint */}
       <Alert severity="info" sx={{ mt: 2 }}>
         <Typography variant="body2" fontWeight="bold">
-          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial of Service)
+          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial
+          of Service)
         </Typography>
         <Typography variant="caption">
-          Interfaces (physical/logical) can transport, process, and cache assets. 
-          Protect them with access controls and monitoring to prevent unauthorized access!
+          Interfaces (physical/logical) can transport, process, and cache
+          assets. Protect them with access controls and monitoring to prevent
+          unauthorized access!
         </Typography>
       </Alert>
     </Box>

@@ -49,9 +49,9 @@ import type {
   DFDElement,
   DFDConnection,
   DFDElementType,
-  AssetRelationType,
 } from "../../models/dfd-types";
-import { getAssetRelationTypeText } from "../../models/dfd-types";
+import type { AnyAssetRelationType } from "../../models/asset-relation-types";
+import { getRelationTypeText } from "../../models/dfd-formatters";
 import { RichTextEditor } from "../shared/rich-text-editor";
 
 // ==================== TYPES ====================
@@ -72,7 +72,8 @@ interface ElementReference {
   elementName: string;
   elementDisplayId: string;
   elementType: DFDElementType | "DataFlow";
-  relationTypes: AssetRelationType[];
+  relationType?: AnyAssetRelationType;
+  assetGroup?: string;
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -89,17 +90,9 @@ const getElementTypeIcon = (type: DFDElementType | "DataFlow") => {
   return iconMap[type] || <DataIcon fontSize="small" />;
 };
 
-const getRelationTypeColor = (relationType: AssetRelationType) => {
-  const colorMap: Record<AssetRelationType, any> = {
-    stores: "success",
-    read: "info",
-    modify: "warning",
-    creates: "secondary",
-    deletes: "primary",
-    transports: "primary",
-  };
-  return colorMap[relationType] || "default";
-};
+const getRelationTypeColor = (
+  _relationType?: AnyAssetRelationType,
+): "default" => "default";
 
 const getElementsReferencingAsset = (
   assetId: string,
@@ -108,34 +101,35 @@ const getElementsReferencingAsset = (
 ): ElementReference[] => {
   const references: ElementReference[] = [];
 
-  elements.forEach((element) => {
-    const relation = element.assetRelations?.find((r) => r.assetId === assetId);
-    if (relation && relation.relationTypes.length > 0) {
-      references.push({
-        elementId: element.id,
-        elementName: element.name,
-        elementDisplayId: element.displayId || element.id,
-        elementType: element.type,
-        relationTypes: relation.relationTypes,
-      });
-    }
-  });
+elements.forEach((element) => {
+  const relation = element.assetRelations?.find((r) => r.assetId === assetId);
+  if (relation?.relationType) {
+    references.push({
+      elementId: element.id,
+      elementName: element.name,
+      elementDisplayId: element.displayId || element.id,
+      elementType: element.type,
+      relationType: relation.relationType,
+      assetGroup: relation.assetGroup,
+    });
+  }
+});
 
-  connections.forEach((connection) => {
-    const relation = connection.assetRelations?.find(
-      (r) => r.assetId === assetId,
-    );
-    if (relation && relation.relationTypes.length > 0) {
-      references.push({
-        elementId: connection.id,
-        elementName:
-          connection.label || `${connection.from} → ${connection.to}`,
-        elementDisplayId: connection.displayId || connection.id,
-        elementType: "DataFlow",
-        relationTypes: relation.relationTypes,
-      });
-    }
-  });
+connections.forEach((connection) => {
+  const relation = connection.assetRelations?.find(
+    (r) => r.assetId === assetId,
+  );
+  if (relation?.relationType) {
+    references.push({
+      elementId: connection.id,
+      elementName: connection.name || `${connection.from} → ${connection.to}`,
+      elementDisplayId: connection.displayId || connection.id,
+      elementType: "DataFlow",
+      relationType: relation.relationType,
+      assetGroup: relation.assetGroup,
+    });
+  }
+});
 
   return references;
 };
@@ -154,7 +148,7 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
 
   // Local state for RichTextEditor
   const [localDescription, setLocalDescription] = React.useState(
-    asset.properties?.description || "",
+    asset.description || "",
   );
   const [localNotes, setLocalNotes] = React.useState(
     asset.properties?.notes || "",
@@ -165,8 +159,8 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
 
   // Sync when asset changes
   React.useEffect(() => {
-    setLocalDescription(asset.properties?.description || "");
-  }, [asset.properties?.description]);
+    setLocalDescription(asset.description || "");
+  }, [asset.description]);
 
   React.useEffect(() => {
     setLocalNotes(asset.properties?.notes || "");
@@ -478,15 +472,19 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                       }
                       secondary={
                         <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                          {ref.relationTypes.map((relationType) => (
+                          {ref.relationType && (
                             <Chip
-                              key={relationType}
-                              label={getAssetRelationTypeText(relationType)}
+                              key={ref.relationType}
+                              label={getRelationTypeText(
+                                ref.relationType,
+                                ref.assetGroup as any,
+                                "en",
+                              )}
                               size="small"
                               variant="outlined"
-                              color={getRelationTypeColor(relationType)}
+                              color={getRelationTypeColor(ref.relationType)}
                             />
-                          ))}
+                          )}
                         </Stack>
                       }
                     />
@@ -729,7 +727,7 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
           value={localDescription}
           onChange={setLocalDescription}
           onBlur={() => {
-            if (localDescription !== asset.properties?.description) {
+            if (localDescription !== asset.description) {
               handlePropertyChange("description", localDescription);
             }
           }}

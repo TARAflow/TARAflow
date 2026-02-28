@@ -1,19 +1,146 @@
 // ==================== DFD FEATURE PUBLIC API ====================
 // Only export what should be used by app and other features
 
-// ==================== TYPES ====================
+// ==================== CORE DFD TYPES ====================
 export type {
-  DFDAsset,
+  // Base
+  DFDBaseEntity,
   DFDElementType,
+  SecurityLevel,
+  TrustLevel,
+
+  // Elements
   DFDElement,
   DFDConnection,
+  ElementRelation,
+
+  // Asset
+  DFDAsset,
+
+  // Data containers
   DFDValidation,
   DFDStats,
   DFDData,
+
+  // App integration
   DFDProjectData,
   DFDUpdateResult,
   DFDTabProps,
+  DFDViewMode,
+
+  // Export
+  DFDExportData,
 } from "./models/dfd-types";
+
+// ==================== ASSET RELATION TYPES ====================
+export type {
+  // Asset group
+  AssetGroup,
+
+  // Unified relation type
+  AssetRelation,
+  AnyAssetRelationType,
+
+  // Data asset
+  DataAssetRelationType,
+  DataAssetRelation,
+  DataAssetInteractionRelation,
+
+  // Process asset
+  ProcessAssetRelationType,
+  ProcessAssetRelation,
+  ProcessAssetInteractionRelation,
+
+  // System asset
+  SystemAssetRelationType,
+  SystemAssetRelation,
+  SystemUsesRelation,
+  SystemUsesQualifier,
+  SystemOtherRelation,
+
+  // Infrastructure asset
+  InfraAssetRelationType,
+  InfraAssetRelation,
+  InfraAccessesRelation,
+  InfraAccessesQualifier,
+  InfraOtherRelation,
+
+  // Human asset
+  HumanAssetRelationType,
+  HumanAssetRelation,
+  HumanAssetInteractionRelation,
+
+  // is_an
+  IsAnRelation,
+} from "./models/asset-relation-types";
+
+// Type guards — needed by dfd-to-asset-mapper and other consumers
+export {
+  isIsAnRelation,
+  isDataRelation,
+  isSystemUsesRelation,
+  isInfraAccessesRelation,
+  hasQualifier,
+  hasIsAnConflict,
+} from "./models/asset-relation-types";
+
+// ==================== SAFETY TYPES ====================
+export type {
+  SafetyRelevance,
+  SafetyImpact,
+  SafetyAnnotation,
+} from "./models/safety-types";
+
+export {
+  isSafetyCritical,
+  hasSafetyRelevance,
+  createDefaultSafetyAnnotation,
+} from "./models/safety-types";
+
+// ==================== ASSET CONSTANTS ====================
+export {
+  ASSET_GROUP_CONFIG,
+  ASSET_GROUP_TAB_ORDER,
+  ALLOWED_DATA_RELATIONS,
+  ALLOWED_PROCESS_RELATIONS,
+  ALLOWED_SYSTEM_RELATIONS,
+  ALLOWED_INFRA_RELATIONS,
+  ALLOWED_HUMAN_RELATIONS,
+  DATA_RELATION_LABELS,
+  PROCESS_RELATION_LABELS,
+  SYSTEM_RELATION_LABELS,
+  INFRA_RELATION_LABELS,
+  HUMAN_RELATION_LABELS,
+  SYSTEM_USES_QUALIFIER_LABELS,
+  INFRA_ACCESSES_QUALIFIER_LABELS,
+  getAllowedRelations,
+  hasAnyAllowedRelations,
+  getQualifierLabel,
+} from "./models/asset-constants";
+
+// ==================== DFD ELEMENT CONFIG ====================
+export { DFD_ELEMENT_CONFIG } from "./models/dfd-types";
+
+// ==================== FORMATTERS ====================
+export type { DocLanguage } from "./models/dfd-formatters";
+export {
+  getSecurityLevelText,
+  getTrustLevelText,
+  getDFDElementTypeText,
+  getDFDElementTypePluralText,
+  getAssetGroupText,
+  getAssetGroupColor,
+  getRelationTypeText,
+  getSystemUsesQualifierText,
+  getDrawIOAssetLabel,
+} from "./models/dfd-formatters";
+
+// ==================== GRAPH TYPES ====================
+export type {
+  DFDGraph,
+  DataFlowAnalysis,
+  TrustBoundaryAnalysis,
+} from "./models/dfd-graph-types";
 
 export { DFDGraphAnalysisContext } from "./adapters/dfd-graph-analysis-context";
 
@@ -36,14 +163,7 @@ export {
   createInitialEditorState,
 } from "./interfaces/dfd-editor-interfaces";
 
-// ==================== CONSTANTS ====================
-export { DFD_ELEMENT_CONFIG } from "./models/dfd-types";
-
-export type {
-  DFDGraph,
-  DataFlowAnalysis,
-  TrustBoundaryAnalysis,
-} from "./models/dfd-graph-types";
+export { type ICrossingElements } from "./interfaces/drawio-interfaces";
 
 // ==================== COMPONENTS ====================
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
@@ -88,5 +208,3 @@ export {
   DotLegacyStorageXmlSource,
   createXmlSourceManager,
 } from "./services/xml-source-manager";
-
-export { type ICrossingElements } from "./interfaces/drawio-interfaces";

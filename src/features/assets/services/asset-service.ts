@@ -307,11 +307,10 @@ class AssetService {
   // ==================== DFD SYNC ====================
 
   /**
-   * Sync assets from DFD to asset list
-   *
-   * FIXED: Properly handles linkedElements structure from DFD
-   * - dfdAsset.linkedElements is already an array of ElementRelation objects
-   * - We just need to map them to DFDElementLink format
+   * Sync assets from DFD to asset list.
+   * Maps linkedElements from DFD format to DFDElementLink format.
+   * Each link carries a single relationType + optional qualifier
+   * instead of the old relationTypes[] array.
    */
   syncFromDFD(
     assetData: AssetData,
@@ -331,9 +330,9 @@ class AssetService {
         return;
       }
 
-      // ✅ CRITICAL FIX: linkedElements is already properly structured
-      // DFDAsset.linkedElements is ElementRelation[] with { elementId, elementName, elementType, displayId, relationTypes }
-      // We just need to map it to DFDElementLink format
+      // Map each linked element to DFDElementLink format.
+      // relationType is now a single string, qualifier is optional
+      // (only present for uses/accesses relations).
       const linkedDFDElements: DFDElementLink[] = (
         dfdAsset.linkedElements || []
       ).map((link) => ({
@@ -341,9 +340,8 @@ class AssetService {
         elementName: String(link.elementName || ""),
         elementType: String(link.elementType || "unknown"),
         displayId: String(link.displayId || ""),
-        relationTypes: link.relationTypes
-          ? Array.from(link.relationTypes)
-          : undefined, // ✅ PRESERVE!
+        relationType: String(link.relationType || ""),
+        qualifier: link.qualifier,
         notes: link.notes,
       }));
 
@@ -352,7 +350,6 @@ class AssetService {
         resolvedLinks: linkedDFDElements,
       });
 
-      // Check if asset already exists
       const existingAsset = assetData.assets.find((a) => a.id === dfdAsset.id);
 
       if (!existingAsset) {
@@ -364,7 +361,7 @@ class AssetService {
           name: dfdAsset.name || dfdAsset.id,
           source: "dfd",
           syncedWithDFD: true,
-          linkedDFDElements, // ✅ Correctly structured array
+          linkedDFDElements,
         };
 
         updatedAssetData = this.addAsset(updatedAssetData, newAsset);
@@ -375,7 +372,7 @@ class AssetService {
           ...existingAsset,
           name: dfdAsset.name || existingAsset.name,
           syncedWithDFD: true,
-          linkedDFDElements, // ✅ Correctly structured array
+          linkedDFDElements,
           lastModified: new Date().toISOString(),
         };
 
@@ -383,7 +380,7 @@ class AssetService {
       }
     });
 
-    // Check for assets not in DFD
+    // Warn about assets no longer present in DFD
     const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
     updatedAssetData.assets.forEach((asset) => {
       if (!dfdAssetIds.has(asset.id) && asset.source === "dfd") {

@@ -67,7 +67,7 @@ export const DataStoreDescriptionForm: React.FC<DataStoreFormProps> = ({
       </Typography>
 
       <RichTextEditor
-        value={element.properties.description || ""}
+        value={element.description || ""}
         onChange={(value) => handlePropertyChange("description", value)}
         label="Description"
         required
@@ -78,7 +78,9 @@ export const DataStoreDescriptionForm: React.FC<DataStoreFormProps> = ({
         fullWidth
         label="Stored Data Types"
         value={props.storedDataTypes || ""}
-        onChange={(e) => handlePropertyChange("storedDataTypes", e.target.value)}
+        onChange={(e) =>
+          handlePropertyChange("storedDataTypes", e.target.value)
+        }
         placeholder="e.g., User credentials, Transaction logs, Configuration"
         helperText="Separate multiple types with commas"
         sx={{ mb: 2 }}
@@ -254,10 +256,12 @@ export const DataStoreDescriptionForm: React.FC<DataStoreFormProps> = ({
       {/* STRIDE Hint */}
       <Alert severity="info" sx={{ mt: 2 }}>
         <Typography variant="body2" fontWeight="bold">
-          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial of Service)
+          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial
+          of Service)
         </Typography>
         <Typography variant="caption">
-          Data stores are high-value targets. Ensure encryption at rest and strict access controls!
+          Data stores are high-value targets. Ensure encryption at rest and
+          strict access controls!
         </Typography>
       </Alert>
     </Box>

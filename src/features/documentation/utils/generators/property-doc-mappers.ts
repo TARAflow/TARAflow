@@ -178,9 +178,18 @@ function getProcessPropertiesGrouped(
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
-      { label: getPropertyLabel("description", lang), value: formatValue(props.description) },
-      { label: getPropertyLabel("technology", lang), value: formatValue(props.technology) },
-      { label: getPropertyLabel("owner", lang), value: formatValue(props.owner) },
+      {
+        label: getPropertyLabel("description", lang),
+        value: formatValue(element.description),
+      },
+      {
+        label: getPropertyLabel("technology", lang),
+        value: formatValue(props.technology),
+      },
+      {
+        label: getPropertyLabel("owner", lang),
+        value: formatValue(props.owner),
+      },
     ],
   });
 
@@ -224,10 +233,22 @@ function getExternalEntityPropertiesGrouped(
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
-      { label: getPropertyLabel("description", lang), value: formatValue(props.description) },
-      { label: getPropertyLabel("entityType", lang), value: formatValue(props.entityType) },
-      { label: getPropertyLabel("ownership", lang), value: formatValue(props.ownership) },
-      { label: getPropertyLabel("owner", lang), value: formatValue(props.owner) },
+      {
+        label: getPropertyLabel("description", lang),
+        value: formatValue(element.description),
+      },
+      {
+        label: getPropertyLabel("entityType", lang),
+        value: formatValue(props.entityType),
+      },
+      {
+        label: getPropertyLabel("ownership", lang),
+        value: formatValue(props.ownership),
+      },
+      {
+        label: getPropertyLabel("owner", lang),
+        value: formatValue(props.owner),
+      },
     ],
   });
 
@@ -269,10 +290,22 @@ function getDataStorePropertiesGrouped(
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
-      { label: getPropertyLabel("description", lang), value: formatValue(props.description) },
-      { label: getPropertyLabel("technology", lang), value: formatValue(props.technology) },
-      { label: getPropertyLabel("storedDataTypes", lang), value: formatValue(props.storedDataTypes) },
-      { label: getPropertyLabel("owner", lang), value: formatValue(props.owner) },
+      {
+        label: getPropertyLabel("description", lang),
+        value: formatValue(element.description),
+      },
+      {
+        label: getPropertyLabel("technology", lang),
+        value: formatValue(props.technology),
+      },
+      {
+        label: getPropertyLabel("storedDataTypes", lang),
+        value: formatValue(props.storedDataTypes),
+      },
+      {
+        label: getPropertyLabel("owner", lang),
+        value: formatValue(props.owner),
+      },
     ],
   });
 
@@ -322,9 +355,15 @@ function getInterfacePropertiesGrouped(
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
-      { label: getPropertyLabel("description", lang), value: formatValue(props.description) },
+      {
+        label: getPropertyLabel("description", lang),
+        value: formatValue(element.description),
+      },
       { label: getPropertyLabel("type", lang), value: formatValue(props.type) },
-      { label: getPropertyLabel("location", lang), value: formatValue(props.location) },
+      {
+        label: getPropertyLabel("location", lang),
+        value: formatValue(props.location),
+      },
     ],
   });
 
@@ -370,10 +409,22 @@ function getTrustBoundaryPropertiesGrouped(
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
-      { label: getPropertyLabel("description", lang), value: formatValue(props.description) },
-      { label: getPropertyLabel("boundaryId", lang), value: formatValue(props.boundaryId) },
-      { label: getPropertyLabel("boundaryType", lang), value: formatValue(props.boundaryType) },
-      { label: getPropertyLabel("owner", lang), value: formatValue(props.owner) },
+      {
+        label: getPropertyLabel("description", lang),
+        value: formatValue(element.description),
+      },
+      {
+        label: getPropertyLabel("boundaryId", lang),
+        value: formatValue(props.boundaryId),
+      },
+      {
+        label: getPropertyLabel("boundaryType", lang),
+        value: formatValue(props.boundaryType),
+      },
+      {
+        label: getPropertyLabel("owner", lang),
+        value: formatValue(props.owner),
+      },
     ],
   });
 
@@ -415,9 +466,18 @@ export function getConnectionPropertiesGrouped(
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
-      { label: getPropertyLabel("description", lang), value: formatValue(props.description) },
-      { label: getPropertyLabel("dataTypes", lang), value: formatValue(props.dataTypes) },
-      { label: getPropertyLabel("protocol", lang), value: formatValue(props.protocol) },
+      {
+        label: getPropertyLabel("description", lang),
+        value: formatValue(connection.description),
+      },
+      {
+        label: getPropertyLabel("dataTypes", lang),
+        value: formatValue(props.dataTypes),
+      },
+      {
+        label: getPropertyLabel("protocol", lang),
+        value: formatValue(props.protocol),
+      },
     ],
   });
 
@@ -467,10 +527,10 @@ export function formatElementAssetRelations(
 
   return element.assetRelations
     .map((rel) => {
-      const relationTypes = rel.relationTypes
-        .map((rt) => getRelationTypeLabel(rt, lang))
-        .join(", ");
-      return `${rel.assetId} (${relationTypes})`;
+      const relationLabel = rel.relationType
+        ? getRelationTypeLabel(rel.relationType, lang)
+        : "";
+      return `${rel.assetId} (${relationLabel})`;
     })
     .join("; ");
 }
@@ -488,10 +548,10 @@ export function formatConnectionAssetRelations(
 
   return connection.assetRelations
     .map((rel) => {
-      const relationTypes = rel.relationTypes
-        .map((rt) => getRelationTypeLabel(rt, lang))
-        .join(", ");
-      return `${rel.assetId} (${relationTypes})`;
+      const relationLabel = rel.relationType
+        ? getRelationTypeLabel(rel.relationType, lang)
+        : "";
+      return `${rel.assetId} (${relationLabel})`;
     })
     .join("; ");
 }

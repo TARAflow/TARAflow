@@ -79,7 +79,7 @@ export const DataFlowDescriptionForm: React.FC<DataFlowFormProps> = ({
       </Typography>
 
       <RichTextEditor
-        value={connection.properties?.description || ""}
+        value={connection.description || ""}
         onChange={(value) => handlePropertyChange("description", value)}
         label="Description"
         required
@@ -138,11 +138,7 @@ export const DataFlowDescriptionForm: React.FC<DataFlowFormProps> = ({
         </Select>
       </FormControl>
 
-      <FormControl
-        fullWidth
-        sx={{ mb: 2 }}
-        error={showEncryptionWarning}
-      >
+      <FormControl fullWidth sx={{ mb: 2 }} error={showEncryptionWarning}>
         <InputLabel>Encryption in Transit</InputLabel>
         <Select
           value={encryptionInTransit}
@@ -164,7 +160,8 @@ export const DataFlowDescriptionForm: React.FC<DataFlowFormProps> = ({
 
       {showEncryptionWarning && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          ⚠️ Unencrypted data flow crosses trust boundary → Information Disclosure risk!
+          ⚠️ Unencrypted data flow crosses trust boundary → Information
+          Disclosure risk!
         </Alert>
       )}
 
@@ -263,10 +260,12 @@ export const DataFlowDescriptionForm: React.FC<DataFlowFormProps> = ({
       {/* STRIDE Hint */}
       <Alert severity="info" sx={{ mt: 2 }}>
         <Typography variant="body2" fontWeight="bold">
-          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial of Service)
+          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial
+          of Service)
         </Typography>
         <Typography variant="caption">
-          Data flows are the most common vulnerability in threat models. Always encrypt sensitive data in transit!
+          Data flows are the most common vulnerability in threat models. Always
+          encrypt sensitive data in transit!
         </Typography>
       </Alert>
     </Box>

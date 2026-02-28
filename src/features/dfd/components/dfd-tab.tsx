@@ -417,7 +417,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
                     "Details"}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {selectedElement?.name || selectedConnection?.label || ""}
+                  {selectedElement?.name || selectedConnection?.name || ""}
                 </Typography>
               </Box>
               <IconButton
@@ -483,7 +483,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};;;;;;;;;
+};
 
 // ==================== SUB-COMPONENTS ====================
 
