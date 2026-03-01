@@ -41,7 +41,7 @@ interface DFDToolbarProps {
   viewMode: DFDViewMode;
   onViewModeChange: (
     event: React.MouseEvent<HTMLElement>,
-    mode: DFDViewMode | null
+    mode: DFDViewMode | null,
   ) => void;
   isDirty: boolean;
   validation: ValidationResult | null;

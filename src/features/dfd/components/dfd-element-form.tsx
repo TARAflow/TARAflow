@@ -17,7 +17,7 @@ import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
 
 // ==================== PROPS ====================
 
-interface DFDElementDescriptionProps {
+interface DFDElementFormProps {
   element?: DFDElement;
   connection?: DFDConnection;
   onChange: (updates: Partial<DFDElement> | Partial<DFDConnection>) => void;
@@ -27,7 +27,7 @@ interface DFDElementDescriptionProps {
 
 // ==================== COMPONENT ====================
 
-export const DFDElementDescription: React.FC<DFDElementDescriptionProps> = ({
+export const DFDElementForm: React.FC<DFDElementFormProps> = ({
   element,
   connection,
   onChange,
@@ -35,7 +35,7 @@ export const DFDElementDescription: React.FC<DFDElementDescriptionProps> = ({
   crossesTrustBoundary = false,
 }) => {
   // ==================== DATA FLOW (Connection) ====================
-  
+
   if (connection) {
     return (
       <DataFlowDescriptionForm
@@ -54,7 +54,8 @@ export const DFDElementDescription: React.FC<DFDElementDescriptionProps> = ({
       <Box sx={{ p: 2 }}>
         <Alert severity="info">
           <Typography variant="body2">
-            No element selected. Click on an element in the DFD or select from the list.
+            No element selected. Click on an element in the DFD or select from
+            the list.
           </Typography>
         </Alert>
       </Box>
@@ -124,4 +125,4 @@ export const DFDElementDescription: React.FC<DFDElementDescriptionProps> = ({
   }
 };
 
-export default DFDElementDescription;
+export default DFDElementForm;

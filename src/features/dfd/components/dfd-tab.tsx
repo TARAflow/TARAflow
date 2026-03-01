@@ -40,7 +40,7 @@ import DFDValidationPanel from "./dfd-validation-panel";
 import DFDDescriptionView from "./dfd-description-view";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
-import { DFDElementDescription } from "./dfd-element-description";
+import { DFDDetailsPanel } from "./dfd-details-panel";
 
 
 // ==================== CONSTANTS ====================
@@ -385,74 +385,28 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onToggleElement={toggleElement}
             />
           </Box>
-        </Box>
 
-        {/* Right: Details Drawer */}
-        {detailsPanelOpen && (
-          <Box
-            sx={{
-              width: 400,
-              borderLeft: 1,
-              borderColor: "divider",
-              display: "flex",
-              flexDirection: "column",
-              bgcolor: "background.paper",
+          {/* Right: Details Drawer */}
+          <DFDDetailsPanel
+            open={detailsPanelOpen}
+            onToggle={() => setDetailsPanelOpen((prev) => !prev)}
+            onClose={() => setDetailsPanelOpen(false)}
+            element={selectedElement}
+            connection={selectedConnection}
+            onChange={(updates) => {
+              if (selectedElement) {
+                editor.updateElementDescription(selectedElement.id, updates);
+              } else if (selectedConnection) {
+                editor.updateConnectionDescription(
+                  selectedConnection.id,
+                  updates,
+                );
+              }
             }}
-          >
-            {/* Header */}
-            <Box
-              sx={{
-                p: 2,
-                borderBottom: 1,
-                borderColor: "divider",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Box>
-                <Typography variant="h6">
-                  {selectedElement?.displayId ||
-                    selectedConnection?.displayId ||
-                    "Details"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {selectedElement?.name || selectedConnection?.name || ""}
-                </Typography>
-              </Box>
-              <IconButton
-                onClick={() => setDetailsPanelOpen(false)}
-                size="small"
-                sx={{ ml: 1 }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </Box>
-
-            {/* Content */}
-            <Box sx={{ flexGrow: 1, overflow: "auto" }}>
-              <DFDElementDescription
-                element={selectedElement}
-                connection={selectedConnection}
-                onChange={(updates) => {
-                  if (selectedElement) {
-                    editor.updateElementDescription(
-                      selectedElement.id,
-                      updates,
-                    );
-                  } else if (selectedConnection) {
-                    editor.updateConnectionDescription(
-                      selectedConnection.id,
-                      updates,
-                    );
-                  }
-                }}
-                availableAssets={project.dfd?.assets || []}
-                crossesTrustBoundary={crossesTrustBoundary}
-              />
-            </Box>
-          </Box>
-        )}
+            availableAssets={project.dfd?.assets || []}
+            crossesTrustBoundary={crossesTrustBoundary}
+          />
+        </Box>
       </Box>
 
       {/* Validation Panel */}
