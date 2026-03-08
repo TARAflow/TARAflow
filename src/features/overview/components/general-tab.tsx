@@ -9,6 +9,7 @@ import {
   ProjectProgressData,
   ProjectSettingsData,
   PhaseValidationInfo,
+  getWorkflowMode,
 } from "../models/overview-types";
 
 // ==================== GENERAL TAB ====================
@@ -43,6 +44,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   getStatusColor,
   onUpdate,
 }) => {
+
+  const OVERVIEW_PHASE_IDS = [0, 1, 2, 3, 4, 5];
+  const overviewPhases = phases.filter((p) =>
+    OVERVIEW_PHASE_IDS.includes(p.id),
+  );
+  const workflowMode = getWorkflowMode(data.info);
+
   // Map data to ProjectInfoData interface
   const projectInfoData: ProjectInfoData = {
     name: data.info.name,
@@ -101,21 +109,25 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 
   // Handle settings updates (only strictMode, autoSave, autoSaveInterval)
   const handleSettingsUpdate = (settings: ProjectSettingsData) => {
-    onUpdate({
-      ...data,
-      settings: {
-        ...settings,
-      },
-    });
+  onUpdate({
+    ...data,
+    info: {
+      ...data.info,
+    },
+    settings: {
+      ...settings,
+    },
+  });
   };
 
   return (
-    <div className="p-6 max-w-4xl">
+    <div className="p-6 max-w-6xl">
       <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
 
       <ProjectProgress
         data={progressData}
-        phases={phases}
+        phases={overviewPhases}
+        workflowMode={workflowMode}
         getStatusIcon={getStatusIcon}
         getStatusColor={getStatusColor}
       />

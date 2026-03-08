@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import {
@@ -7,7 +7,11 @@ import {
   PhaseDefinition,
   PHASE_STATUS_CONFIG,
 } from "shared";
-import type { ProjectProgressData } from "../models/overview-types";
+import {
+  type ProjectProgressData,
+  type WorkflowMode,
+  sortPhasesByWorkflow,
+} from "../models/overview-types";
 
 // ==================== PROJECT PROGRESS ====================
 // Displays phase progress overview
@@ -19,6 +23,7 @@ interface ProjectProgressProps {
   data: ProjectProgressData;
   /** Phase definitions (injected from app) */
   phases: PhaseDefinition[];
+  workflowMode: WorkflowMode;
   /** Get status icon for a phase status */
   getStatusIcon: (status: PhaseStatus) => string;
   /** Get status color for a phase status */
@@ -28,6 +33,7 @@ interface ProjectProgressProps {
 export const ProjectProgress: React.FC<ProjectProgressProps> = ({
   data,
   phases,
+  workflowMode,
   getStatusIcon,
   getStatusColor,
 }) => {
@@ -38,6 +44,11 @@ export const ProjectProgress: React.FC<ProjectProgressProps> = ({
     const complete = statuses.filter((s) => s === "complete").length;
     return Math.round((complete / statuses.length) * 100);
   };
+
+  const sortedPhases = useMemo(() => {
+    const result = sortPhasesByWorkflow(phases, workflowMode);
+    return result;
+  }, [phases, workflowMode]);
 
   const getStatusTranslation = (status: PhaseStatus) => {
     switch (status) {
@@ -116,8 +127,8 @@ export const ProjectProgress: React.FC<ProjectProgressProps> = ({
       </div>
 
       {/* Phase Grid */}
-      <div className="grid grid-cols-5 gap-3">
-        {phases.map((phase) => {
+      <div className="grid grid-cols-6 gap-3">
+        {sortedPhases.map((phase) => {
           const status = data.phaseStatus[phase.id as keyof PhaseStatusMap];
           const icon = getStatusIcon(status);
           const color = getStatusColor(status);
