@@ -14,6 +14,7 @@ import type {
   DFDStats,
   ElementRelation,
 } from "../models/dfd-types";
+import type { AssetGroup, AssetRelation } from "../models/asset-relation-types";
 import {
   isSystemUsesRelation,
   isInfraAccessesRelation,
@@ -21,6 +22,7 @@ import {
 import { DefaultDFDGraphBuilder } from "../services/dfd-graph-builder";
 import { calculateStats } from "../services/parsers/stats-calculator";
 import type { DFDGraph } from "../models/dfd-graph-types";
+import type { AvailableAsset } from "../components/forms/asset-relation-selector";
 
 // ==================== TYPES ====================
 
@@ -30,7 +32,7 @@ export interface UseDFDDataReturn {
   graph: DFDGraph | undefined;
   stats: DFDStats | undefined;
 
-  // Atomic update operations (always rebuild graph)
+  // Atomic update operations (always rebuild graph + sync + stats)
   updateElement: (elementId: string, updates: Partial<DFDElement>) => DFDData;
   updateAsset: (assetId: string, updates: Partial<DFDAsset>) => DFDData;
   updateConnection: (
@@ -38,15 +40,74 @@ export interface UseDFDDataReturn {
     updates: Partial<DFDConnection>,
   ) => DFDData;
 
+  /**
+   * Create a new asset in dfd.assets[] and return it.
+   * Called by AssetRelationSelector via onCreateAsset.
+   * updateDFD guarantees graph rebuild + stats + linkedElements sync.
+   *
+   * Returns both the updated DFD (for scheduleSave) and the new asset
+   * (so the selector can immediately use the real assetId in the relation).
+   */
+  createAsset: (
+    name: string,
+    assetGroup: AssetGroup,
+    protectionNeed?: DFDAsset["protectionNeed"],
+  ) => { newDfd: DFDData; asset: DFDAsset };
+
+  /**
+   * Derive AvailableAsset[] from dfd.assets for the AssetRelationSelector.
+   * Memoized — only recomputed when dfd.assets changes.
+   */
+  availableAssets: AvailableAsset[];
+
   // Low-level update (for advanced use cases)
   updateDFD: (updater: (dfd: DFDData) => DFDData) => DFDData;
 }
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== ID GENERATION ====================
+
+/**
+ * Group prefixes for generated asset IDs.
+ * DA-001, SY-001, PR-001, IF-001, HU-001
+ */
+const GROUP_PREFIX: Record<AssetGroup, string> = {
+  data:           "DA",
+  system:         "SY",
+  process:        "PR",
+  infrastructure: "IF",
+  human:          "HU",
+};
+
+/**
+ * Generate the next sequential asset ID for a given group.
+ * Counts only existing IDs in the same group to avoid gaps from
+ * mixed-prefix deletions.
+ *
+ * Examples:
+ *   []                          → "DA-001"
+ *   ["DA-001", "DA-002"]        → "DA-003"
+ *   ["DA-001", "SY-001"]  (DA)  → "DA-002"
+ */
+function generateAssetId(assets: DFDAsset[], assetGroup: AssetGroup): string {
+  const prefix = GROUP_PREFIX[assetGroup];
+
+  const existingNums = assets
+    .map((a) => a.id)
+    .filter((id) => id.startsWith(`${prefix}-`))
+    .map((id) => parseInt(id.slice(prefix.length + 1), 10))
+    .filter((n) => !isNaN(n));
+
+  const next = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+  return `${prefix}-${next.toString().padStart(3, "0")}`;
+}
+
+// ==================== HELPER: SYNC LINKED ELEMENTS ====================
 
 /**
  * Synchronize asset.linkedElements from element.assetRelations
- * This is the SINGLE SOURCE OF TRUTH sync
+ * and connection.assetRelations.
+ *
+ * This is the SINGLE SOURCE OF TRUTH sync — called after every updateDFD.
  */
 function syncAssetLinkedElements(
   elements: DFDElement[],
@@ -54,15 +115,17 @@ function syncAssetLinkedElements(
   assets: DFDAsset[],
 ): DFDAsset[] {
   // Build map: assetId → ElementRelation[]
-  const assetLinksMap = new Map<string, ElementRelation[]>();
+  const linksMap = new Map<string, ElementRelation[]>();
 
-  // Process all elements
-  elements.forEach((element) => {
-    if (!element.assetRelations || element.assetRelations.length === 0) return;
+  const pushLink = (assetId: string, link: ElementRelation) => {
+    const existing = linksMap.get(assetId) ?? [];
+    linksMap.set(assetId, [...existing, link]);
+  };
 
-    element.assetRelations.forEach((relation) => {
-      // ← missing loop
-      const elementRelation: ElementRelation = {
+  // Elements
+  for (const element of elements) {
+    for (const relation of element.assetRelations ?? []) {
+      pushLink(relation.assetId, {
         elementId: element.id,
         elementName: element.name,
         elementType: element.type,
@@ -73,61 +136,44 @@ function syncAssetLinkedElements(
             ? relation.qualifier
             : undefined,
         notes: relation.notes,
-      };
+      });
+    }
+  }
 
-      const existing = assetLinksMap.get(relation.assetId) || [];
-      assetLinksMap.set(relation.assetId, [...existing, elementRelation]);
-    }); // ← closing inner forEach
-  });
+  // Connections (DataFlows)
+  for (const connection of connections) {
+    for (const relation of connection.assetRelations ?? []) {
+      pushLink(relation.assetId, {
+        elementId: connection.id,
+        elementName: connection.name || "Unnamed DataFlow",
+        elementType: "DataFlow",
+        displayId: connection.displayId,
+        relationType: relation.relationType,
+        qualifier:
+          isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
+            ? relation.qualifier
+            : undefined,
+        notes: relation.notes,
+      });
+    }
+  }
 
-connections.forEach((connection) => {
-  if (!connection.assetRelations || connection.assetRelations.length === 0)
-    return;
-
-  connection.assetRelations.forEach((relation) => {
-    // ← missing loop
-    const elementRelation: ElementRelation = {
-      elementId: connection.id,
-      elementName: connection.name || "Unnamed DataFlow",
-      elementType: "DataFlow",
-      displayId: connection.displayId,
-      relationType: relation.relationType,
-      qualifier:
-        isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
-          ? relation.qualifier
-          : undefined,
-      notes: relation.notes,
-    };
-
-    const existing = assetLinksMap.get(relation.assetId) || [];
-    assetLinksMap.set(relation.assetId, [...existing, elementRelation]);
-  }); // ← closing inner forEach
-});
-
-  // Update all assets with computed linkedElements
   return assets.map((asset) => ({
     ...asset,
-    linkedElements: assetLinksMap.get(asset.id) || [],
+    linkedElements: linksMap.get(asset.id) ?? [],
   }));
 }
 
-/**
- * Rebuild graph from DFD data
- */
-function rebuildGraph(dfd: DFDData): DFDGraph {
-  const builder = new DefaultDFDGraphBuilder();
-  return builder.build(dfd);
-}
+// ==================== HELPER: AVAILABLE ASSETS ====================
 
-/**
- * Recalculate stats from DFD data
- */
-function recalculateStats(
-  elements: DFDElement[],
-  connections: DFDConnection[],
-  assets: DFDAsset[],
-): DFDStats {
-  return calculateStats(elements, connections, assets);
+function toAvailableAssets(assets: DFDAsset[]): AvailableAsset[] {
+  return assets.map((a) => ({
+    id: a.id,
+    displayId: a.displayId,
+    name: a.name,
+    assetGroup: a.assetGroup,
+    protectionNeed: a.protectionNeed,
+  }));
 }
 
 // ==================== HOOK ====================
@@ -140,12 +186,23 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
   const stats = useMemo(() => dfd?.stats, [dfd?.stats]);
 
   /**
+   * Memoized AvailableAsset[] for the AssetRelationSelector.
+   * Recomputed only when dfd.assets reference changes.
+   */
+  const availableAssets = useMemo(
+    () => toAvailableAssets(dfd?.assets ?? []),
+    [dfd?.assets],
+  );
+
+  // ==================== ATOMIC UPDATE ====================
+
+  /**
    * ATOMIC UPDATE FUNCTION
-   * Guarantees:
-   * 1. Asset linkedElements are synced
-   * 2. Graph is rebuilt
-   * 3. Stats are recalculated
-   * 4. lastModified is updated
+   * Guarantees after every call:
+   *   1. Asset linkedElements are synced
+   *   2. Graph is rebuilt
+   *   3. Stats are recalculated
+   *   4. lastModified is updated
    */
   const updateDFD = useCallback(
     (updater: (dfd: DFDData) => DFDData): DFDData => {
@@ -153,7 +210,7 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         throw new Error("Cannot update DFD: project.dfd is null");
       }
 
-      // 1. Apply user updates
+      // 1. Apply caller's changes
       const updated = updater(dfd);
 
       // 2. Sync asset linkedElements (SINGLE SOURCE OF TRUTH)
@@ -165,85 +222,188 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
 
       // 3. Rebuild graph
       const graphBuilder = new DefaultDFDGraphBuilder();
-      const newGraph = graphBuilder.build({
-        ...updated,
-        assets: syncedAssets,
-      });
+      const newGraph = graphBuilder.build({ ...updated, assets: syncedAssets });
 
       // 4. Recalculate stats
-      const newStats = recalculateStats(
+      const newStats = calculateStats(
         updated.elements,
         updated.connections,
         syncedAssets,
       );
 
       // 5. Return fully consistent DFD
-      const result: DFDData = {
+      return {
         ...updated,
         assets: syncedAssets,
         graph: newGraph,
         stats: newStats,
         lastModified: new Date().toISOString(),
       };
-
-      return result;
     },
     [dfd],
   );
 
+  // ==================== ELEMENT / ASSET / CONNECTION UPDATES ====================
+
   /**
-   * Update element properties (description, properties, assetRelations, etc.)
+   * Update element properties (description, properties, assetRelations, …)
    */
   const updateElement = useCallback(
-    (elementId: string, updates: Partial<DFDElement>): DFDData => {
-      return updateDFD((dfd) => ({
-        ...dfd,
-        elements: dfd.elements.map((el) =>
+    (elementId: string, updates: Partial<DFDElement>): DFDData =>
+      updateDFD((current) => ({
+        ...current,
+        elements: current.elements.map((el) =>
           el.id === elementId ? { ...el, ...updates } : el,
         ),
-      }));
-    },
+      })),
     [updateDFD],
   );
 
   /**
-   * Update asset properties (name, properties, etc.)
-   * Note: linkedElements will be re-synced automatically
+   * Update asset properties (name, protectionNeed, properties, …).
+   * linkedElements will be re-synced automatically by updateDFD.
+   *
+   * ✅ CLEANUP: If assetGroup changes, all existing asset relations
+   * in elements/connections are automatically removed (incompatible relations).
+   * ✅ ID REGENERATION: If assetGroup changes, a new ID with the correct
+   * prefix is generated (DA-001 → SY-001).
    */
   const updateAsset = useCallback(
     (assetId: string, updates: Partial<DFDAsset>): DFDData => {
-      return updateDFD((dfd) => ({
-        ...dfd,
-        assets: dfd.assets.map((a) =>
-          a.id === assetId ? { ...a, ...updates } : a,
-        ),
-      }));
+      // Detect category change
+      const oldAsset = dfd?.assets.find((a) => a.id === assetId);
+      const categoryChanged =
+        updates.assetGroup &&
+        oldAsset &&
+        updates.assetGroup !== oldAsset.assetGroup;
+
+      return updateDFD((current) => {
+        let elements = current.elements;
+        let connections = current.connections;
+        let finalUpdates = { ...updates };
+
+        // ✅ Cleanup asset relations if category changed
+        if (categoryChanged) {
+          // Generate new ID with correct prefix
+          const newId = generateAssetId(current.assets, updates.assetGroup!);
+          finalUpdates = {
+            ...updates,
+            id: newId,
+            displayId: newId,
+          };
+
+          elements = elements.map((el) => {
+            const hasRelation = el.assetRelations?.some(
+              (r) => r.assetId === assetId,
+            );
+            if (!hasRelation) return el;
+
+            return {
+              ...el,
+              assetRelations: el.assetRelations!.filter(
+                (r) => r.assetId !== assetId,
+              ),
+            };
+          });
+
+          connections = connections.map((conn) => {
+            const hasRelation = conn.assetRelations?.some(
+              (r) => r.assetId === assetId,
+            );
+            if (!hasRelation) return conn;
+
+            return {
+              ...conn,
+              assetRelations: conn.assetRelations!.filter(
+                (r) => r.assetId !== assetId,
+              ),
+            };
+          });
+        }
+
+        // Update asset (using old ID to find it, but applying new ID if category changed)
+        const assets = current.assets.map((a) =>
+          a.id === assetId ? { ...a, ...finalUpdates } : a,
+        );
+
+        return {
+          ...current,
+          elements,
+          connections,
+          assets,
+        };
+      });
     },
-    [updateDFD],
+    [dfd?.assets, updateDFD],
   );
 
   /**
-   * Update connection properties (label, properties, assetRelations, etc.)
+   * Update connection properties (label, properties, assetRelations, …)
    */
   const updateConnection = useCallback(
-    (connectionId: string, updates: Partial<DFDConnection>): DFDData => {
-      return updateDFD((dfd) => ({
-        ...dfd,
-        connections: dfd.connections.map((c) =>
+    (connectionId: string, updates: Partial<DFDConnection>): DFDData =>
+      updateDFD((current) => ({
+        ...current,
+        connections: current.connections.map((c) =>
           c.id === connectionId ? { ...c, ...updates } : c,
         ),
-      }));
-    },
+      })),
     [updateDFD],
   );
+
+  // ==================== ASSET CREATION ====================
+
+  /**
+   * Create a new DFDAsset in dfd.assets[] atomically.
+   *
+   * Returns { newDfd, asset } so the caller can:
+   *   - pass newDfd to scheduleSave()
+   *   - return asset to AssetRelationSelector as AvailableAsset
+   *     so the new assetId is immediately used in the relation
+   *
+   * ID scheme:  DA-001 / SY-001 / PR-001 / IF-001 / HU-001
+   * Sequential per group — no gaps from mixed-group deletions.
+   */
+  const createAsset = useCallback(
+    (
+      name: string,
+      assetGroup: AssetGroup,
+      protectionNeed?: DFDAsset["protectionNeed"],
+    ): { newDfd: DFDData; asset: DFDAsset } => {
+      if (!dfd) throw new Error("Cannot create asset: project.dfd is null");
+
+      const id = generateAssetId(dfd.assets, assetGroup);
+
+      const newAsset: DFDAsset = {
+        id,
+        displayId: id,
+        name,
+        assetGroup,
+        ...(protectionNeed ? { protectionNeed } : {}),
+        linkedElements: [], // will be populated by syncAssetLinkedElements
+      };
+
+      const newDfd = updateDFD((current) => ({
+        ...current,
+        assets: [...current.assets, newAsset],
+      }));
+
+      return { newDfd, asset: newAsset };
+    },
+    [dfd, updateDFD],
+  );
+
+  // ==================== RETURN ====================
 
   return {
     dfd,
     graph,
     stats,
+    availableAssets,
     updateElement,
     updateAsset,
     updateConnection,
+    createAsset,
     updateDFD,
   };
 }

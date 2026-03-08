@@ -37,7 +37,6 @@
     "none": "Nichts",
     "collapse": "Zuklappen"
   },
-
   "project": {
     "title": "Projekt",
     "projects": "Projekte",
@@ -62,7 +61,6 @@
     "noRecentProjects": "Keine kürzlich verwendeten Projekte",
     "team": "Team"
   },
-
   "phases": {
     "general": "Allgemein",
     "dfd": "DFD",
@@ -72,7 +70,6 @@
     "phaseProgress": "Phasenfortschritt",
     "overallProgress": "Gesamtfortschritt"
   },
-
   "status": {
     "notStarted": "Nicht begonnen",
     "inProgress": "In Bearbeitung",
@@ -81,7 +78,6 @@
     "draft": "Entwurf",
     "review": "Überprüfung"
   },
-
   "settings": {
     "title": "Projekteinstellungen",
     "strictMode": "Strikter Modus (alle Phasen erforderlich)",
@@ -102,7 +98,6 @@
     "standardWorkflow": "Standard:",
     "criticalWorkflow": "Kritisch:"
   },
-
   "validation": {
     "nameRequired": "Projektname ist erforderlich",
     "nameMinLength": "Projektname muss mindestens 3 Zeichen lang sein",
@@ -114,7 +109,6 @@
     "descriptionRequired": "Beschreibung ist erforderlich",
     "responsibleRequired": "Verantwortlicher ist erforderlich"
   },
-
   "dialogs": {
     "newProject": {
       "title": "Neues Projekt",
@@ -198,7 +192,6 @@
       "goToProject": "Zum Projekt"
     }
   },
-
   "activity": {
     "title": "Letzte Aktivitäten",
     "created": "Projekt erstellt",
@@ -208,7 +201,6 @@
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "Noch keine Aktivitäten aufgezeichnet"
   },
-
   "projectInfo": {
     "title": "Projektinformationen",
     "tagCategories": {
@@ -278,41 +270,24 @@
     },
     "docDescriptions": {
       "cra": "Der **EU Cyber Resilience Act (CRA)** etabliert verbindliche Cybersicherheitsanforderungen für Produkte mit digitalen Elementen über deren gesamten Lebenszyklus. Hersteller müssen sichere Entwicklungspraktiken (Security by Design) implementieren, Prozesse zur Schwachstellenbehandlung etablieren und kontinuierliche Sicherheitsupdates für die erwartete Produktlebensdauer bereitstellen. Wesentliche Anforderungen umfassen:\n\n- Risikobewertung und Bedrohungsanalyse während der Produktentwicklung\n- Sicherheitstests und Schwachstellenmanagement\n- Meldung von Vorfällen innerhalb von 24 Stunden nach Kenntnisnahme\n- Mindestens 5 Jahre Unterstützung mit Sicherheitsupdates\n- Technische Dokumentation einschließlich SBOM (Software-Stückliste)\n\nDiese Bedrohungsanalyse adressiert CRA-Anforderungen durch systematische Identifikation und Bewertung von Sicherheitsrisiken, Dokumentation von Gegenmaßnahmen und Etablierung einer Basis für kontinuierliches Schwachstellenmanagement.",
-
       "nis2": "Die **NIS2-Richtlinie** (Netzwerk- und Informationssicherheitsrichtlinie 2) ist die umfassende EU-Cybersicherheitsgesetzgebung für kritische Infrastrukturen und wesentliche Dienste. Sie erweitert den Anwendungsbereich der ursprünglichen NIS-Richtlinie und führt strengere Sicherheits- und Meldeanforderungen ein.\n\nOrganisationen unter NIS2 müssen implementieren:\n\n- Risikoanalyse und Informationssystem-Sicherheitsrichtlinien\n- Vorfallbehandlung und Business-Continuity-Management\n- Maßnahmen zur Lieferkettensicherheit\n- Sicherheit bei Beschaffung von Netzwerk- und Informationssystemen\n- Kryptografie- und Verschlüsselungsrichtlinien\n\nDiese Bedrohungsanalyse trägt zur NIS2-Compliance bei, indem sie einen systematischen Risikobewertungsansatz bereitstellt und Sicherheitsmaßnahmen für die betroffenen Systeme dokumentiert.",
-
       "gdpr": "Die **Datenschutz-Grundverordnung (DSGVO)** ist die EU-Verordnung für Datenschutz und Privatsphäre. Obwohl primär auf die Verarbeitung personenbezogener Daten ausgerichtet, fordert Artikel 32 DSGVO angemessene technische und organisatorische Maßnahmen zur Gewährleistung der Sicherheit.\n\nRelevante Sicherheitsanforderungen umfassen:\n\n- Pseudonymisierung und Verschlüsselung personenbezogener Daten\n- Vertraulichkeit, Integrität, Verfügbarkeit und Belastbarkeit der Verarbeitungssysteme\n- Fähigkeit zur Wiederherstellung der Datenverfügbarkeit nach Vorfällen\n- Regelmäßige Überprüfung und Bewertung von Sicherheitsmaßnahmen\n\nDiese Bedrohungsanalyse adressiert DSGVO-Sicherheitsanforderungen durch Identifikation von Bedrohungen für Vertraulichkeit, Integrität und Verfügbarkeit personenbezogener Daten sowie Dokumentation angemessener Schutzmaßnahmen.",
-
       "aiAct": "Der **EU AI Act** etabliert einen risikobasierten regulatorischen Rahmen für Systeme der künstlichen Intelligenz. Hochrisiko-KI-Systeme müssen strenge Anforderungen an Sicherheit, Transparenz und menschliche Aufsicht erfüllen.\n\nSicherheitsrelevante Anforderungen für Hochrisiko-KI umfassen:\n\n- Risikomanagementsystem über den gesamten KI-Lebenszyklus\n- Anforderungen an Datengovernance und -qualität\n- Technische Dokumentation und Aufzeichnungspflichten\n- Robustheit gegen Angriffe und Fehler\n- Cybersicherheitsmaßnahmen entsprechend den Risiken\n\nDiese Bedrohungsanalyse adressiert AI-Act-Anforderungen durch Analyse KI/ML-spezifischer Sicherheitsrisiken, einschließlich Data Poisoning, Modellmanipulation und adversarialer Angriffe.",
-
       "iec62443": "**IEC 62443** ist die internationale Normenreihe für die Sicherheit industrieller Automatisierungs- und Steuerungssysteme (IACS). Sie bietet ein umfassendes Framework für Betreiber, Systemintegratoren und Komponentenlieferanten.\n\nFür diese Analyse relevante Kernelemente:\n\n- **IEC 62443-3-2**: Sicherheitsrisikobewertung für das Systemdesign\n- **IEC 62443-3-3**: Systemsicherheitsanforderungen und Security Levels (SL 1-4)\n- **IEC 62443-4-1**: Anforderungen an den sicheren Produktentwicklungsprozess\n- **IEC 62443-4-2**: Technische Sicherheitsanforderungen für IACS-Komponenten\n\nDiese Bedrohungsanalyse folgt der IEC 62443-3-2-Methodik für Zonen- und Conduit-Analyse und ordnet identifizierte Risiken den in IEC 62443-3-3 definierten Security Levels zu.",
-
       "en18031": "**EN 18031** (Teile 1-3) spezifiziert Cybersicherheitsanforderungen für Funkanlagen gemäß der Funkanlagenrichtlinie (RED). Diese Standards werden für die CE-Kennzeichnung vernetzter Geräte verpflichtend.\n\nDie Norm behandelt:\n\n- **EN 18031-1**: Allgemeine Sicherheitsanforderungen für alle internetfähigen Funkanlagen\n- **EN 18031-2**: Zusätzliche Anforderungen für Geräte, die persönliche oder Zahlungsdaten verarbeiten\n- **EN 18031-3**: Anforderungen für mit dem Internet verbundene Geräte bezüglich Netzwerksicherheit\n\nDiese Bedrohungsanalyse adressiert EN 18031-Compliance durch Analyse von Bedrohungen für Netzwerkressourcen, personenbezogene Daten und Betrugspräventionsmechanismen.",
-
       "iec81001": "**IEC 81001-5-1** spezifiziert Sicherheitsanforderungen für Entwicklung und Wartung von Gesundheitssoftware und Gesundheits-IT-Systemen. Sie adressiert den kompletten Lebenszyklus von der Konzeption bis zur Außerbetriebnahme.\n\nWesentliche Anforderungen umfassen:\n\n- Sicherheitsrisikomanagement integriert mit Safety-Risikomanagement\n- Sichere Entwicklungspraktiken und Sicherheitstests\n- Schwachstellen- und Patch-Management-Prozesse\n- Sicherheitsdokumentation und Wartungsverfahren\n\nDiese Bedrohungsanalyse adressiert IEC 81001-Anforderungen durch systematische Bedrohungsidentifikation und Risikobewertung für Gesundheitssoftwarekomponenten unter Berücksichtigung von Security- und Safety-Implikationen.",
-
       "iecTr60601": "**IEC TR 60601-4-5** bietet Leitlinien zu Sicherheitsanforderungen für medizinische elektrische Geräte und Systeme. Er ergänzt die grundlegenden Sicherheits- und Leistungsanforderungen von IEC 60601-1.\n\nDer Technical Report behandelt:\n\n- Sicherheitsrisikomanagement für Medizinprodukte\n- Sicherheitsfähigkeiten und erwartete Einsatzumgebung\n- Defense-in-Depth-Strategien für medizinische Systeme\n- Leitlinien zur Sicherheit der Einsatzumgebung\n\nDiese Bedrohungsanalyse berücksichtigt die Leitlinien von IEC TR 60601-4-5 durch Einbeziehung der spezifischen Bedrohungslandschaft medizinischer Geräte und ihrer Betriebsumgebung.",
-
       "iso21434": "**ISO/SAE 21434** ist die internationale Norm für Cybersecurity Engineering bei Straßenfahrzeugen. Sie definiert Anforderungen über den gesamten Fahrzeuglebenszyklus von der Konzeption bis zur Außerbetriebnahme.\n\nKernelemente umfassen:\n\n- Threat Analysis and Risk Assessment (TARA) Methodik\n- Ableitung von Cybersicherheitszielen und -anforderungen\n- Verifizierung und Validierung von Cybersicherheitsmaßnahmen\n- Kontinuierliche Cybersicherheitsüberwachung und -reaktion\n\nDiese Bedrohungsanalyse folgt der ISO 21434 TARA-Methodik, identifiziert systematisch Bedrohungsszenarien, bewertet Angriffsdurchführbarkeit, bestimmt Auswirkungsbewertungen und leitet angemessene Cybersicherheitsziele und -anforderungen ab.",
-
       "clcTs50701": "**CLC/TS 50701** spezifiziert Cybersicherheitsanforderungen für Bahnanwendungen und bietet Leitlinien für die Implementierung von Sicherheitsmaßnahmen in Bahnsystemen. Sie orientiert sich an IEC 62443-Prinzipien, angepasst für den Bahnbereich.\n\nDie Norm behandelt:\n\n- Sicherheitsrisikoanalyse für Bahnsysteme\n- Sicherheitszonen und Kommunikationskanäle\n- Sicherheitsanforderungen für Systemkomponenten\n- Integration mit Bahn-Safety-Prozessen (EN 50126, EN 50129)\n\nDiese Bedrohungsanalyse wendet die CLC/TS 50701-Methodik für bahnspezifische Bedrohungsidentifikation und Risikobewertung an unter Berücksichtigung der einzigartigen betrieblichen und Sicherheitsanforderungen von Bahnsystemen.",
-
       "iec63452": "**IEC 63452** adressiert Cybersicherheit für Bahnkommunikation und Signalsysteme. Sie bietet spezifische Sicherheitsanforderungen für sicherheitskritische Bahnanwendungen.\n\nWesentliche Aspekte umfassen:\n\n- Sicherheit für Zugsteuerungs- und Signalsysteme\n- Schutz sicherheitsrelevanter Kommunikation\n- Integration von Security- und Safety-Anforderungen\n- Sichere Systemarchitektur für Bahnanwendungen\n\nDiese Bedrohungsanalyse berücksichtigt IEC 63452-Anforderungen zur Absicherung der Kommunikation zwischen Bahnkomponenten bei gleichzeitiger Aufrechterhaltung der erforderlichen Sicherheitsintegritätsstufen.",
-
       "iso27001": "**ISO/IEC 27001** ist die internationale Norm für Informationssicherheits-Managementsysteme (ISMS). Sie bietet einen Rahmen für Aufbau, Implementierung, Aufrechterhaltung und kontinuierliche Verbesserung der Informationssicherheit.\n\nFür diese Analyse relevante Anforderungen:\n\n- Risikobewertungs- und Behandlungsmethodik\n- Sicherheitsmaßnahmen aus Anhang A\n- Dokumentations- und Aufzeichnungsanforderungen\n- Kontinuierliche Verbesserungsprozesse\n\nDiese Bedrohungsanalyse trägt zur ISO 27001-Compliance bei durch Bereitstellung systematischer Risikobewertungsdokumentation und Identifikation angemessener Sicherheitsmaßnahmen aus Anhang A.",
-
       "iso27017": "**ISO/IEC 27017** bietet Leitlinien für Informationssicherheitsmaßnahmen für Cloud-Dienste und erweitert ISO 27002-Maßnahmen für die Cloud-Umgebung.\n\nWesentliche adressierte Bereiche:\n\n- Geteilte Verantwortlichkeiten zwischen Cloud-Dienstleistern und Kunden\n- Cloud-spezifische Sicherheitsmaßnahmen und Implementierungsleitlinien\n- Sicherheit und Isolation virtueller Maschinen\n- Sicherheit der Cloud-Dienstverwaltung\n\nDiese Bedrohungsanalyse adressiert ISO 27017-Anforderungen durch Analyse cloud-spezifischer Bedrohungen und Identifikation angemessener Maßnahmen für das Cloud-Deployment-Modell.",
-
       "etsiEn303645": "**ETSI EN 303 645** etabliert eine Cybersicherheits-Baseline für Consumer-IoT-Geräte. Sie definiert 13 Sicherheitsbestimmungen, die Hersteller implementieren müssen.\n\nDie Norm fordert:\n\n- Keine universellen Standardpasswörter\n- Implementierung einer Schwachstellen-Offenlegungsrichtlinie\n- Software-Update-Mechanismen\n- Sichere Speicherung sensibler Sicherheitsparameter\n- Sichere Kommunikation\n- Minimierte exponierte Angriffsflächen\n\nDiese Bedrohungsanalyse adressiert ETSI EN 303 645-Anforderungen durch Identifikation IoT-gerätespezifischer Bedrohungen und Verifizierung, dass grundlegende Sicherheitsbestimmungen angemessen adressiert sind.",
-
       "en17927": "**EN 17927** spezifiziert Cybersicherheitsanforderungen für industrielle IoT (IIoT) Geräte und Systeme. Sie adressiert die spezifischen Herausforderungen von IoT-Geräten in industriellen Umgebungen.\n\nWesentliche Anforderungen umfassen:\n\n- Sichere Geräteidentität und Authentifizierung\n- Sichere Kommunikationsprotokolle\n- Firmware- und Software-Update-Sicherheit\n- Sicheres Konfigurationsmanagement\n- Fähigkeiten zur Vorfallserkennung und -reaktion\n\nDiese Bedrohungsanalyse analysiert industrielle IoT-Deployments spezifische Bedrohungen und verifiziert Compliance mit EN 17927-Sicherheitsanforderungen.",
-
       "iec62351": "**IEC 62351** bietet Sicherheitsstandards für Energiesystem-Kommunikationsprotokolle. Sie adressiert Vertraulichkeit, Integrität und Verfügbarkeit des Datenaustauschs in Energiesystemen.\n\nDie Normenreihe behandelt:\n\n- Authentifizierung und Zugriffskontrolle für SCADA-Systeme\n- Sichere Kommunikation für IEC 61850 und DNP3-Protokolle\n- Schlüsselmanagement für Energiesystem-Sicherheit\n- Rollenbasierte Zugriffskontrolle für Energiesysteme\n\nDiese Bedrohungsanalyse adressiert IEC 62351-Anforderungen durch Analyse von Bedrohungen für Energiesystem-Kommunikation und -Steuerungssysteme und stellt sicher, dass angemessene Sicherheitsmaßnahmen implementiert sind.",
-
       "en50742": "**EN 50742** spezifiziert Cybersicherheitsanforderungen für Maschinen gemäß der neuen Maschinenverordnung. Sie adressiert Sicherheit für Industriemaschinen mit digitalen Komponenten.\n\nAnforderungen umfassen:\n\n- Sicherheitsrisikobewertung für Maschinen\n- Sicherer Fernzugriff und Konnektivität\n- Schutz gegen unbefugte Modifikation\n- Mechanismen für Sicherheitsupdates\n- Integration mit Maschinen-Safety-Anforderungen\n\nDiese Bedrohungsanalyse adressiert EN 50742-Anforderungen durch Analyse von Sicherheitsbedrohungen für Maschinensteuerungssysteme und stellt angemessene Schutzmaßnahmen sicher unter Beibehaltung erforderlicher Sicherheitsfunktionen."
     }
   },
-
   "messages": {
     "projectCreated": "Projekt \"{{name}}\" erstellt!",
     "projectDeleted": "Projekt \"{{name}}\" gelöscht",
@@ -326,19 +301,16 @@
     "autoNumberComplete": "Labels wurden automatisch nummeriert",
     "autoNumberFailed": "Automatische Nummerierung fehlgeschlagen"
   },
-
   "emptyState": {
     "title": "Kein Projekt geöffnet",
     "description": "Erstellen Sie ein neues Projekt oder öffnen Sie ein bestehendes, um zu beginnen.",
     "createNew": "Neues Projekt erstellen",
     "openExisting": "Bestehendes Projekt öffnen"
   },
-
   "sidebar": {
     "moreOptions": "Weitere Optionen",
     "unsavedChanges": "Ungespeicherte Änderungen"
   },
-
   "time": {
     "justNow": "Gerade eben",
     "minutesAgo": "vor {{count}}m",
@@ -346,13 +318,37 @@
     "yesterday": "Gestern",
     "daysAgo": "vor {{count}} Tagen"
   },
-
   "tabs": {
     "dfd": {
       "title": "DFD Editor",
       "description": "Erstellen und bearbeiten Sie hier Ihr Datenflussdiagramm.",
       "loading": "DFD Editor wird geladen...",
       "proceed": "Weiter",
+      "detailsPanel": {
+        "assetsTitle": "Asset-Liste",
+        "tabs": {
+          "element": "Element",
+          "assets": "Assets"
+        }
+      },
+      "assetPanel": {
+        "noAssets": "Keine Assets vorhanden",
+        "selectAsset": "Asset oben auswählen, um Details anzuzeigen und zu bearbeiten",
+        "showInDFD": "Im DFD anzeigen",
+        "hideInDFD": "Im DFD ausblenden",
+        "showTree": "Asset-Baum anzeigen",
+        "hideTree": "Detailansicht vergrössern"
+      },
+      "assetGroups": {
+        "data": "Daten",
+        "system": "System",
+        "process": "Prozess",
+        "infrastructure": "Infrastruktur",
+        "human": "Mensch"
+      },
+      "descriptionView": {
+        "title": "DFD-Element-Beschreibungen"
+      },
       "toolbar": {
         "zoomIn": "Vergrössern",
         "zoomOut": "Verkleinern",
@@ -389,11 +385,100 @@
         "title": "Element-Beschreibungen",
         "assets": "Assets",
         "dataFlows": "Datenflüsse",
+        "tabs": {
+          "general": "Allgemein",
+          "relations": "Beziehungen"
+        },
         "process": {
+          "safetyAnnotation": {
+            "title": "Safety-Annotation",
+            "noRelations": "Füge mindestens eine Asset-Relation hinzu, um Safety-Annotationen zu erfassen.",
+            "perRelationHint": "Safety-Annotationen werden pro Relation in der obigen Liste gesetzt (Relevanz, Auswirkung, physisches Gefährdungspotenzial, Begründung)."
+          },
           "sections": {
             "required": "Pflichtfelder",
             "security": "Sicherheit & Ausführungskontext",
             "advanced": "Erweitert / Optional"
+          },
+          "cianaaa": {
+            "sectionTitle": "CIANAAA-Auswirkungsbewertung",
+            "noAsset": "Verknüpfen Sie ein primäres Asset via <strong>is_an</strong>, um die Auswirkungsbewertung zu bearbeiten.",
+            "groups": {
+              "cia": "CIA-Auswirkungsstufen",
+              "naaa": "NAAA-Sicherheitseigenschaften",
+              "business": "Geschäftlicher Einfluss",
+              "physical": "Safety-Auswirkung (Physisch)",
+              "aggregated": "Aggregierte Kritikalität (berechnet, schreibgeschützt):",
+              "classification": "Datenklassifizierung"
+            },
+            "fields": {
+              "confidentialityImpact": "Vertraulichkeits-Auswirkung",
+              "integrityImpact": "Integritäts-Auswirkung",
+              "availabilityImpact": "Verfügbarkeits-Auswirkung",
+              "nonRepudiation": "Nicht-Abstreitbarkeit",
+              "nonRepudiationHint": "(R in STRIDE — Audit-Log, digitale Signatur)",
+              "authentication": "Authentifizierung",
+              "authenticationHint": "(S in STRIDE — Identitätsnachweis erforderlich)",
+              "authorization": "Autorisierung",
+              "authorizationHint": "(E in STRIDE — Berechtigungsprüfung erforderlich)",
+              "accountability": "Rechenschaftspflicht",
+              "accountabilityHint": "(DSGVO Art. 5 — zusätzlich zu Nicht-Abstreitbarkeit)",
+              "businessImpact": "Geschäftlicher Einfluss",
+              "businessImpactCategory": "Business-Impact-Kategorie",
+              "physicalImpact": "Physische Auswirkung",
+              "physicalHazardPotential": "Physisches Gefährdungspotenzial",
+              "personalData": "Personenbezogene Daten (DSGVO Art. 5 — aktiviert Rechenschaftspflicht)",
+              "businessSecret": "Geschäftsgeheimnis (aktiviert Vertraulichkeit bei is_an)"
+            },
+            "impactOptions": {
+              "not_set": "Nicht gesetzt",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch",
+              "critical": "Kritisch"
+            },
+            "physicalImpactOptions": {
+              "not_set": "Nicht gesetzt",
+              "none": "Keiner",
+              "reversible_injury": "Reversible Verletzung",
+              "irreversible_injury": "Irreversible Verletzung",
+              "fatality": "Tod / Tödlich"
+            },
+            "hazardOptions": {
+              "not_set": "Nicht gesetzt",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            },
+            "businessImpactCategoryOptions": {
+              "not_set": "Nicht gesetzt",
+              "operational": "Operationell",
+              "financial": "Finanziell",
+              "privacy": "Datenschutz",
+              "reputational": "Reputation"
+            },
+            "criticalityChip": {
+              "not_set": "NICHT GESETZT",
+              "low": "NIEDRIG",
+              "medium": "MITTEL",
+              "high": "HOCH",
+              "critical": "KRITISCH",
+              "safetyOverrideSuffix": "(Safety Override)"
+            },
+            "safetyOverride": {
+              "title": "Safety Override Rule aktiv",
+              "description": "Physische Auswirkung \"{{impact}}\" erzwingt aggregierte Kritikalität KRITISCH (ISO 12100 — nicht überschreibbar)."
+            },
+            "source": {
+              "derived": "Abgeleitet",
+              "manual": "Manuell",
+              "manualOverrideActive": "MANUELLER OVERRIDE AKTIV",
+              "overrideTooltip": "Abgeleiteten Wert manuell überschreiben",
+              "resetToDerived": "Auf abgeleiteten Wert zurücksetzen",
+              "rationaleLabel": "Begründung (Pflichtfeld)",
+              "rationalePlaceholder": "Warum wurde dieser Wert nicht aus den Asset-Relationen abgeleitet?",
+              "rationaleRequired": "Begründung ist bei manuellen Overrides Pflicht (IEC 62443-4-1)"
+            }
           },
           "fields": {
             "description": {
@@ -509,6 +594,132 @@
           "stride_hint": {
             "title": "STRIDE-Relevanz: Alle (S, T, R, I, D, E)",
             "description": "Prozesse sind kritische Angriffsflächen. Stellen Sie sicher, dass Authentifizierung, Autorisierung und Eingabevalidierung korrekt konfiguriert sind."
+          },
+          "assetTab": {
+            "title": "Asset-Relationen",
+            "deleteRelation": "Relation löschen",
+            "relation": "Relation #{{index}}",
+            "relationsSection": "Asset-Beziehungen",
+            "empty": "Keine Asset-Beziehungen definiert.",
+            "addRelation": "Asset-Beziehung hinzufügen",
+            "cancel": "Abbrechen",
+            "save": "Speichern",
+            "groupChange": {
+              "title": "Asset-Gruppe ändern?",
+              "warning": "Eine Änderung der Asset-Gruppe entfernt alle aktuell ausgewählten Relationstypen, da diese gruppenspezifisch sind.",
+              "confirm": "Ändern & Relationen löschen"
+            },
+            "assetGroup": {
+              "data": "Daten",
+              "system": "System",
+              "process": "Prozess",
+              "infrastructure": "Infrastruktur",
+              "human": "Personen"
+            },
+            "relationType": {
+              "label": "Relationstyp",
+              "options": {
+                "is_an": "ist ein (Klasse)",
+                "creates": "erzeugt",
+                "reads": "liest",
+                "modifies": "modifiziert",
+                "deletes": "löscht",
+                "stores": "speichert",
+                "transports": "transportiert",
+                "executes": "führt aus",
+                "invokes": "ruft auf",
+                "terminates": "beendet",
+                "suspends": "pausiert",
+                "monitors": "überwacht",
+                "controls": "kontrolliert",
+                "configures": "konfiguriert",
+                "uses": "nutzt",
+                "depends_on": "hängt ab von",
+                "accesses": "greift zu auf",
+                "secures": "sichert",
+                "damages": "beschädigt",
+                "powers": "versorgt (Energie)",
+                "affects_safety": "beeinflusst Sicherheit",
+                "affects_privacy": "beeinflusst Datenschutz",
+                "identifies": "identifiziert",
+                "tracks": "verfolgt",
+                "exposes": "gefährdet"
+              }
+            },
+            "qualifier": {
+              "label": "Qualifier",
+              "options": {
+                "network": "Netzwerk",
+                "local": "lokal",
+                "internal": "intern",
+                "remote": "remote",
+                "authentication": "Authentifizierung",
+                "authorization": "Autorisierung",
+                "api": "API",
+                "storage": "Speicher",
+                "computation": "Berechnung",
+                "messaging": "Messaging",
+                "configuration": "Konfiguration",
+                "monitoring": "Monitoring",
+                "networking": "Netzwerkfunktion"
+              }
+            },
+            "asset": {
+              "label": "Asset",
+              "noAssets": "Keine Assets in diesem Scope verfügbar",
+              "createNew": "+ Neues Asset anlegen…",
+              "categoryChange": {
+                "title": "Asset-Kategorie ändern?",
+                "warning": "Dieses Asset wird von DFD-Elementen referenziert. Eine Änderung der Kategorie macht alle bestehenden Relationstypen in diesen Elementen ungültig, da Relationstypen kategoriespezifisch sind.",
+                "confirm": "Kategorie ändern"
+              },
+              "tabs": {
+                "general": "Allgemein",
+                "usedIn": "Verwendet in"
+              },
+              "newAsset": {
+                "name": "Asset-Name",
+                "assetGroup": "Asset-Gruppe",
+                "confirm": "Bestätigen",
+                "cancel": "Abbrechen"
+              }
+            },
+            "safetyAnnotation": {
+              "title": "Safety-Annotation",
+              "derived": "abgeleitet",
+              "manual": "manuell",
+              "resetToDerived": "Auf abgeleitete Werte zurücksetzen",
+              "relevance": {
+                "label": "Sicherheitsrelevanz",
+                "options": {
+                  "none": "Keine",
+                  "indirect": "Indirekt",
+                  "direct": "Direkt"
+                }
+              },
+              "impact": {
+                "label": "Schlimmster Schadensfall",
+                "options": {
+                  "none": "Kein Schaden",
+                  "reversible_injury": "Reversible Verletzung",
+                  "irreversible_injury": "Irreversible Verletzung",
+                  "fatality": "Todesfolge"
+                }
+              },
+              "physicalHazardPotential": {
+                "label": "Physisches Gefährdungspotenzial (ISO 12100)",
+                "options": {
+                  "low": "Gering",
+                  "medium": "Mittel",
+                  "high": "Hoch"
+                }
+              },
+              "rationale": {
+                "label": "Begründung",
+                "placeholder": "Sicherheitseinstufung begründen…",
+                "helperManual": "Manuelle Überschreibung — Begründung für Audit-Trail erforderlich"
+              }
+            }
           }
         },
         "external_entity": {
@@ -651,7 +862,25 @@
           "advancedGuidance": "Optionale Felder zur Verfeinerung. Nicht erforderlich für initiale Analyse.",
           "owner": "Verantwortlicher / Eigentümer",
           "ownerPlaceholder": "Team oder Person verantwortlich",
-          "notes": "Zusätzliche Notizen"
+          "notes": "Zusätzliche Notizen",
+          "label": "Asset",
+          "noAssets": "Keine Assets in diesem Scope verfügbar",
+          "createNew": "+ Neues Asset anlegen…",
+          "categoryChange": {
+            "title": "Asset-Kategorie ändern?",
+            "warning": "Dieses Asset wird von DFD-Elementen referenziert. Eine Änderung der Kategorie macht alle bestehenden Relationstypen in diesen Elementen ungültig, da Relationstypen kategoriespezifisch sind.",
+            "confirm": "Kategorie ändern"
+          },
+          "tabs": {
+            "general": "Allgemein",
+            "usedIn": "Verwendet in"
+          },
+          "newAsset": {
+            "name": "Asset-Name",
+            "assetGroup": "Asset-Gruppe",
+            "confirm": "Bestätigen",
+            "cancel": "Abbrechen"
+          }
         }
       }
     },
@@ -825,7 +1054,6 @@
         "search": "Suche",
         "searchPlaceholder": "Bedrohungen durchsuchen..."
       },
-
       "table": {
         "id": "T-ID",
         "stride": "STRIDE",
@@ -1075,7 +1303,6 @@
       }
     }
   },
-
   "dfdValidation": {
     "noElements": "Das DFD enthält keine Elemente",
     "noProcessOrDatastore": "Mindestens ein Prozess oder Datenspeicher ist erforderlich",
@@ -1170,7 +1397,6 @@
       "sshInfo": "Die SSH-Authentifizierung verwendet die SSH-Schlüssel deines Systems (~/.ssh/id_rsa oder ~/.ssh/id_ed25519).",
       "sshKeyPath": "Pfad zum SSH-Schlüssel (optional)",
       "sshKeyPathHelp": "Leer lassen, um den Standard-SSH-Schlüssel zu verwenden",
-
       "gpgInfo": "Die GPG-Signierung stellt sicher, dass deine Commits kryptografisch verifiziert sind. Dein privater Schlüssel wird sicher gespeichert.",
       "gpgKeyId": "GPG-Schlüssel-ID",
       "gpgKeyIdHelp": "Gib die letzten 8 Zeichen deiner GPG-Schlüssel-ID ein",

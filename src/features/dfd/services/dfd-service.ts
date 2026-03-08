@@ -221,16 +221,12 @@ class DFDService {
     parsedAssets: DFDAsset[],
     existingAssets: DFDAsset[],
   ): DFDAsset[] {
-    return parsedAssets.map((parsed) => {
+    // Start with parsed assets from XML (if any)
+    const merged = parsedAssets.map((parsed) => {
       const existing = existingAssets.find((a) => a.id === parsed.id);
+      if (!existing) return parsed;
 
-      if (!existing) {
-        return parsed;
-      }
-
-      // Keep parsed geometry (xmlIds, positions, sizes)
-      // Keep existing user properties (name, properties)
-      // linkedElements will be set by syncAssetLinkedElements()
+      // Keep parsed geometry, keep existing user properties
       return {
         id: parsed.id,
         displayId: parsed.displayId,
@@ -242,6 +238,16 @@ class DFDService {
         linkedElements: [], // Will be set by syncAssetLinkedElements()
       };
     });
+
+        // ✅ CRITICAL: Add existing assets that are NOT in parsed XML
+    // This preserves assets created via AssetRelationSelector
+    const parsedIds = new Set(parsedAssets.map(a => a.id));
+    const assetsOnlyInProject = existingAssets.filter(a => !parsedIds.has(a.id));
+    
+    return [...merged, ...assetsOnlyInProject.map(a => ({
+      ...a,
+      linkedElements: [], // Will be recomputed
+    }))];
   }
 
   /**

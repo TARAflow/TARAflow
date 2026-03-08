@@ -6,7 +6,7 @@
 // 3. Improved React.memo with shallow equality instead of JSON.stringify
 // 4. Eliminated unnecessary re-renders through stable dependencies
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -34,6 +34,7 @@ import {
 } from "@mui/icons-material";
 
 import type {
+  AssetGroup,
   DFDAsset,
   DFDElement,
   DFDConnection,
@@ -67,6 +68,7 @@ interface DFDDescriptionViewProps {
     assetId: string,
     updates: { name?: string; properties?: any },
   ) => void;
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   expandedGroups: string[];
   onToggleGroup: (groupKey: string) => void;
   expandedElements: string[];
@@ -176,20 +178,17 @@ const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
 };
 
 /**
- * Convert DFDAsset[] to AvailableAsset[] for form dropdowns
+ * Convert DFDAsset[] to AvailableAsset[] for form dropdowns.
+ * assetGroup is required by AssetRelationSelector for group-filtered dropdowns.
  */
 const assetsToAvailableAssets = (assets: DFDAsset[]): AvailableAsset[] => {
-  return assets.map((asset) => {
-    const { displayId, name } = formatElementLabel(
-      asset as unknown as DFDElement,
-    );
-    return {
-      id: asset.id,
-      name: name || "Unnamed Asset",
-      displayId: displayId || asset.id,
-      protectionNeed: asset.properties?.protectionNeed,
-    };
-  });
+  return assets.map((asset) => ({
+    id: asset.id,
+    displayId: asset.displayId || asset.id,
+    name: asset.name || "Unnamed Asset",
+    assetGroup: asset.assetGroup,
+    protectionNeed: asset.protectionNeed ?? asset.properties?.protectionNeed,
+  }));
 };
 
 /**
@@ -225,6 +224,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   onAssetUpdate,
   onConnectionUpdate,
   onAssetFeatureUpdate,
+  onCreateAsset,
   expandedGroups,
   onToggleGroup,
   expandedElements,
@@ -406,11 +406,12 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                     key={element.id}
                     element={element}
                     availableAssets={availableAssets}
-                    onUpdate={elementUpdateHandlers.get(element.id)!} // ✅ Stable function!
+                    onUpdate={elementUpdateHandlers.get(element.id)!}
+                    onCreateAsset={onCreateAsset}
                     isExpanded={expandedElements.includes(element.id)}
                     onToggle={(event, isExpanded) =>
                       onToggleElement(element.id)
-                    } // ✅ Inline callback!
+                    }
                   />
                 ))}
               </AccordionDetails>
@@ -515,7 +516,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
       </Box>
     </Box>
   );
-};
+};;
 
 // ==================== SUB-COMPONENTS ====================
 
@@ -523,8 +524,9 @@ interface ElementAccordionProps {
   element: DFDElement;
   availableAssets: AvailableAsset[];
   onUpdate: (updates: Partial<DFDElement>) => void;
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   isExpanded: boolean;
-  onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void; // ✅ Direct callback
+  onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
 }
 
 /**
@@ -532,7 +534,14 @@ interface ElementAccordionProps {
  * Replaced expensive JSON.stringify with fast shallow comparison
  */
 const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
-  ({ element, availableAssets, onUpdate, isExpanded, onToggle }) => {
+  ({
+    element,
+    availableAssets,
+    onUpdate,
+    onCreateAsset,
+    isExpanded,
+    onToggle,
+  }) => {
     const isDescribed = isElementDescribed(element);
     const { displayId, name } = formatElementLabel(element);
 
@@ -546,6 +555,7 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
               element={element}
               onChange={onUpdate}
               availableAssets={availableAssets}
+              onCreateAsset={onCreateAsset}
             />
           );
         case "DataStore":
@@ -629,6 +639,7 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
       prevProps.element.name !== nextProps.element.name ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
+      prevProps.onCreateAsset !== nextProps.onCreateAsset ||
       prevProps.onToggle !== nextProps.onToggle
     ) {
       return false; // Re-render needed
@@ -822,12 +833,25 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
       prevProps.asset.id !== nextProps.asset.id ||
       prevProps.asset.displayId !== nextProps.asset.displayId ||
       prevProps.asset.name !== nextProps.asset.name ||
+      prevProps.asset.description !== nextProps.asset.description ||
+      prevProps.asset.assetGroup !== nextProps.asset.assetGroup ||
+      prevProps.asset.protectionNeed !== nextProps.asset.protectionNeed ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onToggle !== nextProps.onToggle ||
       prevProps.onAssetFeatureUpdate !== nextProps.onAssetFeatureUpdate ||
       prevProps.elements.length !== nextProps.elements.length ||
       prevProps.connections.length !== nextProps.connections.length
+    ) {
+      return false;
+    }
+
+    // ✅ Check assetRelations
+    if (
+      !arraysEqual(
+        prevProps.asset.linkedElements || [],
+        nextProps.asset.linkedElements || [],
+      )
     ) {
       return false;
     }
@@ -843,7 +867,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
     }
 
     return true;
-  },
+  }
 );
 
 AssetAccordion.displayName = "AssetAccordion";

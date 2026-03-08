@@ -4,7 +4,11 @@
 
 import React from "react";
 import { Box, Alert, Typography } from "@mui/material";
-import type { DFDElement, DFDConnection } from "../models/dfd-types";
+import type {
+  AssetGroup,
+  DFDElement,
+  DFDConnection,
+} from "../models/dfd-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
 // Import all element forms
@@ -23,6 +27,7 @@ interface DFDElementFormProps {
   onChange: (updates: Partial<DFDElement> | Partial<DFDConnection>) => void;
   availableAssets?: AvailableAsset[];
   crossesTrustBoundary?: boolean; // For DataFlow
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
 }
 
 // ==================== COMPONENT ====================
@@ -33,6 +38,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
   onChange,
   availableAssets = [],
   crossesTrustBoundary = false,
+  onCreateAsset,
 }) => {
   // ==================== DATA FLOW (Connection) ====================
 
@@ -71,6 +77,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
           element={element}
           onChange={onChange as (updates: Partial<DFDElement>) => void}
           availableAssets={availableAssets}
+          onCreateAsset={onCreateAsset}
         />
       );
 

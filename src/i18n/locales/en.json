@@ -39,7 +39,6 @@
     "none": "None",
     "collapse": "Collapse"
   },
-
   "project": {
     "title": "Project",
     "projects": "Projects",
@@ -64,7 +63,6 @@
     "noRecentProjects": "No recent projects",
     "team": "Team"
   },
-
   "phases": {
     "general": "General",
     "dfd": "DFD",
@@ -74,7 +72,6 @@
     "phaseProgress": "Phase Progress",
     "overallProgress": "Overall Progress"
   },
-
   "status": {
     "notStarted": "Not Started",
     "inProgress": "In Progress",
@@ -83,7 +80,6 @@
     "draft": "Draft",
     "review": "Review"
   },
-
   "settings": {
     "title": "Project Settings",
     "strictMode": "Strict Mode (all phases required)",
@@ -104,7 +100,6 @@
     "standardWorkflow": "Standard:",
     "criticalWorkflow": "Critical:"
   },
-
   "validation": {
     "nameRequired": "Project name is required",
     "nameMinLength": "Project name must be at least 3 characters",
@@ -116,7 +111,6 @@
     "descriptionRequired": "Description is required",
     "responsibleRequired": "Responsible person is required"
   },
-
   "dialogs": {
     "newProject": {
       "title": "New Project",
@@ -200,7 +194,6 @@
       "goToProject": "Go to Project"
     }
   },
-
   "activity": {
     "title": "Recent Activity",
     "created": "Project created",
@@ -210,7 +203,6 @@
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "No activity recorded yet"
   },
-
   "projectInfo": {
     "title": "Project Information",
     "tagCategories": {
@@ -280,41 +272,24 @@
     },
     "docDescriptions": {
       "cra": "The **EU Cyber Resilience Act (CRA)** establishes mandatory cybersecurity requirements for products with digital elements throughout their entire lifecycle. Manufacturers must implement secure development practices (security by design), establish vulnerability handling processes, and provide ongoing security updates for the expected product lifetime. Key requirements include:\n\n- Risk assessment and threat analysis during product development\n- Security testing and vulnerability management\n- Incident reporting within 24 hours of awareness\n- Minimum 5-year security update support\n- Technical documentation including SBOM (Software Bill of Materials)\n\nThis threat model addresses CRA requirements by systematically identifying and assessing security risks, documenting mitigation measures, and establishing a baseline for ongoing vulnerability management.",
-
       "nis2": "The **NIS2 Directive** (Network and Information Security Directive 2) is the EU's comprehensive cybersecurity legislation for critical infrastructure and essential services. It extends the scope of the original NIS Directive and introduces stricter security and incident reporting requirements.\n\nOrganizations under NIS2 must implement:\n\n- Risk analysis and information system security policies\n- Incident handling and business continuity management\n- Supply chain security measures\n- Security in network and information systems acquisition\n- Cryptography and encryption policies\n\nThis threat model contributes to NIS2 compliance by providing a systematic risk assessment approach and documenting security measures for the covered systems.",
-
       "gdpr": "The **General Data Protection Regulation (GDPR)** is the EU's data protection and privacy regulation. While primarily focused on personal data processing, GDPR Article 32 requires appropriate technical and organizational measures to ensure security.\n\nRelevant security requirements include:\n\n- Pseudonymization and encryption of personal data\n- Confidentiality, integrity, availability, and resilience of processing systems\n- Ability to restore data availability after incidents\n- Regular testing and evaluation of security measures\n\nThis threat model addresses GDPR security requirements by identifying threats to personal data confidentiality, integrity, and availability, and documenting appropriate protective measures.",
-
       "aiAct": "The **EU AI Act** establishes a risk-based regulatory framework for artificial intelligence systems. High-risk AI systems must meet stringent requirements for security, transparency, and human oversight.\n\nSecurity-relevant requirements for high-risk AI include:\n\n- Risk management system throughout the AI lifecycle\n- Data governance and quality requirements\n- Technical documentation and record-keeping\n- Robustness against attacks and errors\n- Cybersecurity measures appropriate to the risks\n\nThis threat model addresses AI Act requirements by analyzing security risks specific to AI/ML components, including data poisoning, model manipulation, and adversarial attacks.",
-
       "iec62443": "**IEC 62443** is the international standard series for Industrial Automation and Control Systems (IACS) security. It provides a comprehensive framework addressing security for asset owners, system integrators, and component suppliers.\n\nKey elements relevant to this analysis:\n\n- **IEC 62443-3-2**: Security risk assessment for system design\n- **IEC 62443-3-3**: System security requirements and security levels (SL 1-4)\n- **IEC 62443-4-1**: Secure product development lifecycle requirements\n- **IEC 62443-4-2**: Technical security requirements for IACS components\n\nThis threat model follows IEC 62443-3-2 methodology for zone and conduit analysis and maps identified risks to appropriate Security Levels as defined in IEC 62443-3-3.",
-
       "en18031": "**EN 18031** (Parts 1-3) specifies cybersecurity requirements for radio equipment under the Radio Equipment Directive (RED). These standards become mandatory for CE marking of connected devices.\n\nThe standard covers:\n\n- **EN 18031-1**: Common security requirements for all internet-connected radio equipment\n- **EN 18031-2**: Additional requirements for equipment processing personal or payment data\n- **EN 18031-3**: Requirements for equipment connected to the internet for network security\n\nThis threat model addresses EN 18031 compliance by analyzing threats to network resources, personal data, and fraud prevention mechanisms relevant to the device's connectivity features.",
-
       "iec81001": "**IEC 81001-5-1** specifies security requirements for the development and maintenance of health software and health IT systems. It addresses the complete lifecycle from concept through decommissioning.\n\nKey requirements include:\n\n- Security risk management integrated with safety risk management\n- Secure development practices and security testing\n- Vulnerability and patch management processes\n- Security documentation and maintenance procedures\n\nThis threat model addresses IEC 81001 requirements by providing systematic threat identification and risk assessment for health software components, considering both security and safety implications.",
-
       "iecTr60601": "**IEC TR 60601-4-5** provides guidance on security requirements for medical electrical equipment and medical electrical systems. It supplements the basic safety and essential performance requirements of IEC 60601-1.\n\nThe technical report addresses:\n\n- Security risk management for medical devices\n- Security capabilities and expected environment\n- Defense-in-depth strategies for medical systems\n- Guidance on intended use environment security\n\nThis threat model incorporates IEC TR 60601-4-5 guidance by considering the specific threat landscape of medical devices and their operating environment.",
-
       "iso21434": "**ISO/SAE 21434** is the international standard for cybersecurity engineering in road vehicles. It defines requirements throughout the vehicle lifecycle from concept to decommissioning.\n\nCore elements include:\n\n- Threat Analysis and Risk Assessment (TARA) methodology\n- Cybersecurity goals and requirements derivation\n- Verification and validation of cybersecurity measures\n- Continuous cybersecurity monitoring and response\n\nThis threat model follows the ISO 21434 TARA methodology, systematically identifying threat scenarios, assessing attack feasibility, determining impact ratings, and deriving appropriate cybersecurity goals and requirements.",
-
       "clcTs50701": "**CLC/TS 50701** specifies cybersecurity requirements for railway applications, providing guidance for implementing security measures in rail systems. It aligns with IEC 62443 principles adapted for the railway domain.\n\nThe standard addresses:\n\n- Security risk analysis for railway systems\n- Security zones and communication channels\n- Security requirements for system components\n- Integration with railway safety processes (EN 50126, EN 50129)\n\nThis threat model applies CLC/TS 50701 methodology for railway-specific threat identification and risk assessment, considering the unique operational and safety requirements of rail systems.",
-
       "iec63452": "**IEC 63452** addresses cybersecurity for railway communication and signaling systems. It provides specific security requirements for safety-critical railway applications.\n\nKey aspects include:\n\n- Security for train control and signaling systems\n- Protection of safety-related communication\n- Integration of security and safety requirements\n- Secure system architecture for railway applications\n\nThis threat model considers IEC 63452 requirements for securing communication between railway components while maintaining the required safety integrity levels.",
-
       "iso27001": "**ISO/IEC 27001** is the international standard for Information Security Management Systems (ISMS). It provides a framework for establishing, implementing, maintaining, and continually improving information security.\n\nRelevant requirements for this analysis:\n\n- Risk assessment and treatment methodology\n- Security controls from Annex A\n- Documentation and records requirements\n- Continuous improvement processes\n\nThis threat model contributes to ISO 27001 compliance by providing systematic risk assessment documentation and identifying appropriate security controls from Annex A.",
-
       "iso27017": "**ISO/IEC 27017** provides guidelines for information security controls applicable to cloud services, extending ISO 27002 controls for the cloud environment.\n\nKey areas addressed:\n\n- Shared responsibilities between cloud service providers and customers\n- Cloud-specific security controls and implementation guidance\n- Virtual machine security and isolation\n- Cloud service administration security\n\nThis threat model addresses ISO 27017 requirements by analyzing cloud-specific threats and identifying appropriate controls for the cloud deployment model.",
-
       "etsiEn303645": "**ETSI EN 303 645** establishes a cybersecurity baseline for consumer IoT devices. It defines 13 security provisions that manufacturers must implement.\n\nThe standard requires:\n\n- No universal default passwords\n- Vulnerability disclosure policy implementation\n- Software update mechanisms\n- Secure storage of sensitive security parameters\n- Secure communication\n- Minimized exposed attack surfaces\n\nThis threat model addresses ETSI EN 303 645 requirements by identifying threats specific to consumer IoT devices and verifying that baseline security provisions are adequately addressed.",
-
       "en17927": "**EN 17927** specifies cybersecurity requirements for Industrial IoT (IIoT) devices and systems. It addresses the specific challenges of IoT devices in industrial environments.\n\nKey requirements include:\n\n- Secure device identity and authentication\n- Secure communication protocols\n- Firmware and software update security\n- Secure configuration management\n- Incident detection and response capabilities\n\nThis threat model analyzes threats specific to industrial IoT deployments and verifies compliance with EN 17927 security requirements.",
-
       "iec62351": "**IEC 62351** provides security standards for power system communication protocols. It addresses confidentiality, integrity, and availability of power system data exchange.\n\nThe standard series covers:\n\n- Authentication and access control for SCADA systems\n- Secure communication for IEC 61850 and DNP3 protocols\n- Key management for power system security\n- Role-based access control for energy systems\n\nThis threat model addresses IEC 62351 requirements by analyzing threats to power system communications and control systems, ensuring appropriate security measures are in place.",
-
       "en50742": "**EN 50742** specifies cybersecurity requirements for machinery under the new Machinery Regulation. It addresses security for industrial machinery with digital components.\n\nRequirements include:\n\n- Security risk assessment for machinery\n- Secure remote access and connectivity\n- Protection against unauthorized modification\n- Security update mechanisms\n- Integration with machinery safety requirements\n\nThis threat model addresses EN 50742 requirements by analyzing security threats to machinery control systems and ensuring appropriate protective measures while maintaining required safety functions."
     }
   },
-
   "messages": {
     "projectCreated": "Project \"{{name}}\" created!",
     "projectDeleted": "Project \"{{name}}\" deleted",
@@ -328,19 +303,16 @@
     "autoNumberComplete": "Labels have been automatically numbered",
     "autoNumberFailed": "Automatic numbering failed"
   },
-
   "emptyState": {
     "title": "No Project Open",
     "description": "Create a new project or open an existing one to get started.",
     "createNew": "Create New Project",
     "openExisting": "Open Existing Project"
   },
-
   "sidebar": {
     "moreOptions": "More options",
     "unsavedChanges": "Unsaved changes"
   },
-
   "time": {
     "justNow": "Just now",
     "minutesAgo": "{{count}}m ago",
@@ -348,7 +320,6 @@
     "yesterday": "Yesterday",
     "daysAgo": "{{count}} days ago"
   },
-
   "tabs": {
     "dfd": {
       "title": "DFD Editor",
@@ -387,15 +358,158 @@
         "required": "Required",
         "atLeastOneSecurityGoal": "At least one security goal required"
       },
+      "descriptionView": {
+        "title": "DFD Element Descriptions"
+      },
+      "detailsPanel": {
+        "assetsTitle": "Asset List",
+        "tabs": {
+          "element": "Element",
+          "assets": "Assets"
+        }
+      },
+      "assetPanel": {
+        "noAssets": "No assets",
+        "selectAsset": "Select an asset above to view and edit its details",
+        "showInDFD": "Show in DFD",
+        "hideInDFD": "Hide in DFD",
+        "showTree": "Show asset tree",
+        "hideTree": "Expand detail view"
+      },
+      "assetGroups": {
+        "data": "Data",
+        "system": "System",
+        "process": "Process",
+        "infrastructure": "Infrastructure",
+        "human": "Human"
+      },
       "element_description": {
         "title": "Element Descriptions",
         "assets": "Assets",
         "dataFlows": "Data Flows",
+        "tabs": {
+          "general": "General",
+          "relations": "Relations"
+        },
+        "assetRelations": {
+          "isAnSection": "Identity (is_an)",
+          "relationsSection": "Asset Relations",
+          "empty": "No asset relations defined.",
+          "addRelation": "Add asset relation",
+          "editRelations": "Edit relations",
+          "isAnDescription": "This element represents this asset",
+          "cancel": "Cancel",
+          "save": "Save",
+          "relationType": {
+            "label": "Relation Type"
+          },
+          "selectedRelations": "Selected Relations",
+          "groupChange": {
+            "title": "Change Asset Group?",
+            "warning": "Changing the asset group will remove all currently selected relation types, as they are specific to the current group.",
+            "confirm": "Change & clear relations"
+          },
+          "asset": {
+            "label": "Asset",
+            "createNew": "Create new asset…",
+            "newAsset": {
+              "title": "Create New Asset",
+              "name": "Asset Name",
+              "group": "Asset Group",
+              "confirm": "Create"
+            }
+          }
+        },
         "process": {
+          "safetyAnnotation": {
+            "title": "Safety Annotation",
+            "noRelations": "Add at least one asset relation to enable safety annotation.",
+            "perRelationHint": "Safety annotations are set per relation in the list above (relevance, impact, physical hazard potential, rationale)."
+          },
           "sections": {
             "required": "Required Fields",
             "security": "Security & Execution Context",
             "advanced": "Advanced / Optional"
+          },
+          "cianaaa": {
+            "sectionTitle": "CIANAAA Impact Assessment",
+            "noAsset": "Link a primary asset via <strong>is_an</strong> above to enable impact assessment editing.",
+            "groups": {
+              "cia": "CIA Impact Levels",
+              "naaa": "NAAA Security Properties",
+              "business": "Business Impact",
+              "physical": "Safety Impact (Physical)",
+              "aggregated": "Aggregated Criticality (computed, read-only):",
+              "classification": "Data Classification"
+            },
+            "fields": {
+              "confidentialityImpact": "Confidentiality Impact",
+              "integrityImpact": "Integrity Impact",
+              "availabilityImpact": "Availability Impact",
+              "nonRepudiation": "Non-Repudiation",
+              "nonRepudiationHint": "(R in STRIDE — audit log, digital signature)",
+              "authentication": "Authentication",
+              "authenticationHint": "(S in STRIDE — identity verification required)",
+              "authorization": "Authorization",
+              "authorizationHint": "(E in STRIDE — permission check required)",
+              "accountability": "Accountability",
+              "accountabilityHint": "(GDPR Art. 5 — additional to Non-Repudiation)",
+              "businessImpact": "Business Impact",
+              "businessImpactCategory": "Business Impact Category",
+              "physicalImpact": "Physical Impact",
+              "physicalHazardPotential": "Physical Hazard Potential",
+              "personalData": "Personal Data (GDPR Art. 5 — enables Accountability)",
+              "businessSecret": "Business Secret (enables Confidentiality on is_an)"
+            },
+            "impactOptions": {
+              "not_set": "Not set",
+              "low": "Low",
+              "medium": "Medium",
+              "high": "High",
+              "critical": "Critical"
+            },
+            "physicalImpactOptions": {
+              "not_set": "Not set",
+              "none": "None",
+              "reversible_injury": "Reversible Injury",
+              "irreversible_injury": "Irreversible Injury",
+              "fatality": "Fatality"
+            },
+            "hazardOptions": {
+              "not_set": "Not set",
+              "low": "Low",
+              "medium": "Medium",
+              "high": "High"
+            },
+            "businessImpactCategoryOptions": {
+              "not_set": "Not set",
+              "operational": "Operational",
+              "financial": "Financial",
+              "privacy": "Privacy",
+              "reputational": "Reputational"
+            },
+            "criticalityChip": {
+              "not_set": "NOT SET",
+              "low": "LOW",
+              "medium": "MEDIUM",
+              "high": "HIGH",
+              "critical": "CRITICAL",
+              "safetyOverrideSuffix": "(Safety Override)"
+            },
+            "safetyOverride": {
+              "title": "Safety Override Rule active",
+              "description": "Physical impact \"{{impact}}\" forces aggregated criticality to CRITICAL (ISO 12100 — non-overrideable)."
+            },
+            "source": {
+              "derived": "Derived",
+              "manual": "Manual",
+              "manualOverrideActive": "MANUAL OVERRIDE ACTIVE",
+              "overrideTooltip": "Override derived value manually",
+              "resetToDerived": "Reset to derived value",
+              "rationaleLabel": "Rationale (required)",
+              "rationalePlaceholder": "Why was this value not derived from asset relations?",
+              "rationaleRequired": "Rationale is required for manual overrides (IEC 62443-4-1)"
+            }
           },
           "fields": {
             "description": {
@@ -511,6 +625,132 @@
           "stride_hint": {
             "title": "STRIDE Relevance: All (S, T, R, I, D, E)",
             "description": "Processes are critical attack surfaces. Ensure authentication, authorization, and input validation are properly configured."
+          },
+          "assetTab": {
+            "title": "Asset Relations",
+            "deleteRelation": "Delete relation",
+            "relation": "Relation #{{index}}",
+            "relationsSection": "Asset Relations",
+            "empty": "No asset relations defined.",
+            "addRelation": "Add asset relation",
+            "cancel": "Cancel",
+            "save": "Save",
+            "groupChange": {
+              "title": "Change Asset Group?",
+              "warning": "Changing the asset group will remove all currently selected relation types, as they are specific to the current group.",
+              "confirm": "Change & clear relations"
+            },
+            "assetGroup": {
+              "data": "Data",
+              "system": "System",
+              "process": "Process",
+              "infrastructure": "Infrastructure",
+              "human": "People"
+            },
+            "relationType": {
+              "label": "Relation Type",
+              "options": {
+                "is_an": "is a (class)",
+                "creates": "creates",
+                "reads": "reads",
+                "modifies": "modifies",
+                "deletes": "deletes",
+                "stores": "stores",
+                "transports": "transports",
+                "executes": "executes",
+                "invokes": "invokes",
+                "terminates": "terminates",
+                "suspends": "suspends",
+                "monitors": "monitors",
+                "controls": "controls",
+                "configures": "configures",
+                "uses": "uses",
+                "depends_on": "depends on",
+                "accesses": "accesses",
+                "secures": "secures",
+                "damages": "damages",
+                "powers": "powers",
+                "affects_safety": "affects safety",
+                "affects_privacy": "affects privacy",
+                "identifies": "identifies",
+                "tracks": "tracks",
+                "exposes": "exposes"
+              }
+            },
+            "qualifier": {
+              "label": "Qualifier",
+              "options": {
+                "network": "network",
+                "local": "local",
+                "internal": "internal",
+                "remote": "remote",
+                "authentication": "authentication",
+                "authorization": "authorization",
+                "api": "api",
+                "storage": "storage",
+                "computation": "computation",
+                "messaging": "messaging",
+                "configuration": "configuration",
+                "monitoring": "monitoring",
+                "networking": "networking"
+              }
+            },
+            "asset": {
+              "categoryChange": {
+                "title": "Change Asset Category?",
+                "warning": "This asset is referenced by DFD elements. Changing the category will invalidate all existing relation types in those elements, as relation types are category-specific.",
+                "confirm": "Change category"
+              },
+              "tabs": {
+                "general": "General",
+                "usedIn": "Used in"
+              },
+              "label": "Asset",
+              "noAssets": "No assets available in scope",
+              "createNew": "+ Create new asset…",
+              "newAsset": {
+                "name": "Asset Name",
+                "assetGroup": "Asset Group",
+                "confirm": "Confirm",
+                "cancel": "Cancel"
+              }
+            },
+            "safetyAnnotation": {
+              "title": "Safety Annotation",
+              "derived": "derived",
+              "manual": "manual",
+              "resetToDerived": "Reset to derived values",
+              "relevance": {
+                "label": "Safety Relevance",
+                "options": {
+                  "none": "None",
+                  "indirect": "Indirect",
+                  "direct": "Direct"
+                }
+              },
+              "impact": {
+                "label": "Worst-Case Impact",
+                "options": {
+                  "none": "None",
+                  "reversible_injury": "Reversible injury",
+                  "irreversible_injury": "Irreversible injury",
+                  "fatality": "Fatality"
+                }
+              },
+              "physicalHazardPotential": {
+                "label": "Physical Hazard Potential (ISO 12100)",
+                "options": {
+                  "low": "Low",
+                  "medium": "Medium",
+                  "high": "High"
+                }
+              },
+              "rationale": {
+                "label": "Rationale",
+                "placeholder": "Justify the safety classification…",
+                "helperManual": "Manual override — rationale required for audit trail"
+              }
+            }
           }
         },
         "external_entity": {
@@ -653,7 +893,25 @@
           "advancedGuidance": "Optional fields for refinement. Not required for initial analysis.",
           "owner": "Owner / Responsible",
           "ownerPlaceholder": "Team or person responsible",
-          "notes": "Additional Notes"
+          "notes": "Additional Notes",
+          "categoryChange": {
+            "title": "Change Asset Category?",
+            "warning": "This asset is referenced by DFD elements. Changing the category will invalidate all existing relation types in those elements, as relation types are category-specific.",
+            "confirm": "Change category"
+          },
+          "tabs": {
+            "general": "General",
+            "usedIn": "Used in"
+          },
+          "label": "Asset",
+          "noAssets": "No assets available in scope",
+          "createNew": "+ Create new asset…",
+          "newAsset": {
+            "name": "Asset Name",
+            "assetGroup": "Asset Group",
+            "confirm": "Confirm",
+            "cancel": "Cancel"
+          }
         }
       }
     },
@@ -827,7 +1085,6 @@
         "search": "Search",
         "searchPlaceholder": "Search threats..."
       },
-
       "table": {
         "id": "T-ID",
         "stride": "STRIDE",
@@ -1075,7 +1332,6 @@
       }
     }
   },
-
   "dfdValidation": {
     "noElements": "The DFD contains no elements",
     "noProcessOrDatastore": "At least one process or data store is required",
@@ -1170,7 +1426,6 @@
       "sshInfo": "SSH authentication uses your system's SSH keys (~/.ssh/id_rsa or ~/.ssh/id_ed25519).",
       "sshKeyPath": "SSH Key Path (optional)",
       "sshKeyPathHelp": "Leave empty to use default SSH key",
-
       "gpgInfo": "GPG signing ensures your commits are cryptographically verified. Your private key will be securely stored.",
       "gpgKeyId": "GPG Key ID",
       "gpgKeyIdHelp": "Enter the last 8 characters of your GPG key ID",

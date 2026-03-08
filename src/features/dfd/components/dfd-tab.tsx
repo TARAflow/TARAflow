@@ -15,13 +15,11 @@ import CloseIcon from "@mui/icons-material/Close";
 import { IconButton } from "@mui/material";
 
 import type {
+  AssetGroup,
+  DFDAsset,
   DFDTabProps,
   DFDViewMode,
-  DFDStats,
   AssetRelation,
-  DFDProjectData,
-  DFDElement,
-  DFDConnection,
 } from "../models/dfd-types";
 
 import type { DFDGraph } from "../models/dfd-graph-types";
@@ -31,8 +29,9 @@ import type { ValidationResult } from "../services/dfd-validator";
 import { useDFDEditor } from "../hooks/use-dfd-editor";
 import { useDFDUIState } from "../hooks/use-dfd-ui-state";
 import { useDFDExportImport } from "../hooks/use-dfd-export-import";
-import { useIdLabelVisibility } from "../hooks/use-id-label-visibility";
 import { useAssetAssignment } from "../hooks/use-asset-assignment";
+import { useDFDData } from "../hooks/use-dfd-data";
+import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -41,7 +40,8 @@ import DFDDescriptionView from "./dfd-description-view";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
-
+import type { AvailableAsset } from "./forms/asset-relation-selector";
+import type { AssetVisibility } from "./dfd-asset-panel";
 
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
@@ -115,11 +115,77 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     onSelectionChanged: handleSelectionChanged,
   });
 
-  // ==================== ASSET ASSIGNMENT HOOK ====================
+  // ==================== ASSET HOOKS ====================
 
   const assetAssignment = useAssetAssignment({
     iframeRef: editor.iframeRef,
   });
+
+  const { updateElement, createAsset, dfd } = useDFDData(project);
+  const { scheduleSave } = useDFDPersistence(project, { onUpdate });
+
+  // AvailableAssets aus dfd.assets ableiten
+  const availableAssets: AvailableAsset[] = useMemo(
+    () =>
+      (dfd?.assets ?? []).map((a) => ({
+        id: a.id,
+        displayId: a.displayId,
+        name: a.name,
+        assetGroup: a.assetGroup,
+        protectionNeed: a.protectionNeed,
+      })),
+    [dfd?.assets],
+  );
+
+  // onCreateAsset-Callback — atomar: Asset + DFD updaten
+  const handleCreateAsset = useCallback(
+    (name: string, assetGroup: AssetGroup): AvailableAsset => {
+      const { newDfd, asset } = createAsset(name, assetGroup);
+
+      // DFD persistieren (debounced)
+      scheduleSave({
+        dfd: newDfd,
+        phaseStatus: project.phaseStatus,
+        lastModified: newDfd.lastModified!,
+      });
+
+      // Zurück an Selector → wird sofort als assetId der neuen Relation verwendet
+      return {
+        id: asset.id,
+        displayId: asset.displayId,
+        name: asset.name,
+        assetGroup: asset.assetGroup,
+        protectionNeed: asset.protectionNeed,
+      };
+    },
+    [createAsset, scheduleSave, project.phaseStatus],
+  );
+
+  // Visibility state: per AssetGroup, which assetId is shown in the DFD (null = none)
+  const [assetVisibility, setAssetVisibility] = useState<AssetVisibility>({});
+
+  const handleAssetVisibilityChange = useCallback(
+    (group: AssetGroup, assetId: string | null) => {
+      setAssetVisibility((prev) => ({ ...prev, [group]: assetId }));
+      // TODO: trigger draw.io label show/hide via editor.sendAction / iframeRef
+    },
+    [],
+  );
+
+  const handleAssetChange = useCallback(
+    (assetId: string, changes: Partial<DFDAsset>) => {
+      // Same pattern as updateElement, but for assets
+      const updatedAssets = (dfd?.assets ?? []).map((a) =>
+        a.id === assetId ? { ...a, ...changes } : a,
+      );
+      scheduleSave({
+        dfd: { ...dfd!, assets: updatedAssets },
+        phaseStatus: project.phaseStatus,
+        lastModified: new Date().toISOString(),
+      });
+    },
+    [dfd, scheduleSave, project.phaseStatus],
+  );
 
   // ==================== EXPORT/IMPORT HOOK ====================
 
@@ -383,6 +449,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onToggleGroup={toggleGroup}
               expandedElements={expandedElements}
               onToggleElement={toggleElement}
+              onCreateAsset={handleCreateAsset}
             />
           </Box>
 
@@ -405,6 +472,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             }}
             availableAssets={project.dfd?.assets || []}
             crossesTrustBoundary={crossesTrustBoundary}
+            onCreateAsset={handleCreateAsset}
+            assets={dfd?.assets ?? []}
+            elements={dfd?.elements ?? []}
+            connections={dfd?.connections ?? []}
+            assetVisibility={assetVisibility}
+            onAssetVisibilityChange={handleAssetVisibilityChange}
+            onAssetChange={handleAssetChange}
           />
         </Box>
       </Box>
@@ -437,7 +511,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};
+};;;;;
 
 // ==================== SUB-COMPONENTS ====================
 
