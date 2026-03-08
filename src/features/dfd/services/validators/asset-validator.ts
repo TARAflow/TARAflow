@@ -1,11 +1,8 @@
 // ==================== ASSET VALIDATOR ====================
 // Single Responsibility: Validate DFD assets and interfaces
 
-import type {
-  DFDAsset,
-  DFDElement,
-  DFDConnection,
-} from "../../models/dfd-types";
+import type { DFDElement, DFDConnection } from "../../models/dfd-types";
+import type { DFDAsset } from "../../models/asset-types";
 import { ValidationMessages } from "./validator-utils";
 import type { DFDGraph } from "../../models/dfd-graph-types";
 

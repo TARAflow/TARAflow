@@ -59,11 +59,11 @@ import {
 
 import type {
   AssetGroup,
-  DFDAsset,
   DFDConnection,
   DFDElement,
   DFDElementType,
 } from "../../models/dfd-types";
+import type { DFDAsset } from "../../models/asset-types";
 import type { AnyAssetRelationType } from "../../models/asset-relation-types";
 import {
   hasQualifier,

@@ -2,11 +2,8 @@
 // Single Responsibility: Validate asset-element relationships
 // This is a NEW validator for the asset-based threat analysis feature
 
-import type {
-  DFDAsset,
-  DFDElement,
-  DFDConnection,
-} from "../../models/dfd-types";
+import type { DFDElement, DFDConnection } from "../../models/dfd-types";
+import type { DFDAsset } from "../../models/asset-types";
 import type { AnyAssetRelationType } from "../../models/asset-relation-types";
 import { getAllowedRelations } from "../../models/asset-constants";
 import { ValidationMessages } from "./validator-utils";

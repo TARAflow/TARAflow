@@ -1,40 +1,39 @@
 // ==================== SAFETY TYPES ====================
 // Safety annotation layer for TARAflow
 //
-// Konzept: Safety als optionaler Annotation Layer über der Security-Analyse.
-// Keine eigene Modellierungslogik - bestehende Beziehungen werden mit
-// Safety-Kontext angereichert.
+// Concept: Safety as an optional annotation layer on top of the security analysis.
+// No separate modeling logic — existing relations are enriched with safety context.
 //
-// Normreferenzen: EN 50742 / ISO 12100 / IEC 62443
-// Kein Ersatz für formale Safety-Analyse (FMEA, FTA, ISO 13849)
+// Standard references: EN 50742 / ISO 12100 / IEC 62443
+// Not a replacement for formal safety analysis (FMEA, FTA, ISO 13849)
 
 // ==================== SAFETY RELEVANCE ====================
 
 /**
- * Grad der Safety-Relevanz eines Elements oder einer Beziehung
+ * Degree of safety relevance of an element or relation
  *
- * - none:     Kein Safety-Bezug
- * - indirect: Beeinflusst Safety-Funktionen indirekt
- *             (z.B. Logging-Service eines Safety-Systems)
- * - direct:   Ist selbst Teil einer Safety-Funktion oder kann
- *             direkt eine Safety-Funktion beeinflussen
- *             (z.B. Emergency-Stop-Logik)
+ * - none:     No safety relevance
+ * - indirect: Indirectly influences safety functions
+ *             (e.g. logging service of a safety system)
+ * - direct:   Is itself part of a safety function or can
+ *             directly influence a safety function
+ *             (e.g. emergency stop logic)
  */
 export type SafetyRelevance = "none" | "indirect" | "direct";
 
 // ==================== SAFETY IMPACT ====================
 
 /**
- * Maximaler Safety-Impact bei Kompromittierung
- * Orientiert an ISO 12100 / IEC 62443 Harm-Kategorien
+ * Maximum safety impact upon compromise
+ * Based on ISO 12100 / IEC 62443 harm categories
  *
- * - none:                Kein Personenschaden möglich
- * - reversible_injury:   Verletzung mit vollständiger Erholung möglich
- * - irreversible_injury: Bleibende Schäden / Behinderung
- * - fatality:            Tödlicher Ausgang möglich
+ * - none:                No personal injury possible
+ * - reversible_injury:   Injury with full recovery possible
+ * - irreversible_injury: Permanent damage / disability
+ * - fatality:            Fatal outcome possible
  *
- * Hinweis: Bei fatality wird Risk Priority = CRITICAL gesetzt,
- * unabhängig vom Business Impact (siehe Threat-Scoring)
+ * Note: fatality sets Risk Priority = CRITICAL regardless of
+ * business impact (see threat scoring)
  */
 export type SafetyImpact =
   | "none"
@@ -45,15 +44,15 @@ export type SafetyImpact =
 // ==================== SAFETY ANNOTATION ====================
 
 /**
- * Safety Annotation für DFD-Elemente und Asset-Beziehungen
+ * Safety annotation for DFD elements and asset relations
  *
- * Wird einheitlich verwendet auf:
+ * Used uniformly on:
  * - DFDElement (Process, DataStore, Interface, etc.)
  * - DFDConnection (DataFlow)
- * - AssetRelation (bei safety-relevanten Beziehungen)
+ * - AssetRelation (for safety-relevant relations)
  *
  * @example
- * // Process mit direkter Safety-Relevanz
+ * // Process with direct safety relevance
  * {
  *   relevance: "direct",
  *   impact: "fatality",
@@ -62,7 +61,7 @@ export type SafetyImpact =
  * }
  *
  * @example
- * // DataFlow mit indirekter Safety-Relevanz
+ * // DataFlow with indirect safety relevance
  * {
  *   relevance: "indirect",
  *   impact: "reversible_injury",
@@ -71,49 +70,49 @@ export type SafetyImpact =
  */
 export interface SafetyAnnotation {
   /**
-   * Grad der Safety-Relevanz
-   * Pflichtfeld wenn Safety-Annotation vorhanden
+   * Degree of safety relevance
+   * Required field when a safety annotation is present
    */
   relevance: SafetyRelevance;
 
   /**
-   * Maximaler Safety-Impact bei Kompromittierung
-   * Relevant wenn relevance !== "none"
+   * Maximum safety impact upon compromise
+   * Relevant when relevance !== "none"
    */
   impact?: SafetyImpact;
 
   /**
-   * Spezifisch für Human Assets:
-   * Markiert diese Person/Rolle als Schutzobjekt
-   * (z.B. Operator der physisch gefährdet werden kann)
+   * Specific to Human Assets:
+   * Marks this person/role as a protection target
+   * (e.g. operator who can be physically endangered)
    */
   protectionTarget?: boolean;
 
   /**
-   * Physisches Gefährdungspotenzial des Elements/Assets
-   * Spezifisch für System Assets mit direktem Maschinenbezug
-   * z.B. CNC-Maschine { physicalHazardPotential: 'high' }
+   * Physical hazard potential of the element/asset
+   * Specific to System Assets with direct machine involvement
+   * e.g. CNC machine { physicalHazardPotential: 'high' }
    */
   physicalHazardPotential?: "low" | "medium" | "high";
 
   /**
-   * Element/Asset ist eine physische Schutzbarriere
-   * Spezifisch für Infrastructure Assets die Menschen schützen
-   * z.B. Schutzumhausung { isPhysicalBarrier: true }
-   * → Ausfall = direkter Safety-Impact auf Human Assets
+   * Element/asset is a physical protection barrier
+   * Specific to Infrastructure Assets that protect people
+   * e.g. safety enclosure { isPhysicalBarrier: true }
+   * → Failure = direct safety impact on Human Assets
    */
   isPhysicalBarrier?: boolean;
 
   /**
-   * Referenzierte Safety-Funktionen die betroffen sind
-   * (z.B. ["Emergency Stop", "Overpressure Protection"])
-   * Ermöglicht Rückverfolgung zu Safety-Anforderungen
+   * Referenced safety functions that are affected
+   * (e.g. ["Emergency Stop", "Overpressure Protection"])
+   * Enables traceability to safety requirements
    */
   affectedSafetyFunctions?: string[];
 
   /**
-   * Begründung der Safety-Relevanz in Normsprache
-   * Wird für automatische Dokumentations-Generierung verwendet
+   * Rationale for safety relevance in standards language
+   * Used for automatic documentation generation
    *
    * @example
    * "Manipulation of this data store could disable the emergency
@@ -125,10 +124,10 @@ export interface SafetyAnnotation {
 // ==================== SAFETY HELPERS ====================
 
 /**
- * Prüft ob eine Safety-Annotation eine kritische Priorität erfordert
- * (unabhängig vom Business Impact)
+ * Returns true if a safety annotation requires critical priority
+ * (independent of business impact)
  *
- * Bedingung: relevance === "direct" ODER impact === "fatality"
+ * Condition: relevance === "direct" OR impact === "fatality"
  */
 export function isSafetyCritical(safety: SafetyAnnotation | undefined): boolean {
   if (!safety) return false;
@@ -136,7 +135,7 @@ export function isSafetyCritical(safety: SafetyAnnotation | undefined): boolean 
 }
 
 /**
- * Prüft ob eine Safety-Annotation überhaupt Safety-Relevanz hat
+ * Returns true if a safety annotation has any safety relevance at all
  */
 export function hasSafetyRelevance(safety: SafetyAnnotation | undefined): boolean {
   if (!safety) return false;
@@ -144,7 +143,7 @@ export function hasSafetyRelevance(safety: SafetyAnnotation | undefined): boolea
 }
 
 /**
- * Erstellt eine leere Safety-Annotation (Default: keine Relevanz)
+ * Creates an empty safety annotation (default: no relevance)
  */
 export function createDefaultSafetyAnnotation(): SafetyAnnotation {
   return { relevance: "none" };

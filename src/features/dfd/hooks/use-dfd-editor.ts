@@ -7,11 +7,11 @@ import type {
   DFDProjectData,
   DFDUpdateResult,
   DFDElement,
-  DFDAsset,
   DFDConnection,
   DFDStats,
   DFDExportData,
 } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
 
 // Atomic hooks

@@ -1,11 +1,11 @@
 // ==================== ELEMENT PROPERTIES ====================
-// Property interfaces for DFD elements
-// NO dependencies on dfd-types to avoid circular imports
+// Property interfaces for DFD canvas elements (Describe View)
 //
-// HINWEIS: AssetProperties.category verwendet jetzt AssetGroup
-// aus asset-relation-types.ts statt einem lokalen String-Literal-Typ
-
-import type { AssetGroup } from "./asset-relation-types";
+// Conceptual separation:
+//   element-properties.ts  → DFD canvas descriptions (this file)
+//   asset-types.ts         → Asset Tab impact analysis (AssetProperties, DFDAsset)
+//
+// NO dependencies on dfd-types to avoid circular imports
 
 // ==================== PROCESS PROPERTIES ====================
 
@@ -224,151 +224,6 @@ export interface TrustBoundaryProperties {
   notes?: string;
 }
 
-// ==================== ASSET PROPERTIES ====================
-
-/**
- * Detaillierte Asset-Eigenschaften für den Asset-Tab
- * (Impact-Analyse, CIA-Werte, Schutzziele)
- *
- * HINWEIS: AssetGroup und protectionNeed sind Top-Level-Attribute
- * auf DFDAsset — nicht hier. Diese properties enthalten nur die
- * vertieften, gruppenspezifischen Felder für den Asset-Tab.
- *
- * assetGroup hier dient als Redundanz für kategorieabhängige
- * Formularfelder — der kanonische Wert liegt auf DFDAsset.assetGroup.
- */
-export interface AssetProperties {
-  /**
-   * Asset-Gruppe — gespiegelt von DFDAsset.assetGroup
-   * Steuert welche gruppenspezifischen Felder angezeigt werden
-   * Kanonischer Wert: DFDAsset.assetGroup (dort ändern, hier folgt)
-   */
-  category?: AssetGroup;
-
-  /**
-   * Schutzbedarf — gespiegelt von DFDAsset.protectionNeed
-   * Kanonischer Wert: DFDAsset.protectionNeed
-   */
-  protectionNeed?: "low" | "medium" | "high" | "critical";
-
-  // ---- Kategorie: Data ----
-  /** Datentypen die in diesem Asset enthalten sind */
-  dataType?: string[];
-  /** Lebenszyklus der Daten */
-  lifecycle?: "transient" | "stored" | "archived";
-
-  // ---- Kategorie: System ----
-  /** Kritikalität des Systems */
-  criticality?: "supporting" | "essential" | "safety_critical";
-  /** Netzwerk-Exposition */
-  exposure?: "internal" | "dmz" | "internet";
-
-  // ---- Kategorie: Infrastructure ----
-  /** Physischer Zugriff möglich */
-  physicalAccessPossible?: boolean;
-  /** Physischer Standort */
-  location?: "factory" | "datacenter" | "field" | "cloud";
-
-  // ---- Kategorie: Process ----
-  /** Prozess ist automatisiert */
-  automated?: boolean;
-  /** Änderungshäufigkeit */
-  changeFrequency?: "rarely" | "regular" | "frequent";
-
-  // ---- Kategorie: Human ----
-  /** Rolle der Person */
-  role?: "operator" | "admin" | "developer" | "external";
-  /** Person ist sicherheitsrelevant */
-  securityRelevant?: boolean;
-
-  // ---- CIANAAA-Schutzziele ----
-  // Werden aus Beziehungstypen abgeleitet — Analyst bestätigt oder überschreibt.
-
-  /** Confidentiality — Vertraulichkeit */
-  confidentialityImpact?: "low" | "medium" | "high" | "critical";
-
-  /** Integrity — Unversehrtheit */
-  integrityImpact?: "low" | "medium" | "high" | "critical";
-
-  /** Availability — Verfügbarkeit */
-  availabilityImpact?: "low" | "medium" | "high" | "critical";
-
-  /**
-   * Non-Repudiation — Nicht-Abstreitbarkeit (= R in STRIDE)
-   * Relevant bei: modifies, creates, deletes, transports, executes, monitors
-   */
-  nonRepudiationRelevant?: boolean;
-
-  /**
-   * Authentication — Identitätsnachweis erforderlich
-   * Relevant bei: reads (kritisch), uses[network], accesses[remote]
-   */
-  authenticationRelevant?: boolean;
-
-  /**
-   * Authorization — Berechtigungsprüfung erforderlich
-   * Relevant bei: fast allen Beziehungstypen ausser is_an
-   */
-  authorizationRelevant?: boolean;
-
-  /**
-   * Accountability — DSGVO-Nachweispflicht / behördliche Verantwortlichkeit
-   * Zusätzlich zu Non-Repudiation wenn personalData: true
-   */
-  accountabilityRelevant?: boolean;
-
-  // ---- Conditional Confidentiality Flags ----
-
-  /**
-   * Asset in sicherem Speicher (TPM, HSM, OP-TEE)
-   * → Confidentiality bei "stores"-Beziehung aktivieren
-   */
-  secureStorage?: boolean;
-
-  /**
-   * Asset hat Geschäftsgeheimnischarakter
-   * → Confidentiality bei "is_an" auf Process Assets aktivieren
-   */
-  businessSecret?: boolean;
-
-  // ---- Accountability Flag ----
-
-  /**
-   * Asset enthält personenbezogene Daten (DSGVO Art. 5 Abs. 2)
-   * → Accountability wird zusätzlich zu Non-Repudiation abgeleitet
-   */
-  personalData?: boolean;
-
-  // ---- Impact-Bewertung ----
-
-  /** Business Impact — wirtschaftlicher/operationeller Schaden */
-  businessImpact?: "low" | "medium" | "high" | "critical";
-  businessImpactCategory?: "operational" | "financial" | "privacy" | "reputational";
-
-  /**
-   * Physical Impact — Safety-Impact auf Menschen
-   * Automatisch aus asset.safety.impact gespiegelt — read-only im UI
-   */
-  physicalImpact?: "none" | "reversible_injury" | "irreversible_injury" | "fatality";
-
-  // ---- Aggregierte Kritikalität (abgeleitet, read-only) ----
-
-  /**
-   * Aggregierte Asset-Kritikalität (Business + Physical Impact)
-   * Safety Override Rule: fatality/irreversible_injury → immer CRITICAL
-   */
-  aggregatedCriticality?: "low" | "medium" | "high" | "critical";
-
-  /**
-   * STRIDE-Analysetiefe — aus aggregatedCriticality + Trust Boundary
-   * Automatisch berechnet — nicht manuell setzen
-   */
-  strideDepth?: "vertieft" | "fokussiert" | "hochstufig";
-
-  owner?: string;
-  notes?: string;
-}
-
 // ==================== UNION TYPE ====================
 
 export type ElementProperties =
@@ -377,3 +232,9 @@ export type ElementProperties =
   | DataStoreProperties
   | InterfaceProperties
   | TrustBoundaryProperties;
+
+// ==================== RE-EXPORT (Backwards Compat) ====================
+// AssetProperties was moved to asset-types.ts.
+// Existing imports via element-properties.ts remain valid.
+
+// export type { AssetProperties } from "./asset-types";

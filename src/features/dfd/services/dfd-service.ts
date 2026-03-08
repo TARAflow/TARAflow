@@ -10,9 +10,8 @@ import {
   DFDProjectData,
   DFDElement,
   DFDConnection,
-  DFDAsset,
-  ElementRelation,
 } from "../models/dfd-types";
+import type { DFDAsset, ElementRelation } from "../models/asset-types";
 import { DFDParser, dfdParser } from "./dfd-parser";
 import { DFDValidator, dfdValidator, ValidationResult } from "./dfd-validator";
 import {

@@ -1,7 +1,8 @@
 // ==================== DFD GRAPH BUILDER ====================
 // Builds analysis graph from DFDData with TB membership logic
 
-import type { DFDElement, DFDConnection, DFDAsset } from "../models/dfd-types";
+import type { DFDElement, DFDConnection } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import type {
   DFDGraph,
   DataFlowAnalysis,

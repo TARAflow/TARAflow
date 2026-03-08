@@ -35,10 +35,10 @@ import {
 } from "@mui/icons-material";
 import type {
   AssetGroup,
-  DFDAsset,
   DFDConnection,
   DFDElement,
 } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
 

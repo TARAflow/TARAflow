@@ -1,6 +1,6 @@
 // ==================== DFD FORMATTERS ====================
 // Formatting and text display functions for DFD elements
-// Single Responsibility: Convert enum/type values to human-readable text
+// Single Responsibility: convert enum/type values to human-readable text
 
 import type { DFDElementType, SecurityLevel, TrustLevel } from "./dfd-types";
 import type { AssetGroup, AnyAssetRelationType } from "./asset-relation-types";
@@ -23,7 +23,7 @@ export type DocLanguage = "en" | "de";
 // ==================== SECURITY LEVEL FORMATTERS ====================
 
 /**
- * Get human-readable text for security level
+ * Returns human-readable text for a security level
  */
 export function getSecurityLevelText(
   level: SecurityLevel | undefined,
@@ -43,7 +43,7 @@ export function getSecurityLevelText(
 // ==================== TRUST LEVEL FORMATTERS ====================
 
 /**
- * Get human-readable text for trust level
+ * Returns human-readable text for a trust level
  */
 export function getTrustLevelText(
   level: TrustLevel | undefined,
@@ -62,7 +62,7 @@ export function getTrustLevelText(
 // ==================== DFD ELEMENT TYPE FORMATTERS ====================
 
 /**
- * Get DFD element type text (singular)
+ * Returns the DFD element type text (singular)
  */
 export function getDFDElementTypeText(
   type: DFDElementType,
@@ -73,7 +73,7 @@ export function getDFDElementTypeText(
 }
 
 /**
- * Get DFD element type text (plural for section headers)
+ * Returns the DFD element type text (plural, for section headers)
  */
 export function getDFDElementTypePluralText(
   type: DFDElementType,
@@ -94,8 +94,8 @@ export function getDFDElementTypePluralText(
 // ==================== ASSET GROUP FORMATTERS ====================
 
 /**
- * Anzeigetext für eine Asset-Gruppe
- * Wird in Tab-Labels verwendet: [Data] [Systems] [Process] [Infra] [People]
+ * Display text for an asset group
+ * Used in tab labels: [Data] [Systems] [Process] [Infra] [People]
  */
 export function getAssetGroupText(
   group: AssetGroup,
@@ -106,8 +106,8 @@ export function getAssetGroupText(
 }
 
 /**
- * Farb-Konfiguration für eine Asset-Gruppe
- * Wird für DrawIO-Labels und UI-Badges verwendet
+ * Colour configuration for an asset group
+ * Used for DrawIO labels and UI badges
  */
 export function getAssetGroupColor(group: AssetGroup): {
   color: string;
@@ -120,18 +120,18 @@ export function getAssetGroupColor(group: AssetGroup): {
 // ==================== ASSET RELATION TYPE FORMATTERS ====================
 
 /**
- * Anzeigetext für einen Relation-Typ — gruppenspezifisch
+ * Display text for a relation type — group-specific
  *
- * "monitors" bedeutet in jeder Gruppe etwas anderes:
- * - Process-Gruppe: überwacht den Prozess
- * - System-Gruppe:  liest Systemzustand
- * - Infra-Gruppe:   überwacht physische Parameter
+ * "monitors" has a different meaning in each group:
+ * - Process group:  monitors the process
+ * - System group:   reads system state
+ * - Infra group:    monitors physical parameters
  *
- * Deshalb ist assetGroup ein Pflichtparameter.
+ * Therefore assetGroup is a required parameter.
  *
  * @example
  * getRelationTypeText("monitors", "system")  // → "Monitors"
- * getRelationTypeText("monitors", "infra")   // → "Monitors" (Physisch)
+ * getRelationTypeText("monitors", "infra")   // → "Monitors" (Physical)
  */
 export function getRelationTypeText(
   relationType: AnyAssetRelationType,
@@ -163,7 +163,7 @@ export function getRelationTypeText(
 }
 
 /**
- * Anzeigetext für einen System-Uses-Qualifier
+ * Display text for a System Uses qualifier
  *
  * @example
  * getSystemUsesQualifierText("authentication") // → "Authentication"
@@ -176,7 +176,7 @@ export function getSystemUsesQualifierText(
 }
 
 /**
- * Kurz-Label für DrawIO Asset-Label-Anzeige
+ * Short label for DrawIO asset label display
  * Format: "[AssetId] [relationType]"
  *
  * @example
@@ -188,7 +188,7 @@ export function getDrawIOAssetLabel(
   relationType: AnyAssetRelationType,
   assetGroup: AssetGroup
 ): string {
-  // is_an bekommt ein spezielles kurzes Label
+  // is_an gets a special short label
   if (relationType === "is_an") {
     return `${assetDisplayId} ≡`;
   }

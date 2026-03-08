@@ -1,8 +1,8 @@
 // ==================== ASSET CONSTANTS ====================
-// Konfiguration der erlaubten Asset-Relationen pro DFD-Element-Typ
+// Configuration of allowed asset relations per DFD element type
 //
-// Ersetzt ALLOWED_ASSET_RELATIONS aus dfd-constants.ts
-// Asset-zentrierte Sicht statt Element-zentrierter Sicht
+// Replaces ALLOWED_ASSET_RELATIONS from dfd-constants.ts
+// Asset-centric view instead of element-centric view
 
 import type { DFDElementType } from "./dfd-types";
 import type {
@@ -16,31 +16,31 @@ import type {
   InfraAccessesQualifier,
 } from "./asset-relation-types";
 
-// ==================== UI DISPLAY KONFIGURATION ====================
+// ==================== UI DISPLAY CONFIGURATION ====================
 
 /**
- * Anzeige-Konfiguration pro Asset-Gruppe
- * Für Tab-Leiste [Data] [Systems] [Process] [Infra] [People]
+ * Display configuration per asset group
+ * For the tab bar [Data] [Systems] [Process] [Infra] [People]
  */
 export const ASSET_GROUP_CONFIG: Record<
   AssetGroup,
   {
     label: string;
     labelDE: string;
-    color: string;       // Hex-Farbe für DrawIO-Label und UI-Badge
-    colorLight: string;  // Heller Hintergrund für Chips
+    color: string;       // Hex colour for DrawIO label and UI badge
+    colorLight: string;  // Light background for chips
   }
 > = {
   data: {
     label: "Data",
     labelDE: "Daten",
-    color: "#1976D2",      // Blau
+    color: "#1976D2",      // Blue
     colorLight: "#E3F2FD",
   },
   system: {
     label: "Systems",
     labelDE: "Systeme",
-    color: "#7B1FA2",      // Lila
+    color: "#7B1FA2",      // Purple
     colorLight: "#F3E5F5",
   },
   process: {
@@ -52,13 +52,13 @@ export const ASSET_GROUP_CONFIG: Record<
   infrastructure: {
     label: "Infra",
     labelDE: "Infrastruktur",
-    color: "#4E342E",      // Braun
+    color: "#4E342E",      // Brown
     colorLight: "#EFEBE9",
   },
   human: {
     label: "People",
     labelDE: "Personen",
-    color: "#2E7D32",      // Grün
+    color: "#2E7D32",      // Green
     colorLight: "#E8F5E9",
   },
 };
@@ -66,7 +66,7 @@ export const ASSET_GROUP_CONFIG: Record<
 // ==================== RELATION TYPE LABELS ====================
 
 /**
- * Anzeigetexte für Data Asset Relation Types
+ * Display labels for Data Asset relation types
  */
 export const DATA_RELATION_LABELS: Record<DataAssetRelationType, { en: string; de: string }> = {
   creates:   { en: "Creates",    de: "Erzeugt" },
@@ -79,7 +79,7 @@ export const DATA_RELATION_LABELS: Record<DataAssetRelationType, { en: string; d
 };
 
 /**
- * Anzeigetexte für Process Asset Relation Types
+ * Display labels for Process Asset relation types
  */
 export const PROCESS_RELATION_LABELS: Record<ProcessAssetRelationType, { en: string; de: string }> = {
   executes:   { en: "Executes",   de: "Führt aus" },
@@ -91,7 +91,7 @@ export const PROCESS_RELATION_LABELS: Record<ProcessAssetRelationType, { en: str
 };
 
 /**
- * Anzeigetexte für System Asset Relation Types
+ * Display labels for System Asset relation types
  */
 export const SYSTEM_RELATION_LABELS: Record<SystemAssetRelationType, { en: string; de: string }> = {
   controls:   { en: "Controls",   de: "Kontrolliert" },
@@ -103,7 +103,7 @@ export const SYSTEM_RELATION_LABELS: Record<SystemAssetRelationType, { en: strin
 };
 
 /**
- * Anzeigetexte für System Uses Qualifier
+ * Display labels for System Uses qualifiers
  */
 export const SYSTEM_USES_QUALIFIER_LABELS: Record<SystemUsesQualifier, { en: string; de: string }> = {
   network:        { en: "Network access",  de: "Netzwerkzugriff" },
@@ -120,7 +120,7 @@ export const SYSTEM_USES_QUALIFIER_LABELS: Record<SystemUsesQualifier, { en: str
 };
 
 /**
- * Anzeigetexte für Infrastructure Accesses Qualifier
+ * Display labels for Infrastructure Accesses qualifiers
  */
 export const INFRA_ACCESSES_QUALIFIER_LABELS: Record<InfraAccessesQualifier, { en: string; de: string }> = {
   local:    { en: "Local (on-site)",  de: "Lokal (vor Ort)" },
@@ -129,7 +129,7 @@ export const INFRA_ACCESSES_QUALIFIER_LABELS: Record<InfraAccessesQualifier, { e
 };
 
 /**
- * Anzeigetexte für Infrastructure Asset Relation Types
+ * Display labels for Infrastructure Asset relation types
  */
 export const INFRA_RELATION_LABELS: Record<InfraAssetRelationType, { en: string; de: string }> = {
   accesses: { en: "Accesses", de: "Greift zu auf" },
@@ -141,7 +141,7 @@ export const INFRA_RELATION_LABELS: Record<InfraAssetRelationType, { en: string;
 };
 
 /**
- * Anzeigetexte für Human Asset Relation Types
+ * Display labels for Human Asset relation types
  */
 export const HUMAN_RELATION_LABELS: Record<HumanAssetRelationType, { en: string; de: string }> = {
   affects_safety:  { en: "Affects safety",  de: "Gefährdet physisch" },
@@ -153,11 +153,11 @@ export const HUMAN_RELATION_LABELS: Record<HumanAssetRelationType, { en: string;
 };
 
 // ==================== ALLOWED RELATIONS MATRIX ====================
-// Definiert welche Relationstypen pro Element-Typ + Asset-Gruppe erlaubt sind
-// is_an ist bei den meisten Kombinationen erlaubt (sofern semantisch sinnvoll)
+// Defines which relation types are allowed per element type + asset group
+// is_an is allowed for most combinations (where semantically meaningful)
 
 /**
- * Erlaubte Data Asset Relationen pro DFD-Element-Typ
+ * Allowed Data Asset relations per DFD element type
  */
 export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationType[]> = {
   Process:        ["creates", "reads", "modifies", "deletes", "is_an"],
@@ -170,7 +170,7 @@ export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationTyp
 };
 
 /**
- * Erlaubte Process Asset Relationen pro DFD-Element-Typ
+ * Allowed Process Asset relations per DFD element type
  */
 export const ALLOWED_PROCESS_RELATIONS: Record<DFDElementType, ProcessAssetRelationType[]> = {
   Process:        ["executes", "invokes", "terminates", "suspends", "monitors", "is_an"],
@@ -183,7 +183,7 @@ export const ALLOWED_PROCESS_RELATIONS: Record<DFDElementType, ProcessAssetRelat
 };
 
 /**
- * Erlaubte System Asset Relationen pro DFD-Element-Typ
+ * Allowed System Asset relations per DFD element type
  */
 export const ALLOWED_SYSTEM_RELATIONS: Record<DFDElementType, SystemAssetRelationType[]> = {
   Process:        ["controls", "configures", "monitors", "uses", "depends_on", "is_an"],
@@ -196,7 +196,7 @@ export const ALLOWED_SYSTEM_RELATIONS: Record<DFDElementType, SystemAssetRelatio
 };
 
 /**
- * Erlaubte Infrastructure Asset Relationen pro DFD-Element-Typ
+ * Allowed Infrastructure Asset relations per DFD element type
  */
 export const ALLOWED_INFRA_RELATIONS: Record<DFDElementType, InfraAssetRelationType[]> = {
   Process:        ["accesses", "monitors", "depends_on" as any],
@@ -209,7 +209,7 @@ export const ALLOWED_INFRA_RELATIONS: Record<DFDElementType, InfraAssetRelationT
 };
 
 /**
- * Erlaubte Human Asset Relationen pro DFD-Element-Typ
+ * Allowed Human Asset relations per DFD element type
  */
 export const ALLOWED_HUMAN_RELATIONS: Record<DFDElementType, HumanAssetRelationType[]> = {
   Process:        ["affects_safety", "affects_privacy", "identifies", "tracks", "exposes"],
@@ -221,10 +221,10 @@ export const ALLOWED_HUMAN_RELATIONS: Record<DFDElementType, HumanAssetRelationT
   TrustBoundary:  [],
 };
 
-// ==================== LOOKUP HELPER ====================
+// ==================== LOOKUP HELPERS ====================
 
 /**
- * Gibt alle erlaubten Relationstypen für eine Element-Typ + Asset-Gruppe Kombination zurück
+ * Returns all allowed relation types for an element type + asset group combination
  */
 export function getAllowedRelations(
   elementType: DFDElementType,
@@ -240,8 +240,8 @@ export function getAllowedRelations(
 }
 
 /**
- * Prüft ob eine Asset-Gruppe überhaupt Relationen für einen Element-Typ hat
- * Bestimmt ob ein Tab in der UI angezeigt wird
+ * Returns true if an asset group has any allowed relations for an element type
+ * Determines whether a tab is shown in the UI
  */
 export function hasAnyAllowedRelations(
   elementType: DFDElementType,
@@ -251,8 +251,8 @@ export function hasAnyAllowedRelations(
 }
 
 /**
- * Gibt den Qualifier-Label-Text zurück
- * Unterstützt sowohl SystemUsesQualifier als auch InfraAccessesQualifier
+ * Returns the display label for a qualifier
+ * Supports both SystemUsesQualifier and InfraAccessesQualifier
  */
 export function getQualifierLabel(
   qualifier: SystemUsesQualifier | InfraAccessesQualifier,
@@ -268,7 +268,7 @@ export function getQualifierLabel(
 }
 
 /**
- * Tab-Reihenfolge für die UI
+ * Tab order for the UI
  */
 export const ASSET_GROUP_TAB_ORDER: AssetGroup[] = [
   "data",

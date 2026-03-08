@@ -5,12 +5,14 @@
 import type {
   DFDElement,
   DFDConnection,
-  DFDAsset,
   SecurityLevel,
   TrustLevel,
   AssetRelation,
-  ElementRelation,
 } from "../../../dfd/models/dfd-types";
+import type {
+  DFDAsset,
+  ElementRelation,
+} from "../../../dfd/models/asset-types";
 import type {
   ProcessProperties,
   ExternalEntityProperties,

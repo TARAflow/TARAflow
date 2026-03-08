@@ -9,11 +9,10 @@ import type {
   DFDData,
   DFDProjectData,
   DFDElement,
-  DFDAsset,
   DFDConnection,
   DFDStats,
-  ElementRelation,
 } from "../models/dfd-types";
+import type { DFDAsset, ElementRelation } from "../models/asset-types";
 import type { AssetGroup, AssetRelation } from "../models/asset-relation-types";
 import {
   isSystemUsesRelation,

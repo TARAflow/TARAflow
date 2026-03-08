@@ -2,12 +2,8 @@
 // Single Responsibility: Orchestrate DFD parsing from DrawIO XML
 // This is the public API for DFD parsing
 
-import type {
-  DFDElement,
-  DFDConnection,
-  DFDAsset,
-  DFDStats,
-} from "../models/dfd-types";
+import type { DFDElement, DFDConnection, DFDStats } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 
 import { parseXmlString, extractXmlFromDrawioMsg } from "./parsers/xml-parser";
 import {

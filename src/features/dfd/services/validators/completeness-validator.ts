@@ -1,7 +1,12 @@
 // ==================== COMPLETENESS VALIDATOR ====================
 // Single Responsibility: Validate DFD completeness (descriptions, scenarios)
 
-import type { DFDElement, DFDConnection, DFDAsset, DFDStats } from "../../models/dfd-types";
+import type {
+  DFDElement,
+  DFDConnection,
+  DFDStats,
+} from "../../models/dfd-types";
+import type { DFDAsset } from "../../models/asset-types";
 import { ValidationMessages } from "./validator-utils";
 import type { DFDGraph } from "../../models/dfd-graph-types";
 

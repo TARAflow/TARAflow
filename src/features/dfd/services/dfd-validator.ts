@@ -5,10 +5,10 @@
 import type {
   DFDElement,
   DFDConnection,
-  DFDAsset,
   DFDStats,
   DFDValidation,
 } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 
 import {
   validateElements,

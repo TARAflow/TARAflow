@@ -15,10 +15,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
 import type {
   AssetGroup,
-  DFDAsset,
   DFDConnection,
   DFDElement,
 } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
 import { AssetPanel } from "./dfd-asset-panel";

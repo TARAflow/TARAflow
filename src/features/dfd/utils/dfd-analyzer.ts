@@ -2,7 +2,8 @@
 // Single Responsibility: Geometric analysis and element relationships in DFD
 // Shared utility used by both dfd-validator and asset-service
 
-import type { DFDElement, DFDConnection, DFDAsset } from "../models/dfd-types";
+import type { DFDElement, DFDConnection } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import { geometryAnalyzer, type GeometricElement } from "../utils/geometry-analyzer";
 
 /**

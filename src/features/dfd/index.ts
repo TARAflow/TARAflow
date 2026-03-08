@@ -5,17 +5,10 @@
 export type {
   // Base
   DFDBaseEntity,
-  DFDElementType,
-  SecurityLevel,
-  TrustLevel,
 
   // Elements
   DFDElement,
   DFDConnection,
-  ElementRelation,
-
-  // Asset
-  DFDAsset,
 
   // Data containers
   DFDValidation,
@@ -31,6 +24,20 @@ export type {
   // Export
   DFDExportData,
 } from "./models/dfd-types";
+
+export type {
+  // Base
+  DFDElementType,
+  SecurityLevel,
+  TrustLevel,
+} from "./models/dfd-element-types";
+
+// ==================== ASSET TYPES ====================
+export type {
+  AssetProperties,
+  ElementRelation,
+  DFDAsset,
+} from "./models/asset-types";
 
 // ==================== ASSET RELATION TYPES ====================
 export type {
@@ -72,6 +79,10 @@ export type {
 
   // is_an
   IsAnRelation,
+
+  // Asset-to-Asset relations (Layer 2)
+  A2ARelationType,
+  AssetToAssetRelation,
 } from "./models/asset-relation-types";
 
 // Type guards — needed by dfd-to-asset-mapper and other consumers

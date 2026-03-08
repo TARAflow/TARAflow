@@ -1,7 +1,12 @@
 // ==================== STATS CALCULATOR ====================
 // Single Responsibility: Calculate DFD statistics
 
-import type { DFDElement, DFDConnection, DFDAsset, DFDStats } from "../../models/dfd-types";
+import type {
+  DFDElement,
+  DFDConnection,
+  DFDStats,
+} from "../../models/dfd-types";
+import type { DFDAsset } from "../../models/asset-types";
 import { createEmptyStats, updateStats } from "./parser-utils";
 
 /**

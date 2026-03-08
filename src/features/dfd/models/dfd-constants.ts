@@ -2,7 +2,7 @@
 // Configuration constants for DFD elements
 // NO types here - only constant data
 
-import type { DFDElementType } from "./dfd-types";
+import type { DFDElementType } from "./dfd-element-types";
 
 // ==================== DFD ELEMENT CONFIGURATION ====================
 

@@ -16,11 +16,12 @@ import { IconButton } from "@mui/material";
 
 import type {
   AssetGroup,
-  DFDAsset,
   DFDTabProps,
   DFDViewMode,
   AssetRelation,
 } from "../models/dfd-types";
+
+import type { DFDAsset } from "../models/asset-types";
 
 import type { DFDGraph } from "../models/dfd-graph-types";
 import type { ValidationResult } from "../services/dfd-validator";

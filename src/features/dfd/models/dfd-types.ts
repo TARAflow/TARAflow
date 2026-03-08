@@ -1,5 +1,9 @@
 // ==================== DFD TYPES ====================
-// Single Responsibility: Type definitions for DFD-related data structures
+// Single Responsibility: type definitions for DFD-related data structures
+//
+// Types moved to dedicated files (backwards-compatible re-exports remain):
+//   DFDElementType, SecurityLevel, TrustLevel → dfd-element-types.ts
+//   AssetProperties, ElementRelation, DFDAsset → asset-types.ts
 
 import type { PhaseStatusMap } from "shared";
 import type {
@@ -9,28 +13,24 @@ import type {
   DataFlowProperties,
   InterfaceProperties,
   TrustBoundaryProperties,
-  AssetProperties,
 } from "./element-properties";
 
 import type { DFDGraph } from "./dfd-graph-types";
+import type { DFDElementType } from "./dfd-element-types";
+import type { DFDAsset } from "./asset-types";
 
 // ==================== DFD ELEMENT TYPES ====================
+// Re-exported from dfd-element-types.ts for backwards compatibility
 
-export type DFDElementType =
-  | "ExternalEntity"
-  | "Process"
-  | "Multiprocess"
-  | "DataStore"
-  | "DataFlow"
-  | "TrustBoundary"
-  | "Interface";
-
-export type SecurityLevel = "public" | "internal" | "confidential" | "secret";
-export type TrustLevel = "trusted" | "untrusted" | "unknown";
+export type {
+  DFDElementType,
+  SecurityLevel,
+  TrustLevel,
+} from "./dfd-element-types";
 
 // ==================== ASSET RELATIONS ====================
-// AssetRelationType und AssetRelation leben jetzt in asset-relation-types.ts
-// Hier nur Re-Export für einfache Imports im Rest des Projekts
+// AssetRelationType and AssetRelation live in asset-relation-types.ts
+// Re-exported here for convenient imports throughout the project
 
 export type {
   AssetGroup,
@@ -56,6 +56,9 @@ export type {
   HumanAssetRelation,
   HumanAssetInteractionRelation,
   IsAnRelation,
+  // Asset-to-Asset relations (Layer 2)
+  A2ARelationType,
+  AssetToAssetRelation,
 } from "./asset-relation-types";
 
 export {
@@ -67,107 +70,28 @@ export {
   hasIsAnConflict,
 } from "./asset-relation-types";
 
+// ==================== ASSET TYPES RE-EXPORTS ====================
+// ElementRelation and DFDAsset now live in asset-types.ts
+// Re-exported for backwards compatibility
+
+//export type { AssetProperties, ElementRelation, DFDAsset } from "./asset-types";
+
 // ==================== BASE ENTITY ====================
 
 /**
- * Gemeinsame Basis für DFDElement und DFDConnection
- * Vermeidet Duplikate bei gemeinsamen Feldern
+ * Shared base for DFDElement and DFDConnection
+ * Avoids duplication of common fields
  *
  * name:
- * - Bei Elementen:   Eigenname     z.B. "Monitor Process", "Control System"
- * - Bei Connections: Aktionstext   z.B. "send cmd", "request status"
- *   (In DrawIO wird connection.label beim Einlesen auf name gemappt)
+ * - Elements:    own name     e.g. "Monitor Process", "Control System"
+ * - Connections: action text  e.g. "send cmd", "request status"
+ *   (In DrawIO, connection.label is mapped to name on import)
  */
 export interface DFDBaseEntity {
   id: string;
   displayId: string;
   name: string;
   description?: string;
-}
-
-// ==================== ELEMENT RELATION ====================
-
-/**
- * Element relation from Asset perspective (Asset → Element)
- * Mirrored representation stored in DFDAsset.linkedElements
- * Wird beim Speichern einer AssetRelation automatisch gespiegelt
- */
-export interface ElementRelation {
-  /** Element ID */
-  elementId: string;
-
-  /** Element name */
-  elementName: string;
-
-  /** Element type */
-  elementType: DFDElementType;
-
-  /** Display ID (e.g., "P-1", "DS-1") */
-  displayId: string;
-
-  /**
-   * Relation type — typsicher über alle Asset-Gruppen
-   * z.B. "reads", "stores", "controls", "is_an", "affects_safety"
-   */
-  relationType?: import("./asset-relation-types").AnyAssetRelationType;
-
-  /**
-   * Qualifier — nur bei SystemUsesRelation (relationType === "uses")
-   * z.B. "authentication", "api", "storage"
-   */
-  qualifier?:
-    | import("./asset-relation-types").SystemUsesQualifier
-    | import("./asset-relation-types").InfraAccessesQualifier;
-
-  /** Optional notes */
-  notes?: string;
-}
-
-// ==================== DFD ASSET ====================
-
-/**
- * Asset in TARAflow
- *
- * Assets entstehen kontextuell aus dem Element-Beschreibungsformular
- * oder direkt aus dem Asset-Accordion der Description View.
- *
- * NICHT mehr via DrawIO-Marker (Marker-Logik entfernt).
- */
-export interface DFDAsset {
-  /** Asset identifier (e.g. "A-001") */
-  id: string;
-
-  /** Display ID (same as id for consistency) */
-  displayId: string;
-
-  /** Asset name */
-  name: string;
-
-  description?: string;
-
-  /**
-   * Asset-Gruppe - Top-Level Attribut (nicht in properties vergraben)
-   * Steuert die Tab-Leiste [Data] [Systems] [Process] [Infra] [People]
-   * und die Farb-Kodierung im DrawIO-Layer
-   */
-  assetGroup: import("./asset-relation-types").AssetGroup;
-
-  /**
-   * Protection Need - Top-Level Attribut
-   * Wird direkt im AssetRelationSelector angezeigt (Chip-Farbe)
-   * ohne tief in properties zu graben
-   */
-  protectionNeed?: "low" | "medium" | "high" | "critical";
-
-  /**
-   * DFD-Elemente die mit diesem Asset verknüpft sind
-   * Wird beim Speichern einer AssetRelation automatisch gespiegelt
-   * Ermöglicht "Asset → welche Elemente?" Abfragen
-   */
-  linkedElements?: ElementRelation[];
-
-  /** Asset-spezifische Eigenschaften (detailliert, für Asset-Tab) */
-  properties?: AssetProperties;
 }
 
 // ==================== DFD ELEMENT ====================
@@ -179,7 +103,7 @@ export interface DFDElement extends DFDBaseEntity {
 
   /**
    * Asset relations (Element → Assets)
-   * Typsicher via Discriminated Union aus asset-relation-types.ts
+   * Type-safe via discriminated union from asset-relation-types.ts
    */
   assetRelations?: import("./asset-relation-types").AssetRelation[];
 
@@ -212,7 +136,7 @@ export interface DFDConnection extends DFDBaseEntity {
 
   /**
    * Asset relations (DataFlow → Assets)
-   * DataFlow erlaubt: transports (Data), invokes (Process), uses (System)
+   * DataFlow allows: transports (Data), invokes (Process), uses (System)
    */
   assetRelations?: import("./asset-relation-types").AssetRelation[];
 
@@ -241,10 +165,10 @@ export interface DFDStats {
   trustBoundaries: number;
   interfaces: number;
 
-  /** Anzahl einzigartiger Assets im Projekt */
+  /** Number of unique assets in the project */
   assets: number;
 
-  /** Asset-Verteilung pro Gruppe */
+  /** Asset distribution per group */
   assetsByGroup?: {
     data: number;
     system: number;
@@ -258,7 +182,7 @@ export interface DFDStats {
   describedAssets: number;
   describedConnections: number;
 
-  /** Elemente ohne Asset-Relation (für Vollständigkeitsanzeige) */
+  /** Elements without an asset relation (for completeness display) */
   elementsWithoutAssets?: number;
 }
 

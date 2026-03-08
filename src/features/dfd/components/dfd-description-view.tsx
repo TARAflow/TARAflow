@@ -35,11 +35,11 @@ import {
 
 import type {
   AssetGroup,
-  DFDAsset,
   DFDElement,
   DFDConnection,
   DFDElementType,
 } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import { DFD_ELEMENT_CONFIG } from "../models/dfd-constants";
 
 // Import element-specific forms

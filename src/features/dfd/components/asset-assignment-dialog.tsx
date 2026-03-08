@@ -29,11 +29,8 @@ import {
   MenuItem,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import type {
-  DFDAsset,
-  AssetRelation,
-  DFDElementType,
-} from "../models/dfd-types";
+import type { AssetRelation, DFDElementType } from "../models/dfd-types";
+import type { DFDAsset } from "../models/asset-types";
 import type {
   AssetGroup,
   AnyAssetRelationType,
