@@ -13,6 +13,7 @@ import type {
   DataFlowProperties,
   InterfaceProperties,
   TrustBoundaryProperties,
+  ExposureLevel,
 } from "./element-properties";
 
 import type { DFDGraph } from "./dfd-graph-types";

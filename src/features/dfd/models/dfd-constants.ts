@@ -2,6 +2,7 @@
 // Configuration constants for DFD elements
 // NO types here - only constant data
 
+import type { ExposureLevel } from "./element-properties";
 import type { DFDElementType } from "./dfd-element-types";
 
 // ==================== DFD ELEMENT CONFIGURATION ====================
@@ -64,3 +65,20 @@ export const DFD_ELEMENT_CONFIG: Record<
     icon: "▢",
   },
 };
+
+export const EXPOSURE_LEVEL_LABELS: Record<ExposureLevel, string> = {
+  EL0: "EL0 – Internal",
+  EL1: "EL1 – Physical",
+  EL2: "EL2 – Local",
+  EL3: "EL3 – Adjacent",
+  EL4: "EL4 – Public",
+};
+
+export const EXPOSURE_LEVEL_DESCRIPTION_KEYS: Record<ExposureLevel, string> = {
+  EL0: "tabs.dfd.element_description.exposure_level.el0_description",
+  EL1: "tabs.dfd.element_description.exposure_level.el1_description",
+  EL2: "tabs.dfd.element_description.exposure_level.el2_description",
+  EL3: "tabs.dfd.element_description.exposure_level.el3_description",
+  EL4: "tabs.dfd.element_description.exposure_level.el4_description",
+};
+

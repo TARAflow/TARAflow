@@ -324,31 +324,6 @@
       "description": "Erstellen und bearbeiten Sie hier Ihr Datenflussdiagramm.",
       "loading": "DFD Editor wird geladen...",
       "proceed": "Weiter",
-      "detailsPanel": {
-        "assetsTitle": "Asset-Liste",
-        "tabs": {
-          "element": "Element",
-          "assets": "Assets"
-        }
-      },
-      "assetPanel": {
-        "noAssets": "Keine Assets vorhanden",
-        "selectAsset": "Asset oben auswählen, um Details anzuzeigen und zu bearbeiten",
-        "showInDFD": "Im DFD anzeigen",
-        "hideInDFD": "Im DFD ausblenden",
-        "showTree": "Asset-Baum anzeigen",
-        "hideTree": "Detailansicht vergrössern"
-      },
-      "assetGroups": {
-        "data": "Daten",
-        "system": "System",
-        "process": "Prozess",
-        "infrastructure": "Infrastruktur",
-        "human": "Mensch"
-      },
-      "descriptionView": {
-        "title": "DFD-Element-Beschreibungen"
-      },
       "toolbar": {
         "zoomIn": "Vergrössern",
         "zoomOut": "Verkleinern",
@@ -381,6 +356,31 @@
         "required": "Erforderlich",
         "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich"
       },
+      "descriptionView": {
+        "title": "DFD-Element-Beschreibungen"
+      },
+      "detailsPanel": {
+        "assetsTitle": "Asset-Liste",
+        "tabs": {
+          "element": "Element",
+          "assets": "Assets"
+        }
+      },
+      "assetPanel": {
+        "noAssets": "Keine Assets vorhanden",
+        "selectAsset": "Asset oben auswählen, um Details anzuzeigen und zu bearbeiten",
+        "showInDFD": "Im DFD anzeigen",
+        "hideInDFD": "Im DFD ausblenden",
+        "showTree": "Asset-Baum anzeigen",
+        "hideTree": "Detailansicht vergrössern"
+      },
+      "assetGroups": {
+        "data": "Daten",
+        "system": "System",
+        "process": "Prozess",
+        "infrastructure": "Infrastruktur",
+        "human": "Mensch"
+      },
       "element_description": {
         "title": "Element-Beschreibungen",
         "assets": "Assets",
@@ -388,6 +388,43 @@
         "tabs": {
           "general": "Allgemein",
           "relations": "Beziehungen"
+        },
+        "assetRelations": {
+          "isAnSection": "Identität (is_an)",
+          "relationsSection": "Asset-Beziehungen",
+          "empty": "Keine Asset-Beziehungen definiert.",
+          "addRelation": "Asset-Beziehung hinzufügen",
+          "editRelations": "Beziehungen bearbeiten",
+          "isAnDescription": "Dieses Element repräsentiert dieses Asset",
+          "cancel": "Abbrechen",
+          "save": "Speichern",
+          "relationType": {
+            "label": "Beziehungstyp"
+          },
+          "selectedRelations": "Ausgewählte Beziehungen",
+          "groupChange": {
+            "title": "Asset-Gruppe ändern?",
+            "warning": "Das Ändern der Asset-Gruppe entfernt alle aktuell ausgewählten Beziehungstypen, da diese gruppenspezifisch sind.",
+            "confirm": "Ändern & Beziehungen zurücksetzen"
+          },
+          "asset": {
+            "label": "Asset",
+            "createNew": "Neues Asset erstellen…",
+            "newAsset": {
+              "title": "Neues Asset erstellen",
+              "name": "Asset-Name",
+              "group": "Asset-Gruppe",
+              "confirm": "Erstellen"
+            }
+          }
+        },
+        "exposure_level": {
+          "label": "Expositionsstufe",
+          "el0_description": "Innerhalb des Maschinengehäuses, kein externer Zugriff möglich",
+          "el1_description": "Physischer Zugriff erforderlich (USB, serielle Schnittstelle, abgeschlossenes Gehäuse)",
+          "el2_description": "Lokales Netzwerksegment (Feldbus, Ethernet, LAN)",
+          "el3_description": "Industrielles Fabriknetzwerk, VPN oder Partner- / OT-Netzwerk",
+          "el4_description": "Internetzugang, nicht vertrauenswürdiges öffentliches Netzwerk"
         },
         "process": {
           "safetyAnnotation": {

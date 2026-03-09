@@ -7,6 +7,20 @@
 //
 // NO dependencies on dfd-types to avoid circular imports
 
+// ==================== EXPOSURE LEVEL (EN 50742 Annex B) ====================
+// EL is assigned per interface / per connection by the analyst.
+// Static metric: reflects the attack surface of a physical or logical boundary.
+//
+// Rule: if a DataFlow crosses multiple Trust Boundaries, the highest EL wins.
+//
+//   EL0 – Internal:  inside the machine enclosure, no external access possible
+//   EL1 – Physical:  physical access required (USB, serial port, locked cabinet)
+//   EL2 – Local:     local network segment (fieldbus, Ethernet, LAN)
+//   EL3 – Adjacent:  industrial factory network, VPN, partner / OT network
+//   EL4 – Public:    internet-exposed, untrusted public network
+
+export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
+
 // ==================== PROCESS PROPERTIES ====================
 
 export interface ProcessProperties {
@@ -161,7 +175,18 @@ export interface DataFlowProperties {
   // Security
   encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
   integrityProtection?: boolean;
-  endpointAuthentication?: "none" | "token" | "certificate" | "apikey" | "oauth";
+  endpointAuthentication?:
+    | "none"
+    | "token"
+    | "certificate"
+    | "apikey"
+    | "oauth";
+
+  // EN 50742 Annex B — Exposure Level per connection
+  // Analyst assigns EL based on which trust boundaries this flow crosses.
+  // If the flow crosses multiple trust boundaries, use the highest EL.
+  // Feeds into Attack Potential: AP = (EL × WoO) + AC
+  exposureLevel?: ExposureLevel;
 
   notes?: string;
 }
@@ -194,6 +219,12 @@ export interface InterfaceProperties {
   isShieldedCable?: boolean;
   location?: string;
 
+  // EN 50742 Annex B — Exposure Level per interface
+  // Primary EL carrier in the graph. Assigned per physical or logical interface.
+  // Example: USB config port on cabinet exterior → EL1; internet-facing port → EL4
+  // Feeds into Attack Potential: AP = (EL × WoO) + AC
+  exposureLevel?: ExposureLevel;
+
   notes?: string;
 }
 
@@ -211,6 +242,14 @@ export interface TrustBoundaryProperties {
     | "physical"
     | "legal"
     | "device";
+
+  // EN 50742 Annex B — Exposure Level of this zone
+  // Analogous to IEC 62443 Security Zone: defines the attack surface level
+  // of everything inside this boundary.
+  // DataFlows / Interfaces crossing this boundary inherit this EL (or higher
+  // if they cross into a more exposed zone).
+  // Displayed as zone label in the DFD diagram: e.g. "Maschinenraum · EL1"
+  exposureLevel?: ExposureLevel;
 
   // Security Context
   securityAssumptions?: string;

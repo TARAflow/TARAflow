@@ -420,6 +420,14 @@
             }
           }
         },
+        "exposure_level": {
+          "label": "Exposure Level",
+          "el0_description": "Inside the machine enclosure, no external access possible",
+          "el1_description": "Physical access required (USB, serial port, locked cabinet)",
+          "el2_description": "Local network segment (fieldbus, Ethernet, LAN)",
+          "el3_description": "Industrial factory network, VPN or partner / OT network",
+          "el4_description": "Internet-exposed, untrusted public network"
+        },
         "process": {
           "safetyAnnotation": {
             "title": "Safety Annotation",
