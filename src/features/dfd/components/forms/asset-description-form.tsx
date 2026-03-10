@@ -182,7 +182,9 @@ const getElementsReferencingAsset = (
     const relationTypes = rels.map((r) => r.relationType);
     const primary = rels[0];
     const safetyRels = rels
-      .filter((r) => r.safety?.relevance !== "none")
+      .filter(
+        (r) => !isIsAnRelation(r) && r.safety && r.safety.relevance !== "none",
+      )
       .map((r) => ({
         relationType: r.relationType,
         qualifier: hasQualifier(r) ? r.qualifier : undefined,
@@ -1092,6 +1094,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
       </TabPanel>
     </Box>
   );
-};;;;;;;;;;;;
+};
 
 export default AssetDescriptionForm;

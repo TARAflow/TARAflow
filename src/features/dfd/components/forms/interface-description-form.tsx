@@ -1,214 +1,355 @@
 // ==================== INTERFACE DESCRIPTION FORM ====================
 // STRIDE: T, I, D (Transport & Communication attacks)
 // Focus: Physical/Logical interfaces (USB, UART, Ethernet, APIs, etc.)
+//
+// Shell (tabs, asset relations, safety summary) → ElementFormShell
+// State logic → useElementForm
+// This file: InterfaceGeneralTab content + React.memo wrapper
 
-import React, { useCallback } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Checkbox,
-  Stack,
-  Typography,
-  Divider,
   Accordion,
-  AccordionSummary,
   AccordionDetails,
-  Alert,
+  AccordionSummary,
+  Box,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
-import type { DFDElement } from "../../models/dfd-types";
-import type {InterfaceProperties} from "../../models/element-properties";
+import type { AssetGroup, DFDElement } from "../../models/dfd-types";
+import type {
+  InterfaceProperties,
+  ExposureLevel,
+} from "../../models/element-properties";
+import {
+  EXPOSURE_LEVEL_LABELS,
+  EXPOSURE_LEVEL_DESCRIPTION_KEYS,
+} from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
-import { AssetRelationSelector, type AvailableAsset } from "./asset-relation-selector";
+import { type AvailableAsset } from "./asset-relation-selector";
+import { ElementFormShell } from "./element-form-shell";
+import { useElementForm } from "../../hooks/use-element-form";
+
+// ==================== PROPS ====================
 
 interface InterfaceFormProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
   availableAssets?: AvailableAsset[];
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
 }
 
-function asInterfaceProperties(
-  props: any
-): InterfaceProperties {
-  return props as InterfaceProperties;
+// ==================== CONSTANTS ====================
+
+const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
+
+// ==================== GENERAL TAB ====================
+
+interface InterfaceGeneralTabProps {
+  element: DFDElement;
+  onChange: (updates: Partial<DFDElement>) => void;
 }
 
-export const InterfaceDescriptionForm: React.FC<InterfaceFormProps> = ({
+const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
   element,
   onChange,
-  availableAssets = [],
 }) => {
   const { t } = useTranslation();
-  const props = asInterfaceProperties(element.properties);
-
-  const handlePropertyChange = useCallback(
-    (field: string, value: any) => {
-      onChange({
-        properties: {
-          ...element.properties,
-          [field]: value,
-        },
-      });
-    },
-    [onChange, element.properties]
-  );
+  const form = useElementForm<InterfaceProperties>(element, onChange);
+  const { props } = form;
 
   return (
-    <Box sx={{ p: 2 }}>
-      {/* Required Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        Required Fields
-      </Typography>
+    <Stack spacing={3}>
+      <Box sx={{ overflow: "hidden", pt: 1 }}>
+        <Grid container rowSpacing={3} columnSpacing={2}>
+          {/* Interface Type */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t("tabs.dfd.element_description.interface.fields.type.label")}
+              </InputLabel>
+              <Select
+                value={props.type ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("type", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.interface.fields.type.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.type.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "ethernet",
+                    "serial",
+                    "usb",
+                    "gpio",
+                    "bluetooth",
+                    "wifi",
+                    "nfc",
+                    "fiber",
+                    "custom",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.interface.fields.type.options.${opt}`,
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <RichTextEditor
-        value={element.description || ""}
-        onChange={(value) => handlePropertyChange("description", value)}
-        label="Description"
-        required
-        helperText="What does this interface do?"
-      />
+          {/* Exposure Level (EN 50742 Annex B) */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t("tabs.dfd.element_description.exposure_level.label", {
+                  defaultValue: "Exposure Level",
+                })}
+              </InputLabel>
+              <Select
+                value={props.exposureLevel ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("exposureLevel", e.target.value)
+                }
+                label={t("tabs.dfd.element_description.exposure_level.label", {
+                  defaultValue: "Exposure Level",
+                })}
+                renderValue={(value) =>
+                  value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
+                }
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.exposureLevel.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {EXPOSURE_LEVELS.map((el) => (
+                  <MenuItem key={el} value={el}>
+                    <Tooltip
+                      title={t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
+                        defaultValue: "",
+                      })}
+                      placement="right"
+                      arrow
+                    >
+                      <span style={{ width: "100%", display: "block" }}>
+                        {EXPOSURE_LEVEL_LABELS[el]}
+                      </span>
+                    </Tooltip>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Interface Type</InputLabel>
-        <Select
-          value={props.type || ""}
-          onChange={(e) => handlePropertyChange("type", e.target.value)}
-          label="Interface Type"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="ethernet">Ethernet</MenuItem>
-          <MenuItem value="serial">Serial (RS-232, UART)</MenuItem>
-          <MenuItem value="usb">USB</MenuItem>
-          <MenuItem value="gpio">GPIO</MenuItem>
-          <MenuItem value="bluetooth">Bluetooth</MenuItem>
-          <MenuItem value="wifi">Wi-Fi</MenuItem>
-          <MenuItem value="nfc">NFC</MenuItem>
-          <MenuItem value="fiber">Fiber Optic</MenuItem>
-          <MenuItem value="custom">Custom Interface</MenuItem>
-        </Select>
-      </FormControl>
+          {/* Access Control */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.interface.fields.accessControl.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.accessControl ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("accessControl", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.interface.fields.accessControl.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.accessControl.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "none",
+                    "physical_lock",
+                    "credentials",
+                    "card",
+                    "certificate",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.interface.fields.accessControl.options.${opt}`,
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <Divider sx={{ my: 3 }} />
+          {/* Connection Speed */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.interface.fields.connectionSpeed.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.connectionSpeed ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("connectionSpeed", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.interface.fields.connectionSpeed.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.connectionSpeed.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(["low", "medium", "high"] as const).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.interface.fields.connectionSpeed.options.${opt}`,
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      {/* Security Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        Access Control & Security
-      </Typography>
+          {/* Physical Location */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.interface.fields.location.label",
+              )}
+              value={props.location ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("location", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.interface.fields.location.placeholder",
+                {
+                  defaultValue: "e.g. Server Room, Manufacturing Floor, Field",
+                },
+              )}
+            />
+          </Grid>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Access Control</InputLabel>
-        <Select
-          value={props.accessControl || ""}
-          onChange={(e) =>
-            handlePropertyChange("accessControl", e.target.value)
-          }
-          label="Access Control"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="none">None</MenuItem>
-          <MenuItem value="physical_lock">Physical Lock</MenuItem>
-          <MenuItem value="credentials">Credentials</MenuItem>
-          <MenuItem value="card">Magnetic/Card Access</MenuItem>
-          <MenuItem value="certificate">Certificate-based</MenuItem>
-        </Select>
-      </FormControl>
+          {/* Shielded Cable */}
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.isShieldedCable || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "isShieldedCable",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.interface.fields.isShieldedCable.label",
+              )}
+            />
+          </Grid>
+        </Grid>
+      </Box>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Connection Speed</InputLabel>
-        <Select
-          value={props.connectionSpeed || ""}
-          onChange={(e) =>
-            handlePropertyChange("connectionSpeed", e.target.value)
-          }
-          label="Connection Speed"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="low">Low (e.g., Serial, GPIO)</MenuItem>
-          <MenuItem value="medium">Medium (e.g., USB 2.0, Wi-Fi)</MenuItem>
-          <MenuItem value="high">
-            High (e.g., USB 3.0, Fiber, Ethernet 1Gbps+)
-          </MenuItem>
-        </Select>
-      </FormControl>
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={props.isShieldedCable || false}
-            onChange={(e) =>
-              handlePropertyChange("isShieldedCable", e.target.checked)
-            }
-          />
-        }
-        label="Shielded Cable / Secured Connection"
-        sx={{ mb: 2 }}
-      />
-
-      <TextField
-        fullWidth
-        label="Physical Location"
-        value={props.location || ""}
-        onChange={(e) => handlePropertyChange("location", e.target.value)}
-        placeholder="e.g., Server Room, Manufacturing Floor, Field"
-        sx={{ mb: 2 }}
-      />
-
-      <Divider sx={{ my: 3 }} />
-
-      {/* Advanced / Optional Section */}
+      {/* Advanced */}
       <Accordion defaultExpanded={false}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" color="text.secondary">
-            Advanced / Optional
+            {t("tabs.dfd.element_description.sections.advanced", {
+              defaultValue: "Advanced / Optional",
+            })}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
-            <RichTextEditor
-              value={element.properties.notes || ""}
-              onChange={(value) => handlePropertyChange("notes", value)}
-              label="Additional Notes"
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              label={t(
+                "tabs.dfd.element_description.interface.fields.notes.label",
+              )}
+              value={form.localNotes}
+              onChange={(e) => form.setLocalNotes(e.target.value)}
+              onBlur={form.commitNotes}
             />
           </Stack>
         </AccordionDetails>
       </Accordion>
 
-      {/* Asset Relations Section */}
-      <Divider sx={{ my: 3 }} />
-
-      <AssetRelationSelector
-        assetRelations={element.assetRelations || []}
-        elementType={element.type}
-        availableAssets={availableAssets}
-        onChange={(relations) => {
-          onChange({ assetRelations: relations });
-        }}
-      />
-
-      {/* STRIDE Hint */}
-      <Alert severity="info" sx={{ mt: 2 }}>
-        <Typography variant="body2" fontWeight="bold">
-          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial
-          of Service)
+      {/* Description */}
+      <Box>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          {t("tabs.dfd.element_description.interface.fields.description.label")}
         </Typography>
-        <Typography variant="caption">
-          Interfaces (physical/logical) can transport, process, and cache
-          assets. Protect them with access controls and monitoring to prevent
-          unauthorized access!
-        </Typography>
-      </Alert>
-    </Box>
+        <RichTextEditor
+          label={t(
+            "tabs.dfd.element_description.interface.fields.description.label",
+          )}
+          value={form.localDescription}
+          onChange={form.setLocalDescription}
+          onBlur={form.commitDescription}
+        />
+      </Box>
+    </Stack>
   );
 };
+
+// ==================== MAIN COMPONENT ====================
+
+export const InterfaceDescriptionForm = React.memo<InterfaceFormProps>(
+  ({ element, onChange, availableAssets = [], onCreateAsset }) => (
+    <ElementFormShell
+      element={element}
+      onChange={onChange}
+      availableAssets={availableAssets}
+      onCreateAsset={onCreateAsset}
+      generalTab={<InterfaceGeneralTab element={element} onChange={onChange} />}
+    />
+  ),
+  (prev, next) =>
+    prev.element === next.element &&
+    prev.availableAssets === next.availableAssets,
+);
+
+export default InterfaceDescriptionForm;

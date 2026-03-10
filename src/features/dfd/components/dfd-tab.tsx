@@ -343,11 +343,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // Get Selected Item (simplified)
   const selectedElement = selectedElementId
-    ? project.dfd?.graph?.elementsById.get(selectedElementId)
+    ? editor.elements.find((e) => e.id === selectedElementId)
     : undefined;
 
   const selectedConnection = selectedElementId
-    ? project.dfd?.graph?.connectionsById.get(selectedElementId)
+    ? editor.connections.find((c) => c.id === selectedElementId)
     : undefined;
 
   // Check if connection crosses trust boundary (use pre-computed analysis!)
@@ -471,7 +471,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
                 );
               }
             }}
-            availableAssets={project.dfd?.assets || []}
+            availableAssets={availableAssets}
             crossesTrustBoundary={crossesTrustBoundary}
             onCreateAsset={handleCreateAsset}
             assets={dfd?.assets ?? []}
@@ -506,7 +506,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         elementId={assetAssignment.dialogState.elementId}
         elementLabel={assetAssignment.dialogState.elementLabel}
         elementType={currentElement?.type}
-        availableAssets={project.dfd?.assets || []}
+        availableAssets={dfd?.assets ?? []}
         currentAssignments={currentRelations}
         onSave={handleAssetSave}
       />

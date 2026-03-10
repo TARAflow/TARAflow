@@ -45,6 +45,8 @@ export interface UseDFDEditorReturn {
   stats: DFDStats | undefined;
   previewImage: string | null;
   selectedCells: any[];
+  elements: DFDElement[];
+  connections: DFDConnection[];
 
   // Refs
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
@@ -325,6 +327,8 @@ export function useDFDEditor(
 
     // Completion
     canProceed: completion.canProceed,
+    elements: data.dfd?.elements ?? [],
+    connections: data.dfd?.connections ?? [],
   };
 }
 
