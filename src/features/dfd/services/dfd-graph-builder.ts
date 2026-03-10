@@ -2,6 +2,12 @@
 // Builds analysis graph from DFDData with TB membership logic
 
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
+import type {
+  InterfaceProperties,
+  DataFlowProperties,
+  TrustBoundaryProperties,
+  ExposureLevel,
+} from "../models/element-properties";
 import type { DFDAsset } from "../models/asset-types";
 import type {
   DFDGraph,
@@ -63,6 +69,20 @@ function getBoundingBox(element: DFDElement): BoundingBox {
   };
 }
 
+// ==================== EXPOSURE LEVEL HELPERS ====================
+
+// EL numeric order for comparison
+const EL_ORDER: Record<string, number> = {
+  EL0: 0, EL1: 1, EL2: 2, EL3: 3, EL4: 4,
+};
+
+function maxEL(a?: string, b?: string): string | undefined {
+  if (!a && !b) return undefined;
+  if (!a) return b;
+  if (!b) return a;
+  return (EL_ORDER[a] ?? 0) >= (EL_ORDER[b] ?? 0) ? a : b;
+}
+
 // ==================== GRAPH BUILDER ====================
 
 export interface DFDGraphBuilderInput {
@@ -110,6 +130,14 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       elementsById,
       elementTrustBoundaries,
       effectiveElementTrustBoundary,
+    );
+
+    // 7. Derive Exposure Levels
+    this.deriveExposureLevels(
+      elements,
+      connections,
+      dataFlowAnalysis,
+      elementTrustBoundaries,
     );
 
     return {
@@ -403,5 +431,66 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     }
 
     return analysis;
+  }
+
+  private deriveExposureLevels(
+    elements: DFDElement[],
+    connections: DFDConnection[],
+    dataFlowAnalysis: Map<string, DataFlowAnalysis>,
+    elementTrustBoundaries: Map<string, string[]>,
+  ): void {
+    // Interface → TB-EL als Default
+    for (const element of elements) {
+      if (element.type !== "Interface") continue;
+      const props = element.properties as InterfaceProperties;
+      if (props.exposureLevelSource === "manual") continue;
+
+      const tbIds = elementTrustBoundaries.get(element.id) ?? [];
+      let derivedEL: string | undefined;
+      for (const tbId of tbIds) {
+        const tb = elements.find((e) => e.id === tbId);
+        const tbEL = (tb?.properties as TrustBoundaryProperties)?.exposureLevel;
+        derivedEL = maxEL(derivedEL, tbEL);
+      }
+      if (
+        derivedEL &&
+        (!props.exposureLevel ||
+          EL_ORDER[derivedEL] > EL_ORDER[props.exposureLevel ?? "EL0"])
+      ) {
+        (element.properties as InterfaceProperties).exposureLevel =
+          derivedEL as ExposureLevel;
+        (element.properties as InterfaceProperties).exposureLevelSource =
+          "derived";
+      }
+    }
+
+    // Crossing DF → max(TB_from.EL, TB_to.EL)
+    for (const conn of connections) {
+      const props = conn.properties as DataFlowProperties | undefined;
+      if (props?.exposureLevelSource === "manual") continue;
+
+      const analysis = dataFlowAnalysis.get(conn.id);
+      if (!analysis?.crossesTrustBoundary) continue;
+
+      const fromTBIds = analysis.fromTrustBoundaryIds ?? [];
+      const toTBIds = analysis.toTrustBoundaryIds ?? [];
+      let derivedEL: string | undefined;
+
+      for (const tbId of [...fromTBIds, ...toTBIds]) {
+        const tb = elements.find((e) => e.id === tbId);
+        const tbEL = (tb?.properties as TrustBoundaryProperties)?.exposureLevel;
+        derivedEL = maxEL(derivedEL, tbEL);
+      }
+      if (
+        derivedEL &&
+        (!props?.exposureLevel ||
+          EL_ORDER[derivedEL] > EL_ORDER[props?.exposureLevel ?? "EL0"])
+      ) {
+        if (!conn.properties) conn.properties = {};
+        (conn.properties as DataFlowProperties).exposureLevel =
+          derivedEL as ExposureLevel;
+        (conn.properties as DataFlowProperties).exposureLevelSource = "derived";
+      }
+    }
   }
 }

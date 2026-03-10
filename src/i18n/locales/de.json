@@ -1071,6 +1071,68 @@
             }
           }
         },
+        "trustboundary": {
+          "warning": {
+            "title": "Vertrauensgrenzen sind kritisch!",
+            "hint": "Jeder Datenfluss der diese Grenze überschreitet erfordert eine genaue Prüfung aller STRIDE-Bedrohungen."
+          },
+          "fields": {
+            "boundaryType": {
+              "label": "Grenztyp",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "network": "Netzwerkgrenze (DMZ, VPC)",
+                "privilege": "Berechtigungsgrenze (Benutzer/Admin)",
+                "organization": "Organisationsgrenze",
+                "cloud": "Cloud-Konto / Tenant",
+                "physical": "Physische Grenze",
+                "legal": "Rechtliche / Regulatorische Grenze",
+                "device": "Gerätegrenze"
+              },
+              "tooltips": {
+                "network": "Trennt Netzwerksegmente, z.B. DMZ vom internen LAN oder VPC vom öffentlichen Internet",
+                "privilege": "Trennt Berechtigungsstufen, z.B. User Space vom Kernel oder Admin vom Standardbenutzer",
+                "organization": "Trennt Organisationseinheiten, z.B. Lieferant vom Hersteller oder Tochtergesellschaft vom Mutterkonzern",
+                "cloud": "Trennt Cloud-Konten, Tenants oder Abonnements mit eigenen IAM-Richtlinien",
+                "physical": "Physische Gehäuse- oder Schrankgrenze, z.B. Maschinengehäuse oder Schaltschrank",
+                "legal": "Regulatorische oder vertragliche Grenze, z.B. DSGVO-Datenresidenz oder PCI-DSS-Scope",
+                "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Nicht angegeben",
+              "helper": "Definiert das Expositionsniveau dieser Sicherheitszone. Elemente mit einem höheren EL sind nicht betroffen."
+            },
+            "monitoringEnabled": {
+              "label": "Monitoring / Logging aktiviert"
+            },
+            "securityAssumptions": {
+              "label": "Sicherheitsannahmen",
+              "placeholder": "z.B. Innen ist vertrauenswürdig, aussen ist feindlich",
+              "helper": "Was nehmen Sie über jede Seite dieser Grenze an?"
+            },
+            "boundaryControls": {
+              "label": "Massnahmen an der Grenze",
+              "placeholder": "z.B. Firewall, API Gateway, Authentifizierungsschicht",
+              "helper": "Was setzt diese Grenze durch?"
+            },
+            "complianceRelevance": {
+              "label": "Compliance-Relevanz",
+              "placeholder": "z.B. DSGVO, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
+              "helper": "Welche Vorschriften gelten für diese Grenze?"
+            },
+            "owner": {
+              "label": "Verantwortlicher / Team",
+              "placeholder": "Wer pflegt diese Grenze?"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
+          }
+        },
         "asset": {
           "name": "Asset Name",
           "nameHelper": "Kurze, eindeutige Bezeichnung",

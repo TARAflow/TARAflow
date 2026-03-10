@@ -1073,6 +1073,68 @@
             }
           }
         },
+        "trustboundary": {
+          "warning": {
+            "title": "Trust Boundaries are critical!",
+            "hint": "Any data flow crossing this boundary requires extra scrutiny for all STRIDE threats."
+          },
+          "fields": {
+            "boundaryType": {
+              "label": "Boundary Type",
+              "options": {
+                "not_specified": "Not specified",
+                "network": "Network Boundary (DMZ, VPC)",
+                "privilege": "Privilege Boundary (User/Admin)",
+                "organization": "Organizational Boundary",
+                "cloud": "Cloud Account / Tenant",
+                "physical": "Physical Boundary",
+                "legal": "Legal / Regulatory Boundary",
+                "device": "Device Boundary"
+              },
+              "tooltips": {
+                "network": "Separates network segments, e.g. DMZ from internal LAN or VPC from public internet",
+                "privilege": "Separates privilege levels, e.g. user space from kernel or admin from standard user",
+                "organization": "Separates organizational units, e.g. supplier from manufacturer or subsidiary from parent",
+                "cloud": "Separates cloud accounts, tenants or subscriptions with distinct IAM policies",
+                "physical": "Physical enclosure or cabinet boundary, e.g. machine housing or control panel",
+                "legal": "Regulatory or contractual boundary, e.g. GDPR data residency or PCI-DSS scope",
+                "device": "Boundary of a single device or embedded system, e.g. PLC, ECU or IoT gateway"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Not specified",
+              "helper": "Defines the exposure level of this security zone. Elements with a higher EL are not affected."
+            },
+            "monitoringEnabled": {
+              "label": "Monitoring / Logging Enabled"
+            },
+            "securityAssumptions": {
+              "label": "Security Assumptions",
+              "placeholder": "e.g. Inside is trusted, outside is hostile",
+              "helper": "What do you assume about each side of this boundary?"
+            },
+            "boundaryControls": {
+              "label": "Controls at Boundary",
+              "placeholder": "e.g. Firewall, API Gateway, Authentication Layer",
+              "helper": "What enforces this boundary?"
+            },
+            "complianceRelevance": {
+              "label": "Compliance Relevance",
+              "placeholder": "e.g. GDPR, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
+              "helper": "Which regulations apply to this boundary?"
+            },
+            "owner": {
+              "label": "Owner / Responsible Team",
+              "placeholder": "Who maintains this boundary?"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
+          }
+        },
         "asset": {
           "name": "Asset Name",
           "nameHelper": "Short, unique identifier",

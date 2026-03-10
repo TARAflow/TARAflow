@@ -187,6 +187,8 @@ export interface DataFlowProperties {
   // If the flow crosses multiple trust boundaries, use the highest EL.
   // Feeds into Attack Potential: AP = (EL × WoO) + AC
   exposureLevel?: ExposureLevel;
+  exposureLevelSource?: "derived" | "manual";
+  exposureLevelRationale?: string;
 
   notes?: string;
 }
@@ -224,6 +226,8 @@ export interface InterfaceProperties {
   // Example: USB config port on cabinet exterior → EL1; internet-facing port → EL4
   // Feeds into Attack Potential: AP = (EL × WoO) + AC
   exposureLevel?: ExposureLevel;
+  exposureLevelSource?: "derived" | "manual";
+  exposureLevelRationale?: string;
 
   notes?: string;
 }
