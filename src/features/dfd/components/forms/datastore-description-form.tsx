@@ -1,269 +1,430 @@
 // ==================== DATA STORE DESCRIPTION FORM ====================
-// STRIDE: T, I, D
-// Focus: Ruhende Daten & Zugriff
+// STRIDE: T, I, D (Tampering, Information Disclosure, Denial of Service)
+// Focus: Data at rest — encryption, access control, integrity
+//
+// Shell (tabs, asset relations, safety summary) → ElementFormShell
+// State logic → useElementForm
+// This file: DataStoreGeneralTab content + React.memo wrapper
 
-import React, { useCallback } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Checkbox,
-  Stack,
-  Typography,
-  Divider,
   Accordion,
-  AccordionSummary,
   AccordionDetails,
-  Alert,
+  AccordionSummary,
+  Box,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
 } from "@mui/material";
 import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
-import type { DFDElement } from "../../models/dfd-types";
-import type {DataStoreProperties} from "../../models/element-properties";
+import type { AssetGroup, DFDElement } from "../../models/dfd-types";
+import type { DataStoreProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
-import { AssetRelationSelector, type AvailableAsset } from "./asset-relation-selector";
+import { type AvailableAsset } from "./asset-relation-selector";
+import { ElementFormShell } from "./element-form-shell";
+import { useElementForm } from "../../hooks/use-element-form";
+
+// ==================== PROPS ====================
 
 interface DataStoreFormProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
   availableAssets?: AvailableAsset[];
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
 }
 
-function asDataStoreProperties(
-  props: any
-): DataStoreProperties {
-  return props as DataStoreProperties;
+// ==================== GENERAL TAB ====================
+
+interface DataStoreGeneralTabProps {
+  element: DFDElement;
+  onChange: (updates: Partial<DFDElement>) => void;
 }
 
-export const DataStoreDescriptionForm: React.FC<DataStoreFormProps> = ({
+const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
   element,
   onChange,
-  availableAssets = [],
 }) => {
   const { t } = useTranslation();
-  const props = asDataStoreProperties(element.properties);
-
-  const handlePropertyChange = useCallback(
-    (field: string, value: any) => {
-      onChange({
-        properties: {
-          ...element.properties,
-          [field]: value,
-        },
-      });
-    },
-    [onChange, element.properties]
-  );
+  const form = useElementForm<DataStoreProperties>(element, onChange);
+  const { props } = form;
 
   return (
-    <Box sx={{ p: 2 }}>
-      {/* Required Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        Required Fields
-      </Typography>
+    <Stack spacing={3}>
+      <Box sx={{ overflow: "hidden", pt: 1 }}>
+        <Grid container rowSpacing={3} columnSpacing={2}>
+          {/* Data Classification */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.datastore.fields.dataClassification.label",
+                  { defaultValue: "Data Classification" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.dataClassification ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange(
+                    "dataClassification",
+                    e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.datastore.fields.dataClassification.label",
+                  { defaultValue: "Data Classification" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.datastore.fields.dataClassification.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "public",
+                    "internal",
+                    "confidential",
+                    "restricted",
+                    "secret",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.datastore.fields.dataClassification.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <RichTextEditor
-        value={element.description || ""}
-        onChange={(value) => handlePropertyChange("description", value)}
-        label="Description"
-        required
-        helperText="What data is stored here?"
-      />
+          {/* Encryption at Rest */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.datastore.fields.encryptionAtRest.label",
+                  { defaultValue: "Encryption at Rest" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.encryptionAtRest ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("encryptionAtRest", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.datastore.fields.encryptionAtRest.label",
+                  { defaultValue: "Encryption at Rest" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.datastore.fields.encryptionAtRest.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  ["none", "yes", "aes256", "tde", "kms", "custom"] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.datastore.fields.encryptionAtRest.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <TextField
-        fullWidth
-        label="Stored Data Types"
-        value={props.storedDataTypes || ""}
-        onChange={(e) =>
-          handlePropertyChange("storedDataTypes", e.target.value)
-        }
-        placeholder="e.g., User credentials, Transaction logs, Configuration"
-        helperText="Separate multiple types with commas"
-        sx={{ mb: 2 }}
-      />
+          {/* Integrity Protection */}
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.integrityProtection || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "integrityProtection",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.integrityProtection.label",
+                {
+                  defaultValue: "Integrity Protection (Checksums, Signatures)",
+                },
+              )}
+            />
+          </Grid>
 
-      <Divider sx={{ my: 3 }} />
+          {/* Backup Enabled */}
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.backupEnabled || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange("backupEnabled", e.target.checked)
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.backupEnabled.label",
+                { defaultValue: "Backup & Retention Policy Exists" },
+              )}
+            />
+          </Grid>
 
-      {/* Security Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        Data Protection & Access Control
-      </Typography>
+          {/* Stored Data Types */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.storedDataTypes.label",
+                { defaultValue: "Stored Data Types" },
+              )}
+              value={props.storedDataTypes ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("storedDataTypes", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.datastore.fields.storedDataTypes.placeholder",
+                {
+                  defaultValue:
+                    "e.g. User credentials, Transaction logs, Configuration",
+                },
+              )}
+              helperText={t(
+                "tabs.dfd.element_description.datastore.fields.storedDataTypes.helper",
+                { defaultValue: "Separate multiple types with commas" },
+              )}
+            />
+          </Grid>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Data Classification</InputLabel>
-        <Select
-          value={props.dataClassification || ""}
-          onChange={(e) =>
-            handlePropertyChange("dataClassification", e.target.value)
-          }
-          label="Data Classification"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="public">Public</MenuItem>
-          <MenuItem value="internal">Internal</MenuItem>
-          <MenuItem value="confidential">Confidential</MenuItem>
-          <MenuItem value="restricted">Restricted</MenuItem>
-          <MenuItem value="secret">Secret</MenuItem>
-        </Select>
-      </FormControl>
+          {/* Access Control */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.accessControl.label",
+                { defaultValue: "Access Control" },
+              )}
+              value={props.accessControl ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("accessControl", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.datastore.fields.accessControl.placeholder",
+                {
+                  defaultValue:
+                    "Who can read/write? e.g. Admin only, Service account X",
+                },
+              )}
+            />
+          </Grid>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Encryption at Rest</InputLabel>
-        <Select
-          value={props.encryptionAtRest || ""}
-          onChange={(e) =>
-            handlePropertyChange("encryptionAtRest", e.target.value)
-          }
-          label="Encryption at Rest"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="none">None (Plaintext)</MenuItem>
-          <MenuItem value="yes">Yes (Algorithm not specified)</MenuItem>
-          <MenuItem value="aes256">AES-256</MenuItem>
-          <MenuItem value="tde">TDE (Transparent Data Encryption)</MenuItem>
-          <MenuItem value="kms">KMS (Key Management Service)</MenuItem>
-          <MenuItem value="custom">Custom Encryption</MenuItem>
-        </Select>
-      </FormControl>
+          {/* Deletion Policy */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.deletionPolicy.label",
+                { defaultValue: "Deletion Policy" },
+              )}
+              value={props.deletionPolicy ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("deletionPolicy", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.datastore.fields.deletionPolicy.placeholder",
+                {
+                  defaultValue:
+                    "e.g. Soft delete with 30-day retention, GDPR-compliant",
+                },
+              )}
+            />
+          </Grid>
+        </Grid>
+      </Box>
 
-      <TextField
-        fullWidth
-        label="Access Control"
-        value={props.accessControl || ""}
-        onChange={(e) => handlePropertyChange("accessControl", e.target.value)}
-        placeholder="Who can read/write? e.g., Admin only, Service account X"
-        multiline
-        rows={2}
-        sx={{ mb: 2 }}
-      />
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={props.integrityProtection || false}
-            onChange={(e) =>
-              handlePropertyChange("integrityProtection", e.target.checked)
-            }
-          />
-        }
-        label="Integrity Protection (Checksums, Signatures)"
-        sx={{ mb: 2 }}
-      />
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={props.backupEnabled || false}
-            onChange={(e) =>
-              handlePropertyChange("backupEnabled", e.target.checked)
-            }
-          />
-        }
-        label="Backup & Retention Policy Exists"
-        sx={{ mb: 2 }}
-      />
-
-      <TextField
-        fullWidth
-        label="Deletion Policy"
-        value={props.deletionPolicy || ""}
-        onChange={(e) => handlePropertyChange("deletionPolicy", e.target.value)}
-        placeholder="e.g., Soft delete with 30-day retention, GDPR-compliant"
-        sx={{ mb: 2 }}
-      />
-
-      <Divider sx={{ my: 3 }} />
-
-      {/* Advanced / Optional Section */}
+      {/* Advanced */}
       <Accordion defaultExpanded={false}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" color="text.secondary">
-            Advanced / Optional
+            {t("tabs.dfd.element_description.sections.advanced", {
+              defaultValue: "Advanced / Optional",
+            })}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel>Technology</InputLabel>
+            {/* Technology */}
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.datastore.fields.technology.label",
+                  { defaultValue: "Technology" },
+                )}
+              </InputLabel>
               <Select
-                value={props.technology || ""}
+                value={props.technology ?? ""}
                 onChange={(e) =>
-                  handlePropertyChange("technology", e.target.value)
+                  form.handlePropertyChange("technology", e.target.value)
                 }
-                label="Technology"
+                label={t(
+                  "tabs.dfd.element_description.datastore.fields.technology.label",
+                  { defaultValue: "Technology" },
+                )}
               >
                 <MenuItem value="">
-                  <em>Not specified</em>
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.datastore.fields.technology.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
                 </MenuItem>
-                <MenuItem value="database">Database (SQL/NoSQL)</MenuItem>
-                <MenuItem value="filesystem">Filesystem</MenuItem>
-                <MenuItem value="cloud">Cloud Storage (S3, Blob)</MenuItem>
-                <MenuItem value="cache">Cache (Redis, Memcached)</MenuItem>
-                <MenuItem value="queue">Message Queue</MenuItem>
-                <MenuItem value="blockchain">Blockchain</MenuItem>
+                {(
+                  [
+                    "database",
+                    "filesystem",
+                    "cloud",
+                    "cache",
+                    "queue",
+                    "blockchain",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.datastore.fields.technology.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 
+            {/* Multi-tenant */}
             <FormControlLabel
               control={
                 <Checkbox
                   checked={props.multiTenant || false}
                   onChange={(e) =>
-                    handlePropertyChange("multiTenant", e.target.checked)
+                    form.handlePropertyChange("multiTenant", e.target.checked)
                   }
                 />
               }
-              label="Multi-tenant (Shared by multiple customers)"
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.multiTenant.label",
+                { defaultValue: "Multi-tenant (Shared by multiple customers)" },
+              )}
             />
 
+            {/* Owner */}
             <TextField
               fullWidth
-              label="Owner"
-              value={props.owner || ""}
-              onChange={(e) => handlePropertyChange("owner", e.target.value)}
-              placeholder="Team or person responsible"
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.owner.label",
+                { defaultValue: "Owner" },
+              )}
+              value={props.owner ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("owner", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.datastore.fields.owner.placeholder",
+                { defaultValue: "Team or person responsible" },
+              )}
             />
 
-            <RichTextEditor
-              value={element.properties.notes || ""}
-              onChange={(value) => handlePropertyChange("notes", value)}
-              label="Additional Notes"
+            {/* Notes */}
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.notes.label",
+                { defaultValue: "Notes" },
+              )}
+              value={form.localNotes}
+              onChange={(e) => form.setLocalNotes(e.target.value)}
+              onBlur={form.commitNotes}
             />
           </Stack>
         </AccordionDetails>
       </Accordion>
 
-      {/* Asset Relations Section */}
-      <Divider sx={{ my: 3 }} />
-
-      <AssetRelationSelector
-        assetRelations={element.assetRelations || []}
-        elementType={element.type}
-        availableAssets={availableAssets}
-        onChange={(relations) => {
-          onChange({ assetRelations: relations });
-        }}
-      />
-
-      {/* STRIDE Hint */}
-      <Alert severity="info" sx={{ mt: 2 }}>
-        <Typography variant="body2" fontWeight="bold">
-          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial
-          of Service)
+      {/* Description */}
+      <Box>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          {t(
+            "tabs.dfd.element_description.datastore.fields.description.label",
+            { defaultValue: "Description" },
+          )}
         </Typography>
-        <Typography variant="caption">
-          Data stores are high-value targets. Ensure encryption at rest and
-          strict access controls!
-        </Typography>
-      </Alert>
-    </Box>
+        <RichTextEditor
+          label={t(
+            "tabs.dfd.element_description.datastore.fields.description.label",
+            { defaultValue: "Description" },
+          )}
+          value={form.localDescription}
+          onChange={form.setLocalDescription}
+          onBlur={form.commitDescription}
+        />
+      </Box>
+    </Stack>
   );
 };
+
+// ==================== MAIN COMPONENT ====================
+
+export const DataStoreDescriptionForm = React.memo<DataStoreFormProps>(
+  ({ element, onChange, availableAssets = [], onCreateAsset }) => (
+    <ElementFormShell
+      element={element}
+      onChange={onChange}
+      availableAssets={availableAssets}
+      onCreateAsset={onCreateAsset}
+      generalTab={<DataStoreGeneralTab element={element} onChange={onChange} />}
+    />
+  ),
+  (prev, next) =>
+    prev.element === next.element &&
+    prev.availableAssets === next.availableAssets,
+);
+
+export default DataStoreDescriptionForm;

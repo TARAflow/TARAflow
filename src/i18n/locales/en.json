@@ -1002,6 +1002,77 @@
             }
           }
         },
+        "datastore": {
+          "fields": {
+            "dataClassification": {
+              "label": "Data Classification",
+              "options": {
+                "not_specified": "Not specified",
+                "public": "Public",
+                "internal": "Internal",
+                "confidential": "Confidential",
+                "restricted": "Restricted",
+                "secret": "Secret"
+              }
+            },
+            "encryptionAtRest": {
+              "label": "Encryption at Rest",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None (Plaintext)",
+                "yes": "Yes (Algorithm not specified)",
+                "aes256": "AES-256",
+                "tde": "TDE (Transparent Data Encryption)",
+                "kms": "KMS (Key Management Service)",
+                "custom": "Custom Encryption"
+              }
+            },
+            "integrityProtection": {
+              "label": "Integrity Protection (Checksums, Signatures)"
+            },
+            "backupEnabled": {
+              "label": "Backup & Retention Policy Exists"
+            },
+            "storedDataTypes": {
+              "label": "Stored Data Types",
+              "placeholder": "e.g. User credentials, Transaction logs, Configuration",
+              "helper": "Separate multiple types with commas"
+            },
+            "accessControl": {
+              "label": "Access Control",
+              "placeholder": "Who can read/write? e.g. Admin only, Service account X"
+            },
+            "deletionPolicy": {
+              "label": "Deletion Policy",
+              "placeholder": "e.g. Soft delete with 30-day retention, GDPR-compliant"
+            },
+            "technology": {
+              "label": "Technology",
+              "options": {
+                "not_specified": "Not specified",
+                "database": "Database (SQL/NoSQL)",
+                "filesystem": "Filesystem",
+                "cloud": "Cloud Storage (S3, Blob)",
+                "cache": "Cache (Redis, Memcached)",
+                "queue": "Message Queue",
+                "blockchain": "Blockchain"
+              }
+            },
+            "multiTenant": {
+              "label": "Multi-tenant (Shared by multiple customers)"
+            },
+            "owner": {
+              "label": "Owner",
+              "placeholder": "Team or person responsible"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
+          }
+        },
         "asset": {
           "name": "Asset Name",
           "nameHelper": "Short, unique identifier",

@@ -1000,6 +1000,77 @@
             }
           }
         },
+        "datastore": {
+          "fields": {
+            "dataClassification": {
+              "label": "Datenklassifizierung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "public": "Öffentlich",
+                "internal": "Intern",
+                "confidential": "Vertraulich",
+                "restricted": "Eingeschränkt",
+                "secret": "Geheim"
+              }
+            },
+            "encryptionAtRest": {
+              "label": "Verschlüsselung im Ruhezustand",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine (Klartext)",
+                "yes": "Ja (Algorithmus nicht angegeben)",
+                "aes256": "AES-256",
+                "tde": "TDE (Transparente Datenverschlüsselung)",
+                "kms": "KMS (Schlüsselverwaltungsdienst)",
+                "custom": "Benutzerdefinierte Verschlüsselung"
+              }
+            },
+            "integrityProtection": {
+              "label": "Integritätsschutz (Prüfsummen, Signaturen)"
+            },
+            "backupEnabled": {
+              "label": "Backup- und Aufbewahrungsrichtlinie vorhanden"
+            },
+            "storedDataTypes": {
+              "label": "Gespeicherte Datentypen",
+              "placeholder": "z.B. Anmeldedaten, Transaktionsprotokolle, Konfiguration",
+              "helper": "Mehrere Typen mit Komma trennen"
+            },
+            "accessControl": {
+              "label": "Zugangskontrolle",
+              "placeholder": "Wer kann lesen/schreiben? z.B. Nur Admin, Dienstkonto X"
+            },
+            "deletionPolicy": {
+              "label": "Löschrichtlinie",
+              "placeholder": "z.B. Soft-Delete mit 30-Tage-Aufbewahrung, DSGVO-konform"
+            },
+            "technology": {
+              "label": "Technologie",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "database": "Datenbank (SQL/NoSQL)",
+                "filesystem": "Dateisystem",
+                "cloud": "Cloud-Speicher (S3, Blob)",
+                "cache": "Cache (Redis, Memcached)",
+                "queue": "Message Queue",
+                "blockchain": "Blockchain"
+              }
+            },
+            "multiTenant": {
+              "label": "Multi-Tenant (von mehreren Kunden gemeinsam genutzt)"
+            },
+            "owner": {
+              "label": "Verantwortlicher",
+              "placeholder": "Verantwortliches Team oder Person"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
+          }
+        },
         "asset": {
           "name": "Asset Name",
           "nameHelper": "Kurze, eindeutige Bezeichnung",
