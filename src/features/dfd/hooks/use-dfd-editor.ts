@@ -24,6 +24,9 @@ import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
 import { useDFDExportImport } from "./use-dfd-export-import";
 import { useDFDCompletion } from "./use-dfd-completion";
 
+import { DFDGraph } from "../models/dfd-graph-types";
+import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
+
 // ==================== TYPES ====================
 
 export interface UseDFDEditorOptions {
@@ -35,6 +38,7 @@ export interface UseDFDEditorOptions {
   autoValidateInterval?: number;
   autoNumberOnSave?: boolean;
   generateThumbnailOnSave?: boolean;
+  graphContext?: DFDGraphAnalysisContext | null;
 }
 
 export interface UseDFDEditorReturn {
@@ -90,6 +94,7 @@ export interface UseDFDEditorReturn {
 
   // Completion
   canProceed: boolean;
+  graphContext: DFDGraph | null;
 }
 
 // ==================== HOOK ====================
@@ -107,6 +112,7 @@ export function useDFDEditor(
     autoValidateInterval = 500,
     autoNumberOnSave = false,
     generateThumbnailOnSave = true,
+    graphContext,
   } = options;
 
   // ==================== ATOMIC HOOKS ====================
@@ -129,6 +135,7 @@ export function useDFDEditor(
   const handleDiagramChange = useCallback(() => {
     persistence.markDirty();
     validation.scheduleValidation(autoValidateInterval);
+    persistence.scheduleDrawioSave();
   }, [persistence, validation, autoValidateInterval]);
 
   const bridge = useDrawioBridge(project, {
@@ -329,6 +336,8 @@ export function useDFDEditor(
     canProceed: completion.canProceed,
     elements: data.dfd?.elements ?? [],
     connections: data.dfd?.connections ?? [],
+
+    graphContext: project.dfd?.graph ?? null,
   };
 }
 

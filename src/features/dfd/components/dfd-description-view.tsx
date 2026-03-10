@@ -41,6 +41,7 @@ import type {
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/asset-types";
 import { DFD_ELEMENT_CONFIG } from "../models/dfd-constants";
+import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 
 // Import element-specific forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
@@ -73,6 +74,7 @@ interface DFDDescriptionViewProps {
   onToggleGroup: (groupKey: string) => void;
   expandedElements: string[];
   onToggleElement: (elementId: string) => void;
+  graphContext?: DFDGraphAnalysisContext | null;
 }
 
 interface GroupedElements {
@@ -229,6 +231,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   onToggleGroup,
   expandedElements,
   onToggleElement,
+  graphContext,
 }) => {
   const { t } = useTranslation();
 
@@ -404,6 +407,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                 {typeElements.map((element) => (
                   <ElementAccordion
                     key={element.id}
+                    graphContext={graphContext}
                     element={element}
                     availableAssets={availableAssets}
                     onUpdate={elementUpdateHandlers.get(element.id)!}
@@ -500,6 +504,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
               {connections.map((connection) => (
                 <ConnectionAccordion
                   key={connection.id}
+                  graphContext={graphContext}
                   connection={connection}
                   elements={elements}
                   availableAssets={availableAssets}
@@ -527,6 +532,7 @@ interface ElementAccordionProps {
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void;
+  graphContext?: DFDGraphAnalysisContext | null;
 }
 
 /**
@@ -541,6 +547,7 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
     onCreateAsset,
     isExpanded,
     onToggle,
+    graphContext,
   }) => {
     const isDescribed = isElementDescribed(element);
     const { displayId, name } = formatElementLabel(element);
@@ -580,6 +587,10 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
               element={element}
               onChange={onUpdate}
               availableAssets={availableAssets}
+              tbExposureLevel={
+                graphContext?.getEffectiveTBExposureLevel(element.id) ??
+                undefined
+              }
             />
           );
         case "TrustBoundary":
@@ -680,6 +691,7 @@ interface ConnectionAccordionProps {
   onUpdate: (updates: Partial<DFDConnection>) => void;
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void; // ✅ Direct callback
+  graphContext?: DFDGraphAnalysisContext | null;
 }
 
 const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
@@ -690,6 +702,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
     onUpdate,
     isExpanded,
     onToggle,
+    graphContext,
   }) => {
     const isDescribed = isConnectionDescribed(connection);
     const { displayId, label } = formatConnectionLabel(connection, elements);
@@ -727,6 +740,10 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
             onChange={onUpdate}
             crossesTrustBoundary={crossesTrustBoundary}
             availableAssets={availableAssets}
+            tbExposureLevel={
+              graphContext?.getEffectiveTBExposureLevel(connection.id) ??
+              undefined
+            }
           />
         </AccordionDetails>
       </Accordion>

@@ -19,6 +19,7 @@ import {
   createDFDStorageAdapter,
 } from "./dfd-storage-adapter";
 import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
+import { dfdChangeDetector } from "../utils/dfd-change-detector";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { calculateStats } from "./parsers/stats-calculator";
 import {
@@ -418,11 +419,41 @@ class DFDService {
       });
 
       const graphBuilder = new DefaultDFDGraphBuilder();
-      const dfdGraph = graphBuilder.build({
-        elements: mergedElements,
-        connections: mergedConnections,
-        assets: syncedAssets,
-      });
+
+      // Detect topology changes — only rebuild graph if structure changed.
+      // Property-only changes (e.g. TB.exposureLevel) only need deriveExposureLevels().
+      const changeResult = dfdChangeDetector.detect(
+        project.dfd?.elements ?? [],
+        project.dfd?.connections ?? [],
+        mergedElements,
+        mergedConnections,
+      );
+
+      console.debug(
+        "[saveDFD] Topology change:",
+        changeResult.level,
+        "-",
+        changeResult.reason,
+      );
+
+      let dfdGraph;
+      if (changeResult.requiresRebuild || !project.dfd?.graph) {
+        // Full rebuild — topology changed or no existing graph
+        dfdGraph = graphBuilder.build({
+          elements: mergedElements,
+          connections: mergedConnections,
+          assets: syncedAssets,
+        });
+      } else {
+        // Reuse existing graph — only re-derive exposure levels
+        dfdGraph = project.dfd.graph;
+        graphBuilder.deriveExposureLevels(
+          mergedElements,
+          mergedConnections,
+          dfdGraph.dataFlowAnalysis,
+          dfdGraph.elementTrustBoundaries,
+        );
+      }
 
       console.debug("[saveDFD] DFDGraph ready", dfdGraph);
       const graphContext = new DFDGraphAnalysisContext(dfdGraph);

@@ -9,6 +9,7 @@ import type {
   DFDElement,
   DFDConnection,
 } from "../models/dfd-types";
+import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
 // Import all element forms
@@ -28,6 +29,7 @@ interface DFDElementFormProps {
   availableAssets?: AvailableAsset[];
   crossesTrustBoundary?: boolean; // For DataFlow
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
+  graphContext?: DFDGraphAnalysisContext | null;
 }
 
 // ==================== COMPONENT ====================
@@ -39,6 +41,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
   availableAssets = [],
   crossesTrustBoundary = false,
   onCreateAsset,
+  graphContext,
 }) => {
   // ==================== DATA FLOW (Connection) ====================
 
@@ -49,6 +52,9 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
         onChange={onChange as (updates: Partial<DFDConnection>) => void}
         crossesTrustBoundary={crossesTrustBoundary}
         availableAssets={availableAssets}
+        tbExposureLevel={
+          graphContext?.getEffectiveTBExposureLevel(connection.id) ?? undefined
+        }
       />
     );
   }
@@ -105,6 +111,9 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
           element={element}
           onChange={onChange as (updates: Partial<DFDElement>) => void}
           availableAssets={availableAssets}
+          tbExposureLevel={
+            graphContext?.getEffectiveTBExposureLevel(element.id) ?? undefined
+          }
         />
       );
 

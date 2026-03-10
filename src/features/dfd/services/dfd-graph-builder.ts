@@ -433,7 +433,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     return analysis;
   }
 
-  private deriveExposureLevels(
+  public deriveExposureLevels(
     elements: DFDElement[],
     connections: DFDConnection[],
     dataFlowAnalysis: Map<string, DataFlowAnalysis>,
@@ -452,15 +452,18 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         const tbEL = (tb?.properties as TrustBoundaryProperties)?.exposureLevel;
         derivedEL = maxEL(derivedEL, tbEL);
       }
-      if (
-        derivedEL &&
-        (!props.exposureLevel ||
-          EL_ORDER[derivedEL] > EL_ORDER[props.exposureLevel ?? "EL0"])
-      ) {
+      const canDerive =
+        props.exposureLevelSource === "derived" || !props.exposureLevel;
+
+      if (derivedEL && canDerive) {
         (element.properties as InterfaceProperties).exposureLevel =
           derivedEL as ExposureLevel;
         (element.properties as InterfaceProperties).exposureLevelSource =
           "derived";
+      } else if (!derivedEL && props.exposureLevelSource === "derived") {
+        (element.properties as InterfaceProperties).exposureLevel = undefined;
+        (element.properties as InterfaceProperties).exposureLevelSource =
+          undefined;
       }
     }
 
@@ -481,15 +484,17 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         const tbEL = (tb?.properties as TrustBoundaryProperties)?.exposureLevel;
         derivedEL = maxEL(derivedEL, tbEL);
       }
-      if (
-        derivedEL &&
-        (!props?.exposureLevel ||
-          EL_ORDER[derivedEL] > EL_ORDER[props?.exposureLevel ?? "EL0"])
-      ) {
+      const canDerive =
+        props?.exposureLevelSource === "derived" || !props?.exposureLevel;
+
+      if (derivedEL && canDerive) {
         if (!conn.properties) conn.properties = {};
         (conn.properties as DataFlowProperties).exposureLevel =
           derivedEL as ExposureLevel;
         (conn.properties as DataFlowProperties).exposureLevelSource = "derived";
+      } else if (!derivedEL && props?.exposureLevelSource === "derived") {
+        (conn.properties as DataFlowProperties).exposureLevel = undefined;
+        (conn.properties as DataFlowProperties).exposureLevelSource = undefined;
       }
     }
   }

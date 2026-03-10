@@ -24,6 +24,7 @@ import type {
 import type { DFDAsset } from "../models/asset-types";
 
 import type { DFDGraph } from "../models/dfd-graph-types";
+import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import type { ValidationResult } from "../services/dfd-validator";
 
 // Hooks
@@ -115,6 +116,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     generateThumbnailOnSave: true,
     onSelectionChanged: handleSelectionChanged,
   });
+
+  const graphContext = editor.graphContext
+    ? new DFDGraphAnalysisContext(editor.graphContext)
+    : null;
 
   // ==================== ASSET HOOKS ====================
 
@@ -209,6 +214,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       isDirty: editor.isDirty,
       save: editor.save,
       scheduleSave: () => {},
+      scheduleDrawioSave: () => {},
       flush: editor.flushDebouncedSave,
       markDirty: () => {},
       markClean: () => {},
@@ -451,6 +457,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               expandedElements={expandedElements}
               onToggleElement={toggleElement}
               onCreateAsset={handleCreateAsset}
+              graphContext={graphContext}
             />
           </Box>
 
@@ -480,6 +487,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             assetVisibility={assetVisibility}
             onAssetVisibilityChange={handleAssetVisibilityChange}
             onAssetChange={handleAssetChange}
+            graphContext={graphContext}
           />
         </Box>
       </Box>

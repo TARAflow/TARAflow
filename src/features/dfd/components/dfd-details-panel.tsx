@@ -23,6 +23,7 @@ import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
 import { AssetPanel } from "./dfd-asset-panel";
 import type { AssetVisibility } from "./dfd-asset-panel";
+import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 
 // ==================== PROPS ====================
 
@@ -64,6 +65,8 @@ interface DFDDetailsPanelProps {
   assetVisibility?: AssetVisibility;
   /** Called when user toggles eye icon in asset tree */
   onAssetVisibilityChange?: (group: AssetGroup, assetId: string | null) => void;
+
+  graphContext?: DFDGraphAnalysisContext | null;
 }
 
 // ==================== COMPONENT ====================
@@ -85,6 +88,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onAssetFeatureUpdate,
   assetVisibility = {},
   onAssetVisibilityChange,
+  graphContext,
 }) => {
   const { t } = useTranslation();
 
@@ -261,6 +265,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   availableAssets={availableAssets}
                   crossesTrustBoundary={crossesTrustBoundary}
                   onCreateAsset={onCreateAsset}
+                  graphContext={graphContext}
                 />
               </Box>
             )}

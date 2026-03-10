@@ -53,11 +53,19 @@ interface DataFlowFormProps {
   crossesTrustBoundary?: boolean;
   availableAssets?: AvailableAsset[];
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
+  tbExposureLevel?: ExposureLevel;
 }
 
 // ==================== CONSTANTS ====================
 
 const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
+const EL_ORDER: Record<ExposureLevel, number> = {
+  EL0: 0,
+  EL1: 1,
+  EL2: 2,
+  EL3: 3,
+  EL4: 4,
+};
 
 // ==================== GENERAL TAB ====================
 
@@ -65,16 +73,24 @@ interface DataFlowGeneralTabProps {
   connection: DFDConnection;
   onChange: (updates: Partial<DFDConnection>) => void;
   crossesTrustBoundary: boolean;
+  tbExposureLevel?: ExposureLevel;
 }
 
 const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   connection,
   onChange,
   crossesTrustBoundary,
+  tbExposureLevel,
 }) => {
   const { t } = useTranslation();
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
   const { props } = form;
+
+  const isCurrentlyOverride = !!(
+    tbExposureLevel &&
+    props.exposureLevel &&
+    EL_ORDER[props.exposureLevel] < EL_ORDER[tbExposureLevel]
+  );
 
   const encryptionInTransit = props.encryptionInTransit ?? "";
   const showEncryptionWarning =
@@ -307,49 +323,128 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
 
           {/* Exposure Level (EN 50742 Annex B) */}
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t("tabs.dfd.element_description.exposure_level.label", {
-                  defaultValue: "Exposure Level",
-                })}
-              </InputLabel>
-              <Select
-                value={props.exposureLevel ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange("exposureLevel", e.target.value)
-                }
-                label={t("tabs.dfd.element_description.exposure_level.label", {
-                  defaultValue: "Exposure Level",
-                })}
-                renderValue={(value) =>
-                  value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
-                }
-              >
-                <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.dataflow.fields.exposureLevel.not_specified",
-                      { defaultValue: "Not specified" },
-                    )}
-                  </em>
-                </MenuItem>
-                {EXPOSURE_LEVELS.map((el) => (
-                  <MenuItem key={el} value={el}>
-                    <Tooltip
-                      title={t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
-                        defaultValue: "",
-                      })}
-                      placement="right"
-                      arrow
-                    >
-                      <span style={{ width: "100%", display: "block" }}>
-                        {EXPOSURE_LEVEL_LABELS[el]}
+            <Stack spacing={1}>
+              <FormControl fullWidth size="small">
+                <InputLabel>
+                  {t("tabs.dfd.element_description.exposure_level.label", {
+                    defaultValue: "Exposure Level",
+                  })}
+                </InputLabel>
+                <Select
+                  value={props.exposureLevel ?? ""}
+                  sx={{
+                    ...(isCurrentlyOverride && {
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#d32f2f !important",
+                      },
+                    }),
+                  }}
+                  onChange={(e) => {
+                    const selected = e.target.value as ExposureLevel;
+                    const isOverride =
+                      tbExposureLevel &&
+                      selected &&
+                      EL_ORDER[selected] < EL_ORDER[tbExposureLevel];
+                    onChange({
+                      properties: {
+                        ...connection.properties,
+                        exposureLevel: selected || undefined,
+                        exposureLevelSource: isOverride ? "manual" : undefined,
+                      },
+                    });
+                  }}
+                  label={t(
+                    "tabs.dfd.element_description.exposure_level.label",
+                    { defaultValue: "Exposure Level" },
+                  )}
+                  renderValue={(value) => {
+                    if (!value) return "";
+                    const isBelowTB =
+                      tbExposureLevel &&
+                      EL_ORDER[value as ExposureLevel] <
+                        EL_ORDER[tbExposureLevel];
+                    return (
+                      <span
+                        style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
+                      >
+                        {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
                       </span>
-                    </Tooltip>
+                    );
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t(
+                        "tabs.dfd.element_description.dataflow.fields.exposureLevel.not_specified",
+                        { defaultValue: "Not specified" },
+                      )}
+                    </em>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  {EXPOSURE_LEVELS.map((el) => {
+                    const isBelowTB =
+                      tbExposureLevel &&
+                      EL_ORDER[el] < EL_ORDER[tbExposureLevel];
+                    const baseTooltip = t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
+                      defaultValue: "",
+                    });
+                    const overrideHint = t(
+                      "tabs.dfd.element_description.exposure_level.below_tb_hint",
+                      {
+                        defaultValue:
+                          "Below Trust Boundary EL — override requires rationale",
+                      },
+                    );
+                    return (
+                      <MenuItem
+                        key={el}
+                        value={el}
+                        sx={{ color: isBelowTB ? "error.main" : "inherit" }}
+                      >
+                        <Tooltip
+                          title={
+                            isBelowTB
+                              ? `${baseTooltip} — ${overrideHint}`
+                              : baseTooltip
+                          }
+                          placement="right"
+                          arrow
+                        >
+                          <span style={{ width: "100%", display: "block" }}>
+                            {EXPOSURE_LEVEL_LABELS[el]}
+                          </span>
+                        </Tooltip>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+              {isCurrentlyOverride && (
+                <TextField
+                  fullWidth
+                  size="small"
+                  label={t(
+                    "tabs.dfd.element_description.exposure_level.rationale_label",
+                    { defaultValue: "Override Rationale" },
+                  )}
+                  value={props.exposureLevelRationale ?? ""}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "exposureLevelRationale",
+                      e.target.value,
+                    )
+                  }
+                  placeholder={t(
+                    "tabs.dfd.element_description.exposure_level.rationale_placeholder",
+                    {
+                      defaultValue:
+                        "Why does this differ from the Trust Boundary EL?",
+                    },
+                  )}
+                  multiline
+                  rows={2}
+                />
+              )}
+            </Stack>
           </Grid>
 
           {/* Integrity Protection */}
@@ -522,6 +617,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     crossesTrustBoundary = false,
     availableAssets = [],
     onCreateAsset,
+    tbExposureLevel,
   }) => (
     <ConnectionFormShell
       connection={connection}
@@ -533,6 +629,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
           connection={connection}
           onChange={onChange}
           crossesTrustBoundary={crossesTrustBoundary}
+          tbExposureLevel={tbExposureLevel}
         />
       }
     />
@@ -540,7 +637,8 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
   (prev, next) =>
     prev.connection === next.connection &&
     prev.availableAssets === next.availableAssets &&
-    prev.crossesTrustBoundary === next.crossesTrustBoundary,
+    prev.crossesTrustBoundary === next.crossesTrustBoundary &&
+    prev.tbExposureLevel === next.tbExposureLevel,
 );
 
 export default DataFlowDescriptionForm;

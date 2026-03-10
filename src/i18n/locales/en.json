@@ -422,6 +422,11 @@
         },
         "exposure_level": {
           "label": "Exposure Level",
+          "derived_hint": "Derived from Trust Boundary",
+          "override": "Override",
+          "below_tb_hint": "Below Trust Boundary EL — override requires rationale",
+          "rationale_label": "Override Rationale",
+          "rationale_placeholder": "Why does this differ from the Trust Boundary EL?",
           "el0_description": "Inside the machine enclosure, no external access possible",
           "el1_description": "Physical access required (USB, serial port, locked cabinet)",
           "el2_description": "Local network segment (fieldbus, Ethernet, LAN)",

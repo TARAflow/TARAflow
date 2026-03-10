@@ -420,6 +420,11 @@
         },
         "exposure_level": {
           "label": "Expositionsstufe",
+          "derived_hint": "Abgeleitet von der Vertrauensgrenze",
+          "override": "Überschreiben",
+          "below_tb_hint": "Unterhalb des Trust Boundary EL — Überschreiben erfordert eine Begründung",
+          "rationale_label": "Begründung",
+          "rationale_placeholder": "Warum weicht dieser Wert vom TB-EL ab?",
           "el0_description": "Innerhalb des Maschinengehäuses, kein externer Zugriff möglich",
           "el1_description": "Physischer Zugriff erforderlich (USB, serielle Schnittstelle, abgeschlossenes Gehäuse)",
           "el2_description": "Lokales Netzwerksegment (Feldbus, Ethernet, LAN)",

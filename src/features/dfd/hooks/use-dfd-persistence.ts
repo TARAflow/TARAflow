@@ -12,7 +12,8 @@ import dfdService from "../services/dfd-service";
 export interface UseDFDPersistenceOptions {
   onUpdate?: (result: DFDUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  debounceDelay?: number; // Delay in ms for debounced saves (0 = disabled)
+  debounceDelay?: number; // Delay in ms for description edit saves (0 = disabled)
+  drawioAutosaveDelay?: number; // Delay in ms for DrawIO autosave (default: 1500ms)
 }
 
 export interface UseDFDPersistenceReturn {
@@ -22,6 +23,7 @@ export interface UseDFDPersistenceReturn {
   // Actions
   save: (thumbnailData?: string) => Promise<DFDUpdateResult | null>;
   scheduleSave: (result: DFDUpdateResult) => void;
+  scheduleDrawioSave: () => void; // Debounced autosave triggered by DrawIO changes
   flush: () => void;
   markDirty: () => void;
   markClean: () => void;
@@ -33,7 +35,12 @@ export function useDFDPersistence(
   project: DFDProjectData,
   options: UseDFDPersistenceOptions = {},
 ): UseDFDPersistenceReturn {
-  const { onUpdate, onDirtyChange, debounceDelay = 500 } = options;
+  const {
+    onUpdate,
+    onDirtyChange,
+    debounceDelay = 500,
+    drawioAutosaveDelay = 1500,
+  } = options;
 
   // ==================== STATE ====================
 
@@ -43,6 +50,7 @@ export function useDFDPersistence(
 
   const pendingSaveRef = useRef<DFDUpdateResult | null>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const drawioSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ==================== DIRTY STATE ====================
 
@@ -142,25 +150,80 @@ export function useDFDPersistence(
         saveTimerRef.current = null;
       }, debounceDelay);
 
-      console.log(
-        `[useDFDPersistence] Save scheduled in ${debounceDelay}ms`,
-      );
+      console.log(`[useDFDPersistence] Save scheduled in ${debounceDelay}ms`);
     },
     [debounceDelay, onUpdate, markDirty, markClean],
   );
+
+  /**
+   * Schedule a debounced save triggered by DrawIO autosave event.
+   * Does NOT require a pre-built DFDUpdateResult — reads XML from localStorage
+   * via dfdService.saveDFD() directly.
+   * Separate timer from scheduleSave to avoid interfering with description edits.
+   */
+  const scheduleDrawioSave = useCallback(() => {
+    markDirty();
+
+    // Clear existing timer
+    if (drawioSaveTimerRef.current) {
+      clearTimeout(drawioSaveTimerRef.current);
+    }
+
+    drawioSaveTimerRef.current = setTimeout(async () => {
+      console.log("[useDFDPersistence] Executing DrawIO autosave...");
+
+      try {
+        const adapter = createDFDStorageAdapter(project.id);
+        adapter.syncFromLegacy();
+
+        const result = dfdService.saveDFD(project);
+
+        if (!result.success) {
+          console.error(
+            "[useDFDPersistence] DrawIO autosave failed:",
+            result.error,
+          );
+          return;
+        }
+
+        const updateResult: DFDUpdateResult = {
+          dfd: result.dfd,
+          phaseStatus: result.phaseStatus,
+          lastModified: result.lastModified,
+        };
+
+        onUpdate?.(updateResult);
+        markClean();
+
+        console.log("[useDFDPersistence] DrawIO autosave successful");
+      } catch (error) {
+        console.error("[useDFDPersistence] DrawIO autosave error:", error);
+      }
+
+      drawioSaveTimerRef.current = null;
+    }, drawioAutosaveDelay);
+
+    console.log(
+      `[useDFDPersistence] DrawIO autosave scheduled in ${drawioAutosaveDelay}ms`,
+    );
+  }, [project, onUpdate, markDirty, markClean, drawioAutosaveDelay]);
 
   /**
    * Flush any pending debounced save immediately
    * Used when switching tabs/views or unmounting
    */
   const flush = useCallback(() => {
-    // Clear timer
+    // Clear both timers
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
+    if (drawioSaveTimerRef.current) {
+      clearTimeout(drawioSaveTimerRef.current);
+      drawioSaveTimerRef.current = null;
+    }
 
-    // Execute pending save
+    // Execute pending description-edit save
     if (pendingSaveRef.current) {
       console.log("[useDFDPersistence] Flushing pending save...");
       onUpdate?.(pendingSaveRef.current);
@@ -184,6 +247,7 @@ export function useDFDPersistence(
     isDirty,
     save,
     scheduleSave,
+    scheduleDrawioSave,
     flush,
     markDirty,
     markClean,
