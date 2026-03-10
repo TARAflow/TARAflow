@@ -428,6 +428,9 @@
           "el3_description": "Industrial factory network, VPN or partner / OT network",
           "el4_description": "Internet-exposed, untrusted public network"
         },
+        "sections": {
+          "advanced": "Advanced / Optional"
+        },
         "process": {
           "safetyAnnotation": {
             "title": "Safety Annotation",
@@ -761,6 +764,61 @@
             }
           }
         },
+        "interface": {
+          "fields": {
+            "type": {
+              "label": "Interface Type",
+              "options": {
+                "not_specified": "Not specified",
+                "ethernet": "Ethernet",
+                "serial": "Serial (UART / RS-232 / RS-485)",
+                "usb": "USB",
+                "gpio": "GPIO",
+                "bluetooth": "Bluetooth",
+                "wifi": "Wi-Fi",
+                "nfc": "NFC",
+                "fiber": "Fiber Optic",
+                "custom": "Custom"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Not specified"
+            },
+            "accessControl": {
+              "label": "Access Control",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None",
+                "physical_lock": "Physical Lock",
+                "credentials": "Credentials (Username / Password)",
+                "card": "Access Card / Badge",
+                "certificate": "Certificate / PKI"
+              }
+            },
+            "connectionSpeed": {
+              "label": "Connection Speed",
+              "options": {
+                "not_specified": "Not specified",
+                "low": "Low (< 1 Mbit/s)",
+                "medium": "Medium (1–100 Mbit/s)",
+                "high": "High (> 100 Mbit/s)"
+              }
+            },
+            "location": {
+              "label": "Physical Location",
+              "placeholder": "e.g. Server Room, Manufacturing Floor, Field Cabinet"
+            },
+            "isShieldedCable": {
+              "label": "Shielded Cable"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
+          }
+        },
         "external_entity": {
           "sections": {
             "required": "Required Fields",
@@ -856,6 +914,92 @@
           "stride_hint": {
             "title": "STRIDE Relevance: S (Spoofing), R (Repudiation)",
             "description": "External entities are outside your control. Enforce strong authentication, least privilege, and non-repudiation."
+          }
+        },
+        "dataflow": {
+          "trust_boundary_warning": {
+            "title": "This data flow crosses a Trust Boundary!",
+            "hint": "High risk for: Tampering, Information Disclosure, Denial of Service"
+          },
+          "fields": {
+            "protocol": {
+              "label": "Protocol",
+              "options": {
+                "not_specified": "Not specified",
+                "http": "HTTP",
+                "https": "HTTPS",
+                "grpc": "gRPC",
+                "mqtt": "MQTT",
+                "amqp": "AMQP / Message Queue",
+                "websocket": "WebSocket",
+                "file": "File Transfer",
+                "database": "Database Protocol",
+                "custom": "Custom Protocol"
+              }
+            },
+            "direction": {
+              "label": "Direction",
+              "options": {
+                "not_specified": "Not specified",
+                "unidirectional": "Uni-directional (One-way)",
+                "bidirectional": "Bi-directional (Two-way)",
+                "requestresponse": "Request-Response"
+              }
+            },
+            "encryptionInTransit": {
+              "label": "Encryption in Transit",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None (Plaintext)",
+                "tls": "TLS",
+                "mtls": "mTLS (Mutual TLS)",
+                "vpn": "VPN / IPSec",
+                "custom": "Custom Encryption"
+              },
+              "warning": "Unencrypted flow crosses trust boundary → Information Disclosure risk"
+            },
+            "endpointAuthentication": {
+              "label": "Authentication of Endpoints",
+              "options": {
+                "not_specified": "Not specified",
+                "none": "None",
+                "token": "Token / Bearer",
+                "certificate": "Certificate (mTLS)",
+                "apikey": "API Key",
+                "oauth": "OAuth 2.0"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Not specified"
+            },
+            "integrityProtection": {
+              "label": "Integrity Protection (HMAC, Signatures)"
+            },
+            "dataTypes": {
+              "label": "Data Types",
+              "placeholder": "e.g. PII, Credentials, Business Data, Secrets",
+              "helper": "Separate multiple types with commas"
+            },
+            "frequency": {
+              "label": "Frequency",
+              "options": {
+                "not_specified": "Not specified",
+                "continuous": "Continuous / Real-time",
+                "periodic": "Periodic (Scheduled)",
+                "ondemand": "On-demand",
+                "batch": "Batch"
+              }
+            },
+            "volume": {
+              "label": "Size / Volume",
+              "placeholder": "e.g. 100 MB/day, 1000 requests/sec"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
           }
         },
         "asset": {

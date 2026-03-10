@@ -426,6 +426,9 @@
           "el3_description": "Industrielles Fabriknetzwerk, VPN oder Partner- / OT-Netzwerk",
           "el4_description": "Internetzugang, nicht vertrauenswürdiges öffentliches Netzwerk"
         },
+        "sections": {
+          "advanced": "Erweitert / Optional"
+        },
         "process": {
           "safetyAnnotation": {
             "title": "Safety-Annotation",
@@ -759,6 +762,61 @@
             }
           }
         },
+        "interface": {
+          "fields": {
+            "type": {
+              "label": "Schnittstellentyp",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "ethernet": "Ethernet",
+                "serial": "Seriell (UART / RS-232 / RS-485)",
+                "usb": "USB",
+                "gpio": "GPIO",
+                "bluetooth": "Bluetooth",
+                "wifi": "WLAN",
+                "nfc": "NFC",
+                "fiber": "Glasfaser",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Nicht angegeben"
+            },
+            "accessControl": {
+              "label": "Zugangskontrolle",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "physical_lock": "Physisches Schloss",
+                "credentials": "Anmeldedaten (Benutzername / Passwort)",
+                "card": "Zugangskarte / Badge",
+                "certificate": "Zertifikat / PKI"
+              }
+            },
+            "connectionSpeed": {
+              "label": "Übertragungsgeschwindigkeit",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig (< 1 Mbit/s)",
+                "medium": "Mittel (1–100 Mbit/s)",
+                "high": "Hoch (> 100 Mbit/s)"
+              }
+            },
+            "location": {
+              "label": "Physischer Standort",
+              "placeholder": "z.B. Serverraum, Fertigungshalle, Feldschrank"
+            },
+            "isShieldedCable": {
+              "label": "Abgeschirmtes Kabel"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
+          }
+        },
         "external_entity": {
           "sections": {
             "required": "Pflichtfelder",
@@ -854,6 +912,92 @@
           "stride_hint": {
             "title": "STRIDE-Relevanz: S (Spoofing), R (Repudiation)",
             "description": "Externe Entitäten sind außerhalb Ihrer Kontrolle. Starke Authentifizierung, geringste Berechtigungen (Least Privilege) und Nichtabstreitbarkeit sicherstellen."
+          }
+        },
+        "dataflow": {
+          "trust_boundary_warning": {
+            "title": "Dieser Datenfluss überschreitet eine Vertrauensgrenze!",
+            "hint": "Hohes Risiko für: Manipulation, Informationsoffenlegung, Denial of Service"
+          },
+          "fields": {
+            "protocol": {
+              "label": "Protokoll",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "http": "HTTP",
+                "https": "HTTPS",
+                "grpc": "gRPC",
+                "mqtt": "MQTT",
+                "amqp": "AMQP / Message Queue",
+                "websocket": "WebSocket",
+                "file": "Dateiübertragung",
+                "database": "Datenbankprotokoll",
+                "custom": "Benutzerdefiniertes Protokoll"
+              }
+            },
+            "direction": {
+              "label": "Richtung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "unidirectional": "Unidirektional (Einweg)",
+                "bidirectional": "Bidirektional (Zweiweg)",
+                "requestresponse": "Anfrage-Antwort"
+              }
+            },
+            "encryptionInTransit": {
+              "label": "Verschlüsselung in Übertragung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine (Klartext)",
+                "tls": "TLS",
+                "mtls": "mTLS (Mutual TLS)",
+                "vpn": "VPN / IPSec",
+                "custom": "Benutzerdefinierte Verschlüsselung"
+              },
+              "warning": "Unverschlüsselter Fluss überschreitet Vertrauensgrenze → Risiko der Informationsoffenlegung"
+            },
+            "endpointAuthentication": {
+              "label": "Authentifizierung der Endpunkte",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "token": "Token / Bearer",
+                "certificate": "Zertifikat (mTLS)",
+                "apikey": "API-Schlüssel",
+                "oauth": "OAuth 2.0"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Nicht angegeben"
+            },
+            "integrityProtection": {
+              "label": "Integritätsschutz (HMAC, Signaturen)"
+            },
+            "dataTypes": {
+              "label": "Datentypen",
+              "placeholder": "z.B. Personendaten, Anmeldedaten, Geschäftsdaten, Geheimnisse",
+              "helper": "Mehrere Typen mit Komma trennen"
+            },
+            "frequency": {
+              "label": "Häufigkeit",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "continuous": "Kontinuierlich / Echtzeit",
+                "periodic": "Periodisch (geplant)",
+                "ondemand": "Auf Anfrage",
+                "batch": "Stapelverarbeitung"
+              }
+            },
+            "volume": {
+              "label": "Größe / Volumen",
+              "placeholder": "z.B. 100 MB/Tag, 1000 Anfragen/Sek."
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
           }
         },
         "asset": {

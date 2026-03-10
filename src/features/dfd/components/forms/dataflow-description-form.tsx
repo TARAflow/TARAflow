@@ -1,273 +1,546 @@
 // ==================== DATA FLOW DESCRIPTION FORM ====================
-// STRIDE: T, I, D (häufigster Schwachpunkt!)
-// Focus: Transport & Angriffe auf Kommunikation
+// STRIDE: T, I, D (Transport & Communication attacks)
+// Focus: Data in transit — encryption, integrity, endpoint authentication
+//
+// Shell (tabs, asset relations, safety summary) → ConnectionFormShell
+// State logic → useConnectionForm
+// This file: DataFlowGeneralTab content + React.memo wrapper
 
-import React, { useCallback } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Checkbox,
-  Stack,
-  Typography,
-  Divider,
   Accordion,
-  AccordionSummary,
   AccordionDetails,
+  AccordionSummary,
   Alert,
-  Chip,
+  Box,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import { ExpandMore as ExpandMoreIcon, Warning as WarningIcon } from "@mui/icons-material";
-import type { DFDConnection } from "../../models/dfd-types";
+import {
+  ExpandMore as ExpandMoreIcon,
+  Warning as WarningIcon,
+} from "@mui/icons-material";
+import type { AssetGroup, DFDConnection } from "../../models/dfd-types";
+import type {
+  DataFlowProperties,
+  ExposureLevel,
+} from "../../models/element-properties";
+import {
+  EXPOSURE_LEVEL_LABELS,
+  EXPOSURE_LEVEL_DESCRIPTION_KEYS,
+} from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
-import { AssetRelationSelector, type AvailableAsset } from "./asset-relation-selector";
+import { type AvailableAsset } from "./asset-relation-selector";
+import { ConnectionFormShell } from "./connection-form-shell";
+import { useConnectionForm } from "../../hooks/use-connection-form";
+
+// ==================== PROPS ====================
 
 interface DataFlowFormProps {
   connection: DFDConnection;
   onChange: (updates: Partial<DFDConnection>) => void;
-  crossesTrustBoundary?: boolean; // Auto-detected from parent
+  /** Auto-detected from graph: this flow crosses at least one trust boundary */
+  crossesTrustBoundary?: boolean;
   availableAssets?: AvailableAsset[];
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
 }
 
-export const DataFlowDescriptionForm: React.FC<DataFlowFormProps> = ({
+// ==================== CONSTANTS ====================
+
+const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
+
+// ==================== GENERAL TAB ====================
+
+interface DataFlowGeneralTabProps {
+  connection: DFDConnection;
+  onChange: (updates: Partial<DFDConnection>) => void;
+  crossesTrustBoundary: boolean;
+}
+
+const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   connection,
   onChange,
-  crossesTrustBoundary = false,
-  availableAssets = [],
+  crossesTrustBoundary,
 }) => {
   const { t } = useTranslation();
+  const form = useConnectionForm<DataFlowProperties>(connection, onChange);
+  const { props } = form;
 
-  const handlePropertyChange = useCallback(
-    (field: string, value: any) => {
-      onChange({
-        properties: {
-          ...(connection.properties ?? {}),
-          [field]: value,
-        },
-      });
-    },
-    [onChange, connection.properties]
-  );
-
-  const encryptionInTransit = connection.properties?.encryptionInTransit || "";
+  const encryptionInTransit = props.encryptionInTransit ?? "";
   const showEncryptionWarning =
     crossesTrustBoundary &&
     (encryptionInTransit === "" || encryptionInTransit === "none");
 
   return (
-    <Box sx={{ p: 2 }}>
-      {/* Auto-Threat Hint */}
+    <Stack spacing={3}>
+      {/* Trust Boundary Warning */}
       {crossesTrustBoundary && (
-        <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 2 }}>
+        <Alert severity="warning" icon={<WarningIcon />}>
           <Typography variant="body2" fontWeight="bold">
-            ⚠️ This data flow crosses a Trust Boundary!
+            {t(
+              "tabs.dfd.element_description.dataflow.trust_boundary_warning.title",
+              { defaultValue: "This data flow crosses a Trust Boundary!" },
+            )}
           </Typography>
           <Typography variant="caption">
-            High risk for: Tampering, Information Disclosure, Denial of Service
+            {t(
+              "tabs.dfd.element_description.dataflow.trust_boundary_warning.hint",
+              {
+                defaultValue:
+                  "High risk for: Tampering, Information Disclosure, Denial of Service",
+              },
+            )}
           </Typography>
         </Alert>
       )}
 
-      {/* Required Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        Required Fields
-      </Typography>
+      <Box sx={{ overflow: "hidden", pt: 1 }}>
+        <Grid container rowSpacing={3} columnSpacing={2}>
+          {/* Protocol */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.protocol.label",
+                  { defaultValue: "Protocol" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.protocol ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("protocol", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.protocol.label",
+                  { defaultValue: "Protocol" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.dataflow.fields.protocol.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "http",
+                    "https",
+                    "grpc",
+                    "mqtt",
+                    "amqp",
+                    "websocket",
+                    "file",
+                    "database",
+                    "custom",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.protocol.options.${opt}`,
+                      { defaultValue: opt.toUpperCase() },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <RichTextEditor
-        value={connection.description || ""}
-        onChange={(value) => handlePropertyChange("description", value)}
-        label="Description"
-        required
-        helperText="What data is being transmitted?"
-      />
+          {/* Direction */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.direction.label",
+                  { defaultValue: "Direction" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.direction ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("direction", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.direction.label",
+                  { defaultValue: "Direction" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.dataflow.fields.direction.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "unidirectional",
+                    "bidirectional",
+                    "requestresponse",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.direction.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <TextField
-        fullWidth
-        label="Data Types"
-        value={connection.properties?.dataTypes || ""}
-        onChange={(e) => handlePropertyChange("dataTypes", e.target.value)}
-        placeholder="e.g., PII, Credentials, Business Data, Secrets"
-        helperText="Separate multiple types with commas"
-        sx={{ mb: 2 }}
-      />
+          {/* Encryption in Transit */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small" error={showEncryptionWarning}>
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
+                  { defaultValue: "Encryption in Transit" },
+                )}
+              </InputLabel>
+              <Select
+                value={encryptionInTransit}
+                onChange={(e) =>
+                  form.handlePropertyChange(
+                    "encryptionInTransit",
+                    e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
+                  { defaultValue: "Encryption in Transit" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {(["none", "tls", "mtls", "vpn", "custom"] as const).map(
+                  (opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.encryptionInTransit.options.${opt}`,
+                        { defaultValue: opt.toUpperCase() },
+                      )}
+                    </MenuItem>
+                  ),
+                )}
+              </Select>
+            </FormControl>
+            {showEncryptionWarning && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 0.5, display: "block" }}
+              >
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.warning",
+                  {
+                    defaultValue:
+                      "Unencrypted flow crosses trust boundary → Information Disclosure risk",
+                  },
+                )}
+              </Typography>
+            )}
+          </Grid>
 
-      <Divider sx={{ my: 3 }} />
+          {/* Endpoint Authentication */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
+                  { defaultValue: "Authentication of Endpoints" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.endpointAuthentication ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange(
+                    "endpointAuthentication",
+                    e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
+                  { defaultValue: "Authentication of Endpoints" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  ["none", "token", "certificate", "apikey", "oauth"] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.endpointAuthentication.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      {/* Security Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        Transport Security
-      </Typography>
+          {/* Exposure Level (EN 50742 Annex B) */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t("tabs.dfd.element_description.exposure_level.label", {
+                  defaultValue: "Exposure Level",
+                })}
+              </InputLabel>
+              <Select
+                value={props.exposureLevel ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("exposureLevel", e.target.value)
+                }
+                label={t("tabs.dfd.element_description.exposure_level.label", {
+                  defaultValue: "Exposure Level",
+                })}
+                renderValue={(value) =>
+                  value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
+                }
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.dataflow.fields.exposureLevel.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                {EXPOSURE_LEVELS.map((el) => (
+                  <MenuItem key={el} value={el}>
+                    <Tooltip
+                      title={t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
+                        defaultValue: "",
+                      })}
+                      placement="right"
+                      arrow
+                    >
+                      <span style={{ width: "100%", display: "block" }}>
+                        {EXPOSURE_LEVEL_LABELS[el]}
+                      </span>
+                    </Tooltip>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Protocol</InputLabel>
-        <Select
-          value={connection.properties?.protocol || ""}
-          onChange={(e) => handlePropertyChange("protocol", e.target.value)}
-          label="Protocol"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="http">HTTP</MenuItem>
-          <MenuItem value="https">HTTPS</MenuItem>
-          <MenuItem value="grpc">gRPC</MenuItem>
-          <MenuItem value="mqtt">MQTT</MenuItem>
-          <MenuItem value="amqp">AMQP / Message Queue</MenuItem>
-          <MenuItem value="websocket">WebSocket</MenuItem>
-          <MenuItem value="file">File Transfer</MenuItem>
-          <MenuItem value="database">Database Protocol</MenuItem>
-          <MenuItem value="custom">Custom Protocol</MenuItem>
-        </Select>
-      </FormControl>
+          {/* Integrity Protection */}
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.integrityProtection || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "integrityProtection",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
+                { defaultValue: "Integrity Protection (HMAC, Signatures)" },
+              )}
+            />
+          </Grid>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Direction</InputLabel>
-        <Select
-          value={connection.properties?.direction || "unidirectional"}
-          onChange={(e) => handlePropertyChange("direction", e.target.value)}
-          label="Direction"
-        >
-          <MenuItem value="unidirectional">Uni-directional (One-way)</MenuItem>
-          <MenuItem value="bidirectional">Bi-directional (Two-way)</MenuItem>
-          <MenuItem value="requestresponse">Request-Response</MenuItem>
-        </Select>
-      </FormControl>
+          {/* Data Types */}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.dataTypes.label",
+                { defaultValue: "Data Types" },
+              )}
+              value={props.dataTypes ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("dataTypes", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.dataflow.fields.dataTypes.placeholder",
+                {
+                  defaultValue: "e.g. PII, Credentials, Business Data, Secrets",
+                },
+              )}
+              helperText={t(
+                "tabs.dfd.element_description.dataflow.fields.dataTypes.helper",
+                { defaultValue: "Separate multiple types with commas" },
+              )}
+            />
+          </Grid>
+        </Grid>
+      </Box>
 
-      <FormControl fullWidth sx={{ mb: 2 }} error={showEncryptionWarning}>
-        <InputLabel>Encryption in Transit</InputLabel>
-        <Select
-          value={encryptionInTransit}
-          onChange={(e) =>
-            handlePropertyChange("encryptionInTransit", e.target.value)
-          }
-          label="Encryption in Transit"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="none">None (Plaintext)</MenuItem>
-          <MenuItem value="tls">TLS</MenuItem>
-          <MenuItem value="mtls">mTLS (Mutual TLS)</MenuItem>
-          <MenuItem value="vpn">VPN / IPSec</MenuItem>
-          <MenuItem value="custom">Custom Encryption</MenuItem>
-        </Select>
-      </FormControl>
-
-      {showEncryptionWarning && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          ⚠️ Unencrypted data flow crosses trust boundary → Information
-          Disclosure risk!
-        </Alert>
-      )}
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={connection.properties?.integrityProtection || false}
-            onChange={(e) =>
-              handlePropertyChange("integrityProtection", e.target.checked)
-            }
-          />
-        }
-        label="Integrity Protection (HMAC, Signatures)"
-        sx={{ mb: 2 }}
-      />
-
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Authentication of Endpoints</InputLabel>
-        <Select
-          value={connection.properties?.endpointAuthentication || ""}
-          onChange={(e) =>
-            handlePropertyChange("endpointAuthentication", e.target.value)
-          }
-          label="Authentication of Endpoints"
-        >
-          <MenuItem value="">
-            <em>Not specified</em>
-          </MenuItem>
-          <MenuItem value="none">None</MenuItem>
-          <MenuItem value="token">Token / Bearer</MenuItem>
-          <MenuItem value="certificate">Certificate (mTLS)</MenuItem>
-          <MenuItem value="apikey">API Key</MenuItem>
-          <MenuItem value="oauth">OAuth 2.0</MenuItem>
-        </Select>
-      </FormControl>
-
-      <Divider sx={{ my: 3 }} />
-
-      {/* Advanced / Optional Section */}
+      {/* Advanced */}
       <Accordion defaultExpanded={false}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="subtitle2" color="text.secondary">
-            Advanced / Optional
+            {t("tabs.dfd.element_description.sections.advanced", {
+              defaultValue: "Advanced / Optional",
+            })}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel>Frequency</InputLabel>
+            {/* Frequency */}
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.frequency.label",
+                  { defaultValue: "Frequency" },
+                )}
+              </InputLabel>
               <Select
-                value={connection.properties?.frequency || ""}
+                value={props.frequency ?? ""}
                 onChange={(e) =>
-                  handlePropertyChange("frequency", e.target.value)
+                  form.handlePropertyChange("frequency", e.target.value)
                 }
-                label="Frequency"
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.frequency.label",
+                  { defaultValue: "Frequency" },
+                )}
               >
                 <MenuItem value="">
-                  <em>Not specified</em>
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.dataflow.fields.frequency.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
                 </MenuItem>
-                <MenuItem value="continuous">Continuous / Real-time</MenuItem>
-                <MenuItem value="periodic">Periodic (Scheduled)</MenuItem>
-                <MenuItem value="ondemand">On-demand</MenuItem>
-                <MenuItem value="batch">Batch</MenuItem>
+                {(["continuous", "periodic", "ondemand", "batch"] as const).map(
+                  (opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.frequency.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  ),
+                )}
               </Select>
             </FormControl>
 
+            {/* Volume */}
             <TextField
               fullWidth
-              label="Size / Volume"
-              value={connection.properties?.volume || ""}
-              onChange={(e) => handlePropertyChange("volume", e.target.value)}
-              placeholder="e.g., 100 MB/day, 1000 requests/sec"
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.volume.label",
+                { defaultValue: "Size / Volume" },
+              )}
+              value={props.volume ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("volume", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.dataflow.fields.volume.placeholder",
+                { defaultValue: "e.g. 100 MB/day, 1000 requests/sec" },
+              )}
             />
 
-            <RichTextEditor
-              value={connection.properties?.notes || ""}
-              onChange={(value) => handlePropertyChange("notes", value)}
-              label="Additional Notes"
+            {/* Notes */}
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.notes.label",
+                { defaultValue: "Notes" },
+              )}
+              value={form.localNotes}
+              onChange={(e) => form.setLocalNotes(e.target.value)}
+              onBlur={form.commitNotes}
             />
           </Stack>
         </AccordionDetails>
       </Accordion>
 
-      {/* Asset Relations Section */}
-      <Divider sx={{ my: 3 }} />
-
-      <AssetRelationSelector
-        assetRelations={connection.assetRelations || []}
-        elementType="DataFlow"
-        availableAssets={availableAssets}
-        onChange={(relations) => {
-          onChange({ assetRelations: relations });
-        }}
-      />
-
-      {/* STRIDE Hint */}
-      <Alert severity="info" sx={{ mt: 2 }}>
-        <Typography variant="body2" fontWeight="bold">
-          STRIDE Relevance: T (Tampering), I (Information Disclosure), D (Denial
-          of Service)
+      {/* Description */}
+      <Box>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          {t("tabs.dfd.element_description.dataflow.fields.description.label", {
+            defaultValue: "Description",
+          })}
         </Typography>
-        <Typography variant="caption">
-          Data flows are the most common vulnerability in threat models. Always
-          encrypt sensitive data in transit!
-        </Typography>
-      </Alert>
-    </Box>
+        <RichTextEditor
+          label={t(
+            "tabs.dfd.element_description.dataflow.fields.description.label",
+            { defaultValue: "Description" },
+          )}
+          value={form.localDescription}
+          onChange={form.setLocalDescription}
+          onBlur={form.commitDescription}
+        />
+      </Box>
+    </Stack>
   );
 };
+
+// ==================== MAIN COMPONENT ====================
+
+export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
+  ({
+    connection,
+    onChange,
+    crossesTrustBoundary = false,
+    availableAssets = [],
+    onCreateAsset,
+  }) => (
+    <ConnectionFormShell
+      connection={connection}
+      onChange={onChange}
+      availableAssets={availableAssets}
+      onCreateAsset={onCreateAsset}
+      generalTab={
+        <DataFlowGeneralTab
+          connection={connection}
+          onChange={onChange}
+          crossesTrustBoundary={crossesTrustBoundary}
+        />
+      }
+    />
+  ),
+  (prev, next) =>
+    prev.connection === next.connection &&
+    prev.availableAssets === next.availableAssets &&
+    prev.crossesTrustBoundary === next.crossesTrustBoundary,
+);
+
+export default DataFlowDescriptionForm;
