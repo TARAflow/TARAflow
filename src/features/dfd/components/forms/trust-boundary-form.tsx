@@ -155,9 +155,12 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                 })}
               </InputLabel>
               <Select
-                value={props.exposureLevel ?? ""}
+                value={props.defaultExposureLevel ?? ""}
                 onChange={(e) =>
-                  form.handlePropertyChange("exposureLevel", e.target.value)
+                  form.handlePropertyChange(
+                    "defaultExposureLevel",
+                    e.target.value,
+                  )
                 }
                 label={t("tabs.dfd.element_description.exposure_level.label", {
                   defaultValue: "Exposure Level",

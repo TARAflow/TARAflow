@@ -15,6 +15,7 @@ import {
   Alert,
   Box,
   Checkbox,
+  Chip,
   FormControl,
   FormControlLabel,
   Grid,
@@ -53,7 +54,7 @@ interface DataFlowFormProps {
   crossesTrustBoundary?: boolean;
   availableAssets?: AvailableAsset[];
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
-  tbExposureLevel?: ExposureLevel;
+  defaultExposureLevel?: ExposureLevel;
 }
 
 // ==================== CONSTANTS ====================
@@ -73,23 +74,23 @@ interface DataFlowGeneralTabProps {
   connection: DFDConnection;
   onChange: (updates: Partial<DFDConnection>) => void;
   crossesTrustBoundary: boolean;
-  tbExposureLevel?: ExposureLevel;
+  defaultExposureLevel?: ExposureLevel;
 }
 
 const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   connection,
   onChange,
   crossesTrustBoundary,
-  tbExposureLevel,
+  defaultExposureLevel,
 }) => {
   const { t } = useTranslation();
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
   const { props } = form;
 
   const isCurrentlyOverride = !!(
-    tbExposureLevel &&
+    defaultExposureLevel &&
     props.exposureLevel &&
-    EL_ORDER[props.exposureLevel] < EL_ORDER[tbExposureLevel]
+    EL_ORDER[props.exposureLevel] < EL_ORDER[defaultExposureLevel]
   );
 
   const encryptionInTransit = props.encryptionInTransit ?? "";
@@ -342,9 +343,9 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   onChange={(e) => {
                     const selected = e.target.value as ExposureLevel;
                     const isOverride =
-                      tbExposureLevel &&
+                      defaultExposureLevel &&
                       selected &&
-                      EL_ORDER[selected] < EL_ORDER[tbExposureLevel];
+                      EL_ORDER[selected] < EL_ORDER[defaultExposureLevel];
                     onChange({
                       properties: {
                         ...connection.properties,
@@ -359,16 +360,32 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   )}
                   renderValue={(value) => {
                     if (!value) return "";
+                    const isDefault =
+                      defaultExposureLevel && value === defaultExposureLevel;
                     const isBelowTB =
-                      tbExposureLevel &&
+                      defaultExposureLevel &&
                       EL_ORDER[value as ExposureLevel] <
-                        EL_ORDER[tbExposureLevel];
+                        EL_ORDER[defaultExposureLevel];
                     return (
-                      <span
-                        style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
-                      >
-                        {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
-                      </span>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <span
+                          style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
+                        >
+                          {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
+                        </span>
+                        {isDefault && (
+                          <Chip
+                            label="default"
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              fontSize: "0.65rem",
+                              height: 16,
+                              pointerEvents: "none",
+                            }}
+                          />
+                        )}
+                      </Stack>
                     );
                   }}
                 >
@@ -382,8 +399,8 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   </MenuItem>
                   {EXPOSURE_LEVELS.map((el) => {
                     const isBelowTB =
-                      tbExposureLevel &&
-                      EL_ORDER[el] < EL_ORDER[tbExposureLevel];
+                      defaultExposureLevel &&
+                      EL_ORDER[el] < EL_ORDER[defaultExposureLevel];
                     const baseTooltip = t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
                       defaultValue: "",
                     });
@@ -410,7 +427,26 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                           arrow
                         >
                           <span style={{ width: "100%", display: "block" }}>
-                            {EXPOSURE_LEVEL_LABELS[el]}
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={0.5}
+                            >
+                              <span>{EXPOSURE_LEVEL_LABELS[el]}</span>
+                              {defaultExposureLevel &&
+                                el === defaultExposureLevel && (
+                                  <Chip
+                                    label="default"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      fontSize: "0.65rem",
+                                      height: 16,
+                                      pointerEvents: "none",
+                                    }}
+                                  />
+                                )}
+                            </Stack>
                           </span>
                         </Tooltip>
                       </MenuItem>
@@ -617,7 +653,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     crossesTrustBoundary = false,
     availableAssets = [],
     onCreateAsset,
-    tbExposureLevel,
+    defaultExposureLevel,
   }) => (
     <ConnectionFormShell
       connection={connection}
@@ -629,7 +665,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
           connection={connection}
           onChange={onChange}
           crossesTrustBoundary={crossesTrustBoundary}
-          tbExposureLevel={tbExposureLevel}
+          defaultExposureLevel={defaultExposureLevel}
         />
       }
     />
@@ -638,7 +674,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     prev.connection === next.connection &&
     prev.availableAssets === next.availableAssets &&
     prev.crossesTrustBoundary === next.crossesTrustBoundary &&
-    prev.tbExposureLevel === next.tbExposureLevel,
+    prev.defaultExposureLevel === next.defaultExposureLevel,
 );
 
 export default DataFlowDescriptionForm;

@@ -52,8 +52,9 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
         onChange={onChange as (updates: Partial<DFDConnection>) => void}
         crossesTrustBoundary={crossesTrustBoundary}
         availableAssets={availableAssets}
-        tbExposureLevel={
-          graphContext?.getEffectiveTBExposureLevel(connection.id) ?? undefined
+        defaultExposureLevel={
+          graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
+          undefined
         }
       />
     );
@@ -111,8 +112,9 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
           element={element}
           onChange={onChange as (updates: Partial<DFDElement>) => void}
           availableAssets={availableAssets}
-          tbExposureLevel={
-            graphContext?.getEffectiveTBExposureLevel(element.id) ?? undefined
+          defaultExposureLevel={
+            graphContext?.getEffectiveDefaultExposureLevel(element.id) ??
+            undefined
           }
         />
       );

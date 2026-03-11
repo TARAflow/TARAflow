@@ -14,6 +14,7 @@ import {
   AccordionSummary,
   Box,
   Checkbox,
+  Chip,
   FormControl,
   FormControlLabel,
   Grid,
@@ -47,7 +48,7 @@ interface InterfaceFormProps {
   onChange: (updates: Partial<DFDElement>) => void;
   availableAssets?: AvailableAsset[];
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
-  tbExposureLevel?: ExposureLevel;
+  defaultExposureLevel?: ExposureLevel;
 }
 
 // ==================== CONSTANTS ====================
@@ -66,21 +67,21 @@ const EL_ORDER: Record<ExposureLevel, number> = {
 interface InterfaceGeneralTabProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
-  tbExposureLevel?: ExposureLevel;
+  defaultExposureLevel?: ExposureLevel;
 }
 
 const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
   element,
   onChange,
-  tbExposureLevel,
+  defaultExposureLevel,
 }) => {
   const { t } = useTranslation();
   const form = useElementForm<InterfaceProperties>(element, onChange);
   const { props } = form;
   const isCurrentlyOverride = !!(
-    tbExposureLevel &&
+    defaultExposureLevel &&
     props.exposureLevel &&
-    EL_ORDER[props.exposureLevel] < EL_ORDER[tbExposureLevel]
+    EL_ORDER[props.exposureLevel] < EL_ORDER[defaultExposureLevel]
   );
 
   return (
@@ -153,9 +154,9 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                   onChange={(e) => {
                     const selected = e.target.value as ExposureLevel;
                     const isOverride =
-                      tbExposureLevel &&
+                      defaultExposureLevel &&
                       selected &&
-                      EL_ORDER[selected] < EL_ORDER[tbExposureLevel];
+                      EL_ORDER[selected] < EL_ORDER[defaultExposureLevel];
                     onChange({
                       properties: {
                         ...element.properties,
@@ -170,16 +171,32 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                   )}
                   renderValue={(value) => {
                     if (!value) return "";
+                    const isDefault =
+                      defaultExposureLevel && value === defaultExposureLevel;
                     const isBelowTB =
-                      tbExposureLevel &&
+                      defaultExposureLevel &&
                       EL_ORDER[value as ExposureLevel] <
-                        EL_ORDER[tbExposureLevel];
+                        EL_ORDER[defaultExposureLevel];
                     return (
-                      <span
-                        style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
-                      >
-                        {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
-                      </span>
+                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                        <span
+                          style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
+                        >
+                          {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
+                        </span>
+                        {isDefault && (
+                          <Chip
+                            label="default"
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              fontSize: "0.65rem",
+                              height: 16,
+                              pointerEvents: "none",
+                            }}
+                          />
+                        )}
+                      </Stack>
                     );
                   }}
                 >
@@ -193,8 +210,8 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                   </MenuItem>
                   {EXPOSURE_LEVELS.map((el) => {
                     const isBelowTB =
-                      tbExposureLevel &&
-                      EL_ORDER[el] < EL_ORDER[tbExposureLevel];
+                      defaultExposureLevel &&
+                      EL_ORDER[el] < EL_ORDER[defaultExposureLevel];
                     const baseTooltip = t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
                       defaultValue: "",
                     });
@@ -221,7 +238,26 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                           arrow
                         >
                           <span style={{ width: "100%", display: "block" }}>
-                            {EXPOSURE_LEVEL_LABELS[el]}
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={0.5}
+                            >
+                              <span>{EXPOSURE_LEVEL_LABELS[el]}</span>
+                              {defaultExposureLevel &&
+                                el === defaultExposureLevel && (
+                                  <Chip
+                                    label="default"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      fontSize: "0.65rem",
+                                      height: 16,
+                                      pointerEvents: "none",
+                                    }}
+                                  />
+                                )}
+                            </Stack>
                           </span>
                         </Tooltip>
                       </MenuItem>
@@ -437,7 +473,7 @@ export const InterfaceDescriptionForm = React.memo<InterfaceFormProps>(
     onChange,
     availableAssets = [],
     onCreateAsset,
-    tbExposureLevel,
+    defaultExposureLevel,
   }) => (
     <ElementFormShell
       element={element}
@@ -448,7 +484,7 @@ export const InterfaceDescriptionForm = React.memo<InterfaceFormProps>(
         <InterfaceGeneralTab
           element={element}
           onChange={onChange}
-          tbExposureLevel={tbExposureLevel}
+          defaultExposureLevel={defaultExposureLevel}
         />
       }
     />
@@ -456,7 +492,7 @@ export const InterfaceDescriptionForm = React.memo<InterfaceFormProps>(
   (prev, next) =>
     prev.element === next.element &&
     prev.availableAssets === next.availableAssets &&
-    prev.tbExposureLevel === next.tbExposureLevel,
+    prev.defaultExposureLevel === next.defaultExposureLevel,
 );
 
 export default InterfaceDescriptionForm;

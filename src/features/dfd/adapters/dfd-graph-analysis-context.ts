@@ -72,7 +72,9 @@ export class DFDGraphAnalysisContext implements DFDAnalysisContext {
     return this.graph.effectiveElementTrustBoundary.get(elementId);
   }
 
-  getEffectiveTBExposureLevel(elementId: string): ExposureLevel | undefined {
+  getEffectiveDefaultExposureLevel(
+    elementId: string,
+  ): ExposureLevel | undefined {
     // For Elemente (Interface): TB-Ownership
     const tbId = this.graph.effectiveElementTrustBoundary.get(elementId);
     if (tbId) {

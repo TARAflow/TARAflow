@@ -253,7 +253,7 @@ export interface TrustBoundaryProperties {
   // DataFlows / Interfaces crossing this boundary inherit this EL (or higher
   // if they cross into a more exposed zone).
   // Displayed as zone label in the DFD diagram: e.g. "Maschinenraum · EL1"
-  exposureLevel?: ExposureLevel;
+  defaultExposureLevel?: ExposureLevel;
 
   // Security Context
   securityAssumptions?: string;

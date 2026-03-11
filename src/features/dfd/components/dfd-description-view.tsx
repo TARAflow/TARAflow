@@ -587,8 +587,8 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
               element={element}
               onChange={onUpdate}
               availableAssets={availableAssets}
-              tbExposureLevel={
-                graphContext?.getEffectiveTBExposureLevel(element.id) ??
+              defaultExposureLevel={
+                graphContext?.getEffectiveDefaultExposureLevel(element.id) ??
                 undefined
               }
             />
@@ -740,8 +740,8 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
             onChange={onUpdate}
             crossesTrustBoundary={crossesTrustBoundary}
             availableAssets={availableAssets}
-            tbExposureLevel={
-              graphContext?.getEffectiveTBExposureLevel(connection.id) ??
+            defaultExposureLevel={
+              graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
               undefined
             }
           />

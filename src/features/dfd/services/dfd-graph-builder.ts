@@ -449,7 +449,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       let derivedEL: string | undefined;
       for (const tbId of tbIds) {
         const tb = elements.find((e) => e.id === tbId);
-        const tbEL = (tb?.properties as TrustBoundaryProperties)?.exposureLevel;
+        const tbEL = (tb?.properties as TrustBoundaryProperties)
+          ?.defaultExposureLevel;
         derivedEL = maxEL(derivedEL, tbEL);
       }
       const canDerive =
@@ -481,7 +482,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
 
       for (const tbId of [...fromTBIds, ...toTBIds]) {
         const tb = elements.find((e) => e.id === tbId);
-        const tbEL = (tb?.properties as TrustBoundaryProperties)?.exposureLevel;
+        const tbEL = (tb?.properties as TrustBoundaryProperties)
+          ?.defaultExposureLevel;
         derivedEL = maxEL(derivedEL, tbEL);
       }
       const canDerive =
