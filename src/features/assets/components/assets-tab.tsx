@@ -49,10 +49,9 @@ import {
   AssetImportOptions,
   createDefaultAssetData,
   renumberAssets,
-  migrateAssetConfiguration,
 } from "../models/asset-types";
-
- import { calculateOverallImpact } from "../models/asset-impact-types";
+import { migrateAssetConfiguration } from "../services/asset-migration";
+import { calculateOverallImpact } from "../services/asset-impact-calculator";
 
  import { assetService } from "../services/asset-service";
 import { AssetTable } from "./asset-table";
@@ -284,12 +283,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     // Update assets to match new configuration
     updatedData.assets = updatedData.assets.map((asset) => {
       // Ensure all criteria from new config are present
-      const updatedRatings = tempConfig.impactCriteria.map((criterionId) => {
-        const existingRating = asset.impactRatings.find(
-          (r) => r.criterionId === criterionId,
-        );
-        return existingRating || { criterionId, value: 0 };
-      });
+      const updatedRatings = tempConfig.impactCriteria.map(
+        ({ id: criterionId }) => {
+          const existingRating = asset.impactRatings.find(
+            (r) => r.criterionId === criterionId,
+          );
+          return existingRating || { criterionId, value: 0 };
+        },
+      );
 
       // Recalculate overall impact with new method
       const overallImpact = calculateOverallImpact(
@@ -353,7 +354,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         updatedData.assets = updatedData.assets.map((asset) => {
           // Stelle sicher, dass alle Kriterien aus der neuen Config vorhanden sind
           const updatedRatings = migratedConfig.impactCriteria.map(
-            (criterionId) => {
+            ({ id: criterionId }) => {
               const existingRating = asset.impactRatings.find(
                 (r) => r.criterionId === criterionId,
               );

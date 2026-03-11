@@ -161,7 +161,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                         ...element.properties,
                         exposureLevel: selected || undefined,
                         exposureLevelSource: isOverride ? "manual" : undefined,
-                      },
+                      } as InterfaceProperties,
                     });
                   }}
                   label={t(

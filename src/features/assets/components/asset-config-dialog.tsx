@@ -39,6 +39,7 @@ import {
   ImpactRoundingMethod,
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  WeightedImpactCriterion,
 } from "../models/asset-impact-types";
 
 // ==================== TYPES ====================
@@ -73,17 +74,15 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
   const handleToggleCriterion = (criterionId: string) => {
     const currentCriteria = configuration.impactCriteria;
 
-    let newCriteria: string[];
-    if (currentCriteria.includes(criterionId)) {
-      // Remove (only if above minimum)
+    let newCriteria: WeightedImpactCriterion[];
+    if (currentCriteria.some((c) => c.id === criterionId)) {
       if (currentCriteria.length > MIN_CRITERIA) {
-        newCriteria = currentCriteria.filter((id) => id !== criterionId);
+        newCriteria = currentCriteria.filter((c) => c.id !== criterionId);
       } else {
-        return; // Don't allow removal below minimum
+        return;
       }
     } else {
-      // Add
-      newCriteria = [...currentCriteria, criterionId];
+      newCriteria = [...currentCriteria, { id: criterionId, weight: 0 }];
     }
 
     onChange({
@@ -144,8 +143,8 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
       </Typography>
       <List dense disablePadding sx={{ bgcolor: "grey.50", borderRadius: 1 }}>
         {criteria.map((criterion) => {
-          const isSelected = configuration.impactCriteria.includes(
-            criterion.id
+          const isSelected = configuration.impactCriteria.some(
+            (c) => c.id === criterion.id,
           );
           const canDeselect =
             configuration.impactCriteria.length > MIN_CRITERIA;

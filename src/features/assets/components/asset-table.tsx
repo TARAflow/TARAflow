@@ -22,24 +22,20 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 
-import {
-  Asset,
-  AssetConfiguration,
-  impactValueToLevel,
-} from "../models/asset-types";
+import { Asset, AssetConfiguration } from "../models/asset-types";
 
 import { DFDElementLink } from "../models/dfd-reference-types";
 
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
-  getImpactLevel,
 } from "../models/asset-impact-types";
 import type {
   SecurityGoal,
   SecurityGoalType,
 } from "../models/asset-security-goals-types";
 import { SECURITY_GOALS } from "../models/asset-security-goals-types";
+import { getImpactLevel } from "../services/asset-impact-calculator";
 
 
 
@@ -125,13 +121,13 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
     // Impact criteria columns
     const impactColumns: GridColDef<Asset>[] = configuration.impactCriteria.map(
-      (criterionId) => {
+      ({ id: criterionId }) => {
         const criterion = PREDEFINED_IMPACT_CRITERIA.find(
-          (c) => c.id === criterionId
+          (c) => c.id === criterionId,
         );
         const name = isGerman
-          ? criterion?.nameDE ?? criterionId
-          : criterion?.name ?? criterionId;
+          ? (criterion?.nameDE ?? criterionId)
+          : (criterion?.name ?? criterionId);
 
         return {
           field: `impact_${criterionId}`,
@@ -147,7 +143,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
             }
 
             const rating = row.impactRatings.find(
-              (r) => r.criterionId === criterionId
+              (r) => r.criterionId === criterionId,
             );
             const value = rating?.value ?? 0;
 
@@ -186,7 +182,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                             borderRadius: "50%",
                             backgroundColor: getImpactColor(
                               value,
-                              scale.levels.length
+                              scale.levels.length,
                             ),
                             border: "1px solid rgba(255,255,255,0.5)",
                           }}
@@ -216,7 +212,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
             );
           },
         };
-      }
+      },
     );
 
     // Overall impact column

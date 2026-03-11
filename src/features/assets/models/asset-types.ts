@@ -5,6 +5,7 @@
 import type { PhaseStatusMap } from "shared";
 import type {
   ImpactRating,
+  WeightedImpactCriterion,
   ImpactScaleType,
   ImpactCalculationMethod,
   ImpactRoundingMethod,
@@ -40,8 +41,12 @@ export type {
  * Project-specific asset configuration
  */
 export interface AssetConfiguration {
-  /** Selected impact criteria IDs (4-6 recommended) */
-  impactCriteria: string[];
+  /**
+   * Selected impact criteria with weights (4-6 recommended).
+   * Weights are used for weighted average calculation.
+   * For conservative (MAX) method, weights have no effect.
+   */
+  impactCriteria: WeightedImpactCriterion[];
 
   /** Impact rating scale */
   impactScale: ImpactScaleType;
@@ -58,11 +63,11 @@ export interface AssetConfiguration {
  */
 export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
   impactCriteria: [
-    "financial_damage",
-    "regulatory_compliance",
-    "reputation",
-    "operational",
-    "safety",
+    { id: "financial_damage", weight: 0.2 },
+    { id: "regulatory_compliance", weight: 0.2 },
+    { id: "reputation", weight: 0.15 },
+    { id: "operational", weight: 0.25 },
+    { id: "safety", weight: 0.2 },
   ],
   impactScale: "4-level",
   calculationMethod: "conservative",
@@ -96,6 +101,21 @@ export interface Asset {
   /** Linked DFD elements */
   linkedDFDElements: DFDElementLink[];
 
+  /**
+   * Safety Impact — derived from DFD SafetyAnnotation via graph.
+   * Manual override requires rationale (IEC 62443-4-1 audit trail).
+   */
+  physicalImpact?: "LOW" | "MED" | "HIGH" | "CRITICAL";
+  physicalImpactSource?: "derived" | "manual";
+  physicalImpactRationale?: string;
+
+  /**
+   * Aggregated Impact — always derived, never manual.
+   * Safety Override Rule: fatality/irreversible_injury → CRITICAL regardless of business impact.
+   * HIGH+ = indirect safety relevance, business impact HIGH.
+   */
+  aggregatedImpact?: "LOW" | "MED" | "HIGH" | "HIGH+" | "CRITICAL";
+
   /** Source: was this created from DFD or manually? */
   source: "dfd" | "manual";
 
@@ -124,6 +144,17 @@ export interface Asset {
     role?: string;
     clearanceLevel?: string;
     trainingRequired?: string;
+    // ── Graph-relevant flags ──────────────────────────────────────────────
+    /** Infrastructure: triggers High-Value Override Rule when assetDestructionImpact = "critical" */
+    isHighValueAsset?: boolean;
+    /** Infrastructure: destruction impact level — "critical" triggers mandatory Tampering/DoS/Physical Damage threats */
+    assetDestructionImpact?: "low" | "medium" | "high" | "critical";
+    /** Activates Accountability (**) derivation — DSGVO Art. 5 Abs. 2 */
+    isPersonalData?: boolean;
+    /** Activates Confidentiality (*) for stores relation — TPM/HSM/OP-TEE */
+    isSecureStorage?: boolean;
+    /** Activates Confidentiality (*) for is_an relation — proprietary process */
+    isBusinessSecret?: boolean;
   };
 
   /** Timestamps */
@@ -293,8 +324,8 @@ export function createEmptyAsset(
     id,
     numericId,
     name: "",
-    impactRatings: configuration.impactCriteria.map((criterionId) => ({
-      criterionId,
+    impactRatings: configuration.impactCriteria.map((criterion) => ({
+      criterionId: criterion.id,
       value: 0,
     })),
     overallImpact: 0,
@@ -322,27 +353,5 @@ export function createDefaultAssetData(): AssetData {
   };
 }
 
-/**
- * Migrate configuration from older versions (without roundingMethod)
- */
-export function migrateAssetConfiguration(
-  config: Partial<AssetConfiguration>
-): AssetConfiguration {
-  return {
-    impactCriteria:
-      config.impactCriteria ?? DEFAULT_ASSET_CONFIGURATION.impactCriteria,
-    impactScale: config.impactScale ?? DEFAULT_ASSET_CONFIGURATION.impactScale,
-    calculationMethod:
-      config.calculationMethod ?? DEFAULT_ASSET_CONFIGURATION.calculationMethod,
-    roundingMethod:
-      config.roundingMethod ?? DEFAULT_ASSET_CONFIGURATION.roundingMethod,
-  };
-}
-
-export function impactValueToLevel(
-  value: number,
-  rounding: ImpactRoundingMethod
-): number {
-  if (rounding === "ceil") return Math.ceil(value);
-  return Math.round(value);
-}
+// NOTE: migrateAssetConfiguration → services/asset-migration.ts
+// NOTE: impactValueToLevel        → services/asset-impact-calculator.ts (getImpactLevel)

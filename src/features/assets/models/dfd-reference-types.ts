@@ -11,6 +11,23 @@
 // - qualifier nur bei uses (System) und accesses (Infra)
 // - Marker-Logik entfernt (positions, sizes, xmlIds)
 
+// ==================== SAFETY ANNOTATION SUMMARY ====================
+
+/**
+ * Minimal safety context projected from DFD SafetyAnnotation to the Asset layer.
+ * Full SafetyAnnotation lives in the DFD model; this read-only projection is used
+ * by asset-physical-impact-deriver to compute physicalImpact (derived).
+ * Set by dfd-to-asset-mapper when a SafetyAnnotation is present on the relation.
+ */
+export interface SafetyAnnotationSummary {
+  /** direct = element controls the hazardous action; indirect = systemic influence */
+  readonly relevance: "none" | "indirect" | "direct";
+  /** Worst-case injury classification from SafetyAnnotation.impact */
+  readonly impact?: "none" | "reversible_injury" | "irreversible_injury" | "fatality";
+  /** True for Human Assets marked as protection targets (ISO 12100) */
+  readonly protectionTarget?: boolean;
+}
+
 // ==================== DFD ASSET REFERENCE ====================
 
 /**
@@ -51,6 +68,11 @@ export interface DFDAssetReference {
     /** Qualifier — nur bei uses (System) und accesses (Infra) */
     readonly qualifier?: string;
     readonly notes?: string;
+    /**
+     * Safety context projected from DFD SafetyAnnotation on this relation.
+     * Used by asset-physical-impact-deriver to compute physicalImpact (derived).
+     */
+    readonly safety?: SafetyAnnotationSummary;
   }>;
 }
 
@@ -135,6 +157,11 @@ export interface DFDElementLink {
   /** Qualifier — nur bei uses/accesses */
   qualifier?: string;
   notes?: string;
+  /**
+   * Safety context projected from DFD SafetyAnnotation.
+   * Populated by dfd-to-asset-mapper; used by asset-physical-impact-deriver.
+   */
+  safety?: SafetyAnnotationSummary;
 }
 
 // ==================== HELPER FUNCTIONS ====================

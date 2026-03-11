@@ -41,13 +41,14 @@ import { Asset, AssetConfiguration } from "../models/asset-types";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
-  calculateOverallImpact,
 } from "../models/asset-impact-types";
 
 import {
   SecurityGoalType,
   SECURITY_GOALS,
 } from "../models/asset-security-goals-types";
+
+import { calculateOverallImpact } from "../services/asset-impact-calculator";
 
 // ==================== TYPES ====================
 

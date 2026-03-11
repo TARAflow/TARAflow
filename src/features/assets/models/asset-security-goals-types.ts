@@ -8,6 +8,14 @@ export interface SecurityGoal {
   type: SecurityGoalType;
   enabled: boolean;
   formalDescription: string;
+  /**
+   * "suggested" = graph proposed this goal via relation type (Tabelle 4.2)
+   * "manual"    = analyst explicitly set or overrode the suggestion
+   * undefined   = legacy / not yet evaluated
+   */
+  source?: "suggested" | "manual";
+  /** Required when analyst deviates from graph suggestion (IEC 62443-4-1) */
+  rationale?: string;
 }
 
 export type SecurityGoalType =

@@ -1,9 +1,16 @@
 // ==================== ASSET SERVICE ====================
-// Business logic for Asset operations
-// NO dependency on app or dfd - uses AssetProjectData from asset-types
+// Orchestration layer — coordinates CRUD, config, save/load, and phase status.
+// Business logic lives in dedicated utils/services; this class only delegates.
+//
+// Dependencies (all via Dependency Inversion — no direct model logic):
+//   asset-factory           → object creation
+//   asset-impact-calculator → impact calculation
+//   asset-migration         → schema migration on load
+//   asset-validator         → validation + phase status
+//   asset-sync.service      → DFD synchronisation (separate concern)
 
-import { PhaseStatus, PhaseStatusMap } from "shared";
-import {
+import type { PhaseStatusMap } from "shared";
+import type {
   Asset,
   AssetData,
   AssetProjectData,
@@ -12,20 +19,24 @@ import {
   AssetDFDAsset,
   AssetDFDElement,
   AssetDFDConnection,
-  DFDElementLink,
+} from "../models/asset-types";
+import type { ImpactRating } from "../models/asset-impact-types";
+import { PREDEFINED_IMPACT_CRITERIA } from "../models/asset-impact-types";
+
+import {
   createEmptyAsset,
   createDefaultAssetData,
   generateNextAssetId,
   renumberAssets,
-  parseAssetId,
-  migrateAssetConfiguration,
-} from "../models/asset-types";
+} from "./asset-factory";
 import {
-  ImpactRating,
-  PREDEFINED_IMPACT_CRITERIA,
   calculateOverallImpact,
-} from "../models/asset-impact-types";
-
+  recalculateAllImpacts,
+} from "./asset-impact-calculator";
+import { migrateAssetConfiguration } from "./asset-migration";
+import { validateAssetData, derivePhaseStatus } from "./asset-validator";
+import { syncFromDFD, getAssetsMissingInDFD } from "./asset-sync-service";
+export type { DFDAssetSyncResult } from "./asset-sync-service";
 
 // ==================== RESULT TYPES ====================
 
@@ -45,29 +56,16 @@ export interface AssetLoadResult {
   error?: string;
 }
 
-export interface DFDAssetSyncResult {
-  assetData: AssetData;
-  newAssets: string[];
-  warnings: string[];
-}
-
 // ==================== ASSET SERVICE ====================
 
 class AssetService {
-  // ==================== LOAD OPERATIONS ====================
+  // ── Load ────────────────────────────────────────────────────────────────
 
-  /**
-   * Load asset data from project
-   */
   loadAssets(project: AssetProjectData): AssetLoadResult {
     try {
-      const hasData = Boolean(
-        project.assets && project.assets.assets.length > 0,
-      );
-
       return {
         success: true,
-        hasData,
+        hasData: Boolean(project.assets?.assets.length),
         assetCount: project.assets?.assets.length ?? 0,
       };
     } catch (error) {
@@ -79,48 +77,28 @@ class AssetService {
     }
   }
 
-  // ==================== SAVE OPERATIONS ====================
+  // ── Save ────────────────────────────────────────────────────────────────
 
-  /**
-   * Save asset data
-   */
   saveAssets(project: AssetProjectData, assetData: AssetData): AssetSaveResult {
     try {
-      // Ensure configuration is migrated
-      const migratedConfig = migrateAssetConfiguration(assetData.configuration);
-      const dataWithMigratedConfig = {
+      const migrated = {
         ...assetData,
-        configuration: migratedConfig,
+        configuration: migrateAssetConfiguration(assetData.configuration),
       };
 
-      // Validate
-      const validation = this.validate(dataWithMigratedConfig);
-
-      // Determine phase status
-      const phaseStatus = this.determinePhaseStatus(validation);
+      const validation = validateAssetData(migrated);
+      const phaseStatus = derivePhaseStatus(validation);
       const lastModified = new Date().toISOString();
-
-      // Update phase status map
-      const updatedPhaseStatus: PhaseStatusMap = {
-        ...project.phaseStatus,
-        2: phaseStatus, // Phase 2 = Assets
-      };
-
-      // Update asset data
-      const updatedAssetData: AssetData = {
-        ...dataWithMigratedConfig,
-        validation,
-        lastModified,
-      };
 
       return {
         success: true,
-        assets: updatedAssetData,
-        phaseStatus: updatedPhaseStatus,
+        assets: { ...migrated, validation, lastModified },
+        phaseStatus: { ...project.phaseStatus, 2: phaseStatus },
         lastModified,
         validation,
       };
     } catch (error) {
+      const msg = error instanceof Error ? error.message : "Save failed";
       return {
         success: false,
         assets: assetData,
@@ -128,86 +106,22 @@ class AssetService {
         lastModified: new Date().toISOString(),
         validation: {
           isComplete: false,
-          errors: [error instanceof Error ? error.message : "Save failed"],
+          errors: [msg],
           warnings: [],
           lastValidated: new Date().toISOString(),
         },
-        error: error instanceof Error ? error.message : "Failed to save assets",
+        error: msg,
       };
     }
   }
 
-  // ==================== VALIDATION ====================
+  // ── CRUD ────────────────────────────────────────────────────────────────
 
-  /**
-   * Validate asset data
-   */
-  validate(assetData: AssetData): AssetValidation {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Check: At least 1 asset required
-    if (assetData.assets.length === 0) {
-      errors.push("validation.assets.noAssets");
-    }
-
-    // Check each asset
-    assetData.assets.forEach((asset) => {
-      // Name required
-      if (!asset.name.trim()) {
-        errors.push(`validation.assets.noName:${asset.id}`);
-      }
-
-      // At least one security goal must be enabled
-      const hasSecurityGoal = asset.securityGoals.some((sg) => sg.enabled);
-      if (!hasSecurityGoal) {
-        errors.push(`validation.assets.noSecurityGoal:${asset.id}`);
-      }
-
-      // Security goals with enabled flag should have description
-      asset.securityGoals
-        .filter((sg) => sg.enabled && !sg.formalDescription.trim())
-        .forEach((sg) => {
-          warnings.push(
-            `validation.assets.noSecurityGoalDescription:${asset.id}:${sg.type}`,
-          );
-        });
-
-      // Check if linked to DFD
-      if (asset.linkedDFDElements.length === 0) {
-        warnings.push(`validation.assets.notLinkedToDFD:${asset.id}`);
-      }
-
-      // Check if all impact criteria are rated
-      const unratedCriteria = asset.impactRatings.filter((r) => r.value === 0);
-      if (unratedCriteria.length > 0) {
-        warnings.push(`validation.assets.unratedImpact:${asset.id}`);
-      }
-    });
-
-    const isComplete = errors.length === 0 && assetData.assets.length > 0;
-
-    return {
-      isComplete,
-      errors,
-      warnings,
-      lastValidated: new Date().toISOString(),
-    };
-  }
-
-  // ==================== ASSET CRUD ====================
-
-  /**
-   * Create a new asset
-   */
   createAsset(assetData: AssetData): Asset {
     const id = generateNextAssetId(assetData.assets);
     return createEmptyAsset(id, assetData.configuration);
   }
 
-  /**
-   * Add asset to data
-   */
   addAsset(assetData: AssetData, asset: Asset): AssetData {
     return {
       ...assetData,
@@ -216,19 +130,15 @@ class AssetService {
     };
   }
 
-  /**
-   * Update an existing asset
-   */
-  updateAsset(assetData: AssetData, updatedAsset: Asset): AssetData {
-    const config = assetData.configuration;
-
-    // Recalculate overall impact with rounding method
-    const assetWithImpact: Asset = {
-      ...updatedAsset,
+  updateAsset(assetData: AssetData, updated: Asset): AssetData {
+    const { configuration } = assetData;
+    const withImpact: Asset = {
+      ...updated,
       overallImpact: calculateOverallImpact(
-        updatedAsset.impactRatings,
-        config.calculationMethod,
-        config.roundingMethod,
+        updated.impactRatings,
+        configuration.calculationMethod,
+        configuration.roundingMethod,
+        configuration.impactCriteria, // pass weights — was missing before
       ),
       lastModified: new Date().toISOString(),
     };
@@ -236,62 +146,48 @@ class AssetService {
     return {
       ...assetData,
       assets: assetData.assets.map((a) =>
-        a.id === assetWithImpact.id ? assetWithImpact : a,
+        a.id === withImpact.id ? withImpact : a,
       ),
       lastModified: new Date().toISOString(),
     };
   }
 
-  /**
-   * Delete an asset and renumber remaining
-   */
   deleteAsset(assetData: AssetData, assetId: string): AssetData {
-    const filteredAssets = assetData.assets.filter((a) => a.id !== assetId);
-    const renumberedAssets = renumberAssets(filteredAssets);
-
     return {
       ...assetData,
-      assets: renumberedAssets,
+      assets: renumberAssets(assetData.assets.filter((a) => a.id !== assetId)),
       lastModified: new Date().toISOString(),
     };
   }
 
-  // ==================== CONFIGURATION ====================
+  // ── Configuration ───────────────────────────────────────────────────────
 
-  /**
-   * Update asset configuration
-   */
   updateConfiguration(
     assetData: AssetData,
     configuration: AssetConfiguration,
   ): AssetData {
-    // Ensure configuration has all required fields (migration)
     const migratedConfig = migrateAssetConfiguration(configuration);
 
-    // When configuration changes, update all assets
     const updatedAssets = assetData.assets.map((asset) => {
-      // Update impact ratings for new criteria
+      // Align impact ratings to new criteria set — keep existing values, drop removed
       const newRatings: ImpactRating[] = migratedConfig.impactCriteria.map(
-        (criterionId) => {
-          // Keep existing rating if criterion still exists
+        (criterion) => {
           const existing = asset.impactRatings.find(
-            (r) => r.criterionId === criterionId,
+            (r) => r.criterionId === criterion.id, // bug fix: was using criterionId as string
           );
-          return existing ?? { criterionId, value: 0 };
+          return existing ?? { criterionId: criterion.id, value: 0 };
         },
-      );
-
-      // Recalculate overall impact with new settings
-      const overallImpact = calculateOverallImpact(
-        newRatings,
-        migratedConfig.calculationMethod,
-        migratedConfig.roundingMethod,
       );
 
       return {
         ...asset,
         impactRatings: newRatings,
-        overallImpact,
+        overallImpact: calculateOverallImpact(
+          newRatings,
+          migratedConfig.calculationMethod,
+          migratedConfig.roundingMethod,
+          migratedConfig.impactCriteria, // pass weights
+        ),
         lastModified: new Date().toISOString(),
       };
     });
@@ -304,158 +200,44 @@ class AssetService {
     };
   }
 
-  // ==================== DFD SYNC ====================
+  // ── DFD Sync (delegated) ────────────────────────────────────────────────
 
-  /**
-   * Sync assets from DFD to asset list.
-   * Maps linkedElements from DFD format to DFDElementLink format.
-   * Each link carries a single relationType + optional qualifier
-   * instead of the old relationTypes[] array.
-   */
   syncFromDFD(
     assetData: AssetData,
     dfdAssets: AssetDFDAsset[],
     dfdElements: AssetDFDElement[],
     dfdConnections: AssetDFDConnection[],
-  ): DFDAssetSyncResult {
-    const warnings: string[] = [];
-    const newAssetIds: string[] = [];
-
-    let updatedAssetData = { ...assetData };
-
-    dfdAssets.forEach((dfdAsset) => {
-      // Skip placeholder labels (A-xx)
-      if (dfdAsset.id === "A-xx" || dfdAsset.id.includes("xx")) {
-        warnings.push(`Unassigned asset label found: ${dfdAsset.id}`);
-        return;
-      }
-
-      // Map each linked element to DFDElementLink format.
-      // relationType is now a single string, qualifier is optional
-      // (only present for uses/accesses relations).
-      const linkedDFDElements: DFDElementLink[] = (
-        dfdAsset.linkedElements || []
-      ).map((link) => ({
-        elementId: String(link.elementId || ""),
-        elementName: String(link.elementName || ""),
-        elementType: String(link.elementType || "unknown"),
-        displayId: String(link.displayId || ""),
-        relationType: String(link.relationType || ""),
-        qualifier: link.qualifier,
-        notes: link.notes,
-      }));
-
-      console.log(`[SYNC] Asset ${dfdAsset.id}:`, {
-        rawLinkedElements: dfdAsset.linkedElements,
-        resolvedLinks: linkedDFDElements,
-      });
-
-      const existingAsset = assetData.assets.find((a) => a.id === dfdAsset.id);
-
-      if (!existingAsset) {
-        // Create new asset from DFD
-        const newAsset: Asset = {
-          ...createEmptyAsset(dfdAsset.id, assetData.configuration),
-          id: dfdAsset.id,
-          numericId: parseAssetId(dfdAsset.id),
-          name: dfdAsset.name || dfdAsset.id,
-          source: "dfd",
-          syncedWithDFD: true,
-          linkedDFDElements,
-        };
-
-        updatedAssetData = this.addAsset(updatedAssetData, newAsset);
-        newAssetIds.push(dfdAsset.id);
-      } else {
-        // Update existing asset's DFD links
-        const updatedAsset: Asset = {
-          ...existingAsset,
-          name: dfdAsset.name || existingAsset.name,
-          syncedWithDFD: true,
-          linkedDFDElements,
-          lastModified: new Date().toISOString(),
-        };
-
-        updatedAssetData = this.updateAsset(updatedAssetData, updatedAsset);
-      }
-    });
-
-    // Warn about assets no longer present in DFD
-    const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
-    updatedAssetData.assets.forEach((asset) => {
-      if (!dfdAssetIds.has(asset.id) && asset.source === "dfd") {
-        warnings.push(`Asset ${asset.id} not found in DFD`);
-      }
-    });
-
-    return {
-      assetData: updatedAssetData,
-      newAssets: newAssetIds,
-      warnings,
-    };
+  ) {
+    return syncFromDFD(assetData, dfdAssets, dfdElements, dfdConnections);
   }
 
-  /**
-   * Get assets that are missing in DFD
-   */
-  getAssetsMissingInDFD(
-    assetData: AssetData,
-    dfdAssets: AssetDFDAsset[],
-  ): Asset[] {
-    const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
-
-    return assetData.assets.filter(
-      (asset) => asset.source === "manual" && !dfdAssetIds.has(asset.id),
-    );
+  getAssetsMissingInDFD(assetData: AssetData, dfdAssets: AssetDFDAsset[]) {
+    return getAssetsMissingInDFD(assetData, dfdAssets);
   }
 
-  // ==================== PHASE STATUS ====================
+  // ── Helpers ─────────────────────────────────────────────────────────────
 
-  private determinePhaseStatus(validation: AssetValidation): PhaseStatus {
-    if (validation.isComplete) return "complete";
-    if (validation.errors.length > 0) return "incomplete";
-    return "in-progress";
+  initializeAssetData(): AssetData {
+    return createDefaultAssetData();
   }
 
-  // ==================== HELPERS ====================
+  recalculateAllImpacts(assetData: AssetData): AssetData {
+    return recalculateAllImpacts(assetData);
+  }
 
-  /**
-   * Get impact criterion definition by ID
-   */
   getImpactCriterion(id: string) {
     return PREDEFINED_IMPACT_CRITERIA.find((c) => c.id === id);
   }
 
   /**
-   * Initialize asset data for a new project
+   * Validate asset data and return AssetValidation.
+   * Delegates to asset-validator — exposed on the service so components
+   * don't need to import from the service layer directly.
    */
-  initializeAssetData(): AssetData {
-    return createDefaultAssetData();
-  }
-
-  /**
-   * Recalculate all asset impacts (useful after config change)
-   */
-  recalculateAllImpacts(assetData: AssetData): AssetData {
-    const config = assetData.configuration;
-
-    const updatedAssets = assetData.assets.map((asset) => ({
-      ...asset,
-      overallImpact: calculateOverallImpact(
-        asset.impactRatings,
-        config.calculationMethod,
-        config.roundingMethod,
-      ),
-    }));
-
-    return {
-      ...assetData,
-      assets: updatedAssets,
-      lastModified: new Date().toISOString(),
-    };
+  validate(assetData: AssetData): AssetValidation {
+    return validateAssetData(assetData);
   }
 }
 
-// Export singleton instance
 export const assetService = new AssetService();
 export default assetService;

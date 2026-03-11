@@ -145,7 +145,7 @@ export function useAssetDFDSync({
             name: dfdAsset.name || dfdAsset.id,
             description: "",
             impactRatings: assetData.configuration.impactCriteria.map(
-              (criterionId) => ({
+              ({ id: criterionId }) => ({
                 criterionId,
                 value: 0,
               }),

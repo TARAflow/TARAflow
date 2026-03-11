@@ -68,13 +68,14 @@ export {
   generateNextAssetId,
   parseAssetId,
   renumberAssets,
-  migrateAssetConfiguration,
 } from "./models/asset-types";
 
 export {
   calculateOverallImpact,
   getImpactLevel,
-} from "./models/asset-impact-types";
+} from "./services/asset-impact-calculator";
+
+export { migrateAssetConfiguration } from "./services/asset-migration";
 
 // Service
 export { assetService } from "./services/asset-service";

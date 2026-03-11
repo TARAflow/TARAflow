@@ -13,6 +13,17 @@ export interface ImpactRating {
   value: number; // 1-3, 1-4, or 1-5 depending on scale
 }
 
+/**
+ * Impact criterion with weight for weighted average calculation.
+ * weights should sum to 1.0 across all active criteria.
+ * For conservative (MAX) method, weight has no effect.
+ */
+export interface WeightedImpactCriterion {
+  id: string;
+  /** Relative weight 0.0–1.0. All active criteria weights should sum to 1.0 */
+  weight: number;
+}
+
 export interface ImpactScaleConfig {
   type: ImpactScaleType;
   levels: ImpactLevel[];
@@ -183,44 +194,5 @@ export const PREDEFINED_IMPACT_CRITERIA: ImpactCriterionDefinition[] = [
   },
 ];
 
-/**
- * Calculate overall impact based on method and rounding
- */
-export function calculateOverallImpact(
-  ratings: ImpactRating[],
-  method: ImpactCalculationMethod,
-  roundingMethod: ImpactRoundingMethod = "round"
-): number {
-  if (ratings.length === 0) return 0;
-
-  const values = ratings.map((r) => r.value).filter((v) => v > 0);
-  if (values.length === 0) return 0;
-
-  if (method === "conservative") {
-    return Math.max(...values);
-  } else {
-    const sum = values.reduce((acc, val) => acc + val, 0);
-    const avg = sum / values.length;
-
-    // Apply rounding method
-    if (roundingMethod === "ceil") {
-      return Math.ceil(avg * 10) / 10; // Round up to 1 decimal
-    }
-    return Math.round(avg * 10) / 10; // Standard rounding to 1 decimal
-  }
-}
-
-/**
- * Get the discrete level for a calculated impact value
- */
-export function getImpactLevel(
-  value: number,
-  roundingMethod: ImpactRoundingMethod = "round"
-): number {
-  if (value <= 0) return 0;
-
-  if (roundingMethod === "ceil") {
-    return Math.ceil(value);
-  }
-  return Math.round(value);
-}
+// NOTE: calculateOverallImpact → services/asset-impact-calculator.ts
+// NOTE: getImpactLevel         → services/asset-impact-calculator.ts
