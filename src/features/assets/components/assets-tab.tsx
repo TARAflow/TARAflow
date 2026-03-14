@@ -15,45 +15,27 @@ import React, {
   useEffect,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box,
-  IconButton,
-  Tooltip,
-  Typography,
-  Button,
-  Divider,
-  Chip,
-  Alert,
-  Collapse,
-} from "@mui/material";
-import {
-  Add as AddIcon,
-  Settings as SettingsIcon,
-  Sync as SyncIcon,
-  SkipNext as NextIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Warning as WarningIcon,
-  Download as ExportIcon,
-  Upload as ImportIcon,
-} from "@mui/icons-material";
+import { Box, Alert, Collapse } from "@mui/material";
+import { Warning as WarningIcon } from "@mui/icons-material";
 
 import {
   Asset,
   AssetData,
-  AssetTabProps,
   AssetConfiguration,
+  AssetProjectData,
   AssetValidation,
   AssetExportData,
   AssetExportOptions,
   AssetImportOptions,
+  AssetUpdateResult,
   createDefaultAssetData,
   renumberAssets,
 } from "../models/asset-types";
 import { migrateAssetConfiguration } from "../services/asset-migration";
 import { calculateOverallImpact } from "../services/asset-impact-calculator";
 
- import { assetService } from "../services/asset-service";
+import { assetService } from "../services/asset-service";
+import { AssetsToolbar } from "./asset-toolbar";
 import { AssetTable } from "./asset-table";
 import { AssetDialog } from "./asset-dialog";
 import { AssetConfigDialog } from "./asset-config-dialog";
@@ -69,11 +51,25 @@ import { useAssetDFDSync } from "../hooks/use-asset-dfd-sync";
 const MIN_PANEL_HEIGHT = 100;
 const DEFAULT_DFD_HEIGHT = 250; // Fixed pixel height instead of ratio
 
+// ==================== ASSET TAB PROPS ====================
+
+export interface AssetTabProps {
+  project: AssetProjectData;
+  onUpdate: (updates: AssetUpdateResult) => void;
+  onDFDAssetUpdate?: (
+    assetId: string,
+    updates: { name?: string; description?: string },
+  ) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onPhaseComplete?: () => void;
+}
+
 // ==================== COMPONENT ====================
 
 export const AssetsTab: React.FC<AssetTabProps> = ({
   project,
   onUpdate,
+  onDFDAssetUpdate,
   onDirtyChange,
   onPhaseComplete,
 }) => {
@@ -111,8 +107,18 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     useState<ExportImportMode>("export");
 
   // Validation
-  const [validation, setValidation] = useState<AssetValidation | null>(
-    project.assets?.validation ?? null,
+  const [validation, setValidation] = useState<AssetValidation | null>(() =>
+    project.assets ? assetService.validate(project.assets) : null,
+  );
+
+  const hasSafetyAnnotations = useMemo(
+    () =>
+      project.dfdAssets?.some((a) =>
+        a.linkedElements?.some(
+          (l) => l.safety && l.safety.relevance !== "none",
+        ),
+      ) ?? false,
+    [project.dfdAssets],
   );
 
   // Sync warnings
@@ -140,7 +146,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         configuration: migrateAssetConfiguration(project.assets.configuration),
       };
       setAssetData(data);
-      setValidation(data.validation ?? null);
+      setValidation(assetService.validate(data)); // ← immer neu berechnen
     }
   }, [project.assets]);
 
@@ -153,7 +159,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
       if (result.success) {
         setAssetData(result.assets);
-        setValidation(result.assets.validation ?? null);
+        setValidation(assetService.validate(result.assets));
         setIsDirty(false);
 
         onUpdate({
@@ -232,21 +238,31 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   const handleSaveAsset = useCallback(
     (asset: Asset) => {
-      let updatedData: AssetData;
+      // Detect name/description change vs DFD source
+      const original = assetData.assets.find((a) => a.id === asset.id);
+      if (original && asset.source === "dfd" && onDFDAssetUpdate) {
+        const updates: { name?: string; description?: string } = {};
+        if (original.name !== asset.name) updates.name = asset.name;
+        if (original.properties?.description !== asset.properties?.description)
+          updates.description = asset.properties?.description;
+        if (Object.keys(updates).length > 0)
+          onDFDAssetUpdate(asset.id, updates);
+      }
 
+      // Rest bleibt gleich
+      let updatedData: AssetData;
       if (assetData.assets.find((a) => a.id === asset.id)) {
         updatedData = assetService.updateAsset(assetData, asset);
       } else {
         updatedData = assetService.addAsset(assetData, asset);
       }
-
       setAssetData(updatedData);
       setValidation(assetService.validate(updatedData));
       setShowAssetDialog(false);
       setSelectedAsset(null);
       markDirty();
     },
-    [assetData, markDirty],
+    [assetData, markDirty, onDFDAssetUpdate],
   );
 
   const handleDeleteAsset = useCallback(
@@ -554,7 +570,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         assetCount={assetData.assets.length}
         showDFDPreview={showDFDPreview}
         onToggleDFDPreview={() => setShowDFDPreview(!showDFDPreview)}
-        onAddAsset={handleAddAsset}
         onOpenConfig={handleOpenConfig}
         onExport={handleExport}
         onImport={handleImport}
@@ -680,6 +695,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       <AssetConfigDialog
         open={showConfigDialog}
         configuration={tempConfig || assetData.configuration}
+        hasSafetyAnnotations={hasSafetyAnnotations}
         onChange={handleConfigChange}
         onSave={handleSaveConfig}
         onClose={handleCloseConfig}
@@ -695,166 +711,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onImport={handleImportComplete}
         onClose={handleCloseExportImportDialog}
       />
-    </Box>
-  );
-};
-
-// ==================== TOOLBAR COMPONENT ====================
-
-interface AssetsToolbarProps {
-  isDirty: boolean;
-  validation: AssetValidation | null;
-  assetCount: number;
-  showDFDPreview: boolean;
-  onToggleDFDPreview: () => void;
-  onAddAsset: () => void;
-  onOpenConfig: () => void;
-  onExport: () => void;
-  onImport: () => void;
-  onSyncFromDFD: () => void;
-  onProceed: () => void;
-}
-
-const AssetsToolbar: React.FC<AssetsToolbarProps> = ({
-  isDirty,
-  validation,
-  assetCount,
-  showDFDPreview,
-  onToggleDFDPreview,
-  onAddAsset,
-  onOpenConfig,
-  onExport,
-  onImport,
-  onSyncFromDFD,
-  onProceed,
-}) => {
-  const { t } = useTranslation();
-
-  const getStatusColor = () => {
-    if (!validation) return "default";
-    if (validation.isComplete) return "success";
-    if (validation.errors.length > 0) return "error";
-    return "warning";
-  };
-
-  const getStatusText = () => {
-    if (!validation)
-      return t("status.inProgress", { defaultValue: "In Progress" });
-    if (validation.isComplete)
-      return t("status.complete", { defaultValue: "Complete" });
-    if (validation.errors.length > 0)
-      return `${validation.errors.length} ${t("common.errors", {
-        defaultValue: "Errors",
-      })}`;
-    return t("status.inProgress", { defaultValue: "In Progress" });
-  };
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        px: 2,
-        py: 1,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        backgroundColor: "background.paper",
-        flexWrap: "wrap",
-      }}
-    >
-      {/* Toggle DFD Preview */}
-      <Tooltip
-        title={
-          showDFDPreview
-            ? t("common.hideDFD", { defaultValue: "Hide DFD Preview" })
-            : t("common.showDFD", { defaultValue: "Show DFD Preview" })
-        }
-      >
-        <IconButton onClick={onToggleDFDPreview} size="small">
-          {showDFDPreview ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        </IconButton>
-      </Tooltip>
-
-      <Divider orientation="vertical" flexItem />
-
-      {/* Add Asset */}
-      <Tooltip title={t("tabs.assets.addAsset", { defaultValue: "Add Asset" })}>
-        <IconButton onClick={onAddAsset} size="small" color="primary">
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
-
-      {/* Sync from DFD */}
-      <Tooltip
-        title={t("tabs.assets.syncFromDFD", { defaultValue: "Sync from DFD" })}
-      >
-        <IconButton onClick={onSyncFromDFD} size="small">
-          <SyncIcon />
-        </IconButton>
-      </Tooltip>
-
-      {/* Configuration */}
-      <Tooltip
-        title={t("tabs.assets.configuration", {
-          defaultValue: "Impact Configuration",
-        })}
-      >
-        <IconButton onClick={onOpenConfig} size="small">
-          <SettingsIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Divider orientation="vertical" flexItem />
-
-      {/* Export */}
-      <Tooltip
-        title={t("tabs.assets.exportAssets", {
-          defaultValue: "Export Assets",
-        })}
-      >
-        <IconButton onClick={onExport} size="small">
-          <ExportIcon />
-        </IconButton>
-      </Tooltip>
-
-      {/* Import */}
-      <Tooltip
-        title={t("tabs.assets.importAssets", {
-          defaultValue: "Import Assets",
-        })}
-      >
-        <IconButton onClick={onImport} size="small">
-          <ImportIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Box sx={{ flexGrow: 1 }} />
-
-      {/* Status */}
-      <Chip
-        label={`${assetCount} ${t("tabs.assets.assets", {
-          defaultValue: "Assets",
-        })}`}
-        size="small"
-        variant="outlined"
-      />
-
-      <Chip label={getStatusText()} size="small" color={getStatusColor()} />
-
-      <Divider orientation="vertical" flexItem />
-
-      {/* Proceed */}
-      <Button
-        endIcon={<NextIcon />}
-        onClick={onProceed}
-        disabled={!validation?.isComplete}
-        size="small"
-        variant="outlined"
-        color="success"
-      >
-        {t("common.continue", { defaultValue: "Continue" })}
-      </Button>
     </Box>
   );
 };

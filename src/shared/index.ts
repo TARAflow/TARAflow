@@ -68,7 +68,11 @@ export {
 } from "./models/common-types";
 
 // Tag Categories
-export type { TagCategoryKey, TagDefinition, TagCategory } from "./utils/tag-categories";
+export type {
+  TagCategoryKey,
+  TagDefinition,
+  TagCategory,
+} from "./utils/tag-categories";
 
 export {
   TAG_CATEGORIES,
@@ -85,3 +89,12 @@ export {
 
 export { type DFDAnalysisContext } from "./ports/dfd-analysis-context";
 
+// ==================== ASSET COLORS ====================
+// Minimal shared config: category display colors only.
+// Full asset-constants.ts stays in features/dfd (has DFD/relation dependencies).
+
+export type {
+  AssetGroup,
+  AssetGroupConfig,
+} from "./models/asset-color-constants";
+export { ASSET_GROUP_CONFIG } from "./models/asset-color-constants";

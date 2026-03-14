@@ -246,11 +246,6 @@ export const MainLayout: React.FC = () => {
     onUpdate: (updates) => {
       if (!activeProject) return;
 
-      const graph = activeProject.dfd?.graph;
-      if (updates.dfd && !graph) {
-        throw new Error("[AssetSync] graph missing during DFD merge");
-      }
-
       const updatedProject = {
         ...activeProject,
         ...updates,
@@ -258,7 +253,11 @@ export const MainLayout: React.FC = () => {
           ? {
               ...activeProject.dfd,
               ...updates.dfd,
-              graph: activeProject.dfd?.graph,
+              // Preserve graph if it exists — do NOT throw if missing,
+              // Assets→DFD name sync does not require a graph
+              ...(activeProject.dfd?.graph
+                ? { graph: activeProject.dfd.graph }
+                : {}),
             }
           : activeProject.dfd,
         info: {

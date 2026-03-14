@@ -55,6 +55,13 @@ export interface DFDAssetReference {
   readonly protectionNeed?: "low" | "medium" | "high" | "critical";
 
   /**
+   * Forwarded from DFDAsset.properties.isHighValueAsset.
+   * Written into asset.properties.isHighValueAsset by the sync service
+   * so the HVA column in asset-table can read it.
+   */
+  readonly isHighValueAsset?: boolean;
+
+  /**
    * DFD-Elemente mit denen dieses Asset verknüpft ist
    * Eine Zeile pro Relation (nicht pro Asset-Element-Paar)
    */
@@ -139,6 +146,31 @@ export interface DFDConnectionReference {
     readonly qualifier?: string;
     readonly notes?: string;
   }>;
+}
+
+// ==================== ASSET TO ASSET RELATION REFERENCE ====================
+
+/**
+ * Read-only Projektion von AssetToAssetRelation für das Asset-Feature.
+ * Quelle: dfd/models/asset-relation-types.ts
+ */
+export type A2ARelationType =
+  | "derives_from" | "aggregates" | "supersedes"
+  | "triggers" | "suspends"
+  | "integrates"
+  | "powers" | "houses"
+  | "manages" | "reports_to"
+  | "required_by" | "consumed_by"
+  | "exposes"
+  | "runs_on" | "requires"
+  | "operated_by"
+  | "hosted_on" | "powered_by"
+  | "responsible_for" | "authorized_for"
+  | "depends_on" | "affects_safety" | "affects_privacy";
+export interface AssetToAssetRelationReference {
+  readonly sourceAssetId: string;
+  readonly targetAssetId: string;
+  readonly relationType: A2ARelationType;
 }
 
 // ==================== ELEMENT LINK ====================

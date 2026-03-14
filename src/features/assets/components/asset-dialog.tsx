@@ -1,8 +1,17 @@
 // ==================== ASSET DIALOG ====================
 // Modal dialog for creating/editing an asset
-// Uses Dropdowns for impact ratings (better UX than Sliders)
+//
+// Two-tab layout:
+//   Tab 0 — General & Rating: ID, Name, Description, DFD Links, Impact Ratings
+//   Tab 1 — Security Goals:   CIANAAA Accordion with formal descriptions
+//
+// DFD Link chips: "P-1: creates; reads" — same format as asset-table.tsx
+//
+// Fix 2025-03: Security goal normalization
+//   - All 7 CIANAAA types always initialized
+//   - useEffect re-syncs when asset prop changes
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -20,7 +29,6 @@ import {
   Checkbox,
   Chip,
   Stack,
-  Divider,
   Grid,
   Tooltip,
   IconButton,
@@ -28,6 +36,9 @@ import {
   AccordionSummary,
   AccordionDetails,
   Alert,
+  Tabs,
+  Tab,
+  Paper,
   SelectChangeEvent,
 } from "@mui/material";
 import {
@@ -37,18 +48,17 @@ import {
 } from "@mui/icons-material";
 
 import { Asset, AssetConfiguration } from "../models/asset-types";
-
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
 } from "../models/asset-impact-types";
-
 import {
+  SecurityGoal,
   SecurityGoalType,
   SECURITY_GOALS,
 } from "../models/asset-security-goals-types";
-
 import { calculateOverallImpact } from "../services/asset-impact-calculator";
+import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 
 // ==================== TYPES ====================
 
@@ -58,6 +68,40 @@ interface AssetDialogProps {
   configuration: AssetConfiguration;
   onSave: (asset: Asset) => void;
   onClose: () => void;
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel({ children, value, index }: TabPanelProps) {
+  return (
+    <div role="tabpanel" hidden={value !== index}>
+      {value === index && (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 2 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+// ==================== HELPERS ====================
+
+function normalizeSecurityGoals(goals: SecurityGoal[]): SecurityGoal[] {
+  return SECURITY_GOALS.map((def) => {
+    const existing = goals.find((g) => g.type === def.type);
+    if (existing) return existing;
+    return {
+      type: def.type,
+      enabled: false,
+      formalDescription: "",
+      source: undefined,
+      rationale: undefined,
+    };
+  });
 }
 
 // ==================== COMPONENT ====================
@@ -72,12 +116,29 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
 
-  // Local state for editing
-  const [editedAsset, setEditedAsset] = useState<Asset>(asset);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const scale = IMPACT_SCALES[configuration.impactScale];
   const isNew = asset.name === "";
+
+  // ==================== STATE ====================
+
+  const [tabValue, setTabValue] = useState(0);
+
+  const [editedAsset, setEditedAsset] = useState<Asset>(() => ({
+    ...asset,
+    securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
+  }));
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Re-sync when asset prop changes
+  useEffect(() => {
+    setEditedAsset({
+      ...asset,
+      securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
+    });
+    setErrors({});
+    setTabValue(0);
+  }, [asset]);
 
   // ==================== VALIDATION ====================
 
@@ -106,7 +167,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
     const overallImpact = calculateOverallImpact(
       editedAsset.impactRatings,
-      configuration.calculationMethod
+      configuration.calculationMethod,
     );
 
     onSave({
@@ -116,23 +177,42 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     });
   };
 
-  const handleImpactChange = (criterionId: string, event: SelectChangeEvent<number>) => {
+  const handleImpactChange = (
+    criterionId: string,
+    event: SelectChangeEvent<number>,
+  ) => {
     const value = event.target.value as number;
     setEditedAsset((prev) => ({
       ...prev,
       impactRatings: prev.impactRatings.map((r) =>
-        r.criterionId === criterionId ? { ...r, value } : r
+        r.criterionId === criterionId ? { ...r, value } : r,
       ),
     }));
   };
 
   const handleSecurityGoalToggle = (type: SecurityGoalType) => {
-    setEditedAsset((prev) => ({
-      ...prev,
-      securityGoals: prev.securityGoals.map((sg) =>
-        sg.type === type ? { ...sg, enabled: !sg.enabled } : sg
-      ),
-    }));
+    setEditedAsset((prev) => {
+      const exists = prev.securityGoals.some((sg) => sg.type === type);
+
+      const updated: SecurityGoal[] = exists
+        ? prev.securityGoals.map((sg) =>
+            sg.type === type
+              ? { ...sg, enabled: !sg.enabled, source: "manual" as const }
+              : sg,
+          )
+        : [
+            ...prev.securityGoals,
+            {
+              type,
+              enabled: true,
+              formalDescription: "",
+              source: "manual" as const,
+            },
+          ];
+
+      return { ...prev, securityGoals: updated };
+    });
+
     if (errors.securityGoals) {
       setErrors((prev) => ({ ...prev, securityGoals: "" }));
     }
@@ -140,12 +220,12 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
   const handleSecurityGoalDescription = (
     type: SecurityGoalType,
-    description: string
+    description: string,
   ) => {
     setEditedAsset((prev) => ({
       ...prev,
       securityGoals: prev.securityGoals.map((sg) =>
-        sg.type === type ? { ...sg, formalDescription: description } : sg
+        sg.type === type ? { ...sg, formalDescription: description } : sg,
       ),
     }));
   };
@@ -160,23 +240,65 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
   // ==================== COMPUTED ====================
 
-  const currentOverallImpact = useMemo(() => {
-    return calculateOverallImpact(
-      editedAsset.impactRatings,
-      configuration.calculationMethod
-    );
-  }, [editedAsset.impactRatings, configuration.calculationMethod]);
+  const currentOverallImpact = useMemo(
+    () =>
+      calculateOverallImpact(
+        editedAsset.impactRatings,
+        configuration.calculationMethod,
+      ),
+    [editedAsset.impactRatings, configuration.calculationMethod],
+  );
 
-  // Helper to get color for impact level
   const getImpactColor = (value: number): string => {
     const colors: Record<number, string[]> = {
       3: ["#22c55e", "#eab308", "#ef4444"],
       4: ["#22c55e", "#eab308", "#f97316", "#ef4444"],
       5: ["#22c55e", "#eab308", "#f97316", "#ef4444", "#a855f7"],
     };
-    const palette = colors[scale.levels.length] || colors[5];
-    return palette[Math.min(value - 1, palette.length - 1)] || "#6b7280";
+    const palette = colors[scale.levels.length] ?? colors[4];
+    return palette[Math.min(value - 1, palette.length - 1)] ?? "#6b7280";
   };
+
+  // Group DFD links by elementId — same logic as asset-table.tsx
+  const groupedDFDLinks = useMemo(() => {
+    const grouped = new Map<
+      string,
+      {
+        displayId: string;
+        elementName: string;
+        elementType: string;
+        assetGroup?: AssetGroup;
+        relations: string[];
+      }
+    >();
+
+    for (const link of editedAsset.linkedDFDElements ?? []) {
+      if (!link?.elementId) continue;
+      const existing = grouped.get(link.elementId);
+      if (existing) {
+        if (
+          link.relationType &&
+          !existing.relations.includes(link.relationType)
+        ) {
+          existing.relations.push(link.relationType);
+        }
+      } else {
+        grouped.set(link.elementId, {
+          displayId: link.displayId ?? link.elementId.slice(0, 8),
+          elementName: link.elementName ?? "",
+          elementType: link.elementType ?? "",
+          relations: link.relationType ? [link.relationType] : [],
+        });
+      }
+    }
+
+    return Array.from(grouped.values());
+  }, [editedAsset.linkedDFDElements]);
+
+  const hasSecurityGoalError = !!errors.securityGoals;
+  const enabledGoalCount = editedAsset.securityGoals.filter(
+    (sg) => sg.enabled,
+  ).length;
 
   // ==================== RENDER ====================
 
@@ -186,7 +308,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { maxHeight: "90vh" } }}
+      PaperProps={{ sx: { height: 780, maxHeight: "92vh" } }}
     >
       <DialogTitle>
         {isNew
@@ -199,196 +321,316 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
             })}
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Basic Info */}
-          <Box>
-            <Typography variant="subtitle2" gutterBottom>
-              {t("tabs.assets.dialog.basicInfo", {
-                defaultValue: "Basic Information",
-              })}
-            </Typography>
-
-            <Grid container spacing={2}>
-              <Grid item xs={3}>
-                <TextField
-                  label={t("tabs.assets.columns.id", { defaultValue: "ID" })}
-                  value={editedAsset.id}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={9}>
-                <TextField
-                  label={t("tabs.assets.columns.name", {
-                    defaultValue: "Name",
+      <DialogContent
+        dividers
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          p: 0,
+          overflow: "hidden",
+        }}
+      >
+        {/* Tabs */}
+        <Tabs
+          value={tabValue}
+          onChange={(_, v) => setTabValue(v)}
+          sx={{ borderBottom: 1, borderColor: "divider", px: 2, flexShrink: 0 }}
+        >
+          <Tab
+            label={t("tabs.assets.dialog.tabGeneral", {
+              defaultValue: "General & Rating",
+            })}
+          />
+          <Tab
+            label={
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <span>
+                  {t("tabs.assets.dialog.tabSecurityGoals", {
+                    defaultValue: "Security Goals",
                   })}
-                  value={editedAsset.name}
-                  onChange={(e) =>
-                    setEditedAsset({ ...editedAsset, name: e.target.value })
-                  }
-                  error={!!errors.name}
-                  helperText={errors.name}
-                  fullWidth
-                  size="small"
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label={t("tabs.assets.columns.description", {
-                    defaultValue: "Description",
-                  })}
-                  value={editedAsset.properties?.description}
-                  onChange={(e) =>
-                    setEditedAsset({
-                      ...editedAsset,
-                      properties: { description: e.target.value },
-                    })
-                  }
-                  fullWidth
-                  multiline
-                  rows={2}
-                  size="small"
-                />
-              </Grid>
-            </Grid>
-          </Box>
+                </span>
+                {enabledGoalCount > 0 && (
+                  <Chip
+                    label={enabledGoalCount}
+                    size="small"
+                    color={hasSecurityGoalError ? "error" : "primary"}
+                    sx={{
+                      height: 16,
+                      fontSize: 10,
+                      "& .MuiChip-label": { px: 0.75 },
+                    }}
+                  />
+                )}
+                {hasSecurityGoalError && enabledGoalCount === 0 && (
+                  <Chip
+                    label="!"
+                    size="small"
+                    color="error"
+                    sx={{
+                      height: 16,
+                      fontSize: 10,
+                      "& .MuiChip-label": { px: 0.75 },
+                    }}
+                  />
+                )}
+              </Stack>
+            }
+          />
+        </Tabs>
 
-          {/* Linked DFD Elements (read-only display) */}
-          {editedAsset.linkedDFDElements.length > 0 && (
-            <>
-              <Divider />
+        {/* Scrollable content area */}
+        <Box sx={{ flexGrow: 1, overflow: "auto", px: 3 }}>
+          {/* ── Tab 0: General & Rating ─────────────────────────────────── */}
+          <TabPanel value={tabValue} index={0}>
+            {/* Basic Info */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                {t("tabs.assets.dialog.basicInfo", {
+                  defaultValue: "Basic Information",
+                })}
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={3}>
+                  <TextField
+                    label={t("tabs.assets.columns.id", { defaultValue: "ID" })}
+                    value={editedAsset.id}
+                    disabled
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={9}>
+                  <TextField
+                    label={t("tabs.assets.columns.name", {
+                      defaultValue: "Name",
+                    })}
+                    value={editedAsset.name}
+                    onChange={(e) =>
+                      setEditedAsset({ ...editedAsset, name: e.target.value })
+                    }
+                    error={!!errors.name}
+                    helperText={errors.name}
+                    fullWidth
+                    size="small"
+                    required
+                    autoFocus
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label={t("tabs.assets.columns.description", {
+                      defaultValue: "Description",
+                    })}
+                    value={editedAsset.properties?.description ?? ""}
+                    onChange={(e) =>
+                      setEditedAsset({
+                        ...editedAsset,
+                        properties: {
+                          ...editedAsset.properties,
+                          description: e.target.value,
+                        },
+                      })
+                    }
+                    fullWidth
+                    multiline
+                    rows={2}
+                    size="small"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* DFD Links — same chip format as asset-table: "P-1: creates; reads" */}
+            {groupedDFDLinks.length > 0 && (
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
                   {t("tabs.assets.dialog.linkedElements", {
                     defaultValue: "Linked DFD Elements",
                   })}
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {editedAsset.linkedDFDElements.map((link) => (
-                    <Chip
-                      key={link.elementId}
-                      label={link.elementName}
-                      variant="outlined"
-                      size="small"
-                    />
-                  ))}
+                <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                  {groupedDFDLinks.map((link) => {
+                    const relStr =
+                      link.relations.length > 0
+                        ? link.relations.join("; ")
+                        : "–";
+                    const chipLabel = `${link.displayId}: ${relStr}`;
+                    return (
+                      <Tooltip
+                        key={link.displayId}
+                        arrow
+                        placement="top"
+                        title={
+                          <Box sx={{ p: 0.5 }}>
+                            <Typography
+                              variant="caption"
+                              fontWeight="bold"
+                              display="block"
+                            >
+                              {link.displayId}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              display="block"
+                              color="rgba(255,255,255,0.8)"
+                            >
+                              {link.elementName}
+                              {link.elementType ? ` [${link.elementType}]` : ""}
+                            </Typography>
+                          </Box>
+                        }
+                      >
+                        <Chip
+                          label={chipLabel}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            fontSize: "0.65rem",
+                            height: "auto",
+                            py: 0.25,
+                            fontFamily: "monospace",
+                            "& .MuiChip-label": {
+                              whiteSpace: "normal",
+                              lineHeight: 1.3,
+                            },
+                          }}
+                        />
+                      </Tooltip>
+                    );
+                  })}
                 </Stack>
               </Box>
-            </>
-          )}
+            )}
 
-          {/* Impact Ratings with Dropdowns */}
-          <Divider />
-          <Box>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Typography variant="subtitle2">
+            {/* Impact Ratings */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
                 {t("tabs.assets.dialog.impactRatings", {
                   defaultValue: "Impact Ratings",
                 })}
               </Typography>
-              <Chip
-                label={`${t("tabs.assets.dialog.overall", {
-                  defaultValue: "Overall",
-                })}: ${
-                  currentOverallImpact > 0
-                    ? currentOverallImpact.toFixed(1)
-                    : "-"
-                }`}
-                color={currentOverallImpact > 0 ? "primary" : "default"}
-                size="small"
-              />
-            </Box>
 
-            <Grid container spacing={2}>
-              {editedAsset.impactRatings.map((rating) => {
-                const criterion = PREDEFINED_IMPACT_CRITERIA.find(
-                  (c) => c.id === rating.criterionId,
-                );
-                const name = isGerman ? criterion?.nameDE : criterion?.name;
-                const description = isGerman
-                  ? criterion?.descriptionDE
-                  : criterion?.description;
+              <Grid container spacing={2}>
+                {editedAsset.impactRatings.map((rating) => {
+                  const criterion = PREDEFINED_IMPACT_CRITERIA.find(
+                    (c) => c.id === rating.criterionId,
+                  );
+                  const name = isGerman ? criterion?.nameDE : criterion?.name;
+                  const description = isGerman
+                    ? criterion?.descriptionDE
+                    : criterion?.description;
 
-                return (
-                  <Grid item xs={12} sm={6} md={4} key={rating.criterionId}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel id={`impact-${rating.criterionId}-label`}>
-                        {name}
-                      </InputLabel>
-                      <Select
-                        labelId={`impact-${rating.criterionId}-label`}
-                        value={rating.value}
-                        label={name}
-                        onChange={(e) =>
-                          handleImpactChange(rating.criterionId, e)
-                        }
-                        endAdornment={
-                          <Tooltip title={description || ""} placement="top">
-                            <IconButton size="small" sx={{ mr: 2 }}>
-                              <InfoIcon fontSize="small" color="action" />
-                            </IconButton>
+                  return (
+                    <Grid item xs={12} sm={6} md={4} key={rating.criterionId}>
+                      <Paper variant="outlined" sx={{ p: 1.5 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          sx={{ mb: 1 }}
+                        >
+                          <Typography
+                            variant="body2"
+                            fontWeight="medium"
+                            sx={{ flexGrow: 1 }}
+                          >
+                            {name}
+                          </Typography>
+                          <Tooltip title={description ?? ""} placement="top">
+                            <InfoIcon fontSize="small" color="action" />
                           </Tooltip>
-                        }
-                      >
-                        <MenuItem value={0}>
-                          <Typography color="text.disabled">-</Typography>
-                        </MenuItem>
-                        {scale.levels.map((level) => (
-                          <MenuItem key={level.value} value={level.value}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: "50%",
-                                  backgroundColor: getImpactColor(level.value),
-                                }}
-                              />
-                              <Typography>
-                                {level.value} -{" "}
-                                {isGerman ? level.labelDE : level.label}
-                              </Typography>
-                            </Box>
+                        </Stack>
+                        <Select
+                          value={rating.value}
+                          onChange={(e) =>
+                            handleImpactChange(
+                              rating.criterionId,
+                              e as SelectChangeEvent<number>,
+                            )
+                          }
+                          size="small"
+                          fullWidth
+                        >
+                          <MenuItem value={0}>
+                            <em>
+                              {t("tabs.assets.dialog.notRated", {
+                                defaultValue: "Not rated",
+                              })}
+                            </em>
                           </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          </Box>
+                          {scale.levels.map((level) => (
+                            <MenuItem key={level.value} value={level.value}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                              >
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: "50%",
+                                    backgroundColor: getImpactColor(
+                                      level.value,
+                                    ),
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span>
+                                  {level.value} -{" "}
+                                  {isGerman ? level.labelDE : level.label}
+                                </span>
+                              </Stack>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </Paper>
+                    </Grid>
+                  );
+                })}
+              </Grid>
 
-          <Divider />
+              {/* Overall Impact — colored Paper like risk-dialog */}
+              <Paper
+                sx={{
+                  p: 2,
+                  mt: 3,
+                  backgroundColor:
+                    currentOverallImpact > 0
+                      ? getImpactColor(Math.round(currentOverallImpact))
+                      : "grey.300",
+                  color: currentOverallImpact > 0 ? "white" : "text.secondary",
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="h6">
+                    {t("tabs.assets.dialog.overall", {
+                      defaultValue: "Overall",
+                    })}
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold">
+                    {currentOverallImpact > 0
+                      ? currentOverallImpact.toFixed(1)
+                      : "-"}
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                  {currentOverallImpact > 0
+                    ? (scale.levels.find(
+                        (l) => l.value === Math.round(currentOverallImpact),
+                      )?.[isGerman ? "labelDE" : "label"] ?? "")
+                    : t("tabs.assets.dialog.notRated", {
+                        defaultValue: "Not rated",
+                      })}
+                </Typography>
+              </Paper>
+            </Box>
+          </TabPanel>
 
-          {/* Security Goals */}
-          <Box>
-            <Typography variant="subtitle2" gutterBottom>
-              {t("tabs.assets.dialog.securityGoals", {
-                defaultValue: "Security Goals (CIANAAA)",
-              })}
-            </Typography>
-
+          {/* ── Tab 1: Security Goals ───────────────────────────────────── */}
+          <TabPanel value={tabValue} index={1}>
             {errors.securityGoals && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {errors.securityGoals}
-              </Alert>
+              <Alert severity="error">{errors.securityGoals}</Alert>
             )}
 
             {SECURITY_GOALS.map((goalDef) => {
@@ -396,6 +638,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                 (sg) => sg.type === goalDef.type,
               );
               const isEnabled = goal?.enabled ?? false;
+              const isSuggested = goal?.source === "suggested";
 
               return (
                 <Accordion
@@ -403,17 +646,17 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   defaultExpanded={isEnabled}
                   sx={{
                     mb: 1,
-                    // Visual indicator when enabled
                     ...(isEnabled && {
                       borderLeft: 3,
-                      borderColor: "primary.main",
+                      borderColor: isSuggested
+                        ? "secondary.main"
+                        : "primary.main",
                     }),
                   }}
                 >
                   <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     sx={{
-                      // Prevent accordion toggle when clicking checkbox area
                       "& .MuiAccordionSummary-content": {
                         alignItems: "center",
                       },
@@ -429,15 +672,35 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                       sx={{ mr: 1 }}
                     />
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body2" fontWeight="medium">
-                        {goalDef.type} -{" "}
-                        {isGerman ? goalDef.nameDE : goalDef.name}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" fontWeight="medium">
+                          {goalDef.type} –{" "}
+                          {isGerman ? goalDef.nameDE : goalDef.name}
+                        </Typography>
+                        {isEnabled && goal?.source && (
+                          <Chip
+                            label={
+                              isSuggested
+                                ? t("tabs.assets.tooltips.cianaaa.suggested", {
+                                    defaultValue: "Graph suggestion",
+                                  })
+                                : t("tabs.assets.tooltips.cianaaa.manual", {
+                                    defaultValue: "Manually set",
+                                  })
+                            }
+                            size="small"
+                            variant={isSuggested ? "outlined" : "filled"}
+                            color={isSuggested ? "secondary" : "primary"}
+                            sx={{ fontSize: "0.6rem", height: 18 }}
+                          />
+                        )}
+                      </Stack>
                       <Typography variant="caption" color="text.secondary">
                         {isGerman ? goalDef.descriptionDE : goalDef.description}
                       </Typography>
                     </Box>
                   </AccordionSummary>
+
                   <AccordionDetails>
                     <Box sx={{ display: "flex", gap: 1, alignItems: "start" }}>
                       <TextField
@@ -472,11 +735,40 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                         </IconButton>
                       </Tooltip>
                     </Box>
+
+                    {goal?.source === "manual" && (
+                      <TextField
+                        label={
+                          isGerman
+                            ? "Begründung (Abweichung)"
+                            : "Rationale (deviation)"
+                        }
+                        value={goal?.rationale ?? ""}
+                        onChange={(e) =>
+                          setEditedAsset((prev) => ({
+                            ...prev,
+                            securityGoals: prev.securityGoals.map((sg) =>
+                              sg.type === goalDef.type
+                                ? { ...sg, rationale: e.target.value }
+                                : sg,
+                            ),
+                          }))
+                        }
+                        fullWidth
+                        size="small"
+                        sx={{ mt: 1 }}
+                        placeholder={
+                          isGerman
+                            ? "Warum wurde dieses Schutzziel manuell gesetzt?"
+                            : "Why was this security goal set manually?"
+                        }
+                      />
+                    )}
                   </AccordionDetails>
                 </Accordion>
               );
             })}
-          </Box>
+          </TabPanel>
         </Box>
       </DialogContent>
 
@@ -490,6 +782,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+};;;
 
 export default AssetDialog;

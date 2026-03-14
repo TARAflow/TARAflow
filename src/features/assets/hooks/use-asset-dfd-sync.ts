@@ -130,9 +130,18 @@ export function useAssetDFDSync({
 
         if (existingIndex >= 0) {
           // Update existing asset
+          const existing = updatedAssets[existingIndex];
           updatedAssets[existingIndex] = {
-            ...updatedAssets[existingIndex],
-            name: dfdAsset.name || updatedAssets[existingIndex].name,
+            ...existing,
+            name:
+              dfdAsset.name === existing.name
+                ? existing.name // no change in DFD → keep Asset-Tab value
+                : dfdAsset.name || existing.name, // DFD changed → DFD wins
+            properties: {
+              ...existing.properties,
+              description:
+                dfdAsset.description ?? existing.properties?.description ?? "",
+            },
             linkedDFDElements,
             syncedWithDFD: true,
             lastModified: new Date().toISOString(),
@@ -143,7 +152,9 @@ export function useAssetDFDSync({
             id: dfdAsset.id,
             numericId: parseInt(dfdAsset.id.replace(/\D/g, ""), 10) || 0,
             name: dfdAsset.name || dfdAsset.id,
-            description: "",
+            properties: {
+              description: dfdAsset.description ?? "",
+            },
             impactRatings: assetData.configuration.impactCriteria.map(
               ({ id: criterionId }) => ({
                 criterionId,
@@ -222,7 +233,6 @@ export function useAssetDFDSync({
   /** Auto-sync when DFD data changes */
   useEffect(() => {
     if (!autoSync) return;
-    if (!initialSyncDoneRef.current) return;
     if (!dfdAssets || dfdAssets.length === 0) return;
     if (assetData.assets.length === 0) return;
 

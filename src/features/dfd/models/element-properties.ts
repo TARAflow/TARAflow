@@ -180,7 +180,8 @@ export interface DataFlowProperties {
     | "token"
     | "certificate"
     | "apikey"
-    | "oauth";
+    | "oauth"
+    | "mutual_tls";
 
   // EN 50742 Annex B — Exposure Level per connection
   // Analyst assigns EL based on which trust boundaries this flow crosses.

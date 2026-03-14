@@ -66,6 +66,15 @@ export function syncFromDFD(
         source: "dfd",
         syncedWithDFD: true,
         linkedDFDElements,
+        // Populate properties so asset-table can render the category
+        // colour (ID chip, Type column) and HVA star without falling
+        // back to the ID-prefix heuristic.
+        properties: {
+          description: dfdAsset.description ?? "",
+          category: dfdAsset.assetGroup,
+          protectionNeed: dfdAsset.protectionNeed,
+          isHighValueAsset: dfdAsset.isHighValueAsset ?? false,
+        },
       };
       updatedAssets = [...updatedAssets, newAsset];
       newAssetIds.push(dfdAsset.id);
@@ -77,6 +86,22 @@ export function syncFromDFD(
         name: dfdAsset.name ?? existing.name,
         syncedWithDFD: true,
         linkedDFDElements,
+        // Refresh DFD-owned fields in properties — category and isHighValueAsset
+        // can change in the DFD layer and must stay in sync.
+        // Analyst-set fields (description, owner, notes, …) are preserved via
+        // the spread of existing.properties below.
+        properties: {
+          ...existing.properties,
+          description:
+            existing.properties?.description ?? dfdAsset.description ?? "",
+          category: dfdAsset.assetGroup,
+          protectionNeed:
+            dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
+          isHighValueAsset:
+            dfdAsset.isHighValueAsset ??
+            existing.properties?.isHighValueAsset ??
+            false,
+        },
         // Recalculate impact with current config + criteria weights
         overallImpact: calculateOverallImpact(
           existing.impactRatings,

@@ -20,6 +20,7 @@ import type {
   DFDElementReference as AssetDFDElement,
   DFDConnectionReference as AssetDFDConnection,
   DFDElementLink,
+  AssetToAssetRelationReference,
 } from "./dfd-reference-types";
 
 // ==================== DFD INTERFACE TYPES (Asset's View) ====================
@@ -33,6 +34,7 @@ export type {
   AssetDFDElement,
   AssetDFDConnection,
   DFDElementLink,
+  AssetToAssetRelationReference,
 };
 
 // ==================== ASSET CONFIGURATION ====================
@@ -170,16 +172,13 @@ export interface Asset {
 export interface AssetData {
   /** Project-specific configuration */
   configuration: AssetConfiguration;
-  
+
   /** List of assets */
   assets: Asset[];
-  
+
   /** DFD image for preview (base64 or URL) */
   dfdPreviewImage?: string;
-  
-  /** Validation state */
-  validation?: AssetValidation;
-  
+
   /** Last modified timestamp */
   lastModified: string;
 }
@@ -239,6 +238,8 @@ export interface AssetProjectData {
   /** DFD connections for linking display */
   dfdConnections?: AssetDFDConnection[];
 
+  a2aRelations?: AssetToAssetRelationReference[];
+
   /** DFD preview image */
   dfdPreviewImage?: string;
 
@@ -252,15 +253,6 @@ export interface AssetUpdateResult {
   assets: AssetData;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
-}
-
-// ==================== ASSET TAB PROPS ====================
-
-export interface AssetTabProps {
-  project: AssetProjectData;
-  onUpdate: (updates: AssetUpdateResult) => void;
-  onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== HELPER FUNCTIONS ====================

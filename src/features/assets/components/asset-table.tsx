@@ -1,31 +1,51 @@
 // ==================== ASSET TABLE ====================
-// Displays assets in a MUI DataGrid with all columns
-// Compatible with @mui/x-data-grid v8
+// Displays assets in a MUI DataGrid
+//
+// Column order:
+//   ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Actions
+//
+// Fixes applied vs previous version:
+//   - ASSET_GROUP_CONFIG imported from "shared" (asset-color-constants.ts)
+//   - Category icons kept as local map (React elements cannot go in shared)
+//   - getCategoryFromAsset(): derives category from ID prefix (DA/SY/PR/IN/HU)
+//     → asset.category to survive any field-name variant
+//   - ID chip width 95 so content is never clipped
+//   - DFD Links tooltip uses JSX Box — plain "\n" strings are not rendered by MUI Tooltip
+//   - columnVisibilityModel controlled via useState → user toggles persist across renders
+//   - NO GridToolbar slot (causes "Component is not a function" crash in x-data-grid v7)
+//   - All hardcoded strings replaced with t() — no more isGerman ternaries for UI text
+//
+// Compatible with @mui/x-data-grid v7
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   DataGrid,
   GridColDef,
   GridActionsCellItem,
   GridRenderCellParams,
 } from "@mui/x-data-grid";
-import {
-  Box,
-  Chip,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Star as StarIcon,
+  LocalFireDepartment as FlameIcon,
+  AccountTree as DerivedIcon,
+  EditNote as ManualIcon,
+  TableRows as ShowColumnsIcon,
+  // Category icons — kept local, shared cannot hold React elements
+  Article as DataIcon,
+  Computer as SystemIcon,
+  Settings as ProcessIcon,
+  Dns as InfraIcon,
+  Person as HumanIcon,
 } from "@mui/icons-material";
 
-import { Asset, AssetConfiguration } from "../models/asset-types";
-
-import { DFDElementLink } from "../models/dfd-reference-types";
-
+import type { Asset, AssetConfiguration, AssetToAssetRelationReference } from "../models/asset-types";
+import type { DFDElementLink } from "../models/dfd-reference-types";
+import { getDownstreamCount } from "../utils/asset-graph-utils";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
@@ -37,47 +57,162 @@ import type {
 import { SECURITY_GOALS } from "../models/asset-security-goals-types";
 import { getImpactLevel } from "../services/asset-impact-calculator";
 
-
+// Import color config from shared — no dependency on dfd-types or relation-types
+import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 
 // ==================== TYPES ====================
 
-interface AssetTableProps {
+export interface AssetTableProps {
   assets: Asset[];
   configuration: AssetConfiguration;
+  a2aRelations?: AssetToAssetRelationReference[];
   onEdit: (asset: Asset) => void;
   onDelete: (assetId: string) => void;
 }
 
+// ==================== CATEGORY ICONS ====================
+// Icons cannot live in shared (React elements) — kept local and merged with ASSET_GROUP_CONFIG
+
+const ASSET_GROUP_ICONS: Record<AssetGroup, React.ReactElement> = {
+  data: <DataIcon sx={{ fontSize: 14 }} />,
+  system: <SystemIcon sx={{ fontSize: 14 }} />,
+  process: <ProcessIcon sx={{ fontSize: 14 }} />,
+  infrastructure: <InfraIcon sx={{ fontSize: 14 }} />,
+  human: <HumanIcon sx={{ fontSize: 14 }} />,
+};
+
+// ==================== CATEGORY LOOKUP ====================
+// Primary:  asset.properties.category  — set by asset-sync-service from dfdAsset.assetGroup
+// Fallback: ID prefix heuristic        — for assets in storage before the sync fix was deployed
+//   DA-xxx → data  |  SY-xxx → system  |  PR-xxx → process
+//   IN-xxx → infrastructure  |  HU-xxx → human
+
+const ID_PREFIX_TO_CATEGORY: Record<string, AssetGroup> = {
+  DA: "data",
+  SY: "system",
+  PR: "process",
+  IN: "infrastructure",
+  HU: "human",
+};
+
+function getCategoryFromAsset(asset: Asset): AssetGroup | undefined {
+  // 1. Canonical path — populated by asset-sync-service since sync fix
+  const fromProperties = asset.properties?.category;
+  if (fromProperties && fromProperties in ASSET_GROUP_CONFIG)
+    return fromProperties as AssetGroup;
+
+  // 2. Fallback: derive from ID prefix for legacy / manually-created assets
+  const prefix = asset.id?.split("-")[0]?.toUpperCase();
+  return prefix ? ID_PREFIX_TO_CATEGORY[prefix] : undefined;
+}
+
+// ==================== IMPACT STYLES ====================
+
+const AGGREGATED_IMPACT_STYLES: Record<
+  string,
+  { bg: string; color: string; labelKey: string }
+> = {
+  CRITICAL: { bg: "#ef4444", color: "#fff", labelKey: "tabs.assets.impactLabels.critical" },
+  "HIGH+":  { bg: "#f97316", color: "#fff", labelKey: "tabs.assets.impactLabels.highPlus" },
+  HIGH:     { bg: "#f59e0b", color: "#fff", labelKey: "tabs.assets.impactLabels.high" },
+  "MED+":   { bg: "#eab308", color: "#fff", labelKey: "tabs.assets.impactLabels.medPlus" },
+  MED:      { bg: "#64748b", color: "#fff", labelKey: "tabs.assets.impactLabels.med" },
+  LOW:      { bg: "#94a3b8", color: "#1e293b", labelKey: "tabs.assets.impactLabels.low" },
+};
+
+const PHYSICAL_IMPACT_STYLES: Record<string, { bg: string; color: string }> = {
+  CRITICAL: { bg: "#ef4444", color: "#fff" },
+  HIGH:     { bg: "#f59e0b", color: "#fff" },
+  MED:      { bg: "#64748b", color: "#fff" },
+  LOW:      { bg: "#94a3b8", color: "#1e293b" },
+};
+
+function getBusinessImpactBg(level: number, maxLevels: number): string {
+  const palettes: Record<number, string[]> = {
+    3: ["#22c55e", "#eab308", "#ef4444"],
+    4: ["#22c55e", "#eab308", "#f97316", "#ef4444"],
+    5: ["#22c55e", "#eab308", "#f97316", "#ef4444", "#a855f7"],
+  };
+  const palette = palettes[maxLevels] ?? palettes[4];
+  return palette[Math.min(level - 1, palette.length - 1)] ?? "#94a3b8";
+}
+
 // ==================== COMPONENT ====================
 
-export const AssetTable: React.FC<AssetTableProps> = ({
-  assets,
-  configuration,
-  onEdit,
-  onDelete,
-}) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
-    console.debug("AssetTable: Assets passed to the table:", assets);
+export const AssetTable = React.memo<AssetTableProps>(
+  ({ assets, configuration, a2aRelations = [], onEdit, onDelete }) => {
+    const { t, i18n } = useTranslation();
+    const isGerman = i18n.language === "de";
 
-  // ==================== COLUMNS ====================
+    // ── Column visibility ─────────────────────────────────────────────────
+    const factorFields = useMemo(
+      () => configuration.impactCriteria.map(({ id }) => `impact_${id}`),
+      [configuration.impactCriteria],
+    );
 
-  const columns = useMemo<GridColDef<Asset>[]>(() => {
-    const scale = IMPACT_SCALES[configuration.impactScale];
+    const [columnVisibilityModel, setColumnVisibilityModel] = useState<
+      Record<string, boolean>
+    >(() => Object.fromEntries(factorFields.map((f) => [f, false])));
 
-    // Base columns
-    const baseColumns: GridColDef<Asset>[] = [
-      {
+    const factorsVisible = factorFields.some(
+      (f) => columnVisibilityModel[f] !== false,
+    );
+
+    const handleToggleFactors = () => {
+      const next = !factorsVisible;
+      setColumnVisibilityModel((prev) => ({
+        ...prev,
+        ...Object.fromEntries(factorFields.map((f) => [f, next])),
+      }));
+    };
+
+    // ── Downstream counts (derived from Asset-to-Asset graph) ────────────
+    const downstreamCounts = useMemo(
+      () =>
+        Object.fromEntries(
+          assets.map((a) => [a.id, getDownstreamCount(a.id, a2aRelations)]),
+        ),
+      [assets, a2aRelations],
+    );
+
+    // ── Columns ───────────────────────────────────────────────────────────
+
+    const columns = useMemo<GridColDef<Asset>[]>(() => {
+      const scale = IMPACT_SCALES[configuration.impactScale];
+
+      // ── ID — colored chip using category color ─────────────────────────
+      const idColumn: GridColDef<Asset> = {
         field: "id",
-        headerName: t("tabs.assets.columns.id", { defaultValue: "ID" }),
-        width: 60,
+        headerName: t("tabs.assets.columns.id"),
+        width: 95,
         sortable: true,
-      },
-      {
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const category = getCategoryFromAsset(params.row);
+          const cfg = category ? ASSET_GROUP_CONFIG[category] : undefined;
+          return (
+            <Chip
+              label={params.value}
+              size="small"
+              variant="outlined"
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.72rem",
+                height: 20,
+                borderColor: cfg?.color ?? "#94a3b8",
+                color: cfg?.color ?? "#64748b",
+                "& .MuiChip-label": { px: 0.75 },
+              }}
+            />
+          );
+        },
+      };
+
+      // ── Name ───────────────────────────────────────────────────────────
+      const nameColumn: GridColDef<Asset> = {
         field: "name",
-        headerName: t("tabs.assets.columns.name", { defaultValue: "Name" }),
-        width: 120,
-        minWidth: 80,
+        headerName: t("tabs.assets.columns.name"),
+        width: 160,
+        minWidth: 100,
         sortable: true,
         renderCell: (params: GridRenderCellParams<Asset>) => (
           <Tooltip title={params.value || ""}>
@@ -93,578 +228,1032 @@ export const AssetTable: React.FC<AssetTableProps> = ({
             </Typography>
           </Tooltip>
         ),
-      },
-      {
-        field: "description",
-        headerName: t("tabs.assets.columns.description", {
-          defaultValue: "Description",
-        }),
-        flex: 2,
-        minWidth: 250,
-        sortable: false,
-        renderCell: (params: GridRenderCellParams<Asset>) => (
-          <Tooltip title={params.value || ""}>
-            <Typography
-              variant="body2"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {params.value || "-"}
+      };
+
+      // ── Type — icon + colored badge from ASSET_GROUP_CONFIG ────────────
+      const typeColumn: GridColDef<Asset> = {
+        field: "assetType",
+        headerName: t("tabs.assets.columns.type"),
+        width: 115,
+        sortable: true,
+        valueGetter: (params: { row: Asset }) =>
+          getCategoryFromAsset(params.row) ?? "",
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const category = getCategoryFromAsset(params.row);
+          if (!category)
+            return <Typography color="text.disabled">–</Typography>;
+
+          const cfg = ASSET_GROUP_CONFIG[category];
+          const icon = ASSET_GROUP_ICONS[category];
+          // cfg.label / cfg.labelDE come from shared constants — not i18n strings
+          const label = isGerman ? cfg.labelDE : cfg.label;
+
+          return (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Box sx={{ color: cfg.color, display: "flex" }}>{icon}</Box>
+              <Chip
+                label={label}
+                size="small"
+                sx={{
+                  backgroundColor: cfg.colorLight,
+                  color: cfg.color,
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                  height: 20,
+                  border: `1px solid ${cfg.color}44`,
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
+              />
+            </Stack>
+          );
+        },
+      };
+
+      // ── Individual Impact Factor Columns (hidden by default) ───────────
+      const impactFactorColumns: GridColDef<Asset>[] =
+        configuration.impactCriteria.map(({ id: criterionId }) => {
+          const criterion = PREDEFINED_IMPACT_CRITERIA.find(
+            (c) => c.id === criterionId,
+          );
+          // criterion name/description come from constant definitions — not i18n strings
+          const headerName = isGerman
+            ? (criterion?.nameDE ?? criterionId)
+            : (criterion?.name ?? criterionId);
+          const description = isGerman
+            ? (criterion?.descriptionDE ?? "")
+            : (criterion?.description ?? "");
+
+          return {
+            field: `impact_${criterionId}`,
+            headerName,
+            width: 80,
+            sortable: true,
+            align: "center" as const,
+            headerAlign: "center" as const,
+            hideable: true,
+            valueGetter: (params: { row: Asset }) =>
+              params.row.impactRatings?.find(
+                (r) => r.criterionId === criterionId,
+              )?.value ?? 0,
+            renderCell: (params: GridRenderCellParams<Asset>) => {
+              const value = params.value as number;
+              if (value === 0)
+                return <Typography color="text.disabled">–</Typography>;
+
+              const levelLabel = getImpactLevelLabel(value, scale, isGerman);
+              const bg = getImpactColorByLevel(value, scale.levels.length);
+
+              return (
+                <Tooltip
+                  arrow
+                  placement="top"
+                  title={
+                    <Box sx={{ p: 0.5 }}>
+                      <Typography variant="caption" fontWeight="bold" display="block">
+                        {headerName}
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        {description}
+                      </Typography>
+                      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                        {levelLabel} ({value})
+                      </Typography>
+                    </Box>
+                  }
+                >
+                  <Chip
+                    label={value}
+                    size="small"
+                    sx={{
+                      backgroundColor: bg,
+                      color: "#fff",
+                      fontWeight: "bold",
+                      minWidth: 28,
+                      height: 20,
+                      fontSize: "0.8rem",
+                      cursor: "help",
+                    }}
+                  />
+                </Tooltip>
+              );
+            },
+          };
+        });
+
+      // ── Safety Impact ──────────────────────────────────────────────────
+      const safetyImpactColumn: GridColDef<Asset> = {
+        field: "physicalImpact",
+        headerName: t("tabs.assets.columns.safetyImpact"),
+        width: 115,
+        sortable: true,
+        align: "center",
+        headerAlign: "center",
+        renderHeader: () => (
+          <Tooltip
+            arrow
+            placement="top"
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {t("tabs.assets.tooltips.safetyImpact.title")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  color="rgba(255,255,255,0.8)"
+                  sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                >
+                  {t("tabs.assets.tooltips.safetyImpact.description")}
+                </Typography>
+              </Box>
+            }
+          >
+            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+              {t("tabs.assets.columns.safetyImpact")}
             </Typography>
           </Tooltip>
         ),
-      },
-    ];
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const row = params.row;
+          const impact = row.physicalImpact as string | undefined;
+          const source = row.physicalImpactSource as "derived" | "manual" | undefined;
+          if (!impact) return <Typography color="text.disabled">–</Typography>;
 
-    // Impact criteria columns
-    const impactColumns: GridColDef<Asset>[] = configuration.impactCriteria.map(
-      ({ id: criterionId }) => {
-        const criterion = PREDEFINED_IMPACT_CRITERIA.find(
-          (c) => c.id === criterionId,
-        );
-        const name = isGerman
-          ? (criterion?.nameDE ?? criterionId)
-          : (criterion?.name ?? criterionId);
+          const style = PHYSICAL_IMPACT_STYLES[impact] ?? {
+            bg: "#94a3b8",
+            color: "#1e293b",
+          };
+          const isManual = source === "manual";
 
-        return {
-          field: `impact_${criterionId}`,
-          headerName: name,
-          width: 80,
-          sortable: true,
-          align: "center" as const,
-          headerAlign: "center" as const,
-          renderCell: (params: GridRenderCellParams<Asset>) => {
-            const row = params.row;
-            if (!row || !row.impactRatings) {
-              return <Typography color="text.disabled">-</Typography>;
+          return (
+            <Tooltip
+              arrow
+              placement="top"
+              title={
+                <Box sx={{ p: 0.5 }}>
+                  <Typography variant="caption" fontWeight="bold" display="block">
+                    {t("tabs.assets.tooltips.safetyImpact.title")}
+                  </Typography>
+                  <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                    {isManual ? (
+                      <ManualIcon sx={{ fontSize: 12, color: "#fbbf24" }} />
+                    ) : (
+                      <DerivedIcon sx={{ fontSize: 12, color: "#60a5fa" }} />
+                    )}
+                    <Typography variant="caption" color="rgba(255,255,255,0.8)">
+                      {t(
+                        isManual
+                          ? "tabs.assets.tooltips.safetyImpact.manual"
+                          : "tabs.assets.tooltips.safetyImpact.derived",
+                      )}
+                    </Typography>
+                  </Stack>
+                  {row.physicalImpactRationale && (
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      color="rgba(255,220,0,0.9)"
+                      sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                    >
+                      ℹ {row.physicalImpactRationale}
+                    </Typography>
+                  )}
+                </Box>
+              }
+            >
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <Chip
+                  label={impact}
+                  size="small"
+                  sx={{
+                    backgroundColor: style.bg,
+                    color: style.color,
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
+                    height: 20,
+                    cursor: "help",
+                  }}
+                />
+                <Box
+                  sx={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: isManual ? "#fbbf2422" : "#3b82f622",
+                    border: `1px solid ${isManual ? "#fbbf24" : "#3b82f6"}`,
+                  }}
+                >
+                  {isManual ? (
+                    <ManualIcon sx={{ fontSize: 9, color: "#fbbf24" }} />
+                  ) : (
+                    <DerivedIcon sx={{ fontSize: 9, color: "#60a5fa" }} />
+                  )}
+                </Box>
+              </Stack>
+            </Tooltip>
+          );
+        },
+      };
+
+      // ── Business Impact (Overall) ──────────────────────────────────────
+      const businessImpactColumn: GridColDef<Asset> = {
+        field: "overallImpact",
+        headerName: t("tabs.assets.columns.overallImpact"),
+        width: 115,
+        sortable: true,
+        align: "center",
+        headerAlign: "center",
+        renderHeader: () => (
+          <Tooltip
+            arrow
+            placement="top"
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {t("tabs.assets.tooltips.overallImpact.title")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  color="rgba(255,255,255,0.8)"
+                  sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                >
+                  {t("tabs.assets.tooltips.overallImpact.description")}
+                </Typography>
+              </Box>
             }
+          >
+            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+              {t("tabs.assets.columns.overallImpact")}
+            </Typography>
+          </Tooltip>
+        ),
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const value = params.value as number;
+          if (!value || value === 0)
+            return <Typography color="text.disabled">–</Typography>;
 
-            const rating = row.impactRatings.find(
-              (r) => r.criterionId === criterionId,
-            );
-            const value = rating?.value ?? 0;
+          const level = getImpactLevel(value, configuration.roundingMethod);
+          const bg = getBusinessImpactBg(level, scale.levels.length);
+          const scaleLevel = scale.levels.find((l) => l.value === Math.round(level));
+          const label = scaleLevel
+            ? isGerman
+              ? scaleLevel.labelDE
+              : scaleLevel.label
+            : "-";
 
-            if (value === 0) {
-              return <Typography color="text.disabled">-</Typography>;
+          const factorLines =
+            params.row.impactRatings
+              ?.filter((r) => r.value > 0)
+              .map(
+                (r) =>
+                  `${getCriterionLabel(r.criterionId, t)}: ${r.value.toFixed(1)}`,
+              ) ?? [];
+
+          const methodKey =
+            configuration.calculationMethod === "conservative"
+              ? "tabs.assets.tooltips.overallImpact.conservative"
+              : "tabs.assets.tooltips.overallImpact.average";
+
+          return (
+            <Tooltip
+              arrow
+              title={
+                <Box sx={{ whiteSpace: "pre-line" }}>
+                  <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+                    {t("tabs.assets.tooltips.overallImpact.title")}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="rgba(255,255,255,0.7)"
+                    sx={{ mb: 0.5 }}
+                  >
+                    {t(methodKey)}
+                  </Typography>
+                  {factorLines.join("\n")}
+                  <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          backgroundColor: bg,
+                          border: "1px solid rgba(255,255,255,0.5)",
+                        }}
+                      />
+                      <Typography variant="caption" fontWeight="bold">
+                        {label} ({value.toFixed(1)})
+                      </Typography>
+                    </Stack>
+                  </Box>
+                </Box>
+              }
+            >
+              <Chip
+                label={value.toFixed(1)}
+                size="small"
+                sx={{
+                  backgroundColor: bg,
+                  color: level >= 2 ? "#fff" : "#1e293b",
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  height: 20,
+                  cursor: "help",
+                }}
+              />
+            </Tooltip>
+          );
+        },
+      };
+
+      // ── Aggregated Impact ──────────────────────────────────────────────
+      const aggregatedImpactColumn: GridColDef<Asset> = {
+        field: "aggregatedImpact",
+        headerName: t("tabs.assets.columns.aggregatedImpact"),
+        width: 115,
+        sortable: true,
+        align: "center",
+        headerAlign: "center",
+        renderHeader: () => (
+          <Tooltip
+            arrow
+            placement="top"
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {t("tabs.assets.tooltips.aggregatedImpact.title")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  color="rgba(255,255,255,0.8)"
+                  sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                >
+                  {t("tabs.assets.tooltips.aggregatedImpact.description")}
+                </Typography>
+              </Box>
             }
+          >
+            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+              {t("tabs.assets.columns.aggregatedImpact")}
+            </Typography>
+          </Tooltip>
+        ),
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const row = params.row;
+          const agg = row.aggregatedImpact as string | undefined;
+          if (!agg) return <Typography color="text.disabled">–</Typography>;
 
-            const criterionInfo = getCriterionInfo(criterionId, isGerman);
-            const levelLabel = getImpactLevelLabel(value, scale, isGerman);
+          const style = AGGREGATED_IMPACT_STYLES[agg] ?? {
+            bg: "#94a3b8",
+            color: "#1e293b",
+            labelKey: agg,
+          };
 
+          const safetyOverrideActive =
+            (row as Asset & { safetyOverrideActive?: boolean })
+              .safetyOverrideActive ??
+            (row.physicalImpact === "CRITICAL" &&
+              row.physicalImpactSource !== "manual" &&
+              agg === "CRITICAL");
+
+          const displayLabel = t(style.labelKey, { defaultValue: agg });
+
+          return (
+            <Tooltip
+              arrow
+              placement="top"
+              title={
+                <Box sx={{ p: 0.5 }}>
+                  <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+                    {t("tabs.assets.tooltips.aggregatedImpact.title")}
+                  </Typography>
+                  <Typography variant="caption" display="block" color="rgba(255,255,255,0.7)">
+                    {t("tabs.assets.tooltips.aggregatedImpact.description")}
+                  </Typography>
+                  {safetyOverrideActive && (
+                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                      <FlameIcon sx={{ fontSize: 12, color: "#f87171" }} />
+                      <Typography variant="caption" color="#f87171" fontWeight="bold">
+                        {t("tabs.assets.tooltips.aggregatedImpact.safetyOverride")}
+                      </Typography>
+                    </Stack>
+                  )}
+                  {agg === "HIGH+" && (
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      color="rgba(255,220,0,0.9)"
+                      sx={{ mt: 0.5 }}
+                    >
+                      {t("tabs.assets.tooltips.aggregatedImpact.highPlus")}
+                    </Typography>
+                  )}
+                </Box>
+              }
+            >
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <Chip
+                  label={displayLabel}
+                  size="small"
+                  sx={{
+                    backgroundColor: style.bg,
+                    color: style.color,
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
+                    height: 20,
+                    cursor: "help",
+                    ...(agg === "CRITICAL" && {
+                      boxShadow: "0 0 0 2px #ef444455",
+                    }),
+                  }}
+                />
+                {safetyOverrideActive && (
+                  <FlameIcon sx={{ fontSize: 13, color: "#f87171" }} />
+                )}
+              </Stack>
+            </Tooltip>
+          );
+        },
+      };
+
+      // ── HVA ────────────────────────────────────────────────────────────
+      const hvaColumn: GridColDef<Asset> = {
+        field: "hva",
+        headerName: t("tabs.assets.columns.hva"),
+        width: 115,
+        sortable: true,
+        align: "center",
+        headerAlign: "center",
+        valueGetter: (params: { row: Asset }) =>
+          params.row.properties?.isHighValueAsset ? 1 : 0,
+        renderHeader: () => (
+          <Tooltip
+            arrow
+            placement="top"
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {t("tabs.assets.tooltips.hva.title")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  color="rgba(255,255,255,0.8)"
+                  sx={{ mt: 0.5, maxWidth: 240, whiteSpace: "normal" }}
+                >
+                  {t("tabs.assets.tooltips.hva.description")}
+                </Typography>
+                <Box sx={{ mt: 0.75 }}>
+                  {(["critical", "high", "medium", "low"] as const).map((lvl) => (
+                    <Typography key={lvl} variant="caption" display="block" sx={{ mt: 0.25 }}>
+                      {t(`tabs.assets.tooltips.hva.${lvl}`)}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            }
+          >
+            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+              {t("tabs.assets.columns.hva")}
+            </Typography>
+          </Tooltip>
+        ),
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          if (!params.row.properties?.isHighValueAsset)
+            return <Typography color="text.disabled">–</Typography>;
+          return (
+            <Tooltip
+              arrow
+              placement="top"
+              title={t("tabs.assets.tooltips.hva.title")}
+            >
+              <StarIcon sx={{ fontSize: 16, color: "#f59e0b" }} />
+            </Tooltip>
+          );
+        },
+      };
+
+      // ── Downstream ────────────────────────────────────────────────────
+      const downstreamColumn: GridColDef<Asset> = {
+        field: "downstream",
+        width: 200,
+        sortable: true,
+        align: "center",
+        headerAlign: "center",
+        valueGetter: (params: { row: Asset }) =>
+          downstreamCounts[params.row.id] ?? 0,
+        renderHeader: () => (
+          <Tooltip
+            arrow
+            placement="top"
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {t("tabs.assets.tooltips.downstream.title")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  color="rgba(255,255,255,0.8)"
+                  sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                >
+                  {t("tabs.assets.tooltips.downstream.description")}
+                </Typography>
+              </Box>
+            }
+          >
+            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+              {t("tabs.assets.columns.downstream")}
+            </Typography>
+          </Tooltip>
+        ),
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const count = downstreamCounts[params.row.id] ?? 0;
+          if (count === 0)
+            return <Typography color="text.disabled">–</Typography>;
+          return (
+            <Tooltip
+              arrow
+              placement="top"
+              title={t("tabs.assets.tooltips.downstream.count", { count })}
+            >
+              <Chip
+                label={count}
+                size="small"
+                sx={{
+                  backgroundColor: count >= 3 ? "#f97316" : "#64748b",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  height: 20,
+                  minWidth: 28,
+                  cursor: "help",
+                }}
+              />
+            </Tooltip>
+          );
+        },
+      };
+
+      // ── Security Goals (CIANAAA) ───────────────────────────────────────
+      const securityGoalsColumn: GridColDef<Asset> = {
+        field: "securityGoals",
+        headerName: t("tabs.assets.columns.securityGoals"),
+        width: 200,
+        sortable: false,
+        renderHeader: () => (
+          <Tooltip
+            arrow
+            placement="top"
+            title={
+              <Box sx={{ p: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {t("tabs.assets.tooltips.cianaaa.title")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  color="rgba(255,255,255,0.8)"
+                  sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                >
+                  {t("tabs.assets.tooltips.cianaaa.description")}
+                </Typography>
+              </Box>
+            }
+          >
+            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+              {t("tabs.assets.columns.securityGoals")}
+            </Typography>
+          </Tooltip>
+        ),
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const row = params.row;
+          if (!row?.securityGoals)
+            return <Typography color="text.disabled">–</Typography>;
+
+          const enabledGoals: SecurityGoal[] = row.securityGoals.filter(
+            (sg: SecurityGoal) => sg.enabled,
+          );
+          if (enabledGoals.length === 0)
+            return <Typography color="text.disabled">–</Typography>;
+
+          return (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ py: 0.5 }}
+            >
+              {enabledGoals.map((goal: SecurityGoal) => {
+                const isManual = goal.source === "manual";
+                const isSuggested = goal.source === "suggested";
+                const goalName = getSecurityGoalName(goal.type, isGerman);
+
+                return (
+                  <Tooltip
+                    key={goal.type}
+                    arrow
+                    placement="top"
+                    title={
+                      <Box sx={{ p: 0.5 }}>
+                        <Typography variant="caption" fontWeight="bold" display="block">
+                          {goalName}
+                        </Typography>
+                        {goal.source && (
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="rgba(255,255,255,0.75)"
+                          >
+                            {t(
+                              isManual
+                                ? "tabs.assets.tooltips.cianaaa.manual"
+                                : "tabs.assets.tooltips.cianaaa.suggested",
+                            )}
+                          </Typography>
+                        )}
+                        {goal.formalDescription && (
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            sx={{ mt: 0.5, maxWidth: 240, whiteSpace: "normal" }}
+                          >
+                            {goal.formalDescription}
+                          </Typography>
+                        )}
+                        {goal.rationale && (
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="rgba(255,220,0,0.9)"
+                            sx={{ mt: 0.5, maxWidth: 240, whiteSpace: "normal" }}
+                          >
+                            ℹ {goal.rationale}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  >
+                    <Chip
+                      label={goal.type}
+                      size="small"
+                      variant={isManual ? "filled" : "outlined"}
+                      color="primary"
+                      sx={{
+                        fontSize: "0.8rem",
+                        height: 20,
+                        fontWeight: isManual ? 700 : 400,
+                        cursor: "help",
+                        ...(isSuggested && {
+                          borderStyle: "dashed",
+                          opacity: 0.85,
+                        }),
+                      }}
+                    />
+                  </Tooltip>
+                );
+              })}
+            </Stack>
+          );
+        },
+      };
+
+      // ── DFD Links ─────────────────────────────────────────────────────
+      const linkedElementsColumn: GridColDef<Asset> = {
+        field: "linkedDFDElements",
+        headerName: t("tabs.assets.columns.linkedElements"),
+        width: 260,
+        minWidth: 180,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const row = params.row;
+          if (!row?.linkedDFDElements)
+            return <Typography color="text.disabled">–</Typography>;
+
+          const links: DFDElementLink[] = row.linkedDFDElements;
+          if (!Array.isArray(links) || links.length === 0) {
             return (
-              <Tooltip
-                title={
+              <Chip
+                label={t("tabs.assets.notLinked")}
+                size="small"
+                color="warning"
+                variant="outlined"
+                sx={{ fontSize: "0.65rem" }}
+              />
+            );
+          }
+
+          // Group multiple entries with same elementId into one chip
+          const grouped = new Map<
+            string,
+            { link: DFDElementLink; relations: string[] }
+          >();
+          for (const link of links) {
+            if (!link?.elementId) continue;
+            const existing = grouped.get(link.elementId);
+            if (existing) {
+              if (
+                link.relationType &&
+                !existing.relations.includes(link.relationType)
+              ) {
+                existing.relations.push(link.relationType);
+              }
+            } else {
+              grouped.set(link.elementId, {
+                link,
+                relations: link.relationType ? [link.relationType] : [],
+              });
+            }
+          }
+
+          const entries = Array.from(grouped.values());
+
+          return (
+            <Stack
+              direction="row"
+              spacing={0.5}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ py: 0.5 }}
+            >
+              {entries.map(({ link, relations }) => {
+                const displayId = link.displayId ?? link.elementId.slice(0, 8);
+                const relStr =
+                  relations.length > 0 ? relations.join("; ") : "–";
+                const chipLabel = `${displayId}: ${relStr}`;
+
+                const tooltipContent = (
                   <Box sx={{ p: 0.5 }}>
-                    <Typography variant="body2" fontWeight="bold" gutterBottom>
-                      {criterionInfo.name}
+                    <Typography variant="caption" fontWeight="bold" display="block">
+                      {displayId}
                     </Typography>
                     <Typography
                       variant="caption"
                       display="block"
-                      sx={{ mb: 1 }}
+                      color="rgba(255,255,255,0.8)"
                     >
-                      {criterionInfo.description}
+                      {link.elementName ?? ""}
+                      {link.elementType ? ` [${link.elementType}]` : ""}
                     </Typography>
-                    <Box
-                      sx={{
-                        pt: 1,
-                        borderTop: "1px solid rgba(255,255,255,0.3)",
-                      }}
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 12,
-                            height: 12,
-                            borderRadius: "50%",
-                            backgroundColor: getImpactColor(
-                              value,
-                              scale.levels.length,
-                            ),
-                            border: "1px solid rgba(255,255,255,0.5)",
-                          }}
-                        />
-                        <Typography variant="caption" fontWeight="bold">
-                          {levelLabel} ({value})
-                        </Typography>
-                      </Stack>
-                    </Box>
+                    {link.qualifier && (
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        color="rgba(255,220,0,0.9)"
+                        sx={{ mt: 0.25 }}
+                      >
+                        qualifier: {link.qualifier}
+                      </Typography>
+                    )}
                   </Box>
-                }
-                arrow
-                placement="top"
-              >
-                <Chip
-                  label={value}
-                  size="small"
-                  sx={{
-                    backgroundColor: getImpactColor(value, scale.levels.length),
-                    color: "white",
-                    fontWeight: "bold",
-                    minWidth: 28,
-                    cursor: "help",
-                  }}
-                />
-              </Tooltip>
-            );
-          },
-        };
-      },
-    );
+                );
 
-    // Overall impact column
-    const overallImpactColumn: GridColDef<Asset> = {
-      field: "overallImpact",
-      headerName: t("tabs.assets.columns.overallImpact", {
-        defaultValue: "Overall",
-      }),
-      width: 70,
-      sortable: true,
-      align: "center",
-      headerAlign: "center",
-      renderCell: (params: GridRenderCellParams<Asset>) => {
-        const value = params.value as number;
-        if (!value || value === 0) {
-          return <Typography color="text.disabled">-</Typography>;
-        }
-
-        const row = params.row;
-        const level = getImpactLevel(value, configuration.roundingMethod);
-        const levelLabel = getImpactLevelLabel(level, scale, isGerman);
-
-        // Build factor breakdown
-        const factorLines = row.impactRatings
-          .filter((r) => r.value > 0)
-          .map((rating) => {
-            const criterionInfo = getCriterionInfo(
-              rating.criterionId,
-              isGerman
-            );
-            return `${criterionInfo.name}: ${rating.value}`;
-          });
-
-        // Calculation method info
-        const methodLabel =
-          configuration.calculationMethod === "conservative"
-            ? isGerman
-              ? "Konservativ (Maximum)"
-              : "Conservative (Maximum)"
-            : isGerman
-            ? "Durchschnitt (Arithm. Mittel)"
-            : "Average (Arithmetic Mean)";
-
-        // Rounding method info
-        const roundingLabel =
-          configuration.roundingMethod === "ceil"
-            ? isGerman
-              ? "Konservativ"
-              : "Conservative"
-            : isGerman
-            ? "Standard"
-            : "Standard";
-
-        return (
-          <Tooltip
-            title={
-              <Box sx={{ p: 0.5 }}>
-                <Typography variant="body2" fontWeight="bold" gutterBottom>
-                  {t("tabs.assets.overallImpact", {
-                    defaultValue: "Overall Impact",
-                  })}
-                </Typography>
-                <Typography variant="caption" display="block">
-                  {t("tabs.assets.calculationMethod", {
-                    defaultValue: "Calculation",
-                  })}
-                  : {methodLabel}
-                </Typography>
-                <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-                  {t("tabs.assets.roundingMethod", {
-                    defaultValue: "Threshold",
-                  })}
-                  : {roundingLabel}
-                </Typography>
-
-                <Box sx={{ mb: 1 }}>
-                  <Typography
-                    variant="caption"
-                    fontWeight="bold"
-                    display="block"
+                return (
+                  <Tooltip
+                    key={link.elementId}
+                    title={tooltipContent}
+                    placement="top"
+                    arrow
                   >
-                    {t("tabs.assets.criteriaBreakdown", {
-                      defaultValue: "Criteria Breakdown:",
-                    })}
-                  </Typography>
-                  <Box sx={{ pl: 1, whiteSpace: "pre-line" }}>
-                    <Typography variant="caption">
-                      {factorLines.join("\n")}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box
-                  sx={{
-                    pt: 1,
-                    borderTop: "1px solid rgba(255,255,255,0.3)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box
+                    <Chip
+                      label={chipLabel}
+                      size="small"
+                      variant="outlined"
                       sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: "50%",
-                        backgroundColor: getImpactColor(
-                          level,
-                          scale.levels.length
-                        ),
-                        border: "1px solid rgba(255,255,255,0.5)",
+                        fontSize: "0.65rem",
+                        height: "auto",
+                        py: 0.25,
+                        cursor: "default",
+                        fontFamily: "monospace",
+                        "& .MuiChip-label": {
+                          whiteSpace: "normal",
+                          lineHeight: 1.3,
+                        },
                       }}
                     />
-                    <Typography variant="caption" fontWeight="bold">
-                      {levelLabel} ({value.toFixed(1)})
-                    </Typography>
-                  </Stack>
-                </Box>
-              </Box>
-            }
-            arrow
-            placement="top"
-          >
-            <Chip
-              label={value.toFixed(1)}
-              size="small"
-              sx={{
-                backgroundColor: getImpactColor(level, scale.levels.length),
-                color: "white",
-                fontWeight: "bold",
-                cursor: "help",
-              }}
-            />
-          </Tooltip>
-        );
-      },
-    };
-
-    // Security goals column (badges)
-    const securityGoalsColumn: GridColDef<Asset> = {
-      field: "securityGoals",
-      headerName: t("tabs.assets.columns.securityGoals", {
-        defaultValue: "Goals",
-      }),
-      width: 140,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<Asset>) => {
-        const row = params.row;
-        if (!row || !row.securityGoals) {
-          return <Typography color="text.disabled">-</Typography>;
-        }
-
-        const goals = row.securityGoals.filter(
-          (sg: SecurityGoal) => sg.enabled
-        );
-        if (goals.length === 0) {
-          return <Typography color="text.disabled">-</Typography>;
-        }
-
-        return (
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-            {goals.map((goal: SecurityGoal) => (
-              <Tooltip
-                key={goal.type}
-                title={getSecurityGoalName(goal.type, isGerman)}
-              >
-                <Chip
-                  label={goal.type}
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  sx={{ fontSize: "0.65rem", height: 20 }}
-                />
-              </Tooltip>
-            ))}
-          </Stack>
-        );
-      },
-    };
-
-    // Security goals text column (descriptions)
-    const securityGoalsTextColumn: GridColDef<Asset> = {
-      field: "securityGoalsText",
-      headerName: t("tabs.assets.columns.securityGoalsText", {
-        defaultValue: "Security Requirements",
-      }),
-      flex: 1.5,
-      minWidth: 200,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<Asset>) => {
-        const row = params.row;
-        if (!row || !row.securityGoals) {
-          return <Typography color="text.disabled">-</Typography>;
-        }
-
-        const goalsWithText = row.securityGoals.filter(
-          (sg: SecurityGoal) => sg.enabled && sg.formalDescription
-        );
-
-        if (goalsWithText.length === 0) {
-          return <Typography color="text.disabled">-</Typography>;
-        }
-
-        // Combine all descriptions with goal type prefix
-        const combinedText = goalsWithText
-          .map((sg: SecurityGoal) => `[${sg.type}] ${sg.formalDescription}`)
-          .join(" | ");
-
-        return (
-          <Tooltip title={combinedText}>
-            <Typography
-              variant="body2"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {combinedText}
-            </Typography>
-          </Tooltip>
-        );
-      },
-    };
-
-    // Linked DFD elements column
-    const linkedElementsColumn: GridColDef<Asset> = {
-      field: "linkedDFDElements",
-      headerName: t("tabs.assets.columns.linkedElements", {
-        defaultValue: "DFD Links",
-      }),
-      width: 120,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<Asset>) => {
-        const row = params.row;
-
-        if (!row || !row.linkedDFDElements) {
-          return <Typography color="text.disabled">-</Typography>;
-        }
-
-        const links: DFDElementLink[] = row.linkedDFDElements;
-        if (!Array.isArray(links) || links.length === 0) {
-          return (
-            <Chip
-              label={t("tabs.assets.notLinked", { defaultValue: "Not linked" })}
-              size="small"
-              color="warning"
-              variant="outlined"
-              sx={{ fontSize: "0.65rem" }}
-            />
-          );
-        }
-
-        return (
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-            {links.slice(0, 3).map((link, index) => {
-              if (!link || typeof link.displayId !== "string") {
-                console.warn(
-                  `Invalid link encountered at index ${index}:`,
-                  link,
+                  </Tooltip>
                 );
-                return null; // Überspringe ungültige Einträge
-              }
+              })}
+            </Stack>
+          );
+        },
+      };
 
-              const label =
-                link.displayId ||
-                (link.elementId ? link.elementId.slice(0, 8) : "Unknown"); // Fallback-Label
+      // ── Actions ────────────────────────────────────────────────────────
+      const actionsColumn: GridColDef<Asset> = {
+        field: "actions",
+        type: "actions",
+        headerName: t("common.actions", { defaultValue: "Actions" }),
+        width: 70,
+        getActions: (params) => [
+          <GridActionsCellItem
+            key="edit"
+            icon={<EditIcon />}
+            label={t("common.edit", { defaultValue: "Edit" })}
+            onClick={() => onEdit(params.row)}
+          />,
+          <GridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon />}
+            label={t("common.delete", { defaultValue: "Delete" })}
+            onClick={() => onDelete(params.row.id)}
+            showInMenu
+          />,
+        ],
+      };
 
-              return (
-                <Tooltip
-                  key={link.elementId || index} // Sicherer Fallback für key
-                  title={`${link.displayId || "Unknown"}: ${link.elementName || "No name"} [${
-                    link.elementType || "Unknown Type"
-                  }]`}
-                >
-                  <Chip
-                    label={label}
-                    size="small"
-                    variant="outlined"
-                    color="default"
-                    sx={{ fontSize: "0.65rem", height: 20 }}
-                  />
-                </Tooltip>
-              );
-            })}
+      // ── Column order ───────────────────────────────────────────────────
+      // ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Actions
+      return [
+        idColumn,
+        nameColumn,
+        typeColumn,
+        ...impactFactorColumns,
+        safetyImpactColumn,
+        businessImpactColumn,
+        aggregatedImpactColumn,
+        hvaColumn,
+        securityGoalsColumn,
+        downstreamColumn,
+        linkedElementsColumn,
+        actionsColumn,
+      ];
+    }, [configuration, t, isGerman, onEdit, onDelete, downstreamCounts]);
 
-            {links.length > 3 && (
-              <Tooltip
-                title={links
-                  .slice(3)
-                  .filter(
-                    (link) =>
-                      link?.displayId && link.elementName && link.elementType,
-                  )
-                  .map(
-                    (filteredLink) =>
-                      `${filteredLink.displayId}: ${filteredLink.elementName} [${filteredLink.elementType}]`,
-                  )
-                  .join(", ")}
-              >
-                <Chip
-                  label={`+${links.length - 3}`}
-                  size="small"
-                  sx={{ fontSize: "0.65rem", height: 20 }}
-                />
-              </Tooltip>
-            )}
-          </Stack>
-        );
-      },
-    };
+    // ==================== EMPTY STATE ====================
 
-    // Actions column
-    const actionsColumn: GridColDef<Asset> = {
-      field: "actions",
-      type: "actions",
-      headerName: t("common.actions", { defaultValue: "Actions" }),
-      width: 80,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditIcon />}
-          label={t("common.edit", { defaultValue: "Edit" })}
-          onClick={() => onEdit(params.row)}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon />}
-          label={t("common.delete", { defaultValue: "Delete" })}
-          onClick={() => onDelete(params.row.id)}
-          showInMenu
-        />,
-      ],
-    };
+    if (assets.length === 0) {
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            minHeight: 200,
+            color: "text.secondary",
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            {t("tabs.assets.noAssets")}
+          </Typography>
+          <Typography variant="body2">
+            {t("tabs.assets.noAssetsHint")}
+          </Typography>
+        </Box>
+      );
+    }
 
-    return [
-      ...baseColumns,
-      ...impactColumns,
-      overallImpactColumn,
-      securityGoalsColumn,
-      securityGoalsTextColumn,
-      linkedElementsColumn,
-      actionsColumn,
-    ];
-  }, [configuration, t, isGerman, onEdit, onDelete]);
+    // ==================== RENDER ====================
 
-  // ==================== RENDER ====================
-
-  if (assets.length === 0) {
     return (
       <Box
         sx={{
+          height: "100%",
+          width: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          minHeight: 200,
-          color: "text.secondary",
+          boxShadow: 1,
+          borderRadius: 1,
+          border: "1px solid",
+          borderColor: "divider",
+          overflow: "hidden",
         }}
       >
-        <Typography variant="h6" gutterBottom>
-          {t("tabs.assets.noAssets", { defaultValue: "No assets defined" })}
-        </Typography>
-        <Typography variant="body2">
-          {t("tabs.assets.noAssetsHint", {
-            defaultValue:
-              "Add assets manually or sync from DFD to get started.",
-          })}
-        </Typography>
+        {/* Factor Columns Toggle bar */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: 1,
+            py: 0.5,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            backgroundColor: "grey.50",
+          }}
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<ShowColumnsIcon />}
+            onClick={handleToggleFactors}
+            color={factorsVisible ? "primary" : "inherit"}
+            sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
+          >
+            {t(
+              factorsVisible
+                ? "tabs.assets.tooltips.hideFactors"
+                : "tabs.assets.tooltips.showFactors",
+            )}
+          </Button>
+        </Box>
+
+        {/* DataGrid */}
+        <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+          <DataGrid
+            rows={assets}
+            columns={columns}
+            columnVisibilityModel={columnVisibilityModel}
+            onColumnVisibilityModelChange={setColumnVisibilityModel}
+            getRowHeight={() => "auto"}
+            pageSizeOptions={[10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25 } },
+              sorting: {
+                sortModel: [{ field: "aggregatedImpact", sort: "desc" }],
+              },
+            }}
+            onRowClick={(params) => onEdit(params.row)}
+            disableRowSelectionOnClick
+            density="compact"
+            sx={{
+              border: "none",
+              "& .MuiDataGrid-cell": {
+                borderBottom: "1px solid",
+                borderColor: "divider",
+                py: 0.5,
+                alignItems: "center",
+              },
+              "& .MuiDataGrid-main": {
+                backgroundColor: "background.paper",
+              },
+              "& .MuiDataGrid-columnHeaders": {
+                borderBottom: "2px solid",
+                borderColor: "divider",
+                backgroundColor: "background.paper",
+              },
+              "& .MuiDataGrid-columnHeader": {
+                fontSize: "0.75rem",
+                fontWeight: 600,
+              },
+              "& .MuiDataGrid-row--criticalImpact": {
+                backgroundColor: "rgba(239,68,68,0.04)",
+              },
+              "& .MuiDataGrid-row:hover": { cursor: "pointer" },
+              "& .MuiDataGrid-footerContainer": {
+                borderTop: "1px solid",
+                borderColor: "divider",
+                minHeight: 40,
+              },
+            }}
+            getRowClassName={(params) =>
+              params.row.aggregatedImpact === "CRITICAL"
+                ? "MuiDataGrid-row--criticalImpact"
+                : ""
+            }
+          />
+        </Box>
       </Box>
     );
-  }
+  },
+);
 
-  return (
-    <Box sx={{ height: "100%", width: "100%" }}>
-      <DataGrid
-        rows={assets}
-        columns={columns}
-        pageSizeOptions={[10, 25, 50]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 25 } },
-          sorting: { sortModel: [{ field: "id", sort: "asc" }] },
-        }}
-        disableRowSelectionOnClick
-        density="compact"
-        sx={{
-          "& .MuiDataGrid-cell": {
-            py: 0.5,
-          },
-        }}
-      />
-    </Box>
-  );
-};
+AssetTable.displayName = "AssetTable";
 
-// ==================== HELPERS ====================
+export default AssetTable;
 
-function getImpactColor(value: number, maxLevels: number): string {
-  const colors: Record<number, string[]> = {
-    3: ["#22c55e", "#eab308", "#ef4444"], // green, yellow, red
-    4: ["#22c55e", "#eab308", "#f97316", "#ef4444"], // green, yellow, orange, red
-    5: ["#22c55e", "#eab308", "#f97316", "#ef4444", "#a855f7"], // +purple
-  };
-
-  const palette = colors[maxLevels] || colors[5];
-  return palette[Math.min(value - 1, palette.length - 1)] || "#6b7280";
-}
+// ==================== PURE HELPERS ====================
 
 function getSecurityGoalName(
   type: SecurityGoalType,
-  isGerman: boolean
+  isGerman: boolean,
 ): string {
   const goal = SECURITY_GOALS.find((g) => g.type === type);
-  return isGerman ? goal?.nameDE ?? type : goal?.name ?? type;
+  return isGerman ? (goal?.nameDE ?? type) : (goal?.name ?? type);
 }
 
-/**
- * Get impact level label (Low, Medium, High, Critical, Very High)
- */
+function getImpactColorByLevel(value: number, maxLevels: number): string {
+  const palettes: Record<number, string[]> = {
+    3: ["#22c55e", "#eab308", "#ef4444"],
+    4: ["#22c55e", "#eab308", "#f97316", "#ef4444"],
+    5: ["#22c55e", "#eab308", "#f97316", "#ef4444", "#a855f7"],
+  };
+  const palette = palettes[maxLevels] ?? palettes[4];
+  return palette[Math.min(value - 1, palette.length - 1)] ?? "#6b7280";
+}
+
 function getImpactLevelLabel(
   value: number,
   scale: (typeof IMPACT_SCALES)[keyof typeof IMPACT_SCALES],
-  isGerman: boolean
+  isGerman: boolean,
 ): string {
   if (value === 0) return "-";
-
   const level = scale.levels.find((l) => l.value === Math.round(value));
   if (!level) return value.toString();
-
   return isGerman ? level.labelDE : level.label;
 }
 
-/**
- * Get criterion info (name and description)
- */
-function getCriterionInfo(
-  criterionId: string,
-  isGerman: boolean
-): {
-  name: string;
-  description: string;
-} {
-  const criterion = PREDEFINED_IMPACT_CRITERIA.find(
-    (c) => c.id === criterionId
-  );
-  if (!criterion) {
-    return { name: criterionId, description: "" };
-  }
-
-  return {
-    name: isGerman ? criterion.nameDE : criterion.name,
-    description: isGerman ? criterion.descriptionDE : criterion.description,
-  };
+function getCriterionLabel(criterionId: string, t: TFunction): string {
+  return t(`tabs.assets.criterionLabels.${criterionId}`, {
+    defaultValue: criterionId,
+  });
 }
-
-export default AssetTable;

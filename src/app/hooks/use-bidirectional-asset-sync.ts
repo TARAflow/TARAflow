@@ -62,12 +62,20 @@ export function useBidirectionalAssetSync({
       }
       
       // Check if name differs
-      if (dfdAsset.name && dfdAsset.name !== asset.name) {
-        console.log(`[ASSET-SYNC] DFD→Assets: ${asset.id} name changed: "${asset.name}" → "${dfdAsset.name}"`);
-        
+      const nameChanged = dfdAsset.name && dfdAsset.name !== asset.name;
+      const dfdDescription = dfdAsset.description;
+      const descriptionChanged =
+        dfdDescription !== undefined &&
+        dfdDescription !== asset.properties?.description;
+
+      if (nameChanged || descriptionChanged) {
+        console.log(`[ASSET-SYNC] DFD→Assets: ${asset.id} changed`);
         assetsNeedingUpdate.push({
           ...asset,
-          name: dfdAsset.name,
+          name: nameChanged ? dfdAsset.name : asset.name,
+          properties: descriptionChanged
+            ? { ...asset.properties, description: dfdDescription }
+            : asset.properties,
           lastModified: new Date().toISOString(),
         });
       }
@@ -135,12 +143,20 @@ export function useBidirectionalAssetSync({
       }
       
       // Check if name differs
-      if (asset.name && asset.name !== dfdAsset.name) {
-        console.log(`[ASSET-SYNC] Assets→DFD: ${dfdAsset.id} name changed: "${dfdAsset.name}" → "${asset.name}"`);
-        
+      const nameChanged = asset.name && asset.name !== dfdAsset.name;
+      const assetDescription = asset.properties?.description;
+      const descriptionChanged =
+        assetDescription !== undefined &&
+        assetDescription !== dfdAsset.description;
+
+      if (nameChanged || descriptionChanged) {
+        console.log(`[ASSET-SYNC] Assets→DFD: ${dfdAsset.id} changed`);
         dfdAssetsNeedingUpdate.push({
           ...dfdAsset,
-          name: asset.name,
+          name: nameChanged ? asset.name : dfdAsset.name,
+          description: descriptionChanged
+            ? assetDescription
+            : dfdAsset.description,
         });
       }
     }

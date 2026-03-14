@@ -1218,14 +1218,84 @@
       "noDFDImageHint": "Speichern Sie das DFD, um ein Vorschaubild zu generieren",
       "exportAssets": "Export Assets",
       "importAssets": "Import Assets",
+      "validation": {
+        "noAssets": "Keine Assets definiert",
+        "noName": "Asset {{id}}: Name fehlt",
+        "noSecurityGoal": "Asset {{id}}: kein Schutzziel definiert",
+        "noSecurityGoalDescription": "Asset {{id}}: Schutzziel {{type}} hat keine formale Beschreibung",
+        "noPhysicalImpactRationale": "Asset {{id}}: manueller Safety Impact erfordert Rationale",
+        "notLinkedToDFD": "Asset {{id}}: nicht mit DFD-Element verknüpft",
+        "unratedImpact": "Asset {{id}}: unbewertete Impact-Faktoren vorhanden"
+      },
       "columns": {
         "id": "ID",
         "name": "Name",
+        "type": "Typ",
         "description": "Beschreibung",
+        "safetyImpact": "Safety",
         "overallImpact": "Gesamt",
+        "aggregatedImpact": "Aggregiert",
+        "hva": "HVA",
+        "downstream": "Downstream",
         "securityGoals": "Schutzziele",
-        "linkedElements": "DFD-Links",
+        "linkedElements": "DFD Links",
         "securityGoalsText": "Sicherheitsanforderungen"
+      },
+      "tooltips": {
+        "safetyImpact": {
+          "title": "Safety / Physischer Impact",
+          "derived": "Abgeleitet (Graph)",
+          "manual": "Manuell (Override)",
+          "description": "Abgeleitet aus DFD SafetyAnnotation via Graph-Traversierung. Manueller Override erfordert Rationale."
+        },
+        "overallImpact": {
+          "title": "Business Impact",
+          "conservative": "Konservativ (MAX)",
+          "average": "Gewichteter Mittelwert",
+          "description": "Berechnet aus allen konfigurierten Impact-Faktoren."
+        },
+        "aggregatedImpact": {
+          "title": "Aggregierter Impact",
+          "description": "Kombination aus Business + Safety Impact",
+          "safetyOverride": "Safety Override – direkter Sicherheitsbezug",
+          "highPlus": "Indirekter Sicherheitsbezug + HIGH Business Impact"
+        },
+        "hva": {
+          "title": "High-Value Asset",
+          "description": "Abgeleitet aus Impact-Faktoren + Wiederherstellbarkeit (replacementLeadTime, vendorDependency, spareAvailability). Löst Override-Regeln aus.",
+          "critical": "CRITICAL — Threat-Priorität wird auf CRITICAL gesetzt",
+          "high": "HIGH — Threat-Priorität wird auf CRITICAL gesetzt",
+          "medium": "MEDIUM — Threat-Priorität mindestens HIGH",
+          "low": "LOW — Nur informativ, kein Override"
+        },
+        "downstream": {
+          "title": "Downstream Assets",
+          "description": "Anzahl Assets die von diesem Asset abhängen (Asset-zu-Asset Graph, BFS-Traversierung). Höher = grösseres Propagationsrisiko.",
+          "count": "{{count}} abhängige Assets im Graphen"
+        },
+        "cianaaa": {
+          "title": "Schutzziele (CIANAAA)",
+          "description": "Abgeleitet aus Impact-Faktoren via CIANAAA-Regeln. Manueller Override möglich.",
+          "manual": "Manuell gesetzt",
+          "suggested": "Graph-Vorschlag"
+        },
+        "derived": "Abgeleitet (Graph)",
+        "manual": "Manuell (Override)",
+        "showFactors": "Faktoren anzeigen",
+        "hideFactors": "Faktoren ausblenden"
+      },
+      "criterionLabels": {
+        "financial_damage": "Finanziell",
+        "regulatory_compliance": "Regulatorik",
+        "reputation": "Reputation",
+        "privacy": "Datenschutz",
+        "operational": "Betrieb",
+        "affected_users": "Betr. Nutzer",
+        "recoverability": "Wiederherst.",
+        "safety": "Sicherheit",
+        "physical_damage": "Phys. Schaden",
+        "environmental": "Umwelt",
+        "supply_chain": "Lieferkette"
       },
       "dialog": {
         "createTitle": "Asset erstellen",
@@ -1236,7 +1306,10 @@
         "securityGoals": "Schutzziele (CIANAAA)",
         "formalDescription": "Formale Sicherheitsanforderung",
         "useTemplate": "Vorlage verwenden",
-        "linkedElements": "Verknüpfte DFD-Elemente"
+        "linkedElements": "Verknüpfte DFD-Elemente",
+        "tabGeneral": "Allgemein & Bewertung",
+        "tabSecurityGoals": "Schutzziele",
+        "notRated": "Nicht bewertet"
       },
       "config": {
         "title": "Asset Impact-Konfiguration",
@@ -1260,7 +1333,16 @@
         "roundingRoundDesc": "Symmetrische Schwellen bei .5",
         "roundingCeil": "Konservativ",
         "roundingCeilTitle": "Konservative Rundung (Math.ceil)",
-        "roundingCeilDesc": "Rundet immer auf höhere Risikostufe auf"
+        "roundingCeilDesc": "Rundet immer auf höhere Risikostufe auf",
+        "methodTab": "Methode & Anzeige",
+        "factorsTab": "Faktoren",
+        "weight": "Gewichtung",
+        "resetWeights": "Gewichtungen auf 1.0 zurücksetzen",
+        "criteriaCountInfo": "{{count}} Kriterien ausgewählt (empfohlen: {{min}}–{{max}})",
+        "safetyLocked": "Safety-Kriterium ist gesperrt — Graph enthält Safety-Annotationen",
+        "safetyLockedInfo": "Das \"Safety\"-Kriterium ist gesperrt, weil das DFD Safety-Annotationen enthält.",
+        "derived": "Graph-abgeleitet",
+        "weightsDisabled": "Gewichtungen sind im Konservativ-Modus (MAX) deaktiviert — wechsle zu Gewichtetem Mittelwert."
       },
       "dfdPreview": {
         "zoomIn": "Vergrössern",

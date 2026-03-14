@@ -1220,14 +1220,84 @@
       "noDFDImageHint": "Save the DFD to generate a preview image",
       "exportAssets": "Export Assets",
       "importAssets": "Import Assets",
+      "validation": {
+        "noAssets": "No assets defined",
+        "noName": "Asset {{id}}: name is missing",
+        "noSecurityGoal": "Asset {{id}}: no security goal defined",
+        "noSecurityGoalDescription": "Asset {{id}}: security goal {{type}} has no formal description",
+        "noPhysicalImpactRationale": "Asset {{id}}: manual safety impact requires rationale",
+        "notLinkedToDFD": "Asset {{id}}: not linked to any DFD element",
+        "unratedImpact": "Asset {{id}}: has unrated impact factors"
+      },
       "columns": {
         "id": "ID",
         "name": "Name",
+        "type": "Type",
         "description": "Description",
+        "safetyImpact": "Safety",
         "overallImpact": "Overall",
-        "securityGoals": "Security Goals",
+        "aggregatedImpact": "Aggregated",
+        "hva": "HVA",
+        "downstream": "Downstream",
+        "securityGoals": "Sec. Goals",
         "linkedElements": "DFD Links",
         "securityGoalsText": "Security Requirements"
+      },
+      "tooltips": {
+        "safetyImpact": {
+          "title": "Safety / Physical Impact",
+          "derived": "Derived (Graph)",
+          "manual": "Manual (Override)",
+          "description": "Derived from DFD SafetyAnnotation via graph traversal. Manual override requires rationale."
+        },
+        "overallImpact": {
+          "title": "Business Impact",
+          "conservative": "Conservative (MAX)",
+          "average": "Weighted Average",
+          "description": "Calculated from all configured impact factors."
+        },
+        "aggregatedImpact": {
+          "title": "Aggregated Impact",
+          "description": "Combined Business + Safety Impact",
+          "safetyOverride": "Safety Override – direct safety relevance",
+          "highPlus": "Indirect safety relevance + HIGH Business Impact"
+        },
+        "hva": {
+          "title": "High-Value Asset",
+          "description": "Derived from impact factors + recoverability (replacementLeadTime, vendorDependency, spareAvailability). Triggers override rules.",
+          "critical": "CRITICAL — Threat priority forced to CRITICAL",
+          "high": "HIGH — Threat priority forced to CRITICAL",
+          "medium": "MEDIUM — Threat priority minimum HIGH",
+          "low": "LOW — Informational only, no override"
+        },
+        "downstream": {
+          "title": "Downstream Assets",
+          "description": "Number of assets depending on this asset (Asset-to-Asset graph, BFS traversal). Higher = more propagation risk.",
+          "count": "{{count}} dependent assets in graph"
+        },
+        "cianaaa": {
+          "title": "Security Goals (CIANAAA)",
+          "description": "Derived from impact factors via CIANAAA rules. Manual override possible.",
+          "manual": "Manually set",
+          "suggested": "Graph suggestion"
+        },
+        "derived": "Derived (Graph)",
+        "manual": "Manual (Override)",
+        "showFactors": "Show Factors",
+        "hideFactors": "Hide Factors"
+      },
+      "criterionLabels": {
+        "financial_damage": "Financial",
+        "regulatory_compliance": "Regulatory",
+        "reputation": "Reputation",
+        "privacy": "Privacy",
+        "operational": "Operational",
+        "affected_users": "Affected Users",
+        "recoverability": "Recovery",
+        "safety": "Safety",
+        "physical_damage": "Phys. Damage",
+        "environmental": "Environment",
+        "supply_chain": "Supply Chain"
       },
       "dialog": {
         "createTitle": "Create Asset",
@@ -1239,7 +1309,10 @@
         "formalDescription": "Formal Security Requirement",
         "useTemplate": "Use template",
         "linkedElements": "Linked DFD Elements",
-        "tooManyCriteria": "You have selected more than 6 criteria..."
+        "tooManyCriteria": "You have selected more than 6 criteria...",
+        "tabGeneral": "General & Rating",
+        "tabSecurityGoals": "Security Goals",
+        "notRated": "Not rated"
       },
       "config": {
         "title": "Asset Impact Configuration",
@@ -1262,7 +1335,16 @@
         "roundingRoundDesc": "Symmetric thresholds at .5 boundaries",
         "roundingCeil": "Conservative",
         "roundingCeilTitle": "Conservative Rounding (Math.ceil)",
-        "roundingCeilDesc": "Always rounds up to higher risk level"
+        "roundingCeilDesc": "Always rounds up to higher risk level",
+        "methodTab": "Method & Display",
+        "factorsTab": "Factors",
+        "weight": "Weight",
+        "resetWeights": "Reset weights to 1.0",
+        "criteriaCountInfo": "{{count}} criteria selected (recommended: {{min}}–{{max}})",
+        "safetyLocked": "Safety criterion is locked — graph contains safety annotations",
+        "safetyLockedInfo": "The \"Safety\" criterion is locked ON because the DFD contains safety annotations.",
+        "derived": "Graph-derived",
+        "weightsDisabled": "Weights are disabled in Conservative (MAX) mode — switch to Weighted Mean to use them."
       },
       "dfdPreview": {
         "zoomIn": "Zoom In",

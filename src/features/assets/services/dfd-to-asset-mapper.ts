@@ -22,6 +22,8 @@ import type {
   DFDConnectionReference,
   DFDElementLink,
   SafetyAnnotationSummary,
+  A2ARelationType,
+  AssetToAssetRelationReference,
 } from "../models/dfd-reference-types";
 
 import type {
@@ -30,7 +32,10 @@ import type {
   DFDConnection,
 } from "../../dfd/models/dfd-types";
 
-import type { AssetRelation } from "../../dfd/models/asset-relation-types";
+import type {
+  AssetRelation,
+  AssetToAssetRelation,
+} from "../../dfd/models/asset-relation-types";
 import type { SafetyAnnotation } from "../../dfd/models/safety-types";
 
 import {
@@ -44,6 +49,7 @@ export interface DFDMappingResult {
   assetReferences: DFDAssetReference[];
   elementReferences: DFDElementReference[];
   connectionReferences: DFDConnectionReference[];
+  a2aRelations: AssetToAssetRelationReference[];
 }
 
 // ==================== SAFETY PROJECTION ====================
@@ -158,8 +164,14 @@ export function mapDFDToAssetReferences(dfd: DFDData): DFDMappingResult {
     displayId: asset.displayId,
     name: asset.name,
     description: asset.description,
+    // assetGroup is the canonical category field — used by Asset Tab for colour
+    // coding (ID chip, Type column) and for populating asset.properties.category
+    // in the sync service.
     assetGroup: asset.assetGroup,
     protectionNeed: asset.properties?.protectionNeed,
+    // isHighValueAsset forwarded so the sync service can write it into
+    // asset.properties.isHighValueAsset (HVA column in asset-table).
+    isHighValueAsset: asset.properties?.isHighValueAsset ?? false,
     linkedElements: linksByAssetId.get(asset.id) ?? [],
   }));
 
@@ -198,7 +210,23 @@ export function mapDFDToAssetReferences(dfd: DFDData): DFDMappingResult {
     }),
   );
 
-  return { assetReferences, elementReferences, connectionReferences };
+  // ── Collect: AssetToAssetRelations aus allen DFDAssets ────────
+  // assetToAssetRelations leben auf DFDAsset, nicht auf DFDData
+  const a2aRelations: AssetToAssetRelationReference[] = dfd.assets.flatMap(
+    (asset) =>
+      (asset.assetToAssetRelations ?? []).map((r) => ({
+        sourceAssetId: asset.id,
+        targetAssetId: r.targetAssetId,
+        relationType: r.relationType as A2ARelationType,
+      })),
+  );
+
+  return {
+    assetReferences,
+    elementReferences,
+    connectionReferences,
+    a2aRelations,
+  };
 }
 
 // ==================== INCREMENTAL HELPERS ====================
