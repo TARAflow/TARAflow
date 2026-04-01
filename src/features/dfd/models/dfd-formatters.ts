@@ -1,36 +1,23 @@
 // ==================== DFD FORMATTERS ====================
-// Formatting and text display functions for DFD elements
-// Single Responsibility: convert enum/type values to human-readable text
+// Formatting and text display functions for DFD elements.
+// Single Responsibility: convert enum/type values to human-readable text.
 
+import type { TFunction } from "i18next";
 import type { DFDElementType, SecurityLevel, TrustLevel } from "./dfd-types";
 import type { AssetGroup, AnyAssetRelationType } from "./asset-relation-types";
+import type { A2ARelationType } from "shared";
 import { DFD_ELEMENT_CONFIG } from "./dfd-constants";
-import {
-  DATA_RELATION_LABELS,
-  PROCESS_RELATION_LABELS,
-  SYSTEM_RELATION_LABELS,
-  INFRA_RELATION_LABELS,
-  HUMAN_RELATION_LABELS,
-  SYSTEM_USES_QUALIFIER_LABELS,
-  ASSET_GROUP_CONFIG,
-} from "./asset-constants";
-import type { SystemUsesQualifier } from "./asset-relation-types";
-
-// ==================== LANGUAGE TYPE ====================
+import { ASSET_GROUP_CONFIG } from "./asset-constants";
 
 export type DocLanguage = "en" | "de";
 
 // ==================== SECURITY LEVEL FORMATTERS ====================
 
-/**
- * Returns human-readable text for a security level
- */
 export function getSecurityLevelText(
   level: SecurityLevel | undefined,
   language: DocLanguage = "en"
 ): string {
   if (!level) return language === "de" ? "Keine" : "None";
-
   const labels: Record<SecurityLevel, { en: string; de: string }> = {
     public:       { en: "Public",       de: "Öffentlich" },
     internal:     { en: "Internal",     de: "Intern" },
@@ -42,15 +29,11 @@ export function getSecurityLevelText(
 
 // ==================== TRUST LEVEL FORMATTERS ====================
 
-/**
- * Returns human-readable text for a trust level
- */
 export function getTrustLevelText(
   level: TrustLevel | undefined,
   language: DocLanguage = "en"
 ): string {
   if (!level) return language === "de" ? "Unbekannt" : "Unknown";
-
   const labels: Record<TrustLevel, { en: string; de: string }> = {
     trusted:   { en: "Trusted",   de: "Vertrauenswürdig" },
     untrusted: { en: "Untrusted", de: "Nicht vertrauenswürdig" },
@@ -61,9 +44,6 @@ export function getTrustLevelText(
 
 // ==================== DFD ELEMENT TYPE FORMATTERS ====================
 
-/**
- * Returns the DFD element type text (singular)
- */
 export function getDFDElementTypeText(
   type: DFDElementType,
   language: DocLanguage = "en"
@@ -72,9 +52,6 @@ export function getDFDElementTypeText(
   return language === "de" ? config.nameDE : config.name;
 }
 
-/**
- * Returns the DFD element type text (plural, for section headers)
- */
 export function getDFDElementTypePluralText(
   type: DFDElementType,
   language: DocLanguage = "en"
@@ -94,20 +71,16 @@ export function getDFDElementTypePluralText(
 // ==================== ASSET GROUP FORMATTERS ====================
 
 /**
- * Display text for an asset group
- * Used in tab labels: [Data] [Systems] [Process] [Infra] [People]
+ * Display text for an asset group — reads from i18n.
+ * Key: assets.groups.<group>
  */
-export function getAssetGroupText(
-  group: AssetGroup,
-  language: DocLanguage = "en"
-): string {
-  const config = ASSET_GROUP_CONFIG[group];
-  return language === "de" ? config.labelDE : config.label;
+export function getAssetGroupText(group: AssetGroup, t: TFunction): string {
+  return t(`assets.groups.${group}`, { defaultValue: group });
 }
 
 /**
- * Colour configuration for an asset group
- * Used for DrawIO labels and UI badges
+ * Color configuration for an asset group.
+ * Still read from ASSET_GROUP_CONFIG — colors are not i18n concerns.
  */
 export function getAssetGroupColor(group: AssetGroup): {
   color: string;
@@ -119,78 +92,43 @@ export function getAssetGroupColor(group: AssetGroup): {
 
 // ==================== ASSET RELATION TYPE FORMATTERS ====================
 
-/**
- * Display text for a relation type — group-specific
- *
- * "monitors" has a different meaning in each group:
- * - Process group:  monitors the process
- * - System group:   reads system state
- * - Infra group:    monitors physical parameters
- *
- * Therefore assetGroup is a required parameter.
- *
- * @example
- * getRelationTypeText("monitors", "system")  // → "Monitors"
- * getRelationTypeText("monitors", "infra")   // → "Monitors" (Physical)
- */
 export function getRelationTypeText(
   relationType: AnyAssetRelationType,
   assetGroup: AssetGroup,
-  language: DocLanguage = "en"
+  t: TFunction,
 ): string {
-  switch (assetGroup) {
-    case "data": {
-      const label = DATA_RELATION_LABELS[relationType as keyof typeof DATA_RELATION_LABELS];
-      return label?.[language] ?? relationType;
-    }
-    case "process": {
-      const label = PROCESS_RELATION_LABELS[relationType as keyof typeof PROCESS_RELATION_LABELS];
-      return label?.[language] ?? relationType;
-    }
-    case "system": {
-      const label = SYSTEM_RELATION_LABELS[relationType as keyof typeof SYSTEM_RELATION_LABELS];
-      return label?.[language] ?? relationType;
-    }
-    case "infrastructure": {
-      const label = INFRA_RELATION_LABELS[relationType as keyof typeof INFRA_RELATION_LABELS];
-      return label?.[language] ?? relationType;
-    }
-    case "human": {
-      const label = HUMAN_RELATION_LABELS[relationType as keyof typeof HUMAN_RELATION_LABELS];
-      return label?.[language] ?? relationType;
-    }
-  }
+  return t(`assets.relations.element.${assetGroup}.${relationType}`, {
+    defaultValue: relationType,
+  });
+}
+
+export function getA2ARelationTypeText(
+  relationType: A2ARelationType,
+  t: TFunction,
+): string {
+  return t(`assets.relations.a2a.${relationType}`, {
+    defaultValue: relationType,
+  });
+}
+
+export function getQualifierText(
+  qualifier: string,
+  assetGroup: AssetGroup,
+  t: TFunction,
+): string {
+  return t(`assets.relations.qualifiers.${assetGroup}.${qualifier}`, {
+    defaultValue: qualifier,
+  });
 }
 
 /**
- * Display text for a System Uses qualifier
- *
- * @example
- * getSystemUsesQualifierText("authentication") // → "Authentication"
- */
-export function getSystemUsesQualifierText(
-  qualifier: SystemUsesQualifier,
-  language: DocLanguage = "en"
-): string {
-  return SYSTEM_USES_QUALIFIER_LABELS[qualifier]?.[language] ?? qualifier;
-}
-
-/**
- * Short label for DrawIO asset label display
+ * Short label for DrawIO asset label display.
  * Format: "[AssetId] [relationType]"
- *
- * @example
- * getDrawIOAssetLabel("A1", "reads", "data")     // → "A1 reads"
- * getDrawIOAssetLabel("S2", "uses", "system")    // → "S2 uses"
  */
 export function getDrawIOAssetLabel(
   assetDisplayId: string,
   relationType: AnyAssetRelationType,
-  assetGroup: AssetGroup
 ): string {
-  // is_an gets a special short label
-  if (relationType === "is_an") {
-    return `${assetDisplayId} ≡`;
-  }
+  if (relationType === "is_an") return `${assetDisplayId} ≡`;
   return `${assetDisplayId} ${relationType}`;
 }

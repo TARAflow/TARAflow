@@ -352,6 +352,56 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
               )}
             />
 
+            {/* Safety-relevant data */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.containsSafetyRelevantData || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "containsSafetyRelevantData",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.containsSafetyRelevantData.label",
+                {
+                  defaultValue:
+                    "Contains safety-relevant configuration data (EN 50742)",
+                },
+              )}
+            />
+
+            {props.containsSafetyRelevantData && (
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                label={t(
+                  "tabs.dfd.element_description.datastore.fields.safetyRationale.label",
+                  { defaultValue: "Safety Rationale" },
+                )}
+                value={props.safetyRationale ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("safetyRationale", e.target.value)
+                }
+                placeholder={t(
+                  "tabs.dfd.element_description.datastore.fields.safetyRationale.placeholder",
+                  {
+                    defaultValue:
+                      "e.g. Manipulation could disable emergency stop function",
+                  },
+                )}
+                helperText={t(
+                  "tabs.dfd.element_description.datastore.fields.safetyRationale.helper",
+                  { defaultValue: "Used in EN 50742 / MVO 2027 documentation" },
+                )}
+              />
+            )}
+
             {/* Owner */}
             <TextField
               fullWidth

@@ -49,20 +49,6 @@
     "title": "External Entity"
   },
   {
-    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"A-xx\" Type=\"Asset\" id=\"2\"&gt;&lt;mxCell style=\"text;html=1;strokeColor=#FF8000;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;strokeWidth=2;\" vertex=\"1\" parent=\"1\"&gt;&lt;mxGeometry width=\"50\" height=\"25\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
-    "w": 40,
-    "h": 20,
-    "aspect": "fixed",
-    "title": "Asset"
-  },
-  {
-    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"\" Type=\"Asset\" id=\"2\"&gt;&lt;mxCell style=\"group\" vertex=\"1\" connectable=\"0\" parent=\"1\"&gt;&lt;mxGeometry width=\"80\" height=\"63.01999999999998\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"Name\" Type=\"Asset\" id=\"3\"&gt;&lt;mxCell style=\"text;html=1;strokeColor=#FF8000;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;strokeWidth=2;\" vertex=\"1\" parent=\"2\"&gt;&lt;mxGeometry width=\"80\" height=\"40\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;mxCell id=\"4\" value=\"&amp;lt;span style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;A-xx&amp;lt;/span&amp;gt;\" style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=#E6E6E6;\" vertex=\"1\" parent=\"2\"&gt;&lt;mxGeometry x=\"23.370000000000005\" y=\"43\" width=\"33.26\" height=\"20.02\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
-    "w": 80,
-    "h": 60,
-    "aspect": "fixed",
-    "title": "Asset"
-  },
-  {
     "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"\" Type=\"Interface\" id=\"2\"&gt;&lt;mxCell style=\"group\" vertex=\"1\" connectable=\"0\" parent=\"1\"&gt;&lt;mxGeometry width=\"58\" height=\"60.079999999999984\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"Name\" Type=\"Interface\" id=\"3\"&gt;&lt;mxCell style=\"whiteSpace=wrap;html=1;aspect=fixed;dashed=1;strokeWidth=2;\" vertex=\"1\" parent=\"2\"&gt;&lt;mxGeometry width=\"38.92\" height=\"38.92\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;IF-xx&amp;lt;/font&amp;gt;\" Type=\"IdLabel\" id=\"4\"&gt;&lt;mxCell style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=#E6E6E6;\" vertex=\"1\" parent=\"2\"&gt;&lt;mxGeometry x=\"23\" y=\"42\" width=\"35\" height=\"18.08\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
     "w": 58,
     "h": 60.079999999999984,

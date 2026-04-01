@@ -8,7 +8,7 @@ import type {
   DFDStats,
   DFDValidation,
 } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 
 import {
   validateElements,
@@ -20,6 +20,8 @@ import {
   validateUnconnectedDataflows,
   validateUnconnectedElements,
 } from "./validators/connection-validator";
+import { validateDataflowLabels } from "./validators/dataflow-label-validator";
+import { validateDataflowProperties } from "./validators/dataflow-property-validator";
 import { validateAssetsAndInterfaces } from "./validators/asset-validator";
 import { validateAssetRelations } from "./validators/asset-relation-validator";
 import {
@@ -98,6 +100,8 @@ export class DFDValidator {
     validateDuplicateConnectionIdLabels(connections, warnings);
     validateUnconnectedDataflows(options?.unconnectedDataflows, warnings);
     validateUnconnectedElements(elements, connections, warnings);
+    validateDataflowLabels(connections, errors, warnings);
+    validateDataflowProperties(connections, errors, warnings);
 
     // 3. Validate Assets & Interfaces
     validateAssetsAndInterfaces(

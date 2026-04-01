@@ -18,7 +18,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
-  Autocomplete,
   Box,
   Button,
   Chip,
@@ -30,10 +29,16 @@ import {
   FormControl,
   IconButton,
   InputLabel,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
   MenuItem,
   Paper,
   Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -52,6 +57,8 @@ import type {
   AssetGroup,
   AssetRelation,
   InfraAccessesQualifier,
+  PhysicalContactQualifier,
+  ServiceUsesQualifier,
   SystemUsesQualifier,
 } from "../../models/asset-relation-types";
 import {
@@ -86,17 +93,23 @@ interface AssetRelationSelectorProps {
 
 const GROUP_LABEL: Record<AssetGroup, string> = {
   data: "Data Asset",
+  function: "Function Asset",
   system: "System Asset",
-  process: "Process Asset",
   infrastructure: "Infrastructure Asset",
+  process: "Process Asset",
+  physical: "Physical Asset",
+  service: "Service Asset",
   human: "Human Asset",
 };
 
 const RELATIONS_BY_GROUP: Record<AssetGroup, AnyAssetRelationType[]> = {
   data: ["creates", "reads", "modifies", "deletes", "stores", "transports"],
+  function: ["executes", "invokes", "implements", "monitors", "depends_on"],
   process: ["executes", "invokes", "terminates", "suspends", "monitors"],
   system: ["controls", "configures", "monitors", "uses", "depends_on"],
   infrastructure: ["accesses", "secures", "damages", "powers", "monitors"],
+  physical: ["accesses", "damages", "secures", "monitors"],
+  service: ["uses", "configures", "monitors", "depends_on"],
   human: [
     "affects_safety",
     "affects_privacy",
@@ -123,13 +136,39 @@ const SYSTEM_QUALIFIERS: { value: SystemUsesQualifier; label: string }[] = [
 ];
 
 const INFRA_QUALIFIERS: { value: InfraAccessesQualifier; label: string }[] = [
-  { value: "local", label: "Local — on-site physical access" },
+  { value: "on-site", label: "On-site — premises / facility access" },
+  { value: "proximity", label: "Proximity — RFID / WiFi range" },
   { value: "internal", label: "Internal — inside enclosure / panel" },
-  { value: "remote", label: "Remote — via network / VPN" },
+];
+
+const PHYSICAL_QUALIFIERS: {
+  value: PhysicalContactQualifier;
+  label: string;
+}[] = [
+  { value: "direct", label: "Direct — hands-on contact" },
+  { value: "indirect", label: "Indirect — proximity / sensor" },
+  { value: "remote", label: "Remote — networked component" },
+];
+
+const SERVICE_QUALIFIERS: { value: ServiceUsesQualifier; label: string }[] = [
+  { value: "api", label: "API (REST / SOAP / gRPC)" },
+  { value: "sdk", label: "SDK / Library" },
+  { value: "webhook", label: "Webhook (event-based)" },
+  { value: "managed", label: "Managed (no API access)" },
 ];
 
 const EMPTY_SAFETY: SafetyAnnotation = { relevance: "none" };
 const CREATE_NEW_ID = "__create_new__";
+const ASSET_GROUPS: AssetGroup[] = [
+  "data",
+  "function",
+  "system",
+  "infrastructure",
+  "process",
+  "physical",
+  "service",
+  "human",
+];
 
 // ==================== DATA MODEL ====================
 // Notes: per asset. Safety: per relation.
@@ -456,73 +495,54 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
         <Divider sx={{ my: 1 }} />
       )}
 
-      {/* ✅ Asset Relations Section */}
-      {(byAsset.size > isAnAssetIds.size || assetRelations.length === 0) && (
-        <>
-          <Typography
-            variant="overline"
-            sx={{
-              fontSize: 9,
-              letterSpacing: 1.2,
-              color: "text.secondary",
-              mb: 0.5,
-              display: "block",
-            }}
+      {/* Asset Relations Section — always visible so user can add more */}
+      <Stack spacing={0.75}>
+        {otherRows}
+
+        {/* Add button row */}
+        <Box>
+          {assetRelations.length === 0 && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontStyle: "italic", mr: 1 }}
+            >
+              {t("tabs.dfd.element_description.assetRelations.empty", {
+                defaultValue: "No asset relations defined.",
+              })}
+            </Typography>
+          )}
+          <Tooltip
+            title={t(
+              "tabs.dfd.element_description.assetRelations.addRelation",
+              {
+                defaultValue: "Add asset relation",
+              },
+            )}
           >
-            {t("tabs.dfd.element_description.assetRelations.relationsSection", {
-              defaultValue: "Asset Relations",
-            })}
-          </Typography>
-
-          <Stack spacing={0.75}>
-            {otherRows}
-
-            {/* Add button row */}
-            <Box>
-              {assetRelations.length === 0 && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontStyle: "italic", mr: 1 }}
-                >
-                  {t("tabs.dfd.element_description.assetRelations.empty", {
-                    defaultValue: "No asset relations defined.",
-                  })}
-                </Typography>
-              )}
-              <Tooltip
-                title={t(
-                  "tabs.dfd.element_description.assetRelations.addRelation",
-                  {
-                    defaultValue: "Add asset relation",
-                  },
-                )}
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    setDialogAssetId("");
-                    setDialogOpen(true);
-                  }}
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    border: "1px dashed",
-                    borderColor: "divider",
-                    color: "text.secondary",
-                    "&:hover": {
-                      borderColor: "primary.main",
-                      color: "primary.main",
-                    },
-                  }}
-                >
-                  <AddIcon sx={{ fontSize: 14 }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Stack>
-        </>
-      )}
+            <IconButton
+              size="small"
+              onClick={() => {
+                setDialogAssetId("");
+                setDialogOpen(true);
+              }}
+              sx={{
+                width: 24,
+                height: 24,
+                border: "1px dashed",
+                borderColor: "divider",
+                color: "text.secondary",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                },
+              }}
+            >
+              <AddIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Stack>
 
       <AssetRelationDialog
         open={dialogOpen}
@@ -555,10 +575,6 @@ interface AssetRelationDialogProps {
   onClose: () => void;
 }
 
-interface AssetOption extends AvailableAsset {
-  _group: string;
-}
-
 const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
   open,
   initialAssetId,
@@ -584,6 +600,7 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
 
   // Group-change warning: pending group the user wants to switch to
   const [pendingGroup, setPendingGroup] = useState<AssetGroup | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<AssetGroup>("data");
 
   const isCreatingNew = assetId === CREATE_NEW_ID;
   const isEditMode = !!initialAssetId;
@@ -595,6 +612,14 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
     setAssetNotes(extractAssetNotes(existingRelations, initialAssetId));
     setExpandedTypes(new Set());
     setNewAssetName("");
+    // Auto-select first group that has available assets
+    const firstAvailableGroup = ASSET_GROUPS.find(
+      (g) =>
+        availableAssets.filter(
+          (a) => !usedAssetIds.has(a.id) && a.assetGroup === g,
+        ).length > 0,
+    );
+    if (firstAvailableGroup) setSelectedGroup(firstAvailableGroup);
   }, [open, initialAssetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedAsset = isCreatingNew
@@ -603,30 +628,6 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
   const effectiveGroup: AssetGroup = isCreatingNew
     ? newAssetGroup
     : (selectedAsset?.assetGroup ?? "data");
-
-  // Autocomplete — exclude assets already used (add mode only)
-  const sentinelOption: AssetOption = useMemo(
-    () => ({
-      id: CREATE_NEW_ID,
-      displayId: "",
-      assetGroup: "data",
-      name: t("tabs.dfd.element_description.assetRelations.asset.createNew", {
-        defaultValue: "Create new asset…",
-      }),
-      _group: "──────────────",
-    }),
-    [t],
-  );
-
-  const autocompleteOptions = useMemo<AssetOption[]>(
-    () => [
-      ...availableAssets
-        .filter((a) => !usedAssetIds.has(a.id))
-        .map((a) => ({ ...a, _group: "Available assets" })),
-      sentinelOption,
-    ],
-    [availableAssets, usedAssetIds, sentinelOption],
-  );
 
   const availableTypes = useMemo<AnyAssetRelationType[]>(() => {
     const all: AnyAssetRelationType[] = [
@@ -757,81 +758,166 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
               </Paper>
             ) : (
               <Box>
-                <Autocomplete
-                  options={autocompleteOptions}
-                  getOptionLabel={(o) =>
-                    o.id === CREATE_NEW_ID
-                      ? o.name
-                      : `${o.displayId} · ${o.name}`
-                  }
-                  groupBy={(o) => o._group}
-                  value={
-                    assetId === CREATE_NEW_ID
-                      ? sentinelOption
-                      : (autocompleteOptions.find((a) => a.id === assetId) ??
-                        null)
-                  }
-                  onChange={(_, val) => {
-                    setAssetId(val?.id ?? "");
-                    setRelationMap(new Map());
-                    setNewAssetName("");
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={t(
-                        "tabs.dfd.element_description.assetRelations.asset.label",
-                        {
-                          defaultValue: "Asset",
-                        },
-                      )}
-                      required
-                      size="small"
-                    />
-                  )}
-                  renderOption={(props, opt) => {
-                    if (opt.id === CREATE_NEW_ID) {
-                      return (
-                        <li {...props} key={CREATE_NEW_ID}>
-                          <Typography
-                            variant="body2"
-                            color="primary"
-                            sx={{ fontStyle: "italic" }}
-                          >
-                            + {opt.name}
-                          </Typography>
-                        </li>
-                      );
-                    }
-                    const colors = getAssetGroupColor(opt.assetGroup ?? "data");
+                {/* Group tabs — only show groups with available assets */}
+                {(() => {
+                  const groupsWithAssets = ASSET_GROUPS.filter(
+                    (g) =>
+                      availableAssets.filter(
+                        (a) => !usedAssetIds.has(a.id) && a.assetGroup === g,
+                      ).length > 0,
+                  );
+                  if (groupsWithAssets.length === 0) {
                     return (
-                      <li {...props} key={opt.id}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: "50%",
-                              bgcolor: colors.color,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Box>
-                            <Typography variant="body2">
-                              <strong>{opt.displayId}</strong>&nbsp;{opt.name}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {GROUP_LABEL[opt.assetGroup]}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </li>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontStyle: "italic", p: 1 }}
+                      >
+                        {t(
+                          "tabs.dfd.element_description.assetRelations.asset.noAvailable",
+                          {
+                            defaultValue:
+                              "No assets available. Create assets in the DFD Asset Panel first.",
+                          },
+                        )}
+                      </Typography>
                     );
-                  }}
-                />
+                  }
+                  const assetsInGroup = availableAssets.filter(
+                    (a) =>
+                      !usedAssetIds.has(a.id) && a.assetGroup === selectedGroup,
+                  );
+                  return (
+                    <Stack spacing={1.5}>
+                      <Tabs
+                        value={
+                          groupsWithAssets.includes(selectedGroup)
+                            ? selectedGroup
+                            : groupsWithAssets[0]
+                        }
+                        onChange={(_, g) => {
+                          setSelectedGroup(g);
+                          setAssetId("");
+                          setRelationMap(new Map());
+                        }}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        sx={{
+                          borderBottom: 1,
+                          borderColor: "divider",
+                          minHeight: 36,
+                        }}
+                      >
+                        {groupsWithAssets.map((g) => {
+                          const count = availableAssets.filter(
+                            (a) =>
+                              !usedAssetIds.has(a.id) && a.assetGroup === g,
+                          ).length;
+                          const colors = getAssetGroupColor(g);
+                          return (
+                            <Tab
+                              key={g}
+                              value={g}
+                              sx={{ minHeight: 36, py: 0.5, fontSize: 12 }}
+                              label={
+                                <Stack
+                                  direction="row"
+                                  spacing={0.5}
+                                  alignItems="center"
+                                >
+                                  <span>{GROUP_LABEL[g]}</span>
+                                  <Chip
+                                    label={count}
+                                    size="small"
+                                    sx={{
+                                      height: 16,
+                                      fontSize: 10,
+                                      "& .MuiChip-label": { px: 0.5 },
+                                      bgcolor:
+                                        selectedGroup === g
+                                          ? colors.colorLight
+                                          : undefined,
+                                      color:
+                                        selectedGroup === g
+                                          ? colors.color
+                                          : undefined,
+                                    }}
+                                  />
+                                </Stack>
+                              }
+                            />
+                          );
+                        })}
+                      </Tabs>
+
+                      {/* Asset list for selected group */}
+                      <Box sx={{ maxHeight: 200, overflow: "auto" }}>
+                        {assetsInGroup.length === 0 ? (
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            sx={{ p: 1, display: "block" }}
+                          >
+                            No available assets in this group
+                          </Typography>
+                        ) : (
+                          <List dense disablePadding>
+                            {assetsInGroup.map((a) => {
+                              const isSelected = assetId === a.id;
+                              const colors = getAssetGroupColor(a.assetGroup);
+                              return (
+                                <ListItem key={a.id} disablePadding>
+                                  <ListItemButton
+                                    selected={isSelected}
+                                    onClick={() => {
+                                      setAssetId(a.id);
+                                      setRelationMap(new Map());
+                                    }}
+                                    sx={{
+                                      py: 0.5,
+                                      borderRadius: 0.5,
+                                      "&.Mui-selected": {
+                                        bgcolor: colors.colorLight,
+                                      },
+                                    }}
+                                  >
+                                    <ListItemText
+                                      primary={
+                                        <Stack
+                                          direction="row"
+                                          spacing={1}
+                                          alignItems="center"
+                                        >
+                                          <Typography
+                                            variant="caption"
+                                            sx={{
+                                              fontFamily: "monospace",
+                                              color: colors.color,
+                                              minWidth: 52,
+                                            }}
+                                          >
+                                            {a.displayId}
+                                          </Typography>
+                                          <Typography variant="body2">
+                                            {a.name || (
+                                              <em style={{ opacity: 0.5 }}>
+                                                unnamed
+                                              </em>
+                                            )}
+                                          </Typography>
+                                        </Stack>
+                                      }
+                                    />
+                                  </ListItemButton>
+                                </ListItem>
+                              );
+                            })}
+                          </List>
+                        )}
+                      </Box>
+                    </Stack>
+                  );
+                })()}
 
                 {/* Inline new-asset form */}
                 {isCreatingNew && onCreateAsset && (

@@ -431,6 +431,56 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
+            {/* Safety relevance */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.safetyRelevant || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "safetyRelevant",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.interface.fields.safetyRelevant.label",
+                {
+                  defaultValue:
+                    "Safety-relevant interface (EN 50742 — e.g. programming port on Safety PLC)",
+                },
+              )}
+            />
+
+            {props.safetyRelevant && (
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                label={t(
+                  "tabs.dfd.element_description.interface.fields.safetyRationale.label",
+                  { defaultValue: "Safety Rationale" },
+                )}
+                value={props.safetyRationale ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("safetyRationale", e.target.value)
+                }
+                placeholder={t(
+                  "tabs.dfd.element_description.interface.fields.safetyRationale.placeholder",
+                  {
+                    defaultValue:
+                      "e.g. Direct access to safety-critical programming interface",
+                  },
+                )}
+                helperText={t(
+                  "tabs.dfd.element_description.interface.fields.safetyRationale.helper",
+                  { defaultValue: "Used in EN 50742 / MVO 2027 documentation" },
+                )}
+              />
+            )}
+
             <TextField
               fullWidth
               size="small"

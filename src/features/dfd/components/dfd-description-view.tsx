@@ -39,7 +39,7 @@ import type {
   DFDConnection,
   DFDElementType,
 } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import { DFD_ELEMENT_CONFIG } from "../models/dfd-constants";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 
@@ -637,7 +637,10 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
         </AccordionSummary>
 
         <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
-          {renderForm()}
+          {/* Render form only when expanded — prevents all Selects/Tooltips from
+              creating Popper instances simultaneously (observed: 103+ resize listeners
+              from collapsed accordions). Cost: slight re-mount delay on first open. */}
+          {isExpanded && renderForm()}
         </AccordionDetails>
       </Accordion>
     );
@@ -735,16 +738,18 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
         </AccordionSummary>
 
         <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
-          <DataFlowDescriptionForm
-            connection={connection}
-            onChange={onUpdate}
-            crossesTrustBoundary={crossesTrustBoundary}
-            availableAssets={availableAssets}
-            defaultExposureLevel={
-              graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
-              undefined
-            }
-          />
+          {isExpanded && (
+            <DataFlowDescriptionForm
+              connection={connection}
+              onChange={onUpdate}
+              crossesTrustBoundary={crossesTrustBoundary}
+              availableAssets={availableAssets}
+              defaultExposureLevel={
+                graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
+                undefined
+              }
+            />
+          )}
         </AccordionDetails>
       </Accordion>
     );
@@ -833,13 +838,15 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
         </AccordionSummary>
 
         <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
-          <AssetDescriptionForm
-            asset={asset}
-            onChange={onUpdate}
-            onAssetFeatureUpdate={onAssetFeatureUpdate}
-            elements={elements}
-            connections={connections}
-          />
+          {isExpanded && (
+            <AssetDescriptionForm
+              asset={asset}
+              onChange={onUpdate}
+              onAssetFeatureUpdate={onAssetFeatureUpdate}
+              elements={elements}
+              connections={connections}
+            />
+          )}
         </AccordionDetails>
       </Accordion>
     );

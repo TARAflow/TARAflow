@@ -8,7 +8,7 @@ import type {
   TrustBoundaryProperties,
   ExposureLevel,
 } from "../models/element-properties";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import type {
   DFDGraph,
   DataFlowAnalysis,

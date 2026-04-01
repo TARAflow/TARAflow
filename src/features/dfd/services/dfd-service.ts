@@ -11,7 +11,7 @@ import {
   DFDElement,
   DFDConnection,
 } from "../models/dfd-types";
-import type { DFDAsset, ElementRelation } from "../models/asset-types";
+import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
 import { DFDParser, dfdParser } from "./dfd-parser";
 import { DFDValidator, dfdValidator, ValidationResult } from "./dfd-validator";
 import {

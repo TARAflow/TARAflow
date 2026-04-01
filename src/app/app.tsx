@@ -1,32 +1,31 @@
 import React from "react";
-//import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { MainLayout } from "app/components/layout/main-layout";
 
-
-
-// const router = createBrowserRouter([
-//     {
-//         path: "/",
-//         element: <Home />,
-//         errorElement: <NotFound />
-//     },
-//     {
-//         path: "/import",
-//         element: <Import />
-//     },
-//     {
-//         path: "/model",
-//         element: <Model />
-//     }
-// ]);
+// Minimal MUI theme — primary purpose is to disable Popper's window resize
+// listener globally. Without this, every Tooltip/Select/Menu re-render
+// registers a new debounced resize listener without removing the old one,
+// causing accumulation (242+ listeners observed in production).
+const appTheme = createTheme({
+  components: {
+    MuiPopper: {
+      defaultProps: {
+        modifiers: [
+          { name: "eventListeners", options: { resize: false } },
+        ],
+      },
+    },
+  },
+});
 
 function App() {
-    return (
-       // <RouterProvider router={router} />
-        <div className="App">
-            <MainLayout />
-        </div>
-    );
+  return (
+    <ThemeProvider theme={appTheme}>
+      <div className="App">
+        <MainLayout />
+      </div>
+    </ThemeProvider>
+  );
 }
 
 export default App;

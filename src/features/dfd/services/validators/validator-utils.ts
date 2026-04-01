@@ -44,6 +44,45 @@ export const ValidationMessages = {
   ELEMENT_DEFAULT_NAME: "dfdValidation.elementDefaultName",
   ELEMENT_MISSING_IDLABEL: "dfdValidation.elementMissingIdLabel",
   DUPLICATE_IDLABEL: "dfdValidation.duplicateIdLabel",
+
+  // ── Label ───────────────────────────────────────────────────────────────
+  DF_EMPTY_LABEL: "tabs.dfd.validation.df.label.empty",
+  DF_DEPRECATED_VERB: "tabs.dfd.validation.df.label.deprecatedVerb",
+  DF_UNKNOWN_VERB: "tabs.dfd.validation.df.label.unknownVerb",
+  DF_MISSING_OBJECT: "tabs.dfd.validation.df.label.missingObject",
+
+  // ── Pull ────────────────────────────────────────────────────────────────
+  DF_PULL_MISSING_FLOW_TYPE: "tabs.dfd.validation.df.pull.missingFlowType",
+  DF_PULL_INVALID_FLOW_TYPE: "tabs.dfd.validation.df.pull.invalidFlowType",
+  DF_PULL_MISSING_RESPONSE: "tabs.dfd.validation.df.pull.missingResponse",
+  DF_PULL_MULTIPLE_RESPONSES: "tabs.dfd.validation.df.pull.multipleResponses",
+  DF_PULL_ORPHANED_RESPONSE: "tabs.dfd.validation.df.pull.orphanedResponse",
+
+  // ── Push ────────────────────────────────────────────────────────────────
+  DF_PUSH_MISSING_CMD: "tabs.dfd.validation.df.push.missingCmd",
+  DF_PUSH_INVALID_FLOW_TYPE: "tabs.dfd.validation.df.push.invalidFlowType",
+
+  // ── Write ───────────────────────────────────────────────────────────────
+  DF_WRITE_REDUNDANT_FLOW_TYPE:
+    "tabs.dfd.validation.df.write.redundantFlowType",
+
+  // ── Stream ──────────────────────────────────────────────────────────────
+  DF_STREAM_INVALID_FLOW_TYPE: "tabs.dfd.validation.df.stream.invalidFlowType",
+
+  // ── Properties ──────────────────────────────────────────────────────────
+  DF_PROP_BIDIRECTIONAL_FORBIDDEN:
+    "tabs.dfd.validation.df.prop.bidirectionalForbidden",
+  DF_PROP_PULL_NOT_REQRESP: "tabs.dfd.validation.df.prop.pullNotReqResp",
+  DF_PROP_PUSH_IS_REQRESP: "tabs.dfd.validation.df.prop.pushIsReqResp",
+  DF_PROP_PUSH_WRONG_DIRECTION:
+    "tabs.dfd.validation.df.prop.pushWrongDirection",
+  DF_PROP_WRITE_IS_REQRESP: "tabs.dfd.validation.df.prop.writeIsReqResp",
+  DF_PROP_WRITE_NOT_DATASTORE: "tabs.dfd.validation.df.prop.writeNotDatastore",
+  DF_PROP_STREAM_NOT_CONTINUOUS:
+    "tabs.dfd.validation.df.prop.streamNotContinuous",
+  DF_PROP_STREAM_IS_REQRESP: "tabs.dfd.validation.df.prop.streamIsReqResp",
+  DF_PROP_CONTINUOUS_USE_STREAM:
+    "tabs.dfd.validation.df.prop.continuousUseStream",
 } as const;
 
 /**

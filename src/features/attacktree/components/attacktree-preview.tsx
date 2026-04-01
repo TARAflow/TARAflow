@@ -67,13 +67,17 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const renderTreeRef = useRef<(() => void) | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("tree");
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [currentTransform, setCurrentTransform] = useState<d3.ZoomTransform>(
-    d3.zoomIdentity
+    d3.zoomIdentity,
   );
-
+  React.useEffect(() => {
+    console.log("🔥 AttackTreePreview MOUNT");
+    return () => console.log("❌ AttackTreePreview UNMOUNT");
+  }, []);
   // ==================== D3 TREE RENDERING ====================
 
   const renderTree = useCallback(() => {
@@ -271,7 +275,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       .text((d) => {
         const result = calculateRiskLevel(d.data.riskScore!, evaluationMethod);
         return `${getRiskScoreEmoji(result.level)} ${d.data.riskScore!.toFixed(
-          1
+          1,
         )}`;
       });
 
@@ -307,7 +311,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
           "transform",
           `translate(${event.transform.x + initialX}, ${
             event.transform.y + initialY
-          }) scale(${event.transform.k})`
+          }) scale(${event.transform.k})`,
         );
 
         setCurrentTransform(event.transform);
@@ -317,6 +321,12 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     zoomRef.current = zoomBehavior;
   }, [ast, evaluationMethod, highlightCriticalPath, onNodeSelect]);
 
+  // Keep ref in sync with latest renderTree — allows resize handler to always
+  // call the current version without re-registering the listener.
+  useEffect(() => {
+    renderTreeRef.current = renderTree;
+  }, [renderTree]);
+
   // Re-render on changes
   useEffect(() => {
     if (viewMode === "tree") {
@@ -324,17 +334,20 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     }
   }, [renderTree, viewMode]);
 
-  // Handle resize
+  // Handle resize — registered exactly once (on mount), never re-runs.
+  // Reads renderTreeRef.current so it always has the latest renderTree.
+  // This fixes the 242-listener accumulation caused by [renderTree] dependency
+  // recreating the effect on every parent render.
   useEffect(() => {
     const handleResize = () => {
-      if (viewMode === "tree") {
-        renderTree();
+      if (renderTreeRef.current) {
+        renderTreeRef.current();
       }
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [renderTree, viewMode]);
+  }, []); // empty — registers exactly once, cleans up on unmount
 
   useEffect(() => {
     return () => {

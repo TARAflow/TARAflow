@@ -23,13 +23,12 @@ import {
   Grid,
 } from "@mui/material";
 import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
-import type { DFDElement } from "../../models/dfd-types";
+import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type { ExternalEntityProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
-import {
-  AssetRelationSelector,
-  type AvailableAsset,
-} from "./asset-relation-selector";
+import { type AvailableAsset } from "./asset-relation-selector";
+import { ElementFormShell } from "./element-form-shell";
+import { useElementForm } from "../../hooks/use-element-form";
 
 import { EXTERNAL_ENTITY_TYPE_DEFAULTS } from "../../models/element-property-defaults";
 
@@ -37,37 +36,35 @@ interface ExternalEntityFormProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
   availableAssets?: AvailableAsset[];
+  onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
+}
+
+// ==================== GENERAL TAB ====================
+
+interface ExternalEntityGeneralTabProps {
+  element: DFDElement;
+  onChange: (updates: Partial<DFDElement>) => void;
 }
 
 function asExternalEntityProperties(props: any): ExternalEntityProperties {
   return props as ExternalEntityProperties;
 }
 
-export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = ({
+const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
   element,
   onChange,
-  availableAssets = [],
 }) => {
   const { t } = useTranslation();
   const props = asExternalEntityProperties(element.properties);
+  const form = useElementForm<ExternalEntityProperties>(element, onChange);
 
   // Local state for multiline fields
-  const [localDescription, setLocalDescription] = React.useState(
-    element.description || "",
-  );
   const [localAuthScope, setLocalAuthScope] = React.useState(
     props.authorizationScope || "",
   );
   const [localOwner, setLocalOwner] = React.useState(props.owner || "");
-  const [localNotes, setLocalNotes] = React.useState(
-    element.properties.notes || "",
-  );
 
   // Sync when element changes
-  React.useEffect(() => {
-    setLocalDescription(element.description || "");
-  }, [element.description]);
-
   React.useEffect(() => {
     setLocalAuthScope(props.authorizationScope || "");
   }, [props.authorizationScope]);
@@ -75,10 +72,6 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
   React.useEffect(() => {
     setLocalOwner(props.owner || "");
   }, [props.owner]);
-
-  React.useEffect(() => {
-    setLocalNotes(element.properties.notes || "");
-  }, [element.properties.notes]);
 
   const threatActorOptions: ExternalEntityProperties["threatActor"][] = [
     "benign",
@@ -127,23 +120,6 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
         {t("tabs.dfd.element_description.external_entity.sections.required")}
       </Typography>
 
-      <RichTextEditor
-        value={localDescription}
-        onChange={setLocalDescription}
-        onBlur={() => {
-          if (localDescription !== element.description) {
-            handlePropertyChange("description", localDescription);
-          }
-        }}
-        label={t(
-          "tabs.dfd.element_description.external_entity.fields.description.label",
-        )}
-        required
-        helperText={t(
-          "tabs.dfd.element_description.external_entity.fields.description.helperText",
-        )}
-      />
-
       <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel>
           {t(
@@ -176,8 +152,6 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
           ))}
         </Select>
       </FormControl>
-
-      <Divider sx={{ my: 3 }} />
 
       {/* Security Section - 2-column Grid with Authorization Scope below */}
       <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -389,18 +363,6 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
         sx={{ mb: 2 }}
       />
 
-      {/* Asset Relations Section */}
-      <Divider sx={{ my: 3 }} />
-
-      <AssetRelationSelector
-        assetRelations={element.assetRelations || []}
-        elementType={element.type}
-        availableAssets={availableAssets}
-        onChange={(relations) => {
-          onChange({ assetRelations: relations });
-        }}
-      />
-
       <Divider sx={{ my: 3 }} />
 
       {/* Advanced / Optional Section */}
@@ -460,13 +422,9 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
             />
 
             <RichTextEditor
-              value={localNotes}
-              onChange={setLocalNotes}
-              onBlur={() => {
-                if (localNotes !== element.properties.notes) {
-                  handlePropertyChange("notes", localNotes);
-                }
-              }}
+              value={form.localNotes}
+              onChange={form.setLocalNotes}
+              onBlur={form.commitNotes}
               label={t(
                 "tabs.dfd.element_description.external_entity.fields.notes.label",
               )}
@@ -474,6 +432,24 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
           </Stack>
         </AccordionDetails>
       </Accordion>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Description */}
+      <Box>
+        <RichTextEditor
+          value={form.localDescription}
+          onChange={form.setLocalDescription}
+          onBlur={form.commitDescription}
+          label={t(
+            "tabs.dfd.element_description.external_entity.fields.description.label",
+          )}
+          required
+          helperText={t(
+            "tabs.dfd.element_description.external_entity.fields.description.helperText",
+          )}
+        />
+      </Box>
 
       {/* STRIDE Hint */}
       <Alert severity="info" sx={{ mt: 2 }}>
@@ -488,4 +464,26 @@ export const ExternalEntityDescriptionForm: React.FC<ExternalEntityFormProps> = 
       </Alert>
     </Box>
   );
-};;
+};
+
+// ==================== MAIN COMPONENT ====================
+
+export const ExternalEntityDescriptionForm =
+  React.memo<ExternalEntityFormProps>(
+    ({ element, onChange, availableAssets = [], onCreateAsset }) => (
+      <ElementFormShell
+        element={element}
+        onChange={onChange}
+        availableAssets={availableAssets}
+        onCreateAsset={onCreateAsset}
+        generalTab={
+          <ExternalEntityGeneralTab element={element} onChange={onChange} />
+        }
+      />
+    ),
+    (prev, next) =>
+      prev.element === next.element &&
+      prev.availableAssets === next.availableAssets,
+  );
+
+export default ExternalEntityDescriptionForm;

@@ -4,151 +4,227 @@
 // Concept: "Active-Impact Model"
 // DFD Element → acts on → Asset
 //
-// Two perspectives:
-// - Attack vector:    How can an attacker compromise the system? (Likelihood)
-// - Damage potential: What cascade effects occur on failure? (Impact)
-//
-// is_an is EXCLUSIVE: an element is either an instance of an asset
-// OR has impact relations — never both simultaneously.
+// Asset taxonomy (8 categories):
+//   Vertical hierarchy: data → function → system → infrastructure
+//   Orthogonal:         process | physical | service | human
 
 import type { SafetyAnnotation } from "./safety-types";
 
 // ==================== ASSET GROUP ====================
 
-/**
- * The five asset groups in TARAflow
- * Corresponds to UI tabs: [Data] [Systems] [Process] [Infra] [People]
- */
 export type AssetGroup =
   | "data"
+  | "function"
   | "system"
-  | "process"
   | "infrastructure"
+  | "process"
+  | "physical"
+  | "service"
   | "human";
 
 // ==================== DATA ASSET RELATIONS ====================
 
-/**
- * Relation types for Data Assets
- * Describes impact on data and information
- */
 export type DataAssetRelationType =
-  | "creates"    // Element creates the Data Asset
-  | "reads"      // Element reads the Data Asset
-  | "modifies"   // Element modifies the Data Asset
-  | "deletes"    // Element deletes the Data Asset
-  | "stores"     // Element stores the Data Asset
-  | "transports" // Element transports the Data Asset
-  | "is_an";     // Element is an instance of the Data Asset
+  | "creates"
+  | "reads"
+  | "modifies"
+  | "deletes"
+  | "stores"
+  | "transports"
+  | "is_an";
+
+// ==================== FUNCTION ASSET RELATIONS ====================
+
+/**
+ * Function Assets: "What must the system be able to do?"
+ * Abstraction between Process (known impl) and System (blackbox).
+ * Primary use case: Safety Functions per ISO 12100, IEC 61508.
+ */
+export type FunctionAssetRelationType =
+  | "executes" // Element executes this function (runtime)
+  | "invokes" // Element invokes/triggers this function
+  | "implements" // Element provides/implements this capability
+  | "monitors" // Element monitors this function's state
+  | "depends_on" // Element depends on this function (cascade on failure)
+  | "is_an";
 
 // ==================== PROCESS ASSET RELATIONS ====================
 
 /**
- * Relation types for Process Assets
- * Describes impact on processes and workflows
+ * Process Assets: "How is a result produced step by step?" (information in motion)
+ * Threat focus: timing manipulation, race conditions, sequencing attacks, deadlocks.
  */
 export type ProcessAssetRelationType =
-  | "executes"   // Element executes the process
-  | "invokes"    // Element starts/calls the process
+  | "executes" // Element executes the process (runtime instance)
+  | "invokes" // Element starts the process
   | "terminates" // Element terminates the process
-  | "suspends"   // Element suspends the process
-  | "monitors"   // Element monitors the process
-  | "is_an";     // Element is an instance of the Process Asset
+  | "suspends" // Element suspends the process
+  | "monitors" // Element monitors process state at runtime
+  | "is_an";
 
 // ==================== SYSTEM ASSET RELATIONS ====================
 
 /**
- * Relation types for System Assets
- * Distinguishes active use (attack vector) from dependencies (impact)
- *
- * IMPORTANT: "uses" requires a SystemUsesQualifier
+ * IMPORTANT: "uses" requires a SystemUsesQualifier.
+ * "monitors" ≠ "depends_on": monitors = read-only observation (loss → Repudiation),
+ * depends_on = hard availability dependency (loss → cascade failure).
+ * Both can coexist for the same asset.
  */
 export type SystemAssetRelationType =
-  | "controls"   // Element has full control (start/stop/suspend/configure)
-  | "configures" // Element changes configuration
-  | "monitors"   // Element observes/reads system state
-  | "uses"       // Element uses functionality [REQUIRES QUALIFIER]
-  | "depends_on" // Element depends on the system (cascade effect on failure)
-  | "is_an";     // Element is an instance of the System Asset
+  | "controls" // Full control (start/stop/configure)
+  | "configures" // Changes configuration
+  | "monitors" // Read-only observation
+  | "uses" // Uses functionality [REQUIRES SystemUsesQualifier]
+  | "depends_on" // Hard availability dependency (optional degradationMode in relation)
+  | "is_an";
 
 /**
- * Qualifier for "uses" relation on System Assets
- * Specifies which system functionality is used
- * Enables precise attack vector analysis
+ * Qualifier for "uses" on System Assets.
+ *
+ * hardware:  Physical hardware interface → Tampering, Physical Attack
+ * library:   Shared library/SDK dependency → Dependency Confusion, Code Injection
+ * network:   Network communication → MitM, Eavesdropping
+ * local:     Local access (IPC, shared memory) → Authorization
+ * api:       REST/gRPC/GraphQL endpoint → Injection, Auth Bypass
+ * authentication, authorization, storage, computation,
+ * messaging, configuration, monitoring, networking: specific subsystem usage
  */
 export type SystemUsesQualifier =
-  | "network"         // Network access (uses [network]) → Authentication + Authorization
-  | "local"           // Local access (uses [local])     → Authorization
-  | "authentication"  // Uses auth function (login, token validation)
-  | "authorization"   // Uses permission check (RBAC, ACL)
-  | "api"             // Uses API endpoint (REST, gRPC, GraphQL)
-  | "storage"         // Uses storage function (DB, filesystem, cache)
-  | "computation"     // Uses compute function (ML inference, cryptography)
-  | "messaging"       // Uses messaging/queue (MQTT, AMQP, Kafka)
-  | "configuration"   // Uses configuration function (settings, feature flags)
-  | "monitoring"      // Uses monitoring/logging (metrics, traces)
-  | "networking";     // Uses network function (DNS, proxy, load balancer)
-
-/**
- * Qualifier for "accesses" relation on Infrastructure Assets
- * Determines protection goals: remote additionally requires Authentication
- *
- * - local:    Physical on-site access         → Authorization, Non-Repudiation
- * - internal: Access within the facility      → Authorization, Non-Repudiation
- * - remote:   Remote access via network/VPN   → Authentication, Authorization,
- *                                               Non-Repudiation, Accountability
- */
-export type InfraAccessesQualifier = "local" | "internal" | "remote";
+  | "hardware"
+  | "library"
+  | "network"
+  | "local"
+  | "authentication"
+  | "authorization"
+  | "api"
+  | "storage"
+  | "computation"
+  | "messaging"
+  | "configuration"
+  | "monitoring"
+  | "networking";
 
 // ==================== INFRASTRUCTURE ASSET RELATIONS ====================
 
 /**
- * Relation types for Infrastructure Assets
- * Focus on physical state and access protection
+ * Infrastructure: stationary physical environment (buildings, networks, enclosures).
+ * Distinct from Physical: Infrastructure is fixed, Physical is mobile.
+ * IMPORTANT: "accesses" requires InfraAccessesQualifier.
  */
 export type InfraAssetRelationType =
-  | "accesses"  // Element has physical access to the asset
-  | "secures"   // Element protects the physical asset (e.g. lock system)
-  | "damages"   // Element can physically damage the asset (sabotage)
-  | "powers"    // Element provides power supply
-  | "monitors"  // Element monitors physical parameters (temp, smoke, intrusion)
-  | "is_an";    // Element is an instance of the Infrastructure Asset
+  | "accesses" // Physical zone access [REQUIRES InfraAccessesQualifier]
+  | "secures" // Protects the physical asset (lock, access control)
+  | "damages" // Can physically damage (sabotage)
+  | "powers" // Provides power supply
+  | "monitors" // Monitors physical parameters (temp, smoke, intrusion)
+  | "is_an";
+
+/**
+ * Qualifier for "accesses" on Infrastructure Assets.
+ * Describes the access zone (not mobile object contact).
+ *
+ * on-site:   Access to the premises/facility (factory floor, machine room)
+ * proximity: Close-range without entering (RFID range, WiFi perimeter)
+ * internal:  Access to enclosure interior (debug header, cabinet interior)
+ *
+ * Note: "on-site" vs "direct" (PhysicalContactQualifier):
+ *   on-site = entering a LOCATION (stationary infra)
+ *   direct  = physical CONTACT with an OBJECT (mobile physical asset)
+ */
+export type InfraAccessesQualifier = "on-site" | "proximity" | "internal";
+
+// ==================== PHYSICAL ASSET RELATIONS ====================
+
+/**
+ * Physical Assets: mobile, purely passive objects without embedded systems.
+ * (prototypes, tools, physical keys, artwork, machine components without electronics)
+ *
+ * No DFD element-to-asset path in general — exception: ExternalEntity may use "damages".
+ * All other threat paths run via Asset-to-Asset relations (Layer 2).
+ *
+ * IMPORTANT: "accesses" requires PhysicalContactQualifier.
+ */
+export type PhysicalAssetRelationType =
+  | "accesses" // Physical contact [REQUIRES PhysicalContactQualifier]
+  | "damages" // Can damage the asset (ExternalEntity only in DFD)
+  | "secures" // Physically secures the asset
+  | "monitors" // Monitors physical state (camera, sensor)
+  | "is_an";
+
+/**
+ * Qualifier for "accesses" on Physical Assets.
+ * Describes contact type with a mobile object.
+ *
+ * direct:   Hands-on manipulation (physical touch)
+ * indirect: Proximity without contact (camera, sensor from distance)
+ * remote:   Remote access to a networked component controlling the physical object
+ *
+ * Note: "direct" here = physical contact (≠ SafetyAnnotation.relevance:'direct' = causal immediacy).
+ */
+export type PhysicalContactQualifier = "direct" | "indirect" | "remote";
+
+// ==================== SERVICE ASSET RELATIONS ====================
+
+/**
+ * Service Assets: services fully or partially outside own system boundary.
+ * KEY DISTINCTION from System: RESPONSIBILITY BOUNDARY (not interface type).
+ *   System Asset: full technical control, own team responsible.
+ *   Service Asset: shared or third-party responsibility, SLA-bound.
+ *
+ * AWS S3 with REST-API = Service Asset (shared responsibility).
+ * Own internal auth service = System Asset (full control).
+ *
+ * IMPORTANT: "uses" requires ServiceUsesQualifier (distinct from SystemUsesQualifier).
+ * "configures" = element changes service parameters/settings.
+ * "depends_on" = hard dependency with optional degradationMode.
+ */
+export type ServiceAssetRelationType =
+  | "uses" // Uses the service [REQUIRES ServiceUsesQualifier]
+  | "configures" // Changes service parameters/settings
+  | "monitors" // Monitors service status / availability
+  | "depends_on" // Hard availability dependency
+  | "is_an";
+
+/**
+ * Qualifier for "uses" on Service Assets.
+ * Focused on integration patterns (distinct from SystemUsesQualifier).
+ *
+ * api:     REST/SOAP/gRPC/GraphQL → Injection, Auth Bypass
+ * sdk:     SDK/library integration → Dependency Confusion, Code Injection
+ * webhook: Event-based integration → Spoofing, Replay Attack
+ * managed: Fully managed, no own API access → Availability Risk, Vendor Lock-in
+ */
+export type ServiceUsesQualifier = "api" | "sdk" | "webhook" | "managed";
 
 // ==================== HUMAN ASSET RELATIONS ====================
 
 /**
- * Relation types for Human Assets
- * People as protection objects (Safety / Security / Privacy)
+ * Human Assets: people as protection subjects (Safety / Security / Privacy).
+ * Not threat actors — threat actors are External Entities in the DFD.
  */
 export type HumanAssetRelationType =
-  | "affects_safety"   // Element influences physical safety
-  | "affects_privacy"  // Element affects privacy / GDPR
-  | "identifies"       // Element identifies / de-anonymises a person
-  | "tracks"           // Element tracks / monitors a person
-  | "exposes"          // Element endangers / exposes a person
-  | "is_an";           // Element represents this person / role
+  | "affects_safety" // Element influences physical safety of this person
+  | "affects_privacy" // Element affects privacy / GDPR
+  | "identifies" // Element identifies / de-anonymises a person
+  | "tracks" // Element tracks / monitors a person
+  | "exposes" // Element exposes a person to risk
+  | "is_an"; // Element represents this person / role
 
 // ==================== UNION TYPES ====================
 
-/**
- * All relation types across all asset groups
- * For generic functions that work group-independently
- */
 export type AnyAssetRelationType =
   | DataAssetRelationType
+  | FunctionAssetRelationType
   | ProcessAssetRelationType
   | SystemAssetRelationType
   | InfraAssetRelationType
+  | PhysicalAssetRelationType
+  | ServiceAssetRelationType
   | HumanAssetRelationType;
 
 // ==================== DISCRIMINATED UNION: ASSET RELATIONS ====================
-// is_an is EXCLUSIVE — it excludes all other relations
-// Enforced at the type level, not just by UI validation
+// is_an is EXCLUSIVE — no other relation for the same asset simultaneously.
 
-/**
- * is_an relation — exclusive, no further relations possible
- * Creates a logically unique bridge for transitive derivations
- */
 export interface IsAnRelation {
   readonly relationType: "is_an";
   assetId: string;
@@ -157,8 +233,7 @@ export interface IsAnRelation {
   safety?: SafetyAnnotation;
 }
 
-// ==================== DATA ASSET RELATION ====================
-
+// ---- Data ----
 export interface DataAssetInteractionRelation {
   readonly relationType: Exclude<DataAssetRelationType, "is_an">;
   assetId: string;
@@ -166,11 +241,24 @@ export interface DataAssetInteractionRelation {
   notes?: string;
   safety?: SafetyAnnotation;
 }
-
 export type DataAssetRelation = IsAnRelation | DataAssetInteractionRelation;
 
-// ==================== PROCESS ASSET RELATION ====================
+// ---- Function ----
+export interface FunctionAssetInteractionRelation {
+  readonly relationType: Exclude<FunctionAssetRelationType, "is_an">;
+  assetId: string;
+  assetGroup: "function";
+  notes?: string;
+  safety?: SafetyAnnotation;
+  /** Criticality brake — only for relationType === "depends_on" */
+  degradationMode?: boolean;
+  degradationDescription?: string;
+}
+export type FunctionAssetRelation =
+  | IsAnRelation
+  | FunctionAssetInteractionRelation;
 
+// ---- Process ----
 export interface ProcessAssetInteractionRelation {
   readonly relationType: Exclude<ProcessAssetRelationType, "is_an">;
   assetId: string;
@@ -178,52 +266,43 @@ export interface ProcessAssetInteractionRelation {
   notes?: string;
   safety?: SafetyAnnotation;
 }
+export type ProcessAssetRelation =
+  | IsAnRelation
+  | ProcessAssetInteractionRelation;
 
-export type ProcessAssetRelation = IsAnRelation | ProcessAssetInteractionRelation;
-
-// ==================== SYSTEM ASSET RELATION ====================
-
-/**
- * "uses" relation with required qualifier
- * Modelled separately so that qualifier is enforced at compile time
- */
+// ---- System ----
 export interface SystemUsesRelation {
   readonly relationType: "uses";
   assetId: string;
   assetGroup: "system";
-  qualifier: SystemUsesQualifier; // REQUIRED for uses
+  qualifier: SystemUsesQualifier;
   notes?: string;
   safety?: SafetyAnnotation;
 }
-
 export interface SystemOtherRelation {
   readonly relationType: Exclude<SystemAssetRelationType, "is_an" | "uses">;
   assetId: string;
   assetGroup: "system";
   notes?: string;
   safety?: SafetyAnnotation;
+  /** Criticality brake — only for relationType === "depends_on" */
+  degradationMode?: boolean;
+  degradationDescription?: string;
 }
-
 export type SystemAssetRelation =
   | IsAnRelation
   | SystemUsesRelation
   | SystemOtherRelation;
 
-// ==================== INFRASTRUCTURE ASSET RELATION ====================
-
-/**
- * "accesses" relation with required qualifier
- * Determines protection goals: remote additionally requires Authentication
- */
+// ---- Infrastructure ----
 export interface InfraAccessesRelation {
   readonly relationType: "accesses";
   assetId: string;
   assetGroup: "infrastructure";
-  qualifier: InfraAccessesQualifier; // REQUIRED for accesses
+  qualifier: InfraAccessesQualifier;
   notes?: string;
   safety?: SafetyAnnotation;
 }
-
 export interface InfraOtherRelation {
   readonly relationType: Exclude<InfraAssetRelationType, "is_an" | "accesses">;
   assetId: string;
@@ -231,14 +310,60 @@ export interface InfraOtherRelation {
   notes?: string;
   safety?: SafetyAnnotation;
 }
-
 export type InfraAssetRelation =
   | IsAnRelation
   | InfraAccessesRelation
   | InfraOtherRelation;
 
-// ==================== HUMAN ASSET RELATION ====================
+// ---- Physical ----
+export interface PhysicalAccessesRelation {
+  readonly relationType: "accesses";
+  assetId: string;
+  assetGroup: "physical";
+  qualifier: PhysicalContactQualifier;
+  notes?: string;
+  safety?: SafetyAnnotation;
+}
+export interface PhysicalOtherRelation {
+  readonly relationType: Exclude<
+    PhysicalAssetRelationType,
+    "is_an" | "accesses"
+  >;
+  assetId: string;
+  assetGroup: "physical";
+  notes?: string;
+  safety?: SafetyAnnotation;
+}
+export type PhysicalAssetRelation =
+  | IsAnRelation
+  | PhysicalAccessesRelation
+  | PhysicalOtherRelation;
 
+// ---- Service ----
+export interface ServiceUsesRelation {
+  readonly relationType: "uses";
+  assetId: string;
+  assetGroup: "service";
+  qualifier: ServiceUsesQualifier;
+  notes?: string;
+  safety?: SafetyAnnotation;
+}
+export interface ServiceOtherRelation {
+  readonly relationType: Exclude<ServiceAssetRelationType, "is_an" | "uses">;
+  assetId: string;
+  assetGroup: "service";
+  notes?: string;
+  safety?: SafetyAnnotation;
+  /** Criticality brake — only for relationType === "depends_on" */
+  degradationMode?: boolean;
+  degradationDescription?: string;
+}
+export type ServiceAssetRelation =
+  | IsAnRelation
+  | ServiceUsesRelation
+  | ServiceOtherRelation;
+
+// ---- Human ----
 export interface HumanAssetInteractionRelation {
   readonly relationType: Exclude<HumanAssetRelationType, "is_an">;
   assetId: string;
@@ -246,166 +371,178 @@ export interface HumanAssetInteractionRelation {
   notes?: string;
   safety?: SafetyAnnotation;
 }
-
 export type HumanAssetRelation = IsAnRelation | HumanAssetInteractionRelation;
 
 // ==================== UNIFIED ASSET RELATION ====================
 
-/**
- * Unified type for all asset relations
- * Used in DFDElement.assetRelations and DFDConnection.assetRelations
- *
- * Discriminated union over assetGroup + relationType enables
- * type-safe processing without casts
- */
 export type AssetRelation =
   | DataAssetRelation
+  | FunctionAssetRelation
   | ProcessAssetRelation
   | SystemAssetRelation
   | InfraAssetRelation
+  | PhysicalAssetRelation
+  | ServiceAssetRelation
   | HumanAssetRelation;
 
 // ==================== TYPE GUARDS ====================
 
-export function isIsAnRelation(relation: AssetRelation): relation is IsAnRelation {
-  return relation.relationType === "is_an";
+export function isIsAnRelation(r: AssetRelation): r is IsAnRelation {
+  return r.relationType === "is_an";
 }
-
-export function isDataRelation(
-  relation: AssetRelation
-): relation is DataAssetRelation {
-  return (relation as DataAssetInteractionRelation).assetGroup === "data"
-    || (isIsAnRelation(relation));
+export function isDataRelation(r: AssetRelation): r is DataAssetRelation {
+  return r.assetGroup === "data";
 }
-
+export function isFunctionRelation(
+  r: AssetRelation,
+): r is FunctionAssetRelation {
+  return r.assetGroup === "function";
+}
+export function isPhysicalRelation(
+  r: AssetRelation,
+): r is PhysicalAssetRelation {
+  return r.assetGroup === "physical";
+}
+export function isServiceRelation(r: AssetRelation): r is ServiceAssetRelation {
+  return r.assetGroup === "service";
+}
 export function isSystemUsesRelation(
-  relation: AssetRelation
-): relation is SystemUsesRelation {
-  return relation.relationType === "uses";
+  r: AssetRelation,
+): r is SystemUsesRelation {
+  return r.relationType === "uses" && r.assetGroup === "system";
 }
-
+export function isServiceUsesRelation(
+  r: AssetRelation,
+): r is ServiceUsesRelation {
+  return r.relationType === "uses" && r.assetGroup === "service";
+}
 export function isInfraAccessesRelation(
-  relation: AssetRelation
-): relation is InfraAccessesRelation {
-  return relation.relationType === "accesses";
+  r: AssetRelation,
+): r is InfraAccessesRelation {
+  return r.relationType === "accesses" && r.assetGroup === "infrastructure";
 }
-
-/**
- * Returns true if a relation has a qualifier
- * (SystemUsesRelation or InfraAccessesRelation)
- */
+export function isPhysicalAccessesRelation(
+  r: AssetRelation,
+): r is PhysicalAccessesRelation {
+  return r.relationType === "accesses" && r.assetGroup === "physical";
+}
 export function hasQualifier(
-  relation: AssetRelation
-): relation is SystemUsesRelation | InfraAccessesRelation {
-  return isSystemUsesRelation(relation) || isInfraAccessesRelation(relation);
+  r: AssetRelation,
+): r is
+  | SystemUsesRelation
+  | ServiceUsesRelation
+  | InfraAccessesRelation
+  | PhysicalAccessesRelation {
+  return (
+    isSystemUsesRelation(r) ||
+    isServiceUsesRelation(r) ||
+    isInfraAccessesRelation(r) ||
+    isPhysicalAccessesRelation(r)
+  );
 }
-
-/**
- * Returns true if a set of relations for one asset contains an is_an conflict
- * (is_an must not be combined with other relations for the same asset)
- */
-export function hasIsAnConflict(relations: AssetRelation[], assetId: string): boolean {
+export function hasIsAnConflict(
+  relations: AssetRelation[],
+  assetId: string,
+): boolean {
   const forAsset = relations.filter((r) => r.assetId === assetId);
-  const hasIsAn = forAsset.some(isIsAnRelation);
-  return hasIsAn && forAsset.length > 1;
+  return forAsset.some(isIsAnRelation) && forAsset.length > 1;
 }
 
 // ==================== ASSET-TO-ASSET RELATION TYPES ====================
-// Layer 2: Direct semantic connections between assets
-// Complement the Element→Asset relations (Layer 1)
-//
-// Two-tier rule set:
-//   Tier 1: Core Rules     — generic, analytically active, max. Hop 1
-//   Tier 2: Domain Extensions — domain-specific, documentary by default
-//
-// Propagation limit: Asset→Asset may only propagate relevance: 'indirect'.
-// Safety Override Rule does NOT apply at the asset level (only DFD level).
-// Standard reference: taraflow-asset-zu-asset-beziehungen.md §3.4
 
-/**
- * All Asset-to-Asset relation types (Core Rules)
- *
- * Within the same category:
- *   Data→Data:           derives_from, aggregates, supersedes
- *   Process→Process:     triggers, depends_on, suspends
- *   System→System:       depends_on, integrates
- *   Infra→Infra:         powers, houses
- *   Human→Human:         manages, reports_to
- *
- * Across categories:
- *   Data→Process:        required_by, consumed_by
- *   Data→Human:          affects_privacy, exposes
- *   Process→System:      runs_on, requires
- *   Process→Human:       affects_safety, affects_privacy, operated_by
- *   System→Infrastructure: hosted_on, powered_by
- *   Human→Process:       responsible_for, authorized_for
- */
 export type A2ARelationType =
-  // ---- Data → Data ----
-  | "derives_from"    // Asset B is derived from Asset A → Tampering transitive
-  | "aggregates"      // Asset B aggregates multiple A instances → Tampering, Disclosure
-  | "supersedes"      // Asset B replaces Asset A (new firmware etc.) → Tampering, Repudiation
-  // ---- Process → Process ----
-  | "triggers"        // Process A triggers Process B → Tampering, Spoofing
-  | "suspends"        // Process A suspends Process B → DoS
-  // ---- System → System ----
-  | "integrates"      // System A integrates System B → Tampering, Spoofing
-  // ---- Infrastructure → Infrastructure ----
-  | "powers"          // Infra A supplies power to Infra B → DoS
-  | "houses"          // Infra A physically houses Infra B → Tampering
-  // ---- Human → Human ----
-  | "manages"         // Person A manages Person B → Elevation of Privilege
-  | "reports_to"      // Person A reports to Person B → documentary only
-  // ---- Data → Process ----
-  | "required_by"     // Data is required for process execution → Tampering, DoS
-  | "consumed_by"     // Data is transformed by process → Tampering
-  // ---- Data → Human ----
-  | "exposes"         // Data exposes a person to risks → Disclosure
-  // ---- Process → System ----
-  | "runs_on"         // Process runs on system → Tampering, EoP
-  | "requires"        // Process requires system → DoS
-  // ---- Process → Human ----
-  | "operated_by"     // Process is operated by a person → Spoofing, Repudiation
-  // ---- System → Infrastructure ----
-  | "hosted_on"       // System runs on infrastructure → Tampering
-  | "powered_by"      // System is powered by infrastructure → DoS
-  // ---- Human → Process ----
-  | "responsible_for" // Person is responsible for process → Repudiation
-  | "authorized_for"  // Person is authorised to execute process → Spoofing, EoP
-  // ---- Shared (multiple categories) ----
-  | "depends_on"      // A depends on B (Process→Process, System→System) → DoS
-  | "affects_safety"  // Process/Data can endanger people → Tampering, DoS (direct)
-  | "affects_privacy"; // Process/Data contains personal data → Disclosure
+  // Data → Data
+  | "derives_from"
+  | "aggregates"
+  | "supersedes"
+  // Function → Function
+  | "calls"
+  // Process → Process
+  | "triggers"
+  | "suspends"
+  // System → System
+  | "integrates"
+  // Infrastructure → Infrastructure
+  | "powers"
+  | "houses"
+  // Physical → Physical
+  | "mechanically_linked"
+  // Service → Service
+  | "delegates_to"
+  // Human → Human
+  | "manages"
+  | "reports_to"
+  // Data → Process / Function / System / Human
+  | "required_by"
+  | "consumed_by"
+  | "configures"
+  | "exposes"
+  // Function → Data
+  | "creates"
+  | "reads"
+  | "modifies"
+  | "deletes"
+  // Function/System → Process/System
+  | "implemented_by"
+  // Process/System → Function
+  | "implements"
+  | "invokes"
+  // Process/System/Service → Infrastructure
+  | "hosted_on"
+  | "powered_by"
+  // Process → Human / System
+  | "operated_by"
+  | "runs_on"
+  // Physical → Function / System / Infrastructure / Human
+  | "enables"
+  | "hosts"
+  | "controlled_by"
+  | "connected_to"
+  | "located_in"
+  | "endangers"
+  // Service → Function / Data / System / Human
+  | "provides"
+  | "consumes"
+  | "integrates_with"
+  | "monitors"
+  // Human → Physical / Process / Function
+  | "owns"
+  | "accesses"
+  | "responsible_for"
+  | "authorized_for"
+  // Shared / multi-category
+  | "depends_on"
+  | "affects_safety"
+  | "affects_privacy";
 
 /**
- * Asset-to-Asset relation (Layer 2 in the TARAflow graph)
+ * Asset-to-Asset relation (Layer 2)
  *
- * analyticallyActive:
- *   false (default) → documentary only, no STRIDE/Safety influence
- *   true            → analytically active (Tier 2 Domain Extension)
- *                     Required: rationale must be set
- *                     Safety propagation: max. relevance: 'indirect', one hop only
+ * Safety propagation defaults:
+ *   Core Rules → relevance: 'indirect', source: "derived" (automatic)
+ *   To assign 'direct' → requires safety.source: "manual" + rationale (Pflicht)
+ *   Hop limit: 1 (project-configurable to max 2)
+ *
+ * stepOrder: sequential index for invokes (Process→Function) and configures
+ *   (Data→Process, Data→Function). Enables detection of Sequencing Attacks.
  */
 export interface AssetToAssetRelation {
-  /** Source asset group (which category the relation originates from) */
   sourceGroup: AssetGroup;
-  /** Target asset group (which category the relation points to) */
   targetGroup: AssetGroup;
-  /** ID of the target asset */
   targetAssetId: string;
-  /** Relation type */
   relationType: A2ARelationType;
-  /**
-   * Tier 2: relation is analytically active
-   * Default: false (documentary only)
-   * If true: required rationale + STRIDE mapping
-   */
+  stepOrder?: number;
   analyticallyActive?: boolean;
-  /**
-   * Rationale — required when analyticallyActive === true
-   * Reproduced verbatim in the audit report
-   */
   rationale?: string;
   notes?: string;
   safety?: SafetyAnnotation;
+  /**
+   * Transitive criticality brake — only relevant when relationType === "depends_on".
+   * false (default): total failure when target fails → full criticality propagation.
+   * true:            source continues in degraded state → criticality damped one level.
+   * Documented degradation mode = mitigation evidence for audit report.
+   */
+  degradationMode?: boolean;
+  /** Required when degradationMode === true (IEC 62443-4-1 audit trail) */
+  degradationDescription?: string;
 }

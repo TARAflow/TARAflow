@@ -10,9 +10,18 @@ import { DFDAutoNumbering } from "../services/dfd-auto-numbering";
 // ==================== TYPES ====================
 
 export interface UseDFDAutoNumberingOptions {
-  startNumber?: number; // Starting number for auto-numbering (default: 30)
-  validateAfter?: boolean; // Whether to validate after auto-numbering (default: true)
-  validationDelay?: number; // Delay in ms before validation (default: 500)
+  /** Alignment tolerance in px (default: 50) */
+  tolerance?: number;
+  /** Sort strategy (default: diagonal) */
+  sortStrategy?: "top-down" | "left-right" | "diagonal";
+  /** X weight for diagonal scoring (default: 0.8) */
+  weightX?: number;
+  /** Y weight for diagonal scoring (default: 1.0) */
+  weightY?: number;
+  /** Whether to validate after auto-numbering (default: true) */
+  validateAfter?: boolean;
+  /** Delay in ms before validation (default: 500) */
+  validationDelay?: number;
 }
 
 export interface UseDFDAutoNumberingReturn {
@@ -32,7 +41,10 @@ export function useDFDAutoNumbering(
   options: UseDFDAutoNumberingOptions = {},
 ): UseDFDAutoNumberingReturn {
   const {
-    startNumber = 30,
+    tolerance = 50,
+    sortStrategy = "diagonal",
+    weightX = 0.8,
+    weightY = 1.0,
     validateAfter = true,
     validationDelay = 500,
   } = options;
@@ -44,7 +56,7 @@ export function useDFDAutoNumbering(
   // ==================== AUTO NUMBERING ====================
 
   /**
-   * Auto-number all elements in the DFD
+   * Auto-number all elements in the DFD using the configured sort strategy.
    */
   const autoNumber = useCallback(async () => {
     if (isNumbering) {
@@ -56,7 +68,6 @@ export function useDFDAutoNumbering(
     console.log("[useDFDAutoNumbering] Starting auto-numbering...");
 
     try {
-      // Get current XML
       const currentXml = bridge.getCurrentXML();
 
       if (!currentXml) {
@@ -65,17 +76,19 @@ export function useDFDAutoNumbering(
         return;
       }
 
-      // Create auto-numbering service
-      const numbering = new DFDAutoNumbering(startNumber);
+      const numbering = new DFDAutoNumbering(
+        tolerance,
+        sortStrategy,
+        weightX,
+        weightY,
+      );
 
       // Apply auto-numbering
       const numberedXml = numbering.autoNumber(currentXml);
 
       // Check if anything changed
       if (numberedXml === currentXml) {
-        console.log(
-          "[useDFDAutoNumbering] No changes after auto-numbering",
-        );
+        console.log("[useDFDAutoNumbering] No changes after auto-numbering");
         setIsNumbering(false);
         return;
       }
@@ -102,7 +115,10 @@ export function useDFDAutoNumbering(
     bridge,
     persistence,
     validation,
-    startNumber,
+    tolerance,
+    sortStrategy,
+    weightX,
+    weightY,
     validateAfter,
     validationDelay,
   ]);

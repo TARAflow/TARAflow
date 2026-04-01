@@ -12,7 +12,7 @@ import type {
 import type {
   DFDAsset,
   ElementRelation,
-} from "../../../dfd/models/asset-types";
+} from "../../../dfd/models/dfd-asset-types";
 import type {
   ProcessProperties,
   ExternalEntityProperties,

@@ -3,7 +3,7 @@
 // Shared utility used by both dfd-validator and asset-service
 
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import { geometryAnalyzer, type GeometricElement } from "../utils/geometry-analyzer";
 
 /**

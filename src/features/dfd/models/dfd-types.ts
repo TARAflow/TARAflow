@@ -18,7 +18,7 @@ import type {
 
 import type { DFDGraph } from "./dfd-graph-types";
 import type { DFDElementType } from "./dfd-element-types";
-import type { DFDAsset } from "./asset-types";
+import type { DFDAsset } from "./dfd-asset-types";
 
 // ==================== DFD ELEMENT TYPES ====================
 // Re-exported from dfd-element-types.ts for backwards compatibility
@@ -30,62 +30,93 @@ export type {
 } from "./dfd-element-types";
 
 // ==================== ASSET RELATIONS ====================
-// AssetRelationType and AssetRelation live in asset-relation-types.ts
+// All asset relation types live in asset-relation-types.ts
 // Re-exported here for convenient imports throughout the project
 
 export type {
+  // Core
   AssetGroup,
   AssetRelation,
   AnyAssetRelationType,
+  IsAnRelation,
+
+  // Data
   DataAssetRelationType,
   DataAssetRelation,
   DataAssetInteractionRelation,
+
+  // Function (new)
+  FunctionAssetRelationType,
+  FunctionAssetRelation,
+  FunctionAssetInteractionRelation,
+
+  // Process
   ProcessAssetRelationType,
   ProcessAssetRelation,
   ProcessAssetInteractionRelation,
+
+  // System
   SystemAssetRelationType,
   SystemAssetRelation,
   SystemUsesRelation,
   SystemUsesQualifier,
   SystemOtherRelation,
+
+  // Infrastructure
   InfraAssetRelationType,
   InfraAssetRelation,
   InfraAccessesRelation,
   InfraAccessesQualifier,
   InfraOtherRelation,
+
+  // Physical (new)
+  PhysicalAssetRelationType,
+  PhysicalAssetRelation,
+  PhysicalAccessesRelation,
+  PhysicalContactQualifier,
+  PhysicalOtherRelation,
+
+  // Service (new)
+  ServiceAssetRelationType,
+  ServiceAssetRelation,
+  ServiceUsesRelation,
+  ServiceUsesQualifier,
+  ServiceOtherRelation,
+
+  // Human
   HumanAssetRelationType,
   HumanAssetRelation,
   HumanAssetInteractionRelation,
-  IsAnRelation,
+
   // Asset-to-Asset relations (Layer 2)
   A2ARelationType,
   AssetToAssetRelation,
 } from "./asset-relation-types";
 
 export {
+  // Existing guards
   isIsAnRelation,
   isDataRelation,
   isSystemUsesRelation,
   isInfraAccessesRelation,
   hasQualifier,
   hasIsAnConflict,
+  // New guards
+  isFunctionRelation,
+  isPhysicalRelation,
+  isPhysicalAccessesRelation,
+  isServiceRelation,
+  isServiceUsesRelation,
 } from "./asset-relation-types";
-
-// ==================== ASSET TYPES RE-EXPORTS ====================
-// ElementRelation and DFDAsset now live in asset-types.ts
-// Re-exported for backwards compatibility
-
-//export type { AssetProperties, ElementRelation, DFDAsset } from "./asset-types";
 
 // ==================== BASE ENTITY ====================
 
 /**
- * Shared base for DFDElement and DFDConnection
- * Avoids duplication of common fields
+ * Shared base for DFDElement and DFDConnection.
  *
  * name:
- * - Elements:    own name     e.g. "Monitor Process", "Control System"
- * - Connections: action text  e.g. "send cmd", "request status"
+ * - Elements:    own name       e.g. "Monitor Process", "Control System"
+ * - Connections: action text    e.g. "send cmd", "request status"
  *   (In DrawIO, connection.label is mapped to name on import)
  */
 export interface DFDBaseEntity {
@@ -137,7 +168,7 @@ export interface DFDConnection extends DFDBaseEntity {
 
   /**
    * Asset relations (DataFlow → Assets)
-   * DataFlow allows: transports (Data), invokes (Process), uses (System)
+   * DataFlow allows: transports (Data), invokes (Process/Function), uses (System/Service)
    */
   assetRelations?: import("./asset-relation-types").AssetRelation[];
 
@@ -169,12 +200,19 @@ export interface DFDStats {
   /** Number of unique assets in the project */
   assets: number;
 
-  /** Asset distribution per group */
+  /**
+   * Asset distribution per group (all 8 groups).
+   * Vertical hierarchy: data / function / system / infrastructure
+   * Orthogonal:         process / physical / service / human
+   */
   assetsByGroup?: {
     data: number;
+    function: number;
     system: number;
-    process: number;
     infrastructure: number;
+    process: number;
+    physical: number;
+    service: number;
     human: number;
   };
 
@@ -186,6 +224,33 @@ export interface DFDStats {
   /** Elements without an asset relation (for completeness display) */
   elementsWithoutAssets?: number;
 }
+
+// ==================== DFD AUTO-NUMBERING CONFIG ====================
+
+export type DFDSortStrategy = "top-down" | "left-right" | "diagonal";
+
+export interface DFDAutoNumberingConfig {
+  /**
+   * Sorting strategy for numbering order.
+   *  top-down:   top wins, left as tiebreaker
+   *  left-right: left wins, top as tiebreaker
+   *  diagonal:   weightX*x + weightY*y — weighted, default 0.8x + 1.0y
+   */
+  sortStrategy: DFDSortStrategy;
+  /** Tolerance (px) within which two elements are treated as aligned. Default: 50 */
+  tolerance: number;
+  /** X weight for diagonal scoring (default: 0.8). Only used in diagonal mode. */
+  weightX?: number;
+  /** Y weight for diagonal scoring (default: 1.0). Only used in diagonal mode. */
+  weightY?: number;
+}
+
+export const DEFAULT_AUTONUMBERING_CONFIG: DFDAutoNumberingConfig = {
+  sortStrategy: "diagonal",
+  tolerance: 50,
+  weightX: 0.8,
+  weightY: 1.0,
+};
 
 // ==================== DFD DATA ====================
 
@@ -199,6 +264,8 @@ export interface DFDData {
   lastModified?: string;
   thumbnail?: string;
   graph?: DFDGraph;
+  /** Auto-numbering configuration — persisted per project */
+  autoNumberingConfig?: DFDAutoNumberingConfig;
 }
 
 // ==================== DFD EXPORT/IMPORT ====================
@@ -260,6 +327,6 @@ export {
   getDFDElementTypePluralText,
 } from "./dfd-formatters";
 
-// REMOVED: ALLOWED_ASSET_RELATIONS → jetzt in asset-constants.ts
+// REMOVED: ALLOWED_ASSET_RELATIONS → now in asset-constants.ts
 // REMOVED: getAllowedAssetRelations, isAssetRelationAllowed, getAssetRelationTypeText
-//          → jetzt in asset-constants.ts und asset-relation-types.ts
+//          → now in asset-constants.ts and asset-relation-types.ts

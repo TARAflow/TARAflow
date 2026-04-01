@@ -2,7 +2,8 @@
 // Modal dialog for creating/editing an asset
 //
 // Two-tab layout:
-//   Tab 0 — General & Rating: ID, Name, Description, DFD Links, Impact Ratings
+//   Tab 0 — General & Rating: ID, Name, Description, DFD Links, Impact Ratings,
+//            HVA (Infrastructure/Physical only); tab label shows Overall Impact chip
 //   Tab 1 — Security Goals:   CIANAAA Accordion with formal descriptions
 //
 // DFD Link chips: "P-1: creates; reads" — same format as asset-table.tsx
@@ -18,6 +19,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControlLabel,
   Button,
   TextField,
   Box,
@@ -51,6 +53,8 @@ import { Asset, AssetConfiguration } from "../models/asset-types";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  SAFETY_IMPACT_SCALE,
+  SAFETY_CRITERION_ID,
 } from "../models/asset-impact-types";
 import {
   SecurityGoal,
@@ -58,6 +62,10 @@ import {
   SECURITY_GOALS,
 } from "../models/asset-security-goals-types";
 import { calculateOverallImpact } from "../services/asset-impact-calculator";
+import {
+  safetyRatingToPhysicalLevel,
+  physicalLevelToSafetyRating,
+} from "../services/asset-physical-impact-deriver";
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 
 // ==================== TYPES ====================
@@ -156,9 +164,19 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       });
     }
 
+    // Manual safety override requires rationale
+    if (
+      editedAsset.physicalImpactSource === "manual" &&
+      !editedAsset.physicalImpactRationale?.trim()
+    ) {
+      newErrors.physicalImpactRationale = t("validation.required", {
+        defaultValue: "Required",
+      });
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  };;
 
   // ==================== HANDLERS ====================
 
@@ -168,6 +186,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     const overallImpact = calculateOverallImpact(
       editedAsset.impactRatings,
       configuration.calculationMethod,
+      configuration.roundingMethod,
+      configuration.impactCriteria,
     );
 
     onSave({
@@ -179,9 +199,10 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
   const handleImpactChange = (
     criterionId: string,
-    event: SelectChangeEvent<number>,
+    event: SelectChangeEvent<string | number>,
   ) => {
-    const value = event.target.value as number;
+    const raw = event.target.value;
+    const value = raw === "" ? null : raw === "na" ? "na" : Number(raw);
     setEditedAsset((prev) => ({
       ...prev,
       impactRatings: prev.impactRatings.map((r) =>
@@ -190,10 +211,23 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     }));
   };
 
+  // When safety rating changes in manual mode → also update physicalImpact
+  const handleSafetyRatingChange = (value: number | null | "na") => {
+    handleImpactChange(SAFETY_CRITERION_ID, {
+      target: { value: value === null ? "" : value },
+    } as unknown as SelectChangeEvent<number>);
+    if (isPhysicalManual) {
+      // ← isPhysicalManual statt editedAsset.physicalImpactSource
+      setEditedAsset((prev) => ({
+        ...prev,
+        physicalImpact: safetyRatingToPhysicalLevel(value),
+      }));
+    }
+  };
+
   const handleSecurityGoalToggle = (type: SecurityGoalType) => {
     setEditedAsset((prev) => {
       const exists = prev.securityGoals.some((sg) => sg.type === type);
-
       const updated: SecurityGoal[] = exists
         ? prev.securityGoals.map((sg) =>
             sg.type === type
@@ -209,10 +243,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               source: "manual" as const,
             },
           ];
-
       return { ...prev, securityGoals: updated };
     });
-
     if (errors.securityGoals) {
       setErrors((prev) => ({ ...prev, securityGoals: "" }));
     }
@@ -259,7 +291,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     return palette[Math.min(value - 1, palette.length - 1)] ?? "#6b7280";
   };
 
-  // Group DFD links by elementId — same logic as asset-table.tsx
+  // Group DFD links by elementId
   const groupedDFDLinks = useMemo(() => {
     const grouped = new Map<
       string,
@@ -271,7 +303,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
         relations: string[];
       }
     >();
-
     for (const link of editedAsset.linkedDFDElements ?? []) {
       if (!link?.elementId) continue;
       const existing = grouped.get(link.elementId);
@@ -291,7 +322,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
         });
       }
     }
-
     return Array.from(grouped.values());
   }, [editedAsset.linkedDFDElements]);
 
@@ -299,6 +329,38 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   const enabledGoalCount = editedAsset.securityGoals.filter(
     (sg) => sg.enabled,
   ).length;
+
+  // Overall Impact chip on Tab 0 label
+  const overallImpactBadge =
+    currentOverallImpact > 0 ? Math.round(currentOverallImpact) : 0;
+
+  const overallImpactTooltip = useMemo(() => {
+    if (currentOverallImpact <= 0) return "";
+    const level = scale.levels.find(
+      (l) => l.value === Math.round(currentOverallImpact),
+    );
+    const label = level ? (isGerman ? level.labelDE : level.label) : "";
+    return isGerman ? `Gesamt: ${label}` : `Overall: ${label}`;
+  }, [currentOverallImpact, scale, isGerman]);
+
+  // Severity label map for physicalImpact display
+  const SEVERITY_LABELS: Record<string, string> = {
+    fatality: isGerman ? "Tödlich" : "Fatality",
+    irreversible_injury: isGerman
+      ? "Irreversible Verletzung"
+      : "Irreversible Injury",
+    reversible_injury: isGerman ? "Reversible Verletzung" : "Reversible Injury",
+  };
+
+  // Physical Impact Override — manual override allowed with rationale
+  const physicalImpactDerived = editedAsset.physicalImpact;
+  const isPhysicalManual = editedAsset.physicalImpactSource === "manual";
+
+  // HVA block — only for Infrastructure and Physical assets
+  // Uses top-level assetGroup field — set by asset-sync-service from DFD.
+  const showHVA =
+    editedAsset.assetGroup === "infrastructure" ||
+    editedAsset.assetGroup === "physical";
 
   // ==================== RENDER ====================
 
@@ -336,11 +398,34 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
           onChange={(_, v) => setTabValue(v)}
           sx={{ borderBottom: 1, borderColor: "divider", px: 2, flexShrink: 0 }}
         >
+          {/* Tab 0 — General & Rating with Overall Impact chip */}
           <Tab
-            label={t("tabs.assets.dialog.tabGeneral", {
-              defaultValue: "General & Rating",
-            })}
+            label={
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <span>
+                  {t("tabs.assets.dialog.tabGeneral", {
+                    defaultValue: "General & Rating",
+                  })}
+                </span>
+                {overallImpactBadge > 0 && (
+                  <Tooltip title={overallImpactTooltip} placement="top">
+                    <Chip
+                      label={overallImpactBadge}
+                      size="small"
+                      sx={{
+                        height: 16,
+                        fontSize: 10,
+                        backgroundColor: getImpactColor(overallImpactBadge),
+                        color: "white",
+                        "& .MuiChip-label": { px: 0.75 },
+                      }}
+                    />
+                  </Tooltip>
+                )}
+              </Stack>
+            }
           />
+          {/* Tab 1 — Security Goals */}
           <Tab
             label={
               <Stack direction="row" spacing={0.75} alignItems="center">
@@ -440,7 +525,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               </Grid>
             </Box>
 
-            {/* DFD Links — same chip format as asset-table: "P-1: creates; reads" */}
+            {/* DFD Links */}
             {groupedDFDLinks.length > 0 && (
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
@@ -502,6 +587,82 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               </Box>
             )}
 
+            {/* Safety Impact Manual Override — above ratings */}
+            <Box>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={isPhysicalManual}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setEditedAsset((prev) => ({
+                            ...prev,
+                            physicalImpactSource: "derived",
+                            physicalImpact: undefined,
+                            physicalImpactRationale: undefined,
+                            impactRatings: prev.impactRatings.map((r) =>
+                              r.criterionId === SAFETY_CRITERION_ID
+                                ? { ...r, value: null }
+                                : r,
+                            ),
+                          }));
+                        } else {
+                          // Pre-fill safety rating from current derived value
+                          const currentDerived = editedAsset.physicalImpact;
+                          const prefilledRating = physicalLevelToSafetyRating(
+                            currentDerived as any,
+                          );
+                          setEditedAsset((prev) => ({
+                            ...prev,
+                            physicalImpactSource: "manual",
+                            physicalImpact: currentDerived,
+                          }));
+                          if (prefilledRating) {
+                            handleImpactChange(SAFETY_CRITERION_ID, {
+                              target: { value: prefilledRating },
+                            } as unknown as SelectChangeEvent<number>);
+                          }
+                        }
+                      }}
+                    />
+                  }
+                  label={t("tabs.assets.dialog.physicalImpactOverride", {
+                    defaultValue: "Manual Safety Impact Override",
+                  })}
+                />
+                {isPhysicalManual && (
+                  <TextField
+                    size="small"
+                    sx={{ flexGrow: 1 }}
+                    required
+                    label={t("tabs.assets.dialog.physicalImpactRationale", {
+                      defaultValue: "Override Rationale (required)",
+                    })}
+                    value={editedAsset.physicalImpactRationale ?? ""}
+                    onChange={(e) =>
+                      setEditedAsset((prev) => ({
+                        ...prev,
+                        physicalImpactRationale: e.target.value || undefined,
+                      }))
+                    }
+                    error={!!errors.physicalImpactRationale}
+                    helperText={
+                      errors.physicalImpactRationale ??
+                      t("tabs.assets.dialog.physicalImpactRationaleHint", {
+                        defaultValue: "IEC 62443-4-1 audit trail",
+                      })
+                    }
+                    placeholder={
+                      isGerman
+                        ? "Warum weicht der Safety Impact vom DFD ab?"
+                        : "Why does safety impact differ from DFD annotations?"
+                    }
+                  />
+                )}
+              </Stack>
+            </Box>
+
             {/* Impact Ratings */}
             <Box>
               <Typography variant="subtitle2" gutterBottom>
@@ -509,7 +670,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   defaultValue: "Impact Ratings",
                 })}
               </Typography>
-
               <Grid container spacing={2}>
                 {editedAsset.impactRatings.map((rating) => {
                   const criterion = PREDEFINED_IMPACT_CRITERIA.find(
@@ -519,7 +679,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   const description = isGerman
                     ? criterion?.descriptionDE
                     : criterion?.description;
-
                   return (
                     <Grid item xs={12} sm={6} md={4} key={rating.criterionId}>
                       <Paper variant="outlined" sx={{ p: 1.5 }}>
@@ -541,48 +700,173 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                           </Tooltip>
                         </Stack>
                         <Select
-                          value={rating.value}
+                          value={
+                            rating.value === null ||
+                            rating.value === undefined ||
+                            rating.value === 0
+                              ? ""
+                              : rating.value
+                          }
                           onChange={(e) =>
-                            handleImpactChange(
-                              rating.criterionId,
-                              e as SelectChangeEvent<number>,
-                            )
+                            rating.criterionId === SAFETY_CRITERION_ID
+                              ? handleSafetyRatingChange(
+                                  e.target.value === ""
+                                    ? null
+                                    : (Number(e.target.value) as number | null),
+                                )
+                              : handleImpactChange(
+                                  rating.criterionId,
+                                  e as SelectChangeEvent<number>,
+                                )
                           }
                           size="small"
                           fullWidth
+                          displayEmpty
+                          disabled={
+                            rating.criterionId === SAFETY_CRITERION_ID &&
+                            !isPhysicalManual
+                          }
+                          renderValue={(val) => {
+                            if (!val && val !== 0) {
+                              // Safety: show derived value when not manual
+                              if (
+                                rating.criterionId === SAFETY_CRITERION_ID &&
+                                !isPhysicalManual
+                              ) {
+                                const derivedRating =
+                                  physicalLevelToSafetyRating(
+                                    editedAsset.physicalImpact as any,
+                                  );
+                                const derivedLevel = SAFETY_IMPACT_SCALE.find(
+                                  (l) => l.value === derivedRating,
+                                );
+                                if (derivedLevel) {
+                                  return (
+                                    <em style={{ color: "#9e9e9e" }}>
+                                      {t(derivedLevel.labelKey)} (
+                                      {t(derivedLevel.severityKey)}){" — "}
+                                      {t("tabs.assets.dialog.derivedFromDFD", {
+                                        defaultValue: "derived from DFD",
+                                      })}
+                                    </em>
+                                  );
+                                }
+                              }
+                              return (
+                                <em style={{ color: "#9e9e9e" }}>
+                                  {t("tabs.assets.dialog.notRated", {
+                                    defaultValue: "Not rated",
+                                  })}
+                                </em>
+                              );
+                            }
+                            if (val === "na") {
+                              return t("tabs.assets.dialog.notApplicable", {
+                                defaultValue: "N/A – Not applicable",
+                              });
+                            }
+                            // Safety: show severity label
+                            if (rating.criterionId === SAFETY_CRITERION_ID) {
+                              const safetyLevel = SAFETY_IMPACT_SCALE.find(
+                                (l) => l.value === Number(val),
+                              );
+                              return safetyLevel
+                                ? `${safetyLevel.value} – ${t(safetyLevel.labelKey)} (${t(safetyLevel.severityKey)})`
+                                : String(val);
+                            }
+                            const level = scale.levels.find(
+                              (l) => l.value === Number(val),
+                            );
+                            return level
+                              ? `${level.value} - ${isGerman ? level.labelDE : level.label}`
+                              : String(val);
+                          }}
                         >
-                          <MenuItem value={0}>
+                          <MenuItem value="">
                             <em>
                               {t("tabs.assets.dialog.notRated", {
                                 defaultValue: "Not rated",
                               })}
                             </em>
                           </MenuItem>
-                          {scale.levels.map((level) => (
-                            <MenuItem key={level.value} value={level.value}>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                              >
-                                <Box
-                                  sx={{
-                                    width: 12,
-                                    height: 12,
-                                    borderRadius: "50%",
-                                    backgroundColor: getImpactColor(
-                                      level.value,
-                                    ),
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <span>
-                                  {level.value} -{" "}
-                                  {isGerman ? level.labelDE : level.label}
-                                </span>
-                              </Stack>
-                            </MenuItem>
-                          ))}
+                          <MenuItem value="na">
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <Box
+                                sx={{
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: "50%",
+                                  backgroundColor: "#94a3b8",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span>
+                                {t("tabs.assets.dialog.notApplicable", {
+                                  defaultValue: "N/A – Not applicable",
+                                })}
+                              </span>
+                            </Stack>
+                          </MenuItem>
+                          {/* Safety criterion uses fixed 4-level severity scale */}
+                          {rating.criterionId === SAFETY_CRITERION_ID
+                            ? SAFETY_IMPACT_SCALE.map((level) => (
+                                <MenuItem key={level.value} value={level.value}>
+                                  <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    alignItems="center"
+                                  >
+                                    <Box
+                                      sx={{
+                                        width: 12,
+                                        height: 12,
+                                        borderRadius: "50%",
+                                        backgroundColor: level.color,
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <span>
+                                      {level.value} – {t(level.labelKey)}{" "}
+                                      <Typography
+                                        component="span"
+                                        variant="caption"
+                                        color="text.secondary"
+                                      >
+                                        ({t(level.severityKey)})
+                                      </Typography>
+                                    </span>
+                                  </Stack>
+                                </MenuItem>
+                              ))
+                            : scale.levels.map((level) => (
+                                <MenuItem key={level.value} value={level.value}>
+                                  <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    alignItems="center"
+                                  >
+                                    <Box
+                                      sx={{
+                                        width: 12,
+                                        height: 12,
+                                        borderRadius: "50%",
+                                        backgroundColor: getImpactColor(
+                                          level.value,
+                                        ),
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <span>
+                                      {level.value} -{" "}
+                                      {isGerman ? level.labelDE : level.label}
+                                    </span>
+                                  </Stack>
+                                </MenuItem>
+                              ))}
                         </Select>
                       </Paper>
                     </Grid>
@@ -590,7 +874,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                 })}
               </Grid>
 
-              {/* Overall Impact — colored Paper like risk-dialog */}
+              {/* Overall Impact */}
               <Paper
                 sx={{
                   p: 2,
@@ -625,6 +909,206 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                 </Typography>
               </Paper>
             </Box>
+
+            {/* HVA — High-Value Asset Assessment (Infrastructure / Physical only) */}
+            {showHVA && (
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t("tabs.assets.dialog.hvaTitle", {
+                    defaultValue: "High-Value Asset Assessment",
+                  })}
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl size="small" fullWidth>
+                      <InputLabel>
+                        {t("tabs.assets.dialog.hvaReplacementLeadTime", {
+                          defaultValue: "Replacement Lead Time",
+                        })}
+                      </InputLabel>
+                      <Select
+                        value={
+                          editedAsset.properties?.replacementLeadTime ?? ""
+                        }
+                        label={t("tabs.assets.dialog.hvaReplacementLeadTime", {
+                          defaultValue: "Replacement Lead Time",
+                        })}
+                        onChange={(e) =>
+                          setEditedAsset((prev) => ({
+                            ...prev,
+                            properties: {
+                              ...prev.properties,
+                              replacementLeadTime: (e.target.value ||
+                                undefined) as
+                                | "<3m (low)"
+                                | "3-6m (medium)"
+                                | "6-12m (high)"
+                                | ">12m (critical)"
+                                | undefined,
+                            },
+                          }))
+                        }
+                      >
+                        <MenuItem value="">
+                          <em>
+                            {t("tabs.assets.dialog.notSet", {
+                              defaultValue: "Not set",
+                            })}
+                          </em>
+                        </MenuItem>
+                        <MenuItem value="<3m (low)">
+                          &lt;3 months — low
+                        </MenuItem>
+                        <MenuItem value="3-6m (medium)">
+                          3–6 months — medium
+                        </MenuItem>
+                        <MenuItem value="6-12m (high)">
+                          6–12 months — high
+                        </MenuItem>
+                        <MenuItem value=">12m (critical)">
+                          &gt;12 months — critical
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl size="small" fullWidth>
+                      <InputLabel>
+                        {t("tabs.assets.dialog.hvaVendorDependency", {
+                          defaultValue: "Vendor Dependency",
+                        })}
+                      </InputLabel>
+                      <Select
+                        value={editedAsset.properties?.vendorDependency ?? ""}
+                        label={t("tabs.assets.dialog.hvaVendorDependency", {
+                          defaultValue: "Vendor Dependency",
+                        })}
+                        onChange={(e) =>
+                          setEditedAsset((prev) => ({
+                            ...prev,
+                            properties: {
+                              ...prev.properties,
+                              vendorDependency: (e.target.value ||
+                                undefined) as
+                                | "multi_vendor"
+                                | "limited"
+                                | "single_source"
+                                | undefined,
+                            },
+                          }))
+                        }
+                      >
+                        <MenuItem value="">
+                          <em>
+                            {t("tabs.assets.dialog.notSet", {
+                              defaultValue: "Not set",
+                            })}
+                          </em>
+                        </MenuItem>
+                        <MenuItem value="multi_vendor">Multi-vendor</MenuItem>
+                        <MenuItem value="limited">Limited suppliers</MenuItem>
+                        <MenuItem value="single_source">Single source</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <FormControl size="small" fullWidth>
+                      <InputLabel>
+                        {t("tabs.assets.dialog.hvaSpareAvailability", {
+                          defaultValue: "Spare Availability",
+                        })}
+                      </InputLabel>
+                      <Select
+                        value={editedAsset.properties?.spareAvailability ?? ""}
+                        label={t("tabs.assets.dialog.hvaSpareAvailability", {
+                          defaultValue: "Spare Availability",
+                        })}
+                        onChange={(e) =>
+                          setEditedAsset((prev) => ({
+                            ...prev,
+                            properties: {
+                              ...prev.properties,
+                              spareAvailability: (e.target.value ||
+                                undefined) as
+                                | "on_site"
+                                | "supplier"
+                                | "none"
+                                | undefined,
+                            },
+                          }))
+                        }
+                      >
+                        <MenuItem value="">
+                          <em>
+                            {t("tabs.assets.dialog.notSet", {
+                              defaultValue: "Not set",
+                            })}
+                          </em>
+                        </MenuItem>
+                        <MenuItem value="on_site">On-site spare</MenuItem>
+                        <MenuItem value="supplier">
+                          Orderable from supplier
+                        </MenuItem>
+                        <MenuItem value="none">No spare available</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      label={t("tabs.assets.dialog.hvaLeadTimeNote", {
+                        defaultValue: "Lead Time Note (optional)",
+                      })}
+                      value={
+                        editedAsset.properties?.replacementLeadTimeNote ?? ""
+                      }
+                      onChange={(e) =>
+                        setEditedAsset((prev) => ({
+                          ...prev,
+                          properties: {
+                            ...prev.properties,
+                            replacementLeadTimeNote:
+                              e.target.value || undefined,
+                          },
+                        }))
+                      }
+                      placeholder="e.g. 18–24 months, ASML allocation queue"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      multiline
+                      rows={2}
+                      label={t("tabs.assets.dialog.hvaRationale", {
+                        defaultValue: "HVA Rationale",
+                      })}
+                      value={editedAsset.properties?.highValueRationale ?? ""}
+                      onChange={(e) =>
+                        setEditedAsset((prev) => ({
+                          ...prev,
+                          properties: {
+                            ...prev.properties,
+                            highValueRationale: e.target.value || undefined,
+                          },
+                        }))
+                      }
+                      placeholder={
+                        isGerman
+                          ? "Warum ist dieses Asset schwer ersetzbar?"
+                          : "Why is this asset difficult to replace?"
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
           </TabPanel>
 
           {/* ── Tab 1: Security Goals ───────────────────────────────────── */}
@@ -782,6 +1266,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};;;
+};
 
 export default AssetDialog;

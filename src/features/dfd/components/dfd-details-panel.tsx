@@ -18,7 +18,7 @@ import type {
   DFDConnection,
   DFDElement,
 } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
 import { AssetPanel } from "./dfd-asset-panel";
@@ -57,6 +57,10 @@ interface DFDDetailsPanelProps {
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   /** Called when an asset is edited in the Assets tab */
   onAssetChange?: (assetId: string, changes: Partial<DFDAsset>) => void;
+  /** Called when user clicks + in the asset tree to create a new asset for a group */
+  onCreateAssetForGroup?: (group: AssetGroup) => void;
+  /** Called when user confirms deletion of an asset in the asset tree */
+  onDeleteAsset?: (assetId: string) => void;
   onAssetFeatureUpdate?: (
     assetId: string,
     updates: { name?: string; properties?: any },
@@ -85,6 +89,8 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   crossesTrustBoundary = false,
   onCreateAsset,
   onAssetChange,
+  onCreateAssetForGroup,
+  onDeleteAsset,
   onAssetFeatureUpdate,
   assetVisibility = {},
   onAssetVisibilityChange,
@@ -280,6 +286,8 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   visibility={assetVisibility}
                   onVisibilityChange={onAssetVisibilityChange ?? (() => {})}
                   onAssetChange={onAssetChange ?? (() => {})}
+                  onCreateAsset={onCreateAssetForGroup}
+                  onDeleteAsset={onDeleteAsset}
                   onAssetFeatureUpdate={onAssetFeatureUpdate}
                 />
               </Box>

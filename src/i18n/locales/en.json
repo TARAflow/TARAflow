@@ -320,6 +320,169 @@
     "yesterday": "Yesterday",
     "daysAgo": "{{count}} days ago"
   },
+  "assets": {
+    "groups": {
+      "data": "Data",
+      "function": "Function",
+      "system": "System",
+      "infrastructure": "Infrastructure",
+      "process": "Process",
+      "physical": "Physical",
+      "service": "Service",
+      "human": "People"
+    },
+    "relations": {
+      "element": {
+        "data": {
+          "creates": "Creates",
+          "reads": "Reads",
+          "modifies": "Modifies",
+          "deletes": "Deletes",
+          "stores": "Stores",
+          "transports": "Transports",
+          "is_an": "Is an instance of"
+        },
+        "function": {
+          "executes": "Executes",
+          "invokes": "Invokes",
+          "implements": "Implements",
+          "monitors": "Monitors",
+          "depends_on": "Depends on",
+          "is_an": "Is an instance of"
+        },
+        "process": {
+          "executes": "Executes",
+          "invokes": "Invokes",
+          "terminates": "Terminates",
+          "suspends": "Suspends",
+          "monitors": "Monitors",
+          "is_an": "Is an instance of"
+        },
+        "system": {
+          "controls": "Controls",
+          "configures": "Configures",
+          "monitors": "Monitors",
+          "uses": "Uses",
+          "depends_on": "Depends on",
+          "is_an": "Is an instance of"
+        },
+        "infrastructure": {
+          "accesses": "Accesses",
+          "secures": "Secures",
+          "damages": "Damages",
+          "powers": "Powers",
+          "monitors": "Monitors",
+          "is_an": "Is an instance of"
+        },
+        "physical": {
+          "accesses": "Accesses",
+          "damages": "Damages",
+          "secures": "Secures",
+          "monitors": "Monitors",
+          "is_an": "Is an instance of"
+        },
+        "service": {
+          "uses": "Uses",
+          "configures": "Configures",
+          "monitors": "Monitors",
+          "depends_on": "Depends on",
+          "is_an": "Is an instance of"
+        },
+        "human": {
+          "affects_safety": "Affects safety",
+          "affects_privacy": "Affects privacy",
+          "identifies": "Identifies",
+          "tracks": "Tracks",
+          "exposes": "Exposes",
+          "is_an": "Is an instance of"
+        }
+      },
+      "a2a": {
+        "noRelations": "No asset-to-asset relations defined.",
+        "add": "Add Relation",
+        "addRelation": "Add Asset Relation",
+        "selectTarget": "Target Asset",
+        "derives_from": "Derives from",
+        "aggregates": "Aggregates",
+        "supersedes": "Supersedes",
+        "calls": "Calls",
+        "triggers": "Triggers",
+        "suspends": "Suspends",
+        "integrates": "Integrates",
+        "powers": "Powers",
+        "houses": "Houses",
+        "mechanically_linked": "Mechanically linked",
+        "delegates_to": "Delegates to",
+        "manages": "Manages",
+        "reports_to": "Reports to",
+        "required_by": "Required by",
+        "consumed_by": "Consumed by",
+        "configures": "Configures",
+        "exposes": "Exposes",
+        "creates": "Creates",
+        "reads": "Reads",
+        "modifies": "Modifies",
+        "deletes": "Deletes",
+        "implemented_by": "Implemented by",
+        "implements": "Implements",
+        "invokes": "Invokes",
+        "hosted_on": "Hosted on",
+        "powered_by": "Powered by",
+        "operated_by": "Operated by",
+        "runs_on": "Runs on",
+        "enables": "Enables",
+        "hosts": "Hosts",
+        "controlled_by": "Controlled by",
+        "connected_to": "Connected to",
+        "located_in": "Located in",
+        "endangers": "Endangers",
+        "provides": "Provides",
+        "consumes": "Consumes",
+        "integrates_with": "Integrates with",
+        "monitors": "Monitors",
+        "owns": "Owns",
+        "accesses": "Accesses",
+        "responsible_for": "Responsible for",
+        "authorized_for": "Authorized for",
+        "depends_on": "Depends on",
+        "affects_safety": "Affects safety",
+        "affects_privacy": "Affects privacy"
+      },
+      "qualifiers": {
+        "system": {
+          "hardware": "Hardware access",
+          "library": "Library / SDK",
+          "network": "Network access",
+          "local": "Local access",
+          "authentication": "Authentication",
+          "authorization": "Authorization",
+          "api": "API",
+          "storage": "Storage",
+          "computation": "Computation",
+          "messaging": "Messaging",
+          "configuration": "Configuration",
+          "monitoring": "Monitoring",
+          "networking": "Networking"
+        },
+        "service": {
+          "api": "API (REST / SOAP / gRPC)",
+          "sdk": "SDK / Library",
+          "webhook": "Webhook (event-based)",
+          "managed": "Managed (no API access)"
+        },
+        "infrastructure": {
+          "on-site": "On-site (premises / facility)",
+          "proximity": "Proximity (RFID / WiFi range)",
+          "internal": "Internal (enclosure interior)"
+        },
+        "physical": {
+          "direct": "Direct contact (hands-on)",
+          "indirect": "Proximity / sensor",
+          "remote": "Remote (networked component)"
+        }
+      }
+    }
+  },
   "tabs": {
     "dfd": {
       "title": "DFD Editor",
@@ -339,7 +502,28 @@
         "draw": "Draw DFD",
         "describe": "Describe DFD",
         "exportDFD": "Export DFD",
-        "importDFD": "Import DFD"
+        "importDFD": "Import DFD",
+        "settings": "DFD Settings"
+      },
+      "config": {
+        "title": "DFD Settings"
+      },
+      "autoNumbering": {
+        "sortStrategy": "Auto-Numbering Order",
+        "diagonal": "Diagonal (Top-Left corner wins)",
+        "diagonalHint": "Score = weightX·x + weightY·y. The element closest to the top-left corner wins. Configurable weights, IdLabel position as tiebreaker.",
+        "topDown": "Top → Bottom (then Left → Right)",
+        "topDownHint": "Elements higher up get lower numbers. Within the same row (tolerance band), left wins. Best for document-style DFDs.",
+        "leftRight": "Left → Right (then Top → Bottom)",
+        "leftRightHint": "Elements further left get lower numbers. Within the same column (tolerance band), top wins. Best for OT/ICS diagrams with field–control–IT zones.",
+        "tolerance": "Alignment Tolerance",
+        "toleranceHintX": "Maximum X-distance (px) for two elements to be treated as the same column. Top wins within the band.",
+        "toleranceHintY": "Maximum Y-distance (px) for two elements to be treated as the same row. Left wins within the band.",
+        "weights": "Diagonal Weights",
+        "weightsHint": "Score = weightX·x + weightY·y. Higher Y weight → vertical position matters more. Default: 0.8x + 1.0y.",
+        "weightX": "X weight (horizontal)",
+        "weightY": "Y weight (vertical)",
+        "configHint": "Click Auto-Number after saving to apply. All elements will be renumbered from scratch."
       },
       "preview": {
         "title": "DFD Preview",
@@ -356,7 +540,43 @@
         "errors": "Errors",
         "warnings": "Warnings",
         "required": "Required",
-        "atLeastOneSecurityGoal": "At least one security goal required"
+        "atLeastOneSecurityGoal": "At least one security goal required",
+        "df": {
+          "label": {
+            "empty": "{{name}} — empty or unparseable label",
+            "deprecatedVerb": "{{name}} — deprecated verb, replace 'send'/'recv' with 'push' or 'pull'",
+            "unknownVerb": "{{name}} — unknown verb (valid verbs are pull, push, write, stream)",
+            "missingObject": "{{name}} — missing object, expected format '<verb> <object> [<flow-type>]'"
+          },
+          "pull": {
+            "missingFlowType": "{{name}} — pull requires a flow-type [req] or [resp]",
+            "invalidFlowType": "{{name}} — invalid flow-type for pull (expected [req] or [resp])",
+            "missingResponse": "{{name}} — no matching pull [resp] found for this pull [req]",
+            "multipleResponses": "{{name}} — multiple pull [resp] found, expected exactly one",
+            "orphanedResponse": "{{name}} — orphaned pull [resp], no matching pull [req] found"
+          },
+          "push": {
+            "missingCmd": "{{name}} — push requires flow-type [cmd]",
+            "invalidFlowType": "{{name}} — invalid flow-type for push (expected [cmd])"
+          },
+          "write": {
+            "redundantFlowType": "{{name}} — write is self-describing, flow-type is redundant"
+          },
+          "stream": {
+            "invalidFlowType": "{{name}} — stream flow-type should be [stream]"
+          },
+          "prop": {
+            "bidirectionalForbidden": "{{name}} — bidirectional flows are forbidden, model as two unidirectional flows",
+            "pullNotReqResp": "{{name}} — pull requires direction 'Request-Response', update the Direction property",
+            "pushIsReqResp": "{{name}} — push is fire-and-forget, 'Request-Response' direction contradicts push semantics",
+            "pushWrongDirection": "{{name}} — push requires direction 'Uni-directional', update the Direction property",
+            "writeIsReqResp": "{{name}} — write is a one-way operation, 'Request-Response' direction contradicts write semantics",
+            "writeNotDatastore": "{{name}} — write with non-datastore protocol, verify flow targets a Data Store (expected database or file)",
+            "streamNotContinuous": "{{name}} — stream requires continuous frequency, update the Frequency property",
+            "streamIsReqResp": "{{name}} — stream is unidirectional, 'Request-Response' direction is unexpected for stream",
+            "continuousUseStream": "{{name}} — continuous push/pull detected, consider using 'stream' instead"
+          }
+        }
       },
       "descriptionView": {
         "title": "DFD Element Descriptions"
@@ -374,7 +594,13 @@
         "showInDFD": "Show in DFD",
         "hideInDFD": "Hide in DFD",
         "showTree": "Show asset tree",
-        "hideTree": "Expand detail view"
+        "hideTree": "Expand detail view",
+        "createAsset": "New asset",
+        "deleteAsset": "Delete asset",
+        "confirmDelete": {
+          "title": "Delete asset?",
+          "message": "This will remove the asset and all its relations from the DFD. This action cannot be undone."
+        }
       },
       "assetGroups": {
         "data": "Data",
@@ -404,6 +630,14 @@
             "label": "Relation Type"
           },
           "selectedRelations": "Selected Relations",
+          "notes": "Notes (optional)",
+          "notesPlaceholder": "Notes about this asset in the context of this element…",
+          "removeAllRelations": "Remove all",
+          "deselect": "Deselect",
+          "safetyAnnotation": {
+            "title": "Safety Annotation",
+            "relevance": "Safety Relevance"
+          },
           "groupChange": {
             "title": "Change Asset Group?",
             "warning": "Changing the asset group will remove all currently selected relation types, as they are specific to the current group.",
@@ -418,6 +652,12 @@
               "group": "Asset Group",
               "confirm": "Create"
             }
+          },
+          "degradationMode": {
+            "label": "Dependency Mode",
+            "description": "Fallback description (required)",
+            "placeholder": "e.g. Local cache available for 24h, then failure",
+            "required": "Required for audit trail (IEC 62443-4-1)"
           }
         },
         "exposure_level": {
@@ -821,6 +1061,14 @@
             },
             "description": {
               "label": "Description"
+            },
+            "safetyRelevant": {
+              "label": "Safety-relevant interface (EN 50742 — e.g. programming port on Safety PLC)"
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Direct access to safety-critical programming interface",
+              "helper": "Used in EN 50742 / MVO 2027 documentation"
             }
           }
         },
@@ -1004,6 +1252,17 @@
             },
             "description": {
               "label": "Description"
+            },
+            "safetyRelevant": {
+              "label": "Carries safety-relevant data / supports safety function (EN 50742)"
+            },
+            "crossesSafetyBoundary": {
+              "hint": "This flow crosses a safety boundary (one side safety-relevant, other not). Extra scrutiny required for Tampering and Information Disclosure."
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Carries sensor data used by emergency stop logic",
+              "helper": "Used in EN 50742 / MVO 2027 documentation"
             }
           }
         },
@@ -1075,6 +1334,14 @@
             },
             "description": {
               "label": "Description"
+            },
+            "containsSafetyRelevantData": {
+              "label": "Contains safety-relevant configuration data (EN 50742)"
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Manipulation could disable emergency stop function",
+              "helper": "Used in EN 50742 / MVO 2027 documentation"
             }
           }
         },
@@ -1141,6 +1408,14 @@
           }
         },
         "asset": {
+          "regulatoryReference": "Regulatory Reference",
+          "containsSafetyRelevantData": "Contains safety-relevant data (EN 50742)",
+          "safetyRelevant": "Safety-relevant system (direct involvement in safety-critical operations)",
+          "responsibilityScope": "Responsibility Scope",
+          "responsibilityScopeRequired": "Required for third-party (CRA Art. 13 supply chain)",
+          "responsibilityScopeHint": "Which security controls are in own vs. provider scope?",
+          "providerName": "Provider Name",
+          "slaReference": "SLA / Contract Reference",
           "name": "Asset Name",
           "nameHelper": "Short, unique identifier",
           "nameTooltip": "Use a concrete name like 'Customer Database' instead of generic terms like 'Data'",
@@ -1201,7 +1476,25 @@
             "assetGroup": "Asset Group",
             "confirm": "Confirm",
             "cancel": "Cancel"
-          }
+          },
+          "isSafetyFunction": "Safety function (ISO 12100 / IEC 61508)",
+          "externalRef": "External safety ref (e.g. SF-001)",
+          "externalRefHint": "ID from accompanying safety analysis document",
+          "safetyImpact": "Safety Impact (ISO 12100)",
+          "safetyRationale": "Safety Rationale",
+          "safetyRationalePlaceholder": "e.g. Compromise allows uncontrolled machine motion leading to operator injury",
+          "safetyRationaleHelper": "Used in EN 50742 / MVO 2027 audit documentation",
+          "domain": "Domain / Regulatory context",
+          "isValidatedProcess": "Formally validated / certified process",
+          "validationRationale": "Validation rationale (required)",
+          "isUnique": "Unique / irreplaceable (artwork, prototype, one-of-a-kind)",
+          "portability": "Portability",
+          "serviceType": "Service type",
+          "responsibility": "Responsibility model",
+          "isProtectionTarget": "Protection target per ISO 12100 / EN 50742 (person at risk)",
+          "isPhysicalBarrier": "Physical protection barrier (guard, enclosure, fence)",
+          "environmentalHazard": "Environmental Hazard",
+          "notReferenced": "This asset is not yet referenced by any DFD element."
         }
       }
     },
@@ -1312,7 +1605,39 @@
         "tooManyCriteria": "You have selected more than 6 criteria...",
         "tabGeneral": "General & Rating",
         "tabSecurityGoals": "Security Goals",
-        "notRated": "Not rated"
+        "notRated": "Not rated",
+        "notSet": "Not set",
+        "hvaTitle": "High-Value Asset Assessment",
+        "hvaReplacementLeadTime": "Replacement Lead Time",
+        "hvaVendorDependency": "Vendor Dependency",
+        "hvaSpareAvailability": "Spare Availability",
+        "hvaLeadTimeNote": "Lead Time Note (optional)",
+        "hvaRationale": "HVA Rationale",
+        "physicalImpactTitle": "Safety Impact (Physical)",
+        "physicalImpactDerived": "Derived from DFD:",
+        "physicalImpactOverride": "Manual Safety Impact Override",
+        "physicalImpactLevel": "Safety Impact Level",
+        "physicalImpactRationale": "Override Rationale (required)",
+        "physicalImpactRationaleHint": "Required for manual override (IEC 62443-4-1 audit trail)",
+        "derivedFromDFD": "derived from DFD"
+      },
+      "safetyScale": {
+        "1": {
+          "label": "Low",
+          "severity": "Reversible Injury (minor)"
+        },
+        "2": {
+          "label": "Medium",
+          "severity": "Reversible Injury (moderate)"
+        },
+        "3": {
+          "label": "High",
+          "severity": "Irreversible Injury"
+        },
+        "4": {
+          "label": "Critical",
+          "severity": "Fatality"
+        }
       },
       "config": {
         "title": "Asset Impact Configuration",
@@ -1623,7 +1948,10 @@
         "showingAfter": "After Mitigation (where rated)",
         "mitigationProgress": "Mitigation Progress",
         "rated": "rated"
-      }
+      },
+      "physicalInterfaces": "Physical Interfaces",
+      "priority": "Priority",
+      "status": "Status"
     },
     "attacktree": {
       "title": "Attack Tree",

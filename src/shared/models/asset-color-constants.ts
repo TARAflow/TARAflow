@@ -1,21 +1,18 @@
 // ==================== ASSET COLOR CONSTANTS ====================
-// Shared display configuration for asset categories (colors + labels).
+// shared/models/asset-color-constants.ts
 //
+// Display configuration for asset categories (colors + labels).
 // Intentionally minimal — no dependency on dfd-types or asset-relation-types.
 // Full asset-constants.ts with relation matrices stays in features/dfd/models.
 //
 // Used by:
-//   - asset-table.tsx  (ID chip color, Type column badge)
-//   - Future: DrawIO label color generation
+//   - asset-table.tsx        (ID chip color, Type column badge)
+//   - asset-relation-selector.tsx (tab bar, chip colors)
+//   - DrawIO label color generation (future)
 
-// ==================== TYPES ====================
+import type { AssetGroup } from "./asset-group-types";
 
-export type AssetGroup =
-  | "data"
-  | "system"
-  | "process"
-  | "infrastructure"
-  | "human";
+export type { AssetGroup };
 
 export interface AssetGroupConfig {
   label: string;
@@ -35,34 +32,54 @@ export interface AssetGroupConfig {
  * If colors change, update both files.
  */
 export const ASSET_GROUP_CONFIG: Record<AssetGroup, AssetGroupConfig> = {
+  // ---- Vertical hierarchy ----
   data: {
     label: "Data",
     labelDE: "Daten",
-    color: "#1976D2",       // Blue
+    color: "#1976D2", // Blue
     colorLight: "#E3F2FD",
+  },
+  function: {
+    label: "Function",
+    labelDE: "Funktion",
+    color: "#00796B", // Teal
+    colorLight: "#E0F2F1",
   },
   system: {
     label: "System",
     labelDE: "System",
-    color: "#7B1FA2",       // Purple
+    color: "#7B1FA2", // Purple
     colorLight: "#F3E5F5",
-  },
-  process: {
-    label: "Process",
-    labelDE: "Prozess",
-    color: "#E65100",       // Orange
-    colorLight: "#FFF3E0",
   },
   infrastructure: {
     label: "Infra",
     labelDE: "Infrastruktur",
-    color: "#4E342E",       // Brown
+    color: "#4E342E", // Brown
     colorLight: "#EFEBE9",
+  },
+  // ---- Orthogonal categories ----
+  process: {
+    label: "Process",
+    labelDE: "Prozess",
+    color: "#E65100", // Orange
+    colorLight: "#FFF3E0",
+  },
+  physical: {
+    label: "Physical",
+    labelDE: "Physisches Asset",
+    color: "#F57F17", // Amber
+    colorLight: "#FFF8E1",
+  },
+  service: {
+    label: "Service",
+    labelDE: "Service",
+    color: "#283593", // Deep Indigo
+    colorLight: "#E8EAF6",
   },
   human: {
     label: "People",
     labelDE: "Personen",
-    color: "#2E7D32",       // Green
+    color: "#2E7D32", // Green
     colorLight: "#E8F5E9",
   },
 };

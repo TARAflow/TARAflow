@@ -171,7 +171,6 @@ export function mapDFDToAssetReferences(dfd: DFDData): DFDMappingResult {
     protectionNeed: asset.properties?.protectionNeed,
     // isHighValueAsset forwarded so the sync service can write it into
     // asset.properties.isHighValueAsset (HVA column in asset-table).
-    isHighValueAsset: asset.properties?.isHighValueAsset ?? false,
     linkedElements: linksByAssetId.get(asset.id) ?? [],
   }));
 

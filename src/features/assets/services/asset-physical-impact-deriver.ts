@@ -14,22 +14,67 @@
 
 import type { Asset } from "../models/asset-types";
 import type { DFDElementLink } from "../models/dfd-reference-types";
+import {
+  SAFETY_IMPACT_SCALE,
+  SAFETY_CRITERION_ID,
+} from "../models/asset-impact-types";
 
 // ==================== TYPES ====================
 
-export type PhysicalImpactLevel = "LOW" | "MED" | "HIGH";
+// Severity levels — directly from ISO 12100 / EN 50742 SafetyAnnotation.impact
+// undefined = no safety annotation present → shows "–" in asset table
+export type PhysicalImpactLevel =
+  | "reversible_injury"
+  | "irreversible_injury"
+  | "fatality";
 
 export type AggregatedImpact = "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
 
-/** Numeric rank for comparing impact levels */
+/** Numeric rank for comparing severity levels */
 const PHYSICAL_RANK: Record<PhysicalImpactLevel, number> = {
-  LOW: 0,
-  MED: 1,
-  HIGH: 2,
+  reversible_injury: 0,
+  irreversible_injury: 1,
+  fatality: 2,
 };
 
 /** Business impact from overallImpact (1–4 numeric scale → qualitative) */
 export type BusinessImpactLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+
+// ==================== SAFETY RATING MAPPER ====================
+
+/**
+ * Map numeric safety rating (1–4 from SAFETY_IMPACT_SCALE) to PhysicalImpactLevel.
+ * Used when physicalImpact is set manually via the asset-dialog safety dropdown.
+ */
+export function safetyRatingToPhysicalLevel(
+  value: number | null | "na",
+): PhysicalImpactLevel | undefined {
+  if (!value || value === "na") return undefined;
+  const level = SAFETY_IMPACT_SCALE.find((l) => l.value === Number(value));
+  if (!level) return undefined;
+  switch (level.severity) {
+    case "fatality":             return "fatality";
+    case "irreversible_injury":  return "irreversible_injury";
+    case "reversible_moderate":
+    case "reversible_minor":     return "reversible_injury";
+  }
+}
+
+/**
+ * Map PhysicalImpactLevel → SAFETY_IMPACT_SCALE value (for pre-filling dropdown).
+ * Uses the higher of the two reversible levels (2) as default.
+ */
+export function physicalLevelToSafetyRating(
+  level: PhysicalImpactLevel | undefined,
+): number | null {
+  if (!level) return null;
+  switch (level) {
+    case "fatality":            return 4;
+    case "irreversible_injury": return 3;
+    case "reversible_injury":   return 2;
+  }
+}
 
 // ==================== STEP 1: PHYSICAL IMPACT ====================
 
@@ -46,43 +91,51 @@ export type BusinessImpactLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
  * If asset.physicalImpactSource === "manual", the stored value is authoritative —
  * this function is NOT called (caller must check).
  */
-export function derivePhysicalImpact(
-  linkedElements: DFDElementLink[],
-): { level: PhysicalImpactLevel; derivedFrom: string[] } {
-  let maxLevel: PhysicalImpactLevel = "LOW";
+export function derivePhysicalImpact(linkedElements: DFDElementLink[]): {
+  level: PhysicalImpactLevel | undefined;
+  derivedFrom: string[];
+} {
+  let maxLevel: PhysicalImpactLevel | undefined = undefined;
   const derivedFrom: string[] = [];
 
   for (const link of linkedElements) {
     const safety = link.safety;
     if (!safety || safety.relevance === "none") continue;
 
-    let level: PhysicalImpactLevel = "LOW";
+    let level: PhysicalImpactLevel | undefined;
 
-    if (
-      safety.impact === "fatality" ||
-      safety.impact === "irreversible_injury"
+    // Direct mapping from SafetyAnnotation.impact
+    if (safety.impact === "fatality") {
+      level = "fatality";
+    } else if (safety.impact === "irreversible_injury") {
+      level = "irreversible_injury";
+    } else if (safety.impact === "reversible_injury") {
+      level = "reversible_injury";
+    } else if (
+      safety.relevance === "indirect" ||
+      safety.relevance === "direct"
     ) {
-      level = "HIGH";
-    } else if (safety.relevance === "indirect") {
-      level = "MED";
-    } else if (safety.relevance === "direct") {
-      // direct + reversible_injury or no impact specified → MED
-      level = "MED";
+      // relevance set but no explicit impact → worst-case indirect → reversible_injury
+      level = "reversible_injury";
     }
 
-    if (PHYSICAL_RANK[level] > PHYSICAL_RANK[maxLevel]) {
+    if (!level) continue;
+
+    if (
+      maxLevel === undefined ||
+      PHYSICAL_RANK[level] > PHYSICAL_RANK[maxLevel]
+    ) {
       maxLevel = level;
     }
 
-    if (level !== "LOW") {
-      derivedFrom.push(
-        `${link.elementName} → ${link.relationType ?? "?"}` +
+    derivedFrom.push(
+      `${link.elementName} → ${link.relationType ?? "?"}` +
         (safety.impact ? ` (${safety.impact})` : "") +
         ` [${safety.relevance}]`,
-      );
-    }
+    );
   }
 
+  // undefined = no safety annotations → shows "–" in asset table
   return { level: maxLevel, derivedFrom };
 }
 
@@ -90,13 +143,15 @@ export function derivePhysicalImpact(
  * Returns the effective physicalImpact for an asset,
  * respecting the manual override if set.
  */
-export function effectivePhysicalImpact(asset: Asset): PhysicalImpactLevel {
+export function effectivePhysicalImpact(
+  asset: Asset,
+): PhysicalImpactLevel | undefined {
   if (asset.physicalImpactSource === "manual" && asset.physicalImpact) {
     // Manual override — map CRITICAL to HIGH for internal use
     // (CRITICAL only exists on aggregatedImpact, not physicalImpact)
     return asset.physicalImpact as PhysicalImpactLevel;
   }
-  return derivePhysicalImpact(asset.linkedDFDElements).level;
+  return derivePhysicalImpact(asset.linkedDFDElements).level; // may be undefined
 }
 
 // ==================== STEP 2: AGGREGATED IMPACT ====================
@@ -114,72 +169,65 @@ export function overallImpactToBusinessLevel(
   return "LOW";
 }
 
-/**
- * Derive aggregatedImpact from physicalImpact × businessImpact.
- *
- * Aggregationsmatrix (§4.0):
- *
- * physicalImpact HIGH + relevance direct   → CRITICAL  (Safety Override)
- * physicalImpact HIGH + relevance indirect → HIGH+
- * businessImpact CRITICAL                  → CRITICAL
- * businessImpact HIGH   + physical MED     → HIGH
- * businessImpact HIGH                      → HIGH
- * businessImpact MEDIUM + physical MED     → MED+
- * businessImpact MEDIUM                    → MED
- * businessImpact LOW    + physical MED     → MED   (uplift by indirect safety)
- * businessImpact LOW                       → LOW
- *
- * High-Value Override (additional rule):
- *   isHighValueAsset AND assetDestructionImpact === "critical" → CRITICAL
- *
- * @param physicalLevel  - from derivePhysicalImpact / effectivePhysicalImpact
- * @param physicalDirect - true if ANY relation has relevance:"direct" with HIGH impact
- * @param businessLevel  - from overallImpactToBusinessLevel(asset.overallImpact)
- * @param isHighValueAsset         - asset.properties?.isHighValueAsset
- * @param assetDestructionImpact   - asset.properties?.assetDestructionImpact
- */
 export function deriveAggregatedImpact(
-  physicalLevel: PhysicalImpactLevel,
+  physicalLevel: PhysicalImpactLevel | undefined,
   physicalDirect: boolean,
   businessLevel: BusinessImpactLevel,
-  isHighValueAsset?: boolean,
+  isHighValueAsset?: "low" | "medium" | "high" | "critical",
   assetDestructionImpact?: string,
 ): AggregatedImpact {
-  // ── High-Value Override ────────────────────────────────────────
-  // Infrastructure assets whose destruction is critical → CRITICAL
-  // regardless of safety or business impact
-  if (isHighValueAsset && assetDestructionImpact === "critical") {
-    return "CRITICAL";
+  // ── Safety Override Rule ───────────────────────────────────────
+  // fatality or irreversible_injury = HIGH severity → CRITICAL (direct) or HIGH+ (indirect)
+  if (physicalLevel === "fatality" || physicalLevel === "irreversible_injury") {
+    return physicalDirect ? "CRITICAL" : "HIGH+";
+  }
+  // reversible_injury → HIGH (direct) or MED+ (indirect)
+  if (physicalLevel === "reversible_injury") {
+    return physicalDirect ? "HIGH" : "MED+";
   }
 
-  // ── Safety Override Rule ───────────────────────────────────────
-  // physicalImpact HIGH = fatality OR irreversible_injury
-  if (physicalLevel === "HIGH") {
-    return physicalDirect ? "CRITICAL" : "HIGH+";
+  // ── High-Value Override ────────────────────────────────────────
+  // MINIMUM-principle: sets a floor, never lowers a higher value.
+  // Override hierarchy (§ taraflow-asset-beziehungen.md):
+  //   critical → CRITICAL minimum
+  //   high     → CRITICAL minimum
+  //   medium   → HIGH minimum
+  //   low      → no override
+  if (isHighValueAsset === "critical" || isHighValueAsset === "high") {
+    return "CRITICAL";
+  }
+  if (isHighValueAsset === "medium") {
+    // HIGH minimum — only applies if normal aggregation would be lower
+    const normal = deriveNormalAggregation(businessLevel);
+    return normal === "LOW" || normal === "MED" || normal === "MED+"
+      ? "HIGH"
+      : normal;
   }
 
   // ── Normal Aggregation Matrix ──────────────────────────────────
-  const hasMedPhysical = physicalLevel === "MED";
+  return deriveNormalAggregation(businessLevel);
+}
 
+function deriveNormalAggregation(
+  businessLevel: BusinessImpactLevel,
+): AggregatedImpact {
+  // No physical impact → purely business-driven
   switch (businessLevel) {
     case "CRITICAL":
       return "CRITICAL";
-
     case "HIGH":
-      return "HIGH";  // MED physical adds no uplift beyond HIGH already
-
+      return "HIGH";
     case "MEDIUM":
-      return hasMedPhysical ? "MED+" : "MED";
-
+      return "MED";
     case "LOW":
-      return hasMedPhysical ? "MED" : "LOW";  // indirect safety uplifts LOW → MED
+      return "LOW";
   }
 }
 
 // ==================== CONVENIENCE: FULL DERIVATION ====================
 
 export interface PhysicalImpactDerivationResult {
-  physicalImpact: PhysicalImpactLevel;
+  physicalImpact: PhysicalImpactLevel | undefined;
   physicalImpactDerivedFrom: string[];
   physicalImpactDirect: boolean;
   aggregatedImpact: AggregatedImpact;
@@ -194,22 +242,21 @@ export interface PhysicalImpactDerivationResult {
  * Respects manual overrides on physicalImpact.
  * Always recomputes aggregatedImpact (never stored manually).
  */
-export function deriveAllImpacts(
-  asset: Asset,
-): PhysicalImpactDerivationResult {
-  // Step 1 — physical impact
-  let physicalLevel: PhysicalImpactLevel;
+export function deriveAllImpacts(asset: Asset): PhysicalImpactDerivationResult {
+  // Step 1 — physical impact (undefined = no safety annotations)
+  let physicalLevel: PhysicalImpactLevel | undefined;
   let derivedFrom: string[];
   let physicalDirect: boolean;
 
   if (asset.physicalImpactSource === "manual" && asset.physicalImpact) {
     physicalLevel = asset.physicalImpact as PhysicalImpactLevel;
     derivedFrom = [`[manual] ${asset.physicalImpactRationale ?? ""}`];
-    // For aggregation, treat manual HIGH as direct (conservative)
-    physicalDirect = physicalLevel === "HIGH";
+    // Conservative: fatality/irreversible treated as direct
+    physicalDirect =
+      physicalLevel === "fatality" || physicalLevel === "irreversible_injury";
   } else {
     const result = derivePhysicalImpact(asset.linkedDFDElements);
-    physicalLevel = result.level;
+    physicalLevel = result.level; // may be undefined
     derivedFrom = result.derivedFrom;
     // Check if any relation is direct with HIGH impact
     physicalDirect = asset.linkedDFDElements.some(
@@ -220,11 +267,12 @@ export function deriveAllImpacts(
     );
   }
 
+  // undefined physicalLevel → no safety relevance → purely business-driven
   // Step 2 — business level from stored overallImpact
   const businessLevel = overallImpactToBusinessLevel(asset.overallImpact);
 
   // Step 3 — aggregated
-  const isHighValue = asset.properties?.isHighValueAsset ?? false;
+  const isHighValue = asset.properties?.isHighValueAsset;
   const destructionImpact = asset.properties?.assetDestructionImpact;
 
   const aggregated = deriveAggregatedImpact(
@@ -240,8 +288,8 @@ export function deriveAllImpacts(
     physicalImpactDerivedFrom: derivedFrom,
     physicalImpactDirect: physicalDirect,
     aggregatedImpact: aggregated,
-    safetyOverrideActive: physicalLevel === "HIGH",
-    highValueOverrideActive:
-      isHighValue && destructionImpact === "critical",
+    safetyOverrideActive:
+      physicalLevel === "fatality" || physicalLevel === "irreversible_injury",
+    highValueOverrideActive: !!isHighValue && destructionImpact === "critical",
   };
 }

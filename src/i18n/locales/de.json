@@ -318,6 +318,169 @@
     "yesterday": "Gestern",
     "daysAgo": "vor {{count}} Tagen"
   },
+  "assets": {
+    "groups": {
+      "data": "Daten",
+      "function": "Funktion",
+      "system": "System",
+      "infrastructure": "Infrastruktur",
+      "process": "Prozess",
+      "physical": "Physisches Asset",
+      "service": "Service",
+      "human": "Personen"
+    },
+    "relations": {
+      "element": {
+        "data": {
+          "creates": "Erzeugt",
+          "reads": "Liest",
+          "modifies": "Veraendert",
+          "deletes": "Loescht",
+          "stores": "Speichert",
+          "transports": "Transportiert",
+          "is_an": "Ist eine Instanz von"
+        },
+        "function": {
+          "executes": "Fuehrt aus",
+          "invokes": "Ruft auf",
+          "implements": "Implementiert",
+          "monitors": "Ueberwacht",
+          "depends_on": "Abhaengig von",
+          "is_an": "Ist eine Instanz von"
+        },
+        "process": {
+          "executes": "Fuehrt aus",
+          "invokes": "Ruft auf",
+          "terminates": "Beendet",
+          "suspends": "Pausiert",
+          "monitors": "Ueberwacht",
+          "is_an": "Ist eine Instanz von"
+        },
+        "system": {
+          "controls": "Kontrolliert",
+          "configures": "Konfiguriert",
+          "monitors": "Ueberwacht",
+          "uses": "Nutzt",
+          "depends_on": "Abhaengig von",
+          "is_an": "Ist eine Instanz von"
+        },
+        "infrastructure": {
+          "accesses": "Greift zu auf",
+          "secures": "Schuetzt",
+          "damages": "Beschaedigt",
+          "powers": "Versorgt",
+          "monitors": "Ueberwacht",
+          "is_an": "Ist eine Instanz von"
+        },
+        "physical": {
+          "accesses": "Greift physisch zu auf",
+          "damages": "Beschaedigt",
+          "secures": "Sichert",
+          "monitors": "Ueberwacht",
+          "is_an": "Ist eine Instanz von"
+        },
+        "service": {
+          "uses": "Nutzt",
+          "configures": "Konfiguriert",
+          "monitors": "Ueberwacht",
+          "depends_on": "Abhaengig von",
+          "is_an": "Ist eine Instanz von"
+        },
+        "human": {
+          "affects_safety": "Gefaehrdet physisch",
+          "affects_privacy": "Beeintraechtigt Privatsphaere",
+          "identifies": "Identifiziert",
+          "tracks": "Verfolgt",
+          "exposes": "Exponiert",
+          "is_an": "Ist eine Instanz von"
+        }
+      },
+      "a2a": {
+        "noRelations": "Keine Asset-zu-Asset-Beziehungen definiert.",
+        "add": "Beziehung hinzufügen",
+        "addRelation": "Asset-Beziehung hinzufügen",
+        "selectTarget": "Ziel-Asset",
+        "derives_from": "Abgeleitet von",
+        "aggregates": "Aggregiert",
+        "supersedes": "Ersetzt",
+        "calls": "Ruft auf",
+        "triggers": "Loest aus",
+        "suspends": "Unterbricht",
+        "integrates": "Integriert",
+        "powers": "Versorgt",
+        "houses": "Beherbergt",
+        "mechanically_linked": "Mechanisch verbunden",
+        "delegates_to": "Delegiert an",
+        "manages": "Verwaltet",
+        "reports_to": "Rapportiert an",
+        "required_by": "Benoetigt von",
+        "consumed_by": "Verbraucht von",
+        "configures": "Konfiguriert",
+        "exposes": "Exponiert",
+        "creates": "Erzeugt",
+        "reads": "Liest",
+        "modifies": "Veraendert",
+        "deletes": "Loescht",
+        "implemented_by": "Implementiert durch",
+        "implements": "Implementiert",
+        "invokes": "Ruft auf",
+        "hosted_on": "Laeuft auf",
+        "powered_by": "Versorgt durch",
+        "operated_by": "Bedient durch",
+        "runs_on": "Laeuft auf",
+        "enables": "Ermoeglicht",
+        "hosts": "Hostet",
+        "controlled_by": "Gesteuert durch",
+        "connected_to": "Verbunden mit",
+        "located_in": "Befindet sich in",
+        "endangers": "Gefaehrdet",
+        "provides": "Stellt bereit",
+        "consumes": "Verarbeitet",
+        "integrates_with": "Integriert mit",
+        "monitors": "Ueberwacht",
+        "owns": "Besitzt",
+        "accesses": "Greift zu auf",
+        "responsible_for": "Verantwortlich fuer",
+        "authorized_for": "Autorisiert fuer",
+        "depends_on": "Abhaengig von",
+        "affects_safety": "Gefaehrdet physisch",
+        "affects_privacy": "Beeintraechtigt Privatsphaere"
+      },
+      "qualifiers": {
+        "system": {
+          "hardware": "Hardware-Zugriff",
+          "library": "Bibliothek / SDK",
+          "network": "Netzwerkzugriff",
+          "local": "Lokaler Zugriff",
+          "authentication": "Authentifizierung",
+          "authorization": "Autorisierung",
+          "api": "API",
+          "storage": "Speicher",
+          "computation": "Berechnung",
+          "messaging": "Messaging",
+          "configuration": "Konfiguration",
+          "monitoring": "Monitoring",
+          "networking": "Netzwerk"
+        },
+        "service": {
+          "api": "API (REST / SOAP / gRPC)",
+          "sdk": "SDK / Bibliothek",
+          "webhook": "Webhook (ereignisbasiert)",
+          "managed": "Managed (kein API-Zugriff)"
+        },
+        "infrastructure": {
+          "on-site": "Vor Ort (Gelaende / Anlage)",
+          "proximity": "Naehe (RFID- / WLAN-Reichweite)",
+          "internal": "Intern (Gehaeuse-Inneres)"
+        },
+        "physical": {
+          "direct": "Direkter Kontakt (physisch)",
+          "indirect": "Naehe / Sensor",
+          "remote": "Remote (vernetztes Bauteil)"
+        }
+      }
+    }
+  },
   "tabs": {
     "dfd": {
       "title": "DFD Editor",
@@ -337,7 +500,28 @@
         "draw": "DFD zeichnen",
         "describe": "DFD beschreiben",
         "exportDFD": "DFD exportieren",
-        "importDFD": "DFD importieren"
+        "importDFD": "DFD importieren",
+        "settings": "DFD-Einstellungen"
+      },
+      "config": {
+        "title": "DFD-Einstellungen"
+      },
+      "autoNumbering": {
+        "sortStrategy": "Auto-Nummerierung – Reihenfolge",
+        "diagonal": "Diagonal (obere linke Ecke gewinnt)",
+        "diagonalHint": "Score = gewichtX·x + gewichtY·y. Das Element am nächsten zur oberen linken Ecke gewinnt. Konfigurierbare Gewichte, IdLabel-Position als Tiebreaker.",
+        "topDown": "Oben → Unten (dann Links → Rechts)",
+        "topDownHint": "Elemente weiter oben erhalten niedrigere Nummern. Innerhalb der gleichen Zeile (Toleranzband) gewinnt links. Geeignet für dokumentartige DFDs.",
+        "leftRight": "Links → Rechts (dann Oben → Unten)",
+        "leftRightHint": "Elemente weiter links erhalten niedrigere Nummern. Innerhalb der gleichen Spalte (Toleranzband) gewinnt oben. Geeignet für OT/ICS-Diagramme mit Feld–Steuerung–IT-Zonen.",
+        "tolerance": "Ausrichtungstoleranz",
+        "toleranceHintX": "Maximaler X-Abstand (px), innerhalb dessen zwei Elemente als gleiche Spalte gelten. Das obere Element gewinnt im Band.",
+        "toleranceHintY": "Maximaler Y-Abstand (px), innerhalb dessen zwei Elemente als gleiche Zeile gelten. Das linke Element gewinnt im Band.",
+        "weights": "Diagonale Gewichte",
+        "weightsHint": "Score = gewichtX·x + gewichtY·y. Höheres Y-Gewicht → vertikale Position zählt mehr. Standard: 0.8x + 1.0y.",
+        "weightX": "X-Gewicht (horizontal)",
+        "weightY": "Y-Gewicht (vertikal)",
+        "configHint": "Nach dem Speichern «Auto-Nummerieren» klicken. Alle Elemente werden von Grund auf neu nummeriert."
       },
       "preview": {
         "title": "DFD Vorschau",
@@ -354,7 +538,43 @@
         "errors": "Fehler",
         "warnings": "Warnungen",
         "required": "Erforderlich",
-        "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich"
+        "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich",
+        "df": {
+          "label": {
+            "empty": "{{name}} — leeres oder nicht lesbares Label",
+            "deprecatedVerb": "{{name}} — veraltetes Verb, 'send'/'recv' durch 'push' oder 'pull' ersetzen",
+            "unknownVerb": "{{name}} — unbekanntes Verb (gültige Verben sind pull, push, write, stream)",
+            "missingObject": "{{name}} — Objekt fehlt, erwartet '<verb> <objekt> [<flow-type>]'"
+          },
+          "pull": {
+            "missingFlowType": "{{name}} — pull erfordert einen Flow-Type [req] oder [resp]",
+            "invalidFlowType": "{{name}} — ungültiger Flow-Type für pull (erwartet [req] oder [resp])",
+            "missingResponse": "{{name}} — kein passendes pull [resp] für dieses pull [req] gefunden",
+            "multipleResponses": "{{name}} — mehrere pull [resp] gefunden, genau eines erwartet",
+            "orphanedResponse": "{{name}} — verwaistes pull [resp], kein passendes pull [req] gefunden"
+          },
+          "push": {
+            "missingCmd": "{{name}} — push erfordert den Flow-Type [cmd]",
+            "invalidFlowType": "{{name}} — ungültiger Flow-Type für push (erwartet [cmd])"
+          },
+          "write": {
+            "redundantFlowType": "{{name}} — write ist selbsterklärend, Flow-Type ist redundant"
+          },
+          "stream": {
+            "invalidFlowType": "{{name}} — Stream-Flow-Type sollte [stream] sein"
+          },
+          "prop": {
+            "bidirectionalForbidden": "{{name}} — bidirektionale Flows sind nicht erlaubt, als zwei unidirektionale Flows modellieren",
+            "pullNotReqResp": "{{name}} — pull setzt Richtung 'Request-Response' voraus, Direction-Eigenschaft anpassen",
+            "pushIsReqResp": "{{name}} — push ist Fire-and-Forget, 'Request-Response' widerspricht der push-Semantik",
+            "pushWrongDirection": "{{name}} — push setzt Richtung 'Unidirektional' voraus, Direction-Eigenschaft anpassen",
+            "writeIsReqResp": "{{name}} — write ist ein Einwegvorgang, 'Request-Response' widerspricht der write-Semantik",
+            "writeNotDatastore": "{{name}} — write mit Nicht-Datenspeicher-Protokoll, prüfen ob Ziel ein Data Store ist (erwartet database oder file)",
+            "streamNotContinuous": "{{name}} — stream setzt kontinuierliche Häufigkeit voraus, Frequency-Eigenschaft anpassen",
+            "streamIsReqResp": "{{name}} — stream ist unidirektional, 'Request-Response' ist für stream nicht erwartet",
+            "continuousUseStream": "{{name}} — kontinuierlicher push/pull erkannt, Verb 'stream' in Betracht ziehen"
+          }
+        }
       },
       "descriptionView": {
         "title": "DFD-Element-Beschreibungen"
@@ -372,7 +592,13 @@
         "showInDFD": "Im DFD anzeigen",
         "hideInDFD": "Im DFD ausblenden",
         "showTree": "Asset-Baum anzeigen",
-        "hideTree": "Detailansicht vergrössern"
+        "hideTree": "Detailansicht vergrössern",
+        "createAsset": "Neues Asset",
+        "deleteAsset": "Asset löschen",
+        "confirmDelete": {
+          "title": "Asset löschen?",
+          "message": "Dies entfernt das Asset und alle zugehörigen Relationen aus dem DFD. Diese Aktion kann nicht rückgängig gemacht werden."
+        }
       },
       "assetGroups": {
         "data": "Daten",
@@ -390,22 +616,30 @@
           "relations": "Beziehungen"
         },
         "assetRelations": {
-          "isAnSection": "Identität (is_an)",
+          "isAnSection": "Identitaet (is_an)",
           "relationsSection": "Asset-Beziehungen",
           "empty": "Keine Asset-Beziehungen definiert.",
-          "addRelation": "Asset-Beziehung hinzufügen",
+          "addRelation": "Asset-Beziehung hinzufuegen",
           "editRelations": "Beziehungen bearbeiten",
-          "isAnDescription": "Dieses Element repräsentiert dieses Asset",
+          "isAnDescription": "Dieses Element repraesentiert dieses Asset",
           "cancel": "Abbrechen",
           "save": "Speichern",
           "relationType": {
             "label": "Beziehungstyp"
           },
-          "selectedRelations": "Ausgewählte Beziehungen",
+          "selectedRelations": "Ausgewaehlte Beziehungen",
+          "notes": "Notizen (optional)",
+          "notesPlaceholder": "Notizen zu diesem Asset im Kontext dieses Elements…",
+          "removeAllRelations": "Alle entfernen",
+          "deselect": "Abwaehlen",
+          "safetyAnnotation": {
+            "title": "Safety-Annotation",
+            "relevance": "Safety-Relevanz"
+          },
           "groupChange": {
-            "title": "Asset-Gruppe ändern?",
-            "warning": "Das Ändern der Asset-Gruppe entfernt alle aktuell ausgewählten Beziehungstypen, da diese gruppenspezifisch sind.",
-            "confirm": "Ändern & Beziehungen zurücksetzen"
+            "title": "Asset-Gruppe aendern?",
+            "warning": "Das Aendern der Asset-Gruppe entfernt alle aktuell ausgewaehlten Beziehungstypen, da diese gruppenspezifisch sind.",
+            "confirm": "Aendern & Beziehungen loeschen"
           },
           "asset": {
             "label": "Asset",
@@ -416,6 +650,12 @@
               "group": "Asset-Gruppe",
               "confirm": "Erstellen"
             }
+          },
+          "degradationMode": {
+            "label": "Abhängigkeitsmodus",
+            "description": "Fallback-Beschreibung (erforderlich)",
+            "placeholder": "z.B. Lokaler Cache für 24h verfügbar, danach Ausfall",
+            "required": "Erforderlich für Prüfnachweis (IEC 62443-4-1)"
           }
         },
         "exposure_level": {
@@ -819,6 +1059,14 @@
             },
             "description": {
               "label": "Beschreibung"
+            },
+            "safetyRelevant": {
+              "label": "Sicherheitsrelevante Schnittstelle (EN 50742 — z.B. Programmierschnittstelle einer Sicherheits-SPS)"
+            },
+            "safetyRationale": {
+              "label": "Sicherheitsbegründung",
+              "placeholder": "z.B. Direktzugriff auf sicherheitskritische Programmierschnittstelle",
+              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
             }
           }
         },
@@ -1002,6 +1250,17 @@
             },
             "description": {
               "label": "Beschreibung"
+            },
+            "safetyRelevant": {
+              "label": "Trägt sicherheitsrelevante Daten / unterstützt Sicherheitsfunktion (EN 50742)"
+            },
+            "crossesSafetyBoundary": {
+              "hint": "Dieser Datenfluss überquert eine Sicherheitsgrenze (eine Seite sicherheitsrelevant, andere nicht). Erhöhte Prüfung für Manipulation und Informationsoffenlegung erforderlich."
+            },
+            "safetyRationale": {
+              "label": "Sicherheitsbegründung",
+              "placeholder": "z.B. Transportiert Sensordaten für die Notausschaltlogik",
+              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
             }
           }
         },
@@ -1073,6 +1332,14 @@
             },
             "description": {
               "label": "Beschreibung"
+            },
+            "containsSafetyRelevantData": {
+              "label": "Enthält sicherheitsrelevante Konfigurationsdaten (EN 50742)"
+            },
+            "safetyRationale": {
+              "label": "Sicherheitsbegründung",
+              "placeholder": "z.B. Manipulation könnte die Notausschaltfunktion deaktivieren",
+              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
             }
           }
         },
@@ -1139,6 +1406,14 @@
           }
         },
         "asset": {
+          "regulatoryReference": "Regulatorische Referenz",
+          "containsSafetyRelevantData": "Enthält sicherheitsrelevante Daten (EN 50742)",
+          "safetyRelevant": "Sicherheitsrelevantes System (direkte Beteiligung an sicherheitskritischen Abläufen)",
+          "responsibilityScope": "Verantwortungsbereich",
+          "responsibilityScopeRequired": "Erforderlich bei Drittanbietern (CRA Art. 13 Lieferkette)",
+          "responsibilityScopeHint": "Welche Sicherheitsmaßnahmen liegen im eigenen Verantwortungsbereich und welche beim Anbieter?",
+          "providerName": "Anbietername",
+          "slaReference": "SLA- / Vertragsreferenz",
           "name": "Asset Name",
           "nameHelper": "Kurze, eindeutige Bezeichnung",
           "nameTooltip": "Verwenden Sie konkrete Namen wie 'Kundendatenbank' statt generische Begriffe wie 'Daten'",
@@ -1199,7 +1474,25 @@
             "assetGroup": "Asset-Gruppe",
             "confirm": "Bestätigen",
             "cancel": "Abbrechen"
-          }
+          },
+          "isSafetyFunction": "Sicherheitsfunktion (ISO 12100 / IEC 61508)",
+          "externalRef": "Externer Sicherheitsnachweis (z.B. SF-001)",
+          "externalRefHint": "ID aus dem begleitenden Sicherheitsanalysedokument",
+          "safetyImpact": "Sicherheitsauswirkung (ISO 12100)",
+          "safetyRationale": "Sicherheitsbegründung",
+          "safetyRationalePlaceholder": "z.B. Manipulation ermöglicht unkontrollierte Maschinenbewegung mit Verletzungsrisiko",
+          "safetyRationaleHelper": "Wird in EN 50742 / MVO 2027 Auditdokumentation verwendet",
+          "domain": "Domäne / Regulatorischer Kontext",
+          "isValidatedProcess": "Formell validierter / zertifizierter Prozess",
+          "validationRationale": "Validierungsbegründung (erforderlich)",
+          "isUnique": "Einzigartig / nicht ersetzbar (Kunstwerk, Prototyp, Unikat)",
+          "portability": "Mobilität",
+          "serviceType": "Servicetyp",
+          "responsibility": "Verantwortlichkeitsmodell",
+          "isProtectionTarget": "Schutzobjekt gemäss ISO 12100 / EN 50742 (gefährdete Person)",
+          "isPhysicalBarrier": "Physische Schutzeinrichtung (Schutzgitter, Gehäuse, Zaun)",
+          "environmentalHazard": "Umgebungsgefährdung",
+          "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
         }
       }
     },
@@ -1309,7 +1602,39 @@
         "linkedElements": "Verknüpfte DFD-Elemente",
         "tabGeneral": "Allgemein & Bewertung",
         "tabSecurityGoals": "Schutzziele",
-        "notRated": "Nicht bewertet"
+        "notRated": "Nicht bewertet",
+        "notSet": "Nicht gesetzt",
+        "hvaTitle": "High-Value Asset Bewertung",
+        "hvaReplacementLeadTime": "Wiederbeschaffungszeit",
+        "hvaVendorDependency": "Lieferantenabhängigkeit",
+        "hvaSpareAvailability": "Ersatzteilversorgung",
+        "hvaLeadTimeNote": "Zeitangabe (optional)",
+        "hvaRationale": "HVA Begründung",
+        "physicalImpactTitle": "Sicherheitsauswirkung (Physisch)",
+        "physicalImpactDerived": "Abgeleitet aus DFD:",
+        "physicalImpactOverride": "Safety Impact manuell überschreiben",
+        "physicalImpactLevel": "Safety Impact Level",
+        "physicalImpactRationale": "Begründung (Pflichtfeld)",
+        "physicalImpactRationaleHint": "Pflichtfeld bei manueller Überschreibung (IEC 62443-4-1 Audit-Trail)",
+        "derivedFromDFD": "aus DFD abgeleitet"
+      },
+      "safetyScale": {
+        "1": {
+          "label": "Niedrig",
+          "severity": "Reversible Verletzung (leicht)"
+        },
+        "2": {
+          "label": "Mittel",
+          "severity": "Reversible Verletzung (mittel)"
+        },
+        "3": {
+          "label": "Hoch",
+          "severity": "Irreversible Verletzung"
+        },
+        "4": {
+          "label": "Kritisch",
+          "severity": "Tödlich"
+        }
       },
       "config": {
         "title": "Asset Impact-Konfiguration",
@@ -1623,7 +1948,10 @@
         "showingAfter": "Nach Mitigation (wo bewertet)",
         "mitigationProgress": "Mitigations-Fortschritt",
         "rated": "bewertet"
-      }
+      },
+      "physicalInterfaces": "Physische Schnittstellen",
+      "priority": "Priorität",
+      "status": "Status"
     },
     "attacktree": {
       "title": "Attack Tree",

@@ -12,6 +12,14 @@ import type {
 } from "../models/asset-types";
 import { createEmptyAsset, parseAssetId } from "./asset-factory";
 import { calculateOverallImpact } from "./asset-impact-calculator";
+import {
+  derivePhysicalImpact,
+  deriveAggregatedImpact,
+  overallImpactToBusinessLevel,
+  type PhysicalImpactLevel,
+} from "./asset-physical-impact-deriver";
+import { applyHVAToAsset } from "./asset-hva-deriver";
+import { SAFETY_CRITERION_ID } from "../models/asset-impact-types";
 
 export interface DFDAssetSyncResult {
   assetData: AssetData;
@@ -25,10 +33,56 @@ export interface DFDAssetSyncResult {
  * - Updates linkedDFDElements for existing assets.
  * - Warns about DFD assets no longer found.
  */
+
+// ==================== IMPACT DERIVATION HELPER ====================
+
+/**
+ * Derive physicalImpact and aggregatedImpact for an asset after sync.
+ * Uses fresh linkedDFDElements for physicalImpact derivation.
+ * Respects manual overrides on physicalImpact.
+ */
+function deriveAndApplyImpacts(asset: Asset, linkedDFDElements: DFDElementLink[]): Asset {
+  // Step 1 — physicalImpact from SafetyAnnotations (severity-based)
+  let physicalLevel: PhysicalImpactLevel | undefined;
+  let physicalDirect: boolean;
+
+  if (asset.physicalImpactSource === "manual" && asset.physicalImpact) {
+    physicalLevel = asset.physicalImpact as PhysicalImpactLevel;
+    physicalDirect =
+      physicalLevel === "fatality" || physicalLevel === "irreversible_injury";
+  } else {
+    const derived = derivePhysicalImpact(linkedDFDElements);
+    physicalLevel = derived.level; // undefined if no safety annotations
+    physicalDirect = linkedDFDElements.some(
+      (l) =>
+        l.safety?.relevance === "direct" &&
+        (l.safety.impact === "fatality" || l.safety.impact === "irreversible_injury"),
+    );
+  }
+
+  // Step 2 — aggregatedImpact (undefined physicalLevel → purely business-driven)
+  const businessLevel = overallImpactToBusinessLevel(asset.overallImpact);
+  const aggregated = deriveAggregatedImpact(
+    physicalLevel,
+    physicalDirect,
+    businessLevel,
+    asset.properties?.isHighValueAsset,
+    asset.properties?.assetDestructionImpact,
+  );
+
+  return {
+    ...asset,
+    physicalImpact: physicalLevel,
+    physicalImpactSource: asset.physicalImpactSource === "manual" ? "manual" : "derived",
+    aggregatedImpact: aggregated,
+    linkedDFDElements,
+  };
+}
+
 export function syncFromDFD(
   assetData: AssetData,
   dfdAssets: AssetDFDAsset[],
-  _dfdElements: AssetDFDElement[],   // reserved for future graph traversal
+  _dfdElements: AssetDFDElement[], // reserved for future graph traversal
   _dfdConnections: AssetDFDConnection[], // reserved for future graph traversal
 ): DFDAssetSyncResult {
   const warnings: string[] = [];
@@ -59,26 +113,36 @@ export function syncFromDFD(
     const existingIndex = updatedAssets.findIndex((a) => a.id === dfdAsset.id);
 
     if (existingIndex === -1) {
+      console.log(
+        "[ASSET-SYNC-SERVICE] creating new",
+        dfdAsset.id,
+        dfdAsset.assetGroup,
+      );
       // New asset from DFD
       const newAsset: Asset = {
-        ...createEmptyAsset(dfdAsset.id, assetData.configuration),
+        ...createEmptyAsset(
+          dfdAsset.id,
+          assetData.configuration,
+          dfdAsset.assetGroup,
+        ),
         name: dfdAsset.name ?? dfdAsset.id,
+        assetGroup: dfdAsset.assetGroup ?? "data",
         source: "dfd",
         syncedWithDFD: true,
         linkedDFDElements,
-        // Populate properties so asset-table can render the category
-        // colour (ID chip, Type column) and HVA star without falling
-        // back to the ID-prefix heuristic.
         properties: {
           description: dfdAsset.description ?? "",
-          category: dfdAsset.assetGroup,
           protectionNeed: dfdAsset.protectionNeed,
-          isHighValueAsset: dfdAsset.isHighValueAsset ?? false,
         },
       };
       updatedAssets = [...updatedAssets, newAsset];
       newAssetIds.push(dfdAsset.id);
     } else {
+      console.log(
+        "[ASSET-SYNC-SERVICE] updating existing",
+        dfdAsset.id,
+        dfdAsset.assetGroup,
+      );
       // Update existing — preserve all analyst-set fields, only refresh links
       const existing = updatedAssets[existingIndex];
       const updated: Asset = {
@@ -90,17 +154,13 @@ export function syncFromDFD(
         // can change in the DFD layer and must stay in sync.
         // Analyst-set fields (description, owner, notes, …) are preserved via
         // the spread of existing.properties below.
+        assetGroup: dfdAsset.assetGroup ?? existing.assetGroup,
         properties: {
           ...existing.properties,
           description:
             existing.properties?.description ?? dfdAsset.description ?? "",
-          category: dfdAsset.assetGroup,
           protectionNeed:
             dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
-          isHighValueAsset:
-            dfdAsset.isHighValueAsset ??
-            existing.properties?.isHighValueAsset ??
-            false,
         },
         // Recalculate impact with current config + criteria weights
         overallImpact: calculateOverallImpact(
@@ -111,25 +171,50 @@ export function syncFromDFD(
         ),
         lastModified: new Date().toISOString(),
       };
+      // Derive physicalImpact from fresh linkedDFDElements (unless manual override)
+      const withPhysical = deriveAndApplyImpacts(updated, linkedDFDElements);
       updatedAssets = updatedAssets.map((a, i) =>
-        i === existingIndex ? updated : a,
+        i === existingIndex ? withPhysical : a,
       );
     }
   }
 
   // Warn about DFD-sourced assets no longer present in DFD
   const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
-  for (const asset of updatedAssets) {
-    if (asset.source === "dfd" && !dfdAssetIds.has(asset.id)) {
-      warnings.push(
-        `Asset ${asset.id} (${asset.name}) no longer present in DFD`,
-      );
-    }
+  const removedAssets = updatedAssets.filter(
+    (a) => a.source === "dfd" && !dfdAssetIds.has(a.id),
+  );
+  if (removedAssets.length > 0) {
+    updatedAssets = updatedAssets.filter(
+      (a) => !(a.source === "dfd" && !dfdAssetIds.has(a.id)),
+    );
+    removedAssets.forEach((a) =>
+      warnings.push(`Asset ${a.id} (${a.name}) removed — no longer in DFD`),
+    );
   }
+
+  // Auto-add safety criterion when safety annotations are found in DFD
+  const hasSafetyAnnotations = updatedAssets.some((a) =>
+    a.linkedDFDElements.some((l) => l.safety && l.safety.relevance !== "none"),
+  );
+  const alreadyHasSafety = assetData.configuration.impactCriteria.some(
+    (c) => c.id === SAFETY_CRITERION_ID,
+  );
+  const updatedConfiguration =
+    hasSafetyAnnotations && !alreadyHasSafety
+      ? {
+          ...assetData.configuration,
+          impactCriteria: [
+            ...assetData.configuration.impactCriteria,
+            { id: SAFETY_CRITERION_ID, weight: 1 },
+          ],
+        }
+      : assetData.configuration;
 
   return {
     assetData: {
       ...assetData,
+      configuration: updatedConfiguration,
       assets: updatedAssets,
       lastModified: new Date().toISOString(),
     },

@@ -33,6 +33,12 @@ import {
   calculateOverallImpact,
   recalculateAllImpacts,
 } from "./asset-impact-calculator";
+import {
+  deriveAggregatedImpact,
+  overallImpactToBusinessLevel,
+  type PhysicalImpactLevel,
+} from "./asset-physical-impact-deriver";
+import { applyHVAToAsset } from "./asset-hva-deriver";
 import { migrateAssetConfiguration } from "./asset-migration";
 import { validateAssetData, derivePhaseStatus } from "./asset-validator";
 import { syncFromDFD, getAssetsMissingInDFD } from "./asset-sync-service";
@@ -92,7 +98,7 @@ class AssetService {
 
       return {
         success: true,
-        assets: { ...migrated, validation, lastModified },
+        assets: { ...migrated, lastModified },
         phaseStatus: { ...project.phaseStatus, 2: phaseStatus },
         lastModified,
         validation,
@@ -132,14 +138,41 @@ class AssetService {
 
   updateAsset(assetData: AssetData, updated: Asset): AssetData {
     const { configuration } = assetData;
+
+    // Step 1 — recalculate overall business impact
+    const overallImpact = calculateOverallImpact(
+      updated.impactRatings,
+      configuration.calculationMethod,
+      configuration.roundingMethod,
+      configuration.impactCriteria,
+    );
+
+    // Step 2 — derive HVA from replacementLeadTime + vendorDependency + spareAvailability
+    // (only runs for infrastructure/physical; respects manual override)
+    const withHVA = applyHVAToAsset({ ...updated, overallImpact });
+
+    // Step 3 — re-derive aggregatedImpact with updated HVA and current physicalImpact
+    // undefined if no safety annotations — aggregation handles it correctly
+    const physicalLevel = withHVA.physicalImpact as
+      | PhysicalImpactLevel
+      | undefined;
+    const physicalDirect = withHVA.linkedDFDElements.some(
+      (l) =>
+        l.safety?.relevance === "direct" &&
+        (l.safety.impact === "fatality" ||
+          l.safety.impact === "irreversible_injury"),
+    );
+    const aggregated = deriveAggregatedImpact(
+      physicalLevel,
+      physicalDirect,
+      overallImpactToBusinessLevel(overallImpact),
+      withHVA.properties?.isHighValueAsset,
+      withHVA.properties?.assetDestructionImpact,
+    );
+
     const withImpact: Asset = {
-      ...updated,
-      overallImpact: calculateOverallImpact(
-        updated.impactRatings,
-        configuration.calculationMethod,
-        configuration.roundingMethod,
-        configuration.impactCriteria, // pass weights — was missing before
-      ),
+      ...withHVA,
+      aggregatedImpact: aggregated,
       lastModified: new Date().toISOString(),
     };
 
@@ -155,7 +188,8 @@ class AssetService {
   deleteAsset(assetData: AssetData, assetId: string): AssetData {
     return {
       ...assetData,
-      assets: renumberAssets(assetData.assets.filter((a) => a.id !== assetId)),
+      // No renumbering — DFD-sourced assets have stable IDs (DA-001 etc.)
+      assets: assetData.assets.filter((a) => a.id !== assetId),
       lastModified: new Date().toISOString(),
     };
   }

@@ -86,8 +86,14 @@ export const MainLayout: React.FC = () => {
 
   const MAX_OPEN_PROJECTS = 10;
 
-  const activeProject = projects.find((p) => p.id === activeProjectId);
-  const openProjects = projects.filter((p) => p.isOpen);
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === activeProjectId),
+    [projects, activeProjectId],
+  );
+  const openProjects = useMemo(
+    () => projects.filter((p) => p.isOpen),
+    [projects],
+  );
 
   const [recentProjectsMetadata, setRecentProjectsMetadata] = useState<
     ProjectMetadata[]
@@ -598,8 +604,8 @@ export const MainLayout: React.FC = () => {
                     ...threat,
                     linkedElement: {
                       ...threat.linkedElement,
-                      displayId: elem.displayId, // aktualisierte displayId
-                      elementName: elem.name, // optional
+                      displayId: elem.displayId,
+                      elementName: elem.name,
                     },
                   };
                 }),
@@ -620,7 +626,11 @@ export const MainLayout: React.FC = () => {
 
       await updateProject(updatedProject);
     },
-    [activeProject],
+    // Use activeProject ref pattern to avoid recreating callback on every save.
+    // The callback reads activeProject at call time via closure — this is safe
+    // because activeProject is always current when handleDFDUpdate fires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.id],
   );
 
   // ==================== Asset HANDLER ====================
@@ -864,6 +874,39 @@ export const MainLayout: React.FC = () => {
   // Prevent unnecessary re-renders by memoizing mapped DFD data
   // These only change when activeProject.dfd content actually changes
 
+  /**
+   * Stable project object for DFDTab.
+   * Without this, the inline object literal in JSX creates a new reference
+   * on every render of main-layout → useDFDEditor resets → DFDToolbar remounts
+   * → 242 Popper resize listeners accumulate.
+   * Dependencies are primitive IDs and stable sub-object references only.
+   */
+  const dfdTabProject = useMemo(
+    () =>
+      activeProject
+        ? {
+            id: activeProject.id,
+            name: activeProject.info?.name ?? "",
+            dfd: activeProject.dfd ?? null,
+            phaseStatus: activeProject.phaseStatus,
+            settings: activeProject.settings,
+            lastModified: activeProject.info?.lastModified ?? "",
+          }
+        : null,
+    // Use lastModified as a proxy for dfd content changes.
+    // Avoids triggering remount on every setProjects() call where
+    // the dfd object reference changes but content is identical.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeProject?.id,
+      activeProject?.info?.name,
+      activeProject?.info?.lastModified,
+      activeProject?.dfd?.lastModified,
+      activeProject?.phaseStatus,
+      activeProject?.settings,
+    ],
+  );
+
   const memoizedDFDAssets = useMemo(() => {
     console.debug("[DEBUG] Original DFD Assets:", activeProject?.dfd?.assets);
 
@@ -998,18 +1041,19 @@ export const MainLayout: React.FC = () => {
                   onUpdate={handleGeneralTabUpdate}
                 />
               )}
-              {activePhase === 1 && activeProject && (
-                <DFDTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    dfd: activeProject.dfd ?? null,
-                    phaseStatus: activeProject.phaseStatus,
-                    settings: activeProject.settings,
-                    lastModified: activeProject.info?.lastModified || "",
+              {/* DFDTab is always mounted when a project is open to prevent
+                  draw.io iframe reload and Popper listener leaks on tab switch.
+                  CSS display:none hides it without unmounting. */}
+              {activeProject && dfdTabProject && (
+                <div
+                  style={{
+                    display: activePhase === 1 ? "flex" : "none",
+                    flexDirection: "column",
+                    height: "100%",
                   }}
-                  onUpdate={handleDFDUpdate}
-                />
+                >
+                  <DFDTab project={dfdTabProject} onUpdate={handleDFDUpdate} />
+                </div>
               )}
               {activePhase === 2 && activeProject && (
                 <AssetsTab
@@ -1074,26 +1118,37 @@ export const MainLayout: React.FC = () => {
                   onPhaseComplete={() => setActivePhase(5)}
                 />
               )}
-              {activePhase === 5 && activeProject && (
-                <AttackTreeTab
-                  project={{
-                    id: activeProject.id,
-                    name: activeProject.info?.name || "",
-                    phaseStatus: activeProject.phaseStatus,
-                    isHighImpact: activeProject.info?.isHighImpact || false,
-                    attackTrees: activeProject.attackTrees,
-                    assets: extractAssetReferences(activeProject),
-                    threats:
-                      extractThreatReferencesForAttackTree(activeProject),
-                    risks: extractRiskReferences(activeProject),
-                    dfdElements: extractDFDElementReferences(activeProject),
-                    mitigations: extractMitigationReferences(activeProject),
-                    dfdPreviewImage: activeProject.dfd?.thumbnail,
-                    lastModified: activeProject.info?.lastModified || "",
+              {/* AttackTreeTab permanently mounted to prevent AttackTreePreview
+                  from unmounting on tab switch — each unmount+mount registers
+                  a new window resize listener causing listener accumulation. */}
+              {activeProject && (
+                <div
+                  style={{
+                    display: activePhase === 5 ? "flex" : "none",
+                    flexDirection: "column",
+                    height: "100%",
                   }}
-                  onUpdate={handleAttackTreeUpdate}
-                  onPhaseComplete={() => setActivePhase(6)}
-                />
+                >
+                  <AttackTreeTab
+                    project={{
+                      id: activeProject.id,
+                      name: activeProject.info?.name || "",
+                      phaseStatus: activeProject.phaseStatus,
+                      isHighImpact: activeProject.info?.isHighImpact || false,
+                      attackTrees: activeProject.attackTrees,
+                      assets: extractAssetReferences(activeProject),
+                      threats:
+                        extractThreatReferencesForAttackTree(activeProject),
+                      risks: extractRiskReferences(activeProject),
+                      dfdElements: extractDFDElementReferences(activeProject),
+                      mitigations: extractMitigationReferences(activeProject),
+                      dfdPreviewImage: activeProject.dfd?.thumbnail,
+                      lastModified: activeProject.info?.lastModified || "",
+                    }}
+                    onUpdate={handleAttackTreeUpdate}
+                    onPhaseComplete={() => setActivePhase(6)}
+                  />
+                </div>
               )}
               {activePhase === 6 && activeProject && (
                 <DocTab
@@ -1287,6 +1342,6 @@ export const MainLayout: React.FC = () => {
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
-};;
+};;;;
 
 export default MainLayout;

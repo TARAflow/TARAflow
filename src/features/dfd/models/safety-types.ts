@@ -1,39 +1,59 @@
 // ==================== SAFETY TYPES ====================
 // Safety annotation layer for TARAflow
-//
-// Concept: Safety as an optional annotation layer on top of the security analysis.
-// No separate modeling logic — existing relations are enriched with safety context.
-//
 // Standard references: EN 50742 / ISO 12100 / IEC 62443
-// Not a replacement for formal safety analysis (FMEA, FTA, ISO 13849)
+
+// ==================== VALUE SOURCE ====================
+
+/**
+ * Provenance marker for derived vs. analyst-set values.
+ *
+ * derived: Calculated automatically by the derivation engine.
+ *          No audit documentation required.
+ * manual:  Analyst explicitly set or overrode the value.
+ *          Corresponding rationale field REQUIRED (IEC 62443-4-1 traceability).
+ *
+ * Used on:
+ *   AssetProperties.physicalImpactSource
+ *   AssetProperties.nonRepudiationSource / authenticationSource / ...
+ *   AssetProperties.isHighValueAssetSource
+ *   SafetyAnnotation.source
+ */
+export type ValueSource = "derived" | "manual";
 
 // ==================== SAFETY RELEVANCE ====================
 
 /**
- * Degree of safety relevance of an element or relation
+ * Degree of safety relevance.
  *
- * - none:     No safety relevance
- * - indirect: Indirectly influences safety functions
- *             (e.g. logging service of a safety system)
- * - direct:   Is itself part of a safety function or can
- *             directly influence a safety function
- *             (e.g. emergency stop logic)
+ * none:     No safety relevance.
+ * indirect: Influences safety functions systemically
+ *           (availability, configuration, infrastructure).
+ *           Compromise = systemic influence, no direct lever.
+ * direct:   Directly controls a safety function
+ *           (energy output, motion, dosage, safety interlock, validation decision).
+ *           Compromise = immediate control over the physical harm.
+ *
+ * Key question: "If exactly this asset is compromised — does it directly control
+ * the physical action that causes the harm?"
+ *   Yes → direct     No → indirect
+ *
+ * Note: An asset can theoretically lead to fatality and still be 'indirect'
+ * if it influences the situation systemically rather than controlling it directly.
+ *
+ * On Asset→Asset level:
+ *   Default propagation is always 'indirect' (source: "derived").
+ *   'direct' requires source: "manual" + rationale (Pflicht).
  */
 export type SafetyRelevance = "none" | "indirect" | "direct";
 
 // ==================== SAFETY IMPACT ====================
 
 /**
- * Maximum safety impact upon compromise
- * Based on ISO 12100 / IEC 62443 harm categories
+ * Maximum safety impact upon compromise (ISO 12100 / IEC 62443 harm categories).
  *
- * - none:                No personal injury possible
- * - reversible_injury:   Injury with full recovery possible
- * - irreversible_injury: Permanent damage / disability
- * - fatality:            Fatal outcome possible
- *
- * Note: fatality sets Risk Priority = CRITICAL regardless of
- * business impact (see threat scoring)
+ * Safety Override Rule (triggers only when relevance === 'direct'):
+ *   fatality | irreversible_injury + relevance:'direct' → CRITICAL regardless of business impact
+ *   fatality | irreversible_injury + relevance:'indirect' → HIGH+ (no automatic override)
  */
 export type SafetyImpact =
   | "none"
@@ -44,107 +64,121 @@ export type SafetyImpact =
 // ==================== SAFETY ANNOTATION ====================
 
 /**
- * Safety annotation for DFD elements and asset relations
+ * Safety annotation — used uniformly on:
+ *   DFDElement, DFDConnection, AssetRelation, AssetToAssetRelation
  *
- * Used uniformly on:
- * - DFDElement (Process, DataStore, Interface, etc.)
- * - DFDConnection (DataFlow)
- * - AssetRelation (for safety-relevant relations)
+ * Propagation rules (§3.5 taraflow-asset-zu-asset-beziehungen.md):
+ *   Element→Asset:      relevance may be 'direct' (automatically set by analyst)
+ *   Asset→Asset Core:   default 'indirect' (derived); 'direct' requires manual + rationale
+ *   Asset→Asset Domain: same rules when analyticallyActive === true
+ *   Hop limit:          maxHops: 1 (default, project-configurable to 2)
  *
- * @example
- * // Process with direct safety relevance
- * {
- *   relevance: "direct",
- *   impact: "fatality",
- *   affectedSafetyFunctions: ["Emergency Stop", "Pressure Relief"],
- *   rationale: "Manipulation disables emergency stop function"
- * }
- *
- * @example
- * // DataFlow with indirect safety relevance
- * {
- *   relevance: "indirect",
- *   impact: "reversible_injury",
- *   rationale: "Carries sensor data used by safety-critical process"
- * }
+ * Double propagation prevention:
+ *   If an asset already has Element→Asset: relevance:'direct', the Asset→Asset
+ *   level may not override or strengthen this (already highest level).
  */
 export interface SafetyAnnotation {
-  /**
-   * Degree of safety relevance
-   * Required field when a safety annotation is present
-   */
+  /** Degree of safety relevance — required when annotation is present */
   relevance: SafetyRelevance;
 
-  /**
-   * Maximum safety impact upon compromise
-   * Relevant when relevance !== "none"
-   */
+  /** Maximum impact upon compromise — relevant when relevance !== "none" */
   impact?: SafetyImpact;
 
   /**
-   * Specific to Human Assets:
-   * Marks this person/role as a protection target
-   * (e.g. operator who can be physically endangered)
+   * Person is a protection target (ISO 12100 / EN 50742 terminology).
+   * Specific to Human Assets.
    */
   protectionTarget?: boolean;
 
   /**
-   * Physical hazard potential of the element/asset
-   * Specific to System Assets with direct machine involvement
-   * e.g. CNC machine { physicalHazardPotential: 'high' }
+   * Physical hazard potential — qualitative assessment per ISO 12100 / EN 50742.
+   * low:    Minimal risk (monitoring port, no control function)
+   * medium: Moderate risk (configuration interface)
+   * high:   High risk (direct access to safety logic, machine motion)
    */
   physicalHazardPotential?: "low" | "medium" | "high";
 
   /**
-   * Element/asset is a physical protection barrier
-   * Specific to Infrastructure Assets that protect people
-   * e.g. safety enclosure { isPhysicalBarrier: true }
-   * → Failure = direct safety impact on Human Assets
+   * Asset is a physical protection barrier (guard, enclosure, fence).
+   * Failure = direct safety impact on Human Assets in the vicinity.
+   * Specific to Infrastructure Assets.
    */
   isPhysicalBarrier?: boolean;
 
   /**
-   * Referenced safety functions that are affected
-   * (e.g. ["Emergency Stop", "Overpressure Protection"])
-   * Enables traceability to safety requirements
+   * Affected safety function UUIDs (TARAflow-internal).
+   * References Function Asset UUIDs in this project — NOT external SF-xxx IDs
+   * (those live in FunctionAsset.externalRefs[].id).
    */
   affectedSafetyFunctions?: string[];
 
   /**
-   * Rationale for safety relevance in standards language
-   * Used for automatic documentation generation
-   *
-   * @example
-   * "Manipulation of this data store could disable the emergency
-   *  stop function, potentially resulting in fatal injuries."
+   * Rationale in standards language — for documentation generation.
+   * REQUIRED when source === "manual".
+   * @example "Manipulation could disable the emergency stop function, leading to fatality."
    */
   rationale?: string;
+
+  /**
+   * Provenance of this annotation.
+   * derived: engine-calculated, no documentation obligation
+   * manual:  analyst-set — rationale REQUIRED
+   */
+  source?: ValueSource;
 }
 
 // ==================== SAFETY HELPERS ====================
 
 /**
- * Returns true if a safety annotation requires critical priority
- * (independent of business impact)
+ * Returns true if the Safety Override Rule applies.
+ * Condition: relevance === "direct" AND impact is fatality or irreversible_injury.
  *
- * Condition: relevance === "direct" OR impact === "fatality"
+ * Note: fatality + relevance:'indirect' does NOT trigger override → HIGH+ only.
  */
 export function isSafetyCritical(safety: SafetyAnnotation | undefined): boolean {
   if (!safety) return false;
-  return safety.relevance === "direct" || safety.impact === "fatality";
+  return (
+    safety.relevance === "direct" &&
+    (safety.impact === "fatality" || safety.impact === "irreversible_injury")
+  );
 }
 
-/**
- * Returns true if a safety annotation has any safety relevance at all
- */
+/** Returns true if the annotation has any safety relevance */
 export function hasSafetyRelevance(safety: SafetyAnnotation | undefined): boolean {
-  if (!safety) return false;
-  return safety.relevance !== "none";
+  return !!safety && safety.relevance !== "none";
+}
+
+/** Returns true if the annotation has direct safety relevance */
+export function isDirectSafetyRelevant(safety: SafetyAnnotation | undefined): boolean {
+  return !!safety && safety.relevance === "direct";
 }
 
 /**
- * Creates an empty safety annotation (default: no relevance)
+ * Returns the highest safety impact across a set of annotations.
+ * Used when aggregating impact across multiple relations or hops.
  */
+export function aggregateSafetyImpact(
+  annotations: (SafetyAnnotation | undefined)[]
+): SafetyImpact {
+  const order: SafetyImpact[] = ["none", "reversible_injury", "irreversible_injury", "fatality"];
+  let max = 0;
+  for (const ann of annotations) {
+    if (!ann?.impact) continue;
+    const idx = order.indexOf(ann.impact);
+    if (idx > max) max = idx;
+  }
+  return order[max];
+}
+
+/** Creates an empty safety annotation (default: no relevance) */
 export function createDefaultSafetyAnnotation(): SafetyAnnotation {
   return { relevance: "none" };
+}
+
+/** Creates a derived indirect annotation (used by the propagation engine) */
+export function createDerivedIndirectAnnotation(
+  impact: SafetyImpact,
+  rationale: string
+): SafetyAnnotation {
+  return { relevance: "indirect", impact, source: "derived", rationale };
 }

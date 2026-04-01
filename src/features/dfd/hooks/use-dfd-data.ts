@@ -12,7 +12,7 @@ import type {
   DFDConnection,
   DFDStats,
 } from "../models/dfd-types";
-import type { DFDAsset, ElementRelation } from "../models/asset-types";
+import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
 import type { AssetGroup, AssetRelation } from "../models/asset-relation-types";
 import {
   isSystemUsesRelation,
@@ -54,6 +54,12 @@ export interface UseDFDDataReturn {
   ) => { newDfd: DFDData; asset: DFDAsset };
 
   /**
+   * Delete an asset from dfd.assets[] and remove all its relations
+   * from elements and connections atomically.
+   */
+  deleteAsset: (assetId: string) => DFDData;
+
+  /**
    * Derive AvailableAsset[] from dfd.assets for the AssetRelationSelector.
    * Memoized — only recomputed when dfd.assets changes.
    */
@@ -70,11 +76,14 @@ export interface UseDFDDataReturn {
  * DA-001, SY-001, PR-001, IF-001, HU-001
  */
 const GROUP_PREFIX: Record<AssetGroup, string> = {
-  data:           "DA",
-  system:         "SY",
-  process:        "PR",
+  data: "DA",
+  function: "FU",
+  system: "SY",
   infrastructure: "IF",
-  human:          "HU",
+  process: "PR",
+  physical: "PH",
+  service: "SV",
+  human: "HU",
 };
 
 /**
@@ -392,6 +401,41 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
     [dfd, updateDFD],
   );
 
+  // ==================== ASSET DELETION ====================
+
+  /**
+   * Delete an asset and remove all its relations from elements/connections.
+   * Atomically: graph rebuild + stats + linkedElements sync guaranteed by updateDFD.
+   */
+  const deleteAsset = useCallback(
+    (assetId: string): DFDData =>
+      updateDFD((current) => ({
+        ...current,
+        assets: current.assets.filter((a) => a.id !== assetId),
+        elements: current.elements.map((el) =>
+          el.assetRelations?.some((r) => r.assetId === assetId)
+            ? {
+                ...el,
+                assetRelations: el.assetRelations!.filter(
+                  (r) => r.assetId !== assetId,
+                ),
+              }
+            : el,
+        ),
+        connections: current.connections.map((conn) =>
+          conn.assetRelations?.some((r) => r.assetId === assetId)
+            ? {
+                ...conn,
+                assetRelations: conn.assetRelations!.filter(
+                  (r) => r.assetId !== assetId,
+                ),
+              }
+            : conn,
+        ),
+      })),
+    [updateDFD],
+  );
+
   // ==================== RETURN ====================
 
   return {
@@ -403,6 +447,7 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
     updateAsset,
     updateConnection,
     createAsset,
+    deleteAsset,
     updateDFD,
   };
 }

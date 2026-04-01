@@ -27,7 +27,9 @@ export function calculateOverallImpact(
 ): number {
   if (ratings.length === 0) return 0;
 
-  const active = ratings.filter((r) => r.value > 0);
+const active = ratings.filter(
+  (r): r is ImpactRating & { value: number } => typeof r.value === "number",
+);
   if (active.length === 0) return 0;
 
   if (method === "conservative") {
@@ -39,6 +41,7 @@ export function calculateOverallImpact(
   let weightedSum = 0;
 
   for (const rating of active) {
+    if (rating.value == null) continue;
     const criterion = criteria?.find((c) => c.id === rating.criterionId);
     const weight = criterion?.weight ?? 1;
     weightedSum += rating.value * weight;

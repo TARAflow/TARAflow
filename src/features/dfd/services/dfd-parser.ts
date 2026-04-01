@@ -3,7 +3,7 @@
 // This is the public API for DFD parsing
 
 import type { DFDElement, DFDConnection, DFDStats } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 
 import { parseXmlString, extractXmlFromDrawioMsg } from "./parsers/xml-parser";
 import {

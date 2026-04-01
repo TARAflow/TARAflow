@@ -1,30 +1,24 @@
 // ==================== ELEMENT PROPERTIES ====================
-// Property interfaces for DFD canvas elements (Describe View)
+// Property interfaces for DFD canvas elements (Describe View).
 //
 // Conceptual separation:
-//   element-properties.ts  → DFD canvas descriptions (this file)
+//   element-properties.ts  → DFD canvas element descriptions (this file)
 //   asset-types.ts         → Asset Tab impact analysis (AssetProperties, DFDAsset)
 //
-// NO dependencies on dfd-types to avoid circular imports
-
-// ==================== EXPOSURE LEVEL (EN 50742 Annex B) ====================
-// EL is assigned per interface / per connection by the analyst.
-// Static metric: reflects the attack surface of a physical or logical boundary.
+// NO dependencies on dfd-types to avoid circular imports.
 //
-// Rule: if a DataFlow crosses multiple Trust Boundaries, the highest EL wins.
-//
-//   EL0 – Internal:  inside the machine enclosure, no external access possible
-//   EL1 – Physical:  physical access required (USB, serial port, locked cabinet)
-//   EL2 – Local:     local network segment (fieldbus, Ethernet, LAN)
-//   EL3 – Adjacent:  industrial factory network, VPN, partner / OT network
-//   EL4 – Public:    internet-exposed, untrusted public network
-
+// Exposure Levels for crossing dataflows and interfaces:
+// ------------------------------------------------------
+// EL0 (Internal): Fully trusted, isolated environment with no external access
+// EL1 (Physical): Access only through direct physical interaction with interfaces (e.g., USB, RJ45, buttons)
+// EL2 (Local): Access via local OT/production network (e.g., fieldbus, SCADA systems)
+// EL3 (Adjacent): Access through extended factory/enterprise network (OT–IT boundary)
+// EL4 (Public): Access via untrusted external networks (e.g., Internet, remote connections
 export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
 
 // ==================== PROCESS PROPERTIES ====================
 
 export interface ProcessProperties {
-  // Execution Context
   runsAs?:
     | "not_specified"
     | "user"
@@ -36,8 +30,6 @@ export interface ProcessProperties {
     | "anonymous"
     | "contractor";
   privilegeLevel?: "not_specified" | "low" | "medium" | "high" | "root";
-
-  // Authentication & Authorization
   authenticationRequired?:
     | "not_specified"
     | "no"
@@ -49,17 +41,17 @@ export interface ProcessProperties {
     | "apikey"
     | "jwt"
     | "mtls";
-  authorizationModel?: "not_specified" | "none" | "rbac" | "abac" | "acl" | "custom";
-
-  // Input Validation & Error Handling
+  authorizationModel?:
+    | "not_specified"
+    | "none"
+    | "rbac"
+    | "abac"
+    | "acl"
+    | "custom";
   inputValidation?: "not_specified" | "none" | "basic" | "strict" | "schema";
   errorHandling?: "not_specified" | "silent" | "verbose" | "sanitized";
-
-  // Security Controls
   securityControls?: string;
   exposedToInternet?: boolean;
-
-  // Technology & Ownership
   technology?:
     | "api"
     | "batch"
@@ -79,8 +71,39 @@ export interface ProcessProperties {
 
 // ==================== EXTERNAL ENTITY PROPERTIES ====================
 
+/**
+ * Threat profile for an External Entity — determines the base feasibility
+ * of attack tree branches originating from this entity.
+ *
+ * Used by the attack tree generation engine (Phase 3) to initialise
+ * branch feasibility F in the F × B × I scoring model.
+ */
+export interface ExternalEntityThreatProfile {
+  /**
+   * Category of the external entity as threat source.
+   * Determines base feasibility before barrier reduction.
+   *
+   * public_network:    Internet, cloud backend, unauthenticated remote access → very_high
+   * corporate_it:      Corporate network (MES, ERP) — requires prior IT compromise → medium
+   * adjacent_wireless: WiFi, Bluetooth, 5G campus — physical proximity needed → high
+   * local_physical:    USB ports, HMI on-site, local service ports → low
+   * supply_chain:      Vendor software updates, firmware signing → very_low (high effort)
+   * authorized_person: Operator, maintenance with valid credentials → variable
+   */
+  category:
+    | "public_network"
+    | "corporate_it"
+    | "adjacent_wireless"
+    | "local_physical"
+    | "supply_chain"
+    | "authorized_person";
+  /** Base feasibility before barrier reduction */
+  baseFeasibility: "very_low" | "low" | "medium" | "high" | "very_high";
+  /** Rationale for this assessment (IEC 62443-4-1 traceability) */
+  rationale: string;
+}
+
 export interface ExternalEntityProperties {
-  // Entity Classification
   entityType?:
     | "user"
     | "admin_user"
@@ -94,8 +117,6 @@ export interface ExternalEntityProperties {
     | "webhook"
     | "mobile_app"
     | "iot";
-
-  // Trust & Access
   trustLevel?: "low" | "medium" | "high";
   authenticationMethod?:
     | "none"
@@ -108,8 +129,6 @@ export interface ExternalEntityProperties {
     | "mutual_tls"
     | "jwt";
   authorizationScope?: string;
-
-  // Ownership & Threat Assessment
   ownership?: "internal" | "external" | "partner";
   threatActor?:
     | "benign"
@@ -118,11 +137,13 @@ export interface ExternalEntityProperties {
     | "advanced"
     | "insider"
     | "compromised";
-
-  // Controls
   contractExists?: boolean;
   rateLimited?: boolean;
-
+  /**
+   * Threat profile — base feasibility for attack tree branches from this entity.
+   * Optional: set when the analyst wants deterministic F-scoring in Phase 3.
+   */
+  threatProfile?: ExternalEntityThreatProfile;
   owner?: string;
   notes?: string;
 }
@@ -130,22 +151,45 @@ export interface ExternalEntityProperties {
 // ==================== DATA STORE PROPERTIES ====================
 
 export interface DataStoreProperties {
-  // Data Classification
   storedDataTypes?: string;
-  dataClassification?: "public" | "internal" | "confidential" | "restricted" | "secret";
-
-  // Encryption & Protection
+  dataClassification?:
+    | "public"
+    | "internal"
+    | "confidential"
+    | "restricted"
+    | "secret";
   encryptionAtRest?: "none" | "yes" | "aes256" | "tde" | "kms" | "custom";
   accessControl?: string;
   integrityProtection?: boolean;
-
-  // Backup & Retention
   backupEnabled?: boolean;
   deletionPolicy?: string;
-
-  // Technology & Architecture
-  technology?: "database" | "filesystem" | "cloud" | "cache" | "queue" | "blockchain";
+  technology?:
+    | "database"
+    | "filesystem"
+    | "cloud"
+    | "cache"
+    | "queue"
+    | "blockchain";
   multiTenant?: boolean;
+
+  // ---- Safety annotation (convenience flags — full traceability via linked Asset) ----
+  // Safety context is canonical on the linked Asset's SafetyAnnotation.
+  // These flags enable quick UI filtering without traversing the asset graph.
+
+  /**
+   * Store contains safety-relevant configuration data.
+   * → Automatic threat prioritisation for modifies / deletes
+   * → EN 50742: "Identification of safety-related data assets"
+   * When true: mandatory threats: Tampering (integrity), DoS (availability)
+   */
+  containsSafetyRelevantData?: boolean;
+
+  /**
+   * Rationale for safety classification.
+   * Used in EN 50742 / MVO 2027 documentation.
+   * @example "Manipulation could disable emergency stop function"
+   */
+  safetyRationale?: string;
 
   owner?: string;
   notes?: string;
@@ -154,7 +198,6 @@ export interface DataStoreProperties {
 // ==================== DATA FLOW PROPERTIES ====================
 
 export interface DataFlowProperties {
-  // Data & Protocol
   dataTypes?: string;
   protocol?:
     | "http"
@@ -166,13 +209,9 @@ export interface DataFlowProperties {
     | "file"
     | "database"
     | "custom";
-
-  // Flow Characteristics
   direction?: "unidirectional" | "bidirectional" | "requestresponse";
   frequency?: "continuous" | "periodic" | "ondemand" | "batch";
   volume?: string;
-
-  // Security
   encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
   integrityProtection?: boolean;
   endpointAuthentication?:
@@ -183,13 +222,39 @@ export interface DataFlowProperties {
     | "oauth"
     | "mutual_tls";
 
-  // EN 50742 Annex B — Exposure Level per connection
-  // Analyst assigns EL based on which trust boundaries this flow crosses.
-  // If the flow crosses multiple trust boundaries, use the highest EL.
-  // Feeds into Attack Potential: AP = (EL × WoO) + AC
+  // EN 50742 Annex B — Exposure Level
   exposureLevel?: ExposureLevel;
   exposureLevelSource?: "derived" | "manual";
   exposureLevelRationale?: string;
+
+  // ---- Safety annotation (optional, non-invasive) ----
+  // "Safety Context/Boundary" is NOT a separate DFD element (unlike TrustBoundary).
+  // It is a logical categorisation via element properties + automatic detection.
+  //
+  // Auto-derivation of crossesSafetyBoundary:
+  //   source.safetyRelevant XOR target.safetyRelevant → crossesSafetyBoundary = true
+  //
+  // Threat implication: flows crossing the safety boundary require extra scrutiny
+  // for Tampering and Information Disclosure (EN 50742: safety-relevant interfaces).
+
+  /**
+   * This flow carries safety-relevant data or supports safety functions.
+   * Set manually or derived when any linked asset has SafetyAnnotation.relevance !== 'none'.
+   */
+  safetyRelevant?: boolean;
+
+  /**
+   * This flow connects a safety-relevant element to a non-safety element (or vice versa).
+   * Auto-derived by comparing safetyRelevant flags of source and target elements.
+   * Can be manually overridden by the analyst.
+   */
+  crossesSafetyBoundary?: boolean;
+
+  /**
+   * Rationale for safety classification — used in EN 50742 / MVO 2027 documentation.
+   * @example "Carries sensor data used by emergency stop logic"
+   */
+  safetyRationale?: string;
 
   notes?: string;
 }
@@ -197,7 +262,6 @@ export interface DataFlowProperties {
 // ==================== INTERFACE PROPERTIES ====================
 
 export interface InterfaceProperties {
-  // Interface Type
   type?:
     | "ethernet"
     | "serial"
@@ -208,27 +272,29 @@ export interface InterfaceProperties {
     | "nfc"
     | "fiber"
     | "custom";
-
-  // Security & Access
   accessControl?:
     | "none"
     | "physical_lock"
     | "credentials"
     | "card"
     | "certificate";
-
-  // Physical Characteristics
   connectionSpeed?: "low" | "medium" | "high";
   isShieldedCable?: boolean;
   location?: string;
 
-  // EN 50742 Annex B — Exposure Level per interface
-  // Primary EL carrier in the graph. Assigned per physical or logical interface.
-  // Example: USB config port on cabinet exterior → EL1; internet-facing port → EL4
-  // Feeds into Attack Potential: AP = (EL × WoO) + AC
+  // EN 50742 Annex B — Exposure Level (primary EL carrier in the graph)
   exposureLevel?: ExposureLevel;
   exposureLevelSource?: "derived" | "manual";
   exposureLevelRationale?: string;
+
+  // ---- Safety annotation ----
+  /**
+   * This interface connects to a safety-relevant element or function.
+   * Used for: EN 50742 "Identification of safety-relevant interfaces".
+   * @example USB programming interface on a Safety PLC → safetyRelevant: true
+   */
+  safetyRelevant?: boolean;
+  safetyRationale?: string;
 
   notes?: string;
 }
@@ -237,8 +303,6 @@ export interface InterfaceProperties {
 
 export interface TrustBoundaryProperties {
   boundaryId?: string;
-
-  // Boundary Classification
   boundaryType?:
     | "network"
     | "privilege"
@@ -247,23 +311,11 @@ export interface TrustBoundaryProperties {
     | "physical"
     | "legal"
     | "device";
-
-  // EN 50742 Annex B — Exposure Level of this zone
-  // Analogous to IEC 62443 Security Zone: defines the attack surface level
-  // of everything inside this boundary.
-  // DataFlows / Interfaces crossing this boundary inherit this EL (or higher
-  // if they cross into a more exposed zone).
-  // Displayed as zone label in the DFD diagram: e.g. "Maschinenraum · EL1"
   defaultExposureLevel?: ExposureLevel;
-
-  // Security Context
   securityAssumptions?: string;
   boundaryControls?: string;
   monitoringEnabled?: boolean;
-
-  // Compliance
   complianceRelevance?: string;
-
   owner?: string;
   notes?: string;
 }
@@ -274,11 +326,6 @@ export type ElementProperties =
   | ProcessProperties
   | ExternalEntityProperties
   | DataStoreProperties
+  | DataFlowProperties
   | InterfaceProperties
   | TrustBoundaryProperties;
-
-// ==================== RE-EXPORT (Backwards Compat) ====================
-// AssetProperties was moved to asset-types.ts.
-// Existing imports via element-properties.ts remain valid.
-
-// export type { AssetProperties } from "./asset-types";

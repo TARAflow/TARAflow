@@ -21,7 +21,7 @@ import type {
   AssetRelation,
 } from "../models/dfd-types";
 
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 
 import type { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -42,8 +42,11 @@ import DFDDescriptionView from "./dfd-description-view";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
+import { DFDConfigDialog } from "./dfd-config-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetVisibility } from "./dfd-asset-panel";
+import type { DFDAutoNumberingConfig } from "../models/dfd-types";
+import { DEFAULT_AUTONUMBERING_CONFIG } from "../models/dfd-types";
 
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
@@ -64,6 +67,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     null,
   );
   const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
+  const [showAutoNumberConfig, setShowAutoNumberConfig] = useState(false);
+  const [autoNumberingConfig, setAutoNumberingConfig] =
+    useState<DFDAutoNumberingConfig>(
+      () => project.dfd?.autoNumberingConfig ?? DEFAULT_AUTONUMBERING_CONFIG,
+    );
 
   // ==================== UI STATE HOOK ====================
 
@@ -80,46 +88,57 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     projectId: project.id,
   });
 
-  const handleSelectionChanged = useCallback(
-    (cells: any[]) => {
-      const selectedCell = cells[0];
-      const cellId = selectedCell?.xmlId || selectedCell?.id;
+  const handleSelectionChanged = useCallback((cells: any[]) => {
+    const selectedCell = cells[0];
+    const cellId = selectedCell?.xmlId || selectedCell?.id;
 
-      if (!cellId) {
-        setSelectedElementId(null);
-        setDetailsPanelOpen(false);
-        return;
-      }
+    if (!cellId) {
+      setSelectedElementId(null);
+      setDetailsPanelOpen(false);
+      return;
+    }
 
-      const element = project.dfd?.elements.find((e) => e.id === cellId);
-      const connection = project.dfd?.connections.find((c) => c.id === cellId);
-
-      if (element || connection) {
-        setSelectedElementId(cellId);
-        setDetailsPanelOpen(true);
-      } else {
-        console.warn("[DFDTab] ⚠️ Nothing found for ID:", cellId);
-      }
-    },
-    [project],
-  );
+    // Kein Guard nötig — useDFDEditor stellt sicher dass das
+    // Element im State ist bevor dieser Callback feuert.
+    setSelectedElementId(cellId);
+    setDetailsPanelOpen(true);
+  }, []);
 
   // ==================== BUSINESS LOGIC HOOK ====================
+  useEffect(() => {
+    console.log("🔥 DFDTab MOUNT");
+    return () => console.log("❌ DFDTab UNMOUNT");
+  }, []);
 
-  const editor = useDFDEditor(project, {
-    onUpdate,
-    onDirtyChange,
-    onPhaseComplete,
-    darkMode,
-    autoValidateInterval: 500,
-    autoNumberOnSave: false,
-    generateThumbnailOnSave: true,
-    onSelectionChanged: handleSelectionChanged,
-  });
+  // Stabilize options object — inline object literal creates new reference
+  // on every render, causing useDFDEditor internals to reset.
+  const editorOptions = useMemo(
+    () => ({
+      onUpdate,
+      onDirtyChange,
+      onPhaseComplete,
+      darkMode,
+      autoValidateInterval: 500,
+      autoNumberOnSave: false,
+      generateThumbnailOnSave: true,
+      onSelectionChanged: handleSelectionChanged,
+      autoNumberingConfig,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [darkMode, handleSelectionChanged, autoNumberingConfig],
+  );
 
-  const graphContext = editor.graphContext
-    ? new DFDGraphAnalysisContext(editor.graphContext)
-    : null;
+  const editor = useDFDEditor(project, editorOptions);
+
+  // Stabilize graphContext — new DFDGraphAnalysisContext() on every render
+  // causes all consumers to remount. useMemo ensures stable reference.
+  const graphContext = useMemo(
+    () =>
+      editor.graphContext
+        ? new DFDGraphAnalysisContext(editor.graphContext)
+        : null,
+    [editor.graphContext],
+  );
 
   // ==================== ASSET HOOKS ====================
 
@@ -127,7 +146,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     iframeRef: editor.iframeRef,
   });
 
-  const { updateElement, createAsset, dfd } = useDFDData(project);
+  const { updateElement, createAsset, deleteAsset, dfd } = useDFDData(project);
   const { scheduleSave } = useDFDPersistence(project, { onUpdate });
 
   // AvailableAssets aus dfd.assets ableiten
@@ -180,7 +199,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const handleAssetChange = useCallback(
     (assetId: string, changes: Partial<DFDAsset>) => {
-      // Same pattern as updateElement, but for assets
       const updatedAssets = (dfd?.assets ?? []).map((a) =>
         a.id === assetId ? { ...a, ...changes } : a,
       );
@@ -191,6 +209,32 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       });
     },
     [dfd, scheduleSave, project.phaseStatus],
+  );
+
+  // Create asset from the asset tree panel (group known, name defaults to empty)
+  const handleCreateAssetForGroup = useCallback(
+    (assetGroup: AssetGroup) => {
+      const { newDfd } = createAsset("", assetGroup);
+      scheduleSave({
+        dfd: newDfd,
+        phaseStatus: project.phaseStatus,
+        lastModified: newDfd.lastModified!,
+      });
+    },
+    [createAsset, scheduleSave, project.phaseStatus],
+  );
+
+  // Delete asset and all its relations atomically
+  const handleDeleteAsset = useCallback(
+    (assetId: string) => {
+      const newDfd = deleteAsset(assetId);
+      scheduleSave({
+        dfd: newDfd,
+        phaseStatus: project.phaseStatus,
+        lastModified: newDfd.lastModified!,
+      });
+    },
+    [deleteAsset, scheduleSave, project.phaseStatus],
   );
 
   // ==================== EXPORT/IMPORT HOOK ====================
@@ -284,14 +328,14 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // ==================== HANDLERS (Simple Delegation) ====================
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     await editor.save();
-  };
+  }, [editor.save]);
 
-  const handleExportImage = () => {
+  const handleExportImage = useCallback(() => {
     editor.exportImage();
     setShowPreview(true);
-  };
+  }, [editor.exportImage]);
 
   const handleToggleDarkMode = useCallback(() => {
     toggleDarkMode();
@@ -299,21 +343,40 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     // This is safe to do - the hook manages the lifecycle
   }, [toggleDarkMode]);
 
-  const handleViewModeChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newMode: DFDViewMode | null,
-  ) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-    }
-  };
+  const handleViewModeChange = useCallback(
+    (_event: React.MouseEvent<HTMLElement>, newMode: DFDViewMode | null) => {
+      if (newMode !== null) {
+        setViewMode(newMode);
+      }
+    },
+    [setViewMode],
+  );
 
-  const handleProceed = () => {
+  const handleProceed = useCallback(() => {
     if (!editor.canProceed) {
       return;
     }
     onPhaseComplete?.();
-  };
+  }, [editor.canProceed, onPhaseComplete]);
+
+  const handleAutoNumber = useCallback(async () => {
+    await editor.autoNumberLabels();
+  }, [editor]);
+
+  const handleAutoNumberConfigSave = useCallback(
+    (config: DFDAutoNumberingConfig) => {
+      setAutoNumberingConfig(config);
+      // Persist in DFD data via onUpdate
+      if (project.dfd) {
+        onUpdate({
+          dfd: { ...project.dfd, autoNumberingConfig: config },
+          phaseStatus: project.phaseStatus,
+          lastModified: new Date().toISOString(),
+        });
+      }
+    },
+    [project.dfd, project.phaseStatus, onUpdate],
+  );
 
   // Build draw.io URL with dark mode parameter
   const drawioUrl = darkMode
@@ -384,7 +447,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onToggleDarkMode={handleToggleDarkMode}
         onExportImage={handleExportImage}
         onRefresh={editor.validate}
-        onAutoNumber={editor.autoNumberLabels}
+        onAutoNumber={handleAutoNumber}
+        onAutoNumberConfig={() => setShowAutoNumberConfig(true)}
         onExport={exportImport.downloadExport}
         onImport={exportImport.promptImport}
         onSave={handleSave}
@@ -481,6 +545,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             availableAssets={availableAssets}
             crossesTrustBoundary={crossesTrustBoundary}
             onCreateAsset={handleCreateAsset}
+            onCreateAssetForGroup={handleCreateAssetForGroup}
+            onDeleteAsset={handleDeleteAsset}
             assets={dfd?.assets ?? []}
             elements={dfd?.elements ?? []}
             connections={dfd?.connections ?? []}
@@ -507,6 +573,14 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         projectName={project.name}
       />
 
+      {/* DFD Config Dialog */}
+      <DFDConfigDialog
+        open={showAutoNumberConfig}
+        config={autoNumberingConfig}
+        onSave={handleAutoNumberConfigSave}
+        onClose={() => setShowAutoNumberConfig(false)}
+      />
+
       {/* Asset Assignment Dialog */}
       <AssetAssignmentDialog
         open={assetAssignment.dialogState.open}
@@ -520,7 +594,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};;;;;
+};;;;;;;;;;;
 
 // ==================== SUB-COMPONENTS ====================
 

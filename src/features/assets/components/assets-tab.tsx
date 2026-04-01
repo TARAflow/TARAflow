@@ -74,10 +74,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   onPhaseComplete,
 }) => {
   const { t } = useTranslation();
-  console.debug(
-    "***************AssetTab: Assets passed to the assets-tab:",
-    project.dfdElements,
-  );
 
   // ==================== STATE ====================
 
@@ -418,13 +414,13 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           // Renumber to ensure consistency
           updatedData = {
             ...updatedData,
-            assets: renumberAssets(updatedData.assets),
+            // assets: renumberAssets(updatedData.assets),
           };
         } else {
           // Replace: clear existing and add imported
           updatedData = {
             ...updatedData,
-            assets: renumberAssets(data.assets),
+            // assets: renumberAssets(data.assets),
             lastModified: new Date().toISOString(),
           };
         }
@@ -453,7 +449,11 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // ==================== DFD SYNC ====================
 
-  const { sync: triggerSync, isSyncing } = useAssetDFDSync({
+  const {
+    sync: triggerSync,
+    isSyncing,
+    resetHash,
+  } = useAssetDFDSync({
     assetData,
     dfdAssets: project.dfdAssets,
     dfdElements: project.dfdElements,
@@ -478,16 +478,13 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Manual sync handler (for toolbar button)
   const handleSyncFromDFD = useCallback(() => {
-    if (isSyncing) {
-      console.log("[ASSETS-TAB] Sync already in progress");
-      return;
-    }
-
+    if (isSyncing) return;
     if (!project.dfdAssets || project.dfdAssets.length === 0) {
       setSyncWarnings(["No DFD assets available for synchronization"]);
       return;
     }
-
+    setSyncWarnings([]); // ← clear warnings before sync
+    resetHash();
     triggerSync();
   }, [isSyncing, project.dfdAssets, triggerSync]);
 
@@ -576,10 +573,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onSyncFromDFD={handleSyncFromDFD}
         onProceed={handleProceed}
       />
-
       {/* Warnings */}
       <Collapse in={hasWarnings || missingInDFD.length > 0}>
-        <Box sx={{ px: 2, py: 1 }}>
+        <Box sx={{ px: 2, py: 1, maxHeight: 150, overflow: "auto" }}>
           {syncWarnings.map((warning, i) => (
             <Alert key={i} severity="warning" sx={{ mb: 1 }}>
               {warning}
@@ -675,11 +671,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             assets={assetData.assets}
             configuration={assetData.configuration}
             onEdit={handleEditAsset}
-            onDelete={handleDeleteAsset}
           />
         </Box>
       </Box>
-
       {/* Asset Edit Dialog */}
       {selectedAsset && (
         <AssetDialog
@@ -690,7 +684,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           onClose={handleCloseAssetDialog}
         />
       )}
-
       {/* Configuration Dialog */}
       <AssetConfigDialog
         open={showConfigDialog}
@@ -700,7 +693,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onSave={handleSaveConfig}
         onClose={handleCloseConfig}
       />
-
       {/* Export/Import Dialog */}
       <AssetExportImportDialog
         open={showExportImportDialog}

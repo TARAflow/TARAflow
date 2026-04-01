@@ -2,7 +2,7 @@
 // Single Responsibility: Parse asset markers and detect relationships with elements
 
 import type { DFDElement, DFDConnection } from "../../models/dfd-types";
-import type { DFDAsset, ElementRelation } from "../../models/asset-types";
+import type { DFDAsset, ElementRelation } from "../../models/dfd-asset-types";
 import {
   cleanLabel,
   getGeometry,

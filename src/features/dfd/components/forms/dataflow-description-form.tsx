@@ -605,6 +605,71 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
               )}
             />
 
+            {/* Safety relevance */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.safetyRelevant || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "safetyRelevant",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.safetyRelevant.label",
+                {
+                  defaultValue:
+                    "Carries safety-relevant data / supports safety function (EN 50742)",
+                },
+              )}
+            />
+
+            {/* crossesSafetyBoundary — read-only, auto-derived */}
+            {props.crossesSafetyBoundary && (
+              <Alert severity="warning" sx={{ py: 0.5 }}>
+                <Typography variant="caption">
+                  {t(
+                    "tabs.dfd.element_description.dataflow.fields.crossesSafetyBoundary.hint",
+                    {
+                      defaultValue:
+                        "This flow crosses a safety boundary (one side safety-relevant, other not). Extra scrutiny required for Tampering and Information Disclosure.",
+                    },
+                  )}
+                </Typography>
+              </Alert>
+            )}
+
+            {props.safetyRelevant && (
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.safetyRationale.label",
+                  { defaultValue: "Safety Rationale" },
+                )}
+                value={props.safetyRationale ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("safetyRationale", e.target.value)
+                }
+                placeholder={t(
+                  "tabs.dfd.element_description.dataflow.fields.safetyRationale.placeholder",
+                  {
+                    defaultValue:
+                      "e.g. Carries sensor data used by emergency stop logic",
+                  },
+                )}
+                helperText={t(
+                  "tabs.dfd.element_description.dataflow.fields.safetyRationale.helper",
+                  { defaultValue: "Used in EN 50742 / MVO 2027 documentation" },
+                )}
+              />
+            )}
+
             {/* Notes */}
             <TextField
               fullWidth

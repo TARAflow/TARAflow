@@ -65,6 +65,19 @@ export function useDrawioBridge(
   const lastInitializedProjectRef = useRef<string | null>(null);
   const lastInitializedKeyRef = useRef<number>(-1);
 
+  // Stable refs to avoid stale closures — callbacks may change after
+  // bridge initialization (e.g. when data.dfd updates rebuild useCallback)
+  const onSelectionChangedRef = useRef(onSelectionChanged);
+
+  useEffect(() => {
+    onSelectionChangedRef.current = onSelectionChanged;
+  }, [onSelectionChanged]);
+
+  const onDiagramChangeRef = useRef(onDiagramChange);
+  useEffect(() => {
+    onDiagramChangeRef.current = onDiagramChange;
+  }, [onDiagramChange]);
+
   // ==================== BRIDGE INITIALIZATION ====================
 
   const doInitialize = useCallback(
@@ -101,12 +114,12 @@ export function useDrawioBridge(
 
       bridge.onSelectionChanged((cells) => {
         setSelectedCells(cells);
+        onSelectionChangedRef.current?.(cells);
+      });
 
-        if (onSelectionChanged) {
-          onSelectionChanged(cells);
-        } else {
-          console.warn("[useDrawioBridge] ⚠️ No parent callback!"); // ✅ NEU
-        }
+      bridge.onDiagramChange(() => {
+        storageAdapter.syncFromLegacy();
+        onDiagramChangeRef.current?.();
       });
 
       bridge.onImageReady((imageData: string) => {
@@ -128,7 +141,6 @@ export function useDrawioBridge(
 
         // Check if running in Electron
         if (window.electronAPI?.injectDrawioPlugin) {
-
           try {
             const result = await window.electronAPI.injectDrawioPlugin();
 
@@ -145,7 +157,7 @@ export function useDrawioBridge(
               error,
             );
           }
-        } 
+        }
       };
 
       // Start plugin injection (non-blocking)
@@ -157,7 +169,7 @@ export function useDrawioBridge(
 
       setIsLoading(false);
     },
-    [project, onDiagramChange, onSelectionChanged, iframeKey],
+    [project, iframeKey],
   );
 
   const initialize = useCallback(() => {
@@ -283,7 +295,6 @@ export function useDrawioBridge(
       lastInitializedProjectRef.current !== null &&
       lastInitializedProjectRef.current !== project.id
     ) {
-
       if (initRetryTimeoutRef.current) {
         clearTimeout(initRetryTimeoutRef.current);
         initRetryTimeoutRef.current = null;

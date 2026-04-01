@@ -2,7 +2,7 @@
 // Single Responsibility: Orchestrate atomic hooks into unified API
 // Follows Facade Pattern - simple interface, complex implementation
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   DFDProjectData,
   DFDUpdateResult,
@@ -11,7 +11,7 @@ import type {
   DFDStats,
   DFDExportData,
 } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
 
 // Atomic hooks
@@ -39,6 +39,13 @@ export interface UseDFDEditorOptions {
   autoNumberOnSave?: boolean;
   generateThumbnailOnSave?: boolean;
   graphContext?: DFDGraphAnalysisContext | null;
+  /** Auto-numbering sort strategy, tolerance and diagonal weights */
+  autoNumberingConfig?: {
+    tolerance?: number;
+    sortStrategy?: "top-down" | "left-right" | "diagonal";
+    weightX?: number;
+    weightY?: number;
+  };
 }
 
 export interface UseDFDEditorReturn {
@@ -113,12 +120,77 @@ export function useDFDEditor(
     autoNumberOnSave = false,
     generateThumbnailOnSave = true,
     graphContext,
+    autoNumberingConfig,
   } = options;
-
-  // ==================== ATOMIC HOOKS ====================
 
   // Data consistency layer
   const data = useDFDData(project);
+
+  // ==================== SELECTION RESOLUTION ====================
+
+  const [pendingCells, setPendingCells] = useState<any[] | null>(null);
+
+  /**
+   * Wrapper um onSelectionChanged.
+   * Wenn das selektierte Element noch nicht in data.dfd ist (neues Element,
+   * Sync ausstehend), wird die Selection gepuffert und automatisch
+   * neu emittiert sobald data.dfd.elements updated.
+   */
+  const handleSelectionChanged = useCallback(
+    (cells: any[]) => {
+      if (!cells.length) {
+        setPendingCells(null);
+        onSelectionChanged?.(cells);
+        return;
+      }
+
+      const cell = cells[0];
+      const id = cell?.xmlId || cell?.id;
+      if (!id) {
+        onSelectionChanged?.(cells);
+        return;
+      }
+
+      const existsInData =
+        data.dfd?.elements.some((e) => e.id === id) ||
+        data.dfd?.connections.some((c) => c.id === id);
+
+      if (existsInData) {
+        // Element bereits im State → sofort forwarden
+        setPendingCells(null);
+        onSelectionChanged?.(cells);
+      } else {
+        // Noch nicht synchronisiert → puffern, retry via useEffect
+        setPendingCells(cells);
+      }
+    },
+    [data.dfd?.elements, data.dfd?.connections, onSelectionChanged],
+  );
+
+  /**
+   * Retry: sobald data.dfd.elements updated (nach Debounce-Save),
+   * prüfen ob das gepufferte Element jetzt vorhanden ist.
+   */
+  useEffect(() => {
+    if (!pendingCells?.length) return;
+
+    const cell = pendingCells[0];
+    const id = cell?.xmlId || cell?.id;
+    if (!id) return;
+
+    const existsInData =
+      data.dfd?.elements.some((e) => e.id === id) ||
+      data.dfd?.connections.some((c) => c.id === id);
+
+    if (existsInData) {
+      onSelectionChanged?.(pendingCells);
+      setPendingCells(null);
+    }
+    // Bewusst nur auf elements/connections reagieren, nicht auf pendingCells
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.dfd?.elements, data.dfd?.connections]);
+
+  // ==================== ATOMIC HOOKS ====================
 
   // Validation layer
   const validation = useDFDValidation(project, {
@@ -141,7 +213,7 @@ export function useDFDEditor(
   const bridge = useDrawioBridge(project, {
     darkMode,
     onDiagramChange: handleDiagramChange,
-    onSelectionChanged,
+    onSelectionChanged: handleSelectionChanged,
   });
 
   // Thumbnail layer
@@ -151,7 +223,10 @@ export function useDFDEditor(
 
   // Auto-numbering layer
   const autoNumbering = useDFDAutoNumbering(bridge, validation, persistence, {
-    startNumber: 30,
+    tolerance: autoNumberingConfig?.tolerance ?? 50,
+    sortStrategy: autoNumberingConfig?.sortStrategy ?? "diagonal",
+    weightX: autoNumberingConfig?.weightX ?? 0.8,
+    weightY: autoNumberingConfig?.weightY ?? 1.0,
     validateAfter: true,
     validationDelay: 500,
   });

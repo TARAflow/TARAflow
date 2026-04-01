@@ -29,7 +29,6 @@ import {
 import { Box, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import {
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Star as StarIcon,
   LocalFireDepartment as FlameIcon,
   AccountTree as DerivedIcon,
@@ -37,9 +36,12 @@ import {
   TableRows as ShowColumnsIcon,
   // Category icons — kept local, shared cannot hold React elements
   Article as DataIcon,
+  Functions as FunctionIcon,
   Computer as SystemIcon,
   Settings as ProcessIcon,
   Dns as InfraIcon,
+  Inventory2 as PhysicalIcon,
+  Cloud as ServiceIcon,
   Person as HumanIcon,
 } from "@mui/icons-material";
 
@@ -49,6 +51,7 @@ import { getDownstreamCount } from "../utils/asset-graph-utils";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  SAFETY_CRITERION_ID,
 } from "../models/asset-impact-types";
 import type {
   SecurityGoal,
@@ -67,7 +70,6 @@ export interface AssetTableProps {
   configuration: AssetConfiguration;
   a2aRelations?: AssetToAssetRelationReference[];
   onEdit: (asset: Asset) => void;
-  onDelete: (assetId: string) => void;
 }
 
 // ==================== CATEGORY ICONS ====================
@@ -75,9 +77,12 @@ export interface AssetTableProps {
 
 const ASSET_GROUP_ICONS: Record<AssetGroup, React.ReactElement> = {
   data: <DataIcon sx={{ fontSize: 14 }} />,
+  function: <FunctionIcon sx={{ fontSize: 14 }} />,
   system: <SystemIcon sx={{ fontSize: 14 }} />,
-  process: <ProcessIcon sx={{ fontSize: 14 }} />,
   infrastructure: <InfraIcon sx={{ fontSize: 14 }} />,
+  process: <ProcessIcon sx={{ fontSize: 14 }} />,
+  physical: <PhysicalIcon sx={{ fontSize: 14 }} />,
+  service: <ServiceIcon sx={{ fontSize: 14 }} />,
   human: <HumanIcon sx={{ fontSize: 14 }} />,
 };
 
@@ -89,9 +94,12 @@ const ASSET_GROUP_ICONS: Record<AssetGroup, React.ReactElement> = {
 
 const ID_PREFIX_TO_CATEGORY: Record<string, AssetGroup> = {
   DA: "data",
+  FU: "function",
   SY: "system",
+  IF: "infrastructure",
   PR: "process",
-  IN: "infrastructure",
+  PH: "physical",
+  SE: "service",
   HU: "human",
 };
 
@@ -120,11 +128,11 @@ const AGGREGATED_IMPACT_STYLES: Record<
   LOW:      { bg: "#94a3b8", color: "#1e293b", labelKey: "tabs.assets.impactLabels.low" },
 };
 
+// Severity-based colors — aligned with ISO 12100 / EN 50742
 const PHYSICAL_IMPACT_STYLES: Record<string, { bg: string; color: string }> = {
-  CRITICAL: { bg: "#ef4444", color: "#fff" },
-  HIGH:     { bg: "#f59e0b", color: "#fff" },
-  MED:      { bg: "#64748b", color: "#fff" },
-  LOW:      { bg: "#94a3b8", color: "#1e293b" },
+  fatality: { bg: "#dc2626", color: "#fff" },
+  irreversible_injury: { bg: "#f97316", color: "#fff" },
+  reversible_injury: { bg: "#eab308", color: "#fff" },
 };
 
 function getBusinessImpactBg(level: number, maxLevels: number): string {
@@ -140,7 +148,7 @@ function getBusinessImpactBg(level: number, maxLevels: number): string {
 // ==================== COMPONENT ====================
 
 export const AssetTable = React.memo<AssetTableProps>(
-  ({ assets, configuration, a2aRelations = [], onEdit, onDelete }) => {
+  ({ assets, configuration, a2aRelations = [], onEdit }) => {
     const { t, i18n } = useTranslation();
     const isGerman = i18n.language === "de";
 
@@ -294,10 +302,26 @@ export const AssetTable = React.memo<AssetTableProps>(
             valueGetter: (params: { row: Asset }) =>
               params.row.impactRatings?.find(
                 (r) => r.criterionId === criterionId,
-              )?.value ?? 0,
+              )?.value ?? null,
             renderCell: (params: GridRenderCellParams<Asset>) => {
-              const value = params.value as number;
-              if (value === 0)
+              const value = params.value as number | "na" | null;
+              if (value === "na") {
+                return (
+                  <Tooltip title={`${headerName}: N/A`}>
+                    <Chip
+                      label="N/A"
+                      size="small"
+                      sx={{
+                        backgroundColor: "#94a3b8",
+                        color: "#fff",
+                        height: 20,
+                        fontSize: "0.8rem",
+                      }}
+                    />
+                  </Tooltip>
+                );
+              }
+              if (!value || value === 0)
                 return <Typography color="text.disabled">–</Typography>;
 
               const levelLabel = getImpactLevelLabel(value, scale, isGerman);
@@ -309,13 +333,21 @@ export const AssetTable = React.memo<AssetTableProps>(
                   placement="top"
                   title={
                     <Box sx={{ p: 0.5 }}>
-                      <Typography variant="caption" fontWeight="bold" display="block">
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        display="block"
+                      >
                         {headerName}
                       </Typography>
                       <Typography variant="caption" display="block">
                         {description}
                       </Typography>
-                      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ mt: 0.5 }}
+                      >
                         {levelLabel} ({value})
                       </Typography>
                     </Box>
@@ -368,7 +400,11 @@ export const AssetTable = React.memo<AssetTableProps>(
               </Box>
             }
           >
-            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ cursor: "help" }}
+            >
               {t("tabs.assets.columns.safetyImpact")}
             </Typography>
           </Tooltip>
@@ -376,7 +412,10 @@ export const AssetTable = React.memo<AssetTableProps>(
         renderCell: (params: GridRenderCellParams<Asset>) => {
           const row = params.row;
           const impact = row.physicalImpact as string | undefined;
-          const source = row.physicalImpactSource as "derived" | "manual" | undefined;
+          const source = row.physicalImpactSource as
+            | "derived"
+            | "manual"
+            | undefined;
           if (!impact) return <Typography color="text.disabled">–</Typography>;
 
           const style = PHYSICAL_IMPACT_STYLES[impact] ?? {
@@ -391,10 +430,19 @@ export const AssetTable = React.memo<AssetTableProps>(
               placement="top"
               title={
                 <Box sx={{ p: 0.5 }}>
-                  <Typography variant="caption" fontWeight="bold" display="block">
+                  <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    display="block"
+                  >
                     {t("tabs.assets.tooltips.safetyImpact.title")}
                   </Typography>
-                  <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    sx={{ mt: 0.5 }}
+                  >
                     {isManual ? (
                       <ManualIcon sx={{ fontSize: 12, color: "#fbbf24" }} />
                     ) : (
@@ -423,7 +471,9 @@ export const AssetTable = React.memo<AssetTableProps>(
             >
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <Chip
-                  label={impact}
+                  label={t(`tabs.assets.physicalImpact.${impact}`, {
+                    defaultValue: impact,
+                  })}
                   size="small"
                   sx={{
                     backgroundColor: style.bg,
@@ -486,7 +536,11 @@ export const AssetTable = React.memo<AssetTableProps>(
               </Box>
             }
           >
-            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ cursor: "help" }}
+            >
               {t("tabs.assets.columns.overallImpact")}
             </Typography>
           </Tooltip>
@@ -498,7 +552,9 @@ export const AssetTable = React.memo<AssetTableProps>(
 
           const level = getImpactLevel(value, configuration.roundingMethod);
           const bg = getBusinessImpactBg(level, scale.levels.length);
-          const scaleLevel = scale.levels.find((l) => l.value === Math.round(level));
+          const scaleLevel = scale.levels.find(
+            (l) => l.value === Math.round(level),
+          );
           const label = scaleLevel
             ? isGerman
               ? scaleLevel.labelDE
@@ -507,11 +563,19 @@ export const AssetTable = React.memo<AssetTableProps>(
 
           const factorLines =
             params.row.impactRatings
-              ?.filter((r) => r.value > 0)
+              ?.filter(
+                (r): r is typeof r & { value: number } =>
+                  typeof r.value === "number",
+              )
               .map(
                 (r) =>
                   `${getCriterionLabel(r.criterionId, t)}: ${r.value.toFixed(1)}`,
               ) ?? [];
+
+          const naLines =
+            params.row.impactRatings
+              ?.filter((r) => r.value === "na")
+              .map((r) => `${getCriterionLabel(r.criterionId, t)}: N/A`) ?? [];
 
           const methodKey =
             configuration.calculationMethod === "conservative"
@@ -523,7 +587,12 @@ export const AssetTable = React.memo<AssetTableProps>(
               arrow
               title={
                 <Box sx={{ whiteSpace: "pre-line" }}>
-                  <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+                  <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    display="block"
+                    gutterBottom
+                  >
                     {t("tabs.assets.tooltips.overallImpact.title")}
                   </Typography>
                   <Typography
@@ -535,7 +604,24 @@ export const AssetTable = React.memo<AssetTableProps>(
                     {t(methodKey)}
                   </Typography>
                   {factorLines.join("\n")}
-                  <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+
+                  {naLines.length > 0 && (
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      sx={{ opacity: 0.6 }}
+                    >
+                      {naLines.join("\n")}
+                    </Typography>
+                  )}
+
+                  <Box
+                    sx={{
+                      mt: 1,
+                      pt: 1,
+                      borderTop: "1px solid rgba(255,255,255,0.3)",
+                    }}
+                  >
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Box
                         sx={{
@@ -599,7 +685,11 @@ export const AssetTable = React.memo<AssetTableProps>(
               </Box>
             }
           >
-            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ cursor: "help" }}
+            >
               {t("tabs.assets.columns.aggregatedImpact")}
             </Typography>
           </Tooltip>
@@ -618,7 +708,8 @@ export const AssetTable = React.memo<AssetTableProps>(
           const safetyOverrideActive =
             (row as Asset & { safetyOverrideActive?: boolean })
               .safetyOverrideActive ??
-            (row.physicalImpact === "CRITICAL" &&
+            ((row.physicalImpact === "fatality" ||
+              row.physicalImpact === "irreversible_injury") &&
               row.physicalImpactSource !== "manual" &&
               agg === "CRITICAL");
 
@@ -630,17 +721,37 @@ export const AssetTable = React.memo<AssetTableProps>(
               placement="top"
               title={
                 <Box sx={{ p: 0.5 }}>
-                  <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+                  <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    display="block"
+                    gutterBottom
+                  >
                     {t("tabs.assets.tooltips.aggregatedImpact.title")}
                   </Typography>
-                  <Typography variant="caption" display="block" color="rgba(255,255,255,0.7)">
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="rgba(255,255,255,0.7)"
+                  >
                     {t("tabs.assets.tooltips.aggregatedImpact.description")}
                   </Typography>
                   {safetyOverrideActive && (
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      alignItems="center"
+                      sx={{ mt: 0.5 }}
+                    >
                       <FlameIcon sx={{ fontSize: 12, color: "#f87171" }} />
-                      <Typography variant="caption" color="#f87171" fontWeight="bold">
-                        {t("tabs.assets.tooltips.aggregatedImpact.safetyOverride")}
+                      <Typography
+                        variant="caption"
+                        color="#f87171"
+                        fontWeight="bold"
+                      >
+                        {t(
+                          "tabs.assets.tooltips.aggregatedImpact.safetyOverride",
+                        )}
                       </Typography>
                     </Stack>
                   )}
@@ -710,16 +821,27 @@ export const AssetTable = React.memo<AssetTableProps>(
                   {t("tabs.assets.tooltips.hva.description")}
                 </Typography>
                 <Box sx={{ mt: 0.75 }}>
-                  {(["critical", "high", "medium", "low"] as const).map((lvl) => (
-                    <Typography key={lvl} variant="caption" display="block" sx={{ mt: 0.25 }}>
-                      {t(`tabs.assets.tooltips.hva.${lvl}`)}
-                    </Typography>
-                  ))}
+                  {(["critical", "high", "medium", "low"] as const).map(
+                    (lvl) => (
+                      <Typography
+                        key={lvl}
+                        variant="caption"
+                        display="block"
+                        sx={{ mt: 0.25 }}
+                      >
+                        {t(`tabs.assets.tooltips.hva.${lvl}`)}
+                      </Typography>
+                    ),
+                  )}
                 </Box>
               </Box>
             }
           >
-            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ cursor: "help" }}
+            >
               {t("tabs.assets.columns.hva")}
             </Typography>
           </Tooltip>
@@ -768,7 +890,11 @@ export const AssetTable = React.memo<AssetTableProps>(
               </Box>
             }
           >
-            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ cursor: "help" }}
+            >
               {t("tabs.assets.columns.downstream")}
             </Typography>
           </Tooltip>
@@ -827,7 +953,11 @@ export const AssetTable = React.memo<AssetTableProps>(
               </Box>
             }
           >
-            <Typography variant="caption" fontWeight={600} sx={{ cursor: "help" }}>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ cursor: "help" }}
+            >
               {t("tabs.assets.columns.securityGoals")}
             </Typography>
           </Tooltip>
@@ -863,7 +993,11 @@ export const AssetTable = React.memo<AssetTableProps>(
                     placement="top"
                     title={
                       <Box sx={{ p: 0.5 }}>
-                        <Typography variant="caption" fontWeight="bold" display="block">
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          display="block"
+                        >
                           {goalName}
                         </Typography>
                         {goal.source && (
@@ -883,7 +1017,11 @@ export const AssetTable = React.memo<AssetTableProps>(
                           <Typography
                             variant="caption"
                             display="block"
-                            sx={{ mt: 0.5, maxWidth: 240, whiteSpace: "normal" }}
+                            sx={{
+                              mt: 0.5,
+                              maxWidth: 240,
+                              whiteSpace: "normal",
+                            }}
                           >
                             {goal.formalDescription}
                           </Typography>
@@ -893,7 +1031,11 @@ export const AssetTable = React.memo<AssetTableProps>(
                             variant="caption"
                             display="block"
                             color="rgba(255,220,0,0.9)"
-                            sx={{ mt: 0.5, maxWidth: 240, whiteSpace: "normal" }}
+                            sx={{
+                              mt: 0.5,
+                              maxWidth: 240,
+                              whiteSpace: "normal",
+                            }}
                           >
                             ℹ {goal.rationale}
                           </Typography>
@@ -991,7 +1133,11 @@ export const AssetTable = React.memo<AssetTableProps>(
 
                 const tooltipContent = (
                   <Box sx={{ p: 0.5 }}>
-                    <Typography variant="caption" fontWeight="bold" display="block">
+                    <Typography
+                      variant="caption"
+                      fontWeight="bold"
+                      display="block"
+                    >
                       {displayId}
                     </Typography>
                     <Typography
@@ -1059,15 +1205,26 @@ export const AssetTable = React.memo<AssetTableProps>(
             label={t("common.edit", { defaultValue: "Edit" })}
             onClick={() => onEdit(params.row)}
           />,
-          <GridActionsCellItem
-            key="delete"
-            icon={<DeleteIcon />}
-            label={t("common.delete", { defaultValue: "Delete" })}
-            onClick={() => onDelete(params.row.id)}
-            showInMenu
-          />,
         ],
       };
+
+      // ── Column visibility ──────────────────────────────────────────────
+      // Safety: visible when safety criterion is in config
+      const showSafetyColumn = configuration.impactCriteria.some(
+        (c) => c.id === SAFETY_CRITERION_ID,
+      );
+
+      // HVA: visible when any infrastructure/physical asset has HVA fields set
+      const showHVAColumn = assets.some(
+        (a) =>
+          (a.assetGroup === "infrastructure" || a.assetGroup === "physical") &&
+          (a.properties?.replacementLeadTime ||
+            a.properties?.vendorDependency ||
+            a.properties?.spareAvailability),
+      );
+
+      // Aggregated: visible when safety or HVA is visible
+      const showAggregatedColumn = showSafetyColumn || showHVAColumn;
 
       // ── Column order ───────────────────────────────────────────────────
       // ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Actions
@@ -1076,16 +1233,16 @@ export const AssetTable = React.memo<AssetTableProps>(
         nameColumn,
         typeColumn,
         ...impactFactorColumns,
-        safetyImpactColumn,
+        ...(showSafetyColumn ? [safetyImpactColumn] : []),
         businessImpactColumn,
-        aggregatedImpactColumn,
-        hvaColumn,
+        ...(showAggregatedColumn ? [aggregatedImpactColumn] : []),
+        ...(showHVAColumn ? [hvaColumn] : []),
         securityGoalsColumn,
         downstreamColumn,
         linkedElementsColumn,
         actionsColumn,
       ];
-    }, [configuration, t, isGerman, onEdit, onDelete, downstreamCounts]);
+    }, [configuration, t, isGerman, onEdit, downstreamCounts]);
 
     // ==================== EMPTY STATE ====================
 
@@ -1242,13 +1399,23 @@ function getImpactColorByLevel(value: number, maxLevels: number): string {
 }
 
 function getImpactLevelLabel(
-  value: number,
+  value: number | string,
   scale: (typeof IMPACT_SCALES)[keyof typeof IMPACT_SCALES],
   isGerman: boolean,
 ): string {
-  if (value === 0) return "-";
-  const level = scale.levels.find((l) => l.value === Math.round(value));
-  if (!level) return value.toString();
+  // value in Zahl umwandeln, falls es ein String ist
+  const numericValue = typeof value === "number" ? value : Number(value);
+
+  // Sonderfälle: "na" oder keine Zahl
+  if (value === "na" || isNaN(numericValue)) return "N/A";
+
+  // Sonderfall 0
+  if (numericValue === 0) return "-";
+
+  // Level anhand gerundetem Wert finden
+  const level = scale.levels.find((l) => l.value === Math.round(numericValue));
+  if (!level) return numericValue.toString();
+
   return isGerman ? level.labelDE : level.label;
 }
 

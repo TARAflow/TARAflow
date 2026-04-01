@@ -3,7 +3,7 @@
 // Optimized for fast threat table generation
 
 import type { DFDElement, DFDConnection, DFDElementType } from "./dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "./dfd-asset-types";
 
 // ==================== GRAPH ROOT ====================
 

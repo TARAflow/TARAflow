@@ -37,9 +37,6 @@ export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
 
 // ==================== DIALOGS ====================
-// ==================== SHARED DIALOGS ====================
-// Generic, reusable dialog components
-
 export { ConfirmDialog } from "./components/dialogs/confirm-dialog";
 export type {
   ConfirmDialogProps,
@@ -50,6 +47,7 @@ export { ConfirmDeleteDialog } from "./components/dialogs/confirm-delete-dialog"
 
 export { SaveDiscardDialog } from "./components/dialogs/save-discard-dialog";
 export type { SaveDiscardDialogProps } from "./components/dialogs/save-discard-dialog";
+
 // ==================== CONSTANTS ====================
 export {
   MIN_PANEL_HEIGHT,
@@ -89,12 +87,13 @@ export {
 
 export { type DFDAnalysisContext } from "./ports/dfd-analysis-context";
 
-// ==================== ASSET COLORS ====================
-// Minimal shared config: category display colors only.
-// Full asset-constants.ts stays in features/dfd (has DFD/relation dependencies).
+// ==================== ASSET GROUP TYPES ====================
+// Single source of truth for AssetGroup and A2ARelationType.
+// Used by both dfd and assets features without cross-feature dependency.
+export type { AssetGroup, A2ARelationType } from "./models/asset-group-types";
 
-export type {
-  AssetGroup,
-  AssetGroupConfig,
-} from "./models/asset-color-constants";
+// ==================== ASSET COLORS ====================
+// Display config for asset categories (colors, labels).
+// AssetGroupConfig is re-exported here for consumers that need the config shape.
+export type { AssetGroupConfig } from "./models/asset-color-constants";
 export { ASSET_GROUP_CONFIG } from "./models/asset-color-constants";

@@ -6,6 +6,7 @@
 // asset relation editor in element description forms.
 
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogTitle,
@@ -30,7 +31,7 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import type { AssetRelation, DFDElementType } from "../models/dfd-types";
-import type { DFDAsset } from "../models/asset-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import type {
   AssetGroup,
   AnyAssetRelationType,
@@ -90,6 +91,7 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
   currentAssignments,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [relations, setRelations] = useState<AssetRelation[]>(currentAssignments);
   const [searchQuery, setSearchQuery] = useState("");
   const [assetConfig, setAssetConfig] = useState<
@@ -344,7 +346,7 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
                             >
                               {allowedGroups.map((g) => (
                                 <MenuItem key={g} value={g}>
-                                  {getAssetGroupText(g, "en")}
+                                  {getAssetGroupText(g, t)}
                                 </MenuItem>
                               ))}
                             </Select>
@@ -363,12 +365,12 @@ export const AssetAssignmentDialog: React.FC<AssetAssignmentDialogProps> = ({
                                 )
                               }
                             >
-                              {allowedTypes.map((t) => (
-                                <MenuItem key={t} value={t}>
+                              {allowedTypes.map((relType) => (
+                                <MenuItem key={relType} value={relType}>
                                   {getRelationTypeText(
-                                    t as AnyAssetRelationType,
+                                    relType as AnyAssetRelationType,
                                     config.assetGroup,
-                                    "en",
+                                    t,
                                   )}
                                 </MenuItem>
                               ))}

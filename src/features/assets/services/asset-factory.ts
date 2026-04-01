@@ -2,6 +2,7 @@
 // Pure factory functions for creating and renumbering Asset objects.
 // No business logic, no side effects.
 
+import type { AssetGroup } from "shared";
 import type { Asset, AssetConfiguration, AssetData } from "../models/asset-types";
 import { DEFAULT_ASSET_CONFIGURATION } from "../models/asset-types";
 import { SECURITY_GOALS } from "../models/asset-security-goals-types";
@@ -37,9 +38,13 @@ export function renumberAssets(assets: Asset[]): Asset[] {
     });
 }
 
+/**
+ * Create empty asset with defaults
+ */
 export function createEmptyAsset(
   id: string,
   configuration: AssetConfiguration,
+  assetGroup: AssetGroup = "data",
 ): Asset {
   const numericId = parseAssetId(id);
 
@@ -47,9 +52,10 @@ export function createEmptyAsset(
     id,
     numericId,
     name: "",
+    assetGroup,
     impactRatings: configuration.impactCriteria.map((criterion) => ({
       criterionId: criterion.id,
-      value: 0,
+      value: null,
     })),
     overallImpact: 0,
     securityGoals: SECURITY_GOALS.map((sg) => ({

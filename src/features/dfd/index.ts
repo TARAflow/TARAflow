@@ -37,7 +37,7 @@ export type {
   AssetProperties,
   ElementRelation,
   DFDAsset,
-} from "./models/asset-types";
+} from "./models/dfd-asset-types";
 
 // ==================== ASSET RELATION TYPES ====================
 export type {
@@ -142,7 +142,6 @@ export {
   getAssetGroupText,
   getAssetGroupColor,
   getRelationTypeText,
-  getSystemUsesQualifierText,
   getDrawIOAssetLabel,
 } from "./models/dfd-formatters";
 

@@ -1,6 +1,6 @@
 <mxlibrary>[
   {
-"xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"Name\" type=\"process\" id=\"2\"&gt;&lt;mxCell parent=\"1\" style=\"rounded=1;whiteSpace=wrap;html=1;arcSize=50;\" vertex=\"1\" link=\"data:action/select?xmlid=%id%\"&gt;&lt;mxGeometry height=\"30\" width=\"108.81\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;P-xx&amp;lt;/font&amp;gt;\" type=\"idlabel\" id=\"3\"&gt;&lt;mxCell connectable=\"0\" parent=\"2\" style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=none;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"18.08\" relative=\"1\" width=\"35\" as=\"geometry\"&gt;&lt;mxPoint x=\"37\" y=\"30\" as=\"offset\"/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
+    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"Name\" type=\"process\" id=\"2\"&gt;&lt;mxCell parent=\"1\" style=\"rounded=1;whiteSpace=wrap;html=1;arcSize=50;\" vertex=\"1\" link=\"data:action/select?xmlid=%id%\"&gt;&lt;mxGeometry height=\"30\" width=\"108.81\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;P-xx&amp;lt;/font&amp;gt;\" type=\"idlabel\" id=\"3\"&gt;&lt;mxCell connectable=\"0\" parent=\"2\" style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=none;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"18.08\" relative=\"1\" width=\"35\" as=\"geometry\"&gt;&lt;mxPoint x=\"37\" y=\"30\" as=\"offset\"/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
     "w": 108.81,
     "h": 48.08,
     "aspect": "fixed",
@@ -49,21 +49,7 @@
     "title": "User"
   },
   {
-    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"A-xx\" type=\"asset\" id=\"2\"&gt;&lt;mxCell style=\"text;html=1;strokeColor=#FF8000;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;strokeWidth=2;\" vertex=\"1\" parent=\"1\"&gt;&lt;mxGeometry y=\"1.1368683772161603e-13\" width=\"40\" height=\"20\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
-    "w": 40,
-    "h": 20,
-    "aspect": "fixed",
-    "title": "Asset"
-  },
-  {
-    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"Name\" type=\"asset\" id=\"2\"&gt;&lt;mxCell parent=\"1\" style=\"text;html=1;strokeColor=#FF8000;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;strokeWidth=2;container=0;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"40\" width=\"80\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;span style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;A-xx&amp;lt;/span&amp;gt;\" type=\"idlabel\" id=\"3\"&gt;&lt;mxCell connectable=\"0\" parent=\"2\" style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=none;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"20.02\" relative=\"1\" width=\"33.26\" as=\"geometry\"&gt;&lt;mxPoint x=\"23\" y=\"41\" as=\"offset\"/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
-    "w": 80,
-    "h": 40,
-    "aspect": "fixed",
-    "title": "Asset"
-  },
-  {
-"xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"Name\" type=\"interface\" id=\"2\"&gt;&lt;mxCell connectable=\"0\" parent=\"1\" style=\"whiteSpace=wrap;html=1;aspect=fixed;dashed=1;strokeWidth=2;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"38.92\" width=\"38.92\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;IF-xx&amp;lt;/font&amp;gt;\" type=\"idlabel\" id=\"3\"&gt;&lt;mxCell connectable=\"0\" parent=\"2\" style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=none;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"18.08\" relative=\"1\" width=\"35\" as=\"geometry\"&gt;&lt;mxPoint x=\"40\" y=\"21\" as=\"offset\"/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
+    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"Name\" type=\"interface\" id=\"2\"&gt;&lt;mxCell connectable=\"0\" parent=\"1\" style=\"whiteSpace=wrap;html=1;aspect=fixed;dashed=1;strokeWidth=2;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"38.92\" width=\"38.92\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;IF-xx&amp;lt;/font&amp;gt;\" type=\"idlabel\" id=\"3\"&gt;&lt;mxCell connectable=\"0\" parent=\"2\" style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;fillColor=none;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"18.08\" relative=\"1\" width=\"35\" as=\"geometry\"&gt;&lt;mxPoint x=\"40\" y=\"21\" as=\"offset\"/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
     "w": 38.92,
     "h": 38.92,
     "aspect": "fixed",

@@ -6,7 +6,7 @@ import type {
   DFDConnection,
   DFDStats,
 } from "../../models/dfd-types";
-import type { DFDAsset } from "../../models/asset-types";
+import type { DFDAsset } from "../../models/dfd-asset-types";
 import { ValidationMessages } from "./validator-utils";
 import type { DFDGraph } from "../../models/dfd-graph-types";
 

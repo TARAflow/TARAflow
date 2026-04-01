@@ -25,7 +25,6 @@ export type {
   AssetValidation,
   AssetProjectData,
   AssetUpdateResult,
-  AssetTabProps,
   AssetExportData,
   AssetExportOptions,
   AssetImportOptions,
@@ -64,11 +63,12 @@ export { SECURITY_GOALS } from "./models/asset-security-goals-types";
 // Helper functions
 export {
   createDefaultAssetData,
-  createEmptyAsset,
   generateNextAssetId,
   parseAssetId,
   renumberAssets,
 } from "./models/asset-types";
+
+export { createEmptyAsset } from "./services/asset-factory";
 
 export {
   calculateOverallImpact,

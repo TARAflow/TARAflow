@@ -10,7 +10,7 @@ export type ImpactScaleType = "3-level" | "4-level" | "5-level";
  */
 export interface ImpactRating {
   criterionId: string;
-  value: number; // 1-3, 1-4, or 1-5 depending on scale
+  value: number | null | "na"; // not rated, not applicable or 1-3, 1-4, or 1-5 depending on scale
 }
 
 /**
@@ -193,6 +193,63 @@ export const PREDEFINED_IMPACT_CRITERIA: ImpactCriterionDefinition[] = [
     descriptionDE: "Störung physischer Liefer- und Transportketten",
   },
 ];
+
+
+// ==================== SAFETY IMPACT SCALE ====================
+// Fixed 4-level scale for the "safety" criterion — independent of project scale.
+// Maps to ISO 12100 / EN 50742 injury severity categories.
+//
+// Values 1–4 are stored as ImpactRating.value and used in overallImpact calculation.
+// The severity label is shown in the UI alongside the numeric level.
+
+/**
+ * Safety impact level — all labels are in i18n.
+ * Use t("tabs.assets.safetyScale.{value}.label") and
+ *     t("tabs.assets.safetyScale.{value}.severity")
+ */
+export interface SafetyImpactLevel {
+  value: number;
+  /** i18n key suffix: tabs.assets.safetyScale.{value}.label */
+  labelKey: string;
+  /** i18n key suffix: tabs.assets.safetyScale.{value}.severity */
+  severityKey: string;
+  severity: "reversible_minor" | "reversible_moderate" | "irreversible_injury" | "fatality";
+  color: string;
+}
+
+export const SAFETY_IMPACT_SCALE: SafetyImpactLevel[] = [
+  {
+    value: 1,
+    labelKey: "tabs.assets.safetyScale.1.label",
+    severityKey: "tabs.assets.safetyScale.1.severity",
+    severity: "reversible_minor",
+    color: "#22c55e",
+  },
+  {
+    value: 2,
+    labelKey: "tabs.assets.safetyScale.2.label",
+    severityKey: "tabs.assets.safetyScale.2.severity",
+    severity: "reversible_moderate",
+    color: "#eab308",
+  },
+  {
+    value: 3,
+    labelKey: "tabs.assets.safetyScale.3.label",
+    severityKey: "tabs.assets.safetyScale.3.severity",
+    severity: "irreversible_injury",
+    color: "#f97316",
+  },
+  {
+    value: 4,
+    labelKey: "tabs.assets.safetyScale.4.label",
+    severityKey: "tabs.assets.safetyScale.4.severity",
+    severity: "fatality",
+    color: "#dc2626",
+  },
+];
+
+/** The criterion ID for the safety impact rating */
+export const SAFETY_CRITERION_ID = "safety";
 
 // NOTE: calculateOverallImpact → services/asset-impact-calculator.ts
 // NOTE: getImpactLevel         → services/asset-impact-calculator.ts
