@@ -85,6 +85,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     console.log("[Preload] injectDrawioPlugin called");
     return ipcRenderer.invoke("drawio:injectPlugin");
   },
+
+  getDrawioScroll: () => ipcRenderer.invoke("drawio:getScroll"),
+
+  setDrawioViewport: (viewport: any) =>
+    ipcRenderer.invoke("drawio:setViewport", viewport),
 });
 
 console.log("Electron APIs exposed to renderer");

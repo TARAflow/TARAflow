@@ -5,6 +5,10 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { DFDProjectData } from "../models/dfd-types";
 import { DrawioBridge } from "../services/drawio-bridge";
+import type {
+  DrawioViewport,
+  DrawioExportResult,
+} from "../models/drawio-types";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
 import dfdService from "../services/dfd-service";
 
@@ -31,12 +35,14 @@ export interface UseDrawioBridgeReturn {
 
   // Operations
   loadXML: (xml: string) => Promise<void>;
+  exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => string | null;
   exportImage: () => Promise<string | null>;
   sendAction: (action: string) => void;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
 }
 
 // ==================== HOOK ====================
@@ -217,6 +223,20 @@ export function useDrawioBridge(
     await bridgeRef.current.loadXml(xml);
   }, []);
 
+  const loadXMLTransient = useCallback(
+    (xml: string, viewport?: DrawioViewport): void => {
+      if (!bridgeRef.current) {
+        console.warn(
+          "[useDrawioBridge] loadXMLTransient: bridge not initialized",
+        );
+        return;
+      }
+      bridgeRef.current.loadXmlTransient(xml, viewport);
+    },
+    [],
+  );
+
+
   const getCurrentXML = useCallback((): string | null => {
     if (!bridgeRef.current) {
       console.warn("[useDrawioBridge] Bridge not initialized");
@@ -224,6 +244,15 @@ export function useDrawioBridge(
     }
 
     return bridgeRef.current.getCurrentXml();
+  }, []);
+
+  const exportXML = useCallback((): Promise<DrawioExportResult> => {
+    if (!bridgeRef.current) {
+      return Promise.reject(
+        new Error("[useDrawioBridge] Bridge not initialized"),
+      );
+    }
+    return bridgeRef.current.exportXml();
   }, []);
 
   const exportImage = useCallback((): Promise<string | null> => {
@@ -310,15 +339,17 @@ export function useDrawioBridge(
   return {
     isLoading,
     iframeKey,
-    selectedCells, // ✅ NEU
+    selectedCells,
     iframeRef,
     initialize,
     toggleTheme,
     loadXML,
     getCurrentXML,
+    exportXML,
     exportImage,
     sendAction,
     onImageReady,
+    loadXMLTransient,
   };
 }
 

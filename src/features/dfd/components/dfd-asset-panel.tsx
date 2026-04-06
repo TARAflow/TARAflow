@@ -101,6 +101,8 @@ interface AssetPanelProps {
     assetId: string,
     updates: { name?: string; properties?: any },
   ) => void;
+  /** Called when user clicks the global "clear all overlays" button */
+  onClearAllVisibility?: () => void;
 }
 
 // ==================== ASSET TREE ====================
@@ -427,6 +429,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   onCreateAsset,
   onDeleteAsset,
   onAssetFeatureUpdate,
+  onClearAllVisibility,
 }) => {
   const { t } = useTranslation();
 

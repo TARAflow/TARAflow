@@ -597,6 +597,7 @@
         "hideTree": "Expand detail view",
         "createAsset": "New asset",
         "deleteAsset": "Delete asset",
+        "clearAllOverlays": "Clear all overlays",
         "confirmDelete": {
           "title": "Delete asset?",
           "message": "This will remove the asset and all its relations from the DFD. This action cannot be undone."

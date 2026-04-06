@@ -34,6 +34,7 @@ import { useDFDExportImport } from "../hooks/use-dfd-export-import";
 import { useAssetAssignment } from "../hooks/use-asset-assignment";
 import { useDFDData } from "../hooks/use-dfd-data";
 import { useDFDPersistence } from "../hooks/use-dfd-persistence";
+import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -106,7 +107,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // ==================== BUSINESS LOGIC HOOK ====================
   useEffect(() => {
-    console.log("🔥 DFDTab MOUNT");
     return () => console.log("❌ DFDTab UNMOUNT");
   }, []);
 
@@ -186,16 +186,44 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [createAsset, scheduleSave, project.phaseStatus],
   );
 
+  // ==================== OVERLAY HOOK ==========================
+  // Overlay hook — transient asset highlighting on the draw.io canvas
+  const overlay = useDrawioOverlay({
+    exportXML: editor.exportXML,
+    loadXMLTransient: editor.loadXMLTransient,
+  });
+
   // Visibility state: per AssetGroup, which assetId is shown in the DFD (null = none)
   const [assetVisibility, setAssetVisibility] = useState<AssetVisibility>({});
 
   const handleAssetVisibilityChange = useCallback(
     (group: AssetGroup, assetId: string | null) => {
-      setAssetVisibility((prev) => ({ ...prev, [group]: assetId }));
-      // TODO: trigger draw.io label show/hide via editor.sendAction / iframeRef
+      const next = { ...assetVisibility, [group]: assetId };
+      setAssetVisibility(next);
+
+      // Collect ALL active assetIds across all groups — pass them together
+      const activeIds = Object.values(next).filter(
+        (id): id is string => id !== null,
+      );
+
+      if (activeIds.length > 0) {
+        overlay.showOverlay(
+          activeIds,
+          dfd?.assets ?? [],
+          dfd?.elements ?? [],
+          dfd?.connections ?? [],
+        );
+      } else {
+        overlay.clearOverlay();
+      }
     },
-    [],
+    [assetVisibility, overlay, dfd],
   );
+
+  const handleClearAllVisibility = useCallback(() => {
+    setAssetVisibility({});
+    overlay.clearOverlay();
+  }, [overlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAssetChange = useCallback(
     (assetId: string, changes: Partial<DFDAsset>) => {
@@ -246,9 +274,18 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       isLoading: editor.isLoading,
       iframeKey: editor.iframeKey,
       initialize: editor.initialize,
-      toggleTheme: () => {}, // Not used here
-      loadXML: async () => {}, // Not used here
-      getCurrentXML: () => null, // Not used here
+      toggleTheme: () => {},
+      loadXML: async () => {},
+      loadXMLTransient: () => {}, // war: async () => {}
+      exportXML: () =>
+        Promise.resolve({
+          xml: "",
+          translate: { x: 0, y: 0 },
+          scale: 1,
+          scrollLeft: 0,
+          scrollTop: 0,
+        }),
+      getCurrentXML: () => null,
       exportImage: async () => null,
       sendAction: () => {},
       onImageReady: () => {},
@@ -424,7 +461,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ? (project.dfd?.graph?.dataFlowAnalysis.get(selectedConnection.id)
         ?.crossesTrustBoundary ?? false)
     : false;
-
+  const { t } = useTranslation();
   // ==================== RENDER ====================
 
   return (
@@ -484,6 +521,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
           >
             {editor.isLoading && <LoadingOverlay darkMode={darkMode} />}
 
+            {/* Overlay-Banner — shown while asset inspection is active */}
             <iframe
               key={`${project.id}-${editor.iframeKey}`}
               ref={editor.iframeRef as React.RefObject<HTMLIFrameElement>}
@@ -492,6 +530,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
                 width: "100%",
                 height: "100%",
                 border: "none",
+                // Disable interaction while overlay is active (read-only inspection)
                 pointerEvents: editor.isLoading ? "none" : "auto",
               }}
               title="DFD Editor"
@@ -552,6 +591,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             connections={dfd?.connections ?? []}
             assetVisibility={assetVisibility}
             onAssetVisibilityChange={handleAssetVisibilityChange}
+            onClearAllVisibility={handleClearAllVisibility}
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
           />
@@ -594,7 +634,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};;;;;;;;;;;
+};;;;;;;;;;;;;;
 
 // ==================== SUB-COMPONENTS ====================
 

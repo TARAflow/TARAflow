@@ -74,6 +74,13 @@ declare global {
         drawKeys?: string[];
         stack?: string;
       }>;
+      getDrawioScroll: () => Promise<{ scrollLeft: number; scrollTop: number }>;
+      setDrawioViewport: (viewport: {
+        translate: { x: number; y: number };
+        scale: number;
+        scrollLeft?: number; // NEU
+        scrollTop?: number; // NEU
+      }) => Promise<{ success: boolean; error?: string }>;
     };
 
     // Git APIs (für Audit Feature)

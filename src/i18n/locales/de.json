@@ -595,6 +595,7 @@
         "hideTree": "Detailansicht vergrössern",
         "createAsset": "Neues Asset",
         "deleteAsset": "Asset löschen",
+        "clearAllOverlays": "Alle Overlays ausschalten",
         "confirmDelete": {
           "title": "Asset löschen?",
           "message": "Dies entfernt das Asset und alle zugehörigen Relationen aus dem DFD. Diese Aktion kann nicht rückgängig gemacht werden."

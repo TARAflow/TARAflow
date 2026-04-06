@@ -51,34 +51,39 @@ ipcMain.handle("shell:openExternal", async (_, url: string) => {
 
 // ==================== DRAWIO PLUGIN INJECTION ====================
 
+let cachedDrawioFrame: any = null;
+
 ipcMain.handle('drawio:injectPlugin', async (event) => {
   try {
     const webContents = event.sender;
-    
+
     // Warte kurz damit DrawIO ready ist
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     // Finde alle frames
     const frames = webContents.mainFrame.frames;
-    console.log('[Main] Available frames:', frames.map(f => f.url));
-    
-    // Finde DrawIO iframe
-    const drawioFrame = frames.find(f => 
-      f.url.includes('embed.diagrams.net') || 
-      f.url.includes('diagrams.net')
+    console.log(
+      "[Main] Available frames:",
+      frames.map((f) => f.url),
     );
-    
+
+    // Finde DrawIO iframe
+    const drawioFrame = frames.find(
+      (f) =>
+        f.url.includes("embed.diagrams.net") || f.url.includes("diagrams.net"),
+    );
+
     if (!drawioFrame) {
-      console.error('[Main] DrawIO frame not found');
-      return { 
-        success: false, 
-        error: 'DrawIO frame not found',
-        availableFrames: frames.map(f => f.url)
+      console.error("[Main] DrawIO frame not found");
+      return {
+        success: false,
+        error: "DrawIO frame not found",
+        availableFrames: frames.map((f) => f.url),
       };
     }
-    
-    console.log('[Main] Found DrawIO frame:', drawioFrame.url);
-    
+
+    console.log("[Main] Found DrawIO frame:", drawioFrame.url);
+
     // Plugin Code
     const pluginCode = `
       (function() {
@@ -104,6 +109,7 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
         
         try {
           Draw.loadPlugin(function(ui) {
+            Draw._taraflowUi = ui;
             console.log('[Plugin] ✅ Selection Plugin loaded successfully!');
             console.log('[Plugin] UI:', ui);
             console.log('[Plugin] Graph:', ui.editor.graph);
@@ -126,7 +132,21 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
                 selection: selection
               }), '*');
             });
+
+            // Viewport restore handler
+            window.addEventListener('message', function(evt) {
+              try {
+                var msg = (typeof evt.data === 'string') ? JSON.parse(evt.data) : evt.data;
+                if (msg.action === 'taraflow:setViewport') {
+                  var view = ui.editor.graph.view;
+                  view.setScale(msg.scale);
+                  view.setTranslate(msg.translate.x, msg.translate.y);
+                  view.revalidate();
+                }
+              } catch(e) {}
+            }, false);
           });
+          
           
           return { success: true, message: 'Plugin loaded successfully' };
         } catch (error) {
@@ -138,13 +158,15 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
         }
       })();
     `;
-    
+
     // Execute in DrawIO frame
     const result = await drawioFrame.executeJavaScript(pluginCode);
-    console.log('[Main] Plugin injection result:', result);
-    
+    console.log("[Main] Plugin injection result:", result);
+
+    // Cache frame for setViewport IPC handler
+    cachedDrawioFrame = drawioFrame ?? null;
+
     return result || { success: true };
-    
   } catch (error: any) {
     console.error('[Main] Plugin injection error:', error);
     return { 
@@ -152,6 +174,61 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
       error: error.message,
       stack: error.stack
     };
+  }
+});
+
+// ==================== DRAWIO SET VIEWPORT ====================
+
+ipcMain.handle('drawio:setViewport', async (_, viewport: { translate: { x: number; y: number }; scale: number; scrollLeft?: number; scrollTop?: number }) => {
+  if (!cachedDrawioFrame) return { success: false, error: 'No drawio frame cached' };
+  try {
+    const scale = viewport.scale;
+    const tx = viewport.translate.x;
+    const ty = viewport.translate.y;
+    const sl = viewport.scrollLeft ?? 0;
+    const st = viewport.scrollTop ?? 0;
+
+    await cachedDrawioFrame.executeJavaScript(`
+      (function() {
+        var ui = Draw._taraflowUi;
+        if (!ui) { console.warn('[Main:setViewport] No taraflowUi'); return false; }
+        var view = ui.editor.graph.view;
+        view.setScale(${scale});
+        view.setTranslate(${tx}, ${ty});
+        if (ui.editor.graph.container) {
+          ui.editor.graph.container.scrollLeft = ${sl};
+          ui.editor.graph.container.scrollTop = ${st};
+        }
+        view.revalidate();
+
+        return true;
+      })()
+    `);
+    return { success: true };
+  } catch(e: any) {
+    return { success: false, error: e.message };
+  }
+});
+
+// ==================== DRAWIO GET SCROLL ====================
+
+ipcMain.handle('drawio:getScroll', async () => {
+  if (!cachedDrawioFrame) return { scrollLeft: 0, scrollTop: 0 };
+  try {
+    const result = await cachedDrawioFrame.executeJavaScript(`
+      (function() {
+        var ui = Draw._taraflowUi;
+        if (!ui) return { scrollLeft: 0, scrollTop: 0 };
+        var container = ui.editor.graph.container;
+        return {
+          scrollLeft: container ? container.scrollLeft : 0,
+          scrollTop: container ? container.scrollTop : 0
+        };
+      })()
+    `);
+    return result || { scrollLeft: 0, scrollTop: 0 };
+  } catch(e) {
+    return { scrollLeft: 0, scrollTop: 0 };
   }
 });
 

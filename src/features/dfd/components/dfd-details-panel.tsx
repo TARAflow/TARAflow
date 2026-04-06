@@ -8,10 +8,11 @@
 //   • Nothing selected  → only "Assets" tab shown (Element tab hidden)
 
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Tab, Tabs, Typography } from "@mui/material";
+import { Box, IconButton, Tab, Tabs, Tooltip, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
 import type {
   AssetGroup,
@@ -69,6 +70,8 @@ interface DFDDetailsPanelProps {
   assetVisibility?: AssetVisibility;
   /** Called when user toggles eye icon in asset tree */
   onAssetVisibilityChange?: (group: AssetGroup, assetId: string | null) => void;
+  /** Called when user clicks the global clear-all-overlays button */
+  onClearAllVisibility?: () => void;
 
   graphContext?: DFDGraphAnalysisContext | null;
 }
@@ -94,6 +97,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onAssetFeatureUpdate,
   assetVisibility = {},
   onAssetVisibilityChange,
+  onClearAllVisibility,
   graphContext,
 }) => {
   const { t } = useTranslation();
@@ -240,14 +244,41 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   {name}
                 </Typography>
               ) : (
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 600, lineHeight: 1.4 }}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
                 >
-                  {t("tabs.dfd.detailsPanel.assetsTitle", {
-                    defaultValue: "Asset List",
-                  })}
-                </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, lineHeight: 1.4 }}
+                  >
+                    {t("tabs.dfd.detailsPanel.assetsTitle", {
+                      defaultValue: "Asset List",
+                    })}
+                  </Typography>
+                  {onClearAllVisibility &&
+                    Object.values(assetVisibility).some(
+                      (id) => id !== null,
+                    ) && (
+                      <Tooltip
+                        title={t("tabs.dfd.assetPanel.clearAllOverlays", {
+                          defaultValue: "Alle Overlays ausschalten",
+                        })}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={onClearAllVisibility}
+                          color="primary"
+                          sx={{ p: 0.25 }}
+                        >
+                          <VisibilityOffIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                </Box>
               )}
             </Box>
           </Box>
@@ -289,6 +320,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   onCreateAsset={onCreateAssetForGroup}
                   onDeleteAsset={onDeleteAsset}
                   onAssetFeatureUpdate={onAssetFeatureUpdate}
+                  onClearAllVisibility={onClearAllVisibility}
                 />
               </Box>
             )}

@@ -13,6 +13,10 @@ import type {
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
+import type {
+  DrawioViewport,
+  DrawioExportResult,
+} from "../models/drawio-types";
 
 // Atomic hooks
 import { useDFDData } from "./use-dfd-data";
@@ -78,6 +82,7 @@ export interface UseDFDEditorReturn {
 
   // Editor operations
   sendAction: (action: string) => void;
+  exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
 
@@ -102,6 +107,9 @@ export interface UseDFDEditorReturn {
   // Completion
   canProceed: boolean;
   graphContext: DFDGraph | null;
+
+  /** Send XML to draw.io without persisting — for transient overlay only. */
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
 }
 
 // ==================== HOOK ====================
@@ -393,6 +401,8 @@ export function useDFDEditor(
     // Editor operations
     sendAction: bridge.sendAction,
     getCurrentXML: async () => bridge.getCurrentXML(),
+    exportXML: bridge.exportXML,
+    loadXMLTransient: bridge.loadXMLTransient,
     autoNumberLabels: autoNumbering.autoNumber,
 
     // Description editing

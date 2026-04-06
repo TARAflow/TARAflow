@@ -3,6 +3,10 @@
 // These interfaces enable testing and swapping implementations
 
 import { DFDProjectData, DFDStats, DFDData } from "../models/dfd-types";
+import type {
+  DrawioViewport,
+  DrawioExportResult,
+} from "../models/drawio-types";
 import { ValidationResult } from "../services/dfd-validator";
 import type { PhaseStatusMap } from "shared";
 
@@ -53,8 +57,26 @@ export interface IDrawioBridge {
   /** Send an action to Draw.io (zoom, undo, redo, etc.) */
   sendAction(action: string): void;
 
-  /** Load XML into Draw.io */
+  /** Load XML into Draw.io AND persist to localStorage */
   loadXml(xml: string): Promise<void>;
+
+  /**
+   * Load XML transiently — no localStorage write, no autosave.
+   * Used exclusively for overlay display.
+   * If viewport is provided, the plugin restores it after draw.io's internal reset.
+   */
+  loadXmlTransient(xml: string, viewport?: DrawioViewport): void;
+
+  /**
+   * Restore viewport via the TARAflow plugin (graph.view.setScale/setTranslate).
+   */
+  setViewport(viewport: DrawioViewport): Promise<void>;
+
+  /**
+   * Request current XML + viewport state from draw.io.
+   * Returns xml, translate and scale from the export event.
+   */
+  exportXml(): Promise<DrawioExportResult>;
 
   /** Export diagram as image */
   exportImage(): void;
@@ -65,9 +87,10 @@ export interface IDrawioBridge {
   /** Set callback for diagram changes */
   onDiagramChange(callback: () => void): void;
 
+  /** Set callback for selection changes */
   onSelectionChanged(callback: (cells: any[]) => void): void;
 
-  /** Get current XML from controller (if available) */
+  /** Get current XML from localStorage (if available) */
   getCurrentXml(): string | null;
 
   /** Cleanup resources */
@@ -139,10 +162,9 @@ export interface IDrawioBridgeFactory {
   create(
     iframe: HTMLIFrameElement,
     projectId: string,
-    projectName: string
+    projectName: string,
   ): IDrawioBridge;
 }
-
 /**
  * Factory for creating storage adapters
  */
