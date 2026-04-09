@@ -284,7 +284,9 @@ export class ElementThreatSync {
         updated: 0,
         threatData: project.threats || {
           configuration: {
-            activeMethod: "per-element",
+            activeMethod: "per-element" as const,
+            zeroTrustMode: false,
+            showThreatActor: false,
             customThreatTemplates: [],
             customMitigationTemplates: [],
             customVerificationTemplates: [],
@@ -591,7 +593,9 @@ export class ElementThreatSync {
       updated,
       threatData: {
         configuration: {
-          activeMethod: "per-element",
+          activeMethod: "per-element" as const,
+          zeroTrustMode: false,
+          showThreatActor: false,
           customThreatTemplates: [],
           customMitigationTemplates: [],
           customVerificationTemplates: [],

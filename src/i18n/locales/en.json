@@ -1748,7 +1748,8 @@
         "attack": "Attack",
         "actor": "Actor",
         "mitigation": "Mitigation",
-        "verification": "Verification"
+        "verification": "Verification",
+        "assets": "Assets"
       },
       "config": {
         "title": "Threat Analysis Configuration",

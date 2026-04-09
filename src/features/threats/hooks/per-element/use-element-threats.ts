@@ -2,7 +2,13 @@
 // Hook for managing per-element threat state and operations
 // CORRECTED: Proper immutability for React.memo compatibility
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  startTransition,
+} from "react";
 import type {
   Threat,
   ThreatTable,
@@ -111,18 +117,21 @@ export function useElementThreats({
       );
 
       if (result.success) {
-        setTables(result.tables);
-        notifyUpdate(result.tables);
+        startTransition(() => {
+          setTables(result.tables);
+          notifyUpdate(result.tables);
+          setIsGenerating(false);
+        });
         return true;
       }
 
       console.error("Generation failed:", result.error);
+      setIsGenerating(false);
       return false;
     } catch (error) {
       console.error("Generation error:", error);
-      return false;
-    } finally {
       setIsGenerating(false);
+      return false;
     }
   }, [project, dfdContext, configuration, notifyUpdate]);
 

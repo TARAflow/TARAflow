@@ -1,5 +1,7 @@
 // ==================== TYPES ====================
 export type {
+  AssetReference,
+  AssetDataReference,
   StrideMethod,
   ThreatProjectData,
   ThreatData,

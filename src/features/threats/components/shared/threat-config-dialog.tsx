@@ -16,6 +16,7 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  Switch,
   Tabs,
   Tab,
   TextField,
@@ -84,6 +85,12 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
   const [activeMethod, setActiveMethod] = useState<StrideMethod>(
     configuration.activeMethod
   );
+  const [zeroTrustMode, setZeroTrustMode] = useState(
+    configuration.zeroTrustMode ?? false,
+  );
+  const [showThreatActor, setShowThreatActor] = useState(
+    configuration.showThreatActor ?? false,
+  );
   const [customThreats, setCustomThreats] = useState<ThreatTemplate[]>(
     configuration.customThreatTemplates
   );
@@ -147,6 +154,8 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
   const handleSave = () => {
     onSave({
       activeMethod,
+      zeroTrustMode,
+      showThreatActor,
       customThreatTemplates: customThreats,
       customMitigationTemplates: customMitigations,
       customVerificationTemplates: customVerifications,
@@ -163,74 +172,99 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {t("tabs.threats.config.title", { defaultValue: "Threat Analysis Configuration" })}
+        {t("tabs.threats.config.title", {
+          defaultValue: "Threat Analysis Configuration",
+        })}
       </DialogTitle>
 
       <DialogContent dividers>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-          <Tab label={t("tabs.threats.config.methodTab", { defaultValue: "Method" })} />
-          <Tab label={t("tabs.threats.config.threatsTab", { defaultValue: "Threats" })} />
-          <Tab label={t("tabs.threats.config.mitigationsTab", { defaultValue: "Mitigations" })} />
-          <Tab label={t("tabs.threats.config.verificationsTab", { defaultValue: "Verifications" })} />
+          <Tab
+            label={t("tabs.threats.config.optionsTab", {
+              defaultValue: "Options",
+            })}
+          />
+          <Tab
+            label={t("tabs.threats.config.threatsTab", {
+              defaultValue: "Threats",
+            })}
+          />
+          <Tab
+            label={t("tabs.threats.config.mitigationsTab", {
+              defaultValue: "Mitigations",
+            })}
+          />
+          <Tab
+            label={t("tabs.threats.config.verificationsTab", {
+              defaultValue: "Verifications",
+            })}
+          />
         </Tabs>
 
-        {/* Method Tab */}
+        {/* Options Tab */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {hasExistingThreats && (
-              <Alert severity="warning">
-                {t("tabs.threats.config.methodChangeWarning", {
-                  defaultValue: "Changing the STRIDE method will regenerate all threats.",
-                })}
-              </Alert>
-            )}
-
-            <FormControl component="fieldset">
-              <FormLabel sx={{ mb: 2 }}>
-                {t("tabs.threats.config.strideMethod", { defaultValue: "STRIDE Analysis Method" })}
-              </FormLabel>
-              <RadioGroup
-                value={activeMethod}
-                onChange={(e) => setActiveMethod(e.target.value as StrideMethod)}
+            {/* Zero Trust Mode */}
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
               >
-                <FormControlLabel
-                  value="per-element"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Typography fontWeight="medium">STRIDE-per-Element</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {t("tabs.threats.config.perElementDesc", {
-                          defaultValue: "Analyzes each DFD element individually. Best for safety-critical systems.",
-                        })}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        EE → S,R | Process → S,T,R,I,D,E | DataFlow → T,I,D | DataStore → T,R,I,D
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: "flex-start", mb: 2 }}
+                <Box>
+                  <Typography fontWeight="medium">
+                    {t("tabs.threats.config.zeroTrustMode", {
+                      defaultValue: "Zero Trust Mode",
+                    })}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("tabs.threats.config.zeroTrustModeDesc", {
+                      defaultValue:
+                        "Generate threats from both sender AND receiver perspective for every data flow. " +
+                        "Default: sender perspective only (+ receiver for cross-boundary flows).",
+                    })}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={zeroTrustMode}
+                  onChange={(e) => setZeroTrustMode(e.target.checked)}
                 />
-                <FormControlLabel
-                  value="per-interaction"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Typography fontWeight="medium">STRIDE-per-Interaction</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {t("tabs.threats.config.perInteractionDesc", {
-                          defaultValue: "Analyzes data flows between components. Best for networked systems.",
-                        })}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Each DataFlow → S,T,R,I,D,E
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: "flex-start" }}
+              </Box>
+            </Box>
+
+            <Divider />
+
+            {/* Show Threat Actor */}
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box>
+                  <Typography fontWeight="medium">
+                    {t("tabs.threats.config.showThreatActor", {
+                      defaultValue: "Show Threat Actor",
+                    })}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("tabs.threats.config.showThreatActorDesc", {
+                      defaultValue:
+                        "Display the Threat Actor column in threat tables. " +
+                        "Default off — actor has limited value for likelihood assessment.",
+                    })}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={showThreatActor}
+                  onChange={(e) => setShowThreatActor(e.target.checked)}
                 />
-              </RadioGroup>
-            </FormControl>
+              </Box>
+            </Box>
           </Box>
         </TabPanel>
 
@@ -248,7 +282,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
               <Select
                 value={newThreatCategory}
                 label="STRIDE"
-                onChange={(e) => setNewThreatCategory(e.target.value as StrideCategory)}
+                onChange={(e) =>
+                  setNewThreatCategory(e.target.value as StrideCategory)
+                }
               >
                 {strideCategories.map((cat) => (
                   <MenuItem key={cat} value={cat}>
@@ -260,7 +296,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
             <TextField
               size="small"
               fullWidth
-              label={t("tabs.threats.config.threatDescription", { defaultValue: "Threat Description" })}
+              label={t("tabs.threats.config.threatDescription", {
+                defaultValue: "Threat Description",
+              })}
               value={newThreatText}
               onChange={(e) => setNewThreatText(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleAddThreat()}
@@ -273,18 +311,37 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
           <List dense>
             {customThreats.map((threat) => (
               <ListItem key={threat.id}>
-                <Chip label={threat.strideCategory} size="small" sx={{ mr: 1 }} />
-                <ListItemText primary={isGerman ? threat.threatDE : threat.threat} />
+                <Chip
+                  label={threat.strideCategory}
+                  size="small"
+                  sx={{ mr: 1 }}
+                />
+                <ListItemText
+                  primary={isGerman ? threat.threatDE : threat.threat}
+                />
                 <ListItemSecondaryAction>
-                  <IconButton edge="end" onClick={() => setCustomThreats(customThreats.filter((t) => t.id !== threat.id))}>
+                  <IconButton
+                    edge="end"
+                    onClick={() =>
+                      setCustomThreats(
+                        customThreats.filter((t) => t.id !== threat.id),
+                      )
+                    }
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </ListItemSecondaryAction>
               </ListItem>
             ))}
             {customThreats.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
-                {t("tabs.threats.config.noCustomThreats", { defaultValue: "No custom threats defined" })}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ py: 2, textAlign: "center" }}
+              >
+                {t("tabs.threats.config.noCustomThreats", {
+                  defaultValue: "No custom threats defined",
+                })}
               </Typography>
             )}
           </List>
@@ -304,7 +361,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
               <Select
                 value={newMitigationCategory}
                 label="STRIDE"
-                onChange={(e) => setNewMitigationCategory(e.target.value as StrideCategory)}
+                onChange={(e) =>
+                  setNewMitigationCategory(e.target.value as StrideCategory)
+                }
               >
                 {strideCategories.map((cat) => (
                   <MenuItem key={cat} value={cat}>
@@ -316,7 +375,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
             <TextField
               size="small"
               fullWidth
-              label={t("tabs.threats.config.mitigationDescription", { defaultValue: "Mitigation" })}
+              label={t("tabs.threats.config.mitigationDescription", {
+                defaultValue: "Mitigation",
+              })}
               value={newMitigationText}
               onChange={(e) => setNewMitigationText(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleAddMitigation()}
@@ -329,18 +390,39 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
           <List dense>
             {customMitigations.map((mitigation) => (
               <ListItem key={mitigation.id}>
-                <Chip label={mitigation.strideCategory} size="small" sx={{ mr: 1 }} />
-                <ListItemText primary={isGerman ? mitigation.mitigationDE : mitigation.mitigation} />
+                <Chip
+                  label={mitigation.strideCategory}
+                  size="small"
+                  sx={{ mr: 1 }}
+                />
+                <ListItemText
+                  primary={
+                    isGerman ? mitigation.mitigationDE : mitigation.mitigation
+                  }
+                />
                 <ListItemSecondaryAction>
-                  <IconButton edge="end" onClick={() => setCustomMitigations(customMitigations.filter((m) => m.id !== mitigation.id))}>
+                  <IconButton
+                    edge="end"
+                    onClick={() =>
+                      setCustomMitigations(
+                        customMitigations.filter((m) => m.id !== mitigation.id),
+                      )
+                    }
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </ListItemSecondaryAction>
               </ListItem>
             ))}
             {customMitigations.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
-                {t("tabs.threats.config.noCustomMitigations", { defaultValue: "No custom mitigations defined" })}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ py: 2, textAlign: "center" }}
+              >
+                {t("tabs.threats.config.noCustomMitigations", {
+                  defaultValue: "No custom mitigations defined",
+                })}
               </Typography>
             )}
           </List>
@@ -360,7 +442,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
               <Select
                 value={newVerificationCategory}
                 label="STRIDE"
-                onChange={(e) => setNewVerificationCategory(e.target.value as StrideCategory)}
+                onChange={(e) =>
+                  setNewVerificationCategory(e.target.value as StrideCategory)
+                }
               >
                 {strideCategories.map((cat) => (
                   <MenuItem key={cat} value={cat}>
@@ -372,7 +456,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
             <TextField
               size="small"
               fullWidth
-              label={t("tabs.threats.config.verificationDescription", { defaultValue: "Verification Method" })}
+              label={t("tabs.threats.config.verificationDescription", {
+                defaultValue: "Verification Method",
+              })}
               value={newVerificationText}
               onChange={(e) => setNewVerificationText(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleAddVerification()}
@@ -385,18 +471,43 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
           <List dense>
             {customVerifications.map((verification) => (
               <ListItem key={verification.id}>
-                <Chip label={verification.strideCategory} size="small" sx={{ mr: 1 }} />
-                <ListItemText primary={isGerman ? verification.verificationDE : verification.verification} />
+                <Chip
+                  label={verification.strideCategory}
+                  size="small"
+                  sx={{ mr: 1 }}
+                />
+                <ListItemText
+                  primary={
+                    isGerman
+                      ? verification.verificationDE
+                      : verification.verification
+                  }
+                />
                 <ListItemSecondaryAction>
-                  <IconButton edge="end" onClick={() => setCustomVerifications(customVerifications.filter((v) => v.id !== verification.id))}>
+                  <IconButton
+                    edge="end"
+                    onClick={() =>
+                      setCustomVerifications(
+                        customVerifications.filter(
+                          (v) => v.id !== verification.id,
+                        ),
+                      )
+                    }
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </ListItemSecondaryAction>
               </ListItem>
             ))}
             {customVerifications.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
-                {t("tabs.threats.config.noCustomVerifications", { defaultValue: "No custom verifications defined" })}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ py: 2, textAlign: "center" }}
+              >
+                {t("tabs.threats.config.noCustomVerifications", {
+                  defaultValue: "No custom verifications defined",
+                })}
               </Typography>
             )}
           </List>
@@ -404,7 +515,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>{t("common.cancel", { defaultValue: "Cancel" })}</Button>
+        <Button onClick={onClose}>
+          {t("common.cancel", { defaultValue: "Cancel" })}
+        </Button>
         <Button onClick={handleSave} variant="contained">
           {t("common.save", { defaultValue: "Save" })}
         </Button>

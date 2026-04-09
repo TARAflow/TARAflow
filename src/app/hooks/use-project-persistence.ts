@@ -8,6 +8,9 @@ import type { Project } from '../models/project-types';
  * 1. Electron - Native file system via IPC
  * 2. Browser with File System Access API - Direct file I/O
  * 3. Browser fallback - localStorage + download
+ *
+ * Electron mode: currentFilePath is persisted in localStorage so it
+ * survives app restarts — auto-save works immediately after reopening.
  */
 
 type PersistenceMode = 'electron' | 'file-system-access' | 'localStorage';
@@ -18,119 +21,159 @@ interface PersistenceResult {
   error?: string;
 }
 
+const STORAGE_KEY = "taraflow:currentFilePath";
+
 export const useProjectPersistence = () => {
   const fileSystemAccess = useFileSystemAccess();
-  const [currentFileHandle, setCurrentFileHandle] = useState<FileSystemFileHandle | null>(null);
-  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+
+  const [currentFileHandle, setCurrentFileHandle] =
+    useState<FileSystemFileHandle | null>(null);
+
+  // Initialize from localStorage so file path survives app restarts
+  const [currentFilePath, setCurrentFilePathState] = useState<string | null>(
+    () => {
+      try {
+        return localStorage.getItem(STORAGE_KEY) ?? null;
+      } catch {
+        return null;
+      }
+    },
+  );
+
+  // Always keep localStorage in sync
+  const setCurrentFilePath = useCallback((path: string | null) => {
+    setCurrentFilePathState(path);
+    try {
+      if (path) {
+        localStorage.setItem(STORAGE_KEY, path);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   // Detect mode
-  const isElectron = typeof window !== 'undefined' && 
-                     typeof (window as any).electron?.file !== 'undefined';
-  
-  const mode: PersistenceMode = isElectron 
-    ? 'electron' 
-    : fileSystemAccess.isSupported 
-      ? 'file-system-access' 
-      : 'localStorage';
+  const isElectron =
+    typeof window !== "undefined" &&
+    typeof (window as any).electron?.file !== "undefined";
+
+  const mode: PersistenceMode = isElectron
+    ? "electron"
+    : fileSystemAccess.isSupported
+      ? "file-system-access"
+      : "localStorage";
 
   /**
    * Save new project (show save dialog)
    */
-  const saveNewProject = useCallback(async (project: Project): Promise<PersistenceResult> => {
-    const fileName = project.info.name.replace(/\s+/g, '_');
+  const saveNewProject = useCallback(
+    async (project: Project): Promise<PersistenceResult> => {
+      const fileName = project.info.name.replace(/\s+/g, "_");
 
-    // Mode 1: Electron
-    if (mode === 'electron') {
-      try {
-        const result = await (window as any).electron.file.saveDialog(fileName);
-        if (!result.success) {
-          return { success: false, error: result.error };
+      // Mode 1: Electron
+      if (mode === "electron") {
+        try {
+          const result = await (window as any).electron.file.saveDialog(
+            fileName,
+          );
+          if (!result.success) {
+            return { success: false, error: result.error };
+          }
+
+          const filePath = result.data;
+          const writeResult = await (window as any).electron.file.writeProject(
+            filePath,
+            JSON.stringify(project, null, 2),
+          );
+
+          if (writeResult.success) {
+            setCurrentFilePath(filePath);
+            return { success: true, data: { filePath } };
+          }
+          return { success: false, error: writeResult.error };
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
+      }
+
+      // Mode 2: File System Access API
+      if (mode === "file-system-access") {
+        const pickResult = await fileSystemAccess.pickSaveLocation(fileName);
+        if (!pickResult.success) {
+          return pickResult;
         }
 
-        const filePath = result.data;
-        const writeResult = await (window as any).electron.file.writeProject(
-          filePath,
-          JSON.stringify(project, null, 2)
+        const handle = pickResult.data;
+        const writeResult = await fileSystemAccess.writeFile(
+          handle,
+          JSON.stringify(project, null, 2),
         );
 
         if (writeResult.success) {
-          setCurrentFilePath(filePath);
-          return { success: true, data: { filePath } };
+          setCurrentFileHandle(handle);
+          return { success: true, data: { handle } };
         }
-        return { success: false, error: writeResult.error };
-      } catch (error: any) {
-        return { success: false, error: error.message };
-      }
-    }
-
-    // Mode 2: File System Access API
-    if (mode === 'file-system-access') {
-      const pickResult = await fileSystemAccess.pickSaveLocation(fileName);
-      if (!pickResult.success) {
-        return pickResult;
+        return writeResult;
       }
 
-      const handle = pickResult.data;
-      const writeResult = await fileSystemAccess.writeFile(
-        handle,
-        JSON.stringify(project, null, 2)
-      );
-
-      if (writeResult.success) {
-        setCurrentFileHandle(handle);
-        return { success: true, data: { handle } };
-      }
-      return writeResult;
-    }
-
-    // Mode 3: localStorage + Download
-    return downloadProject(project);
-  }, [mode, fileSystemAccess]);
+      // Mode 3: localStorage + Download
+      return downloadProject(project);
+    },
+    [mode, fileSystemAccess, setCurrentFilePath],
+  );
 
   /**
-   * Save to existing file (no dialog)
+   * Save to existing file (no dialog).
+   * In Electron mode, silently succeeds when no file path is set —
+   * the project is already in localStorage from loadProjects().
    */
-  const saveExistingProject = useCallback(async (project: Project): Promise<PersistenceResult> => {
-    // Mode 1: Electron
-    if (mode === 'electron') {
-      if (!currentFilePath) {
-        return { success: false, error: 'No file path set' };
+  const saveExistingProject = useCallback(
+    async (project: Project): Promise<PersistenceResult> => {
+      // Mode 1: Electron
+      if (mode === "electron") {
+        if (!currentFilePath) {
+          // No file linked yet — not an error, project lives in localStorage only
+          return { success: true };
+        }
+
+        try {
+          const result = await (window as any).electron.file.writeProject(
+            currentFilePath,
+            JSON.stringify(project, null, 2),
+          );
+          return result;
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
       }
 
-      try {
-        const result = await (window as any).electron.file.writeProject(
-          currentFilePath,
-          JSON.stringify(project, null, 2)
+      // Mode 2: File System Access API
+      if (mode === "file-system-access") {
+        if (!currentFileHandle) {
+          return { success: true }; // Same: no file linked, silent success
+        }
+
+        const result = await fileSystemAccess.writeFile(
+          currentFileHandle,
+          JSON.stringify(project, null, 2),
         );
         return result;
-      } catch (error: any) {
-        return { success: false, error: error.message };
-      }
-    }
-
-    // Mode 2: File System Access API
-    if (mode === 'file-system-access') {
-      if (!currentFileHandle) {
-        return { success: false, error: 'No file handle available' };
       }
 
-      const result = await fileSystemAccess.writeFile(
-        currentFileHandle,
-        JSON.stringify(project, null, 2)
-      );
-      return result;
-    }
-
-    // Mode 3: localStorage (no download for auto-save)
-    return { success: true };
-  }, [mode, currentFilePath, currentFileHandle, fileSystemAccess]);
+      // Mode 3: localStorage (no download for auto-save)
+      return { success: true };
+    },
+    [mode, currentFilePath, currentFileHandle, fileSystemAccess],
+  );
 
   /**
    * Open project from file picker
    */
   const openProject = useCallback(async (): Promise<PersistenceResult> => {
     // Mode 1: Electron
-    if (mode === 'electron') {
+    if (mode === "electron") {
       try {
         const result = await (window as any).electron.file.openDialog();
         if (!result.success) {
@@ -138,7 +181,9 @@ export const useProjectPersistence = () => {
         }
 
         const filePath = result.data;
-        const readResult = await (window as any).electron.file.readProject(filePath);
+        const readResult = await (window as any).electron.file.readProject(
+          filePath,
+        );
 
         if (readResult.success) {
           const project = JSON.parse(readResult.data);
@@ -152,7 +197,7 @@ export const useProjectPersistence = () => {
     }
 
     // Mode 2: File System Access API
-    if (mode === 'file-system-access') {
+    if (mode === "file-system-access") {
       const result = await fileSystemAccess.pickFile();
       if (result.success) {
         setCurrentFileHandle(result.data.handle);
@@ -162,28 +207,28 @@ export const useProjectPersistence = () => {
     }
 
     // Mode 3: localStorage - use file input (handled by dialog)
-    return { success: false, error: 'Use file input in dialog' };
-  }, [mode, fileSystemAccess]);
+    return { success: false, error: "Use file input in dialog" };
+  }, [mode, fileSystemAccess, setCurrentFilePath]);
 
   /**
    * Download project (fallback mode)
    */
-  const downloadProject = useCallback((project: Project, filename?: string): PersistenceResult => {
-    const defaultFilename = `${project.info.name.replace(/\s+/g, '_')}.tara.json`;
-    const blob = new Blob(
-      [JSON.stringify(project, null, 2)], 
-      { type: 'application/json' }
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || defaultFilename;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    console.log(`Downloaded: ${filename || defaultFilename}`);
-    return { success: true };
-  }, []);
+  const downloadProject = useCallback(
+    (project: Project, filename?: string): PersistenceResult => {
+      const defaultFilename = `${project.info.name.replace(/\s+/g, "_")}.tara.json`;
+      const blob = new Blob([JSON.stringify(project, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || defaultFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+      return { success: true };
+    },
+    [],
+  );
 
   /**
    * Clear current file reference (e.g., when closing project)
@@ -191,7 +236,7 @@ export const useProjectPersistence = () => {
   const clearCurrentFile = useCallback(() => {
     setCurrentFileHandle(null);
     setCurrentFilePath(null);
-  }, []);
+  }, [setCurrentFilePath]);
 
   return {
     mode,
@@ -200,6 +245,6 @@ export const useProjectPersistence = () => {
     openProject,
     downloadProject,
     clearCurrentFile,
-    hasFileReference: !!(currentFileHandle || currentFilePath)
+    hasFileReference: !!(currentFileHandle || currentFilePath),
   };
-};
+};;

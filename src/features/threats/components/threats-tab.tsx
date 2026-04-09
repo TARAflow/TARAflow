@@ -76,7 +76,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   onPhaseComplete,
 }) => {
   const { t } = useTranslation();
-  console.log("🟦 [ThreatsTab render] dfdContext:", dfdContext);
   // ==================== STATE ====================
 
   const [activeMethod, setActiveMethod] = useState<StrideMethod>(
@@ -98,10 +97,11 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   const [isDirty, setIsDirty] = useState(false);
   const [showDFDPreview, setShowDFDPreview] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [showSyncWarning, setShowSyncWarning] = useState(true);
   const [dfdPanelHeight, setDfdPanelHeight] = useState(DEFAULT_DFD_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
+  const isResizingRef = useRef(false);
 
   // Refs
   const splitContainerRef = useRef<HTMLDivElement>(null);
@@ -148,7 +148,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   });
 
   // Interaction threats hook
-  console.log("🟢 [ThreatsTab] Passing dfdContext to Hook:", dfdContext);
 
   const interactionHook = useInteractionThreats({
     project,
@@ -209,13 +208,15 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     let success = false;
 
     if (activeMethod === "per-element") {
+      console.time("[ThreatTab] generate");
       success = await elementHook.generateThreats();
+      console.timeEnd("[ThreatTab] generate");
     } else {
       success = await interactionHook.generateThreats();
     }
 
     if (success) {
-      setShowSyncWarning(true);
+      setShowSyncWarning(false);
     }
   }, [activeMethod, elementHook, interactionHook]);
 
@@ -326,49 +327,41 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       e.stopPropagation();
       startYRef.current = e.clientY;
       startHeightRef.current = dfdPanelHeight;
+      isResizingRef.current = true;
       setIsResizing(true);
-    },
-    [dfdPanelHeight],
-  );
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isResizing || !splitContainerRef.current) return;
-      e.preventDefault();
+      // Attach listeners directly — avoids useEffect re-register on every
+      // setDfdPanelHeight call which drops events during slow re-renders.
+      const onMove = (ev: MouseEvent) => {
+        if (!splitContainerRef.current) {
+          return;
+        }
+        const deltaY = ev.clientY - startYRef.current;
+        const containerHeight = splitContainerRef.current.clientHeight;
+        const maxHeight = containerHeight - MIN_PANEL_HEIGHT - 8;
+        const newHeight = Math.max(
+          MIN_PANEL_HEIGHT,
+          Math.min(maxHeight, startHeightRef.current + deltaY),
+        );
+        setDfdPanelHeight(newHeight);
+      };
 
-      const deltaY = e.clientY - startYRef.current;
-      const containerHeight = splitContainerRef.current.clientHeight;
-      const maxHeight = containerHeight - MIN_PANEL_HEIGHT - 8; // ✅ FIXED!
-
-      const newHeight = Math.max(
-        MIN_PANEL_HEIGHT,
-        Math.min(maxHeight, startHeightRef.current + deltaY),
-      );
-
-      setDfdPanelHeight(newHeight);
-    },
-    [isResizing],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.userSelect = "none";
-      document.body.style.cursor = "row-resize";
-
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
+      const onUp = () => {
+        isResizingRef.current = false;
+        setIsResizing(false);
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
         document.body.style.userSelect = "";
         document.body.style.cursor = "";
       };
-    }
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "row-resize";
+    },
+    [dfdPanelHeight],
+  );
 
   // ==================== COMPUTED VALUES ====================
 
@@ -426,6 +419,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       <Collapse
         in={
           hasDFD &&
+          hasThreats &&
           activeHook.syncStatus !== null &&
           !activeHook.syncStatus.inSync &&
           showSyncWarning
@@ -451,11 +445,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         ref={splitContainerRef}
         sx={{
           flexGrow: 1,
+          flexShrink: 1,
+          height: 0, // forces container to exactly its flex-allocated space
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
           position: "relative",
-          minHeight: 0,
         }}
       >
         {/* DFD Preview Panel */}
@@ -480,6 +475,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 height: 8,
                 flexShrink: 0,
                 cursor: "row-resize",
+                position: "relative",
+                zIndex: 20,
                 backgroundColor: isResizing ? "primary.light" : "grey.200",
                 display: "flex",
                 alignItems: "center",
@@ -509,23 +506,48 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
         {/* Threats View */}
 
-        <Box sx={{ flexGrow: 1, overflow: "hidden", px: 2, pt: 2 }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            flexShrink: 1,
+            height: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            px: 2,
+            pt: 2,
+          }}
+        >
           {activeMethod === "per-element" ? (
             <ElementThreatsView
-              project={project}
-              dfdContext={dfdContext}
+              tables={elementHook.tables}
+              isGenerating={elementHook.isGenerating}
+              hasDFD={hasDFD}
               configuration={configuration}
-              onUpdate={handleUpdate}
+              assetDataRef={project.assetDataRef}
+              showThreatActor={configuration.showThreatActor ?? false}
+              onGenerate={() => {
+                setShowSyncWarning(false);
+                void elementHook.generateThreats();
+              }}
               onOpenEditDialog={handleOpenEditDialog}
+              onDelete={elementHook.deleteThreat}
               showFilters={showFilters}
             />
           ) : (
             <InteractionThreatsView
-              project={project}
-              dfdContext={dfdContext}
+              tables={interactionHook.tables}
+              isGenerating={interactionHook.isGenerating}
+              hasDFD={hasDFD}
               configuration={configuration}
-              onUpdate={handleUpdate}
+              assetDataRef={project.assetDataRef}
+              showThreatActor={configuration.showThreatActor ?? false}
+              onGenerate={() => {
+                setShowSyncWarning(false);
+                void interactionHook.generateThreats();
+              }}
               onOpenEditDialog={handleOpenEditDialog}
+              onDelete={interactionHook.deleteThreat}
               showFilters={showFilters}
             />
           )}
@@ -612,6 +634,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       )}
     </Box>
   );
-};
+};;
 
 export default ThreatsTab;

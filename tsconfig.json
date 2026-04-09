@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "es2020"
-    ],
+    "lib": ["dom", "dom.iterable", "es2020"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -14,20 +10,24 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "types": ["node"],
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
-    "baseUrl": "src",
     "paths": {
-      "audit": ["features/audit"],
-      "audit/*": ["features/audit/*"]
+      "app": ["./src/app"],
+      "app/*": ["./src/app/*"],
+      "features": ["./src/features"],
+      "features/*": ["./src/features/*"],
+      "shared": ["./src/shared"],
+      "shared/*": ["./src/shared/*"],
+      "i18n": ["./src/i18n"],
+      "i18n/*": ["./src/i18n/*"],
+      "audit": ["./src/features/audit"],
+      "audit/*": ["./src/features/audit/*"]
     }
   },
-  "include": [
-    "src",
-    "electron"
-  ]
+  "include": ["src", "electron"]
 }

@@ -60,9 +60,9 @@ export class InteractionThreatSync {
     const interfaceIds = new Set(
       Array.from(graph.elementsById.values())
         .filter((e) =>
-          ["interface", "physicalinterface"].includes(e.type.toLowerCase())
+          ["interface", "physicalinterface"].includes(e.type.toLowerCase()),
         )
-        .map((e) => e.id)
+        .map((e) => e.id),
     );
 
     const threatenedConnections = new Set<string>();
@@ -306,7 +306,9 @@ export class InteractionThreatSync {
         updated: 0,
         threatData: project.threats || {
           configuration: {
-            activeMethod: "per-interaction",
+            activeMethod: "per-interaction" as const,
+            zeroTrustMode: false,
+            showThreatActor: false,
             customThreatTemplates: [],
             customMitigationTemplates: [],
             customVerificationTemplates: [],
@@ -513,9 +515,9 @@ export class InteractionThreatSync {
       for (const newTable of newThreats) {
         // Match by BOTH ID AND name to avoid mixing tables with null IDs
         const existingTable = updatedTables.find(
-          (t) => 
+          (t) =>
             t.trustBoundaryId === newTable.trustBoundaryId &&
-            t.trustBoundaryName === newTable.trustBoundaryName
+            t.trustBoundaryName === newTable.trustBoundaryName,
         );
 
         const threatsForMissing = newTable.threats.filter((threat) => {
@@ -545,7 +547,9 @@ export class InteractionThreatSync {
       updated,
       threatData: {
         configuration: {
-          activeMethod: "per-interaction",
+          activeMethod: "per-interaction" as const,
+          zeroTrustMode: false,
+          showThreatActor: false,
           customThreatTemplates: [],
           customMitigationTemplates: [],
           customVerificationTemplates: [],

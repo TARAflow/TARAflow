@@ -1,21 +1,21 @@
 // ==================== ELEMENT THREAT TABLE ====================
-// Displays threats for STRIDE per-element method
-// Grouped by Trust Boundary with nested Element accordions
-// Restored from original threat-table.tsx
+// Displays threats for STRIDE per-element method.
+// Grouped by Trust Boundary → nested Element accordions → MUI Table rows.
+// MUI Table replaces DataGrid for 10× faster initial render.
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  DataGrid,
-  GridColDef,
-  GridActionsCellItem,
-  GridRenderCellParams,
-  GridRowParams,
-} from "@mui/x-data-grid";
 import {
   Box,
   Chip,
+  IconButton,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TableSortLabel,
   Tooltip,
   Typography,
   Accordion,
@@ -37,14 +37,24 @@ import {
 } from "@mui/icons-material";
 
 import {
+  AssetReference,
   Threat,
   ThreatTable as ThreatTableType,
   ThreatConfiguration,
-  STRIDE_DEFINITIONS,
-  THREAT_ACTORS,
+  type AssetDataReference,
 } from "../../models/threat-types";
-import { STRIDE_COLORS } from "shared";
-import type { StrideCategory } from "shared";
+import { sortThreatsByPriority } from "../../utils/threat-asset-utils";
+import {
+  ThreatSortField,
+  SortDir,
+  sortThreats,
+  ThreatIdCell,
+  StrideCell,
+  DescriptionCell,
+  MissingChip,
+  ActorCell,
+} from "../../components/shared/threat-table-utils";
+import { ImpactCell } from "../../components/shared/impact-cell";
 
 // ==================== TYPES ====================
 
@@ -60,11 +70,13 @@ export interface ElementThreatTableProps {
   table: ThreatTableType;
   tableIndex: number;
   configuration: ThreatConfiguration;
+  assetDataRef?: AssetDataReference;
+  showThreatActor?: boolean;
   onEdit: (threat: Threat) => void;
   onDelete: (threatId: string) => void;
 }
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== HELPERS ====================
 
 const getElementIcon = (elementType: string) => {
   switch (elementType) {
@@ -89,39 +101,269 @@ const getElementIcon = (elementType: string) => {
 
 const formatDisplayId = (id: string): string => {
   const match = id.match(/^([A-Z]+)(\d+)$/i);
-  if (match) {
-    return `${match[1].toUpperCase()}-${match[2]}`;
-  }
-  return id;
+  return match ? `${match[1].toUpperCase()}-${match[2]}` : id;
 };
+
+// ==================== IMPACT COUNT HELPER ====================
+
+type ImpactLevel = "CRITICAL" | "HIGH+" | "HIGH" | "MED+" | "MED" | "LOW";
+const IMPACT_ORDER: ImpactLevel[] = ["CRITICAL", "HIGH+", "HIGH", "MED+", "MED", "LOW"];
+const IMPACT_CHIP_COLORS: Record<ImpactLevel, { bg: string; border: string; color: string }> = {
+  "CRITICAL": { bg: "#dc262618", border: "#dc2626", color: "#dc2626" },
+  "HIGH+":    { bg: "#ea580c18", border: "#ea580c", color: "#ea580c" },
+  "HIGH":     { bg: "#f9731618", border: "#f97316", color: "#f97316" },
+  "MED+":     { bg: "#ca8a0418", border: "#ca8a04", color: "#ca8a04" },
+  "MED":      { bg: "#eab30818", border: "#d97706", color: "#d97706" },
+  "LOW":      { bg: "#16a34a18", border: "#16a34a", color: "#16a34a" },
+};
+
+function countImpacts(
+  threats: Threat[],
+  assetDataRef?: AssetDataReference,
+): Partial<Record<ImpactLevel, number>> {
+  const counts: Partial<Record<ImpactLevel, number>> = {};
+  if (!assetDataRef) return counts;
+  for (const t of threats) {
+    const linked = t.linkedAssetIds
+      .map((id) => assetDataRef.assets.find((a) => a.id === id))
+      .filter((a): a is AssetReference => Boolean(a));
+    // Find worst impact for this threat (safety overrides business impact)
+    const hasSafety = linked.some(
+      (a) => a.physicalImpact === "fatality" || a.physicalImpact === "irreversible_injury",
+    );
+    const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
+      const imp = a.aggregatedImpact as ImpactLevel | undefined;
+      if (!imp) return acc;
+      if (!acc) return imp;
+      return IMPACT_ORDER.indexOf(imp) < IMPACT_ORDER.indexOf(acc) ? imp : acc;
+    }, undefined);
+    // Safety + CRITICAL business → CRITICAL, safety alone → HIGH
+    const effective: ImpactLevel | undefined = hasSafety && worstBusiness === "CRITICAL"
+      ? "CRITICAL"
+      : hasSafety ? "HIGH"
+      : worstBusiness;
+    if (effective) {
+      counts[effective] = (counts[effective] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+// ==================== COMPLETION HELPER ====================
+
+function isCompleted(t: Threat): boolean {
+  return !!(
+    t.threatDescription?.trim() &&
+    t.attackDescription?.trim() &&
+    t.mitigation?.trim() &&
+    t.verification?.trim()
+  );
+}
+
+function countCompletedByLevel(
+  threats: Threat[],
+  assetDataRef?: AssetDataReference,
+): Partial<Record<ImpactLevel, { done: number; total: number }>> {
+  const result: Partial<Record<ImpactLevel, { done: number; total: number }>> = {};
+  if (!assetDataRef) return result;
+
+  for (const t of threats) {
+    const linked = t.linkedAssetIds
+      .map((id) => assetDataRef.assets.find((a) => a.id === id))
+      .filter((a): a is AssetReference => Boolean(a));
+    const hasSafety = linked.some(
+      (a) => a.physicalImpact === "fatality" || a.physicalImpact === "irreversible_injury",
+    );
+    const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
+      const imp = a.aggregatedImpact as ImpactLevel | undefined;
+      if (!imp) return acc;
+      if (!acc) return imp;
+      return IMPACT_ORDER.indexOf(imp) < IMPACT_ORDER.indexOf(acc) ? imp : acc;
+    }, undefined);
+    const level: ImpactLevel | undefined = hasSafety && worstBusiness === "CRITICAL"
+      ? "CRITICAL" : hasSafety ? "HIGH" : worstBusiness;
+    if (!level) continue;
+    const prev = result[level] ?? { done: 0, total: 0 };
+    result[level] = { done: prev.done + (isCompleted(t) ? 1 : 0), total: prev.total + 1 };
+  }
+  return result;
+}
+
+// ==================== INNER TABLE ====================
+
+const ThreatRows: React.FC<{
+  threats: Threat[];
+  assetDataRef?: AssetDataReference;
+  showThreatActor?: boolean;
+  isGerman: boolean;
+  t: (key: string, opts?: any) => string;
+  onEdit: (t: Threat) => void;
+  onDelete: (id: string) => void;
+}> = React.memo(({ threats, assetDataRef, showThreatActor = false, isGerman, t, onEdit, onDelete }) => {
+  const [sortField, setSortField] = useState<ThreatSortField>("priority");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = useCallback((field: ThreatSortField) => {
+    setSortField((prev) => {
+      if (prev === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      else setSortDir("asc");
+      return field;
+    });
+  }, []);
+
+  const sorted = useMemo(
+    () => sortThreats(threats, sortField, sortDir, assetDataRef),
+    [threats, sortField, sortDir, assetDataRef],
+  );
+
+  const showAssets = (assetDataRef?.assets.length ?? 0) > 0;
+
+  const cellSx = { py: 0.5, px: 1, fontSize: "0.78rem", lineHeight: 1.4 };
+  const hdSx = { py: 0.5, px: 1, fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" as const, bgcolor: "grey.50" };
+
+  return (
+    <Box sx={{ overflowX: "auto" }}>
+      <Table size="small" sx={{ tableLayout: "fixed", minWidth: 700 }}>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ ...hdSx, width: 130 }}>
+              <TableSortLabel
+                active={sortField === "id"}
+                direction={sortField === "id" ? sortDir : "asc"}
+                onClick={() => handleSort("id")}
+              >
+                {t("tabs.threats.columns.threatId", { defaultValue: "T-ID" })}
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ ...hdSx, width: 56 }}>
+              <TableSortLabel
+                active={sortField === "strideCategory"}
+                direction={sortField === "strideCategory" ? sortDir : "asc"}
+                onClick={() => handleSort("strideCategory")}
+              >
+                STRIDE
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ ...hdSx, width: 220 }}>
+              {t("tabs.threats.columns.threat", { defaultValue: "Threat" })}
+            </TableCell>
+            <TableCell sx={{ ...hdSx, width: 160 }}>
+              {t("tabs.threats.columns.attack", { defaultValue: "Attack" })}
+            </TableCell>
+            <TableCell sx={{ ...hdSx, width: 160 }}>
+              {t("tabs.threats.columns.mitigation", { defaultValue: "Mitigation" })}
+            </TableCell>
+            <TableCell sx={{ ...hdSx, width: 140 }}>
+              {t("tabs.threats.columns.verification", { defaultValue: "Verification" })}
+            </TableCell>
+            {showThreatActor && (
+              <TableCell sx={{ ...hdSx, width: 100 }}>
+                {t("tabs.threats.columns.actor", { defaultValue: "Actor" })}
+              </TableCell>
+            )}
+            {showAssets && (
+              <TableCell sx={{ ...hdSx, width: 120 }}>
+                <TableSortLabel
+                  active={sortField === "priority"}
+                  direction={sortField === "priority" ? sortDir : "asc"}
+                  onClick={() => handleSort("priority")}
+                >
+                  {t("tabs.threats.columns.impact", { defaultValue: "Impact" })}
+                </TableSortLabel>
+              </TableCell>
+            )}
+            <TableCell sx={{ ...hdSx, width: 60 }} />
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {sorted.map((threat) => (
+            <TableRow key={threat.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
+              <TableCell sx={cellSx}>
+                <ThreatIdCell id={threat.id} />
+              </TableCell>
+              <TableCell sx={{ ...cellSx, textAlign: "center" }}>
+                <StrideCell cat={threat.strideCategory} isGerman={isGerman} />
+              </TableCell>
+              <TableCell sx={cellSx}>
+                <DescriptionCell
+                  value={threat.threatDescription}
+                  fallback={isGerman ? "Keine Beschreibung" : "No description"}
+                />
+              </TableCell>
+              <TableCell sx={cellSx}>
+                {threat.attackDescription ? (
+                  <DescriptionCell value={threat.attackDescription} fallback="" />
+                ) : (
+                  <MissingChip label={t("tabs.threats.noAttack", { defaultValue: "Missing" })} />
+                )}
+              </TableCell>
+              <TableCell sx={cellSx}>
+                {threat.mitigation ? (
+                  <DescriptionCell value={threat.mitigation} fallback="" />
+                ) : (
+                  <MissingChip label={t("tabs.threats.noMitigation", { defaultValue: "Missing" })} />
+                )}
+              </TableCell>
+              <TableCell sx={cellSx}>
+                {threat.verification ? (
+                  <DescriptionCell value={threat.verification} fallback="" />
+                ) : (
+                  <MissingChip label={t("tabs.threats.noVerification", { defaultValue: "Missing" })} />
+                )}
+              </TableCell>
+              {showThreatActor && (
+                <TableCell sx={cellSx}>
+                  <ActorCell actor={threat.threatActor} isGerman={isGerman} />
+                </TableCell>
+              )}
+              {showAssets && (
+                <TableCell sx={cellSx}>
+                  {assetDataRef && (
+                    <ImpactCell threat={threat} assetDataRef={assetDataRef} />
+                  )}
+                </TableCell>
+              )}
+              <TableCell sx={{ ...cellSx, textAlign: "right" }}>
+                <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
+                  <IconButton size="small" onClick={() => onEdit(threat)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={t("common.delete", { defaultValue: "Delete" })}>
+                  <IconButton size="small" onClick={() => onDelete(threat.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+});
+ThreatRows.displayName = "ThreatRows";
 
 // ==================== COMPONENT ====================
 
 export const ElementThreatTable = React.memo<ElementThreatTableProps>(
-  ({ table, tableIndex, configuration, onEdit, onDelete }) => {
+  ({ table, assetDataRef, showThreatActor = false, onEdit, onDelete }) => {
     const { t, i18n } = useTranslation();
     const isGerman = i18n.language === "de";
 
-    // Expanded state for Element accordions
     const [expandedElements, setExpandedElements] = useState<
       Record<string, boolean>
     >({});
 
-    const toggleElement = (key: string) => {
+    const toggleElement = useCallback((key: string) => {
       setExpandedElements((prev) => ({ ...prev, [key]: !prev[key] }));
-    };
-
-    const isElementExpanded = (key: string) => expandedElements[key] ?? false;
-
-    // ==================== GROUPING ====================
+    }, []);
 
     const groupThreatsByElement = (threats: Threat[]): ElementGroup[] => {
       const groups: Record<string, ElementGroup> = {};
-
       for (const threat of threats) {
         const elem = threat.linkedElement;
         if (!elem) continue;
-
         if (!groups[elem.elementId]) {
           groups[elem.elementId] = {
             elementId: elem.elementId,
@@ -133,7 +375,6 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
         }
         groups[elem.elementId].threats.push(threat);
       }
-
       return Object.values(groups).sort((a, b) => {
         const idA = a.displayId || a.elementName || a.elementId;
         const idB = b.displayId || b.elementName || b.elementId;
@@ -143,245 +384,28 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
 
     const elementGroups = useMemo(
       () => groupThreatsByElement(table.threats),
-      [table.threats]
+      [table.threats],
     );
 
-    // ==================== COLUMNS ====================
-
-    const columns: GridColDef<Threat>[] = useMemo(
-      () => [
-        {
-          field: "id",
-          headerName: t("tabs.threats.columns.threatId", {
-            defaultValue: "T-ID",
-          }),
-          width: 110,
-          sortable: true,
-          renderCell: (params: GridRenderCellParams<Threat>) => (
-            <Typography
-              variant="body2"
-              fontFamily="monospace"
-              fontSize="0.75rem"
-            >
-              {params.value}
-            </Typography>
-          ),
-        },
-        {
-          field: "strideCategory",
-          headerName: "STRIDE",
-          width: 80,
-          sortable: true,
-          align: "center",
-          headerAlign: "center",
-          renderCell: (params: GridRenderCellParams<Threat>) => {
-            const cat = params.value as StrideCategory;
-            const def = STRIDE_DEFINITIONS.find((s) => s.type === cat);
-            const name = isGerman ? def?.nameDE : def?.name;
-            return (
-              <Tooltip title={name || cat}>
-                <Chip
-                  label={cat}
-                  size="small"
-                  sx={{
-                    backgroundColor: STRIDE_COLORS[cat],
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                />
-              </Tooltip>
-            );
-          },
-        },
-        {
-          field: "threatDescription",
-          headerName: t("tabs.threats.columns.threat", {
-            defaultValue: "Threat",
-          }),
-          flex: 1,
-          minWidth: 180,
-          sortable: false,
-          renderCell: (params: GridRenderCellParams<Threat>) => (
-            <Tooltip title={params.value || ""}>
-              <Typography
-                variant="body2"
-                sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-              >
-                {params.value || (
-                  <em style={{ color: "#9ca3af" }}>
-                    {isGerman ? "Keine Beschreibung" : "No description"}
-                  </em>
-                )}
-              </Typography>
-            </Tooltip>
-          ),
-        },
-        {
-          field: "attackDescription",
-          headerName: t("tabs.threats.columns.attack", {
-            defaultValue: "Attack",
-          }),
-          flex: 0.8,
-          minWidth: 150,
-          sortable: false,
-          renderCell: (params: GridRenderCellParams<Threat>) => {
-            const value = params.value as string;
-            if (!value) {
-              return (
-                <Chip
-                  label={t("tabs.threats.noAttack", {
-                    defaultValue: "Missing",
-                  })}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              );
-            }
-            return (
-              <Tooltip title={value}>
-                <Typography
-                  variant="body2"
-                  sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {value}
-                </Typography>
-              </Tooltip>
-            );
-          },
-        },
-        {
-          field: "threatActor",
-          headerName: t("tabs.threats.columns.actor", {
-            defaultValue: "Actor",
-          }),
-          width: 100,
-          sortable: true,
-          renderCell: (params: GridRenderCellParams<Threat>) => {
-            const actor = THREAT_ACTORS.find((a) => a.type === params.value);
-            const name = isGerman ? actor?.nameDE : actor?.name;
-            return (
-              <Chip
-                label={name || params.value}
-                size="small"
-                variant="outlined"
-                color={params.value === "external" ? "error" : "default"}
-              />
-            );
-          },
-        },
-        {
-          field: "mitigation",
-          headerName: t("tabs.threats.columns.mitigation", {
-            defaultValue: "Mitigation",
-          }),
-          flex: 0.8,
-          minWidth: 120,
-          sortable: false,
-          renderCell: (params: GridRenderCellParams<Threat>) => {
-            const value = params.value as string;
-            if (!value) {
-              return (
-                <Chip
-                  label={t("tabs.threats.noMitigation", {
-                    defaultValue: "Missing",
-                  })}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              );
-            }
-            return (
-              <Tooltip title={value}>
-                <Typography
-                  variant="body2"
-                  sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {value}
-                </Typography>
-              </Tooltip>
-            );
-          },
-        },
-        {
-          field: "verification",
-          headerName: t("tabs.threats.columns.verification", {
-            defaultValue: "Verification",
-          }),
-          flex: 0.8,
-          minWidth: 120,
-          sortable: false,
-          renderCell: (params: GridRenderCellParams<Threat>) => {
-            const value = params.value as string;
-            if (!value) {
-              return (
-                <Chip
-                  label={t("tabs.threats.noVerification", {
-                    defaultValue: "Missing",
-                  })}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              );
-            }
-            return (
-              <Tooltip title={value}>
-                <Typography
-                  variant="body2"
-                  sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {value}
-                </Typography>
-              </Tooltip>
-            );
-          },
-        },
-        {
-          field: "actions",
-          type: "actions",
-          headerName: "",
-          width: 70,
-          getActions: (params: GridRowParams<Threat>) => [
-            <GridActionsCellItem
-              key="edit"
-              icon={<EditIcon />}
-              label={t("common.edit", { defaultValue: "Edit" })}
-              onClick={() => onEdit(params.row)}
-            />,
-            <GridActionsCellItem
-              key="delete"
-              icon={<DeleteIcon />}
-              label={t("common.delete", { defaultValue: "Delete" })}
-              onClick={() => onDelete(params.row.id)}
-              showInMenu
-            />,
-          ],
-        },
-      ],
-      [t, isGerman, onEdit, onDelete]
+    const sortedElementGroups = useMemo(
+      () =>
+        elementGroups.map((g) => ({
+          ...g,
+          threats: sortThreatsByPriority(g.threats, assetDataRef),
+        })),
+      [elementGroups, assetDataRef],
     );
-
-    // ==================== RENDER ====================
 
     return (
       <Accordion
         defaultExpanded
-        sx={{
-          "&:before": { display: "none" },
-          boxShadow: "1",
-          mb: 1,
-        }}
+        sx={{ "&:before": { display: "none" }, boxShadow: "1", mb: 1 }}
       >
-        {/* Trust Boundary Header */}
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
           sx={{
             backgroundColor: "primary.50",
-            "&:hover": {
-              backgroundColor: "primary.100",
-            },
+            "&:hover": { backgroundColor: "primary.100" },
           }}
         >
           <Stack direction="row" spacing={2} alignItems="center">
@@ -400,20 +424,52 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
               ({table.threats.length}{" "}
               {t("tabs.threats.threats", { defaultValue: "threats" })})
             </Typography>
+            {(() => {
+              const counts = countImpacts(table.threats, assetDataRef);
+              const completedByLevel = countCompletedByLevel(
+                table.threats,
+                assetDataRef,
+              );
+              return (
+                <>
+                  {IMPACT_ORDER.filter((lvl) => (counts[lvl] ?? 0) > 0).map(
+                    (lvl) => {
+                      const c = IMPACT_CHIP_COLORS[lvl];
+                      const comp = completedByLevel[lvl];
+                      const done = comp?.done ?? 0;
+                      const total = comp?.total ?? counts[lvl] ?? 0;
+                      const allDone = done === total && total > 0;
+                      return (
+                        <Chip
+                          key={lvl}
+                          label={`${done}/${total} ${lvl}`}
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: "0.65rem",
+                            bgcolor: allDone ? "#16a34a18" : c.bg,
+                            color: allDone ? "#16a34a" : c.color,
+                            border: `1px solid ${allDone ? "#16a34a" : c.border}`,
+                          }}
+                        />
+                      );
+                    },
+                  )}
+                </>
+              );
+            })()}
           </Stack>
         </AccordionSummary>
 
-        {/* Nested Element Accordions */}
         <AccordionDetails sx={{ p: 1 }}>
-          {elementGroups.map((group) => {
-            const elementKey = `${table.trustBoundaryId || "external"}-${
-              group.elementId
-            }`;
+          {sortedElementGroups.map((group) => {
+            const elementKey = `${table.trustBoundaryId || "external"}-${group.elementId}`;
+            const isExpanded = expandedElements[elementKey] ?? false;
 
             return (
               <Accordion
                 key={elementKey}
-                expanded={isElementExpanded(elementKey)}
+                expanded={isExpanded}
                 onChange={() => toggleElement(elementKey)}
                 sx={{
                   mb: 0.5,
@@ -423,7 +479,6 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
                   borderColor: "divider",
                 }}
               >
-                {/* Element Header */}
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}
                   sx={{
@@ -459,26 +514,51 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
                       ({group.threats.length}{" "}
                       {t("tabs.threats.threats", { defaultValue: "threats" })})
                     </Typography>
+                    {(() => {
+                      const counts = countImpacts(group.threats, assetDataRef);
+                      const completedByLevel = countCompletedByLevel(
+                        group.threats,
+                        assetDataRef,
+                      );
+                      return (
+                        <>
+                          {IMPACT_ORDER.filter(
+                            (lvl) => (counts[lvl] ?? 0) > 0,
+                          ).map((lvl) => {
+                            const c = IMPACT_CHIP_COLORS[lvl];
+                            return (
+                              <Chip
+                                key={lvl}
+                                label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
+                                size="small"
+                                sx={{
+                                  height: 16,
+                                  fontSize: "0.6rem",
+                                  bgcolor: c.bg,
+                                  color: c.color,
+                                  border: `1px solid ${c.border}`,
+                                }}
+                              />
+                            );
+                          })}
+                        </>
+                      );
+                    })()}
                   </Stack>
                 </AccordionSummary>
 
-                {/* Threat DataGrid */}
                 <AccordionDetails sx={{ p: 0 }}>
-                  <DataGrid
-                    rows={group.threats}
-                    columns={columns}
-                    autoHeight
-                    disableRowSelectionOnClick
-                    hideFooter
-                    density="compact"
-                    sx={{
-                      border: "none",
-                      "& .MuiDataGrid-cell": {
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
-                      },
-                    }}
-                  />
+                  {isExpanded && (
+                    <ThreatRows
+                      threats={group.threats}
+                      assetDataRef={assetDataRef}
+                      showThreatActor={showThreatActor}
+                      isGerman={isGerman}
+                      t={t}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
+                  )}
                 </AccordionDetails>
               </Accordion>
             );
@@ -486,7 +566,7 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
         </AccordionDetails>
       </Accordion>
     );
-  }
+  },
 );
 
 ElementThreatTable.displayName = "ElementThreatTable";

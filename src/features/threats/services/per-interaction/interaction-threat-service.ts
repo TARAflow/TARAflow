@@ -66,6 +66,7 @@ export class InteractionThreatService implements ThreatService {
       const tables = interactionThreatGenerator.generateThreatsForProject(
         project,
         dfdContext,
+        configuration,
       );
 
       if (tables.length === 0) {

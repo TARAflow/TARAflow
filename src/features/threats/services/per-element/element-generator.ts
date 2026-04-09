@@ -37,6 +37,20 @@ export class ElementThreatGenerator {
     const graph = project.dfdGraph;
     const tables: ThreatTable[] = [];
 
+    // ==================== ASSET INDEX ====================
+    // Build reverse index: elementId -> assetIds[]
+    // Source: assetDataRef.assets[].linkedDFDElements
+    const elementToAssets = new Map<string, string[]>();
+    if (project.assetDataRef) {
+      for (const asset of project.assetDataRef.assets) {
+        for (const elementId of asset.linkedElementIds ?? []) {
+          const existing = elementToAssets.get(elementId) ?? [];
+          existing.push(asset.id);
+          elementToAssets.set(elementId, existing);
+        }
+      }
+    }
+
     // ==================== TRUST BOUNDARY TABLES ====================
     // Generate one table per trust boundary
     for (const [trustBoundaryId, elementIds] of graph.trustBoundaryElements) {
@@ -67,6 +81,7 @@ export class ElementThreatGenerator {
         trustBoundary.name,
         trustBoundary.displayId ?? "",
         catalog,
+        elementToAssets,
       );
 
       if (threats.length > 0) {
@@ -80,13 +95,38 @@ export class ElementThreatGenerator {
     }
 
     // ==================== DATA FLOWS TABLE ====================
-    const dataFlowThreats = this.generateDataFlowThreats(graph, catalog);
-    if (dataFlowThreats.length > 0) {
+    // Internal DFs are merged into their TB table; cross-boundary DFs get own table.
+    const { tbThreats, crossBoundaryThreats } =
+      this.generateDataFlowThreatsGrouped(graph, catalog, elementToAssets);
+
+    // Merge internal DF threats into existing TB tables
+    for (const table of tables) {
+      if (!table.trustBoundaryId) continue;
+      const dfThreats = tbThreats.get(table.trustBoundaryId);
+      if (dfThreats && dfThreats.length > 0) {
+        table.threats = [...table.threats, ...dfThreats];
+      }
+    }
+
+    // Also create TB tables for TBs that only have DFs (no other elements)
+    for (const [tbId, dfThreats] of tbThreats) {
+      if (tables.some((t) => t.trustBoundaryId === tbId)) continue;
+      const tb = graph.elementsById.get(tbId);
+      if (!tb) continue;
+      tables.push({
+        trustBoundaryId: tbId,
+        trustBoundaryName: tb.name,
+        displayIdentifier: `[${tb.displayId}]`,
+        threats: dfThreats,
+      });
+    }
+
+    if (crossBoundaryThreats.length > 0) {
       tables.push({
         trustBoundaryId: null,
         trustBoundaryName: "Data Flows",
         displayIdentifier: "[DF]",
-        threats: dataFlowThreats,
+        threats: crossBoundaryThreats,
       });
     }
 
@@ -94,6 +134,7 @@ export class ElementThreatGenerator {
     const externalEntityThreats = this.generateExternalEntityThreats(
       graph,
       catalog,
+      elementToAssets,
     );
     if (externalEntityThreats.length > 0) {
       tables.push({
@@ -125,6 +166,7 @@ export class ElementThreatGenerator {
   private generateInterfacesWithoutTB(
     graph: DFDGraphReference,
     catalog: { threatTemplates: ThreatTemplate[] },
+    elementToAssets?: Map<string, string[]>,
   ): Threat[] {
     const threats: Threat[] = [];
 
@@ -149,6 +191,7 @@ export class ElementThreatGenerator {
         "Physical Interfaces",
         "",
         catalog,
+        elementToAssets,
       );
 
       threats.push(...elementThreats);
@@ -158,34 +201,60 @@ export class ElementThreatGenerator {
   }
 
   /**
-   * Generate threats for Data Flows from graph
+   * Generate threats for Data Flows from graph.
+   * Returns threats grouped by TB: internal DFs go into their TB bucket,
+   * cross-boundary DFs go into the "Data Flows" fallback bucket.
    */
-  private generateDataFlowThreats(
+  generateDataFlowThreatsGrouped(
     graph: DFDGraphReference,
     catalog: { threatTemplates: ThreatTemplate[] },
-  ): Threat[] {
-    const threats: Threat[] = [];
+    elementToAssets?: Map<string, string[]>,
+  ): { tbThreats: Map<string, Threat[]>; crossBoundaryThreats: Threat[] } {
+    const tbThreats = new Map<string, Threat[]>();
+    const crossBoundaryThreats: Threat[] = [];
 
     for (const connection of graph.connectionsById.values()) {
       const dataFlowElement: DFDElementReference = {
         id: connection.id,
         type: "DataFlow",
-        name: connection.label || connection.id,
+        name: connection.name || connection.label || connection.id,
         displayId: connection.displayId,
       };
 
-      const elementThreats = this.generateThreatsForElement(
-        dataFlowElement,
-        null,
-        "Data Flows",
-        "",
-        catalog,
-      );
+      // Determine if source and target share exactly one TB
+      const sourceTBs = graph.elementTrustBoundaries.get(connection.from) ?? [];
+      const targetTBs = graph.elementTrustBoundaries.get(connection.to) ?? [];
+      const sharedTBs = sourceTBs.filter((tb) => targetTBs.includes(tb));
 
-      threats.push(...elementThreats);
+      if (sharedTBs.length === 1) {
+        // Internal DF — belongs to this TB
+        const tbId = sharedTBs[0];
+        const tb = graph.elementsById.get(tbId);
+        const threats = this.generateThreatsForElement(
+          dataFlowElement,
+          tbId,
+          tb?.name ?? "Unknown",
+          tb?.displayId ?? "",
+          catalog,
+          elementToAssets,
+        );
+        const existing = tbThreats.get(tbId) ?? [];
+        tbThreats.set(tbId, [...existing, ...threats]);
+      } else {
+        // Cross-boundary or unassigned DF — goes to fallback table
+        const threats = this.generateThreatsForElement(
+          dataFlowElement,
+          null,
+          "Data Flows",
+          "",
+          catalog,
+          elementToAssets,
+        );
+        crossBoundaryThreats.push(...threats);
+      }
     }
 
-    return threats;
+    return { tbThreats, crossBoundaryThreats };
   }
 
   /**
@@ -195,6 +264,7 @@ export class ElementThreatGenerator {
   private generateExternalEntityThreats(
     graph: DFDGraphReference,
     catalog: { threatTemplates: ThreatTemplate[] },
+    elementToAssets?: Map<string, string[]>,
   ): Threat[] {
     const threats: Threat[] = [];
 
@@ -207,6 +277,7 @@ export class ElementThreatGenerator {
         "External Entities",
         "",
         catalog,
+        elementToAssets,
       );
 
       threats.push(...elementThreats);
@@ -224,6 +295,7 @@ export class ElementThreatGenerator {
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
     catalog: { threatTemplates: ThreatTemplate[] },
+    elementToAssets?: Map<string, string[]>,
   ): Threat[] {
     const threats: Threat[] = [];
 
@@ -234,6 +306,7 @@ export class ElementThreatGenerator {
         trustBoundaryName,
         trustBoundaryDisplayId,
         catalog,
+        elementToAssets,
       );
       threats.push(...elementThreats);
     }
@@ -250,6 +323,7 @@ export class ElementThreatGenerator {
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
     catalog: { threatTemplates: ThreatTemplate[] },
+    elementToAssets?: Map<string, string[]>,
   ): Threat[] {
     const threats: Threat[] = [];
     const applicableStride = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
@@ -266,6 +340,7 @@ export class ElementThreatGenerator {
         trustBoundaryDisplayId,
         isInterface,
         catalog,
+        elementToAssets,
       );
 
       threats.push(threat);
@@ -285,6 +360,7 @@ export class ElementThreatGenerator {
     trustBoundaryDisplayId: string,
     isInterface: boolean,
     catalog: { threatTemplates: ThreatTemplate[] },
+    elementToAssets?: Map<string, string[]>,
   ): Threat {
     // Generate threat ID
     const threatId = isInterface
@@ -316,6 +392,9 @@ export class ElementThreatGenerator {
       elementType: element.type,
       displayId: element.displayId,
     } as LinkedDFDElement;
+
+    // Link assets via reverse index
+    threat.linkedAssetIds = elementToAssets?.get(element.id) ?? [];
 
     // Apply template from catalog if available
     const template = this.findTemplateForElement(

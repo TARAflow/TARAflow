@@ -30,7 +30,9 @@ import type {
 export interface InteractionThreatTemplate {
   id: string;
   strideCategory: StrideCategory;
-  direction: InteractionDirection;
+  /** "sender" = threat from sender perspective (in sender TB)
+   *  "receiver" = threat from receiver perspective (in receiver TB) */
+  perspective: "sender" | "receiver";
 
   /** Template with placeholders (English) */
   threat: string;
@@ -70,7 +72,7 @@ const SPOOFING_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "S-INT-IN-001",
     strideCategory: "S",
-    direction: "incoming",
+    perspective: "receiver",
     threat:
       "Sender spoofing: Attacker impersonates {{sourceName}} to deceive {{targetName}}",
     threatDE:
@@ -95,7 +97,7 @@ const SPOOFING_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "S-INT-OUT-001",
     strideCategory: "S",
-    direction: "outgoing",
+    perspective: "sender",
     threat:
       "Receiver spoofing: Attacker impersonates {{targetName}} to intercept data from {{sourceName}}",
     threatDE:
@@ -125,7 +127,7 @@ const TAMPERING_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "T-INT-IN-001",
     strideCategory: "T",
-    direction: "incoming",
+    perspective: "receiver",
     threat:
       "Data tampering on incoming flow: Attacker modifies data before it reaches {{targetName}}",
     threatDE:
@@ -150,7 +152,7 @@ const TAMPERING_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "T-INT-OUT-001",
     strideCategory: "T",
-    direction: "outgoing",
+    perspective: "sender",
     threat:
       "Response tampering: Attacker modifies response data before it reaches {{sourceName}}",
     threatDE:
@@ -180,7 +182,7 @@ const REPUDIATION_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "R-INT-IN-001",
     strideCategory: "R",
-    direction: "incoming",
+    perspective: "receiver",
     threat:
       "Sender repudiation: {{sourceName}} denies sending the request/data",
     threatDE:
@@ -205,7 +207,7 @@ const REPUDIATION_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "R-INT-OUT-001",
     strideCategory: "R",
-    direction: "outgoing",
+    perspective: "sender",
     threat:
       "Receiver repudiation: {{targetName}} denies receiving or processing the request",
     threatDE:
@@ -235,7 +237,7 @@ const INFO_DISCLOSURE_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "I-INT-IN-001",
     strideCategory: "I",
-    direction: "incoming",
+    perspective: "receiver",
     threat:
       "Eavesdropping on incoming data: Attacker intercepts sensitive data sent to {{targetName}}",
     threatDE:
@@ -260,7 +262,7 @@ const INFO_DISCLOSURE_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "I-INT-OUT-001",
     strideCategory: "I",
-    direction: "outgoing",
+    perspective: "sender",
     threat:
       "Eavesdropping on response: Attacker intercepts sensitive response from {{targetName}} to {{sourceName}}",
     threatDE:
@@ -290,7 +292,7 @@ const DOS_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "D-INT-IN-001",
     strideCategory: "D",
-    direction: "incoming",
+    perspective: "receiver",
     threat:
       "Request flooding: Attacker overwhelms {{targetName}} with excessive requests",
     threatDE:
@@ -315,7 +317,7 @@ const DOS_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "D-INT-OUT-001",
     strideCategory: "D",
-    direction: "outgoing",
+    perspective: "sender",
     threat:
       "Response blocking: Attacker prevents {{sourceName}} from receiving responses from {{targetName}}",
     threatDE:
@@ -345,7 +347,7 @@ const EOP_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "E-INT-IN-001",
     strideCategory: "E",
-    direction: "incoming",
+    perspective: "receiver",
     threat:
       "Command injection: Attacker injects commands via data flow to {{targetName}}",
     threatDE:
@@ -370,7 +372,7 @@ const EOP_TEMPLATES: InteractionThreatTemplate[] = [
   {
     id: "E-INT-OUT-001",
     strideCategory: "E",
-    direction: "outgoing",
+    perspective: "sender",
     threat:
       "Response manipulation for privilege escalation: Attacker modifies auth response from {{targetName}}",
     threatDE:
@@ -412,19 +414,31 @@ export const INTERACTION_THREAT_TEMPLATES: Record<
 
 export function getInteractionTemplates(
   strideCategory: StrideCategory,
-  direction?: InteractionDirection
+  direction?: "sender" | "receiver" | InteractionDirection,
 ): InteractionThreatTemplate[] {
   const templates = INTERACTION_THREAT_TEMPLATES[strideCategory] || [];
   return direction
-    ? templates.filter((t) => t.direction === direction)
+    ? templates.filter((t) => {
+        // Support both legacy (incoming/outgoing) and new (sender/receiver) values
+        const p =
+          direction === "incoming"
+            ? "receiver"
+            : direction === "outgoing"
+              ? "sender"
+              : (direction as "sender" | "receiver");
+        return t.perspective === p;
+      })
     : templates;
 }
 
 export function getPrimaryInteractionTemplate(
   strideCategory: StrideCategory,
-  direction: InteractionDirection
+  direction: InteractionDirection,
 ): InteractionThreatTemplate | undefined {
-  return getInteractionTemplates(strideCategory, direction)[0];
+  // Map legacy direction to perspective: incoming=receiver, outgoing=sender
+  const perspective: "sender" | "receiver" =
+    direction === "incoming" ? "receiver" : "sender";
+  return getInteractionTemplates(strideCategory, perspective)[0];
 }
 
 // ==================== PLACEHOLDER ENGINE ====================

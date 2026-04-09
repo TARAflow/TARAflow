@@ -461,12 +461,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     onSync: (result) => {
       console.log("[ASSETS-TAB] Sync completed:", result);
 
-      setAssetData(result.assetData);
       setSyncWarnings(result.warnings);
 
-      // Revalidate after sync
-      setValidation(assetService.validate(result.assetData));
-      markDirty();
+      // Only update state if something actually changed
+      if (result.hasChanges) {
+        setAssetData(result.assetData);
+        setValidation(assetService.validate(result.assetData));
+        markDirty();
+      }
     },
     onWarning: (warnings) => {
       // Just set warnings, no toast needed

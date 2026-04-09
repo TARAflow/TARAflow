@@ -1,12 +1,26 @@
 // ==================== INTERACTION THREAT GENERATOR ====================
-// Single Responsibility: Generate threats using STRIDE per-interaction method
-// Now using DFDGraph for efficient element analysis
+// STRIDE per-interaction: generates threats from sender AND/OR receiver perspective.
+//
+// Threat allocation rules:
+//   Process-A (TB-A) → Process-B (TB-B):
+//     Sender perspective  → TB-A (always)
+//     Receiver perspective → TB-B (only if zeroTrustMode OR crossesTrustBoundary)
+//
+//   ExternalEntity → Process-B (TB-B):
+//     EE has no TB → only receiver perspective → TB-B
+//
+//   Process-A (TB-A) → ExternalEntity:
+//     EE has no TB → only sender perspective → TB-A
+//
+//   Internal flow (same TB):
+//     Sender perspective only → that TB
 
 import type { StrideCategory } from "shared";
 import type {
   Threat,
   ThreatTable,
   ThreatProjectData,
+  ThreatConfiguration,
   DFDGraphReference,
   DFDElementReference,
   DataFlowAnalysisReference,
@@ -23,197 +37,194 @@ import {
 import { createEmptyThreat } from "../../models/threat-types";
 import { DFDAnalysisContext } from "shared";
 
+// ==================== TYPES ====================
+
+type Perspective = "sender" | "receiver";
+
 // ==================== INTERACTION THREAT GENERATOR ====================
 
 export class InteractionThreatGenerator {
-  /**
-   * Generate threats for all data flows in project using DFDGraph
-   */
   generateThreatsForProject(
     project: ThreatProjectData,
     dfdContext: DFDAnalysisContext,
+    configuration?: ThreatConfiguration,
   ): ThreatTable[] {
-    // Early exit if no graph
-    if (!project.dfdGraph) {
-      return [];
-    }
+    if (!project.dfdGraph) return [];
 
     const graph = project.dfdGraph;
+    const zeroTrust = configuration?.zeroTrustMode ?? false;
+
+    // ==================== ASSET INDEX ====================
+    const elementToAssets = new Map<string, string[]>();
+    if (project.assetDataRef) {
+      for (const asset of project.assetDataRef.assets) {
+        for (const elementId of asset.linkedElementIds ?? []) {
+          const existing = elementToAssets.get(elementId) ?? [];
+          existing.push(asset.id);
+          elementToAssets.set(elementId, existing);
+        }
+      }
+    }
+
+    // ==================== TABLE MAP ====================
+    // tbId → threats[]  (built incrementally)
+    const tableMap = new Map<string, Threat[]>();
+
+    const addThreat = (tbId: string, threat: Threat) => {
+      const existing = tableMap.get(tbId) ?? [];
+      existing.push(threat);
+      tableMap.set(tbId, existing);
+    };
+
+    // ==================== DATAFLOW THREATS ====================
+    for (const df of dfdContext.getDataFlows()) {
+      const source = dfdContext.getElement(df.fromElementId);
+      const target = dfdContext.getElement(df.toElementId);
+      if (!source || !target) continue;
+
+      // Resolve displayId from graph — connectionId is the XML internal ID
+      const connection = graph.connectionsById.get(df.connectionId);
+      const dfDisplayId = connection?.displayId ?? df.connectionId;
+
+      const senderTB = df.fromEffectiveTrustBoundary ?? null;
+      const receiverTB = df.toEffectiveTrustBoundary ?? null;
+      const internalFlow = senderTB !== null && senderTB === receiverTB;
+
+      // Sender perspective: always when sender has a TB
+      if (senderTB) {
+        for (const stride of STRIDE_PER_INTERACTION) {
+          addThreat(
+            senderTB,
+            this.createDataFlowThreat(
+              df,
+              dfDisplayId,
+              source,
+              target,
+              stride,
+              "sender",
+              senderTB,
+              this.getTBName(graph, senderTB),
+              this.getTBDisplayId(graph, senderTB),
+              elementToAssets,
+            ),
+          );
+        }
+      }
+
+      // Receiver perspective:
+      // - always when sender has no TB (EE → Process)
+      // - when crosses boundary (zeroTrust or different TBs)
+      const needsReceiverPerspective =
+        !senderTB || // EE as sender
+        (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
+
+      if (needsReceiverPerspective && receiverTB) {
+        for (const stride of STRIDE_PER_INTERACTION) {
+          addThreat(
+            receiverTB,
+            this.createDataFlowThreat(
+              df,
+              dfDisplayId,
+              source,
+              target,
+              stride,
+              "receiver",
+              receiverTB,
+              this.getTBName(graph, receiverTB),
+              this.getTBDisplayId(graph, receiverTB),
+              elementToAssets,
+            ),
+          );
+        }
+      }
+    }
+
+    // ==================== INTERFACE THREATS ====================
+    for (const element of graph.elementsById.values()) {
+      if (element.type !== "Interface" && element.type !== "PhysicalInterface")
+        continue;
+
+      const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
+      const tbId = effectiveTB ?? null;
+      const tbName = tbId ? this.getTBName(graph, tbId) : "Physical Interfaces";
+      const tbDisplayId = tbId ? this.getTBDisplayId(graph, tbId) : "";
+      const tableKey = tbId ?? "__no_tb__";
+
+      for (const stride of STRIDE_PER_INTERACTION) {
+        const threat = this.createInterfaceThreat(
+          element,
+          stride,
+          tbId,
+          tbName,
+          tbDisplayId,
+          graph,
+          elementToAssets,
+        );
+        const existing = tableMap.get(tableKey) ?? [];
+        existing.push(threat);
+        tableMap.set(tableKey, existing);
+      }
+    }
+
+    // ==================== BUILD TABLES ====================
     const tables: ThreatTable[] = [];
 
-    // Get trust boundaries from graph
-    const trustBoundaries = Array.from(graph.elementsById.values()).filter(
-      (e) => e.type === "TrustBoundary",
-    );
+    for (const [tbId, threats] of tableMap) {
+      if (threats.length === 0) continue;
 
-    // Generate table for each trust boundary
-    for (const tb of trustBoundaries) {
-      const threats: Threat[] = [];
-
-      threats.push(
-        ...this.generateDataFlowThreatsFromGraph(
-          dfdContext,
-          tb.id,
-          tb.name,
-          tb.displayId,
-        ),
-      );
-
-      threats.push(
-        ...this.generateInterfaceThreatsFromGraph(
-          graph,
-          tb.id,
-          tb.name,
-          tb.displayId,
-        ),
-      );
-
-      if (threats.length > 0) {
+      if (tbId === "__no_tb__") {
         tables.push({
-          trustBoundaryId: tb.id,
-          trustBoundaryName: tb.name,
-          displayIdentifier: `[${tb.displayId}]`,
+          trustBoundaryId: null,
+          trustBoundaryName: "Physical Interfaces",
+          displayIdentifier: "[IF]",
+          threats,
+        });
+      } else {
+        const tb = graph.elementsById.get(tbId);
+        tables.push({
+          trustBoundaryId: tbId,
+          trustBoundaryName: tb?.name ?? tbId,
+          displayIdentifier: `[${tb?.displayId ?? tbId}]`,
           threats,
         });
       }
     }
 
-    // ==================== PHYSICAL INTERFACES TABLE ====================
-    // Interfaces without Trust Boundary assignment
-    const interfaceThreats = this.generateInterfacesWithoutTB(graph);
-    if (interfaceThreats.length > 0) {
-      tables.push({
-        trustBoundaryId: null,
-        trustBoundaryName: "Physical Interfaces",
-        displayIdentifier: "[IF]",
-        threats: interfaceThreats,
-      });
-    }
-
     return tables;
   }
 
-  /**
-   * Generate threats for Interfaces without Trust Boundary from graph
-   */
-  private generateInterfacesWithoutTB(graph: DFDGraphReference): Threat[] {
-    const threats: Threat[] = [];
+  // ==================== HELPERS ====================
 
-    for (const element of graph.elementsById.values()) {
-      // Only Interfaces
-      if (
-        element.type !== "Interface" &&
-        element.type !== "PhysicalInterface"
-      ) {
-        continue;
-      }
-
-      // Only those WITHOUT effective TB
-      const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
-      if (effectiveTB !== undefined) {
-        continue; // This interface has a TB, will be in TB table
-      }
-
-      // Generate threats for this interface (all 6 STRIDE categories)
-      for (const strideCategory of STRIDE_PER_INTERACTION) {
-        threats.push(
-          this.createInterfaceThreatFromGraph(
-            element.id,
-            strideCategory,
-            "", // No trust boundary
-            "Physical Interfaces", // Table name
-            "", // No TB display ID
-            graph,
-          ),
-        );
-      }
-    }
-
-    return threats;
+  private getTBName(graph: DFDGraphReference, tbId: string): string {
+    return graph.elementsById.get(tbId)?.name ?? tbId;
   }
 
-  /**
-   * Generate threats for data flows
-   */
-  private generateDataFlowThreatsFromGraph(
-    context: DFDAnalysisContext,
-    trustBoundaryId: string,
-    trustBoundaryName: string,
-    trustBoundaryDisplayId: string,
-  ): Threat[] {
-    const threats: Threat[] = [];
-
-    // All DataFlows from context that concern this TrustBoundary
-    for (const df of context.getDataFlows()) {
-      const crossesTB =
-        df.fromEffectiveTrustBoundary === trustBoundaryId ||
-        df.toEffectiveTrustBoundary === trustBoundaryId;
-
-      if (!crossesTB) continue;
-
-      const source = context.getElement(df.fromElementId);
-      const target = context.getElement(df.toElementId);
-
-      if (!source || !target) continue;
-
-      for (const strideCategory of STRIDE_PER_INTERACTION) {
-        // INCOMING Threat
-        threats.push(
-          this.createDataFlowThreatFromGraph(
-            df,
-            source,
-            target,
-            strideCategory,
-            "incoming",
-            trustBoundaryId,
-            trustBoundaryName,
-            trustBoundaryDisplayId,
-          ),
-        );
-
-        // OUTGOING Threat
-        threats.push(
-          this.createDataFlowThreatFromGraph(
-            df,
-            source,
-            target,
-            strideCategory,
-            "outgoing",
-            trustBoundaryId,
-            trustBoundaryName,
-            trustBoundaryDisplayId,
-          ),
-        );
-      }
-    }
-
-    return threats;
+  private getTBDisplayId(graph: DFDGraphReference, tbId: string): string {
+    return graph.elementsById.get(tbId)?.displayId ?? tbId;
   }
 
-  /**
-   * Create a single data flow threat from graph
-   */
-  private createDataFlowThreatFromGraph(
+  // ==================== THREAT CREATION ====================
+
+  private createDataFlowThreat(
     dataFlow: DataFlowAnalysisReference,
+    dfDisplayId: string,
     source: DFDElementReference,
     target: DFDElementReference,
     strideCategory: StrideCategory,
-    direction: InteractionDirection,
+    perspective: Perspective,
     trustBoundaryId: string,
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
+    elementToAssets: Map<string, string[]>,
   ): Threat {
-    const displayId = dataFlow.connectionId;
-    const dataFlowNumber = displayId.replace(/^DF-/, "");
-    const dataFlowIdPart = `DF${dataFlowNumber}`;
+    // Map perspective to direction for UI context (incoming=receiver, outgoing=sender)
+    const direction: InteractionDirection =
+      perspective === "sender" ? "outgoing" : "incoming";
 
-    const threatId = generateThreatIdPerInteraction(
-      trustBoundaryDisplayId,
-      dataFlowIdPart,
-      strideCategory,
-      direction,
-      1,
-    );
+    // Build clean threat ID: TB-DF1-S-1 (no IN/OUT suffix)
+    const dataFlowNumber = dfDisplayId.replace(/^DF-/, "");
+    const dataFlowIdPart = `DF${dataFlowNumber}`;
+    const threatId = `${trustBoundaryDisplayId}-${dataFlowIdPart}-${strideCategory}-1`;
 
     const interactionContext = createInteractionContext(
       direction,
@@ -231,8 +242,8 @@ export class InteractionThreatGenerator {
 
     threat.dataFlow = {
       connectionId: dataFlow.connectionId,
-      dataFlowId: displayId,
-      dataFlowName: `DataFlow ${displayId}`,
+      dataFlowId: dfDisplayId,
+      dataFlowName: `DataFlow ${dfDisplayId}`,
       sourceId: source.id,
       sourceName: source.name,
       sourceType: source.type,
@@ -241,76 +252,39 @@ export class InteractionThreatGenerator {
       targetType: target.type,
     } as DataFlowReference;
 
+    // Asset linking: connection + source + target
+    const connAssets = elementToAssets.get(dataFlow.connectionId) ?? [];
+    const sourceAssets = elementToAssets.get(dataFlow.fromElementId) ?? [];
+    const targetAssets = elementToAssets.get(dataFlow.toElementId) ?? [];
+    threat.linkedAssetIds = [
+      ...new Set([...connAssets, ...sourceAssets, ...targetAssets]),
+    ];
+
     threat.source = "auto";
     return threat;
   }
 
-  /**
-   * Generate threats for interfaces (PhysicalInterface/Interface) from graph
-   */
-  private generateInterfaceThreatsFromGraph(
-    graph: DFDGraphReference,
-    trustBoundaryId: string,
-    trustBoundaryName: string,
-    trustBoundaryDisplayId: string,
-  ): Threat[] {
-    const threats: Threat[] = [];
-
-    for (const element of graph.elementsById.values()) {
-      if (element.type !== "Interface" && element.type !== "PhysicalInterface")
-        continue;
-
-      // Check if element is in this TB
-      const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
-      if (effectiveTB !== trustBoundaryId) continue;
-
-      for (const strideCategory of STRIDE_PER_INTERACTION) {
-        threats.push(
-          this.createInterfaceThreatFromGraph(
-            element.id,
-            strideCategory,
-            trustBoundaryId,
-            trustBoundaryName,
-            trustBoundaryDisplayId,
-            graph,
-          ),
-        );
-      }
-    }
-
-    return threats;
-  }
-
-  /**
-   * Create a single interface threat from graph
-   */
-  private createInterfaceThreatFromGraph(
-    elementId: string,
+  private createInterfaceThreat(
+    element: DFDElementReference,
     strideCategory: StrideCategory,
-    trustBoundaryId: string,
+    trustBoundaryId: string | null,
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
     graph: DFDGraphReference,
+    elementToAssets: Map<string, string[]>,
   ): Threat {
-    const iface = graph.elementsById.get(elementId);
-    if (!iface) {
-      throw new Error(`Element with ID ${elementId} not found in graph`);
-    }
-
-    const displayId = iface.displayId || iface.id;
+    const displayId = element.displayId || element.id;
     const interfaceNumber = displayId.replace(/^IF-/, "");
     const interfaceIdPart = `IF${interfaceNumber}`;
 
-    // Generate threat ID
     const threatId = generateThreatIdPerInteraction(
       trustBoundaryDisplayId,
       interfaceIdPart,
       strideCategory,
-      "incoming", // Interfaces use incoming by convention
+      "incoming",
       1,
     );
 
-    // Create base threat
     const threat = createEmptyThreat(
       threatId,
       strideCategory,
@@ -319,27 +293,26 @@ export class InteractionThreatGenerator {
       trustBoundaryDisplayId,
     );
 
-    // Set linked element for interface
     threat.linkedElement = {
-      elementId: iface.id,
-      elementName: iface.name,
-      elementType: iface.type,
-      displayId: displayId,
+      elementId: element.id,
+      elementName: element.name,
+      elementType: element.type,
+      displayId,
     };
 
-    // Default Interface Threat / Attack Description
     threat.threatDescription = getDefaultInterfaceThreatDescription(
       strideCategory,
-      iface.name,
+      element.name,
       "en",
     );
     threat.attackDescription = getDefaultInterfaceAttackDescription(
       strideCategory,
-      iface.name,
+      element.name,
       "en",
     );
-    threat.source = "auto";
 
+    threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
+    threat.source = "auto";
     return threat;
   }
 }

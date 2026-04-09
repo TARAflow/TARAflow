@@ -252,7 +252,24 @@ export interface VerificationTemplate {
 // ==================== CONFIGURATION ====================
 
 export interface ThreatConfiguration {
+  /**
+   * Active STRIDE method — managed by Toolbar, NOT stored in config dialog.
+   * Kept for backward compatibility with saved projects.
+   */
   activeMethod: StrideMethod;
+
+  /**
+   * Zero Trust Mode: generate threats from BOTH sender AND receiver perspective.
+   * Default false: only sender perspective (+ receiver for TB-crossing flows).
+   */
+  zeroTrustMode: boolean;
+
+  /**
+   * Show Threat Actor column in threat tables.
+   * Default false: actor has low analytical value for likelihood.
+   */
+  showThreatActor: boolean;
+
   customThreatTemplates: ThreatTemplate[];
   customMitigationTemplates: MitigationTemplate[];
   customVerificationTemplates: VerificationTemplate[];
@@ -260,6 +277,8 @@ export interface ThreatConfiguration {
 
 export const DEFAULT_THREAT_CONFIGURATION: ThreatConfiguration = {
   activeMethod: "per-element",
+  zeroTrustMode: false,
+  showThreatActor: false,
   customThreatTemplates: [],
   customMitigationTemplates: [],
   customVerificationTemplates: [],
@@ -282,6 +301,25 @@ export interface ThreatValidation {
   lastValidated: string;
 }
 
+// ==================== ASSET DATA REFERENCE ====================
+
+export interface AssetReference {
+  id: string;
+  name: string;
+  assetGroup: string;
+  aggregatedImpact?: "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
+  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
+  isHighValueAsset?: "low" | "medium" | "high" | "critical";
+  hasSafetyAnnotation: boolean;
+  /** DFD element IDs this asset is linked to — used by generator to populate linkedAssetIds */
+  linkedElementIds?: string[];
+}
+
+export interface AssetDataReference {
+  assets: AssetReference[];
+  hasSafetyAssets: boolean;
+}
+
 // ==================== PROJECT INTERFACE ====================
 
 export interface ThreatProjectData {
@@ -295,6 +333,7 @@ export interface ThreatProjectData {
   dfdPreviewImage?: string;
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
+  assetDataRef?: AssetDataReference;
   lastModified: string;
 }
 
@@ -310,7 +349,9 @@ export interface DFDConnectionReference {
   id: string;
   from: string;
   to: string;
-  label?: string;
+  /** Arrow label in the diagram. Stored as "name" in project data. */
+  name?: string;
+  label?: string; // legacy — use name
   displayId: string;
 }
 
@@ -334,7 +375,8 @@ export interface DFDConnectionReference {
   id: string;
   from: string;
   to: string;
-  label?: string;
+  name?: string;
+  label?: string; // legacy
 }
 
 export interface DFDAssetReference {

@@ -14,6 +14,8 @@ export interface UseDFDPersistenceOptions {
   onDirtyChange?: (isDirty: boolean) => void;
   debounceDelay?: number; // Delay in ms for description edit saves (0 = disabled)
   drawioAutosaveDelay?: number; // Delay in ms for DrawIO autosave (default: 1500ms)
+  /** Called after a successful DrawIO autosave — used to generate thumbnail */
+  onAfterDrawioSave?: (result: DFDUpdateResult) => void;
 }
 
 export interface UseDFDPersistenceReturn {
@@ -40,6 +42,7 @@ export function useDFDPersistence(
     onDirtyChange,
     debounceDelay = 500,
     drawioAutosaveDelay = 1500,
+    onAfterDrawioSave,
   } = options;
 
   // ==================== STATE ====================
@@ -195,6 +198,9 @@ export function useDFDPersistence(
         onUpdate?.(updateResult);
         markClean();
 
+        // Allow caller (e.g. useDFDEditor) to generate thumbnail after save
+        onAfterDrawioSave?.(updateResult);
+
         console.log("[useDFDPersistence] DrawIO autosave successful");
       } catch (error) {
         console.error("[useDFDPersistence] DrawIO autosave error:", error);
@@ -206,7 +212,14 @@ export function useDFDPersistence(
     console.log(
       `[useDFDPersistence] DrawIO autosave scheduled in ${drawioAutosaveDelay}ms`,
     );
-  }, [project, onUpdate, markDirty, markClean, drawioAutosaveDelay]);
+  }, [
+    project,
+    onUpdate,
+    onAfterDrawioSave,
+    markDirty,
+    markClean,
+    drawioAutosaveDelay,
+  ]);
 
   /**
    * Flush any pending debounced save immediately

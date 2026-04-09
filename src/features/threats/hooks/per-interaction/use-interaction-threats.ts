@@ -2,7 +2,14 @@
 // Hook for managing per-interaction threat state and operations
 // CORRECTED: Proper immutability for React.memo compatibility
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+  startTransition,
+} from "react";
 import type {
   Threat,
   ThreatTable,
@@ -137,15 +144,20 @@ export function useInteractionThreats({
       );
 
       if (result.success) {
-        setTables(result.tables);
-        notifyUpdate(result.tables);
+        startTransition(() => {
+          setTables(result.tables);
+          notifyUpdate(result.tables);
+          setIsGenerating(false);
+        });
         return true;
       }
 
       console.error("Generation failed:", result.error);
-      return false;
-    } finally {
       setIsGenerating(false);
+      return false;
+    } catch {
+      setIsGenerating(false);
+      return false;
     }
   }, [configuration, notifyUpdate]);
 

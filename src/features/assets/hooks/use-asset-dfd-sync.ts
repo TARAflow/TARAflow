@@ -73,16 +73,18 @@ export function useAssetDFDSync({
     }
   }, [performSync, onSync, onWarning]);
 
-  // Initial sync on mount if no assets exist
+  // Initial sync on mount
   useEffect(() => {
     if (!initialSync) return;
     if (!dfdAssets || dfdAssets.length === 0) return;
 
-    // Always sync on mount — AssetsTab unmounts/remounts on every tab switch,
-    // so this effect runs automatically when user navigates to Assets tab.
-    triggerSync();
+    const result = performSync();
+    if (!result) return;
+    if (result.warnings.length > 0) onWarning?.(result.warnings);
+    // Only notify parent if something actually changed
+    if (result.hasChanges) onSync(result);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps = only on mount, not on every render
+  }, []);
 
   // Auto-sync on DFD content change (content hash prevents loops)
   useEffect(() => {

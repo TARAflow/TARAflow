@@ -1746,7 +1746,8 @@
         "attack": "Angriff",
         "actor": "Akteur",
         "mitigation": "Gegenmassnahme",
-        "verification": "Verifizierung"
+        "verification": "Verifizierung",
+        "assets": "Assets"
       },
       "config": {
         "title": "Bedrohungsanalyse-Konfiguration",

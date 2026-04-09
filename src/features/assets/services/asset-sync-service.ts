@@ -25,6 +25,7 @@ export interface DFDAssetSyncResult {
   assetData: AssetData;
   newAssets: string[];
   warnings: string[];
+  hasChanges?: boolean;
 }
 
 /**
@@ -113,11 +114,6 @@ export function syncFromDFD(
     const existingIndex = updatedAssets.findIndex((a) => a.id === dfdAsset.id);
 
     if (existingIndex === -1) {
-      console.log(
-        "[ASSET-SYNC-SERVICE] creating new",
-        dfdAsset.id,
-        dfdAsset.assetGroup,
-      );
       // New asset from DFD
       const newAsset: Asset = {
         ...createEmptyAsset(
@@ -138,23 +134,36 @@ export function syncFromDFD(
       updatedAssets = [...updatedAssets, newAsset];
       newAssetIds.push(dfdAsset.id);
     } else {
+      // Update existing — preserve all analyst-set fields, only refresh links
+      const existing = updatedAssets[existingIndex];
+
+      // Check if anything actually changed before updating
+      const newName = dfdAsset.name ?? existing.name;
+      const newGroup = dfdAsset.assetGroup ?? existing.assetGroup;
+      const linkedElementsJson = JSON.stringify(linkedDFDElements);
+      const existingLinkedJson = JSON.stringify(existing.linkedDFDElements);
+
+      const nameChanged = newName !== existing.name;
+      const groupChanged = newGroup !== existing.assetGroup;
+      const linkedChanged = linkedElementsJson !== existingLinkedJson;
+
+      if (!nameChanged && !groupChanged && !linkedChanged) {
+        // Nothing changed — keep existing asset reference unchanged
+        continue;
+      }
+
       console.log(
         "[ASSET-SYNC-SERVICE] updating existing",
         dfdAsset.id,
         dfdAsset.assetGroup,
       );
-      // Update existing — preserve all analyst-set fields, only refresh links
-      const existing = updatedAssets[existingIndex];
+
       const updated: Asset = {
         ...existing,
-        name: dfdAsset.name ?? existing.name,
+        name: newName,
         syncedWithDFD: true,
         linkedDFDElements,
-        // Refresh DFD-owned fields in properties — category and isHighValueAsset
-        // can change in the DFD layer and must stay in sync.
-        // Analyst-set fields (description, owner, notes, …) are preserved via
-        // the spread of existing.properties below.
-        assetGroup: dfdAsset.assetGroup ?? existing.assetGroup,
+        assetGroup: newGroup,
         properties: {
           ...existing.properties,
           description:
@@ -162,7 +171,6 @@ export function syncFromDFD(
           protectionNeed:
             dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
         },
-        // Recalculate impact with current config + criteria weights
         overallImpact: calculateOverallImpact(
           existing.impactRatings,
           assetData.configuration.calculationMethod,
@@ -171,7 +179,6 @@ export function syncFromDFD(
         ),
         lastModified: new Date().toISOString(),
       };
-      // Derive physicalImpact from fresh linkedDFDElements (unless manual override)
       const withPhysical = deriveAndApplyImpacts(updated, linkedDFDElements);
       updatedAssets = updatedAssets.map((a, i) =>
         i === existingIndex ? withPhysical : a,
@@ -211,15 +218,26 @@ export function syncFromDFD(
         }
       : assetData.configuration;
 
+  // Only bump lastModified if something actually changed
+  const hasChanges =
+    newAssetIds.length > 0 ||
+    removedAssets.length > 0 ||
+    updatedConfiguration !== assetData.configuration ||
+    updatedAssets.length !== assetData.assets.length ||
+    updatedAssets.some((a, i) => a !== assetData.assets[i]);
+
   return {
-    assetData: {
-      ...assetData,
-      configuration: updatedConfiguration,
-      assets: updatedAssets,
-      lastModified: new Date().toISOString(),
-    },
+    assetData: hasChanges
+      ? {
+          ...assetData,
+          configuration: updatedConfiguration,
+          assets: updatedAssets,
+          lastModified: new Date().toISOString(),
+        }
+      : assetData,
     newAssets: newAssetIds,
     warnings,
+    hasChanges,
   };
 }
 
