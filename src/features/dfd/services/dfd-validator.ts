@@ -101,6 +101,13 @@ export class DFDValidator {
     validateUnconnectedDataflows(options?.unconnectedDataflows, warnings);
     validateUnconnectedElements(elements, connections, warnings);
     validateDataflowLabels(connections, errors, warnings);
+    // TEMP DEBUG
+    connections.forEach(c => {
+      const p = (c as any).properties;
+      if (p?.excludeFromThreatGen !== undefined) {
+        console.log("[Validator] DF with excludeFromThreatGen:", c.displayId, c.name, p);
+      }
+    });
     validateDataflowProperties(connections, errors, warnings);
 
     // 3. Validate Assets & Interfaces

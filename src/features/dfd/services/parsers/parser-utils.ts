@@ -47,14 +47,25 @@ export function mapTARAflowType(type: string): DFDElementType | "Asset" | null {
 }
 
 /**
- * Map DrawIO style to DFD element type (fallback detection)
+ * Map DrawIO style to DFD element type (fallback detection for old format).
+ * Only used when no explicit type= attribute is present.
+ * Intentionally strict — unknown shapes return null and are skipped.
  */
 export function mapStyleToType(style: string): DFDElementType | null {
   if (style.includes("ellipse")) return "Process";
   if (style.includes("cylinder") || style.includes("parallelogram"))
     return "DataStore";
-  if (style.includes("dashed")) return "TrustBoundary";
-  if (style.includes("rectangle")) return "ExternalEntity";
+  // TrustBoundary: must have dashed + red stroke color — dashed alone is too broad
+  if (style.includes("dashed") && style.includes("strokeColor=#FF3333"))
+    return "TrustBoundary";
+  // ExternalEntity: plain rectangle only (no rounded, no other shapes)
+  if (
+    style.includes("rounded=0") &&
+    !style.includes("dashed") &&
+    !style.includes("shape=") &&
+    !style.includes("ellipse")
+  )
+    return "ExternalEntity";
   return null;
 }
 

@@ -353,6 +353,10 @@ export interface DFDConnectionReference {
   name?: string;
   label?: string; // legacy — use name
   displayId: string;
+  /** Whether this flow is excluded from automated threat generation (set in DFD tab) */
+  excludeFromThreatGen?: boolean;
+  /** Whether this flow is explicitly assumed trusted (set in DFD tab) */
+  assumedTrusted?: boolean;
 }
 
 export interface DFDGraphReference {
@@ -377,6 +381,8 @@ export interface DFDConnectionReference {
   to: string;
   name?: string;
   label?: string; // legacy
+  excludeFromThreatGen?: boolean;
+  assumedTrusted?: boolean;
 }
 
 export interface DFDAssetReference {

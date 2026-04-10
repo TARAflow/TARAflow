@@ -118,7 +118,6 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
     <Stack spacing={3}>
       <Box sx={{ overflow: "hidden", pt: 1 }}>
         <Grid container rowSpacing={3} columnSpacing={2}>
-
           {/* runsAs */}
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
@@ -127,13 +126,39 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               </InputLabel>
               <Select
                 value={props.runsAs ?? ""}
-                onChange={(e) => handlePropertyChange("runsAs", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.runsAs.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "runsAs",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.runsAs.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.runsAs.options.not_specified")}</em></MenuItem>
-                {(["user", "admin_user", "root", "system", "service", "guest", "anonymous", "contractor"] as const).map((opt) => (
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.runsAs.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "user",
+                    "admin_user",
+                    "root",
+                    "system",
+                    "service",
+                    "guest",
+                    "anonymous",
+                    "contractor",
+                  ] as const
+                ).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.runsAs.options.${opt}`)}
+                    {t(
+                      `tabs.dfd.element_description.process.fields.runsAs.options.${opt}`,
+                    )}
                   </MenuItem>
                 ))}
               </Select>
@@ -144,38 +169,191 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
-                {t("tabs.dfd.element_description.process.fields.technology.label")}
+                {t(
+                  "tabs.dfd.element_description.process.fields.technology.label",
+                )}
               </InputLabel>
               <Select
                 value={props.technology ?? ""}
-                onChange={(e) => handlePropertyChange("technology", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.technology.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "technology",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.technology.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.technology.options.not_specified")}</em></MenuItem>
-                {(["api", "batch", "ui", "microservice", "lambda", "daemon", "websocket", "event", "cli", "database", "cron", "iot"] as const).map((opt) => (
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.technology.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "api",
+                    "batch",
+                    "ui",
+                    "microservice",
+                    "lambda",
+                    "daemon",
+                    "websocket",
+                    "event",
+                    "cli",
+                    "database",
+                    "cron",
+                    "iot",
+                  ] as const
+                ).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.technology.options.${opt}`)}
+                    {t(
+                      `tabs.dfd.element_description.process.fields.technology.options.${opt}`,
+                    )}
+                  </MenuItem>
+                ))}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                  — Embedded / RTOS —
+                </MenuItem>
+                {(
+                  [
+                    "rtos_task",
+                    "bare_metal",
+                    "isr",
+                    "state_machine",
+                    "bootloader",
+                    "driver",
+                    "protocol_stack",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.process.fields.technology.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
 
+          {/* processSemantic */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.process.fields.processSemantic.label",
+                  { defaultValue: "Process Semantic" },
+                )}
+              </InputLabel>
+              <Select
+                value={(props as any).processSemantic ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "processSemantic" as any,
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.processSemantic.label",
+                  { defaultValue: "Process Semantic" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.processSemantic.options.not_specified",
+                      { defaultValue: "Not specified" },
+                    )}
+                  </em>
+                </MenuItem>
+                <MenuItem value="execution_unit">
+                  {t(
+                    "tabs.dfd.element_description.process.fields.processSemantic.options.execution_unit",
+                    { defaultValue: "Execution Unit (OS/RTOS-isolated)" },
+                  )}
+                </MenuItem>
+                <MenuItem value="functional_block">
+                  {t(
+                    "tabs.dfd.element_description.process.fields.processSemantic.options.functional_block",
+                    {
+                      defaultValue:
+                        "Functional Block (logical, no OS isolation)",
+                    },
+                  )}
+                </MenuItem>
+                <MenuItem value="security_boundary">
+                  {t(
+                    "tabs.dfd.element_description.process.fields.processSemantic.options.security_boundary",
+                    {
+                      defaultValue:
+                        "Security Boundary (HSM, TEE, Crypto Engine)",
+                    },
+                  )}
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* Hint when functional_block is selected */}
+          {(props as any).processSemantic === "functional_block" && (
+            <Grid item xs={12}>
+              <Box
+                sx={{
+                  p: 1,
+                  bgcolor: "info.50",
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: "info.200",
+                }}
+              >
+                <Typography variant="caption" color="info.dark">
+                  {t(
+                    "tabs.dfd.element_description.process.fields.processSemantic.hint_functional_block",
+                    {
+                      defaultValue:
+                        "This process represents a functional block, not an OS process. No hardware isolation boundary exists — trust assumptions must be explicit.",
+                    },
+                  )}
+                </Typography>
+              </Box>
+            </Grid>
+          )}
+
           {/* privilegeLevel */}
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
-                {t("tabs.dfd.element_description.process.fields.privilegeLevel.label")}
+                {t(
+                  "tabs.dfd.element_description.process.fields.privilegeLevel.label",
+                )}
               </InputLabel>
               <Select
                 value={props.privilegeLevel ?? ""}
-                onChange={(e) => handlePropertyChange("privilegeLevel", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.privilegeLevel.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "privilegeLevel",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.privilegeLevel.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.privilegeLevel.options.not_specified")}</em></MenuItem>
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.privilegeLevel.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
                 {(["low", "medium", "high", "root"] as const).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.privilegeLevel.options.${opt}`)}
+                    {t(
+                      `tabs.dfd.element_description.process.fields.privilegeLevel.options.${opt}`,
+                    )}
                   </MenuItem>
                 ))}
               </Select>
@@ -186,17 +364,46 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
-                {t("tabs.dfd.element_description.process.fields.authenticationRequired.label")}
+                {t(
+                  "tabs.dfd.element_description.process.fields.authenticationRequired.label",
+                )}
               </InputLabel>
               <Select
                 value={props.authenticationRequired ?? ""}
-                onChange={(e) => handlePropertyChange("authenticationRequired", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.authenticationRequired.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "authenticationRequired",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.authenticationRequired.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.authenticationRequired.options.not_specified")}</em></MenuItem>
-                {(["no", "yes", "optional", "oauth", "saml", "certificate", "apikey", "jwt", "mtls"] as const).map((opt) => (
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.authenticationRequired.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "no",
+                    "yes",
+                    "optional",
+                    "oauth",
+                    "saml",
+                    "certificate",
+                    "apikey",
+                    "jwt",
+                    "mtls",
+                  ] as const
+                ).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.authenticationRequired.options.${opt}`)}
+                    {t(
+                      `tabs.dfd.element_description.process.fields.authenticationRequired.options.${opt}`,
+                    )}
                   </MenuItem>
                 ))}
               </Select>
@@ -207,19 +414,38 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
-                {t("tabs.dfd.element_description.process.fields.authorizationModel.label")}
+                {t(
+                  "tabs.dfd.element_description.process.fields.authorizationModel.label",
+                )}
               </InputLabel>
               <Select
                 value={props.authorizationModel ?? ""}
-                onChange={(e) => handlePropertyChange("authorizationModel", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.authorizationModel.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "authorizationModel",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.authorizationModel.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.authorizationModel.options.not_specified")}</em></MenuItem>
-                {(["none", "rbac", "abac", "acl", "custom"] as const).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.authorizationModel.options.${opt}`)}
-                  </MenuItem>
-                ))}
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.authorizationModel.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(["none", "rbac", "abac", "acl", "custom"] as const).map(
+                  (opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.process.fields.authorizationModel.options.${opt}`,
+                      )}
+                    </MenuItem>
+                  ),
+                )}
               </Select>
             </FormControl>
           </Grid>
@@ -228,17 +454,34 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
-                {t("tabs.dfd.element_description.process.fields.inputValidation.label")}
+                {t(
+                  "tabs.dfd.element_description.process.fields.inputValidation.label",
+                )}
               </InputLabel>
               <Select
                 value={props.inputValidation ?? ""}
-                onChange={(e) => handlePropertyChange("inputValidation", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.inputValidation.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "inputValidation",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.inputValidation.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.inputValidation.options.not_specified")}</em></MenuItem>
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.inputValidation.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
                 {(["none", "basic", "strict", "schema"] as const).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.inputValidation.options.${opt}`)}
+                    {t(
+                      `tabs.dfd.element_description.process.fields.inputValidation.options.${opt}`,
+                    )}
                   </MenuItem>
                 ))}
               </Select>
@@ -249,17 +492,34 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
-                {t("tabs.dfd.element_description.process.fields.errorHandling.label")}
+                {t(
+                  "tabs.dfd.element_description.process.fields.errorHandling.label",
+                )}
               </InputLabel>
               <Select
                 value={props.errorHandling ?? ""}
-                onChange={(e) => handlePropertyChange("errorHandling", e.target.value === "" ? undefined : e.target.value)}
-                label={t("tabs.dfd.element_description.process.fields.errorHandling.label")}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "errorHandling",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.errorHandling.label",
+                )}
               >
-                <MenuItem value=""><em>{t("tabs.dfd.element_description.process.fields.errorHandling.options.not_specified")}</em></MenuItem>
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.process.fields.errorHandling.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
                 {(["silent", "verbose", "sanitized"] as const).map((opt) => (
                   <MenuItem key={opt} value={opt}>
-                    {t(`tabs.dfd.element_description.process.fields.errorHandling.options.${opt}`)}
+                    {t(
+                      `tabs.dfd.element_description.process.fields.errorHandling.options.${opt}`,
+                    )}
                   </MenuItem>
                 ))}
               </Select>
@@ -267,18 +527,26 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           </Grid>
 
           {/* exposedToInternet */}
-          <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
             <FormControlLabel
               control={
                 <Checkbox
                   checked={props.exposedToInternet || false}
-                  onChange={(e) => handlePropertyChange("exposedToInternet", e.target.checked)}
+                  onChange={(e) =>
+                    handlePropertyChange("exposedToInternet", e.target.checked)
+                  }
                 />
               }
-              label={t("tabs.dfd.element_description.process.fields.exposedToInternet.label")}
+              label={t(
+                "tabs.dfd.element_description.process.fields.exposedToInternet.label",
+              )}
             />
           </Grid>
-
         </Grid>
       </Box>
 
@@ -296,25 +564,37 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               size="small"
               multiline
               rows={2}
-              label={t("tabs.dfd.element_description.process.fields.securityControls.label")}
+              label={t(
+                "tabs.dfd.element_description.process.fields.securityControls.label",
+              )}
               value={(props.securityControls as string) ?? ""}
-              onChange={(e) => handlePropertyChange("securityControls", e.target.value)}
-              placeholder={t("tabs.dfd.element_description.process.fields.securityControls.placeholder")}
+              onChange={(e) =>
+                handlePropertyChange("securityControls", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.process.fields.securityControls.placeholder",
+              )}
             />
             <TextField
               fullWidth
               size="small"
-              label={t("tabs.dfd.element_description.process.fields.owner.label")}
+              label={t(
+                "tabs.dfd.element_description.process.fields.owner.label",
+              )}
               value={(props.owner as string) ?? ""}
               onChange={(e) => handlePropertyChange("owner", e.target.value)}
-              placeholder={t("tabs.dfd.element_description.process.fields.owner.placeholder")}
+              placeholder={t(
+                "tabs.dfd.element_description.process.fields.owner.placeholder",
+              )}
             />
             <TextField
               fullWidth
               size="small"
               multiline
               rows={2}
-              label={t("tabs.dfd.element_description.process.fields.notes.label")}
+              label={t(
+                "tabs.dfd.element_description.process.fields.notes.label",
+              )}
               value={form.localNotes}
               onChange={(e) => form.setLocalNotes(e.target.value)}
               onBlur={form.commitNotes}
@@ -331,7 +611,9 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           {t("tabs.dfd.element_description.process.fields.description.label")}
         </Typography>
         <RichTextEditor
-          label={t("tabs.dfd.element_description.process.fields.description.label")}
+          label={t(
+            "tabs.dfd.element_description.process.fields.description.label",
+          )}
           value={form.localDescription}
           onChange={form.setLocalDescription}
           onBlur={form.commitDescription}

@@ -87,6 +87,11 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
   const { props } = form;
 
+  // Show error immediately — field only appears after explicit checkbox click
+  const rationaleError =
+    !!props.excludeFromThreatGen &&
+    !props.excludeFromThreatGenRationale?.trim();
+
   const isCurrentlyOverride = !!(
     defaultExposureLevel &&
     props.exposureLevel &&
@@ -537,6 +542,67 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         </Grid>
       </Box>
 
+      {/* Threat Analysis */}
+      <Stack spacing={2} sx={{ px: 1 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={props.excludeFromThreatGen || false}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "excludeFromThreatGen",
+                  e.target.checked,
+                )
+              }
+            />
+          }
+          label={t(
+            "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGen.label",
+            { defaultValue: "Exclude from automated threat generation" },
+          )}
+        />
+        {props.excludeFromThreatGen && (
+          <TextField
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            error={rationaleError}
+            label={t(
+              "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.label",
+              {
+                defaultValue: "Exclusion Rationale (IEC 62443-4-1 audit trail)",
+              },
+            )}
+            value={props.excludeFromThreatGenRationale ?? ""}
+            onChange={(e) =>
+              form.handlePropertyChange(
+                "excludeFromThreatGenRationale",
+                e.target.value,
+              )
+            }
+            placeholder={t(
+              "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.placeholder",
+              {
+                defaultValue:
+                  "e.g. Internal sensor polling within trusted safety domain, no external access path exists",
+              },
+            )}
+            helperText={
+              rationaleError
+                ? t(
+                    "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.error",
+                    {
+                      defaultValue:
+                        "Rationale required for IEC 62443-4-1 audit trail",
+                    },
+                  )
+                : undefined
+            }
+          />
+        )}
+      </Stack>
+
       {/* Advanced */}
       <Accordion defaultExpanded={false}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -707,7 +773,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};
+};;
 
 // ==================== MAIN COMPONENT ====================
 

@@ -64,7 +64,25 @@ export interface ProcessProperties {
     | "cli"
     | "database"
     | "cron"
-    | "iot";
+    | "iot"
+    // Embedded / RTOS / Bare-metal
+    | "rtos_task" // RTOS task (FreeRTOS, Zephyr, ThreadX)
+    | "bare_metal" // Bare-metal logic block / main loop
+    | "isr" // Interrupt Service Routine
+    | "state_machine" // Safety-relevant FSM
+    | "bootloader" // Bootloader — own threat class (firmware integrity)
+    | "driver" // Hardware driver — often HW-adjacent, low validation
+    | "protocol_stack"; // Protocol stack — own attack surface (CAN, Modbus, etc.)
+
+  /**
+   * Semantic role of this process in the model.
+   * Separates implementation type (technology) from modelling intent.
+   *
+   * execution_unit:   OS process, RTOS task, thread — OS-enforced isolation
+   * functional_block: Logical responsibility unit — no OS isolation (bare-metal, ISR)
+   * security_boundary: Explicit security enforcement point (HSM, OP-TEE TA, Crypto Engine)
+   */
+  processSemantic?: "execution_unit" | "functional_block" | "security_boundary";
   owner?: string;
   notes?: string;
 }
@@ -256,6 +274,22 @@ export interface DataFlowProperties {
    */
   safetyRationale?: string;
 
+  /**
+   * This flow is assumed to operate in a trusted context.
+   * Set explicitly to separate Security modelling intent from Tool behaviour.
+   * IEC 62443: "trusted" must be justified — a rationale is required.
+   */
+  assumedTrusted?: boolean;
+  assumedTrustedRationale?: string;
+
+  /**
+   * Exclude this data flow from automated threat generation.
+   * Only valid when assumedTrusted=true or flow is demonstrably non-reachable.
+   * IEC 62443-4-1: Exclusions require documented rationale for audit traceability.
+   */
+  excludeFromThreatGen?: boolean;
+  excludeFromThreatGenRationale?: string;
+
   notes?: string;
 }
 
@@ -310,7 +344,11 @@ export interface TrustBoundaryProperties {
     | "cloud"
     | "physical"
     | "legal"
-    | "device";
+    | "device"
+    // Embedded-specific boundaries
+    | "peripheral" // MCU ↔ external chip (SPI, I2C, UART sensor/EEPROM)
+    | "boot" // Bootloader ↔ Application boundary
+    | "debug"; // Debug/programming interface (SWD, JTAG, UART console)
   defaultExposureLevel?: ExposureLevel;
   securityAssumptions?: string;
   boundaryControls?: string;

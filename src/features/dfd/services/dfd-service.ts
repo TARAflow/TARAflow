@@ -520,16 +520,27 @@ class DFDService {
     const { elements, connections, assets, stats, unconnectedDataflows } =
       this.parser.parse(xml || "");
 
+    // Merge properties from project.dfd.connections — XML parsing strips them
+    const mergedConnections = this.mergeConnectionProperties(
+      connections,
+      project.dfd?.connections || [],
+    );
+
+    const mergedElements = this.mergeElementProperties(
+      elements,
+      project.dfd?.elements || [],
+    );
+
     const graphBuilder = new DefaultDFDGraphBuilder();
     const graph = graphBuilder.build({
-      elements,
-      connections,
+      elements: mergedElements,
+      connections: mergedConnections,
       assets,
     });
 
     return this.validator.validate(
-      elements,
-      connections,
+      mergedElements,
+      mergedConnections,
       assets,
       stats,
       {

@@ -83,6 +83,10 @@ export const ValidationMessages = {
   DF_PROP_STREAM_IS_REQRESP: "tabs.dfd.validation.df.prop.streamIsReqResp",
   DF_PROP_CONTINUOUS_USE_STREAM:
     "tabs.dfd.validation.df.prop.continuousUseStream",
+
+  // ── Threat Analysis ─────────────────────────────────────────────────────
+  DF_PROP_EXCLUDE_MISSING_RATIONALE:
+    "tabs.dfd.validation.df.prop.excludeMissingRationale",
 } as const;
 
 /**

@@ -11,6 +11,7 @@
 //   C6  write + direction "requestresponse" → ERROR
 //   C7  direction "bidirectional" (any verb) → ERROR (forbidden globally)
 //   C8  stream + direction "requestresponse" → WARNING
+//   C9  excludeFromThreatGen=true + empty rationale → WARNING
 //
 // Message format: `${ValidationMessages.KEY}:${context}`
 //   context = "DF-3 — read safety params [req]"
@@ -43,6 +44,8 @@ interface DataFlowProperties {
   protocol?: Protocol;
   direction?: Direction;
   frequency?: Frequency;
+  excludeFromThreatGen?: boolean;
+  excludeFromThreatGenRationale?: string;
   [key: string]: unknown;
 }
 
@@ -100,6 +103,17 @@ export function validateDataflowProperties(
       .properties;
 
     if (!props || typeof props !== "object") continue;
+
+    // C9: excludeFromThreatGen without rationale — fires regardless of verb
+    if (
+      props.excludeFromThreatGen &&
+      !props.excludeFromThreatGenRationale?.trim()
+    ) {
+      warnings.push(
+        `${ValidationMessages.DF_PROP_EXCLUDE_MISSING_RATIONALE}:${context}`,
+      );
+    }
+
     if (!verb) continue;
 
     // C7: bidirectional forbidden — check first, always fires regardless of verb

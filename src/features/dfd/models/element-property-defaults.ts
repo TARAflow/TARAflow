@@ -99,6 +99,49 @@ export const PROCESS_TECH_DEFAULTS: Record<
     inputValidation: "strict",
     errorHandling: "sanitized",
   },
+  // Embedded / RTOS / Bare-metal defaults
+  rtos_task: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "basic",
+    errorHandling: "silent",
+  },
+  bare_metal: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "none",
+    errorHandling: "silent",
+  },
+  isr: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "none",
+    errorHandling: "silent",
+  },
+  state_machine: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "strict",
+    errorHandling: "silent",
+  },
+  bootloader: {
+    authenticationRequired: "certificate",
+    authorizationModel: "none",
+    inputValidation: "strict",
+    errorHandling: "silent",
+  },
+  driver: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "basic",
+    errorHandling: "silent",
+  },
+  protocol_stack: {
+    authenticationRequired: "no",
+    authorizationModel: "none",
+    inputValidation: "strict",
+    errorHandling: "silent",
+  },
 };
 
 // ==================== EXTERNAL ENTITY DEFAULTS ====================

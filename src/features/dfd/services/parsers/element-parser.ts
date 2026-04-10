@@ -42,6 +42,24 @@ function collectGroupPositions(doc: Document): Map<string, { x: number; y: numbe
 }
 
 /**
+ * Collect IDs of groups that contain a legend object (type="legend").
+ * All mxCell children of these groups are decorative and must be skipped.
+ */
+function collectLegendGroupIds(doc: Document): Set<string> {
+  const legendGroupIds = new Set<string>();
+  const objects = doc.getElementsByTagName("object");
+  Array.from(objects).forEach((obj) => {
+    if (obj.getAttribute("type") !== "legend") return;
+    const cell = obj.querySelector("mxCell");
+    const parentId = cell?.getAttribute("parent");
+    if (parentId && parentId !== "0" && parentId !== "1") {
+      legendGroupIds.add(parentId);
+    }
+  });
+  return legendGroupIds;
+}
+
+/**
  * Collect all ID labels from the document
  * ID labels are <object type="idlabel"> elements that contain formatted display IDs
  */
@@ -93,6 +111,7 @@ export function assignDisplayIds(
 export function parseElementFromObject(
   obj: Element,
   groupPositions?: Map<string, { x: number; y: number }>,
+  legendGroupIds?: Set<string>,
 ): DFDElement | null {
   const id = obj.getAttribute("id") || "";
   const label = obj.getAttribute("label") || "";
@@ -119,7 +138,11 @@ export function parseElementFromObject(
     return null;
   }
 
-  const style = obj.querySelector("mxCell")?.getAttribute("style") || "";
+  const objCell = obj.querySelector("mxCell");
+  const objParentId = objCell?.getAttribute("parent");
+  if (objParentId && legendGroupIds?.has(objParentId)) return null;
+
+  const style = objCell?.getAttribute("style") || "";
   if (style.includes("group")) {
     console.info(`Skipping group element with ID: ${id}`);
     return null;
@@ -275,6 +298,9 @@ export function parseElements(doc: Document): DFDElement[] {
   // STEP 1: Collect group positions (id -> position)
   const groupPositions = collectGroupPositions(doc);
 
+  // Collect legend group IDs — child cells are decorative, not DFD elements
+  const legendGroupIds = collectLegendGroupIds(doc);
+
   // STEP 2: Parse object elements (new stencil format)
   const objects = doc.getElementsByTagName("object");
 
@@ -286,7 +312,7 @@ export function parseElements(doc: Document): DFDElement[] {
   });
 
   Array.from(objects).forEach((obj) => {
-    const element = parseElementFromObject(obj, groupPositions);
+    const element = parseElementFromObject(obj, groupPositions, legendGroupIds);
     // console.log("parseElementFromObject Id: ", element);
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
@@ -300,10 +326,11 @@ export function parseElements(doc: Document): DFDElement[] {
   const cells = doc.getElementsByTagName("mxCell");
   const validCells = filterValidCells(cells); // Nur relevante mxCell verarbeiten
   validCells.forEach((cell) => {
+    // Skip cells whose parent is a legend group
+    const cellParentId = cell.getAttribute("parent");
+    if (cellParentId && legendGroupIds.has(cellParentId)) return;
+
     const element = parseElementFromCell(cell);
-    // console.log(
-    //   "parseElementFromCell Id: " + element?.id + " Name: " + element?.name,
-    // );
     if (element && !seenIds.has(element.id)) {
       elements.push(element);
       seenIds.add(element.id);

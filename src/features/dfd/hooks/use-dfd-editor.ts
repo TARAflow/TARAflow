@@ -2,7 +2,7 @@
 // Single Responsibility: Orchestrate atomic hooks into unified API
 // Follows Facade Pattern - simple interface, complex implementation
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   DFDProjectData,
   DFDUpdateResult,
@@ -206,26 +206,9 @@ export function useDFDEditor(
   });
 
   // Persistence layer
-  // Ref to thumbnail hook — set after thumbnail is initialized below.
-  // Avoids "used before declaration" error while keeping the callback stable.
-  const thumbnailRef = useRef<{
-    generate: () => Promise<string | null>;
-  } | null>(null);
-
   const persistence = useDFDPersistence(project, {
     onUpdate,
     onDirtyChange,
-    onAfterDrawioSave: useCallback(
-      async (result: DFDUpdateResult) => {
-        if (!generateThumbnailOnSave || !thumbnailRef.current) return;
-        const thumbnailData = await thumbnailRef.current.generate();
-        if (thumbnailData) {
-          result.dfd.thumbnail = thumbnailData;
-          onUpdate?.(result);
-        }
-      },
-      [generateThumbnailOnSave, onUpdate],
-    ),
   });
 
   // iframe communication layer
@@ -245,8 +228,6 @@ export function useDFDEditor(
   const thumbnail = useDFDThumbnail(bridge, project, {
     restoreFromProject: true,
   });
-  // Wire ref so onAfterDrawioSave can access thumbnail without ordering issues
-  thumbnailRef.current = thumbnail;
 
   // Auto-numbering layer
   const autoNumbering = useDFDAutoNumbering(bridge, validation, persistence, {
@@ -326,8 +307,9 @@ export function useDFDEditor(
       };
 
       persistence.scheduleSave(result);
+      validation.scheduleValidation(autoValidateInterval);
     },
-    [data, project.phaseStatus, persistence],
+    [data, project.phaseStatus, persistence, validation, autoValidateInterval],
   );
 
   /**
@@ -366,8 +348,9 @@ export function useDFDEditor(
       };
 
       persistence.scheduleSave(result);
+      validation.scheduleValidation(autoValidateInterval);
     },
-    [data, project.phaseStatus, persistence],
+    [data, project.phaseStatus, persistence, validation, autoValidateInterval],
   );
 
   /**

@@ -144,6 +144,28 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                     </Tooltip>
                   </MenuItem>
                 ))}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                  — Embedded-specific —
+                </MenuItem>
+                {(["peripheral", "boot", "debug"] as const).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    <Tooltip
+                      title={t(
+                        `tabs.dfd.element_description.trustboundary.fields.boundaryType.tooltips.${opt}`,
+                        { defaultValue: "" },
+                      )}
+                      placement="right"
+                      arrow
+                    >
+                      <span style={{ width: "100%", display: "block" }}>
+                        {t(
+                          `tabs.dfd.element_description.trustboundary.fields.boundaryType.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </span>
+                    </Tooltip>
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 

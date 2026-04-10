@@ -214,6 +214,14 @@ export class ElementThreatGenerator {
     const crossBoundaryThreats: Threat[] = [];
 
     for (const connection of graph.connectionsById.values()) {
+      // Skip flows explicitly excluded by the analyst (IEC 62443-4-1 audit trail)
+      // Check both DFDConnectionReference.excludeFromThreatGen (typed)
+      // and DFDConnection.properties.excludeFromThreatGen (runtime, passed via DFDGraph)
+      const isExcluded =
+        connection?.excludeFromThreatGen ||
+        (connection as any)?.properties?.excludeFromThreatGen;
+      if (isExcluded) continue;
+
       const dataFlowElement: DFDElementReference = {
         id: connection.id,
         type: "DataFlow",

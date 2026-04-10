@@ -86,6 +86,14 @@ export class InteractionThreatGenerator {
       const connection = graph.connectionsById.get(df.connectionId);
       const dfDisplayId = connection?.displayId ?? df.connectionId;
 
+      // Skip flows explicitly excluded by the analyst (IEC 62443-4-1 audit trail)
+      // Check both DFDConnectionReference.excludeFromThreatGen (typed)
+      // and DFDConnection.properties.excludeFromThreatGen (runtime, passed via DFDGraph)
+      const isExcluded =
+        connection?.excludeFromThreatGen ||
+        (connection as any)?.properties?.excludeFromThreatGen;
+      if (isExcluded) continue;
+
       const senderTB = df.fromEffectiveTrustBoundary ?? null;
       const receiverTB = df.toEffectiveTrustBoundary ?? null;
       const internalFlow = senderTB !== null && senderTB === receiverTB;

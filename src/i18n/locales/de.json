@@ -789,6 +789,16 @@
                 "contractor": "Externe Person / Auftragnehmer"
               }
             },
+            "processSemantic": {
+              "label": "Prozess-Semantik",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "execution_unit": "Ausführungseinheit (OS/RTOS-isoliert)",
+                "functional_block": "Funktionaler Block (logisch, keine OS-Isolation)",
+                "security_boundary": "Sicherheitsgrenze (HSM, TEE, Crypto-Engine)"
+              },
+              "hint_functional_block": "Dieser Prozess repräsentiert einen funktionalen Block, keinen OS-Prozess. Es existiert keine Hardwareisolationsgrenze — Vertrauensannahmen müssen explizit gemacht werden."
+            },
             "privilegeLevel": {
               "label": "Berechtigungsstufe",
               "options": {
@@ -866,7 +876,14 @@
                 "cli": "CLI-Tool",
                 "database": "Datenbankdienst",
                 "cron": "Geplante Aufgabe (Cron)",
-                "iot": "IoT-System"
+                "iot": "IoT-System",
+                "rtos_task": "RTOS-Task (FreeRTOS, Zephyr, ThreadX)",
+                "bare_metal": "Bare-metal Logikblock",
+                "isr": "Interrupt Service Routine (ISR)",
+                "state_machine": "Zustandsmaschine (Safety FSM)",
+                "bootloader": "Bootloader",
+                "driver": "Hardware-Treiber",
+                "protocol_stack": "Protokoll-Stack (CAN, Modbus, etc.)"
               }
             },
             "owner": {
@@ -1174,6 +1191,15 @@
             "hint": "Hohes Risiko für: Manipulation, Informationsoffenlegung, Denial of Service"
           },
           "fields": {
+            "excludeFromThreatGen": {
+              "label": "Von automatischer Threat-Generierung ausschliessen",
+              "warning_no_trust": "Ein Datenfluss ohne Vertrauensannahme auszuschliessen kann echte Bedrohungen verbergen. Bitte oben eine Vertrauensbegründung angeben."
+            },
+            "excludeFromThreatGenRationale": {
+              "label": "Ausschlussbegründung (IEC 62443-4-1 Audit-Trail)",
+              "placeholder": "z.B. Internes Sensor-Polling innerhalb vertrauenswürdiger Safety-Domäne, kein externer Zugriffspfad vorhanden",
+              "error": "Begründung für IEC 62443-4-1 Audit-Trail erforderlich"
+            },
             "protocol": {
               "label": "Protokoll",
               "options": {
@@ -1360,7 +1386,10 @@
                 "cloud": "Cloud-Konto / Tenant",
                 "physical": "Physische Grenze",
                 "legal": "Rechtliche / Regulatorische Grenze",
-                "device": "Gerätegrenze"
+                "device": "Gerätegrenze",
+                "peripheral": "Peripherie-Grenze (MCU ↔ externer Chip)",
+                "boot": "Boot-Grenze (Bootloader ↔ Applikation)",
+                "debug": "Debug-Interface-Grenze (SWD/JTAG)"
               },
               "tooltips": {
                 "network": "Trennt Netzwerksegmente, z.B. DMZ vom internen LAN oder VPC vom öffentlichen Internet",
@@ -1369,7 +1398,10 @@
                 "cloud": "Trennt Cloud-Konten, Tenants oder Abonnements mit eigenen IAM-Richtlinien",
                 "physical": "Physische Gehäuse- oder Schrankgrenze, z.B. Maschinengehäuse oder Schaltschrank",
                 "legal": "Regulatorische oder vertragliche Grenze, z.B. DSGVO-Datenresidenz oder PCI-DSS-Scope",
-                "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway"
+                "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway",
+                "peripheral": "Grenze zwischen MCU und externen Chips (SPI/I2C Sensoren, EEPROM, Co-Prozessoren). Häufig unterschätzte Angriffsfläche.",
+                "boot": "Grenze zwischen Bootloader und Applikation. Kritisch für Firmware-Integrität und Secure-Boot-Kette.",
+                "debug": "SWD-, JTAG- oder UART-Konsoleninterface. Muss in Produktionsbuilds deaktiviert oder gesperrt sein."
               }
             },
             "exposureLevel": {
