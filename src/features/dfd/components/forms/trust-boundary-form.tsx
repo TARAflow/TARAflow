@@ -2,21 +2,15 @@
 // STRIDE: All (Trust boundaries trigger automatic threat checks!)
 // Focus: Zone definition, exposure level, security assumptions
 //
-// No asset relations — TrustBoundary is a structural/topological element,
-// not an active actor on assets. No ElementFormShell needed.
-//
-// State logic → useElementForm
-// This file: full form content + React.memo wrapper
+// Structure: Context → Security → Documentation (no accordions)
 
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
   Box,
   Checkbox,
+  Divider,
   FormControl,
   FormControlLabel,
   InputLabel,
@@ -27,7 +21,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
 import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type {
   TrustBoundaryProperties,
@@ -50,9 +43,21 @@ interface TrustBoundaryFormProps {
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
 }
 
-// ==================== CONSTANTS ====================
+// ==================== HELPERS ====================
 
 const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
+
+const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
+  <Box sx={{ pt: 1 }}>
+    <Typography
+      variant="overline"
+      sx={{ color: "text.disabled", fontSize: "0.65rem", letterSpacing: 1.5 }}
+    >
+      {label}
+    </Typography>
+    <Divider sx={{ mt: 0.5, mb: 2 }} />
+  </Box>
+);
 
 // ==================== COMPONENT ====================
 
@@ -64,7 +69,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
 
     return (
       <Box p={1}>
-        <Stack spacing={3} sx={{ pt: 1 }}>
+        <Stack spacing={2} sx={{ pt: 1 }}>
           {/* Zone Warning */}
           <Alert severity="warning">
             <Typography variant="body2" fontWeight="bold">
@@ -80,177 +85,147 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             </Typography>
           </Alert>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              columnGap: 2,
-              rowGap: 3,
-              pt: 1,
-            }}
-          >
-            {/* row 0 col 0: Boundary Type */}
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.trustboundary.fields.boundaryType.label",
-                  { defaultValue: "Boundary Type" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.boundaryType ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange("boundaryType", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.trustboundary.fields.boundaryType.label",
-                  { defaultValue: "Boundary Type" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.trustboundary.fields.boundaryType.options.not_specified",
-                      { defaultValue: "Not specified" },
+          {/* ── Context ─────────────────────────────── */}
+          <SectionLabel
+            label={t("tabs.dfd.element_description.sections.context", {
+              defaultValue: "Context",
+            })}
+          />
+
+          {/* Boundary Type */}
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.trustboundary.fields.boundaryType.label",
+                { defaultValue: "Boundary Type" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.boundaryType ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("boundaryType", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.trustboundary.fields.boundaryType.label",
+                { defaultValue: "Boundary Type" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t(
+                    "tabs.dfd.element_description.trustboundary.fields.boundaryType.options.not_specified",
+                    { defaultValue: "Not specified" },
+                  )}
+                </em>
+              </MenuItem>
+              {(
+                [
+                  "network",
+                  "privilege",
+                  "organization",
+                  "cloud",
+                  "physical",
+                  "legal",
+                  "device",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.trustboundary.fields.boundaryType.tooltips.${opt}`,
+                      { defaultValue: "" },
                     )}
-                  </em>
-                </MenuItem>
-                {(
-                  [
-                    "network",
-                    "privilege",
-                    "organization",
-                    "cloud",
-                    "physical",
-                    "legal",
-                    "device",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    <Tooltip
-                      title={t(
-                        `tabs.dfd.element_description.trustboundary.fields.boundaryType.tooltips.${opt}`,
-                        { defaultValue: "" },
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.trustboundary.fields.boundaryType.options.${opt}`,
+                        { defaultValue: opt },
                       )}
-                      placement="right"
-                      arrow
-                    >
-                      <span style={{ width: "100%", display: "block" }}>
-                        {t(
-                          `tabs.dfd.element_description.trustboundary.fields.boundaryType.options.${opt}`,
-                          { defaultValue: opt },
-                        )}
-                      </span>
-                    </Tooltip>
-                  </MenuItem>
-                ))}
-                <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
-                  — Embedded-specific —
+                    </span>
+                  </Tooltip>
                 </MenuItem>
-                {(["peripheral", "boot", "debug"] as const).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    <Tooltip
-                      title={t(
-                        `tabs.dfd.element_description.trustboundary.fields.boundaryType.tooltips.${opt}`,
-                        { defaultValue: "" },
-                      )}
-                      placement="right"
-                      arrow
-                    >
-                      <span style={{ width: "100%", display: "block" }}>
-                        {t(
-                          `tabs.dfd.element_description.trustboundary.fields.boundaryType.options.${opt}`,
-                          { defaultValue: opt },
-                        )}
-                      </span>
-                    </Tooltip>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* row 0 col 1: Exposure Level */}
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t("tabs.dfd.element_description.exposure_level.label", {
-                  defaultValue: "Exposure Level",
-                })}
-              </InputLabel>
-              <Select
-                value={props.defaultExposureLevel ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "defaultExposureLevel",
-                    e.target.value,
-                  )
-                }
-                label={t("tabs.dfd.element_description.exposure_level.label", {
-                  defaultValue: "Exposure Level",
-                })}
-                renderValue={(value) =>
-                  value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
-                }
-              >
-                <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.trustboundary.fields.exposureLevel.not_specified",
-                      { defaultValue: "Not specified" },
+              ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Embedded-specific —
+              </MenuItem>
+              {(["peripheral", "boot", "debug"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.trustboundary.fields.boundaryType.tooltips.${opt}`,
+                      { defaultValue: "" },
                     )}
-                  </em>
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.trustboundary.fields.boundaryType.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </span>
+                  </Tooltip>
                 </MenuItem>
-                {EXPOSURE_LEVELS.map((el) => (
-                  <MenuItem key={el} value={el}>
-                    <Tooltip
-                      title={t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
-                        defaultValue: "",
-                      })}
-                      placement="right"
-                      arrow
-                    >
-                      <span style={{ width: "100%", display: "block" }}>
-                        {EXPOSURE_LEVEL_LABELS[el]}
-                      </span>
-                    </Tooltip>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+              ))}
+            </Select>
+          </FormControl>
 
-            {/* row 1 col 0: Monitoring */}
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={props.monitoringEnabled || false}
-                    onChange={(e) =>
-                      form.handlePropertyChange(
-                        "monitoringEnabled",
-                        e.target.checked,
-                      )
-                    }
-                  />
-                }
-                label={t(
-                  "tabs.dfd.element_description.trustboundary.fields.monitoringEnabled.label",
-                  { defaultValue: "Monitoring / Logging Enabled" },
-                )}
-              />
-            </Box>
+          {/* Exposure Level */}
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t("tabs.dfd.element_description.exposure_level.label", {
+                defaultValue: "Exposure Level",
+              })}
+            </InputLabel>
+            <Select
+              value={props.defaultExposureLevel ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "defaultExposureLevel",
+                  e.target.value,
+                )
+              }
+              label={t("tabs.dfd.element_description.exposure_level.label", {
+                defaultValue: "Exposure Level",
+              })}
+              renderValue={(value) =>
+                value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
+              }
+            >
+              <MenuItem value="">
+                <em>
+                  {t(
+                    "tabs.dfd.element_description.trustboundary.fields.exposureLevel.not_specified",
+                    { defaultValue: "Not specified" },
+                  )}
+                </em>
+              </MenuItem>
+              {EXPOSURE_LEVELS.map((el) => (
+                <MenuItem key={el} value={el}>
+                  <Tooltip
+                    title={t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
+                      defaultValue: "",
+                    })}
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {EXPOSURE_LEVEL_LABELS[el]}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-            {/* row 1 col 1: EL helper text */}
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Typography variant="caption" color="text.secondary">
-                {t(
-                  "tabs.dfd.element_description.trustboundary.fields.exposureLevel.helper",
-                  {
-                    defaultValue:
-                      "Defines the exposure level of this security zone. Elements with a higher EL are not affected.",
-                  },
-                )}
-              </Typography>
-            </Box>
-          </Box>
+          {/* ── Security ─────────────────────────────── */}
+          <SectionLabel
+            label={t("tabs.dfd.element_description.sections.security", {
+              defaultValue: "Security",
+            })}
+          />
 
           {/* Security Assumptions */}
           <TextField
@@ -306,84 +281,80 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             )}
           />
 
-          {/* Advanced */}
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle2" color="text.secondary">
-                {t("tabs.dfd.element_description.sections.advanced", {
-                  defaultValue: "Advanced / Optional",
-                })}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                {/* Compliance Relevance */}
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t(
-                    "tabs.dfd.element_description.trustboundary.fields.complianceRelevance.label",
-                    { defaultValue: "Compliance Relevance" },
-                  )}
-                  value={props.complianceRelevance ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange(
-                      "complianceRelevance",
-                      e.target.value,
-                    )
-                  }
-                  placeholder={t(
-                    "tabs.dfd.element_description.trustboundary.fields.complianceRelevance.placeholder",
-                    {
-                      defaultValue:
-                        "e.g. GDPR, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
-                    },
-                  )}
-                  helperText={t(
-                    "tabs.dfd.element_description.trustboundary.fields.complianceRelevance.helper",
-                    {
-                      defaultValue: "Which regulations apply to this boundary?",
-                    },
-                  )}
-                />
+          {/* Monitoring */}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={props.monitoringEnabled || false}
+                onChange={(e) =>
+                  form.handlePropertyChange(
+                    "monitoringEnabled",
+                    e.target.checked,
+                  )
+                }
+              />
+            }
+            label={t(
+              "tabs.dfd.element_description.trustboundary.fields.monitoringEnabled.label",
+              { defaultValue: "Monitoring / Logging Enabled" },
+            )}
+          />
 
-                {/* Owner */}
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t(
-                    "tabs.dfd.element_description.trustboundary.fields.owner.label",
-                    { defaultValue: "Owner / Responsible Team" },
-                  )}
-                  value={props.owner ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange("owner", e.target.value)
-                  }
-                  placeholder={t(
-                    "tabs.dfd.element_description.trustboundary.fields.owner.placeholder",
-                    { defaultValue: "Who maintains this boundary?" },
-                  )}
-                />
+          {/* ── Documentation ───────────────────────── */}
+          <SectionLabel
+            label={t("tabs.dfd.element_description.sections.documentation", {
+              defaultValue: "Documentation",
+            })}
+          />
 
-                {/* Notes */}
-                <TextField
-                  fullWidth
-                  size="small"
-                  multiline
-                  rows={2}
-                  label={t(
-                    "tabs.dfd.element_description.trustboundary.fields.notes.label",
-                    { defaultValue: "Notes" },
-                  )}
-                  value={form.localNotes}
-                  onChange={(e) => form.setLocalNotes(e.target.value)}
-                  onBlur={form.commitNotes}
-                />
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
+          <TextField
+            fullWidth
+            size="small"
+            label={t(
+              "tabs.dfd.element_description.trustboundary.fields.complianceRelevance.label",
+              { defaultValue: "Compliance Relevance" },
+            )}
+            value={props.complianceRelevance ?? ""}
+            onChange={(e) =>
+              form.handlePropertyChange("complianceRelevance", e.target.value)
+            }
+            placeholder={t(
+              "tabs.dfd.element_description.trustboundary.fields.complianceRelevance.placeholder",
+              {
+                defaultValue: "e.g. GDPR, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
+              },
+            )}
+          />
 
-          {/* Description */}
+          <TextField
+            fullWidth
+            size="small"
+            label={t(
+              "tabs.dfd.element_description.trustboundary.fields.owner.label",
+              { defaultValue: "Owner / Responsible Team" },
+            )}
+            value={props.owner ?? ""}
+            onChange={(e) => form.handlePropertyChange("owner", e.target.value)}
+            placeholder={t(
+              "tabs.dfd.element_description.trustboundary.fields.owner.placeholder",
+              { defaultValue: "Who maintains this boundary?" },
+            )}
+          />
+
+          <TextField
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            label={t(
+              "tabs.dfd.element_description.trustboundary.fields.notes.label",
+              { defaultValue: "Notes" },
+            )}
+            value={form.localNotes}
+            onChange={(e) => form.setLocalNotes(e.target.value)}
+            onBlur={form.commitNotes}
+          />
+
           <Box>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               {t(

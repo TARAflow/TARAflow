@@ -1,35 +1,32 @@
 // ==================== EXTERNAL ENTITY DESCRIPTION FORM ====================
 // STRIDE: S, R (Spoofing, Repudiation)
-// Focus: Untrusted Actors
+// Focus: Untrusted Actors — who they are, how dangerous they are
+//
+// Structure: Context → Security → Documentation (no accordions)
 
 import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Checkbox,
-  Stack,
-  Typography,
-  Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Alert,
+  Box,
+  Checkbox,
+  Divider,
+  FormControl,
+  FormControlLabel,
   Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
 } from "@mui/material";
-import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
 import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type { ExternalEntityProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
-
 import { EXTERNAL_ENTITY_TYPE_DEFAULTS } from "../../models/element-property-defaults";
 
 interface ExternalEntityFormProps {
@@ -39,12 +36,22 @@ interface ExternalEntityFormProps {
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
 }
 
-// ==================== GENERAL TAB ====================
-
 interface ExternalEntityGeneralTabProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
 }
+
+const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
+  <Box sx={{ pt: 1 }}>
+    <Typography
+      variant="overline"
+      sx={{ color: "text.disabled", fontSize: "0.65rem", letterSpacing: 1.5 }}
+    >
+      {label}
+    </Typography>
+    <Divider sx={{ mt: 0.5, mb: 2 }} />
+  </Box>
+);
 
 function asExternalEntityProperties(props: any): ExternalEntityProperties {
   return props as ExternalEntityProperties;
@@ -58,17 +65,14 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
   const props = asExternalEntityProperties(element.properties);
   const form = useElementForm<ExternalEntityProperties>(element, onChange);
 
-  // Local state for multiline fields
   const [localAuthScope, setLocalAuthScope] = React.useState(
     props.authorizationScope || "",
   );
   const [localOwner, setLocalOwner] = React.useState(props.owner || "");
 
-  // Sync when element changes
   React.useEffect(() => {
     setLocalAuthScope(props.authorizationScope || "");
   }, [props.authorizationScope]);
-
   React.useEffect(() => {
     setLocalOwner(props.owner || "");
   }, [props.owner]);
@@ -84,10 +88,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
 
   const handlePropertyChange = useCallback(
     (field: string, value: any) => {
-      let updatedProperties = {
-        ...element.properties,
-        [field]: value,
-      };
+      let updatedProperties = { ...element.properties, [field]: value };
 
       if (field === "entityType" && !value) {
         updatedProperties = {
@@ -99,297 +100,242 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
         };
       } else if (field === "entityType" && typeof value === "string") {
         const defaults = EXTERNAL_ENTITY_TYPE_DEFAULTS[value] ?? {};
-        // Überschreibt nur die Werte aus defaults, behält alles andere
-        updatedProperties = {
-          ...updatedProperties,
-          ...defaults,
-        };
+        updatedProperties = { ...updatedProperties, ...defaults };
       }
 
-      onChange({
-        properties: updatedProperties,
-      });
+      onChange({ properties: updatedProperties });
     },
     [onChange, element.properties],
   );
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Required Section */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        {t("tabs.dfd.element_description.external_entity.sections.required")}
-      </Typography>
+      <Stack spacing={2}>
+        {/* ── Context ─────────────────────────────── */}
+        <SectionLabel
+          label={t("tabs.dfd.element_description.sections.context", {
+            defaultValue: "Context",
+          })}
+        />
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>
-          {t(
-            "tabs.dfd.element_description.external_entity.fields.entityType.label",
-          )}
-        </InputLabel>
-        <Select
-          value={props.entityType || ""}
-          onChange={(e) => handlePropertyChange("entityType", e.target.value)}
-          label={t(
-            "tabs.dfd.element_description.external_entity.fields.entityType.label",
-          )}
-        >
-          {/* "Not specified" Option */}
-          <MenuItem value="">
-            <em>
-              {t(
-                "tabs.dfd.element_description.external_entity.fields.entityType.options.not_specified",
-              )}
-            </em>
-          </MenuItem>
+        <Grid container spacing={2}>
+          {/* Entity Type */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.external_entity.fields.entityType.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.entityType || ""}
+                onChange={(e) =>
+                  handlePropertyChange("entityType", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.external_entity.fields.entityType.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.external_entity.fields.entityType.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {Object.keys(EXTERNAL_ENTITY_TYPE_DEFAULTS).map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {t(
+                      `tabs.dfd.element_description.external_entity.fields.entityType.options.${type}`,
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-          {/* All available Entity Types dynamic */}
-          {Object.keys(EXTERNAL_ENTITY_TYPE_DEFAULTS).map((type) => (
-            <MenuItem key={type} value={type}>
-              {t(
-                `tabs.dfd.element_description.external_entity.fields.entityType.options.${type}`,
-              )}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      {/* Security Section - 2-column Grid with Authorization Scope below */}
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-        {t("tabs.dfd.element_description.external_entity.sections.security")}
-      </Typography>
-
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.external_entity.fields.trustLevel.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.trustLevel || ""}
-              onChange={(e) =>
-                handlePropertyChange("trustLevel", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.external_entity.fields.trustLevel.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>
+          {/* Trust Level */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.external_entity.fields.trustLevel.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.trustLevel || ""}
+                onChange={(e) =>
+                  handlePropertyChange("trustLevel", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.external_entity.fields.trustLevel.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.external_entity.fields.trustLevel.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                <MenuItem value="low">
                   {t(
-                    "tabs.dfd.element_description.external_entity.fields.trustLevel.options.not_specified",
-                  )}
-                </em>
-              </MenuItem>
-              <MenuItem value="low">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.trustLevel.options.low",
-                )}
-              </MenuItem>
-              <MenuItem value="medium">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.trustLevel.options.medium",
-                )}
-              </MenuItem>
-              <MenuItem value="high">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.trustLevel.options.high",
-                )}
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.external_entity.fields.authenticationMethod.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.authenticationMethod || ""}
-              onChange={(e) =>
-                handlePropertyChange("authenticationMethod", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.external_entity.fields.authenticationMethod.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.not_specified",
-                  )}
-                </em>
-              </MenuItem>
-              <MenuItem value="none">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.none",
-                )}
-              </MenuItem>
-              <MenuItem value="password">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.password",
-                )}
-              </MenuItem>
-              <MenuItem value="mfa">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.mfa",
-                )}
-              </MenuItem>
-              <MenuItem value="oauth">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.oauth",
-                )}
-              </MenuItem>
-              <MenuItem value="saml">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.saml",
-                )}
-              </MenuItem>
-              <MenuItem value="certificate">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.certificate",
-                )}
-              </MenuItem>
-              <MenuItem value="apikey">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.apikey",
-                )}
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.external_entity.fields.ownership.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.ownership || ""}
-              onChange={(e) =>
-                handlePropertyChange("ownership", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.external_entity.fields.ownership.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.external_entity.fields.ownership.options.not_specified",
-                  )}
-                </em>
-              </MenuItem>
-              <MenuItem value="internal">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.ownership.options.internal",
-                )}
-              </MenuItem>
-              <MenuItem value="external">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.ownership.options.external",
-                )}
-              </MenuItem>
-              <MenuItem value="partner">
-                {t(
-                  "tabs.dfd.element_description.external_entity.fields.ownership.options.partner",
-                )}
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.external_entity.fields.threatActor.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.threatActor || ""}
-              onChange={(e) =>
-                handlePropertyChange("threatActor", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.external_entity.fields.threatActor.label",
-              )}
-            >
-              {/* "Not specified" */}
-              <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.external_entity.fields.threatActor.options.not_specified",
-                  )}
-                </em>
-              </MenuItem>
-
-              {/* Alle threatActor Optionen dynamisch */}
-              {threatActorOptions.map((actor) => (
-                <MenuItem key={actor} value={actor}>
-                  {t(
-                    `tabs.dfd.element_description.external_entity.fields.threatActor.options.${actor}`,
+                    "tabs.dfd.element_description.external_entity.fields.trustLevel.options.low",
                   )}
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+                <MenuItem value="medium">
+                  {t(
+                    "tabs.dfd.element_description.external_entity.fields.trustLevel.options.medium",
+                  )}
+                </MenuItem>
+                <MenuItem value="high">
+                  {t(
+                    "tabs.dfd.element_description.external_entity.fields.trustLevel.options.high",
+                  )}
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* Ownership */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.external_entity.fields.ownership.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.ownership || ""}
+                onChange={(e) =>
+                  handlePropertyChange("ownership", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.external_entity.fields.ownership.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.external_entity.fields.ownership.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                <MenuItem value="internal">
+                  {t(
+                    "tabs.dfd.element_description.external_entity.fields.ownership.options.internal",
+                  )}
+                </MenuItem>
+                <MenuItem value="external">
+                  {t(
+                    "tabs.dfd.element_description.external_entity.fields.ownership.options.external",
+                  )}
+                </MenuItem>
+                <MenuItem value="partner">
+                  {t(
+                    "tabs.dfd.element_description.external_entity.fields.ownership.options.partner",
+                  )}
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
         </Grid>
-      </Grid>
 
-      <TextField
-        fullWidth
-        label={t(
-          "tabs.dfd.element_description.external_entity.fields.authorizationScope.label",
-        )}
-        value={localAuthScope}
-        onChange={(e) => setLocalAuthScope(e.target.value)}
-        onBlur={() => {
-          if (localAuthScope !== props.authorizationScope) {
-            handlePropertyChange("authorizationScope", localAuthScope);
-          }
-        }}
-        placeholder={t(
-          "tabs.dfd.element_description.external_entity.fields.authorizationScope.placeholder",
-        )}
-        multiline
-        rows={2}
-        sx={{ mb: 2 }}
-      />
+        {/* ── Security ─────────────────────────────── */}
+        <SectionLabel
+          label={t("tabs.dfd.element_description.sections.security", {
+            defaultValue: "Security",
+          })}
+        />
 
-      <Divider sx={{ my: 3 }} />
+        <Grid container spacing={2}>
+          {/* Threat Actor */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.external_entity.fields.threatActor.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.threatActor || ""}
+                onChange={(e) =>
+                  handlePropertyChange("threatActor", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.external_entity.fields.threatActor.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.external_entity.fields.threatActor.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {threatActorOptions.map((actor) => (
+                  <MenuItem key={actor} value={actor}>
+                    {t(
+                      `tabs.dfd.element_description.external_entity.fields.threatActor.options.${actor}`,
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-      {/* Advanced / Optional Section */}
-      <Accordion defaultExpanded={false}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="subtitle2" color="text.secondary">
-            {t(
-              "tabs.dfd.element_description.external_entity.sections.advanced",
-            )}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={2}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={props.contractExists || false}
-                  onChange={(e) =>
-                    handlePropertyChange("contractExists", e.target.checked)
-                  }
-                />
-              }
-              label={t(
-                "tabs.dfd.element_description.external_entity.fields.contractExists.label",
-              )}
-            />
+          {/* Authentication Method */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.label",
+                )}
+              </InputLabel>
+              <Select
+                value={props.authenticationMethod || ""}
+                onChange={(e) =>
+                  handlePropertyChange("authenticationMethod", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.external_entity.fields.authenticationMethod.label",
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t(
+                      "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.not_specified",
+                    )}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "none",
+                    "password",
+                    "mfa",
+                    "oauth",
+                    "saml",
+                    "certificate",
+                    "apikey",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.${opt}`,
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
+          {/* Rate Limited */}
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
             <FormControlLabel
               control={
                 <Checkbox
@@ -403,40 +349,86 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 "tabs.dfd.element_description.external_entity.fields.rateLimited.label",
               )}
             />
+          </Grid>
 
+          {/* Contract Exists */}
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.contractExists || false}
+                  onChange={(e) =>
+                    handlePropertyChange("contractExists", e.target.checked)
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.external_entity.fields.contractExists.label",
+              )}
+            />
+          </Grid>
+
+          {/* Authorization Scope */}
+          <Grid item xs={12}>
             <TextField
               fullWidth
+              size="small"
+              multiline
+              rows={2}
               label={t(
-                "tabs.dfd.element_description.external_entity.fields.owner.label",
+                "tabs.dfd.element_description.external_entity.fields.authorizationScope.label",
               )}
-              value={localOwner}
-              onChange={(e) => setLocalOwner(e.target.value)}
+              value={localAuthScope}
+              onChange={(e) => setLocalAuthScope(e.target.value)}
               onBlur={() => {
-                if (localOwner !== props.owner) {
-                  handlePropertyChange("owner", localOwner);
-                }
+                if (localAuthScope !== props.authorizationScope)
+                  handlePropertyChange("authorizationScope", localAuthScope);
               }}
               placeholder={t(
-                "tabs.dfd.element_description.external_entity.fields.owner.placeholder",
+                "tabs.dfd.element_description.external_entity.fields.authorizationScope.placeholder",
               )}
             />
+          </Grid>
+        </Grid>
 
-            <RichTextEditor
-              value={form.localNotes}
-              onChange={form.setLocalNotes}
-              onBlur={form.commitNotes}
-              label={t(
-                "tabs.dfd.element_description.external_entity.fields.notes.label",
-              )}
-            />
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
+        {/* ── Documentation ───────────────────────── */}
+        <SectionLabel
+          label={t("tabs.dfd.element_description.sections.documentation", {
+            defaultValue: "Documentation",
+          })}
+        />
 
-      <Divider sx={{ my: 3 }} />
+        <TextField
+          fullWidth
+          size="small"
+          label={t(
+            "tabs.dfd.element_description.external_entity.fields.owner.label",
+          )}
+          value={localOwner}
+          onChange={(e) => setLocalOwner(e.target.value)}
+          onBlur={() => {
+            if (localOwner !== props.owner)
+              handlePropertyChange("owner", localOwner);
+          }}
+          placeholder={t(
+            "tabs.dfd.element_description.external_entity.fields.owner.placeholder",
+          )}
+        />
 
-      {/* Description */}
-      <Box>
+        <RichTextEditor
+          value={form.localNotes}
+          onChange={form.setLocalNotes}
+          onBlur={form.commitNotes}
+          label={t(
+            "tabs.dfd.element_description.external_entity.fields.notes.label",
+          )}
+        />
+
         <RichTextEditor
           value={form.localDescription}
           onChange={form.setLocalDescription}
@@ -449,24 +441,24 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
             "tabs.dfd.element_description.external_entity.fields.description.helperText",
           )}
         />
-      </Box>
 
-      {/* STRIDE Hint */}
-      <Alert severity="info" sx={{ mt: 2 }}>
-        <Typography variant="body2" fontWeight="bold">
-          {t("tabs.dfd.element_description.external_entity.stride_hint.title")}
-        </Typography>
-        <Typography variant="caption">
-          {t(
-            "tabs.dfd.element_description.external_entity.stride_hint.description",
-          )}
-        </Typography>
-      </Alert>
+        {/* STRIDE Hint */}
+        <Alert severity="info">
+          <Typography variant="body2" fontWeight="bold">
+            {t(
+              "tabs.dfd.element_description.external_entity.stride_hint.title",
+            )}
+          </Typography>
+          <Typography variant="caption">
+            {t(
+              "tabs.dfd.element_description.external_entity.stride_hint.description",
+            )}
+          </Typography>
+        </Alert>
+      </Stack>
     </Box>
   );
 };
-
-// ==================== MAIN COMPONENT ====================
 
 export const ExternalEntityDescriptionForm =
   React.memo<ExternalEntityFormProps>(
