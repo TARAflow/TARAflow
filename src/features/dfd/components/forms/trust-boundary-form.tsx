@@ -33,6 +33,13 @@ import {
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { useElementForm } from "../../hooks/use-element-form";
+import {
+  TB_TYPE_DEFAULTS,
+  TB_TYPE_DRIVEN_FIELDS,
+  TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS,
+  applyCascadeDefaults,
+  buildClearPatch,
+} from "../../models/element-property-defaults";
 
 // ==================== PROPS ====================
 
@@ -66,6 +73,49 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
     const { t } = useTranslation();
     const form = useElementForm<TrustBoundaryProperties>(element, onChange);
     const { props } = form;
+
+    // ── Cascade: boundaryType driver ─────────────────────────────────────────
+    const handleBoundaryTypeChange = (value: string) => {
+      if (!value) {
+        // Clear driver + all driven fields
+        onChange({
+          properties: {
+            ...props,
+            boundaryType: undefined,
+            ...buildClearPatch<TrustBoundaryProperties>(TB_TYPE_DRIVEN_FIELDS),
+          } as TrustBoundaryProperties,
+        });
+        return;
+      }
+      const typeKey = value as NonNullable<
+        TrustBoundaryProperties["boundaryType"]
+      >;
+      const defaults = TB_TYPE_DEFAULTS[typeKey] ?? {};
+      const cascaded = applyCascadeDefaults<TrustBoundaryProperties>(
+        props,
+        defaults,
+      );
+      onChange({
+        properties: {
+          ...props,
+          boundaryType: typeKey,
+          ...cascaded,
+        } as TrustBoundaryProperties,
+      });
+    };
+
+    // Dynamic placeholder for securityAssumptions — hint only, never overwrites analyst text
+    const securityAssumptionsPlaceholder =
+      props.boundaryType != null
+        ? (TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS[props.boundaryType] ??
+          t(
+            "tabs.dfd.element_description.trustboundary.fields.securityAssumptions.placeholder",
+            { defaultValue: "e.g. Inside is trusted, outside is hostile" },
+          ))
+        : t(
+            "tabs.dfd.element_description.trustboundary.fields.securityAssumptions.placeholder",
+            { defaultValue: "e.g. Inside is trusted, outside is hostile" },
+          );
 
     return (
       <Box p={1}>
@@ -102,9 +152,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             </InputLabel>
             <Select
               value={props.boundaryType ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("boundaryType", e.target.value)
-              }
+              onChange={(e) => handleBoundaryTypeChange(e.target.value)}
               label={t(
                 "tabs.dfd.element_description.trustboundary.fields.boundaryType.label",
                 { defaultValue: "Boundary Type" },
@@ -227,7 +275,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             })}
           />
 
-          {/* Security Assumptions */}
+          {/* Security Assumptions — dynamic placeholder driven by boundaryType */}
           <TextField
             fullWidth
             size="small"
@@ -241,10 +289,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             onChange={(e) =>
               form.handlePropertyChange("securityAssumptions", e.target.value)
             }
-            placeholder={t(
-              "tabs.dfd.element_description.trustboundary.fields.securityAssumptions.placeholder",
-              { defaultValue: "e.g. Inside is trusted, outside is hostile" },
-            )}
+            placeholder={securityAssumptionsPlaceholder}
             helperText={t(
               "tabs.dfd.element_description.trustboundary.fields.securityAssumptions.helper",
               {

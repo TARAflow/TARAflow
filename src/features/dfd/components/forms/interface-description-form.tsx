@@ -7,6 +7,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Box,
   Checkbox,
   Chip,
@@ -35,6 +36,13 @@ import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
+import {
+  INTERFACE_TYPE_DEFAULTS,
+  INTERFACE_TYPE_DRIVEN_FIELDS,
+  INTERFACE_TYPE_SAFETY_HINTS,
+  applyCascadeDefaults,
+  buildClearPatch,
+} from "../../models/element-property-defaults";
 
 interface InterfaceFormProps {
   element: DFDElement;
@@ -80,11 +88,42 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
   const form = useElementForm<InterfaceProperties>(element, onChange);
   const { props } = form;
 
+  // ── Cascade: type driver ─────────────────────────────────────────────────
+  const handleTypeChange = (value: string) => {
+    if (!value) {
+      // Clear driver + all driven fields
+      onChange({
+        properties: {
+          ...props,
+          type: undefined,
+          ...buildClearPatch<InterfaceProperties>(INTERFACE_TYPE_DRIVEN_FIELDS),
+        } as InterfaceProperties,
+      });
+      return;
+    }
+    const typeKey = value as NonNullable<InterfaceProperties["type"]>;
+    const defaults = INTERFACE_TYPE_DEFAULTS[typeKey] ?? {};
+    const cascaded = applyCascadeDefaults<InterfaceProperties>(props, defaults);
+    onChange({
+      properties: {
+        ...props,
+        type: typeKey,
+        ...cascaded,
+      } as InterfaceProperties,
+    });
+  };
+
+  // ── Derived states ───────────────────────────────────────────────────────
+
   const isCurrentlyOverride = !!(
     defaultExposureLevel &&
     props.exposureLevel &&
     EL_ORDER[props.exposureLevel] < EL_ORDER[defaultExposureLevel]
   );
+
+  // Safety hint for embedded attack-surface interfaces (usb, serial, gpio)
+  const safetyHintKey =
+    props.type != null ? INTERFACE_TYPE_SAFETY_HINTS[props.type] : undefined;
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -104,9 +143,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
             </InputLabel>
             <Select
               value={props.type ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("type", e.target.value)
-              }
+              onChange={(e) => handleTypeChange(e.target.value)}
               label={t(
                 "tabs.dfd.element_description.interface.fields.type.label",
               )}
@@ -160,6 +197,18 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
           />
         </Grid>
       </Grid>
+
+      {/* Safety hint for embedded attack-surface interface types */}
+      {safetyHintKey && (
+        <Alert severity="info" sx={{ py: 0.5 }}>
+          <Typography variant="caption">
+            {t(safetyHintKey, {
+              defaultValue:
+                "This interface type is a common attack surface on embedded systems. Consider setting safetyRelevant if connected to safety-critical components.",
+            })}
+          </Typography>
+        </Alert>
+      )}
 
       {/* ── Security ─────────────────────────────── */}
       <SectionLabel
@@ -465,7 +514,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};
+};;
 
 export const InterfaceDescriptionForm = React.memo<InterfaceFormProps>(
   ({

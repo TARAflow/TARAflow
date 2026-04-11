@@ -1028,6 +1028,11 @@
           }
         },
         "interface": {
+          "cascade_hints": {
+            "usb": "This interface type is a common attack surface on embedded systems. Consider setting Safety Relevant if connected to safety-critical components.",
+            "serial": "Serial interfaces are often connected to debug consoles or safety-critical components. Consider setting Safety Relevant if applicable.",
+            "gpio": "GPIO pins may connect directly to safety actuators or sensors. Consider setting Safety Relevant if this interface controls or reads safety-critical hardware."
+          },
           "fields": {
             "type": {
               "label": "Interface Type",
@@ -1214,6 +1219,11 @@
                 "websocket": "WebSocket",
                 "file": "File Transfer",
                 "database": "Database Protocol",
+                "can": "CAN",
+                "modbus": "Modbus",
+                "uart": "UART",
+                "spi": "SPI",
+                "i2c": "I2C",
                 "custom": "Custom Protocol"
               }
             },
@@ -1346,7 +1356,10 @@
                 "cloud": "Cloud Storage (S3, Blob)",
                 "cache": "Cache (Redis, Memcached)",
                 "queue": "Message Queue",
-                "blockchain": "Blockchain"
+                "blockchain": "Blockchain",
+                "flash": "Flash Memory",
+                "eeprom": "EEPROM",
+                "nvram": "NVRAM"
               }
             },
             "multiTenant": {
@@ -1370,6 +1383,10 @@
               "placeholder": "e.g. Manipulation could disable emergency stop function",
               "helper": "Used in EN 50742 / MVO 2027 documentation"
             }
+          },
+          "warnings": {
+            "classification_no_encryption": "Data classified as SECRET/RESTRICTED without encryption at rest — high Information Disclosure risk",
+            "safety_no_integrity": "Safety-relevant data without integrity protection — Tampering threat (EN 50742)"
           }
         },
         "trustboundary": {

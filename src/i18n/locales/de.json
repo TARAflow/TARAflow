@@ -1026,6 +1026,11 @@
           }
         },
         "interface": {
+          "cascade_hints": {
+            "usb": "USB-Schnittstellen sind häufige Angriffsflächen auf Embedded-Systemen. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle mit sicherheitskritischen Komponenten verbunden ist.",
+            "serial": "Serielle Schnittstellen sind oft mit Debug-Konsolen oder sicherheitskritischen Komponenten verbunden. Erwäge, Safety Relevant zu setzen, wenn zutreffend.",
+            "gpio": "GPIO-Pins können direkt mit Sicherheitsaktuatoren oder -sensoren verbunden sein. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle sicherheitskritische Hardware steuert oder ausliest."
+          },
           "fields": {
             "type": {
               "label": "Schnittstellentyp",
@@ -1212,6 +1217,11 @@
                 "websocket": "WebSocket",
                 "file": "Dateiübertragung",
                 "database": "Datenbankprotokoll",
+                "can": "CAN",
+                "modbus": "Modbus",
+                "uart": "UART",
+                "spi": "SPI",
+                "i2c": "I2C",
                 "custom": "Benutzerdefiniertes Protokoll"
               }
             },
@@ -1292,6 +1302,10 @@
           }
         },
         "datastore": {
+          "warnings": {
+            "classification_no_encryption": "Daten mit Klassifizierung SECRET/RESTRICTED ohne Verschlüsselung im Ruhezustand — hohes Risiko für Information Disclosure",
+            "safety_no_integrity": "Sicherheitsrelevante Daten ohne Integritätsschutz — Tampering-Bedrohung (EN 50742)"
+          },
           "fields": {
             "dataClassification": {
               "label": "Datenklassifizierung",
@@ -1344,7 +1358,10 @@
                 "cloud": "Cloud-Speicher (S3, Blob)",
                 "cache": "Cache (Redis, Memcached)",
                 "queue": "Message Queue",
-                "blockchain": "Blockchain"
+                "blockchain": "Blockchain",
+                "flash": "Flash-Speicher",
+                "eeprom": "EEPROM",
+                "nvram": "NVRAM"
               }
             },
             "multiTenant": {

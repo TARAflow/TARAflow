@@ -8,13 +8,7 @@ import type {
   ExternalEntityProperties,
   ProcessProperties,
 } from "../models/element-properties";
-import {
-  EXTERNAL_ENTITY_TYPE_DEFAULTS,
-  PROCESS_RUNSAS_DEFAULTS,
-  PROCESS_TECH_DEFAULTS,
-} from "../models/element-property-defaults";
 
-// ==================== TYPES ====================
 // ==================== TYPES ====================
 
 interface DFDUIState {
@@ -80,28 +74,6 @@ const saveState = (projectId: string, state: DFDUIState): void => {
   }
 };
 
-export function getProcessDefaults(
-  current: ProcessProperties,
-  updates: Partial<ProcessProperties>,
-): ProcessProperties {
-  let next: ProcessProperties = { ...current, ...updates };
-
-  // Determine Defaults for runsAs or technology
-  const defaults =
-    (updates.runsAs && PROCESS_RUNSAS_DEFAULTS[updates.runsAs]) ||
-    (updates.technology && PROCESS_TECH_DEFAULTS[updates.technology]) ||
-    {};
-
-  // Merge Defaults
-  Object.entries(defaults).forEach(([key, value]) => {
-    if (!(key in updates)) {
-      next[key as keyof ProcessProperties] = value as any;
-    }
-  });
-
-  return next;
-}
-
 export function enforceProcessSecurityConstraints(
   props: ProcessProperties,
 ): ProcessProperties {
@@ -138,47 +110,6 @@ export function enforceInternetExposureRules(
     inputValidation: props.inputValidation ?? "strict",
     errorHandling: props.errorHandling ?? "sanitized",
   };
-}
-
-export function normalizeProcessProperties(
-  props: ProcessProperties,
-): ProcessProperties {
-  let next = { ...props };
-
-  next = getProcessDefaults(next, {
-    technology: next.technology,
-    runsAs: next.runsAs,
-  });
-
-  next = enforceProcessSecurityConstraints(next);
-  next = enforceInternetExposureRules(next);
-
-  return next;
-}
-
-export function updateProcessProperties(
-  current: ProcessProperties,
-  updates: Partial<ProcessProperties>,
-): ProcessProperties {
-  const merged = { ...current, ...updates };
-  return normalizeProcessProperties(merged);
-}
-
-
-export function applyExternalEntityTypeDefaults(
-  entityType: string,
-  current: ExternalEntityProperties,
-): Partial<ExternalEntityProperties> {
-  const defaults = EXTERNAL_ENTITY_TYPE_DEFAULTS[entityType];
-  if (!defaults) return {};
-
-  return Object.fromEntries(
-    Object.entries(defaults).filter(
-      ([key, value]) =>
-        current[key as keyof ExternalEntityProperties] == null &&
-        value !== undefined,
-    ),
-  ) as Partial<ExternalEntityProperties>;
 }
 
 // ==================== HOOK ====================

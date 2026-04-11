@@ -187,7 +187,11 @@ export interface DataStoreProperties {
     | "cloud"
     | "cache"
     | "queue"
-    | "blockchain";
+    | "blockchain"
+    // Embedded storage
+    | "flash" // NOR/NAND Flash (firmware, config)
+    | "eeprom" // EEPROM (calibration data, device identity)
+    | "nvram"; // Non-volatile RAM (safety parameters, last-state);
   multiTenant?: boolean;
 
   // ---- Safety annotation (convenience flags — full traceability via linked Asset) ----
@@ -226,7 +230,14 @@ export interface DataFlowProperties {
     | "websocket"
     | "file"
     | "database"
-    | "custom";
+    | "custom"
+    // Embedded field-bus and serial protocols
+    // All default to: direction=unidirectional, endpointAuth=none, encryptionInTransit=none
+    | "can" // CAN bus — no auth, no encryption by design
+    | "modbus" // Modbus RTU/TCP — no auth, no encryption by design
+    | "uart" // UART serial — no auth, no encryption by design
+    | "spi" // SPI bus — no auth, no encryption by design
+    | "i2c"; // I2C bus — no auth, no encryption by design
   direction?: "unidirectional" | "bidirectional" | "requestresponse";
   frequency?: "continuous" | "periodic" | "ondemand" | "batch";
   volume?: string;

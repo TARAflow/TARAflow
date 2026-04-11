@@ -37,6 +37,12 @@ import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ConnectionFormShell } from "./connection-form-shell";
 import { useConnectionForm } from "../../hooks/use-connection-form";
+import {
+  DATAFLOW_PROTOCOL_DEFAULTS,
+  DATAFLOW_PROTOCOL_DRIVEN_FIELDS,
+  applyCascadeDefaults,
+  buildClearPatch,
+} from "../../models/element-property-defaults";
 
 // ==================== PROPS ====================
 
@@ -86,6 +92,35 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   const { t } = useTranslation();
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
   const { props } = form;
+
+  // ── Cascade: protocol driver ─────────────────────────────────────────────
+  const handleProtocolChange = (value: string) => {
+    if (!value) {
+      // Clear driver + all driven fields
+      onChange({
+        properties: {
+          ...props,
+          protocol: undefined,
+          ...buildClearPatch<DataFlowProperties>(
+            DATAFLOW_PROTOCOL_DRIVEN_FIELDS,
+          ),
+        } as DataFlowProperties,
+      });
+      return;
+    }
+    const protocolKey = value as NonNullable<DataFlowProperties["protocol"]>;
+    const defaults = DATAFLOW_PROTOCOL_DEFAULTS[protocolKey] ?? {};
+    const cascaded = applyCascadeDefaults<DataFlowProperties>(props, defaults);
+    onChange({
+      properties: {
+        ...props,
+        protocol: protocolKey,
+        ...cascaded,
+      } as DataFlowProperties,
+    });
+  };
+
+  // ── Derived warning states ───────────────────────────────────────────────
 
   const rationaleError =
     !!props.excludeFromThreatGen &&
@@ -144,9 +179,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             </InputLabel>
             <Select
               value={props.protocol ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("protocol", e.target.value)
-              }
+              onChange={(e) => handleProtocolChange(e.target.value)}
               label={t(
                 "tabs.dfd.element_description.dataflow.fields.protocol.label",
                 { defaultValue: "Protocol" },
@@ -173,6 +206,17 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   "custom",
                 ] as const
               ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.protocol.options.${opt}`,
+                    { defaultValue: opt.toUpperCase() },
+                  )}
+                </MenuItem>
+              ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Embedded protocols —
+              </MenuItem>
+              {(["can", "modbus", "uart", "spi", "i2c"] as const).map((opt) => (
                 <MenuItem key={opt} value={opt}>
                   {t(
                     `tabs.dfd.element_description.dataflow.fields.protocol.options.${opt}`,

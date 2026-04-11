@@ -29,7 +29,7 @@ import { useElementForm } from "../../hooks/use-element-form";
 import {
   updateProcessProperties,
   getProcessDefaults,
-} from "../../hooks/use-dfd-ui-state";
+} from "../../models/element-property-defaults";
 
 interface ProcessFormProps {
   element: DFDElement;

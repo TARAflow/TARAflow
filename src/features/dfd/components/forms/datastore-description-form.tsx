@@ -7,6 +7,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Box,
   Checkbox,
   Divider,
@@ -26,6 +27,12 @@ import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
+import {
+  DATASTORE_TECH_DEFAULTS,
+  DATASTORE_TECH_DRIVEN_FIELDS,
+  applyCascadeDefaults,
+  buildClearPatch,
+} from "../../models/element-property-defaults";
 
 interface DataStoreFormProps {
   element: DFDElement;
@@ -59,6 +66,46 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
   const form = useElementForm<DataStoreProperties>(element, onChange);
   const { props } = form;
 
+  // ── Cascade: technology driver ───────────────────────────────────────────
+  const handleTechnologyChange = (value: string) => {
+    if (!value) {
+      // Clear driver + all driven fields
+      onChange({
+        properties: {
+          ...props,
+          technology: undefined,
+          ...buildClearPatch<DataStoreProperties>(DATASTORE_TECH_DRIVEN_FIELDS),
+        } as DataStoreProperties,
+      });
+      return;
+    }
+    const techKey = value as NonNullable<DataStoreProperties["technology"]>;
+    const defaults = DATASTORE_TECH_DEFAULTS[techKey] ?? {};
+    const cascaded = applyCascadeDefaults<DataStoreProperties>(props, defaults);
+    onChange({
+      properties: {
+        ...props,
+        technology: techKey,
+        ...cascaded,
+      } as DataStoreProperties,
+    });
+  };
+
+  // ── Derived warning states ───────────────────────────────────────────────
+
+  // dataClassification SECRET/RESTRICTED without encryption → Information Disclosure risk
+  const isHighClassification =
+    props.dataClassification === "secret" ||
+    props.dataClassification === "restricted";
+  const showEncryptionClassificationWarning =
+    isHighClassification &&
+    (props.encryptionAtRest === "none" || props.encryptionAtRest == null);
+
+  // Safety-relevant data without integrity protection → Tampering threat
+  const showSafetyIntegrityWarning =
+    props.containsSafetyRelevantData === true &&
+    props.integrityProtection === false;
+
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
       {/* ── Context ─────────────────────────────── */}
@@ -80,9 +127,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
             </InputLabel>
             <Select
               value={props.technology ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("technology", e.target.value)
-              }
+              onChange={(e) => handleTechnologyChange(e.target.value)}
               label={t(
                 "tabs.dfd.element_description.datastore.fields.technology.label",
                 { defaultValue: "Technology" },
@@ -110,6 +155,18 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
                   {t(
                     `tabs.dfd.element_description.datastore.fields.technology.options.${opt}`,
                     { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+              {/* ↓ neu */}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Embedded storage —
+              </MenuItem>
+              {(["flash", "eeprom", "nvram"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.datastore.fields.technology.options.${opt}`,
+                    { defaultValue: opt.toUpperCase() },
                   )}
                 </MenuItem>
               ))}
@@ -202,7 +259,11 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
       <Grid container rowSpacing={2} columnSpacing={2}>
         {/* Encryption at Rest */}
         <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
+          <FormControl
+            fullWidth
+            size="small"
+            error={showEncryptionClassificationWarning}
+          >
             <InputLabel>
               {t(
                 "tabs.dfd.element_description.datastore.fields.encryptionAtRest.label",
@@ -239,6 +300,21 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
               )}
             </Select>
           </FormControl>
+          {showEncryptionClassificationWarning && (
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ mt: 0.5, display: "block" }}
+            >
+              {t(
+                "tabs.dfd.element_description.datastore.warnings.classification_no_encryption",
+                {
+                  defaultValue:
+                    "Data classified as SECRET/RESTRICTED without encryption at rest — high Information Disclosure risk",
+                },
+              )}
+            </Typography>
+          )}
         </Grid>
 
         {/* Access Control */}
@@ -365,6 +441,23 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
           />
         </Grid>
 
+        {/* Safety integrity warning — shown when safety flag is set but integrity protection is off */}
+        {showSafetyIntegrityWarning && (
+          <Grid item xs={12}>
+            <Alert severity="error" sx={{ py: 0.5 }}>
+              <Typography variant="caption">
+                {t(
+                  "tabs.dfd.element_description.datastore.warnings.safety_no_integrity",
+                  {
+                    defaultValue:
+                      "Safety-relevant data without integrity protection — Tampering threat (EN 50742)",
+                  },
+                )}
+              </Typography>
+            </Alert>
+          </Grid>
+        )}
+
         {props.containsSafetyRelevantData && (
           <Grid item xs={12}>
             <TextField
@@ -469,7 +562,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};
+};;;
 
 export const DataStoreDescriptionForm = React.memo<DataStoreFormProps>(
   ({ element, onChange, availableAssets = [], onCreateAsset }) => (
