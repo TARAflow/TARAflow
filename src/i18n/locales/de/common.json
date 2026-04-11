@@ -1,0 +1,523 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "close": "Schliessen",
+    "open": "Öffnen",
+    "create": "Erstellen",
+    "search": "Suchen",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolgreich",
+    "warning": "Warnung",
+    "confirm": "Bestätigen",
+    "yes": "Ja",
+    "no": "Nein",
+    "add": "Hinzufügen",
+    "back": "Zurück",
+    "unknown": "Unbekannt",
+    "seconds": "Sekunden",
+    "minutes": "Minuten",
+    "complete": "Abgeschlossen",
+    "continue": "Weiter",
+    "inProgress": "In Bearbeitung",
+    "errors": "Fehler",
+    "actions": "Aktionen",
+    "remove": "Entfernen",
+    "showDFD": "DFD-Vorschau anzeigen",
+    "hideDFD": "DFD-Vorschau ausblenden",
+    "all": "Alle",
+    "deleteAll": "Alle löschen",
+    "unsaved": "Nicht gespeichert",
+    "reset": "Zurücksetzen",
+    "none": "Nichts",
+    "collapse": "Zuklappen",
+    "notApplicable": "N/A – Nicht anwendbar"
+  },
+  "project": {
+    "title": "Projekt",
+    "projects": "Projekte",
+    "newProject": "Neues Projekt",
+    "openProject": "Projekt öffnen",
+    "importProject": "Projekt importieren",
+    "exportProject": "Projekt exportieren",
+    "deleteProject": "Projekt löschen",
+    "closeProject": "Projekt schliessen",
+    "saveProject": "Projekt speichern",
+    "name": "Projektname",
+    "description": "Beschreibung",
+    "version": "Version",
+    "responsible": "Verantwortlich",
+    "created": "Erstellt",
+    "lastModified": "Zuletzt geändert",
+    "status": "Status",
+    "tags": "Tags",
+    "openProjects": "Offene Projekte",
+    "recentProjects": "Kürzlich verwendete Projekte",
+    "noOpenProjects": "Keine offenen Projekte",
+    "noRecentProjects": "Keine kürzlich verwendeten Projekte",
+    "team": "Team"
+  },
+  "phases": {
+    "general": "Allgemein",
+    "dfd": "DFD",
+    "assets": "Assets",
+    "threats": "Bedrohungen",
+    "risk": "Risiko",
+    "phaseProgress": "Phasenfortschritt",
+    "overallProgress": "Gesamtfortschritt"
+  },
+  "status": {
+    "notStarted": "Nicht begonnen",
+    "inProgress": "In Bearbeitung",
+    "incomplete": "Unvollständig",
+    "complete": "Abgeschlossen",
+    "draft": "Entwurf",
+    "review": "Überprüfung"
+  },
+  "settings": {
+    "title": "Projekteinstellungen",
+    "strictMode": "Strikter Modus (alle Phasen erforderlich)",
+    "autoSave": "Automatisches Speichern aktiviert",
+    "language": "Sprache",
+    "theme": "Design",
+    "strictModeDescription": "Wenn aktiviert, müssen alle Phasen der Reihe nach abgeschlossen werden. Sie können erst zur nächsten Phase wechseln, wenn die vorherige abgeschlossen ist.",
+    "autoSaveDescription": "Speichert Ihre Änderungen in regelmässigen Abständen automatisch.",
+    "autoSaveInterval": "Intervall für automatisches Speichern",
+    "criticality": "Kritikalität",
+    "validation": "Validierung",
+    "saving": "Speichern",
+    "standardSystem": "Standard System",
+    "criticalSystem": "Kritisches System",
+    "criticalSystemDescription": "Attack Trees werden vor STRIDE-Bedrohungen analysiert",
+    "standardSystemDescription": "Standard STRIDE-first Bedrohungsanalyse-Workflow",
+    "criticalSystemTooltip": "Für sicherheitskritische oder hochgradig wichtige Systeme werden Attack Trees vor STRIDE-Bedrohungen analysiert, um Angriffspfade besser zu verstehen.",
+    "standardWorkflow": "Standard:",
+    "criticalWorkflow": "Kritisch:"
+  },
+  "validation": {
+    "nameRequired": "Projektname ist erforderlich",
+    "nameMinLength": "Projektname muss mindestens 3 Zeichen lang sein",
+    "nameMaxLength": "Projektname darf maximal 100 Zeichen lang sein",
+    "nameEmpty": "Name darf nicht leer sein",
+    "nameUnchanged": "Name wurde nicht geändert",
+    "nameExists": "Ein Projekt mit diesem Namen existiert bereits",
+    "nameInvalidChars": "Name enthält ungültige Zeichen: < > : \" / \\ | ? *",
+    "descriptionRequired": "Beschreibung ist erforderlich",
+    "responsibleRequired": "Verantwortlicher ist erforderlich"
+  },
+  "dialogs": {
+    "newProject": {
+      "title": "Neues Projekt",
+      "namePlaceholder": "Projektname eingeben...",
+      "descriptionPlaceholder": "Beschreiben Sie Ihr Projekt...",
+      "responsiblePlaceholder": "Verantwortliche Person...",
+      "customTagPlaceholder": "Eigenes Tag eingeben...",
+      "tagCategories": {
+        "domain": "Branche",
+        "platform": "Plattform",
+        "regulation": "Regulierung"
+      },
+      "createButton": "Projekt erstellen",
+      "infoTitle": "Was passiert als nächstes?",
+      "infoItem1": "Definieren Sie Ihre Systemarchitektur mit einem Datenflussdiagramm",
+      "infoItem2": "Identifizieren Sie Assets und ihre Sicherheitsanforderungen",
+      "infoItem3": "Analysieren Sie Bedrohungen mit der STRIDE-Methodik",
+      "infoItem4": "Bewerten und mindern Sie Risiken"
+    },
+    "deleteProject": {
+      "title": "Projekt löschen?",
+      "message": "Sind Sie sicher, dass Sie \"{{name}}\" löschen möchten?",
+      "warning": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten dieses Projekts werden dauerhaft gelöscht."
+    },
+    "unsavedChanges": {
+      "title": "Ungespeicherte Änderungen",
+      "message": "Möchten Sie die Änderungen an \"{{name}}\" speichern, bevor Sie das Projekt wechseln?",
+      "discard": "Nicht speichern"
+    },
+    "closeProject": {
+      "title": "Projekt schliessen?",
+      "message": "Projekt \"{{name}}\" hat ungespeicherte Änderungen.",
+      "discard": "Nicht speichern"
+    },
+    "openProject": {
+      "searchPlaceholder": "Projekte suchen...",
+      "allProjects": "Alle Projekte",
+      "noResults": "Keine Projekte gefunden für \"{{term}}\"",
+      "browseFile": "Datei auswählen..."
+    },
+    "rename": {
+      "title": "Projekt umbenennen",
+      "currentName": "Aktueller Name",
+      "newName": "Neuer Name",
+      "placeholder": "Neuer Projektname...",
+      "characters": "Zeichen",
+      "hints": "Hinweise",
+      "hint1": "Mindestens 3 Zeichen",
+      "hint2": "Maximal 100 Zeichen",
+      "hint3": "Keine Sonderzeichen: < > : \" / \\ | ? *",
+      "renameButton": "Umbenennen",
+      "keyboardHint": "Enter zum Bestätigen • Esc zum Abbrechen"
+    },
+    "import": {
+      "title": "Projekt importieren",
+      "selectFile": "Projekt-Datei auswählen",
+      "dropzone": "JSON-Datei hierher ziehen oder klicken zum Durchsuchen",
+      "browseButton": "Datei auswählen",
+      "errorTitle": "Fehler beim Laden",
+      "errorJsonOnly": "Nur JSON-Dateien werden unterstützt",
+      "errorFileSize": "Datei ist zu gross (max. 10MB)",
+      "errorInvalidJson": "Ungültige JSON-Datei",
+      "infoTitle": "Unterstützte Formate",
+      "infoItem1": "TARAflow Projektdateien (.json)",
+      "infoItem2": "Maximale Dateigrösse: 10MB",
+      "infoItem3": "Projekte werden vor dem Import validiert",
+      "preview": "Projekt-Vorschau",
+      "fileSize": "Grösse",
+      "options": "Import-Optionen",
+      "optionNewId": "Neue Projekt-ID generieren",
+      "optionNewIdDesc": "Empfohlen, um Konflikte zu vermeiden",
+      "optionValidate": "Vor Import validieren",
+      "optionValidateDesc": "Prüft die Datenintegrität",
+      "importing": "Projekt wird importiert...",
+      "pleaseWait": "Bitte warten Sie einen Moment",
+      "success": "Import erfolgreich!",
+      "successMessage": "Projekt \"{{name}}\" wurde erfolgreich importiert.",
+      "warnings": "Warnungen",
+      "failed": "Import fehlgeschlagen",
+      "failedMessage": "Das Projekt konnte nicht importiert werden.",
+      "errors": "Fehler",
+      "goToProject": "Zum Projekt"
+    }
+  },
+  "activity": {
+    "title": "Letzte Aktivitäten",
+    "created": "Projekt erstellt",
+    "updated": "Projektinformationen aktualisiert",
+    "exported": "Projekt exportiert",
+    "imported": "Projekt importiert",
+    "phaseChanged": "Phase {{phase}} → {{status}}",
+    "noActivity": "Noch keine Aktivitäten aufgezeichnet"
+  },
+  "projectInfo": {
+    "title": "Projektinformationen",
+    "tagCategories": {
+      "domain": "Branche",
+      "platform": "Plattform",
+      "regulation": "Regulierung"
+    },
+    "selectedTags": "Ausgewählte Tags",
+    "customTag": "Eigenes Tag",
+    "customTags": "Eigene",
+    "customTagPlaceholder": "Eigenes Tag eingeben...",
+    "selectCategory": "Kategorie wählen",
+    "criticality": "Kritikalität",
+    "criticalSystem": "Kritisches System",
+    "standardSystem": "Standard-System",
+    "criticalSystemTooltip": "Attack Trees werden vor STRIDE-Bedrohungen analysiert. Änderbar in Einstellungen.",
+    "standardSystemTooltip": "Standard STRIDE-first Workflow. Änderbar in Einstellungen.",
+    "noTags": "Keine Tags",
+    "noTeamMembers": "Keine Teammitglieder",
+    "teamMemberPlaceholder": "Teammitglied hinzufügen...",
+    "addTag": "Tag hinzufügen",
+    "addTeamMember": "Teammitglied hinzufügen",
+    "namePlaceholder": "Projektname eingeben...",
+    "versionPlaceholder": "1.0",
+    "responsiblePlaceholder": "Verantwortliche Person...",
+    "descriptionPlaceholder": "Beschreibe dein Projekt..."
+  },
+  "tags": {
+    "tooltips": {
+      "cra": "EU Cyber Resilience Act - Sicherheitsanforderungen für Produkte mit digitalen Elementen",
+      "nis2": "EU Netzwerk- und Informationssicherheit Richtlinie - Sicherheit kritischer Infrastrukturen",
+      "gdpr": "Datenschutz-Grundverordnung (DSGVO) - EU-Datenschutzrahmen",
+      "aiAct": "EU KI-Verordnung - Risikobasierte Regulierung für KI-Systeme",
+      "iec62443": "IEC 62443 - Sicherheit für industrielle Automatisierungs- und Steuerungssysteme",
+      "en18031": "EN 18031 - Cybersicherheitsanforderungen der Funkanlagenrichtlinie",
+      "iec81001": "IEC 81001 - Sicherheit, Wirksamkeit und Security von Gesundheitssoftware",
+      "iecTr60601": "IEC TR 60601-4-5 - Sicherheitsleitfaden für medizinische elektrische Geräte",
+      "iso21434": "ISO/SAE 21434 - Cybersicherheit für Straßenfahrzeuge",
+      "clcTs50701": "CLC/TS 50701 - Cybersicherheit für Bahnanwendungen",
+      "iec63452": "IEC 63452 - Sicherheit der Bahnkommunikation und -signalisierung",
+      "iso27001": "ISO/IEC 27001 - Informationssicherheits-Managementsystem (ISMS)",
+      "iso27017": "ISO/IEC 27017 - Cloud-Sicherheitskontrollen",
+      "etsiEn303645": "ETSI EN 303 645 - Cybersicherheits-Grundanforderungen für Consumer-IoT",
+      "en17927": "EN 17927 - Sicherheitsanforderungen für industrielles IoT",
+      "iec62351": "IEC 62351 - Sicherheit für Energiesysteme und Datenaustausch",
+      "en50742": "EN 50742 - Cybersicherheitsanforderungen der Maschinenverordnung",
+      "web": "Wie interagieren Nutzer über eine Web-Oberfläche mit dem System?",
+      "mobile": "Wie interagieren Nutzer über mobile Anwendungen mit dem System?",
+      "desktop": "Wie interagieren Nutzer über Desktop-Anwendungen mit dem System?",
+      "cloud": "Wo und unter wessen Verantwortung wird das System betrieben?",
+      "backend": "Welche zentrale Systemrolle übernimmt diese Komponente (z. B. APIs, Geschäftslogik, Datenverarbeitung)?",
+      "embedded": "Welche Geräteklasse oder hardwarebasierte Systemkomponente ist betroffen?",
+      "ot": "In welcher Betriebs- und Sicherheitsdomäne wird das System eingesetzt (z. B. OT, sicherheitskritische Umgebungen)?",
+      "iot": "Sind vernetzte Geräte beteiligt, die mit einem zentralen Backend oder Steuersystem kommunizieren?",
+      "ai": "Bestehen spezifische Risiken durch KI-Modelle, Trainingsdaten oder Inferenz?",
+      "aerospace": "Systeme für Raumfahrt und Satelliten mit hohen Sicherheits-, Safety- und Zuverlässigkeitsanforderungen.",
+      "automotive": "Fahrzeugsysteme und Fahrzeugsoftware mit sicherheitskritischen und regulatorischen Anforderungen.",
+      "aviation": "Luftfahrtsysteme mit strengen Sicherheits-, Safety- und Zulassungsvorgaben.",
+      "consumer": "Endkundenprodukte und -dienste mit Fokus auf Datenschutz, Skalierung und Benutzerinteraktion.",
+      "energy": "Energiesysteme (Erzeugung, Übertragung, Verteilung) mit hohen Zuverlässigkeitsanforderungen.",
+      "finance": "Finanzsysteme mit sensiblen Daten und regulatorischen Compliance-Pflichten.",
+      "industrial": "Industrielle Systeme, häufig OT-bezogen, mit hohen Anforderungen an Verfügbarkeit und Integrität.",
+      "medical": "Medizinische Systeme, die die Patientensicherheit direkt oder indirekt beeinflussen.",
+      "military": "Verteidigungssysteme mit hohen Anforderungen an Vertraulichkeit, Integrität und Verfügbarkeit.",
+      "pharma": "Pharmazeutische Systeme mit Compliance-, Qualitäts- und regulatorischen Anforderungen.",
+      "public_sector": "Systeme des öffentlichen Sektors mit hohen Anforderungen an Verfügbarkeit, Datenschutz und Nachvollziehbarkeit.",
+      "railway": "Bahnsysteme einschließlich Signal-, Betriebs- und sicherheitskritischer Steuerungssysteme.",
+      "telecom": "Telekommunikationssysteme, die großflächige Kommunikationsnetze und sensible Daten verarbeiten.",
+      "transportation": "Verkehrssysteme über mehrere Verkehrsträger hinweg mit betrieblichen und sicherheitskritischen Anforderungen.",
+      "water": "Wasserversorgungs- und Aufbereitungssysteme mit Sicherheits-, Zuverlässigkeits- und Compliance-Anforderungen."
+    },
+    "docDescriptions": {
+      "cra": "Der **EU Cyber Resilience Act (CRA)** etabliert verbindliche Cybersicherheitsanforderungen für Produkte mit digitalen Elementen über deren gesamten Lebenszyklus. Hersteller müssen sichere Entwicklungspraktiken (Security by Design) implementieren, Prozesse zur Schwachstellenbehandlung etablieren und kontinuierliche Sicherheitsupdates für die erwartete Produktlebensdauer bereitstellen. Wesentliche Anforderungen umfassen:\n\n- Risikobewertung und Bedrohungsanalyse während der Produktentwicklung\n- Sicherheitstests und Schwachstellenmanagement\n- Meldung von Vorfällen innerhalb von 24 Stunden nach Kenntnisnahme\n- Mindestens 5 Jahre Unterstützung mit Sicherheitsupdates\n- Technische Dokumentation einschließlich SBOM (Software-Stückliste)\n\nDiese Bedrohungsanalyse adressiert CRA-Anforderungen durch systematische Identifikation und Bewertung von Sicherheitsrisiken, Dokumentation von Gegenmaßnahmen und Etablierung einer Basis für kontinuierliches Schwachstellenmanagement.",
+      "nis2": "Die **NIS2-Richtlinie** (Netzwerk- und Informationssicherheitsrichtlinie 2) ist die umfassende EU-Cybersicherheitsgesetzgebung für kritische Infrastrukturen und wesentliche Dienste. Sie erweitert den Anwendungsbereich der ursprünglichen NIS-Richtlinie und führt strengere Sicherheits- und Meldeanforderungen ein.\n\nOrganisationen unter NIS2 müssen implementieren:\n\n- Risikoanalyse und Informationssystem-Sicherheitsrichtlinien\n- Vorfallbehandlung und Business-Continuity-Management\n- Maßnahmen zur Lieferkettensicherheit\n- Sicherheit bei Beschaffung von Netzwerk- und Informationssystemen\n- Kryptografie- und Verschlüsselungsrichtlinien\n\nDiese Bedrohungsanalyse trägt zur NIS2-Compliance bei, indem sie einen systematischen Risikobewertungsansatz bereitstellt und Sicherheitsmaßnahmen für die betroffenen Systeme dokumentiert.",
+      "gdpr": "Die **Datenschutz-Grundverordnung (DSGVO)** ist die EU-Verordnung für Datenschutz und Privatsphäre. Obwohl primär auf die Verarbeitung personenbezogener Daten ausgerichtet, fordert Artikel 32 DSGVO angemessene technische und organisatorische Maßnahmen zur Gewährleistung der Sicherheit.\n\nRelevante Sicherheitsanforderungen umfassen:\n\n- Pseudonymisierung und Verschlüsselung personenbezogener Daten\n- Vertraulichkeit, Integrität, Verfügbarkeit und Belastbarkeit der Verarbeitungssysteme\n- Fähigkeit zur Wiederherstellung der Datenverfügbarkeit nach Vorfällen\n- Regelmäßige Überprüfung und Bewertung von Sicherheitsmaßnahmen\n\nDiese Bedrohungsanalyse adressiert DSGVO-Sicherheitsanforderungen durch Identifikation von Bedrohungen für Vertraulichkeit, Integrität und Verfügbarkeit personenbezogener Daten sowie Dokumentation angemessener Schutzmaßnahmen.",
+      "aiAct": "Der **EU AI Act** etabliert einen risikobasierten regulatorischen Rahmen für Systeme der künstlichen Intelligenz. Hochrisiko-KI-Systeme müssen strenge Anforderungen an Sicherheit, Transparenz und menschliche Aufsicht erfüllen.\n\nSicherheitsrelevante Anforderungen für Hochrisiko-KI umfassen:\n\n- Risikomanagementsystem über den gesamten KI-Lebenszyklus\n- Anforderungen an Datengovernance und -qualität\n- Technische Dokumentation und Aufzeichnungspflichten\n- Robustheit gegen Angriffe und Fehler\n- Cybersicherheitsmaßnahmen entsprechend den Risiken\n\nDiese Bedrohungsanalyse adressiert AI-Act-Anforderungen durch Analyse KI/ML-spezifischer Sicherheitsrisiken, einschließlich Data Poisoning, Modellmanipulation und adversarialer Angriffe.",
+      "iec62443": "**IEC 62443** ist die internationale Normenreihe für die Sicherheit industrieller Automatisierungs- und Steuerungssysteme (IACS). Sie bietet ein umfassendes Framework für Betreiber, Systemintegratoren und Komponentenlieferanten.\n\nFür diese Analyse relevante Kernelemente:\n\n- **IEC 62443-3-2**: Sicherheitsrisikobewertung für das Systemdesign\n- **IEC 62443-3-3**: Systemsicherheitsanforderungen und Security Levels (SL 1-4)\n- **IEC 62443-4-1**: Anforderungen an den sicheren Produktentwicklungsprozess\n- **IEC 62443-4-2**: Technische Sicherheitsanforderungen für IACS-Komponenten\n\nDiese Bedrohungsanalyse folgt der IEC 62443-3-2-Methodik für Zonen- und Conduit-Analyse und ordnet identifizierte Risiken den in IEC 62443-3-3 definierten Security Levels zu.",
+      "en18031": "**EN 18031** (Teile 1-3) spezifiziert Cybersicherheitsanforderungen für Funkanlagen gemäß der Funkanlagenrichtlinie (RED). Diese Standards werden für die CE-Kennzeichnung vernetzter Geräte verpflichtend.\n\nDie Norm behandelt:\n\n- **EN 18031-1**: Allgemeine Sicherheitsanforderungen für alle internetfähigen Funkanlagen\n- **EN 18031-2**: Zusätzliche Anforderungen für Geräte, die persönliche oder Zahlungsdaten verarbeiten\n- **EN 18031-3**: Anforderungen für mit dem Internet verbundene Geräte bezüglich Netzwerksicherheit\n\nDiese Bedrohungsanalyse adressiert EN 18031-Compliance durch Analyse von Bedrohungen für Netzwerkressourcen, personenbezogene Daten und Betrugspräventionsmechanismen.",
+      "iec81001": "**IEC 81001-5-1** spezifiziert Sicherheitsanforderungen für Entwicklung und Wartung von Gesundheitssoftware und Gesundheits-IT-Systemen. Sie adressiert den kompletten Lebenszyklus von der Konzeption bis zur Außerbetriebnahme.\n\nWesentliche Anforderungen umfassen:\n\n- Sicherheitsrisikomanagement integriert mit Safety-Risikomanagement\n- Sichere Entwicklungspraktiken und Sicherheitstests\n- Schwachstellen- und Patch-Management-Prozesse\n- Sicherheitsdokumentation und Wartungsverfahren\n\nDiese Bedrohungsanalyse adressiert IEC 81001-Anforderungen durch systematische Bedrohungsidentifikation und Risikobewertung für Gesundheitssoftwarekomponenten unter Berücksichtigung von Security- und Safety-Implikationen.",
+      "iecTr60601": "**IEC TR 60601-4-5** bietet Leitlinien zu Sicherheitsanforderungen für medizinische elektrische Geräte und Systeme. Er ergänzt die grundlegenden Sicherheits- und Leistungsanforderungen von IEC 60601-1.\n\nDer Technical Report behandelt:\n\n- Sicherheitsrisikomanagement für Medizinprodukte\n- Sicherheitsfähigkeiten und erwartete Einsatzumgebung\n- Defense-in-Depth-Strategien für medizinische Systeme\n- Leitlinien zur Sicherheit der Einsatzumgebung\n\nDiese Bedrohungsanalyse berücksichtigt die Leitlinien von IEC TR 60601-4-5 durch Einbeziehung der spezifischen Bedrohungslandschaft medizinischer Geräte und ihrer Betriebsumgebung.",
+      "iso21434": "**ISO/SAE 21434** ist die internationale Norm für Cybersecurity Engineering bei Straßenfahrzeugen. Sie definiert Anforderungen über den gesamten Fahrzeuglebenszyklus von der Konzeption bis zur Außerbetriebnahme.\n\nKernelemente umfassen:\n\n- Threat Analysis and Risk Assessment (TARA) Methodik\n- Ableitung von Cybersicherheitszielen und -anforderungen\n- Verifizierung und Validierung von Cybersicherheitsmaßnahmen\n- Kontinuierliche Cybersicherheitsüberwachung und -reaktion\n\nDiese Bedrohungsanalyse folgt der ISO 21434 TARA-Methodik, identifiziert systematisch Bedrohungsszenarien, bewertet Angriffsdurchführbarkeit, bestimmt Auswirkungsbewertungen und leitet angemessene Cybersicherheitsziele und -anforderungen ab.",
+      "clcTs50701": "**CLC/TS 50701** spezifiziert Cybersicherheitsanforderungen für Bahnanwendungen und bietet Leitlinien für die Implementierung von Sicherheitsmaßnahmen in Bahnsystemen. Sie orientiert sich an IEC 62443-Prinzipien, angepasst für den Bahnbereich.\n\nDie Norm behandelt:\n\n- Sicherheitsrisikoanalyse für Bahnsysteme\n- Sicherheitszonen und Kommunikationskanäle\n- Sicherheitsanforderungen für Systemkomponenten\n- Integration mit Bahn-Safety-Prozessen (EN 50126, EN 50129)\n\nDiese Bedrohungsanalyse wendet die CLC/TS 50701-Methodik für bahnspezifische Bedrohungsidentifikation und Risikobewertung an unter Berücksichtigung der einzigartigen betrieblichen und Sicherheitsanforderungen von Bahnsystemen.",
+      "iec63452": "**IEC 63452** adressiert Cybersicherheit für Bahnkommunikation und Signalsysteme. Sie bietet spezifische Sicherheitsanforderungen für sicherheitskritische Bahnanwendungen.\n\nWesentliche Aspekte umfassen:\n\n- Sicherheit für Zugsteuerungs- und Signalsysteme\n- Schutz sicherheitsrelevanter Kommunikation\n- Integration von Security- und Safety-Anforderungen\n- Sichere Systemarchitektur für Bahnanwendungen\n\nDiese Bedrohungsanalyse berücksichtigt IEC 63452-Anforderungen zur Absicherung der Kommunikation zwischen Bahnkomponenten bei gleichzeitiger Aufrechterhaltung der erforderlichen Sicherheitsintegritätsstufen.",
+      "iso27001": "**ISO/IEC 27001** ist die internationale Norm für Informationssicherheits-Managementsysteme (ISMS). Sie bietet einen Rahmen für Aufbau, Implementierung, Aufrechterhaltung und kontinuierliche Verbesserung der Informationssicherheit.\n\nFür diese Analyse relevante Anforderungen:\n\n- Risikobewertungs- und Behandlungsmethodik\n- Sicherheitsmaßnahmen aus Anhang A\n- Dokumentations- und Aufzeichnungsanforderungen\n- Kontinuierliche Verbesserungsprozesse\n\nDiese Bedrohungsanalyse trägt zur ISO 27001-Compliance bei durch Bereitstellung systematischer Risikobewertungsdokumentation und Identifikation angemessener Sicherheitsmaßnahmen aus Anhang A.",
+      "iso27017": "**ISO/IEC 27017** bietet Leitlinien für Informationssicherheitsmaßnahmen für Cloud-Dienste und erweitert ISO 27002-Maßnahmen für die Cloud-Umgebung.\n\nWesentliche adressierte Bereiche:\n\n- Geteilte Verantwortlichkeiten zwischen Cloud-Dienstleistern und Kunden\n- Cloud-spezifische Sicherheitsmaßnahmen und Implementierungsleitlinien\n- Sicherheit und Isolation virtueller Maschinen\n- Sicherheit der Cloud-Dienstverwaltung\n\nDiese Bedrohungsanalyse adressiert ISO 27017-Anforderungen durch Analyse cloud-spezifischer Bedrohungen und Identifikation angemessener Maßnahmen für das Cloud-Deployment-Modell.",
+      "etsiEn303645": "**ETSI EN 303 645** etabliert eine Cybersicherheits-Baseline für Consumer-IoT-Geräte. Sie definiert 13 Sicherheitsbestimmungen, die Hersteller implementieren müssen.\n\nDie Norm fordert:\n\n- Keine universellen Standardpasswörter\n- Implementierung einer Schwachstellen-Offenlegungsrichtlinie\n- Software-Update-Mechanismen\n- Sichere Speicherung sensibler Sicherheitsparameter\n- Sichere Kommunikation\n- Minimierte exponierte Angriffsflächen\n\nDiese Bedrohungsanalyse adressiert ETSI EN 303 645-Anforderungen durch Identifikation IoT-gerätespezifischer Bedrohungen und Verifizierung, dass grundlegende Sicherheitsbestimmungen angemessen adressiert sind.",
+      "en17927": "**EN 17927** spezifiziert Cybersicherheitsanforderungen für industrielle IoT (IIoT) Geräte und Systeme. Sie adressiert die spezifischen Herausforderungen von IoT-Geräten in industriellen Umgebungen.\n\nWesentliche Anforderungen umfassen:\n\n- Sichere Geräteidentität und Authentifizierung\n- Sichere Kommunikationsprotokolle\n- Firmware- und Software-Update-Sicherheit\n- Sicheres Konfigurationsmanagement\n- Fähigkeiten zur Vorfallserkennung und -reaktion\n\nDiese Bedrohungsanalyse analysiert industrielle IoT-Deployments spezifische Bedrohungen und verifiziert Compliance mit EN 17927-Sicherheitsanforderungen.",
+      "iec62351": "**IEC 62351** bietet Sicherheitsstandards für Energiesystem-Kommunikationsprotokolle. Sie adressiert Vertraulichkeit, Integrität und Verfügbarkeit des Datenaustauschs in Energiesystemen.\n\nDie Normenreihe behandelt:\n\n- Authentifizierung und Zugriffskontrolle für SCADA-Systeme\n- Sichere Kommunikation für IEC 61850 und DNP3-Protokolle\n- Schlüsselmanagement für Energiesystem-Sicherheit\n- Rollenbasierte Zugriffskontrolle für Energiesysteme\n\nDiese Bedrohungsanalyse adressiert IEC 62351-Anforderungen durch Analyse von Bedrohungen für Energiesystem-Kommunikation und -Steuerungssysteme und stellt sicher, dass angemessene Sicherheitsmaßnahmen implementiert sind.",
+      "en50742": "**EN 50742** spezifiziert Cybersicherheitsanforderungen für Maschinen gemäß der neuen Maschinenverordnung. Sie adressiert Sicherheit für Industriemaschinen mit digitalen Komponenten.\n\nAnforderungen umfassen:\n\n- Sicherheitsrisikobewertung für Maschinen\n- Sicherer Fernzugriff und Konnektivität\n- Schutz gegen unbefugte Modifikation\n- Mechanismen für Sicherheitsupdates\n- Integration mit Maschinen-Safety-Anforderungen\n\nDiese Bedrohungsanalyse adressiert EN 50742-Anforderungen durch Analyse von Sicherheitsbedrohungen für Maschinensteuerungssysteme und stellt angemessene Schutzmaßnahmen sicher unter Beibehaltung erforderlicher Sicherheitsfunktionen."
+    }
+  },
+  "messages": {
+    "projectCreated": "Projekt \"{{name}}\" erstellt!",
+    "projectDeleted": "Projekt \"{{name}}\" gelöscht",
+    "projectExported": "Projekt \"{{name}}\" exportiert",
+    "projectImported": "Projekt \"{{name}}\" importiert!",
+    "projectSaved": "Projekt \"{{name}}\" gespeichert",
+    "importFailed": "Import fehlgeschlagen: {{error}}",
+    "saveFailed": "Speichern fehlgeschlagen: {{error}}",
+    "invalidProjects": "{{count}} ungültige(s) Projekt(e) wurden entfernt",
+    "strictModeWarning": "⚠️ Warnung: Vorherige Phase ist nicht abgeschlossen. Strikter Modus ist aktiviert.",
+    "autoNumberComplete": "Labels wurden automatisch nummeriert",
+    "autoNumberFailed": "Automatische Nummerierung fehlgeschlagen"
+  },
+  "emptyState": {
+    "title": "Kein Projekt geöffnet",
+    "description": "Erstellen Sie ein neues Projekt oder öffnen Sie ein bestehendes, um zu beginnen.",
+    "createNew": "Neues Projekt erstellen",
+    "openExisting": "Bestehendes Projekt öffnen"
+  },
+  "sidebar": {
+    "moreOptions": "Weitere Optionen",
+    "unsavedChanges": "Ungespeicherte Änderungen"
+  },
+  "time": {
+    "justNow": "Gerade eben",
+    "minutesAgo": "vor {{count}}m",
+    "hoursAgo": "vor {{count}}h",
+    "yesterday": "Gestern",
+    "daysAgo": "vor {{count}} Tagen"
+  },
+  "assets": {
+    "groups": {
+      "data": "Daten",
+      "function": "Funktion",
+      "system": "System",
+      "infrastructure": "Infrastruktur",
+      "process": "Prozess",
+      "physical": "Physisches Asset",
+      "service": "Service",
+      "human": "Personen"
+    },
+    "relations": {
+      "element": {
+        "data": {
+          "creates": "Erzeugt",
+          "reads": "Liest",
+          "modifies": "Veraendert",
+          "deletes": "Loescht",
+          "stores": "Speichert",
+          "transports": "Transportiert",
+          "is_an": "Ist eine Instanz von"
+        },
+        "function": {
+          "executes": "Fuehrt aus",
+          "invokes": "Ruft auf",
+          "implements": "Implementiert",
+          "monitors": "Ueberwacht",
+          "depends_on": "Abhaengig von",
+          "is_an": "Ist eine Instanz von"
+        },
+        "process": {
+          "executes": "Fuehrt aus",
+          "invokes": "Ruft auf",
+          "terminates": "Beendet",
+          "suspends": "Pausiert",
+          "monitors": "Ueberwacht",
+          "is_an": "Ist eine Instanz von"
+        },
+        "system": {
+          "controls": "Kontrolliert",
+          "configures": "Konfiguriert",
+          "monitors": "Ueberwacht",
+          "uses": "Nutzt",
+          "depends_on": "Abhaengig von",
+          "is_an": "Ist eine Instanz von"
+        },
+        "infrastructure": {
+          "accesses": "Greift zu auf",
+          "secures": "Schuetzt",
+          "damages": "Beschaedigt",
+          "powers": "Versorgt",
+          "monitors": "Ueberwacht",
+          "is_an": "Ist eine Instanz von"
+        },
+        "physical": {
+          "accesses": "Greift physisch zu auf",
+          "damages": "Beschaedigt",
+          "secures": "Sichert",
+          "monitors": "Ueberwacht",
+          "is_an": "Ist eine Instanz von"
+        },
+        "service": {
+          "uses": "Nutzt",
+          "configures": "Konfiguriert",
+          "monitors": "Ueberwacht",
+          "depends_on": "Abhaengig von",
+          "is_an": "Ist eine Instanz von"
+        },
+        "human": {
+          "affects_safety": "Gefaehrdet physisch",
+          "affects_privacy": "Beeintraechtigt Privatsphaere",
+          "identifies": "Identifiziert",
+          "tracks": "Verfolgt",
+          "exposes": "Exponiert",
+          "is_an": "Ist eine Instanz von"
+        }
+      },
+      "a2a": {
+        "relationType": "Beziehungstyp",
+        "noRelations": "Keine Asset-zu-Asset-Beziehungen definiert.",
+        "add": "Beziehung hinzufügen",
+        "addRelation": "Asset-Beziehung hinzufügen",
+        "selectTarget": "Ziel-Asset",
+        "derives_from": "Abgeleitet von",
+        "aggregates": "Aggregiert",
+        "supersedes": "Ersetzt",
+        "calls": "Ruft auf",
+        "triggers": "Loest aus",
+        "suspends": "Unterbricht",
+        "integrates": "Integriert",
+        "powers": "Versorgt",
+        "houses": "Beherbergt",
+        "mechanically_linked": "Mechanisch verbunden",
+        "delegates_to": "Delegiert an",
+        "manages": "Verwaltet",
+        "reports_to": "Rapportiert an",
+        "required_by": "Benoetigt von",
+        "consumed_by": "Verbraucht von",
+        "configures": "Konfiguriert",
+        "exposes": "Exponiert",
+        "creates": "Erzeugt",
+        "reads": "Liest",
+        "modifies": "Veraendert",
+        "deletes": "Loescht",
+        "implemented_by": "Implementiert durch",
+        "implements": "Implementiert",
+        "invokes": "Ruft auf",
+        "hosted_on": "Laeuft auf",
+        "powered_by": "Versorgt durch",
+        "operated_by": "Bedient durch",
+        "runs_on": "Laeuft auf",
+        "enables": "Ermoeglicht",
+        "hosts": "Hostet",
+        "controlled_by": "Gesteuert durch",
+        "connected_to": "Verbunden mit",
+        "located_in": "Befindet sich in",
+        "endangers": "Gefaehrdet",
+        "provides": "Stellt bereit",
+        "consumes": "Verarbeitet",
+        "integrates_with": "Integriert mit",
+        "monitors": "Ueberwacht",
+        "owns": "Besitzt",
+        "accesses": "Greift zu auf",
+        "responsible_for": "Verantwortlich fuer",
+        "authorized_for": "Autorisiert fuer",
+        "depends_on": "Abhaengig von",
+        "affects_safety": "Gefaehrdet physisch",
+        "affects_privacy": "Beeintraechtigt Privatsphaere"
+      },
+      "qualifiers": {
+        "system": {
+          "hardware": "Hardware-Zugriff",
+          "library": "Bibliothek / SDK",
+          "network": "Netzwerkzugriff",
+          "local": "Lokaler Zugriff",
+          "authentication": "Authentifizierung",
+          "authorization": "Autorisierung",
+          "api": "API",
+          "storage": "Speicher",
+          "computation": "Berechnung",
+          "messaging": "Messaging",
+          "configuration": "Konfiguration",
+          "monitoring": "Monitoring",
+          "networking": "Netzwerk"
+        },
+        "service": {
+          "api": "API (REST / SOAP / gRPC)",
+          "sdk": "SDK / Bibliothek",
+          "webhook": "Webhook (ereignisbasiert)",
+          "managed": "Managed (kein API-Zugriff)"
+        },
+        "infrastructure": {
+          "on-site": "Vor Ort (Gelaende / Anlage)",
+          "proximity": "Naehe (RFID- / WLAN-Reichweite)",
+          "internal": "Intern (Gehaeuse-Inneres)"
+        },
+        "physical": {
+          "direct": "Direkter Kontakt (physisch)",
+          "indirect": "Naehe / Sensor",
+          "remote": "Remote (vernetztes Bauteil)"
+        }
+      }
+    }
+  },
+  "stride": {
+    "S": {
+      "name": "Spoofing",
+      "property": "Authentifizierung",
+      "description": "Vorgeben, etwas oder jemand anderes zu sein"
+    },
+    "T": {
+      "name": "Manipulation",
+      "property": "Integrität",
+      "description": "Ändern von etwas, das nicht geändert werden sollte"
+    },
+    "R": {
+      "name": "Abstreitbarkeit",
+      "property": "Nichtabstreitbarkeit",
+      "description": "Behaupten, etwas nicht getan zu haben"
+    },
+    "I": {
+      "name": "Informationspreisgabe",
+      "property": "Vertraulichkeit",
+      "description": "Offenlegung von Informationen an Unbefugte"
+    },
+    "D": {
+      "name": "Dienstverweigerung",
+      "property": "Verfügbarkeit",
+      "description": "Aktionen, die das System am Bereitstellen von Diensten hindern"
+    },
+    "E": {
+      "name": "Rechteausweitung",
+      "property": "Autorisierung",
+      "description": "Ausführen von Operationen ohne entsprechende Berechtigung"
+    }
+  }
+}

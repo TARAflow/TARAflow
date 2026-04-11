@@ -1,0 +1,70 @@
+{
+  "tabs": {
+    "doc": {
+      "title": "Dokumentation",
+      "description": "Erstelle die komplette Dokumentation für die Einhaltung der Regularien",
+      "format": "Format",
+      "docLanguage": "Dokumentsprache",
+      "outputSettings": "Ausgabe-Einstellungen",
+      "showSource": "Quellcode anzeigen",
+      "showPreview": "Vorschau anzeigen",
+      "showSidebar": "Seitenleiste einblenden",
+      "hideSidebar": "Seitenleiste ausblenden",
+      "regenerate": "Neu generieren",
+      "settings": "Template-Einstellungen",
+      "download": "Herunterladen",
+      "ready": "Bereit",
+      "toggleView": "Ansicht wechseln",
+      "warnings": "Warnungen",
+      "chaptersTitle": "Kapitelübersicht",
+      "chapters": {
+        "executiveSummary": "Zusammenfassung",
+        "systemOverview": "Systemübersicht",
+        "dfd": "Datenflussdiagramm",
+        "assets": "Asset-Inventar",
+        "threatsPerElement": "Bedrohungsanalyse (STRIDE pro Element)",
+        "threatsPerInteraction": "Bedrohungsanalyse (STRIDE pro Interaktion)",
+        "risksPerElement": "Risikobewertung (STRIDE pro Element)",
+        "risksPerInteraction": "Risikobewertung (STRIDE pro Interaktion)",
+        "acceptedRisks": "Akzeptierte Risiken (Wird nicht behandelt)",
+        "appendix": "Anhang"
+      },
+      "empty": "Leer",
+      "noContent": "Noch kein Inhalt generiert",
+      "stats": "Statistiken",
+      "statsAssets": "Assets",
+      "statsThreats": "Bedrohungen",
+      "statsRisks": "Risiken",
+      "statsWont": "Akzeptiert",
+      "config": {
+        "title": "Dokument-Template Einstellungen",
+        "general": "Allgemein",
+        "headerFooter": "Kopf- & Fusszeile",
+        "options": "Optionen",
+        "organization": "Organisationsname",
+        "organizationHelp": "Erscheint in den Dokument-Metadaten",
+        "logoPath": "Logo-Pfad",
+        "logoPathHelp": "Relativer Pfad zur Logo-Bilddatei",
+        "classification": "Dokumentklassifizierung",
+        "noClassification": "Keine",
+        "version": "Dokumentversion",
+        "versionAuto": "Projektversion verwenden",
+        "versionCustom": "Benutzerdefinierte Version:",
+        "headerFooterInfo": "Kopf- und Fusszeilen-Text erscheint in PDF-Exporten. Für Markdown/AsciiDoc werden sie als Kommentare eingefügt.",
+        "headerText": "Kopfzeilen-Text",
+        "footerText": "Fusszeilen-Text",
+        "dateFormat": "Datumsformat",
+        "includeToc": "Inhaltsverzeichnis einschliessen",
+        "includeTocHelp": "Generiert ein klickbares Inhaltsverzeichnis am Anfang",
+        "includePageNumbers": "Seitennummern einschliessen (PDF)",
+        "includePageNumbersHelp": "Fügt Seitennummern in PDF-Exporten hinzu"
+      },
+      "classification": {
+        "public": "ÖFFENTLICH",
+        "internal": "INTERN",
+        "confidential": "VERTRAULICH",
+        "restricted": "EINGESCHRÄNKT"
+      }
+    }
+  }
+}

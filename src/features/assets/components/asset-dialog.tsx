@@ -761,7 +761,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                               );
                             }
                             if (val === "na") {
-                              return t("tabs.assets.dialog.notApplicable", {
+                              return t("common.notApplicable", {
                                 defaultValue: "N/A – Not applicable",
                               });
                             }
@@ -805,7 +805,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                                 }}
                               />
                               <span>
-                                {t("tabs.assets.dialog.notApplicable", {
+                                {t("common.notApplicable", {
                                   defaultValue: "N/A – Not applicable",
                                 })}
                               </span>

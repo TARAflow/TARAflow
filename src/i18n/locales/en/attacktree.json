@@ -1,0 +1,16 @@
+{
+  "tabs": {
+    "attacktree": {
+      "title": "Attack Tree",
+      "description": "Evaluate the likelihood of a threat with attack tree",
+      "config": {
+        "title": "Attack Tree Configuration",
+        "evaluationMethod": "Risk Evaluation Method",
+        "editorSettings": "Editor Settings",
+        "autoSave": "Auto-Save",
+        "lineNumbers": "Show Line Numbers",
+        "fontSize": "Font Size"
+      }
+    }
+  }
+}

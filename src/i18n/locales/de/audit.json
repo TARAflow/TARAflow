@@ -1,0 +1,75 @@
+{
+  "audit": {
+    "summary": {
+      "title": "Änderungsübersicht",
+       "noChanges": "Keine Änderungen erkannt",
+      "totalChanges": "Gesamt",
+      "added": "Hinzugefügt",
+      "affectedPhases": "Betroffene Phasen:",
+      "items": "Einträge",
+      "commitMessagePreview": "Commit-Nachricht Vorschau",
+      "info": "Klicke in der Toolbar auf 'Detail', um Änderungen pro Phase zu sehen, oder auf 'Commit', um einen Git-Commit zu erstellen."
+    },
+    "commit": {
+      "title": "Commit erstellen",
+      "branchSelection": "Branch-Auswahl",
+      "currentBranch": "Aktueller Branch:",
+      "autoIncrement": "Auto-Inkrement:",
+      "customBranch": "Benutzerdefinierter Branch:",
+      "roundName": "Rundenname",
+      "reviewer": "Reviewer (optional)",
+      "message": "Commit-Nachricht",
+      "commitAndPush": "Commit & Push"
+    },
+    "config": {
+      "title": "Git-Konfiguration",
+      "tabs": {
+        "general": "Allgemein",
+        "auth": "Authentifizierung",
+        "gpg": "GPG-Signierung",
+        "rounds": "Rundennamen"
+      },
+      "provider": "Git-Anbieter",
+      "remoteUrl": "Remote-Repository-URL",
+      "defaultBranch": "Standard-Branch",
+      "branchTemplate": "Feature-Branch-Vorlage",
+      "branchTemplateHelp": "Vorlage für automatisch generierte Branch-Namen (z.B. 'risk-round-' → 'risk-round-1')",
+      "authorName": "Autorenname",
+      "authorEmail": "Autoren-E-Mail",
+      "defaultRounds": "Standard-Rundennamen",
+      "customRounds": "Benutzerdefinierte Rundennamen",
+      "authMethod": "Authentifizierungsmethode",
+      "authPAT": "Personal Access Token",
+      "authSSH": "SSH-Schlüssel",
+      "patInfo": "Der Personal Access Token wird sicher im System-Schlüsselbund gespeichert.",
+      "patToken": "Personal Access Token",
+      "patHelp": "Gib deinen PAT mit 'repo'-Berechtigungen ein. Leer lassen, um den bestehenden Token zu behalten.",
+      "enableGPG": "GPG-Signierung für Commits aktivieren",
+      "sshInfo": "Die SSH-Authentifizierung verwendet die SSH-Schlüssel deines Systems (~/.ssh/id_rsa oder ~/.ssh/id_ed25519).",
+      "sshKeyPath": "Pfad zum SSH-Schlüssel (optional)",
+      "sshKeyPathHelp": "Leer lassen, um den Standard-SSH-Schlüssel zu verwenden",
+      "gpgInfo": "Die GPG-Signierung stellt sicher, dass deine Commits kryptografisch verifiziert sind. Dein privater Schlüssel wird sicher gespeichert.",
+      "gpgKeyId": "GPG-Schlüssel-ID",
+      "gpgKeyIdHelp": "Gib die letzten 8 Zeichen deiner GPG-Schlüssel-ID ein",
+      "gpgPrivateKey": "GPG-Privater Schlüssel (optional)",
+      "gpgPrivateKeyHelp": "Füge deinen gepanzerten privaten Schlüssel ein. Leer lassen, um den bestehenden Schlüssel zu behalten oder einen neuen zu erzeugen.",
+      "generateGPGKey": "GPG-Schlüssel erzeugen (Demnächst)"
+    },
+    "diff": {
+      "noChanges": "Keine Änderungen zum Anzeigen"
+    },
+    "warnings": {
+      "notConfigured": "Git-Konfiguration unvollständig. Bitte Git-Einstellungen vor dem Commit konfigurieren."
+    },
+    "toolbar": {
+      "configure": "Git-Konfiguration",
+      "refresh": "Änderungen aktualisieren",
+      "showDetail": "Details anzeigen",
+      "commit": "Commit",
+      "hideDetail": "Details ausblenden"
+    },
+    "status": {
+      "notConfigured": "Nicht konfiguriert"
+    }
+  }
+}

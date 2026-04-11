@@ -1,0 +1,1106 @@
+{
+  "tabs": {
+    "dfd": {
+      "title": "DFD Editor",
+      "description": "Erstellen und bearbeiten Sie hier Ihr Datenflussdiagramm.",
+      "loading": "DFD Editor wird geladen...",
+      "proceed": "Weiter",
+      "toolbar": {
+        "zoomIn": "Vergrössern",
+        "zoomOut": "Verkleinern",
+        "fitToScreen": "Einpassen",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "exportImage": "Als Bild exportieren",
+        "refresh": "Validierung aktualisieren",
+        "autoNumber": "Labels automatisch nummerieren",
+        "darkMode": "Dark Mode",
+        "draw": "DFD zeichnen",
+        "describe": "DFD beschreiben",
+        "exportDFD": "DFD exportieren",
+        "importDFD": "DFD importieren",
+        "settings": "DFD-Einstellungen"
+      },
+      "config": {
+        "title": "DFD-Einstellungen"
+      },
+      "autoNumbering": {
+        "sortStrategy": "Auto-Nummerierung – Reihenfolge",
+        "diagonal": "Diagonal (obere linke Ecke gewinnt)",
+        "diagonalHint": "Score = gewichtX·x + gewichtY·y. Das Element am nächsten zur oberen linken Ecke gewinnt. Konfigurierbare Gewichte, IdLabel-Position als Tiebreaker.",
+        "topDown": "Oben → Unten (dann Links → Rechts)",
+        "topDownHint": "Elemente weiter oben erhalten niedrigere Nummern. Innerhalb der gleichen Zeile (Toleranzband) gewinnt links. Geeignet für dokumentartige DFDs.",
+        "leftRight": "Links → Rechts (dann Oben → Unten)",
+        "leftRightHint": "Elemente weiter links erhalten niedrigere Nummern. Innerhalb der gleichen Spalte (Toleranzband) gewinnt oben. Geeignet für OT/ICS-Diagramme mit Feld–Steuerung–IT-Zonen.",
+        "tolerance": "Ausrichtungstoleranz",
+        "toleranceHintX": "Maximaler X-Abstand (px), innerhalb dessen zwei Elemente als gleiche Spalte gelten. Das obere Element gewinnt im Band.",
+        "toleranceHintY": "Maximaler Y-Abstand (px), innerhalb dessen zwei Elemente als gleiche Zeile gelten. Das linke Element gewinnt im Band.",
+        "weights": "Diagonale Gewichte",
+        "weightsHint": "Score = gewichtX·x + gewichtY·y. Höheres Y-Gewicht → vertikale Position zählt mehr. Standard: 0.8x + 1.0y.",
+        "weightX": "X-Gewicht (horizontal)",
+        "weightY": "Y-Gewicht (vertikal)",
+        "configHint": "Nach dem Speichern «Auto-Nummerieren» klicken. Alle Elemente werden von Grund auf neu nummeriert."
+      },
+      "preview": {
+        "title": "DFD Vorschau",
+        "generating": "Vorschau wird generiert...",
+        "download": "Herunterladen"
+      },
+      "stats": {
+        "elements": "Elemente",
+        "flows": "Datenflüsse",
+        "described": "Beschrieben"
+      },
+      "validation": {
+        "valid": "Gültig",
+        "errors": "Fehler",
+        "warnings": "Warnungen",
+        "required": "Erforderlich",
+        "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich",
+        "df": {
+          "label": {
+            "empty": "{{name}} — leeres oder nicht lesbares Label",
+            "deprecatedVerb": "{{name}} — veraltetes Verb, 'send'/'recv' durch 'push' oder 'pull' ersetzen",
+            "unknownVerb": "{{name}} — unbekanntes Verb (gültige Verben sind pull, push, write, stream)",
+            "missingObject": "{{name}} — Objekt fehlt, erwartet '<verb> <objekt> [<flow-type>]'"
+          },
+          "pull": {
+            "missingFlowType": "{{name}} — pull erfordert einen Flow-Type [req] oder [resp]",
+            "invalidFlowType": "{{name}} — ungültiger Flow-Type für pull (erwartet [req] oder [resp])",
+            "missingResponse": "{{name}} — kein passendes pull [resp] für dieses pull [req] gefunden",
+            "multipleResponses": "{{name}} — mehrere pull [resp] gefunden, genau eines erwartet",
+            "orphanedResponse": "{{name}} — verwaistes pull [resp], kein passendes pull [req] gefunden"
+          },
+          "push": {
+            "missingCmd": "{{name}} — push erfordert den Flow-Type [cmd]",
+            "invalidFlowType": "{{name}} — ungültiger Flow-Type für push (erwartet [cmd])"
+          },
+          "write": {
+            "redundantFlowType": "{{name}} — write ist selbsterklärend, Flow-Type ist redundant"
+          },
+          "stream": {
+            "invalidFlowType": "{{name}} — Stream-Flow-Type sollte [stream] sein"
+          },
+          "prop": {
+            "bidirectionalForbidden": "{{name}} — bidirektionale Flows sind nicht erlaubt, als zwei unidirektionale Flows modellieren",
+            "pullNotReqResp": "{{name}} — pull setzt Richtung 'Request-Response' voraus, Direction-Eigenschaft anpassen",
+            "pushIsReqResp": "{{name}} — push ist Fire-and-Forget, 'Request-Response' widerspricht der push-Semantik",
+            "pushWrongDirection": "{{name}} — push setzt Richtung 'Unidirektional' voraus, Direction-Eigenschaft anpassen",
+            "writeIsReqResp": "{{name}} — write ist ein Einwegvorgang, 'Request-Response' widerspricht der write-Semantik",
+            "writeNotDatastore": "{{name}} — write mit Nicht-Datenspeicher-Protokoll, prüfen ob Ziel ein Data Store ist (erwartet database oder file)",
+            "streamNotContinuous": "{{name}} — stream setzt kontinuierliche Häufigkeit voraus, Frequency-Eigenschaft anpassen",
+            "streamIsReqResp": "{{name}} — stream ist unidirektional, 'Request-Response' ist für stream nicht erwartet",
+            "continuousUseStream": "{{name}} — kontinuierlicher push/pull erkannt, Verb 'stream' in Betracht ziehen",
+            "excludeMissingRationale": "Datenfluss {{context}}: von Threat-Generierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1 Audit-Trail erforderlich"
+          }
+        }
+      },
+      "descriptionView": {
+        "title": "DFD-Element-Beschreibungen"
+      },
+      "detailsPanel": {
+        "assetsTitle": "Asset-Liste",
+        "tabs": {
+          "element": "Element",
+          "assets": "Assets"
+        }
+      },
+      "assetPanel": {
+        "noAssets": "Keine Assets vorhanden",
+        "selectAsset": "Asset oben auswählen, um Details anzuzeigen und zu bearbeiten",
+        "showInDFD": "Im DFD anzeigen",
+        "hideInDFD": "Im DFD ausblenden",
+        "showTree": "Asset-Baum anzeigen",
+        "hideTree": "Detailansicht vergrössern",
+        "createAsset": "Neues Asset",
+        "deleteAsset": "Asset löschen",
+        "clearAllOverlays": "Alle Overlays ausschalten",
+        "confirmDelete": {
+          "title": "Asset löschen?",
+          "message": "Dies entfernt das Asset und alle zugehörigen Relationen aus dem DFD. Diese Aktion kann nicht rückgängig gemacht werden."
+        }
+      },
+      "assetGroups": {
+        "data": "Daten",
+        "system": "System",
+        "process": "Prozess",
+        "infrastructure": "Infrastruktur",
+        "human": "Mensch"
+      },
+      "element_description": {
+        "title": "Element-Beschreibungen",
+        "assets": "Assets",
+        "dataFlows": "Datenflüsse",
+        "tabs": {
+          "general": "Allgemein",
+          "relations": "Beziehungen"
+        },
+        "assetRelations": {
+          "isAnSection": "Identitaet (is_an)",
+          "relationsSection": "Asset-Beziehungen",
+          "empty": "Keine Asset-Beziehungen definiert.",
+          "addRelation": "Asset-Beziehung hinzufuegen",
+          "editRelations": "Beziehungen bearbeiten",
+          "isAnDescription": "Dieses Element repraesentiert dieses Asset",
+          "cancel": "Abbrechen",
+          "save": "Speichern",
+          "relationType": {
+            "label": "Beziehungstyp"
+          },
+          "selectedRelations": "Ausgewaehlte Beziehungen",
+          "notes": "Notizen (optional)",
+          "notesPlaceholder": "Notizen zu diesem Asset im Kontext dieses Elements…",
+          "removeAllRelations": "Alle entfernen",
+          "deselect": "Abwaehlen",
+          "safetyAnnotation": {
+            "title": "Safety-Annotation",
+            "relevance": "Safety-Relevanz"
+          },
+          "groupChange": {
+            "title": "Asset-Gruppe aendern?",
+            "warning": "Das Aendern der Asset-Gruppe entfernt alle aktuell ausgewaehlten Beziehungstypen, da diese gruppenspezifisch sind.",
+            "confirm": "Aendern & Beziehungen loeschen"
+          },
+          "asset": {
+            "label": "Asset",
+            "createNew": "Neues Asset erstellen…",
+            "newAsset": {
+              "title": "Neues Asset erstellen",
+              "name": "Asset-Name",
+              "group": "Asset-Gruppe",
+              "confirm": "Erstellen"
+            }
+          },
+          "degradationMode": {
+            "label": "Abhängigkeitsmodus",
+            "description": "Fallback-Beschreibung (erforderlich)",
+            "placeholder": "z.B. Lokaler Cache für 24h verfügbar, danach Ausfall",
+            "required": "Erforderlich für Prüfnachweis (IEC 62443-4-1)"
+          }
+        },
+        "exposure_level": {
+          "label": "Expositionsstufe",
+          "derived_hint": "Abgeleitet von der Vertrauensgrenze",
+          "override": "Überschreiben",
+          "below_tb_hint": "Unterhalb des Trust Boundary EL — Überschreiben erfordert eine Begründung",
+          "rationale_label": "Begründung",
+          "rationale_placeholder": "Warum weicht dieser Wert vom TB-EL ab?",
+          "el0_description": "Innerhalb des Maschinengehäuses, kein externer Zugriff möglich",
+          "el1_description": "Physischer Zugriff erforderlich (USB, serielle Schnittstelle, abgeschlossenes Gehäuse)",
+          "el2_description": "Lokales Netzwerksegment (Feldbus, Ethernet, LAN)",
+          "el3_description": "Industrielles Fabriknetzwerk, VPN oder Partner- / OT-Netzwerk",
+          "el4_description": "Internetzugang, nicht vertrauenswürdiges öffentliches Netzwerk"
+        },
+        "sections": {
+          "context": "Kontext",
+          "security": "Sicherheit",
+          "documentation": "Dokumentation"
+        },
+        "process": {
+          "safetyAnnotation": {
+            "title": "Safety-Annotation",
+            "noRelations": "Füge mindestens eine Asset-Relation hinzu, um Safety-Annotationen zu erfassen.",
+            "perRelationHint": "Safety-Annotationen werden pro Relation in der obigen Liste gesetzt (Relevanz, Auswirkung, physisches Gefährdungspotenzial, Begründung)."
+          },
+          "sections": {
+            "required": "Pflichtfelder",
+            "security": "Sicherheit & Ausführungskontext",
+            "advanced": "Erweitert / Optional"
+          },
+          "cianaaa": {
+            "sectionTitle": "CIANAAA-Auswirkungsbewertung",
+            "noAsset": "Verknüpfen Sie ein primäres Asset via <strong>is_an</strong>, um die Auswirkungsbewertung zu bearbeiten.",
+            "groups": {
+              "cia": "CIA-Auswirkungsstufen",
+              "naaa": "NAAA-Sicherheitseigenschaften",
+              "business": "Geschäftlicher Einfluss",
+              "physical": "Safety-Auswirkung (Physisch)",
+              "aggregated": "Aggregierte Kritikalität (berechnet, schreibgeschützt):",
+              "classification": "Datenklassifizierung"
+            },
+            "fields": {
+              "confidentialityImpact": "Vertraulichkeits-Auswirkung",
+              "integrityImpact": "Integritäts-Auswirkung",
+              "availabilityImpact": "Verfügbarkeits-Auswirkung",
+              "nonRepudiation": "Nicht-Abstreitbarkeit",
+              "nonRepudiationHint": "(R in STRIDE — Audit-Log, digitale Signatur)",
+              "authentication": "Authentifizierung",
+              "authenticationHint": "(S in STRIDE — Identitätsnachweis erforderlich)",
+              "authorization": "Autorisierung",
+              "authorizationHint": "(E in STRIDE — Berechtigungsprüfung erforderlich)",
+              "accountability": "Rechenschaftspflicht",
+              "accountabilityHint": "(DSGVO Art. 5 — zusätzlich zu Nicht-Abstreitbarkeit)",
+              "businessImpact": "Geschäftlicher Einfluss",
+              "businessImpactCategory": "Business-Impact-Kategorie",
+              "physicalImpact": "Physische Auswirkung",
+              "physicalHazardPotential": "Physisches Gefährdungspotenzial",
+              "personalData": "Personenbezogene Daten (DSGVO Art. 5 — aktiviert Rechenschaftspflicht)",
+              "businessSecret": "Geschäftsgeheimnis (aktiviert Vertraulichkeit bei is_an)"
+            },
+            "impactOptions": {
+              "not_set": "Nicht gesetzt",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch",
+              "critical": "Kritisch"
+            },
+            "physicalImpactOptions": {
+              "not_set": "Nicht gesetzt",
+              "none": "Keiner",
+              "reversible_injury": "Reversible Verletzung",
+              "irreversible_injury": "Irreversible Verletzung",
+              "fatality": "Tod / Tödlich"
+            },
+            "hazardOptions": {
+              "not_set": "Nicht gesetzt",
+              "low": "Niedrig",
+              "medium": "Mittel",
+              "high": "Hoch"
+            },
+            "businessImpactCategoryOptions": {
+              "not_set": "Nicht gesetzt",
+              "operational": "Operationell",
+              "financial": "Finanziell",
+              "privacy": "Datenschutz",
+              "reputational": "Reputation"
+            },
+            "criticalityChip": {
+              "not_set": "NICHT GESETZT",
+              "low": "NIEDRIG",
+              "medium": "MITTEL",
+              "high": "HOCH",
+              "critical": "KRITISCH",
+              "safetyOverrideSuffix": "(Safety Override)"
+            },
+            "safetyOverride": {
+              "title": "Safety Override Rule aktiv",
+              "description": "Physische Auswirkung \"{{impact}}\" erzwingt aggregierte Kritikalität KRITISCH (ISO 12100 — nicht überschreibbar)."
+            },
+            "source": {
+              "derived": "Abgeleitet",
+              "manual": "Manuell",
+              "manualOverrideActive": "MANUELLER OVERRIDE AKTIV",
+              "overrideTooltip": "Abgeleiteten Wert manuell überschreiben",
+              "resetToDerived": "Auf abgeleiteten Wert zurücksetzen",
+              "rationaleLabel": "Begründung (Pflichtfeld)",
+              "rationalePlaceholder": "Warum wurde dieser Wert nicht aus den Asset-Relationen abgeleitet?",
+              "rationaleRequired": "Begründung ist bei manuellen Overrides Pflicht (IEC 62443-4-1)"
+            }
+          },
+          "fields": {
+            "description": {
+              "label": "Beschreibung",
+              "helperText": "Was macht dieser Prozess?"
+            },
+            "purpose": {
+              "label": "Zweck / Funktion",
+              "placeholder": "z.B. Benutzerauthentifizierung, Datentransformation"
+            },
+            "runsAs": {
+              "label": "Läuft als",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "user": "Benutzer",
+                "admin_user": "Administrator",
+                "root": "Root / Superuser",
+                "system": "Systemkonto",
+                "service": "Service-Konto",
+                "guest": "Gast / eingeschränkter Benutzer",
+                "anonymous": "Anonym / Öffentlichkeit",
+                "contractor": "Externe Person / Auftragnehmer"
+              }
+            },
+            "processSemantic": {
+              "label": "Prozess-Semantik",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "execution_unit": "Ausführungseinheit (OS/RTOS-isoliert)",
+                "functional_block": "Funktionaler Block (logisch, keine OS-Isolation)",
+                "security_boundary": "Sicherheitsgrenze (HSM, TEE, Crypto-Engine)"
+              },
+              "hint_functional_block": "Dieser Prozess repräsentiert einen funktionalen Block, keinen OS-Prozess. Es existiert keine Hardwareisolationsgrenze — Vertrauensannahmen müssen explizit gemacht werden."
+            },
+            "privilegeLevel": {
+              "label": "Berechtigungsstufe",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig (Benutzer)",
+                "medium": "Mittel (Dienst)",
+                "high": "Hoch (Admin)",
+                "root": "Root / SYSTEM"
+              }
+            },
+            "authenticationRequired": {
+              "label": "Authentifizierung erforderlich",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "no": "Nein",
+                "yes": "Ja",
+                "optional": "Optional",
+                "oauth": "OAuth / OIDC",
+                "saml": "SAML",
+                "certificate": "Zertifikatbasiert",
+                "apikey": "API-Schlüssel",
+                "jwt": "JWT (JSON Web Token)",
+                "mtls": "Mutual TLS (mTLS)"
+              }
+            },
+            "authorizationModel": {
+              "label": "Autorisierungsmodell",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "rbac": "RBAC (Rollenbasiert)",
+                "abac": "ABAC (Attributbasiert)",
+                "acl": "ACL (Zugriffskontrollliste)",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "inputValidation": {
+              "label": "Eingabevalidierung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "basic": "Basis (Typprüfung)",
+                "strict": "Streng (Whitelist + Bereinigung)",
+                "schema": "Schema-Validierung"
+              }
+            },
+            "errorHandling": {
+              "label": "Fehlerbehandlung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "silent": "Still (Keine Details)",
+                "verbose": "Ausführlich (Stack-Traces)",
+                "sanitized": "Bereinigt (Benutzerfreundlich)"
+              }
+            },
+            "securityControls": {
+              "label": "Sicherheitskontrollen",
+              "placeholder": "z.B. Sandboxing, Rate Limiting, WAF"
+            },
+            "exposedToInternet": {
+              "label": "Im Internet exponiert"
+            },
+            "technology": {
+              "label": "Technologie",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "api": "API (REST/GraphQL)",
+                "batch": "Batch-Job",
+                "ui": "UI / Frontend",
+                "microservice": "Microservice",
+                "lambda": "Serverless / Lambda",
+                "daemon": "Hintergrunddienst",
+                "websocket": "WebSocket",
+                "event": "Ereignisgesteuert",
+                "cli": "CLI-Tool",
+                "database": "Datenbankdienst",
+                "cron": "Geplante Aufgabe (Cron)",
+                "iot": "IoT-System",
+                "rtos_task": "RTOS-Task (FreeRTOS, Zephyr, ThreadX)",
+                "bare_metal": "Bare-metal Logikblock",
+                "isr": "Interrupt Service Routine (ISR)",
+                "state_machine": "Zustandsmaschine (Safety FSM)",
+                "bootloader": "Bootloader",
+                "driver": "Hardware-Treiber",
+                "protocol_stack": "Protokoll-Stack (CAN, Modbus, etc.)"
+              }
+            },
+            "owner": {
+              "label": "Verantwortlich",
+              "placeholder": "Team oder verantwortliche Person"
+            },
+            "notes": {
+              "label": "Zusätzliche Notizen"
+            }
+          },
+          "stride_hint": {
+            "title": "STRIDE-Relevanz: Alle (S, T, R, I, D, E)",
+            "description": "Prozesse sind kritische Angriffsflächen. Stellen Sie sicher, dass Authentifizierung, Autorisierung und Eingabevalidierung korrekt konfiguriert sind."
+          },
+          "assetTab": {
+            "title": "Asset-Relationen",
+            "deleteRelation": "Relation löschen",
+            "relation": "Relation #{{index}}",
+            "relationsSection": "Asset-Beziehungen",
+            "empty": "Keine Asset-Beziehungen definiert.",
+            "addRelation": "Asset-Beziehung hinzufügen",
+            "cancel": "Abbrechen",
+            "save": "Speichern",
+            "groupChange": {
+              "title": "Asset-Gruppe ändern?",
+              "warning": "Eine Änderung der Asset-Gruppe entfernt alle aktuell ausgewählten Relationstypen, da diese gruppenspezifisch sind.",
+              "confirm": "Ändern & Relationen löschen"
+            },
+            "assetGroup": {
+              "data": "Daten",
+              "system": "System",
+              "process": "Prozess",
+              "infrastructure": "Infrastruktur",
+              "human": "Personen"
+            },
+            "relationType": {
+              "label": "Relationstyp",
+              "options": {
+                "is_an": "ist ein (Klasse)",
+                "creates": "erzeugt",
+                "reads": "liest",
+                "modifies": "modifiziert",
+                "deletes": "löscht",
+                "stores": "speichert",
+                "transports": "transportiert",
+                "executes": "führt aus",
+                "invokes": "ruft auf",
+                "terminates": "beendet",
+                "suspends": "pausiert",
+                "monitors": "überwacht",
+                "controls": "kontrolliert",
+                "configures": "konfiguriert",
+                "uses": "nutzt",
+                "depends_on": "hängt ab von",
+                "accesses": "greift zu auf",
+                "secures": "sichert",
+                "damages": "beschädigt",
+                "powers": "versorgt (Energie)",
+                "affects_safety": "beeinflusst Sicherheit",
+                "affects_privacy": "beeinflusst Datenschutz",
+                "identifies": "identifiziert",
+                "tracks": "verfolgt",
+                "exposes": "gefährdet"
+              }
+            },
+            "qualifier": {
+              "label": "Qualifier",
+              "options": {
+                "network": "Netzwerk",
+                "local": "lokal",
+                "internal": "intern",
+                "remote": "remote",
+                "authentication": "Authentifizierung",
+                "authorization": "Autorisierung",
+                "api": "API",
+                "storage": "Speicher",
+                "computation": "Berechnung",
+                "messaging": "Messaging",
+                "configuration": "Konfiguration",
+                "monitoring": "Monitoring",
+                "networking": "Netzwerkfunktion"
+              }
+            },
+            "asset": {
+              "label": "Asset",
+              "noAssets": "Keine Assets in diesem Scope verfügbar",
+              "createNew": "+ Neues Asset anlegen…",
+              "categoryChange": {
+                "title": "Asset-Kategorie ändern?",
+                "warning": "Dieses Asset wird von DFD-Elementen referenziert. Eine Änderung der Kategorie macht alle bestehenden Relationstypen in diesen Elementen ungültig, da Relationstypen kategoriespezifisch sind.",
+                "confirm": "Kategorie ändern"
+              },
+              "tabs": {
+                "general": "Allgemein",
+                "relations": "Beziehungen",
+                "usedIn": "Verwendet in"
+              },
+              "newAsset": {
+                "name": "Asset-Name",
+                "assetGroup": "Asset-Gruppe",
+                "confirm": "Bestätigen",
+                "cancel": "Abbrechen"
+              }
+            },
+            "safetyAnnotation": {
+              "title": "Safety-Annotation",
+              "derived": "abgeleitet",
+              "manual": "manuell",
+              "resetToDerived": "Auf abgeleitete Werte zurücksetzen",
+              "relevance": {
+                "label": "Sicherheitsrelevanz",
+                "options": {
+                  "none": "Keine",
+                  "indirect": "Indirekt",
+                  "direct": "Direkt"
+                }
+              },
+              "impact": {
+                "label": "Schlimmster Schadensfall",
+                "options": {
+                  "none": "Kein Schaden",
+                  "reversible_injury": "Reversible Verletzung",
+                  "irreversible_injury": "Irreversible Verletzung",
+                  "fatality": "Todesfolge"
+                }
+              },
+              "physicalHazardPotential": {
+                "label": "Physisches Gefährdungspotenzial (ISO 12100)",
+                "options": {
+                  "low": "Gering",
+                  "medium": "Mittel",
+                  "high": "Hoch"
+                }
+              },
+              "rationale": {
+                "label": "Begründung",
+                "placeholder": "Sicherheitseinstufung begründen…",
+                "helperManual": "Manuelle Überschreibung — Begründung für Audit-Trail erforderlich"
+              }
+            }
+          }
+        },
+        "interface": {
+          "cascade_hints": {
+            "usb": "USB-Schnittstellen sind häufige Angriffsflächen auf Embedded-Systemen. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle mit sicherheitskritischen Komponenten verbunden ist.",
+            "serial": "Serielle Schnittstellen sind oft mit Debug-Konsolen oder sicherheitskritischen Komponenten verbunden. Erwäge, Safety Relevant zu setzen, wenn zutreffend.",
+            "gpio": "GPIO-Pins können direkt mit Sicherheitsaktuatoren oder -sensoren verbunden sein. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle sicherheitskritische Hardware steuert oder ausliest."
+          },
+          "fields": {
+            "type": {
+              "label": "Schnittstellentyp",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "ethernet": "Ethernet",
+                "serial": "Seriell (UART / RS-232 / RS-485)",
+                "usb": "USB",
+                "gpio": "GPIO",
+                "bluetooth": "Bluetooth",
+                "wifi": "WLAN",
+                "nfc": "NFC",
+                "fiber": "Glasfaser",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Nicht angegeben"
+            },
+            "accessControl": {
+              "label": "Zugangskontrolle",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "physical_lock": "Physisches Schloss",
+                "credentials": "Anmeldedaten (Benutzername / Passwort)",
+                "card": "Zugangskarte / Badge",
+                "certificate": "Zertifikat / PKI"
+              }
+            },
+            "connectionSpeed": {
+              "label": "Übertragungsgeschwindigkeit",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig (< 1 Mbit/s)",
+                "medium": "Mittel (1–100 Mbit/s)",
+                "high": "Hoch (> 100 Mbit/s)"
+              }
+            },
+            "location": {
+              "label": "Physischer Standort",
+              "placeholder": "z.B. Serverraum, Fertigungshalle, Feldschrank"
+            },
+            "isShieldedCable": {
+              "label": "Abgeschirmtes Kabel"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            },
+            "safetyRelevant": {
+              "label": "Sicherheitsrelevante Schnittstelle (EN 50742 — z.B. Programmierschnittstelle einer Sicherheits-SPS)"
+            },
+            "safetyRationale": {
+              "label": "Sicherheitsbegründung",
+              "placeholder": "z.B. Direktzugriff auf sicherheitskritische Programmierschnittstelle",
+              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
+            }
+          }
+        },
+        "external_entity": {
+          "sections": {
+            "required": "Pflichtfelder",
+            "security": "Vertrauen & Zugriffskontrolle",
+            "advanced": "Erweitert / Optional"
+          },
+          "fields": {
+            "description": {
+              "label": "Beschreibung",
+              "helperText": "Wer oder was ist diese externe Entität?"
+            },
+            "entityType": {
+              "label": "Entitätstyp",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "user": "Benutzer (Mensch)",
+                "admin_user": "Administrator (Mensch)",
+                "partner": "Partnersystem",
+                "thirdparty": "Drittanbieter-API",
+                "service": "Externer Dienst / SaaS",
+                "identity_provider": "Identitätsanbieter (IdP)",
+                "payment": "Zahlungsdienstleister",
+                "contractor": "Dienstleister / Lieferant",
+                "bot": "Bot / Automatisiertes System",
+                "webhook": "Webhook-Quelle",
+                "mobile_app": "Mobile App",
+                "iot": "IoT-Gerät"
+              }
+            },
+            "trustLevel": {
+              "label": "Vertrauensstufe",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig (Nicht vertrauenswürdig / Öffentlich)",
+                "medium": "Mittel (Bekannter Partner)",
+                "high": "Hoch (Verifiziert / Intern)"
+              }
+            },
+            "authenticationMethod": {
+              "label": "Authentifizierungsmethode",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine (Anonym)",
+                "password": "Benutzername / Passwort",
+                "mfa": "Multi-Faktor-Authentifizierung",
+                "oauth": "OAuth / OIDC",
+                "saml": "SAML",
+                "certificate": "Zertifikatbasiert",
+                "apikey": "API-Schlüssel",
+                "mutual_tls": "Mutual TLS (beidseitige Zertifikatsauthentifizierung)",
+                "jwt": "Signiertes Token (JWT)"
+              }
+            },
+            "ownership": {
+              "label": "Eigentümerschaft",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "internal": "Intern (Gleiche Organisation)",
+                "external": "Extern (Drittpartei)",
+                "partner": "Partner / Affiliate"
+              }
+            },
+            "threatActor": {
+              "label": "Angenommener Bedrohungsakteur",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "benign": "Gutartig (Vertrauenswürdiger Benutzer)",
+                "curious": "Neugierig (Geringe Motivation)",
+                "malicious": "Böswillig (Aktiver Angreifer)",
+                "advanced": "Advanced Persistent Threat (APT)",
+                "insider": "Insider (Fehlverhalten / Fehlbedienung)",
+                "compromised": "Kompromittierte Entität"
+              }
+            },
+            "authorizationScope": {
+              "label": "Autorisierungsumfang",
+              "placeholder": "z.B. Nur-Lesen, Bestimmte Endpunkte, Eingeschränkte Operationen"
+            },
+            "contractExists": {
+              "label": "Vertrag / SLA vorhanden"
+            },
+            "rateLimited": {
+              "label": "Rate-limitiert"
+            },
+            "owner": {
+              "label": "Kontakt / Verantwortlich",
+              "placeholder": "Kontaktperson oder Team"
+            },
+            "notes": {
+              "label": "Zusätzliche Notizen"
+            }
+          },
+          "stride_hint": {
+            "title": "STRIDE-Relevanz: S (Spoofing), R (Repudiation)",
+            "description": "Externe Entitäten sind außerhalb Ihrer Kontrolle. Starke Authentifizierung, geringste Berechtigungen (Least Privilege) und Nichtabstreitbarkeit sicherstellen."
+          }
+        },
+        "dataflow": {
+          "trust_boundary_warning": {
+            "title": "Dieser Datenfluss überschreitet eine Vertrauensgrenze!",
+            "hint": "Hohes Risiko für: Manipulation, Informationsoffenlegung, Denial of Service"
+          },
+          "fields": {
+            "excludeFromThreatGen": {
+              "label": "Von automatischer Threat-Generierung ausschliessen",
+              "warning_no_trust": "Ein Datenfluss ohne Vertrauensannahme auszuschliessen kann echte Bedrohungen verbergen. Bitte oben eine Vertrauensbegründung angeben."
+            },
+            "excludeFromThreatGenRationale": {
+              "label": "Ausschlussbegründung (IEC 62443-4-1 Audit-Trail)",
+              "placeholder": "z.B. Internes Sensor-Polling innerhalb vertrauenswürdiger Safety-Domäne, kein externer Zugriffspfad vorhanden",
+              "error": "Begründung für IEC 62443-4-1 Audit-Trail erforderlich"
+            },
+            "protocol": {
+              "label": "Protokoll",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "http": "HTTP",
+                "https": "HTTPS",
+                "grpc": "gRPC",
+                "mqtt": "MQTT",
+                "amqp": "AMQP / Message Queue",
+                "websocket": "WebSocket",
+                "file": "Dateiübertragung",
+                "database": "Datenbankprotokoll",
+                "can": "CAN",
+                "modbus": "Modbus",
+                "uart": "UART",
+                "spi": "SPI",
+                "i2c": "I2C",
+                "custom": "Benutzerdefiniertes Protokoll"
+              }
+            },
+            "direction": {
+              "label": "Richtung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "unidirectional": "Unidirektional (Einweg)",
+                "bidirectional": "Bidirektional (Zweiweg)",
+                "requestresponse": "Anfrage-Antwort"
+              }
+            },
+            "encryptionInTransit": {
+              "label": "Verschlüsselung in Übertragung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine (Klartext)",
+                "tls": "TLS",
+                "mtls": "mTLS (Mutual TLS)",
+                "vpn": "VPN / IPSec",
+                "custom": "Benutzerdefinierte Verschlüsselung"
+              },
+              "warning": "Unverschlüsselter Fluss überschreitet Vertrauensgrenze → Risiko der Informationsoffenlegung"
+            },
+            "endpointAuthentication": {
+              "label": "Authentifizierung der Endpunkte",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine",
+                "token": "Token / Bearer",
+                "certificate": "Zertifikat (mTLS)",
+                "apikey": "API-Schlüssel",
+                "oauth": "OAuth 2.0"
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Nicht angegeben"
+            },
+            "integrityProtection": {
+              "label": "Integritätsschutz (HMAC, Signaturen)"
+            },
+            "dataTypes": {
+              "label": "Datentypen",
+              "placeholder": "z.B. Personendaten, Anmeldedaten, Geschäftsdaten, Geheimnisse",
+              "helper": "Mehrere Typen mit Komma trennen"
+            },
+            "frequency": {
+              "label": "Häufigkeit",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "continuous": "Kontinuierlich / Echtzeit",
+                "periodic": "Periodisch (geplant)",
+                "ondemand": "Auf Anfrage",
+                "batch": "Stapelverarbeitung"
+              }
+            },
+            "volume": {
+              "label": "Größe / Volumen",
+              "placeholder": "z.B. 100 MB/Tag, 1000 Anfragen/Sek."
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            },
+            "safetyRelevant": {
+              "label": "Trägt sicherheitsrelevante Daten / unterstützt Sicherheitsfunktion (EN 50742)"
+            },
+            "crossesSafetyBoundary": {
+              "hint": "Dieser Datenfluss überquert eine Sicherheitsgrenze (eine Seite sicherheitsrelevant, andere nicht). Erhöhte Prüfung für Manipulation und Informationsoffenlegung erforderlich."
+            },
+            "safetyRationale": {
+              "label": "Sicherheitsbegründung",
+              "placeholder": "z.B. Transportiert Sensordaten für die Notausschaltlogik",
+              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
+            }
+          }
+        },
+        "datastore": {
+          "warnings": {
+            "classification_no_encryption": "Daten mit Klassifizierung SECRET/RESTRICTED ohne Verschlüsselung im Ruhezustand — hohes Risiko für Information Disclosure",
+            "safety_no_integrity": "Sicherheitsrelevante Daten ohne Integritätsschutz — Tampering-Bedrohung (EN 50742)"
+          },
+          "fields": {
+            "dataClassification": {
+              "label": "Datenklassifizierung",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "public": "Öffentlich",
+                "internal": "Intern",
+                "confidential": "Vertraulich",
+                "restricted": "Eingeschränkt",
+                "secret": "Geheim"
+              }
+            },
+            "encryptionAtRest": {
+              "label": "Verschlüsselung im Ruhezustand",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "none": "Keine (Klartext)",
+                "yes": "Ja (Algorithmus nicht angegeben)",
+                "aes256": "AES-256",
+                "tde": "TDE (Transparente Datenverschlüsselung)",
+                "kms": "KMS (Schlüsselverwaltungsdienst)",
+                "custom": "Benutzerdefinierte Verschlüsselung"
+              }
+            },
+            "integrityProtection": {
+              "label": "Integritätsschutz (Prüfsummen, Signaturen)"
+            },
+            "backupEnabled": {
+              "label": "Backup- und Aufbewahrungsrichtlinie vorhanden"
+            },
+            "storedDataTypes": {
+              "label": "Gespeicherte Datentypen",
+              "placeholder": "z.B. Anmeldedaten, Transaktionsprotokolle, Konfiguration",
+              "helper": "Mehrere Typen mit Komma trennen"
+            },
+            "accessControl": {
+              "label": "Zugangskontrolle",
+              "placeholder": "Wer kann lesen/schreiben? z.B. Nur Admin, Dienstkonto X"
+            },
+            "deletionPolicy": {
+              "label": "Löschrichtlinie",
+              "placeholder": "z.B. Soft-Delete mit 30-Tage-Aufbewahrung, DSGVO-konform"
+            },
+            "technology": {
+              "label": "Technologie",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "database": "Datenbank (SQL/NoSQL)",
+                "filesystem": "Dateisystem",
+                "cloud": "Cloud-Speicher (S3, Blob)",
+                "cache": "Cache (Redis, Memcached)",
+                "queue": "Message Queue",
+                "blockchain": "Blockchain",
+                "flash": "Flash-Speicher",
+                "eeprom": "EEPROM",
+                "nvram": "NVRAM"
+              }
+            },
+            "multiTenant": {
+              "label": "Multi-Tenant (von mehreren Kunden gemeinsam genutzt)"
+            },
+            "owner": {
+              "label": "Verantwortlicher",
+              "placeholder": "Verantwortliches Team oder Person"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            },
+            "containsSafetyRelevantData": {
+              "label": "Enthält sicherheitsrelevante Konfigurationsdaten (EN 50742)"
+            },
+            "safetyRationale": {
+              "label": "Sicherheitsbegründung",
+              "placeholder": "z.B. Manipulation könnte die Notausschaltfunktion deaktivieren",
+              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
+            }
+          }
+        },
+        "trustboundary": {
+          "warning": {
+            "title": "Vertrauensgrenzen sind kritisch!",
+            "hint": "Jeder Datenfluss der diese Grenze überschreitet erfordert eine genaue Prüfung aller STRIDE-Bedrohungen."
+          },
+          "fields": {
+            "boundaryType": {
+              "label": "Grenztyp",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "network": "Netzwerkgrenze (DMZ, VPC)",
+                "privilege": "Berechtigungsgrenze (Benutzer/Admin)",
+                "organization": "Organisationsgrenze",
+                "cloud": "Cloud-Konto / Tenant",
+                "physical": "Physische Grenze",
+                "legal": "Rechtliche / Regulatorische Grenze",
+                "device": "Gerätegrenze",
+                "peripheral": "Peripherie-Grenze (MCU ↔ externer Chip)",
+                "boot": "Boot-Grenze (Bootloader ↔ Applikation)",
+                "debug": "Debug-Interface-Grenze (SWD/JTAG)"
+              },
+              "tooltips": {
+                "network": "Trennt Netzwerksegmente, z.B. DMZ vom internen LAN oder VPC vom öffentlichen Internet",
+                "privilege": "Trennt Berechtigungsstufen, z.B. User Space vom Kernel oder Admin vom Standardbenutzer",
+                "organization": "Trennt Organisationseinheiten, z.B. Lieferant vom Hersteller oder Tochtergesellschaft vom Mutterkonzern",
+                "cloud": "Trennt Cloud-Konten, Tenants oder Abonnements mit eigenen IAM-Richtlinien",
+                "physical": "Physische Gehäuse- oder Schrankgrenze, z.B. Maschinengehäuse oder Schaltschrank",
+                "legal": "Regulatorische oder vertragliche Grenze, z.B. DSGVO-Datenresidenz oder PCI-DSS-Scope",
+                "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway",
+                "peripheral": "Grenze zwischen MCU und externen Chips (SPI/I2C Sensoren, EEPROM, Co-Prozessoren). Häufig unterschätzte Angriffsfläche.",
+                "boot": "Grenze zwischen Bootloader und Applikation. Kritisch für Firmware-Integrität und Secure-Boot-Kette.",
+                "debug": "SWD-, JTAG- oder UART-Konsoleninterface. Muss in Produktionsbuilds deaktiviert oder gesperrt sein."
+              }
+            },
+            "exposureLevel": {
+              "not_specified": "Nicht angegeben",
+              "helper": "Definiert das Expositionsniveau dieser Sicherheitszone. Elemente mit einem höheren EL sind nicht betroffen."
+            },
+            "monitoringEnabled": {
+              "label": "Monitoring / Logging aktiviert"
+            },
+            "securityAssumptions": {
+              "label": "Sicherheitsannahmen",
+              "placeholder": "z.B. Innen ist vertrauenswürdig, aussen ist feindlich",
+              "helper": "Was nehmen Sie über jede Seite dieser Grenze an?"
+            },
+            "boundaryControls": {
+              "label": "Massnahmen an der Grenze",
+              "placeholder": "z.B. Firewall, API Gateway, Authentifizierungsschicht",
+              "helper": "Was setzt diese Grenze durch?"
+            },
+            "complianceRelevance": {
+              "label": "Compliance-Relevanz",
+              "placeholder": "z.B. DSGVO, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
+              "helper": "Welche Vorschriften gelten für diese Grenze?"
+            },
+            "owner": {
+              "label": "Verantwortlicher / Team",
+              "placeholder": "Wer pflegt diese Grenze?"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
+          }
+        },
+        "asset": {
+          "regulatoryReference": "Regulatorische Referenz",
+          "containsSafetyRelevantData": "Enthält sicherheitsrelevante Daten (EN 50742)",
+          "safetyRelevant": "Sicherheitsrelevantes System (direkte Beteiligung an sicherheitskritischen Abläufen)",
+          "responsibilityScope": "Verantwortungsbereich",
+          "responsibilityScopeRequired": "Erforderlich bei Drittanbietern (CRA Art. 13 Lieferkette)",
+          "responsibilityScopeHint": "Welche Sicherheitsmaßnahmen liegen im eigenen Verantwortungsbereich und welche beim Anbieter?",
+          "providerName": "Anbietername",
+          "slaReference": "SLA- / Vertragsreferenz",
+          "name": "Asset Name",
+          "nameHelper": "Kurze, eindeutige Bezeichnung",
+          "nameTooltip": "Verwenden Sie konkrete Namen wie 'Kundendatenbank' statt generische Begriffe wie 'Daten'",
+          "category": "Kategorie",
+          "categoryGuidance": "Wählen Sie die Kategorie, die am besten beschreibt, was geschützt werden muss",
+          "categoryData": "Daten",
+          "categoryDataDesc": "Sensordaten, Produktionsdaten, Konfiguration",
+          "categorySystem": "Systeme",
+          "categorySystemDesc": "Server, APIs, SCADA, Cloud-Dienste",
+          "categoryInfrastructure": "Infrastruktur",
+          "categoryInfrastructureDesc": "Maschinen, Netzwerkgeräte",
+          "categoryProcess": "Prozesse",
+          "categoryProcessDesc": "Firmware-Updates, SOPs, Verfahren",
+          "categoryHuman": "Personen",
+          "categoryHumanDesc": "Operatoren, Administratoren, Auftragnehmer",
+          "description": "Beschreibung",
+          "descriptionHelper": "Was repräsentiert dieses Asset und warum ist es wertvoll?",
+          "descriptionTooltip": "Beginnen Sie mit einer kurzen Beschreibung. Details können später verfeinert werden.",
+          "protectionNeed": "Schutzbedarf",
+          "protectionNeedGuidance": "Berücksichtigen Sie die Auswirkungen, wenn dieses Asset verloren geht, manipuliert oder missbraucht wird",
+          "protectionLow": "Niedrig – Verlust ist unangenehm",
+          "protectionMedium": "Mittel – beeinträchtigt den Betrieb",
+          "protectionHigh": "Hoch – verursacht erhebliche Schäden",
+          "protectionCritical": "Kritisch – bedroht Geschäft oder Sicherheit",
+          "referencedIn": "Referenziert im System",
+          "referencedInGuidance": "Diese Elemente referenzieren dieses Asset im DFD. Nutzen Sie dies zur Validierung Ihrer Beschreibung.",
+          "categoryDetails": "{{category}}-spezifische Details",
+          "categoryDetailsGuidance": "Zusätzliche Details spezifisch für diesen Asset-Typ. Optional aber hilfreich.",
+          "dataType": "Datentyp",
+          "lifecycle": "Lebenszyklus",
+          "criticality": "Kritikalität für Betrieb",
+          "exposure": "Exponierung",
+          "physicalAccess": "Physischer Zugriff möglich",
+          "location": "Standort",
+          "automated": "Automatisiert",
+          "changeFrequency": "Änderungsfrequenz",
+          "role": "Rolle",
+          "securityRelevant": "Sicherheitsrelevant (hat Zugriff auf kritische Systeme)",
+          "advanced": "Erweitert / Optional",
+          "advancedGuidance": "Optionale Felder zur Verfeinerung. Nicht erforderlich für initiale Analyse.",
+          "owner": "Verantwortlicher / Eigentümer",
+          "ownerPlaceholder": "Team oder Person verantwortlich",
+          "notes": "Zusätzliche Notizen",
+          "label": "Asset",
+          "noAssets": "Keine Assets in diesem Scope verfügbar",
+          "createNew": "+ Neues Asset anlegen…",
+          "categoryChange": {
+            "title": "Asset-Kategorie ändern?",
+            "warning": "Dieses Asset wird von DFD-Elementen referenziert. Eine Änderung der Kategorie macht alle bestehenden Relationstypen in diesen Elementen ungültig, da Relationstypen kategoriespezifisch sind.",
+            "confirm": "Kategorie ändern"
+          },
+          "tabs": {
+            "general": "Allgemein",
+            "usedIn": "Verwendet in"
+          },
+          "newAsset": {
+            "name": "Asset-Name",
+            "assetGroup": "Asset-Gruppe",
+            "confirm": "Bestätigen",
+            "cancel": "Abbrechen"
+          },
+          "isSafetyFunction": "Sicherheitsfunktion (ISO 12100 / IEC 61508)",
+          "externalRef": "Externer Sicherheitsnachweis (z.B. SF-001)",
+          "externalRefHint": "ID aus dem begleitenden Sicherheitsanalysedokument",
+          "safetyImpact": "Sicherheitsauswirkung (ISO 12100)",
+          "safetyRationale": "Sicherheitsbegründung",
+          "safetyRationalePlaceholder": "z.B. Manipulation ermöglicht unkontrollierte Maschinenbewegung mit Verletzungsrisiko",
+          "safetyRationaleHelper": "Wird in EN 50742 / MVO 2027 Auditdokumentation verwendet",
+          "domain": "Domäne / Regulatorischer Kontext",
+          "isValidatedProcess": "Formell validierter / zertifizierter Prozess",
+          "validationRationale": "Validierungsbegründung (erforderlich)",
+          "isUnique": "Einzigartig / nicht ersetzbar (Kunstwerk, Prototyp, Unikat)",
+          "portability": "Mobilität",
+          "serviceType": "Servicetyp",
+          "responsibility": "Verantwortlichkeitsmodell",
+          "isProtectionTarget": "Schutzobjekt gemäss ISO 12100 / EN 50742 (gefährdete Person)",
+          "isPhysicalBarrier": "Physische Schutzeinrichtung (Schutzgitter, Gehäuse, Zaun)",
+          "environmentalHazard": "Umgebungsgefährdung",
+          "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
+        }
+      }
+    }
+  },
+  "dfdValidation": {
+    "noElements": "Das DFD enthält keine Elemente",
+    "noProcessOrDatastore": "Mindestens ein Prozess oder Datenspeicher ist erforderlich",
+    "noDataflows": "Das DFD enthält keine Datenflüsse",
+    "noTrustBoundary": "Mindestens eine Trust Boundary ist erforderlich",
+    "needTwoTrustBoundaries": "Ohne externe Entitäten sind mindestens zwei Trust Boundaries erforderlich",
+    "emptyTrustBoundary": "Trust Boundary \"{{name}}\" enthält keinen Prozess oder Datenspeicher",
+    "trustBoundaryMissingId": "Trust Boundary \"{{name}}\" hat keine gültige ID in eckigen Klammern [ID]. Erlaubt: Buchstaben, Zahlen, - und _",
+    "noElementInsideTrustBoundary": "Mindestens ein Prozess oder Datenspeicher muss innerhalb einer Trust Boundary liegen",
+    "elementOutsideAllTrustBoundaries": "{{type}} \"{{name}}\" liegt ausserhalb aller Trust Boundaries",
+    "externalEntityInsideTrustBoundary": "Externe Entität \"{{name}}\" liegt innerhalb einer Trust Boundary",
+    "noInternalExternalFlow": "Mindestens ein Datenfluss zwischen einem internen Element und einer externen Entität ist erforderlich",
+    "noCrossBoundaryFlow": "Mindestens ein Datenfluss muss eine Trust Boundary überschreiten",
+    "unconnectedElement": "{{type}} \"{{name}}\" hat keine Datenfluss-Verbindungen",
+    "unconnectedDataflow": "Datenfluss \"{{name}}\" ist nicht mit Elementen verbunden",
+    "invalidDataflowSource": "Datenfluss \"{{name}}\" hat eine ungültige Quelle",
+    "invalidDataflowTarget": "Datenfluss \"{{name}}\" hat ein ungültiges Ziel",
+    "assetNotPlaced": "Asset \"{{name}}\" ist nicht auf einem gültigen Element platziert (Prozess, Multiprozess, Datenspeicher oder Datenfluss)",
+    "interfaceUnused": "Interface \"{{name}}\" wird von keinem Datenfluss durchquert",
+    "elementDefaultName": "Element \"{{name}}\" hat einen Standard-/Platzhaltername. Bitte geben Sie einen aussagekräftigen Namen ein.",
+    "elementMissingIdLabel": "Element \"{{name}}\" hat kein ID-Label. Bitte fügen Sie ein ID-Label hinzu (z.B. [P-1], [EE-1], [DF-1]).",
+    "duplicateIdLabel": "ID-Label \"{{id}}\" wird mehrfach verwendet. Jedes Element sollte eine eindeutige ID haben.",
+    "assetMarkerNoRelation": "Das Asset hat keine zugeordnete Beziehung",
+    "assetRelationInconsistent": "Die Beziehung des Assets ist inkonsistent",
+    "elementTypes": {
+      "Process": "Prozess",
+      "Multiprocess": "Multiprozess",
+      "DataStore": "Datenspeicher",
+      "ExternalEntity": "Externe Entität",
+      "TrustBoundary": "Trust Boundary",
+      "Interface": "Interface",
+      "Asset": "Asset"
+    }
+  }
+}

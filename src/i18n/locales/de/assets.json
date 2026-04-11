@@ -1,0 +1,196 @@
+{
+  "tabs": {
+    "assets": {
+      "title": "Assets-Verwaltung",
+      "description": "Definieren und verwalten Sie hier Ihre System-Assets.",
+      "assets": "Assets",
+      "addAsset": "Asset hinzufügen",
+      "syncFromDFD": "Aus DFD synchronisieren",
+      "configuration": "Impact-Konfiguration",
+      "missingInDFD": "{{count}} Asset(s) nicht im DFD platziert",
+      "notLinked": "Nicht verknüpft",
+      "noAssets": "Keine Assets definiert",
+      "noAssetsHint": "Fügen Sie Assets manuell hinzu oder synchronisieren Sie aus dem DFD.",
+      "noDFDImage": "Kein DFD-Bild verfügbar",
+      "noDFDImageHint": "Speichern Sie das DFD, um ein Vorschaubild zu generieren",
+      "exportAssets": "Export Assets",
+      "importAssets": "Import Assets",
+      "validation": {
+        "noAssets": "Keine Assets definiert",
+        "noName": "Asset {{id}}: Name fehlt",
+        "noSecurityGoal": "Asset {{id}}: kein Schutzziel definiert",
+        "noSecurityGoalDescription": "Asset {{id}}: Schutzziel {{type}} hat keine formale Beschreibung",
+        "noPhysicalImpactRationale": "Asset {{id}}: manueller Safety Impact erfordert Rationale",
+        "notLinkedToDFD": "Asset {{id}}: nicht mit DFD-Element verknüpft",
+        "unratedImpact": "Asset {{id}}: unbewertete Impact-Faktoren vorhanden"
+      },
+      "columns": {
+        "id": "ID",
+        "name": "Name",
+        "type": "Typ",
+        "description": "Beschreibung",
+        "safetyImpact": "Safety",
+        "overallImpact": "Gesamt",
+        "aggregatedImpact": "Aggregiert",
+        "hva": "HVA",
+        "downstream": "Downstream",
+        "securityGoals": "Schutzziele",
+        "linkedElements": "DFD Links",
+        "securityGoalsText": "Sicherheitsanforderungen"
+      },
+      "tooltips": {
+        "safetyImpact": {
+          "title": "Safety / Physischer Impact",
+          "derived": "Abgeleitet (Graph)",
+          "manual": "Manuell (Override)",
+          "description": "Abgeleitet aus DFD SafetyAnnotation via Graph-Traversierung. Manueller Override erfordert Rationale."
+        },
+        "overallImpact": {
+          "title": "Business Impact",
+          "conservative": "Konservativ (MAX)",
+          "average": "Gewichteter Mittelwert",
+          "description": "Berechnet aus allen konfigurierten Impact-Faktoren."
+        },
+        "aggregatedImpact": {
+          "title": "Aggregierter Impact",
+          "description": "Kombination aus Business + Safety Impact",
+          "safetyOverride": "Safety Override – direkter Sicherheitsbezug",
+          "highPlus": "Indirekter Sicherheitsbezug + HIGH Business Impact"
+        },
+        "hva": {
+          "title": "High-Value Asset",
+          "description": "Abgeleitet aus Impact-Faktoren + Wiederherstellbarkeit (replacementLeadTime, vendorDependency, spareAvailability). Löst Override-Regeln aus.",
+          "critical": "CRITICAL — Threat-Priorität wird auf CRITICAL gesetzt",
+          "high": "HIGH — Threat-Priorität wird auf CRITICAL gesetzt",
+          "medium": "MEDIUM — Threat-Priorität mindestens HIGH",
+          "low": "LOW — Nur informativ, kein Override"
+        },
+        "downstream": {
+          "title": "Downstream Assets",
+          "description": "Anzahl Assets die von diesem Asset abhängen (Asset-zu-Asset Graph, BFS-Traversierung). Höher = grösseres Propagationsrisiko.",
+          "count": "{{count}} abhängige Assets im Graphen"
+        },
+        "cianaaa": {
+          "title": "Schutzziele (CIANAAA)",
+          "description": "Abgeleitet aus Impact-Faktoren via CIANAAA-Regeln. Manueller Override möglich.",
+          "manual": "Manuell gesetzt",
+          "suggested": "Graph-Vorschlag"
+        },
+        "derived": "Abgeleitet (Graph)",
+        "manual": "Manuell (Override)",
+        "showFactors": "Faktoren anzeigen",
+        "hideFactors": "Faktoren ausblenden"
+      },
+      "criterionLabels": {
+        "financial_damage": "Finanziell",
+        "regulatory_compliance": "Regulatorik",
+        "reputation": "Reputation",
+        "privacy": "Datenschutz",
+        "operational": "Betrieb",
+        "affected_users": "Betr. Nutzer",
+        "recoverability": "Wiederherst.",
+        "safety": "Sicherheit",
+        "physical_damage": "Phys. Schaden",
+        "environmental": "Umwelt",
+        "supply_chain": "Lieferkette"
+      },
+      "dialog": {
+        "createTitle": "Asset erstellen",
+        "editTitle": "Asset {{id}} bearbeiten",
+        "basicInfo": "Grundinformationen",
+        "impactRatings": "Impact-Bewertungen",
+        "overall": "Gesamt",
+        "securityGoals": "Schutzziele (CIANAAA)",
+        "formalDescription": "Formale Sicherheitsanforderung",
+        "useTemplate": "Vorlage verwenden",
+        "linkedElements": "Verknüpfte DFD-Elemente",
+        "tabGeneral": "Allgemein & Bewertung",
+        "tabSecurityGoals": "Schutzziele",
+        "notRated": "Nicht bewertet",
+        "notSet": "Nicht gesetzt",
+        "hvaTitle": "High-Value Asset Bewertung",
+        "hvaReplacementLeadTime": "Wiederbeschaffungszeit",
+        "hvaVendorDependency": "Lieferantenabhängigkeit",
+        "hvaSpareAvailability": "Ersatzteilversorgung",
+        "hvaLeadTimeNote": "Zeitangabe (optional)",
+        "hvaRationale": "HVA Begründung",
+        "physicalImpactTitle": "Sicherheitsauswirkung (Physisch)",
+        "physicalImpactDerived": "Abgeleitet aus DFD:",
+        "physicalImpactOverride": "Safety Impact manuell überschreiben",
+        "physicalImpactLevel": "Safety Impact Level",
+        "physicalImpactRationale": "Begründung (Pflichtfeld)",
+        "physicalImpactRationaleHint": "Pflichtfeld bei manueller Überschreibung (IEC 62443-4-1 Audit-Trail)",
+        "derivedFromDFD": "aus DFD abgeleitet"
+      },
+      "safetyScale": {
+        "1": {
+          "label": "Niedrig",
+          "severity": "Reversible Verletzung (leicht)"
+        },
+        "2": {
+          "label": "Mittel",
+          "severity": "Reversible Verletzung (mittel)"
+        },
+        "3": {
+          "label": "Hoch",
+          "severity": "Irreversible Verletzung"
+        },
+        "4": {
+          "label": "Kritisch",
+          "severity": "Tödlich"
+        }
+      },
+      "config": {
+        "title": "Asset Impact-Konfiguration",
+        "info": "Wählen Sie 4-6 Impact-Kriterien, die für Ihr Projekt relevant sind. Diese Konfiguration gilt für alle Assets.",
+        "impactScale": "Impact-Skala",
+        "scale3": "3-stufig (Niedrig, Mittel, Hoch)",
+        "scale4": "4-stufig (+ Kritisch)",
+        "scale5": "5-stufig (+ Sehr Hoch)",
+        "calculationMethod": "Gesamt-Impact-Berechnung",
+        "conservative": "Konservativ (Maximum)",
+        "conservativeDesc": "Verwendet den höchsten Impact-Wert aller Kriterien",
+        "average": "Durchschnitt (Arithmetisches Mittel)",
+        "averageDesc": "Berechnet den Durchschnitt aller Impact-Werte",
+        "impactCriteria": "Impact-Kriterien",
+        "businessCriteria": "Geschäftlich / Organisatorisch",
+        "physicalCriteria": "Physisch",
+        "tooManyCriteria": "Sie haben mehr als 6 Kriterien ausgewählt...",
+        "roundingMethod": "Schwellenwert-Berechnung",
+        "roundingRound": "Standard",
+        "roundingRoundTitle": "Standard-Rundung (Math.round)",
+        "roundingRoundDesc": "Symmetrische Schwellen bei .5",
+        "roundingCeil": "Konservativ",
+        "roundingCeilTitle": "Konservative Rundung (Math.ceil)",
+        "roundingCeilDesc": "Rundet immer auf höhere Risikostufe auf",
+        "methodTab": "Methode & Anzeige",
+        "factorsTab": "Faktoren",
+        "weight": "Gewichtung",
+        "resetWeights": "Gewichtungen auf 1.0 zurücksetzen",
+        "criteriaCountInfo": "{{count}} Kriterien ausgewählt (empfohlen: {{min}}–{{max}})",
+        "safetyLocked": "Safety-Kriterium ist gesperrt — Graph enthält Safety-Annotationen",
+        "safetyLockedInfo": "Das \"Safety\"-Kriterium ist gesperrt, weil das DFD Safety-Annotationen enthält.",
+        "derived": "Graph-abgeleitet",
+        "weightsDisabled": "Gewichtungen sind im Konservativ-Modus (MAX) deaktiviert — wechsle zu Gewichtetem Mittelwert."
+      },
+      "dfdPreview": {
+        "zoomIn": "Vergrössern",
+        "zoomOut": "Verkleinern",
+        "fitToScreen": "Einpassen",
+        "resetView": "Ansicht zurücksetzen",
+        "hint": "Ziehen zum Verschieben, Scrollen zum Zoomen",
+        "regenerate": "Vorschau aus DFD generieren",
+        "generating": "Vorschau wird generiert..."
+      },
+      "exportImport": {
+        "assetData": "Asset Data",
+        "assetDataDesc": "{{count}} assets with impact ratings and security goals",
+        "configuration": "Configuration",
+        "configurationDesc": "Impact criteria, scale, and calculation settings",
+        "exportInfo": "Select what you want to export. The file can be imported into another project.",
+        "exportTitle": "Export Asset Data",
+        "selectContent": "Select Content to Export"
+      }
+    }
+  }
+}

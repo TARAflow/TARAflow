@@ -34,11 +34,11 @@ export const ValidationMessages = {
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
 
   // Asset Relations (NEW)
-  ASSET_MARKER_NO_RELATION: "dfdValidation.assetMarkerNoRelation",
-  ASSET_RELATION_NO_MARKER: "dfdValidation.assetRelationNoMarker",
+  // ASSET_MARKER_NO_RELATION: "dfdValidation.assetMarkerNoRelation",
+  // ASSET_RELATION_NO_MARKER: "dfdValidation.assetRelationNoMarker",
   ASSET_RELATION_TYPE_INVALID: "dfdValidation.assetRelationTypeInvalid",
   ASSET_RELATION_INCONSISTENT: "dfdValidation.assetRelationInconsistent",
-  ASSET_MARKER_ON_INVALID_ELEMENT: "dfdValidation.assetMarkerOnInvalidElement",
+  // ASSET_MARKER_ON_INVALID_ELEMENT: "dfdValidation.assetMarkerOnInvalidElement",
 
   // Naming & ID Labels
   ELEMENT_DEFAULT_NAME: "dfdValidation.elementDefaultName",
