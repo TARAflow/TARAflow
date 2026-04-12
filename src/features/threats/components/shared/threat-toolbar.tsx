@@ -98,8 +98,7 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     onImport,
     onProceed,
   }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
+    const { t } = useTranslation();
 
     const getStatusColor = () => {
       if (!validation) return "default";
@@ -191,7 +190,9 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
 
         {/* Generate Threats */}
         <Tooltip
-          title={t("tabs.threats.generate", { defaultValue: "Generate Threats" })}
+          title={t("tabs.threats.generate", {
+            defaultValue: "Generate Threats",
+          })}
         >
           <span>
             <IconButton
@@ -209,12 +210,8 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
         <Tooltip
           title={
             needsSync
-              ? isGerman
-                ? "Bedrohungen synchronisieren"
-                : "Sync Threats"
-              : isGerman
-              ? "Bedrohungen sind synchron"
-              : "Threats are in sync"
+              ? t("tabs.threats.sync.action")
+              : t("tabs.threats.sync.status.synced")
           }
         >
           <span>
@@ -297,7 +294,7 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
         {needsSync && (
           <Chip
             icon={<WarningIcon />}
-            label={isGerman ? "Nicht synchron" : "Out of sync"}
+            label={t("tabs.threats.sync.status.outOfSync")}
             size="small"
             color="warning"
             variant="outlined"

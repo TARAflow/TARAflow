@@ -38,7 +38,6 @@ export class ElementThreatSync {
     project: ThreatProjectData,
     tables: ThreatTable[],
   ): ThreatSyncStatus {
-    // Early exit if no graph
     if (!project.dfdGraph) {
       return this.createEmptySyncStatus();
     }
@@ -50,7 +49,7 @@ export class ElementThreatSync {
     const orphanedThreatIds: string[] = [];
     const changedReferences: ElementChange[] = [];
 
-    // ==================== Check Trust Boundary changes ====================
+    // ── Trust Boundary changes ────────────────────────────────────────────
     const trustBoundaryChanges: TrustBoundaryChange[] = [];
 
     tables.forEach((table, tableIndex) => {
@@ -67,7 +66,7 @@ export class ElementThreatSync {
       }
     });
 
-    // ==================== Check existing threats ====================
+    // ── Check existing threats ────────────────────────────────────────────
     for (const table of tables) {
       for (const threat of table.threats) {
         if (!threat.linkedElement) continue;
@@ -81,7 +80,6 @@ export class ElementThreatSync {
           if (conn) {
             threatenedConnections.add(conn.id);
 
-            // Generate expected threat ID
             const dataFlowIdNormalized = (conn.displayId || "").replace(
               /-/g,
               "",
@@ -94,13 +92,12 @@ export class ElementThreatSync {
               changes.push("id");
             }
 
-            // Label/Name changed?
             if (
               (threat.linkedElement.elementName || "") !== (conn.label || "")
             ) {
               changes.push("name");
             }
-            // DisplayId changed?
+
             if (
               threat.linkedElement.displayId &&
               conn.displayId &&
@@ -127,7 +124,6 @@ export class ElementThreatSync {
               });
             }
           } else {
-            // Connection missing → orphaned threat
             orphanedThreatIds.push(threat.id);
           }
           continue;
@@ -142,7 +138,6 @@ export class ElementThreatSync {
 
         threatenedElements.add(elementId);
 
-        // Generate expected threat ID
         const currentTB = threat.trustBoundaryId
           ? graph.elementsById.get(threat.trustBoundaryId)
           : null;
@@ -164,13 +159,11 @@ export class ElementThreatSync {
           expectedId = `${elementIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         }
 
-        // Detect changes (name/type/id)
         const elemChanges: ("name" | "id" | "type")[] = [];
 
         if (threat.id !== expectedId) {
           elemChanges.push("id");
         }
-
         if (element.name !== threat.linkedElement.elementName) {
           elemChanges.push("name");
         }
@@ -194,11 +187,11 @@ export class ElementThreatSync {
       }
     }
 
-    // ==================== Find missing elements ====================
+    // ── Missing elements ──────────────────────────────────────────────────
     const missingElements: DFDElementReference[] = [];
     for (const element of graph.elementsById.values()) {
       if (element.type === "TrustBoundary") continue;
-      if (element.type === "ExternalEntity") continue; // EEs handled separately
+      if (element.type === "ExternalEntity") continue;
 
       const applicableStride = STRIDE_PER_ELEMENT_TYPE[element.type];
       if (!applicableStride || applicableStride.length === 0) continue;
@@ -208,7 +201,7 @@ export class ElementThreatSync {
       }
     }
 
-    // ==================== Find missing External Entities ====================
+    // ── Missing External Entities ─────────────────────────────────────────
     for (const element of graph.elementsById.values()) {
       if (element.type !== "ExternalEntity") continue;
 
@@ -220,7 +213,7 @@ export class ElementThreatSync {
       }
     }
 
-    // ==================== Find missing DataFlows ====================
+    // ── Missing DataFlows ─────────────────────────────────────────────────
     const missingConnections: DFDConnectionReference[] = [];
     for (const connection of graph.connectionsById.values()) {
       if (!threatenedConnections.has(connection.id)) {
@@ -262,7 +255,8 @@ export class ElementThreatSync {
   }
 
   /**
-   * Synchronize threats with DFD changes using DFDGraph
+   * Synchronize threats with DFD changes using DFDGraph.
+   * Note: catalog parameter removed — generator uses threat-catalog-service directly.
    */
   synchronizeThreats(
     project: ThreatProjectData,
@@ -273,9 +267,7 @@ export class ElementThreatSync {
       updateReferences: boolean;
       removeOrphaned: boolean;
     },
-    catalog: { threatTemplates: any[] },
   ): ThreatSyncResult {
-    // Early exit if no graph
     if (!project.dfdGraph) {
       return {
         success: false,
@@ -304,7 +296,7 @@ export class ElementThreatSync {
     let removed = 0;
     let updated = 0;
 
-    // ==================== Update Trust Boundary names ====================
+    // ── Update Trust Boundary names ───────────────────────────────────────
     const trustBoundaryChanges = this.findTrustBoundaryChanges(tables, graph);
     if (trustBoundaryChanges.length > 0) {
       trustBoundaryChanges.forEach((change) => {
@@ -316,8 +308,7 @@ export class ElementThreatSync {
       });
     }
 
-    // ==================== Update Threat IDs ====================
-    // Regenerate all threat IDs based on current element state
+    // ── Update Threat IDs ─────────────────────────────────────────────────
     updatedTables = updatedTables.map((table) => ({
       ...table,
       threats: table.threats.map((threat) => {
@@ -395,7 +386,7 @@ export class ElementThreatSync {
       }),
     }));
 
-    // ==================== Update changed references ====================
+    // ── Update changed references ─────────────────────────────────────────
     if (
       options.updateReferences &&
       syncStatus.changedReferences.elements.length > 0
@@ -431,7 +422,7 @@ export class ElementThreatSync {
       }));
     }
 
-    // ==================== Remove orphaned threats ====================
+    // ── Remove orphaned threats ───────────────────────────────────────────
     if (
       options.removeOrphaned &&
       syncStatus.orphanedThreats.threatIds.length > 0
@@ -449,10 +440,9 @@ export class ElementThreatSync {
       }));
     }
 
-    // ==================== Add missing element threats ====================
+    // ── Add missing element threats ───────────────────────────────────────
     if (syncStatus.missingInThreats.elements.length > 0) {
       for (const missingElement of syncStatus.missingInThreats.elements) {
-        // Determine Trust Boundary membership using graph
         const trustBoundaryId = this.getElementTrustBoundary(
           graph,
           missingElement.id,
@@ -463,7 +453,6 @@ export class ElementThreatSync {
         let isInterfaceWithoutTB = false;
 
         if (missingElement.type === "ExternalEntity") {
-          // All External Entities go to separate table
           trustBoundaryName = "External Entities";
           trustBoundaryDisplayId = "";
         } else if (
@@ -471,22 +460,31 @@ export class ElementThreatSync {
             missingElement.type === "PhysicalInterface") &&
           !trustBoundaryId
         ) {
-          // Interfaces without TB → separate "Physical Interfaces" table
           trustBoundaryName = "Physical Interfaces";
           trustBoundaryDisplayId = "";
           isInterfaceWithoutTB = true;
         } else if (trustBoundaryId) {
-          // Normal elements (including Interfaces) in TB
           const tb = graph.elementsById.get(trustBoundaryId);
           trustBoundaryName = tb?.name || "Unknown";
           trustBoundaryDisplayId = tb?.displayId || "";
         } else {
-          // Elements without TB (shouldn't happen but handle gracefully)
           trustBoundaryName = "No Trust Boundary";
           trustBoundaryDisplayId = "";
         }
 
-        // Generate threats for the element
+        // Build a minimal project stub so the generator can run without
+        // a full project object. settings = undefined → no context filtering
+        // (correct for sync — we don't want to filter here).
+        const projectStub = {
+          ...project,
+          dfdGraph: {
+            ...graph,
+            // Provide a single-element map so elementToAssets lookup works
+            elementsById: graph.elementsById,
+            connectionsById: graph.connectionsById,
+          },
+        } as ThreatProjectData;
+
         const newThreats = elementThreatGenerator["generateThreatsForElement"](
           missingElement,
           missingElement.type === "ExternalEntity" || isInterfaceWithoutTB
@@ -494,10 +492,10 @@ export class ElementThreatSync {
             : trustBoundaryId,
           trustBoundaryName,
           trustBoundaryDisplayId,
-          catalog,
+          new Map(), // elementToAssets
+          projectStub, // project
         );
 
-        // Find or create table (with proper matching to avoid mixing with [DF] table)
         let table = updatedTables.find((t) => {
           if (missingElement.type === "ExternalEntity") {
             return t.trustBoundaryName === "External Entities";
@@ -505,7 +503,6 @@ export class ElementThreatSync {
           if (isInterfaceWithoutTB) {
             return t.trustBoundaryName === "Physical Interfaces";
           }
-          // Match by both ID AND name to avoid false matches with null IDs
           return (
             t.trustBoundaryId === trustBoundaryId &&
             t.trustBoundaryName === trustBoundaryName
@@ -535,11 +532,13 @@ export class ElementThreatSync {
       }
     }
 
-    // ==================== Add missing DataFlow threats ====================
+    // ── Add missing DataFlow threats ──────────────────────────────────────
     if (syncStatus.missingInThreats.dataFlows.length > 0) {
       const missingConnIds = new Set(
         syncStatus.missingInThreats.dataFlows.map((df) => df.id),
       );
+
+      const projectStub = { ...project } as ThreatProjectData;
 
       const newDfThreats = syncStatus.missingInThreats.dataFlows.flatMap(
         (conn) => {
@@ -555,12 +554,12 @@ export class ElementThreatSync {
             null,
             "Data Flows",
             "",
-            catalog,
+            new Map(), // elementToAssets
+            projectStub, // project
           );
         },
       );
 
-      // Find or create "Data Flows" table
       let dfTable = updatedTables.find(
         (t) =>
           t.trustBoundaryId === null && t.trustBoundaryName === "Data Flows",
@@ -607,10 +606,8 @@ export class ElementThreatSync {
     };
   }
 
-  /**
-   * Get effective trust boundary for an element using graph
-   * Returns the deepest (most specific) trust boundary
-   */
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   private getElementTrustBoundary(
     graph: DFDGraphReference,
     elementId: string,
@@ -619,9 +616,6 @@ export class ElementThreatSync {
     return effectiveTB || null;
   }
 
-  /**
-   * Find trust boundary name changes
-   */
   private findTrustBoundaryChanges(
     tables: ThreatTable[],
     graph: DFDGraphReference,
@@ -645,25 +639,12 @@ export class ElementThreatSync {
     return changes;
   }
 
-  /**
-   * Create empty sync status for error cases
-   */
   private createEmptySyncStatus(): ThreatSyncStatus {
     return {
       inSync: true,
-      missingInThreats: {
-        elements: [],
-        dataFlows: [],
-      },
-      orphanedThreats: {
-        elementIds: [],
-        dataFlowIds: [],
-        threatIds: [],
-      },
-      changedReferences: {
-        elements: [],
-        dataFlows: [],
-      },
+      missingInThreats: { elements: [], dataFlows: [] },
+      orphanedThreats: { elementIds: [], dataFlowIds: [], threatIds: [] },
+      changedReferences: { elements: [], dataFlows: [] },
       summary: {
         missingElementCount: 0,
         missingDataFlowCount: 0,

@@ -230,6 +230,38 @@
     "responsiblePlaceholder": "Verantwortliche Person...",
     "descriptionPlaceholder": "Beschreibe dein Projekt..."
   },
+  "stride": {
+    "S": {
+      "name": "Spoofing",
+      "securityProperty": "Authentifizierung",
+      "description": "Vorgeben, etwas oder jemand anderes zu sein"
+    },
+    "T": {
+      "name": "Manipulation",
+      "securityProperty": "Integrität",
+      "description": "Ändern von etwas, das nicht geändert werden sollte"
+    },
+    "R": {
+      "name": "Abstreitbarkeit",
+      "securityProperty": "Nichtabstreitbarkeit",
+      "description": "Behaupten, etwas nicht getan zu haben"
+    },
+    "I": {
+      "name": "Informationspreisgabe",
+      "securityProperty": "Vertraulichkeit",
+      "description": "Offenlegung von Informationen an Unbefugte"
+    },
+    "D": {
+      "name": "Dienstverweigerung",
+      "securityProperty": "Verfügbarkeit",
+      "description": "Aktionen, die das System am Bereitstellen von Diensten hindern"
+    },
+    "E": {
+      "name": "Rechteausweitung",
+      "securityProperty": "Autorisierung",
+      "description": "Ausführen von Operationen ohne entsprechende Berechtigung"
+    }
+  },
   "tags": {
     "tooltips": {
       "cra": "EU Cyber Resilience Act - Sicherheitsanforderungen für Produkte mit digitalen Elementen",
@@ -486,38 +518,6 @@
           "remote": "Remote (vernetztes Bauteil)"
         }
       }
-    }
-  },
-  "stride": {
-    "S": {
-      "name": "Spoofing",
-      "property": "Authentifizierung",
-      "description": "Vorgeben, etwas oder jemand anderes zu sein"
-    },
-    "T": {
-      "name": "Manipulation",
-      "property": "Integrität",
-      "description": "Ändern von etwas, das nicht geändert werden sollte"
-    },
-    "R": {
-      "name": "Abstreitbarkeit",
-      "property": "Nichtabstreitbarkeit",
-      "description": "Behaupten, etwas nicht getan zu haben"
-    },
-    "I": {
-      "name": "Informationspreisgabe",
-      "property": "Vertraulichkeit",
-      "description": "Offenlegung von Informationen an Unbefugte"
-    },
-    "D": {
-      "name": "Dienstverweigerung",
-      "property": "Verfügbarkeit",
-      "description": "Aktionen, die das System am Bereitstellen von Diensten hindern"
-    },
-    "E": {
-      "name": "Rechteausweitung",
-      "property": "Autorisierung",
-      "description": "Ausführen von Operationen ohne entsprechende Berechtigung"
     }
   }
 }

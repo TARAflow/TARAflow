@@ -1,0 +1,183 @@
+{
+  "S-EE-001": {
+    "threat": "Identitätsfälschung einer externen Entität",
+    "cause": "Fehlende oder unzureichende Authentifizierung und Validierung externer Entitäten",
+    "attack": "Angreifer gibt sich als vertrauenswürdige externe Entität aus, indem er gefälschte Anfragen sendet, Identitätsprüfungen umgeht oder gestohlene Anmeldedaten wiederverwendet"
+  },
+  "S-P-001": {
+    "threat": "Unbefugter Prozesszugriff durch Identitätsfälschung",
+    "cause": "Schwache oder fehlende Authentifizierungsmechanismen für den Prozesszugriff",
+    "attack": "Angreifer fälscht eine legitime Identität, um unbefugten Zugriff auf einen geschützten Prozess zu erlangen"
+  },
+  "S-P-002": {
+    "threat": "Prozess-Spoofing durch böswilligen Prozessaustausch",
+    "cause": "Fehlende Prozessintegritätsprüfung oder Vertrauensvalidierung",
+    "attack": "Angreifer ersetzt einen legitimen Prozess durch einen bösartigen mit gleicher Kennung oder Schnittstelle"
+  },
+  "S-P-003": {
+    "threat": "Session-Hijacking",
+    "cause": "Unsachgemäße Sitzungsverwaltung oder schwache Sitzungsbindung",
+    "attack": "Angreifer übernimmt eine gültige Benutzersitzung durch Stehlen oder Vorhersagen von Sitzungskennungen"
+  },
+
+  "T-P-001": {
+    "threat": "Manipulation von Prozesslogik oder Konfiguration",
+    "cause": "Unzureichender Integritätsschutz für Code oder Konfiguration",
+    "attack": "Angreifer modifiziert Prozesscode oder Laufzeitkonfiguration, um das beabsichtigte Verhalten zu verändern"
+  },
+  "T-P-002": {
+    "threat": "Speichermanipulation",
+    "cause": "Fehlende Speichersicherheitsmechanismen",
+    "attack": "Angreifer nutzt Speicherschwachstellen wie Pufferüberläufe aus, um den Prozessspeicher zu manipulieren"
+  },
+  "T-DF-001": {
+    "threat": "Datenmanipulation während der Übertragung",
+    "cause": "Fehlender Integritätsschutz auf Datenflüssen",
+    "attack": "Angreifer fängt Daten während der Übertragung zwischen Komponenten ab und verändert sie"
+  },
+  "T-DF-002": {
+    "threat": "Man-in-the-Middle-Angriff",
+    "cause": "Fehlende gegenseitige Authentifizierung oder sichere Kanalabsicherung",
+    "attack": "Angreifer positioniert sich zwischen kommunizierenden Parteien, um übertragene Daten abzufangen und zu verändern"
+  },
+  "T-DS-001": {
+    "threat": "Manipulation gespeicherter Daten",
+    "cause": "Unzureichende Zugriffskontrollen oder Integritätsschutz im Speicher",
+    "attack": "Angreifer verändert gespeicherte Daten direkt unter Umgehung der anwendungsseitigen Kontrollen"
+  },
+  "T-DS-002": {
+    "threat": "Datenmanipulation durch Injection",
+    "cause": "Unsachgemäße Eingabevalidierung und Abfragekonstruktion",
+    "attack": "Angreifer injiziert bösartige Eingaben (z. B. SQL), um gespeicherte Daten zu manipulieren oder zu verändern"
+  },
+
+  "R-EE-001": {
+    "threat": "Abstreitbarkeit durch externe Entität",
+    "cause": "Fehlende zuverlässige Protokollierung und Nichtabstreitbarkeitsmechanismen",
+    "attack": "Externe Entität bestreitet eine ausgeführte Aktion aufgrund fehlender oder unzureichender Audit-Trails"
+  },
+  "R-P-001": {
+    "threat": "Nicht nachverfolgbare Prozessaktionen",
+    "cause": "Unzureichende Protokollierungs- oder Audit-Mechanismen",
+    "attack": "Angreifer führt Aktionen aus, die aufgrund fehlender oder unvollständiger Protokolle nicht zurückverfolgt werden können"
+  },
+  "R-P-002": {
+    "threat": "Log-Manipulation",
+    "cause": "Fehlender Schutz und fehlende Integritätskontrollen für Protokolle",
+    "attack": "Angreifer verändert oder löscht Protokolleinträge, um Beweise für bösartige Aktivitäten zu verbergen"
+  },
+  "R-DS-001": {
+    "threat": "Nicht zuordenbare Datenänderungen",
+    "cause": "Fehlender Audit-Trail für Datenänderungen",
+    "attack": "Angreifer verändert gespeicherte Daten ohne nachverfolgbare Spuren zu hinterlassen"
+  },
+
+  "I-P-001": {
+    "threat": "Informationsoffenlegung durch Fehlermeldungen",
+    "cause": "Übermäßige Informationsfreigabe in der Fehlerbehandlung",
+    "attack": "Detaillierte Fehlermeldungen offenbaren sensible System- oder interne Informationen"
+  },
+  "I-P-002": {
+    "threat": "Speicherinhalt-Offenlegung",
+    "cause": "Fehlende Speicherisolierung oder Seitenkanal-Schutzmaßnahmen",
+    "attack": "Angreifer extrahiert sensible Daten aus dem Prozessspeicher mittels Seitenkanaltechniken"
+  },
+  "I-DF-001": {
+    "threat": "Abhören von Datenflüssen",
+    "cause": "Unverschlüsselte oder schwach geschützte Kommunikationskanäle",
+    "attack": "Angreifer fängt sensible Daten während der Übertragung zwischen Komponenten ab und liest sie"
+  },
+  "I-DF-002": {
+    "threat": "Informationsleck durch Verkehrsanalyse",
+    "cause": "Fehlende Verkehrsverschleierung oder Metadatenschutz",
+    "attack": "Angreifer analysiert Kommunikationsmuster, um auf sensible Informationen zu schließen"
+  },
+  "I-DS-001": {
+    "threat": "Unbefugter Zugriff auf gespeicherte Daten",
+    "cause": "Schwache Zugriffsschutzmechanismen auf den Speicher",
+    "attack": "Angreifer erhält unbefugten Lesezugriff auf sensible gespeicherte Daten"
+  },
+  "I-DS-002": {
+    "threat": "Datenexposition über Hilfsdateien",
+    "cause": "Unsachgemäßer Umgang mit Backups, Protokollen oder temporären Dateien",
+    "attack": "Angreifer greift über ungesicherte Backups oder Protokolldateien auf sensible Daten zu"
+  },
+
+  "D-P-001": {
+    "threat": "Prozessabsturz",
+    "cause": "Unsachgemäße Eingabevalidierung oder Fehlerbehandlung",
+    "attack": "Angreifer sendet fehlerhafte Eingaben, um Abstürze oder Ausnahmen auszulösen"
+  },
+  "D-P-002": {
+    "threat": "Ressourcenerschöpfung",
+    "cause": "Fehlende Ratenbegrenzung oder Ressourcenkontrollen",
+    "attack": "Angreifer überflutet den Prozess mit Anfragen, um Systemressourcen zu erschöpfen"
+  },
+  "D-DF-001": {
+    "threat": "Netzwerkflutung",
+    "cause": "Unzureichende Schutzmaßnahmen auf Netzwerkebene",
+    "attack": "Angreifer flutet Netzwerkkanäle, um legitime Kommunikation zu unterbrechen"
+  },
+  "D-DS-001": {
+    "threat": "Speichererschöpfung",
+    "cause": "Fehlende Quoten oder Speicherlimits",
+    "attack": "Angreifer füllt die Speicherkapazität, um legitime Operationen zu blockieren"
+  },
+  "D-DS-002": {
+    "threat": "Datenbankressourcen-Sperrung",
+    "cause": "Ineffiziente Abfrageverarbeitung und fehlende Ressourcensicherungen",
+    "attack": "Angreifer führt aufwändige oder langläufige Datenbankabfragen aus, um Ressourcen zu sperren"
+  },
+
+  "E-P-001": {
+    "threat": "Rechteausweitung durch Eingabemanipulation",
+    "cause": "Unsachgemäße Eingabevalidierung und Rechtedurchsetzung",
+    "attack": "Angreifer nutzt Eingabevalidierungsfehler aus, um erhöhte Rechte zu erlangen"
+  },
+  "E-P-002": {
+    "threat": "Autorisierungsumgehung",
+    "cause": "Fehlerhafte oder fehlende Autorisierungsprüfungen",
+    "attack": "Angreifer umgeht Autorisierungskontrollen, um auf eingeschränkte Funktionen zuzugreifen"
+  },
+  "E-P-003": {
+    "threat": "Ausführung beliebigen Codes",
+    "cause": "Injection-Schwachstellen oder unsichere Ausführungspfade",
+    "attack": "Angreifer injiziert und führt bösartigen Code im Prozesskontext aus"
+  },
+
+  "S-IF-001": {
+    "threat": "Identitätsfälschung an der Schnittstelle",
+    "cause": "Fehlende Authentifizierung für angeschlossene Schnittstellen oder Geräte",
+    "attack": "Angreifer verbindet ein bösartiges Gerät, das eine vertrauenswürdige Hardware-Schnittstelle imitiert"
+  },
+  "T-IF-001": {
+    "threat": "Physische Schnittstellenmanipulation",
+    "cause": "Fehlender physischer Schutz und Manipulationsschutz",
+    "attack": "Angreifer manipuliert Hardware-Schnittstellen, um Geräteverhalten oder Daten zu verändern"
+  },
+  "R-IF-001": {
+    "threat": "Nicht nachverfolgbare Schnittstellenaktionen",
+    "cause": "Fehlende Protokollierung für physische Schnittstelleninteraktionen",
+    "attack": "Angreifer führt Aktionen über die physische Schnittstelle aus, die nicht nachverfolgbar sind"
+  },
+  "I-IF-001": {
+    "threat": "Informationsoffenlegung über Schnittstelle",
+    "cause": "Ungeschützte physische oder Debug-Schnittstellen ermöglichen passive Überwachung",
+    "attack": "Angreifer extrahiert sensible Informationen mittels Überwachungsgeräten oder Seitenkanaltechniken"
+  },
+  "D-IF-001": {
+    "threat": "Schnittstellenbasierter Denial-of-Service",
+    "cause": "Fehlender physischer Schutz gegen absichtliche Störung",
+    "attack": "Angreifer beschädigt oder stört die Schnittstelle elektrisch, um einen Systemausfall zu verursachen"
+  },
+  "E-IF-001": {
+    "threat": "Rechteausweitung durch physischen Zugang",
+    "cause": "Freiliegende Debug- oder privilegierte Hardware-Schnittstellen ohne Zugriffskontrollen",
+    "attack": "Angreifer nutzt physischen Zugang zu Debug-Ports (z. B. JTAG, UART), um erhöhte Rechte zu erlangen"
+  },
+  "E-IF-002": {
+    "threat": "Rechteausweitung auf Firmware- oder Hardware-Ebene",
+    "cause": "Fehlender Secure Boot oder fehlende Firmware-Integritätsprüfung",
+    "attack": "Angreifer manipuliert Firmware oder Hardware-Konfiguration, um privilegierte Kontrolle über das Gerät zu erlangen"
+  }
+}

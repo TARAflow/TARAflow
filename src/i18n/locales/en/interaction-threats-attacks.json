@@ -1,0 +1,67 @@
+{
+  "S-INT-IN-001": {
+    "threat": "Sender spoofing: Attacker impersonates {{sourceName}} to deceive {{targetName}}",
+    "cause": "Missing sender authentication on incoming data flow — {{targetName}} cannot verify the true origin of received data",
+    "attack": "Attacker forges the identity of {{sourceName}} and sends malicious data to {{targetName}}, which processes it as legitimate"
+  },
+  "S-INT-OUT-001": {
+    "threat": "Receiver spoofing: Attacker impersonates {{targetName}} to intercept data from {{sourceName}}",
+    "cause": "Missing endpoint validation before data transmission — {{sourceName}} cannot verify the true identity of the receiving endpoint",
+    "attack": "Attacker sets up a rogue endpoint pretending to be {{targetName}}, causing {{sourceName}} to send sensitive data to the attacker"
+  },
+
+  "T-INT-IN-001": {
+    "threat": "Data tampering on incoming flow: Attacker modifies data before it reaches {{targetName}}",
+    "cause": "Missing integrity protection on the data flow from {{sourceName}} — data arrives without tamper evidence",
+    "attack": "Attacker intercepts the data flow from {{sourceName}} and modifies commands or payload before delivery to {{targetName}}"
+  },
+  "T-INT-OUT-001": {
+    "threat": "Response tampering: Attacker modifies response data before it reaches {{sourceName}}",
+    "cause": "Missing integrity protection on the response flow from {{targetName}} — {{sourceName}} cannot detect modified responses",
+    "attack": "Attacker intercepts the response from {{targetName}} and modifies data, causing {{sourceName}} to process falsified information"
+  },
+
+  "R-INT-IN-001": {
+    "threat": "Sender repudiation: {{sourceName}} denies sending the request or data",
+    "cause": "No non-repudiation mechanism on the data flow — requests from {{sourceName}} are not signed or cryptographically bound to the sender",
+    "attack": "{{sourceName}} claims it never sent the command or data that {{targetName}} received and acted upon"
+  },
+  "R-INT-OUT-001": {
+    "threat": "Receiver repudiation: {{targetName}} denies receiving or processing the request",
+    "cause": "No delivery confirmation or cryptographic receipt — {{sourceName}} has no proof that {{targetName}} received its data",
+    "attack": "{{targetName}} claims it never received the data from {{sourceName}}, or denies having processed it"
+  },
+
+  "I-INT-IN-001": {
+    "threat": "Eavesdropping on incoming data: Attacker intercepts sensitive data flowing to {{targetName}}",
+    "cause": "Unencrypted or weakly protected communication channel between {{sourceName}} and {{targetName}}",
+    "attack": "Attacker passively monitors the data flow and reads sensitive payload transmitted from {{sourceName}} to {{targetName}}"
+  },
+  "I-INT-OUT-001": {
+    "threat": "Eavesdropping on response: Attacker intercepts sensitive response data from {{targetName}}",
+    "cause": "Unencrypted or weakly protected response channel — response data is readable in transit",
+    "attack": "Attacker intercepts the response from {{targetName}} to {{sourceName}} and reads sensitive information"
+  },
+
+  "D-INT-IN-001": {
+    "threat": "Request flooding: Attacker overwhelms {{targetName}} with excessive incoming requests",
+    "cause": "No rate limiting or request throttling protecting {{targetName}} from high-volume input via {{sourceName}}",
+    "attack": "Attacker sends a high volume of requests via the data flow, exhausting the processing capacity of {{targetName}}"
+  },
+  "D-INT-OUT-001": {
+    "threat": "Response blocking: Attacker prevents {{sourceName}} from receiving responses from {{targetName}}",
+    "cause": "No redundancy or timeout protection — {{sourceName}} depends on responses from {{targetName}} to continue operation",
+    "attack": "Attacker disrupts or delays the response channel from {{targetName}}, causing {{sourceName}} to stall or fail"
+  },
+
+  "E-INT-IN-001": {
+    "threat": "Command injection: Attacker injects commands via data flow to escalate privileges in {{targetName}}",
+    "cause": "Insufficient input validation in {{targetName}} — incoming data from {{sourceName}} is processed with elevated trust",
+    "attack": "Attacker injects malicious commands or payloads into the data flow, which {{targetName}} executes with its own privilege level"
+  },
+  "E-INT-OUT-001": {
+    "threat": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in {{sourceName}}",
+    "cause": "{{sourceName}} trusts response data from {{targetName}} without integrity verification, enabling privilege decisions based on forged responses",
+    "attack": "Attacker modifies the response from {{targetName}} to include elevated roles or permissions, causing {{sourceName}} to grant unauthorized access"
+  }
+}

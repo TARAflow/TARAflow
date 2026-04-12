@@ -1,0 +1,92 @@
+{
+  "V-S-001": {
+    "verification": "Penetration testing for authentication bypass"
+  },
+  "V-S-002": {
+    "verification": "Verify MFA implementation with bypass attempts"
+  },
+  "V-S-003": {
+    "verification": "Certificate validation testing (SSL Labs, testssl.sh)"
+  },
+  "V-S-004": {
+    "verification": "Session management security testing"
+  },
+  "V-T-001": {
+    "verification": "Integrity check validation testing"
+  },
+  "V-T-002": {
+    "verification": "Fuzzing tests for input validation (AFL, Peach, Radamsa)"
+  },
+  "V-T-003": {
+    "verification": "SQL injection testing (SQLMap, Burp Suite)"
+  },
+  "V-T-004": {
+    "verification": "Code review for buffer overflow vulnerabilities"
+  },
+  "V-R-001": {
+    "verification": "Audit log completeness and integrity testing"
+  },
+  "V-R-002": {
+    "verification": "Verify digital signature implementation"
+  },
+  "V-R-003": {
+    "verification": "Timestamp accuracy and source verification"
+  },
+  "V-I-001": {
+    "verification": "Encryption strength verification (correct algorithms, key lengths)"
+  },
+  "V-I-002": {
+    "verification": "Network traffic analysis for unencrypted data"
+  },
+  "V-I-003": {
+    "verification": "Access control testing with different user roles"
+  },
+  "V-I-004": {
+    "verification": "Security scanning (Lynis, Nessus, OpenVAS)"
+  },
+  "V-D-001": {
+    "verification": "Stress testing and load testing (k6, JMeter)"
+  },
+  "V-D-002": {
+    "verification": "DDoS simulation testing"
+  },
+  "V-D-003": {
+    "verification": "Rate limiting effectiveness testing"
+  },
+  "V-D-004": {
+    "verification": "Failover and recovery testing"
+  },
+  "V-E-001": {
+    "verification": "Privilege escalation penetration testing"
+  },
+  "V-E-002": {
+    "verification": "Authorization bypass testing (OWASP ZAP, Burp Suite)"
+  },
+  "V-E-003": {
+    "verification": "SAST code review (SonarQube, Checkmarx)"
+  },
+  "V-E-004": {
+    "verification": "Physical security inspection of debug interfaces"
+  },
+  "V-IF-S-001": {
+    "verification": "Hardware authentication testing with unauthorized devices"
+  },
+  "V-IF-T-001": {
+    "verification": "Physical tampering tests (opening case, probing signals)"
+  },
+  "V-IF-R-001": {
+    "verification": "Review interface access logs for completeness"
+  },
+  "V-IF-I-001": {
+    "verification": "Side-channel attack testing (power analysis, electromagnetic analysis)"
+  },
+  "V-IF-D-001": {
+    "verification": "Electrical stress testing (ESD, overvoltage, short circuit)"
+  },
+  "V-IF-E-001": {
+    "verification": "Debug interface security testing (JTAG exploitation attempts)"
+  },
+  "V-IF-E-002": {
+    "verification": "Firmware verification and secure boot testing"
+  }
+}

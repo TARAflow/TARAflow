@@ -195,161 +195,200 @@ const ThreatRows: React.FC<{
   threats: Threat[];
   assetDataRef?: AssetDataReference;
   showThreatActor?: boolean;
-  isGerman: boolean;
   t: (key: string, opts?: any) => string;
   onEdit: (t: Threat) => void;
   onDelete: (id: string) => void;
-}> = React.memo(({ threats, assetDataRef, showThreatActor = false, isGerman, t, onEdit, onDelete }) => {
-  const [sortField, setSortField] = useState<ThreatSortField>("priority");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+}> = React.memo(
+  ({ threats, assetDataRef, showThreatActor = false, t, onEdit, onDelete }) => {
+    const [sortField, setSortField] = useState<ThreatSortField>("priority");
+    const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const handleSort = useCallback((field: ThreatSortField) => {
-    setSortField((prev) => {
-      if (prev === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-      else setSortDir("asc");
-      return field;
-    });
-  }, []);
+    const handleSort = useCallback((field: ThreatSortField) => {
+      setSortField((prev) => {
+        if (prev === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        else setSortDir("asc");
+        return field;
+      });
+    }, []);
 
-  const sorted = useMemo(
-    () => sortThreats(threats, sortField, sortDir, assetDataRef),
-    [threats, sortField, sortDir, assetDataRef],
-  );
+    const sorted = useMemo(
+      () => sortThreats(threats, sortField, sortDir, assetDataRef),
+      [threats, sortField, sortDir, assetDataRef],
+    );
 
-  const showAssets = (assetDataRef?.assets.length ?? 0) > 0;
+    const showAssets = (assetDataRef?.assets.length ?? 0) > 0;
 
-  const cellSx = { py: 0.5, px: 1, fontSize: "0.78rem", lineHeight: 1.4 };
-  const hdSx = { py: 0.5, px: 1, fontWeight: 600, fontSize: "0.75rem", whiteSpace: "nowrap" as const, bgcolor: "grey.50" };
+    const cellSx = { py: 0.5, px: 1, fontSize: "0.78rem", lineHeight: 1.4 };
+    const hdSx = {
+      py: 0.5,
+      px: 1,
+      fontWeight: 600,
+      fontSize: "0.75rem",
+      whiteSpace: "nowrap" as const,
+      bgcolor: "grey.50",
+    };
 
-  return (
-    <Box sx={{ overflowX: "auto" }}>
-      <Table size="small" sx={{ tableLayout: "fixed", minWidth: 700 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ ...hdSx, width: 130 }}>
-              <TableSortLabel
-                active={sortField === "id"}
-                direction={sortField === "id" ? sortDir : "asc"}
-                onClick={() => handleSort("id")}
-              >
-                {t("tabs.threats.columns.threatId", { defaultValue: "T-ID" })}
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ ...hdSx, width: 56 }}>
-              <TableSortLabel
-                active={sortField === "strideCategory"}
-                direction={sortField === "strideCategory" ? sortDir : "asc"}
-                onClick={() => handleSort("strideCategory")}
-              >
-                STRIDE
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ ...hdSx, width: 220 }}>
-              {t("tabs.threats.columns.threat", { defaultValue: "Threat" })}
-            </TableCell>
-            <TableCell sx={{ ...hdSx, width: 160 }}>
-              {t("tabs.threats.columns.attack", { defaultValue: "Attack" })}
-            </TableCell>
-            <TableCell sx={{ ...hdSx, width: 160 }}>
-              {t("tabs.threats.columns.mitigation", { defaultValue: "Mitigation" })}
-            </TableCell>
-            <TableCell sx={{ ...hdSx, width: 140 }}>
-              {t("tabs.threats.columns.verification", { defaultValue: "Verification" })}
-            </TableCell>
-            {showThreatActor && (
-              <TableCell sx={{ ...hdSx, width: 100 }}>
-                {t("tabs.threats.columns.actor", { defaultValue: "Actor" })}
-              </TableCell>
-            )}
-            {showAssets && (
-              <TableCell sx={{ ...hdSx, width: 120 }}>
+    return (
+      <Box sx={{ overflowX: "auto" }}>
+        <Table size="small" sx={{ tableLayout: "fixed", minWidth: 700 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ ...hdSx, width: 60 }}>
                 <TableSortLabel
-                  active={sortField === "priority"}
-                  direction={sortField === "priority" ? sortDir : "asc"}
-                  onClick={() => handleSort("priority")}
+                  active={sortField === "id"}
+                  direction={sortField === "id" ? sortDir : "asc"}
+                  onClick={() => handleSort("id")}
                 >
-                  {t("tabs.threats.columns.impact", { defaultValue: "Impact" })}
+                  {t("tabs.threats.columns.threatId", { defaultValue: "T-ID" })}
                 </TableSortLabel>
               </TableCell>
-            )}
-            <TableCell sx={{ ...hdSx, width: 60 }} />
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {sorted.map((threat) => (
-            <TableRow key={threat.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
-              <TableCell sx={cellSx}>
-                <ThreatIdCell id={threat.id} />
+              <TableCell sx={{ ...hdSx, width: 56 }}>
+                <TableSortLabel
+                  active={sortField === "strideCategory"}
+                  direction={sortField === "strideCategory" ? sortDir : "asc"}
+                  onClick={() => handleSort("strideCategory")}
+                >
+                  STRIDE
+                </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ ...cellSx, textAlign: "center" }}>
-                <StrideCell cat={threat.strideCategory} isGerman={isGerman} />
+              <TableCell sx={{ ...hdSx, width: 220 }}>
+                {t("tabs.threats.columns.threat", { defaultValue: "Threat" })}
               </TableCell>
-              <TableCell sx={cellSx}>
-                <DescriptionCell
-                  value={threat.threatDescription}
-                  fallback={isGerman ? "Keine Beschreibung" : "No description"}
-                />
+              <TableCell sx={{ ...hdSx, width: 160 }}>
+                {t("tabs.threats.columns.attack", { defaultValue: "Attack" })}
               </TableCell>
-              <TableCell sx={cellSx}>
-                {threat.attackDescription ? (
-                  <DescriptionCell value={threat.attackDescription} fallback="" />
-                ) : (
-                  <MissingChip label={t("tabs.threats.noAttack", { defaultValue: "Missing" })} />
-                )}
+              <TableCell sx={{ ...hdSx, width: 160 }}>
+                {t("tabs.threats.columns.mitigation", {
+                  defaultValue: "Mitigation",
+                })}
               </TableCell>
-              <TableCell sx={cellSx}>
-                {threat.mitigation ? (
-                  <DescriptionCell value={threat.mitigation} fallback="" />
-                ) : (
-                  <MissingChip label={t("tabs.threats.noMitigation", { defaultValue: "Missing" })} />
-                )}
-              </TableCell>
-              <TableCell sx={cellSx}>
-                {threat.verification ? (
-                  <DescriptionCell value={threat.verification} fallback="" />
-                ) : (
-                  <MissingChip label={t("tabs.threats.noVerification", { defaultValue: "Missing" })} />
-                )}
+              <TableCell sx={{ ...hdSx, width: 140 }}>
+                {t("tabs.threats.columns.verification", {
+                  defaultValue: "Verification",
+                })}
               </TableCell>
               {showThreatActor && (
-                <TableCell sx={cellSx}>
-                  <ActorCell actor={threat.threatActor} isGerman={isGerman} />
+                <TableCell sx={{ ...hdSx, width: 100 }}>
+                  {t("tabs.threats.columns.actor", { defaultValue: "Actor" })}
                 </TableCell>
               )}
               {showAssets && (
-                <TableCell sx={cellSx}>
-                  {assetDataRef && (
-                    <ImpactCell threat={threat} assetDataRef={assetDataRef} />
-                  )}
+                <TableCell sx={{ ...hdSx, width: 120 }}>
+                  <TableSortLabel
+                    active={sortField === "priority"}
+                    direction={sortField === "priority" ? sortDir : "asc"}
+                    onClick={() => handleSort("priority")}
+                  >
+                    {t("tabs.threats.columns.impact", {
+                      defaultValue: "Impact",
+                    })}
+                  </TableSortLabel>
                 </TableCell>
               )}
-              <TableCell sx={{ ...cellSx, textAlign: "right" }}>
-                <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
-                  <IconButton size="small" onClick={() => onEdit(threat)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t("common.delete", { defaultValue: "Delete" })}>
-                  <IconButton size="small" onClick={() => onDelete(threat.id)}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </TableCell>
+              <TableCell sx={{ ...hdSx, width: 60 }} />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Box>
-  );
-});
+          </TableHead>
+          <TableBody>
+            {sorted.map((threat) => (
+              <TableRow
+                key={threat.id}
+                hover
+                sx={{ "&:last-child td": { borderBottom: 0 } }}
+              >
+                <TableCell sx={cellSx}>
+                  <ThreatIdCell id={threat.id} />
+                </TableCell>
+                <TableCell sx={{ ...cellSx, textAlign: "center" }}>
+                  <StrideCell cat={threat.strideCategory} />
+                </TableCell>
+                <TableCell sx={cellSx}>
+                  <DescriptionCell
+                    value={threat.threatDescription}
+                    fallback={t("tabs.threats.noDescription", {
+                      defaultValue: "No description",
+                    })}
+                  />
+                </TableCell>
+                <TableCell sx={cellSx}>
+                  {threat.attackDescription ? (
+                    <DescriptionCell
+                      value={threat.attackDescription}
+                      fallback=""
+                    />
+                  ) : (
+                    <MissingChip
+                      label={t("tabs.threats.noAttack", {
+                        defaultValue: "Missing",
+                      })}
+                    />
+                  )}
+                </TableCell>
+                <TableCell sx={cellSx}>
+                  {threat.mitigation ? (
+                    <DescriptionCell value={threat.mitigation} fallback="" />
+                  ) : (
+                    <MissingChip
+                      label={t("tabs.threats.noMitigation", {
+                        defaultValue: "Missing",
+                      })}
+                    />
+                  )}
+                </TableCell>
+                <TableCell sx={cellSx}>
+                  {threat.verification ? (
+                    <DescriptionCell value={threat.verification} fallback="" />
+                  ) : (
+                    <MissingChip
+                      label={t("tabs.threats.noVerification", {
+                        defaultValue: "Missing",
+                      })}
+                    />
+                  )}
+                </TableCell>
+                {showThreatActor && (
+                  <TableCell sx={cellSx}>
+                    <ActorCell actor={threat.threatActor} />
+                  </TableCell>
+                )}
+                {showAssets && (
+                  <TableCell sx={cellSx}>
+                    {assetDataRef && (
+                      <ImpactCell threat={threat} assetDataRef={assetDataRef} />
+                    )}
+                  </TableCell>
+                )}
+                <TableCell sx={{ ...cellSx, textAlign: "right" }}>
+                  <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
+                    <IconButton size="small" onClick={() => onEdit(threat)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip
+                    title={t("common.delete", { defaultValue: "Delete" })}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => onDelete(threat.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
+    );
+  },
+);
 ThreatRows.displayName = "ThreatRows";
 
 // ==================== COMPONENT ====================
 
 export const ElementThreatTable = React.memo<ElementThreatTableProps>(
   ({ table, assetDataRef, showThreatActor = false, onEdit, onDelete }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
+    const { t } = useTranslation();
 
     const [expandedElements, setExpandedElements] = useState<
       Record<string, boolean>
@@ -553,7 +592,6 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
                       threats={group.threats}
                       assetDataRef={assetDataRef}
                       showThreatActor={showThreatActor}
-                      isGerman={isGerman}
                       t={t}
                       onEdit={onEdit}
                       onDelete={onDelete}

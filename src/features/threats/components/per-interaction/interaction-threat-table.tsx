@@ -1,7 +1,6 @@
 // ==================== INTERACTION THREAT TABLE ====================
 // Displays threats for STRIDE per-interaction method.
 // Supports DataFlow tables (grouped by flow) and Interface tables (grouped by interface).
-// MUI Table replaces DataGrid for faster initial render.
 
 import React, { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,16 +45,7 @@ import {
   isInterfaceTable,
   type AssetDataReference,
 } from "../../models/threat-types";
-import {
-  getDefaultInterfaceThreatDescription,
-  getDefaultInterfaceAttackDescription,
-} from "../../models/per-interaction-types";
-import {
-  getEffectiveThreatDescription,
-  formatInteractionDirection,
-  getDirectionColor,
-  getEffectiveAttackDescription,
-} from "../../services/interaction-templates";
+
 import { sortThreatsByPriority } from "../../utils/threat-asset-utils";
 import {
   ThreatSortField,
@@ -67,6 +57,7 @@ import {
   ActorCell,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
+import type { InteractionDirection } from "features/threats/models/per-interaction-types";
 
 // ==================== TYPES ====================
 
@@ -124,8 +115,6 @@ const getElementIcon = (elementType: string) => {
   }
 };
 
-// ==================== COMPLETION HELPER ====================
-
 function isCompleted(t: Threat): boolean {
   return !!(
     t.threatDescription?.trim() &&
@@ -174,30 +163,30 @@ function countCompletedByLevel(
   return result;
 }
 
+function getDirectionColor(direction: InteractionDirection): string {
+  return direction === "incoming" ? "#2196f3" : "#ff9800";
+}
+
 // ==================== INNER TABLE ====================
 
 const InteractionThreatRows: React.FC<{
   threats: Threat[];
   assetDataRef?: AssetDataReference;
   showThreatActor?: boolean;
-  isGerman: boolean;
-  locale: "en" | "de";
   t: (key: string, opts?: any) => string;
   onEdit: (t: Threat) => void;
   onDelete: (id: string) => void;
 }> = React.memo(
-  ({
-    threats,
-    assetDataRef,
-    showThreatActor = false,
-    isGerman,
-    locale,
-    t,
-    onEdit,
-    onDelete,
-  }) => {
+  ({ threats, assetDataRef, showThreatActor = false, t, onEdit, onDelete }) => {
     const [sortField, setSortField] = useState<ThreatSortField>("priority");
     const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+    const formatInteractionDirection = (
+      direction: InteractionDirection,
+    ): string =>
+      t(`tabs.threats.direction.${direction}`, {
+        defaultValue: direction === "incoming" ? "Incoming" : "Outgoing",
+      });
 
     const handleSort = useCallback((field: ThreatSortField) => {
       setSortField((prev) => {
@@ -229,7 +218,7 @@ const InteractionThreatRows: React.FC<{
         <Table size="small" sx={{ tableLayout: "fixed", minWidth: 700 }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...hdSx, width: 130 }}>
+              <TableCell sx={{ ...hdSx, width: 100 }}>
                 <TableSortLabel
                   active={sortField === "id"}
                   direction={sortField === "id" ? sortDir : "asc"}
@@ -290,14 +279,6 @@ const InteractionThreatRows: React.FC<{
           <TableBody>
             {sorted.map((threat) => {
               const ctx = threat.interactionContext;
-              const effectiveDescription = threat.linkedElement
-                ? getDefaultInterfaceThreatDescription(
-                    threat.strideCategory,
-                    threat.linkedElement.elementName,
-                    locale,
-                  )
-                : getEffectiveThreatDescription(threat, locale);
-              const effectiveMitigation = threat.mitigation;
 
               return (
                 <TableRow
@@ -309,18 +290,12 @@ const InteractionThreatRows: React.FC<{
                     <ThreatIdCell id={threat.id} />
                   </TableCell>
                   <TableCell sx={{ ...cellSx, textAlign: "center" }}>
-                    <StrideCell
-                      cat={threat.strideCategory}
-                      isGerman={isGerman}
-                    />
+                    <StrideCell cat={threat.strideCategory} />
                   </TableCell>
                   <TableCell sx={{ ...cellSx, textAlign: "center" }}>
                     {ctx && (
                       <Tooltip
-                        title={formatInteractionDirection(
-                          ctx.direction,
-                          locale,
-                        )}
+                        title={formatInteractionDirection(ctx.direction)}
                       >
                         <Box
                           sx={{
@@ -344,8 +319,8 @@ const InteractionThreatRows: React.FC<{
                     )}
                   </TableCell>
                   <TableCell sx={cellSx}>
-                    {effectiveDescription ? (
-                      <Tooltip title={effectiveDescription}>
+                    {threat.threatDescription ? (
+                      <Tooltip title={threat.threatDescription}>
                         <Typography
                           variant="body2"
                           sx={{
@@ -355,50 +330,20 @@ const InteractionThreatRows: React.FC<{
                             fontSize: "0.8rem",
                           }}
                         >
-                          {effectiveDescription}
+                          {threat.threatDescription}
                         </Typography>
                       </Tooltip>
                     ) : (
                       <em style={{ color: "#9ca3af", fontSize: "0.75rem" }}>
-                        {isGerman ? "Keine Beschreibung" : "No description"}
+                        {t("tabs.threats.noDescription", {
+                          defaultValue: "No description",
+                        })}
                       </em>
                     )}
                   </TableCell>
                   <TableCell sx={cellSx}>
-                    {(() => {
-                      const effectiveAttack = threat.linkedElement
-                        ? getDefaultInterfaceAttackDescription(
-                            threat.strideCategory,
-                            threat.linkedElement.elementName,
-                            locale,
-                          )
-                        : getEffectiveAttackDescription(threat, locale);
-                      return effectiveAttack ? (
-                        <Tooltip title={effectiveAttack}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              fontSize: "0.8rem",
-                            }}
-                          >
-                            {effectiveAttack}
-                          </Typography>
-                        </Tooltip>
-                      ) : (
-                        <MissingChip
-                          label={t("tabs.threats.noAttack", {
-                            defaultValue: "Missing",
-                          })}
-                        />
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell sx={cellSx}>
-                    {effectiveMitigation ? (
-                      <Tooltip title={effectiveMitigation}>
+                    {threat.attackDescription ? (
+                      <Tooltip title={threat.attackDescription}>
                         <Typography
                           variant="body2"
                           sx={{
@@ -408,7 +353,30 @@ const InteractionThreatRows: React.FC<{
                             fontSize: "0.8rem",
                           }}
                         >
-                          {effectiveMitigation}
+                          {threat.attackDescription}
+                        </Typography>
+                      </Tooltip>
+                    ) : (
+                      <MissingChip
+                        label={t("tabs.threats.noAttack", {
+                          defaultValue: "Missing",
+                        })}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell sx={cellSx}>
+                    {threat.mitigation ? (
+                      <Tooltip title={threat.mitigation}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontSize: "0.8rem",
+                          }}
+                        >
+                          {threat.mitigation}
                         </Typography>
                       </Tooltip>
                     ) : (
@@ -444,10 +412,7 @@ const InteractionThreatRows: React.FC<{
                   </TableCell>
                   {showThreatActor && (
                     <TableCell sx={cellSx}>
-                      <ActorCell
-                        actor={threat.threatActor}
-                        isGerman={isGerman}
-                      />
+                      <ActorCell actor={threat.threatActor} />
                     </TableCell>
                   )}
                   {showAssets && (
@@ -488,7 +453,7 @@ const InteractionThreatRows: React.FC<{
 );
 InteractionThreatRows.displayName = "InteractionThreatRows";
 
-// ==================== IMPACT COUNT HELPER ====================
+// ==================== IMPACT HELPERS ====================
 
 type ImpactLevel = "CRITICAL" | "HIGH+" | "HIGH" | "MED+" | "MED" | "LOW";
 const IMPACT_ORDER: ImpactLevel[] = [
@@ -543,13 +508,11 @@ function countImpacts(
   return counts;
 }
 
-// ==================== COMPONENT ====================
+// ==================== MAIN COMPONENT ====================
 
 export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
   ({ table, assetDataRef, showThreatActor = false, onEdit, onDelete }) => {
-    const { t, i18n } = useTranslation();
-    const locale = (i18n.language === "de" ? "de" : "en") as "en" | "de";
-    const isGerman = locale === "de";
+    const { t } = useTranslation();
 
     const [expandedGroups, setExpandedGroups] = useState<
       Record<string, boolean>
@@ -558,6 +521,8 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
     const toggleGroup = useCallback((key: string) => {
       setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
     }, []);
+
+    const isInterface = isInterfaceTable(table);
 
     const groupThreatsByDataFlow = (threats: Threat[]): DataFlowGroup[] => {
       const groups: Record<string, DataFlowGroup> = {};
@@ -605,18 +570,19 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
         (a.displayId || a.elementName).localeCompare(
           b.displayId || b.elementName,
           undefined,
-          { numeric: true },
+          {
+            numeric: true,
+          },
         ),
       );
     };
 
-    const isInterface = isInterfaceTable(table);
-    const interfaceGroups = useMemo(
-      () => groupThreatsByInterface(table.threats),
-      [table.threats],
-    );
     const dataFlowGroups = useMemo(
       () => groupThreatsByDataFlow(table.threats),
+      [table.threats],
+    );
+    const interfaceGroups = useMemo(
+      () => groupThreatsByInterface(table.threats),
       [table.threats],
     );
 
@@ -636,6 +602,32 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
         })),
       [dataFlowGroups, assetDataRef],
     );
+
+    const renderImpactChips = (threats: Threat[], small = false) => {
+      const counts = countImpacts(threats, assetDataRef);
+      const completedByLevel = countCompletedByLevel(threats, assetDataRef);
+      return (
+        <>
+          {IMPACT_ORDER.filter((lvl) => (counts[lvl] ?? 0) > 0).map((lvl) => {
+            const c = IMPACT_CHIP_COLORS[lvl];
+            return (
+              <Chip
+                key={lvl}
+                label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
+                size="small"
+                sx={{
+                  height: small ? 16 : 18,
+                  fontSize: small ? "0.6rem" : "0.65rem",
+                  bgcolor: c.bg,
+                  color: c.color,
+                  border: `1px solid ${c.border}`,
+                }}
+              />
+            );
+          })}
+        </>
+      );
+    };
 
     return (
       <Accordion
@@ -665,36 +657,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
               ({table.threats.length}{" "}
               {t("tabs.threats.threats", { defaultValue: "threats" })})
             </Typography>
-            {(() => {
-              const counts = countImpacts(table.threats, assetDataRef);
-              const completedByLevel = countCompletedByLevel(
-                table.threats,
-                assetDataRef,
-              );
-              return (
-                <>
-                  {IMPACT_ORDER.filter((lvl) => (counts[lvl] ?? 0) > 0).map(
-                    (lvl) => {
-                      const c = IMPACT_CHIP_COLORS[lvl];
-                      return (
-                        <Chip
-                          key={lvl}
-                          label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
-                          size="small"
-                          sx={{
-                            height: 18,
-                            fontSize: "0.65rem",
-                            bgcolor: c.bg,
-                            color: c.color,
-                            border: `1px solid ${c.border}`,
-                          }}
-                        />
-                      );
-                    },
-                  )}
-                </>
-              );
-            })()}
+            {renderImpactChips(table.threats)}
           </Stack>
         </AccordionSummary>
 
@@ -743,39 +706,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                           })}
                           )
                         </Typography>
-                        {(() => {
-                          const counts = countImpacts(
-                            group.threats,
-                            assetDataRef,
-                          );
-                          const completedByLevel = countCompletedByLevel(
-                            group.threats,
-                            assetDataRef,
-                          );
-                          return (
-                            <>
-                              {IMPACT_ORDER.filter(
-                                (lvl) => (counts[lvl] ?? 0) > 0,
-                              ).map((lvl) => {
-                                const c = IMPACT_CHIP_COLORS[lvl];
-                                return (
-                                  <Chip
-                                    key={lvl}
-                                    label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
-                                    size="small"
-                                    sx={{
-                                      height: 16,
-                                      fontSize: "0.6rem",
-                                      bgcolor: c.bg,
-                                      color: c.color,
-                                      border: `1px solid ${c.border}`,
-                                    }}
-                                  />
-                                );
-                              })}
-                            </>
-                          );
-                        })()}
+                        {renderImpactChips(group.threats, true)}
                       </Stack>
                     </AccordionSummary>
                     <AccordionDetails sx={{ p: 0 }}>
@@ -784,8 +715,6 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                           threats={group.threats}
                           assetDataRef={assetDataRef}
                           showThreatActor={showThreatActor}
-                          isGerman={isGerman}
-                          locale={locale}
                           t={t}
                           onEdit={onEdit}
                           onDelete={onDelete}
@@ -839,39 +768,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                           })}
                           )
                         </Typography>
-                        {(() => {
-                          const counts = countImpacts(
-                            group.threats,
-                            assetDataRef,
-                          );
-                          const completedByLevel = countCompletedByLevel(
-                            group.threats,
-                            assetDataRef,
-                          );
-                          return (
-                            <>
-                              {IMPACT_ORDER.filter(
-                                (lvl) => (counts[lvl] ?? 0) > 0,
-                              ).map((lvl) => {
-                                const c = IMPACT_CHIP_COLORS[lvl];
-                                return (
-                                  <Chip
-                                    key={lvl}
-                                    label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
-                                    size="small"
-                                    sx={{
-                                      height: 16,
-                                      fontSize: "0.6rem",
-                                      bgcolor: c.bg,
-                                      color: c.color,
-                                      border: `1px solid ${c.border}`,
-                                    }}
-                                  />
-                                );
-                              })}
-                            </>
-                          );
-                        })()}
+                        {renderImpactChips(group.threats, true)}
                       </Stack>
                     </AccordionSummary>
                     <AccordionDetails sx={{ p: 0 }}>
@@ -880,8 +777,6 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                           threats={group.threats}
                           assetDataRef={assetDataRef}
                           showThreatActor={showThreatActor}
-                          isGerman={isGerman}
-                          locale={locale}
                           t={t}
                           onEdit={onEdit}
                           onDelete={onDelete}

@@ -40,7 +40,6 @@ import {
   ThreatTemplate,
   MitigationTemplate,
   VerificationTemplate,
-  STRIDE_DEFINITIONS,
 } from "../../models/threat-types";
 import type { StrideCategory } from "shared";
 
@@ -78,8 +77,7 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   const [tabValue, setTabValue] = useState(0);
   const [activeMethod, setActiveMethod] = useState<StrideMethod>(
@@ -162,10 +160,8 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
     });
   };
 
-  const getStrideName = (type: StrideCategory): string => {
-    const def = STRIDE_DEFINITIONS.find((s) => s.type === type);
-    return isGerman ? def?.nameDE || type : def?.name || type;
-  };
+  const getStrideName = (type: StrideCategory): string =>
+    t(`stride.${type}.name`, { defaultValue: type });
 
   const strideCategories: StrideCategory[] = ["S", "T", "R", "I", "D", "E"];
 
@@ -316,9 +312,7 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
                   size="small"
                   sx={{ mr: 1 }}
                 />
-                <ListItemText
-                  primary={isGerman ? threat.threatDE : threat.threat}
-                />
+                <ListItemText primary={threat.threat} />
                 <ListItemSecondaryAction>
                   <IconButton
                     edge="end"
@@ -395,11 +389,7 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
                   size="small"
                   sx={{ mr: 1 }}
                 />
-                <ListItemText
-                  primary={
-                    isGerman ? mitigation.mitigationDE : mitigation.mitigation
-                  }
-                />
+                <ListItemText primary={mitigation.mitigation} />
                 <ListItemSecondaryAction>
                   <IconButton
                     edge="end"
@@ -476,13 +466,7 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
                   size="small"
                   sx={{ mr: 1 }}
                 />
-                <ListItemText
-                  primary={
-                    isGerman
-                      ? verification.verificationDE
-                      : verification.verification
-                  }
-                />
+                <ListItemText primary={verification.verification} />
                 <ListItemSecondaryAction>
                   <IconButton
                     edge="end"

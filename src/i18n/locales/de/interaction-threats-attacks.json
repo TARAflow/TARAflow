@@ -1,0 +1,67 @@
+{
+  "S-INT-IN-001": {
+    "threat": "Sender-Spoofing: Angreifer gibt sich als {{sourceName}} aus, um {{targetName}} zu täuschen",
+    "cause": "Fehlende Sender-Authentifizierung auf dem eingehenden Datenfluss — {{targetName}} kann den tatsächlichen Ursprung empfangener Daten nicht verifizieren",
+    "attack": "Angreifer fälscht die Identität von {{sourceName}} und sendet bösartige Daten an {{targetName}}, das diese als legitim verarbeitet"
+  },
+  "S-INT-OUT-001": {
+    "threat": "Empfänger-Spoofing: Angreifer gibt sich als {{targetName}} aus, um Daten von {{sourceName}} abzufangen",
+    "cause": "Fehlende Endpunkt-Validierung vor der Datenübertragung — {{sourceName}} kann die wahre Identität des Empfängers nicht verifizieren",
+    "attack": "Angreifer richtet einen gefälschten Endpunkt ein, der {{targetName}} imitiert, und veranlasst {{sourceName}}, sensible Daten an den Angreifer zu senden"
+  },
+
+  "T-INT-IN-001": {
+    "threat": "Datenmanipulation auf eingehendem Fluss: Angreifer modifiziert Daten bevor sie {{targetName}} erreichen",
+    "cause": "Fehlender Integritätsschutz auf dem Datenfluss von {{sourceName}} — Daten kommen ohne Manipulationsnachweis an",
+    "attack": "Angreifer fängt den Datenfluss von {{sourceName}} ab und modifiziert Befehle oder Nutzdaten vor der Zustellung an {{targetName}}"
+  },
+  "T-INT-OUT-001": {
+    "threat": "Antwortmanipulation: Angreifer modifiziert Antwortdaten bevor sie {{sourceName}} erreichen",
+    "cause": "Fehlender Integritätsschutz auf dem Antwortfluss von {{targetName}} — {{sourceName}} kann modifizierte Antworten nicht erkennen",
+    "attack": "Angreifer fängt die Antwort von {{targetName}} ab und modifiziert Daten, wodurch {{sourceName}} gefälschte Informationen verarbeitet"
+  },
+
+  "R-INT-IN-001": {
+    "threat": "Absender-Abstreitbarkeit: {{sourceName}} bestreitet das Senden der Anfrage oder der Daten",
+    "cause": "Kein Nichtabstreitbarkeitsmechanismus auf dem Datenfluss — Anfragen von {{sourceName}} sind nicht signiert oder kryptographisch an den Absender gebunden",
+    "attack": "{{sourceName}} behauptet, den Befehl oder die Daten nie gesendet zu haben, die {{targetName}} empfangen und verarbeitet hat"
+  },
+  "R-INT-OUT-001": {
+    "threat": "Empfänger-Abstreitbarkeit: {{targetName}} bestreitet den Empfang oder die Verarbeitung der Anfrage",
+    "cause": "Keine Zustellbestätigung oder kryptographischer Empfangsnachweis — {{sourceName}} hat keinen Beweis, dass {{targetName}} die Daten erhalten hat",
+    "attack": "{{targetName}} behauptet, die Daten von {{sourceName}} nie empfangen zu haben, oder bestreitet deren Verarbeitung"
+  },
+
+  "I-INT-IN-001": {
+    "threat": "Abhören eingehender Daten: Angreifer fängt sensible Daten ab, die an {{targetName}} fließen",
+    "cause": "Unverschlüsselter oder schwach geschützter Kommunikationskanal zwischen {{sourceName}} und {{targetName}}",
+    "attack": "Angreifer überwacht passiv den Datenfluss und liest sensible Nutzdaten, die von {{sourceName}} an {{targetName}} übertragen werden"
+  },
+  "I-INT-OUT-001": {
+    "threat": "Abhören der Antwort: Angreifer fängt sensible Antwortdaten von {{targetName}} ab",
+    "cause": "Unverschlüsselter oder schwach geschützter Antwortkanal — Antwortdaten sind während der Übertragung lesbar",
+    "attack": "Angreifer fängt die Antwort von {{targetName}} an {{sourceName}} ab und liest sensible Informationen"
+  },
+
+  "D-INT-IN-001": {
+    "threat": "Anfragen-Flutung: Angreifer überwältigt {{targetName}} mit übermäßigen eingehenden Anfragen",
+    "cause": "Keine Ratenbegrenzung oder Drosselung zum Schutz von {{targetName}} vor hohem Anfragevolumen über {{sourceName}}",
+    "attack": "Angreifer sendet ein hohes Volumen an Anfragen über den Datenfluss und erschöpft die Verarbeitungskapazität von {{targetName}}"
+  },
+  "D-INT-OUT-001": {
+    "threat": "Antwortblockierung: Angreifer verhindert, dass {{sourceName}} Antworten von {{targetName}} empfängt",
+    "cause": "Keine Redundanz oder Timeout-Schutz — {{sourceName}} ist für den weiteren Betrieb auf Antworten von {{targetName}} angewiesen",
+    "attack": "Angreifer unterbricht oder verzögert den Antwortkanal von {{targetName}}, wodurch {{sourceName}} blockiert oder ausfällt"
+  },
+
+  "E-INT-IN-001": {
+    "threat": "Befehlsinjektion: Angreifer injiziert Befehle über den Datenfluss, um Rechte in {{targetName}} auszuweiten",
+    "cause": "Unzureichende Eingabevalidierung in {{targetName}} — eingehende Daten von {{sourceName}} werden mit erhöhtem Vertrauen verarbeitet",
+    "attack": "Angreifer injiziert bösartige Befehle oder Nutzdaten in den Datenfluss, die {{targetName}} mit eigenem Rechteprofil ausführt"
+  },
+  "E-INT-OUT-001": {
+    "threat": "Antwortmanipulation zur Rechteausweitung: Angreifer manipuliert Antwort für erhöhten Zugriff in {{sourceName}}",
+    "cause": "{{sourceName}} vertraut Antwortdaten von {{targetName}} ohne Integritätsprüfung, was Rechtsentscheidungen auf Basis gefälschter Antworten ermöglicht",
+    "attack": "Angreifer modifiziert die Antwort von {{targetName}} mit erhöhten Rollen oder Berechtigungen, wodurch {{sourceName}} unbefugten Zugriff gewährt"
+  }
+}

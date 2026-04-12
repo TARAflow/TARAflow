@@ -19,12 +19,10 @@ import {
   StrideMethod,
   ThreatData,
   ThreatsTab,
-  getEffectiveThreatDescription,
-  getEffectiveAttackDescription,
-  getSuggestedMitigations,
   type ThreatUpdateResult,
   type AssetDataReference,
 } from "features/threats";
+import { resolveMitigations } from "features/threats/services/threat-catalog-service";
 import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
 import {
   AttackTreeTab,
@@ -851,16 +849,16 @@ export const MainLayout: React.FC = () => {
 
         // Get the effective threat description (handles template localization)
         // This is the same function used by ThreatTable
-        const threatDescription = getEffectiveThreatDescription(threat, "en");
-        const attackDescription = getEffectiveAttackDescription(threat, "en");
+        // IMPORTANT: threatDescription is pre-filled by the generator at generate time.
+        const threatDescription = threat.threatDescription;
+        const attackDescription = threat.attackDescription;
 
         // Get mitigation - use stored value, only fallback to suggestions if empty
         let mitigation = threat.mitigation || "";
-        if (!mitigation && threat.interactionContext) {
-          const suggestedMitigations = getSuggestedMitigations(threat, "en");
-          if (suggestedMitigations.length > 0) {
-            mitigation = suggestedMitigations.join("\n");
-          }
+        if (!mitigation && threat.proposedMitigations?.length) {
+          mitigation = resolveMitigations(threat.proposedMitigations)
+            .map((m) => m.text)
+            .join("\n");
         }
 
         references.push({

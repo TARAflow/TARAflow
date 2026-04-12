@@ -232,6 +232,38 @@
     "responsiblePlaceholder": "Person responsible...",
     "descriptionPlaceholder": "Describe your project..."
   },
+  "stride": {
+    "S": {
+      "name": "Spoofing",
+      "securityProperty": "Authentication",
+      "description": "Pretending to be something or someone you're not"
+    },
+    "T": {
+      "name": "Tampering",
+      "securityProperty": "Integrity",
+      "description": "Modifying something you're not supposed to modify"
+    },
+    "R": {
+      "name": "Repudiation",
+      "securityProperty": "Non-repudiation",
+      "description": "Claiming you didn't do something, whether or not you actually did"
+    },
+    "I": {
+      "name": "Information Disclosure",
+      "securityProperty": "Confidentiality",
+      "description": "Exposing information to people who aren't authorized to see it"
+    },
+    "D": {
+      "name": "Denial of Service",
+      "securityProperty": "Availability",
+      "description": "Taking actions to prevent the system from providing service"
+    },
+    "E": {
+      "name": "Elevation of Privilege",
+      "securityProperty": "Authorization",
+      "description": "Being able to perform operations you aren't supposed to be able to do"
+    }
+  },
   "tags": {
     "tooltips": {
       "cra": "EU Cyber Resilience Act - Security requirements for products with digital elements",
@@ -488,38 +520,6 @@
           "remote": "Remote (networked component)"
         }
       }
-    }
-  },
-  "stride": {
-    "S": {
-      "name": "Spoofing",
-      "property": "Authentication",
-      "description": "Pretending to be something or someone you're not"
-    },
-    "T": {
-      "name": "Tampering",
-      "property": "Integrity",
-      "description": "Modifying something you're not supposed to modify"
-    },
-    "R": {
-      "name": "Repudiation",
-      "property": "Non-repudiation",
-      "description": "Claiming you didn't do something, whether or not you actually did"
-    },
-    "I": {
-      "name": "Information Disclosure",
-      "property": "Confidentiality",
-      "description": "Exposing information to people who aren't authorized to see it"
-    },
-    "D": {
-      "name": "Denial of Service",
-      "property": "Availability",
-      "description": "Taking actions to prevent the system from providing service"
-    },
-    "E": {
-      "name": "Elevation of Privilege",
-      "property": "Authorization",
-      "description": "Being able to perform operations you aren't supposed to be able to do"
     }
   }
 }

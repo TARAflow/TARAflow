@@ -31,11 +31,15 @@ import {
   STRIDE_PER_INTERACTION,
   generateThreatIdPerInteraction,
   createInteractionContext,
-  getDefaultInterfaceThreatDescription,
-  getDefaultInterfaceAttackDescription,
 } from "../../models/per-interaction-types";
 import { createEmptyThreat } from "../../models/threat-types";
 import { DFDAnalysisContext } from "shared";
+import {
+  findInteractionTemplate,
+  getLocalizedInteractionThreat,
+  getLocalizedInteractionAttack,
+  getLocalizedInteractionCause,
+} from "../threat-catalog-service";
 
 // ==================== TYPES ====================
 
@@ -54,7 +58,7 @@ export class InteractionThreatGenerator {
     const graph = project.dfdGraph;
     const zeroTrust = configuration?.zeroTrustMode ?? false;
 
-    // ==================== ASSET INDEX ====================
+    // ── Asset reverse index ───────────────────────────────────────────────
     const elementToAssets = new Map<string, string[]>();
     if (project.assetDataRef) {
       for (const asset of project.assetDataRef.assets) {
@@ -66,29 +70,23 @@ export class InteractionThreatGenerator {
       }
     }
 
-    // ==================== TABLE MAP ====================
-    // tbId → threats[]  (built incrementally)
+    // ── Table map: tbId → Threat[] ────────────────────────────────────────
     const tableMap = new Map<string, Threat[]>();
-
     const addThreat = (tbId: string, threat: Threat) => {
       const existing = tableMap.get(tbId) ?? [];
       existing.push(threat);
       tableMap.set(tbId, existing);
     };
 
-    // ==================== DATAFLOW THREATS ====================
+    // ── DataFlow threats ──────────────────────────────────────────────────
     for (const df of dfdContext.getDataFlows()) {
       const source = dfdContext.getElement(df.fromElementId);
       const target = dfdContext.getElement(df.toElementId);
       if (!source || !target) continue;
 
-      // Resolve displayId from graph — connectionId is the XML internal ID
       const connection = graph.connectionsById.get(df.connectionId);
       const dfDisplayId = connection?.displayId ?? df.connectionId;
 
-      // Skip flows explicitly excluded by the analyst (IEC 62443-4-1 audit trail)
-      // Check both DFDConnectionReference.excludeFromThreatGen (typed)
-      // and DFDConnection.properties.excludeFromThreatGen (runtime, passed via DFDGraph)
       const isExcluded =
         connection?.excludeFromThreatGen ||
         (connection as any)?.properties?.excludeFromThreatGen;
@@ -98,7 +96,6 @@ export class InteractionThreatGenerator {
       const receiverTB = df.toEffectiveTrustBoundary ?? null;
       const internalFlow = senderTB !== null && senderTB === receiverTB;
 
-      // Sender perspective: always when sender has a TB
       if (senderTB) {
         for (const stride of STRIDE_PER_INTERACTION) {
           addThreat(
@@ -114,17 +111,14 @@ export class InteractionThreatGenerator {
               this.getTBName(graph, senderTB),
               this.getTBDisplayId(graph, senderTB),
               elementToAssets,
+              project,
             ),
           );
         }
       }
 
-      // Receiver perspective:
-      // - always when sender has no TB (EE → Process)
-      // - when crosses boundary (zeroTrust or different TBs)
       const needsReceiverPerspective =
-        !senderTB || // EE as sender
-        (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
+        !senderTB || (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
 
       if (needsReceiverPerspective && receiverTB) {
         for (const stride of STRIDE_PER_INTERACTION) {
@@ -141,13 +135,14 @@ export class InteractionThreatGenerator {
               this.getTBName(graph, receiverTB),
               this.getTBDisplayId(graph, receiverTB),
               elementToAssets,
+              project,
             ),
           );
         }
       }
     }
 
-    // ==================== INTERFACE THREATS ====================
+    // ── Interface threats ─────────────────────────────────────────────────
     for (const element of graph.elementsById.values()) {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
         continue;
@@ -165,8 +160,8 @@ export class InteractionThreatGenerator {
           tbId,
           tbName,
           tbDisplayId,
-          graph,
           elementToAssets,
+          project,
         );
         const existing = tableMap.get(tableKey) ?? [];
         existing.push(threat);
@@ -174,9 +169,8 @@ export class InteractionThreatGenerator {
       }
     }
 
-    // ==================== BUILD TABLES ====================
+    // ── Build tables ──────────────────────────────────────────────────────
     const tables: ThreatTable[] = [];
-
     for (const [tbId, threats] of tableMap) {
       if (threats.length === 0) continue;
 
@@ -201,7 +195,7 @@ export class InteractionThreatGenerator {
     return tables;
   }
 
-  // ==================== HELPERS ====================
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   private getTBName(graph: DFDGraphReference, tbId: string): string {
     return graph.elementsById.get(tbId)?.name ?? tbId;
@@ -211,7 +205,7 @@ export class InteractionThreatGenerator {
     return graph.elementsById.get(tbId)?.displayId ?? tbId;
   }
 
-  // ==================== THREAT CREATION ====================
+  // ── Threat creation ───────────────────────────────────────────────────────
 
   private createDataFlowThreat(
     dataFlow: DataFlowAnalysisReference,
@@ -224,12 +218,11 @@ export class InteractionThreatGenerator {
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
     elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
   ): Threat {
-    // Map perspective to direction for UI context (incoming=receiver, outgoing=sender)
     const direction: InteractionDirection =
       perspective === "sender" ? "outgoing" : "incoming";
 
-    // Build clean threat ID: TB-DF1-S-1 (no IN/OUT suffix)
     const dataFlowNumber = dfDisplayId.replace(/^DF-/, "");
     const dataFlowIdPart = `DF${dataFlowNumber}`;
     const threatId = `${trustBoundaryDisplayId}-${dataFlowIdPart}-${strideCategory}-1`;
@@ -260,15 +253,46 @@ export class InteractionThreatGenerator {
       targetType: target.type,
     } as DataFlowReference;
 
-    // Asset linking: connection + source + target
     const connAssets = elementToAssets.get(dataFlow.connectionId) ?? [];
     const sourceAssets = elementToAssets.get(dataFlow.fromElementId) ?? [];
     const targetAssets = elementToAssets.get(dataFlow.toElementId) ?? [];
     threat.linkedAssetIds = [
       ...new Set([...connAssets, ...sourceAssets, ...targetAssets]),
     ];
-
     threat.source = "auto";
+
+    // ── Catalog lookup ────────────────────────────────────────────────────
+    const template = findInteractionTemplate(
+      strideCategory,
+      perspective,
+      project.settings,
+    );
+
+    if (template) {
+      const placeholders = {
+        sourceName: source.name,
+        targetName: target.name,
+        sourceType: source.type,
+        targetType: target.type,
+        dataFlowName: dfDisplayId,
+        trustBoundaryName,
+      };
+      threat.threatDescription = getLocalizedInteractionThreat(
+        template.id,
+        placeholders,
+      );
+      threat.attackDescription = getLocalizedInteractionAttack(
+        template.id,
+        placeholders,
+      );
+      threat.causeDescription = getLocalizedInteractionCause(
+        template.id,
+        placeholders,
+      );
+      threat.proposedMitigations = [...template.mitigations];
+      threat.proposedVerifications = [...template.verifications];
+    }
+
     return threat;
   }
 
@@ -278,8 +302,8 @@ export class InteractionThreatGenerator {
     trustBoundaryId: string | null,
     trustBoundaryName: string,
     trustBoundaryDisplayId: string,
-    graph: DFDGraphReference,
     elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
   ): Threat {
     const displayId = element.displayId || element.id;
     const interfaceNumber = displayId.replace(/^IF-/, "");
@@ -308,19 +332,41 @@ export class InteractionThreatGenerator {
       displayId,
     };
 
-    threat.threatDescription = getDefaultInterfaceThreatDescription(
-      strideCategory,
-      element.name,
-      "en",
-    );
-    threat.attackDescription = getDefaultInterfaceAttackDescription(
-      strideCategory,
-      element.name,
-      "en",
-    );
-
     threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
     threat.source = "auto";
+
+    // ── Catalog lookup (interface = receiver perspective by convention) ────
+    const template = findInteractionTemplate(
+      strideCategory,
+      "receiver",
+      project.settings,
+    );
+
+    if (template) {
+      const placeholders = {
+        sourceName: element.name,
+        targetName: element.name,
+        sourceType: element.type,
+        targetType: element.type,
+        dataFlowName: displayId,
+        trustBoundaryName,
+      };
+      threat.threatDescription = getLocalizedInteractionThreat(
+        template.id,
+        placeholders,
+      );
+      threat.attackDescription = getLocalizedInteractionAttack(
+        template.id,
+        placeholders,
+      );
+      threat.causeDescription = getLocalizedInteractionCause(
+        template.id,
+        placeholders,
+      );
+      threat.proposedMitigations = [...template.mitigations];
+      threat.proposedVerifications = [...template.verifications];
+    }
+
     return threat;
   }
 }

@@ -1,0 +1,183 @@
+{
+  "S-EE-001": {
+    "threat": "External entity identity spoofing",
+    "cause": "Missing or insufficient authentication and validation of external entities",
+    "attack": "Attacker impersonates a trusted external entity by sending forged requests, bypassing identity checks, or reusing stolen credentials"
+  },
+  "S-P-001": {
+    "threat": "Unauthorized process access via identity spoofing",
+    "cause": "Weak or missing authentication mechanisms for process access",
+    "attack": "Attacker spoofs a legitimate identity to gain unauthorized access to a protected process"
+  },
+  "S-P-002": {
+    "threat": "Process spoofing via malicious process replacement",
+    "cause": "Lack of process integrity verification or trust validation",
+    "attack": "Attacker replaces a legitimate process with a malicious one using the same identifier or interface"
+  },
+  "S-P-003": {
+    "threat": "Session hijacking",
+    "cause": "Improper session management or weak session binding",
+    "attack": "Attacker takes over a valid user session by stealing or predicting session identifiers"
+  },
+
+  "T-P-001": {
+    "threat": "Tampering with process logic or configuration",
+    "cause": "Insufficient integrity protection for code or configuration",
+    "attack": "Attacker modifies process code or runtime configuration to alter intended behavior"
+  },
+  "T-P-002": {
+    "threat": "Memory tampering",
+    "cause": "Lack of memory safety protections",
+    "attack": "Attacker exploits memory vulnerabilities such as buffer overflows to manipulate process memory"
+  },
+  "T-DF-001": {
+    "threat": "Data tampering during transmission",
+    "cause": "Missing integrity protection on data flows",
+    "attack": "Attacker intercepts and modifies data in transit between components"
+  },
+  "T-DF-002": {
+    "threat": "Man-in-the-middle attack",
+    "cause": "Lack of mutual authentication or secure channel protection",
+    "attack": "Attacker positions themselves between communicating parties to intercept and alter transmitted data"
+  },
+  "T-DS-001": {
+    "threat": "Tampering with stored data",
+    "cause": "Insufficient access control or integrity protection on storage",
+    "attack": "Attacker directly modifies stored data bypassing application-level controls"
+  },
+  "T-DS-002": {
+    "threat": "Data manipulation via injection",
+    "cause": "Improper input validation and query construction",
+    "attack": "Attacker injects malicious input (e.g., SQL) to manipulate or alter stored data"
+  },
+
+  "R-EE-001": {
+    "threat": "Repudiation by external entity",
+    "cause": "Lack of reliable logging and non-repudiation mechanisms",
+    "attack": "External entity denies having performed an action due to missing or insufficient audit trails"
+  },
+  "R-P-001": {
+    "threat": "Untraceable process actions",
+    "cause": "Insufficient logging or audit mechanisms",
+    "attack": "Attacker performs actions that cannot be traced back due to missing or incomplete logs"
+  },
+  "R-P-002": {
+    "threat": "Log tampering",
+    "cause": "Lack of protection and integrity controls for logs",
+    "attack": "Attacker modifies or deletes logs to hide evidence of malicious activity"
+  },
+  "R-DS-001": {
+    "threat": "Unattributed data modifications",
+    "cause": "Missing audit trail for data changes",
+    "attack": "Attacker modifies stored data without leaving traceable evidence"
+  },
+
+  "I-P-001": {
+    "threat": "Information disclosure via error messages",
+    "cause": "Excessive information exposure in error handling",
+    "attack": "Detailed error messages reveal sensitive system or internal information"
+  },
+  "I-P-002": {
+    "threat": "Memory information disclosure",
+    "cause": "Lack of memory isolation or side-channel protections",
+    "attack": "Attacker extracts sensitive data from process memory using side-channel techniques"
+  },
+  "I-DF-001": {
+    "threat": "Eavesdropping on data flow",
+    "cause": "Unencrypted or weakly protected communication channels",
+    "attack": "Attacker intercepts and reads sensitive data transmitted between components"
+  },
+  "I-DF-002": {
+    "threat": "Information leakage via traffic analysis",
+    "cause": "Lack of traffic obfuscation or metadata protection",
+    "attack": "Attacker analyzes communication patterns to infer sensitive information"
+  },
+  "I-DS-001": {
+    "threat": "Unauthorized access to stored data",
+    "cause": "Weak access control mechanisms on storage",
+    "attack": "Attacker gains unauthorized read access to sensitive stored data"
+  },
+  "I-DS-002": {
+    "threat": "Data exposure via auxiliary files",
+    "cause": "Improper handling of backups, logs, or temporary files",
+    "attack": "Attacker accesses sensitive data through unsecured backups or log files"
+  },
+
+  "D-P-001": {
+    "threat": "Process crash",
+    "cause": "Improper input validation or error handling",
+    "attack": "Attacker sends malformed input to trigger crashes or exceptions"
+  },
+  "D-P-002": {
+    "threat": "Resource exhaustion",
+    "cause": "Lack of rate limiting or resource controls",
+    "attack": "Attacker floods the process with requests to exhaust system resources"
+  },
+  "D-DF-001": {
+    "threat": "Network flooding",
+    "cause": "Insufficient network-level protections",
+    "attack": "Attacker floods network channels to disrupt legitimate communication"
+  },
+  "D-DS-001": {
+    "threat": "Storage exhaustion",
+    "cause": "Lack of quotas or storage limits",
+    "attack": "Attacker fills storage capacity to block legitimate operations"
+  },
+  "D-DS-002": {
+    "threat": "Database resource locking",
+    "cause": "Inefficient query handling and lack of resource safeguards",
+    "attack": "Attacker executes expensive or long-running queries to lock database resources"
+  },
+
+  "E-P-001": {
+    "threat": "Privilege escalation via input manipulation",
+    "cause": "Improper input validation and privilege enforcement",
+    "attack": "Attacker exploits input validation flaws to gain elevated privileges"
+  },
+  "E-P-002": {
+    "threat": "Authorization bypass",
+    "cause": "Flawed or missing authorization checks",
+    "attack": "Attacker bypasses authorization controls to access restricted functionality"
+  },
+  "E-P-003": {
+    "threat": "Arbitrary code execution",
+    "cause": "Injection vulnerabilities or unsafe execution paths",
+    "attack": "Attacker injects and executes malicious code within the process context"
+  },
+
+  "S-IF-001": {
+    "threat": "Interface identity spoofing",
+    "cause": "Lack of authentication for connected interfaces or devices",
+    "attack": "Attacker connects a malicious device impersonating a trusted hardware interface"
+  },
+  "T-IF-001": {
+    "threat": "Physical interface tampering",
+    "cause": "Lack of physical protection and tamper resistance",
+    "attack": "Attacker manipulates hardware interfaces to alter device behavior or data"
+  },
+  "R-IF-001": {
+    "threat": "Untraceable interface actions",
+    "cause": "Missing logging for physical interface interactions",
+    "attack": "Attacker performs actions via physical interface that cannot be traced"
+  },
+  "I-IF-001": {
+    "threat": "Information disclosure via interface",
+    "cause": "Unprotected physical or debug interfaces enabling passive monitoring",
+    "attack": "Attacker extracts sensitive information using monitoring equipment or side-channel techniques"
+  },
+  "D-IF-001": {
+    "threat": "Interface-based denial of service",
+    "cause": "Lack of physical protection against deliberate disruption",
+    "attack": "Attacker damages or electrically disrupts interface to cause system failure"
+  },
+  "E-IF-001": {
+    "threat": "Privilege escalation via physical access",
+    "cause": "Exposed debug or privileged hardware interfaces without access controls",
+    "attack": "Attacker uses physical access to debug ports (e.g., JTAG, UART) to gain elevated privileges"
+  },
+  "E-IF-002": {
+    "threat": "Firmware or hardware-level privilege escalation",
+    "cause": "Lack of secure boot or firmware integrity validation",
+    "attack": "Attacker manipulates firmware or hardware configuration to gain privileged control over the device"
+  }
+}

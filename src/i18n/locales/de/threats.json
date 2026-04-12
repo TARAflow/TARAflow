@@ -28,7 +28,6 @@
       "deleteAll": "Alle Bedrohungen löschen",
       "deleteAllConfirmTitle": "Alle Bedrohungen löschen?",
       "deleteAllConfirmMessage": "Alle Bedrohungen für die aktuelle Methode ({{method}}) werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
-      "syncConfirmTitle": "Bedrohungen synchronisieren",
       "element": "Element",
       "dataFlow": "Datenfluss",
       "threatDescription": "Bedrohungsbeschreibung",
@@ -49,6 +48,30 @@
       "totalThreats": "Gesamt: {{count}} Bedrohungen",
       "interfaces": "Physische Interfaces  [{{tbId}}]",
       "showingCount": "{{shown}} von {{total}} angezeigt",
+      "sync": {
+        "action": "Bedrohungen synchronisieren",
+        "status": {
+          "synced": "Bedrohungen sind synchron",
+          "outOfSync": "Nicht synchron"
+        },
+        "banner": {
+          "title": "DFD und Bedrohungen nicht synchron",
+          "actions": {
+            "sync": "Synchronisieren",
+            "dismiss": "Ignorieren"
+          },
+          "summary": {
+            "missingElements": "{{count}} Element ohne Bedrohungen",
+            "missingElements_plural": "{{count}} Elemente ohne Bedrohungen",
+            "missingDataFlows": "{{count}} Datenfluss ohne Bedrohungen",
+            "missingDataFlows_plural": "{{count}} Datenflüsse ohne Bedrohungen",
+            "orphanedThreats": "{{count}} verwaiste Bedrohung",
+            "orphanedThreats_plural": "{{count}} verwaiste Bedrohungen",
+            "changedReferences": "{{count}} geänderte Referenz",
+            "changedReferences_plural": "{{count}} geänderte Referenzen"
+          }
+        }
+      },
       "columns": {
         "threatId": "T-ID",
         "element": "Element",
@@ -107,6 +130,40 @@
         "description": "Beschreibung",
         "mitigation": "Maßnahme",
         "actions": "Aktionen"
+      },
+      "generating": "Wird generiert...",
+      "crossesTB": "Überschreitet Vertrauensgrenze",
+      "noDescription": "Keine Beschreibung",
+      "direction": {
+        "incoming": "Eingehend",
+        "outgoing": "Ausgehend"
+      },
+      "proposedMitigations": "Vorgeschlagene Maßnahmen:",
+      "threatActors": {
+        "external": {
+          "name": "Externer Angreifer",
+          "description": "Böswilliger Akteur von außerhalb der Organisation"
+        },
+        "internal": {
+          "name": "Insider",
+          "description": "Böswilliger oder fahrlässiger Mitarbeiter/Auftragnehmer"
+        },
+        "nation-state": {
+          "name": "Staatlicher Akteur",
+          "description": "Staatlich geförderter Angreifer mit erheblichen Ressourcen"
+        },
+        "script-kiddie": {
+          "name": "Script Kiddie",
+          "description": "Unerfahrener Angreifer mit vorgefertigten Tools"
+        },
+        "competitor": {
+          "name": "Wettbewerber",
+          "description": "Geschäftlicher Konkurrent auf der Suche nach Vorteilen"
+        },
+        "other": {
+          "name": "Andere",
+          "description": "Anderer Bedrohungsakteur-Typ"
+        }
       }
     }
   }

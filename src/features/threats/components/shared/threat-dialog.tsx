@@ -1,10 +1,5 @@
 // ==================== THREAT DIALOG ====================
 // Dialog for editing individual threats
-// 
-// LOCALIZATION:
-// - For per-interaction threats (with interactionContext):
-//   Uses getLocalizedThreatText() for dynamic localization
-// - For per-element threats: Uses stored descriptions
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,7 +20,6 @@ import {
   Divider,
   Autocomplete,
   Stack,
-  Alert,
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
@@ -36,21 +30,32 @@ import {
   MitigationTemplate,
   VerificationTemplate,
   ThreatActorType,
-  STRIDE_DEFINITIONS,
-  THREAT_ACTORS,
 } from "../../models/threat-types";
 import { formatDataFlowDisplay } from "../../models/per-interaction-types";
+import type { InteractionDirection } from "../../models/per-interaction-types";
 import { elementThreatService } from "../../services/per-element/element-threat-service";
 import { interactionThreatService } from "../../services/per-interaction/interaction-threat-service";
-import {
-  getLocalizedThreatText,
-  shouldUseTemplateLocalization,
-  getSuggestedMitigations,
-  formatInteractionDirection,
-  getDirectionColor,
-} from "../../services/interaction-templates";
+import { resolveMitigations } from "../../services/threat-catalog-service";
 import type { StrideCategory } from "shared";
 import { STRIDE_COLORS } from "shared";
+
+// ==================== CONSTANTS ====================
+
+// Static list of actor types — labels come from i18n (tabs.threats.threatActors.*)
+const THREAT_ACTOR_TYPES: ThreatActorType[] = [
+  "external",
+  "internal",
+  "nation-state",
+  "script-kiddie",
+  "competitor",
+  "other",
+];
+
+// ==================== LOCAL HELPERS ====================
+
+function getDirectionColor(direction: InteractionDirection): string {
+  return direction === "incoming" ? "#2196f3" : "#ff9800";
+}
 
 // ==================== TYPES ====================
 
@@ -71,8 +76,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t, i18n } = useTranslation();
-  const locale = (i18n.language === "de" ? "de" : "en") as "en" | "de";
+  const { t } = useTranslation();
 
   // Form state
   const [threatDescription, setThreatDescription] = useState("");
@@ -80,10 +84,6 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
   const [threatActor, setThreatActor] = useState<ThreatActorType>("external");
   const [mitigation, setMitigation] = useState("");
   const [verification, setVerification] = useState("");
-
-  // Track if user has modified the auto-generated text
-  const [userModifiedDescription, setUserModifiedDescription] = useState(false);
-  const [userModifiedAttack, setUserModifiedAttack] = useState(false);
 
   // Templates for autocomplete
   const [threatTemplates, setThreatTemplates] = useState<ThreatTemplate[]>([]);
@@ -94,173 +94,112 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
     VerificationTemplate[]
   >([]);
 
-  // ==================== LOCALIZED TEXT ====================
+  // ── Proposed mitigations from catalog ──────────────────────────────────
+  const proposedMitigations = useMemo(() => {
+    if (!threat?.proposedMitigations?.length) return [];
+    return resolveMitigations(threat.proposedMitigations);
+  }, [threat?.proposedMitigations]);
 
-  /**
-   * Get localized text for per-interaction threats
-   */
-  const localizedText = useMemo(() => {
-    if (!threat) return null;
-    return getLocalizedThreatText(threat, locale);
-  }, [threat, locale]);
-
-  /**
-   * Get suggested mitigations based on threat context
-   */
-  const suggestedMitigationsList = useMemo(() => {
-    if (!threat) return [];
-    return getSuggestedMitigations(threat, locale);
-  }, [threat, locale]);
-
-  /**
-   * Check if this threat uses template localization
-   */
-  const usesTemplateLocalization = useMemo(() => {
-    if (!threat) return false;
-    return shouldUseTemplateLocalization(threat);
-  }, [threat]);
-
-  // ==================== EFFECTS ====================
+  // ── Effects ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (threat) {
-      // Reset modification flags
-      setUserModifiedDescription(false);
-      setUserModifiedAttack(false);
-
-      // For per-interaction threats with auto-generated content:
-      // Use localized text from templates
-      if (usesTemplateLocalization && localizedText) {
-        setThreatDescription(localizedText.threatDescription);
-        setAttackDescription(localizedText.attackDescription);
-      } else {
-        // For per-element or manually edited threats: use stored values
-        setThreatDescription(threat.threatDescription);
-        setAttackDescription(threat.attackDescription);
-      }
-
+      setThreatDescription(threat.threatDescription);
+      setAttackDescription(threat.attackDescription);
       setThreatActor(threat.threatActor);
       setMitigation(threat.mitigation);
       setVerification(threat.verification);
 
-      // ✅ GEÄNDERT: Service Selection basierend auf Threat-Typ
       const service = threat.interactionContext
         ? interactionThreatService
         : elementThreatService;
 
-      // Load templates for this STRIDE category
       const elementType = threat.linkedElement?.elementType || "DataFlow";
 
       setThreatTemplates(
         service.getThreatTemplates(
           threat.strideCategory,
           elementType,
-          configuration.customThreatTemplates
-        )
+          configuration.customThreatTemplates,
+        ),
       );
-
       setMitigationTemplates(
         service.getMitigationTemplates(
           threat.strideCategory,
           elementType,
-          configuration.customMitigationTemplates
-        )
+          configuration.customMitigationTemplates,
+        ),
       );
-
       setVerificationTemplates(
         service.getVerificationTemplates(
           threat.strideCategory,
           elementType,
-          configuration.customVerificationTemplates
-        )
+          configuration.customVerificationTemplates,
+        ),
       );
     }
-  }, [threat, configuration, usesTemplateLocalization, localizedText]);
+  }, [threat, configuration]);
 
-  // ==================== HANDLERS ====================
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleSave = () => {
-    // Determine what to save:
-    // - If user modified the text, save their version and mark as "manual"
-    // - If not modified and using template, save empty to keep using templates
-    const saveData: Partial<Threat> = {
+    onSave({
+      threatDescription,
+      attackDescription,
       threatActor,
       mitigation,
       verification,
-    };
-
-    if (usesTemplateLocalization && !userModifiedDescription) {
-      // Keep empty to continue using template localization
-      saveData.threatDescription = "";
-      saveData.source = "auto";
-    } else {
-      saveData.threatDescription = threatDescription;
-      saveData.source = "manual";
-    }
-
-    if (usesTemplateLocalization && !userModifiedAttack) {
-      saveData.attackDescription = "";
-    } else {
-      saveData.attackDescription = attackDescription;
-    }
-
-    onSave(saveData);
+      isTextCustomized:
+        threat?.threatDescription !== threatDescription ||
+        threat?.attackDescription !== attackDescription,
+      source: "manual",
+    });
   };
 
-  const handleThreatDescriptionChange = (value: string) => {
-    setThreatDescription(value);
-    setUserModifiedDescription(true);
-  };
-
-  const handleAttackDescriptionChange = (value: string) => {
-    setAttackDescription(value);
-    setUserModifiedAttack(true);
-  };
-
+  // Legacy templates from catalog service return localized text in
+  // option.threat / option.mitigation / option.verification — no locale check needed.
   const handleSelectThreatTemplate = (template: ThreatTemplate | null) => {
     if (template) {
-      const text = locale === "de" ? template.threatDE : template.threat;
-      setThreatDescription(text);
-      setUserModifiedDescription(true);
-
-      const attackText = locale === "de" ? template.attackDE : template.attack;
-      setAttackDescription(attackText);
-      setUserModifiedAttack(true);
+      setThreatDescription(template.threat);
+      setAttackDescription(template.attack);
     }
   };
 
   const handleSelectMitigationTemplate = (
-    template: MitigationTemplate | null
+    template: MitigationTemplate | null,
   ) => {
     if (template) {
-      const text =
-        locale === "de" ? template.mitigationDE : template.mitigation;
-      setMitigation((prev) => (prev ? `${prev}\n${text}` : text));
+      setMitigation((prev) =>
+        prev ? `${prev}\n${template.mitigation}` : template.mitigation,
+      );
     }
   };
 
   const handleSelectVerificationTemplate = (
-    template: VerificationTemplate | null
+    template: VerificationTemplate | null,
   ) => {
     if (template) {
-      const text =
-        locale === "de" ? template.verificationDE : template.verification;
-      setVerification((prev) => (prev ? `${prev}\n${text}` : text));
+      setVerification((prev) =>
+        prev ? `${prev}\n${template.verification}` : template.verification,
+      );
     }
   };
 
-  const handleAddSuggestedMitigation = (suggestion: string) => {
-    setMitigation((prev) => (prev ? `${prev}\n${suggestion}` : suggestion));
+  const handleAddProposedMitigation = (text: string) => {
+    setMitigation((prev) => (prev ? `${prev}\n${text}` : text));
   };
 
-  // ==================== HELPER ====================
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-  const getStrideName = (type: StrideCategory): string => {
-    const def = STRIDE_DEFINITIONS.find((s) => s.type === type);
-    return locale === "de" ? def?.nameDE || type : def?.name || type;
-  };
+  const getStrideName = (type: StrideCategory): string =>
+    t(`stride.${type}.name`, { defaultValue: type });
 
-  // ==================== RENDER ====================
+  const formatDirection = (direction: InteractionDirection): string =>
+    t(`tabs.threats.direction.${direction}`, {
+      defaultValue: direction === "incoming" ? "Incoming" : "Outgoing",
+    });
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   if (!threat) return null;
 
@@ -291,15 +230,10 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                   <ArrowUpward />
                 )
               }
-              label={formatInteractionDirection(
-                threat.interactionContext.direction,
-                locale
-              )}
+              label={formatDirection(threat.interactionContext.direction)}
               size="small"
               sx={{
-                bgcolor: getDirectionColor(
-                  threat.interactionContext.direction
-                ),
+                bgcolor: getDirectionColor(threat.interactionContext.direction),
                 color: "white",
               }}
             />
@@ -319,7 +253,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               borderColor: "divider",
             }}
           >
-            {threat.linkedElement ? (
+            {threat.linkedElement && (
               <Box>
                 <Typography variant="caption" color="text.secondary">
                   {t("tabs.threats.element", { defaultValue: "Element" })}
@@ -336,14 +270,16 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                   </Typography>
                 </Stack>
               </Box>
-            ) : null}
+            )}
 
             {threat.dataFlow && (
               <Box sx={{ mt: 1 }}>
                 <Typography variant="caption" color="text.secondary">
                   {t("tabs.threats.dataFlow", { defaultValue: "Data Flow" })}
                 </Typography>
-                <Typography>{formatDataFlowDisplay(threat.dataFlow)}</Typography>
+                <Typography>
+                  {formatDataFlowDisplay(threat.dataFlow)}
+                </Typography>
                 {hasInteractionContext && threat.interactionContext && (
                   <Typography variant="caption" color="text.secondary">
                     {threat.interactionContext.direction === "incoming"
@@ -366,15 +302,6 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
             )}
           </Box>
 
-          {/* Template Localization Info */}
-          {usesTemplateLocalization && (
-            <Alert severity="info">
-              {locale === "de"
-                ? "Diese Bedrohung verwendet Template-Lokalisierung. Ihre Änderungen werden gespeichert und überschreiben den automatisch generierten Text."
-                : "This threat uses template localization. Your changes will be saved and override the auto-generated text."}
-            </Alert>
-          )}
-
           {/* Threat Description */}
           <Box>
             <Stack
@@ -392,9 +319,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                 size="small"
                 options={threatTemplates}
                 value={null}
-                getOptionLabel={(option) =>
-                  locale === "de" ? option.threatDE : option.threat
-                }
+                getOptionLabel={(option) => option.threat}
                 onChange={(_, value) => handleSelectThreatTemplate(value)}
                 freeSolo={false}
                 renderInput={(params) => (
@@ -404,16 +329,12 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                       defaultValue: "Select template...",
                     })}
                     sx={{ width: 250 }}
-                    InputProps={{
-                      ...params.InputProps,
-                      readOnly: false, // Allow typing for search
-                    }}
                   />
                 )}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
                     <Typography variant="body2" sx={{ maxWidth: 400 }} noWrap>
-                      {locale === "de" ? option.threatDE : option.threat}
+                      {option.threat}
                     </Typography>
                   </li>
                 )}
@@ -424,7 +345,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               multiline
               rows={3}
               value={threatDescription}
-              onChange={(e) => handleThreatDescriptionChange(e.target.value)}
+              onChange={(e) => setThreatDescription(e.target.value)}
               placeholder={t("tabs.threats.threatDescriptionPlaceholder", {
                 defaultValue: "Describe the threat...",
               })}
@@ -443,7 +364,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
               multiline
               rows={2}
               value={attackDescription}
-              onChange={(e) => handleAttackDescriptionChange(e.target.value)}
+              onChange={(e) => setAttackDescription(e.target.value)}
               placeholder={t("tabs.threats.attackDescriptionPlaceholder", {
                 defaultValue: "Describe how an attacker might exploit this...",
               })}
@@ -464,17 +385,19 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                 setThreatActor(e.target.value as ThreatActorType)
               }
             >
-              {THREAT_ACTORS.map((actor) => (
-                <MenuItem key={actor.type} value={actor.type}>
+              {THREAT_ACTOR_TYPES.map((actorType) => (
+                <MenuItem key={actorType} value={actorType}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography>
-                      {locale === "de" ? actor.nameDE : actor.name}
+                      {t(`tabs.threats.threatActors.${actorType}.name`, {
+                        defaultValue: actorType,
+                      })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       -{" "}
-                      {locale === "de"
-                        ? actor.descriptionDE
-                        : actor.description}
+                      {t(`tabs.threats.threatActors.${actorType}.description`, {
+                        defaultValue: "",
+                      })}
                     </Typography>
                   </Stack>
                 </MenuItem>
@@ -501,9 +424,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                 size="small"
                 options={mitigationTemplates}
                 value={null}
-                getOptionLabel={(option) =>
-                  locale === "de" ? option.mitigationDE : option.mitigation
-                }
+                getOptionLabel={(option) => option.mitigation}
                 onChange={(_, value) => handleSelectMitigationTemplate(value)}
                 freeSolo={false}
                 renderInput={(params) => (
@@ -513,44 +434,38 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                       defaultValue: "Add mitigation...",
                     })}
                     sx={{ width: 250 }}
-                    InputProps={{
-                      ...params.InputProps,
-                      readOnly: false, // Allow typing for search
-                    }}
                   />
                 )}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
                     <Typography variant="body2" sx={{ maxWidth: 400 }} noWrap>
-                      {locale === "de"
-                        ? option.mitigationDE
-                        : option.mitigation}
+                      {option.mitigation}
                     </Typography>
                   </li>
                 )}
               />
             </Stack>
 
-            {/* Suggested Mitigations for per-interaction threats */}
-            {suggestedMitigationsList.length > 0 && (
+            {/* Proposed mitigations from catalog */}
+            {proposedMitigations.length > 0 && (
               <Box sx={{ mb: 2 }}>
                 <Typography
                   variant="caption"
                   color="text.secondary"
                   sx={{ display: "block", mb: 1 }}
                 >
-                  {locale === "de"
-                    ? "Vorgeschlagene Maßnahmen:"
-                    : "Suggested mitigations:"}
+                  {t("tabs.threats.proposedMitigations", {
+                    defaultValue: "Proposed mitigations:",
+                  })}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {suggestedMitigationsList.map((suggestion, index) => (
+                  {proposedMitigations.map((m) => (
                     <Chip
-                      key={index}
-                      label={suggestion}
+                      key={m.id}
+                      label={m.text}
                       size="small"
                       variant="outlined"
-                      onClick={() => handleAddSuggestedMitigation(suggestion)}
+                      onClick={() => handleAddProposedMitigation(m.text)}
                       sx={{
                         cursor: "pointer",
                         "&:hover": { backgroundColor: "primary.50" },
@@ -591,9 +506,7 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                 size="small"
                 options={verificationTemplates}
                 value={null}
-                getOptionLabel={(option) =>
-                  locale === "de" ? option.verificationDE : option.verification
-                }
+                getOptionLabel={(option) => option.verification}
                 onChange={(_, value) => handleSelectVerificationTemplate(value)}
                 freeSolo={false}
                 renderInput={(params) => (
@@ -603,18 +516,12 @@ export const ThreatDialog: React.FC<ThreatDialogProps> = ({
                       defaultValue: "Add verification...",
                     })}
                     sx={{ width: 250 }}
-                    InputProps={{
-                      ...params.InputProps,
-                      readOnly: false, // Allow typing for search
-                    }}
                   />
                 )}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
                     <Typography variant="body2" sx={{ maxWidth: 400 }} noWrap>
-                      {locale === "de"
-                        ? option.verificationDE
-                        : option.verification}
+                      {option.verification}
                     </Typography>
                   </li>
                 )}

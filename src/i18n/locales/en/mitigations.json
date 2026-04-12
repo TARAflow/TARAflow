@@ -1,0 +1,134 @@
+{
+  "M-S-001": {
+    "mitigation": "Implement multi-factor authentication (MFA)"
+  },
+  "M-S-002": {
+    "mitigation": "Use PKI systems and digital certificates"
+  },
+  "M-S-003": {
+    "mitigation": "Implement secure session management with proper timeout"
+  },
+  "M-S-004": {
+    "mitigation": "Use digitally signed packets and authenticate code/data"
+  },
+  "M-S-005": {
+    "mitigation": "Implement IPSec for network communication"
+  },
+  "M-T-001": {
+    "mitigation": "Implement integrity controls and checksums"
+  },
+  "M-T-002": {
+    "mitigation": "Use digital signatures for data integrity"
+  },
+  "M-T-003": {
+    "mitigation": "Implement proper ACLs (Access Control Lists)"
+  },
+  "M-T-004": {
+    "mitigation": "Implement input validation and data sanitization"
+  },
+  "M-T-005": {
+    "mitigation": "Use TLS 1.3 for data in transit"
+  },
+  "M-R-001": {
+    "mitigation": "Implement secure, tamper-proof logging"
+  },
+  "M-R-002": {
+    "mitigation": "Use digital signatures for non-repudiation"
+  },
+  "M-R-003": {
+    "mitigation": "Implement secure timestamps from trusted source"
+  },
+  "M-R-004": {
+    "mitigation": "Implement log integrity checks and regular audits"
+  },
+  "M-R-005": {
+    "mitigation": "Strong authentication with audit trail"
+  },
+  "M-I-001": {
+    "mitigation": "Encrypt data at rest using AES-256"
+  },
+  "M-I-002": {
+    "mitigation": "Encrypt data in transit using TLS 1.3"
+  },
+  "M-I-003": {
+    "mitigation": "Implement proper ACLs and role-based access control"
+  },
+  "M-I-004": {
+    "mitigation": "Implement secure data storage with proper key management"
+  },
+  "M-I-005": {
+    "mitigation": "Apply data masking for sensitive information"
+  },
+  "M-D-001": {
+    "mitigation": "Implement rate limiting and throttling"
+  },
+  "M-D-002": {
+    "mitigation": "Implement quotas and resource limits"
+  },
+  "M-D-003": {
+    "mitigation": "Use ACLs or filtering to restrict access"
+  },
+  "M-D-004": {
+    "mitigation": "Implement high availability design with redundancy"
+  },
+  "M-D-005": {
+    "mitigation": "Use load balancing to distribute traffic"
+  },
+  "M-E-001": {
+    "mitigation": "Apply least privilege principle"
+  },
+  "M-E-002": {
+    "mitigation": "Implement proper ACLs and role-based access control"
+  },
+  "M-E-003": {
+    "mitigation": "Implement strict input validation"
+  },
+  "M-E-004": {
+    "mitigation": "Regular security reviews and updates"
+  },
+  "M-E-005": {
+    "mitigation": "Use sandboxing to isolate processes"
+  },
+  "M-E-006": {
+    "mitigation": "Disable debug interfaces in production"
+  },
+  "M-IF-S-001": {
+    "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
+  },
+  "M-IF-T-001": {
+    "mitigation": "Physical tamper detection and secure boot mechanisms"
+  },
+  "M-IF-T-002": {
+    "mitigation": "Epoxy encapsulation and tamper-evident seals"
+  },
+  "M-IF-R-001": {
+    "mitigation": "Log all physical interface access events with timestamps"
+  },
+  "M-IF-I-001": {
+    "mitigation": "Encrypt data on physical buses (CAN encryption, secure protocols)"
+  },
+  "M-IF-I-002": {
+    "mitigation": "Shield cables and use EMI protection to prevent eavesdropping"
+  },
+  "M-IF-D-001": {
+    "mitigation": "Implement physical protection (ESD protection, overcurrent protection, fuses)"
+  },
+  "M-IF-D-002": {
+    "mitigation": "Use redundant interfaces for critical functions"
+  },
+  "M-IF-E-002": {
+    "mitigation": "Disable or protect debug interfaces in production (JTAG lock, fuse blowing)"
+  },
+  "M-IF-E-003": {
+    "mitigation": "Implement firmware signature verification and rollback protection"
+  },
+  "M-IF-T-003": {
+    "mitigation": "Enclose interface in lockable, tamper-evident housing"
+  },
+  "M-IF-T-004": {
+    "mitigation": "Use potting compound or conformal coating to protect circuit traces"
+  },
+  "M-IF-E-001": {
+    "mitigation": "Physically separate or remove debug interfaces in production units"
+  }
+}

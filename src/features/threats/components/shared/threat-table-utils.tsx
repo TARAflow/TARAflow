@@ -2,11 +2,10 @@
 // Reusable cell renderers and sort helpers for per-element and per-interaction tables.
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import {
-  STRIDE_DEFINITIONS,
-  THREAT_ACTORS,
   type Threat,
   type AssetDataReference,
   type AssetReference,
@@ -38,8 +37,8 @@ export function sortThreats(
       const order = ["S", "T", "R", "I", "D", "E"];
       cmp = order.indexOf(a.strideCategory) - order.indexOf(b.strideCategory);
     } else {
-      // priority: lower number = higher priority
-      cmp = getThreatPriority(a, assetDataRef) - getThreatPriority(b, assetDataRef);
+      cmp =
+        getThreatPriority(a, assetDataRef) - getThreatPriority(b, assetDataRef);
     }
     return dir === "asc" ? cmp : -cmp;
   });
@@ -53,14 +52,13 @@ export const ThreatIdCell: React.FC<{ id: string }> = ({ id }) => (
   </Typography>
 );
 
-export const StrideCell: React.FC<{ cat: StrideCategory; isGerman: boolean }> = ({
-  cat,
-  isGerman,
-}) => {
-  const def = STRIDE_DEFINITIONS.find((s) => s.type === cat);
-  const name = isGerman ? def?.nameDE : def?.name;
+export const StrideCell: React.FC<{ cat: StrideCategory }> = ({ cat }) => {
+  const { t } = useTranslation();
+  const name = t(`stride.${cat}.name`, { defaultValue: cat });
+  const description = t(`stride.${cat}.description`, { defaultValue: "" });
+
   return (
-    <Tooltip title={name || cat}>
+    <Tooltip title={`${name}${description ? ` — ${description}` : ""}`}>
       <Chip
         label={cat}
         size="small"
@@ -103,20 +101,25 @@ export const MissingChip: React.FC<{ label: string }> = ({ label }) => (
   <Chip label={label} size="small" color="warning" variant="outlined" />
 );
 
-export const ActorCell: React.FC<{
-  actor: string;
-  isGerman: boolean;
-}> = ({ actor, isGerman }) => {
-  const def = THREAT_ACTORS.find((a) => a.type === actor);
-  const name = isGerman ? def?.nameDE : def?.name;
+export const ActorCell: React.FC<{ actor: string }> = ({ actor }) => {
+  const { t } = useTranslation();
+  const name = t(`tabs.threats.threatActors.${actor}.name`, {
+    defaultValue: actor,
+  });
+  const description = t(`tabs.threats.threatActors.${actor}.description`, {
+    defaultValue: "",
+  });
+
   return (
-    <Chip
-      label={name || actor}
-      size="small"
-      variant="outlined"
-      color={actor === "external" ? "error" : "default"}
-      sx={{ fontSize: "0.7rem", height: 20 }}
-    />
+    <Tooltip title={description || name}>
+      <Chip
+        label={name}
+        size="small"
+        variant="outlined"
+        color={actor === "external" ? "error" : "default"}
+        sx={{ fontSize: "0.7rem", height: 20 }}
+      />
+    </Tooltip>
   );
 };
 

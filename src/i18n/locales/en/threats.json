@@ -49,6 +49,30 @@
       "totalThreats": "Total: {{count}} threats",
       "interfaces": "Physical Interfaces [{{tbId}}]",
       "showingCount": "Showing {{shown}} of {{total}}",
+      "sync": {
+        "action": "Sync Threats",
+        "status": {
+          "synced": "Threats are in sync",
+          "outOfSync": "Out of sync"
+        },
+        "banner": {
+          "title": "DFD and threats out of sync",
+          "actions": {
+            "sync": "Sync",
+            "dismiss": "Dismiss"
+          },
+          "summary": {
+            "missingElements": "{{count}} element without threats",
+            "missingElements_plural": "{{count}} elements without threats",
+            "missingDataFlows": "{{count}} data flow without threats",
+            "missingDataFlows_plural": "{{count}} data flows without threats",
+            "orphanedThreats": "{{count}} orphaned threat",
+            "orphanedThreats_plural": "{{count}} orphaned threats",
+            "changedReferences": "{{count}} changed reference",
+            "changedReferences_plural": "{{count}} changed references"
+          }
+        }
+      },
       "columns": {
         "threatId": "T-ID",
         "element": "Element",
@@ -107,6 +131,37 @@
         "description": "Description",
         "mitigation": "Mitigation",
         "actions": "Actions"
+      },
+      "generating": "Generating...",
+      "crossesTB": "Crosses Trust Boundary",
+      "noDescription": "No description",
+      "direction": {
+        "incoming": "Incoming",
+        "outgoing": "Outgoing"
+      },
+      "proposedMitigations": "Proposed mitigations:",
+      "threatActors": {
+        "external": {
+          "name": "External Attacker",
+          "description": "Malicious actor from outside the organization"
+        },
+        "internal": {
+          "name": "Insider",
+          "description": "Malicious or negligent employee/contractor"
+        },
+        "nation-state": {
+          "name": "Nation-State",
+          "description": "Government-sponsored attacker with significant resources"
+        },
+        "script-kiddie": {
+          "name": "Script Kiddie",
+          "description": "Unskilled attacker using pre-made tools"
+        },
+        "competitor": {
+          "name": "Competitor",
+          "description": "Business competitor seeking advantage"
+        },
+        "other": { "name": "Other", "description": "Other threat actor type" }
       }
     }
   }

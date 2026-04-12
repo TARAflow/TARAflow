@@ -15,33 +15,19 @@ import {
   Stack,
   Typography,
   Chip,
-  IconButton,
-  Tooltip,
 } from "@mui/material";
-import {
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-} from "@mui/icons-material";
-import { STRIDE_DEFINITIONS } from "../../models/threat-types";
 import { STRIDE_COLORS } from "shared";
 import type { StrideCategory } from "shared";
 
 // ==================== TYPES ====================
 
 export interface ThreatFiltersProps {
-  // Filter state
   strideCategory: StrideCategory | "";
   searchText: string;
-
-  // Callbacks
   onStrideCategoryChange: (category: StrideCategory | "") => void;
   onSearchTextChange: (text: string) => void;
   onClear: () => void;
-
-  // UI state
   show: boolean;
-
-  // Stats
   filteredCount: number;
   totalCount: number;
 }
@@ -54,21 +40,18 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
     searchText,
     onStrideCategoryChange,
     onSearchTextChange,
-    onClear,
     show,
     filteredCount,
     totalCount,
   }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
-    const hasFilters = strideCategory !== "" || searchText.trim() !== "";
+    const { t } = useTranslation();
 
     return (
       <Collapse in={show}>
         <Box
           sx={{ display: "flex", gap: 2, alignItems: "center", px: 1, py: 1 }}
         >
-          {/* STRIDE Dropdown - wider to prevent resize */}
+          {/* STRIDE Dropdown */}
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>STRIDE</InputLabel>
             <Select
@@ -82,28 +65,25 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
                 <em>{t("common.all", { defaultValue: "All" })}</em>
               </MenuItem>
               {(["S", "T", "R", "I", "D", "E"] as StrideCategory[]).map(
-                (cat) => {
-                  const def = STRIDE_DEFINITIONS.find((s) => s.type === cat);
-                  return (
-                    <MenuItem key={cat} value={cat}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Chip
-                          label={cat}
-                          size="small"
-                          sx={{
-                            backgroundColor: STRIDE_COLORS[cat],
-                            color: "white",
-                            width: 28,
-                            height: 20,
-                          }}
-                        />
-                        <Typography variant="body2">
-                          {isGerman ? def?.nameDE : def?.name}
-                        </Typography>
-                      </Stack>
-                    </MenuItem>
-                  );
-                }
+                (cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        label={cat}
+                        size="small"
+                        sx={{
+                          backgroundColor: STRIDE_COLORS[cat],
+                          color: "white",
+                          width: 28,
+                          height: 20,
+                        }}
+                      />
+                      <Typography variant="body2">
+                        {t(`stride.${cat}.name`, { defaultValue: cat })}
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+                ),
               )}
             </Select>
           </FormControl>
@@ -119,10 +99,9 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
             sx={{ width: 200 }}
           />
 
-          {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Count - right aligned */}
+          {/* Count */}
           <Typography variant="body2" color="text.secondary">
             {t("tabs.threats.showingCount", {
               count: filteredCount,
@@ -133,7 +112,7 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
         </Box>
       </Collapse>
     );
-  }
+  },
 );
 
 ThreatFilters.displayName = "ThreatFilters";

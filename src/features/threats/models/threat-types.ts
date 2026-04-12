@@ -8,10 +8,15 @@ import type { PhaseStatusMap, StrideCategory } from "shared";
 
 export type StrideMethod = "per-element" | "per-interaction";
 
+// ==================== EVAL STATUS ====================
+
+export type ThreatEvalStatus = "pending" | "confirmed" | "dismissed" | "review";
+
 // ==================== STRIDE DEFINITIONS ====================
 
 export interface StrideDefinition {
   type: StrideCategory;
+  /** i18n key — resolved via t('stride.S.name') */
   name: string;
   nameDE: string;
   securityProperty: string;
@@ -170,27 +175,33 @@ export interface Threat {
   sequenceNumber: number;
 
   /** Linked DFD element - used by per-element method */
-  linkedElement: any | null; // Import from per-element/types
+  linkedElement: any | null;
 
   /** Data flow reference - used by per-interaction method */
-  dataFlow: any | null; // Import from per-interaction/types
+  dataFlow: any | null;
 
   /** Interaction context - used by per-interaction method */
-  interactionContext?: any; // Import from per-interaction/types
+  interactionContext?: any;
 
-  /** Threat description */
+  /** Threat description (stored; empty = use i18n template at render time) */
   threatDescription: string;
 
-  /** Possible attack scenario */
+  /** Possible attack scenario (stored; empty = use i18n template at render time) */
   attackDescription: string;
+
+  /**
+   * Root cause — explains why this threat is possible.
+   * Pre-filled by generator from i18n catalog; shown read-only in dialog.
+   */
+  causeDescription: string;
 
   /** Threat actor */
   threatActor: ThreatActorType;
 
-  /** Mitigation description */
+  /** Mitigation description — free text written by analyst (legacy / manual threats) */
   mitigation: string;
 
-  /** Verification/Testing description */
+  /** Verification/Testing description — free text (legacy / manual threats) */
   verification: string;
 
   /** Linked asset IDs */
@@ -198,6 +209,35 @@ export interface Threat {
 
   /** Source: auto-generated or manual */
   source: "auto" | "manual";
+
+  /**
+   * Catalog mitigation IDs proposed by the generator (1-n).
+   * Populated at generate time from the matched template's mitigations[].
+   * Read-only during Threat Eval — analyst selects from these in the Risk Tab.
+   */
+  proposedMitigations: string[];
+
+  /**
+   * Catalog verification IDs proposed by the generator (1-n).
+   * Populated at generate time from the matched template's verifications[].
+   * Read-only during Threat Eval — analyst selects from these in the Risk Tab.
+   */
+  proposedVerifications: string[];
+
+  /**
+   * Analyst evaluation status (Threat Eval phase).
+   * pending   = not yet reviewed
+   * confirmed = relevant, will be carried into Risk Assessment
+   * dismissed = not applicable for this system
+   * review    = flagged for later review
+   */
+  evalStatus: ThreatEvalStatus;
+
+  /** Optional free-text note from the analyst explaining their eval decision */
+  evalNote?: string;
+
+  /** True when the analyst has manually edited threatDescription or attackDescription */
+  isTextCustomized: boolean;
 
   /** Timestamps */
   created: string;
@@ -222,6 +262,68 @@ export interface ThreatTable {
 
 // ==================== TEMPLATES ====================
 
+/**
+ * Language-neutral element threat template (references i18n keys)
+ * Replaces old ThreatTemplate which carried threat/threatDE/attack/attackDE fields
+ */
+export interface ElementTemplate {
+  id: string;
+  strideCategory: StrideCategory;
+  elementTypes: string[];
+  context: TemplateContext;
+  mitigations: string[];
+  verifications: string[];
+  isCustom: boolean;
+}
+
+/**
+ * Language-neutral interaction threat template
+ */
+export interface InteractionTemplate {
+  id: string;
+  strideCategory: StrideCategory;
+  perspective: "sender" | "receiver";
+  context: TemplateContext;
+  mitigations: string[];
+  verifications: string[];
+  isCustom: boolean;
+}
+
+/**
+ * Language-neutral mitigation catalog entry
+ */
+export interface MitigationEntry {
+  id: string;
+  strideCategory: StrideCategory;
+  context: TemplateContext;
+  isCustom: boolean;
+}
+
+/**
+ * Language-neutral verification catalog entry
+ */
+export interface VerificationEntry {
+  id: string;
+  strideCategory: StrideCategory;
+  context: TemplateContext;
+  isCustom: boolean;
+}
+
+/**
+ * Context field for project-based filtering (Step 4)
+ * Empty / missing = universal (shown always)
+ * Non-empty = AND across keys, OR within a key
+ */
+export interface TemplateContext {
+  industry?: Array<"ot_ics" | "automotive" | "medical" | "financial" | "generic">;
+  platform?: Array<"embedded" | "iot" | "cloud" | "web" | "generic">;
+  standards?: Array<"iec_62443" | "iso_21434" | "eu_cra" | "en_50742">;
+}
+
+/**
+ * @deprecated Use ElementTemplate instead.
+ * Kept for backward compatibility with customThreatTemplates stored in projects.
+ */
 export interface ThreatTemplate {
   id: string;
   strideCategory: StrideCategory;
@@ -233,6 +335,7 @@ export interface ThreatTemplate {
   isCustom: boolean;
 }
 
+/** @deprecated Use MitigationEntry instead */
 export interface MitigationTemplate {
   id: string;
   strideCategory: StrideCategory;
@@ -241,6 +344,7 @@ export interface MitigationTemplate {
   isCustom: boolean;
 }
 
+/** @deprecated Use VerificationEntry instead */
 export interface VerificationTemplate {
   id: string;
   strideCategory: StrideCategory;
@@ -249,27 +353,20 @@ export interface VerificationTemplate {
   isCustom: boolean;
 }
 
+// ==================== PROJECT SETTINGS ====================
+
+export interface ProjectSettings {
+  platform: "embedded" | "iot" | "cloud" | "web" | "generic";
+  industry: "ot_ics" | "automotive" | "medical" | "financial" | "generic";
+  standards: Array<"iec_62443" | "iso_21434" | "eu_cra" | "en_50742">;
+}
+
 // ==================== CONFIGURATION ====================
 
 export interface ThreatConfiguration {
-  /**
-   * Active STRIDE method — managed by Toolbar, NOT stored in config dialog.
-   * Kept for backward compatibility with saved projects.
-   */
   activeMethod: StrideMethod;
-
-  /**
-   * Zero Trust Mode: generate threats from BOTH sender AND receiver perspective.
-   * Default false: only sender perspective (+ receiver for TB-crossing flows).
-   */
   zeroTrustMode: boolean;
-
-  /**
-   * Show Threat Actor column in threat tables.
-   * Default false: actor has low analytical value for likelihood.
-   */
   showThreatActor: boolean;
-
   customThreatTemplates: ThreatTemplate[];
   customMitigationTemplates: MitigationTemplate[];
   customVerificationTemplates: VerificationTemplate[];
@@ -311,7 +408,6 @@ export interface AssetReference {
   physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
   isHighValueAsset?: "low" | "medium" | "high" | "critical";
   hasSafetyAnnotation: boolean;
-  /** DFD element IDs this asset is linked to — used by generator to populate linkedAssetIds */
   linkedElementIds?: string[];
 }
 
@@ -334,6 +430,7 @@ export interface ThreatProjectData {
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;
+  settings?: ProjectSettings;
   lastModified: string;
 }
 
@@ -349,13 +446,10 @@ export interface DFDConnectionReference {
   id: string;
   from: string;
   to: string;
-  /** Arrow label in the diagram. Stored as "name" in project data. */
   name?: string;
-  label?: string; // legacy — use name
+  label?: string;
   displayId: string;
-  /** Whether this flow is excluded from automated threat generation (set in DFD tab) */
   excludeFromThreatGen?: boolean;
-  /** Whether this flow is explicitly assumed trusted (set in DFD tab) */
   assumedTrusted?: boolean;
 }
 
@@ -364,25 +458,15 @@ export interface DFDGraphReference {
   connectionsById: Map<string, DFDConnectionReference>;
   assetsById: Map<string, DFDAssetReference>;
 
-  outgoingConnections: Map<string, string[]>; // elementId -> connectionIds
-  incomingConnections: Map<string, string[]>; // elementId -> connectionIds
+  outgoingConnections: Map<string, string[]>;
+  incomingConnections: Map<string, string[]>;
 
-  elementTrustBoundaries: Map<string, string[]>; // elementId -> trustBoundaryIds
-  trustBoundaryElements: Map<string, string[]>; // trustBoundaryId -> elementIds
+  elementTrustBoundaries: Map<string, string[]>;
+  trustBoundaryElements: Map<string, string[]>;
 
   dataFlowAnalysis: Map<string, DataFlowAnalysisReference>;
   trustBoundaryHierarchy: Map<string, TrustBoundaryAnalysisReference>;
   effectiveElementTrustBoundary: Map<string, string | undefined>;
-}
-
-export interface DFDConnectionReference {
-  id: string;
-  from: string;
-  to: string;
-  name?: string;
-  label?: string; // legacy
-  excludeFromThreatGen?: boolean;
-  assumedTrusted?: boolean;
 }
 
 export interface DFDAssetReference {
@@ -394,7 +478,7 @@ export interface DataFlowAnalysisReference {
   connectionId: string;
   fromElementId: string;
   toElementId: string;
-  fromElementType: string; // DFDElementType als string
+  fromElementType: string;
   toElementType: string;
   fromTrustBoundaryIds: string[];
   toTrustBoundaryIds: string[];
@@ -405,10 +489,11 @@ export interface DataFlowAnalysisReference {
   viaInterface?: boolean;
   crossingType?: "none" | "inbound" | "outbound" | "lateral";
 }
+
 export interface TrustBoundaryAnalysisReference {
   trustBoundaryId: string;
   parentTrustBoundaryId?: string;
-  depth: number; // 0 = outermost
+  depth: number;
 }
 
 // ==================== SYNC STATUS (SHARED) ====================
@@ -425,8 +510,8 @@ export interface ThreatSyncStatus {
     threatIds: string[];
   };
   changedReferences: {
-    elements: any[]; // ElementChange from per-element
-    dataFlows: any[]; // DataFlowChange from per-interaction
+    elements: any[];
+    dataFlows: any[];
   };
   summary: {
     missingElementCount: number;
@@ -495,28 +580,25 @@ export function createEmptyThreat(
     interactionContext,
     threatDescription: "",
     attackDescription: "",
+    causeDescription: "",
     threatActor: "external",
     mitigation: "",
     verification: "",
     linkedAssetIds: [],
     source: "manual",
+    proposedMitigations: [],
+    proposedVerifications: [],
+    evalStatus: "pending",
+    isTextCustomized: false,
     created: new Date().toISOString(),
     lastModified: new Date().toISOString(),
   };
 }
 
-/**
- * Type guard to check if a ThreatTable contains Interface threats
- * Interface tables have "Physical Interfaces" in their name
- */
 export function isInterfaceTable(table: ThreatTable): boolean {
   return table.trustBoundaryName.includes("Physical Interfaces");
 }
 
-/**
- * Type guard to check if a Threat is an Interface threat
- * Interface threats have linkedElement of type Interface/PhysicalInterface
- */
 export function isInterfaceThreat(threat: Threat): boolean {
   return (
     threat.linkedElement !== null &&

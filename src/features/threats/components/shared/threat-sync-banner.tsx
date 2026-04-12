@@ -30,8 +30,7 @@ export interface ThreatSyncBannerProps {
 
 export const ThreatSyncBanner = React.memo<ThreatSyncBannerProps>(
   ({ syncStatus, onSync, onDismiss, isSyncing }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
+    const { t } = useTranslation();
 
     if (!syncStatus || syncStatus.inSync) {
       return null;
@@ -42,33 +41,33 @@ export const ThreatSyncBanner = React.memo<ThreatSyncBannerProps>(
 
     if (syncStatus.summary.missingElementCount > 0) {
       parts.push(
-        isGerman
-          ? `${syncStatus.summary.missingElementCount} Element(e) ohne Bedrohungen`
-          : `${syncStatus.summary.missingElementCount} element(s) without threats`
+        t("tabs.threats.sync.banner.summary.missingElements", {
+          count: syncStatus.summary.missingElementCount,
+        }),
       );
     }
 
     if (syncStatus.summary.missingDataFlowCount > 0) {
       parts.push(
-        isGerman
-          ? `${syncStatus.summary.missingDataFlowCount} Datenfluss/-flüsse ohne Bedrohungen`
-          : `${syncStatus.summary.missingDataFlowCount} data flow(s) without threats`
+        t("tabs.threats.sync.banner.summary.missingDataFlows", {
+          count: syncStatus.summary.missingDataFlowCount,
+        }),
       );
     }
 
     if (syncStatus.summary.orphanedThreatCount > 0) {
       parts.push(
-        isGerman
-          ? `${syncStatus.summary.orphanedThreatCount} verwaiste Bedrohung(en)`
-          : `${syncStatus.summary.orphanedThreatCount} orphaned threat(s)`
+        t("tabs.threats.sync.banner.summary.orphanedThreats", {
+          count: syncStatus.summary.orphanedThreatCount,
+        }),
       );
     }
 
     if (syncStatus.summary.changedReferenceCount > 0) {
       parts.push(
-        isGerman
-          ? `${syncStatus.summary.changedReferenceCount} geänderte Referenz(en)`
-          : `${syncStatus.summary.changedReferenceCount} changed reference(s)`
+        t("tabs.threats.sync.banner.summary.changedReferences", {
+          count: syncStatus.summary.changedReferenceCount,
+        }),
       );
     }
 
@@ -89,23 +88,15 @@ export const ThreatSyncBanner = React.memo<ThreatSyncBannerProps>(
               onClick={onSync}
               disabled={isSyncing}
             >
-              {isGerman ? "Synchronisieren" : "Sync"}
+              {t("tabs.threats.sync.banner.actions.sync")}
             </Button>
-            <Button
-              size="small"
-              color="inherit"
-              onClick={onDismiss}
-            >
-              {isGerman ? "Ignorieren" : "Dismiss"}
+            <Button size="small" color="inherit" onClick={onDismiss}>
+              {t("tabs.threats.sync.banner.actions.dismiss")}
             </Button>
           </Stack>
         }
       >
-        <AlertTitle>
-          {isGerman
-            ? "DFD und Bedrohungen nicht synchron"
-            : "DFD and threats out of sync"}
-        </AlertTitle>
+        <AlertTitle>{t("tabs.threats.sync.banner.title")}</AlertTitle>
         {message}
       </Alert>
     );

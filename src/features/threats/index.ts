@@ -88,16 +88,6 @@ export { interactionThreatService } from "./services/per-interaction/interaction
 
 // ==================== UTILITIES ====================
 export {
-  getLocalizedThreatText,
-  shouldUseTemplateLocalization,
-  getSuggestedMitigations,
-  getEffectiveThreatDescription,
-  getEffectiveAttackDescription,
-  formatInteractionDirection,
-  getDirectionColor,
-} from "./services/interaction-templates";
-
-export {
   createDefaultThreatData,
   createEmptyThreat,
   getActiveThreatTables,

@@ -1,0 +1,134 @@
+{
+  "M-S-001": {
+    "mitigation": "Multi-Faktor-Authentifizierung (MFA) implementieren"
+  },
+  "M-S-002": {
+    "mitigation": "PKI-Systeme und digitale Zertifikate verwenden"
+  },
+  "M-S-003": {
+    "mitigation": "Sichere Sitzungsverwaltung mit angemessenem Timeout implementieren"
+  },
+  "M-S-004": {
+    "mitigation": "Digital signierte Pakete verwenden und Code/Daten authentifizieren"
+  },
+  "M-S-005": {
+    "mitigation": "IPSec für Netzwerkkommunikation implementieren"
+  },
+  "M-T-001": {
+    "mitigation": "Integritätskontrollen und Prüfsummen implementieren"
+  },
+  "M-T-002": {
+    "mitigation": "Digitale Signaturen für Datenintegrität verwenden"
+  },
+  "M-T-003": {
+    "mitigation": "Korrekte ACLs (Zugriffskontrolllisten) implementieren"
+  },
+  "M-T-004": {
+    "mitigation": "Eingabevalidierung und Datenbereinigung implementieren"
+  },
+  "M-T-005": {
+    "mitigation": "TLS 1.3 für Daten während der Übertragung verwenden"
+  },
+  "M-R-001": {
+    "mitigation": "Sichere, manipulationssichere Protokollierung implementieren"
+  },
+  "M-R-002": {
+    "mitigation": "Digitale Signaturen für Nichtabstreitbarkeit verwenden"
+  },
+  "M-R-003": {
+    "mitigation": "Sichere Zeitstempel von vertrauenswürdiger Quelle implementieren"
+  },
+  "M-R-004": {
+    "mitigation": "Log-Integritätsprüfungen und regelmäßige Audits implementieren"
+  },
+  "M-R-005": {
+    "mitigation": "Starke Authentifizierung mit Audit-Trail"
+  },
+  "M-I-001": {
+    "mitigation": "Daten im Ruhezustand mit AES-256 verschlüsseln"
+  },
+  "M-I-002": {
+    "mitigation": "Daten während der Übertragung mit TLS 1.3 verschlüsseln"
+  },
+  "M-I-003": {
+    "mitigation": "Korrekte ACLs und rollenbasierte Zugriffskontrolle implementieren"
+  },
+  "M-I-004": {
+    "mitigation": "Sichere Datenspeicherung mit korrekter Schlüsselverwaltung implementieren"
+  },
+  "M-I-005": {
+    "mitigation": "Datenmaskierung für sensible Informationen anwenden"
+  },
+  "M-D-001": {
+    "mitigation": "Rate Limiting und Throttling implementieren"
+  },
+  "M-D-002": {
+    "mitigation": "Quoten und Ressourcenlimits implementieren"
+  },
+  "M-D-003": {
+    "mitigation": "ACLs oder Filterung verwenden, um Zugriff zu beschränken"
+  },
+  "M-D-004": {
+    "mitigation": "Hochverfügbarkeitsdesign mit Redundanz implementieren"
+  },
+  "M-D-005": {
+    "mitigation": "Load Balancing zur Verteilung des Datenverkehrs verwenden"
+  },
+  "M-E-001": {
+    "mitigation": "Prinzip der geringsten Rechte anwenden"
+  },
+  "M-E-002": {
+    "mitigation": "Korrekte ACLs und rollenbasierte Zugriffskontrolle implementieren"
+  },
+  "M-E-003": {
+    "mitigation": "Strikte Eingabevalidierung implementieren"
+  },
+  "M-E-004": {
+    "mitigation": "Regelmäßige Sicherheitsüberprüfungen und Updates"
+  },
+  "M-E-005": {
+    "mitigation": "Sandboxing zur Isolierung von Prozessen verwenden"
+  },
+  "M-E-006": {
+    "mitigation": "Debug-Schnittstellen in der Produktion deaktivieren"
+  },
+  "M-IF-S-001": {
+    "mitigation": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)"
+  },
+  "M-IF-T-001": {
+    "mitigation": "Physische Manipulationserkennung und Secure Boot-Mechanismen"
+  },
+  "M-IF-T-002": {
+    "mitigation": "Epoxid-Verkapselung und manipulationssichere Siegel"
+  },
+  "M-IF-R-001": {
+    "mitigation": "Alle physischen Schnittstellenzugriffe mit Zeitstempeln protokollieren"
+  },
+  "M-IF-I-001": {
+    "mitigation": "Daten auf physischen Bussen verschlüsseln (CAN-Verschlüsselung, sichere Protokolle)"
+  },
+  "M-IF-I-002": {
+    "mitigation": "Kabel abschirmen und EMI-Schutz verwenden, um Abhören zu verhindern"
+  },
+  "M-IF-D-001": {
+    "mitigation": "Physischen Schutz implementieren (ESD-Schutz, Überstromschutz, Sicherungen)"
+  },
+  "M-IF-D-002": {
+    "mitigation": "Redundante Schnittstellen für kritische Funktionen verwenden"
+  },
+  "M-IF-E-002": {
+    "mitigation": "Debug-Schnittstellen in Produktion deaktivieren oder schützen (JTAG-Sperre, Fuse-Brennen)"
+  },
+  "M-IF-E-003": {
+    "mitigation": "Firmware-Signaturverifizierung und Rollback-Schutz implementieren"
+  },
+  "M-IF-T-003": {
+    "mitigation": "Schnittstelle in abschliessbarem, manipulationssicherem Gehäuse unterbringen"
+  },
+  "M-IF-T-004": {
+    "mitigation": "Vergussmasse oder Schutzlack verwenden, um Leiterbahnen zu schützen"
+  },
+  "M-IF-E-001": {
+    "mitigation": "Debug-Schnittstellen in Produktionseinheiten physisch trennen oder entfernen"
+  }
+}
