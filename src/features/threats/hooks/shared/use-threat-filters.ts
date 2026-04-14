@@ -54,7 +54,12 @@ export function useThreatFilters(): UseThreatFiltersResult {
             return true;
           if (t.attackDescription?.toLowerCase().includes(searchLower))
             return true;
-          if (t.mitigation?.toLowerCase().includes(searchLower)) return true;
+          if (
+            t.proposedMitigations.some((m) =>
+              m.notes?.toLowerCase().includes(searchLower),
+            )
+          )
+            return true;
 
           // Search in linked element name
           if (t.linkedElement?.elementName.toLowerCase().includes(searchLower))

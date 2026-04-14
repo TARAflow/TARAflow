@@ -9,9 +9,6 @@ export type {
   Threat,
   ThreatTable,
   ThreatConfiguration,
-  ThreatTemplate,
-  MitigationTemplate,
-  VerificationTemplate,
   ThreatSyncStatus,
   ThreatSyncResult,
   DFDConnectionReference,
@@ -33,7 +30,6 @@ export type {
 
 // ==================== COMPONENTS ====================
 export { ThreatsTab } from "./components/threats-tab";
-export { ThreatDialog } from "./components/shared/threat-dialog";
 export { ThreatConfigDialog } from "./components/shared/threat-config-dialog";
 
 // Shared Components
@@ -74,7 +70,6 @@ export type {
 // Base Service Types
 export type {
   ThreatService,
-  ThreatCatalog,
   GenerationResult,
   ValidationResult as ServiceValidationResult,
   StatisticsResult,

@@ -134,7 +134,9 @@ export class InteractionThreatSync {
               }
             }
 
-            if (connection.label !== threat.dataFlow.dataFlowName) {
+            // dataFlowName stores the human-readable label of the connection
+            const connLabel = connection.label || connection.name || "";
+            if (connLabel !== threat.dataFlow.dataFlowName) {
               changes.push("name");
             }
             if (connection.from !== threat.dataFlow.sourceId) {
@@ -232,6 +234,12 @@ export class InteractionThreatSync {
     // Find missing data flows
     const missingConnections: DFDConnectionReference[] = [];
     for (const [connId, connection] of graph.connectionsById) {
+      // Skip connections explicitly excluded from threat generation
+      const isExcluded =
+        connection.excludeFromThreatGen ||
+        (connection as any)?.properties?.excludeFromThreatGen;
+      if (isExcluded) continue;
+
       if (!threatenedConnections.has(connId)) {
         missingConnections.push(connection);
       }
@@ -309,9 +317,10 @@ export class InteractionThreatSync {
             activeMethod: "per-interaction" as const,
             zeroTrustMode: false,
             showThreatActor: false,
-            customThreatTemplates: [],
-            customMitigationTemplates: [],
-            customVerificationTemplates: [],
+            customElementTemplates: [],
+            customInteractionTemplates: [],
+            customMitigations: [],
+            customVerifications: [],
           },
           perElementTables: [],
           perInteractionTables: tables,
@@ -550,9 +559,10 @@ export class InteractionThreatSync {
           activeMethod: "per-interaction" as const,
           zeroTrustMode: false,
           showThreatActor: false,
-          customThreatTemplates: [],
-          customMitigationTemplates: [],
-          customVerificationTemplates: [],
+          customElementTemplates: [],
+          customInteractionTemplates: [],
+          customMitigations: [],
+          customVerifications: [],
         },
         perElementTables: project.threats?.perElementTables ?? [],
         perInteractionTables: updatedTables,

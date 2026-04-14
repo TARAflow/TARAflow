@@ -57,6 +57,10 @@ import {
   ActorCell,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
+import {
+  resolveMitigationDrafts,
+  resolveVerificationDrafts,
+} from "../../services/threat-catalog-service";
 import type { InteractionDirection } from "features/threats/models/per-interaction-types";
 
 // ==================== TYPES ====================
@@ -115,13 +119,15 @@ const getElementIcon = (elementType: string) => {
   }
 };
 
+const RELEVANCE_ROW_BG: Record<string, string> = {
+  unrated: "transparent",
+  relevant: "#f0fdf4",
+  not_relevant: "#fef2f2",
+  uncertain: "#fffbeb",
+};
+
 function isCompleted(t: Threat): boolean {
-  return !!(
-    t.threatDescription?.trim() &&
-    t.attackDescription?.trim() &&
-    t.mitigation?.trim() &&
-    t.verification?.trim()
-  );
+  return t.workflowStatus === "reviewed" || t.workflowStatus === "closed";
 }
 
 function countCompletedByLevel(
@@ -279,12 +285,58 @@ const InteractionThreatRows: React.FC<{
           <TableBody>
             {sorted.map((threat) => {
               const ctx = threat.interactionContext;
+                  const mitigationText = threat.proposedMitigations
+                    ?.map((m) => m.id ?? m.notes ?? "")
+                    .filter(Boolean)
+                    .join(", ");
+
+                  const verificationText = threat.proposedVerifications
+                    ?.map((v) => v.id ?? v.notes ?? "")
+                    .filter(Boolean)
+                    .join(", ");
+
+                  const hasMitigations = threat.proposedMitigations?.length > 0;
+                  const hasVerifications =
+                    threat.proposedVerifications?.length > 0;
+
+                  const mitigationTooltip = resolveMitigationDrafts(
+                    threat.proposedMitigations ?? [],
+                  )
+                    .map((m) =>
+                      m.isCustom
+                        ? `[custom] ${m.notes ?? ""}`
+                        : `${m.id ?? ""}: ${m.text}`,
+                    )
+                    .filter(Boolean)
+                    .map((s) => `• ${s}`)
+                    .join("\n");
+
+                  const verificationTooltip = resolveVerificationDrafts(
+                    threat.proposedVerifications ?? [],
+                  )
+                    .map((v) =>
+                      v.isCustom
+                        ? `[custom] ${v.notes ?? ""}`
+                        : `${v.id ?? ""}: ${v.text}`,
+                    )
+                    .filter(Boolean)
+                    .map((s) => `• ${s}`)
+                    .join("\n");
 
               return (
                 <TableRow
                   key={threat.id}
                   hover
-                  sx={{ "&:last-child td": { borderBottom: 0 } }}
+                  onClick={() => onEdit(threat)}
+                  sx={{
+                    "&:last-child td": { borderBottom: 0 },
+                    cursor: "pointer",
+                    bgcolor: RELEVANCE_ROW_BG[threat.relevance ?? "unrated"],
+                    "&:hover": {
+                      bgcolor: `${RELEVANCE_ROW_BG[threat.relevance ?? "unrated"]} !important`,
+                      filter: "brightness(0.97)",
+                    },
+                  }}
                 >
                   <TableCell sx={cellSx}>
                     <ThreatIdCell id={threat.id} />
@@ -365,8 +417,19 @@ const InteractionThreatRows: React.FC<{
                     )}
                   </TableCell>
                   <TableCell sx={cellSx}>
-                    {threat.mitigation ? (
-                      <Tooltip title={threat.mitigation}>
+                    {hasMitigations ? (
+                      <Tooltip
+                        title={
+                          mitigationTooltip ? (
+                            <span style={{ whiteSpace: "pre-line" }}>
+                              {mitigationTooltip}
+                            </span>
+                          ) : (
+                            ""
+                          )
+                        }
+                        placement="top"
+                      >
                         <Typography
                           variant="body2"
                           sx={{
@@ -376,7 +439,7 @@ const InteractionThreatRows: React.FC<{
                             fontSize: "0.8rem",
                           }}
                         >
-                          {threat.mitigation}
+                          {mitigationText}
                         </Typography>
                       </Tooltip>
                     ) : (
@@ -388,8 +451,19 @@ const InteractionThreatRows: React.FC<{
                     )}
                   </TableCell>
                   <TableCell sx={cellSx}>
-                    {threat.verification ? (
-                      <Tooltip title={threat.verification}>
+                    {hasVerifications ? (
+                      <Tooltip
+                        title={
+                          verificationTooltip ? (
+                            <span style={{ whiteSpace: "pre-line" }}>
+                              {verificationTooltip}
+                            </span>
+                          ) : (
+                            ""
+                          )
+                        }
+                        placement="top"
+                      >
                         <Typography
                           variant="body2"
                           sx={{
@@ -399,7 +473,7 @@ const InteractionThreatRows: React.FC<{
                             fontSize: "0.8rem",
                           }}
                         >
-                          {threat.verification}
+                          {verificationText}
                         </Typography>
                       </Tooltip>
                     ) : (
@@ -629,10 +703,56 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
       );
     };
 
+    // ── Accordion header stats ──────────────────────────────────────────────
+    const total = table.threats.length;
+    const reviewed = table.threats.filter(
+      (t) => t.workflowStatus === "reviewed" || t.workflowStatus === "closed",
+    ).length;
+    const relevant = table.threats.filter(
+      (t) => t.relevance === "relevant",
+    ).length;
+    const dismissed = table.threats.filter(
+      (t) => t.relevance === "not_relevant",
+    ).length;
+    const uncertain = table.threats.filter(
+      (t) => t.relevance === "uncertain",
+    ).length;
+    const unrated = table.threats.filter(
+      (t) => t.relevance === "unrated",
+    ).length;
+    const allDone = total > 0 && unrated === 0 && uncertain === 0;
+    const borderColor = allDone
+      ? "#16a34a"
+      : unrated > 0
+        ? "#9ca3af"
+        : uncertain > 0
+          ? "#d97706"
+          : "#16a34a";
+    const counts = countImpacts(table.threats, assetDataRef);
+    const topImpacts = IMPACT_ORDER.filter(
+      (lvl) => (counts[lvl] ?? 0) > 0,
+    ).slice(0, 2);
+    const impactTooltip = IMPACT_ORDER.filter((lvl) => (counts[lvl] ?? 0) > 0)
+      .map((lvl) => `${lvl}: ${counts[lvl]}`)
+      .join("  ·  ");
+    const progressTooltip = [
+      relevant > 0 ? `${relevant} relevant ✓` : null,
+      dismissed > 0 ? `${dismissed} dismissed ✗` : null,
+      uncertain > 0 ? `${uncertain} uncertain ?` : null,
+      unrated > 0 ? `${unrated} unrated –` : null,
+    ]
+      .filter(Boolean)
+      .join("   ");
+
     return (
       <Accordion
         defaultExpanded
-        sx={{ "&:before": { display: "none" }, boxShadow: "1", mb: 1 }}
+        sx={{
+          "&:before": { display: "none" },
+          boxShadow: "1",
+          mb: 1,
+          borderLeft: `4px solid ${borderColor}`,
+        }}
       >
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
@@ -641,7 +761,12 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
             "&:hover": { backgroundColor: "primary.100" },
           }}
         >
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            sx={{ flexGrow: 1, mr: 1 }}
+          >
             <TrustBoundaryIcon color="primary" />
             <Chip
               label={table.displayIdentifier}
@@ -650,14 +775,63 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
               variant="outlined"
               sx={{ fontFamily: "monospace" }}
             />
-            <Typography variant="subtitle1" fontWeight="medium">
+            <Typography
+              variant="subtitle1"
+              fontWeight="medium"
+              sx={{ flexGrow: 1 }}
+            >
               {table.trustBoundaryName}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              ({table.threats.length}{" "}
-              {t("tabs.threats.threats", { defaultValue: "threats" })})
-            </Typography>
-            {renderImpactChips(table.threats)}
+
+            {/* Impact chips — top 2 levels with tooltip */}
+            {topImpacts.length > 0 && (
+              <Tooltip title={impactTooltip} placement="top">
+                <Stack direction="row" spacing={0.5}>
+                  {topImpacts.map((lvl) => {
+                    const col = IMPACT_CHIP_COLORS[lvl];
+                    return (
+                      <Chip
+                        key={lvl}
+                        label={`${lvl} ×${counts[lvl]}`}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: "0.65rem",
+                          bgcolor: col.bg,
+                          color: col.color,
+                          border: `1px solid ${col.border}`,
+                          cursor: "default",
+                        }}
+                      />
+                    );
+                  })}
+                </Stack>
+              </Tooltip>
+            )}
+
+            {/* Progress chip with tooltip */}
+            <Tooltip
+              title={
+                <span style={{ whiteSpace: "pre-line" }}>
+                  {progressTooltip}
+                </span>
+              }
+              placement="top"
+            >
+              <Chip
+                size="small"
+                label={`${reviewed}/${total}`}
+                sx={{
+                  height: 18,
+                  fontSize: "0.65rem",
+                  cursor: "default",
+                  bgcolor: allDone ? "#f0fdf4" : "#f9fafb",
+                  color: allDone ? "#16a34a" : "#6b7280",
+                  border: `1px solid ${allDone ? "#16a34a" : "#9ca3af"}`,
+                  fontWeight: allDone ? "bold" : "normal",
+                }}
+              />
+            </Tooltip>
           </Stack>
         </AccordionSummary>
 

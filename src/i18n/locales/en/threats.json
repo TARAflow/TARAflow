@@ -84,7 +84,10 @@
         "mitigation": "Mitigation",
         "verification": "Verification",
         "assets": "Assets",
-        "impact": "Impact"
+        "impact": "Impact",
+        "source": "Source",
+        "safety": "Safety",
+        "status": "Status"
       },
       "config": {
         "title": "Threat Analysis Configuration",
@@ -161,7 +164,47 @@
           "name": "Competitor",
           "description": "Business competitor seeking advantage"
         },
-        "other": { "name": "Other", "description": "Other threat actor type" }
+        "other": {
+          "name": "Other",
+          "description": "Other threat actor type"
+        }
+      },
+      "dialog": {
+        "cause": "Root Cause",
+        "threat": "Threat",
+        "attack": "Attack Scenario",
+        "edit": "Edit",
+        "stopEdit": "Stop editing",
+        "customized": "customized",
+        "proposedMitigations": "Proposed Mitigations",
+        "proposedVerifications": "Proposed Verifications",
+        "followsMitigations": "follow mitigations automatically",
+        "addMitigation": "Add custom mitigation",
+        "addVerification": "Add custom verification",
+        "mitigationPlaceholder": "Describe the mitigation...",
+        "verificationPlaceholder": "Describe the verification...",
+        "notePlaceholder": "Optional note for audit trail...",
+        "noteLabel": "Note",
+        "advancedSection": "Threat Actor",
+        "source": {
+          "auto": "auto",
+          "manual": "manual"
+        },
+        "threatList": "Threats in this group"
+      },
+      "eval": {
+        "relevance": "Relevance",
+        "unrated": "Unrated",
+        "relevant": "Relevant",
+        "not_relevant": "Not Relevant",
+        "uncertain": "Uncertain",
+        "confirmAndNext": "Confirm",
+        "dismiss": "Dismiss",
+        "markUncertain": "Uncertain",
+        "prevThreat": "Previous",
+        "positionIndicator": "{{current}} / {{total}}",
+        "allReviewed": "All threats reviewed",
+        "progress": "{{reviewed}} / {{total}} reviewed"
       }
     }
   }

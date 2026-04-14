@@ -522,7 +522,13 @@ export class PdfMakeConverter {
         { text: elementOrFlow },
         { text: strideName },
         { text: threat.threatDescription || "-" },
-        { text: threat.mitigation || "-" },
+        {
+          text:
+            (threat.proposedMitigations ?? [])
+              .map((m) => m.id ?? m.notes ?? "")
+              .filter(Boolean)
+              .join(", ") || "-",
+        },
       ]);
     }
 

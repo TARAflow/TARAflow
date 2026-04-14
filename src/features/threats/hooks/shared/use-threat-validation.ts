@@ -32,8 +32,8 @@ export function useThreatValidation(tables: ThreatTable[]): ValidationResult {
 
         const hasDescription = !!threat.threatDescription?.trim();
         const hasAttack = !!threat.attackDescription?.trim();
-        const hasMitigation = !!threat.mitigation?.trim();
-        const hasVerification = !!threat.verification?.trim();
+        const hasMitigations = threat.proposedMitigations.length > 0;
+        const hasVerifications = threat.proposedVerifications.length > 0;
 
         // Check required fields
         if (!hasDescription) {
@@ -44,15 +44,18 @@ export function useThreatValidation(tables: ThreatTable[]): ValidationResult {
         if (!hasAttack) {
           warnings.push(`Threat ${threat.id}: Missing attack description`);
         }
-        if (!hasMitigation) {
-          warnings.push(`Threat ${threat.id}: Missing mitigation`);
+        if (!hasMitigations) {
+          warnings.push(`Threat ${threat.id}: No mitigations proposed`);
         }
-        if (!hasVerification) {
-          warnings.push(`Threat ${threat.id}: Missing verification`);
+        if (!hasVerifications) {
+          warnings.push(`Threat ${threat.id}: No verifications proposed`);
         }
 
-        // Count as completed if has at minimum: description + mitigation
-        if (hasDescription && hasMitigation) {
+        // Count as completed if reviewed or closed
+        if (
+          threat.workflowStatus === "reviewed" ||
+          threat.workflowStatus === "closed"
+        ) {
           completed++;
         }
       }

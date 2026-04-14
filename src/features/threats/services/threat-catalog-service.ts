@@ -2,7 +2,7 @@
 // Loads the four language-neutral catalog files and provides:
 //   - Localized text via i18next (no isGerman, no locale === 'de')
 //   - Context filtering by ProjectSettings (wired; activated in Step 4)
-//   - Mitigation / verification ref resolution
+//   - Mitigation / verification ref resolution (MitigationDraft[] / VerificationDraft[])
 
 import i18n from "i18next";
 import type { StrideCategory } from "shared";
@@ -11,11 +11,10 @@ import type {
   InteractionTemplate,
   MitigationEntry,
   VerificationEntry,
+  MitigationDraft,
+  VerificationDraft,
   TemplateContext,
   ProjectSettings,
-  ThreatTemplate,
-  MitigationTemplate,
-  VerificationTemplate,
 } from "../models/threat-types";
 
 import elementTemplatesData from "./element-templates.json";
@@ -94,7 +93,7 @@ export function findElementTemplate(
   return getApplicableElementTemplates(
     strideCategory,
     elementType,
-    settings
+    settings,
   )[0];
 }
 
@@ -131,10 +130,6 @@ export function findInteractionTemplate(
 
 // ==================== LOCALIZATION ====================
 
-/**
- * Returns the localized threat description for an element template.
- * Uses i18next — no isGerman flag needed.
- */
 export function getLocalizedElementThreat(templateId: string): string {
   return i18n.t(`${templateId}.threat`, { ns: "element-threats-attacks" });
 }
@@ -143,9 +138,11 @@ export function getLocalizedElementAttack(templateId: string): string {
   return i18n.t(`${templateId}.attack`, { ns: "element-threats-attacks" });
 }
 
-/** Returns the root cause description for an element template, empty string if not defined. */
 export function getLocalizedElementCause(templateId: string): string {
-  return i18n.t(`${templateId}.cause`, { ns: "element-threats-attacks", defaultValue: "" });
+  return i18n.t(`${templateId}.cause`, {
+    ns: "element-threats-attacks",
+    defaultValue: "",
+  });
 }
 
 export function getLocalizedInteractionThreat(
@@ -184,7 +181,6 @@ export function getLocalizedInteractionAttack(
   });
 }
 
-/** Returns the root cause for an interaction template with placeholder resolution. */
 export function getLocalizedInteractionCause(
   templateId: string,
   placeholders: {
@@ -212,101 +208,67 @@ export function getLocalizedVerification(verificationId: string): string {
   return i18n.t(`${verificationId}.verification`, { ns: "verifications" });
 }
 
+// ==================== RESOLVED TYPES ====================
+
+/**
+ * Resolved form of a MitigationDraft for display in the Threat Eval dialog.
+ * Catalog entries: id + localized text + optional analyst notes.
+ * Custom entries: no id, notes is the primary display text.
+ */
+export interface ResolvedMitigationDraft {
+  /** Catalog ID — undefined for custom entries */
+  id?: string;
+  /** Localized catalog text — empty string for custom entries */
+  text: string;
+  /** Analyst annotation or custom entry description */
+  notes?: string;
+  /** True when no catalog id is present */
+  isCustom: boolean;
+}
+
+/** Resolved form of a VerificationDraft — same shape as ResolvedMitigationDraft */
+export interface ResolvedVerificationDraft {
+  id?: string;
+  text: string;
+  notes?: string;
+  isCustom: boolean;
+}
+
 // ==================== REF RESOLUTION ====================
 
-export interface ResolvedMitigation {
-  id: string;
-  text: string;
-}
-
-export interface ResolvedVerification {
-  id: string;
-  text: string;
-}
-
-export function resolveMitigations(ids: string[]): ResolvedMitigation[] {
-  return ids.map((id) => ({ id, text: getLocalizedMitigation(id) }));
-}
-
-export function resolveVerifications(ids: string[]): ResolvedVerification[] {
-  return ids.map((id) => ({ id, text: getLocalizedVerification(id) }));
-}
-
-// ==================== LEGACY CATALOG ADAPTER ====================
-// Used by existing service interfaces (ThreatService.getMitigationTemplates etc.)
-// until those interfaces are updated in a later step.
-
-export function getLegacyMitigationTemplates(
-  strideCategory?: StrideCategory,
-  elementType?: string,
-  customTemplates: MitigationTemplate[] = []
-): MitigationTemplate[] {
-  let entries = ALL_MITIGATIONS.filter((m) => {
-    if (strideCategory && m.strideCategory !== strideCategory) return false;
-    if (elementType === "PhysicalInterface" || elementType === "Interface") {
-      return m.id.includes("-IF-");
-    }
-    if (elementType) return !m.id.includes("-IF-");
-    return true;
-  });
-
-  const built: MitigationTemplate[] = entries.map((m) => ({
-    id: m.id,
-    strideCategory: m.strideCategory,
-    mitigation: getLocalizedMitigation(m.id),
-    mitigationDE: getLocalizedMitigation(m.id), // same — i18n handles language
-    isCustom: m.isCustom,
+/**
+ * Resolves a MitigationDraft[] into display-ready objects.
+ *
+ * Catalog entry (draft.id defined):
+ *   text  = localized string from mitigations namespace
+ *   notes = analyst annotation (may be undefined)
+ *
+ * Custom entry (draft.id undefined):
+ *   text  = "" (no catalog entry)
+ *   notes = analyst-supplied description (the primary display text)
+ */
+export function resolveMitigationDrafts(
+  drafts: MitigationDraft[]
+): ResolvedMitigationDraft[] {
+  return drafts.map((draft) => ({
+    id: draft.id,
+    text: draft.id ? getLocalizedMitigation(draft.id) : "",
+    notes: draft.notes,
+    isCustom: !draft.id,
   }));
-
-  return [...built, ...customTemplates];
 }
 
-export function getLegacyVerificationTemplates(
-  strideCategory?: StrideCategory,
-  elementType?: string,
-  customTemplates: VerificationTemplate[] = []
-): VerificationTemplate[] {
-  let entries = ALL_VERIFICATIONS.filter((v) => {
-    if (strideCategory && v.strideCategory !== strideCategory) return false;
-    if (elementType === "PhysicalInterface" || elementType === "Interface") {
-      return v.id.includes("-IF-");
-    }
-    if (elementType) return !v.id.includes("-IF-");
-    return true;
-  });
-
-  const built: VerificationTemplate[] = entries.map((v) => ({
-    id: v.id,
-    strideCategory: v.strideCategory,
-    verification: getLocalizedVerification(v.id),
-    verificationDE: getLocalizedVerification(v.id),
-    isCustom: v.isCustom,
+/**
+ * Resolves a VerificationDraft[] into display-ready objects.
+ * Same logic as resolveMitigationDrafts.
+ */
+export function resolveVerificationDrafts(
+  drafts: VerificationDraft[]
+): ResolvedVerificationDraft[] {
+  return drafts.map((draft) => ({
+    id: draft.id,
+    text: draft.id ? getLocalizedVerification(draft.id) : "",
+    notes: draft.notes,
+    isCustom: !draft.id,
   }));
-
-  return [...built, ...customTemplates];
-}
-
-export function getLegacyThreatTemplates(
-  strideCategory?: StrideCategory,
-  elementType?: string,
-  customTemplates: ThreatTemplate[] = []
-): ThreatTemplate[] {
-  let templates = ALL_ELEMENT_TEMPLATES.filter((t) => {
-    if (strideCategory && t.strideCategory !== strideCategory) return false;
-    if (elementType && !t.elementTypes.includes(elementType)) return false;
-    return true;
-  });
-
-  const built: ThreatTemplate[] = templates.map((t) => ({
-    id: t.id,
-    strideCategory: t.strideCategory,
-    elementTypes: t.elementTypes,
-    threat: getLocalizedElementThreat(t.id),
-    threatDE: getLocalizedElementThreat(t.id),
-    attack: getLocalizedElementAttack(t.id),
-    attackDE: getLocalizedElementAttack(t.id),
-    isCustom: t.isCustom,
-  }));
-
-  return [...built, ...customTemplates];
 }

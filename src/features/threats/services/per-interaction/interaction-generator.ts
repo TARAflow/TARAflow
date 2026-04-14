@@ -103,6 +103,7 @@ export class InteractionThreatGenerator {
             this.createDataFlowThreat(
               df,
               dfDisplayId,
+              connection?.label || connection?.name || dfDisplayId,
               source,
               target,
               stride,
@@ -127,6 +128,7 @@ export class InteractionThreatGenerator {
             this.createDataFlowThreat(
               df,
               dfDisplayId,
+              connection?.label || connection?.name || dfDisplayId,
               source,
               target,
               stride,
@@ -210,6 +212,7 @@ export class InteractionThreatGenerator {
   private createDataFlowThreat(
     dataFlow: DataFlowAnalysisReference,
     dfDisplayId: string,
+    connectionLabel: string,
     source: DFDElementReference,
     target: DFDElementReference,
     strideCategory: StrideCategory,
@@ -225,7 +228,13 @@ export class InteractionThreatGenerator {
 
     const dataFlowNumber = dfDisplayId.replace(/^DF-/, "");
     const dataFlowIdPart = `DF${dataFlowNumber}`;
-    const threatId = `${trustBoundaryDisplayId}-${dataFlowIdPart}-${strideCategory}-1`;
+    const threatId = generateThreatIdPerInteraction(
+      trustBoundaryDisplayId,
+      dataFlowIdPart,
+      strideCategory,
+      direction,
+      1,
+    );
 
     const interactionContext = createInteractionContext(
       direction,
@@ -244,7 +253,7 @@ export class InteractionThreatGenerator {
     threat.dataFlow = {
       connectionId: dataFlow.connectionId,
       dataFlowId: dfDisplayId,
-      dataFlowName: `DataFlow ${dfDisplayId}`,
+      dataFlowName: connectionLabel || dfDisplayId,
       sourceId: source.id,
       sourceName: source.name,
       sourceType: source.type,
@@ -289,8 +298,10 @@ export class InteractionThreatGenerator {
         template.id,
         placeholders,
       );
-      threat.proposedMitigations = [...template.mitigations];
-      threat.proposedVerifications = [...template.verifications];
+      threat.proposedMitigations = template.mitigations.map((id) => ({ id }));
+      threat.proposedVerifications = template.verifications.map((id) => ({
+        id,
+      }));
     }
 
     return threat;
@@ -363,8 +374,10 @@ export class InteractionThreatGenerator {
         template.id,
         placeholders,
       );
-      threat.proposedMitigations = [...template.mitigations];
-      threat.proposedVerifications = [...template.verifications];
+      threat.proposedMitigations = template.mitigations.map((id) => ({ id }));
+      threat.proposedVerifications = template.verifications.map((id) => ({
+        id,
+      }));
     }
 
     return threat;

@@ -1,5 +1,6 @@
 {
   "common": {
+    "ok": "Ok",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "delete": "Löschen",

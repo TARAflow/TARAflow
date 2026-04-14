@@ -8,9 +8,62 @@ import type { PhaseStatusMap, StrideCategory } from "shared";
 
 export type StrideMethod = "per-element" | "per-interaction";
 
-// ==================== EVAL STATUS ====================
+// ==================== THREAT RELEVANCE ====================
 
-export type ThreatEvalStatus = "pending" | "confirmed" | "dismissed" | "review";
+/**
+ * Analyst's domain judgement — is this threat real for this system?
+ * Set explicitly in the Threat Eval dialog or via inline quick-actions.
+ */
+export type ThreatRelevance =
+  | "unrated"       // not yet reviewed (default)
+  | "relevant"      // confirmed as applicable to this system
+  | "not_relevant"  // explicitly ruled out for this system
+  | "uncertain";    // needs more information or a second opinion
+
+// ==================== THREAT WORKFLOW STATUS ====================
+
+/**
+ * Workflow state — where is the threat in the processing pipeline?
+ * Transitions: open → reviewed (Threat Eval) → closed (Risk Tab)
+ */
+export type ThreatWorkflowStatus =
+  | "open"      // not yet fully processed
+  | "reviewed"  // analyst has evaluated, relevance decision recorded
+  | "closed";   // treatment decided in Risk Tab
+
+// ==================== RELEVANCE CHIP COLORS ====================
+
+export const RELEVANCE_COLORS: Record<ThreatRelevance, string> = {
+  unrated:      "#9ca3af",
+  relevant:     "#16a34a",
+  not_relevant: "#dc2626",
+  uncertain:    "#d97706",
+};
+
+// ==================== MITIGATION DRAFT ====================
+
+/**
+ * A mitigation entry in the Threat Eval phase.
+ * Catalog entries have an id; custom analyst additions have only notes.
+ */
+export interface MitigationDraft {
+  /** Catalog ID (e.g. "M-S-001"). Undefined = custom entry added by analyst. */
+  id?: string;
+  /** Annotation for catalog entries, or full description for custom entries. */
+  notes?: string;
+}
+
+// ==================== VERIFICATION DRAFT ====================
+
+/**
+ * A verification entry in the Threat Eval phase.
+ * Same structure as MitigationDraft.
+ */
+export interface VerificationDraft {
+  /** Catalog ID (e.g. "V-S-001"). Undefined = custom entry added by analyst. */
+  id?: string;
+  notes?: string;
+}
 
 // ==================== STRIDE DEFINITIONS ====================
 
@@ -152,9 +205,9 @@ export const THREAT_ACTORS: ThreatActorDefinition[] = [
 // ==================== THREAT (CORE) ====================
 
 /**
- * Core Threat data structure
- * Used by both per-element and per-interaction methods
- * Method-specific fields: linkedElement (per-element), dataFlow + interactionContext (per-interaction)
+ * Core Threat data structure.
+ * Used by both per-element and per-interaction methods.
+ * Method-specific fields: linkedElement (per-element), dataFlow + interactionContext (per-interaction).
  */
 export interface Threat {
   /** Unique Threat ID */
@@ -174,13 +227,13 @@ export interface Threat {
   /** Sequential number per STRIDE category */
   sequenceNumber: number;
 
-  /** Linked DFD element - used by per-element method */
+  /** Linked DFD element — used by per-element method */
   linkedElement: any | null;
 
-  /** Data flow reference - used by per-interaction method */
+  /** Data flow reference — used by per-interaction method */
   dataFlow: any | null;
 
-  /** Interaction context - used by per-interaction method */
+  /** Interaction context — used by per-interaction method */
   interactionContext?: any;
 
   /** Threat description (stored; empty = use i18n template at render time) */
@@ -198,42 +251,42 @@ export interface Threat {
   /** Threat actor */
   threatActor: ThreatActorType;
 
-  /** Mitigation description — free text written by analyst (legacy / manual threats) */
-  mitigation: string;
-
-  /** Verification/Testing description — free text (legacy / manual threats) */
-  verification: string;
-
   /** Linked asset IDs */
   linkedAssetIds: string[];
 
-  /** Source: auto-generated or manual */
+  /** Source: auto-generated or manually created */
   source: "auto" | "manual";
 
   /**
-   * Catalog mitigation IDs proposed by the generator (1-n).
-   * Populated at generate time from the matched template's mitigations[].
-   * Read-only during Threat Eval — analyst selects from these in the Risk Tab.
+   * Proposed mitigations from the catalog generator, optionally annotated by the analyst.
+   * Catalog entries carry an id; custom analyst additions carry only notes.
    */
-  proposedMitigations: string[];
+  proposedMitigations: MitigationDraft[];
 
   /**
-   * Catalog verification IDs proposed by the generator (1-n).
-   * Populated at generate time from the matched template's verifications[].
-   * Read-only during Threat Eval — analyst selects from these in the Risk Tab.
+   * Proposed verifications from the catalog generator, optionally annotated by the analyst.
+   * Same structure as proposedMitigations.
    */
-  proposedVerifications: string[];
+  proposedVerifications: VerificationDraft[];
+
+  // ── Eval fields ──────────────────────────────────────────────────────────
 
   /**
-   * Analyst evaluation status (Threat Eval phase).
-   * pending   = not yet reviewed
-   * confirmed = relevant, will be carried into Risk Assessment
-   * dismissed = not applicable for this system
-   * review    = flagged for later review
+   * Analyst's domain judgement — is this threat applicable to this system?
+   * Setting any value except "unrated" automatically sets workflowStatus = "reviewed".
    */
-  evalStatus: ThreatEvalStatus;
+  relevance: ThreatRelevance;
 
-  /** Optional free-text note from the analyst explaining their eval decision */
+  /**
+   * Workflow state — where is this threat in the processing pipeline?
+   * Managed by the Threat Eval dialog and the Risk Tab.
+   */
+  workflowStatus: ThreatWorkflowStatus;
+
+  /**
+   * Optional free-text note explaining the relevance decision.
+   * Useful for audit trail (e.g., why a threat was dismissed).
+   */
   evalNote?: string;
 
   /** True when the analyst has manually edited threatDescription or attackDescription */
@@ -264,7 +317,6 @@ export interface ThreatTable {
 
 /**
  * Language-neutral element threat template (references i18n keys)
- * Replaces old ThreatTemplate which carried threat/threatDE/attack/attackDE fields
  */
 export interface ElementTemplate {
   id: string;
@@ -320,39 +372,6 @@ export interface TemplateContext {
   standards?: Array<"iec_62443" | "iso_21434" | "eu_cra" | "en_50742">;
 }
 
-/**
- * @deprecated Use ElementTemplate instead.
- * Kept for backward compatibility with customThreatTemplates stored in projects.
- */
-export interface ThreatTemplate {
-  id: string;
-  strideCategory: StrideCategory;
-  elementTypes: string[];
-  threat: string;
-  threatDE: string;
-  attack: string;
-  attackDE: string;
-  isCustom: boolean;
-}
-
-/** @deprecated Use MitigationEntry instead */
-export interface MitigationTemplate {
-  id: string;
-  strideCategory: StrideCategory;
-  mitigation: string;
-  mitigationDE: string;
-  isCustom: boolean;
-}
-
-/** @deprecated Use VerificationEntry instead */
-export interface VerificationTemplate {
-  id: string;
-  strideCategory: StrideCategory;
-  verification: string;
-  verificationDE: string;
-  isCustom: boolean;
-}
-
 // ==================== PROJECT SETTINGS ====================
 
 export interface ProjectSettings {
@@ -367,18 +386,20 @@ export interface ThreatConfiguration {
   activeMethod: StrideMethod;
   zeroTrustMode: boolean;
   showThreatActor: boolean;
-  customThreatTemplates: ThreatTemplate[];
-  customMitigationTemplates: MitigationTemplate[];
-  customVerificationTemplates: VerificationTemplate[];
+  customElementTemplates: ElementTemplate[];
+  customInteractionTemplates: InteractionTemplate[];
+  customMitigations: MitigationEntry[];
+  customVerifications: VerificationEntry[];
 }
 
 export const DEFAULT_THREAT_CONFIGURATION: ThreatConfiguration = {
   activeMethod: "per-element",
   zeroTrustMode: false,
   showThreatActor: false,
-  customThreatTemplates: [],
-  customMitigationTemplates: [],
-  customVerificationTemplates: [],
+  customElementTemplates: [],
+  customInteractionTemplates: [],
+  customMitigations: [],
+  customVerifications: [],
 };
 
 // ==================== THREAT DATA ====================
@@ -434,7 +455,8 @@ export interface ThreatProjectData {
   lastModified: string;
 }
 
-// Simplified DFD references
+// ==================== DFD REFERENCES ====================
+
 export interface DFDElementReference {
   id: string;
   type: string;
@@ -496,7 +518,7 @@ export interface TrustBoundaryAnalysisReference {
   depth: number;
 }
 
-// ==================== SYNC STATUS (SHARED) ====================
+// ==================== SYNC STATUS ====================
 
 export interface ThreatSyncStatus {
   inSync: boolean;
@@ -554,7 +576,6 @@ export function getActiveThreatTables(
   threatData: ThreatData | null | undefined
 ): ThreatTable[] {
   if (!threatData?.configuration) return [];
-
   return threatData.configuration.activeMethod === "per-element"
     ? threatData.perElementTables ?? []
     : threatData.perInteractionTables ?? [];
@@ -582,13 +603,13 @@ export function createEmptyThreat(
     attackDescription: "",
     causeDescription: "",
     threatActor: "external",
-    mitigation: "",
-    verification: "",
     linkedAssetIds: [],
     source: "manual",
     proposedMitigations: [],
     proposedVerifications: [],
-    evalStatus: "pending",
+    relevance: "unrated",
+    workflowStatus: "open",
+    evalNote: undefined,
     isTextCustomized: false,
     created: new Date().toISOString(),
     lastModified: new Date().toISOString(),

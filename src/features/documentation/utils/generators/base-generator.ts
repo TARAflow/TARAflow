@@ -953,9 +953,25 @@ export abstract class BaseDocumentGenerator {
             truncateText(threat.attackDescription, 80),
           ),
           mitigation:
-            this.escapeTableText(truncateText(threat.mitigation, 80)) || "-",
+            this.escapeTableText(
+              truncateText(
+                (threat.proposedMitigations ?? [])
+                  .map((m) => m.id ?? m.notes ?? "")
+                  .filter(Boolean)
+                  .join(", "),
+                80,
+              ),
+            ) || "-",
           verification:
-            this.escapeTableText(truncateText(threat.verification, 60)) || "-",
+            this.escapeTableText(
+              truncateText(
+                (threat.proposedVerifications ?? [])
+                  .map((v) => v.id ?? v.notes ?? "")
+                  .filter(Boolean)
+                  .join(", "),
+                60,
+              ),
+            ) || "-",
         };
         return replacePlaceholders(this.getThreatRowTemplate(), values);
       })

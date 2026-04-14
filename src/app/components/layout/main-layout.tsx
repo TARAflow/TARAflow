@@ -22,7 +22,7 @@ import {
   type ThreatUpdateResult,
   type AssetDataReference,
 } from "features/threats";
-import { resolveMitigations } from "features/threats/services/threat-catalog-service";
+import { resolveMitigationDrafts } from "features/threats/services/threat-catalog-service";
 import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
 import {
   AttackTreeTab,
@@ -854,12 +854,12 @@ export const MainLayout: React.FC = () => {
         const attackDescription = threat.attackDescription;
 
         // Get mitigation - use stored value, only fallback to suggestions if empty
-        let mitigation = threat.mitigation || "";
-        if (!mitigation && threat.proposedMitigations?.length) {
-          mitigation = resolveMitigations(threat.proposedMitigations)
-            .map((m) => m.text)
-            .join("\n");
-        }
+        const mitigation = resolveMitigationDrafts(
+          threat.proposedMitigations ?? [],
+        )
+          .map((m) => (m.isCustom ? (m.notes ?? "") : m.text))
+          .filter(Boolean)
+          .join("\n");
 
         references.push({
           id: threat.id,

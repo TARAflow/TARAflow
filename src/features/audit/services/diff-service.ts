@@ -492,22 +492,26 @@ export class DiffService {
       });
     }
 
-    if (current.mitigation !== previous.mitigation) {
+    const prevMit = JSON.stringify(previous.proposedMitigations ?? []);
+    const currMit = JSON.stringify(current.proposedMitigations ?? []);
+    if (currMit !== prevMit) {
       details.push({
-        field: "mitigation",
-        fieldLabel: "Mitigation",
-        oldValue: previous.mitigation,
-        newValue: current.mitigation,
+        field: "proposedMitigations",
+        fieldLabel: "Mitigations",
+        oldValue: prevMit,
+        newValue: currMit,
         valueType: "string",
       });
     }
 
-    if (current.verification !== previous.verification) {
+    const prevVer = JSON.stringify(previous.proposedVerifications ?? []);
+    const currVer = JSON.stringify(current.proposedVerifications ?? []);
+    if (currVer !== prevVer) {
       details.push({
-        field: "verification",
-        fieldLabel: "Verification",
-        oldValue: previous.verification,
-        newValue: current.verification,
+        field: "proposedVerifications",
+        fieldLabel: "Verifications",
+        oldValue: prevVer,
+        newValue: currVer,
         valueType: "string",
       });
     }

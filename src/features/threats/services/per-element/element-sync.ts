@@ -93,7 +93,8 @@ export class ElementThreatSync {
             }
 
             if (
-              (threat.linkedElement.elementName || "") !== (conn.label || "")
+              (threat.linkedElement.elementName || "") !==
+              (conn.label || conn.name || "")
             ) {
               changes.push("name");
             }
@@ -114,7 +115,7 @@ export class ElementThreatSync {
                 oldRef: threat.linkedElement,
                 newRef: {
                   id: conn.id,
-                  name: conn.label || "",
+                  name: conn.label || conn.name || "",
                   type: "DataFlow",
                   displayId: conn.displayId,
                   position: { x: 0, y: 0 },
@@ -216,6 +217,12 @@ export class ElementThreatSync {
     // ── Missing DataFlows ─────────────────────────────────────────────────
     const missingConnections: DFDConnectionReference[] = [];
     for (const connection of graph.connectionsById.values()) {
+      // Skip connections explicitly excluded from threat generation
+      const isExcluded =
+        connection.excludeFromThreatGen ||
+        (connection as any)?.properties?.excludeFromThreatGen;
+      if (isExcluded) continue;
+
       if (!threatenedConnections.has(connection.id)) {
         missingConnections.push(connection);
       }
@@ -279,9 +286,10 @@ export class ElementThreatSync {
             activeMethod: "per-element" as const,
             zeroTrustMode: false,
             showThreatActor: false,
-            customThreatTemplates: [],
-            customMitigationTemplates: [],
-            customVerificationTemplates: [],
+            customElementTemplates: [],
+            customInteractionTemplates: [],
+            customMitigations: [],
+            customVerifications: [],
           },
           perElementTables: tables,
           perInteractionTables: [],
@@ -332,7 +340,8 @@ export class ElementThreatSync {
               id: newThreatId,
               linkedElement: {
                 ...threat.linkedElement,
-                elementName: conn.label || threat.linkedElement.elementName,
+                elementName:
+                  conn.label || conn.name || threat.linkedElement.elementName,
                 displayId: conn.displayId,
               },
               lastModified: new Date().toISOString(),
@@ -595,9 +604,10 @@ export class ElementThreatSync {
           activeMethod: "per-element" as const,
           zeroTrustMode: false,
           showThreatActor: false,
-          customThreatTemplates: [],
-          customMitigationTemplates: [],
-          customVerificationTemplates: [],
+          customElementTemplates: [],
+          customInteractionTemplates: [],
+          customMitigations: [],
+          customVerifications: [],
         },
         perElementTables: updatedTables,
         perInteractionTables: project.threats?.perInteractionTables ?? [],

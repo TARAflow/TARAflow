@@ -83,7 +83,10 @@
         "mitigation": "Gegenmassnahme",
         "verification": "Verifizierung",
         "assets": "Assets",
-        "impact": "Auswirkung"
+        "impact": "Auswirkung",
+        "source": "Quelle",
+        "safety": "Sicherheit",
+        "status": "Status"
       },
       "config": {
         "title": "Bedrohungsanalyse-Konfiguration",
@@ -164,6 +167,43 @@
           "name": "Andere",
           "description": "Anderer Bedrohungsakteur-Typ"
         }
+      },
+      "dialog": {
+        "cause": "Ursache",
+        "threat": "Bedrohung",
+        "attack": "Angriffsszenario",
+        "edit": "Bearbeiten",
+        "stopEdit": "Bearbeitung beenden",
+        "customized": "angepasst",
+        "proposedMitigations": "Vorgeschlagene Gegenmassnahmen",
+        "proposedVerifications": "Vorgeschlagene Verifizierungen",
+        "followsMitigations": "folgen den Massnahmen automatisch",
+        "addMitigation": "Eigene Massnahme hinzufügen",
+        "addVerification": "Eigene Verifizierung hinzufügen",
+        "mitigationPlaceholder": "Massnahme beschreiben...",
+        "verificationPlaceholder": "Verifizierung beschreiben...",
+        "notePlaceholder": "Optionale Notiz für das Audit-Trail...",
+        "noteLabel": "Notiz",
+        "advancedSection": "Bedrohungsakteur",
+        "source": {
+          "auto": "auto",
+          "manual": "manuell"
+        },
+        "threatList": "Bedrohungen in dieser Gruppe"
+      },
+      "eval": {
+        "relevance": "Relevanz",
+        "unrated": "Nicht bewertet",
+        "relevant": "Relevant",
+        "not_relevant": "Nicht relevant",
+        "uncertain": "Unsicher",
+        "confirmAndNext": "Bestätigen",
+        "dismiss": "Ablehnen",
+        "markUncertain": "Unsicher",
+        "prevThreat": "Zurück",
+        "positionIndicator": "{{current}} / {{total}}",
+        "allReviewed": "Alle Bedrohungen bewertet",
+        "progress": "{{reviewed}} / {{total}} bewertet"
       }
     }
   }

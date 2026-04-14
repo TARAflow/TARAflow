@@ -6,9 +6,6 @@ import type {
   ThreatProjectData,
   ThreatSyncStatus,
   ThreatSyncResult,
-  ThreatTemplate,
-  MitigationTemplate,
-  VerificationTemplate,
 } from "../../models/threat-types";
 import type { DFDAnalysisContext, StrideCategory } from "shared";
 import type {
@@ -17,13 +14,10 @@ import type {
   ValidationResult,
   StatisticsResult,
 } from "../threat-service";
-import { elementThreatGenerator } from "./element-generator";
+import { ElementThreatGenerator } from "./element-generator";
 import { elementThreatSync } from "./element-sync";
-import {
-  getLegacyThreatTemplates,
-  getLegacyMitigationTemplates,
-  getLegacyVerificationTemplates,
-} from "../threat-catalog-service";
+
+const generator = new ElementThreatGenerator();
 
 export class ElementThreatService implements ThreatService {
   generateThreats(
@@ -47,8 +41,7 @@ export class ElementThreatService implements ThreatService {
         };
       }
 
-      // Catalog no longer passed as parameter — generator uses catalog service directly
-      const tables = elementThreatGenerator.generateThreatsForProject(project);
+      const tables = generator.generateThreatsForProject(project);
 
       if (tables.length === 0) {
         return {
@@ -77,10 +70,10 @@ export class ElementThreatService implements ThreatService {
           errors.push(`Threat ${threat.id}: Missing threat description`);
         if (!threat.attackDescription?.trim())
           warnings.push(`Threat ${threat.id}: Missing attack description`);
-        if (!threat.mitigation?.trim())
-          warnings.push(`Threat ${threat.id}: Missing mitigation`);
-        if (!threat.verification?.trim())
-          warnings.push(`Threat ${threat.id}: Missing verification`);
+        if (threat.proposedMitigations.length === 0)
+          warnings.push(`Threat ${threat.id}: No mitigations proposed`);
+        if (threat.proposedVerifications.length === 0)
+          warnings.push(`Threat ${threat.id}: No verifications proposed`);
       }
     }
     return { isComplete: errors.length === 0, errors, warnings };
@@ -96,23 +89,21 @@ export class ElementThreatService implements ThreatService {
       E: 0,
     };
     let totalThreats = 0;
-    let completedThreats = 0;
+    let reviewedThreats = 0;
     for (const table of tables) {
       for (const threat of table.threats) {
         totalThreats++;
         strideDistribution[threat.strideCategory]++;
         if (
-          threat.threatDescription?.trim() &&
-          threat.attackDescription?.trim() &&
-          threat.mitigation?.trim()
-        ) {
-          completedThreats++;
-        }
+          threat.workflowStatus === "reviewed" ||
+          threat.workflowStatus === "closed"
+        )
+          reviewedThreats++;
       }
     }
     return {
       totalThreats,
-      completedThreats,
+      reviewedThreats,
       trustBoundaries: tables.length,
       strideDistribution,
     };
@@ -132,55 +123,12 @@ export class ElementThreatService implements ThreatService {
     syncStatus: ThreatSyncStatus,
     options: { updateReferences: boolean; removeOrphaned: boolean },
   ): ThreatSyncResult {
-    // Sync service still receives a catalog-like object for compatibility;
-    // provide a minimal shim using the catalog service
-    const catalogShim = {
-      threatTemplates: getLegacyThreatTemplates(),
-      mitigationTemplates: [],
-      verificationTemplates: [],
-    };
     return elementThreatSync.synchronizeThreats(
       project,
       dfdContext,
       tables,
       syncStatus,
       options,
-    );
-  }
-
-  getThreatTemplates(
-    strideCategory?: StrideCategory,
-    elementType?: string,
-    customTemplates: ThreatTemplate[] = [],
-  ): ThreatTemplate[] {
-    return getLegacyThreatTemplates(
-      strideCategory,
-      elementType,
-      customTemplates,
-    );
-  }
-
-  getMitigationTemplates(
-    strideCategory?: StrideCategory,
-    elementType?: string,
-    customTemplates: MitigationTemplate[] = [],
-  ): MitigationTemplate[] {
-    return getLegacyMitigationTemplates(
-      strideCategory,
-      elementType,
-      customTemplates,
-    );
-  }
-
-  getVerificationTemplates(
-    strideCategory?: StrideCategory,
-    elementType?: string,
-    customTemplates: VerificationTemplate[] = [],
-  ): VerificationTemplate[] {
-    return getLegacyVerificationTemplates(
-      strideCategory,
-      elementType,
-      customTemplates,
     );
   }
 }

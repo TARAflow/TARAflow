@@ -192,12 +192,11 @@ export class ElementThreatGenerator {
         displayId: connection.displayId,
       };
 
-      const sourceTBs = graph.elementTrustBoundaries.get(connection.from) ?? [];
-      const targetTBs = graph.elementTrustBoundaries.get(connection.to) ?? [];
-      const sharedTBs = sourceTBs.filter((tb) => targetTBs.includes(tb));
+      const sourceTB = graph.effectiveElementTrustBoundary.get(connection.from);
+      const targetTB = graph.effectiveElementTrustBoundary.get(connection.to);
 
-      if (sharedTBs.length === 1) {
-        const tbId = sharedTBs[0];
+      if (sourceTB && sourceTB === targetTB) {
+        const tbId = sourceTB;
         const tb = graph.elementsById.get(tbId);
         const threats = this.generateThreatsForElement(
           dataFlowElement,
@@ -349,8 +348,10 @@ export class ElementThreatGenerator {
       threat.threatDescription = getLocalizedElementThreat(template.id);
       threat.attackDescription = getLocalizedElementAttack(template.id);
       threat.causeDescription = getLocalizedElementCause(template.id);
-      threat.proposedMitigations = [...template.mitigations];
-      threat.proposedVerifications = [...template.verifications];
+      threat.proposedMitigations = template.mitigations.map((id) => ({ id }));
+      threat.proposedVerifications = template.verifications.map((id) => ({
+        id,
+      }));
     }
 
     return threat;

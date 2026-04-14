@@ -55,6 +55,10 @@ import {
   ActorCell,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
+import {
+  resolveMitigationDrafts,
+  resolveVerificationDrafts,
+} from "../../services/threat-catalog-service";
 
 // ==================== TYPES ====================
 
@@ -117,6 +121,13 @@ const IMPACT_CHIP_COLORS: Record<ImpactLevel, { bg: string; border: string; colo
   "LOW":      { bg: "#16a34a18", border: "#16a34a", color: "#16a34a" },
 };
 
+const RELEVANCE_ROW_BG: Record<string, string> = {
+  unrated: "transparent",
+  relevant: "#f0fdf4",
+  not_relevant: "#fef2f2",
+  uncertain: "#fffbeb",
+};
+
 function countImpacts(
   threats: Threat[],
   assetDataRef?: AssetDataReference,
@@ -152,12 +163,7 @@ function countImpacts(
 // ==================== COMPLETION HELPER ====================
 
 function isCompleted(t: Threat): boolean {
-  return !!(
-    t.threatDescription?.trim() &&
-    t.attackDescription?.trim() &&
-    t.mitigation?.trim() &&
-    t.verification?.trim()
-  );
+  return t.workflowStatus === "reviewed" || t.workflowStatus === "closed";
 }
 
 function countCompletedByLevel(
@@ -289,93 +295,205 @@ const ThreatRows: React.FC<{
             </TableRow>
           </TableHead>
           <TableBody>
-            {sorted.map((threat) => (
-              <TableRow
-                key={threat.id}
-                hover
-                sx={{ "&:last-child td": { borderBottom: 0 } }}
-              >
-                <TableCell sx={cellSx}>
-                  <ThreatIdCell id={threat.id} />
-                </TableCell>
-                <TableCell sx={{ ...cellSx, textAlign: "center" }}>
-                  <StrideCell cat={threat.strideCategory} />
-                </TableCell>
-                <TableCell sx={cellSx}>
-                  <DescriptionCell
-                    value={threat.threatDescription}
-                    fallback={t("tabs.threats.noDescription", {
-                      defaultValue: "No description",
-                    })}
-                  />
-                </TableCell>
-                <TableCell sx={cellSx}>
-                  {threat.attackDescription ? (
-                    <DescriptionCell
-                      value={threat.attackDescription}
-                      fallback=""
-                    />
-                  ) : (
-                    <MissingChip
-                      label={t("tabs.threats.noAttack", {
-                        defaultValue: "Missing",
-                      })}
-                    />
-                  )}
-                </TableCell>
-                <TableCell sx={cellSx}>
-                  {threat.mitigation ? (
-                    <DescriptionCell value={threat.mitigation} fallback="" />
-                  ) : (
-                    <MissingChip
-                      label={t("tabs.threats.noMitigation", {
-                        defaultValue: "Missing",
-                      })}
-                    />
-                  )}
-                </TableCell>
-                <TableCell sx={cellSx}>
-                  {threat.verification ? (
-                    <DescriptionCell value={threat.verification} fallback="" />
-                  ) : (
-                    <MissingChip
-                      label={t("tabs.threats.noVerification", {
-                        defaultValue: "Missing",
-                      })}
-                    />
-                  )}
-                </TableCell>
-                {showThreatActor && (
+            {sorted.map((threat) => {
+              const mitigationText = threat.proposedMitigations
+                ?.map((m) => m.id ?? m.notes ?? "")
+                .filter(Boolean)
+                .join(", ");
+
+              const verificationText = threat.proposedVerifications
+                ?.map((v) => v.id ?? v.notes ?? "")
+                .filter(Boolean)
+                .join(", ");
+
+              const hasMitigations = threat.proposedMitigations?.length > 0;
+              const hasVerifications = threat.proposedVerifications?.length > 0;
+
+              const mitigationTooltip = resolveMitigationDrafts(
+                threat.proposedMitigations ?? [],
+              )
+                .map((m) =>
+                  m.isCustom
+                    ? `[custom] ${m.notes ?? ""}`
+                    : `${m.id ?? ""}: ${m.text}`,
+                )
+                .filter(Boolean)
+                .map((s) => `• ${s}`)
+                .join("\n");
+
+              const verificationTooltip = resolveVerificationDrafts(
+                threat.proposedVerifications ?? [],
+              )
+                .map((v) =>
+                  v.isCustom
+                    ? `[custom] ${v.notes ?? ""}`
+                    : `${v.id ?? ""}: ${v.text}`,
+                )
+                .filter(Boolean)
+                .map((s) => `• ${s}`)
+                .join("\n");
+
+              return (
+                <TableRow
+                  key={threat.id}
+                  hover
+                  onClick={() => onEdit(threat)}
+                  sx={{
+                    "&:last-child td": { borderBottom: 0 },
+                    cursor: "pointer",
+                    bgcolor: RELEVANCE_ROW_BG[threat.relevance ?? "unrated"],
+                    "&:hover": {
+                      bgcolor: `${RELEVANCE_ROW_BG[threat.relevance ?? "unrated"]} !important`,
+                      filter: "brightness(0.97)",
+                    },
+                  }}
+                >
                   <TableCell sx={cellSx}>
-                    <ActorCell actor={threat.threatActor} />
+                    <ThreatIdCell id={threat.id} />
                   </TableCell>
-                )}
-                {showAssets && (
+
+                  <TableCell sx={{ ...cellSx, textAlign: "center" }}>
+                    <StrideCell cat={threat.strideCategory} />
+                  </TableCell>
+
                   <TableCell sx={cellSx}>
-                    {assetDataRef && (
-                      <ImpactCell threat={threat} assetDataRef={assetDataRef} />
+                    <DescriptionCell
+                      value={threat.threatDescription}
+                      fallback={t("tabs.threats.noDescription", {
+                        defaultValue: "No description",
+                      })}
+                    />
+                  </TableCell>
+
+                  <TableCell sx={cellSx}>
+                    {threat.attackDescription ? (
+                      <DescriptionCell
+                        value={threat.attackDescription}
+                        fallback=""
+                      />
+                    ) : (
+                      <MissingChip
+                        label={t("tabs.threats.noAttack", {
+                          defaultValue: "Missing",
+                        })}
+                      />
                     )}
                   </TableCell>
-                )}
-                <TableCell sx={{ ...cellSx, textAlign: "right" }}>
-                  <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
-                    <IconButton size="small" onClick={() => onEdit(threat)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip
-                    title={t("common.delete", { defaultValue: "Delete" })}
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => onDelete(threat.id)}
+
+                  <TableCell sx={cellSx}>
+                    <Tooltip
+                      title={
+                        mitigationTooltip ? (
+                          <span style={{ whiteSpace: "pre-line" }}>
+                            {mitigationTooltip}
+                          </span>
+                        ) : (
+                          ""
+                        )
+                      }
+                      placement="top"
+                      disableHoverListener={!mitigationTooltip}
                     >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
+                      <span>
+                        {hasMitigations ? (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              fontSize: "0.8rem",
+                            }}
+                          >
+                            {mitigationText}
+                          </Typography>
+                        ) : (
+                          <MissingChip
+                            label={t("tabs.threats.noMitigation", {
+                              defaultValue: "Missing",
+                            })}
+                          />
+                        )}
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+
+                  <TableCell sx={cellSx}>
+                    <Tooltip
+                      title={
+                        verificationTooltip ? (
+                          <span style={{ whiteSpace: "pre-line" }}>
+                            {verificationTooltip}
+                          </span>
+                        ) : (
+                          ""
+                        )
+                      }
+                      placement="top"
+                      disableHoverListener={!verificationTooltip}
+                    >
+                      <span>
+                        {hasVerifications ? (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              fontSize: "0.8rem",
+                            }}
+                          >
+                            {verificationText}
+                          </Typography>
+                        ) : (
+                          <MissingChip
+                            label={t("tabs.threats.noVerification", {
+                              defaultValue: "Missing",
+                            })}
+                          />
+                        )}
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+
+                  {showThreatActor && (
+                    <TableCell sx={cellSx}>
+                      <ActorCell actor={threat.threatActor} />
+                    </TableCell>
+                  )}
+
+                  {showAssets && (
+                    <TableCell sx={cellSx}>
+                      {assetDataRef && (
+                        <ImpactCell
+                          threat={threat}
+                          assetDataRef={assetDataRef}
+                        />
+                      )}
+                    </TableCell>
+                  )}
+
+                  <TableCell sx={{ ...cellSx, textAlign: "right" }}>
+                    <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
+                      <IconButton size="small" onClick={() => onEdit(threat)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip
+                      title={t("common.delete", { defaultValue: "Delete" })}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => onDelete(threat.id)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Box>
@@ -435,10 +553,56 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
       [elementGroups, assetDataRef],
     );
 
+    // ── Accordion header stats ──────────────────────────────────────────────
+    const total = table.threats.length;
+    const reviewed = table.threats.filter(
+      (t) => t.workflowStatus === "reviewed" || t.workflowStatus === "closed",
+    ).length;
+    const relevant = table.threats.filter(
+      (t) => t.relevance === "relevant",
+    ).length;
+    const dismissed = table.threats.filter(
+      (t) => t.relevance === "not_relevant",
+    ).length;
+    const uncertain = table.threats.filter(
+      (t) => t.relevance === "uncertain",
+    ).length;
+    const unrated = table.threats.filter(
+      (t) => t.relevance === "unrated",
+    ).length;
+    const allDone = total > 0 && unrated === 0 && uncertain === 0;
+    const borderColor = allDone
+      ? "#16a34a"
+      : unrated > 0
+        ? "#9ca3af"
+        : uncertain > 0
+          ? "#d97706"
+          : "#16a34a";
+    const counts = countImpacts(table.threats, assetDataRef);
+    const topImpacts = IMPACT_ORDER.filter(
+      (lvl) => (counts[lvl] ?? 0) > 0,
+    ).slice(0, 2);
+    const impactTooltip = IMPACT_ORDER.filter((lvl) => (counts[lvl] ?? 0) > 0)
+      .map((lvl) => `${lvl}: ${counts[lvl]}`)
+      .join("  ·  ");
+    const progressTooltip = [
+      relevant > 0 ? `${relevant} relevant ✓` : null,
+      dismissed > 0 ? `${dismissed} dismissed ✗` : null,
+      uncertain > 0 ? `${uncertain} uncertain ?` : null,
+      unrated > 0 ? `${unrated} unrated –` : null,
+    ]
+      .filter(Boolean)
+      .join("   ");
+
     return (
       <Accordion
         defaultExpanded
-        sx={{ "&:before": { display: "none" }, boxShadow: "1", mb: 1 }}
+        sx={{
+          "&:before": { display: "none" },
+          boxShadow: "1",
+          mb: 1,
+          borderLeft: `4px solid ${borderColor}`,
+        }}
       >
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
@@ -447,7 +611,12 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
             "&:hover": { backgroundColor: "primary.100" },
           }}
         >
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            sx={{ flexGrow: 1, mr: 1 }}
+          >
             <TrustBoundaryIcon color="primary" />
             <Chip
               label={table.displayIdentifier}
@@ -456,47 +625,63 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
               variant="outlined"
               sx={{ fontFamily: "monospace" }}
             />
-            <Typography variant="subtitle1" fontWeight="medium">
+            <Typography
+              variant="subtitle1"
+              fontWeight="medium"
+              sx={{ flexGrow: 1 }}
+            >
               {table.trustBoundaryName}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              ({table.threats.length}{" "}
-              {t("tabs.threats.threats", { defaultValue: "threats" })})
-            </Typography>
-            {(() => {
-              const counts = countImpacts(table.threats, assetDataRef);
-              const completedByLevel = countCompletedByLevel(
-                table.threats,
-                assetDataRef,
-              );
-              return (
-                <>
-                  {IMPACT_ORDER.filter((lvl) => (counts[lvl] ?? 0) > 0).map(
-                    (lvl) => {
-                      const c = IMPACT_CHIP_COLORS[lvl];
-                      const comp = completedByLevel[lvl];
-                      const done = comp?.done ?? 0;
-                      const total = comp?.total ?? counts[lvl] ?? 0;
-                      const allDone = done === total && total > 0;
-                      return (
-                        <Chip
-                          key={lvl}
-                          label={`${done}/${total} ${lvl}`}
-                          size="small"
-                          sx={{
-                            height: 18,
-                            fontSize: "0.65rem",
-                            bgcolor: allDone ? "#16a34a18" : c.bg,
-                            color: allDone ? "#16a34a" : c.color,
-                            border: `1px solid ${allDone ? "#16a34a" : c.border}`,
-                          }}
-                        />
-                      );
-                    },
-                  )}
-                </>
-              );
-            })()}
+
+            {/* Impact chips — top 2 levels with tooltip */}
+            {topImpacts.length > 0 && (
+              <Tooltip title={impactTooltip} placement="top">
+                <Stack direction="row" spacing={0.5}>
+                  {topImpacts.map((lvl) => {
+                    const col = IMPACT_CHIP_COLORS[lvl];
+                    return (
+                      <Chip
+                        key={lvl}
+                        label={`${lvl} ×${counts[lvl]}`}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: "0.65rem",
+                          bgcolor: col.bg,
+                          color: col.color,
+                          border: `1px solid ${col.border}`,
+                          cursor: "default",
+                        }}
+                      />
+                    );
+                  })}
+                </Stack>
+              </Tooltip>
+            )}
+
+            {/* Progress chip with tooltip */}
+            <Tooltip
+              title={
+                <span style={{ whiteSpace: "pre-line" }}>
+                  {progressTooltip}
+                </span>
+              }
+              placement="top"
+            >
+              <Chip
+                size="small"
+                label={`${reviewed}/${total}`}
+                sx={{
+                  height: 18,
+                  fontSize: "0.65rem",
+                  cursor: "default",
+                  bgcolor: allDone ? "#f0fdf4" : "#f9fafb",
+                  color: allDone ? "#16a34a" : "#6b7280",
+                  border: `1px solid ${allDone ? "#16a34a" : "#9ca3af"}`,
+                  fontWeight: allDone ? "bold" : "normal",
+                }}
+              />
+            </Tooltip>
           </Stack>
         </AccordionSummary>
 

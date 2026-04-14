@@ -52,7 +52,10 @@ export function extractThreatReferencesForAttackTree(project: Project): ThreatRe
           id: threat.id,
           strideCategory: threat.strideCategory,
           threatDescription: threat.threatDescription || "",
-          mitigation: threat.mitigation,
+          mitigation: (threat.proposedMitigations ?? [])
+            .map((m) => m.id ?? m.notes ?? "")
+            .filter(Boolean)
+            .join(", "),
           linkedAssetIds: threat.linkedAssetIds,
         });
       });
@@ -67,7 +70,10 @@ export function extractThreatReferencesForAttackTree(project: Project): ThreatRe
           id: threat.id,
           strideCategory: threat.strideCategory,
           threatDescription: threat.threatDescription || "",
-          mitigation: threat.mitigation,
+          mitigation: (threat.proposedMitigations ?? [])
+            .map((m) => m.id ?? m.notes ?? "")
+            .filter(Boolean)
+            .join(", "),
           linkedAssetIds: threat.linkedAssetIds,
         });
       });
@@ -156,7 +162,9 @@ export function extractMitigationReferences(project: Project): MitigationReferen
     if (project.threats.perElementTables) {
       project.threats.perElementTables.forEach(function(table) {
         table.threats.forEach(function(threat) {
-          extractFromMitigation(threat.mitigation);
+          (threat.proposedMitigations ?? []).forEach((m) =>
+            extractFromMitigation(m.id ?? m.notes),
+          );
         });
       });
     }
@@ -164,7 +172,9 @@ export function extractMitigationReferences(project: Project): MitigationReferen
     if (project.threats.perInteractionTables) {
       project.threats.perInteractionTables.forEach(function(table) {
         table.threats.forEach(function(threat) {
-          extractFromMitigation(threat.mitigation);
+          (threat.proposedMitigations ?? []).forEach((m) =>
+            extractFromMitigation(m.id ?? m.notes),
+          );
         });
       });
     }

@@ -22,7 +22,7 @@ import type {
 import type { PhaseStatusMap } from "shared";
 import { createDefaultThreatData } from "../models/threat-types";
 import { ThreatToolbar } from "./shared/threat-toolbar";
-import { ThreatDialog } from "./shared/threat-dialog";
+import { ThreatEvalDialog } from "./shared/threat-dialog";
 import { ThreatConfigDialog } from "./shared/threat-config-dialog";
 import { ThreatSyncBanner } from "./shared/threat-sync-banner";
 import { ElementThreatsView } from "./per-element/element-threats-view";
@@ -112,7 +112,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   // Dialog state
   const [selectedThreat, setSelectedThreat] = useState<{
     tableIndex: number;
-    threat: Threat;
+    threats: Threat[];
+    initialIndex: number;
   } | null>(null);
   const [showThreatDialog, setShowThreatDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
@@ -202,15 +203,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     [handleMethodChange],
   );
   const handleGenerateConfirm = useCallback(async () => {
-    console.log("🟨 [Generate click] TAB sees dfdContext:", dfdContext);
     setShowGenerateConfirm(false);
 
     let success = false;
 
     if (activeMethod === "per-element") {
-      console.time("[ThreatTab] generate");
       success = await elementHook.generateThreats();
-      console.timeEnd("[ThreatTab] generate");
     } else {
       success = await interactionHook.generateThreats();
     }
@@ -227,24 +225,28 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   const handleOpenEditDialog = useCallback(
     (tableIndex: number, threat: Threat) => {
-      setSelectedThreat({ tableIndex, threat });
+      const table = activeHook.tables[tableIndex];
+      const initialIndex = Math.max(
+        0,
+        table.threats.findIndex((t) => t.id === threat.id),
+      );
+      setSelectedThreat({ tableIndex, threats: table.threats, initialIndex });
       setShowThreatDialog(true);
     },
     [],
   );
 
   const handleSaveThreat = useCallback(
-    (updatedThreat: Partial<Threat>) => {
+    (threatId: string, updates: Partial<Threat>) => {
       if (!selectedThreat) return;
-
-      const fullThreat: Threat = {
-        ...selectedThreat.threat,
-        ...updatedThreat,
-      };
-
-      activeHook.updateThreat(selectedThreat.tableIndex, fullThreat);
-      setShowThreatDialog(false);
-      setSelectedThreat(null);
+      const source = activeHook.tables[selectedThreat.tableIndex]?.threats.find(
+        (t) => t.id === threatId,
+      );
+      if (!source) return;
+      activeHook.updateThreat(selectedThreat.tableIndex, {
+        ...source,
+        ...updates,
+      });
     },
     [selectedThreat, activeHook],
   );
@@ -556,10 +558,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
       {/* Threat Dialog */}
       {showThreatDialog && selectedThreat && (
-        <ThreatDialog
+        <ThreatEvalDialog
           open={showThreatDialog}
-          threat={selectedThreat.threat}
+          threats={activeHook.tables[selectedThreat.tableIndex]?.threats ?? []}
+          initialIndex={selectedThreat.initialIndex}
           configuration={configuration}
+          assetDataRef={project.assetDataRef}
           onSave={handleSaveThreat}
           onClose={handleCloseThreatDialog}
         />

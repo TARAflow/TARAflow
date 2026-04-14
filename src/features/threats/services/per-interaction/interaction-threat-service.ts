@@ -6,11 +6,8 @@ import type {
   ThreatProjectData,
   ThreatSyncStatus,
   ThreatSyncResult,
-  ThreatTemplate,
-  MitigationTemplate,
-  VerificationTemplate,
 } from "../../models/threat-types";
-import type { StrideCategory } from "shared";
+import type { DFDAnalysisContext, StrideCategory } from "shared";
 import type {
   ThreatService,
   GenerationResult,
@@ -19,11 +16,6 @@ import type {
 } from "../threat-service";
 import { interactionThreatGenerator } from "./interaction-generator";
 import { interactionThreatSync } from "./interaction-sync";
-import {
-  getLegacyMitigationTemplates,
-  getLegacyVerificationTemplates,
-} from "../threat-catalog-service";
-import { type DFDAnalysisContext } from "shared";
 
 export class InteractionThreatService implements ThreatService {
   generateThreats(
@@ -76,10 +68,10 @@ export class InteractionThreatService implements ThreatService {
     const warnings: string[] = [];
     for (const table of tables) {
       for (const threat of table.threats) {
-        if (!threat.mitigation?.trim())
-          warnings.push(`Threat ${threat.id}: Missing mitigation`);
-        if (!threat.verification?.trim())
-          warnings.push(`Threat ${threat.id}: Missing verification`);
+        if (threat.proposedMitigations.length === 0)
+          warnings.push(`Threat ${threat.id}: No mitigations proposed`);
+        if (threat.proposedVerifications.length === 0)
+          warnings.push(`Threat ${threat.id}: No verifications proposed`);
       }
     }
     return { isComplete: errors.length === 0, errors, warnings };
@@ -95,17 +87,21 @@ export class InteractionThreatService implements ThreatService {
       E: 0,
     };
     let totalThreats = 0;
-    let completedThreats = 0;
+    let reviewedThreats = 0;
     for (const table of tables) {
       for (const threat of table.threats) {
         totalThreats++;
         strideDistribution[threat.strideCategory]++;
-        if (threat.mitigation?.trim()) completedThreats++;
+        if (
+          threat.workflowStatus === "reviewed" ||
+          threat.workflowStatus === "closed"
+        )
+          reviewedThreats++;
       }
     }
     return {
       totalThreats,
-      completedThreats,
+      reviewedThreats,
       trustBoundaries: tables.length,
       strideDistribution,
     };
@@ -131,39 +127,6 @@ export class InteractionThreatService implements ThreatService {
       tables,
       syncStatus,
       options,
-    );
-  }
-
-  // Per-interaction does not use element threat templates
-  getThreatTemplates(
-    _strideCategory?: StrideCategory,
-    _elementType?: string,
-    customTemplates: ThreatTemplate[] = [],
-  ): ThreatTemplate[] {
-    return customTemplates;
-  }
-
-  getMitigationTemplates(
-    strideCategory?: StrideCategory,
-    elementType?: string,
-    customTemplates: MitigationTemplate[] = [],
-  ): MitigationTemplate[] {
-    return getLegacyMitigationTemplates(
-      strideCategory,
-      elementType,
-      customTemplates,
-    );
-  }
-
-  getVerificationTemplates(
-    strideCategory?: StrideCategory,
-    elementType?: string,
-    customTemplates: VerificationTemplate[] = [],
-  ): VerificationTemplate[] {
-    return getLegacyVerificationTemplates(
-      strideCategory,
-      elementType,
-      customTemplates,
     );
   }
 }
