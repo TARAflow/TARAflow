@@ -160,10 +160,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.trustboundary.fields.boundaryType.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(
@@ -244,10 +241,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.trustboundary.fields.exposureLevel.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {EXPOSURE_LEVELS.map((el) => (

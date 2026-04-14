@@ -163,11 +163,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.technology.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(
                 [
@@ -240,10 +236,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.processSemantic.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               <MenuItem value="execution_unit">
@@ -324,11 +317,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
                   )}
                 >
                   <MenuItem value="">
-                    <em>
-                      {t(
-                        "tabs.dfd.element_description.process.fields.runsAs.options.not_specified",
-                      )}
-                    </em>
+                    <em>{t("common.not_specified")}</em>
                   </MenuItem>
                   {(
                     [
@@ -381,11 +370,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
                   )}
                 >
                   <MenuItem value="">
-                    <em>
-                      {t(
-                        "tabs.dfd.element_description.process.fields.privilegeLevel.options.not_specified",
-                      )}
-                    </em>
+                    <em>{t("common.not_specified")}</em>
                   </MenuItem>
                   {(["low", "medium", "high", "root"] as const).map((opt) => (
                     <MenuItem key={opt} value={opt}>
@@ -430,11 +415,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.authenticationRequired.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(
                 [
@@ -480,11 +461,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.authorizationModel.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(["none", "rbac", "abac", "acl", "custom"] as const).map(
                 (opt) => (
@@ -520,11 +497,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.inputValidation.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(["none", "basic", "strict", "schema"] as const).map((opt) => (
                 <MenuItem key={opt} value={opt}>
@@ -558,11 +531,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.errorHandling.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(["silent", "verbose", "sanitized"] as const).map((opt) => (
                 <MenuItem key={opt} value={opt}>

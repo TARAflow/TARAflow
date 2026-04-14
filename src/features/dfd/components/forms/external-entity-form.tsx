@@ -137,11 +137,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 )}
               >
                 <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.external_entity.fields.entityType.options.not_specified",
-                    )}
-                  </em>
+                  <em>{t("common.not_specified")}</em>
                 </MenuItem>
                 {Object.keys(EXTERNAL_ENTITY_TYPE_DEFAULTS).map((type) => (
                   <MenuItem key={type} value={type}>
@@ -172,11 +168,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 )}
               >
                 <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.external_entity.fields.trustLevel.options.not_specified",
-                    )}
-                  </em>
+                  <em>{t("common.not_specified")}</em>
                 </MenuItem>
                 <MenuItem value="low">
                   {t(
@@ -215,11 +207,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 )}
               >
                 <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.external_entity.fields.ownership.options.not_specified",
-                    )}
-                  </em>
+                  <em>{t("common.not_specified")}</em>
                 </MenuItem>
                 <MenuItem value="internal">
                   {t(
@@ -267,11 +255,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 )}
               >
                 <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.external_entity.fields.threatActor.options.not_specified",
-                    )}
-                  </em>
+                  <em>{t("common.not_specified")}</em>
                 </MenuItem>
                 {threatActorOptions.map((actor) => (
                   <MenuItem key={actor} value={actor}>
@@ -302,11 +286,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 )}
               >
                 <MenuItem value="">
-                  <em>
-                    {t(
-                      "tabs.dfd.element_description.external_entity.fields.authenticationMethod.options.not_specified",
-                    )}
-                  </em>
+                  <em>{t("common.not_specified")}</em>
                 </MenuItem>
                 {(
                   [

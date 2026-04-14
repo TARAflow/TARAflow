@@ -4,6 +4,7 @@
 
 import type {
   ProcessProperties,
+  MultiprocessProperties,
   ExternalEntityProperties,
   DataStoreProperties,
   DataFlowProperties,
@@ -150,6 +151,162 @@ export const PROCESS_TECH_DEFAULTS: Record<
     errorHandling: "silent",
   },
 };
+
+// ==================== MULTIPROCESS DEFAULTS ====================
+ 
+type SystemClass = NonNullable<MultiprocessProperties["systemClass"]>;
+ 
+/**
+ * Cascade defaults based on Multiprocess.systemClass selection.
+ *
+ * Design principles (consistent with PROCESS_TECH_DEFAULTS):
+ * - Defaults are conservative / realistic for the system class, not ideal.
+ * - Fields left undefined are intentionally not cascaded (analyst must decide).
+ * - Cascade is "only if unset" — existing analyst values are never overwritten.
+ *
+ * safetySystem: safetyRelevant is cascaded to true because any system explicitly
+ * modelled as safety_system is, by definition, safety-relevant.
+ */
+export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
+  SystemClass,
+  Partial<MultiprocessProperties>
+> = {
+  // Klasse 1 — Dedicated Embedded Controller (PLC, CNC, Robot, ECU)
+  embedded_controller: {
+    operatingSystem:          "rtos",
+    updateMechanism:          "signed_local",
+    boundaryAuthentication:   "none",      // Fieldbus: auth absent by default → surfaces threat
+    authorizationModel:       "none",
+    remoteAccessEnabled:      false,
+    airGapped:                false,
+    exposedToInternet:        false,
+  },
+ 
+  // Klasse 2 — SCADA / HMI / DCS
+  scada_hmi: {
+    operatingSystem:          "windows_hardened",
+    updateMechanism:          "vendor_only",
+    boundaryAuthentication:   "password",
+    authorizationModel:       "rbac",
+    remoteAccessEnabled:      true,         // Typical: remote HMI access exists
+    airGapped:                false,
+    exposedToInternet:        false,
+  },
+ 
+  // Klasse 3 — Backend Application / Server (MES, API, Microservices)
+  backend_application: {
+    operatingSystem:          "linux_standard",
+    updateMechanism:          "ci_cd",
+    boundaryAuthentication:   "oauth",
+    authorizationModel:       "rbac",
+    remoteAccessEnabled:      true,
+    multiTenant:              false,
+    exposedToInternet:        false,
+  },
+ 
+  // Klasse 4 — Gateway / Edge Device
+  gateway: {
+    operatingSystem:          "linux_hardened",
+    updateMechanism:          "signed_ota",
+    boundaryAuthentication:   "certificate",
+    authorizationModel:       "acl",
+    remoteAccessEnabled:      false,
+    exposedToInternet:        false,
+  },
+ 
+  // Klasse 5 — Mobile / Portable Device
+  mobile_device: {
+    // operatingSystem: intentionally not cascaded — analyst must choose ios / android
+    updateMechanism:          "mdm_managed",
+    boundaryAuthentication:   "mfa",
+    exposedToInternet:        true,         // Mobile devices are internet-connected by nature
+  },
+ 
+  // Klasse 6 — Cloud Platform / Service
+  cloud_platform: {
+    // operatingSystem: not applicable for cloud_platform — hidden in form
+    updateMechanism:          "ci_cd",
+    boundaryAuthentication:   "oauth",
+    authorizationModel:       "rbac",
+    remoteAccessEnabled:      true,
+    multiTenant:              true,
+    exposedToInternet:        true,
+  },
+ 
+  // Klasse 7 — Workstation / Engineering PC
+  workstation: {
+    operatingSystem:          "windows_standard",
+    updateMechanism:          "manual_local",
+    boundaryAuthentication:   "password",
+    authorizationModel:       "rbac",
+    remoteAccessEnabled:      false,
+    exposedToInternet:        false,
+  },
+ 
+  // Klasse 8 — Safety System (SIS, Safety PLC, SIL-certified)
+  safety_system: {
+    operatingSystem:          "none",       // Bare-metal — safety systems avoid OS
+    updateMechanism:          "vendor_only",
+    boundaryAuthentication:   "none",       // Air-gapped: no network auth needed
+    airGapped:                true,         // Default: isolated — analyst must justify override
+    remoteAccessEnabled:      false,
+    exposedToInternet:        false,
+    safetyRelevant:           true,         // Always true by definition
+  },
+};
+ 
+/** Fields that are driven by systemClass — used for clearing when driver is reset. */
+export const MULTIPROCESS_SYSTEMCLASS_DRIVEN_FIELDS: (keyof MultiprocessProperties)[] = [
+  "operatingSystem",
+  "updateMechanism",
+  "boundaryAuthentication",
+  "authorizationModel",
+  "remoteAccessEnabled",
+  "airGapped",
+  "exposedToInternet",
+  "multiTenant",
+  "safetyRelevant",
+];
+ 
+/**
+ * Get default properties for a Multiprocess based on systemClass selection.
+ * Only cascades into fields that are currently unset — consistent with
+ * getProcessDefaults / applyCascadeDefaults pattern in this file.
+ *
+ * Usage (in multiprocess-description-form.tsx handlePropertyChange):
+ *
+ *   if (field === "systemClass") {
+ *     const newClass = value as MultiprocessProperties["systemClass"];
+ *     if (!newClass) {
+ *       // systemClass cleared: wipe driven fields
+ *       onChange({ properties: {
+ *         ...currentProps,
+ *         systemClass: undefined,
+ *         ...buildClearPatch(MULTIPROCESS_SYSTEMCLASS_DRIVEN_FIELDS),
+ *       }});
+ *       return;
+ *     }
+ *     onChange({ properties: getMultiprocessDefaults(currentProps, newClass) });
+ *     return;
+ *   }
+ */
+export function getMultiprocessDefaults(
+  current: MultiprocessProperties,
+  systemClass: SystemClass,
+): MultiprocessProperties {
+  const next: MultiprocessProperties = { ...current, systemClass };
+  const defaults = MULTIPROCESS_SYSTEMCLASS_DEFAULTS[systemClass] ?? {};
+ 
+  // Cascade only into fields that are currently unset
+  Object.entries(defaults).forEach(([key, value]) => {
+    const currentVal = next[key as keyof MultiprocessProperties];
+    if (currentVal === undefined || currentVal === null) {
+      (next as any)[key] = value;
+    }
+  });
+ 
+  return next;
+}
 
 // ==================== EXTERNAL ENTITY DEFAULTS ====================
 

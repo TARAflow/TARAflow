@@ -187,10 +187,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.protocol.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(
@@ -249,10 +246,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.direction.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(
@@ -314,10 +308,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.frequency.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(["continuous", "periodic", "ondemand", "batch"] as const).map(
@@ -411,10 +402,9 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
               >
                 <MenuItem value="">
                   <em>
-                    {t(
-                      "tabs.dfd.element_description.dataflow.fields.exposureLevel.not_specified",
-                      { defaultValue: "Not specified" },
-                    )}
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
                   </em>
                 </MenuItem>
                 {EXPOSURE_LEVELS.map((el) => {
@@ -524,10 +514,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(["none", "tls", "mtls", "vpn", "custom"] as const).map(
@@ -583,10 +570,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(

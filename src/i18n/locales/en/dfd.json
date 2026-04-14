@@ -299,7 +299,6 @@
             "runsAs": {
               "label": "Runs as",
               "options": {
-                "not_specified": "Not specified",
                 "user": "User Context",
                 "admin_user": "Admin User",
                 "root": "Root",
@@ -313,7 +312,6 @@
             "privilegeLevel": {
               "label": "Privilege Level",
               "options": {
-                "not_specified": "Not specified",
                 "low": "Low (User)",
                 "medium": "Medium (Service)",
                 "high": "High (Admin)",
@@ -323,7 +321,6 @@
             "processSemantic": {
               "label": "Process Semantic",
               "options": {
-                "not_specified": "Not specified",
                 "execution_unit": "Execution Unit (OS/RTOS-isolated)",
                 "functional_block": "Functional Block (logical, no OS isolation)",
                 "security_boundary": "Security Boundary (HSM, TEE, Crypto Engine)"
@@ -333,7 +330,6 @@
             "authenticationRequired": {
               "label": "Authentication Required",
               "options": {
-                "not_specified": "Not specified",
                 "no": "No",
                 "yes": "Yes",
                 "optional": "Optional",
@@ -348,7 +344,6 @@
             "authorizationModel": {
               "label": "Authorization Model",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None",
                 "rbac": "RBAC (Role-Based)",
                 "abac": "ABAC (Attribute-Based)",
@@ -359,7 +354,6 @@
             "inputValidation": {
               "label": "Input Validation",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None",
                 "basic": "Basic (Type checking)",
                 "strict": "Strict (Whitelist + Sanitization)",
@@ -369,7 +363,6 @@
             "errorHandling": {
               "label": "Error Handling",
               "options": {
-                "not_specified": "Not specified",
                 "silent": "Silent (No details)",
                 "verbose": "Verbose (Stack traces)",
                 "sanitized": "Sanitized (User-friendly)"
@@ -385,7 +378,6 @@
             "technology": {
               "label": "Technology",
               "options": {
-                "not_specified": "Not specified",
                 "api": "API (REST/GraphQL)",
                 "batch": "Batch Job",
                 "ui": "UI / Frontend",
@@ -546,6 +538,125 @@
             }
           }
         },
+        "multiprocess": {
+          "fields": {
+            "systemClass": {
+              "label": "System Class",
+              "options": {
+                "embedded_controller": "Embedded Controller (PLC, CNC, Robot, ECU)",
+                "scada_hmi": "SCADA / HMI / DCS",
+                "gateway": "Gateway / Edge Device",
+                "safety_system": "Safety System (SIS, Safety PLC)",
+                "backend_application": "Backend Application / Server",
+                "cloud_platform": "Cloud Platform / Service",
+                "workstation": "Workstation / Engineering PC",
+                "mobile_device": "Mobile / Portable Device"
+              }
+            },
+            "operatingSystem": {
+              "label": "Operating System",
+              "options": {
+                "none": "Bare-Metal (no OS)",
+                "rtos": "RTOS (FreeRTOS, Zephyr, VxWorks ...)",
+                "custom": "Proprietary / Custom OS",
+                "linux_hardened": "Linux (hardened)",
+                "linux_standard": "Linux (standard)",
+                "windows_hardened": "Windows (hardened / LTSC)",
+                "windows_standard": "Windows (standard)",
+                "ios": "iOS",
+                "android": "Android"
+              }
+            },
+            "certificationLevel": {
+              "label": "Certification Level",
+              "options": {
+                "none": "None",
+                "iec62443_sl1": "IEC 62443 SL 1",
+                "iec62443_sl2": "IEC 62443 SL 2",
+                "iec62443_sl3": "IEC 62443 SL 3",
+                "sil1": "SIL 1 (IEC 61508)",
+                "sil2": "SIL 2 (IEC 61508)",
+                "sil3": "SIL 3 (IEC 61508)",
+                "iso21434": "ISO 21434",
+                "fips140_2": "FIPS 140-2",
+                "cc_eal2": "Common Criteria EAL 2+",
+                "cc_eal4": "Common Criteria EAL 4+"
+              }
+            },
+            "updateMechanism": {
+              "label": "Update Mechanism",
+              "options": {
+                "none": "No update planned",
+                "manual_local": "Manual (local, physical access)",
+                "signed_local": "Signed package (local)",
+                "signed_ota": "Signed OTA",
+                "vendor_only": "Vendor-managed only",
+                "mdm_managed": "MDM-managed",
+                "ci_cd": "Automated CI/CD deployment"
+              }
+            },
+            "exposedToInternet": {
+              "label": "Exposed to Internet"
+            },
+            "remoteAccessEnabled": {
+              "label": "Remote Access Enabled"
+            },
+            "airGapped": {
+              "label": "Air-Gapped"
+            },
+            "multiTenant": {
+              "label": "Multi-Tenant"
+            },
+            "boundaryAuthentication": {
+              "label": "Boundary Authentication",
+              "options": {
+                "none": "None",
+                "password": "Password",
+                "mfa": "Multi-Factor (MFA)",
+                "certificate": "Certificate (PKI)",
+                "mtls": "Mutual TLS (mTLS)",
+                "oauth": "OAuth 2.0",
+                "apikey": "API Key",
+                "hardware_token": "Hardware Token"
+              }
+            },
+            "authorizationModel": {
+              "label": "Authorization Model",
+              "options": {
+                "none": "None",
+                "rbac": "RBAC (Role-Based)",
+                "abac": "ABAC (Attribute-Based)",
+                "acl": "ACL (Access Control List)",
+                "capability_based": "Capability-Based"
+              }
+            },
+            "safetyRelevant": {
+              "label": "Safety-Relevant System"
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Controls emergency stop. SIL-2 certified per IEC 61508. Hardware watchdog, no remote update in production."
+            },
+            "internalComponents": {
+              "label": "Internal Components",
+              "placeholder": "e.g. RTOS Tasks: motion_ctrl, comm_stack, safety_monitor + Bootloader"
+            },
+            "securitySummary": {
+              "label": "Security Summary",
+              "placeholder": "e.g. SIL-2 certified, Hardware watchdog, no remote update, signed firmware only"
+            },
+            "owner": {
+              "label": "Owner",
+              "placeholder": "e.g. OT Security Team"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
+          }
+        },
         "interface": {
           "cascade_hints": {
             "usb": "This interface type is a common attack surface on embedded systems. Consider setting Safety Relevant if connected to safety-critical components.",
@@ -556,7 +667,6 @@
             "type": {
               "label": "Interface Type",
               "options": {
-                "not_specified": "Not specified",
                 "ethernet": "Ethernet",
                 "serial": "Serial (UART / RS-232 / RS-485)",
                 "usb": "USB",
@@ -568,13 +678,9 @@
                 "custom": "Custom"
               }
             },
-            "exposureLevel": {
-              "not_specified": "Not specified"
-            },
             "accessControl": {
               "label": "Access Control",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None",
                 "physical_lock": "Physical Lock",
                 "credentials": "Credentials (Username / Password)",
@@ -585,7 +691,6 @@
             "connectionSpeed": {
               "label": "Connection Speed",
               "options": {
-                "not_specified": "Not specified",
                 "low": "Low (< 1 Mbit/s)",
                 "medium": "Medium (1–100 Mbit/s)",
                 "high": "High (> 100 Mbit/s)"
@@ -628,7 +733,6 @@
             "entityType": {
               "label": "Entity Type",
               "options": {
-                "not_specified": "Not specified",
                 "user": "User (Human)",
                 "admin_user": "Administrator (Human)",
                 "partner": "Partner System",
@@ -646,7 +750,6 @@
             "trustLevel": {
               "label": "Trust Level",
               "options": {
-                "not_specified": "Not specified",
                 "low": "Low (Untrusted / Public)",
                 "medium": "Medium (Known Partner)",
                 "high": "High (Verified / Internal)"
@@ -655,7 +758,6 @@
             "authenticationMethod": {
               "label": "Authentication Method",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None (Anonymous)",
                 "password": "Username / Password",
                 "mfa": "Multi-Factor Authentication",
@@ -670,7 +772,6 @@
             "ownership": {
               "label": "Ownership",
               "options": {
-                "not_specified": "Not specified",
                 "internal": "Internal (Same Organization)",
                 "external": "External (Third Party)",
                 "partner": "Partner / Affiliate"
@@ -679,7 +780,6 @@
             "threatActor": {
               "label": "Assumed Threat Actor",
               "options": {
-                "not_specified": "Not specified",
                 "benign": "Benign (Trusted User)",
                 "curious": "Curious (Low Motivation)",
                 "malicious": "Malicious (Active Attacker)",
@@ -729,7 +829,6 @@
             "protocol": {
               "label": "Protocol",
               "options": {
-                "not_specified": "Not specified",
                 "http": "HTTP",
                 "https": "HTTPS",
                 "grpc": "gRPC",
@@ -749,7 +848,6 @@
             "direction": {
               "label": "Direction",
               "options": {
-                "not_specified": "Not specified",
                 "unidirectional": "Uni-directional (One-way)",
                 "bidirectional": "Bi-directional (Two-way)",
                 "requestresponse": "Request-Response"
@@ -758,7 +856,6 @@
             "encryptionInTransit": {
               "label": "Encryption in Transit",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None (Plaintext)",
                 "tls": "TLS",
                 "mtls": "mTLS (Mutual TLS)",
@@ -770,16 +867,12 @@
             "endpointAuthentication": {
               "label": "Authentication of Endpoints",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None",
                 "token": "Token / Bearer",
                 "certificate": "Certificate (mTLS)",
                 "apikey": "API Key",
                 "oauth": "OAuth 2.0"
               }
-            },
-            "exposureLevel": {
-              "not_specified": "Not specified"
             },
             "integrityProtection": {
               "label": "Integrity Protection (HMAC, Signatures)"
@@ -792,7 +885,6 @@
             "frequency": {
               "label": "Frequency",
               "options": {
-                "not_specified": "Not specified",
                 "continuous": "Continuous / Real-time",
                 "periodic": "Periodic (Scheduled)",
                 "ondemand": "On-demand",
@@ -827,7 +919,6 @@
             "dataClassification": {
               "label": "Data Classification",
               "options": {
-                "not_specified": "Not specified",
                 "public": "Public",
                 "internal": "Internal",
                 "confidential": "Confidential",
@@ -838,7 +929,6 @@
             "encryptionAtRest": {
               "label": "Encryption at Rest",
               "options": {
-                "not_specified": "Not specified",
                 "none": "None (Plaintext)",
                 "yes": "Yes (Algorithm not specified)",
                 "aes256": "AES-256",
@@ -869,7 +959,6 @@
             "technology": {
               "label": "Technology",
               "options": {
-                "not_specified": "Not specified",
                 "database": "Database (SQL/NoSQL)",
                 "filesystem": "Filesystem",
                 "cloud": "Cloud Storage (S3, Blob)",
@@ -917,7 +1006,6 @@
             "boundaryType": {
               "label": "Boundary Type",
               "options": {
-                "not_specified": "Not specified",
                 "network": "Network Boundary (DMZ, VPC)",
                 "privilege": "Privilege Boundary (User/Admin)",
                 "organization": "Organizational Boundary",
@@ -943,7 +1031,6 @@
               }
             },
             "exposureLevel": {
-              "not_specified": "Not specified",
               "helper": "Defines the exposure level of this security zone. Elements with a higher EL are not affected."
             },
             "monitoringEnabled": {

@@ -149,11 +149,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.interface.fields.type.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(
                 [
@@ -286,10 +282,9 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               >
                 <MenuItem value="">
                   <em>
-                    {t(
-                      "tabs.dfd.element_description.interface.fields.exposureLevel.not_specified",
-                      { defaultValue: "Not specified" },
-                    )}
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
                   </em>
                 </MenuItem>
                 {EXPOSURE_LEVELS.map((el) => {
@@ -382,11 +377,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               )}
             >
               <MenuItem value="">
-                <em>
-                  {t(
-                    "tabs.dfd.element_description.interface.fields.accessControl.options.not_specified",
-                  )}
-                </em>
+                <em>{t("common.not_specified")}</em>
               </MenuItem>
               {(
                 [

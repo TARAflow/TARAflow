@@ -135,10 +135,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.datastore.fields.technology.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(
@@ -195,10 +192,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.datastore.fields.dataClassification.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(
@@ -282,10 +276,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
             >
               <MenuItem value="">
                 <em>
-                  {t(
-                    "tabs.dfd.element_description.datastore.fields.encryptionAtRest.options.not_specified",
-                    { defaultValue: "Not specified" },
-                  )}
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
               {(["none", "yes", "aes256", "tde", "kms", "custom"] as const).map(

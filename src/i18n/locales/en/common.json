@@ -39,7 +39,8 @@
     "reset": "Reset",
     "none": "None",
     "collapse": "Collapse",
-    "notApplicable": "N/A – Not applicable"
+    "notApplicable": "N/A – Not applicable",
+    "not_specified": "Not specified"
   },
   "project": {
     "title": "Project",

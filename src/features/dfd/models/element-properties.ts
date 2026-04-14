@@ -87,6 +87,148 @@ export interface ProcessProperties {
   notes?: string;
 }
 
+// ==================== MULTI PROCESS PROPERTIES ====================
+export interface MultiprocessProperties {
+  // ── System Class (primary field) ─────────────────────────────────────────
+  /**
+   * Overarching system class — determines visible form fields and applicable
+   * threat templates. Must be set before the element contributes to threat gen.
+   *
+   * Class 1 — Dedicated Embedded Controller (PLC, CNC, Robot, ECU, MCU)
+   * Class 2 — SCADA / HMI / DCS
+   * Class 3 — Backend Application / Server (MES, API, Microservices)
+   * Class 4 — Gateway / Edge Device (VPN, Protocol Converter, OPC-UA Proxy)
+   * Class 5 — Mobile / Portable Device (Tablet, Handheld, Service App)
+   * Class 6 — Cloud Platform / Service (IoT Hub, SaaS, PaaS)
+   * Class 7 — Workstation / Engineering PC
+   * Class 8 — Safety System — SIS, Safety PLC (SIL-certified, dedicated)
+   */
+  systemClass?:
+    | "embedded_controller" // Class 1: PLC, CNC, Robot, ECU
+    | "scada_hmi" // Class 2: SCADA, HMI, DCS
+    | "backend_application" // Class 3: MES, API Server, Microservices
+    | "gateway" // Class 4: VPN Gateway, Protocol Converter
+    | "mobile_device" // Class 5: Tablet, Handheld, Service App
+    | "cloud_platform" // Class 6: Cloud Backend, IoT Hub
+    | "workstation" // Class 7: Engineering PC, Desktop App
+    | "safety_system"; // Class 8: SIS, Safety PLC, SIL-certified
+
+  // ── Platform / OS ────────────────────────────────────────────────────────
+  /** Not shown for cloud_platform (PaaS/Serverless — no explicit OS). */
+  operatingSystem?:
+    | "none" // Bare-Metal
+    | "rtos" // FreeRTOS, Zephyr, ThreadX, VxWorks
+    | "linux_hardened" // Yocto, Ubuntu Core, Alpine (hardened)
+    | "linux_standard" // Standard Linux
+    | "windows_hardened" // Windows Embedded, LTSC (hardened)
+    | "windows_standard" // Standard Windows
+    | "ios" // Apple iOS
+    | "android" // Android (MDM-managed or standard)
+    | "cloud_managed" // PaaS / Serverless — no explicit OS
+    | "custom"; // Proprietary embedded OS
+
+  // ── Security Certification ───────────────────────────────────────────────
+  /** Formal security or safety certification achieved or targeted. */
+  certificationLevel?:
+    | "none"
+    | "iec62443_sl1" // IEC 62443 Security Level 1
+    | "iec62443_sl2" // IEC 62443 Security Level 2
+    | "iec62443_sl3" // IEC 62443 Security Level 3
+    | "sil1" // IEC 61508 SIL 1
+    | "sil2" // IEC 61508 SIL 2
+    | "sil3" // IEC 61508 SIL 3
+    | "iso21434" // ISO 21434 Automotive Cybersecurity
+    | "fips140_2" // FIPS 140-2 (cryptographic modules)
+    | "cc_eal2" // Common Criteria EAL 2+
+    | "cc_eal4"; // Common Criteria EAL 4+
+
+  // ── Update Mechanism ─────────────────────────────────────────────────────
+  updateMechanism?:
+    | "none" // No update planned
+    | "manual_local" // Physical access, manual (no signing required)
+    | "signed_local" // Signed package, physical access
+    | "signed_ota" // Signed Over-the-Air
+    | "vendor_only" // Only through manufacturer / supplier
+    | "mdm_managed" // Mobile Device Management
+    | "ci_cd"; // Automated CI/CD deployment (Cloud / DevOps)
+
+  // ── System-Level Access Control ──────────────────────────────────────────
+  /**
+   * Authentication mechanism at the system boundary (not internal processes).
+   * Semantically distinct from ProcessProperties.authenticationRequired
+   * which describes a single process's incoming request auth.
+   */
+  boundaryAuthentication?:
+    | "not_specified"
+    | "none"
+    | "password"
+    | "mfa"
+    | "certificate"
+    | "mtls"
+    | "oauth"
+    | "apikey"
+    | "hardware_token";
+
+  /**
+   * Authorization model enforced at the system boundary.
+   * Not applicable for mobile_device (app-internal) or safety_system
+   * (hardware-enforced, not configurable at model level).
+   */
+  authorizationModel?:
+    | "not_specified"
+    | "none"
+    | "rbac"
+    | "abac"
+    | "acl"
+    | "capability_based"; // Common in embedded systems
+
+  // ── Network Exposure ─────────────────────────────────────────────────────
+  exposedToInternet?: boolean;
+  remoteAccessEnabled?: boolean;
+
+  /**
+   * Physically or logically isolated from the network.
+   * When true: threat generation reduces or excludes network-based threat paths.
+   */
+  airGapped?: boolean;
+
+  // ── Multi-Tenant (Cloud / Backend) ───────────────────────────────────────
+  /** Relevant for backend_application and cloud_platform only. */
+  multiTenant?: boolean;
+
+  // ── Safety ───────────────────────────────────────────────────────────────
+  /**
+   * This system fulfils a safety function.
+   * Influences threat prioritisation and STRIDE template selection.
+   * Always true for safety_system — can be set for embedded_controller / scada_hmi.
+   */
+  safetyRelevant?: boolean;
+
+  /**
+   * Rationale for safety classification.
+   * Required when safetyRelevant = true for EN 50742 / MVO documentation.
+   * @example "Controls emergency stop. SIL-2 certified per IEC 61508."
+   */
+  safetyRationale?: string;
+
+  // ── Internal Structure (informative) ────────────────────────────────────
+  /**
+   * Free-text description of internal components.
+   * NOT used for threat generation — documentation only.
+   * @example "RTOS Tasks: motion_ctrl, comm_stack, safety_monitor + Bootloader"
+   */
+  internalComponents?: string;
+
+  /**
+   * Free-text summary of security controls at system level.
+   * @example "SIL-2 certified, Hardware watchdog, no remote update in production"
+   */
+  securitySummary?: string;
+
+  owner?: string;
+  notes?: string;
+}
+
 // ==================== EXTERNAL ENTITY PROPERTIES ====================
 
 /**
@@ -373,6 +515,7 @@ export interface TrustBoundaryProperties {
 
 export type ElementProperties =
   | ProcessProperties
+  | MultiprocessProperties
   | ExternalEntityProperties
   | DataStoreProperties
   | DataFlowProperties

@@ -45,6 +45,7 @@ import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context"
 
 // Import element-specific forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
+import { MultiprocessDescriptionForm } from "./forms/multiprocess-description-form";
 import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
 import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
@@ -556,9 +557,17 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
     const renderForm = () => {
       switch (element.type) {
         case "Process":
-        case "Multiprocess":
           return (
             <ProcessDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+              onCreateAsset={onCreateAsset}
+            />
+          );
+        case "Multiprocess":
+          return (
+            <MultiprocessDescriptionForm
               element={element}
               onChange={onUpdate}
               availableAssets={availableAssets}

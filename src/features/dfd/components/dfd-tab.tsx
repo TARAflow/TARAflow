@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   RefObject,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -89,7 +90,21 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     projectId: project.id,
   });
 
+  // Stable ref to the cancel function — populated after editor is available
+  // (below). handleSelectionChanged is defined before useDFDEditor so it
+  // cannot reference editor.iframeRef directly; the ref bridges the gap.
+  const cancelPointerCaptureRef = useRef<(() => void) | null>(null);
+
   const handleSelectionChanged = useCallback((cells: any[]) => {
+    // Cancel draw.io's pointer capture BEFORE any state update triggers a
+    // render. mxGraph calls setPointerCapture() on mousedown — all pointer
+    // events are then routed to the iframe regardless of what is visually
+    // on top. Setting pointerEvents='none' for one animation frame makes the
+    // browser fire pointercancel inside draw.io, which releases the capture
+    // and resets the drag state machine. Must happen synchronously here, not
+    // in a useEffect (which would fire after the sidebar is already open).
+    cancelPointerCaptureRef.current?.();
+
     const selectedCell = cells[0];
     const cellId = selectedCell?.xmlId || selectedCell?.id;
 
@@ -129,6 +144,18 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
 
   const editor = useDFDEditor(project, editorOptions);
+
+  // Wire the cancel function now that editor.iframeRef is available.
+  // Assigned directly in render (not useEffect) so it is always current
+  // when handleSelectionChanged fires.
+  cancelPointerCaptureRef.current = () => {
+    const iframe = editor.iframeRef.current;
+    if (!iframe) return;
+    iframe.style.pointerEvents = "none";
+    requestAnimationFrame(() => {
+      iframe.style.pointerEvents = "";
+    });
+  };
 
   // Stabilize graphContext — new DFDGraphAnalysisContext() on every render
   // causes all consumers to remount. useMemo ensures stable reference.
@@ -530,7 +557,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
                 width: "100%",
                 height: "100%",
                 border: "none",
-                // Disable interaction while overlay is active (read-only inspection)
                 pointerEvents: editor.isLoading ? "none" : "auto",
               }}
               title="DFD Editor"
@@ -634,7 +660,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};;;;;;;;;;;;;;
+};;;;;;;;;;;;;;;;
 
 // ==================== SUB-COMPONENTS ====================
 

@@ -14,6 +14,7 @@ import type { AvailableAsset } from "./forms/asset-relation-selector";
 
 // Import all element forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
+import { MultiprocessDescriptionForm } from "./forms/multiprocess-description-form";
 import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
 import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
@@ -78,9 +79,18 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
   // Type-based rendering
   switch (element.type) {
     case "Process":
-    case "Multiprocess":
       return (
         <ProcessDescriptionForm
+          element={element}
+          onChange={onChange as (updates: Partial<DFDElement>) => void}
+          availableAssets={availableAssets}
+          onCreateAsset={onCreateAsset}
+        />
+      );
+
+    case "Multiprocess":
+      return (
+        <MultiprocessDescriptionForm
           element={element}
           onChange={onChange as (updates: Partial<DFDElement>) => void}
           availableAssets={availableAssets}

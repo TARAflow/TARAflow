@@ -179,5 +179,80 @@
     "threat": "Rechteausweitung auf Firmware- oder Hardware-Ebene",
     "cause": "Fehlender Secure Boot oder fehlende Firmware-Integritätsprüfung",
     "attack": "Angreifer manipuliert Firmware oder Hardware-Konfiguration, um privilegierte Kontrolle über das Gerät zu erlangen"
+  },
+  "S-SYS-001": {
+    "threat": "Systemidentitäts-Spoofing an der Systemgrenze",
+    "cause": "Fehlende oder unzureichende Authentifizierung an der Systemgrenze — kommunizierende Parteien können die tatsächliche Systemidentität nicht verifizieren",
+    "attack": "Angreifer gibt sich gegenüber einer verbundenen Komponente als das System aus und injiziert gefälschte Antworten oder Befehle, die als legitim akzeptiert werden"
+  },
+  "S-SYS-EMB-001": {
+    "threat": "Controller-Identitäts-Spoofing auf dem Feldbus",
+    "cause": "Feldbusprotokoll (Modbus, CAN, Profibus) besitzt keine eingebaute Authentifizierung — jeder Knoten kann eine beliebige Geräteadresse beanspruchen",
+    "attack": "Angreifer verbindet einen unautorisierten Knoten mit dem Feldbus, antwortet auf Anfragen an den legitimen Controller und injiziert dabei falsche Sensordaten oder akzeptiert Steuerbefehle"
+  },
+  "S-SYS-CLO-001": {
+    "threat": "Cloud-Service-Identitäts-Spoofing via Token-Diebstahl",
+    "cause": "Gestohlene oder gefälschte Access-Tokens ermöglichen es einem Angreifer, den Cloud-Service gegenüber verbundenen Clients zu imitieren",
+    "attack": "Angreifer beschafft sich ein Service-Token (z.B. via Credential-Leak oder SSRF) und präsentiert es Clients, um Datenflüsse umzuleiten oder unautorisiierte Befehle auszuführen"
+  },
+  "T-SYS-001": {
+    "threat": "Manipulation von System-Software oder Konfiguration",
+    "cause": "Unzureichender Integritätsschutz für System-Software, Firmware oder Konfiguration — sowohl im Ruhezustand als auch während des Updates",
+    "attack": "Angreifer verändert System-Software oder Konfiguration, um das Systemverhalten zu manipulieren, Sicherheitsmaßnahmen zu deaktivieren oder eine Hintertür einzubauen"
+  },
+  "T-SYS-EMB-001": {
+    "threat": "Firmware-Manipulation über den Update-Kanal",
+    "cause": "Unsignierter oder schwach authentifizierter Firmware-Update-Mechanismus — Angreifer kann ein bösartiges Firmware-Image einschleusen",
+    "attack": "Angreifer liefert ein modifiziertes Firmware-Image über den Update-Kanal (OTA, USB, JTAG), das das Gerät akzeptiert und ausführt"
+  },
+  "T-SYS-EMB-002": {
+    "threat": "Konfigurationsmanipulation über das Debug-Interface",
+    "cause": "Debug- oder Programmier-Interface (JTAG, SWD, UART-Konsole) ist zugänglich und in der Produktion nicht gesperrt",
+    "attack": "Angreifer verbindet sich mit dem Debug-Interface und modifiziert direkt die Laufzeit-Konfiguration, den Speicherinhalt oder persistente Parameter"
+  },
+  "T-SYS-CLO-001": {
+    "threat": "Container-Image-Manipulation",
+    "cause": "Container-Images werden beim Deployment nicht kryptographisch signiert oder verifiziert — ein manipuliertes Image kann in der Registry substituiert werden",
+    "attack": "Angreifer schiebt ein modifiziertes Container-Image in die Registry oder fängt den Image-Pull ab und ersetzt den legitimen Service durch einen bösartigen"
+  },
+  "T-SYS-MOB-001": {
+    "threat": "Manipulation des mobilen Applikations-Binaries",
+    "cause": "Applikations-Binary ist nicht gegen Repackaging geschützt — Angreifer kann bösartigen Code injizieren und die modifizierte App weiterverbreiten",
+    "attack": "Angreifer dekompiliert die App, injiziert bösartige Logik oder Backdoors, verpackt sie neu und verbreitet sie via Sideloading oder Drittanbieter-Stores"
+  },
+  "D-SYS-001": {
+    "threat": "Denial of Service auf Systemebene",
+    "cause": "Keine Ressourcenschutz- oder Watchdog-Mechanismen an der Systemgrenze — das System kann durch Ressourcenerschöpfung unavailable werden",
+    "attack": "Angreifer überflutet das System mit Anfragen oder missgeformten Eingaben und erschöpft CPU-, Speicher- oder Netzwerkressourcen bis das System nicht mehr reagiert"
+  },
+  "D-SYS-EMB-001": {
+    "threat": "Controller-Ressourcenerschöpfung via Feldbus-Flooding",
+    "cause": "Controller besitzt keine Rate-Limitierung oder Priorisierung auf dem Feldbus — alle eingehenden Frames werden unabhängig von Quelle und Volumen verarbeitet",
+    "attack": "Angreifer überflutet den Feldbus mit hochfrequenten Frames an den Controller, saturiert dessen Kommunikationsstack und entzieht Echtzeit-Steuerungsaufgaben die Prozessorzeit"
+  },
+  "D-SYS-SAF-001": {
+    "threat": "Denial of Service des Safety-Systems via Injektion ungültiger Safety-Parameter",
+    "cause": "Safety-System akzeptiert Parameter-Updates ohne strenge Quellenvalidierung oder Rate-Limitierung — ungültige Parameter können einen Schutzabschaltung auslösen",
+    "attack": "Angreifer injiziert ungültige oder außerhalb des Wertebereichs liegende Safety-Parameter und veranlasst das Safety-System damit zu einem unnötigen Schutz-Shutdown, der den gesteuerten Prozess zum Stillstand bringt"
+  },
+  "E-SYS-001": {
+    "threat": "Privilege Escalation an der Systemgrenze",
+    "cause": "Unzureichende Autorisierungsdurchsetzung an der Systemgrenze — ein Angreifer kann durch Ausnutzung von Boundary-Schwächen erhöhte Zugriffsrechte erlangen",
+    "attack": "Angreifer nutzt eine Schwachstelle an der Systemgrenze (unauthentiziertes Management-Interface, schwache Rollentrennung) aus, um administrative oder Operator-Privilegien zu erlangen"
+  },
+  "E-SYS-EMB-001": {
+    "threat": "Privilege Escalation über JTAG / SWD Debug-Interface",
+    "cause": "JTAG- oder SWD-Debug-Interface ist in der Produktion nicht deaktiviert oder gesperrt — ermöglicht vollständigen Lese-/Schreibzugriff auf Prozessorspeicher und Register",
+    "attack": "Angreifer verbindet eine Debug-Probe mit dem JTAG/SWD-Port, hält den Prozessor an, liest Security-Keys aus dem Speicher und modifiziert den Ausführungsfluss zur Umgehung der Zugriffskontrollen"
+  },
+  "E-SYS-EMB-002": {
+    "threat": "Privilege Escalation über unsigniertes Firmware-Update",
+    "cause": "Firmware-Update-Prozess erzwingt keine kryptographische Signaturprüfung — unsignierte oder schwach signierte Images werden akzeptiert",
+    "attack": "Angreifer erstellt ein Firmware-Image mit erhöhten Privilegien oder deaktivierten Sicherheitsprüfungen und liefert es über den Update-Kanal, wodurch das Gerät dauerhaft kompromittiert wird"
+  },
+  "E-SYS-CLO-001": {
+    "threat": "Privilege Escalation über fehlkonfiguriertes IAM",
+    "cause": "Übermäßig permissive IAM-Richtlinien oder fehlende Least-Privilege-Durchsetzung — eine kompromittierte Low-Privilege-Identität kann auf High-Privilege-Ressourcen zugreifen",
+    "attack": "Angreifer kompromittiert einen Low-Privilege-Service-Account und nutzt fehlkonfigurierte Rollenbindungen oder Wildcard-Berechtigungen, um zu administrativem Zugriff zu eskalieren"
   }
 }

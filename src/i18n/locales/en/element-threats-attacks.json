@@ -179,5 +179,83 @@
     "threat": "Firmware or hardware-level privilege escalation",
     "cause": "Lack of secure boot or firmware integrity validation",
     "attack": "Attacker manipulates firmware or hardware configuration to gain privileged control over the device"
+  },
+  "S-SYS-001": {
+    "threat": "System identity spoofing at system boundary",
+    "cause": "Missing or insufficient authentication at the system boundary — communicating parties cannot verify the true system identity",
+    "attack": "Attacker impersonates the system to a connected component, injecting forged responses or commands that are accepted as legitimate"
+  },
+  "S-SYS-EMB-001": {
+    "threat": "Controller identity spoofing on fieldbus",
+    "cause": "Fieldbus protocols (Modbus, CAN, Profibus) have no built-in authentication — any node can claim any device address",
+    "attack": "Attacker connects a rogue node to the fieldbus and responds to requests addressed to the legitimate controller, injecting false sensor readings or accepting commands"
+  },
+  "S-SYS-CLO-001": {
+    "threat": "Cloud service identity spoofing via token theft",
+    "cause": "Stolen or forged access tokens allow an attacker to impersonate the cloud service towards connected clients",
+    "attack": "Attacker obtains a service token (e.g., via credential leak or SSRF) and presents it to clients, diverting data flows or issuing unauthorized commands"
+  },
+
+  "T-SYS-001": {
+    "threat": "System software or configuration tampering",
+    "cause": "Insufficient integrity protection for system software, firmware, or configuration at rest or during update",
+    "attack": "Attacker modifies system software or configuration to alter system behavior, disable security controls, or introduce a backdoor"
+  },
+  "T-SYS-EMB-001": {
+    "threat": "Firmware manipulation via update channel",
+    "cause": "Unsigned or weakly authenticated firmware update mechanism — attacker can substitute a malicious firmware image",
+    "attack": "Attacker delivers a modified firmware image through the update channel (OTA, USB, JTAG) that the device accepts and executes"
+  },
+  "T-SYS-EMB-002": {
+    "threat": "Configuration tampering via debug interface",
+    "cause": "Debug or programming interface (JTAG, SWD, UART console) is accessible and not locked in production",
+    "attack": "Attacker connects to the debug interface and directly modifies runtime configuration, memory contents, or persistent parameters"
+  },
+  "T-SYS-CLO-001": {
+    "threat": "Container image tampering",
+    "cause": "Container images are not cryptographically signed or verified at deployment — a tampered image can be substituted in the registry",
+    "attack": "Attacker pushes a modified container image to the registry or intercepts the image pull, replacing the legitimate service with a malicious one"
+  },
+  "T-SYS-MOB-001": {
+    "threat": "Mobile application binary tampering",
+    "cause": "Application binary is not protected against repackaging — attacker can inject malicious code and redistribute the modified app",
+    "attack": "Attacker decompiles the app, injects malicious logic or backdoors, repackages it, and distributes it via sideloading or third-party stores"
+  },
+
+  "D-SYS-001": {
+    "threat": "System-level denial of service",
+    "cause": "No resource protection or watchdog mechanisms at the system boundary — system can be rendered unavailable by resource exhaustion",
+    "attack": "Attacker floods the system with requests or malformed inputs, exhausting CPU, memory, or network resources until the system becomes unresponsive"
+  },
+  "D-SYS-EMB-001": {
+    "threat": "Controller resource exhaustion via fieldbus flooding",
+    "cause": "Controller has no rate limiting or prioritization on the fieldbus — all incoming frames are processed regardless of source or volume",
+    "attack": "Attacker floods the fieldbus with high-frequency frames addressed to the controller, saturating its communication stack and starving real-time control tasks"
+  },
+  "D-SYS-SAF-001": {
+    "threat": "Safety system denial of service via invalid safety parameter injection",
+    "cause": "Safety system accepts parameter updates without strict source validation or rate limiting — invalid parameters can trigger protective shutdown",
+    "attack": "Attacker injects invalid or out-of-range safety parameters, causing the safety system to trigger an unnecessary protective shutdown and halt the controlled process"
+  },
+
+  "E-SYS-001": {
+    "threat": "Privilege escalation at system boundary",
+    "cause": "Insufficient authorization enforcement at the system boundary — an attacker can gain elevated access by exploiting boundary weaknesses",
+    "attack": "Attacker exploits a vulnerability at the system boundary (unauthenticated management interface, weak role separation) to obtain administrative or operator privileges"
+  },
+  "E-SYS-EMB-001": {
+    "threat": "Privilege escalation via JTAG / SWD debug interface",
+    "cause": "JTAG or SWD debug interface is not disabled or locked in production — provides full read/write access to processor memory and registers",
+    "attack": "Attacker connects a debug probe to the JTAG/SWD port, halts the processor, reads security keys from memory, and modifies execution flow to bypass access controls"
+  },
+  "E-SYS-EMB-002": {
+    "threat": "Privilege escalation via unsigned firmware update",
+    "cause": "Firmware update process does not enforce cryptographic signature verification — unsigned or weakly signed images are accepted",
+    "attack": "Attacker crafts a firmware image with elevated privileges or disabled security checks and delivers it through the update channel, permanently compromising the device"
+  },
+  "E-SYS-CLO-001": {
+    "threat": "Privilege escalation via misconfigured IAM",
+    "cause": "Overly permissive IAM policies or missing least-privilege enforcement — a compromised low-privilege identity can reach high-privilege resources",
+    "attack": "Attacker compromises a low-privilege service account and exploits misconfigured role bindings or wildcard permissions to escalate to administrative access"
   }
 }

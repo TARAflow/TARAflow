@@ -37,7 +37,8 @@
     "reset": "Zurücksetzen",
     "none": "Nichts",
     "collapse": "Zuklappen",
-    "notApplicable": "N/A – Nicht anwendbar"
+    "notApplicable": "N/A – Nicht anwendbar",
+    "not_specified": "Nicht angegeben"
   },
   "project": {
     "title": "Projekt",

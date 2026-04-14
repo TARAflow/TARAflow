@@ -299,7 +299,6 @@
             "runsAs": {
               "label": "Läuft als",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "user": "Benutzer",
                 "admin_user": "Administrator",
                 "root": "Root / Superuser",
@@ -313,7 +312,6 @@
             "processSemantic": {
               "label": "Prozess-Semantik",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "execution_unit": "Ausführungseinheit (OS/RTOS-isoliert)",
                 "functional_block": "Funktionaler Block (logisch, keine OS-Isolation)",
                 "security_boundary": "Sicherheitsgrenze (HSM, TEE, Crypto-Engine)"
@@ -323,7 +321,6 @@
             "privilegeLevel": {
               "label": "Berechtigungsstufe",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "low": "Niedrig (Benutzer)",
                 "medium": "Mittel (Dienst)",
                 "high": "Hoch (Admin)",
@@ -333,7 +330,6 @@
             "authenticationRequired": {
               "label": "Authentifizierung erforderlich",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "no": "Nein",
                 "yes": "Ja",
                 "optional": "Optional",
@@ -348,7 +344,6 @@
             "authorizationModel": {
               "label": "Autorisierungsmodell",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine",
                 "rbac": "RBAC (Rollenbasiert)",
                 "abac": "ABAC (Attributbasiert)",
@@ -359,7 +354,6 @@
             "inputValidation": {
               "label": "Eingabevalidierung",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine",
                 "basic": "Basis (Typprüfung)",
                 "strict": "Streng (Whitelist + Bereinigung)",
@@ -369,7 +363,6 @@
             "errorHandling": {
               "label": "Fehlerbehandlung",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "silent": "Still (Keine Details)",
                 "verbose": "Ausführlich (Stack-Traces)",
                 "sanitized": "Bereinigt (Benutzerfreundlich)"
@@ -385,7 +378,6 @@
             "technology": {
               "label": "Technologie",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "api": "API (REST/GraphQL)",
                 "batch": "Batch-Job",
                 "ui": "UI / Frontend",
@@ -547,6 +539,125 @@
             }
           }
         },
+        "multiprocess": {
+          "fields": {
+            "systemClass": {
+              "label": "Systemklasse",
+              "options": {
+                "embedded_controller": "Embedded Controller (SPS, CNC, Roboter, ECU)",
+                "scada_hmi": "SCADA / HMI / Leitsystem",
+                "gateway": "Gateway / Edge Device",
+                "safety_system": "Safety-System (SIS, Safety-SPS)",
+                "backend_application": "Backend-Applikation / Server",
+                "cloud_platform": "Cloud-Plattform / Service",
+                "workstation": "Workstation / Engineering-PC",
+                "mobile_device": "Mobiles Gerät / Handheld"
+              }
+            },
+            "operatingSystem": {
+              "label": "Betriebssystem",
+              "options": {
+                "none": "Bare-Metal (kein Betriebssystem)",
+                "rtos": "RTOS (FreeRTOS, Zephyr, VxWorks ...)",
+                "custom": "Proprietäres / eigenes Betriebssystem",
+                "linux_hardened": "Linux (gehärtet)",
+                "linux_standard": "Linux (Standard)",
+                "windows_hardened": "Windows (gehärtet / LTSC)",
+                "windows_standard": "Windows (Standard)",
+                "ios": "iOS",
+                "android": "Android"
+              }
+            },
+            "certificationLevel": {
+              "label": "Zertifizierungsstufe",
+              "options": {
+                "none": "Keine",
+                "iec62443_sl1": "IEC 62443 SL 1",
+                "iec62443_sl2": "IEC 62443 SL 2",
+                "iec62443_sl3": "IEC 62443 SL 3",
+                "sil1": "SIL 1 (IEC 61508)",
+                "sil2": "SIL 2 (IEC 61508)",
+                "sil3": "SIL 3 (IEC 61508)",
+                "iso21434": "ISO 21434",
+                "fips140_2": "FIPS 140-2",
+                "cc_eal2": "Common Criteria EAL 2+",
+                "cc_eal4": "Common Criteria EAL 4+"
+              }
+            },
+            "updateMechanism": {
+              "label": "Update-Mechanismus",
+              "options": {
+                "none": "Kein Update vorgesehen",
+                "manual_local": "Manuell (lokal, physischer Zugang erforderlich)",
+                "signed_local": "Signiertes Paket (lokal)",
+                "signed_ota": "Signiertes OTA",
+                "vendor_only": "Nur durch Hersteller / Lieferant",
+                "mdm_managed": "MDM-verwaltet",
+                "ci_cd": "Automatisiertes CI/CD-Deployment"
+              }
+            },
+            "exposedToInternet": {
+              "label": "Internetexponiert"
+            },
+            "remoteAccessEnabled": {
+              "label": "Fernzugriff aktiviert"
+            },
+            "airGapped": {
+              "label": "Air-Gapped (physisch isoliert)"
+            },
+            "multiTenant": {
+              "label": "Multi-Mandant (Multi-Tenant)"
+            },
+            "boundaryAuthentication": {
+              "label": "Authentifizierung an Systemgrenze",
+              "options": {
+                "none": "Keine",
+                "password": "Passwort",
+                "mfa": "Multi-Faktor (MFA)",
+                "certificate": "Zertifikat (PKI)",
+                "mtls": "Mutual TLS (mTLS)",
+                "oauth": "OAuth 2.0",
+                "apikey": "API-Schlüssel",
+                "hardware_token": "Hardware-Token"
+              }
+            },
+            "authorizationModel": {
+              "label": "Autorisierungsmodell",
+              "options": {
+                "none": "Keines",
+                "rbac": "RBAC (Rollenbasiert)",
+                "abac": "ABAC (Attributbasiert)",
+                "acl": "ACL (Zugriffskontrollliste)",
+                "capability_based": "Capability-basiert"
+              }
+            },
+            "safetyRelevant": {
+              "label": "Sicherheitsrelevantes System"
+            },
+            "safetyRationale": {
+              "label": "Safety-Begründung",
+              "placeholder": "z.B. Steuert Not-Aus. SIL-2-zertifiziert nach IEC 61508. Hardware-Watchdog, kein Remote-Update in Produktion."
+            },
+            "internalComponents": {
+              "label": "Interne Komponenten",
+              "placeholder": "z.B. RTOS Tasks: motion_ctrl, comm_stack, safety_monitor + Bootloader"
+            },
+            "securitySummary": {
+              "label": "Security-Zusammenfassung",
+              "placeholder": "z.B. SIL-2-zertifiziert, Hardware-Watchdog, kein Remote-Update, nur signierte Firmware"
+            },
+            "owner": {
+              "label": "Verantwortlicher",
+              "placeholder": "z.B. OT-Security-Team"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
+          }
+        },
         "interface": {
           "cascade_hints": {
             "usb": "USB-Schnittstellen sind häufige Angriffsflächen auf Embedded-Systemen. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle mit sicherheitskritischen Komponenten verbunden ist.",
@@ -569,13 +680,9 @@
                 "custom": "Benutzerdefiniert"
               }
             },
-            "exposureLevel": {
-              "not_specified": "Nicht angegeben"
-            },
             "accessControl": {
               "label": "Zugangskontrolle",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine",
                 "physical_lock": "Physisches Schloss",
                 "credentials": "Anmeldedaten (Benutzername / Passwort)",
@@ -586,7 +693,6 @@
             "connectionSpeed": {
               "label": "Übertragungsgeschwindigkeit",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "low": "Niedrig (< 1 Mbit/s)",
                 "medium": "Mittel (1–100 Mbit/s)",
                 "high": "Hoch (> 100 Mbit/s)"
@@ -629,7 +735,6 @@
             "entityType": {
               "label": "Entitätstyp",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "user": "Benutzer (Mensch)",
                 "admin_user": "Administrator (Mensch)",
                 "partner": "Partnersystem",
@@ -647,7 +752,6 @@
             "trustLevel": {
               "label": "Vertrauensstufe",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "low": "Niedrig (Nicht vertrauenswürdig / Öffentlich)",
                 "medium": "Mittel (Bekannter Partner)",
                 "high": "Hoch (Verifiziert / Intern)"
@@ -656,7 +760,6 @@
             "authenticationMethod": {
               "label": "Authentifizierungsmethode",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine (Anonym)",
                 "password": "Benutzername / Passwort",
                 "mfa": "Multi-Faktor-Authentifizierung",
@@ -671,7 +774,6 @@
             "ownership": {
               "label": "Eigentümerschaft",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "internal": "Intern (Gleiche Organisation)",
                 "external": "Extern (Drittpartei)",
                 "partner": "Partner / Affiliate"
@@ -680,7 +782,6 @@
             "threatActor": {
               "label": "Angenommener Bedrohungsakteur",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "benign": "Gutartig (Vertrauenswürdiger Benutzer)",
                 "curious": "Neugierig (Geringe Motivation)",
                 "malicious": "Böswillig (Aktiver Angreifer)",
@@ -730,7 +831,6 @@
             "protocol": {
               "label": "Protokoll",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "http": "HTTP",
                 "https": "HTTPS",
                 "grpc": "gRPC",
@@ -750,7 +850,6 @@
             "direction": {
               "label": "Richtung",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "unidirectional": "Unidirektional (Einweg)",
                 "bidirectional": "Bidirektional (Zweiweg)",
                 "requestresponse": "Anfrage-Antwort"
@@ -759,7 +858,6 @@
             "encryptionInTransit": {
               "label": "Verschlüsselung in Übertragung",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine (Klartext)",
                 "tls": "TLS",
                 "mtls": "mTLS (Mutual TLS)",
@@ -771,16 +869,12 @@
             "endpointAuthentication": {
               "label": "Authentifizierung der Endpunkte",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine",
                 "token": "Token / Bearer",
                 "certificate": "Zertifikat (mTLS)",
                 "apikey": "API-Schlüssel",
                 "oauth": "OAuth 2.0"
               }
-            },
-            "exposureLevel": {
-              "not_specified": "Nicht angegeben"
             },
             "integrityProtection": {
               "label": "Integritätsschutz (HMAC, Signaturen)"
@@ -793,7 +887,6 @@
             "frequency": {
               "label": "Häufigkeit",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "continuous": "Kontinuierlich / Echtzeit",
                 "periodic": "Periodisch (geplant)",
                 "ondemand": "Auf Anfrage",
@@ -832,7 +925,6 @@
             "dataClassification": {
               "label": "Datenklassifizierung",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "public": "Öffentlich",
                 "internal": "Intern",
                 "confidential": "Vertraulich",
@@ -843,7 +935,6 @@
             "encryptionAtRest": {
               "label": "Verschlüsselung im Ruhezustand",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "none": "Keine (Klartext)",
                 "yes": "Ja (Algorithmus nicht angegeben)",
                 "aes256": "AES-256",
@@ -874,7 +965,6 @@
             "technology": {
               "label": "Technologie",
               "options": {
-                "not_specified": "Nicht angegeben",
                 "database": "Datenbank (SQL/NoSQL)",
                 "filesystem": "Dateisystem",
                 "cloud": "Cloud-Speicher (S3, Blob)",

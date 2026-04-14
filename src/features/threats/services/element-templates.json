@@ -4,640 +4,474 @@
     {
       "id": "S-EE-001",
       "strideCategory": "S",
-      "elementTypes": [
-        "ExternalEntity"
-      ],
+      "elementTypes": ["ExternalEntity"],
       "context": {},
-      "mitigations": [
-        "M-S-001",
-        "M-S-002",
-        "M-S-004"
-      ],
-      "verifications": [
-        "V-S-001",
-        "V-S-002"
-      ],
+      "mitigations": ["M-S-001", "M-S-002", "M-S-004"],
+      "verifications": ["V-S-001", "V-S-002"],
       "isCustom": false
     },
     {
       "id": "S-P-001",
       "strideCategory": "S",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-S-001",
-        "M-S-003"
-      ],
-      "verifications": [
-        "V-S-001",
-        "V-S-004"
-      ],
+      "mitigations": ["M-S-001", "M-S-003"],
+      "verifications": ["V-S-001", "V-S-004"],
       "isCustom": false
     },
     {
       "id": "S-P-002",
       "strideCategory": "S",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-S-001",
-        "M-S-003"
-      ],
-      "verifications": [
-        "V-S-001",
-        "V-S-004"
-      ],
+      "mitigations": ["M-S-001", "M-S-003"],
+      "verifications": ["V-S-001", "V-S-004"],
       "isCustom": false
     },
     {
       "id": "S-P-003",
       "strideCategory": "S",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-S-001",
-        "M-S-003"
-      ],
-      "verifications": [
-        "V-S-001",
-        "V-S-004"
-      ],
+      "mitigations": ["M-S-001", "M-S-003"],
+      "verifications": ["V-S-001", "V-S-004"],
       "isCustom": false
     },
     {
       "id": "T-P-001",
       "strideCategory": "T",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-T-001",
-        "M-T-002",
-        "M-T-004"
-      ],
-      "verifications": [
-        "V-T-001",
-        "V-T-004"
-      ],
+      "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
+      "verifications": ["V-T-001", "V-T-004"],
       "isCustom": false
     },
     {
       "id": "T-P-002",
       "strideCategory": "T",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-T-001",
-        "M-T-002",
-        "M-T-004"
-      ],
-      "verifications": [
-        "V-T-001",
-        "V-T-004"
-      ],
+      "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
+      "verifications": ["V-T-001", "V-T-004"],
       "isCustom": false
     },
     {
       "id": "T-DF-001",
       "strideCategory": "T",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {},
-      "mitigations": [
-        "M-T-001",
-        "M-T-002"
-      ],
-      "verifications": [
-        "V-T-001",
-        "V-T-002"
-      ],
+      "mitigations": ["M-T-001", "M-T-002"],
+      "verifications": ["V-T-001", "V-T-002"],
       "isCustom": false
     },
     {
       "id": "T-DF-002",
       "strideCategory": "T",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {},
-      "mitigations": [
-        "M-T-001",
-        "M-T-002"
-      ],
-      "verifications": [
-        "V-T-001",
-        "V-T-002"
-      ],
+      "mitigations": ["M-T-001", "M-T-002"],
+      "verifications": ["V-T-001", "V-T-002"],
       "isCustom": false
     },
     {
       "id": "T-DS-001",
       "strideCategory": "T",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-T-001",
-        "M-T-003"
-      ],
-      "verifications": [
-        "V-T-001",
-        "V-T-003"
-      ],
+      "mitigations": ["M-T-001", "M-T-003"],
+      "verifications": ["V-T-001", "V-T-003"],
       "isCustom": false
     },
     {
       "id": "T-DS-002",
       "strideCategory": "T",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-T-001",
-        "M-T-003"
-      ],
-      "verifications": [
-        "V-T-001",
-        "V-T-003"
-      ],
+      "mitigations": ["M-T-001", "M-T-003"],
+      "verifications": ["V-T-001", "V-T-003"],
       "isCustom": false
     },
     {
       "id": "R-EE-001",
       "strideCategory": "R",
-      "elementTypes": [
-        "ExternalEntity"
-      ],
+      "elementTypes": ["ExternalEntity"],
       "context": {},
-      "mitigations": [
-        "M-R-001",
-        "M-R-002"
-      ],
-      "verifications": [
-        "V-R-001",
-        "V-R-002"
-      ],
+      "mitigations": ["M-R-001", "M-R-002"],
+      "verifications": ["V-R-001", "V-R-002"],
       "isCustom": false
     },
     {
       "id": "R-P-001",
       "strideCategory": "R",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-R-001",
-        "M-R-002"
-      ],
-      "verifications": [
-        "V-R-001",
-        "V-R-003"
-      ],
+      "mitigations": ["M-R-001", "M-R-002"],
+      "verifications": ["V-R-001", "V-R-003"],
       "isCustom": false
     },
     {
       "id": "R-P-002",
       "strideCategory": "R",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-R-001",
-        "M-R-002"
-      ],
-      "verifications": [
-        "V-R-001",
-        "V-R-003"
-      ],
+      "mitigations": ["M-R-001", "M-R-002"],
+      "verifications": ["V-R-001", "V-R-003"],
       "isCustom": false
     },
     {
       "id": "R-DS-001",
       "strideCategory": "R",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-R-001",
-        "M-R-002"
-      ],
-      "verifications": [
-        "V-R-001",
-        "V-R-002"
-      ],
+      "mitigations": ["M-R-001", "M-R-002"],
+      "verifications": ["V-R-001", "V-R-002"],
       "isCustom": false
     },
     {
       "id": "I-P-001",
       "strideCategory": "I",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-I-002",
-        "M-I-005"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-I-004"
-      ],
+      "mitigations": ["M-I-002", "M-I-005"],
+      "verifications": ["V-I-001", "V-I-004"],
       "isCustom": false
     },
     {
       "id": "I-P-002",
       "strideCategory": "I",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-I-002",
-        "M-I-005"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-I-004"
-      ],
+      "mitigations": ["M-I-002", "M-I-005"],
+      "verifications": ["V-I-001", "V-I-004"],
       "isCustom": false
     },
     {
       "id": "I-DF-001",
       "strideCategory": "I",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {},
-      "mitigations": [
-        "M-I-001",
-        "M-I-002"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-I-002"
-      ],
+      "mitigations": ["M-I-001", "M-I-002"],
+      "verifications": ["V-I-001", "V-I-002"],
       "isCustom": false
     },
     {
       "id": "I-DF-002",
       "strideCategory": "I",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {},
-      "mitigations": [
-        "M-I-001",
-        "M-I-002"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-I-002"
-      ],
+      "mitigations": ["M-I-001", "M-I-002"],
+      "verifications": ["V-I-001", "V-I-002"],
       "isCustom": false
     },
     {
       "id": "I-DS-001",
       "strideCategory": "I",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-I-001",
-        "M-I-003",
-        "M-I-004"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-I-003"
-      ],
+      "mitigations": ["M-I-001", "M-I-003", "M-I-004"],
+      "verifications": ["V-I-001", "V-I-003"],
       "isCustom": false
     },
     {
       "id": "I-DS-002",
       "strideCategory": "I",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-I-001",
-        "M-I-003",
-        "M-I-004"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-I-003"
-      ],
+      "mitigations": ["M-I-001", "M-I-003", "M-I-004"],
+      "verifications": ["V-I-001", "V-I-003"],
       "isCustom": false
     },
     {
       "id": "D-P-001",
       "strideCategory": "D",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-D-001",
-        "M-D-002",
-        "M-D-005"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-002",
-        "V-D-003"
-      ],
+      "mitigations": ["M-D-001", "M-D-002", "M-D-005"],
+      "verifications": ["V-D-001", "V-D-002", "V-D-003"],
       "isCustom": false
     },
     {
       "id": "D-P-002",
       "strideCategory": "D",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-D-001",
-        "M-D-002",
-        "M-D-005"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-002",
-        "V-D-003"
-      ],
+      "mitigations": ["M-D-001", "M-D-002", "M-D-005"],
+      "verifications": ["V-D-001", "V-D-002", "V-D-003"],
       "isCustom": false
     },
     {
       "id": "D-DF-001",
       "strideCategory": "D",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {},
-      "mitigations": [
-        "M-D-001",
-        "M-D-003"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-003"
-      ],
+      "mitigations": ["M-D-001", "M-D-003"],
+      "verifications": ["V-D-001", "V-D-003"],
       "isCustom": false
     },
     {
       "id": "D-DS-001",
       "strideCategory": "D",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-D-001",
-        "M-D-002",
-        "M-D-004"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-004"
-      ],
+      "mitigations": ["M-D-001", "M-D-002", "M-D-004"],
+      "verifications": ["V-D-001", "V-D-004"],
       "isCustom": false
     },
     {
       "id": "D-DS-002",
       "strideCategory": "D",
-      "elementTypes": [
-        "DataStore"
-      ],
+      "elementTypes": ["DataStore"],
       "context": {},
-      "mitigations": [
-        "M-D-001",
-        "M-D-002",
-        "M-D-004"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-004"
-      ],
+      "mitigations": ["M-D-001", "M-D-002", "M-D-004"],
+      "verifications": ["V-D-001", "V-D-004"],
       "isCustom": false
     },
     {
       "id": "E-P-001",
       "strideCategory": "E",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-E-001",
-        "M-E-002",
-        "M-E-003",
-        "M-E-005"
-      ],
-      "verifications": [
-        "V-E-001",
-        "V-E-002",
-        "V-E-003"
-      ],
+      "mitigations": ["M-E-001", "M-E-002", "M-E-003", "M-E-005"],
+      "verifications": ["V-E-001", "V-E-002", "V-E-003"],
       "isCustom": false
     },
     {
       "id": "E-P-002",
       "strideCategory": "E",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-E-001",
-        "M-E-002",
-        "M-E-003",
-        "M-E-005"
-      ],
-      "verifications": [
-        "V-E-001",
-        "V-E-002",
-        "V-E-003"
-      ],
+      "mitigations": ["M-E-001", "M-E-002", "M-E-003", "M-E-005"],
+      "verifications": ["V-E-001", "V-E-002", "V-E-003"],
       "isCustom": false
     },
     {
       "id": "E-P-003",
       "strideCategory": "E",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {},
-      "mitigations": [
-        "M-E-001",
-        "M-E-002",
-        "M-E-003",
-        "M-E-005"
-      ],
-      "verifications": [
-        "V-E-001",
-        "V-E-002",
-        "V-E-003"
-      ],
+      "mitigations": ["M-E-001", "M-E-002", "M-E-003", "M-E-005"],
+      "verifications": ["V-E-001", "V-E-002", "V-E-003"],
       "isCustom": false
     },
     {
       "id": "E-IF-001",
       "strideCategory": "E",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-E-006",
-        "M-IF-E-001",
-        "M-IF-E-002",
-        "M-IF-E-003"
-      ],
-      "verifications": [
-        "V-E-004",
-        "V-IF-E-001",
-        "V-IF-E-002"
-      ],
+      "mitigations": ["M-E-006", "M-IF-E-001", "M-IF-E-002", "M-IF-E-003"],
+      "verifications": ["V-E-004", "V-IF-E-001", "V-IF-E-002"],
       "isCustom": false
     },
     {
       "id": "S-IF-001",
       "strideCategory": "S",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-S-001",
-        "M-IF-S-001"
-      ],
-      "verifications": [
-        "V-S-001",
-        "V-IF-S-001"
-      ],
+      "mitigations": ["M-S-001", "M-IF-S-001"],
+      "verifications": ["V-S-001", "V-IF-S-001"],
       "isCustom": false
     },
     {
       "id": "T-IF-001",
       "strideCategory": "T",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-IF-T-001",
-        "M-IF-T-002",
-        "M-IF-T-003",
-        "M-IF-T-004"
-      ],
-      "verifications": [
-        "V-IF-T-001"
-      ],
+      "mitigations": ["M-IF-T-001", "M-IF-T-002", "M-IF-T-003", "M-IF-T-004"],
+      "verifications": ["V-IF-T-001"],
       "isCustom": false
     },
     {
       "id": "R-IF-001",
       "strideCategory": "R",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-IF-R-001"
-      ],
-      "verifications": [
-        "V-IF-R-001"
-      ],
+      "mitigations": ["M-IF-R-001"],
+      "verifications": ["V-IF-R-001"],
       "isCustom": false
     },
     {
       "id": "I-IF-001",
       "strideCategory": "I",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-IF-I-001",
-        "M-IF-I-002"
-      ],
-      "verifications": [
-        "V-IF-I-001"
-      ],
+      "mitigations": ["M-IF-I-001", "M-IF-I-002"],
+      "verifications": ["V-IF-I-001"],
       "isCustom": false
     },
     {
       "id": "D-IF-001",
       "strideCategory": "D",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-IF-D-001",
-        "M-IF-D-002"
-      ],
-      "verifications": [
-        "V-IF-D-001"
-      ],
+      "mitigations": ["M-IF-D-001", "M-IF-D-002"],
+      "verifications": ["V-IF-D-001"],
       "isCustom": false
     },
     {
       "id": "E-IF-002",
       "strideCategory": "E",
-      "elementTypes": [
-        "PhysicalInterface",
-        "Interface"
-      ],
+      "elementTypes": ["PhysicalInterface", "Interface"],
       "context": {},
-      "mitigations": [
-        "M-E-006",
-        "M-IF-E-001",
-        "M-IF-E-002",
-        "M-IF-E-003"
-      ],
-      "verifications": [
-        "V-E-004",
-        "V-IF-E-001",
-        "V-IF-E-002"
-      ],
+      "mitigations": ["M-E-006", "M-IF-E-001", "M-IF-E-002", "M-IF-E-003"],
+      "verifications": ["V-E-004", "V-IF-E-001", "V-IF-E-002"],
+      "isCustom": false
+    },
+    {
+      "id": "S-SYS-001",
+      "strideCategory": "S",
+      "elementTypes": ["Multiprocess"],
+      "context": {},
+      "mitigations": ["M-S-001", "M-S-003"],
+      "verifications": ["V-S-001", "V-S-004"],
+      "isCustom": false
+    },
+    {
+      "id": "S-SYS-EMB-001",
+      "strideCategory": "S",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Embedded", "OT"]
+      },
+      "mitigations": ["M-S-001", "M-S-002", "M-S-003"],
+      "verifications": ["V-S-001", "V-S-004"],
+      "isCustom": false
+    },
+    {
+      "id": "S-SYS-CLO-001",
+      "strideCategory": "S",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Cloud"]
+      },
+      "mitigations": ["M-S-001", "M-S-002", "M-S-004"],
+      "verifications": ["V-S-001", "V-S-003"],
+      "isCustom": false
+    },
+    {
+      "id": "T-SYS-001",
+      "strideCategory": "T",
+      "elementTypes": ["Multiprocess"],
+      "context": {},
+      "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
+      "verifications": ["V-T-001", "V-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "T-SYS-EMB-001",
+      "strideCategory": "T",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Embedded"]
+      },
+      "mitigations": ["M-T-001", "M-T-004", "M-T-005"],
+      "verifications": ["V-T-001", "V-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "T-SYS-EMB-002",
+      "strideCategory": "T",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Embedded"]
+      },
+      "mitigations": ["M-T-001", "M-T-003"],
+      "verifications": ["V-T-001", "V-T-003"],
+      "isCustom": false
+    },
+    {
+      "id": "T-SYS-CLO-001",
+      "strideCategory": "T",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Cloud"]
+      },
+      "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
+      "verifications": ["V-T-001", "V-T-002"],
+      "isCustom": false
+    },
+    {
+      "id": "T-SYS-MOB-001",
+      "strideCategory": "T",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Mobile"]
+      },
+      "mitigations": ["M-T-001", "M-T-004"],
+      "verifications": ["V-T-001", "V-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "D-SYS-001",
+      "strideCategory": "D",
+      "elementTypes": ["Multiprocess"],
+      "context": {},
+      "mitigations": ["M-D-001", "M-D-002", "M-D-005"],
+      "verifications": ["V-D-001", "V-D-002", "V-D-003"],
+      "isCustom": false
+    },
+    {
+      "id": "D-SYS-EMB-001",
+      "strideCategory": "D",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Embedded", "OT"]
+      },
+      "mitigations": ["M-D-001", "M-D-003", "M-D-005"],
+      "verifications": ["V-D-001", "V-D-003"],
+      "isCustom": false
+    },
+    {
+      "id": "D-SYS-SAF-001",
+      "strideCategory": "D",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "domain": ["Industrial"],
+        "platform": ["OT"]
+      },
+      "mitigations": ["M-D-001", "M-D-002", "M-D-004"],
+      "verifications": ["V-D-001", "V-D-004"],
+      "isCustom": false
+    },
+    {
+      "id": "E-SYS-001",
+      "strideCategory": "E",
+      "elementTypes": ["Multiprocess"],
+      "context": {},
+      "mitigations": ["M-E-001", "M-E-002", "M-E-003", "M-E-005"],
+      "verifications": ["V-E-001", "V-E-002", "V-E-003"],
+      "isCustom": false
+    },
+    {
+      "id": "E-SYS-EMB-001",
+      "strideCategory": "E",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Embedded"]
+      },
+      "mitigations": ["M-E-001", "M-E-006", "M-IF-E-001"],
+      "verifications": ["V-E-001", "V-E-004", "V-IF-E-001"],
+      "isCustom": false
+    },
+    {
+      "id": "E-SYS-EMB-002",
+      "strideCategory": "E",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Embedded"]
+      },
+      "mitigations": ["M-E-001", "M-T-004", "M-T-005"],
+      "verifications": ["V-E-001", "V-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "E-SYS-CLO-001",
+      "strideCategory": "E",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "platform": ["Cloud"]
+      },
+      "mitigations": ["M-E-001", "M-E-002", "M-E-005"],
+      "verifications": ["V-E-001", "V-E-002", "V-E-003"],
       "isCustom": false
     }
   ]
