@@ -44,9 +44,8 @@ type ViewMode = "before" | "after";
 
 export const RiskMatrix = React.memo<RiskMatrixProps>(
   ({ risks, configuration, onRiskClick }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
-    const isSimple = configuration.method === "simple";
+    const { t } = useTranslation();
+    const isSimple = configuration.method === "complex";
 
     const [selectedCell, setSelectedCell] = useState<{
       impact: number;
@@ -266,7 +265,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
           title={
             <Box>
               <Typography variant="body2" fontWeight="bold">
-                {isGerman ? cell.labelDE : cell.label}
+                {cell.label}
               </Typography>
               <Typography variant="caption">
                 {t("tabs.risks.matrix.impact", { defaultValue: "Impact" })}:{" "}
@@ -414,7 +413,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
             count > 0 ? (
               <Box>
                 <Typography variant="body2" fontWeight="bold">
-                  {isGerman ? level.labelDE : level.label}
+                  {level.label}
                 </Typography>
                 <Typography variant="caption" fontWeight="bold">
                   {count} {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
@@ -440,7 +439,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
               </Box>
             ) : (
               <Typography variant="body2">
-                {isGerman ? level.labelDE : level.label} -{" "}
+                {level.label} -{" "}
                 {t("tabs.risks.matrix.noRisks", { defaultValue: "No risks" })}
               </Typography>
             )
@@ -480,7 +479,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                 fontWeight="bold"
                 sx={{ color: "white", textAlign: "center" }}
               >
-                {isGerman ? level.labelDE : level.label}
+                {level.label}
               </Typography>
             </Box>
 
@@ -756,9 +755,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                             borderRadius: 0.5,
                           }}
                         />
-                        <Typography variant="caption">
-                          {isGerman ? level.labelDE : level.label}
-                        </Typography>
+                        <Typography variant="caption">{level.label}</Typography>
                       </Stack>
                       <Typography variant="caption" fontWeight="bold">
                         {count}
@@ -994,9 +991,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                       borderRadius: 1,
                     }}
                   />
-                  <Typography variant="caption">
-                    {isGerman ? level.labelDE : level.label}
-                  </Typography>
+                  <Typography variant="caption">{level.label}</Typography>
                 </Stack>
               ))}
             </Stack>

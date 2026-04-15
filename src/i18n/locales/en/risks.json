@@ -39,6 +39,7 @@
       "wontTableTitle": "Accepted Risks (Won't Address)",
       "wontWarning": "⚠️ Some accepted risks are missing justification. Please provide reasoning for compliance documentation.",
       "progressDone": "{{done}}/{{total}} done",
+      "assessed": "Assessed",
       "assessedTooltip": "Assessed risks / Total risks",
       "columns": {
         "threatId": "T-ID",
@@ -52,7 +53,8 @@
         "status": "Status",
         "mitigation": "Mitigation",
         "originalRisk": "Original Risk",
-        "justification": "Justification"
+        "justification": "Justification",
+        "treatment": "Treatment"
       },
       "dialog": {
         "title": "Risk Assessment: {{id}}",
@@ -83,6 +85,8 @@
         "notRated": "Not rated",
         "priority": "MoSCoW Priority",
         "status": "Status",
+        "treatment": "Risk Treatment",
+        "treatmentJustification": "Treatment Justification",
         "wontJustification": "Justification for Won't",
         "syncFromThreat": "Sync from Threat",
         "syncConfirmTitle": "Sync from Threat?",
@@ -92,11 +96,16 @@
         "newDescription": "New Description (from Threat):",
         "currentAttack": "Current Attack:",
         "newAttack": "New Attack (from Threat):",
-        "currentMitigation": "Current Mitigation:",
+        "currentMitigation": "Current Mitigation",
         "newMitigation": "New Mitigation (from Threat):",
         "threatDescriptionChanged": "Threat description has changed in the Threats tab.",
         "mitigationChanged": "Mitigation has changed in the Threats tab.",
-        "threatAndMitigationChanged": "Threat description and mitigation have changed in the Threats tab."
+        "threatAndMitigationChanged": "Threat description and mitigation have changed in the Threats tab.",
+        "tabBefore": "Risk Before",
+        "tabMitigations": "Mitigations",
+        "tabAfter": "Risk After",
+        "cause": "Root Cause",
+        "verifications": "Proposed Verifications"
       },
       "config": {
         "title": "Risk Assessment Configuration",
@@ -104,8 +113,6 @@
         "factorsTab": "Factors",
         "displayTab": "Display",
         "assessmentMethod": "Risk Assessment Method",
-        "simpleMethod": "Simple (DREAD-like)",
-        "simpleDesc": "Combined factors with single overall risk score. Simpler to use, good for quick assessments.",
         "complexMethod": "Complex (OWASP/ETSI-like)",
         "complexDesc": "Separate Impact and Likelihood factors. More detailed analysis, industry standard methodologies.",
         "ratingScale": "Rating Scale",
@@ -132,7 +139,14 @@
         "roundingRoundDesc": "Symmetric thresholds at .5 boundaries",
         "roundingCeil": "Conservative",
         "roundingCeilTitle": "Conservative Rounding (Math.ceil)",
-        "roundingCeilDesc": "Always rounds up to higher risk level"
+        "roundingCeilDesc": "Always rounds up to higher risk level",
+        "assetImpact": "Asset Impact",
+        "useAssetImpact": "Pre-fill Impact from linked Asset severity",
+        "useAssetImpactDesc": "When enabled, the worst aggregated impact of linked assets is used as the default Impact factor value. Analyst can still override per risk.",
+        "assetImpactMapping": "Asset Impact → Risk Scale Mapping",
+        "assetImpactMappingHint": "Default mapping resets when scale changes.",
+        "en50742Factors": "EN 50742 Attacker Potential Factors",
+        "attackerPotential": "Attacker Potential (AP = EL×WoO + AC)"
       },
       "matrix": {
         "title": "Risk Matrix",
@@ -158,9 +172,208 @@
         "mitigationProgress": "Mitigation Progress",
         "rated": "rated"
       },
+      "status": {
+        "label": "Status",
+        "open": {
+          "label": "Open"
+        },
+        "mitigated": {
+          "label": "Mitigated"
+        },
+        "accepted": {
+          "label": "Accepted"
+        },
+        "in-review": {
+          "label": "In Review"
+        },
+        "wont-do": {
+          "label": "Won't Do"
+        }
+      },
       "physicalInterfaces": "Physical Interfaces",
       "priority": "Priority",
-      "status": "Status"
+      "uncertainWarning": "{{count}} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab."
+    }
+  },
+  "risks": {
+    "scale": {
+      "unrated": "-",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "very_high": "Very High",
+      "critical": "Critical"
+    },
+    "treatment": {
+      "eliminate": {
+        "label": "Eliminate",
+        "description": "Remove the risk source entirely"
+      },
+      "reduce": {
+        "label": "Reduce",
+        "description": "Mitigate via countermeasures"
+      },
+      "accept": {
+        "label": "Accept",
+        "description": "Consciously retain the risk without action"
+      },
+      "transfer": {
+        "label": "Transfer",
+        "description": "Move risk to third party"
+      },
+      "share": {
+        "label": "Share",
+        "description": "Distribute risk across multiple parties"
+      }
+    },
+    "moscow": {
+      "must": {
+        "label": "Must",
+        "description": "Critical - must be addressed"
+      },
+      "should": {
+        "label": "Should",
+        "description": "Important - should be addressed if possible"
+      },
+      "could": {
+        "label": "Could",
+        "description": "Nice to have - could be addressed"
+      },
+      "wont": {
+        "label": "Won't",
+        "description": "Accepted risk - won't be addressed this iteration"
+      }
+    },
+    "status": {
+      "open": {
+        "label": "Open"
+      },
+      "in_review": {
+        "label": "In Review"
+      },
+      "mitigated": {
+        "label": "Mitigated"
+      },
+      "accepted": {
+        "label": "Accepted"
+      },
+      "wont_do": {
+        "label": "Won't Do"
+      }
+    },
+    "factors": {
+      "damage_potential": {
+        "name": "Damage Potential",
+        "description": "How much damage could result from the threat?"
+      },
+      "reproducibility": {
+        "name": "Reproducibility",
+        "description": "How easy is it to reproduce the attack?"
+      },
+      "exploitability": {
+        "name": "Exploitability",
+        "description": "How much skill is needed to exploit the vulnerability?"
+      },
+      "affected_users": {
+        "name": "Affected Users",
+        "description": "How many users would be affected?"
+      },
+      "discoverability": {
+        "name": "Discoverability",
+        "description": "How easy is it to discover the vulnerability?"
+      },
+      "skill_level": {
+        "name": "Skill Level",
+        "description": "How technically skilled is the attacker?"
+      },
+      "motive": {
+        "name": "Motive",
+        "description": "How motivated is the attacker?"
+      },
+      "opportunity": {
+        "name": "Opportunity",
+        "description": "What resources and opportunities are required?"
+      },
+      "size": {
+        "name": "Size",
+        "description": "How large is the group of potential attackers?"
+      },
+      "ease_of_discovery": {
+        "name": "Ease of Discovery",
+        "description": "How easy is it to find the vulnerability?"
+      },
+      "ease_of_exploit": {
+        "name": "Ease of Exploit",
+        "description": "How easy is it to actually exploit the vulnerability?"
+      },
+      "awareness": {
+        "name": "Awareness",
+        "description": "How well known is the vulnerability?"
+      },
+      "intrusion_detection": {
+        "name": "Intrusion Detection",
+        "description": "How likely is detection of an exploit?"
+      },
+      "loss_of_confidentiality": {
+        "name": "Loss of Confidentiality",
+        "description": "How much data could be disclosed?"
+      },
+      "loss_of_integrity": {
+        "name": "Loss of Integrity",
+        "description": "How much data could be corrupted?"
+      },
+      "loss_of_availability": {
+        "name": "Loss of Availability",
+        "description": "How much service could be lost?"
+      },
+      "loss_of_accountability": {
+        "name": "Loss of Accountability",
+        "description": "Are actions traceable to the attacker?"
+      },
+      "financial_damage": {
+        "name": "Financial Damage",
+        "description": "How much financial damage would result?"
+      },
+      "reputation_damage": {
+        "name": "Reputation Damage",
+        "description": "Would reputation be affected?"
+      },
+      "non_compliance": {
+        "name": "Non-Compliance",
+        "description": "How much regulation exposure?"
+      },
+      "privacy_violation": {
+        "name": "Privacy Violation",
+        "description": "How much personally identifiable information affected?"
+      },
+      "knowledge": {
+        "name": "Knowledge Factor",
+        "description": "Required knowledge to exploit"
+      },
+      "expertise": {
+        "name": "Expertise Factor",
+        "description": "Required expertise level"
+      },
+      "time": {
+        "name": "Time Factor",
+        "description": "Time required to exploit"
+      },
+      "equipment": {
+        "name": "Equipment Factor",
+        "description": "Equipment required to exploit"
+      },
+      "window_of_opportunity": {
+        "name": "Window of Opportunity (WoO)",
+        "description": "How long is the vulnerability accessible to an attacker?"
+      },
+      "attacker_capability": {
+        "name": "Attacker Capability (AC)",
+        "description": "Skill level, motivation and resources of a potential attacker."
+      },
+      "exposure_level": {
+        "name": "Exposure Level (EL)",
+        "description": "How exposed is the asset or system to potential attackers?"
+      }
     }
   }
 }

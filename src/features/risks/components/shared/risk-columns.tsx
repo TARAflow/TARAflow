@@ -1,10 +1,10 @@
+import React from "react";
+// ==================== RISK COLUMNS ====================
+// Column definitions for Risk MUI Table.
+// Uses RiskColumn[] instead of GridColDef[] — no DataGrid dependency.
+
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  GridColDef,
-  GridActionsCellItem,
-  GridRenderCellParams,
-} from "@mui/x-data-grid";
 import {
   Box,
   Chip,
@@ -14,6 +14,7 @@ import {
   FormControl,
   Select,
   MenuItem,
+  IconButton,
 } from "@mui/material";
 import { Edit as EditIcon } from "@mui/icons-material";
 import {
@@ -23,14 +24,28 @@ import {
   RiskStatus,
   MOSCOW_PRIORITIES,
   RISK_STATUSES,
-  getRiskColor,
-  getRiskLabel,
+  RISK_TREATMENTS,
   getFactorDefinition,
 } from "../../models/risk-types";
+import {
+  getRiskColor,
+  getRiskLabel,
+} from "../../services/risk-calculation-service";
 import type { StrideCategory } from "shared";
 
-const MOSCOW_MAP = new Map(MOSCOW_PRIORITIES.map((p) => [p.value, p]));
-const STATUS_MAP = new Map(RISK_STATUSES.map((s) => [s.value, s]));
+// ==================== COLUMN TYPE ====================
+
+export interface RiskColumn {
+  id: string;
+  header: string;
+  width?: number;
+  minWidth?: number;
+  flex?: number;
+  align?: "left" | "center" | "right";
+  renderCell: (risk: Risk) => React.ReactNode;
+}
+
+// ==================== CONSTANTS ====================
 
 const STRIDE_COLORS: Record<StrideCategory, string> = {
   S: "#ef4444",
@@ -41,15 +56,100 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
   E: "#a855f7",
 };
 
+const TREATMENT_MAP = new Map(RISK_TREATMENTS.map((tr) => [tr.value, tr]));
+
+// ── Stable sub-components (defined outside hook to prevent re-mounting) ──────
+
+interface FactorTooltipContentProps {
+  lines: string;
+  label: string | null;
+  color: string | null;
+}
+
+const FactorTooltipContent: React.FC<FactorTooltipContentProps> = ({
+  lines,
+  label,
+  color,
+}) => (
+  <Box sx={{ whiteSpace: "pre-line" }}>
+    <Typography variant="caption" fontWeight="bold" display="block" mb={0.5}>
+      Factor Breakdown
+    </Typography>
+    {lines}
+    {label && (
+      <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(255,255,255,0.3)" }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              bgcolor: color ?? "grey.400",
+              border: "1px solid rgba(255,255,255,0.5)",
+            }}
+          />
+          <Typography variant="caption" fontWeight="bold">
+            {label}
+          </Typography>
+        </Stack>
+      </Box>
+    )}
+  </Box>
+);
+
+interface RiskChipProps {
+  value: number;
+  scale: string;
+  rounding: string;
+  tooltipLines: string;
+  tooltipLabel: string | null;
+  tooltipColor: string | null;
+}
+
+const RiskChipCell: React.FC<RiskChipProps> = ({
+  value,
+  scale,
+  rounding,
+  tooltipLines,
+  tooltipLabel,
+  tooltipColor,
+}) => (
+  <Tooltip
+    title={
+      <FactorTooltipContent
+        lines={tooltipLines}
+        label={tooltipLabel}
+        color={tooltipColor}
+      />
+    }
+    arrow
+  >
+    <Chip
+      label={value > 0 ? value.toFixed(1) : "–"}
+      size="small"
+      sx={{
+        bgcolor: getRiskColor(value, scale as any, rounding as any),
+        color: "white",
+        fontWeight: "bold",
+        cursor: "help",
+        minWidth: 40,
+      }}
+    />
+  </Tooltip>
+);
+
+// ==================== HOOK ====================
+
 interface UseRiskColumnsProps {
   configuration: RiskConfiguration;
   onEdit: (risk: Risk) => void;
   onPriorityChange: (
     riskId: string,
     priority: string,
-    justification?: string
+    justification?: string,
   ) => void;
   onStatusChange: (riskId: string, status: string) => void;
+  onTreatmentChange: (riskId: string, treatment: string) => void;
 }
 
 export const useRiskColumns = ({
@@ -57,82 +157,73 @@ export const useRiskColumns = ({
   onEdit,
   onPriorityChange,
   onStatusChange,
-}: UseRiskColumnsProps) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  onTreatmentChange,
+}: UseRiskColumnsProps): RiskColumn[] => {
+  const { t } = useTranslation();
 
-  const columns = useMemo<GridColDef<Risk>[]>(() => {
-    // Helper function to create factor breakdown tooltip
-    const getFactorBreakdownTooltip = (
-      risk: Risk,
-      isMitigated: boolean = false
-    ) => {
-      const ratings = isMitigated
+  return useMemo<RiskColumn[]>(() => {
+    // ── Factor breakdown tooltip helper ────────────────────────────────────
+    const factorTooltip = (risk: Risk, mitigated = false) => {
+      const ratings = mitigated
         ? risk.mitigatedFactorRatings
         : risk.factorRatings;
-      const riskValue = isMitigated
+      const value = mitigated
         ? risk.calculatedRiskAfterMitigation
         : risk.calculatedRiskBeforeMitigation;
-
-      if (!ratings || ratings.length === 0) {
+      if (!ratings?.length)
         return {
-          factors: t("tabs.risks.dialog.notRated", {
-            defaultValue: "Not rated",
-          }),
-          riskLevel: null,
-          riskColor: null,
+          lines: t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" }),
+          value,
+          color: null,
+          label: null,
         };
-      }
-
       const lines = ratings
-        .map((rating) => {
+        .map((r) => {
           const def = getFactorDefinition(
-            rating.factorId,
-            configuration.customFactors
+            r.factorId,
+            configuration.customFactors,
           );
           if (!def) return null;
-          const factorName = isGerman ? def.nameDE : def.name;
-          const value = rating.value > 0 ? rating.value.toFixed(1) : "-";
-          return `${factorName}: ${value}`;
+          return `${def.name}: ${r.value > 0 ? r.value.toFixed(1) : "-"}`;
         })
-        .filter(Boolean);
-
+        .filter(Boolean)
+        .join("\n");
       return {
-        factors: lines.join("\n"),
-        riskLevel: getRiskLabel(
-          riskValue,
+        lines,
+        value,
+        color: getRiskColor(
+          value,
           configuration.scale,
-          isGerman,
-          configuration.roundingMethod
+          configuration.roundingMethod,
         ),
-        riskColor: getRiskColor(
-          riskValue,
+        label: getRiskLabel(
+          value,
           configuration.scale,
-          configuration.roundingMethod
+          configuration.roundingMethod,
         ),
-        riskValue: riskValue,
       };
     };
 
-    const baseColumns: GridColDef<Risk>[] = [
+    // ── Risk score chip — uses stable RiskChipCell defined outside hook ────────
+    // (inline component definitions inside useMemo cause React to re-mount on every render)
+
+    // ── Base columns ────────────────────────────────────────────────────────
+    const cols: RiskColumn[] = [
       {
-        field: "threatId",
-        headerName: t("tabs.risks.columns.threatId", {
-          defaultValue: "T-ID",
-        }),
-        width: 120,
-        renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Tooltip title={params.value || ""} placement="top">
+        id: "threatId",
+        header: t("tabs.risks.columns.threatId", { defaultValue: "T-ID" }),
+        width: 80,
+        renderCell: (risk) => (
+          <Tooltip title={risk.threatId} placement="top">
             <Chip
-              label={params.value}
+              label={risk.threatId}
               size="small"
               sx={{
-                backgroundColor:
-                  STRIDE_COLORS[params.row.strideCategory] || "#9ca3af",
+                bgcolor: STRIDE_COLORS[risk.strideCategory] ?? "#9ca3af",
                 color: "white",
                 fontWeight: "bold",
-                fontSize: "0.75rem",
-                maxWidth: "100%",
+                fontSize: "0.7rem",
+                maxWidth: 100,
                 "& .MuiChip-label": {
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -143,617 +234,289 @@ export const useRiskColumns = ({
         ),
       },
       {
-        field: "strideCategory",
-        headerName: t("tabs.risks.columns.stride", {
-          defaultValue: "STRIDE",
-        }),
-        width: 70,
-        align: "center",
-        renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Chip
-            label={params.value}
-            size="small"
-            sx={{
-              backgroundColor: STRIDE_COLORS[params.value as StrideCategory],
-              color: "white",
-              fontWeight: "bold",
-              minWidth: 32,
-            }}
-          />
-        ),
-      },
-      {
-        field: "threatDescription",
-        headerName: t("tabs.risks.columns.threat", {
-          defaultValue: "Threat",
-        }),
+        id: "threatDescription",
+        header: t("tabs.risks.columns.threat", { defaultValue: "Threat" }),
         flex: 1,
-        minWidth: 200,
-        renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Tooltip title={params.value || ""}>
+        minWidth: 120,
+        renderCell: (risk) => (
+          <Tooltip title={risk.threatDescription ?? ""}>
             <Typography
               variant="body2"
               sx={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                fontSize: "0.8rem",
               }}
             >
-              {params.value || "-"}
+              {risk.threatDescription || "–"}
             </Typography>
           </Tooltip>
         ),
       },
     ];
 
-    // Risk columns based on method
-    const riskBeforeColumns: GridColDef<Risk>[] =
-      configuration.method === "simple"
-        ? [
-            {
-              field: "calculatedRiskBeforeMitigation",
-              headerName: t("tabs.risks.columns.riskBefore", {
-                defaultValue: "Risk (Before)",
-              }),
-              width: 100,
-              align: "center",
-              renderCell: (params: GridRenderCellParams<Risk>) => {
-                const value = params.value as number;
-                const tooltipData = getFactorBreakdownTooltip(
-                  params.row,
-                  false
-                );
-                return (
-                  <Tooltip
-                    title={
-                      <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography
-                          variant="caption"
-                          fontWeight="bold"
-                          display="block"
-                        >
-                          {t("tabs.risks.dialog.riskFactors", {
-                            defaultValue: "Factor Breakdown",
-                          })}
-                        </Typography>
-                        {tooltipData.factors}
-                        {tooltipData.riskLevel && (
-                          <Box
-                            sx={{
-                              mt: 1,
-                              pt: 1,
-                              borderTop: "1px solid rgba(255,255,255,0.3)",
-                            }}
-                          >
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                            >
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: "50%",
-                                  backgroundColor: tooltipData.riskColor,
-                                  border: "1px solid rgba(255,255,255,0.5)",
-                                }}
-                              />
-                              <Typography variant="caption" fontWeight="bold">
-                                {tooltipData.riskLevel}
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Chip
-                      label={value > 0 ? value.toFixed(1) : "-"}
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          value,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                        fontWeight: "bold",
-                        cursor: "help",
-                      }}
-                    />
-                  </Tooltip>
-                );
-              },
-            },
-          ]
-        : [
-            {
-              field: "calculatedImpact",
-              headerName: t("tabs.risks.columns.impact", {
-                defaultValue: "Impact",
-              }),
-              width: 80,
-              align: "center",
-              renderCell: (params: GridRenderCellParams<Risk>) => {
-                const value = params.value as number;
-                const impactFactors = params.row.factorRatings.filter((r) => {
-                  const def = getFactorDefinition(
-                    r.factorId,
-                    configuration.customFactors
-                  );
-                  return def?.category === "impact";
-                });
-                const tooltipLines = impactFactors
-                  .map((r) => {
-                    const def = getFactorDefinition(
-                      r.factorId,
-                      configuration.customFactors
-                    );
-                    return `${isGerman ? def?.nameDE : def?.name}: ${
-                      r.value > 0 ? r.value.toFixed(1) : "-"
-                    }`;
-                  })
-                  .join("\n");
-
-                return (
-                  <Tooltip
-                    title={
-                      <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography
-                          variant="caption"
-                          fontWeight="bold"
-                          display="block"
-                        >
-                          {t("tabs.risks.dialog.impactFactors", {
-                            defaultValue: "Impact Factors",
-                          })}
-                        </Typography>
-                        {tooltipLines || "-"}
-                        {value > 0 && (
-                          <Box
-                            sx={{
-                              mt: 1,
-                              pt: 1,
-                              borderTop: "1px solid rgba(255,255,255,0.3)",
-                            }}
-                          >
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                            >
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: "50%",
-                                  backgroundColor: getRiskColor(
-                                    value,
-                                    configuration.scale,
-                                    configuration.roundingMethod
-                                  ),
-                                  border: "1px solid rgba(255,255,255,0.5)",
-                                }}
-                              />
-                              <Typography variant="caption" fontWeight="bold">
-                                {getRiskLabel(
-                                  value,
-                                  configuration.scale,
-                                  isGerman,
-                                  configuration.roundingMethod
-                                )}
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Chip
-                      label={value > 0 ? value.toFixed(1) : "-"}
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          value,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                        cursor: "help",
-                      }}
-                    />
-                  </Tooltip>
-                );
-              },
-            },
-            {
-              field: "calculatedLikelihood",
-              headerName: t("tabs.risks.columns.likelihood", {
-                defaultValue: "Likelihood",
-              }),
-              width: 90,
-              align: "center",
-              renderCell: (params: GridRenderCellParams<Risk>) => {
-                const value = params.value as number;
-                const likelihoodFactors = params.row.factorRatings.filter(
-                  (r) => {
-                    const def = getFactorDefinition(
-                      r.factorId,
-                      configuration.customFactors
-                    );
-                    return def?.category === "likelihood";
-                  }
-                );
-                const tooltipLines = likelihoodFactors
-                  .map((r) => {
-                    const def = getFactorDefinition(
-                      r.factorId,
-                      configuration.customFactors
-                    );
-                    return `${isGerman ? def?.nameDE : def?.name}: ${
-                      r.value > 0 ? r.value.toFixed(1) : "-"
-                    }`;
-                  })
-                  .join("\n");
-
-                return (
-                  <Tooltip
-                    title={
-                      <Box sx={{ whiteSpace: "pre-line" }}>
-                        <Typography
-                          variant="caption"
-                          fontWeight="bold"
-                          display="block"
-                        >
-                          {t("tabs.risks.dialog.likelihoodFactors", {
-                            defaultValue: "Likelihood Factors",
-                          })}
-                        </Typography>
-                        {tooltipLines || "-"}
-                        {value > 0 && (
-                          <Box
-                            sx={{
-                              mt: 1,
-                              pt: 1,
-                              borderTop: "1px solid rgba(255,255,255,0.3)",
-                            }}
-                          >
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                            >
-                              <Box
-                                sx={{
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: "50%",
-                                  backgroundColor: getRiskColor(
-                                    value,
-                                    configuration.scale,
-                                    configuration.roundingMethod
-                                  ),
-                                  border: "1px solid rgba(255,255,255,0.5)",
-                                }}
-                              />
-                              <Typography variant="caption" fontWeight="bold">
-                                {getRiskLabel(
-                                  value,
-                                  configuration.scale,
-                                  isGerman,
-                                  configuration.roundingMethod
-                                )}
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Chip
-                      label={value > 0 ? value.toFixed(1) : "-"}
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          value,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                        cursor: "help",
-                      }}
-                    />
-                  </Tooltip>
-                );
-              },
-            },
-            {
-              field: "calculatedRiskBeforeMitigation",
-              headerName: t("tabs.risks.columns.riskBefore", {
-                defaultValue: "Risk",
-              }),
-              width: 80,
-              align: "center",
-              renderCell: (params: GridRenderCellParams<Risk>) => {
-                const value = params.value as number;
-                return (
-                  <Tooltip
-                    title={
-                      value > 0 ? (
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Box
-                            sx={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: "50%",
-                              backgroundColor: getRiskColor(
-                                value,
-                                configuration.scale,
-                                configuration.roundingMethod
-                              ),
-                              border: "1px solid rgba(255,255,255,0.5)",
-                            }}
-                          />
-                          <Typography variant="caption" fontWeight="bold">
-                            {getRiskLabel(
-                              value,
-                              configuration.scale,
-                              isGerman,
-                              configuration.roundingMethod
-                            )}
-                          </Typography>
-                        </Stack>
-                      ) : (
-                        t("tabs.risks.dialog.notRated", {
-                          defaultValue: "Not rated",
-                        })
-                      )
-                    }
-                    arrow
-                  >
-                    <Chip
-                      label={value > 0 ? value.toFixed(1) : "-"}
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          value,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                        fontWeight: "bold",
-                        cursor: "help",
-                      }}
-                    />
-                  </Tooltip>
-                );
-              },
-            },
-          ];
-
-    // Risk After column (only for simple method)
-    const riskAfterColumn: GridColDef<Risk> | null =
-      configuration.method === "simple"
-        ? {
-            field: "calculatedRiskAfterMitigation",
-            headerName: t("tabs.risks.columns.riskAfter", {
-              defaultValue: "Risk (After)",
-            }),
-            width: 100,
-            align: "center",
-            renderCell: (params: GridRenderCellParams<Risk>) => {
-              const value = params.value as number;
-              const tooltipData = getFactorBreakdownTooltip(params.row, true);
-              return (
-                <Tooltip
-                  title={
-                    <Box sx={{ whiteSpace: "pre-line" }}>
-                      <Typography
-                        variant="caption"
-                        fontWeight="bold"
-                        display="block"
-                      >
-                        {t("tabs.risks.dialog.riskFactorsAfter", {
-                          defaultValue: "Factor Breakdown (After)",
-                        })}
-                      </Typography>
-                      {tooltipData.factors}
-                      {tooltipData.riskLevel && (
-                        <Box
-                          sx={{
-                            mt: 1,
-                            pt: 1,
-                            borderTop: "1px solid rgba(255,255,255,0.3)",
-                          }}
-                        >
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="center"
-                          >
-                            <Box
-                              sx={{
-                                width: 12,
-                                height: 12,
-                                borderRadius: "50%",
-                                backgroundColor: tooltipData.riskColor,
-                                border: "1px solid rgba(255,255,255,0.5)",
-                              }}
-                            />
-                            <Typography variant="caption" fontWeight="bold">
-                              {tooltipData.riskLevel}
-                            </Typography>
-                          </Stack>
-                        </Box>
-                      )}
-                    </Box>
-                  }
-                  arrow
-                >
-                  <Chip
-                    label={value > 0 ? value.toFixed(1) : "-"}
-                    size="small"
-                    sx={{
-                      backgroundColor: getRiskColor(
-                        value,
-                        configuration.scale,
-                        configuration.roundingMethod
-                      ),
-                      color: "white",
-                      fontWeight: "bold",
-                      cursor: "help",
-                    }}
-                  />
-                </Tooltip>
-              );
-            },
-          }
-        : null;
-
-    // Priority & Status columns
-    const priorityStatusColumns: GridColDef<Risk>[] = [
+    // ── Risk before ─────────────────────────────────────────────────────────
+    // if (configuration.method === "simple") {
+    //   cols.push({
+    //     id: "riskBefore",
+    //     header: t("tabs.risks.columns.riskBefore", {
+    //       defaultValue: "Risk (Before)",
+    //     }),
+    //     width: 80,
+    //     align: "center",
+    //     renderCell: (risk) => {
+    //       const d = factorTooltip(risk, false);
+    //       return (
+    //         <RiskChipCell
+    //           value={risk.calculatedRiskBeforeMitigation}
+    //           scale={configuration.scale}
+    //           rounding={configuration.roundingMethod}
+    //           tooltipLines={d.lines}
+    //           tooltipLabel={d.label}
+    //           tooltipColor={d.color}
+    //         />
+    //       );
+    //     },
+    //   });
+    // } else {
+    cols.push(
       {
-        field: "moscowPriority",
-        headerName: t("tabs.risks.columns.priority", {
-          defaultValue: "Priority",
-        }),
-        width: 110,
-        renderCell: (params: GridRenderCellParams<Risk>) => {
-          const priority = MOSCOW_MAP.get(params.value);
+        id: "impact",
+        header: t("tabs.risks.columns.impact", { defaultValue: "Impact" }),
+        width: 80,
+        align: "center",
+        renderCell: (risk) => {
+          const d = factorTooltip(risk, false);
           return (
-            <FormControl size="small" fullWidth>
-              <Select
-                value={params.value}
-                onChange={(e) =>
-                  onPriorityChange(params.row.id, e.target.value)
-                }
-                size="small"
-                sx={{
-                  fontSize: "0.75rem",
-                  "& .MuiSelect-select": { py: 0.5 },
-                }}
-              >
-                {MOSCOW_PRIORITIES.map((p) => (
-                  <MenuItem key={p.value} value={p.value}>
-                    <Chip
-                      label={isGerman ? p.labelDE : p.label}
-                      size="small"
-                      sx={{
-                        backgroundColor: p.color,
-                        color: "white",
-                        fontSize: "0.65rem",
-                      }}
-                    />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <RiskChipCell
+              value={risk.calculatedImpact}
+              scale={configuration.scale}
+              rounding={configuration.roundingMethod}
+              tooltipLines={d.lines}
+              tooltipLabel={d.label}
+              tooltipColor={d.color}
+            />
           );
         },
       },
       {
-        field: "status",
-        headerName: t("tabs.risks.columns.status", {
-          defaultValue: "Status",
+        id: "likelihood",
+        header: t("tabs.risks.columns.likelihood", {
+          defaultValue: "Likelihood",
         }),
-        width: 120,
-        renderCell: (params: GridRenderCellParams<Risk>) => {
-          const status = RISK_STATUSES.find((s) => s.value === params.value);
+        width: 80,
+        align: "center",
+        renderCell: (risk) => {
+          const d = factorTooltip(risk, false);
           return (
-            <FormControl size="small" fullWidth>
-              <Select
-                value={params.value}
-                onChange={(e) => onStatusChange(params.row.id, e.target.value)}
-                size="small"
-                sx={{
-                  fontSize: "0.75rem",
-                  "& .MuiSelect-select": { py: 0.5 },
-                }}
-              >
-                {RISK_STATUSES.map((s) => (
-                  <MenuItem key={s.value} value={s.value}>
-                    <Chip
-                      label={isGerman ? s.labelDE : s.label}
-                      size="small"
-                      sx={{
-                        backgroundColor: s.color,
-                        color: "white",
-                        fontSize: "0.65rem",
-                      }}
-                    />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <RiskChipCell
+              value={risk.calculatedLikelihood}
+              scale={configuration.scale}
+              rounding={configuration.roundingMethod}
+              tooltipLines={d.lines}
+              tooltipLabel={d.label}
+              tooltipColor={d.color}
+            />
           );
         },
       },
-    ];
+      {
+        id: "riskBefore",
+        header: t("tabs.risks.columns.riskBefore", { defaultValue: "Risk" }),
+        width: 80,
+        align: "center",
+        renderCell: (risk) => {
+          const d = factorTooltip(risk, false);
+          return (
+            <RiskChipCell
+              value={risk.calculatedRiskBeforeMitigation}
+              scale={configuration.scale}
+              rounding={configuration.roundingMethod}
+              tooltipLines={d.lines}
+              tooltipLabel={d.label}
+              tooltipColor={d.color}
+            />
+          );
+        },
+      },
+    );
+    // }
 
-    // Mitigation column
-    const mitigationColumn: GridColDef<Risk> = {
-      field: "selectedMitigations",
-      headerName: t("tabs.risks.columns.mitigation", {
+    // ── Mitigation ──────────────────────────────────────────────────────────
+    cols.push({
+      id: "mitigation",
+      header: t("tabs.risks.columns.mitigation", {
         defaultValue: "Mitigation",
       }),
-      flex: 0.8,
-      minWidth: 150,
-      renderCell: (params: GridRenderCellParams<Risk>) => {
-        const mitigations = params.value as string[];
-        if (!mitigations || mitigations.length === 0) {
+      flex: 0.5,
+      minWidth: 100,
+      renderCell: (risk) => {
+        const text = risk.selectedMitigations.join("; ");
+        if (!text)
           return (
-            <Typography variant="body2" color="text.disabled">
-              -
+            <Typography
+              variant="body2"
+              color="text.disabled"
+              sx={{ fontSize: "0.8rem" }}
+            >
+              –
             </Typography>
           );
-        }
-        const combined = mitigations.join("; ");
         return (
-          <Tooltip title={combined}>
+          <Tooltip title={text}>
             <Typography
               variant="body2"
               sx={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                fontSize: "0.8rem",
               }}
             >
-              {combined}
+              {text}
             </Typography>
           </Tooltip>
         );
       },
-    };
+    });
 
-    // Actions column
-    const actionsColumn: GridColDef<Risk> = {
-      field: "actions",
-      type: "actions",
-      headerName: t("common.actions", { defaultValue: "Actions" }),
-      width: 60,
-      getActions: (params) => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditIcon />}
-          label={t("common.edit", { defaultValue: "Edit" })}
-          onClick={() => onEdit(params.row)}
-        />,
-      ],
-    };
+    // ── Risk after ──────────────────────────────────────────────────────────
+    cols.push({
+      id: "riskAfter",
+      header: t("tabs.risks.columns.riskAfter", {
+        defaultValue: "Risk (After)",
+      }),
+      width: 80,
+      align: "center",
+      renderCell: (risk) => {
+        const d = factorTooltip(risk, true);
+        return (
+          <RiskChipCell
+            value={risk.calculatedRiskAfterMitigation}
+            scale={configuration.scale}
+            rounding={configuration.roundingMethod}
+            tooltipLines={d.lines}
+            tooltipLabel={d.label}
+            tooltipColor={d.color}
+          />
+        );
+      },
+    });
 
-    return [
-      ...baseColumns,
-      ...riskBeforeColumns,
-      mitigationColumn,
-      ...(riskAfterColumn ? [riskAfterColumn] : []),
-      ...priorityStatusColumns,
-      actionsColumn,
-    ];
-  }, [configuration, t, isGerman, onEdit, onPriorityChange, onStatusChange]);
+    // ── Treatment ────────────────────────────────────────────────────────────
+    cols.push({
+      id: "treatment",
+      header: t("tabs.risks.columns.treatment", { defaultValue: "Treatment" }),
+      width: 120,
+      renderCell: (risk) => (
+        <FormControl size="small" fullWidth>
+          <Select
+            value={risk.treatment}
+            onChange={(e) => onTreatmentChange(risk.id, e.target.value)}
+            size="small"
+            sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
+          >
+            {RISK_TREATMENTS.map((tr) => (
+              <MenuItem key={tr.value} value={tr.value}>
+                <Tooltip
+                  title={t(`risks.treatment.${tr.value}.description`, {
+                    defaultValue: tr.description,
+                  })}
+                >
+                  <Chip
+                    label={t(`risks.treatment.${tr.value}.label`, {
+                      defaultValue: tr.label,
+                    })}
+                    size="small"
+                    sx={{
+                      minWidth: 55,
+                      bgcolor: tr.color,
+                      color: "white",
+                      fontSize: "0.65rem",
+                    }}
+                  />
+                </Tooltip>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      ),
+    });
 
-  return columns;
+    // ── MoSCoW priority (inline select) ────────────────────────────────────
+    cols.push({
+      id: "moscowPriority",
+      header: t("tabs.risks.columns.priority", { defaultValue: "Priority" }),
+      width: 120,
+      renderCell: (risk) => (
+        <FormControl size="small" fullWidth>
+          <Select
+            value={risk.moscowPriority}
+            onChange={(e) => onPriorityChange(risk.id, e.target.value)}
+            size="small"
+            sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
+          >
+            {MOSCOW_PRIORITIES.map((p) => (
+              <MenuItem key={p.value} value={p.value}>
+                <Chip
+                  label={t(`risks.moscow.${p.value}.label`, {
+                    defaultValue: p.label,
+                  })}
+                  size="small"
+                  sx={{ minWidth: 55, bgcolor: p.color, color: "white", fontSize: "0.65rem" }}
+                />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      ),
+    });
+
+    // ── Status (inline select) ──────────────────────────────────────────────
+    cols.push({
+      id: "status",
+      header: t("tabs.risks.columns.status", { defaultValue: "Status" }),
+      width: 120,
+      renderCell: (risk) => (
+        <FormControl size="small" fullWidth>
+          <Select
+            value={risk.status}
+            onChange={(e) => onStatusChange(risk.id, e.target.value)}
+            size="small"
+            sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
+          >
+            {RISK_STATUSES.map((s) => (
+              <MenuItem key={s.value} value={s.value}>
+                <Chip
+                  label={t(`tabs.risks.status.${s.value}.label`, {
+                    defaultValue: s.label,
+                  })}
+                  size="small"
+                  sx={{ minWidth: 55, bgcolor: s.color, color: "white", fontSize: "0.65rem" }}
+                />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      ),
+    });
+
+    // ── Actions ─────────────────────────────────────────────────────────────
+    cols.push({
+      id: "actions",
+      header: "",
+      width: 40,
+      align: "center",
+      renderCell: (risk) => (
+        <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
+          <IconButton size="small" onClick={() => onEdit(risk)}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ),
+    });
+
+    return cols;
+  }, [configuration, t, onEdit, onPriorityChange, onStatusChange]);
 };

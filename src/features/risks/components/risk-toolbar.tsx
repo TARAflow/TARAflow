@@ -50,6 +50,8 @@ export interface RisksToolbarProps {
   wontCount: number;
   perElementCount: number;
   perInteractionCount: number;
+  /** Tab switch only enabled when both methods have eligible threats */
+  canSwitchStrideMethod: boolean;
   hasRisks: boolean;
   hasThreatsForMethod: boolean;
   hasAnyThreats: boolean;
@@ -62,7 +64,7 @@ export interface RisksToolbarProps {
   onMainViewChange: (view: MainView) => void;
   onStrideMethodChange: (
     event: React.MouseEvent<HTMLElement>,
-    method: StrideMethod | null
+    method: StrideMethod | null,
   ) => void;
   onSync: () => void;
   onOpenConfig: () => void;
@@ -86,6 +88,7 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   wontCount,
   perElementCount,
   perInteractionCount,
+  canSwitchStrideMethod,
   hasRisks,
   hasThreatsForMethod,
   hasAnyThreats,
@@ -202,7 +205,10 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         onChange={onStrideMethodChange}
         size="small"
       >
-        <ToggleButton value="per-element" disabled={perElementCount === 0}>
+        <ToggleButton
+          value="per-element"
+          disabled={!canSwitchStrideMethod || perElementCount === 0}
+        >
           <Tooltip
             title={`${t("tabs.risks.perElement", {
               defaultValue: "Per-Element",
@@ -220,7 +226,7 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         </ToggleButton>
         <ToggleButton
           value="per-interaction"
-          disabled={perInteractionCount === 0}
+          disabled={!canSwitchStrideMethod || perInteractionCount === 0}
         >
           <Tooltip
             title={`${t("tabs.risks.perInteraction", {

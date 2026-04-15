@@ -1,15 +1,12 @@
 import { Box, Alert, Button, Stack, Chip, Typography, Collapse } from "@mui/material";
 import { Sync as SyncIcon } from "@mui/icons-material";
 
+import type { RiskSyncStatus } from "../services/risk-sync-service";
+
 type Props = {
   needsSync: boolean;
   isSyncing: boolean;
-  syncStatus: {
-    newThreats: number;
-    orphanedRisks: number;
-    changedDescriptions: number;
-    changedAttacks: number;
-  };
+  syncStatus: RiskSyncStatus;
   onSync: () => void;
 };
 
@@ -36,7 +33,12 @@ export const RiskSyncBanner: React.FC<Props> = ({
             </Button>
           }
         >
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Typography variant="body2">
               Risks are out of sync with Threats:
             </Typography>
@@ -65,9 +67,17 @@ export const RiskSyncBanner: React.FC<Props> = ({
                 variant="outlined"
               />
             )}
-            {syncStatus.changedAttacks > 0 && (
+            {syncStatus.changedMitigations > 0 && (
               <Chip
-                label={`${syncStatus.changedAttacks} changed`}
+                label={`${syncStatus.changedMitigations} mitigations changed`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+            )}
+            {syncStatus.uncertainRisks > 0 && (
+              <Chip
+                label={`${syncStatus.uncertainRisks} uncertain`}
                 size="small"
                 color="warning"
                 variant="outlined"

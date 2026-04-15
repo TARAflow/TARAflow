@@ -60,8 +60,7 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
     filteredCount,
     totalCount,
   }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
+    const { t } = useTranslation();
     const hasFilters =
       searchText.trim() !== "" || priorityFilter !== "" || statusFilter !== "";
 
@@ -118,7 +117,9 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
               </MenuItem>
               {MOSCOW_PRIORITIES.filter((p) => p.value !== "wont").map((p) => (
                 <MenuItem key={p.value} value={p.value}>
-                  {isGerman ? p.labelDE : p.label}
+                  {t(`risks.moscow.${p.value}.label`, {
+                    defaultValue: p.label,
+                  })}
                 </MenuItem>
               ))}
             </Select>
@@ -127,11 +128,11 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
           {/* Status Filter */}
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>
-              {t("tabs.risks.status", { defaultValue: "Status" })}
+              {t("tabs.risks.status.label", { defaultValue: "Status" })}
             </InputLabel>
             <Select
               value={statusFilter}
-              label={t("tabs.risks.status", { defaultValue: "Status" })}
+              label={t("tabs.risks.status.label", { defaultValue: "Status" })}
               onChange={(e) =>
                 onStatusFilterChange(e.target.value as RiskStatus | "")
               }
@@ -145,7 +146,9 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
               </MenuItem>
               {RISK_STATUSES.filter((s) => s.value !== "wont-do").map((s) => (
                 <MenuItem key={s.value} value={s.value}>
-                  {isGerman ? s.labelDE : s.label}
+                  {t(`tabs.risks.status.${s.value}.label`, {
+                    defaultValue: s.label,
+                  })}
                 </MenuItem>
               ))}
             </Select>

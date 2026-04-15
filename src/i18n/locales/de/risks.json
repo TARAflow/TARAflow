@@ -4,46 +4,63 @@
       "title": "Risikobewertung",
       "description": "Risiken basierend auf Bedrohungen bewerten und priorisieren",
       "noThreats": "Keine Bedrohungen definiert",
-      "noThreatsHint": "Bitte erstellen Sie Bedrohungen in Phase 3, bevor Sie Risiken bewerten.",
+      "noThreatsHint": "Bitte erstellen Sie zuerst Bedrohungen in Phase 3.",
       "noPerElementThreats": "Keine Per-Element Bedrohungen definiert",
       "noPerInteractionThreats": "Keine Per-Interaction Bedrohungen definiert",
-      "noThreatsForMethodHint": "Wechseln Sie zur anderen Methode oder erstellen Sie Bedrohungen in Phase 3.",
+      "noThreatsForMethodHint": "Wechseln Sie die Methode oder erstellen Sie Bedrohungen in Phase 3.",
       "noRisks": "Noch keine Risiken bewertet",
-      "noRisksHint": "Klicken Sie auf 'Von Bedrohungen synchronisieren', um Risikobewertungen zu erstellen.",
+      "noRisksHint": "Klicken Sie auf \"Aus Bedrohungen synchronisieren\" um Risikobewertungen zu erstellen.",
       "risks": "Risiken",
-      "syncFromThreats": "Von Bedrohungen synchronisieren",
+      "syncFromThreats": "Aus Bedrohungen synchronisieren",
       "sync": "Synchronisieren",
-      "syncConfirmTitle": "Risiken von Bedrohungen synchronisieren",
+      "syncConfirmTitle": "Risiken aus Bedrohungen synchronisieren",
       "syncConfirmMessage": "Dies fügt neue Risiken für neue Bedrohungen hinzu und entfernt Risiken für gelöschte Bedrohungen. Bestehende Bewertungen bleiben erhalten.",
-      "outOfSync": "Nicht synchron",
+      "outOfSync": "Nicht synchronisiert",
       "syncNow": "Jetzt synchronisieren",
-      "outOfSyncDetails": "Risiken sind nicht synchron mit Bedrohungen:",
+      "outOfSyncDetails": "Risiken sind nicht mit Bedrohungen synchronisiert:",
       "newThreats": "neu",
       "orphaned": "verwaist",
       "changed": "geändert",
-      "perElement": "Per-Element",
-      "perInteraction": "Per-Interaction",
+      "perElement": "Pro-Element",
+      "perInteraction": "Pro-Interaktion",
       "configuration": "Konfiguration",
-      "simpleMethod": "Einfach (DREAD)",
-      "complexMethod": "Komplex (OWASP)",
-      "showTable": "Risiko-Tabelle",
+      "simpleMethod": "Simple (DREAD)",
+      "complexMethod": "Komplex (OWASP/ETSI)",
+      "showTable": "Risikotabelle",
       "showMatrix": "Risikomatrix",
-      "showWont": "Akzeptierte Risiken anzeigen",
-      "hideWont": "Akzeptierte Risiken ausblenden",
-      "showFilters": "Filter anzeigen",
-      "hideFilters": "Filter ausblenden",
+      "showWont": "Nicht-Umsetzen Risiken anzeigen",
+      "hideWont": "Nicht-Umsetzen Risiken ausblenden",
       "importFile": "Risikodaten-Datei importieren",
       "searchPlaceholder": "Risiken suchen...",
       "allPriorities": "Alle Prioritäten",
       "allStatuses": "Alle Status",
-      "showingCount": "Zeige {{count}} von {{total}}",
+      "showingCount": "{{count}} von {{total}} angezeigt",
       "noJustification": "Begründung fehlt!",
-      "wontTableTitle": "Akzeptierte Risiken (Wird nicht behandelt)",
-      "wontWarning": "⚠️ Einige akzeptierte Risiken haben keine Begründung. Bitte geben Sie eine Begründung für die Compliance-Dokumentation an.",
+      "wontTableTitle": "Akzeptierte Risiken (Wird nicht umgesetzt)",
+      "wontWarning": "⚠️ Einigen akzeptierten Risiken fehlt die Begründung. Bitte geben Sie eine Begründung für die Compliance-Dokumentation an.",
       "progressDone": "{{done}}/{{total}} erledigt",
-      "assessedTooltip": "Bewertete Risiken / Gesamtanzahl",
+      "assessed": "Bewertet",
+      "assessedTooltip": "Bewertete Risiken / Gesamtrisiken",
+      "status": {
+        "label": "Status",
+        "open": {
+          "label": "Offen"
+        },
+        "mitigated": {
+          "label": "Gemindert"
+        },
+        "accepted": {
+          "label": "Akzeptiert"
+        },
+        "in-review": {
+          "label": "In Prüfung"
+        },
+        "wont-do": {
+          "label": "Wird nicht umgesetzt"
+        }
+      },
       "columns": {
-        "threatId": "T-ID",
+        "threatId": "B-ID",
         "stride": "STRIDE",
         "threat": "Bedrohung",
         "impact": "Auswirkung",
@@ -54,87 +71,101 @@
         "status": "Status",
         "mitigation": "Massnahme",
         "originalRisk": "Ursprüngliches Risiko",
-        "justification": "Begründung"
+        "justification": "Begründung",
+        "treatment": "Behandlung"
       },
       "dialog": {
         "title": "Risikobewertung: {{id}}",
-        "threatDescription": "Bedrohungsbeschreibung",
-        "originalThreatData": "Originale Bedrohungsdaten (aus Phase 3)",
+        "threatDescription": "Bedrohung",
+        "originalThreatData": "Original Threat Data (from Phase 3)",
         "attackDescription": "Angriffsszenario",
-        "originalMitigation": "Originale Massnahme (aus Bedrohung)",
-        "originalVerification": "Originale Verifikation (aus Bedrohung)",
-        "copyToMitigations": "Zu ausgewählten Massnahmen kopieren",
-        "addOriginalMitigation": "Originale Massnahme hinzufügen",
-        "noMitigations": "Keine Massnahmen ausgewählt. Fügen Sie Massnahmen hinzu, um das Risiko zu reduzieren.",
-        "beforeMitigation": "Vor Massnahme",
-        "afterMitigation": "Nach Massnahme",
-        "riskFactors": "Risikofaktoren (DREAD)",
-        "riskFactorsAfter": "Faktoren nach Massnahme neu bewerten",
+        "originalMitigation": "Original Mitigation (from Threat)",
+        "originalVerification": "Original Verification (from Threat)",
+        "copyToMitigations": "Copy to Selected Mitigations",
+        "addOriginalMitigation": "Add Original Mitigation",
+        "noMitigations": "Keine Massnahmen ausgewählt.",
+        "beforeMitigation": "Vor der Massnahme",
+        "afterMitigation": "Nach der Massnahme",
+        "riskFactors": "Risikofaktoren",
+        "riskFactorsAfter": "Faktoren neu bewerten (Nach)",
         "likelihoodFactors": "Wahrscheinlichkeitsfaktoren",
-        "likelihoodFactorsAfter": "Wahrscheinlichkeitsfaktoren (Nachher)",
+        "likelihoodFactorsAfter": "Wahrscheinlichkeitsfaktoren (Nach)",
         "impactFactors": "Auswirkungsfaktoren",
-        "impactFactorsAfter": "Auswirkungsfaktoren (Nachher)",
+        "impactFactorsAfter": "Auswirkungsfaktoren (Nach)",
         "impact": "Auswirkung",
         "likelihood": "Wahrscheinlichkeit",
         "overallRisk": "Gesamtrisiko",
         "residualRisk": "Restrisiko",
         "copyFromBefore": "Bewertungen von Vorher kopieren",
-        "selectedMitigations": "Ausgewählte Massnahmen",
-        "mitigationPlaceholder": "Beschreiben Sie die Massnahme...",
-        "addMitigation": "Massnahme hinzufügen",
+        "selectedMitigations": "Vorgeschlagene Massnahmen",
+        "mitigationPlaceholder": "Describe the mitigation...",
+        "addMitigation": "Add Mitigation",
         "notRated": "Nicht bewertet",
-        "priority": "MoSCoW Priorität",
+        "priority": "MoSCoW-Priorität",
         "status": "Status",
-        "wontJustification": "Begründung für Akzeptanz",
-        "syncFromThreat": "Von Bedrohung übernehmen",
-        "syncConfirmTitle": "Von Bedrohung übernehmen?",
-        "syncConfirm": "Übernehmen",
-        "syncWarning": "Dies ersetzt Ihre aktuell ausgewählten Mitigationen mit dem neuen Wert aus der Bedrohung.",
-        "currentDescription": "Aktuelle Beschreibung:",
-        "newDescription": "Neue Beschreibung (aus Bedrohung):",
-        "currentAttack": "Aktuelle Attacke:",
-        "newAttack": "Neue Attacke (aus Bedrohung):",
-        "currentMitigation": "Aktuelle Mitigation:",
-        "newMitigation": "Neue Mitigation (aus Bedrohung):",
-        "threatDescriptionChanged": "Die Bedrohungsbeschreibung wurde im Bedrohungen-Tab geändert.",
-        "mitigationChanged": "Die Mitigation wurde im Bedrohungen-Tab geändert.",
-        "threatAndMitigationChanged": "Bedrohungsbeschreibung und Mitigation wurden im Bedrohungen-Tab geändert."
+        "treatment": "Risikobehandlung",
+        "treatmentJustification": "Begründung der Behandlung (erforderlich)",
+        "wontJustification": "Begründung für \"Wird nicht\" (erforderlich)",
+        "syncFromThreat": "Sync from Threat",
+        "syncConfirmTitle": "Sync from Threat?",
+        "syncConfirm": "Sync",
+        "syncWarning": "This will replace your current selected mitigations with the new value from the Threat.",
+        "currentDescription": "Current Description:",
+        "newDescription": "New Description (from Threat):",
+        "currentAttack": "Current Attack:",
+        "newAttack": "New Attack (from Threat):",
+        "currentMitigation": "Current Mitigation:",
+        "newMitigation": "New Mitigation (from Threat):",
+        "threatDescriptionChanged": "Threat description has changed in the Threats tab.",
+        "mitigationChanged": "Mitigation has changed in the Threats tab.",
+        "threatAndMitigationChanged": "Threat description and mitigation have changed in the Threats tab.",
+        "cause": "Ursache",
+        "tabBefore": "Risiko Vorher",
+        "tabMitigations": "Gegenmassnahmen",
+        "tabAfter": "Risiko Nachher",
+        "verifications": "Vorgeschlagene Überprüfungen",
+        "treatmentJustificationRequired": "Erforderlich für Akzeptieren / Transfer / Teilen"
       },
       "config": {
-        "title": "Risikobewertung Konfiguration",
+        "title": "Risikobewertungs-Konfiguration",
         "methodTab": "Methode & Anzeige",
         "factorsTab": "Faktoren",
-        "displayTab": "Anzeige",
-        "assessmentMethod": "Risikobewertungsmethode",
-        "simpleMethod": "Einfach (DREAD-ähnlich)",
-        "simpleDesc": "Kombinierte Faktoren mit einem Gesamtrisikoscore. Einfacher zu verwenden, gut für schnelle Bewertungen.",
+        "displayTab": "Display",
+        "assessmentMethod": "Bewertungsmethode",
         "complexMethod": "Komplex (OWASP/ETSI-ähnlich)",
-        "complexDesc": "Separate Auswirkungs- und Wahrscheinlichkeitsfaktoren. Detailliertere Analyse, Industriestandard-Methoden.",
+        "complexDesc": "Separate Auswirkungs- und Wahrscheinlichkeitsfaktoren. Detailliertere Analyse nach Industriestandards.",
         "ratingScale": "Bewertungsskala",
-        "scale3": "3-Stufen (Niedrig, Mittel, Hoch)",
-        "scale4": "4-Stufen (+ Kritisch)",
-        "scale5": "5-Stufen (+ Sehr Hoch)",
+        "scale3": "3-stufig (Niedrig, Mittel, Hoch)",
+        "scale4": "4-stufig (+ Kritisch)",
+        "scale5": "5-stufig (+ Sehr Hoch)",
         "displayOptions": "Anzeigeoptionen",
         "factorCountInfo": "{{count}} Faktoren ausgewählt (empfohlen: {{min}}-{{max}})",
-        "dreadFactors": "DREAD Faktoren",
+        "dreadFactors": "DREAD Factors",
         "likelihoodFactors": "Wahrscheinlichkeitsfaktoren",
         "impactFactors": "Auswirkungsfaktoren",
-        "customFactors": "Benutzerdefinierte Faktoren",
-        "addCustomFactor": "Benutzerdefinierten Faktor hinzufügen",
+        "customFactors": "Eigene Faktoren",
+        "addCustomFactor": "Eigenen Faktor hinzufügen",
         "factorName": "Faktorname",
         "factorDescription": "Beschreibung",
         "category": "Kategorie",
         "weight": "Gewichtung",
         "addFactor": "Faktor hinzufügen",
-        "showIndividualFactors": "Einzelne Faktoren in Tabelle anzeigen",
-        "showIndividualFactorsDesc": "Wenn deaktiviert, werden nur aggregierte Auswirkungs-/Wahrscheinlichkeitswerte angezeigt. Details bei Hover.",
+        "showIndividualFactors": "Einzelne Faktoren in der Tabelle anzeigen",
+        "showIndividualFactorsDesc": "Wenn deaktiviert, werden nur aggregierte Auswirkungs-/Wahrscheinlichkeitswerte angezeigt.",
         "roundingMethod": "Schwellenwert-Berechnung",
         "roundingRound": "Standard",
         "roundingRoundTitle": "Standard-Rundung (Math.round)",
-        "roundingRoundDesc": "Symmetrische Schwellen bei .5",
+        "roundingRoundDesc": "Symmetrische Schwellenwerte bei .5-Grenzen",
         "roundingCeil": "Konservativ",
         "roundingCeilTitle": "Konservative Rundung (Math.ceil)",
-        "roundingCeilDesc": "Rundet immer auf höhere Risikostufe auf"
+        "roundingCeilDesc": "Rundet immer auf die höhere Risikostufe",
+        "assetImpact": "Asset-Auswirkung",
+        "useAssetImpact": "Auswirkung aus verknüpftem Asset-Schweregrad vorausfüllen",
+        "useAssetImpactDesc": "Wenn aktiviert, wird der schlechteste aggregierte Asset-Impact als Standard-Auswirkungswert verwendet. Der Analyst kann den Wert überschreiben.",
+        "assetImpactMapping": "Asset-Impact → Risikoskala-Zuordnung",
+        "assetImpactMappingHint": "Standard-Zuordnung wird bei Skalenwechsel zurückgesetzt.",
+        "en50742Factors": "EN 50742 Angreiferpotenzial-Faktoren",
+        "attackerPotential": "Angreiferpotenzial (AP = EL×WoO + AC)"
       },
       "matrix": {
         "title": "Risikomatrix",
@@ -155,14 +186,197 @@
         "unratedCount": "Nicht bewertet: {{count}}",
         "before": "Vorher",
         "after": "Nachher",
-        "showingBefore": "Vor Mitigation",
-        "showingAfter": "Nach Mitigation (wo bewertet)",
-        "mitigationProgress": "Mitigations-Fortschritt",
+        "showingBefore": "Vor der Massnahme",
+        "showingAfter": "Nach der Massnahme (wo bewertet)",
+        "mitigationProgress": "Massnahmenfortschritt",
         "rated": "bewertet"
       },
       "physicalInterfaces": "Physische Schnittstellen",
       "priority": "Priorität",
-      "status": "Status"
+      "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
+      "uncertain": "Unsicher",
+      "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen."
+    }
+  },
+  "risks": {
+    "scale": {
+      "unrated": "-",
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "very_high": "Sehr Hoch",
+      "critical": "Kritisch"
+    },
+    "treatment": {
+      "eliminate": {
+        "label": "Eliminieren",
+        "description": "Risikoquelle vollständig entfernen"
+      },
+      "reduce": {
+        "label": "Reduzieren",
+        "description": "Durch Massnahmen reduzieren"
+      },
+      "accept": {
+        "label": "Akzeptieren",
+        "description": "Risiko bewusst tragen ohne Massnahme"
+      },
+      "transfer": {
+        "label": "Transferieren",
+        "description": "Risiko auf Dritte übertragen"
+      },
+      "share": {
+        "label": "Teilen",
+        "description": "Risiko auf mehrere Parteien verteilen"
+      }
+    },
+    "moscow": {
+      "must": {
+        "label": "Muss",
+        "description": "Kritisch - muss behandelt werden"
+      },
+      "should": {
+        "label": "Sollte",
+        "description": "Wichtig - sollte wenn möglich behandelt werden"
+      },
+      "could": {
+        "label": "Könnte",
+        "description": "Wünschenswert - könnte behandelt werden"
+      },
+      "wont": {
+        "label": "Wird nicht",
+        "description": "Akzeptiertes Risiko - wird nicht behandelt"
+      }
+    },
+    "status": {
+      "open": {
+        "label": "Offen"
+      },
+      "in_review": {
+        "label": "In Prüfung"
+      },
+      "mitigated": {
+        "label": "Mitigiert"
+      },
+      "accepted": {
+        "label": "Akzeptiert"
+      },
+      "wont_do": {
+        "label": "Wird nicht umgesetzt"
+      }
+    },
+    "factors": {
+      "damage_potential": {
+        "name": "Schadenspotenzial",
+        "description": "Wie viel Schaden könnte durch die Bedrohung entstehen?"
+      },
+      "reproducibility": {
+        "name": "Reproduzierbarkeit",
+        "description": "Wie einfach ist der Angriff zu reproduzieren?"
+      },
+      "exploitability": {
+        "name": "Ausnutzbarkeit",
+        "description": "Welche Fähigkeiten werden zur Ausnutzung benötigt?"
+      },
+      "affected_users": {
+        "name": "Betroffene Nutzer",
+        "description": "Wie viele Nutzer wären betroffen?"
+      },
+      "discoverability": {
+        "name": "Entdeckbarkeit",
+        "description": "Wie einfach ist die Schwachstelle zu entdecken?"
+      },
+      "skill_level": {
+        "name": "Fähigkeitsniveau",
+        "description": "Wie technisch versiert ist der Angreifer?"
+      },
+      "motive": {
+        "name": "Motivation",
+        "description": "Wie motiviert ist der Angreifer?"
+      },
+      "opportunity": {
+        "name": "Gelegenheit",
+        "description": "Welche Ressourcen und Gelegenheiten sind erforderlich?"
+      },
+      "size": {
+        "name": "Grösse",
+        "description": "Wie gross ist die Gruppe potenzieller Angreifer?"
+      },
+      "ease_of_discovery": {
+        "name": "Einfachheit der Entdeckung",
+        "description": "Wie einfach ist die Schwachstelle zu finden?"
+      },
+      "ease_of_exploit": {
+        "name": "Einfachheit der Ausnutzung",
+        "description": "Wie einfach ist die Schwachstelle auszunutzen?"
+      },
+      "awareness": {
+        "name": "Bekanntheit",
+        "description": "Wie bekannt ist die Schwachstelle?"
+      },
+      "intrusion_detection": {
+        "name": "Einbruchserkennung",
+        "description": "Wie wahrscheinlich ist die Erkennung eines Angriffs?"
+      },
+      "loss_of_confidentiality": {
+        "name": "Vertraulichkeitsverlust",
+        "description": "Wie viele Daten könnten offengelegt werden?"
+      },
+      "loss_of_integrity": {
+        "name": "Integritätsverlust",
+        "description": "Wie viele Daten könnten beschädigt werden?"
+      },
+      "loss_of_availability": {
+        "name": "Verfügbarkeitsverlust",
+        "description": "Wie viel Dienst könnte ausfallen?"
+      },
+      "loss_of_accountability": {
+        "name": "Nachweisbarkeitsverlust",
+        "description": "Sind Aktionen zum Angreifer rückverfolgbar?"
+      },
+      "financial_damage": {
+        "name": "Finanzieller Schaden",
+        "description": "Wie viel finanzieller Schaden würde entstehen?"
+      },
+      "reputation_damage": {
+        "name": "Reputationsschaden",
+        "description": "Würde die Reputation beeinträchtigt?"
+      },
+      "non_compliance": {
+        "name": "Nichteinhaltung",
+        "description": "Wie viel Regulierungsrisiko?"
+      },
+      "privacy_violation": {
+        "name": "Datenschutzverletzung",
+        "description": "Wie viele personenbezogene Daten betroffen?"
+      },
+      "knowledge": {
+        "name": "Wissensfaktor",
+        "description": "Erforderliches Wissen zur Ausnutzung"
+      },
+      "expertise": {
+        "name": "Expertisefaktor",
+        "description": "Erforderliches Expertenniveau"
+      },
+      "time": {
+        "name": "Zeitfaktor",
+        "description": "Erforderliche Zeit zur Ausnutzung"
+      },
+      "equipment": {
+        "name": "Ausrüstungsfaktor",
+        "description": "Erforderliche Ausrüstung zur Ausnutzung"
+      },
+      "window_of_opportunity": {
+        "name": "Angriffsfenster (WoO)",
+        "description": "Wie lange ist die Schwachstelle für einen Angreifer zugänglich?"
+      },
+      "attacker_capability": {
+        "name": "Angreiferkapazität (AC)",
+        "description": "Fähigkeiten, Motivation und Ressourcen eines potenziellen Angreifers."
+      },
+      "exposure_level": {
+        "name": "Exponierungsgrad (EL)",
+        "description": "Wie exponiert ist das Asset/System gegenüber potenziellen Angreifern?"
+      }
     }
   }
 }

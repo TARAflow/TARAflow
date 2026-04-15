@@ -1,14 +1,13 @@
 // ==================== RISK DIALOG ====================
-// Modal dialog for editing a risk assessment
-// Shows factor ratings, mitigation, and calculated values
-// Supports both simple and complex methods
-// Features:
-// - Auto-scroll to Won't justification field when priority is set to Won't
-// - Bidirectional sync between Priority and Status:
-//   - Priority → "wont": Status → "wont-do"
-//   - Priority ← "wont": Status "wont-do" → "open"
-//   - Status → "wont-do": Priority → "wont"
-//   - Status ← "wont-do": Priority "wont" → "should"
+// 3-tab evaluation dialog with sidebar navigation.
+// Same visual language as ThreatEvalDialog.
+//
+// Tab 1 — Risk Before:   Factor ratings, calculated score
+// Tab 2 — Mitigations:   Checkbox selection, treatment, priority, status
+// Tab 3 — Risk After:    Re-rate factors post-mitigation
+//
+// Sidebar: All risks in the current accordion group, sorted by risk score desc.
+// Prev/Next navigation, auto-save on switch, uncertain warning.
 
 import React, {
   useState,
@@ -24,35 +23,34 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField,
   Box,
   Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
   Stack,
   Divider,
-  Grid,
   Tooltip,
   IconButton,
   Tabs,
   Tab,
   Alert,
   Paper,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Checkbox,
+  FormControlLabel,
+  TextField,
+  List,
+  ListItemButton,
+  ListItemText,
   SelectChangeEvent,
-  Collapse,
 } from "@mui/material";
 import {
-  Info as InfoIcon,
+  NavigateBefore as PrevIcon,
+  NavigateNext as NextIcon,
+  Warning as WarningIcon,
   ContentCopy as CopyIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  ContentPaste as PasteIcon,
-  Sync as SyncIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 
 import {
@@ -62,1197 +60,1421 @@ import {
   FactorRating,
   MoSCoWPriority,
   RiskStatus,
+  RiskTreatment,
   MOSCOW_PRIORITIES,
   RISK_STATUSES,
+  RISK_TREATMENTS,
   RISK_SCALES,
-  calculateRiskValues,
   getFactorDefinition,
+} from "../models/risk-types";
+import {
+  calculateRiskValues,
   getRiskColor,
   getRiskLabel,
-} from "../models/risk-types";
+} from "../services/risk-calculation-service";
+import {
+  resolveMitigationDrafts,
+  resolveVerificationDrafts,
+} from "../../threats/services/threat-catalog-service";
+import type { StrideCategory } from "shared";
+import type {
+  AssetDataReference,
+  AssetReference,
+} from "../../threats/models/threat-types";
+import {
+  getWorstAssetImpactValue,
+  applyAssetImpactToFactorRatings,
+} from "../services/risk-calculation-service";
 
-// ==================== TYPES ====================
+import { RiskScorePanel } from "./shared/risk-score-panel";
 
-interface RiskDialogProps {
+// ==================== CONSTANTS ====================
+
+const STRIDE_COLORS: Record<StrideCategory, string> = {
+  S: "#ef4444",
+  T: "#f97316",
+  R: "#eab308",
+  I: "#22c55e",
+  D: "#3b82f6",
+  E: "#a855f7",
+};
+
+// ==================== PROPS ====================
+
+export interface RiskDialogProps {
   open: boolean;
-  risk: Risk;
+  /** All risks in the current accordion group */
+  risks: Risk[];
+  /** Index of the risk to open initially */
+  initialIndex: number;
   configuration: RiskConfiguration;
-  /** Current threat reference - used to detect mitigation changes */
-  threatReference?: ThreatReference;
-  onSave: (risk: Risk) => void;
+  /** Threat references for display (optional — for uncertain warning) */
+  threats?: ThreatReference[];
+  /** Asset data for impact display and pre-fill */
+  assetDataRef?: AssetDataReference;
+  onSave: (riskId: string, updates: Partial<Risk>) => void;
   onClose: () => void;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
+// ==================== LOCAL STATE ====================
+
+interface LocalRiskState {
+  factorRatings: FactorRating[];
+  mitigatedFactorRatings: FactorRating[];
+  selectedMitigations: string[];
+  selectedVerifications: string[];
+  treatment: RiskTreatment;
+  treatmentJustification: string;
+  moscowPriority: MoSCoWPriority;
+  wontJustification: string;
+  status: RiskStatus;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
-    </div>
-  );
+function riskToLocal(risk: Risk): LocalRiskState {
+  return {
+    factorRatings: risk.factorRatings.map((r) => ({ ...r })),
+    mitigatedFactorRatings: risk.mitigatedFactorRatings.map((r) => ({ ...r })),
+    selectedMitigations: [...risk.selectedMitigations],
+    selectedVerifications: [...(risk.selectedVerifications ?? [])],
+    treatment: risk.treatment ?? "reduce",
+    treatmentJustification: risk.treatmentJustification ?? "",
+    moscowPriority: risk.moscowPriority,
+    wontJustification: risk.wontJustification ?? "",
+    status: risk.status,
+  };
 }
 
 // ==================== COMPONENT ====================
 
 export const RiskDialog: React.FC<RiskDialogProps> = ({
   open,
-  risk,
+  risks,
+  initialIndex,
   configuration,
-  threatReference,
+  threats,
+  assetDataRef,
   onSave,
   onClose,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
-  // Local state
-  const [editedRisk, setEditedRisk] = useState<Risk>(risk);
+  // ── Sidebar sort: highest risk score first ───────────────────────────────
+  const sortedRisks = useMemo(
+    () =>
+      [...risks].sort(
+        (a, b) =>
+          b.calculatedRiskBeforeMitigation - a.calculatedRiskBeforeMitigation,
+      ),
+    [risks],
+  );
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const id = risks[initialIndex]?.id;
+    const idx = sortedRisks.findIndex((r) => r.id === id);
+    return idx >= 0 ? idx : initialIndex;
+  });
+  const currentRisk = sortedRisks[currentIndex] ?? null;
+
   const [tabValue, setTabValue] = useState(0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showMitigationSyncDialog, setShowMitigationSyncDialog] =
-    useState(false);
-  const [threatInfoExpanded, setThreatInfoExpanded] = React.useState(true);
+  const [local, setLocal] = useState<LocalRiskState | null>(null);
+  const isProcessing = useRef(false);
 
-    // Ref for auto-scroll to Won't justification field
-    const wontJustificationRef = useRef<HTMLDivElement>(null);
-
-    // Auto-scroll to justification field when Won't is selected
-    useEffect(() => {
-      if (
-        editedRisk.moscowPriority === "wont" &&
-        wontJustificationRef.current
-      ) {
-        // Small delay to ensure the field is rendered
-        setTimeout(() => {
-          wontJustificationRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }, 100);
+  // ── Init local state when risk changes (with optional asset-impact pre-fill) ─
+  useEffect(() => {
+    if (!currentRisk) return;
+    let state = riskToLocal(currentRisk);
+    // Pre-fill impact factors from asset severity if enabled and not yet rated
+    if (configuration.useAssetImpact && currentRisk.linkedAssetIds?.length) {
+      const assets = assetDataRef?.assets ?? [];
+      const levels = currentRisk.linkedAssetIds
+        .map((id) => assets.find((a) => a.id === id)?.aggregatedImpact)
+        .filter(Boolean) as string[];
+      if (levels.length > 0) {
+        state = {
+          ...state,
+          factorRatings: applyAssetImpactToFactorRatings(
+            state.factorRatings,
+            levels as any,
+            configuration,
+          ),
+        };
       }
-    }, [editedRisk.moscowPriority]);
+    }
+    setLocal(state);
+  }, [currentRisk?.id]);
 
-    const scale = RISK_SCALES[configuration.scale];
-    const isSimple = configuration.method === "simple";
+  useEffect(() => {
+    if (open) {
+      const id = risks[initialIndex]?.id;
+      const idx = sortedRisks.findIndex((r) => r.id === id);
+      setCurrentIndex(idx >= 0 ? idx : initialIndex);
+      setTabValue(0);
+    }
+  }, [open, initialIndex]);
 
-    // Check if there's original mitigation data from threat
-    const hasOriginalMitigation = Boolean(
-      editedRisk.originalMitigation?.trim()
-    );
+  // ── Computed values ───────────────────────────────────────────────────────
+  const scale = RISK_SCALES[configuration.scale];
 
-    // Check if threat mitigation has changed since last sync
-    const threatMitigationChanged = useMemo(() => {
-      if (!threatReference) return false;
-      return threatReference.mitigation !== editedRisk.originalMitigation;
-    }, [threatReference, editedRisk.originalMitigation]);
+  const beforeValues = useMemo(
+    () =>
+      local
+        ? calculateRiskValues(local.factorRatings, configuration)
+        : { impact: 0, likelihood: 0, risk: 0 },
+    [local?.factorRatings, configuration],
+  );
+  const afterValues = useMemo(
+    () =>
+      local
+        ? calculateRiskValues(local.mitigatedFactorRatings, configuration)
+        : { impact: 0, likelihood: 0, risk: 0 },
+    [local?.mitigatedFactorRatings, configuration],
+  );
 
-    // Check if threat description has changed
-    const threatDescriptionChanged = useMemo(() => {
-      if (!threatReference) return false;
-      return threatReference.threatDescription !== editedRisk.threatDescription;
-    }, [threatReference, editedRisk.threatDescription]);
+  const assessedCount = useMemo(
+    () =>
+      sortedRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
+    [sortedRisks],
+  );
 
-    // Check if threat description has changed
-    const attackDescriptionChanged = useMemo(() => {
-      if (!threatReference) return false;
-      return threatReference.attackDescription !== editedRisk.attackDescription;
-    }, [threatReference, editedRisk.attackDescription]);
+  // Trust boundary name from first threat reference
+  const trustBoundaryName = useMemo(() => {
+    if (!threats?.length) return "";
+    const threat = threats.find((t) => t.id === currentRisk?.threatId);
+    return threat?.trustBoundaryName ?? "";
+  }, [threats, currentRisk?.id]);
 
-    // ==================== CALCULATED VALUES ====================
-
-    const beforeValues = useMemo(() => {
-      return calculateRiskValues(editedRisk.factorRatings, configuration);
-    }, [editedRisk.factorRatings, configuration]);
-
-    const afterValues = useMemo(() => {
-      return calculateRiskValues(
-        editedRisk.mitigatedFactorRatings,
-        configuration
-      );
-    }, [editedRisk.mitigatedFactorRatings, configuration]);
-
-    // ==================== FACTOR GROUPS ====================
-
-    const { impactFactors, likelihoodFactors, combinedFactors } =
-      useMemo(() => {
-        const allFactors = configuration.activeFactors
-          .filter((af) => af.enabled)
-          .map((af) => ({
-            ...af,
-            definition: getFactorDefinition(
-              af.factorId,
-              configuration.customFactors
-            ),
-          }))
-          .filter((f) => f.definition !== undefined);
-
-        return {
-          impactFactors: allFactors.filter(
-            (f) => f.definition!.category === "impact"
-          ),
-          likelihoodFactors: allFactors.filter(
-            (f) => f.definition!.category === "likelihood"
-          ),
-          combinedFactors: allFactors.filter(
-            (f) => f.definition!.category === "combined"
-          ),
-        };
-      }, [configuration]);
-
-    // ==================== HANDLERS ====================
-
-    const handleFactorChange = useCallback(
-      (factorId: string, value: number, isMitigated: boolean) => {
-        setEditedRisk((prev) => {
-          const ratings = isMitigated
-            ? prev.mitigatedFactorRatings
-            : prev.factorRatings;
-          const updatedRatings = ratings.map((r) =>
-            r.factorId === factorId ? { ...r, value } : r
-          );
-          return isMitigated
-            ? { ...prev, mitigatedFactorRatings: updatedRatings }
-            : { ...prev, factorRatings: updatedRatings };
-        });
-      },
-      []
-    );
-
-    const handleCopyToMitigated = useCallback(() => {
-      setEditedRisk((prev) => ({
-        ...prev,
-        mitigatedFactorRatings: prev.factorRatings.map((r) => ({ ...r })),
-      }));
-    }, []);
-
-    const handlePriorityChange = useCallback(
-      (e: SelectChangeEvent<MoSCoWPriority>) => {
-        const priority = e.target.value as MoSCoWPriority;
-        setEditedRisk((prev) => ({
-          ...prev,
-          moscowPriority: priority,
-          // Sync status: wont → wont-do, leaving wont → open
-          status:
-            priority === "wont"
-              ? "wont-do"
-              : prev.status === "wont-do"
-              ? "open"
-              : prev.status,
-        }));
-      },
-      []
-    );
-
-    const handleStatusChange = useCallback(
-      (e: SelectChangeEvent<RiskStatus>) => {
-        const status = e.target.value as RiskStatus;
-        setEditedRisk((prev) => ({
-          ...prev,
-          status,
-          // Sync priority: wont-do → wont, leaving wont-do → should
-          moscowPriority:
-            status === "wont-do"
-              ? "wont"
-              : prev.moscowPriority === "wont"
-              ? "should"
-              : prev.moscowPriority,
-        }));
-      },
-      []
-    );
-
-    const handleMitigationChange = useCallback(
-      (index: number, value: string) => {
-        setEditedRisk((prev) => {
-          const updated = [...prev.selectedMitigations];
-          updated[index] = value;
-          return { ...prev, selectedMitigations: updated };
-        });
-      },
-      []
-    );
-
-    const handleAddMitigation = useCallback(() => {
-      setEditedRisk((prev) => ({
-        ...prev,
-        selectedMitigations: [...prev.selectedMitigations, ""],
-      }));
-    }, []);
-
-    const handleRemoveMitigation = useCallback((index: number) => {
-      setEditedRisk((prev) => ({
-        ...prev,
-        selectedMitigations: prev.selectedMitigations.filter(
-          (_, i) => i !== index
+  // ── Active factors ────────────────────────────────────────────────────────
+  const { impactFactors, likelihoodFactors } = useMemo(() => {
+    const all = configuration.activeFactors
+      .filter((af) => af.enabled)
+      .map((af) => ({
+        ...af,
+        definition: getFactorDefinition(
+          af.factorId,
+          configuration.customFactors,
         ),
-      }));
-    }, []);
+      }))
+      .filter((f) => f.definition !== undefined);
+    return {
+      impactFactors: all.filter((f) => f.definition!.category === "impact"),
+      likelihoodFactors: all.filter(
+        (f) => f.definition!.category === "likelihood",
+      ),
+    };
+  }, [configuration]);
 
-    // Copy original mitigation from threat
-    const handleCopyOriginalMitigation = useCallback(() => {
-      if (!editedRisk.originalMitigation) return;
+  // ── Resolved mitigations/verifications for checkboxes ────────────────────
+  const resolvedMitigations = useMemo(
+    () =>
+      currentRisk
+        ? resolveMitigationDrafts(currentRisk.proposedMitigations ?? [])
+        : [],
+    [currentRisk],
+  );
+  const resolvedVerifications = useMemo(
+    () =>
+      currentRisk
+        ? resolveVerificationDrafts(currentRisk.proposedVerifications ?? [])
+        : [],
+    [currentRisk],
+  );
 
-      setEditedRisk((prev) => {
-        // Check if already exists
-        if (prev.selectedMitigations.includes(prev.originalMitigation)) {
-          return prev;
-        }
-        // Add to list (replace empty or add new)
-        const emptyIndex = prev.selectedMitigations.findIndex((m) => !m.trim());
-        if (emptyIndex >= 0) {
-          const updated = [...prev.selectedMitigations];
-          updated[emptyIndex] = prev.originalMitigation;
-          return { ...prev, selectedMitigations: updated };
-        }
-        return {
-          ...prev,
-          selectedMitigations: [
-            ...prev.selectedMitigations,
-            prev.originalMitigation,
-          ],
-        };
-      });
-    }, [editedRisk.originalMitigation]);
+  // ── Linked assets — fallback to threatRef if Risk has no linkedAssetIds ────
+  const currentThreatRef = useMemo(
+    () => threats?.find((t) => t.id === currentRisk?.threatId),
+    [threats, currentRisk?.threatId],
+  );
 
-    // Sync mitigation from threat (when threat mitigation has changed)
-    const handleSyncMitigationFromThreat = useCallback(() => {
-      if (!threatReference) return;
+  const effectiveLinkedAssetIds = useMemo(
+    () =>
+      currentRisk?.linkedAssetIds?.length
+        ? currentRisk.linkedAssetIds
+        : (currentThreatRef?.linkedAssetIds ?? []),
+    [currentRisk?.linkedAssetIds, currentThreatRef?.linkedAssetIds],
+  );
 
-      setEditedRisk((prev) => {
-        const newMitigation = threatReference.mitigation || "";
+  const effectiveCauseDescription =
+    currentRisk?.causeDescription || currentThreatRef?.causeDescription;
 
-        // Update originalMitigation
-        // Replace selectedMitigations with new value (user confirmed)
-        return {
-          ...prev,
-          originalMitigation: newMitigation,
-          selectedMitigations: newMitigation ? [newMitigation] : [],
-          threatDescription: threatReference.threatDescription,
-          attackDescription: threatReference.attackDescription,
-        };
-      });
+  const linkedAssets = useMemo(() => {
+    if (!assetDataRef || !effectiveLinkedAssetIds.length) return [];
+    return effectiveLinkedAssetIds
+      .map((id) => assetDataRef.assets.find((a) => a.id === id))
+      .filter((a): a is AssetReference => Boolean(a));
+  }, [assetDataRef, effectiveLinkedAssetIds]);
 
-      setShowMitigationSyncDialog(false);
-    }, [threatReference]);
+  const assetImpactLevels = useMemo(
+    () =>
+      linkedAssets.map((a) => a.aggregatedImpact).filter(Boolean) as string[],
+    [linkedAssets],
+  );
 
-  const handleSave = useCallback(() => {
-    const newErrors: Record<string, string> = {};
-
-    // Validate Won't justification
-    if (
-      editedRisk.moscowPriority === "wont" &&
-      !editedRisk.wontJustification.trim()
-    ) {
-      newErrors.wontJustification = t("validation.required", {
-        defaultValue: "Justification required for Won't",
-      });
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSave({
-      ...editedRisk,
+  // ── Save current risk ─────────────────────────────────────────────────────
+  const saveCurrentRisk = useCallback(() => {
+    if (!currentRisk || !local) return;
+    onSave(currentRisk.id, {
+      factorRatings: local.factorRatings,
+      mitigatedFactorRatings: local.mitigatedFactorRatings,
+      selectedMitigations: local.selectedMitigations,
+      selectedVerifications: local.selectedVerifications,
+      treatment: local.treatment,
+      treatmentJustification: local.treatmentJustification,
+      moscowPriority: local.moscowPriority,
+      wontJustification: local.wontJustification,
+      status: local.status,
       calculatedImpact: beforeValues.impact,
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
       calculatedRiskAfterMitigation: afterValues.risk,
-      lastModified: new Date().toISOString(),
     });
-  }, [editedRisk, beforeValues, afterValues, onSave, t]);
+  }, [currentRisk, local, beforeValues, afterValues, onSave]);
 
-  // ==================== RENDER FACTOR ROW ====================
-
-  const renderFactorRow = useCallback(
-    (
-      factor: {
-        factorId: string;
-        weight: number;
-        definition?: ReturnType<typeof getFactorDefinition>;
-      },
-      isMitigated: boolean
-    ) => {
-      const ratings = isMitigated
-        ? editedRisk.mitigatedFactorRatings
-        : editedRisk.factorRatings;
-      const rating = ratings.find((r) => r.factorId === factor.factorId);
-      const value = rating?.value ?? 0;
-      const def = factor.definition;
-
-      if (!def) return null;
-
-      return (
-        <Grid item xs={12} sm={6} md={4} key={factor.factorId}>
-          <Paper variant="outlined" sx={{ p: 1.5 }}>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              sx={{ mb: 1 }}
-            >
-              <Typography
-                variant="body2"
-                fontWeight="medium"
-                sx={{ flexGrow: 1 }}
-              >
-                {isGerman ? def.nameDE : def.name}
-              </Typography>
-              <Tooltip title={isGerman ? def.descriptionDE : def.description}>
-                <InfoIcon fontSize="small" color="action" />
-              </Tooltip>
-            </Stack>
-            <Select
-              value={value}
-              onChange={(e) =>
-                handleFactorChange(
-                  factor.factorId,
-                  e.target.value as number,
-                  isMitigated
-                )
-              }
-              size="small"
-              fullWidth
-            >
-              <MenuItem value={0}>
-                <em>
-                  {t("tabs.risks.dialog.notRated", {
-                    defaultValue: "Not rated",
-                  })}
-                </em>
-              </MenuItem>
-              {scale.levels.map((level) => (
-                <MenuItem key={level.value} value={level.value}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: "50%",
-                        backgroundColor: level.color,
-                      }}
-                    />
-                    <span>
-                      {level.value} - {isGerman ? level.labelDE : level.label}
-                    </span>
-                  </Stack>
-                </MenuItem>
-              ))}
-            </Select>
-          </Paper>
-        </Grid>
-      );
+  // ── Navigate ──────────────────────────────────────────────────────────────
+  const navigateTo = useCallback(
+    (index: number) => {
+      saveCurrentRisk();
+      setCurrentIndex(index);
+      setTabValue(0);
     },
-    [
-      editedRisk.factorRatings,
-      editedRisk.mitigatedFactorRatings,
-      scale,
-      handleFactorChange,
-      isGerman,
-      t,
-    ]
+    [saveCurrentRisk],
+  );
+
+  const handlePrev = useCallback(() => {
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+    navigateTo(Math.max(0, currentIndex - 1));
+    setTimeout(() => {
+      isProcessing.current = false;
+    }, 300);
+  }, [currentIndex, navigateTo]);
+
+  const handleNext = useCallback(() => {
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+    navigateTo(Math.min(sortedRisks.length - 1, currentIndex + 1));
+    setTimeout(() => {
+      isProcessing.current = false;
+    }, 300);
+  }, [currentIndex, sortedRisks.length, navigateTo]);
+
+  const handleSave = useCallback(() => {
+    saveCurrentRisk();
+    onClose();
+  }, [saveCurrentRisk, onClose]);
+
+  // ── Local state updaters ──────────────────────────────────────────────────
+  const updateFactor = useCallback(
+    (factorId: string, value: number, mitigated: boolean) => {
+      setLocal((prev) => {
+        if (!prev) return prev;
+        const key = mitigated ? "mitigatedFactorRatings" : "factorRatings";
+        return {
+          ...prev,
+          [key]: prev[key].map((r) =>
+            r.factorId === factorId ? { ...r, value } : r,
+          ),
+        };
+      });
+    },
+    [],
+  );
+
+  const toggleMitigation = useCallback((id: string) => {
+    setLocal((prev) => {
+      if (!prev) return prev;
+      const has = prev.selectedMitigations.includes(id);
+      return {
+        ...prev,
+        selectedMitigations: has
+          ? prev.selectedMitigations.filter((m) => m !== id)
+          : [...prev.selectedMitigations, id],
+      };
+    });
+  }, []);
+
+  const toggleVerification = useCallback((id: string) => {
+    setLocal((prev) => {
+      if (!prev) return prev;
+      const has = prev.selectedVerifications.includes(id);
+      return {
+        ...prev,
+        selectedVerifications: has
+          ? prev.selectedVerifications.filter((v) => v !== id)
+          : [...prev.selectedVerifications, id],
+      };
+    });
+  }, []);
+
+  const handleCopyToMitigated = useCallback(() => {
+    setLocal((prev) =>
+      prev
+        ? {
+            ...prev,
+            mitigatedFactorRatings: prev.factorRatings.map((r) => ({ ...r })),
+          }
+        : prev,
+    );
+  }, []);
+
+  // ── Linked assets (must be before early return — Rules of Hooks) ───────────
+  // These are safe because we guard with ?. inside
+
+  if (!currentRisk || !local) return null;
+
+  const isUncertain = currentRisk.threatRelevance === "uncertain";
+  const treatment = RISK_TREATMENTS.find((tr) => tr.value === local.treatment);
+  const passiveTreatment = ["accept", "transfer", "share"].includes(
+    local.treatment,
+  );
+
+  // ── Factor row renderer ───────────────────────────────────────────────────
+  const renderFactorRow = (
+    factor: {
+      factorId: string;
+      weight: number;
+      definition?: ReturnType<typeof getFactorDefinition>;
+    },
+    mitigated: boolean,
+  ) => {
+    const def = factor.definition;
+    if (!def) return null;
+    const ratings = mitigated
+      ? local.mitigatedFactorRatings
+      : local.factorRatings;
+    const value =
+      ratings.find((r) => r.factorId === factor.factorId)?.value ?? 0;
+
+    return (
+      <Paper key={factor.factorId} variant="outlined" sx={{ p: 1.5 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+          <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
+            {t(`risks.factors.${def.id}.name`, { defaultValue: def.name })}
+          </Typography>
+          <Tooltip
+            title={t(`risks.factors.${def.id}.description`, {
+              defaultValue: def.description,
+            })}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ cursor: "help" }}
+            >
+              ⓘ
+            </Typography>
+          </Tooltip>
+        </Stack>
+        <Select
+          value={value}
+          onChange={(e) =>
+            updateFactor(factor.factorId, e.target.value as number, mitigated)
+          }
+          size="small"
+          fullWidth
+        >
+          <MenuItem value={0}>
+            <em>
+              {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
+            </em>
+          </MenuItem>
+          {scale.levels.map((level) => (
+            <MenuItem key={level.value} value={level.value}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    bgcolor: level.color,
+                  }}
+                />
+                <span>
+                  {level.value} –{" "}
+                  {t(
+                    `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                    { defaultValue: level.label },
+                  )}
+                </span>
+              </Stack>
+            </MenuItem>
+          ))}
+        </Select>
+      </Paper>
+    );
+  };
+
+  // ── Risk score chip ───────────────────────────────────────────────────────
+  const RiskScoreChip = ({
+    value,
+    label,
+  }: {
+    value: number;
+    label: string;
+  }) => (
+    <Box sx={{ textAlign: "center" }}>
+      <Typography variant="caption" color="text.secondary" display="block">
+        {label}
+      </Typography>
+      <Chip
+        label={value > 0 ? value.toFixed(1) : "–"}
+        size="small"
+        sx={{
+          bgcolor: getRiskColor(
+            value,
+            configuration.scale,
+            configuration.roundingMethod,
+          ),
+          color: "white",
+          fontWeight: "bold",
+          minWidth: 48,
+          mt: 0.25,
+        }}
+      />
+    </Box>
   );
 
   // ==================== RENDER ====================
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="h6">
-            {t("tabs.risks.dialog.title", {
-              id: editedRisk.threatId,
-              defaultValue: `Risk Assessment: ${editedRisk.threatId}`,
-            })}
-          </Typography>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: {
+          height: "85vh",
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+        },
+      }}
+    >
+      {/* Header */}
+      <DialogTitle
+        sx={{ py: 1.5, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center">
           <Chip
-            label={editedRisk.strideCategory}
+            label={currentRisk.strideCategory}
             size="small"
             sx={{
-              backgroundColor:
-                editedRisk.strideCategory === "S"
-                  ? "#ef4444"
-                  : editedRisk.strideCategory === "T"
-                  ? "#f97316"
-                  : editedRisk.strideCategory === "R"
-                  ? "#eab308"
-                  : editedRisk.strideCategory === "I"
-                  ? "#22c55e"
-                  : editedRisk.strideCategory === "D"
-                  ? "#3b82f6"
-                  : "#a855f7",
+              bgcolor: STRIDE_COLORS[currentRisk.strideCategory],
               color: "white",
+              fontWeight: "bold",
             }}
           />
+          <Typography
+            variant="body2"
+            fontFamily="monospace"
+            color="text.secondary"
+          >
+            {currentRisk.id}
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            fontWeight="medium"
+            sx={{ flexGrow: 1 }}
+            noWrap
+          >
+            {currentRisk.threatDescription}
+          </Typography>
+          {isUncertain && (
+            <Chip
+              icon={<WarningIcon />}
+              label={t("tabs.risks.uncertain", { defaultValue: "Uncertain" })}
+              size="small"
+              color="warning"
+            />
+          )}
         </Stack>
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Threat Information */}
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <IconButton
-              size="small"
-              onClick={() => setThreatInfoExpanded((prev) => !prev)}
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-              }}
+      <DialogContent
+        sx={{
+          p: 0,
+          display: "flex",
+          flexDirection: "row",
+          overflow: "hidden",
+          flexGrow: 1,
+        }}
+      >
+        {/* ── SIDEBAR ───────────────────────────────────────────────────── */}
+        <Box
+          sx={{
+            width: 220,
+            flexShrink: 0,
+            borderRight: 1,
+            borderColor: "divider",
+            display: "flex",
+            flexDirection: "column",
+            bgcolor: "background.default",
+          }}
+        >
+          {/* Sidebar header */}
+          <Box
+            sx={{
+              px: 1.5,
+              py: 1,
+              borderBottom: 1,
+              borderColor: "divider",
+              flexShrink: 0,
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              fontWeight="medium"
             >
-              {threatInfoExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+              {trustBoundaryName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {assessedCount}/{sortedRisks.length}{" "}
+              {t("tabs.risks.assessed", { defaultValue: "assessed" })}
+            </Typography>
+          </Box>
 
-            <Collapse in={threatInfoExpanded} timeout="auto" unmountOnExit>
-              {/* Threat Description */}
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                {t("tabs.risks.dialog.threatDescription", {
-                  defaultValue: "Threat Description",
-                })}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                {editedRisk.threatDescription}
-              </Typography>
-
-              {/* Attack Description */}
-              <Divider sx={{ my: 2 }} />
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                {t("tabs.risks.dialog.attackDescription", {
-                  defaultValue: "Attack Description",
-                })}
-              </Typography>
-
-              {editedRisk.attackDescription?.trim() ? (
-                /* ✅ Gleich wie Threat Description */
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  {editedRisk.attackDescription}
-                </Typography>
-              ) : (
-                /* ❌ Fehlerzustand */
-                <Typography
-                  variant="body1"
-                  sx={{
-                    backgroundColor: "error.50",
-                    p: 1.5,
-                    borderRadius: 1,
-                    border: "1px solid",
-                    borderColor: "error.main",
-                    color: "error.main",
-                    fontStyle: "italic",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {t("tabs.risks.noAttack", {
-                    defaultValue: "No attack description available",
-                  })}
-                </Typography>
-              )}
-
-              {/* Original Mitigation from Threat */}
-              {hasOriginalMitigation && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    pt: 2,
-                    borderTop: "1px solid",
-                    borderColor: "divider",
-                  }}
-                >
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                    sx={{ mb: 1 }}
-                  >
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ flexGrow: 1 }}
-                    >
-                      {t("tabs.risks.dialog.originalMitigation", {
-                        defaultValue: "Original Mitigation (from Threat)",
-                      })}
-                    </Typography>
-                    <Tooltip
-                      title={t("tabs.risks.dialog.copyToMitigations", {
-                        defaultValue: "Copy to Selected Mitigations",
-                      })}
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={handleCopyOriginalMitigation}
-                        color="primary"
-                      >
-                        <PasteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                  <Typography
-                    variant="body2"
+          {/* Sidebar list */}
+          <Box sx={{ flex: 1, overflow: "auto" }}>
+            <List dense disablePadding>
+              {sortedRisks.map((risk, index) => {
+                const isActive = index === currentIndex;
+                const riskColor = getRiskColor(
+                  risk.calculatedRiskBeforeMitigation,
+                  configuration.scale,
+                  configuration.roundingMethod,
+                );
+                const riskLabel =
+                  risk.calculatedRiskBeforeMitigation > 0
+                    ? risk.calculatedRiskBeforeMitigation.toFixed(1)
+                    : "–";
+                const uncertain = risk.threatRelevance === "uncertain";
+                return (
+                  <ListItemButton
+                    key={risk.id}
+                    selected={isActive}
+                    ref={(node) => {
+                      if (node && isActive) {
+                        requestAnimationFrame(() =>
+                          node.scrollIntoView({
+                            block: "nearest",
+                            behavior: "auto",
+                          }),
+                        );
+                      }
+                    }}
+                    onClick={() => navigateTo(index)}
                     sx={{
-                      backgroundColor: "grey.50",
-                      p: 1,
-                      borderRadius: 1,
-                      whiteSpace: "pre-wrap",
+                      py: 0.75,
+                      px: 1.5,
+                      borderLeft: "3px solid transparent",
+                      "&.Mui-selected": {
+                        bgcolor: "primary.50",
+                        borderLeftColor: "primary.main",
+                      },
+                      "&.Mui-selected:hover": { bgcolor: "primary.100" },
                     }}
                   >
-                    {editedRisk.originalMitigation}
-                  </Typography>
-                </Box>
-              )}
-            </Collapse>
-          </Paper>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.25,
+                        mr: 0.75,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Chip
+                        label={riskLabel}
+                        size="small"
+                        sx={{
+                          height: 16,
+                          fontSize: 10,
+                          bgcolor: riskColor,
+                          color: "white",
+                          fontWeight: "bold",
+                          minWidth: 32,
+                        }}
+                      />
+                      {uncertain && (
+                        <Chip
+                          label="?"
+                          size="small"
+                          sx={{
+                            height: 16,
+                            fontSize: 10,
+                            bgcolor: "#fffbeb",
+                            color: "#d97706",
+                            border: "1px solid #d97706",
+                          }}
+                        />
+                      )}
+                    </Box>
+                    <ListItemText
+                      primary={
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          alignItems="center"
+                        >
+                          <Chip
+                            label={risk.strideCategory}
+                            size="small"
+                            sx={{
+                              height: 16,
+                              fontSize: 10,
+                              bgcolor: STRIDE_COLORS[risk.strideCategory],
+                              color: "white",
+                            }}
+                          />
+                          <Typography variant="caption" noWrap>
+                            {risk.id}
+                          </Typography>
+                        </Stack>
+                      }
+                      secondary={
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          noWrap
+                          sx={{ display: "block" }}
+                        >
+                          {risk.threatDescription || "—"}
+                        </Typography>
+                      }
+                    />
+                  </ListItemButton>
+                );
+              })}
+            </List>
+          </Box>
+        </Box>
 
-          {/* Out-of-Sync Alert */}
-          {(threatDescriptionChanged ||
-            attackDescriptionChanged ||
-            threatMitigationChanged) && (
+        {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* Uncertain warning */}
+          {isUncertain && (
             <Alert
               severity="warning"
-              action={
-                <Button
-                  color="warning"
-                  size="small"
-                  startIcon={<SyncIcon />}
-                  onClick={() => setShowMitigationSyncDialog(true)}
-                >
-                  {t("tabs.risks.dialog.syncFromThreat", {
-                    defaultValue: "Sync from Threat",
-                  })}
-                </Button>
-              }
+              icon={<WarningIcon />}
+              sx={{ mx: 2, mt: 1.5, flexShrink: 0 }}
             >
-              {threatDescriptionChanged &&
-              attackDescriptionChanged &&
-              threatMitigationChanged
-                ? t("tabs.risks.dialog.threatAndMitigationChanged", {
-                    defaultValue:
-                      "Threat description, attack description and mitigation have changed in the Threats tab.",
-                  })
-                : threatDescriptionChanged
-                ? t("tabs.risks.dialog.threatDescriptionChanged", {
-                    defaultValue:
-                      "Threat description has changed in the Threats tab.",
-                  })
-                : t("tabs.risks.dialog.mitigationChanged", {
-                    defaultValue: "Mitigation has changed in the Threats tab.",
-                  })}
+              {t("tabs.risks.uncertainRiskWarning", {
+                defaultValue:
+                  "This risk is based on an uncertain threat. Please confirm its relevance in the Threat Eval tab before finalizing the risk assessment.",
+              })}
             </Alert>
           )}
 
-          {/* Tabs for Before/After Mitigation */}
-          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          {/* Tabs */}
+          <Box
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              flexShrink: 0,
+              px: 2,
+            }}
+          >
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
               <Tab
-                label={
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <span>
-                      {t("tabs.risks.dialog.beforeMitigation", {
-                        defaultValue: "Before Mitigation",
-                      })}
-                    </span>
-                    <Chip
-                      label={
-                        beforeValues.risk > 0
-                          ? beforeValues.risk.toFixed(1)
-                          : "-"
-                      }
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          beforeValues.risk,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                      }}
-                    />
-                  </Stack>
-                }
+                label={t("tabs.risks.dialog.tabBefore", {
+                  defaultValue: "Risk Before",
+                })}
               />
               <Tab
-                label={
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <span>
-                      {t("tabs.risks.dialog.afterMitigation", {
-                        defaultValue: "After Mitigation",
-                      })}
-                    </span>
-                    <Chip
-                      label={
-                        afterValues.risk > 0 ? afterValues.risk.toFixed(1) : "-"
-                      }
-                      size="small"
-                      sx={{
-                        backgroundColor: getRiskColor(
-                          afterValues.risk,
-                          configuration.scale,
-                          configuration.roundingMethod
-                        ),
-                        color: "white",
-                      }}
-                    />
-                  </Stack>
-                }
+                label={t("tabs.risks.dialog.tabMitigations", {
+                  defaultValue: "Mitigations",
+                })}
+              />
+              <Tab
+                label={t("tabs.risks.dialog.tabAfter", {
+                  defaultValue: "Risk After",
+                })}
               />
             </Tabs>
           </Box>
 
-          {/* Before Mitigation Tab */}
-          <TabPanel value={tabValue} index={0}>
-            {isSimple ? (
-              // DREAD / Combined Factors
-              <Box>
+          <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
+            {/* ══ TAB 1: RISK BEFORE ══════════════════════════════════════ */}
+            {tabValue === 0 && (
+              <Stack spacing={2.5}>
+                {/* Threat description read-only */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {t("tabs.risks.dialog.threatDescription", {
+                      defaultValue: "Threat",
+                    })}
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
+                    <Typography variant="body2">
+                      {currentRisk.threatDescription}
+                    </Typography>
+                    {currentRisk.attackDescription && (
+                      <>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {currentRisk.attackDescription}
+                        </Typography>
+                      </>
+                    )}
+                  </Paper>
+                </Box>
+
+                {/* Cause — amber, read-only */}
+                {effectiveCauseDescription && (
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: "#fef3c7",
+                      borderRadius: 1,
+                      border: "1px solid #fcd34d",
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontWeight="medium"
+                      display="block"
+                      mb={0.5}
+                    >
+                      {t("tabs.risks.dialog.cause", {
+                        defaultValue: "Root Cause",
+                      })}
+                    </Typography>
+                    <Typography variant="body2">
+                      {effectiveCauseDescription}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Divider />
+
+                {/* Linked Assets */}
+                {
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Assets
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      flexWrap="wrap"
+                      useFlexGap
+                    >
+                      {linkedAssets.map((asset) => {
+                        const aImpact = asset.aggregatedImpact;
+                        const hasSafety =
+                          asset.physicalImpact === "fatality" ||
+                          asset.physicalImpact === "irreversible_injury";
+                        return (
+                          <Chip
+                            key={asset.id}
+                            label={`${asset.name}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontSize: 11, height: 22 }}
+                          />
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                }
+
+                <Divider />
+
+                {/* Calculated score */}
                 <Typography variant="subtitle2" gutterBottom>
-                  {t("tabs.risks.dialog.riskFactors", {
-                    defaultValue: "Risk Factors (DREAD)",
+                  {t("tabs.risks.dialog.tabBefore", {
+                    defaultValue: "Risk Before",
                   })}
                 </Typography>
-                <Grid container spacing={2}>
-                  {combinedFactors.map((f) => renderFactorRow(f, false))}
-                </Grid>
-              </Box>
-            ) : (
-              // OWASP / Separate Impact & Likelihood
-              <Stack spacing={3}>
-                {/* Likelihood Factors */}
-                <Box>
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    sx={{ mb: 1 }}
-                  >
-                    <Typography variant="subtitle2">
+                <Stack
+                  direction="row"
+                  spacing={3}
+                  sx={{ width: "100%" }}
+                  justifyContent="stretch"
+                >
+                  <RiskScorePanel
+                    impact={beforeValues.impact}
+                    likelihood={beforeValues.likelihood}
+                    risk={beforeValues.risk}
+                    configuration={configuration}
+                  />
+                </Stack>
+
+                {/* Factor ratings */}
+                <Box
+                  sx={{
+                    width: "100%",
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                    gap: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
                       {t("tabs.risks.dialog.likelihoodFactors", {
                         defaultValue: "Likelihood Factors",
                       })}
                     </Typography>
-                    <Chip
-                      label={`${t("tabs.risks.dialog.likelihood", {
-                        defaultValue: "Likelihood",
-                      })}: ${
-                        beforeValues.likelihood > 0
-                          ? beforeValues.likelihood.toFixed(1)
-                          : "-"
-                      }`}
-                      size="small"
-                      color="info"
-                    />
-                  </Stack>
-                  <Grid container spacing={2}>
-                    {likelihoodFactors.map((f) => renderFactorRow(f, false))}
-                  </Grid>
+
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill, minmax(180px, 1fr))",
+                        gap: 1,
+                      }}
+                    >
+                      {likelihoodFactors.map((f) => renderFactorRow(f, false))}
+                    </Box>
+                  </Box>
+
+                  {impactFactors.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {t("tabs.risks.dialog.impactFactors", {
+                          defaultValue: "Impact Factors",
+                        })}
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fill, minmax(180px, 1fr))",
+                          gap: 1,
+                        }}
+                      >
+                        {impactFactors.map((f) => renderFactorRow(f, false))}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
-                {/* Impact Factors */}
-                <Box>
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    sx={{ mb: 1 }}
-                  >
-                    <Typography variant="subtitle2">
-                      {t("tabs.risks.dialog.impactFactors", {
-                        defaultValue: "Impact Factors",
+              </Stack>
+            )}
+
+            {/* ══ TAB 2: MITIGATIONS ══════════════════════════════════════ */}
+            {tabValue === 1 && (
+              <Stack spacing={2.5}>
+                {/* Proposed Mitigations checkboxes */}
+                {resolvedMitigations.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      {t("tabs.risks.dialog.selectedMitigations", {
+                        defaultValue: "Proposed Mitigations",
                       })}
                     </Typography>
-                    <Chip
-                      label={`${t("tabs.risks.dialog.impact", {
-                        defaultValue: "Impact",
-                      })}: ${
-                        beforeValues.impact > 0
-                          ? beforeValues.impact.toFixed(1)
-                          : "-"
-                      }`}
-                      size="small"
-                      color="error"
-                    />
-                  </Stack>
-                  <Grid container spacing={2}>
-                    {impactFactors.map((f) => renderFactorRow(f, false))}
-                  </Grid>
-                </Box>
-              </Stack>
-            )}
-
-            {/* Overall Risk Display */}
-            <Paper
-              sx={{
-                p: 2,
-                mt: 3,
-                backgroundColor: getRiskColor(
-                  beforeValues.risk,
-                  configuration.scale,
-                  configuration.roundingMethod
-                ),
-                color: "white",
-              }}
-            >
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="h6">
-                  {t("tabs.risks.dialog.overallRisk", {
-                    defaultValue: "Overall Risk",
-                  })}
-                </Typography>
-                <Typography variant="h4" fontWeight="bold">
-                  {beforeValues.risk > 0 ? beforeValues.risk.toFixed(1) : "-"}
-                </Typography>
-              </Stack>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                {getRiskLabel(
-                  beforeValues.risk,
-                  configuration.scale,
-                  isGerman,
-                  configuration.roundingMethod
-                )}
-              </Typography>
-            </Paper>
-          </TabPanel>
-
-          {/* After Mitigation Tab */}
-          <TabPanel value={tabValue} index={1}>
-            {/* Copy Button */}
-            <Box sx={{ mb: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<CopyIcon />}
-                onClick={handleCopyToMitigated}
-              >
-                {t("tabs.risks.dialog.copyFromBefore", {
-                  defaultValue: "Copy Ratings from Before",
-                })}
-              </Button>
-              {hasOriginalMitigation && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<PasteIcon />}
-                  onClick={handleCopyOriginalMitigation}
-                  color="secondary"
-                >
-                  {t("tabs.risks.dialog.addOriginalMitigation", {
-                    defaultValue: "Add Original Mitigation",
-                  })}
-                </Button>
-              )}
-            </Box>
-
-            {/* Mitigations */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                {t("tabs.risks.dialog.selectedMitigations", {
-                  defaultValue: "Selected Mitigations",
-                })}
-              </Typography>
-              <Stack spacing={1}>
-                {editedRisk.selectedMitigations.length === 0 ? (
-                  <Alert severity="info" sx={{ mb: 1 }}>
-                    {t("tabs.risks.dialog.noMitigations", {
-                      defaultValue:
-                        "No mitigations selected. Add mitigations to reduce the risk.",
-                    })}
-                  </Alert>
-                ) : (
-                  editedRisk.selectedMitigations.map((mitigation, index) => (
-                    <Stack
-                      key={index}
-                      direction="row"
-                      spacing={1}
-                      alignItems="flex-start"
-                    >
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={mitigation}
-                        onChange={(e) =>
-                          handleMitigationChange(index, e.target.value)
-                        }
-                        placeholder={t(
-                          "tabs.risks.dialog.mitigationPlaceholder",
-                          {
-                            defaultValue: "Describe the mitigation...",
-                          }
-                        )}
-                        multiline
-                        maxRows={3}
-                      />
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveMitigation(index)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                    <Stack spacing={0.5}>
+                      {resolvedMitigations.map((m) => {
+                        const id = m.id ?? m.notes ?? "";
+                        const label = m.isCustom
+                          ? `[custom] ${m.notes ?? ""}`
+                          : `${m.id}: ${m.text}`;
+                        return (
+                          <Paper
+                            key={id}
+                            variant="outlined"
+                            sx={{
+                              px: 1.5,
+                              py: 0.5,
+                              bgcolor: "background.paper",
+                            }}
+                          >
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  size="small"
+                                  checked={local.selectedMitigations.includes(
+                                    id,
+                                  )}
+                                  onChange={() => toggleMitigation(id)}
+                                />
+                              }
+                              label={
+                                <Typography variant="body2">{label}</Typography>
+                              }
+                              sx={{ m: 0, width: "100%" }}
+                            />
+                          </Paper>
+                        );
+                      })}
                     </Stack>
-                  ))
+                  </Box>
                 )}
-                <Button
-                  variant="text"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddMitigation}
-                >
-                  {t("tabs.risks.dialog.addMitigation", {
-                    defaultValue: "Add Mitigation",
-                  })}
-                </Button>
-              </Stack>
-            </Box>
 
-            <Divider sx={{ my: 2 }} />
+                {/* Proposed Verifications checkboxes */}
+                {resolvedVerifications.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      {t("tabs.risks.dialog.verifications", {
+                        defaultValue: "Proposed Verifications",
+                      })}
+                    </Typography>
+                    <Stack spacing={0.5}>
+                      {resolvedVerifications.map((v) => {
+                        const id = v.id ?? v.notes ?? "";
+                        const label = v.isCustom
+                          ? `[custom] ${v.notes ?? ""}`
+                          : `${v.id}: ${v.text}`;
+                        return (
+                          <Paper
+                            key={id}
+                            variant="outlined"
+                            sx={{
+                              px: 1.5,
+                              py: 0.5,
+                              bgcolor: "background.paper",
+                            }}
+                          >
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  size="small"
+                                  checked={local.selectedVerifications.includes(
+                                    id,
+                                  )}
+                                  onChange={() => toggleVerification(id)}
+                                />
+                              }
+                              label={
+                                <Typography variant="body2">{label}</Typography>
+                              }
+                              sx={{ m: 0, width: "100%" }}
+                            />
+                          </Paper>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                )}
 
-            {/* Re-rate factors */}
-            {isSimple ? (
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  {t("tabs.risks.dialog.riskFactorsAfter", {
-                    defaultValue: "Re-rate Factors After Mitigation",
-                  })}
-                </Typography>
-                <Grid container spacing={2}>
-                  {combinedFactors.map((f) => renderFactorRow(f, true))}
-                </Grid>
-              </Box>
-            ) : (
-              <Stack spacing={3}>
+                <Divider />
+
+                {/* Treatment */}
                 <Box>
                   <Typography variant="subtitle2" gutterBottom>
-                    {t("tabs.risks.dialog.likelihoodFactorsAfter", {
-                      defaultValue: "Likelihood Factors (After)",
+                    {t("tabs.risks.dialog.treatment", {
+                      defaultValue: "Risk Treatment",
                     })}
                   </Typography>
-                  <Grid container spacing={2}>
-                    {likelihoodFactors.map((f) => renderFactorRow(f, true))}
-                  </Grid>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    {t("tabs.risks.dialog.impactFactorsAfter", {
-                      defaultValue: "Impact Factors (After)",
-                    })}
-                  </Typography>
-                  <Grid container spacing={2}>
-                    {impactFactors.map((f) => renderFactorRow(f, true))}
-                  </Grid>
-                </Box>
-              </Stack>
-            )}
-
-            {/* Residual Risk Display */}
-            <Paper
-              sx={{
-                p: 2,
-                mt: 3,
-                backgroundColor: getRiskColor(
-                  afterValues.risk,
-                  configuration.scale,
-                  configuration.roundingMethod
-                ),
-                color: "white",
-              }}
-            >
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="h6">
-                  {t("tabs.risks.dialog.residualRisk", {
-                    defaultValue: "Residual Risk",
-                  })}
-                </Typography>
-                <Typography variant="h4" fontWeight="bold">
-                  {afterValues.risk > 0 ? afterValues.risk.toFixed(1) : "-"}
-                </Typography>
-              </Stack>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                {getRiskLabel(
-                  afterValues.risk,
-                  configuration.scale,
-                  isGerman,
-                  configuration.roundingMethod
-                )}
-              </Typography>
-            </Paper>
-          </TabPanel>
-
-          <Divider />
-
-          {/* Priority & Status */}
-          <Stack direction="row" spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel>
-                {t("tabs.risks.dialog.priority", {
-                  defaultValue: "MoSCoW Priority",
-                })}
-              </InputLabel>
-              <Select
-                value={editedRisk.moscowPriority}
-                onChange={handlePriorityChange}
-                label={t("tabs.risks.dialog.priority", {
-                  defaultValue: "MoSCoW Priority",
-                })}
-              >
-                {MOSCOW_PRIORITIES.map((p) => (
-                  <MenuItem key={p.value} value={p.value}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {RISK_TREATMENTS.map((tr) => (
                       <Chip
-                        label={p.value.toUpperCase()}
-                        size="small"
+                        key={tr.value}
+                        label={t(`risks.treatment.${tr.value}.label`, {
+                          defaultValue: tr.label,
+                        })}
+                        onClick={() =>
+                          setLocal((prev) =>
+                            prev ? { ...prev, treatment: tr.value } : prev,
+                          )
+                        }
                         sx={{
-                          backgroundColor: p.color,
-                          color: "white",
-                          fontWeight: "bold",
+                          bgcolor:
+                            local.treatment === tr.value
+                              ? tr.color
+                              : "transparent",
+                          color:
+                            local.treatment === tr.value ? "white" : tr.color,
+                          border: `2px solid ${tr.color}`,
+                          fontWeight:
+                            local.treatment === tr.value ? "bold" : "normal",
+                          cursor: "pointer",
                         }}
                       />
-                      <span>{isGerman ? p.labelDE : p.label}</span>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>
-                {t("tabs.risks.dialog.status", { defaultValue: "Status" })}
-              </InputLabel>
-              <Select
-                value={editedRisk.status}
-                onChange={handleStatusChange}
-                label={t("tabs.risks.dialog.status", {
-                  defaultValue: "Status",
-                })}
-              >
-                {RISK_STATUSES.map((s) => (
-                  <MenuItem key={s.value} value={s.value}>
-                    <Chip
-                      label={isGerman ? s.labelDE : s.label}
+                    ))}
+                  </Stack>
+                  {passiveTreatment && (
+                    <TextField
                       size="small"
-                      sx={{
-                        backgroundColor: s.color,
-                        color: "white",
-                      }}
+                      fullWidth
+                      multiline
+                      rows={2}
+                      sx={{ mt: 1.5 }}
+                      label={t("tabs.risks.dialog.treatmentJustification", {
+                        defaultValue: "Treatment Justification (required)",
+                      })}
+                      value={local.treatmentJustification}
+                      onChange={(e) =>
+                        setLocal((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                treatmentJustification: e.target.value,
+                              }
+                            : prev,
+                        )
+                      }
+                      error={
+                        passiveTreatment && !local.treatmentJustification.trim()
+                      }
+                      helperText={
+                        passiveTreatment && !local.treatmentJustification.trim()
+                          ? t(
+                              "tabs.risks.dialog.treatmentJustificationRequired",
+                              {
+                                defaultValue:
+                                  "Required for accept / transfer / share",
+                              },
+                            )
+                          : undefined
+                      }
                     />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+                  )}
+                </Box>
 
-          {/* Won't Justification */}
-          {editedRisk.moscowPriority === "wont" && (
-            <Box ref={wontJustificationRef}>
-              <TextField
-                fullWidth
-                multiline
-                rows={2}
-                label={t("tabs.risks.dialog.wontJustification", {
-                  defaultValue: "Justification for Won't",
-                })}
-                value={editedRisk.wontJustification}
-                onChange={(e) =>
-                  setEditedRisk((prev) => ({
-                    ...prev,
-                    wontJustification: e.target.value,
-                  }))
-                }
-                error={Boolean(errors.wontJustification)}
-                helperText={errors.wontJustification}
-                required
-                autoFocus
-              />
-            </Box>
-          )}
+                <Divider />
+
+                {/* Priority + Status */}
+                <Stack direction="row" spacing={2}>
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <InputLabel>
+                      {t("tabs.risks.dialog.priority", {
+                        defaultValue: "Priority",
+                      })}
+                    </InputLabel>
+                    <Select
+                      value={local.moscowPriority}
+                      label={t("tabs.risks.dialog.priority", {
+                        defaultValue: "Priority",
+                      })}
+                      onChange={(e) => {
+                        const p = e.target.value as MoSCoWPriority;
+                        setLocal((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                moscowPriority: p,
+                                status:
+                                  p === "wont"
+                                    ? "wont-do"
+                                    : prev.status === "wont-do"
+                                      ? "open"
+                                      : prev.status,
+                              }
+                            : prev,
+                        );
+                      }}
+                    >
+                      {MOSCOW_PRIORITIES.map((p) => (
+                        <MenuItem key={p.value} value={p.value}>
+                          <Chip
+                            label={t(`risks.moscow.${p.value}.label`, {
+                              defaultValue: p.label,
+                            })}
+                            size="small"
+                            sx={{
+                              bgcolor: p.color,
+                              color: "white",
+                              fontSize: "0.65rem",
+                            }}
+                          />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <InputLabel>
+                      {t("tabs.risks.dialog.status", {
+                        defaultValue: "Status",
+                      })}
+                    </InputLabel>
+                    <Select
+                      value={local.status}
+                      label={t("tabs.risks.dialog.status", {
+                        defaultValue: "Status",
+                      })}
+                      onChange={(e) => {
+                        const s = e.target.value as RiskStatus;
+                        setLocal((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                status: s,
+                                moscowPriority:
+                                  s === "wont-do"
+                                    ? "wont"
+                                    : prev.moscowPriority === "wont"
+                                      ? "should"
+                                      : prev.moscowPriority,
+                              }
+                            : prev,
+                        );
+                      }}
+                    >
+                      {RISK_STATUSES.map((s) => (
+                        <MenuItem key={s.value} value={s.value}>
+                          <Chip
+                            label={t(`tabs.risks.status.${s.value}.label`, {
+                              defaultValue: s.label,
+                            })}
+                            size="small"
+                            sx={{
+                              bgcolor: s.color,
+                              color: "white",
+                              fontSize: "0.65rem",
+                            }}
+                          />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+
+                {/* Won't justification */}
+                {local.moscowPriority === "wont" && (
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    rows={2}
+                    label={t("tabs.risks.dialog.wontJustification", {
+                      defaultValue: "Justification for Won't (required)",
+                    })}
+                    value={local.wontJustification}
+                    onChange={(e) =>
+                      setLocal((prev) =>
+                        prev
+                          ? { ...prev, wontJustification: e.target.value }
+                          : prev,
+                      )
+                    }
+                    error={!local.wontJustification.trim()}
+                    helperText={
+                      !local.wontJustification.trim()
+                        ? t("validation.required", { defaultValue: "Required" })
+                        : undefined
+                    }
+                  />
+                )}
+              </Stack>
+            )}
+
+            {/* ══ TAB 3: RISK AFTER ═══════════════════════════════════════ */}
+            {tabValue === 2 && (
+              <Stack spacing={2.5}>
+                {/* Threat description read-only */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {t("tabs.risks.dialog.threatDescription", {
+                      defaultValue: "Threat",
+                    })}
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
+                    <Typography variant="body2">
+                      {currentRisk.threatDescription}
+                    </Typography>
+                    {currentRisk.attackDescription && (
+                      <>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {currentRisk.attackDescription}
+                        </Typography>
+                      </>
+                    )}
+                  </Paper>
+                </Box>
+
+                {/* Cause — amber, read-only */}
+                {effectiveCauseDescription && (
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: "#fef3c7",
+                      borderRadius: 1,
+                      border: "1px solid #fcd34d",
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontWeight="medium"
+                      display="block"
+                      mb={0.5}
+                    >
+                      {t("tabs.risks.dialog.cause", {
+                        defaultValue: "Root Cause",
+                      })}
+                    </Typography>
+                    <Typography variant="body2">
+                      {effectiveCauseDescription}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Divider />
+
+                {/* Effective mitigation */}
+                <Box>
+                  <Typography variant="subtitle2">
+                    {t("tabs.risks.dialog.currentMitigation", {
+                      defaultValue: "Current Mitigation",
+                    })}
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
+                    <Typography variant="body2">
+                      {currentRisk.selectedMitigations}
+                    </Typography>
+
+                    <>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {currentRisk.selectedVerifications}
+                      </Typography>
+                    </>
+                  </Paper>
+                </Box>
+
+                <Divider />
+
+                {/* After score */}
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Typography variant="subtitle2">
+                    {t("tabs.risks.dialog.tabAfter", {
+                      defaultValue: "Risk After",
+                    })}
+                  </Typography>
+
+                  <Tooltip
+                    title={t("tabs.risks.dialog.copyFromBefore", {
+                      defaultValue: "Copy ratings from Before",
+                    })}
+                  >
+                    <Button
+                      size="small"
+                      startIcon={<CopyIcon />}
+                      variant="outlined"
+                      onClick={handleCopyToMitigated}
+                    >
+                      {t("tabs.risks.dialog.copyFromBefore", {
+                        defaultValue: "Copy from Before",
+                      })}
+                    </Button>
+                  </Tooltip>
+                </Stack>
+                <Stack
+                  direction="row"
+                  spacing={3}
+                  sx={{ width: "100%" }}
+                  justifyContent="stretch"
+                >
+                  <RiskScorePanel
+                    impact={afterValues.impact}
+                    likelihood={afterValues.likelihood}
+                    risk={afterValues.risk}
+                    configuration={configuration}
+                  />
+                </Stack>
+
+                {/* Factor ratings */}
+                <Box
+                  sx={{
+                    width: "100%",
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                    gap: 2,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      {t("tabs.risks.dialog.likelihoodFactors", {
+                        defaultValue: "Likelihood Factors (After)",
+                      })}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill, minmax(180px, 1fr))",
+                        gap: 1,
+                      }}
+                    >
+                      {likelihoodFactors.map((f) => renderFactorRow(f, true))}
+                    </Box>
+                  </Box>
+
+                  {impactFactors.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {t("tabs.risks.dialog.impactFactorsAfter", {
+                          defaultValue: "Impact Factors (After)",
+                        })}
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fill, minmax(180px, 1fr))",
+                          gap: 1,
+                        }}
+                      >
+                        {impactFactors.map((f) => renderFactorRow(f, true))}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              </Stack>
+            )}
+          </Box>
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>
-          {t("common.cancel", { defaultValue: "Cancel" })}
-        </Button>
-        <Button onClick={handleSave} variant="contained">
-          {t("common.save", { defaultValue: "Save" })}
-        </Button>
-      </DialogActions>
-
-      {/* Sync Confirmation Dialog */}
-      <Dialog
-        open={showMitigationSyncDialog}
-        onClose={() => setShowMitigationSyncDialog(false)}
-        maxWidth="sm"
-        fullWidth
+      {/* Footer */}
+      <DialogActions
+        sx={{
+          px: 2,
+          py: 1,
+          borderTop: 1,
+          borderColor: "divider",
+          justifyContent: "space-between",
+        }}
       >
-        <DialogTitle>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <SyncIcon color="warning" />
-            <Typography variant="h6">
-              {t("tabs.risks.dialog.syncConfirmTitle", {
-                defaultValue: "Sync from Threat?",
-              })}
-            </Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={3}>
-            {threatDescriptionChanged && (
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  {t("tabs.risks.dialog.currentDescription", {
-                    defaultValue: "Current Description:",
-                  })}
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 1.5, mb: 2, backgroundColor: "grey.50" }}
-                >
-                  <Typography variant="body2">
-                    {editedRisk.threatDescription || "(empty)"}
-                  </Typography>
-                </Paper>
-
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  {t("tabs.risks.dialog.newDescription", {
-                    defaultValue: "New Description (from Threat):",
-                  })}
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1.5,
-                    borderColor: "primary.main",
-                    backgroundColor: "primary.50",
-                  }}
-                >
-                  <Typography variant="body2">
-                    {threatReference?.threatDescription || "(empty)"}
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
-
-            {attackDescriptionChanged && (
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  {t("tabs.risks.dialog.currentAttack", {
-                    defaultValue: "Current Attack:",
-                  })}
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 1.5, mb: 2, backgroundColor: "grey.50" }}
-                >
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {editedRisk.attackDescription || "(empty)"}
-                  </Typography>
-                </Paper>
-
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  {t("tabs.risks.dialog.newAttack", {
-                    defaultValue: "New Attack (from Threat):",
-                  })}
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1.5,
-                    borderColor: "primary.main",
-                    backgroundColor: "primary.50",
-                  }}
-                >
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {threatReference?.attackDescription || "(empty)"}
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
-
-            {threatMitigationChanged && (
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  {t("tabs.risks.dialog.currentMitigation", {
-                    defaultValue: "Current Mitigation:",
-                  })}
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 1.5, mb: 2, backgroundColor: "grey.50" }}
-                >
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {editedRisk.originalMitigation || "(empty)"}
-                  </Typography>
-                </Paper>
-
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  {t("tabs.risks.dialog.newMitigation", {
-                    defaultValue: "New Mitigation (from Threat):",
-                  })}
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1.5,
-                    borderColor: "primary.main",
-                    backgroundColor: "primary.50",
-                  }}
-                >
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {threatReference?.mitigation || "(empty)"}
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
-
-            <Alert severity="info">
-              {t("tabs.risks.dialog.syncWarning", {
-                defaultValue:
-                  "This will replace your current selected mitigations with the new value from the Threat.",
-              })}
-            </Alert>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowMitigationSyncDialog(false)}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <IconButton
+            size="small"
+            onClick={handlePrev}
+            disabled={currentIndex === 0}
+          >
+            <PrevIcon />
+          </IconButton>
+          <Typography variant="body2" color="text.secondary">
+            {currentIndex + 1}/{sortedRisks.length}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={handleNext}
+            disabled={currentIndex === sortedRisks.length - 1}
+          >
+            <NextIcon />
+          </IconButton>
+        </Stack>
+        <Stack direction="row" spacing={1}>
+          <Button onClick={onClose}>
             {t("common.cancel", { defaultValue: "Cancel" })}
           </Button>
-          <Button
-            onClick={handleSyncMitigationFromThreat}
-            variant="contained"
-            color="warning"
-            startIcon={<SyncIcon />}
-          >
-            {t("tabs.risks.dialog.syncConfirm", {
-              defaultValue: "Sync",
-            })}
+          <Button onClick={handleSave} variant="contained">
+            {t("common.save", { defaultValue: "Save" })}
           </Button>
-        </DialogActions>
-      </Dialog>
+        </Stack>
+      </DialogActions>
     </Dialog>
   );
-};
+};;;;;;;;;;
 
 export default RiskDialog;

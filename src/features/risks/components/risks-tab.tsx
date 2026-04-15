@@ -40,6 +40,7 @@ import {
 } from "../models/risk-types";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
+import { getEligibleThreats } from "../services/risk-sync-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
 import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
@@ -74,7 +75,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // Risk data (local working copy)
   const [riskData, setRiskData] = useState<RiskData>(() =>
-    ensureValidRiskData(project.risks)
+    ensureValidRiskData(project.risks),
   );
 
   // Dirty tracking
@@ -124,14 +125,17 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   }, [showFilters]);
 
   // Dialog state
-  const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
+  const [selectedRiskInfo, setSelectedRiskInfo] = useState<{
+    risks: Risk[];
+    index: number;
+  } | null>(null);
   const [showRiskDialog, setShowRiskDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
 
   // Validation
   const [validation, setValidation] = useState<RiskValidation | null>(
-    project.risks?.validation ?? null
+    project.risks?.validation ?? null,
   );
 
   // Refs
@@ -156,9 +160,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   }, [resizedHeight]);
 
   // Risk sync
+  // Only eligible threats (relevant + uncertain) go to Risk Tab
   const allThreats = useMemo(
-    () => [...project.perElementThreats, ...project.perInteractionThreats],
-    [project.perElementThreats, project.perInteractionThreats]
+    () =>
+      getEligibleThreats([
+        ...project.perElementThreats,
+        ...project.perInteractionThreats,
+      ]),
+    [project.perElementThreats, project.perInteractionThreats],
   );
 
   const {
@@ -180,17 +189,49 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   // ==================== DERIVED STATE ====================
 
   const riskMethod = riskData.configuration?.method ?? "simple";
-  const activeStrideMethod =
-    riskData.configuration?.activeStrideMethod ?? "per-element";
+
+  // Active STRIDE method is driven by the Threat Tab.
+  // Tab switch only available when both methods have eligible threats.
+  // If only per-interaction was used, open that directly.
+  const perElementEligible = useMemo(
+    () => getEligibleThreats(project.perElementThreats).length,
+    [project.perElementThreats],
+  );
+  const perInteractionEligible = useMemo(
+    () => getEligibleThreats(project.perInteractionThreats).length,
+    [project.perInteractionThreats],
+  );
+
+  // Determine initial / effective stride method
+  const activeStrideMethod = useMemo((): StrideMethod => {
+    const saved = riskData.configuration?.activeStrideMethod;
+    // If only per-interaction has eligible threats → force per-interaction
+    if (perElementEligible === 0 && perInteractionEligible > 0)
+      return "per-interaction";
+    // If only per-element has eligible threats → force per-element
+    if (perInteractionEligible === 0 && perElementEligible > 0)
+      return "per-element";
+    // Both available → use saved preference
+    return saved ?? "per-element";
+  }, [
+    riskData.configuration?.activeStrideMethod,
+    perElementEligible,
+    perInteractionEligible,
+  ]);
+
+  // Tab switch is enabled when BOTH methods have threats (regardless of relevance eval state)
+  const canSwitchStrideMethod =
+    project.perElementThreats.length > 0 &&
+    project.perInteractionThreats.length > 0;
 
   // Filter risks by current STRIDE method
   const activeRisks = useMemo(
     () => getActiveRisksByStrideMethod(riskData.risks, activeStrideMethod),
-    [riskData.risks, activeStrideMethod]
+    [riskData.risks, activeStrideMethod],
   );
   const wontRisks = useMemo(
     () => getWontRisksByStrideMethod(riskData.risks, activeStrideMethod),
-    [riskData.risks, activeStrideMethod]
+    [riskData.risks, activeStrideMethod],
   );
 
   const hasRisks = riskData.risks.length > 0;
@@ -200,11 +241,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const assessedRiskCount = useMemo(
     () =>
       activeRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
-    [activeRisks]
+    [activeRisks],
   );
   const completedRiskCount = useMemo(
     () => activeRisks.filter((r) => r.status !== "open").length,
-    [activeRisks]
+    [activeRisks],
   );
 
   // Get threats for current STRIDE method
@@ -227,6 +268,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const needsSync = hasAnyThreats && syncStatus.needsSync;
   const hasWarnings = syncWarnings.length > 0;
+  const uncertainCount = syncStatus.uncertainRisks ?? 0;
 
   const {
     filters,
@@ -241,7 +283,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   // NEU: Filtered risks berechnen
   const filteredActiveRisks = useMemo(
     () => filterRisks(activeRisks),
-    [activeRisks, filterRisks]
+    [activeRisks, filterRisks],
   );
 
   // ==================== EFFECTS ====================
@@ -324,34 +366,37 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setRiskData(updatedData);
       markDirty();
     },
-    [activeStrideMethod, riskData, markDirty]
+    [activeStrideMethod, riskData, markDirty],
   );
 
-  const handleEditRisk = useCallback((risk: Risk) => {
-    setSelectedRisk(risk);
+  const handleEditRisk = useCallback((risk: Risk, groupRisks?: Risk[]) => {
+    const group = groupRisks ?? [risk];
+    const index = group.findIndex((r) => r.id === risk.id);
+    setSelectedRiskInfo({ risks: group, index: Math.max(0, index) });
     setShowRiskDialog(true);
   }, []);
 
   const handleSaveRisk = useCallback(
-    (risk: Risk) => {
-      const updatedData = riskService.updateRisk(riskData, risk);
+    (riskId: string, updates: Partial<Risk>) => {
+      const existing = riskData.risks.find((r) => r.id === riskId);
+      if (!existing) return;
+      const updatedRisk = { ...existing, ...updates };
+      const updatedData = riskService.updateRisk(riskData, updatedRisk);
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
-      setShowRiskDialog(false);
-      setSelectedRisk(null);
       markDirty();
 
       // Auto-show Won't table when a risk is set to Won't priority
-      if (risk.moscowPriority === "wont") {
+      if (updatedRisk.moscowPriority === "wont") {
         setShowWontTable(true);
       }
     },
-    [riskData, markDirty]
+    [riskData, markDirty],
   );
 
   const handleCloseRiskDialog = useCallback(() => {
     setShowRiskDialog(false);
-    setSelectedRisk(null);
+    setSelectedRiskInfo(null);
   }, []);
 
   const handlePriorityChange = useCallback(
@@ -360,7 +405,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         riskData,
         riskId,
         priority as any,
-        justification
+        justification,
       );
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
@@ -371,7 +416,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         setShowWontTable(true);
       }
     },
-    [riskData, markDirty]
+    [riskData, markDirty],
   );
 
   const handleStatusChange = useCallback(
@@ -379,13 +424,27 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       const updatedData = riskService.updateStatus(
         riskData,
         riskId,
-        status as any
+        status as any,
       );
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
       markDirty();
     },
-    [riskData, markDirty]
+    [riskData, markDirty],
+  );
+
+  const handleTreatmentChange = useCallback(
+    (riskId: string, treatment: string) => {
+      const updatedData = riskService.updateTreatment(
+        riskData,
+        riskId,
+        treatment as any,
+      );
+      setRiskData(updatedData);
+      setValidation(riskService.validate(updatedData));
+      markDirty();
+    },
+    [riskData, markDirty],
   );
 
   const handleOpenConfig = useCallback(() => {
@@ -400,7 +459,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setShowConfigDialog(false);
       markDirty();
     },
-    [riskData, markDirty]
+    [riskData, markDirty],
   );
 
   const handleExport = useCallback(() => {
@@ -442,7 +501,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
       e.target.value = "";
     },
-    [markDirty, setSyncWarnings]
+    [markDirty, setSyncWarnings],
   );
 
   const handleProceed = useCallback(() => {
@@ -484,6 +543,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
+        canSwitchStrideMethod={canSwitchStrideMethod}
         hasRisks={hasRisks}
         hasThreatsForMethod={hasThreatsForMethod}
         hasAnyThreats={hasAnyThreats}
@@ -521,6 +581,20 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           ))}
         </Box>
       </Collapse>
+
+      {/* Uncertain Threats Warning */}
+      {uncertainCount > 0 && (
+        <Alert
+          severity="warning"
+          icon={<WarningIcon />}
+          sx={{ mx: 2, mt: 1, flexShrink: 0 }}
+        >
+          {t("tabs.risks.uncertainWarning", {
+            count: uncertainCount,
+            defaultValue: `${uncertainCount} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.`,
+          })}
+        </Alert>
+      )}
 
       {/* Out-of-Sync Alert */}
       <RiskSyncBanner
@@ -709,6 +783,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
                 onStatusChange={handleStatusChange}
+                onTreatmentChange={handleTreatmentChange}
               />
 
               {/* Won't Risks Table (collapsible) */}
@@ -728,18 +803,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Box>
 
       {/* Risk Edit Dialog */}
-      {selectedRisk && (
+      {selectedRiskInfo && showRiskDialog && (
         <RiskDialog
           open={showRiskDialog}
-          risk={selectedRisk}
+          risks={selectedRiskInfo.risks}
+          initialIndex={selectedRiskInfo.index}
           configuration={riskData.configuration}
-          threatReference={
-            // Find the matching threat reference
-            [
-              ...project.perElementThreats,
-              ...project.perInteractionThreats,
-            ].find((t) => t.id === selectedRisk.threatId)
-          }
+          threats={allThreats}
+          assetDataRef={project.assetDataRef}
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
         />
@@ -772,6 +843,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       )}
     </Box>
   );
-};
+};;;;;
 
 export default RisksTab;

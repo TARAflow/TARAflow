@@ -22,7 +22,6 @@ import {
   type ThreatUpdateResult,
   type AssetDataReference,
 } from "features/threats";
-import { resolveMitigationDrafts } from "features/threats/services/threat-catalog-service";
 import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
 import {
   AttackTreeTab,
@@ -852,21 +851,27 @@ export const MainLayout: React.FC = () => {
         // IMPORTANT: threatDescription is pre-filled by the generator at generate time.
         const threatDescription = threat.threatDescription;
         const attackDescription = threat.attackDescription;
-
-        // Get mitigation - use stored value, only fallback to suggestions if empty
-        const mitigation = resolveMitigationDrafts(
-          threat.proposedMitigations ?? [],
-        )
-          .map((m) => (m.isCustom ? (m.notes ?? "") : m.text))
-          .filter(Boolean)
-          .join("\n");
+        const causeDescription = threat.causeDescription;
+        const linkedAssetIds = threat.linkedAssetIds ?? [];
 
         references.push({
           id: threat.id,
           strideCategory: threat.strideCategory,
           threatDescription,
           attackDescription,
-          mitigation,
+          causeDescription,
+          linkedAssetIds,
+          relevance: threat.relevance ?? "unrated",
+          proposedMitigations: (threat.proposedMitigations ?? []).map((m) => ({
+            id: m.id,
+            notes: m.notes,
+          })),
+          proposedVerifications: (threat.proposedVerifications ?? []).map(
+            (v) => ({
+              id: v.id,
+              notes: v.notes,
+            }),
+          ),
           sourceStrideMethod: strideMethod,
           elementName,
           dataFlowName,
@@ -1123,6 +1128,7 @@ export const MainLayout: React.FC = () => {
                       activeProject.threats,
                       "per-interaction",
                     ),
+                    assetDataRef: memoizedAssetDataRef,
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
                     lastModified: activeProject.info?.lastModified || "",
                   }}

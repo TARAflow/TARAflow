@@ -3,7 +3,12 @@
 // Analog to use-threat-filters.ts
 
 import { useState, useCallback, useMemo } from "react";
-import type { Risk, MoSCoWPriority, RiskStatus } from "../../models/risk-types";
+import type {
+  Risk,
+  MoSCoWPriority,
+  RiskStatus,
+  RiskTreatment,
+} from "../../models/risk-types";
 
 // ==================== TYPES ====================
 
@@ -11,6 +16,7 @@ export interface RiskFilters {
   searchText: string;
   priorityFilter: MoSCoWPriority | "";
   statusFilter: RiskStatus | "";
+  treatmentFilter: RiskTreatment | "";
 }
 
 // ==================== HOOK ====================
@@ -20,6 +26,7 @@ export function useRiskFilters() {
     searchText: "",
     priorityFilter: "",
     statusFilter: "",
+    treatmentFilter: "",
   });
 
   // Individual setters
@@ -35,11 +42,16 @@ export function useRiskFilters() {
     setFilters((prev) => ({ ...prev, statusFilter: status }));
   }, []);
 
+  const setTreatmentFilter = useCallback((treatment: RiskTreatment | "") => {
+    setFilters((prev) => ({ ...prev, treatmentFilter: treatment }));
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters({
       searchText: "",
       priorityFilter: "",
       statusFilter: "",
+      treatmentFilter: "",
     });
   }, []);
 
@@ -47,9 +59,12 @@ export function useRiskFilters() {
   const hasActiveFilters = useMemo(
     () =>
       Boolean(
-        filters.searchText || filters.priorityFilter || filters.statusFilter
+        filters.searchText ||
+        filters.priorityFilter ||
+        filters.statusFilter ||
+        filters.treatmentFilter,
       ),
-    [filters]
+    [filters],
   );
 
   // Filter risks based on current filters
@@ -62,13 +77,20 @@ export function useRiskFilters() {
       // Filter by priority
       if (filters.priorityFilter) {
         filtered = filtered.filter(
-          (r) => r.moscowPriority === filters.priorityFilter
+          (r) => r.moscowPriority === filters.priorityFilter,
         );
       }
 
       // Filter by status
       if (filters.statusFilter) {
         filtered = filtered.filter((r) => r.status === filters.statusFilter);
+      }
+
+      // Filter by treatment
+      if (filters.treatmentFilter) {
+        filtered = filtered.filter(
+          (r) => r.treatment === filters.treatmentFilter,
+        );
       }
 
       // Filter by search text
@@ -94,6 +116,7 @@ export function useRiskFilters() {
     setSearchText,
     setPriorityFilter,
     setStatusFilter,
+    setTreatmentFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,

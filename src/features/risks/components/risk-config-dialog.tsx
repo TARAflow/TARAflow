@@ -1,6 +1,6 @@
 // ==================== RISK CONFIG DIALOG ====================
 // Configuration dialog for risk assessment method, scale, and factors
-// Supports Simple (DREAD) and Complex (OWASP/ETSI) methods
+// Likelihood × Impact method (OWASP / ETSI / EN 50742)
 
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,15 +53,26 @@ import {
   ActiveFactor,
   RiskFactorDefinition,
   RiskFactorCategory,
+  AssetImpactMapping,
+  AssetImpactLevel,
   RISK_SCALES,
-  DREAD_FACTORS,
   OWASP_LIKELIHOOD_FACTORS,
+  EN50742_FACTORS,
   OWASP_IMPACT_FACTORS,
   ETSI_FACTORS,
   ALL_PREDEFINED_FACTORS,
-  DEFAULT_SIMPLE_CONFIGURATION,
-  DEFAULT_COMPLEX_CONFIGURATION,
+  DEFAULT_CONFIGURATION,
+  DEFAULT_ASSET_IMPACT_MAPPINGS,
 } from "../models/risk-types";
+
+const ASSET_IMPACT_LEVELS: AssetImpactLevel[] = [
+  "LOW",
+  "MED",
+  "MED+",
+  "HIGH",
+  "HIGH+",
+  "CRITICAL",
+];
 
 // ==================== TYPES ====================
 
@@ -95,76 +106,65 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   // Local state
   const [tabValue, setTabValue] = useState(0);
-  const [method, setMethod] = useState<RiskMethodType>(configuration.method);
   const [scale, setScale] = useState<RiskScaleType>(configuration.scale);
   const [roundingMethod, setRoundingMethod] = useState<RiskRoundingMethod>(
-    configuration.roundingMethod || "round"
+    configuration.roundingMethod || "round",
   );
   const [activeFactors, setActiveFactors] = useState<ActiveFactor[]>(
-    configuration.activeFactors
+    configuration.activeFactors,
   );
   const [showIndividualFactors, setShowIndividualFactors] = useState(
-    configuration.showIndividualFactors
+    configuration.showIndividualFactors,
   );
   const [customFactors, setCustomFactors] = useState<RiskFactorDefinition[]>(
-    configuration.customFactors
+    configuration.customFactors,
   );
+  const [useAssetImpact, setUseAssetImpact] = useState(
+    configuration.useAssetImpact ?? false,
+  );
+  const [assetImpactMapping, setAssetImpactMapping] =
+    useState<AssetImpactMapping>(
+      configuration.assetImpactMapping ??
+        DEFAULT_ASSET_IMPACT_MAPPINGS[configuration.scale],
+    );
 
   // New custom factor state
   const [newFactorName, setNewFactorName] = useState("");
   const [newFactorDescription, setNewFactorDescription] = useState("");
   const [newFactorCategory, setNewFactorCategory] =
-    useState<RiskFactorCategory>("combined");
+    useState<RiskFactorCategory>("likelihood");
 
   // ==================== FACTOR GROUPS ====================
 
-  const factorGroups = useMemo(() => {
-    if (method === "simple") {
-      return {
-        combined: DREAD_FACTORS,
-        likelihood: [],
-        impact: [],
-      };
-    } else {
-      return {
-        combined: [],
-        likelihood: [...OWASP_LIKELIHOOD_FACTORS, ...ETSI_FACTORS],
-        impact: OWASP_IMPACT_FACTORS,
-      };
-    }
-  }, [method]);
+  const factorGroups = useMemo(
+    () => ({
+      likelihood: [
+        ...OWASP_LIKELIHOOD_FACTORS,
+        ...ETSI_FACTORS,
+        ...EN50742_FACTORS,
+      ],
+      impact: OWASP_IMPACT_FACTORS,
+    }),
+    [],
+  );
 
   // ==================== HANDLERS ====================
-
-  const handleMethodChange = (newMethod: RiskMethodType) => {
-    setMethod(newMethod);
-
-    // Reset to default factors for the method
-    if (newMethod === "simple") {
-      setActiveFactors(DEFAULT_SIMPLE_CONFIGURATION.activeFactors);
-      setNewFactorCategory("combined");
-    } else {
-      setActiveFactors(DEFAULT_COMPLEX_CONFIGURATION.activeFactors);
-      setNewFactorCategory("likelihood");
-    }
-  };
 
   const handleToggleFactor = (factorId: string) => {
     setActiveFactors((prev) => {
       const existing = prev.find((f) => f.factorId === factorId);
       if (existing) {
         return prev.map((f) =>
-          f.factorId === factorId ? { ...f, enabled: !f.enabled } : f
+          f.factorId === factorId ? { ...f, enabled: !f.enabled } : f,
         );
       } else {
         // Add new factor with default weight
         const def = [...ALL_PREDEFINED_FACTORS, ...customFactors].find(
-          (f) => f.id === factorId
+          (f) => f.id === factorId,
         );
         return [
           ...prev,
@@ -180,7 +180,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
   const handleWeightChange = (factorId: string, weight: number) => {
     setActiveFactors((prev) =>
-      prev.map((f) => (f.factorId === factorId ? { ...f, weight } : f))
+      prev.map((f) => (f.factorId === factorId ? { ...f, weight } : f)),
     );
   };
 
@@ -190,11 +190,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     const id = `custom-${Date.now()}`;
     const newFactor: RiskFactorDefinition = {
       id,
-      category: method === "simple" ? "combined" : newFactorCategory,
+      category: newFactorCategory,
       name: newFactorName,
-      nameDE: newFactorName, // Use same value
       description: newFactorDescription,
-      descriptionDE: newFactorDescription, // Use same value
       defaultWeight: 1.0,
       source: "custom",
     };
@@ -218,12 +216,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   const handleSave = () => {
     onSave({
       ...configuration,
-      method,
+      method: "complex",
       scale,
       roundingMethod,
       activeFactors,
       showIndividualFactors,
       customFactors,
+      useAssetImpact,
+      assetImpactMapping,
     });
   };
 
@@ -240,7 +240,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         <List dense disablePadding>
           {factors.map((factor) => {
             const activeFactor = activeFactors.find(
-              (af) => af.factorId === factor.id
+              (af) => af.factorId === factor.id,
             );
             const isEnabled = activeFactor?.enabled ?? false;
             const weight = activeFactor?.weight ?? factor.defaultWeight;
@@ -271,7 +271,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     primary={
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2">
-                          {isGerman ? factor.nameDE : factor.name}
+                          {t(`risks.factors.${factor.id}.name`, {
+                            defaultValue: factor.name,
+                          })}
                         </Typography>
                         <Chip
                           label={factor.source}
@@ -281,9 +283,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         />
                       </Stack>
                     }
-                    secondary={
-                      isGerman ? factor.descriptionDE : factor.description
-                    }
+                    secondary={t(`risks.factors.${factor.id}.description`, {
+                      defaultValue: factor.description,
+                    })}
                   />
                 </ListItemButton>
                 {isEnabled && (
@@ -323,10 +325,8 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   // ==================== RENDER CUSTOM FACTOR LIST ====================
 
   const renderCustomFactorList = () => {
-    const relevantCustomFactors = customFactors.filter((f) =>
-      method === "simple"
-        ? f.category === "combined"
-        : f.category === "likelihood" || f.category === "impact"
+    const relevantCustomFactors = customFactors.filter(
+      (f) => f.category === "likelihood" || f.category === "impact",
     );
 
     if (relevantCustomFactors.length === 0) return null;
@@ -341,7 +341,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         <List dense disablePadding>
           {relevantCustomFactors.map((factor) => {
             const activeFactor = activeFactors.find(
-              (af) => af.factorId === factor.id
+              (af) => af.factorId === factor.id,
             );
             const isEnabled = activeFactor?.enabled ?? false;
             const weight = activeFactor?.weight ?? factor.defaultWeight;
@@ -382,24 +382,24 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     primary={
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2">
-                          {isGerman ? factor.nameDE : factor.name}
+                          {t(`risks.factors.${factor.id}.name`, {
+                            defaultValue: factor.name,
+                          })}
                         </Typography>
-                        {method === "complex" && (
-                          <Chip
-                            label={factor.category}
-                            size="small"
-                            variant="outlined"
-                            color={
-                              factor.category === "impact" ? "error" : "info"
-                            }
-                            sx={{ fontSize: "0.6rem", height: 18 }}
-                          />
-                        )}
+                        <Chip
+                          label={factor.category}
+                          size="small"
+                          variant="outlined"
+                          color={
+                            factor.category === "impact" ? "error" : "info"
+                          }
+                          sx={{ fontSize: "0.6rem", height: 18 }}
+                        />
                       </Stack>
                     }
-                    secondary={
-                      isGerman ? factor.descriptionDE : factor.description
-                    }
+                    secondary={t(`risks.factors.${factor.id}.description`, {
+                      defaultValue: factor.description,
+                    })}
                   />
                 </ListItemButton>
                 {isEnabled && (
@@ -478,139 +478,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         {/* Method & Display Tab (combined) */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Method Selection */}
-            <FormControl component="fieldset">
-              <FormLabel sx={{ mb: 2 }}>
-                {t("tabs.risks.config.assessmentMethod", {
-                  defaultValue: "Risk Assessment Method",
-                })}
-              </FormLabel>
-              <RadioGroup
-                value={method}
-                onChange={(e) =>
-                  handleMethodChange(e.target.value as RiskMethodType)
-                }
-              >
-                <FormControlLabel
-                  value="simple"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography fontWeight="medium">
-                          {t("tabs.risks.config.simpleMethod", {
-                            defaultValue: "Simple (DREAD-like)",
-                          })}
-                        </Typography>
-                        <Tooltip
-                          title={
-                            <Box sx={{ p: 0.5 }}>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                              >
-                                <FormulaIcon fontSize="small" />
-                                <Typography
-                                  variant="body2"
-                                  fontFamily="monospace"
-                                >
-                                  Risk = Σ(Factor × Weight) / Σ(Weight)
-                                </Typography>
-                              </Stack>
-                            </Box>
-                          }
-                          arrow
-                          placement="right"
-                        >
-                          <InfoIcon
-                            fontSize="small"
-                            color="action"
-                            sx={{ cursor: "help" }}
-                          />
-                        </Tooltip>
-                      </Stack>
-                      <Typography variant="body2" color="text.secondary">
-                        {t("tabs.risks.config.simpleDesc", {
-                          defaultValue:
-                            "Combined factors with single overall risk score. Simpler to use, good for quick assessments.",
-                        })}
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: "flex-start", mb: 2 }}
-                />
-                <FormControlLabel
-                  value="complex"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography fontWeight="medium">
-                          {t("tabs.risks.config.complexMethod", {
-                            defaultValue: "Complex (OWASP/ETSI-like)",
-                          })}
-                        </Typography>
-                        <Tooltip
-                          title={
-                            <Box sx={{ p: 0.5 }}>
-                              <Stack spacing={0.5}>
-                                <Stack
-                                  direction="row"
-                                  spacing={1}
-                                  alignItems="center"
-                                >
-                                  <FormulaIcon fontSize="small" />
-                                  <Typography
-                                    variant="body2"
-                                    fontFamily="monospace"
-                                  >
-                                    Likelihood = Σ(L-Factors × Weight) /
-                                    Σ(Weight)
-                                  </Typography>
-                                </Stack>
-                                <Typography
-                                  variant="body2"
-                                  fontFamily="monospace"
-                                  sx={{ pl: 3 }}
-                                >
-                                  Impact = Σ(I-Factors × Weight) / Σ(Weight)
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  fontFamily="monospace"
-                                  sx={{ pl: 3 }}
-                                >
-                                  Risk = (Impact × Likelihood) / Scale
-                                </Typography>
-                              </Stack>
-                            </Box>
-                          }
-                          arrow
-                          placement="right"
-                        >
-                          <InfoIcon
-                            fontSize="small"
-                            color="action"
-                            sx={{ cursor: "help" }}
-                          />
-                        </Tooltip>
-                      </Stack>
-                      <Typography variant="body2" color="text.secondary">
-                        {t("tabs.risks.config.complexDesc", {
-                          defaultValue:
-                            "Separate Impact and Likelihood factors. More detailed analysis, industry standard methodologies.",
-                        })}
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: "flex-start" }}
-                />
-              </RadioGroup>
-            </FormControl>
-
-            <Divider />
-
             {/* Scale Selection */}
             <FormControl component="fieldset">
               <FormLabel sx={{ mb: 1.5 }}>
@@ -651,9 +518,10 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 {RISK_SCALES[scale].levels.map((level) => (
                   <Chip
                     key={level.value}
-                    label={`${level.value}: ${
-                      isGerman ? level.labelDE : level.label
-                    }`}
+                    label={`${level.value}: ${t(
+                      `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                      { defaultValue: level.label },
+                    )}`}
                     size="small"
                     sx={{
                       backgroundColor: level.color,
@@ -824,6 +692,121 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 }
               />
             </FormControl>
+            <Divider />
+
+            {/* Asset Impact for Risk Assessment */}
+            <FormControl component="fieldset">
+              <FormLabel sx={{ mb: 1 }}>
+                {t("tabs.risks.config.assetImpact", {
+                  defaultValue: "Asset Impact",
+                })}
+              </FormLabel>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={useAssetImpact}
+                    onChange={(e) => {
+                      setUseAssetImpact(e.target.checked);
+                      if (e.target.checked) {
+                        setAssetImpactMapping(
+                          DEFAULT_ASSET_IMPACT_MAPPINGS[scale],
+                        );
+                      }
+                    }}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography>
+                      {t("tabs.risks.config.useAssetImpact", {
+                        defaultValue:
+                          "Pre-fill Impact from linked Asset severity",
+                      })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t("tabs.risks.config.useAssetImpactDesc", {
+                        defaultValue:
+                          "When enabled, the worst aggregatedImpact of linked assets is used as the default Impact factor value. Analyst can still override per risk.",
+                      })}
+                    </Typography>
+                  </Box>
+                }
+              />
+
+              {useAssetImpact && (
+                <Box sx={{ mt: 2, ml: 4 }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    {t("tabs.risks.config.assetImpactMapping", {
+                      defaultValue: "Asset Impact → Risk Scale Mapping",
+                    })}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(6, 1fr)",
+                      gap: 1,
+                      mt: 1,
+                    }}
+                  >
+                    {ASSET_IMPACT_LEVELS.map((level) => (
+                      <Box key={level} sx={{ textAlign: "center" }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          mb={0.5}
+                        >
+                          {level}
+                        </Typography>
+                        <Select
+                          size="small"
+                          value={
+                            assetImpactMapping[level] ??
+                            DEFAULT_ASSET_IMPACT_MAPPINGS[scale][level]
+                          }
+                          onChange={(e) =>
+                            setAssetImpactMapping((prev) => ({
+                              ...prev,
+                              [level]: Number(e.target.value),
+                            }))
+                          }
+                          sx={{ fontSize: "0.75rem", width: "100%" }}
+                        >
+                          {RISK_SCALES[scale].levels.map((lvl) => (
+                            <MenuItem key={lvl.value} value={lvl.value}>
+                              <Chip
+                                label={lvl.label}
+                                size="small"
+                                sx={{
+                                  bgcolor: lvl.color,
+                                  color: "white",
+                                  fontSize: "0.65rem",
+                                  height: 18,
+                                }}
+                              />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </Box>
+                    ))}
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: "block" }}
+                  >
+                    {t("tabs.risks.config.assetImpactMappingHint", {
+                      defaultValue:
+                        "Default mapping resets when scale changes.",
+                    })}
+                  </Typography>
+                </Box>
+              )}
+            </FormControl>
           </Box>
         </TabPanel>
 
@@ -848,30 +831,21 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               })}
             </Alert>
 
-            {/* Predefined Factors based on method */}
-            {method === "simple" ? (
-              renderFactorList(
-                factorGroups.combined,
-                t("tabs.risks.config.dreadFactors", {
-                  defaultValue: "DREAD Factors",
-                })
-              )
-            ) : (
-              <>
-                {renderFactorList(
-                  factorGroups.likelihood,
-                  t("tabs.risks.config.likelihoodFactors", {
-                    defaultValue: "Likelihood Factors",
-                  })
-                )}
-                {renderFactorList(
-                  factorGroups.impact,
-                  t("tabs.risks.config.impactFactors", {
-                    defaultValue: "Impact Factors",
-                  })
-                )}
-              </>
-            )}
+            {/* Predefined Factors */}
+            <>
+              {renderFactorList(
+                factorGroups.likelihood,
+                t("tabs.risks.config.likelihoodFactors", {
+                  defaultValue: "Likelihood Factors",
+                }),
+              )}
+              {renderFactorList(
+                factorGroups.impact,
+                t("tabs.risks.config.impactFactors", {
+                  defaultValue: "Impact Factors",
+                }),
+              )}
+            </>
 
             {/* Custom Factors */}
             <Divider />
@@ -913,29 +887,27 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
                 {/* Category (only for complex method) */}
                 <Stack direction="row" spacing={2} alignItems="center">
-                  {method === "complex" && (
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                      <InputLabel>
-                        {t("tabs.risks.config.category", {
-                          defaultValue: "Category",
-                        })}
-                      </InputLabel>
-                      <Select
-                        value={newFactorCategory}
-                        label={t("tabs.risks.config.category", {
-                          defaultValue: "Category",
-                        })}
-                        onChange={(e) =>
-                          setNewFactorCategory(
-                            e.target.value as RiskFactorCategory
-                          )
-                        }
-                      >
-                        <MenuItem value="likelihood">Likelihood</MenuItem>
-                        <MenuItem value="impact">Impact</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>
+                      {t("tabs.risks.config.category", {
+                        defaultValue: "Category",
+                      })}
+                    </InputLabel>
+                    <Select
+                      value={newFactorCategory}
+                      label={t("tabs.risks.config.category", {
+                        defaultValue: "Category",
+                      })}
+                      onChange={(e) =>
+                        setNewFactorCategory(
+                          e.target.value as RiskFactorCategory,
+                        )
+                      }
+                    >
+                      <MenuItem value="likelihood">Likelihood</MenuItem>
+                      <MenuItem value="impact">Impact</MenuItem>
+                    </Select>
+                  </FormControl>
 
                   <Box sx={{ flexGrow: 1 }} />
 

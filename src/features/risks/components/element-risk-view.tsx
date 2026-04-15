@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Stack, Chip, Tooltip } from "@mui/material";
 import {
   Security as TrustBoundaryIcon,
 } from "@mui/icons-material";
@@ -20,6 +20,12 @@ import { OuterHeader } from "shared";
 import { InnerHeader } from "shared";
 import { RiskTable } from "./shared/risk-table";
 import { ProgressChip } from "./shared/progress-chip";
+import {
+  RISK_SCALES,
+  RiskScaleType,
+  RiskRoundingMethod,
+} from "../models/risk-types";
+import { getRiskColor } from "../services/risk-calculation-service";
 import {
   formatElementId,
   getElementIconComponent,
@@ -46,9 +52,10 @@ interface ElementRiskViewProps {
   onPriorityChange: (
     riskId: string,
     priority: string,
-    justification?: string
+    justification?: string,
   ) => void;
   onStatusChange: (riskId: string, status: string) => void;
+  onTreatmentChange: (riskId: string, treatment: string) => void;
 }
 
 export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
@@ -65,6 +72,7 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   onEdit,
   onPriorityChange,
   onStatusChange,
+  onTreatmentChange,
 }) => {
   const { t } = useTranslation();
 
@@ -103,11 +111,58 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
     onEdit,
     onPriorityChange,
     onStatusChange,
+    onTreatmentChange,
   });
+
+  // ── Accordion header helpers ───────────────────────────────────────────
+  const scale = configuration.scale;
+  const rounding = configuration.roundingMethod;
+
+  const getTopRiskLevels = (risks: Risk[]) => {
+    const scaleConfig = RISK_SCALES[scale];
+    const counts = new Array(scaleConfig.levels.length).fill(0);
+    for (const r of risks) {
+      if (r.calculatedRiskBeforeMitigation <= 0) continue;
+      const v = r.calculatedRiskBeforeMitigation;
+      const idx =
+        rounding === "ceil"
+          ? Math.min(Math.max(Math.ceil(v) - 1, 0), counts.length - 1)
+          : Math.min(Math.max(Math.round(v) - 1, 0), counts.length - 1);
+      counts[idx]++;
+    }
+    return scaleConfig.levels
+      .map((lvl, i) => ({
+        label: lvl.label,
+        color: lvl.color,
+        count: counts[i],
+      }))
+      .filter((l) => l.count > 0)
+      .reverse()
+      .slice(0, 2);
+  };
+
+  const getBorderColor = (risks: Risk[]) => {
+    const assessed = risks.filter(
+      (r) => r.calculatedRiskBeforeMitigation > 0,
+    ).length;
+    if (!risks.length) return "#9ca3af";
+    if (assessed === risks.length) return "#16a34a";
+    if (assessed > 0) return "#d97706";
+    return "#9ca3af";
+  };
+
+  const getProgressTooltip = (risks: Risk[]) => {
+    const assessed = risks.filter(
+      (r) => r.calculatedRiskBeforeMitigation > 0,
+    ).length;
+    const open = risks.filter((r) => r.status === "open").length;
+    const done = risks.filter((r) => r.status !== "open").length;
+    return `${assessed} assessed  ·  ${done} completed  ·  ${open} open`;
+  };
 
   const getElementIcon = (elementType: string) => {
     const Icon = getElementIconComponent(elementType);
-    console.log("getElementIcon: "+elementType +"  "+Icon)
+    console.log("getElementIcon: " + elementType + "  " + Icon);
     return <Icon fontSize="small" color="action" />;
   };
 
@@ -135,12 +190,54 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
           expanded={expandedTables[group.id] ?? false}
           onToggle={toggleTable}
           level="outer"
+          sx={{ borderLeft: `4px solid ${getBorderColor(group.risks)}` }}
           title={
             <OuterHeader
               icon={<TrustBoundaryIcon color="primary" />}
               code={group.displayIdentifier}
               title={group.name}
-              rightSlot={<ProgressChip risks={group.risks} />}
+              rightSlot={
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  {getTopRiskLevels(group.risks).map((lvl) => (
+                    <Chip
+                      key={lvl.label}
+                      label={`${lvl.label} ×${lvl.count}`}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: "0.65rem",
+                        bgcolor: `${lvl.color}20`,
+                        color: lvl.color,
+                        border: `1px solid ${lvl.color}`,
+                        cursor: "default",
+                      }}
+                    />
+                  ))}
+                  <Tooltip
+                    title={getProgressTooltip(group.risks)}
+                    placement="top"
+                  >
+                    <Chip
+                      label={`${group.risks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length}/${group.risks.length}`}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: "0.65rem",
+                        cursor: "default",
+                        bgcolor:
+                          getBorderColor(group.risks) === "#16a34a"
+                            ? "#f0fdf4"
+                            : "#f9fafb",
+                        color:
+                          getBorderColor(group.risks) === "#16a34a"
+                            ? "#16a34a"
+                            : "#6b7280",
+                        border: `1px solid ${getBorderColor(group.risks)}`,
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
+              }
             />
           }
         >
@@ -168,12 +265,20 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
                         />
                       }
                     >
-                      <RiskTable risks={element.risks} columns={columns} />
+                      <RiskTable
+                        risks={element.risks}
+                        columns={columns}
+                        configuration={configuration}
+                      />
                     </GenericAccordion>
                   );
                 })
               ) : (
-                <RiskTable risks={group.risks} columns={columns} />
+                <RiskTable
+                  risks={group.risks}
+                  columns={columns}
+                  configuration={configuration}
+                />
               )}
             </>
           )}
@@ -181,6 +286,6 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
       ))}
     </>
   );
-};
+};;;;;;
 
 export default ElementRiskView;

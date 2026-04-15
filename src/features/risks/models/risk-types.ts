@@ -5,19 +5,19 @@
 // Architecture:
 // - Risk entity per Threat (linked via threatId)
 // - Configurable assessment methods (Simple/Complex)
-// - Predefined factor templates (DREAD, OWASP, ETSI, etc.)
+// - Predefined factor templates (OWASP, ETSI, EN50742, custom)
 // - MoSCoW prioritization with Won't-Risk filtering
 
 import type { PhaseStatusMap, StrideCategory, StrideMethod } from "shared";
+import type { AssetDataReference } from "features/threats/models/threat-types";
 
 // ==================== RISK METHOD ====================
 
 /**
  * Risk assessment method type
- * - simple: Combined factors (DREAD-like), single risk score
- * - complex: Separate Impact/Likelihood factors (OWASP/ETSI-like)
+ * Likelihood × Impact method — separate Impact and Likelihood factors.
  */
-export type RiskMethodType = "simple" | "complex";
+export type RiskMethodType = "complex";
 
 /**
  * Rounding method for risk level thresholds
@@ -36,7 +36,6 @@ export type RiskScaleType = "3-level" | "4-level" | "5-level";
 export interface RiskScaleLevel {
   value: number;
   label: string;
-  labelDE: string;
   color: string;
 }
 
@@ -49,31 +48,84 @@ export const RISK_SCALES: Record<RiskScaleType, RiskScaleConfig> = {
   "3-level": {
     type: "3-level",
     levels: [
-      { value: 1, label: "Low", labelDE: "Niedrig", color: "#22c55e" },
-      { value: 2, label: "Medium", labelDE: "Mittel", color: "#eab308" },
-      { value: 3, label: "High", labelDE: "Hoch", color: "#ef4444" },
+      { value: 1, label: "Low", color: "#22c55e" },
+      { value: 2, label: "Medium", color: "#eab308" },
+      { value: 3, label: "High", color: "#ef4444" },
     ],
   },
   "4-level": {
     type: "4-level",
     levels: [
-      { value: 1, label: "Low", labelDE: "Niedrig", color: "#22c55e" },
-      { value: 2, label: "Medium", labelDE: "Mittel", color: "#eab308" },
-      { value: 3, label: "High", labelDE: "Hoch", color: "#f97316" },
-      { value: 4, label: "Critical", labelDE: "Kritisch", color: "#ef4444" },
+      { value: 1, label: "Low", color: "#22c55e" },
+      { value: 2, label: "Medium", color: "#eab308" },
+      { value: 3, label: "High", color: "#f97316" },
+      { value: 4, label: "Critical", color: "#ef4444" },
     ],
   },
   "5-level": {
     type: "5-level",
     levels: [
-      { value: 1, label: "Low", labelDE: "Niedrig", color: "#22c55e" },
-      { value: 2, label: "Medium", labelDE: "Mittel", color: "#eab308" },
-      { value: 3, label: "High", labelDE: "Hoch", color: "#f97316" },
-      { value: 4, label: "Very High", labelDE: "Sehr Hoch", color: "#ef4444" },
-      { value: 5, label: "Critical", labelDE: "Kritisch", color: "#a855f7" },
+      { value: 1, label: "Low", color: "#22c55e" },
+      { value: 2, label: "Medium", color: "#eab308" },
+      { value: 3, label: "High", color: "#f97316" },
+      { value: 4, label: "Very High", color: "#ef4444" },
+      { value: 5, label: "Critical", color: "#a855f7" },
     ],
   },
 };
+
+// ==================== RISK TREATMENT ====================
+
+/**
+ * ISO 31000 / IEC 62443-3-2 risk treatment options.
+ * Orthogonal to MoSCoW: treatment = WHAT, MoSCoW = WHEN/PRIORITY.
+ */
+export type RiskTreatment =
+  | "eliminate"  // Remove the risk source entirely (avoid the feature/function)
+  | "reduce"     // Mitigate via countermeasures (most common)
+  | "accept"     // Consciously retain the risk without action
+  | "transfer"   // Move risk to third party (outsourcing, contract)
+  | "share";     // Distribute risk across multiple parties (joint responsibility)
+
+export interface RiskTreatmentDefinition {
+  value: RiskTreatment;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export const RISK_TREATMENTS: RiskTreatmentDefinition[] = [
+  {
+    value: "eliminate",
+    label: "Eliminate",
+    description: "Remove the risk source entirely",
+    color: "#16a34a",
+  },
+  {
+    value: "reduce",
+    label: "Reduce",
+    description: "Mitigate via countermeasures",
+    color: "#2563eb",
+  },
+  {
+    value: "accept",
+    label: "Accept",
+    description: "Consciously retain the risk without action",
+    color: "#d97706",
+  },
+  {
+    value: "transfer",
+    label: "Transfer",
+    description: "Move risk to third party",
+    color: "#7c3aed",
+  },
+  {
+    value: "share",
+    label: "Share",
+    description: "Distribute risk across multiple parties",
+    color: "#0891b2",
+  },
+];
 
 // ==================== RISK FACTOR CATEGORY ====================
 
@@ -91,72 +143,23 @@ export interface RiskFactorDefinition {
   id: string;
   category: RiskFactorCategory;
   name: string;
-  nameDE: string;
   description: string;
-  descriptionDE: string;
   /** Default weight (0.0 - 1.0) */
   defaultWeight: number;
   /** Source methodology */
-  source: "DREAD" | "OWASP" | "ETSI" | "ISO27005" | "FAIR" | "CVSS" | "custom";
+  source:
+    | "OWASP"
+    | "ETSI"
+    | "EN50742"
+    | "ISO27005"
+    | "FAIR"
+    | "CVSS"
+    | "custom";
 }
 
 // ==================== PREDEFINED FACTORS ====================
 
-/**
- * DREAD factors (simple method default)
- */
-export const DREAD_FACTORS: RiskFactorDefinition[] = [
-  {
-    id: "damage_potential",
-    category: "combined",
-    name: "Damage Potential",
-    nameDE: "Schadenspotential",
-    description: "How much damage could result from the threat?",
-    descriptionDE: "Wie viel Schaden könnte durch die Bedrohung entstehen?",
-    defaultWeight: 1.0,
-    source: "DREAD",
-  },
-  {
-    id: "reproducibility",
-    category: "combined",
-    name: "Reproducibility",
-    nameDE: "Reproduzierbarkeit",
-    description: "How easy is it to reproduce the attack?",
-    descriptionDE: "Wie einfach ist es, den Angriff zu reproduzieren?",
-    defaultWeight: 1.0,
-    source: "DREAD",
-  },
-  {
-    id: "exploitability",
-    category: "combined",
-    name: "Exploitability",
-    nameDE: "Ausnutzbarkeit",
-    description: "How much skill is needed to exploit the vulnerability?",
-    descriptionDE: "Welche Fähigkeiten werden benötigt, um die Schwachstelle auszunutzen?",
-    defaultWeight: 1.0,
-    source: "DREAD",
-  },
-  {
-    id: "affected_users",
-    category: "combined",
-    name: "Affected Users",
-    nameDE: "Betroffene Nutzer",
-    description: "How many users would be affected?",
-    descriptionDE: "Wie viele Nutzer wären betroffen?",
-    defaultWeight: 1.0,
-    source: "DREAD",
-  },
-  {
-    id: "discoverability",
-    category: "combined",
-    name: "Discoverability",
-    nameDE: "Entdeckbarkeit",
-    description: "How easy is it to discover the vulnerability?",
-    descriptionDE: "Wie einfach ist es, die Schwachstelle zu entdecken?",
-    defaultWeight: 1.0,
-    source: "DREAD",
-  },
-];
+
 
 /**
  * OWASP Risk Rating factors (complex method default)
@@ -167,9 +170,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "skill_level",
     category: "likelihood",
     name: "Skill Level",
-    nameDE: "Fähigkeitsniveau",
     description: "How technically skilled is the attacker?",
-    descriptionDE: "Wie technisch versiert ist der Angreifer?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -177,9 +178,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "motive",
     category: "likelihood",
     name: "Motive",
-    nameDE: "Motivation",
     description: "How motivated is the attacker?",
-    descriptionDE: "Wie motiviert ist der Angreifer?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -187,9 +186,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "opportunity",
     category: "likelihood",
     name: "Opportunity",
-    nameDE: "Gelegenheit",
     description: "What resources and opportunities are required?",
-    descriptionDE: "Welche Ressourcen und Gelegenheiten sind erforderlich?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -197,9 +194,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "size",
     category: "likelihood",
     name: "Size",
-    nameDE: "Größe",
     description: "How large is the group of potential attackers?",
-    descriptionDE: "Wie groß ist die Gruppe potenzieller Angreifer?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -208,9 +203,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "ease_of_discovery",
     category: "likelihood",
     name: "Ease of Discovery",
-    nameDE: "Einfachheit der Entdeckung",
     description: "How easy is it to find the vulnerability?",
-    descriptionDE: "Wie einfach ist es, die Schwachstelle zu finden?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -218,9 +211,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "ease_of_exploit",
     category: "likelihood",
     name: "Ease of Exploit",
-    nameDE: "Einfachheit der Ausnutzung",
     description: "How easy is it to actually exploit the vulnerability?",
-    descriptionDE: "Wie einfach ist es, die Schwachstelle auszunutzen?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -228,9 +219,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "awareness",
     category: "likelihood",
     name: "Awareness",
-    nameDE: "Bekanntheit",
     description: "How well known is the vulnerability?",
-    descriptionDE: "Wie bekannt ist die Schwachstelle?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -238,9 +227,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "intrusion_detection",
     category: "likelihood",
     name: "Intrusion Detection",
-    nameDE: "Einbruchserkennung",
     description: "How likely is detection of an exploit?",
-    descriptionDE: "Wie wahrscheinlich ist die Erkennung eines Angriffs?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -252,9 +239,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "loss_of_confidentiality",
     category: "impact",
     name: "Loss of Confidentiality",
-    nameDE: "Vertraulichkeitsverlust",
     description: "How much data could be disclosed?",
-    descriptionDE: "Wie viele Daten könnten offengelegt werden?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -262,9 +247,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "loss_of_integrity",
     category: "impact",
     name: "Loss of Integrity",
-    nameDE: "Integritätsverlust",
     description: "How much data could be corrupted?",
-    descriptionDE: "Wie viele Daten könnten beschädigt werden?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -272,9 +255,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "loss_of_availability",
     category: "impact",
     name: "Loss of Availability",
-    nameDE: "Verfügbarkeitsverlust",
     description: "How much service could be lost?",
-    descriptionDE: "Wie viel Dienst könnte ausfallen?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -282,9 +263,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "loss_of_accountability",
     category: "impact",
     name: "Loss of Accountability",
-    nameDE: "Nachweisbarkeitsverlust",
     description: "Are actions traceable to the attacker?",
-    descriptionDE: "Sind Aktionen zum Angreifer rückverfolgbar?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -293,9 +272,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "financial_damage",
     category: "impact",
     name: "Financial Damage",
-    nameDE: "Finanzieller Schaden",
     description: "How much financial damage would result?",
-    descriptionDE: "Wie viel finanzieller Schaden würde entstehen?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -303,9 +280,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "reputation_damage",
     category: "impact",
     name: "Reputation Damage",
-    nameDE: "Reputationsschaden",
     description: "Would reputation be affected?",
-    descriptionDE: "Würde die Reputation beeinträchtigt?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -313,9 +288,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "non_compliance",
     category: "impact",
     name: "Non-Compliance",
-    nameDE: "Nichteinhaltung",
     description: "How much regulation exposure?",
-    descriptionDE: "Wie viel Regulierungsrisiko?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -323,9 +296,7 @@ export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
     id: "privacy_violation",
     category: "impact",
     name: "Privacy Violation",
-    nameDE: "Datenschutzverletzung",
     description: "How much personally identifiable information affected?",
-    descriptionDE: "Wie viele personenbezogene Daten betroffen?",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -339,9 +310,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "knowledge",
     category: "likelihood",
     name: "Knowledge Factor",
-    nameDE: "Wissensfaktor",
     description: "Required knowledge to exploit",
-    descriptionDE: "Erforderliches Wissen zur Ausnutzung",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -349,9 +318,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "expertise",
     category: "likelihood",
     name: "Expertise Factor",
-    nameDE: "Expertisefaktor",
     description: "Required expertise level",
-    descriptionDE: "Erforderliches Expertenniveau",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -359,9 +326,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "time",
     category: "likelihood",
     name: "Time Factor",
-    nameDE: "Zeitfaktor",
     description: "Time required to exploit",
-    descriptionDE: "Erforderliche Zeit zur Ausnutzung",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -369,11 +334,42 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "equipment",
     category: "likelihood",
     name: "Equipment Factor",
-    nameDE: "Ausrüstungsfaktor",
     description: "Equipment required to exploit",
-    descriptionDE: "Erforderliche Ausrüstung zur Ausnutzung",
     defaultWeight: 1.0,
     source: "ETSI",
+  },
+];
+
+
+/**
+ * EN 50742 / IEC 62443-3-2 Attacker Potential factors
+ * Formula: AP = (EL × WoO) + AC
+ * AP feeds into the Likelihood dimension.
+ */
+export const EN50742_FACTORS: RiskFactorDefinition[] = [
+  {
+    id: "window_of_opportunity",
+    category: "likelihood",
+    name: "Window of Opportunity (WoO)",
+    description: "How long is the vulnerability accessible to an attacker?",
+    defaultWeight: 1.0,
+    source: "EN50742",
+  },
+  {
+    id: "attacker_capability",
+    category: "likelihood",
+    name: "Attacker Capability (AC)",
+    description: "Skill level, motivation and resources of a potential attacker.",
+    defaultWeight: 1.0,
+    source: "EN50742",
+  },
+  {
+    id: "exposure_level",
+    category: "likelihood",
+    name: "Exposure Level (EL)",
+    description: "How exposed is the asset or system to potential attackers?",
+    defaultWeight: 1.0,
+    source: "EN50742",
   },
 ];
 
@@ -381,10 +377,10 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
  * All predefined factors grouped by source
  */
 export const ALL_PREDEFINED_FACTORS: RiskFactorDefinition[] = [
-  ...DREAD_FACTORS,
   ...OWASP_LIKELIHOOD_FACTORS,
   ...OWASP_IMPACT_FACTORS,
   ...ETSI_FACTORS,
+  ...EN50742_FACTORS,
 ];
 
 // ==================== MOSCOW PRIORITY ====================
@@ -394,9 +390,7 @@ export type MoSCoWPriority = "must" | "should" | "could" | "wont";
 export interface MoSCoWDefinition {
   value: MoSCoWPriority;
   label: string;
-  labelDE: string;
   description: string;
-  descriptionDE: string;
   color: string;
 }
 
@@ -404,33 +398,25 @@ export const MOSCOW_PRIORITIES: MoSCoWDefinition[] = [
   {
     value: "must",
     label: "Must",
-    labelDE: "Muss",
     description: "Critical - must be addressed",
-    descriptionDE: "Kritisch - muss behandelt werden",
     color: "#ef4444",
   },
   {
     value: "should",
     label: "Should",
-    labelDE: "Sollte",
     description: "Important - should be addressed if possible",
-    descriptionDE: "Wichtig - sollte wenn möglich behandelt werden",
     color: "#f97316",
   },
   {
     value: "could",
     label: "Could",
-    labelDE: "Könnte",
     description: "Nice to have - could be addressed",
-    descriptionDE: "Wünschenswert - könnte behandelt werden",
     color: "#eab308",
   },
   {
     value: "wont",
     label: "Won't",
-    labelDE: "Wird nicht",
     description: "Accepted risk - won't be addressed this iteration",
-    descriptionDE: "Akzeptiertes Risiko - wird nicht in dieser Iteration behandelt",
     color: "#6b7280",
   },
 ];
@@ -442,16 +428,15 @@ export type RiskStatus = "open" | "in-review" | "mitigated" | "accepted" | "wont
 export interface RiskStatusDefinition {
   value: RiskStatus;
   label: string;
-  labelDE: string;
   color: string;
 }
 
 export const RISK_STATUSES: RiskStatusDefinition[] = [
-  { value: "open", label: "Open", labelDE: "Offen", color: "#ef4444" },
-  { value: "in-review", label: "In Review", labelDE: "In Prüfung", color: "#3b82f6" },
-  { value: "mitigated", label: "Mitigated", labelDE: "Mitigiert", color: "#22c55e" },
-  { value: "accepted", label: "Accepted", labelDE: "Akzeptiert", color: "#eab308" },
-  { value: "wont-do", label: "Won't Do", labelDE: "Wird nicht gemacht", color: "#6b7280" },
+  { value: "open", label: "Open", color: "#ef4444" },
+  { value: "in-review", label: "In Review", color: "#3b82f6" },
+  { value: "mitigated", label: "Mitigated", color: "#22c55e" },
+  { value: "accepted", label: "Accepted", color: "#eab308" },
+  { value: "wont-do", label: "Won't Do", color: "#6b7280" },
 ];
 
 // ==================== FACTOR RATING ====================
@@ -483,8 +468,28 @@ export interface Risk {
   /** Copy of attack description for display (denormalized for performance) */
   attackDescription: string;
 
-  /** Original mitigation from threat (read-only reference) */
-  originalMitigation: string;
+  /** Cause description from catalog (read-only, amber display) */
+  causeDescription?: string;
+
+  /** Linked asset IDs — used for asset-impact pre-fill */
+  linkedAssetIds?: string[];
+
+  /**
+   * Threat relevance — determines if this risk should appear in Risk Tab.
+   * Synced from Threat Eval phase. uncertain risks show a warning.
+   */
+  threatRelevance: ThreatRelevanceRef;
+
+  /**
+   * Proposed mitigations from Threat Eval (catalog refs + custom).
+   * Displayed as checkboxes in Risk Dialog Tab 2.
+   */
+  proposedMitigations: MitigationDraftRef[];
+
+  /**
+   * Proposed verifications from Threat Eval.
+   */
+  proposedVerifications: MitigationDraftRef[];
 
   /** STRIDE category from threat */
   strideCategory: StrideCategory;
@@ -500,8 +505,17 @@ export interface Risk {
   calculatedLikelihood: number;
   calculatedRiskBeforeMitigation: number;
 
-  /** Mitigation info (copied from threat, can be modified) */
+  /**
+   * IDs of selected mitigations from proposedMitigations.
+   * For catalog entries: the catalog ID (e.g. "M-S-001").
+   * For custom entries: the notes text is used as identifier.
+   */
   selectedMitigations: string[];
+
+  /**
+   * IDs of selected verifications from proposedVerifications.
+   */
+  selectedVerifications: string[];
 
   /** Re-rated factors after mitigation */
   mitigatedFactorRatings: FactorRating[];
@@ -509,7 +523,16 @@ export interface Risk {
   /** Calculated risk after mitigation */
   calculatedRiskAfterMitigation: number;
 
-  /** MoSCoW priority */
+  /**
+   * Risk treatment decision (ISO 31000 / IEC 62443-3-2).
+   * WHAT will be done with this risk.
+   */
+  treatment: RiskTreatment;
+
+  /** Treatment justification — required for accept/transfer/share */
+  treatmentJustification: string;
+
+  /** MoSCoW priority — WHEN / with what priority */
   moscowPriority: MoSCoWPriority;
 
   /** Won't justification (required when moscowPriority === 'wont') */
@@ -544,6 +567,27 @@ export interface ActiveFactor {
 /**
  * Project-specific risk configuration
  */
+/**
+ * Asset impact level — mirrors aggregatedImpact from AssetReference.
+ * Kept here to avoid circular dependency with threat-types.
+ */
+export type AssetImpactLevel = "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
+
+/**
+ * Mapping from asset impact level to risk scale value.
+ * One entry per AssetImpactLevel. Values must be within the active scale range.
+ */
+export type AssetImpactMapping = Record<AssetImpactLevel, number>;
+
+/**
+ * Default mappings per scale — proportional from top.
+ */
+export const DEFAULT_ASSET_IMPACT_MAPPINGS: Record<RiskScaleType, AssetImpactMapping> = {
+  "3-level": { LOW: 1, MED: 2, "MED+": 2, HIGH: 3, "HIGH+": 3, CRITICAL: 3 },
+  "4-level": { LOW: 1, MED: 2, "MED+": 2, HIGH: 3, "HIGH+": 4, CRITICAL: 4 },
+  "5-level": { LOW: 1, MED: 2, "MED+": 3, HIGH: 4, "HIGH+": 4, CRITICAL: 5 },
+};
+
 export interface RiskConfiguration {
   /** Assessment method */
   method: RiskMethodType;
@@ -565,40 +609,39 @@ export interface RiskConfiguration {
 
   /** Custom factor definitions */
   customFactors: RiskFactorDefinition[];
+
+  /**
+   * When true: impact factor for complex method is pre-filled from
+   * the worst aggregatedImpact of linked assets using assetImpactMapping.
+   * Analyst can still override per risk.
+   */
+  useAssetImpact: boolean;
+
+  /**
+   * Configurable mapping from asset impact level to risk scale value.
+   * Defaults to DEFAULT_ASSET_IMPACT_MAPPINGS[scale].
+   */
+  assetImpactMapping: AssetImpactMapping;
 }
 
 /**
- * Default configuration for simple method
+ * Default risk configuration — Likelihood × Impact (EN 50742 / OWASP)
  */
-export const DEFAULT_SIMPLE_CONFIGURATION: RiskConfiguration = {
-  method: "simple",
-  scale: "4-level",
-  roundingMethod: "round",
-  activeStrideMethod: "per-element",
-  activeFactors: DREAD_FACTORS.map((f) => ({
-    factorId: f.id,
-    enabled: true,
-    weight: f.defaultWeight,
-  })),
-  showIndividualFactors: false,
-  customFactors: [],
-};
-
-/**
- * Default configuration for complex method
- */
-export const DEFAULT_COMPLEX_CONFIGURATION: RiskConfiguration = {
+export const DEFAULT_CONFIGURATION: RiskConfiguration = {
   method: "complex",
   scale: "4-level",
   roundingMethod: "round",
   activeStrideMethod: "per-element",
   activeFactors: [
-    // Likelihood (subset of OWASP)
+    // Likelihood — OWASP + EN 50742
     { factorId: "skill_level", enabled: true, weight: 1.0 },
     { factorId: "motive", enabled: true, weight: 1.0 },
     { factorId: "opportunity", enabled: true, weight: 1.0 },
     { factorId: "ease_of_exploit", enabled: true, weight: 1.0 },
-    // Impact (subset of OWASP)
+    { factorId: "window_of_opportunity", enabled: false, weight: 1.0 },
+    { factorId: "attacker_capability", enabled: false, weight: 1.0 },
+    { factorId: "exposure_level", enabled: false, weight: 1.0 },
+    // Impact — OWASP
     { factorId: "loss_of_confidentiality", enabled: true, weight: 1.0 },
     { factorId: "loss_of_integrity", enabled: true, weight: 1.0 },
     { factorId: "loss_of_availability", enabled: true, weight: 1.0 },
@@ -606,6 +649,8 @@ export const DEFAULT_COMPLEX_CONFIGURATION: RiskConfiguration = {
   ],
   showIndividualFactors: false,
   customFactors: [],
+  useAssetImpact: false,
+  assetImpactMapping: DEFAULT_ASSET_IMPACT_MAPPINGS["4-level"],
 };
 
 // ==================== RISK DATA CONTAINER ====================
@@ -646,22 +691,48 @@ export interface RiskProjectData {
   perElementThreats: ThreatReference[];
   /** Threats from per-interaction method */
   perInteractionThreats: ThreatReference[];
+  /** Asset data for impact display and pre-fill in Risk Dialog */
+  assetDataRef?: AssetDataReference;
   /** DFD preview image */
   dfdPreviewImage?: string;
   lastModified: string;
 }
 
+
 /**
  * Simplified threat reference (no circular dependency)
  */
+/**
+ * Relevance values mirrored from threat-types — no circular import.
+ * Keep in sync with ThreatRelevance in threat-types.ts.
+ */
+export type ThreatRelevanceRef = "unrated" | "relevant" | "not_relevant" | "uncertain";
+
+/**
+ * MitigationDraft mirrored from threat-types — no circular import.
+ */
+export interface MitigationDraftRef {
+  id?: string;
+  notes?: string;
+}
+
 export interface ThreatReference {
   id: string;
   strideCategory: StrideCategory;
   threatDescription: string;
   attackDescription: string;
-  mitigation: string;
   /** Source STRIDE method */
   sourceStrideMethod: StrideMethod;
+  /** Analyst relevance decision from Threat Eval phase */
+  relevance: ThreatRelevanceRef;
+  /** Proposed mitigations from catalog + analyst custom entries */
+  proposedMitigations: MitigationDraftRef[];
+  /** Proposed verifications from catalog + analyst custom entries */
+  proposedVerifications: MitigationDraftRef[];
+  /** Cause description from catalog (read-only, for Risk Dialog display) */
+  causeDescription?: string;
+  /** Linked asset IDs for impact pre-fill */
+  linkedAssetIds?: string[];
   /** Element or DataFlow name for display */
   elementName?: string;
   dataFlowName?: string;
@@ -699,7 +770,6 @@ export interface RiskMatrixCell {
   riskLevel: number;
   color: string;
   label: string;
-  labelDE: string;
 }
 
 /**
@@ -723,7 +793,6 @@ export function generateRiskMatrix(scale: RiskScaleType): RiskMatrixCell[][] {
         riskLevel,
         color: level.color,
         label: level.label,
-        labelDE: level.labelDE,
       });
     }
     matrix.push(row);
@@ -755,7 +824,11 @@ export function createEmptyRisk(
     threatId: threatRef.id,
     threatDescription: threatRef.threatDescription,
     attackDescription: threatRef.attackDescription || "",
-    originalMitigation: threatRef.mitigation || "",
+    causeDescription: threatRef.causeDescription,
+    linkedAssetIds: threatRef.linkedAssetIds ?? [],
+    threatRelevance: threatRef.relevance,
+    proposedMitigations: threatRef.proposedMitigations ?? [],
+    proposedVerifications: threatRef.proposedVerifications ?? [],
     strideCategory: threatRef.strideCategory,
     sourceStrideMethod: threatRef.sourceStrideMethod,
     factorRatings: enabledFactors.map((f) => ({
@@ -766,13 +839,16 @@ export function createEmptyRisk(
     calculatedImpact: 0,
     calculatedLikelihood: 0,
     calculatedRiskBeforeMitigation: 0,
-    selectedMitigations: threatRef.mitigation ? [threatRef.mitigation] : [],
+    selectedMitigations: [],
+    selectedVerifications: [],
     mitigatedFactorRatings: enabledFactors.map((f) => ({
       factorId: f.factorId,
       value: 0,
       weight: f.weight,
     })),
     calculatedRiskAfterMitigation: 0,
+    treatment: "reduce",
+    treatmentJustification: "",
     moscowPriority: "should",
     wontJustification: "",
     status: "open",
@@ -782,7 +858,8 @@ export function createEmptyRisk(
 }
 
 /**
- * Calculate risk values based on method
+ * @deprecated Use riskCalculationService.calculateRiskValues() instead.
+ * Kept here temporarily for backward compatibility.
  */
 export function calculateRiskValues(
   ratings: FactorRating[],
@@ -791,28 +868,12 @@ export function calculateRiskValues(
   const scale = RISK_SCALES[configuration.scale];
   const maxValue = scale.levels.length;
 
-  if (configuration.method === "simple") {
-    // DREAD: Average of all factors
-    const ratedFactors = ratings.filter((r) => r.value > 0);
-    if (ratedFactors.length === 0) {
-      return { impact: 0, likelihood: 0, risk: 0 };
-    }
-
-    const weightedSum = ratedFactors.reduce(
-      (sum, r) => sum + r.value * r.weight,
-      0
-    );
-    const totalWeight = ratedFactors.reduce((sum, r) => sum + r.weight, 0);
-    const avgRisk = totalWeight > 0 ? weightedSum / totalWeight : 0;
-
-    return {
-      impact: avgRisk,
-      likelihood: avgRisk,
-      risk: Math.round(avgRisk * 10) / 10,
-    };
-  } else {
+  {
     // Complex: Separate Impact and Likelihood
-    const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
+    const allFactors = [
+      ...ALL_PREDEFINED_FACTORS,
+      ...configuration.customFactors,
+    ];
 
     const impactRatings = ratings.filter((r) => {
       const factor = allFactors.find((f) => f.id === r.factorId);
@@ -899,19 +960,16 @@ export function getRiskColor(
 export function getRiskLabel(
   value: number,
   scale: RiskScaleType,
-  isGerman: boolean,
-  roundingMethod: RiskRoundingMethod = "round"
+  roundingMethod: RiskRoundingMethod = "round",
 ): string {
   if (value <= 0) return "-";
   const scaleConfig = RISK_SCALES[scale];
   const levelIndex = calculateLevelIndex(
     value,
     scaleConfig.levels.length,
-    roundingMethod
+    roundingMethod,
   );
-  return isGerman
-    ? scaleConfig.levels[levelIndex].labelDE
-    : scaleConfig.levels[levelIndex].label;
+  return scaleConfig.levels[levelIndex].label;
 }
 
 /**
@@ -919,7 +977,7 @@ export function getRiskLabel(
  */
 export function createDefaultRiskData(): RiskData {
   return {
-    configuration: { ...DEFAULT_SIMPLE_CONFIGURATION },
+    configuration: { ...DEFAULT_CONFIGURATION },
     risks: [],
     lastModified: new Date().toISOString(),
   };

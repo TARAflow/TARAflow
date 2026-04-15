@@ -1,16 +1,9 @@
 // ==================== WONT RISK TABLE ====================
-// Displays risks with MoSCoW priority "Won't"
-// Shows justification for accepted risks
-// Simpler table than main RiskTable
+// Displays risks with MoSCoW priority "Won't".
+// Uses MUI Table (no DataGrid) for consistent performance.
 
 import React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  DataGrid,
-  GridColDef,
-  GridActionsCellItem,
-  GridRenderCellParams,
-} from "@mui/x-data-grid";
 import {
   Box,
   Chip,
@@ -18,30 +11,17 @@ import {
   Tooltip,
   Paper,
   Stack,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
 } from "@mui/material";
-import {
-  Edit as EditIcon,
-  DoNotDisturb as WontIcon,
-} from "@mui/icons-material";
-
-import {
-  Risk,
-  RiskConfiguration,
-  ThreatReference,
-  getRiskColor,
-} from "../models/risk-types";
+import { Edit as EditIcon } from "@mui/icons-material";
+import { DoNotDisturb as WontIcon } from "@mui/icons-material";
+import { Risk, RiskConfiguration, ThreatReference } from "../models/risk-types";
+import { getRiskColor } from "../services/risk-calculation-service";
 import type { StrideCategory } from "shared";
-
-// ==================== TYPES ====================
-
-interface WontRiskTableProps {
-  risks: Risk[];
-  threats: ThreatReference[];
-  configuration: RiskConfiguration;
-  onEdit: (risk: Risk) => void;
-}
-
-// ==================== STRIDE COLORS ====================
 
 const STRIDE_COLORS: Record<StrideCategory, string> = {
   S: "#ef4444",
@@ -52,142 +32,39 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
   E: "#a855f7",
 };
 
-// ==================== COMPONENT ====================
+const cellSx = {
+  py: 0.75,
+  px: 1,
+  fontSize: "0.8rem",
+  borderBottom: "1px solid",
+  borderColor: "divider",
+};
+
+const headerCellSx = {
+  ...cellSx,
+  bgcolor: "grey.50",
+  fontWeight: 600,
+  fontSize: "0.75rem",
+  color: "text.secondary",
+  py: 0.5,
+};
+
+interface WontRiskTableProps {
+  risks: Risk[];
+  threats: ThreatReference[];
+  configuration: RiskConfiguration;
+  onEdit: (risk: Risk) => void;
+}
 
 export const WontRiskTable = React.memo<WontRiskTableProps>(
-  ({ risks, threats, configuration, onEdit }) => {
-    const { t, i18n } = useTranslation();
-    const isGerman = i18n.language === "de";
+  ({ risks, configuration, onEdit }) => {
+    const { t } = useTranslation();
 
-    // ==================== COLUMNS ====================
+    if (risks.length === 0) return null;
 
-    const columns: GridColDef<Risk>[] = [
-      {
-        field: "threatId",
-        headerName: t("tabs.risks.columns.threatId", { defaultValue: "T-ID" }),
-        width: 100,
-        renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Chip
-            label={params.value}
-            size="small"
-            variant="outlined"
-            sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
-          />
-        ),
-      },
-      {
-        field: "strideCategory",
-        headerName: t("tabs.risks.columns.stride", { defaultValue: "STRIDE" }),
-        width: 70,
-        align: "center",
-        renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Chip
-            label={params.value}
-            size="small"
-            sx={{
-              backgroundColor: STRIDE_COLORS[params.value as StrideCategory],
-              color: "white",
-              fontWeight: "bold",
-            }}
-          />
-        ),
-      },
-      {
-        field: "threatDescription",
-        headerName: t("tabs.risks.columns.threat", { defaultValue: "Threat" }),
-        flex: 1,
-        minWidth: 200,
-        renderCell: (params: GridRenderCellParams<Risk>) => (
-          <Tooltip title={params.value || ""}>
-            <Typography
-              variant="body2"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {params.value || "-"}
-            </Typography>
-          </Tooltip>
-        ),
-      },
-      {
-        field: "calculatedRiskBeforeMitigation",
-        headerName: t("tabs.risks.columns.originalRisk", {
-          defaultValue: "Original Risk",
-        }),
-        width: 100,
-        align: "center",
-        renderCell: (params: GridRenderCellParams<Risk>) => {
-          const value = params.value as number;
-          return (
-            <Chip
-              label={value > 0 ? value.toFixed(1) : "-"}
-              size="small"
-              sx={{
-                backgroundColor: getRiskColor(value, configuration.scale),
-                color: "white",
-                fontWeight: "bold",
-              }}
-            />
-          );
-        },
-      },
-      {
-        field: "wontJustification",
-        headerName: t("tabs.risks.columns.justification", {
-          defaultValue: "Justification",
-        }),
-        flex: 1.5,
-        minWidth: 250,
-        renderCell: (params: GridRenderCellParams<Risk>) => {
-          const value = params.value as string;
-          const hasJustification = value && value.trim().length > 0;
-
-          return (
-            <Tooltip title={value || ""}>
-              <Typography
-                variant="body2"
-                sx={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  color: hasJustification ? "text.primary" : "error.main",
-                  fontStyle: hasJustification ? "normal" : "italic",
-                }}
-              >
-                {hasJustification
-                  ? value
-                  : t("tabs.risks.noJustification", {
-                      defaultValue: "Missing justification!",
-                    })}
-              </Typography>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        field: "actions",
-        type: "actions",
-        headerName: t("common.actions", { defaultValue: "Actions" }),
-        width: 60,
-        getActions: (params) => [
-          <GridActionsCellItem
-            key="edit"
-            icon={<EditIcon />}
-            label={t("common.edit", { defaultValue: "Edit" })}
-            onClick={() => onEdit(params.row)}
-          />,
-        ],
-      },
-    ];
-
-    // ==================== RENDER ====================
-
-    if (risks.length === 0) {
-      return null;
-    }
+    const missingJustification = risks.some(
+      (r) => !r.wontJustification?.trim(),
+    );
 
     return (
       <Paper
@@ -206,8 +83,8 @@ export const WontRiskTable = React.memo<WontRiskTableProps>(
             gap: 1,
             px: 2,
             py: 1,
-            backgroundColor: "grey.100",
-            borderBottom: "1px solid",
+            bgcolor: "grey.100",
+            borderBottom: 1,
             borderColor: "divider",
           }}
         >
@@ -226,41 +103,164 @@ export const WontRiskTable = React.memo<WontRiskTableProps>(
         </Box>
 
         {/* Table */}
-        <Box sx={{ height: Math.min(300, risks.length * 52 + 56) }}>
-          <DataGrid
-            rows={risks}
-            columns={columns}
-            pageSizeOptions={[5, 10]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 5 } },
-              sorting: {
-                sortModel: [
-                  { field: "calculatedRiskBeforeMitigation", sort: "desc" },
-                ],
-              },
-            }}
-            disableRowSelectionOnClick
-            density="compact"
-            hideFooter={risks.length <= 5}
-            sx={{
-              border: "none",
-              "& .MuiDataGrid-cell": { py: 0.5 },
-              "& .MuiDataGrid-row": {
-                backgroundColor: "grey.50",
-              },
-            }}
-          />
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small" sx={{ tableLayout: "fixed", minWidth: 600 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ ...headerCellSx, width: 130 }}>
+                  {t("tabs.risks.columns.threatId", { defaultValue: "T-ID" })}
+                </TableCell>
+                <TableCell
+                  sx={{ ...headerCellSx, width: 70, textAlign: "center" }}
+                >
+                  {t("tabs.risks.columns.stride", { defaultValue: "STRIDE" })}
+                </TableCell>
+                <TableCell sx={headerCellSx}>
+                  {t("tabs.risks.columns.threat", { defaultValue: "Threat" })}
+                </TableCell>
+                <TableCell
+                  sx={{ ...headerCellSx, width: 100, textAlign: "center" }}
+                >
+                  {t("tabs.risks.columns.originalRisk", {
+                    defaultValue: "Original Risk",
+                  })}
+                </TableCell>
+                <TableCell sx={{ ...headerCellSx, minWidth: 200 }}>
+                  {t("tabs.risks.columns.justification", {
+                    defaultValue: "Justification",
+                  })}
+                </TableCell>
+                <TableCell sx={{ ...headerCellSx, width: 48 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {[...risks]
+                .sort(
+                  (a, b) =>
+                    b.calculatedRiskBeforeMitigation -
+                    a.calculatedRiskBeforeMitigation,
+                )
+                .map((risk) => {
+                  const hasJustification = !!risk.wontJustification?.trim();
+                  return (
+                    <TableRow
+                      key={risk.id}
+                      sx={{
+                        bgcolor: "grey.50",
+                        "&:last-child td": { borderBottom: 0 },
+                      }}
+                    >
+                      <TableCell sx={cellSx}>
+                        <Chip
+                          label={risk.threatId}
+                          size="small"
+                          sx={{
+                            bgcolor:
+                              STRIDE_COLORS[risk.strideCategory] ?? "#9ca3af",
+                            color: "white",
+                            fontWeight: "bold",
+                            fontSize: "0.7rem",
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ ...cellSx, textAlign: "center" }}>
+                        <Chip
+                          label={risk.strideCategory}
+                          size="small"
+                          sx={{
+                            bgcolor: STRIDE_COLORS[risk.strideCategory],
+                            color: "white",
+                            fontWeight: "bold",
+                            minWidth: 32,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={cellSx}>
+                        <Tooltip title={risk.threatDescription ?? ""}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              fontSize: "0.8rem",
+                            }}
+                          >
+                            {risk.threatDescription || "–"}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell sx={{ ...cellSx, textAlign: "center" }}>
+                        <Chip
+                          label={
+                            risk.calculatedRiskBeforeMitigation > 0
+                              ? risk.calculatedRiskBeforeMitigation.toFixed(1)
+                              : "–"
+                          }
+                          size="small"
+                          sx={{
+                            bgcolor: getRiskColor(
+                              risk.calculatedRiskBeforeMitigation,
+                              configuration.scale,
+                              configuration.roundingMethod,
+                            ),
+                            color: "white",
+                            fontWeight: "bold",
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={cellSx}>
+                        <Tooltip title={risk.wontJustification ?? ""}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              fontSize: "0.8rem",
+                              color: hasJustification
+                                ? "text.primary"
+                                : "error.main",
+                              fontStyle: hasJustification ? "normal" : "italic",
+                            }}
+                          >
+                            {hasJustification
+                              ? risk.wontJustification
+                              : t("tabs.risks.noJustification", {
+                                  defaultValue: "Missing justification!",
+                                })}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell sx={{ ...cellSx, textAlign: "center" }}>
+                        <Tooltip
+                          title={t("common.edit", { defaultValue: "Edit" })}
+                        >
+                          <EditIcon
+                            fontSize="small"
+                            sx={{
+                              cursor: "pointer",
+                              color: "text.secondary",
+                              "&:hover": { color: "primary.main" },
+                            }}
+                            onClick={() => onEdit(risk)}
+                          />
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
         </Box>
 
-        {/* Warning if missing justifications */}
-        {risks.some(
-          (r) => !r.wontJustification || !r.wontJustification.trim()
-        ) && (
+        {/* Missing justification warning */}
+        {missingJustification && (
           <Box
             sx={{
               px: 2,
               py: 1,
-              backgroundColor: "error.light",
+              bgcolor: "error.light",
               color: "error.contrastText",
             }}
           >
@@ -274,7 +274,7 @@ export const WontRiskTable = React.memo<WontRiskTableProps>(
         )}
       </Paper>
     );
-  }
+  },
 );
 
 export default WontRiskTable;

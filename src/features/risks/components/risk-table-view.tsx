@@ -9,6 +9,7 @@ import {
   ThreatReference,
   MoSCoWPriority,
   RiskStatus,
+  RiskTreatment,
 } from "../models/risk-types";
 import type { StrideMethod } from "shared";
 import { ElementRiskView } from "./element-risk-view";
@@ -25,6 +26,7 @@ interface RiskTableViewProps {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
     statusFilter: RiskStatus | "";
+    treatmentFilter: RiskTreatment | "";
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
@@ -36,9 +38,10 @@ interface RiskTableViewProps {
   onPriorityChange: (
     riskId: string,
     priority: string,
-    justification?: string
+    justification?: string,
   ) => void;
   onStatusChange: (riskId: string, status: string) => void;
+  onTreatmentChange: (riskId: string, treatment: string) => void;
 }
 
 export const RiskTableView = React.memo<RiskTableViewProps>(
@@ -57,6 +60,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
     onEdit,
     onPriorityChange,
     onStatusChange,
+    onTreatmentChange,
   }) => {
     const isPerElement = strideMethod === "per-element";
 
@@ -77,6 +81,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
           onEdit={onEdit}
           onPriorityChange={onPriorityChange}
           onStatusChange={onStatusChange}
+          onTreatmentChange={onTreatmentChange}
         />
       );
     }
@@ -96,9 +101,10 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
         onEdit={onEdit}
         onPriorityChange={onPriorityChange}
         onStatusChange={onStatusChange}
+        onTreatmentChange={onTreatmentChange}
       />
     );
-  }
+  },
 );
 
 RiskTableView.displayName = "RiskTableView";
