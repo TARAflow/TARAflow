@@ -37,6 +37,8 @@ export interface RiskScaleLevel {
   value: number;
   label: string;
   color: string;
+  /** Max severity (R = I×L) that maps to this level. Last level acts as catch-all. */
+  threshold: number;
 }
 
 export interface RiskScaleConfig {
@@ -45,31 +47,34 @@ export interface RiskScaleConfig {
 }
 
 export const RISK_SCALES: Record<RiskScaleType, RiskScaleConfig> = {
+  // Severity range 1–9  (3×3)
   "3-level": {
     type: "3-level",
     levels: [
-      { value: 1, label: "Low", color: "#22c55e" },
-      { value: 2, label: "Medium", color: "#eab308" },
-      { value: 3, label: "High", color: "#ef4444" },
+      { value: 1, label: "Low", color: "#22c55e", threshold: 2 },
+      { value: 2, label: "Medium", color: "#eab308", threshold: 6 },
+      { value: 3, label: "High", color: "#ef4444", threshold: 9 },
     ],
   },
+  // Severity range 1–16 (4×4)
   "4-level": {
     type: "4-level",
     levels: [
-      { value: 1, label: "Low", color: "#22c55e" },
-      { value: 2, label: "Medium", color: "#eab308" },
-      { value: 3, label: "High", color: "#f97316" },
-      { value: 4, label: "Critical", color: "#ef4444" },
+      { value: 1, label: "Low", color: "#22c55e", threshold: 3 },
+      { value: 2, label: "Medium", color: "#eab308", threshold: 6 },
+      { value: 3, label: "High", color: "#f97316", threshold: 11 },
+      { value: 4, label: "Critical", color: "#ef4444", threshold: 16 },
     ],
   },
+  // Severity range 1–25 (5×5)
   "5-level": {
     type: "5-level",
     levels: [
-      { value: 1, label: "Low", color: "#22c55e" },
-      { value: 2, label: "Medium", color: "#eab308" },
-      { value: 3, label: "High", color: "#f97316" },
-      { value: 4, label: "Very High", color: "#ef4444" },
-      { value: 5, label: "Critical", color: "#a855f7" },
+      { value: 1, label: "Low", color: "#22c55e", threshold: 4 },
+      { value: 2, label: "Medium", color: "#eab308", threshold: 8 },
+      { value: 3, label: "High", color: "#f97316", threshold: 14 },
+      { value: 4, label: "Very High", color: "#ef4444", threshold: 20 },
+      { value: 5, label: "Critical", color: "#a855f7", threshold: 25 },
     ],
   },
 };
@@ -622,7 +627,16 @@ export interface RiskConfiguration {
    * Defaults to DEFAULT_ASSET_IMPACT_MAPPINGS[scale].
    */
   assetImpactMapping: AssetImpactMapping;
+
+  /**
+   * Per-level severity threshold overrides for R = I × L mapping.
+   * Key = level value (1-based), Value = max severity for that level.
+   * Falls back to RISK_SCALES defaults when not set.
+   */
+  severityThresholds?: Record<number, number>;
 }
+
+
 
 /**
  * Default risk configuration — Likelihood × Impact (EN 50742 / OWASP)
@@ -713,7 +727,10 @@ export type ThreatRelevanceRef = "unrated" | "relevant" | "not_relevant" | "unce
  */
 export interface MitigationDraftRef {
   id?: string;
+  /** Resolved display text — populated at sync time from threat catalog */
+  text?: string;
   notes?: string;
+  isCustom?: boolean;
 }
 
 export interface ThreatReference {

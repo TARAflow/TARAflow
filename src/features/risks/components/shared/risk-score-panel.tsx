@@ -1,5 +1,10 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
-import { getRiskColor, getRiskLabel } from "../../services/risk-calculation-service";
+import {
+  getRiskColor,
+  getRiskLabel,
+  getFactorColor,
+  getFactorLabel,
+} from "../../services/risk-calculation-service";
 import { RiskConfiguration } from "../../models/risk-types";
 
 interface RiskScorePanelProps {
@@ -61,15 +66,15 @@ export const RiskScorePanel = ({
         {renderBox(
           "Likelihood",
           likelihood,
-          getRiskLabel(likelihood, configuration.scale),
-          3
+          getFactorLabel(likelihood, configuration.scale),
+          3,
         )}
 
         {renderBox(
           "Impact",
           impact,
-          getRiskLabel(impact, configuration.scale),
-          3
+          getFactorLabel(impact, configuration.scale),
+          3,
         )}
 
         {renderBox(

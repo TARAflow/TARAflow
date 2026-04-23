@@ -31,6 +31,7 @@ import {
   getRiskColor,
   getRiskLabel,
 } from "../../services/risk-calculation-service";
+import { resolveMitigationDrafts } from "../../../threats/services/threat-catalog-service";
 import type { StrideCategory } from "shared";
 
 // ==================== COLUMN TYPE ====================
@@ -142,7 +143,9 @@ const RiskChipCell: React.FC<RiskChipProps> = ({
 
 interface UseRiskColumnsProps {
   configuration: RiskConfiguration;
-  onEdit: (risk: Risk) => void;
+  onEdit: (risk: Risk, groupRisks?: Risk[]) => void;
+  /** All risks in the current group — passed to dialog for sidebar navigation */
+  groupRisks?: Risk[];
   onPriorityChange: (
     riskId: string,
     priority: string,
@@ -155,13 +158,14 @@ interface UseRiskColumnsProps {
 export const useRiskColumns = ({
   configuration,
   onEdit,
+  groupRisks,
   onPriorityChange,
   onStatusChange,
   onTreatmentChange,
 }: UseRiskColumnsProps): RiskColumn[] => {
   const { t } = useTranslation();
 
-  return useMemo<RiskColumn[]>(() => {
+  return useMemo(() => {
     // ── Factor breakdown tooltip helper ────────────────────────────────────
     const factorTooltip = (risk: Risk, mitigated = false) => {
       const ratings = mitigated
@@ -341,7 +345,7 @@ export const useRiskColumns = ({
         },
       },
     );
-    // }
+    //}
 
     // ── Mitigation ──────────────────────────────────────────────────────────
     cols.push({
@@ -352,8 +356,7 @@ export const useRiskColumns = ({
       flex: 0.5,
       minWidth: 100,
       renderCell: (risk) => {
-        const text = risk.selectedMitigations.join("; ");
-        if (!text)
+        if (!risk.selectedMitigations.length)
           return (
             <Typography
               variant="body2"
@@ -363,8 +366,32 @@ export const useRiskColumns = ({
               –
             </Typography>
           );
+
+        // Resolve full text from catalog (same approach as threat-tables)
+        const selected =
+          risk.proposedMitigations?.filter((m) =>
+            risk.selectedMitigations.includes(m.id ?? m.notes ?? ""),
+          ) ?? [];
+        const resolved = resolveMitigationDrafts(selected);
+        const lines =
+          resolved.length > 0
+            ? resolved.map((m) =>
+                m.isCustom ? `[custom] ${m.notes ?? ""}` : `${m.id}: ${m.text}`,
+              )
+            : risk.selectedMitigations;
+
+        const displayText = lines[0] ?? "";
+        const tooltipText = lines.join("\n");
+
         return (
-          <Tooltip title={text}>
+          <Tooltip
+            title={
+              <Box sx={{ whiteSpace: "pre-line", maxWidth: 360 }}>
+                {tooltipText}
+              </Box>
+            }
+            placement="top"
+          >
             <Typography
               variant="body2"
               sx={{
@@ -374,7 +401,9 @@ export const useRiskColumns = ({
                 fontSize: "0.8rem",
               }}
             >
-              {text}
+              {lines.length > 1
+                ? `${displayText} (+${lines.length - 1})`
+                : displayText}
             </Typography>
           </Tooltip>
         );
@@ -390,6 +419,16 @@ export const useRiskColumns = ({
       width: 80,
       align: "center",
       renderCell: (risk) => {
+        if (!risk.calculatedRiskAfterMitigation)
+          return (
+            <Typography
+              variant="body2"
+              color="text.disabled"
+              sx={{ fontSize: "0.8rem" }}
+            >
+              –
+            </Typography>
+          );
         const d = factorTooltip(risk, true);
         return (
           <RiskChipCell
@@ -408,40 +447,34 @@ export const useRiskColumns = ({
     cols.push({
       id: "treatment",
       header: t("tabs.risks.columns.treatment", { defaultValue: "Treatment" }),
-      width: 120,
-      renderCell: (risk) => (
-        <FormControl size="small" fullWidth>
-          <Select
-            value={risk.treatment}
-            onChange={(e) => onTreatmentChange(risk.id, e.target.value)}
-            size="small"
-            sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
+      flex: 0.5,
+      width: 100,
+      renderCell: (risk) => {
+        const tr = TREATMENT_MAP.get(risk.treatment);
+        if (!tr) return null;
+        const label = t(`risks.treatment.${risk.treatment}.label`, {
+          defaultValue: tr.label,
+        });
+        return (
+          <Tooltip
+            title={t(`risks.treatment.${risk.treatment}.description`, {
+              defaultValue: tr.description,
+            })}
           >
-            {RISK_TREATMENTS.map((tr) => (
-              <MenuItem key={tr.value} value={tr.value}>
-                <Tooltip
-                  title={t(`risks.treatment.${tr.value}.description`, {
-                    defaultValue: tr.description,
-                  })}
-                >
-                  <Chip
-                    label={t(`risks.treatment.${tr.value}.label`, {
-                      defaultValue: tr.label,
-                    })}
-                    size="small"
-                    sx={{
-                      minWidth: 55,
-                      bgcolor: tr.color,
-                      color: "white",
-                      fontSize: "0.65rem",
-                    }}
-                  />
-                </Tooltip>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      ),
+            <Chip
+              label={label}
+              size="small"
+              sx={{
+                bgcolor: tr.color,
+                color: "white",
+                fontSize: "0.65rem",
+                height: 20,
+                cursor: "default",
+              }}
+            />
+          </Tooltip>
+        );
+      },
     });
 
     // ── MoSCoW priority (inline select) ────────────────────────────────────
@@ -464,7 +497,7 @@ export const useRiskColumns = ({
                     defaultValue: p.label,
                   })}
                   size="small"
-                  sx={{ minWidth: 55, bgcolor: p.color, color: "white", fontSize: "0.65rem" }}
+                  sx={{ bgcolor: p.color, color: "white", fontSize: "0.65rem" }}
                 />
               </MenuItem>
             ))}
@@ -489,11 +522,11 @@ export const useRiskColumns = ({
             {RISK_STATUSES.map((s) => (
               <MenuItem key={s.value} value={s.value}>
                 <Chip
-                  label={t(`tabs.risks.status.${s.value}.label`, {
+                  label={t(`risks.status.${s.value.replace("-", "_")}.label`, {
                     defaultValue: s.label,
                   })}
                   size="small"
-                  sx={{ minWidth: 55, bgcolor: s.color, color: "white", fontSize: "0.65rem" }}
+                  sx={{ bgcolor: s.color, color: "white", fontSize: "0.65rem" }}
                 />
               </MenuItem>
             ))}
@@ -510,7 +543,7 @@ export const useRiskColumns = ({
       align: "center",
       renderCell: (risk) => (
         <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
-          <IconButton size="small" onClick={() => onEdit(risk)}>
+          <IconButton size="small" onClick={() => onEdit(risk, groupRisks)}>
             <EditIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -518,5 +551,13 @@ export const useRiskColumns = ({
     });
 
     return cols;
-  }, [configuration, t, onEdit, onPriorityChange, onStatusChange]);
+  }, [
+    configuration,
+    t,
+    onEdit,
+    groupRisks,
+    onPriorityChange,
+    onStatusChange,
+    onTreatmentChange,
+  ]);
 };

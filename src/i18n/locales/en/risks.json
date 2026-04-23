@@ -105,7 +105,8 @@
         "tabMitigations": "Mitigations",
         "tabAfter": "Risk After",
         "cause": "Root Cause",
-        "verifications": "Proposed Verifications"
+        "verifications": "Proposed Verifications",
+        "noMitigationWarning": "No mitigation selected. Please select at least one mitigation for this treatment type."
       },
       "config": {
         "title": "Risk Assessment Configuration",
@@ -146,7 +147,10 @@
         "assetImpactMapping": "Asset Impact → Risk Scale Mapping",
         "assetImpactMappingHint": "Default mapping resets when scale changes.",
         "en50742Factors": "EN 50742 Attacker Potential Factors",
-        "attackerPotential": "Attacker Potential (AP = EL×WoO + AC)"
+        "attackerPotential": "Attacker Potential (AP = EL×WoO + AC)",
+        "severityThresholds": "Severity Thresholds (R = I × L)",
+        "severityThresholdsHint": "Scores above the highest threshold always map to the last level.",
+        "severityMatrix": "Severity Matrix"
       },
       "matrix": {
         "title": "Risk Matrix",
@@ -207,23 +211,23 @@
     "treatment": {
       "eliminate": {
         "label": "Eliminate",
-        "description": "Remove the risk source entirely"
+        "description": "Remove the risk source entirely — the vulnerability or attack vector is fully resolved by the selected countermeasures. No residual risk remains."
       },
       "reduce": {
         "label": "Reduce",
-        "description": "Mitigate via countermeasures"
+        "description": "Lower the likelihood or impact through targeted countermeasures. A residual risk remains but is brought to an acceptable level."
       },
       "accept": {
         "label": "Accept",
-        "description": "Consciously retain the risk without action"
+        "description": "Consciously retain the risk without implementing countermeasures. The risk is within defined tolerance thresholds. Justification required."
       },
       "transfer": {
         "label": "Transfer",
-        "description": "Move risk to third party"
+        "description": "Shift full responsibility for the risk to a third party (e.g. via insurance, contractual liability clause, or outsourcing). Justification required."
       },
       "share": {
         "label": "Share",
-        "description": "Distribute risk across multiple parties"
+        "description": "Distribute responsibility across multiple parties — e.g. part of the countermeasure is implemented in the product, part in the surrounding system or operator procedures. Justification required."
       }
     },
     "moscow": {

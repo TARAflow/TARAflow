@@ -70,13 +70,39 @@ interface RiskTableProps {
   risks: Risk[];
   columns: RiskColumn[];
   configuration: RiskConfiguration;
+  /** Called with the full group when a row edit action fires */
+  onEdit?: (risk: Risk, groupRisks: Risk[]) => void;
+  /** The full outer accordion group — passed to dialog sidebar (defaults to risks) */
+  groupRisks?: Risk[];
 }
 
 export const RiskTable: React.FC<RiskTableProps> = ({
   risks,
   columns,
   configuration,
+  onEdit,
+  groupRisks,
 }) => {
+  // effectiveGroup: use explicit groupRisks (outer TB) if provided, else fall back to risks
+  const effectiveGroup = groupRisks ?? risks;
+
+  const boundColumns = React.useMemo(() => {
+    if (!onEdit) return columns;
+    return columns.map((col) =>
+      col.id === "actions"
+        ? {
+            ...col,
+            renderCell: (risk: Risk) => {
+              const orig = col.renderCell(risk);
+              if (!React.isValidElement(orig)) return orig;
+              return React.cloneElement(orig as React.ReactElement<any>, {
+                onClick: () => onEdit(risk, effectiveGroup),
+              });
+            },
+          }
+        : col,
+    );
+  }, [columns, onEdit, effectiveGroup]);
   if (!risks.length) return null;
 
   // Calculate total fixed width for minWidth on table
@@ -110,7 +136,7 @@ export const RiskTable: React.FC<RiskTableProps> = ({
 
         <TableHead>
           <TableRow>
-            {columns.map((col) => (
+            {boundColumns.map((col) => (
               <TableCell
                 key={col.id}
                 align={col.align ?? "left"}
@@ -133,8 +159,12 @@ export const RiskTable: React.FC<RiskTableProps> = ({
               <TableRow
                 key={`${risk.id}-${rowIdx}`}
                 hover
+                onClick={
+                  onEdit ? () => onEdit(risk, effectiveGroup) : undefined
+                }
                 sx={{
                   bgcolor: rowBg,
+                  cursor: onEdit ? "pointer" : "default",
                   "&:hover": {
                     bgcolor: `${rowBg} !important`,
                     filter: "brightness(0.97)",
@@ -142,7 +172,7 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                   "&:last-child td": { borderBottom: 0 },
                 }}
               >
-                {columns.map((col) => (
+                {boundColumns.map((col) => (
                   <TableCell
                     key={col.id}
                     align={col.align ?? "left"}

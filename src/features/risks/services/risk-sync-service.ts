@@ -124,7 +124,7 @@ export function syncRisksFromThreats(
 
   // ── Risks to remove ───────────────────────────────────────────────────────
   const risksToRemove = riskData.risks.filter(
-    (r) => !eligibleIds.has(r.threatId)
+    (r) => !eligibleIds.has(r.threatId),
   );
   const removed = risksToRemove.length;
 
@@ -159,6 +159,8 @@ export function syncRisksFromThreats(
         ...risk,
         threatDescription: threat.threatDescription,
         attackDescription: threat.attackDescription,
+        causeDescription: threat.causeDescription,
+        linkedAssetIds: threat.linkedAssetIds ?? [],
         proposedMitigations: threat.proposedMitigations,
         proposedVerifications: threat.proposedVerifications,
         threatRelevance: threat.relevance,
@@ -172,23 +174,18 @@ export function syncRisksFromThreats(
   const existingThreatIds = new Set(keptRisks.map((r) => r.threatId));
   const threatsToAdd = eligible.filter((t) => !existingThreatIds.has(t.id));
   const newRisks = threatsToAdd.map((threat) =>
-    createEmptyRisk(threat, riskData.configuration)
+    createEmptyRisk(threat, riskData.configuration),
   );
   const added = newRisks.length;
 
   // ── Warnings ──────────────────────────────────────────────────────────────
   if (added > 0) warnings.push(`Added ${added} new risk(s) for new threats`);
   if (removed > 0)
-    warnings.push(`Removed ${removed} risk(s) (not_relevant / unrated / deleted)`);
-
-  const uncertainCount = [...updatedKeptRisks, ...newRisks].filter(
-    (r) => r.threatRelevance === "uncertain"
-  ).length;
-  if (uncertainCount > 0) {
     warnings.push(
-      `${uncertainCount} risk(s) are based on uncertain threats — review recommended`
+      `Removed ${removed} risk(s) (not_relevant / unrated / deleted)`,
     );
-  }
+
+  // Note: uncertain risks are shown via the persistent uncertainCount UI — not as sync warning
 
   return {
     success: true,

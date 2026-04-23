@@ -71,12 +71,15 @@ import {
   calculateRiskValues,
   getRiskColor,
   getRiskLabel,
+  getFactorColor,
+  getFactorLabel,
 } from "../services/risk-calculation-service";
 import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
 } from "../../threats/services/threat-catalog-service";
 import type { StrideCategory } from "shared";
+import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 import type {
   AssetDataReference,
   AssetReference,
@@ -298,10 +301,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     currentRisk?.causeDescription || currentThreatRef?.causeDescription;
 
   const linkedAssets = useMemo(() => {
+    const matchingThreat = threats?.find((t) => t.id === currentRisk?.threatId);
     if (!assetDataRef || !effectiveLinkedAssetIds.length) return [];
-    return effectiveLinkedAssetIds
+    const found = effectiveLinkedAssetIds
       .map((id) => assetDataRef.assets.find((a) => a.id === id))
       .filter((a): a is AssetReference => Boolean(a));
+    return found;
   }, [assetDataRef, effectiveLinkedAssetIds]);
 
   const assetImpactLevels = useMemo(
@@ -416,6 +421,27 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         : prev,
     );
   }, []);
+
+  // Auto-save whenever local state changes
+  useEffect(() => {
+    if (!currentRisk || !local) return;
+    onSave(currentRisk.id, {
+      factorRatings: local.factorRatings,
+      mitigatedFactorRatings: local.mitigatedFactorRatings,
+      selectedMitigations: local.selectedMitigations,
+      selectedVerifications: local.selectedVerifications,
+      treatment: local.treatment,
+      treatmentJustification: local.treatmentJustification,
+      moscowPriority: local.moscowPriority,
+      wontJustification: local.wontJustification,
+      status: local.status,
+      calculatedImpact: beforeValues.impact,
+      calculatedLikelihood: beforeValues.likelihood,
+      calculatedRiskBeforeMitigation: beforeValues.risk,
+      calculatedRiskAfterMitigation: afterValues.risk,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [local]);
 
   // ── Linked assets (must be before early return — Rules of Hooks) ───────────
   // These are safe because we guard with ?. inside
@@ -641,15 +667,20 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             <List dense disablePadding>
               {sortedRisks.map((risk, index) => {
                 const isActive = index === currentIndex;
+                // Live values for active risk, stored values for others
+                const beforeScore = isActive
+                  ? beforeValues.risk
+                  : risk.calculatedRiskBeforeMitigation;
+                const afterScore = isActive
+                  ? afterValues.risk
+                  : risk.calculatedRiskAfterMitigation;
                 const riskColor = getRiskColor(
-                  risk.calculatedRiskBeforeMitigation,
+                  beforeScore,
                   configuration.scale,
                   configuration.roundingMethod,
                 );
                 const riskLabel =
-                  risk.calculatedRiskBeforeMitigation > 0
-                    ? risk.calculatedRiskBeforeMitigation.toFixed(1)
-                    : "–";
+                  beforeScore > 0 ? beforeScore.toFixed(1) : "–";
                 const uncertain = risk.threatRelevance === "uncertain";
                 return (
                   <ListItemButton
@@ -686,19 +717,43 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         flexShrink: 0,
                       }}
                     >
-                      <Chip
-                        label={riskLabel}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: 10,
-                          bgcolor: riskColor,
-                          color: "white",
-                          fontWeight: "bold",
-                          minWidth: 32,
-                        }}
-                      />
-                      {uncertain && (
+                      <Tooltip title={beforeScore > 0 ? getRiskLabel(beforeScore, configuration.scale) : ""} placement="right" arrow>
+                        <Chip
+                          label={riskLabel}
+                          size="small"
+                          sx={{
+                            height: 16,
+                            fontSize: 10,
+                            bgcolor: riskColor,
+                            color: "white",
+                            fontWeight: "bold",
+                            minWidth: 32,
+                          }}
+                        />
+                      </Tooltip>
+                      {afterScore > 0 ? (
+                        <Tooltip
+                          title={`${t("tabs.risks.dialog.residualRisk", { defaultValue: "Residual Risk" })}: ${getRiskLabel(afterScore, configuration.scale)}`}
+                          placement="right"
+                        >
+                          <Chip
+                            label={afterScore.toFixed(1)}
+                            size="small"
+                            sx={{
+                              height: 16,
+                              fontSize: 10,
+                              bgcolor: getRiskColor(
+                                afterScore,
+                                configuration.scale,
+                                configuration.roundingMethod,
+                              ),
+                              color: "white",
+                              opacity: 0.85,
+                              minWidth: 32,
+                            }}
+                          />
+                        </Tooltip>
+                      ) : uncertain ? (
                         <Chip
                           label="?"
                           size="small"
@@ -708,6 +763,18 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             bgcolor: "#fffbeb",
                             color: "#d97706",
                             border: "1px solid #d97706",
+                          }}
+                        />
+                      ) : (
+                        <Chip
+                          label="–"
+                          size="small"
+                          sx={{
+                            height: 16,
+                            fontSize: 10,
+                            bgcolor: "grey.200",
+                            color: "text.disabled",
+                            minWidth: 32,
                           }}
                         />
                       )}
@@ -875,13 +942,22 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         const hasSafety =
                           asset.physicalImpact === "fatality" ||
                           asset.physicalImpact === "irreversible_injury";
+                        const groupCfg =
+                          ASSET_GROUP_CONFIG[
+                            asset.assetGroup as keyof typeof ASSET_GROUP_CONFIG
+                          ];
                         return (
                           <Chip
                             key={asset.id}
                             label={`${asset.name}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
                             size="small"
-                            variant="outlined"
-                            sx={{ fontSize: 11, height: 22 }}
+                            sx={{
+                              fontSize: 11,
+                              height: 22,
+                              bgcolor: groupCfg?.colorLight ?? "grey.100",
+                              color: groupCfg?.color ?? "text.primary",
+                              border: `1px solid ${groupCfg?.color ?? "#ccc"}`,
+                            }}
                           />
                         );
                       })}
@@ -1069,29 +1145,37 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   </Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     {RISK_TREATMENTS.map((tr) => (
-                      <Chip
+                      <Tooltip
                         key={tr.value}
-                        label={t(`risks.treatment.${tr.value}.label`, {
-                          defaultValue: tr.label,
+                        title={t(`risks.treatment.${tr.value}.description`, {
+                          defaultValue: tr.description,
                         })}
-                        onClick={() =>
-                          setLocal((prev) =>
-                            prev ? { ...prev, treatment: tr.value } : prev,
-                          )
-                        }
-                        sx={{
-                          bgcolor:
-                            local.treatment === tr.value
-                              ? tr.color
-                              : "transparent",
-                          color:
-                            local.treatment === tr.value ? "white" : tr.color,
-                          border: `2px solid ${tr.color}`,
-                          fontWeight:
-                            local.treatment === tr.value ? "bold" : "normal",
-                          cursor: "pointer",
-                        }}
-                      />
+                        placement="top"
+                        arrow
+                      >
+                        <Chip
+                          label={t(`risks.treatment.${tr.value}.label`, {
+                            defaultValue: tr.label,
+                          })}
+                          onClick={() =>
+                            setLocal((prev) =>
+                              prev ? { ...prev, treatment: tr.value } : prev,
+                            )
+                          }
+                          sx={{
+                            bgcolor:
+                              local.treatment === tr.value
+                                ? tr.color
+                                : "transparent",
+                            color:
+                              local.treatment === tr.value ? "white" : tr.color,
+                            border: `2px solid ${tr.color}`,
+                            fontWeight:
+                              local.treatment === tr.value ? "bold" : "normal",
+                            cursor: "pointer",
+                          }}
+                        />
+                      </Tooltip>
                     ))}
                   </Stack>
                   {passiveTreatment && (
@@ -1315,26 +1399,74 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
                 <Divider />
 
-                {/* Effective mitigation */}
-                <Box>
-                  <Typography variant="subtitle2">
-                    {t("tabs.risks.dialog.currentMitigation", {
-                      defaultValue: "Current Mitigation",
-                    })}
-                  </Typography>
-                  <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
-                    <Typography variant="body2">
-                      {currentRisk.selectedMitigations}
+                {/* Selected Mitigations — bullet list */}
+                {local.selectedMitigations.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      {t("tabs.risks.dialog.selectedMitigations", {
+                        defaultValue: "Selected Mitigations",
+                      })}
                     </Typography>
+                    <Stack spacing={0.5}>
+                      {local.selectedMitigations.map((id) => {
+                        const ref = resolvedMitigations.find(
+                          (m) => (m.id ?? m.notes ?? "") === id,
+                        );
+                        const text = ref
+                          ? ref.isCustom
+                            ? `[custom] ${ref.notes ?? ""}`
+                            : `${ref.id}: ${ref.text}`
+                          : id;
+                        return (
+                          <Typography
+                            key={id}
+                            variant="body2"
+                            sx={{ display: "flex", gap: 0.75 }}
+                          >
+                            <span style={{ flexShrink: 0, color: "#6b7280" }}>
+                              •
+                            </span>
+                            <span>{text}</span>
+                          </Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                )}
 
-                    <>
-                      <Divider sx={{ my: 1 }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {currentRisk.selectedVerifications}
-                      </Typography>
-                    </>
-                  </Paper>
-                </Box>
+                {local.selectedVerifications.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      {t("tabs.risks.dialog.verifications", {
+                        defaultValue: "Selected Verifications",
+                      })}
+                    </Typography>
+                    <Stack spacing={0.5}>
+                      {local.selectedVerifications.map((id) => {
+                        const ref = resolvedVerifications.find(
+                          (v) => (v.id ?? v.notes ?? "") === id,
+                        );
+                        const text = ref
+                          ? ref.isCustom
+                            ? `[custom] ${ref.notes ?? ""}`
+                            : `${ref.id}: ${ref.text}`
+                          : id;
+                        return (
+                          <Typography
+                            key={id}
+                            variant="body2"
+                            sx={{ display: "flex", gap: 0.75 }}
+                          >
+                            <span style={{ flexShrink: 0, color: "#6b7280" }}>
+                              •
+                            </span>
+                            <span>{text}</span>
+                          </Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                )}
 
                 <Divider />
 
@@ -1464,17 +1596,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             <NextIcon />
           </IconButton>
         </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button onClick={onClose}>
-            {t("common.cancel", { defaultValue: "Cancel" })}
-          </Button>
-          <Button onClick={handleSave} variant="contained">
-            {t("common.save", { defaultValue: "Save" })}
-          </Button>
-        </Stack>
+        <Button variant="contained" onClick={onClose}>
+          {t("common.ok", { defaultValue: "OK" })}
+        </Button>
       </DialogActions>
     </Dialog>
   );
-};;;;;;;;;;
+};;;;;;;;;;;
 
 export default RiskDialog;

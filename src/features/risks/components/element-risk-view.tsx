@@ -162,7 +162,6 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
 
   const getElementIcon = (elementType: string) => {
     const Icon = getElementIconComponent(elementType);
-    console.log("getElementIcon: " + elementType + "  " + Icon);
     return <Icon fontSize="small" color="action" />;
   };
 
@@ -269,6 +268,8 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
                         risks={element.risks}
                         columns={columns}
                         configuration={configuration}
+                        onEdit={onEdit}
+                        groupRisks={group.risks}
                       />
                     </GenericAccordion>
                   );
@@ -278,6 +279,7 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
                   risks={group.risks}
                   columns={columns}
                   configuration={configuration}
+                  onEdit={onEdit}
                 />
               )}
             </>
@@ -286,6 +288,6 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
       ))}
     </>
   );
-};;;;;;
+};
 
 export default ElementRiskView;

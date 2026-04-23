@@ -91,18 +91,18 @@ export function applyAssetImpactToFactorRatings(
 
 /**
  * Calculate impact, likelihood, and overall risk score.
- * Method: Likelihood × Impact (OWASP / EN 50742)
- * Risk = (Impact × Likelihood) / maxScale
+ * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2 severity matrix)
+ * Severity range: 1 to N² where N = number of scale levels (e.g. 1–16 for 4-level)
+ * Level mapping is threshold-based via RISK_SCALES or configuration.severityThresholds.
  */
 export function calculateRiskValues(
   ratings: FactorRating[],
-  configuration: RiskConfiguration
+  configuration: RiskConfiguration,
 ): RiskCalculationResult {
-  const scale = RISK_SCALES[configuration.scale];
-  const maxValue = scale.levels.length;
-
-  // Likelihood × Impact method
-  const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
+  const allFactors = [
+    ...ALL_PREDEFINED_FACTORS,
+    ...configuration.customFactors,
+  ];
 
   const impactRatings = ratings.filter((r) => {
     const factor = allFactors.find((f) => f.id === r.factorId);
@@ -124,8 +124,8 @@ export function calculateRiskValues(
   const impact = weightedAvg(impactRatings);
   const likelihood = weightedAvg(likelihoodRatings);
 
-  // Risk = Impact × Likelihood, normalized to scale
-  const risk = maxValue > 0 ? (impact * likelihood) / maxValue : 0;
+  // R = I × L — raw severity, no normalization
+  const risk = impact > 0 && likelihood > 0 ? impact * likelihood : 0;
 
   return {
     impact: Math.round(impact * 10) / 10,
@@ -137,47 +137,73 @@ export function calculateRiskValues(
 // ==================== DISPLAY HELPERS ====================
 
 /**
- * Helper to calculate level index based on rounding method
+ * Resolve the scale level for a severity value (R = I × L) using thresholds.
+ * Returns the matching RiskScaleLevel, or the last level if above all thresholds.
  */
-function calculateLevelIndex(
-  value: number,
-  maxLevels: number,
-  roundingMethod: RiskRoundingMethod = "round"
-): number {
-  if (roundingMethod === "ceil") {
-    return Math.min(Math.max(Math.ceil(value) - 1, 0), maxLevels - 1);
+function getSeverityLevel(
+  severity: number,
+  scale: RiskScaleType,
+  severityThresholds?: Record<number, number>,
+) {
+  const levels = RISK_SCALES[scale].levels;
+  for (const level of levels) {
+    const threshold = severityThresholds?.[level.value] ?? level.threshold;
+    if (severity <= threshold) return level;
   }
-  return Math.min(Math.max(Math.round(value) - 1, 0), maxLevels - 1);
+  return levels[levels.length - 1];
 }
 
 /**
- * Get color for a risk value based on the active scale.
+ * Get color for a risk severity value (R = I × L) based on thresholds.
  * Returns gray for unrated (value <= 0).
+ * roundingMethod kept for call-site compatibility but no longer used.
  */
 export function getRiskColor(
   value: number,
   scale: RiskScaleType,
-  roundingMethod: RiskRoundingMethod = "round"
+  _roundingMethod?: RiskRoundingMethod,
+  severityThresholds?: Record<number, number>,
 ): string {
   if (value <= 0) return "#6b7280";
-  const scaleConfig = RISK_SCALES[scale];
-  const idx = calculateLevelIndex(value, scaleConfig.levels.length, roundingMethod);
-  return scaleConfig.levels[idx].color;
+  return getSeverityLevel(value, scale, severityThresholds).color;
 }
 
 /**
- * Get label for a risk value based on the active scale.
+ * Get label for a risk severity value (R = I × L) based on thresholds.
  * Returns "-" for unrated.
  */
 export function getRiskLabel(
   value: number,
   scale: RiskScaleType,
-  roundingMethod: RiskRoundingMethod = "round"
+  _roundingMethod?: RiskRoundingMethod,
+  severityThresholds?: Record<number, number>,
 ): string {
   if (value <= 0) return "-";
-  const scaleConfig = RISK_SCALES[scale];
-  const idx = calculateLevelIndex(value, scaleConfig.levels.length, roundingMethod);
-  return scaleConfig.levels[idx].label;
+  return getSeverityLevel(value, scale, severityThresholds).label;
+}
+
+// ==================== FACTOR DISPLAY HELPERS ====================
+
+/**
+ * Get color for a factor average value (Impact or Likelihood, range 1–N).
+ * Uses direct index mapping: value 1 → level[0], value N → level[N-1].
+ * This is separate from getRiskColor which uses severity thresholds for R=I×L.
+ */
+export function getFactorColor(value: number, scale: RiskScaleType): string {
+  if (value <= 0) return "#6b7280";
+  const levels = RISK_SCALES[scale].levels;
+  const idx = Math.min(Math.max(Math.round(value) - 1, 0), levels.length - 1);
+  return levels[idx].color;
+}
+
+/**
+ * Get label for a factor average value (Impact or Likelihood, range 1–N).
+ */
+export function getFactorLabel(value: number, scale: RiskScaleType): string {
+  if (value <= 0) return "-";
+  const levels = RISK_SCALES[scale].levels;
+  const idx = Math.min(Math.max(Math.round(value) - 1, 0), levels.length - 1);
+  return levels[idx].label;
 }
 
 // ==================== EN 50742 ATTACKER POTENTIAL ====================

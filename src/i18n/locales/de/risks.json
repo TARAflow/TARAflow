@@ -121,10 +121,11 @@
         "threatAndMitigationChanged": "Threat description and mitigation have changed in the Threats tab.",
         "cause": "Ursache",
         "tabBefore": "Risiko Vorher",
-        "tabMitigations": "Gegenmassnahmen",
+        "tabMitigations": "Massnahmen",
         "tabAfter": "Risiko Nachher",
-        "verifications": "Vorgeschlagene Überprüfungen",
-        "treatmentJustificationRequired": "Erforderlich für Akzeptieren / Transfer / Teilen"
+        "verifications": "Vorgeschlagene Verifikationen",
+        "treatmentJustificationRequired": "Erforderlich für Akzeptieren / Transfer / Teilen",
+        "noMitigationWarning": "Keine Massnahme ausgewählt. Bitte wählen Sie mindestens eine Massnahme für diese Behandlungsart."
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",
@@ -165,7 +166,10 @@
         "assetImpactMapping": "Asset-Impact → Risikoskala-Zuordnung",
         "assetImpactMappingHint": "Standard-Zuordnung wird bei Skalenwechsel zurückgesetzt.",
         "en50742Factors": "EN 50742 Angreiferpotenzial-Faktoren",
-        "attackerPotential": "Angreiferpotenzial (AP = EL×WoO + AC)"
+        "attackerPotential": "Angreiferpotenzial (AP = EL×WoO + AC)",
+        "severityThresholds": "Severity-Schwellenwerte (R = I × L)",
+        "severityThresholdsHint": "Werte über dem höchsten Schwellenwert werden immer dem letzten Level zugeordnet.",
+        "severityMatrix": "Severity-Matrix"
       },
       "matrix": {
         "title": "Risikomatrix",
@@ -193,7 +197,9 @@
       },
       "physicalInterfaces": "Physische Schnittstellen",
       "priority": "Priorität",
+      "status": "Status",
       "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
+      "assessed": "bewertet",
       "uncertain": "Unsicher",
       "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen."
     }
@@ -210,23 +216,23 @@
     "treatment": {
       "eliminate": {
         "label": "Eliminieren",
-        "description": "Risikoquelle vollständig entfernen"
+        "description": "Risikoquelle vollständig beseitigen — die Schwachstelle oder der Angriffsvektor wird durch die gewählten Massnahmen vollständig behoben. Kein Restrisiko verbleibt."
       },
       "reduce": {
         "label": "Reduzieren",
-        "description": "Durch Massnahmen reduzieren"
+        "description": "Wahrscheinlichkeit oder Auswirkung durch gezielte Massnahmen senken. Ein Restrisiko verbleibt, wird jedoch auf ein akzeptables Niveau gebracht."
       },
       "accept": {
         "label": "Akzeptieren",
-        "description": "Risiko bewusst tragen ohne Massnahme"
+        "description": "Risiko bewusst ohne Massnahmen tragen. Das Risiko liegt innerhalb definierter Toleranzgrenzen. Begründung erforderlich."
       },
       "transfer": {
         "label": "Transferieren",
-        "description": "Risiko auf Dritte übertragen"
+        "description": "Vollständige Verantwortung auf Dritte übertragen (z.B. Versicherung, vertragliche Haftungsklausel oder Outsourcing). Begründung erforderlich."
       },
       "share": {
         "label": "Teilen",
-        "description": "Risiko auf mehrere Parteien verteilen"
+        "description": "Verantwortung auf mehrere Parteien aufteilen — z.B. ein Teil der Massnahme im Produkt, ein Teil im umgebenden System oder in Betreibervorschriften. Begründung erforderlich."
       }
     },
     "moscow": {

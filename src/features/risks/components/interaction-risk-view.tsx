@@ -258,6 +258,8 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
                         risks={dataFlow.risks}
                         columns={columns}
                         configuration={configuration}
+                        onEdit={onEdit}
+                        groupRisks={group.risks}
                       />
                     </GenericAccordion>
                   );
@@ -267,6 +269,7 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
                   risks={group.risks}
                   columns={columns}
                   configuration={configuration}
+                  onEdit={onEdit}
                 />
               )}
             </>
@@ -328,6 +331,7 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
                       risks={interfaceGroup.risks}
                       columns={columns}
                       configuration={configuration}
+                      onEdit={onEdit}
                     />
                   </GenericAccordion>
                 );

@@ -22,6 +22,10 @@ import {
   type ThreatUpdateResult,
   type AssetDataReference,
 } from "features/threats";
+import {
+  resolveMitigationDrafts,
+  resolveVerificationDrafts,
+} from "features/threats/services/threat-catalog-service";
 import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
 import {
   AttackTreeTab,
@@ -821,6 +825,35 @@ export const MainLayout: React.FC = () => {
 
     const references: ThreatReference[] = [];
 
+    // Reverse index: elementId → assetIds
+    // Source 1: asset.linkedDFDElements (explicit asset→element links)
+    // Source 2: DFD element.assetRelations with relationType "is_an"
+    const elementToAssetIds = new Map<string, string[]>();
+    if (activeProject?.assets?.assets) {
+      for (const asset of activeProject.assets.assets) {
+        for (const el of asset.linkedDFDElements ?? []) {
+          const ids = elementToAssetIds.get(el.elementId) ?? [];
+          if (!ids.includes(asset.id)) ids.push(asset.id);
+          elementToAssetIds.set(el.elementId, ids);
+        }
+      }
+    }
+    // is_an: DFD element is itself an asset (e.g. "Machine Operator" is_an "HU-001")
+    const dfdElements = (activeProject?.dfd as any)?.elements ?? [];
+
+    for (const el of dfdElements) {
+      for (const rel of (el.assetRelations ?? []) as Array<{
+        assetId: string;
+        relationType: string;
+      }>) {
+        if (rel.relationType === "is_an") {
+          const ids = elementToAssetIds.get(el.id) ?? [];
+          if (!ids.includes(rel.assetId)) ids.push(rel.assetId);
+          elementToAssetIds.set(el.id, ids);
+        }
+      }
+    }
+
     for (const table of tables) {
       // Skip tables with no threats
       if (!table.threats || table.threats.length === 0) {
@@ -852,7 +885,18 @@ export const MainLayout: React.FC = () => {
         const threatDescription = threat.threatDescription;
         const attackDescription = threat.attackDescription;
         const causeDescription = threat.causeDescription;
-        const linkedAssetIds = threat.linkedAssetIds ?? [];
+        // Fallback: derive from assetDataRef when generator hasn't set linkedAssetIds yet
+        const elementId =
+          threat.linkedElement?.elementId ??
+          threat.dataFlow?.connectionId ??
+          threat.dataFlow?.fromElementId;
+
+        const linkedAssetIds =
+          (threat.linkedAssetIds?.length ?? 0) > 0
+            ? threat.linkedAssetIds!
+            : elementId
+              ? (elementToAssetIds.get(elementId) ?? [])
+              : [];
 
         references.push({
           id: threat.id,
@@ -862,16 +906,22 @@ export const MainLayout: React.FC = () => {
           causeDescription,
           linkedAssetIds,
           relevance: threat.relevance ?? "unrated",
-          proposedMitigations: (threat.proposedMitigations ?? []).map((m) => ({
+          proposedMitigations: resolveMitigationDrafts(
+            threat.proposedMitigations ?? [],
+          ).map((m) => ({
             id: m.id,
+            text: m.text,
             notes: m.notes,
+            isCustom: m.isCustom,
           })),
-          proposedVerifications: (threat.proposedVerifications ?? []).map(
-            (v) => ({
-              id: v.id,
-              notes: v.notes,
-            }),
-          ),
+          proposedVerifications: resolveVerificationDrafts(
+            threat.proposedVerifications ?? [],
+          ).map((v) => ({
+            id: v.id,
+            text: v.text,
+            notes: v.notes,
+            isCustom: v.isCustom,
+          })),
           sourceStrideMethod: strideMethod,
           elementName,
           dataFlowName,

@@ -132,6 +132,19 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         DEFAULT_ASSET_IMPACT_MAPPINGS[configuration.scale],
     );
 
+  // Severity thresholds — per-level max R=I×L value
+  const [severityThresholds, setSeverityThresholds] = useState<
+    Record<number, number>
+  >(
+    configuration.severityThresholds ??
+      Object.fromEntries(
+        RISK_SCALES[configuration.scale].levels.map((l) => [
+          l.value,
+          l.threshold,
+        ]),
+      ),
+  );
+
   // New custom factor state
   const [newFactorName, setNewFactorName] = useState("");
   const [newFactorDescription, setNewFactorDescription] = useState("");
@@ -224,6 +237,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       customFactors,
       useAssetImpact,
       assetImpactMapping,
+      severityThresholds,
     });
   };
 
@@ -488,7 +502,15 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               <RadioGroup
                 row
                 value={scale}
-                onChange={(e) => setScale(e.target.value as RiskScaleType)}
+                onChange={(e) => {
+                  const s = e.target.value as RiskScaleType;
+                  setScale(s);
+                  setSeverityThresholds(
+                    Object.fromEntries(
+                      RISK_SCALES[s].levels.map((l) => [l.value, l.threshold]),
+                    ),
+                  );
+                }}
               >
                 <FormControlLabel
                   value="3-level"
@@ -531,6 +553,242 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 ))}
               </Box>
             </FormControl>
+
+            <Divider />
+
+            {/* Severity Thresholds + Matrix — two equal columns */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 3,
+                alignItems: "start",
+              }}
+            >
+              {/* LEFT column: Severity Thresholds */}
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t("tabs.risks.config.severityThresholds", {
+                    defaultValue: "Severity Thresholds (R = I × L)",
+                  })}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  mb={1.5}
+                >
+                  {t("tabs.risks.config.severityThresholdsHint", {
+                    defaultValue:
+                      "Scores above the highest threshold always map to the last level.",
+                  })}
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {RISK_SCALES[scale].levels.map((level, idx) => {
+                    const isLast = idx === RISK_SCALES[scale].levels.length - 1;
+                    return (
+                      <Stack
+                        key={level.value}
+                        direction="row"
+                        spacing={1.5}
+                        alignItems="center"
+                      >
+                        <Chip
+                          label={t(
+                            `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                            {
+                              defaultValue: level.label,
+                            },
+                          )}
+                          size="small"
+                          sx={{
+                            bgcolor: level.color,
+                            color: "white",
+                            minWidth: 80,
+                          }}
+                        />
+                        {isLast ? (
+                          <Typography variant="caption" color="text.secondary">
+                            {"R > prev (no upper bound)"}
+                          </Typography>
+                        ) : (
+                          <>
+                            <Typography variant="body2" color="text.secondary">
+                              {"R ≤"}
+                            </Typography>
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={
+                                severityThresholds[level.value] ??
+                                level.threshold
+                              }
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (v > 0)
+                                  setSeverityThresholds((prev) => ({
+                                    ...prev,
+                                    [level.value]: v,
+                                  }));
+                              }}
+                              inputProps={{
+                                min: 1,
+                                max:
+                                  scale === "3-level"
+                                    ? 9
+                                    : scale === "4-level"
+                                      ? 16
+                                      : 25,
+                                step: 1,
+                              }}
+                              sx={{ width: 72 }}
+                            />
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {`(def: ${level.threshold})`}
+                            </Typography>
+                          </>
+                        )}
+                      </Stack>
+                    );
+                  })}
+                </Box>
+              </Box>
+
+              {/* RIGHT column: Severity Matrix */}
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t("tabs.risks.config.severityMatrix", {
+                    defaultValue: "Severity Matrix",
+                  })}
+                </Typography>
+                {/* <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  mb={1.5}
+                >
+                  {"I × L"}
+                </Typography> */}
+                {(() => {
+                  const levels = RISK_SCALES[scale].levels;
+                  const cellSize = Math.min(
+                    40,
+                    Math.floor(200 / levels.length),
+                  );
+                  const getColor = (i: number, l: number): string => {
+                    const severity = i * l;
+                    for (const lvl of levels) {
+                      if (
+                        severity <=
+                        (severityThresholds[lvl.value] ?? lvl.threshold)
+                      )
+                        return lvl.color;
+                    }
+                    return levels[levels.length - 1].color;
+                  };
+                  return (
+                    <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+                      {/* Rotated Impact label */}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          writingMode: "vertical-rl",
+                          transform: "rotate(180deg)",
+                          mr: 0.5,
+                          alignSelf: "center",
+                        }}
+                      >
+                        Impact →
+                      </Typography>
+                      <Box>
+                        {/* Column headers */}
+                        <Box sx={{ display: "flex", ml: `${cellSize}px` }}>
+                          {levels.map((l) => (
+                            <Box
+                              key={l.value}
+                              sx={{ width: cellSize, textAlign: "center" }}
+                            >
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {l.value}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                        {/* Rows: Impact high → low */}
+                        {[...levels].reverse().map((impact) => (
+                          <Box
+                            key={impact.value}
+                            sx={{ display: "flex", alignItems: "center" }}
+                          >
+                            <Box sx={{ width: cellSize, textAlign: "center" }}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {impact.value}
+                              </Typography>
+                            </Box>
+                            {levels.map((likelihood) => {
+                              const severity = impact.value * likelihood.value;
+                              const color = getColor(
+                                impact.value,
+                                likelihood.value,
+                              );
+                              return (
+                                <Tooltip
+                                  key={likelihood.value}
+                                  title={`I=${impact.value} × L=${likelihood.value} = ${severity}`}
+                                  arrow
+                                >
+                                  <Box
+                                    sx={{
+                                      width: cellSize,
+                                      height: cellSize,
+                                      bgcolor: color,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      border: "1px solid rgba(255,255,255,0.3)",
+                                      cursor: "default",
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "white",
+                                        fontWeight: "bold",
+                                        fontSize: 10,
+                                      }}
+                                    >
+                                      {severity}
+                                    </Typography>
+                                  </Box>
+                                </Tooltip>
+                              );
+                            })}
+                          </Box>
+                        ))}
+                        {/* Likelihood axis */}
+                        <Box
+                          sx={{ display: "flex", ml: `${cellSize}px`, mt: 0.5 }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Likelihood →
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  );
+                })()}
+              </Box>
+            </Box>
 
             <Divider />
 
@@ -831,8 +1089,15 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               })}
             </Alert>
 
-            {/* Predefined Factors */}
-            <>
+            {/* Predefined Factors — side by side */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 3,
+                alignItems: "start",
+              }}
+            >
               {renderFactorList(
                 factorGroups.likelihood,
                 t("tabs.risks.config.likelihoodFactors", {
@@ -845,7 +1110,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   defaultValue: "Impact Factors",
                 }),
               )}
-            </>
+            </Box>
 
             {/* Custom Factors */}
             <Divider />
@@ -942,6 +1207,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+};;;;;;;;
 
 export default RiskConfigDialog;

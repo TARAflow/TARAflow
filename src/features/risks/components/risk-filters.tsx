@@ -128,11 +128,11 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
           {/* Status Filter */}
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>
-              {t("tabs.risks.status.label", { defaultValue: "Status" })}
+              {t("tabs.risks.columns.status", { defaultValue: "Status" })}
             </InputLabel>
             <Select
               value={statusFilter}
-              label={t("tabs.risks.status.label", { defaultValue: "Status" })}
+              label={t("tabs.risks.columns.status", { defaultValue: "Status" })}
               onChange={(e) =>
                 onStatusFilterChange(e.target.value as RiskStatus | "")
               }
@@ -146,7 +146,7 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
               </MenuItem>
               {RISK_STATUSES.filter((s) => s.value !== "wont-do").map((s) => (
                 <MenuItem key={s.value} value={s.value}>
-                  {t(`tabs.risks.status.${s.value}.label`, {
+                  {t(`risks.status.${s.value.replace("-", "_")}.label`, {
                     defaultValue: s.label,
                   })}
                 </MenuItem>

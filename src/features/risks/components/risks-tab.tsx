@@ -170,6 +170,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [project.perElementThreats, project.perInteractionThreats],
   );
 
+  // All threats (unfiltered) — used for asset/cause lookup in RiskDialog
+  const allThreatsUnfiltered = useMemo(
+    () => [...project.perElementThreats, ...project.perInteractionThreats],
+    [project.perElementThreats, project.perInteractionThreats],
+  );
+
   const {
     isSyncing,
     syncStatus,
@@ -188,7 +194,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // ==================== DERIVED STATE ====================
 
-  const riskMethod = riskData.configuration?.method ?? "simple";
+  const riskMethod = riskData.configuration?.method ?? "complex";
 
   // Active STRIDE method is driven by the Threat Tab.
   // Tab switch only available when both methods have eligible threats.
@@ -369,12 +375,25 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [activeStrideMethod, riskData, markDirty],
   );
 
-  const handleEditRisk = useCallback((risk: Risk, groupRisks?: Risk[]) => {
-    const group = groupRisks ?? [risk];
-    const index = group.findIndex((r) => r.id === risk.id);
-    setSelectedRiskInfo({ risks: group, index: Math.max(0, index) });
-    setShowRiskDialog(true);
-  }, []);
+  const handleEditRisk = useCallback(
+    (risk: Risk, _groupRisks?: Risk[]) => {
+      // Find all risks in the same Trust Boundary group as the clicked risk
+      const threat = allThreats.find((t) => t.id === risk.threatId);
+      const tbId = threat?.trustBoundaryId ?? null;
+
+      // Group = all active risks with same trustBoundaryId (and same strideMethod)
+      const group = activeRisks.filter((r) => {
+        const t = allThreats.find((th) => th.id === r.threatId);
+        return t?.trustBoundaryId === tbId;
+      });
+
+      const effectiveGroup = group.length > 0 ? group : [risk];
+      const index = effectiveGroup.findIndex((r) => r.id === risk.id);
+      setSelectedRiskInfo({ risks: effectiveGroup, index: Math.max(0, index) });
+      setShowRiskDialog(true);
+    },
+    [activeRisks, allThreats],
+  );
 
   const handleSaveRisk = useCallback(
     (riskId: string, updates: Partial<Risk>) => {
@@ -809,7 +828,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           risks={selectedRiskInfo.risks}
           initialIndex={selectedRiskInfo.index}
           configuration={riskData.configuration}
-          threats={allThreats}
+          threats={allThreatsUnfiltered}
           assetDataRef={project.assetDataRef}
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
@@ -837,12 +856,15 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           variant="warning"
           confirmLabel={t("tabs.risks.sync", { defaultValue: "Sync" })}
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
-          onConfirm={handleSyncFromThreats}
+          onConfirm={() => {
+            handleSyncFromThreats();
+            setShowSyncConfirm(false);
+          }}
           onCancel={() => setShowSyncConfirm(false)}
         />
       )}
     </Box>
   );
-};;;;;
+};;
 
 export default RisksTab;
