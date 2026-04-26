@@ -17,12 +17,13 @@ import { IconButton } from "@mui/material";
 
 import type {
   AssetGroup,
-  DFDTabProps,
   DFDViewMode,
   AssetRelation,
 } from "../models/dfd-types";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
+import type { ControlInstance } from "shared/models/control-instance";
+import type { SecurityDrift } from "app/hooks/use-security-drift";
 
 import type { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -39,7 +40,7 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
-import DFDValidationPanel from "./dfd-validation-panel";
+import DFDNotificationsPanel from "./dfd-notification-panel";
 import DFDDescriptionView from "./dfd-description-view";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
@@ -47,12 +48,37 @@ import { DFDDetailsPanel } from "./dfd-details-panel";
 import { DFDConfigDialog } from "./dfd-config-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetVisibility } from "./dfd-asset-panel";
-import type { DFDAutoNumberingConfig } from "../models/dfd-types";
+import type {
+  DFDAutoNumberingConfig,
+  DFDProjectData,
+  DFDUpdateResult,
+} from "../models/dfd-types";
 import { DEFAULT_AUTONUMBERING_CONFIG } from "../models/dfd-types";
 
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
 const DRAWIO_BASE_URL = "https://embed.diagrams.net/?embed=1&spin=1&proto=json&plugins=1&configure=1&modified=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1";
+
+// ==================== DFD TAB PROPS ====================
+
+export interface DFDTabProps {
+  project: DFDProjectData;
+  onUpdate: (updates: DFDUpdateResult) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onPhaseComplete?: () => void;
+  /**
+   * Control gap requirements derived from selected Risk Tab mitigations.
+   * Read-only — DFD Tab displays warnings, never writes back.
+   * Provided by useControlInstanceDerivation in main-layout.
+   */
+  controlInstances?: ControlInstance[];
+
+    /**
+   * Security drift state — computed from controlInstances vs actual DFD properties.
+   * Read-only — DFD Tab shows conflict warnings in DFDNotificationsPanel.
+   */
+  securityDrifts?: SecurityDrift[];
+}
 
 // ==================== COMPONENT ====================
 
@@ -61,6 +87,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   onUpdate,
   onDirtyChange,
   onPhaseComplete,
+  controlInstances,
+  securityDrifts,
 }) => {
   // ==================== LOCAL UI STATE ====================
 
@@ -468,6 +496,64 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [assetAssignment.dialogState.elementId, editor],
   );
 
+  /**
+   * Applies a single control gap suggestion from the Notifications Panel.
+   * Routes to element or connection update based on isConnection flag.
+   * Triggers debounced save automatically via editor hooks.
+   */
+  const handleApplyControlSuggestion = useCallback(
+    (
+      elementId: string,
+      property: string,
+      value: unknown,
+      isConnection: boolean,
+      mitigationId?: string,
+      riskId?: string,
+    ) => {
+      // Build audit record
+      const record: import("features/dfd/models/element-properties").SecurityControlRecord =
+        {
+          property,
+          value,
+          setBy: "apply_suggestion",
+          setAt: new Date().toISOString(),
+          ...(mitigationId ? { mitigationId } : {}),
+          ...(riskId ? { riskId } : {}),
+        };
+
+      // Get current ownership records and append (replace existing for same property)
+      const target = isConnection
+        ? editor.connections.find((c) => c.id === elementId)
+        : editor.elements.find((e) => e.id === elementId);
+
+      const existingOwnership: any[] =
+        (target?.properties as any)?.securityControlOwnership ?? [];
+
+      const updatedOwnership = [
+        ...existingOwnership.filter((r: any) => r.property !== property),
+        record,
+      ];
+
+      const updates = {
+        [property]: value,
+        securityControlOwnership: updatedOwnership,
+      } as any;
+
+      if (isConnection) {
+        editor.updateConnectionDescription(
+          elementId,
+          updates as Partial<import("../models/dfd-types").DFDConnection>,
+        );
+      } else {
+        editor.updateElementDescription(
+          elementId,
+          updates as Partial<import("../models/dfd-types").DFDElement>,
+        );
+      }
+    },
+    [editor],
+  );
+
   // Get current element's assets for dialog
   const currentElement = project.dfd?.elements.find(
     (e) => e.id === assetAssignment.dialogState.elementId,
@@ -624,12 +710,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         </Box>
       </Box>
 
-      {/* Validation Panel */}
-      {editor.validation &&
-        (editor.validation.errors.length > 0 ||
-          editor.validation.warnings.length > 0) && (
-          <DFDValidationPanel validation={editor.validation} />
-        )}
+      {/* Notifications Panel — validation errors/warnings + security gaps */}
+      <DFDNotificationsPanel
+        validation={editor.validation}
+        controlInstances={controlInstances}
+        securityDrifts={securityDrifts}
+        elements={project.dfd?.elements ?? []}
+        connections={project.dfd?.connections ?? []}
+        onApply={handleApplyControlSuggestion}
+      />
 
       {/* Preview Dialog */}
       <DFDPreviewDialog
@@ -660,7 +749,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};;;;;;;;;;;;;;;;
+};;;;;;;;
 
 // ==================== SUB-COMPONENTS ====================
 

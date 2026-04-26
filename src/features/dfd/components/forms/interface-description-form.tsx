@@ -33,6 +33,7 @@ import {
   EXPOSURE_LEVEL_DESCRIPTION_KEYS,
 } from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
+import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
@@ -488,6 +489,10 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
         value={form.localNotes}
         onChange={(e) => form.setLocalNotes(e.target.value)}
         onBlur={form.commitNotes}
+      />
+
+      <SecurityControlOwnershipDisplay
+        records={(props as any).securityControlOwnership ?? []}
       />
 
       <Box>

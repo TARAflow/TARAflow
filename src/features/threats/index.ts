@@ -1,7 +1,5 @@
 // ==================== TYPES ====================
 export type {
-  AssetReference,
-  AssetDataReference,
   StrideMethod,
   ThreatProjectData,
   ThreatData,
@@ -14,10 +12,7 @@ export type {
   DFDConnectionReference,
 } from "./models/threat-types";
 
-export type { LinkedDFDElement } from "./models/per-element-types";
-
 export type {
-  DataFlowReference,
   InteractionContext,
   InteractionDirection,
 } from "./models/per-interaction-types";

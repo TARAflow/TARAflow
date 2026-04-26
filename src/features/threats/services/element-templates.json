@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "elementTemplates": [
     {
       "id": "S-EE-001",
@@ -254,15 +254,6 @@
       "isCustom": false
     },
     {
-      "id": "E-IF-001",
-      "strideCategory": "E",
-      "elementTypes": ["PhysicalInterface", "Interface"],
-      "context": {},
-      "mitigations": ["M-E-006", "M-IF-E-001", "M-IF-E-002", "M-IF-E-003"],
-      "verifications": ["V-E-004", "V-IF-E-001", "V-IF-E-002"],
-      "isCustom": false
-    },
-    {
       "id": "S-IF-001",
       "strideCategory": "S",
       "elementTypes": ["PhysicalInterface", "Interface"],
@@ -308,6 +299,15 @@
       "isCustom": false
     },
     {
+      "id": "E-IF-001",
+      "strideCategory": "E",
+      "elementTypes": ["PhysicalInterface", "Interface"],
+      "context": {},
+      "mitigations": ["M-E-006", "M-IF-E-001", "M-IF-E-002", "M-IF-E-003"],
+      "verifications": ["V-E-004", "V-IF-E-001", "V-IF-E-002"],
+      "isCustom": false
+    },
+    {
       "id": "E-IF-002",
       "strideCategory": "E",
       "elementTypes": ["PhysicalInterface", "Interface"],
@@ -330,7 +330,8 @@
       "strideCategory": "S",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-S-001", "M-S-002", "M-S-003"],
       "verifications": ["V-S-001", "V-S-004"],
@@ -341,7 +342,7 @@
       "strideCategory": "S",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-S-001", "M-S-002", "M-S-004"],
       "verifications": ["V-S-001", "V-S-003"],
@@ -361,7 +362,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Embedded"]
+        "platform": ["embedded"]
       },
       "mitigations": ["M-T-001", "M-T-004", "M-T-005"],
       "verifications": ["V-T-001", "V-T-004"],
@@ -372,7 +373,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Embedded"]
+        "platform": ["embedded"]
       },
       "mitigations": ["M-T-001", "M-T-003"],
       "verifications": ["V-T-001", "V-T-003"],
@@ -383,7 +384,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
       "verifications": ["V-T-001", "V-T-002"],
@@ -394,7 +395,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Mobile"]
+        "platform": ["generic"]
       },
       "mitigations": ["M-T-001", "M-T-004"],
       "verifications": ["V-T-001", "V-T-004"],
@@ -414,7 +415,8 @@
       "strideCategory": "D",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-D-001", "M-D-003", "M-D-005"],
       "verifications": ["V-D-001", "V-D-003"],
@@ -425,8 +427,8 @@
       "strideCategory": "D",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "domain": ["Industrial"],
-        "platform": ["OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-D-001", "M-D-002", "M-D-004"],
       "verifications": ["V-D-001", "V-D-004"],
@@ -446,7 +448,7 @@
       "strideCategory": "E",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Embedded"]
+        "platform": ["embedded"]
       },
       "mitigations": ["M-E-001", "M-E-006", "M-IF-E-001"],
       "verifications": ["V-E-001", "V-E-004", "V-IF-E-001"],
@@ -457,7 +459,7 @@
       "strideCategory": "E",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Embedded"]
+        "platform": ["embedded"]
       },
       "mitigations": ["M-E-001", "M-T-004", "M-T-005"],
       "verifications": ["V-E-001", "V-T-004"],
@@ -468,7 +470,7 @@
       "strideCategory": "E",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-E-001", "M-E-002", "M-E-005"],
       "verifications": ["V-E-001", "V-E-002", "V-E-003"],

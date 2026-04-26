@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "interactionTemplates": [
     {
       "id": "S-INT-IN-001",
@@ -114,7 +114,8 @@
       "strideCategory": "S",
       "perspective": "receiver",
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-S-001", "M-S-002", "M-S-003"],
       "verifications": ["V-S-001", "V-S-004"],
@@ -125,7 +126,8 @@
       "strideCategory": "T",
       "perspective": "receiver",
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
       "verifications": ["V-T-001", "V-T-004"],
@@ -136,7 +138,8 @@
       "strideCategory": "D",
       "perspective": "receiver",
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-D-001", "M-D-003", "M-D-005"],
       "verifications": ["V-D-001", "V-D-003"],
@@ -147,7 +150,8 @@
       "strideCategory": "E",
       "perspective": "receiver",
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-E-001", "M-E-002", "M-E-003"],
       "verifications": ["V-E-001", "V-E-002"],
@@ -158,7 +162,7 @@
       "strideCategory": "S",
       "perspective": "receiver",
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-S-001", "M-S-002", "M-S-004"],
       "verifications": ["V-S-001", "V-S-003"],
@@ -169,7 +173,7 @@
       "strideCategory": "D",
       "perspective": "receiver",
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-D-001", "M-D-002", "M-D-005"],
       "verifications": ["V-D-001", "V-D-002"],
@@ -180,7 +184,7 @@
       "strideCategory": "E",
       "perspective": "receiver",
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-E-001", "M-E-002", "M-E-005"],
       "verifications": ["V-E-001", "V-E-002", "V-E-003"],
@@ -191,7 +195,8 @@
       "strideCategory": "S",
       "perspective": "sender",
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-S-001", "M-S-003"],
       "verifications": ["V-S-001", "V-S-004"],
@@ -202,7 +207,8 @@
       "strideCategory": "T",
       "perspective": "sender",
       "context": {
-        "platform": ["Embedded", "OT"]
+        "platform": ["embedded"],
+        "industry": ["ot_ics"]
       },
       "mitigations": ["M-T-001", "M-T-002"],
       "verifications": ["V-T-001", "V-T-002"],
@@ -213,7 +219,7 @@
       "strideCategory": "T",
       "perspective": "sender",
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
       "verifications": ["V-T-001", "V-T-002"],
@@ -224,7 +230,7 @@
       "strideCategory": "E",
       "perspective": "sender",
       "context": {
-        "platform": ["Cloud"]
+        "platform": ["cloud"]
       },
       "mitigations": ["M-E-001", "M-E-002", "M-E-003"],
       "verifications": ["V-E-001", "V-E-002"],

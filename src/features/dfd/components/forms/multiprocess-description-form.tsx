@@ -26,6 +26,7 @@ import {
 import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type { MultiprocessProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
+import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
@@ -167,7 +168,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
-
       {/* ── CONTEXT ─────────────────────────────────────────────────────── */}
       <SectionLabel
         label={t("tabs.dfd.element_description.sections.context", {
@@ -176,7 +176,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
       />
 
       <Grid container rowSpacing={2} columnSpacing={2}>
-
         {/* System Class — primary field, always full-width */}
         <Grid item xs={12}>
           <FormControl fullWidth size="small">
@@ -295,14 +294,16 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
                 <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
                   — Windows —
                 </MenuItem>
-                {(["windows_hardened", "windows_standard"] as const).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.operatingSystem.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
+                {(["windows_hardened", "windows_standard"] as const).map(
+                  (opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.multiprocess.fields.operatingSystem.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  ),
+                )}
                 <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
                   — Mobile —
                 </MenuItem>
@@ -355,16 +356,16 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
                 <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
                   — IEC 62443 Security Level —
                 </MenuItem>
-                {(["iec62443_sl1", "iec62443_sl2", "iec62443_sl3"] as const).map(
-                  (opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.multiprocess.fields.certificationLevel.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
-                    </MenuItem>
-                  ),
-                )}
+                {(
+                  ["iec62443_sl1", "iec62443_sl2", "iec62443_sl3"] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.certificationLevel.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
                 <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
                   — IEC 61508 / SIL —
                 </MenuItem>
@@ -443,7 +444,12 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
         </Grid>
 
         {/* Exposed to Internet — always shown */}
-        <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+        <Grid
+          item
+          xs={12}
+          sm={6}
+          sx={{ display: "flex", alignItems: "center" }}
+        >
           <FormControlLabel
             control={
               <Checkbox
@@ -462,13 +468,21 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
 
         {/* Remote Access Enabled — all except mobile_device */}
         {isVisible(sc, SHOW_REMOTE_ACCESS) && (
-          <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
             <FormControlLabel
               control={
                 <Checkbox
                   checked={props.remoteAccessEnabled ?? false}
                   onChange={(e) =>
-                    handlePropertyChange("remoteAccessEnabled", e.target.checked)
+                    handlePropertyChange(
+                      "remoteAccessEnabled",
+                      e.target.checked,
+                    )
                   }
                 />
               }
@@ -482,7 +496,12 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
 
         {/* Air-Gapped — embedded_controller, scada_hmi, safety_system */}
         {isVisible(sc, SHOW_AIR_GAPPED) && (
-          <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
             <FormControlLabel
               control={
                 <Checkbox
@@ -502,7 +521,12 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
 
         {/* Multi-Tenant — backend_application, cloud_platform */}
         {isVisible(sc, SHOW_MULTI_TENANT) && (
-          <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
             <FormControlLabel
               control={
                 <Checkbox
@@ -519,7 +543,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
             />
           </Grid>
         )}
-
       </Grid>
 
       {/* ── SECURITY ─────────────────────────────────────────────────────── */}
@@ -530,7 +553,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
       />
 
       <Grid container rowSpacing={2} columnSpacing={2}>
-
         {/* Boundary Authentication — always shown */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth size="small">
@@ -607,16 +629,16 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
                     })}
                   </em>
                 </MenuItem>
-                {(["none", "rbac", "abac", "acl", "capability_based"] as const).map(
-                  (opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.multiprocess.fields.authorizationModel.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
-                    </MenuItem>
-                  ),
-                )}
+                {(
+                  ["none", "rbac", "abac", "acl", "capability_based"] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.authorizationModel.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -674,7 +696,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
             )}
           </>
         )}
-
       </Grid>
 
       {/* ── DOCUMENTATION ─────────────────────────────────────────────── */}
@@ -759,6 +780,10 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
         onBlur={form.commitNotes}
       />
 
+      <SecurityControlOwnershipDisplay
+        records={(props as any).securityControlOwnership ?? []}
+      />
+
       <Box>
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
           {t(
@@ -776,7 +801,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           onBlur={form.commitDescription}
         />
       </Box>
-
     </Stack>
   );
 };

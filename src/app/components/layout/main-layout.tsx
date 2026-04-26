@@ -20,7 +20,6 @@ import {
   ThreatData,
   ThreatsTab,
   type ThreatUpdateResult,
-  type AssetDataReference,
 } from "features/threats";
 import {
   resolveMitigationDrafts,
@@ -61,7 +60,13 @@ import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
 import { useTranslation } from "react-i18next";
-import { Toast, ToastContainer, useToast } from "shared";
+import {
+  type AssetDataReference,
+  type DFDReference,
+  Toast,
+  ToastContainer,
+  useToast,
+} from "shared";
 import { useAutoSave } from "../../hooks/use-auto-save";
 import { useProjectFileDownload } from "../../hooks/use-project-file-download";
 import { useProjectPersistence } from "../../hooks//use-project-persistence";
@@ -71,6 +76,10 @@ import {
   mapDFDConnectionsToAssetFeature,
   mapDFDElementsToAssetFeature,
 } from "../../utils/dfd-to-asset-mapper";
+
+import { useControlInstanceDerivation } from "app/hooks/use-control-instance-derivation";
+import { getAllMitigations } from "features/threats/services/threat-catalog-service";
+import { useSecurityDrift } from "app/hooks/use-security-drift";
 
 // ==================== MAIN LAYOUT ====================
 
@@ -1017,6 +1026,38 @@ export const MainLayout: React.FC = () => {
     return new DFDGraphAnalysisContext(activeProject.dfd.graph);
   }, [activeProject?.dfd?.graph]);
 
+  // Mitigation catalog is a module-level singleton — stable reference,
+  // no need to memoize separately.
+  const mitigationCatalog = getAllMitigations();
+
+  const controlInstances = useControlInstanceDerivation(
+    activeProject?.threats ?? null,
+    activeProject?.risks ?? null,
+    activeProject?.dfd ?? null,
+    mitigationCatalog,
+  );
+
+  const securityDrifts = useSecurityDrift(
+    controlInstances,
+    activeProject?.dfd ?? null,
+  );
+
+  // ==================== MEMOIZED DFD DATA ====================
+  const memoizedDFDReference = useMemo((): DFDReference | null => {
+    const dfd = activeProject?.dfd;
+    if (!dfd) return null;
+    return {
+      elements: dfd.elements?.map((e) => ({
+        id: e.id,
+        properties: e.properties as Record<string, unknown>,
+      })),
+      connections: dfd.connections?.map((c) => ({
+        id: c.id,
+        properties: c.properties as Record<string, unknown>,
+      })),
+    };
+  }, [activeProject?.dfd]);
+
   // ==================== MEMOIZED THREAT DATA ====================
 
   const memoizedAssetDataRef = useMemo((): AssetDataReference | undefined => {
@@ -1121,7 +1162,12 @@ export const MainLayout: React.FC = () => {
                     height: "100%",
                   }}
                 >
-                  <DFDTab project={dfdTabProject} onUpdate={handleDFDUpdate} />
+                  <DFDTab
+                    project={dfdTabProject}
+                    onUpdate={handleDFDUpdate}
+                    controlInstances={controlInstances}
+                    securityDrifts={securityDrifts}
+                  />
                 </div>
               )}
               {activePhase === 2 && activeProject && (
@@ -1158,6 +1204,7 @@ export const MainLayout: React.FC = () => {
                     lastModified: activeProject.info?.lastModified || "",
                     dfdGraph: activeProject.dfd?.graph,
                     assetDataRef: memoizedAssetDataRef,
+                    dfd: memoizedDFDReference,
                   }}
                   dfdContext={memoizedDFDContext}
                   onUpdate={handleThreatsUpdate}
@@ -1410,6 +1457,6 @@ export const MainLayout: React.FC = () => {
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
-};;;;;;
+};;;;;;;;;;;;;;;;;
 
 export default MainLayout;

@@ -564,6 +564,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           initialIndex={selectedThreat.initialIndex}
           configuration={configuration}
           assetDataRef={project.assetDataRef}
+          dfdData={project.dfd ?? null}
           onSave={handleSaveThreat}
           onClose={handleCloseThreatDialog}
         />

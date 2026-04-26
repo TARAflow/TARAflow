@@ -103,6 +103,10 @@ export function getAllInteractionTemplates(): InteractionTemplate[] {
   return ALL_INTERACTION_TEMPLATES;
 }
 
+export function getAllMitigations(): MitigationEntry[] {
+  return ALL_MITIGATIONS;
+}
+
 export function getApplicableInteractionTemplates(
   strideCategory: StrideCategory,
   perspective: "sender" | "receiver",

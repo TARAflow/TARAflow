@@ -618,12 +618,20 @@ export class DiffService {
       });
     }
 
-    if (current.status !== previous.status) {
+    // Implementation status is derived — compare selectedMitigations instead
+    const prevImpl = current.selectedMitigations.length !== previous.selectedMitigations.length
+      || current.selectedMitigations.some((m, i) =>
+          m.status !== (previous.selectedMitigations[i]?.status));
+    if (prevImpl) {
       details.push({
-        field: "status",
-        fieldLabel: "Status",
-        oldValue: previous.status,
-        newValue: current.status,
+        field: "selectedMitigations",
+        fieldLabel: "Mitigations",
+        oldValue: previous.selectedMitigations
+          .map((m) => `${m.id ?? "custom"}:${m.status}`)
+          .join(", "),
+        newValue: current.selectedMitigations
+          .map((m) => `${m.id ?? "custom"}:${m.status}`)
+          .join(", "),
         valueType: "string",
       });
     }

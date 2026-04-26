@@ -37,12 +37,11 @@ import {
 } from "@mui/icons-material";
 
 import {
-  AssetReference,
   Threat,
   ThreatTable as ThreatTableType,
   ThreatConfiguration,
-  type AssetDataReference,
 } from "../../models/threat-types";
+import { AssetReference, type AssetDataReference } from "shared";
 import { sortThreatsByPriority } from "../../utils/threat-asset-utils";
 import {
   ThreatSortField,

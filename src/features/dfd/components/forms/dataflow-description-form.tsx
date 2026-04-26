@@ -34,6 +34,7 @@ import {
   EXPOSURE_LEVEL_DESCRIPTION_KEYS,
 } from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
+import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ConnectionFormShell } from "./connection-form-shell";
 import { useConnectionForm } from "../../hooks/use-connection-form";
@@ -764,6 +765,10 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         value={form.localNotes}
         onChange={(e) => form.setLocalNotes(e.target.value)}
         onBlur={form.commitNotes}
+      />
+
+      <SecurityControlOwnershipDisplay
+        records={(props as any).securityControlOwnership ?? []}
       />
 
       <Box>

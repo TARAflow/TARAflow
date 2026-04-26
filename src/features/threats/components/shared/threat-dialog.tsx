@@ -55,16 +55,21 @@ import type {
   ThreatActorType,
   MitigationDraft,
   VerificationDraft,
-  AssetDataReference,
-  AssetReference,
 } from "../../models/threat-types";
+import type {
+  AssetReference,
+  AssetDataReference,
+  DFDReference,
+  StrideCategory,
+} from "shared";
 import { RELEVANCE_COLORS, THREAT_ACTORS } from "../../models/threat-types";
 import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
+  getAllMitigations,
 } from "../../services/threat-catalog-service";
-import type { StrideCategory } from "shared";
-import { STRIDE_COLORS } from "shared";
+import { MitigationCoverageBadge, STRIDE_COLORS } from "shared";
+import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 
 // ==================== PROPS ====================
 
@@ -119,13 +124,12 @@ function getThreatImpact(
 
 export interface ThreatEvalDialogProps {
   open: boolean;
-  /** All threats in the current accordion group */
   threats: Threat[];
-  /** Index of the threat to open initially */
   initialIndex: number;
   configuration: ThreatConfiguration;
   assetDataRef?: AssetDataReference;
-  /** Called whenever a threat is saved (Save button or shortcut actions) */
+  /** Current DFD state — used to show coverage badges on mitigations */
+  dfdData?: DFDReference | null;
   onSave: (threatId: string, updates: Partial<Threat>) => void;
   onClose: () => void;
 }
@@ -180,6 +184,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   initialIndex,
   configuration,
   assetDataRef,
+  dfdData,
   onSave,
   onClose,
 }) => {
@@ -399,6 +404,23 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
       isProcessing.current = false;
     }, 300);
   };
+
+  // ── Mitigation coverage (Rules of Hooks: must be before early return) ───────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const threatCatalog = useMemo(() => getAllMitigations(), []);
+
+  const mitigationCoverage = useMemo(() => {
+    if (!currentThreat || !dfdData || !threatCatalog.length) return new Map();
+    const ids = (currentThreat.proposedMitigations ?? [])
+      .map((m) => m.id ?? "")
+      .filter(Boolean);
+    return computeAllMitigationCoverage(
+      ids,
+      currentThreat,
+      dfdData,
+      threatCatalog,
+    );
+  }, [currentThreat, dfdData, threatCatalog]);
 
   // ── Derived display values ────────────────────────────────────────────────
 
@@ -931,9 +953,21 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                       </Typography>
                     ) : (
                       <>
-                        <Typography variant="body2" fontWeight="medium">
-                          {m.text}
-                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight="medium">
+                            {m.text}
+                          </Typography>
+                          <MitigationCoverageBadge
+                            coverage={mitigationCoverage.get(m.id ?? "")}
+                          />
+                        </Box>
                         <TextField
                           size="small"
                           fullWidth
@@ -947,7 +981,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           onChange={(e) =>
                             updateMitigationNote(index, e.target.value)
                           }
-                          sx={{ mt: 0.75 }}
+                          sx={{ mt: 0.25 }}
                           variant="standard"
                         />
                       </>
@@ -1358,6 +1392,6 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+};;
 
 export default ThreatEvalDialog;

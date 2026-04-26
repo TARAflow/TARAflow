@@ -11,7 +11,6 @@ import {
   RiskConfiguration,
   ThreatReference,
   MoSCoWPriority,
-  RiskStatus,
 } from "../models/risk-types";
 import { RiskFilters } from "./risk-filters";
 import { useAccordionState } from "../hooks/shared/use-accordion-state";
@@ -34,11 +33,10 @@ interface InteractionRiskViewProps {
   filters: {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
-    statusFilter: RiskStatus | "";
+    treatmentFilter: string;
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
-  onStatusFilterChange: (status: RiskStatus | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
 
@@ -48,8 +46,8 @@ interface InteractionRiskViewProps {
     priority: string,
     justification?: string,
   ) => void;
-  onStatusChange: (riskId: string, status: string) => void;
   onTreatmentChange: (riskId: string, treatment: string) => void;
+  onImplementationClick?: (risk: Risk) => void;
 }
 
 export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
@@ -60,13 +58,12 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
   filters,
   onSearchTextChange,
   onPriorityFilterChange,
-  onStatusFilterChange,
   onClearFilters,
   filteredCount,
   onEdit,
   onPriorityChange,
-  onStatusChange,
   onTreatmentChange,
+  onImplementationClick,
 }) => {
   const { t } = useTranslation();
 
@@ -146,9 +143,12 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
     const assessed = risks.filter(
       (r) => r.calculatedRiskBeforeMitigation > 0,
     ).length;
-    const open = risks.filter((r) => r.status === "open").length;
-    const done = risks.filter((r) => r.status !== "open").length;
-    return `${assessed} assessed  ·  ${done} completed  ·  ${open} open`;
+    const implemented = risks.filter((r) =>
+      r.selectedMitigations.some(
+        (m) => m.status === "implemented" || m.status === "verified",
+      ),
+    ).length;
+    return `${assessed} assessed  ·  ${implemented} with implemented mitigations`;
   };
 
   const riskHeaderSlot = (risks: Risk[]) => (
@@ -190,8 +190,8 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
     configuration,
     onEdit,
     onPriorityChange,
-    onStatusChange,
     onTreatmentChange,
+    onImplementationClick,
   });
 
   return (
@@ -200,10 +200,8 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
       <RiskFilters
         searchText={filters.searchText}
         priorityFilter={filters.priorityFilter}
-        statusFilter={filters.statusFilter}
         onSearchTextChange={onSearchTextChange}
         onPriorityFilterChange={onPriorityFilterChange}
-        onStatusFilterChange={onStatusFilterChange}
         onClear={onClearFilters}
         show={showFilters}
         filteredCount={filteredCount}

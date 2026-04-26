@@ -1,53 +1,22 @@
 // ==================== WONT RISK TABLE ====================
 // Displays risks with MoSCoW priority "Won't".
-// Uses MUI Table (no DataGrid) for consistent performance.
+// Uses RiskTable + useRiskColumns for consistency with main risk tables.
+// Columns: STRIDE, Threat-ID, Threat, Risk-Score, Priority (chip),
+//          Status (chip), Justification, Actions
 
-import React from "react";
+import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box,
-  Chip,
-  Typography,
-  Tooltip,
-  Paper,
-  Stack,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@mui/material";
-import { Edit as EditIcon } from "@mui/icons-material";
+import { Box, Chip, Typography, Paper } from "@mui/material";
 import { DoNotDisturb as WontIcon } from "@mui/icons-material";
-import { Risk, RiskConfiguration, ThreatReference } from "../models/risk-types";
-import { getRiskColor } from "../services/risk-calculation-service";
-import type { StrideCategory } from "shared";
+import type {
+  Risk,
+  RiskConfiguration,
+  ThreatReference,
+} from "../models/risk-types";
+import { RiskTable } from "./shared/risk-table";
+import { useRiskColumns } from "./shared/risk-columns";
 
-const STRIDE_COLORS: Record<StrideCategory, string> = {
-  S: "#ef4444",
-  T: "#f97316",
-  R: "#eab308",
-  I: "#22c55e",
-  D: "#3b82f6",
-  E: "#a855f7",
-};
-
-const cellSx = {
-  py: 0.75,
-  px: 1,
-  fontSize: "0.8rem",
-  borderBottom: "1px solid",
-  borderColor: "divider",
-};
-
-const headerCellSx = {
-  ...cellSx,
-  bgcolor: "grey.50",
-  fontWeight: 600,
-  fontSize: "0.75rem",
-  color: "text.secondary",
-  py: 0.5,
-};
+// ==================== PROPS ====================
 
 interface WontRiskTableProps {
   risks: Risk[];
@@ -56,9 +25,26 @@ interface WontRiskTableProps {
   onEdit: (risk: Risk) => void;
 }
 
+// ==================== COMPONENT ====================
+
 export const WontRiskTable = React.memo<WontRiskTableProps>(
   ({ risks, configuration, onEdit }) => {
     const { t } = useTranslation();
+
+    // No-op callbacks — read-only table, no inline editing
+    const noop = useCallback(() => {}, []);
+
+    const handleEdit = useCallback((risk: Risk) => onEdit(risk), [onEdit]);
+
+    const columns = useRiskColumns({
+      configuration,
+      onEdit: handleEdit,
+      groupRisks: risks,
+      onPriorityChange: noop,
+      onTreatmentChange: noop,
+      readOnly: true,
+      showJustification: true,
+    });
 
     if (risks.length === 0) return null;
 
@@ -100,159 +86,31 @@ export const WontRiskTable = React.memo<WontRiskTableProps>(
             color="default"
             sx={{ ml: 1 }}
           />
+          {missingJustification && (
+            <Chip
+              label={t("tabs.risks.wontMissingJustification", {
+                defaultValue: "Missing justification",
+              })}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ ml: "auto" }}
+            />
+          )}
         </Box>
 
-        {/* Table */}
-        <Box sx={{ overflowX: "auto" }}>
-          <Table size="small" sx={{ tableLayout: "fixed", minWidth: 600 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ ...headerCellSx, width: 130 }}>
-                  {t("tabs.risks.columns.threatId", { defaultValue: "T-ID" })}
-                </TableCell>
-                <TableCell
-                  sx={{ ...headerCellSx, width: 70, textAlign: "center" }}
-                >
-                  {t("tabs.risks.columns.stride", { defaultValue: "STRIDE" })}
-                </TableCell>
-                <TableCell sx={headerCellSx}>
-                  {t("tabs.risks.columns.threat", { defaultValue: "Threat" })}
-                </TableCell>
-                <TableCell
-                  sx={{ ...headerCellSx, width: 100, textAlign: "center" }}
-                >
-                  {t("tabs.risks.columns.originalRisk", {
-                    defaultValue: "Original Risk",
-                  })}
-                </TableCell>
-                <TableCell sx={{ ...headerCellSx, minWidth: 200 }}>
-                  {t("tabs.risks.columns.justification", {
-                    defaultValue: "Justification",
-                  })}
-                </TableCell>
-                <TableCell sx={{ ...headerCellSx, width: 48 }} />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {[...risks]
-                .sort(
-                  (a, b) =>
-                    b.calculatedRiskBeforeMitigation -
-                    a.calculatedRiskBeforeMitigation,
-                )
-                .map((risk) => {
-                  const hasJustification = !!risk.wontJustification?.trim();
-                  return (
-                    <TableRow
-                      key={risk.id}
-                      sx={{
-                        bgcolor: "grey.50",
-                        "&:last-child td": { borderBottom: 0 },
-                      }}
-                    >
-                      <TableCell sx={cellSx}>
-                        <Chip
-                          label={risk.threatId}
-                          size="small"
-                          sx={{
-                            bgcolor:
-                              STRIDE_COLORS[risk.strideCategory] ?? "#9ca3af",
-                            color: "white",
-                            fontWeight: "bold",
-                            fontSize: "0.7rem",
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ ...cellSx, textAlign: "center" }}>
-                        <Chip
-                          label={risk.strideCategory}
-                          size="small"
-                          sx={{
-                            bgcolor: STRIDE_COLORS[risk.strideCategory],
-                            color: "white",
-                            fontWeight: "bold",
-                            minWidth: 32,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={cellSx}>
-                        <Tooltip title={risk.threatDescription ?? ""}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              fontSize: "0.8rem",
-                            }}
-                          >
-                            {risk.threatDescription || "–"}
-                          </Typography>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell sx={{ ...cellSx, textAlign: "center" }}>
-                        <Chip
-                          label={
-                            risk.calculatedRiskBeforeMitigation > 0
-                              ? risk.calculatedRiskBeforeMitigation.toFixed(1)
-                              : "–"
-                          }
-                          size="small"
-                          sx={{
-                            bgcolor: getRiskColor(
-                              risk.calculatedRiskBeforeMitigation,
-                              configuration.scale,
-                              configuration.roundingMethod,
-                            ),
-                            color: "white",
-                            fontWeight: "bold",
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={cellSx}>
-                        <Tooltip title={risk.wontJustification ?? ""}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              fontSize: "0.8rem",
-                              color: hasJustification
-                                ? "text.primary"
-                                : "error.main",
-                              fontStyle: hasJustification ? "normal" : "italic",
-                            }}
-                          >
-                            {hasJustification
-                              ? risk.wontJustification
-                              : t("tabs.risks.noJustification", {
-                                  defaultValue: "Missing justification!",
-                                })}
-                          </Typography>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell sx={{ ...cellSx, textAlign: "center" }}>
-                        <Tooltip
-                          title={t("common.edit", { defaultValue: "Edit" })}
-                        >
-                          <EditIcon
-                            fontSize="small"
-                            sx={{
-                              cursor: "pointer",
-                              color: "text.secondary",
-                              "&:hover": { color: "primary.main" },
-                            }}
-                            onClick={() => onEdit(risk)}
-                          />
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </Box>
+        {/* Table — sorted by risk score desc */}
+        <RiskTable
+          risks={[...risks].sort(
+            (a, b) =>
+              b.calculatedRiskBeforeMitigation -
+              a.calculatedRiskBeforeMitigation,
+          )}
+          columns={columns}
+          configuration={configuration}
+          onEdit={handleEdit}
+          groupRisks={risks}
+        />
 
         {/* Missing justification warning */}
         {missingJustification && (
@@ -277,4 +135,5 @@ export const WontRiskTable = React.memo<WontRiskTableProps>(
   },
 );
 
+WontRiskTable.displayName = "WontRiskTable";
 export default WontRiskTable;

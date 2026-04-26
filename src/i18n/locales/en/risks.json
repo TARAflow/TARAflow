@@ -41,6 +41,7 @@
       "progressDone": "{{done}}/{{total}} done",
       "assessed": "Assessed",
       "assessedTooltip": "Assessed risks / Total risks",
+      "wontMissingJustification": "Missing justification",
       "columns": {
         "threatId": "T-ID",
         "stride": "STRIDE",
@@ -54,7 +55,8 @@
         "mitigation": "Mitigation",
         "originalRisk": "Original Risk",
         "justification": "Justification",
-        "treatment": "Treatment"
+        "treatment": "Treatment",
+        "implementation": "Implementation"
       },
       "dialog": {
         "title": "Risk Assessment: {{id}}",
@@ -80,6 +82,7 @@
         "residualRisk": "Residual Risk",
         "copyFromBefore": "Copy Ratings from Before",
         "selectedMitigations": "Selected Mitigations",
+        "mitigationStatus": "Status:",
         "mitigationPlaceholder": "Describe the mitigation...",
         "addMitigation": "Add Mitigation",
         "notRated": "Not rated",
@@ -106,7 +109,9 @@
         "tabAfter": "Risk After",
         "cause": "Root Cause",
         "verifications": "Proposed Verifications",
-        "noMitigationWarning": "No mitigation selected. Please select at least one mitigation for this treatment type."
+        "noMitigationWarning": "No mitigation selected. Please select at least one mitigation for this treatment type.",
+        "acceptedNote": "Risk is accepted — no mitigations required. Risk After equals Risk Before.",
+        "riskAfterAutoSynced": "Risk After is automatically set equal to Risk Before (no mitigation applied)."
       },
       "config": {
         "title": "Risk Assessment Configuration",
@@ -192,7 +197,20 @@
         },
         "wont-do": {
           "label": "Won't Do"
-        }
+        },
+        "verified": {
+          "label": "Verified"
+        },
+        "eliminated": {
+          "label": "Eliminated"
+        },
+        "partially-mitigated": {
+          "label": "Partially Mitigated"
+        },
+        "transferred": { "label": "Transferred" }
+      },
+      "validation": {
+        "required": "Required"
       },
       "physicalInterfaces": "Physical Interfaces",
       "priority": "Priority",
@@ -249,21 +267,23 @@
       }
     },
     "status": {
-      "open": {
-        "label": "Open"
-      },
-      "in_review": {
-        "label": "In Review"
-      },
-      "mitigated": {
-        "label": "Mitigated"
-      },
-      "accepted": {
-        "label": "Accepted"
-      },
-      "wont_do": {
-        "label": "Won't Do"
-      }
+      "open": { "label": "Open" },
+      "in_review": { "label": "In Review" },
+      "partially_mitigated": { "label": "Partially Mitigated" },
+      "mitigated": { "label": "Mitigated" },
+      "verified": { "label": "Verified" },
+      "accepted": { "label": "Accepted" },
+      "transferred": { "label": "Transferred" },
+      "eliminated": { "label": "Eliminated" },
+      "wont_do": { "label": "Won't Do" }
+    },
+    "mitigationStatus": {
+      "selected": { "label": "Selected" },
+      "planned": { "label": "Planned" },
+      "in_progress": { "label": "In Progress" },
+      "implemented": { "label": "Implemented" },
+      "verified": { "label": "Verified" },
+      "rejected": { "label": "Rejected" }
     },
     "factors": {
       "damage_potential": {
@@ -377,6 +397,11 @@
       "exposure_level": {
         "name": "Exposure Level (EL)",
         "description": "How exposed is the asset or system to potential attackers?"
+      }
+    },
+    "implementation": {
+      "not_started": {
+        "label": "Not Started"
       }
     }
   }

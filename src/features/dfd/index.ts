@@ -18,7 +18,6 @@ export type {
   // App integration
   DFDProjectData,
   DFDUpdateResult,
-  DFDTabProps,
   DFDViewMode,
 
   // Export
@@ -178,7 +177,6 @@ export { type ICrossingElements } from "./interfaces/drawio-interfaces";
 // ==================== COMPONENTS ====================
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
 export { DFDTab } from "./components/dfd-tab";
-export { DFDValidationPanel } from "./components/dfd-validation-panel";
 export { DefaultDFDGraphBuilder } from "./services/dfd-graph-builder";
 
 // ==================== HOOKS ====================

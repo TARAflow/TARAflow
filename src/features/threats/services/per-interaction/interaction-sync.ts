@@ -12,12 +12,11 @@ import type {
   DFDGraphReference,
 } from "../../models/threat-types";
 import {
-  DataFlowReference,
   DataFlowChange,
   generateThreatIdPerInteraction,
 } from "../../models/per-interaction-types";
 import { interactionThreatGenerator } from "./interaction-generator";
-import { DFDAnalysisContext } from "shared";
+import { DataFlowReference, DFDAnalysisContext } from "shared";
 
 // ==================== ELEMENT CHANGE ====================
 

@@ -21,9 +21,11 @@ import {
   Risk,
   RiskConfiguration,
   MoSCoWPriority,
-  RiskStatus,
+  MitigationStatus,
+  MITIGATION_STATUS_CONFIGS,
+  ImplementationProgress,
+  deriveImplementationProgress,
   MOSCOW_PRIORITIES,
-  RISK_STATUSES,
   RISK_TREATMENTS,
   getFactorDefinition,
 } from "../../models/risk-types";
@@ -36,6 +38,19 @@ import type { StrideCategory } from "shared";
 
 // ==================== COLUMN TYPE ====================
 
+// ── Implementation progress display config (UI-only) ──────────────────────
+const IMPLEMENTATION_DISPLAY: Record<
+  ImplementationProgress,
+  { label: string; color: string; icon: string }
+> = {
+  not_started: { label: "Not Started", color: "#9ca3af", icon: "⚪" },
+  in_progress: { label: "In Progress", color: "#3b82f6", icon: "🔵" },
+  partial:     { label: "Partial",     color: "#f97316", icon: "🟡" },
+  implemented: { label: "Implemented", color: "#22c55e", icon: "🟢" },
+  verified:    { label: "Verified",    color: "#16a34a", icon: "✅" },
+  rejected:    { label: "Rejected",    color: "#ef4444", icon: "🔴" },
+};
+
 export interface RiskColumn {
   id: string;
   header: string;
@@ -44,6 +59,10 @@ export interface RiskColumn {
   flex?: number;
   align?: "left" | "center" | "right";
   renderCell: (risk: Risk) => React.ReactNode;
+  /** When true: stops row click propagation on this cell */
+  stopRowClick?: boolean;
+  /** When set: called on cell click instead of row click handler */
+  onCellClick?: (risk: Risk) => void;
 }
 
 // ==================== CONSTANTS ====================
@@ -144,15 +163,17 @@ const RiskChipCell: React.FC<RiskChipProps> = ({
 interface UseRiskColumnsProps {
   configuration: RiskConfiguration;
   onEdit: (risk: Risk, groupRisks?: Risk[]) => void;
-  /** All risks in the current group — passed to dialog for sidebar navigation */
   groupRisks?: Risk[];
   onPriorityChange: (
     riskId: string,
     priority: string,
     justification?: string,
   ) => void;
-  onStatusChange: (riskId: string, status: string) => void;
   onTreatmentChange: (riskId: string, treatment: string) => void;
+  /** Opens the RiskMitigationStatusDialog for the clicked risk */
+  onImplementationClick?: (risk: Risk) => void;
+  readOnly?: boolean;
+  showJustification?: boolean;
 }
 
 export const useRiskColumns = ({
@@ -160,8 +181,10 @@ export const useRiskColumns = ({
   onEdit,
   groupRisks,
   onPriorityChange,
-  onStatusChange,
   onTreatmentChange,
+  onImplementationClick,
+  readOnly = false,
+  showJustification = false,
 }: UseRiskColumnsProps): RiskColumn[] => {
   const { t } = useTranslation();
 
@@ -260,30 +283,6 @@ export const useRiskColumns = ({
       },
     ];
 
-    // ── Risk before ─────────────────────────────────────────────────────────
-    // if (configuration.method === "simple") {
-    //   cols.push({
-    //     id: "riskBefore",
-    //     header: t("tabs.risks.columns.riskBefore", {
-    //       defaultValue: "Risk (Before)",
-    //     }),
-    //     width: 80,
-    //     align: "center",
-    //     renderCell: (risk) => {
-    //       const d = factorTooltip(risk, false);
-    //       return (
-    //         <RiskChipCell
-    //           value={risk.calculatedRiskBeforeMitigation}
-    //           scale={configuration.scale}
-    //           rounding={configuration.roundingMethod}
-    //           tooltipLines={d.lines}
-    //           tooltipLabel={d.label}
-    //           tooltipColor={d.color}
-    //         />
-    //       );
-    //     },
-    //   });
-    // } else {
     cols.push(
       {
         id: "impact",
@@ -370,18 +369,26 @@ export const useRiskColumns = ({
         // Resolve full text from catalog (same approach as threat-tables)
         const selected =
           risk.proposedMitigations?.filter((m) =>
-            risk.selectedMitigations.includes(m.id ?? m.notes ?? ""),
+            risk.selectedMitigations.some(
+              (s) => s.id === (m.id ?? m.notes ?? ""),
+            ),
           ) ?? [];
         const resolved = resolveMitigationDrafts(selected);
+
         const lines =
           resolved.length > 0
             ? resolved.map((m) =>
                 m.isCustom ? `[custom] ${m.notes ?? ""}` : `${m.id}: ${m.text}`,
               )
-            : risk.selectedMitigations;
+            : risk.selectedMitigations.map((s) => s.id ?? "");
 
         const displayText = lines[0] ?? "";
-        const tooltipText = lines.join("\n");
+        const tooltipLines = lines.map((text, idx) => {
+          const mitigation = risk.selectedMitigations[idx];
+          const status = mitigation?.status ?? "open";
+          return `${text} [${status}]`;
+        });
+        const tooltipText = tooltipLines.join("\n");
 
         return (
           <Tooltip
@@ -477,63 +484,204 @@ export const useRiskColumns = ({
       },
     });
 
-    // ── MoSCoW priority (inline select) ────────────────────────────────────
+    // ── MoSCoW priority (inline select or read-only chip) ──────────────────
     cols.push({
       id: "moscowPriority",
       header: t("tabs.risks.columns.priority", { defaultValue: "Priority" }),
       width: 120,
-      renderCell: (risk) => (
-        <FormControl size="small" fullWidth>
-          <Select
-            value={risk.moscowPriority}
-            onChange={(e) => onPriorityChange(risk.id, e.target.value)}
-            size="small"
-            sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
-          >
-            {MOSCOW_PRIORITIES.map((p) => (
-              <MenuItem key={p.value} value={p.value}>
-                <Chip
-                  label={t(`risks.moscow.${p.value}.label`, {
-                    defaultValue: p.label,
-                  })}
-                  size="small"
-                  sx={{ bgcolor: p.color, color: "white", fontSize: "0.65rem" }}
-                />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      ),
+      align: "center" as const,
+      renderCell: (risk) => {
+        const current = MOSCOW_PRIORITIES.find(
+          (p) => p.value === risk.moscowPriority,
+        );
+        if (readOnly) {
+          return (
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <Chip
+                label={t(`risks.moscow.${risk.moscowPriority}.label`, {
+                  defaultValue: current?.label ?? risk.moscowPriority,
+                })}
+                size="small"
+                sx={{
+                  bgcolor: current?.color ?? "#6b7280",
+                  color: "white",
+                  fontSize: "0.65rem",
+                }}
+              />
+            </Box>
+          );
+        }
+        return (
+          <FormControl size="small" fullWidth>
+            <Select
+              value={risk.moscowPriority}
+              onChange={(e) => onPriorityChange(risk.id, e.target.value)}
+              size="small"
+              sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
+            >
+              {MOSCOW_PRIORITIES.map((p) => (
+                <MenuItem key={p.value} value={p.value}>
+                  <Chip
+                    label={t(`risks.moscow.${p.value}.label`, {
+                      defaultValue: p.label,
+                    })}
+                    size="small"
+                    sx={{
+                      bgcolor: p.color,
+                      color: "white",
+                      fontSize: "0.65rem",
+                    }}
+                  />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        );
+      },
     });
 
-    // ── Status (inline select) ──────────────────────────────────────────────
+    // ── Implementation Status (derived, clickable) ──────────────────────────
     cols.push({
-      id: "status",
-      header: t("tabs.risks.columns.status", { defaultValue: "Status" }),
-      width: 120,
-      renderCell: (risk) => (
-        <FormControl size="small" fullWidth>
-          <Select
-            value={risk.status}
-            onChange={(e) => onStatusChange(risk.id, e.target.value)}
-            size="small"
-            sx={{ fontSize: "0.75rem", "& .MuiSelect-select": { py: 0.5 } }}
-          >
-            {RISK_STATUSES.map((s) => (
-              <MenuItem key={s.value} value={s.value}>
-                <Chip
-                  label={t(`risks.status.${s.value.replace("-", "_")}.label`, {
-                    defaultValue: s.label,
-                  })}
-                  size="small"
-                  sx={{ bgcolor: s.color, color: "white", fontSize: "0.65rem" }}
-                />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      ),
+      id: "implementation",
+      header: t("tabs.risks.columns.implementation", {
+        defaultValue: "Implementation",
+      }),
+      width: 140,
+      align: "center" as const,
+      stopRowClick: true,
+      onCellClick:
+        onImplementationClick && !readOnly ? onImplementationClick : undefined,
+      renderCell: (risk) => {
+        const impl = deriveImplementationProgress(risk.selectedMitigations);
+        const config = IMPLEMENTATION_DISPLAY[impl];
+
+        return (
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Tooltip
+              placement="top"
+              slotProps={{ tooltip: { sx: { maxWidth: 500 } } }}
+              title={
+                <Box>
+                  <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    gutterBottom
+                    display="block"
+                  >
+                    {config.label}
+                  </Typography>
+                  <Stack spacing={0.5}>
+                    {risk.selectedMitigations.map((m) => {
+                      const draft = risk.proposedMitigations?.find(
+                        (p) => p.id === m.id,
+                      );
+                      const id = m.id ?? "custom";
+                      const text = draft?.isCustom
+                        ? `[custom] ${draft.notes ?? ""}`
+                        : (draft?.text ?? "");
+                      const shortText =
+                        text.length > 50 ? text.slice(0, 50) + "…" : text;
+                      const statusConf = MITIGATION_STATUS_CONFIGS.find(
+                        (s) => s.value === m.status,
+                      );
+                      const icon = statusConf?.icon ?? "⚪";
+                      return (
+                        <Stack
+                          key={id}
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ minWidth: 70, fontWeight: 600 }}
+                          >
+                            {id}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              flex: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {shortText}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            {icon} {m.status}
+                          </Typography>
+                        </Stack>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+              }
+            >
+              <Chip
+                label={`${config.icon} ${t(
+                  `risks.implementation.${impl}.label`,
+                  { defaultValue: config.label },
+                )}`}
+                size="small"
+                sx={{
+                  bgcolor: config.color,
+                  color: "white",
+                  fontSize: "0.65rem",
+                  cursor:
+                    onImplementationClick && !readOnly ? "pointer" : "default",
+                  "&:hover":
+                    onImplementationClick && !readOnly
+                      ? { filter: "brightness(0.9)" }
+                      : {},
+                }}
+              />
+            </Tooltip>
+          </Box>
+        );
+      },
     });
+
+    // ── Justification (Won't table only) ───────────────────────────────────
+    if (showJustification) {
+      cols.push({
+        id: "justification",
+        header: t("tabs.risks.columns.justification", {
+          defaultValue: "Justification",
+        }),
+        flex: 1,
+        minWidth: 180,
+        renderCell: (risk) => {
+          const text = risk.wontJustification?.trim();
+          const missing = !text;
+          return (
+            <Tooltip title={text ?? ""} placement="top">
+              <Typography
+                variant="body2"
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "0.8rem",
+                  color: missing ? "error.main" : "text.primary",
+                  fontStyle: missing ? "italic" : "normal",
+                }}
+              >
+                {missing
+                  ? t("tabs.risks.noJustification", {
+                      defaultValue: "Missing justification!",
+                    })
+                  : text}
+              </Typography>
+            </Tooltip>
+          );
+        },
+      });
+    }
 
     // ── Actions ─────────────────────────────────────────────────────────────
     cols.push({
@@ -557,7 +705,9 @@ export const useRiskColumns = ({
     onEdit,
     groupRisks,
     onPriorityChange,
-    onStatusChange,
     onTreatmentChange,
+    onImplementationClick,
+    readOnly,
+    showJustification,
   ]);
 };

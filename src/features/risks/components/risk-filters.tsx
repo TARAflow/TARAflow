@@ -20,8 +20,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
 } from "@mui/icons-material";
-import { MOSCOW_PRIORITIES, RISK_STATUSES } from "../models/risk-types";
-import type { MoSCoWPriority, RiskStatus } from "../models/risk-types";
+import { MOSCOW_PRIORITIES } from "../models/risk-types";
+import type { MoSCoWPriority } from "../models/risk-types";
 
 // ==================== TYPES ====================
 
@@ -29,12 +29,10 @@ export interface RiskFiltersProps {
   // Filter state
   searchText: string;
   priorityFilter: MoSCoWPriority | "";
-  statusFilter: RiskStatus | "";
 
   // Callbacks
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
-  onStatusFilterChange: (status: RiskStatus | "") => void;
   onClear: () => void;
 
   // UI state
@@ -51,18 +49,15 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
   ({
     searchText,
     priorityFilter,
-    statusFilter,
     onSearchTextChange,
     onPriorityFilterChange,
-    onStatusFilterChange,
     onClear,
     show,
     filteredCount,
     totalCount,
   }) => {
     const { t } = useTranslation();
-    const hasFilters =
-      searchText.trim() !== "" || priorityFilter !== "" || statusFilter !== "";
+    const hasFilters = searchText.trim() !== "" || priorityFilter !== "";
 
     return (
       <Collapse in={show} timeout={300}>
@@ -77,24 +72,6 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
             borderColor: "divider",
           }}
         >
-          {/* Search Field */}
-          <TextField
-            size="small"
-            placeholder={t("tabs.risks.searchPlaceholder", {
-              defaultValue: "Search risks...",
-            })}
-            value={searchText}
-            onChange={(e) => onSearchTextChange(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ minWidth: 200 }}
-          />
-
           {/* Priority Filter */}
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>
@@ -125,34 +102,23 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
             </Select>
           </FormControl>
 
-          {/* Status Filter */}
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>
-              {t("tabs.risks.columns.status", { defaultValue: "Status" })}
-            </InputLabel>
-            <Select
-              value={statusFilter}
-              label={t("tabs.risks.columns.status", { defaultValue: "Status" })}
-              onChange={(e) =>
-                onStatusFilterChange(e.target.value as RiskStatus | "")
-              }
-            >
-              <MenuItem value="">
-                <em>
-                  {t("tabs.risks.allStatuses", {
-                    defaultValue: "All Statuses",
-                  })}
-                </em>
-              </MenuItem>
-              {RISK_STATUSES.filter((s) => s.value !== "wont-do").map((s) => (
-                <MenuItem key={s.value} value={s.value}>
-                  {t(`risks.status.${s.value.replace("-", "_")}.label`, {
-                    defaultValue: s.label,
-                  })}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Search Field */}
+          <TextField
+            size="small"
+            placeholder={t("tabs.risks.searchPlaceholder", {
+              defaultValue: "Search risks...",
+            })}
+            value={searchText}
+            onChange={(e) => onSearchTextChange(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: 200 }}
+          />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
@@ -168,7 +134,7 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
         </Box>
       </Collapse>
     );
-  }
+  },
 );
 
 RiskFilters.displayName = "RiskFilters";

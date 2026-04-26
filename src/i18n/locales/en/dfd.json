@@ -1153,6 +1153,11 @@
           "environmentalHazard": "Environmental Hazard",
           "notReferenced": "This asset is not yet referenced by any DFD element."
         }
+      },
+      "notifications": {
+        "applyLabel": "Apply",
+        "applyTooltip": "Apply suggestion to model",
+        "title": "{{count}} notification(s)"
       }
     }
   },

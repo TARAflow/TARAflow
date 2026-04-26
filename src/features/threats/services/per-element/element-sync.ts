@@ -12,12 +12,11 @@ import type {
   DFDGraphReference,
 } from "../../models/threat-types";
 import {
-  LinkedDFDElement,
   ElementChange,
   STRIDE_PER_ELEMENT_TYPE,
 } from "../../models/per-element-types";
 import { elementThreatGenerator } from "./element-generator";
-import { DFDAnalysisContext } from "shared";
+import { DFDAnalysisContext, type LinkedDFDElement } from "shared";
 
 // ==================== TRUST BOUNDARY CHANGE ====================
 

@@ -5,11 +5,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import {
-  type Threat,
-  type AssetDataReference,
-  type AssetReference,
-} from "../../models/threat-types";
+import { type Threat } from "../../models/threat-types";
+import type { AssetDataReference, AssetReference } from "shared";
 import {
   getImpactColor,
   getPhysicalImpactColor,

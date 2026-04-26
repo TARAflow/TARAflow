@@ -21,6 +21,7 @@ import type {
   DFDElementType,
 } from "../../../dfd/models/dfd-types";
 import type { Asset } from "../../../assets/models/asset-types";
+import { deriveImplementationProgress } from "../../../risks/models/risk-types";
 import {
   getSecurityLevelText,
   getTrustLevelText,
@@ -1028,8 +1029,10 @@ export abstract class BaseDocumentGenerator {
         const moscowLabel =
           project.computed.moscowLabels.get(risk.moscowPriority) ??
           risk.moscowPriority;
-        const statusLabel =
-          project.computed.statusLabels.get(risk.status) ?? risk.status;
+        const implStatus = deriveImplementationProgress(
+          risk.selectedMitigations,
+        );
+        const statusLabel = implStatus.replace(/_/g, " ");
 
         const values = {
           id: risk.id,
@@ -1040,7 +1043,15 @@ export abstract class BaseDocumentGenerator {
           ),
           riskBeforeLabel,
           mitigations: this.escapeTableText(
-            truncateText(formatMitigations(risk.selectedMitigations), 60),
+            truncateText(
+              formatMitigations(
+                risk.selectedMitigations
+                  .filter((m) => m.status !== "rejected")
+                  .map((m) => m.id ?? m.notes ?? "")
+                  .filter(Boolean),
+              ),
+              60,
+            ),
           ),
           riskAfterLabel,
           moscowLabel,

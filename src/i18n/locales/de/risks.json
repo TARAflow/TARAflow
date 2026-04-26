@@ -41,24 +41,7 @@
       "progressDone": "{{done}}/{{total}} erledigt",
       "assessed": "Bewertet",
       "assessedTooltip": "Bewertete Risiken / Gesamtrisiken",
-      "status": {
-        "label": "Status",
-        "open": {
-          "label": "Offen"
-        },
-        "mitigated": {
-          "label": "Gemindert"
-        },
-        "accepted": {
-          "label": "Akzeptiert"
-        },
-        "in-review": {
-          "label": "In Prüfung"
-        },
-        "wont-do": {
-          "label": "Wird nicht umgesetzt"
-        }
-      },
+      "wontMissingJustification": "Fehlende Begründung",
       "columns": {
         "threatId": "B-ID",
         "stride": "STRIDE",
@@ -72,7 +55,8 @@
         "mitigation": "Massnahme",
         "originalRisk": "Ursprüngliches Risiko",
         "justification": "Begründung",
-        "treatment": "Behandlung"
+        "treatment": "Behandlung",
+        "implementation": "Implementierung"
       },
       "dialog": {
         "title": "Risikobewertung: {{id}}",
@@ -98,6 +82,7 @@
         "residualRisk": "Restrisiko",
         "copyFromBefore": "Bewertungen von Vorher kopieren",
         "selectedMitigations": "Vorgeschlagene Massnahmen",
+        "mitigationStatus": "Status:",
         "mitigationPlaceholder": "Describe the mitigation...",
         "addMitigation": "Add Mitigation",
         "notRated": "Nicht bewertet",
@@ -125,7 +110,9 @@
         "tabAfter": "Risiko Nachher",
         "verifications": "Vorgeschlagene Verifikationen",
         "treatmentJustificationRequired": "Erforderlich für Akzeptieren / Transfer / Teilen",
-        "noMitigationWarning": "Keine Massnahme ausgewählt. Bitte wählen Sie mindestens eine Massnahme für diese Behandlungsart."
+        "noMitigationWarning": "Keine Massnahme ausgewählt. Bitte wählen Sie mindestens eine Massnahme für diese Behandlungsart.",
+        "acceptedNote": "Risiko ist akzeptiert — keine Maßnahmen erforderlich. Risiko danach entspricht dem Risiko davor.",
+        "riskAfterAutoSynced": "Risiko danach wird automatisch auf das Risiko davor gesetzt (keine Maßnahmen angewendet)."
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",
@@ -195,11 +182,40 @@
         "mitigationProgress": "Massnahmenfortschritt",
         "rated": "bewertet"
       },
+      "status": {
+        "label": "Status",
+        "open": {
+          "label": "Offen"
+        },
+        "mitigated": {
+          "label": "Gemindert"
+        },
+        "accepted": {
+          "label": "Akzeptiert"
+        },
+        "in-review": {
+          "label": "In Prüfung"
+        },
+        "wont-do": {
+          "label": "Wird nicht umgesetzt"
+        },
+        "verified": {
+          "label": "Verifiziert"
+        },
+        "eliminated": {
+          "label": "Eliminiert"
+        },
+        "partially_mitigated": {
+          "label": "Teilweise reduziert"
+        },
+        "transferred": { "label": "Übertragen" }
+      },
+      "validation": {
+        "required": "Pflichtfeld"
+      },
       "physicalInterfaces": "Physische Schnittstellen",
       "priority": "Priorität",
-      "status": "Status",
       "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
-      "assessed": "bewertet",
       "uncertain": "Unsicher",
       "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen."
     }
@@ -254,21 +270,23 @@
       }
     },
     "status": {
-      "open": {
-        "label": "Offen"
-      },
-      "in_review": {
-        "label": "In Prüfung"
-      },
-      "mitigated": {
-        "label": "Mitigiert"
-      },
-      "accepted": {
-        "label": "Akzeptiert"
-      },
-      "wont_do": {
-        "label": "Wird nicht umgesetzt"
-      }
+      "open": { "label": "Offen" },
+      "in_review": { "label": "In Prüfung" },
+      "partially_mitigated": { "label": "Teilweise reduziert" },
+      "mitigated": { "label": "Mitigiert" },
+      "verified": { "label": "Verifiziert" },
+      "accepted": { "label": "Akzeptiert" },
+      "transferred": { "label": "Übertragen" },
+      "eliminated": { "label": "Eliminiert" },
+      "wont_do": { "label": "Wird nicht umgesetzt" }
+    },
+    "mitigationStatus": {
+      "selected": { "label": "Ausgewählt" },
+      "planned": { "label": "Geplant" },
+      "in_progress": { "label": "In Bearbeitung" },
+      "implemented": { "label": "Umgesetzt" },
+      "verified": { "label": "Verifiziert" },
+      "rejected": { "label": "Abgelehnt" }
     },
     "factors": {
       "damage_potential": {
@@ -382,6 +400,11 @@
       "exposure_level": {
         "name": "Exponierungsgrad (EL)",
         "description": "Wie exponiert ist das Asset/System gegenüber potenziellen Angreifern?"
+      }
+    },
+    "implementation": {
+      "not_started": {
+        "label": "Nicht gestartet"
       }
     }
   }

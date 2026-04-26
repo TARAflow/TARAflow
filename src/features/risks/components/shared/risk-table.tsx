@@ -176,10 +176,17 @@ export const RiskTable: React.FC<RiskTableProps> = ({
                   <TableCell
                     key={col.id}
                     align={col.align ?? "left"}
+                    onClick={
+                      col.stopRowClick
+                        ? (e) => {
+                            e.stopPropagation();
+                            col.onCellClick?.(risk);
+                          }
+                        : undefined
+                    }
                     sx={{
                       ...bodyCellSx,
                       overflow: "hidden",
-                      // flex columns: clip text with ellipsis
                       ...(col.flex
                         ? {
                             whiteSpace: "nowrap",

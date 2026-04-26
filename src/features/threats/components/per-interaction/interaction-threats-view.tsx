@@ -10,8 +10,8 @@ import type {
   Threat,
   ThreatTable,
   ThreatConfiguration,
-  AssetDataReference,
 } from "../../models/threat-types";
+import type { AssetDataReference } from "shared";
 import { useThreatFilters } from "../../hooks/shared/use-threat-filters";
 import { ThreatFilters } from "../shared/threat-filters";
 import { InteractionThreatTable } from "./interaction-threat-table";

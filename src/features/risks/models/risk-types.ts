@@ -8,8 +8,16 @@
 // - Predefined factor templates (OWASP, ETSI, EN50742, custom)
 // - MoSCoW prioritization with Won't-Risk filtering
 
-import type { PhaseStatusMap, StrideCategory, StrideMethod } from "shared";
-import type { AssetDataReference } from "features/threats/models/threat-types";
+import type {
+  MitigationPropertyRole,
+  PhaseStatusMap,
+  StrideCategory,
+  StrideMethod,
+  LinkedDFDElement,
+  DataFlowReference,
+  AssetDataReference,
+  DFDReference,
+} from "shared";
 
 // ==================== RISK METHOD ====================
 
@@ -428,21 +436,51 @@ export const MOSCOW_PRIORITIES: MoSCoWDefinition[] = [
 
 // ==================== RISK STATUS ====================
 
-export type RiskStatus = "open" | "in-review" | "mitigated" | "accepted" | "wont-do";
+// ==================== RISK HEALTH INDICATOR ====================
+// ==================== TICKET INTEGRATION MAPPING ====================
 
-export interface RiskStatusDefinition {
-  value: RiskStatus;
-  label: string;
-  color: string;
+/**
+ * Maps external ticket status to internal MitigationStatus.
+ * "closed" and "reopened" are Jira/ADO concepts — they map to domain states.
+ * Use in the integration layer only — not in the domain model.
+ *
+ * Jira → TARAflow:
+ *   To Do       → open
+ *   In Progress → in_progress
+ *   In Review   → in_review
+ *   Done        → implemented
+ *   Closed      → verified
+ *   Won't Fix   → rejected
+ *   Reopened    → in_progress
+ *
+ * AzureDevOps → TARAflow:
+ *   New         → open
+ *   Active      → in_progress
+ *   Resolved    → implemented
+ *   Closed      → verified
+ *   Won't Fix   → rejected
+ */
+export function mapTicketStatusToMitigationStatus(
+  ticketStatus: string,
+): MitigationStatus | null {
+  const mapping: Record<string, MitigationStatus> = {
+    // Jira
+    "to do":        "open",
+    "in progress":  "in_progress",
+    "in review":    "in_review",
+    "done":         "implemented",
+    "closed":       "verified",
+    "won't fix":    "rejected",
+    "wont fix":     "rejected",
+    "reopened":     "in_progress",
+    // AzureDevOps
+    "new":          "open",
+    "active":       "in_progress",
+    "resolved":     "implemented",
+    "completed":    "implemented",
+  };
+  return mapping[ticketStatus.toLowerCase().trim()] ?? null;
 }
-
-export const RISK_STATUSES: RiskStatusDefinition[] = [
-  { value: "open", label: "Open", color: "#ef4444" },
-  { value: "in-review", label: "In Review", color: "#3b82f6" },
-  { value: "mitigated", label: "Mitigated", color: "#22c55e" },
-  { value: "accepted", label: "Accepted", color: "#eab308" },
-  { value: "wont-do", label: "Won't Do", color: "#6b7280" },
-];
 
 // ==================== FACTOR RATING ====================
 
@@ -453,6 +491,163 @@ export interface FactorRating {
   factorId: string;
   value: number; // 0 = not rated, 1-5 depending on scale
   weight: number; // 0.0 - 1.0
+}
+
+// ==================== MITIGATION STATUS ====================
+
+/**
+ * Lifecycle state of a selected mitigation — set by the implementer
+ * in RiskMitigationStatusDialog.
+ *
+ * State machine:
+ *   open → in_progress → in_review → implemented → verified
+ *                                                ↘ rejected (any time)
+ *
+ * open         — selected by analyst, not yet started
+ * in_progress  — implementation underway
+ * in_review    — code review / QA / test pending
+ * implemented  — deployed / applied, not yet verified
+ * verified     — independently confirmed (audit, pentest, CI check)
+ * rejected     — consciously decided NOT to implement (requires reason)
+ */
+export type MitigationStatus =
+  | "open"
+  | "in_progress"
+  | "in_review"
+  | "implemented"
+  | "verified"
+  | "rejected";
+
+export interface MitigationStatusConfig {
+  value: MitigationStatus;
+  label: string;
+  color: string;
+  icon: string;
+}
+
+/**
+ * Single source of truth for MitigationStatus display properties.
+ * Replaces MITIGATION_STATUS_COLORS and MITIGATION_STATUS_LABELS.
+ */
+export const MITIGATION_STATUS_CONFIGS: MitigationStatusConfig[] = [
+  { value: "open",        label: "Open",        color: "#9ca3af", icon: "⚪" },
+  { value: "in_progress", label: "In Progress", color: "#3b82f6", icon: "🔵" },
+  { value: "in_review",   label: "In Review",   color: "#8b5cf6", icon: "🟣" },
+  { value: "implemented", label: "Implemented", color: "#22c55e", icon: "🟢" },
+  { value: "verified",    label: "Verified",    color: "#16a34a", icon: "✅" },
+  { value: "rejected",    label: "Rejected",    color: "#ef4444", icon: "🔴" },
+];
+
+// ==================== IMPLEMENTATION PROGRESS (UI-derived) ====================
+// Aggregated view of a risk's mitigation progress — derived at render time,
+// never stored. Used for the chip in risk-columns and statistics.
+
+export type ImplementationProgress =
+  | "not_started"  // no mitigations started (all open)
+  | "in_progress"  // at least one in_progress or in_review
+  | "partial"      // at least one implemented/verified, not all
+  | "implemented"  // all non-rejected implemented (not all verified)
+  | "verified"     // all non-rejected verified
+  | "rejected";    // all non-rejected rejected
+
+/**
+ * Derives the aggregated implementation progress from a risk's mitigations.
+ * Pure function — call at render time, never store result.
+ */
+export function deriveImplementationProgress(
+  selectedMitigations: SelectedMitigation[],
+): ImplementationProgress {
+  const active = selectedMitigations.filter((m) => m.status !== "rejected");
+  if (active.length === 0) {
+    return selectedMitigations.length > 0 &&
+      selectedMitigations.every((m) => m.status === "rejected")
+      ? "rejected"
+      : "not_started";
+  }
+  if (active.every((m) => m.status === "verified"))                               return "verified";
+  if (active.every((m) => m.status === "implemented" || m.status === "verified")) return "implemented";
+  if (active.some((m) => m.status === "implemented" || m.status === "verified"))  return "partial";
+  if (active.some((m) => m.status === "in_progress" || m.status === "in_review")) return "in_progress";
+  return "not_started";
+}
+ 
+/**
+ * A selected mitigation within a Risk — rich object replacing the bare string ID.
+ *
+ * Migration: existing string[] entries are normalized to
+ * { id, status: "selected" } by normalizeMitigationEntry().
+ */
+export interface SelectedMitigation {
+  /** Catalog ID (e.g. "M-S-001"). Undefined = custom analyst entry. */
+  id?: string;
+ 
+  /** Analyst-provided text for custom entries, or annotation for catalog entries. */
+  notes?: string;
+ 
+  /** Current lifecycle status. Default: "selected". */
+  status: MitigationStatus;
+ 
+  /**
+   * Required when status = "rejected".
+   * Recorded in audit trail — IEC 62443-4-1 compliance.
+   */
+  rejectionReason?: string;
+ 
+  /** ISO timestamp when status last changed. */
+  statusChangedAt?: string;
+ 
+  /**
+   * External reference for evidence (provisional — replaces Jira/ADO until integration).
+   * e.g. ticket ID, PR link, audit document reference, commit hash.
+   */
+  evidenceRef?: string;
+
+  /**
+   * Free-text evidence note (provisional Traceability).
+   * Replaces Jira/AzureDevOps ticket link until integration is built.
+   * e.g. "Firewall rule applied on 2025-03-15", "WAF config committed #abc123"
+   */
+  evidenceNote?: string;
+
+  /**
+   * Scope override for per-interaction threats.
+   * When set, only catalog affectsProperties with matching role are processed.
+   * When undefined, all roles from the catalog are used (default behaviour).
+   *
+   * Only meaningful when the parent Risk.sourceStrideMethod = "per-interaction".
+   * For per-element risks this field is ignored.
+   *
+   * Example: ["channel"] → only apply TLS to the DataFlow, not to source/target.
+   */
+  scopeOverride?: MitigationPropertyRole[];
+}
+ 
+// ==================== MIGRATION HELPER ====================
+ 
+/**
+ * Normalizes a raw mitigation entry from project JSON to SelectedMitigation.
+ * Handles both old format (string ID) and new format (SelectedMitigation object).
+ * Safe to call on already-migrated data.
+ */
+export function normalizeMitigationEntry(
+  entry: string | SelectedMitigation
+): SelectedMitigation {
+  if (typeof entry === "string") {
+    // Old format: bare ID string → migrate to open
+    return { id: entry, status: "open" };
+  }
+  // New format: status is required on SelectedMitigation — just copy it
+  return { ...entry };
+}
+ 
+/**
+ * Normalizes Risk.selectedMitigations from legacy string[] to SelectedMitigation[].
+ * Call when loading projects from disk/localStorage.
+ */
+export function normalizeMitigations(
+  entries: (string | SelectedMitigation)[]
+): SelectedMitigation[] {
+  return entries.map(normalizeMitigationEntry);
 }
 
 // ==================== RISK ASSESSMENT ====================
@@ -511,11 +706,10 @@ export interface Risk {
   calculatedRiskBeforeMitigation: number;
 
   /**
-   * IDs of selected mitigations from proposedMitigations.
-   * For catalog entries: the catalog ID (e.g. "M-S-001").
-   * For custom entries: the notes text is used as identifier.
+   * Mitigations selected by analyst — rich objects with lifecycle status.
+   * Migration: old string[] entries normalized via normalizeMitigations().
    */
-  selectedMitigations: string[];
+  selectedMitigations: SelectedMitigation[];
 
   /**
    * IDs of selected verifications from proposedVerifications.
@@ -542,9 +736,6 @@ export interface Risk {
 
   /** Won't justification (required when moscowPriority === 'wont') */
   wontJustification: string;
-
-  /** Current status */
-  status: RiskStatus;
 
   /** Timestamps */
   created: string;
@@ -709,6 +900,8 @@ export interface RiskProjectData {
   assetDataRef?: AssetDataReference;
   /** DFD preview image */
   dfdPreviewImage?: string;
+  /** DFD state — used for mitigation coverage badges in Risk Dialog */
+  dfd?: DFDReference | null;
   lastModified: string;
 }
 
@@ -738,24 +931,26 @@ export interface ThreatReference {
   strideCategory: StrideCategory;
   threatDescription: string;
   attackDescription: string;
-  /** Source STRIDE method */
   sourceStrideMethod: StrideMethod;
-  /** Analyst relevance decision from Threat Eval phase */
   relevance: ThreatRelevanceRef;
-  /** Proposed mitigations from catalog + analyst custom entries */
   proposedMitigations: MitigationDraftRef[];
-  /** Proposed verifications from catalog + analyst custom entries */
   proposedVerifications: MitigationDraftRef[];
-  /** Cause description from catalog (read-only, for Risk Dialog display) */
   causeDescription?: string;
-  /** Linked asset IDs for impact pre-fill */
   linkedAssetIds?: string[];
-  /** Element or DataFlow name for display */
   elementName?: string;
   dataFlowName?: string;
-  /** Trust boundary info */
   trustBoundaryId: string | null;
   trustBoundaryName: string | null;
+  /**
+   * Per-element threat target — used for mitigation coverage derivation.
+   * Null for per-interaction threats.
+   */
+  linkedElement?: LinkedDFDElement | null;
+  /**
+   * Per-interaction threat dataflow — used for mitigation coverage derivation.
+   * Null for per-element threats.
+   */
+  dataFlow?: DataFlowReference | null;
 }
 
 // ==================== RISK UPDATE RESULT ====================
@@ -868,7 +1063,6 @@ export function createEmptyRisk(
     treatmentJustification: "",
     moscowPriority: "should",
     wontJustification: "",
-    status: "open",
     created: new Date().toISOString(),
     lastModified: new Date().toISOString(),
   };
@@ -1045,7 +1239,7 @@ export function getWontRisksByStrideMethod(risks: Risk[], method: StrideMethod):
 export function getRiskStatistics(risks: Risk[]): {
   total: number;
   byPriority: Record<MoSCoWPriority, number>;
-  byStatus: Record<RiskStatus, number>;
+  byTreatment: Record<RiskTreatment, number>;
   highRiskCount: number;
   unratedCount: number;
 } {
@@ -1055,19 +1249,19 @@ export function getRiskStatistics(risks: Risk[]): {
     could: 0,
     wont: 0,
   };
-  const byStatus: Record<RiskStatus, number> = {
-    open: 0,
-    "in-review": 0,
-    mitigated: 0,
-    accepted: 0,
-    "wont-do": 0,
+  const byTreatment: Record<RiskTreatment, number> = {
+    reduce: 0,
+    eliminate: 0,
+    accept: 0,
+    transfer: 0,
+    share: 0,
   };
   let highRiskCount = 0;
   let unratedCount = 0;
 
   for (const risk of risks) {
     byPriority[risk.moscowPriority]++;
-    byStatus[risk.status]++;
+    if (risk.treatment) byTreatment[risk.treatment]++;
     if (risk.calculatedRiskBeforeMitigation >= 3) highRiskCount++;
     if (risk.calculatedRiskBeforeMitigation === 0) unratedCount++;
   }
@@ -1075,7 +1269,7 @@ export function getRiskStatistics(risks: Risk[]): {
   return {
     total: risks.length,
     byPriority,
-    byStatus,
+    byTreatment,
     highRiskCount,
     unratedCount,
   };

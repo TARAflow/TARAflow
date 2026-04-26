@@ -16,6 +16,49 @@
 // EL4 (Public): Access via untrusted external networks (e.g., Internet, remote connections
 export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
 
+// ==================== SECURITY CONTROL RECORD ====================
+ 
+/**
+ * Audit record for a security control intentionally set on a DFD element.
+ *
+ * Populated when:
+ *   - Analyst clicks "Apply" in DFDNotificationsPanel (setBy: "apply_suggestion")
+ *   - Analyst documents an existing control manually (setBy: "analyst")
+ *
+ * Persisted on the element — survives project reload.
+ * Basis for SecurityDrift calculation: compares SHOULD (ControlInstance)
+ * vs WAS (SecurityControlRecord) vs IS (actual property value).
+ */
+export interface SecurityControlRecord {
+  /** Property key on this element, e.g. "encryptionInTransit" */
+  property: string;
+ 
+  /** The value that was intentionally set, e.g. "tls" */
+  value: unknown;
+ 
+  /**
+   * How was this control set?
+   *   analyst          → manually in form, no mitigation reference
+   *   apply_suggestion → via Apply button in DFDNotificationsPanel
+   */
+  setBy: "analyst" | "apply_suggestion";
+ 
+  /** ISO timestamp when the control was set */
+  setAt: string;
+ 
+  /**
+   * Mitigation ID that drove this control.
+   * Only present when setBy = "apply_suggestion". e.g. "M-T-005"
+   */
+  mitigationId?: string;
+ 
+  /**
+   * Risk ID that drove this control.
+   * Only present when setBy = "apply_suggestion". e.g. "R-CNA-DF1-T-IN-1"
+   */
+  riskId?: string;
+}
+
 // ==================== PROCESS PROPERTIES ====================
 
 export interface ProcessProperties {
@@ -83,6 +126,14 @@ export interface ProcessProperties {
    * security_boundary: Explicit security enforcement point (HSM, OP-TEE TA, Crypto Engine)
    */
   processSemantic?: "execution_unit" | "functional_block" | "security_boundary";
+
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
+
   owner?: string;
   notes?: string;
 }
@@ -225,6 +276,13 @@ export interface MultiprocessProperties {
    */
   securitySummary?: string;
 
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
+
   owner?: string;
   notes?: string;
 }
@@ -304,6 +362,14 @@ export interface ExternalEntityProperties {
    * Optional: set when the analyst wants deterministic F-scoring in Phase 3.
    */
   threatProfile?: ExternalEntityThreatProfile;
+
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
+
   owner?: string;
   notes?: string;
 }
@@ -354,6 +420,13 @@ export interface DataStoreProperties {
    * @example "Manipulation could disable emergency stop function"
    */
   safetyRationale?: string;
+
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
 
   owner?: string;
   notes?: string;
@@ -443,6 +516,13 @@ export interface DataFlowProperties {
   excludeFromThreatGen?: boolean;
   excludeFromThreatGenRationale?: string;
 
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
+
   notes?: string;
 }
 
@@ -482,6 +562,13 @@ export interface InterfaceProperties {
    */
   safetyRelevant?: boolean;
   safetyRationale?: string;
+
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
 
   notes?: string;
 }

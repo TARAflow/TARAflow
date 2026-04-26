@@ -2,7 +2,14 @@
 // Core domain model for threat management
 // Contains types used by BOTH per-element and per-interaction methods
 
-import type { PhaseStatusMap, StrideCategory } from "shared";
+import type {
+  AssetReference,
+  AssetDataReference,
+  DFDReference,
+  MitigationPropertyRole,
+  PhaseStatusMap,
+  StrideCategory,
+} from "shared";
 
 // ==================== STRIDE METHOD ====================
 
@@ -342,13 +349,69 @@ export interface InteractionTemplate {
 }
 
 /**
- * Language-neutral mitigation catalog entry
+ * Language-neutral mitigation catalog entry.
+ *
+ * affectsProperties: describes which DFD element properties this mitigation
+ * should influence when selected. Used by the closed-loop ControlInstance
+ * derivation engine to generate DFD update suggestions.
+ * Empty array = physical/system-level mitigation with no direct DFD property mapping.
  */
 export interface MitigationEntry {
   id: string;
   strideCategory: StrideCategory;
   context: TemplateContext;
   isCustom: boolean;
+  /** DFD property effects — drives ControlInstance derivation */
+  affectsProperties: MitigationPropertyEffect[];
+  /**
+   * Verification IDs that should be auto-selected when this mitigation is chosen.
+   * Auto-deselected when the mitigation is deselected (unless manually re-added).
+   */
+  verifications?: string[];
+}
+
+// ==================== MITIGATION PROPERTY MAPPING ====================
+
+/**
+ * DFD element types that a mitigation can target.
+ * Matches DFDElementType — TrustBoundary excluded (not a security control target).
+ */
+export type MitigationTargetType =
+  | "Process"
+  | "Multiprocess"
+  | "DataFlow"
+  | "DataStore"
+  | "ExternalEntity"
+  | "Interface";
+
+/**
+ * Describes the expected effect of a mitigation on a specific DFD element property.
+ *
+ * Used by the ControlInstance derivation engine (useControlInstanceDerivation)
+ * to generate DFD update suggestions when a mitigation is selected in the Risk Tab.
+ *
+ * confidence:
+ *   deterministic → property/value mapping is unambiguous (e.g. TLS → encryptionInTransit = "tls")
+ *   heuristic     → likely correct, but analyst confirmation required
+ */
+export interface MitigationPropertyEffect {
+  /** Which DFD element type this effect applies to */
+  targetType: MitigationTargetType;
+
+  /**
+   * Role in per-interaction context.
+   * Omit for per-element mitigations that apply to the element itself.
+   */
+  role?: MitigationPropertyRole;
+
+  /** Property key on the corresponding *Properties interface */
+  property: string;
+
+  /** Expected/recommended value for the property after mitigation */
+  expectedValue: unknown;
+
+  /** Confidence level of this inference */
+  confidence: "deterministic" | "heuristic";
 }
 
 /**
@@ -419,24 +482,6 @@ export interface ThreatValidation {
   lastValidated: string;
 }
 
-// ==================== ASSET DATA REFERENCE ====================
-
-export interface AssetReference {
-  id: string;
-  name: string;
-  assetGroup: string;
-  aggregatedImpact?: "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
-  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
-  isHighValueAsset?: "low" | "medium" | "high" | "critical";
-  hasSafetyAnnotation: boolean;
-  linkedElementIds?: string[];
-}
-
-export interface AssetDataReference {
-  assets: AssetReference[];
-  hasSafetyAssets: boolean;
-}
-
 // ==================== PROJECT INTERFACE ====================
 
 export interface ThreatProjectData {
@@ -452,6 +497,8 @@ export interface ThreatProjectData {
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;
   settings?: ProjectSettings;
+  /** DFD state — used for mitigation coverage badges in Threat Dialog */
+  dfd?: DFDReference | null;
   lastModified: string;
 }
 

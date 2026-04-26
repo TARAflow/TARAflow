@@ -5,7 +5,7 @@
 //   DFDElementType, SecurityLevel, TrustLevel → dfd-element-types.ts
 //   AssetProperties, ElementRelation, DFDAsset → asset-types.ts
 
-import type { PhaseStatusMap } from "shared";
+import type { ControlInstance, PhaseStatusMap } from "shared";
 import type {
   ProcessProperties,
   ExternalEntityProperties,
@@ -300,15 +300,6 @@ export interface DFDUpdateResult {
   dfd: DFDData;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
-}
-
-// ==================== DFD TAB PROPS ====================
-
-export interface DFDTabProps {
-  project: DFDProjectData;
-  onUpdate: (updates: DFDUpdateResult) => void;
-  onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== DFD VIEW MODE ====================

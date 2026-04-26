@@ -59,13 +59,15 @@ import {
   ThreatReference,
   FactorRating,
   MoSCoWPriority,
-  RiskStatus,
   RiskTreatment,
+  MitigationStatus,
+  SelectedMitigation,
   MOSCOW_PRIORITIES,
-  RISK_STATUSES,
   RISK_TREATMENTS,
   RISK_SCALES,
   getFactorDefinition,
+  deriveImplementationProgress,
+  MITIGATION_STATUS_CONFIGS,
 } from "../models/risk-types";
 import {
   calculateRiskValues,
@@ -77,13 +79,22 @@ import {
 import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
+  getAllMitigations,
 } from "../../threats/services/threat-catalog-service";
-import type { StrideCategory } from "shared";
-import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
+import { MitigationScopeSelector } from "./mitigation-scope-selector";
 import type {
+  StrideCategory,
+  MitigationPropertyRole,
   AssetDataReference,
   AssetReference,
-} from "../../threats/models/threat-types";
+  DFDReference,
+} from "shared";
+import {
+  ASSET_GROUP_CONFIG,
+  type AssetGroup,
+  MitigationCoverageBadge,
+  computeAllMitigationCoverage,
+} from "shared";
 import {
   getWorstAssetImpactValue,
   applyAssetImpactToFactorRatings,
@@ -115,6 +126,8 @@ export interface RiskDialogProps {
   threats?: ThreatReference[];
   /** Asset data for impact display and pre-fill */
   assetDataRef?: AssetDataReference;
+  /** Current DFD state — used to show coverage badges on mitigations */
+  dfdData?: DFDReference | null;
   onSave: (riskId: string, updates: Partial<Risk>) => void;
   onClose: () => void;
 }
@@ -124,26 +137,30 @@ export interface RiskDialogProps {
 interface LocalRiskState {
   factorRatings: FactorRating[];
   mitigatedFactorRatings: FactorRating[];
-  selectedMitigations: string[];
+  selectedMitigations: SelectedMitigation[];
   selectedVerifications: string[];
   treatment: RiskTreatment;
   treatmentJustification: string;
   moscowPriority: MoSCoWPriority;
   wontJustification: string;
-  status: RiskStatus;
 }
 
 function riskToLocal(risk: Risk): LocalRiskState {
   return {
     factorRatings: risk.factorRatings.map((r) => ({ ...r })),
     mitigatedFactorRatings: risk.mitigatedFactorRatings.map((r) => ({ ...r })),
-    selectedMitigations: [...risk.selectedMitigations],
+    selectedMitigations: (
+      risk.selectedMitigations as (string | SelectedMitigation)[]
+    ).map((m) =>
+      typeof m === "string"
+        ? { id: m, status: "open" as MitigationStatus }
+        : { ...m },
+    ),
     selectedVerifications: [...(risk.selectedVerifications ?? [])],
     treatment: risk.treatment ?? "reduce",
     treatmentJustification: risk.treatmentJustification ?? "",
     moscowPriority: risk.moscowPriority,
     wontJustification: risk.wontJustification ?? "",
-    status: risk.status,
   };
 }
 
@@ -156,6 +173,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   configuration,
   threats,
   assetDataRef,
+  dfdData,
   onSave,
   onClose,
 }) => {
@@ -327,7 +345,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       treatmentJustification: local.treatmentJustification,
       moscowPriority: local.moscowPriority,
       wontJustification: local.wontJustification,
-      status: local.status,
+
       calculatedImpact: beforeValues.impact,
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
@@ -385,18 +403,20 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     [],
   );
 
-  const toggleMitigation = useCallback((id: string) => {
-    setLocal((prev) => {
-      if (!prev) return prev;
-      const has = prev.selectedMitigations.includes(id);
-      return {
-        ...prev,
-        selectedMitigations: has
-          ? prev.selectedMitigations.filter((m) => m !== id)
-          : [...prev.selectedMitigations, id],
-      };
-    });
-  }, []);
+  const setScopeOverride = useCallback(
+    (id: string, scopeOverride: MitigationPropertyRole[] | undefined) => {
+      setLocal((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          selectedMitigations: prev.selectedMitigations.map((m) =>
+            m.id === id ? { ...m, scopeOverride } : m,
+          ),
+        };
+      });
+    },
+    [],
+  );
 
   const toggleVerification = useCallback((id: string) => {
     setLocal((prev) => {
@@ -434,7 +454,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       treatmentJustification: local.treatmentJustification,
       moscowPriority: local.moscowPriority,
       wontJustification: local.wontJustification,
-      status: local.status,
+
       calculatedImpact: beforeValues.impact,
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
@@ -443,12 +463,83 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [local]);
 
-  // ── Linked assets (must be before early return — Rules of Hooks) ───────────
-  // These are safe because we guard with ?. inside
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mitigationCatalog = useMemo(() => getAllMitigations(), []);
+
+  const toggleMitigation = useCallback(
+    (id: string) => {
+      setLocal((prev) => {
+        if (!prev) return prev;
+        const has = prev.selectedMitigations.some((m) => m.id === id);
+        const updatedMitigations = has
+          ? prev.selectedMitigations.filter((m) => m.id !== id)
+          : [
+              ...prev.selectedMitigations,
+              { id, status: "open" as MitigationStatus },
+            ];
+
+        // Auto-select / auto-deselect linked verifications from catalog
+        const catalogEntry = mitigationCatalog.find((m) => m.id === id);
+        const linkedVerifications = catalogEntry?.verifications ?? [];
+
+        let updatedVerifications = prev.selectedVerifications;
+        if (!has && linkedVerifications.length > 0) {
+          // Selecting: add verifications not already present
+          const toAdd = linkedVerifications.filter(
+            (v) => !updatedVerifications.includes(v),
+          );
+          updatedVerifications = [...updatedVerifications, ...toAdd];
+        } else if (has && linkedVerifications.length > 0) {
+          // Deselecting: remove verifications that were auto-linked
+          // Keep any that are also linked by another currently-selected mitigation
+          const otherSelectedIds = updatedMitigations.map((m) => m.id ?? "");
+          const stillNeeded = new Set(
+            otherSelectedIds.flatMap(
+              (otherId) =>
+                mitigationCatalog.find((m) => m.id === otherId)
+                  ?.verifications ?? [],
+            ),
+          );
+          updatedVerifications = updatedVerifications.filter(
+            (v) => !linkedVerifications.includes(v) || stillNeeded.has(v),
+          );
+        }
+
+        return {
+          ...prev,
+          selectedMitigations: updatedMitigations,
+          selectedVerifications: updatedVerifications,
+        };
+      });
+    },
+    [mitigationCatalog],
+  );
+
+  // Coverage: check which mitigations are already implemented in DFD
+  const mitigationCoverage = useMemo(() => {
+    if (!currentRisk || !dfdData || !mitigationCatalog.length) return new Map();
+    // ThreatReference (with linkedElement + dataFlow) satisfies ThreatForCoverage structurally
+    const threat = threats?.find((t) => t.id === currentRisk.threatId);
+    if (!threat) return new Map();
+    const ids = (currentRisk.proposedMitigations ?? [])
+      .map((m) => m.id ?? "")
+      .filter(Boolean);
+    return computeAllMitigationCoverage(
+      ids,
+      threat,
+      dfdData,
+      mitigationCatalog,
+    );
+  }, [currentRisk, dfdData, mitigationCatalog, threats]);
 
   if (!currentRisk || !local) return null;
 
   const isUncertain = currentRisk.threatRelevance === "uncertain";
+  const isPerInteraction = currentRisk.sourceStrideMethod === "per-interaction";
+  // When treatment is "accept" or "transfer": no mitigations needed,
+  // risk after = risk before (auto-synced on treatment change).
+  const isAccepted =
+    local.treatment === "accept" || local.treatment === "transfer";
   const treatment = RISK_TREATMENTS.find((tr) => tr.value === local.treatment);
   const passiveTreatment = ["accept", "transfer", "share"].includes(
     local.treatment,
@@ -717,7 +808,15 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         flexShrink: 0,
                       }}
                     >
-                      <Tooltip title={beforeScore > 0 ? getRiskLabel(beforeScore, configuration.scale) : ""} placement="right" arrow>
+                      <Tooltip
+                        title={
+                          beforeScore > 0
+                            ? getRiskLabel(beforeScore, configuration.scale)
+                            : ""
+                        }
+                        placement="right"
+                        arrow
+                      >
                         <Chip
                           label={riskLabel}
                           size="small"
@@ -1042,9 +1141,33 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             {/* ══ TAB 2: MITIGATIONS ══════════════════════════════════════ */}
             {tabValue === 1 && (
               <Stack spacing={2.5}>
+                {/* Accept / Transfer banner — mitigations not applicable */}
+                {isAccepted && (
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: "#fef3c7",
+                      borderRadius: 1,
+                      border: "1px solid #fcd34d",
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      {local.treatment === "accept"
+                        ? t("tabs.risks.dialog.acceptedNote", {
+                            defaultValue:
+                              "Risk is accepted — no mitigations required. Risk After equals Risk Before.",
+                          })
+                        : t("tabs.risks.dialog.transferredNote", {
+                            defaultValue:
+                              "Risk is transferred — no internal mitigations required. Risk After equals Risk Before.",
+                          })}
+                    </Typography>
+                  </Box>
+                )}
+
                 {/* Proposed Mitigations checkboxes */}
                 {resolvedMitigations.length > 0 && (
-                  <Box>
+                  <Box sx={{ opacity: isAccepted ? 0.5 : 1 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       {t("tabs.risks.dialog.selectedMitigations", {
                         defaultValue: "Proposed Mitigations",
@@ -1067,20 +1190,54 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             }}
                           >
                             <FormControlLabel
+                              disabled={isAccepted}
                               control={
                                 <Checkbox
                                   size="small"
-                                  checked={local.selectedMitigations.includes(
-                                    id,
+                                  checked={local.selectedMitigations.some(
+                                    (sel) => sel.id === id,
                                   )}
                                   onChange={() => toggleMitigation(id)}
+                                  disabled={isAccepted}
                                 />
                               }
                               label={
-                                <Typography variant="body2">{label}</Typography>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Typography variant="body2">
+                                    {label}
+                                  </Typography>
+                                  <MitigationCoverageBadge
+                                    coverage={mitigationCoverage.get(id)}
+                                  />
+                                </Box>
                               }
                               sx={{ m: 0, width: "100%" }}
                             />
+
+                            {/* Scope selector — only for per-interaction risks */}
+                            {isPerInteraction &&
+                              local.selectedMitigations.some(
+                                (sel) => sel.id === id,
+                              ) && (
+                                <MitigationScopeSelector
+                                  mitigationId={id}
+                                  selectedMitigation={
+                                    local.selectedMitigations.find(
+                                      (sel) => sel.id === id,
+                                    )!
+                                  }
+                                  catalog={mitigationCatalog}
+                                  onChange={(roles) =>
+                                    setScopeOverride(id, roles)
+                                  }
+                                />
+                              )}
                           </Paper>
                         );
                       })}
@@ -1090,7 +1247,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
                 {/* Proposed Verifications checkboxes */}
                 {resolvedVerifications.length > 0 && (
-                  <Box>
+                  <Box sx={{ opacity: isAccepted ? 0.5 : 1 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       {t("tabs.risks.dialog.verifications", {
                         defaultValue: "Proposed Verifications",
@@ -1113,6 +1270,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             }}
                           >
                             <FormControlLabel
+                              disabled={isAccepted}
                               control={
                                 <Checkbox
                                   size="small"
@@ -1120,6 +1278,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                                     id,
                                   )}
                                   onChange={() => toggleVerification(id)}
+                                  disabled={isAccepted}
                                 />
                               }
                               label={
@@ -1138,47 +1297,143 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
                 {/* Treatment */}
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    {t("tabs.risks.dialog.treatment", {
-                      defaultValue: "Risk Treatment",
-                    })}
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {RISK_TREATMENTS.map((tr) => (
-                      <Tooltip
-                        key={tr.value}
-                        title={t(`risks.treatment.${tr.value}.description`, {
-                          defaultValue: tr.description,
+                  <Stack
+                    direction="row"
+                    spacing={8}
+                    alignItems="flex-start"
+                    flexWrap="wrap"
+                  >
+                    {/* LEFT: Risk Treatment */}
+                    <Box sx={{ minWidth: 200 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {t("tabs.risks.dialog.treatment", {
+                          defaultValue: "Risk Treatment",
                         })}
-                        placement="top"
-                        arrow
+                      </Typography>
+
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        useFlexGap
                       >
-                        <Chip
-                          label={t(`risks.treatment.${tr.value}.label`, {
-                            defaultValue: tr.label,
-                          })}
-                          onClick={() =>
+                        {RISK_TREATMENTS.map((tr) => (
+                          <Tooltip
+                            key={tr.value}
+                            title={t(
+                              `risks.treatment.${tr.value}.description`,
+                              {
+                                defaultValue: tr.description,
+                              },
+                            )}
+                            placement="top"
+                            arrow
+                          >
+                            <Chip
+                              label={t(`risks.treatment.${tr.value}.label`, {
+                                defaultValue: tr.label,
+                              })}
+                              onClick={() =>
+                                setLocal((prev) => {
+                                  if (!prev) return prev;
+
+                                  const autoFixed =
+                                    tr.value === "accept" ||
+                                    tr.value === "transfer";
+
+                                  const newMoscow = autoFixed
+                                    ? ("wont" as MoSCoWPriority)
+                                    : prev.moscowPriority === "wont"
+                                      ? ("should" as MoSCoWPriority)
+                                      : prev.moscowPriority;
+
+                                  return {
+                                    ...prev,
+                                    treatment: tr.value,
+                                    moscowPriority: newMoscow,
+                                    ...(autoFixed
+                                      ? {
+                                          mitigatedFactorRatings:
+                                            prev.factorRatings.map((r) => ({
+                                              ...r,
+                                            })),
+                                        }
+                                      : {}),
+                                  };
+                                })
+                              }
+                              sx={{
+                                bgcolor:
+                                  local.treatment === tr.value
+                                    ? tr.color
+                                    : "transparent",
+                                color:
+                                  local.treatment === tr.value
+                                    ? "white"
+                                    : tr.color,
+                                border: `2px solid ${tr.color}`,
+                                fontWeight:
+                                  local.treatment === tr.value
+                                    ? "bold"
+                                    : "normal",
+                                cursor: "pointer",
+                              }}
+                            />
+                          </Tooltip>
+                        ))}
+                      </Stack>
+                    </Box>
+
+                    {/* RIGHT: MoSCoW Priority */}
+                    <Box sx={{ flexShrink: 0 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {t("tabs.risks.dialog.priority", {
+                          defaultValue: "Priority",
+                        })}
+                      </Typography>
+
+                      <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <Select
+                          value={local.moscowPriority}
+                          onChange={(e) =>
                             setLocal((prev) =>
-                              prev ? { ...prev, treatment: tr.value } : prev,
+                              prev
+                                ? {
+                                    ...prev,
+                                    moscowPriority: e.target
+                                      .value as MoSCoWPriority,
+                                  }
+                                : prev,
                             )
                           }
+                          size="small"
                           sx={{
-                            bgcolor:
-                              local.treatment === tr.value
-                                ? tr.color
-                                : "transparent",
-                            color:
-                              local.treatment === tr.value ? "white" : tr.color,
-                            border: `2px solid ${tr.color}`,
-                            fontWeight:
-                              local.treatment === tr.value ? "bold" : "normal",
-                            cursor: "pointer",
+                            fontSize: "0.75rem",
+                            "& .MuiSelect-select": { py: 0.5 },
                           }}
-                        />
-                      </Tooltip>
-                    ))}
+                        >
+                          {MOSCOW_PRIORITIES.map((p) => (
+                            <MenuItem key={p.value} value={p.value}>
+                              <Chip
+                                label={t(`risks.moscow.${p.value}.label`, {
+                                  defaultValue: p.label,
+                                })}
+                                size="small"
+                                sx={{
+                                  bgcolor: p.color,
+                                  color: "white",
+                                  fontSize: "0.65rem",
+                                }}
+                              />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
                   </Stack>
-                  {passiveTreatment && (
+
+                  {/* Justification bleibt unten */}
+                  {passiveTreatment && local.moscowPriority !== "wont" && (
                     <TextField
                       size="small"
                       fullWidth
@@ -1217,105 +1472,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   )}
                 </Box>
 
-                <Divider />
-
-                {/* Priority + Status */}
-                <Stack direction="row" spacing={2}>
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel>
-                      {t("tabs.risks.dialog.priority", {
-                        defaultValue: "Priority",
-                      })}
-                    </InputLabel>
-                    <Select
-                      value={local.moscowPriority}
-                      label={t("tabs.risks.dialog.priority", {
-                        defaultValue: "Priority",
-                      })}
-                      onChange={(e) => {
-                        const p = e.target.value as MoSCoWPriority;
-                        setLocal((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                moscowPriority: p,
-                                status:
-                                  p === "wont"
-                                    ? "wont-do"
-                                    : prev.status === "wont-do"
-                                      ? "open"
-                                      : prev.status,
-                              }
-                            : prev,
-                        );
-                      }}
-                    >
-                      {MOSCOW_PRIORITIES.map((p) => (
-                        <MenuItem key={p.value} value={p.value}>
-                          <Chip
-                            label={t(`risks.moscow.${p.value}.label`, {
-                              defaultValue: p.label,
-                            })}
-                            size="small"
-                            sx={{
-                              bgcolor: p.color,
-                              color: "white",
-                              fontSize: "0.65rem",
-                            }}
-                          />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel>
-                      {t("tabs.risks.dialog.status", {
-                        defaultValue: "Status",
-                      })}
-                    </InputLabel>
-                    <Select
-                      value={local.status}
-                      label={t("tabs.risks.dialog.status", {
-                        defaultValue: "Status",
-                      })}
-                      onChange={(e) => {
-                        const s = e.target.value as RiskStatus;
-                        setLocal((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                status: s,
-                                moscowPriority:
-                                  s === "wont-do"
-                                    ? "wont"
-                                    : prev.moscowPriority === "wont"
-                                      ? "should"
-                                      : prev.moscowPriority,
-                              }
-                            : prev,
-                        );
-                      }}
-                    >
-                      {RISK_STATUSES.map((s) => (
-                        <MenuItem key={s.value} value={s.value}>
-                          <Chip
-                            label={t(`tabs.risks.status.${s.value}.label`, {
-                              defaultValue: s.label,
-                            })}
-                            size="small"
-                            sx={{
-                              bgcolor: s.color,
-                              color: "white",
-                              fontSize: "0.65rem",
-                            }}
-                          />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Stack>
-
                 {/* Won't justification */}
                 {local.moscowPriority === "wont" && (
                   <TextField
@@ -1337,7 +1493,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     error={!local.wontJustification.trim()}
                     helperText={
                       !local.wontJustification.trim()
-                        ? t("validation.required", { defaultValue: "Required" })
+                        ? t("tabs.risks.validation.required", {
+                            defaultValue: "Required",
+                          })
                         : undefined
                     }
                   />
@@ -1408,7 +1566,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       })}
                     </Typography>
                     <Stack spacing={0.5}>
-                      {local.selectedMitigations.map((id) => {
+                      {local.selectedMitigations.map((mitigation) => {
+                        const id = mitigation.id ?? mitigation.notes ?? "";
                         const ref = resolvedMitigations.find(
                           (m) => (m.id ?? m.notes ?? "") === id,
                         );
@@ -1421,12 +1580,20 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                           <Typography
                             key={id}
                             variant="body2"
-                            sx={{ display: "flex", gap: 0.75 }}
+                            component="div"
+                            sx={{
+                              display: "flex",
+                              gap: 0.75,
+                              alignItems: "center",
+                            }}
                           >
                             <span style={{ flexShrink: 0, color: "#6b7280" }}>
                               •
                             </span>
-                            <span>{text}</span>
+                            <span style={{ flexGrow: 1 }}>{text}</span>
+                            <MitigationCoverageBadge
+                              coverage={mitigationCoverage.get(id)}
+                            />
                           </Typography>
                         );
                       })}
@@ -1487,18 +1654,41 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       defaultValue: "Copy ratings from Before",
                     })}
                   >
-                    <Button
-                      size="small"
-                      startIcon={<CopyIcon />}
-                      variant="outlined"
-                      onClick={handleCopyToMitigated}
-                    >
-                      {t("tabs.risks.dialog.copyFromBefore", {
-                        defaultValue: "Copy from Before",
-                      })}
-                    </Button>
+                    <span>
+                      <Button
+                        size="small"
+                        startIcon={<CopyIcon />}
+                        variant="outlined"
+                        onClick={handleCopyToMitigated}
+                        disabled={isAccepted}
+                      >
+                        {t("tabs.risks.dialog.copyFromBefore", {
+                          defaultValue: "Copy from Before",
+                        })}
+                      </Button>
+                    </span>
                   </Tooltip>
                 </Stack>
+
+                {/* Accept / Transfer: inform analyst risk after = risk before */}
+                {isAccepted && (
+                  <Box
+                    sx={{
+                      p: 1,
+                      bgcolor: "#fef3c7",
+                      borderRadius: 1,
+                      border: "1px solid #fcd34d",
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      {t("tabs.risks.dialog.riskAfterAutoSynced", {
+                        defaultValue:
+                          "Risk After is automatically set equal to Risk Before (no mitigation applied).",
+                      })}
+                    </Typography>
+                  </Box>
+                )}
+
                 <Stack
                   direction="row"
                   spacing={3}
@@ -1513,13 +1703,15 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   />
                 </Stack>
 
-                {/* Factor ratings */}
+                {/* Factor ratings — disabled when accepted/transferred */}
                 <Box
                   sx={{
                     width: "100%",
                     display: "grid",
                     gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
                     gap: 2,
+                    opacity: isAccepted ? 0.5 : 1,
+                    pointerEvents: isAccepted ? "none" : "auto",
                   }}
                 >
                   <Box>
@@ -1602,6 +1794,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};;;;;;;;;;;
+};;
 
 export default RiskDialog;

@@ -13,6 +13,20 @@ export type StrideMethod = "per-element" | "per-interaction";
 
 export type StrideCategory = "S" | "T" | "R" | "I" | "D" | "E";
 
+// ==================== MITIGATION ROLE ====================
+
+/**
+ * Role of a DFD element in a per-interaction threat context.
+ * Used to target mitigations to specific parts of a data flow triplet:
+ *   source  → sending process or external entity
+ *   target  → receiving process or external entity
+ *   channel → the data flow connection itself
+ *
+ * Used by: MitigationPropertyEffect, SelectedMitigation.scopeOverride,
+ *          MitigationScopeSelector, useControlInstanceDerivation
+ */
+export type MitigationPropertyRole = "source" | "target" | "channel";
+
 export const PHASES: PhaseDefinition[] = [
   {
     id: 0,

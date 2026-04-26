@@ -24,6 +24,7 @@ import {
 import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type { ExternalEntityProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
+import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
@@ -407,6 +408,10 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
           label={t(
             "tabs.dfd.element_description.external_entity.fields.notes.label",
           )}
+        />
+
+        <SecurityControlOwnershipDisplay
+          records={(props as any).securityControlOwnership ?? []}
         />
 
         <RichTextEditor

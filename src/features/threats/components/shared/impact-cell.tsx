@@ -6,7 +6,8 @@
 import React from "react";
 import { Box, Chip, Tooltip, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import type { Threat, AssetDataReference, AssetReference } from "../../models/threat-types";
+import type { Threat } from "../../models/threat-types";
+import { AssetReference, type AssetDataReference } from "shared";
 import { getImpactColor, getPhysicalImpactColor } from "../../utils/threat-asset-utils";
 
 // ==================== CONSTANTS ====================

@@ -1,7 +1,7 @@
 // ==================== PER-INTERACTION TYPES ====================
 // Types specific to STRIDE per-interaction threat modeling method
 
-import type { StrideCategory } from "shared";
+import type { DataFlowReference, StrideCategory } from "shared";
 
 // ==================== INTERACTION DIRECTION ====================
 
@@ -15,20 +15,6 @@ export interface InteractionContext {
   attackedRole: InteractionRole;
   victimRole: InteractionRole;
   crossesTrustBoundary: boolean;
-}
-
-// ==================== DATA FLOW REFERENCE ====================
-
-export interface DataFlowReference {
-  connectionId?: string;
-  dataFlowId: string;
-  dataFlowName: string;
-  sourceId: string;
-  sourceName: string;
-  sourceType: string;
-  targetId: string;
-  targetName: string;
-  targetType: string;
 }
 
 // ==================== DATA FLOW CHANGE ====================

@@ -3,22 +3,7 @@
 
 import type { StrideCategory } from "shared";
 import type { DFDElementReference } from "./threat-types";
-
-// ==================== LINKED DFD ELEMENT ====================
-
-/**
- * Reference to a DFD element in per-element threats
- */
-export interface LinkedDFDElement {
-  /** XML ID (stable) - e.g., "10", "4", "7" */
-  elementId: string;
-  /** Element name */
-  elementName: string;
-  /** Element type (Process, DataStore, etc.) */
-  elementType: string;
-  /** Formatted ID for display - e.g., "P-1", "DS-1" */
-  displayId?: string;
-}
+import type { LinkedDFDElement } from "shared";
 
 // ==================== STRIDE MAPPING ====================
 

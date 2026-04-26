@@ -8,7 +8,6 @@ import {
   RiskConfiguration,
   ThreatReference,
   MoSCoWPriority,
-  RiskStatus,
   RiskTreatment,
 } from "../models/risk-types";
 import type { StrideMethod } from "shared";
@@ -25,12 +24,10 @@ interface RiskTableViewProps {
   filters: {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
-    statusFilter: RiskStatus | "";
     treatmentFilter: RiskTreatment | "";
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
-  onStatusFilterChange: (status: RiskStatus | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
 
@@ -40,8 +37,8 @@ interface RiskTableViewProps {
     priority: string,
     justification?: string,
   ) => void;
-  onStatusChange: (riskId: string, status: string) => void;
   onTreatmentChange: (riskId: string, treatment: string) => void;
+  onImplementationClick?: (risk: Risk) => void;
 }
 
 export const RiskTableView = React.memo<RiskTableViewProps>(
@@ -54,17 +51,15 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
     filters,
     onSearchTextChange,
     onPriorityFilterChange,
-    onStatusFilterChange,
     onClearFilters,
     filteredCount,
     onEdit,
     onPriorityChange,
-    onStatusChange,
     onTreatmentChange,
+    onImplementationClick,
   }) => {
     const isPerElement = strideMethod === "per-element";
 
-    // Route to appropriate view based on STRIDE method
     if (isPerElement) {
       return (
         <ElementRiskView
@@ -75,13 +70,12 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
           filters={filters}
           onSearchTextChange={onSearchTextChange}
           onPriorityFilterChange={onPriorityFilterChange}
-          onStatusFilterChange={onStatusFilterChange}
           onClearFilters={onClearFilters}
           filteredCount={filteredCount}
           onEdit={onEdit}
           onPriorityChange={onPriorityChange}
-          onStatusChange={onStatusChange}
           onTreatmentChange={onTreatmentChange}
+          onImplementationClick={onImplementationClick}
         />
       );
     }
@@ -95,13 +89,12 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
         filters={filters}
         onSearchTextChange={onSearchTextChange}
         onPriorityFilterChange={onPriorityFilterChange}
-        onStatusFilterChange={onStatusFilterChange}
         onClearFilters={onClearFilters}
         filteredCount={filteredCount}
         onEdit={onEdit}
         onPriorityChange={onPriorityChange}
-        onStatusChange={onStatusChange}
         onTreatmentChange={onTreatmentChange}
+        onImplementationClick={onImplementationClick}
       />
     );
   },

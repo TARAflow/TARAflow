@@ -1,269 +1,729 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "mitigations": [
     {
       "id": "M-S-001",
       "strideCategory": "S",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "boundaryAuthentication",
+          "expectedValue": "mfa",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "oauth",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-002"
+      ]
     },
     {
       "id": "M-S-002",
       "strideCategory": "S",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "endpointAuthentication",
+          "expectedValue": "certificate",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-003"
+      ]
     },
     {
       "id": "M-S-003",
       "strideCategory": "S",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "yes",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-004"
+      ]
     },
     {
       "id": "M-S-004",
       "strideCategory": "S",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "endpointAuthentication",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-003"
+      ]
     },
     {
       "id": "M-S-005",
       "strideCategory": "S",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "vpn",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "endpointAuthentication",
+          "expectedValue": "certificate",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-003"
+      ]
     },
     {
       "id": "M-T-001",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "DataStore",
+          "property": "integrityProtection",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-001"
+      ]
     },
     {
       "id": "M-T-002",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-001",
+        "V-T-002"
+      ]
     },
     {
       "id": "M-T-003",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "acl",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataStore",
+          "property": "accessControl",
+          "expectedValue": "acl",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-003"
+      ]
     },
     {
       "id": "M-T-004",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "inputValidation",
+          "expectedValue": "strict",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-002",
+        "V-T-004"
+      ]
     },
     {
       "id": "M-T-005",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "tls",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "role": "source",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Process",
+          "role": "target",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-001",
+        "V-T-002"
+      ]
     },
     {
       "id": "M-R-001",
       "strideCategory": "R",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-R-001"
+      ]
     },
     {
       "id": "M-R-002",
       "strideCategory": "R",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-R-002"
+      ]
     },
     {
       "id": "M-R-003",
       "strideCategory": "R",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-R-003"
+      ]
     },
     {
       "id": "M-R-004",
       "strideCategory": "R",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-R-001"
+      ]
     },
     {
       "id": "M-R-005",
       "strideCategory": "R",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-002"
+      ]
     },
     {
       "id": "M-I-001",
       "strideCategory": "I",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "encryptionAtRest",
+          "expectedValue": "aes256",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001"
+      ]
     },
     {
       "id": "M-I-002",
       "strideCategory": "I",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "tls",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-002"
+      ]
     },
     {
       "id": "M-I-003",
       "strideCategory": "I",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-I-003"
+      ]
     },
     {
       "id": "M-I-004",
       "strideCategory": "I",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "encryptionAtRest",
+          "expectedValue": "kms",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001"
+      ]
     },
     {
       "id": "M-I-005",
       "strideCategory": "I",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-I-004"
+      ]
     },
     {
       "id": "M-D-001",
       "strideCategory": "D",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ExternalEntity",
+          "property": "rateLimited",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-003"
+      ]
     },
     {
       "id": "M-D-002",
       "strideCategory": "D",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-D-001",
+        "V-D-002"
+      ]
     },
     {
       "id": "M-D-003",
       "strideCategory": "D",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "acl",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-001"
+      ]
     },
     {
       "id": "M-D-004",
       "strideCategory": "D",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-D-004"
+      ]
     },
     {
       "id": "M-D-005",
       "strideCategory": "D",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-D-001",
+        "V-D-002"
+      ]
     },
     {
       "id": "M-E-001",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "privilegeLevel",
+          "expectedValue": "low",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-001"
+      ]
     },
     {
       "id": "M-E-002",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-002"
+      ]
     },
     {
       "id": "M-E-003",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "inputValidation",
+          "expectedValue": "strict",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-E-002",
+        "V-E-003"
+      ]
     },
     {
       "id": "M-E-004",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "updateMechanism",
+          "expectedValue": "signed_ota",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-003"
+      ]
     },
     {
       "id": "M-E-005",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "processSemantic",
+          "expectedValue": "execution_unit",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-001"
+      ]
     },
     {
       "id": "M-E-006",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "accessControl",
+          "expectedValue": "physical_lock",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-004"
+      ]
     },
     {
       "id": "M-IF-S-001",
       "strideCategory": "S",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "accessControl",
+          "expectedValue": "certificate",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-IF-S-001"
+      ]
     },
     {
       "id": "M-IF-T-001",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-T-001"
+      ]
     },
     {
       "id": "M-IF-T-002",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-R-001",
-      "strideCategory": "R",
-      "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-I-001",
-      "strideCategory": "I",
-      "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-I-002",
-      "strideCategory": "I",
-      "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-D-001",
-      "strideCategory": "D",
-      "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-D-002",
-      "strideCategory": "D",
-      "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-E-002",
-      "strideCategory": "E",
-      "context": {},
-      "isCustom": false
-    },
-    {
-      "id": "M-IF-E-003",
-      "strideCategory": "E",
-      "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-T-001"
+      ]
     },
     {
       "id": "M-IF-T-003",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-T-001"
+      ]
     },
     {
       "id": "M-IF-T-004",
       "strideCategory": "T",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-T-001"
+      ]
+    },
+    {
+      "id": "M-IF-R-001",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-R-001"
+      ]
+    },
+    {
+      "id": "M-IF-I-001",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "custom",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-IF-I-001"
+      ]
+    },
+    {
+      "id": "M-IF-I-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "isShieldedCable",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-IF-I-001"
+      ]
+    },
+    {
+      "id": "M-IF-D-001",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-D-001"
+      ]
+    },
+    {
+      "id": "M-IF-D-002",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-IF-D-001"
+      ]
     },
     {
       "id": "M-IF-E-001",
       "strideCategory": "E",
       "context": {},
-      "isCustom": false
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "accessControl",
+          "expectedValue": "physical_lock",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-IF-E-001"
+      ]
+    },
+    {
+      "id": "M-IF-E-002",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "accessControl",
+          "expectedValue": "physical_lock",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-IF-E-001"
+      ]
+    },
+    {
+      "id": "M-IF-E-003",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "updateMechanism",
+          "expectedValue": "signed_ota",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-IF-E-002"
+      ]
     }
   ]
 }

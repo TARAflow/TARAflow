@@ -1,0 +1,768 @@
+// ==================== DFD NOTIFICATIONS PANEL ====================
+// Unified notification panel for the DFD Tab.
+// Replaces DFDValidationPanel and DFDControlGapPanel.
+//
+// Message types (in display order):
+//   error    — structural validation errors (red)
+//   warning  — structural validation warnings (yellow)
+//   security — control gap suggestions from Risk Tab mitigations (orange)
+//
+// Future extension points:
+//   drift    — SecurityDrift conflicts (Phase 3)
+//   staleness — expired verifications (Phase 3)
+
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Paper,
+  Stack,
+  Box,
+  Typography,
+  Chip,
+  Collapse,
+  IconButton,
+  Tooltip,
+  Button,
+} from "@mui/material";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import SecurityIcon from "@mui/icons-material/Security";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import CheckIcon from "@mui/icons-material/Check";
+
+import type { ValidationResult } from "../services/dfd-validator";
+import type { ControlInstance } from "shared/models/control-instance";
+import type { SecurityDrift } from "app/hooks/use-security-drift";
+import type { DFDElement, DFDConnection } from "../models/dfd-types";
+import { getLocalizedMitigation } from "features/threats/services/threat-catalog-service";
+
+// ==================== NOTIFICATION TYPES ====================
+
+type NotificationType = "error" | "warning" | "security" | "drift" | "conflict";
+
+interface BaseNotification {
+  key: string;
+  type: NotificationType;
+}
+
+interface ValidationNotification extends BaseNotification {
+  type: "error" | "warning";
+  message: string;
+}
+
+interface SecurityNotification extends BaseNotification {
+  type: "security";
+  /** Stable DFD element or connection ID — used for onApply */
+  elementId: string;
+  /** True when elementId refers to a DFDConnection, false for DFDElement */
+  isConnection: boolean;
+  elementDisplayId: string;
+  elementName: string;
+  property: string;
+  currentValue: unknown;
+  expectedValue: unknown;
+  inferenceConfidence: "deterministic" | "heuristic";
+  coversMitigationIds: string[];
+  coversRiskIds: string[];
+}
+
+interface DriftNotification extends BaseNotification {
+  type: "drift" | "conflict";
+  elementId: string;
+  elementDisplayId: string;
+  elementName: string;
+  property: string;
+  currentValue: unknown;
+  expectedValue: unknown;
+  recordedValue: unknown;
+  /** Only present on conflict */
+  conflictDetail?: SecurityDrift["conflictDetail"];
+}
+
+type Notification =
+  | ValidationNotification
+  | SecurityNotification
+  | DriftNotification;
+
+// ==================== VALUE HELPERS ====================
+
+const EMPTY_VALUES = new Set([
+  undefined,
+  null,
+  "",
+  "none",
+  "not_specified",
+  false,
+]);
+
+function isEmptyValue(value: unknown): boolean {
+  return EMPTY_VALUES.has(value as any);
+}
+
+function formatValue(value: unknown): string {
+  if (value === undefined || value === null || value === "") return "—";
+  if (value === false) return "false";
+  if (value === true) return "true";
+  return String(value);
+}
+
+// ==================== VALIDATION MESSAGE PARSER ====================
+// Matches format from DFDValidator:
+//   "dfdValidation.noElements"
+//   "dfdValidation.emptyTrustBoundary:TB Name"
+//   "dfdValidation.unconnectedElement:Process:MyProcess"
+
+function useValidationTranslation() {
+  const { t } = useTranslation();
+
+  const translateMessage = (message: string): string => {
+    const parts = message.split(":");
+    const key = parts[0];
+    if (parts.length === 1) return t(key);
+    if (parts.length === 2) return t(key, { name: parts[1] });
+    if (parts.length === 3) {
+      const translatedType = t(
+        `dfdValidation.elementTypes.${parts[1]}`,
+        parts[1],
+      );
+      return t(key, { type: translatedType, name: parts[2] });
+    }
+    return message;
+  };
+
+  return { translateMessage };
+}
+
+// ==================== NOTIFICATION BUILDER ====================
+
+function buildNotifications(
+  validation: ValidationResult | null | undefined,
+  controlInstances: ControlInstance[],
+  securityDrifts: SecurityDrift[],
+  elements: DFDElement[],
+  connections: DFDConnection[],
+): Notification[] {
+  const notifications: Notification[] = [];
+
+  (validation?.errors ?? []).forEach((msg, idx) => {
+    notifications.push({
+      key: `error:${idx}:${msg}`,
+      type: "error",
+      message: msg,
+    });
+  });
+
+  (validation?.warnings ?? []).forEach((msg, idx) => {
+    notifications.push({
+      key: `warning:${idx}:${msg}`,
+      type: "warning",
+      message: msg,
+    });
+  });
+
+  if (controlInstances.length > 0) {
+    const elementById = new Map(elements.map((e) => [e.id, e]));
+    const connectionById = new Map(connections.map((c) => [c.id, c]));
+
+    for (const instance of controlInstances) {
+      const element = elementById.get(instance.elementId);
+      const connection = connectionById.get(instance.elementId);
+      if (!element && !connection) continue;
+
+      const isConnection = !element;
+      const target = element ?? connection!;
+      const currentValue = (target.properties as any)?.[instance.property];
+
+      // Skip already satisfied
+      if (
+        !isEmptyValue(currentValue) &&
+        currentValue === instance.expectedValue
+      ) {
+        continue;
+      }
+
+      notifications.push({
+        key: instance.instanceKey,
+        type: "security",
+        elementId: instance.elementId,
+        isConnection,
+        elementDisplayId: target.displayId,
+        elementName: target.name,
+        property: instance.property,
+        currentValue,
+        expectedValue: instance.expectedValue,
+        inferenceConfidence: instance.inferenceConfidence,
+        coversMitigationIds: instance.coversMitigationIds,
+        coversRiskIds: instance.coversRiskIds,
+      });
+    }
+  }
+
+  // Drift / conflict notifications from SecurityDrift
+  for (const drift of securityDrifts) {
+    if (drift.status === "aligned" || drift.status === "missing") continue;
+
+    const el = elements.find((e) => e.id === drift.elementId);
+    const conn = connections.find((c) => c.id === drift.elementId);
+    if (!el && !conn) continue;
+    const target = el ?? conn!;
+
+    notifications.push({
+      key: `${drift.status}:${drift.instanceKey}`,
+      type: drift.status === "conflict" ? "conflict" : "drift",
+      elementId: drift.elementId,
+      elementDisplayId: target.displayId,
+      elementName: target.name,
+      property: drift.property,
+      currentValue: drift.currentValue,
+      expectedValue: drift.expectedValue,
+      recordedValue: drift.recordedValue,
+      conflictDetail: drift.conflictDetail,
+    });
+  }
+
+  return notifications;
+}
+
+// ==================== PROPS ====================
+
+export interface DFDNotificationsPanelProps {
+  validation?: ValidationResult | null;
+  controlInstances?: ControlInstance[];
+  securityDrifts?: SecurityDrift[];
+  elements?: DFDElement[];
+  connections?: DFDConnection[];
+  /**
+   * Called when analyst clicks Apply on a security gap row.
+   * DFD Tab handler routes to editor.updateElementDescription or
+   * editor.updateConnectionDescription based on isConnection.
+   * Omit to render panel read-only (no Apply buttons shown).
+   */
+  onApply?: (
+    elementId: string,
+    property: string,
+    value: unknown,
+    isConnection: boolean,
+    mitigationId?: string,
+    riskId?: string,
+  ) => void;
+}
+
+// ==================== COMPONENT ====================
+
+export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
+  validation,
+  controlInstances = [],
+  securityDrifts = [],
+  elements = [],
+  connections = [],
+  onApply,
+}) => {
+  const { t } = useTranslation();
+  const { translateMessage } = useValidationTranslation();
+  const [expanded, setExpanded] = useState(true);
+
+  const notifications = useMemo(
+    () =>
+      buildNotifications(
+        validation,
+        controlInstances,
+        securityDrifts,
+        elements,
+        connections,
+      ),
+    [validation, controlInstances, securityDrifts, elements, connections],
+  );
+
+  if (notifications.length === 0) return null;
+
+  const errorCount = notifications.filter((n) => n.type === "error").length;
+  const warningCount = notifications.filter((n) => n.type === "warning").length;
+  const securityCount = notifications.filter(
+    (n) => n.type === "security",
+  ).length;
+  const driftCount = notifications.filter((n) => n.type === "drift").length;
+  const conflictCount = notifications.filter(
+    (n) => n.type === "conflict",
+  ).length;
+
+  const borderColor =
+    errorCount > 0 || conflictCount > 0
+      ? "error.main"
+      : securityCount > 0 || driftCount > 0
+        ? "warning.main"
+        : "warning.light";
+
+  return (
+    <Paper
+      elevation={2}
+      sx={{
+        borderRadius: 0,
+        borderTop: "2px solid",
+        borderColor,
+        maxHeight: 150,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        flexShrink: 0,
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1.5,
+          py: 0.6,
+          bgcolor: "background.paper",
+          cursor: "pointer",
+          userSelect: "none",
+          flexShrink: 0,
+          borderBottom: expanded ? "1px solid" : "none",
+          borderColor: "divider",
+        }}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <Typography variant="caption" fontWeight={600} sx={{ flexGrow: 1 }}>
+          {t("tabs.dfd.notifications.title", {
+            count: notifications.length,
+            defaultValue: "{{count}} notification(s)",
+          })}
+        </Typography>
+
+        <Stack direction="row" spacing={0.5}>
+          {errorCount > 0 && (
+            <Chip
+              icon={<ErrorOutlineIcon sx={{ fontSize: "0.7rem !important" }} />}
+              label={errorCount}
+              size="small"
+              color="error"
+              variant="filled"
+              sx={{ height: 18, fontSize: "0.65rem" }}
+            />
+          )}
+          {warningCount > 0 && (
+            <Chip
+              icon={<WarningAmberIcon sx={{ fontSize: "0.7rem !important" }} />}
+              label={warningCount}
+              size="small"
+              color="warning"
+              variant="filled"
+              sx={{ height: 18, fontSize: "0.65rem" }}
+            />
+          )}
+          {securityCount > 0 && (
+            <Chip
+              icon={<SecurityIcon sx={{ fontSize: "0.7rem !important" }} />}
+              label={securityCount}
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ height: 18, fontSize: "0.65rem" }}
+            />
+          )}
+          {driftCount > 0 && (
+            <Chip
+              label={`${driftCount} drift`}
+              size="small"
+              color="warning"
+              variant="filled"
+              sx={{ height: 18, fontSize: "0.65rem" }}
+            />
+          )}
+          {conflictCount > 0 && (
+            <Chip
+              label={`${conflictCount} conflict`}
+              size="small"
+              color="error"
+              variant="filled"
+              sx={{ height: 18, fontSize: "0.65rem" }}
+            />
+          )}
+        </Stack>
+
+        <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
+          {expanded ? (
+            <ExpandLessIcon fontSize="small" />
+          ) : (
+            <ExpandMoreIcon fontSize="small" />
+          )}
+        </IconButton>
+      </Box>
+
+      {/* Notification list */}
+      <Collapse in={expanded}>
+        <Stack spacing={0} sx={{ overflow: "auto", maxHeight: 105 }}>
+          {notifications.map((n) =>
+            n.type === "error" || n.type === "warning" ? (
+              <ValidationRow
+                key={n.key}
+                notification={n as ValidationNotification}
+                translateMessage={translateMessage}
+              />
+            ) : n.type === "drift" || n.type === "conflict" ? (
+              <DriftRow key={n.key} notification={n as DriftNotification} />
+            ) : (
+              <SecurityRow
+                key={n.key}
+                notification={n as SecurityNotification}
+                onApply={onApply}
+              />
+            ),
+          )}
+        </Stack>
+      </Collapse>
+    </Paper>
+  );
+};
+
+// ==================== VALIDATION ROW ====================
+
+interface ValidationRowProps {
+  notification: ValidationNotification;
+  translateMessage: (msg: string) => string;
+}
+
+const ValidationRow: React.FC<ValidationRowProps> = ({
+  notification,
+  translateMessage,
+}) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      px: 1.5,
+      py: 0.35,
+      borderBottom: "1px solid",
+      borderColor: "divider",
+      "&:last-child": { borderBottom: "none" },
+      bgcolor: notification.type === "error" ? "error.50" : "warning.50",
+    }}
+  >
+    {notification.type === "error" ? (
+      <ErrorOutlineIcon
+        sx={{ fontSize: 14, color: "error.main", flexShrink: 0 }}
+      />
+    ) : (
+      <WarningAmberIcon
+        sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
+      />
+    )}
+    <Typography variant="caption" sx={{ color: "text.primary" }}>
+      {translateMessage(notification.message)}
+    </Typography>
+  </Box>
+);
+
+// ==================== SECURITY ROW ====================
+
+interface SecurityRowProps {
+  notification: SecurityNotification;
+  onApply?: DFDNotificationsPanelProps["onApply"];
+}
+
+const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
+  const { t } = useTranslation();
+
+  const mitigationLabel = useMemo(() => {
+    const firstId = notification.coversMitigationIds[0];
+    return firstId ? getLocalizedMitigation(firstId) : "";
+  }, [notification.coversMitigationIds]);
+
+  const additionalCount = notification.coversMitigationIds.length - 1;
+
+  const handleApply = () => {
+    onApply?.(
+      notification.elementId,
+      notification.property,
+      notification.expectedValue,
+      notification.isConnection,
+      notification.coversMitigationIds[0],
+      notification.coversRiskIds[0],
+    );
+  };
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: 1.5,
+        py: 0.35,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        "&:last-child": { borderBottom: "none" },
+        bgcolor: "warning.50",
+        flexWrap: "nowrap",
+        minWidth: 0,
+      }}
+    >
+      <SecurityIcon
+        sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
+      />
+
+      <Chip
+        label={notification.elementDisplayId}
+        size="small"
+        variant="outlined"
+        sx={{ height: 16, fontSize: "0.6rem", flexShrink: 0 }}
+      />
+      <Typography
+        variant="caption"
+        noWrap
+        sx={{ color: "text.secondary", flexShrink: 0, maxWidth: 100 }}
+      >
+        {notification.elementName}
+      </Typography>
+
+      {/* Property: current → expected */}
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.disabled",
+            fontFamily: "monospace",
+            fontSize: "0.6rem",
+          }}
+        >
+          {notification.property}
+        </Typography>
+        <Typography variant="caption" sx={{ color: "error.main" }}>
+          {formatValue(notification.currentValue)}
+        </Typography>
+        <ArrowForwardIcon sx={{ fontSize: 9, color: "text.disabled" }} />
+        <Typography
+          variant="caption"
+          fontWeight={600}
+          sx={{ color: "success.dark" }}
+        >
+          {formatValue(notification.expectedValue)}
+        </Typography>
+      </Box>
+
+      {/* Heuristic badge */}
+      {notification.inferenceConfidence === "heuristic" && (
+        <Tooltip
+          title={t("tabs.dfd.notifications.heuristic", {
+            defaultValue: "Heuristic mapping — confirm before applying",
+          })}
+          placement="top"
+        >
+          <Chip
+            label="~"
+            size="small"
+            variant="outlined"
+            sx={{
+              height: 14,
+              fontSize: "0.55rem",
+              flexShrink: 0,
+              cursor: "help",
+            }}
+          />
+        </Tooltip>
+      )}
+
+      {/* Source mitigation */}
+      <Tooltip
+        title={
+          additionalCount > 0
+            ? `${mitigationLabel} +${additionalCount} more`
+            : mitigationLabel
+        }
+        placement="top"
+      >
+        <Typography
+          variant="caption"
+          noWrap
+          sx={{
+            color: "text.disabled",
+            fontStyle: "italic",
+            flexGrow: 1,
+            minWidth: 0,
+          }}
+        >
+          {mitigationLabel}
+          {additionalCount > 0 && ` +${additionalCount}`}
+        </Typography>
+      </Tooltip>
+
+      {/* Apply button — only rendered when onApply is provided */}
+      {onApply && (
+        <Tooltip
+          title={t("tabs.dfd.notifications.applyTooltip", {
+            defaultValue: "Apply suggestion to model",
+          })}
+          placement="top"
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            color="success"
+            startIcon={<CheckIcon sx={{ fontSize: "0.7rem !important" }} />}
+            onClick={handleApply}
+            sx={{
+              height: 18,
+              minWidth: 0,
+              px: 0.75,
+              fontSize: "0.6rem",
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            {t("tabs.dfd.notifications.applyLabel", { defaultValue: "Apply" })}
+          </Button>
+        </Tooltip>
+      )}
+    </Box>
+  );
+};
+
+export default DFDNotificationsPanel;
+
+// ==================== DRIFT ROW ====================
+
+interface DriftRowProps {
+  notification: DriftNotification;
+}
+
+const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
+  const { t } = useTranslation();
+  const isConflict = notification.type === "conflict";
+
+  const detail = notification.conflictDetail;
+  const tooltipText = isConflict
+    ? detail?.isManualOverride
+      ? t("tabs.dfd.notifications.conflict.manualOverride", {
+          defaultValue: "Property set manually but differs from Risk decision",
+        })
+      : t("tabs.dfd.notifications.conflict.staleRecord", {
+          defaultValue: "Applied value no longer matches current requirement",
+        })
+    : t("tabs.dfd.notifications.drift.reverted", {
+        property: notification.property,
+        defaultValue: "Property was reverted after Apply",
+      });
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: 1.5,
+        py: 0.35,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        "&:last-child": { borderBottom: "none" },
+        bgcolor: isConflict ? "error.50" : "warning.50",
+        flexWrap: "nowrap",
+        minWidth: 0,
+      }}
+    >
+      {isConflict ? (
+        <ErrorOutlineIcon
+          sx={{ fontSize: 14, color: "error.main", flexShrink: 0 }}
+        />
+      ) : (
+        <WarningAmberIcon
+          sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
+        />
+      )}
+
+      <Chip
+        label={notification.elementDisplayId}
+        size="small"
+        variant="outlined"
+        color={isConflict ? "error" : "warning"}
+        sx={{ height: 16, fontSize: "0.6rem", flexShrink: 0 }}
+      />
+
+      <Typography
+        variant="caption"
+        noWrap
+        sx={{ color: "text.secondary", flexShrink: 0, maxWidth: 100 }}
+      >
+        {notification.elementName}
+      </Typography>
+
+      {/* property: IS → SHOULD */}
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.disabled",
+            fontFamily: "monospace",
+            fontSize: "0.6rem",
+          }}
+        >
+          {notification.property}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{ color: isConflict ? "error.main" : "warning.dark" }}
+        >
+          {String(notification.currentValue ?? "—")}
+        </Typography>
+        <ArrowForwardIcon sx={{ fontSize: 9, color: "text.disabled" }} />
+        <Typography
+          variant="caption"
+          fontWeight={600}
+          sx={{ color: "success.dark" }}
+        >
+          {String(notification.expectedValue)}
+        </Typography>
+      </Box>
+
+      {/* Status label with tooltip */}
+      <Tooltip title={tooltipText} placement="top">
+        <Chip
+          label={
+            isConflict
+              ? t("tabs.dfd.notifications.conflict.label", {
+                  defaultValue: "Conflict",
+                })
+              : t("tabs.dfd.notifications.drift.label", {
+                  defaultValue: "Drift",
+                })
+          }
+          size="small"
+          color={isConflict ? "error" : "warning"}
+          variant="outlined"
+          sx={{
+            height: 14,
+            fontSize: "0.55rem",
+            flexShrink: 0,
+            cursor: "help",
+          }}
+        />
+      </Tooltip>
+
+      {/* When applied info */}
+      {detail?.setAt && (
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.disabled",
+            fontStyle: "italic",
+            flexGrow: 1,
+            textAlign: "right",
+          }}
+        >
+          {t("tabs.dfd.notifications.drift.applied", {
+            date: new Date(detail.setAt).toLocaleDateString(),
+            defaultValue: "Applied {{date}}",
+          })}
+        </Typography>
+      )}
+    </Box>
+  );
+};

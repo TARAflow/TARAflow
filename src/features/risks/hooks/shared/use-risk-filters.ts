@@ -1,12 +1,12 @@
 // ==================== USE RISK FILTERS HOOK ====================
-// Manages filter state and filtering logic for risks
-// Analog to use-threat-filters.ts
+// Manages filter state and filtering logic for risks.
+// RiskStatus removed — risks no longer have a status field.
+// Filter by: searchText, priorityFilter (MoSCoW), treatmentFilter.
 
 import { useState, useCallback, useMemo } from "react";
 import type {
   Risk,
   MoSCoWPriority,
-  RiskStatus,
   RiskTreatment,
 } from "../../models/risk-types";
 
@@ -15,7 +15,6 @@ import type {
 export interface RiskFilters {
   searchText: string;
   priorityFilter: MoSCoWPriority | "";
-  statusFilter: RiskStatus | "";
   treatmentFilter: RiskTreatment | "";
 }
 
@@ -25,11 +24,9 @@ export function useRiskFilters() {
   const [filters, setFilters] = useState<RiskFilters>({
     searchText: "",
     priorityFilter: "",
-    statusFilter: "",
     treatmentFilter: "",
   });
 
-  // Individual setters
   const setSearchText = useCallback((text: string) => {
     setFilters((prev) => ({ ...prev, searchText: text }));
   }, []);
@@ -38,84 +35,60 @@ export function useRiskFilters() {
     setFilters((prev) => ({ ...prev, priorityFilter: priority }));
   }, []);
 
-  const setStatusFilter = useCallback((status: RiskStatus | "") => {
-    setFilters((prev) => ({ ...prev, statusFilter: status }));
-  }, []);
-
   const setTreatmentFilter = useCallback((treatment: RiskTreatment | "") => {
     setFilters((prev) => ({ ...prev, treatmentFilter: treatment }));
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({
-      searchText: "",
-      priorityFilter: "",
-      statusFilter: "",
-      treatmentFilter: "",
-    });
+    setFilters({ searchText: "", priorityFilter: "", treatmentFilter: "" });
   }, []);
 
-  // Check if any filters are active
   const hasActiveFilters = useMemo(
     () =>
       Boolean(
-        filters.searchText ||
-        filters.priorityFilter ||
-        filters.statusFilter ||
-        filters.treatmentFilter,
+        filters.searchText || filters.priorityFilter || filters.treatmentFilter,
       ),
     [filters],
   );
 
-  // Filter risks based on current filters
   const filterRisks = useCallback(
     (risks: Risk[]): Risk[] => {
       if (!hasActiveFilters) return risks;
-
       let filtered = risks;
 
-      // Filter by priority
       if (filters.priorityFilter) {
         filtered = filtered.filter(
           (r) => r.moscowPriority === filters.priorityFilter,
         );
       }
-
-      // Filter by status
-      if (filters.statusFilter) {
-        filtered = filtered.filter((r) => r.status === filters.statusFilter);
-      }
-
-      // Filter by treatment
       if (filters.treatmentFilter) {
         filtered = filtered.filter(
           (r) => r.treatment === filters.treatmentFilter,
         );
       }
-
-      // Filter by search text
       if (filters.searchText.trim()) {
         const search = filters.searchText.toLowerCase();
-        filtered = filtered.filter((r) => {
-          return (
+        filtered = filtered.filter(
+          (r) =>
             r.id.toLowerCase().includes(search) ||
             r.threatId.toLowerCase().includes(search) ||
             r.threatDescription.toLowerCase().includes(search) ||
-            r.selectedMitigations.some((m) => m.toLowerCase().includes(search))
-          );
-        });
+            r.selectedMitigations.some(
+              (m) =>
+                (m.id ?? "").toLowerCase().includes(search) ||
+                (m.notes ?? "").toLowerCase().includes(search),
+            ),
+        );
       }
-
       return filtered;
     },
-    [filters, hasActiveFilters]
+    [filters, hasActiveFilters],
   );
 
   return {
     filters,
     setSearchText,
     setPriorityFilter,
-    setStatusFilter,
     setTreatmentFilter,
     clearFilters,
     filterRisks,

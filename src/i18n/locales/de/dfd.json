@@ -1156,6 +1156,11 @@
           "environmentalHazard": "Umgebungsgefährdung",
           "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
         }
+      },
+      "notifications": {
+        "applyLabel": "Anwenden",
+        "applyTooltip": "Vorschlag ins Modell übernehmen",
+        "title": "{{count}} Benachrichtigung(en)"
       }
     }
   },

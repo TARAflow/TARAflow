@@ -27,13 +27,12 @@ import type {
 } from "../../models/threat-types";
 import {
   InteractionDirection,
-  DataFlowReference,
   STRIDE_PER_INTERACTION,
   generateThreatIdPerInteraction,
   createInteractionContext,
 } from "../../models/per-interaction-types";
 import { createEmptyThreat } from "../../models/threat-types";
-import { DFDAnalysisContext } from "shared";
+import { DataFlowReference, DFDAnalysisContext } from "shared";
 import {
   findInteractionTemplate,
   getLocalizedInteractionThreat,

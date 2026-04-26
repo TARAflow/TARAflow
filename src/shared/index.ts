@@ -4,6 +4,7 @@
 
 // ==================== TYPES ====================
 export type {
+  MitigationPropertyRole,
   PhaseStatus,
   ProjectStatus,
   StrideMethod,
@@ -27,6 +28,16 @@ export type {
   StorageService,
 } from "./models/feature-interfaces";
 
+export type {
+  AssetDataReference,
+  AssetReference,
+  DFDReference,
+  DataFlowReference,
+  LinkedDFDElement,
+} from "./models/reference-types";
+
+export type { ControlInstance } from "./models/control-instance";
+
 // ==================== UI COMPONENTS ====================
 export { Button } from "./components/button";
 export { Toast, ToastContainer } from "./components/toast";
@@ -35,6 +46,7 @@ export { GenericAccordion } from "./components/generic-accordion";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
+export { MitigationCoverageBadge } from "./components/mitigation-coverage-badge";
 
 // ==================== DIALOGS ====================
 export { ConfirmDialog } from "./components/dialogs/confirm-dialog";
@@ -84,6 +96,8 @@ export {
   getRegulationTags,
   getAvailablePredefinedTags,
 } from "./utils/tag-categories";
+
+export { computeAllMitigationCoverage } from "./utils/mitigation-coverage";
 
 export { type DFDAnalysisContext } from "./ports/dfd-analysis-context";
 

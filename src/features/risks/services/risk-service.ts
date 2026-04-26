@@ -3,12 +3,6 @@
 //
 // Sync logic  → risk-sync-service.ts
 // Calculation → risk-calculation-service.ts
-//
-// Priority/Status Sync Rules:
-//   Priority → "wont"    : Status  → "wont-do"
-//   Priority ← "wont"    : Status "wont-do" → "open"
-//   Status   → "wont-do" : Priority → "wont"
-//   Status   ← "wont-do" : Priority "wont" → "should"
 
 import type { PhaseStatusMap } from "shared";
 import {
@@ -20,9 +14,9 @@ import {
   ThreatReference,
   FactorRating,
   MoSCoWPriority,
-  RiskStatus,
   RiskMethodType,
   RiskTreatment,
+  SelectedMitigation,
   ALL_PREDEFINED_FACTORS,
   DEFAULT_CONFIGURATION,
   getActiveRisks,
@@ -72,9 +66,6 @@ export const riskService = {
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
       calculatedRiskAfterMitigation: afterValues.risk,
-      // Sync status when priority is wont
-      status:
-        updatedRisk.moscowPriority === "wont" ? "wont-do" : updatedRisk.status,
       lastModified: now,
     };
 
@@ -141,35 +132,6 @@ export const riskService = {
       moscowPriority: priority,
       wontJustification:
         priority === "wont" ? (justification ?? risk.wontJustification) : "",
-      status:
-        priority === "wont"
-          ? "wont-do"
-          : risk.status === "wont-do"
-            ? "open"
-            : risk.status,
-    });
-  },
-
-  /**
-   * Update risk status — syncs priority accordingly.
-   */
-  updateStatus(
-    riskData: RiskData,
-    riskId: string,
-    status: RiskStatus,
-  ): RiskData {
-    const risk = riskData.risks.find((r) => r.id === riskId);
-    if (!risk) return riskData;
-
-    return this.updateRisk(riskData, {
-      ...risk,
-      status,
-      moscowPriority:
-        status === "wont-do"
-          ? "wont"
-          : risk.moscowPriority === "wont"
-            ? "should"
-            : risk.moscowPriority,
     });
   },
 
@@ -179,7 +141,7 @@ export const riskService = {
   updateMitigations(
     riskData: RiskData,
     riskId: string,
-    mitigations: string[],
+    mitigations: SelectedMitigation[],
     verifications?: string[],
   ): RiskData {
     const risk = riskData.risks.find((r) => r.id === riskId);
@@ -306,7 +268,8 @@ export const riskService = {
     const highUnmitigated = riskData.risks.filter(
       (r) =>
         r.calculatedRiskBeforeMitigation >= 3 &&
-        r.selectedMitigations.length === 0 &&
+        r.selectedMitigations.filter((m) => m.status !== "rejected").length ===
+          0 &&
         r.moscowPriority !== "wont",
     );
     if (highUnmitigated.length > 0)

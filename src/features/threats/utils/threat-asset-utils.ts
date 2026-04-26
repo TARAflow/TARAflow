@@ -2,7 +2,8 @@
 // Shared helpers for asset-enriched threat display.
 // Used by ElementThreatTable and InteractionThreatTable.
 
-import type { Threat, AssetDataReference, AssetReference } from "../models/threat-types";
+import type { AssetDataReference, AssetReference } from "shared";
+import type { Threat } from "../models/threat-types";
 
 // ==================== COLOR MAPS ====================
 

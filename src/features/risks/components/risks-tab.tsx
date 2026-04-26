@@ -45,6 +45,7 @@ import { useRiskFilters } from "../hooks/shared/use-risk-filters";
 import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
+import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
 import { WontRiskTable } from "./wont-risk-table";
@@ -130,6 +131,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     index: number;
   } | null>(null);
   const [showRiskDialog, setShowRiskDialog] = useState(false);
+  const [selectedImplementationRisk, setSelectedImplementationRisk] =
+    useState<Risk | null>(null);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
 
@@ -243,14 +246,19 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const hasRisks = riskData.risks.length > 0;
   const hasRisksForMethod = activeRisks.length > 0 || wontRisks.length > 0;
 
-  // Count assessed risks (Before > 0) and completed risks (status !== "open")
+  // Count assessed risks (Before > 0) and risks with implemented mitigations
   const assessedRiskCount = useMemo(
     () =>
       activeRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
     [activeRisks],
   );
   const completedRiskCount = useMemo(
-    () => activeRisks.filter((r) => r.status !== "open").length,
+    () =>
+      activeRisks.filter((r) =>
+        r.selectedMitigations.some(
+          (m) => m.status === "implemented" || m.status === "verified",
+        ),
+      ).length,
     [activeRisks],
   );
 
@@ -280,7 +288,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     filters,
     setSearchText,
     setPriorityFilter,
-    setStatusFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,
@@ -381,8 +388,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       const threat = allThreats.find((t) => t.id === risk.threatId);
       const tbId = threat?.trustBoundaryId ?? null;
 
-      // Group = all active risks with same trustBoundaryId (and same strideMethod)
-      const group = activeRisks.filter((r) => {
+      // Determine source pool: wont risks or active risks
+      const isWontRisk = risk.moscowPriority === "wont";
+      const pool = isWontRisk ? wontRisks : activeRisks;
+
+      // Group = all risks from the same pool with same trustBoundaryId
+      const group = pool.filter((r) => {
         const t = allThreats.find((th) => th.id === r.threatId);
         return t?.trustBoundaryId === tbId;
       });
@@ -392,7 +403,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setSelectedRiskInfo({ risks: effectiveGroup, index: Math.max(0, index) });
       setShowRiskDialog(true);
     },
-    [activeRisks, allThreats],
+    [activeRisks, wontRisks, allThreats],
   );
 
   const handleSaveRisk = useCallback(
@@ -418,6 +429,32 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     setSelectedRiskInfo(null);
   }, []);
 
+  const handleImplementationClick = useCallback((risk: Risk) => {
+    setSelectedImplementationRisk(risk);
+  }, []);
+
+  const handleCloseImplementationDialog = useCallback(() => {
+    setSelectedImplementationRisk(null);
+  }, []);
+
+  const handleSaveImplementation = useCallback(
+    (riskId: string, updates: Partial<Risk>) => {
+      const base = riskData.risks.find((r) => r.id === riskId);
+      if (!base) return;
+      const updatedData = riskService.updateRisk(riskData, {
+        ...base,
+        ...updates,
+      });
+      setRiskData(updatedData);
+      setValidation(riskService.validate(updatedData));
+      markDirty();
+      // Keep dialog open with fresh data
+      const updated = updatedData.risks.find((r) => r.id === riskId);
+      if (updated) setSelectedImplementationRisk(updated);
+    },
+    [riskData, markDirty],
+  );
+
   const handlePriorityChange = useCallback(
     (riskId: string, priority: string, justification?: string) => {
       const updatedData = riskService.updatePriority(
@@ -434,20 +471,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       if (priority === "wont") {
         setShowWontTable(true);
       }
-    },
-    [riskData, markDirty],
-  );
-
-  const handleStatusChange = useCallback(
-    (riskId: string, status: string) => {
-      const updatedData = riskService.updateStatus(
-        riskData,
-        riskId,
-        status as any,
-      );
-      setRiskData(updatedData);
-      setValidation(riskService.validate(updatedData));
-      markDirty();
     },
     [riskData, markDirty],
   );
@@ -788,7 +811,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
             <>
               {/* Active Risks Table */}
               <RiskTableView
-                risks={activeRisks} // ← Statt activeRisks
+                risks={activeRisks}
                 threats={currentThreats}
                 configuration={riskData.configuration}
                 strideMethod={activeStrideMethod}
@@ -796,13 +819,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 filters={filters}
                 onSearchTextChange={setSearchText}
                 onPriorityFilterChange={setPriorityFilter}
-                onStatusFilterChange={setStatusFilter}
                 onClearFilters={clearFilters}
                 filteredCount={activeRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
-                onStatusChange={handleStatusChange}
                 onTreatmentChange={handleTreatmentChange}
+                onImplementationClick={handleImplementationClick}
               />
 
               {/* Won't Risks Table (collapsible) */}
@@ -830,8 +852,19 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           configuration={riskData.configuration}
           threats={allThreatsUnfiltered}
           assetDataRef={project.assetDataRef}
+          dfdData={project.dfd ?? null}
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
+        />
+      )}
+
+      {/* Implementation Status Dialog — opens from chip click */}
+      {selectedImplementationRisk && (
+        <RiskMitigationStatusDialog
+          open={!!selectedImplementationRisk}
+          risk={selectedImplementationRisk}
+          onSave={handleSaveImplementation}
+          onClose={handleCloseImplementationDialog}
         />
       )}
 
@@ -865,6 +898,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       )}
     </Box>
   );
-};;
+};;;
 
 export default RisksTab;

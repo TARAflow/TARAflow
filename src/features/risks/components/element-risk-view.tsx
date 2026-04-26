@@ -9,7 +9,6 @@ import {
   RiskConfiguration,
   ThreatReference,
   MoSCoWPriority,
-  RiskStatus,
 } from "../models/risk-types";
 import { RiskFilters } from "./risk-filters";
 import { useAccordionState } from "../hooks/shared/use-accordion-state";
@@ -40,11 +39,10 @@ interface ElementRiskViewProps {
   filters: {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
-    statusFilter: RiskStatus | "";
+    treatmentFilter: string;
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
-  onStatusFilterChange: (status: RiskStatus | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
 
@@ -54,8 +52,8 @@ interface ElementRiskViewProps {
     priority: string,
     justification?: string,
   ) => void;
-  onStatusChange: (riskId: string, status: string) => void;
   onTreatmentChange: (riskId: string, treatment: string) => void;
+  onImplementationClick?: (risk: Risk) => void;
 }
 
 export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
@@ -66,13 +64,12 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   filters,
   onSearchTextChange,
   onPriorityFilterChange,
-  onStatusFilterChange,
   onClearFilters,
   filteredCount,
   onEdit,
   onPriorityChange,
-  onStatusChange,
   onTreatmentChange,
+  onImplementationClick,
 }) => {
   const { t } = useTranslation();
 
@@ -105,15 +102,21 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   const groupsForRender = useMemo(() => {
     return [...groupedByTrustBoundary].reverse();
   }, [groupedByTrustBoundary]);
-
+  console.log(
+    "[element-view] onImplementationClick prop:",
+    !!onImplementationClick,
+  );
   const columns = useRiskColumns({
     configuration,
     onEdit,
     onPriorityChange,
-    onStatusChange,
     onTreatmentChange,
+    onImplementationClick,
   });
-
+  console.log(
+    "[element-view] columns created:",
+    columns.map((c) => c.id),
+  );
   // ── Accordion header helpers ───────────────────────────────────────────
   const scale = configuration.scale;
   const rounding = configuration.roundingMethod;
@@ -155,9 +158,12 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
     const assessed = risks.filter(
       (r) => r.calculatedRiskBeforeMitigation > 0,
     ).length;
-    const open = risks.filter((r) => r.status === "open").length;
-    const done = risks.filter((r) => r.status !== "open").length;
-    return `${assessed} assessed  ·  ${done} completed  ·  ${open} open`;
+    const implemented = risks.filter((r) =>
+      r.selectedMitigations.some(
+        (m) => m.status === "implemented" || m.status === "verified",
+      ),
+    ).length;
+    return `${assessed} assessed  ·  ${implemented} with implemented mitigations`;
   };
 
   const getElementIcon = (elementType: string) => {
@@ -171,10 +177,8 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
       <RiskFilters
         searchText={filters.searchText}
         priorityFilter={filters.priorityFilter}
-        statusFilter={filters.statusFilter}
         onSearchTextChange={onSearchTextChange}
         onPriorityFilterChange={onPriorityFilterChange}
-        onStatusFilterChange={onStatusFilterChange}
         onClear={onClearFilters}
         show={showFilters}
         filteredCount={filteredCount}
