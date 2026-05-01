@@ -141,6 +141,7 @@ export function validateUnconnectedElements(
     "Multiprocess",
     "DataStore",
     "ExternalEntity",
+    "ChipBoundary",
   ];
 
   elements.forEach((element) => {
@@ -152,4 +153,52 @@ export function validateUnconnectedElements(
       }
     }
   });
+}
+
+/**
+ * R9: ChipBoundary may only connect to ExternalEntity, Process, or ChipBoundary.
+ * DataStore and TrustBoundary connections are semantically invalid.
+ *
+ * Severity: error — DataStore→ChipBoundary has no valid threat modelling meaning.
+ *
+ * Valid:   ExternalEntity ↔ ChipBoundary  (e.g. Developer → JTAG → MCU)
+ * Valid:   Process        ↔ ChipBoundary  (e.g. Linux Driver → I2C → SE)
+ * Valid:   ChipBoundary   ↔ ChipBoundary  (e.g. MCU → SPI → SE)
+ * Invalid: DataStore      ↔ ChipBoundary
+ * Invalid: TrustBoundary  ↔ ChipBoundary
+ * Invalid: Multiprocess   ↔ ChipBoundary  (use Process inside Multiprocess instead)
+ */
+export function validateChipBoundaryConnections(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  errors: string[],
+): void {
+  const elementById = new Map(elements.map((e) => [e.id, e]));
+ 
+  const FORBIDDEN_WITH_CHIPBOUNDARY = new Set([
+    "DataStore",
+    "TrustBoundary",
+    "Multiprocess",
+  ]);
+ 
+  for (const conn of connections) {
+    const source = elementById.get(conn.from);
+    const target = elementById.get(conn.to);
+ 
+    if (!source || !target) continue;
+ 
+    const sourceIsChip = source.type === "ChipBoundary";
+    const targetIsChip = target.type === "ChipBoundary";
+ 
+    if (!sourceIsChip && !targetIsChip) continue;
+ 
+    // Check the non-ChipBoundary side
+    const other = sourceIsChip ? target : source;
+ 
+    if (FORBIDDEN_WITH_CHIPBOUNDARY.has(other.type)) {
+      errors.push(
+        `${ValidationMessages.CHIPBOUNDARY_INVALID_CONNECTION}:${conn.name || conn.id} [${other.type}]`,
+      );
+    }
+  }
 }

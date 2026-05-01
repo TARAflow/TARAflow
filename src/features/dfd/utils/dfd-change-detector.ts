@@ -90,6 +90,7 @@ export class DFDChangeDetector {
       "DataStore",
       "Interface",
       "Multiprocess",
+      "ChipBoundary",
     ]);
 
     const prevElemMap = new Map(prevElements.map((e) => [e.id, e]));

@@ -29,6 +29,10 @@ export const ValidationMessages = {
   INVALID_DATAFLOW_SOURCE: "dfdValidation.invalidDataflowSource",
   INVALID_DATAFLOW_TARGET: "dfdValidation.invalidDataflowTarget",
 
+  // Chip Boundary
+  CHIPBOUNDARY_INVALID_CONNECTION:
+    "dfdValidation.chipBoundaryInvalidConnection",
+
   // Asset & Interface
   ASSET_NOT_PLACED: "dfdValidation.assetNotPlaced",
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
@@ -105,6 +109,8 @@ export const DEFAULT_NAMES = [
   "external",
   "entity",
   "boundary",
+  "chip boundary",
+  "chipboundary",
   // German defaults
   "prozess",
   "externe entität",

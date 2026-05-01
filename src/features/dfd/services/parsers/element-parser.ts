@@ -2,7 +2,10 @@
 // Single Responsibility: Parse DFD elements from DrawIO XML
 
 import type { DFDElement, DFDElementType } from "../../models/dfd-types";
-import type { TrustBoundaryProperties } from "../../models/element-properties";
+import type {
+  ChipBoundaryProperties,
+  TrustBoundaryProperties,
+} from "../../models/element-properties";
 import {
   cleanLabel,
   getGeometry,
@@ -117,10 +120,6 @@ export function parseElementFromObject(
   const label = obj.getAttribute("label") || "";
   const objType = getXmlElementType(obj);
 
-  // console.log(
-  //   `parseElementFromObject [PARSE] ID: ${id}, Label: ${label}, Type: ${objType}`,
-  // );
-
   if (!id) {
     console.warn("Skipping object with missing ID.");
     return null;
@@ -152,6 +151,14 @@ export function parseElementFromObject(
   if (!objType || objType === "idlabel" || objType === "asset") return null;
 
   if (objType === "trustboundary") {
+    const cleanLabel = label.trim();
+    const validLabelRegex = /\[.*\]/;
+    if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
+      return null;
+    }
+  }
+
+  if (objType === "chipboundary") {
     const cleanLabel = label.trim();
     const validLabelRegex = /\[.*\]/;
     if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
@@ -219,6 +226,17 @@ export function parseElementFromObject(
     }
   }
 
+  if (type === "ChipBoundary") {
+    const chipId = extractTrustBoundaryId(name); // Same regex, reuse helper
+    if (chipId) {
+      element.displayId = chipId;
+      element.properties = {
+        ...element.properties,
+        // No boundaryId needed — chipType is the classifier
+      } as ChipBoundaryProperties;
+    }
+  }
+
   return element;
 }
 
@@ -282,6 +300,17 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
         ...element.properties,
         boundaryId: tbId,
       } as TrustBoundaryProperties;
+    }
+  }
+
+  if (type === "ChipBoundary") {
+    const chipId = extractTrustBoundaryId(name); // Same regex, reuse helper
+    if (chipId) {
+      element.displayId = chipId;
+      element.properties = {
+        ...element.properties,
+        // No boundaryId needed — chipType is the classifier
+      } as ChipBoundaryProperties;
     }
   }
 

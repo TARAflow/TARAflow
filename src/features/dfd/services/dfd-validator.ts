@@ -19,6 +19,7 @@ import {
   validateDuplicateConnectionIdLabels,
   validateUnconnectedDataflows,
   validateUnconnectedElements,
+  validateChipBoundaryConnections,
 } from "./validators/connection-validator";
 import { validateDataflowLabels } from "./validators/dataflow-label-validator";
 import { validateDataflowProperties } from "./validators/dataflow-property-validator";
@@ -100,6 +101,7 @@ export class DFDValidator {
     validateDuplicateConnectionIdLabels(connections, warnings);
     validateUnconnectedDataflows(options?.unconnectedDataflows, warnings);
     validateUnconnectedElements(elements, connections, warnings);
+    validateChipBoundaryConnections(connections, elements, errors);
     validateDataflowLabels(connections, errors, warnings);
     // TEMP DEBUG
     connections.forEach(c => {

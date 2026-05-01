@@ -30,6 +30,7 @@ function validateElementNames(
     "DataStore",
     "ExternalEntity",
     "TrustBoundary",
+    "ChipBoundary",
   ];
 
   for (const element of elements) {
@@ -77,16 +78,18 @@ function validateIdLabels(
  */
 function validateTrustBoundaryIds(
   elements: DFDElement[],
-  errors: string[]
+  errors: string[],
 ): void {
-  const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
+  // Validate both TrustBoundary and ChipBoundary — same [ID] convention
+  const boundaryElements = elements.filter(
+    (e) => e.type === "TrustBoundary" || e.type === "ChipBoundary",
+  );
 
-  for (const tb of trustBoundaries) {
-    const validation = validateTrustBoundaryId(tb.name);
-    
+  for (const boundary of boundaryElements) {
+    const validation = validateTrustBoundaryId(boundary.name);
     if (!validation.isValid) {
       errors.push(
-        `${ValidationMessages.TRUST_BOUNDARY_MISSING_ID}:${tb.name}`
+        `${ValidationMessages.TRUST_BOUNDARY_MISSING_ID}:${boundary.name}`,
       );
     }
   }

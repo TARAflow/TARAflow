@@ -14,6 +14,7 @@ import type {
   InterfaceProperties,
   TrustBoundaryProperties,
   ExposureLevel,
+  ChipBoundaryProperties,
 } from "./element-properties";
 
 import type { DFDGraph } from "./dfd-graph-types";
@@ -145,7 +146,8 @@ export interface DFDElement extends DFDBaseEntity {
     | ExternalEntityProperties
     | DataStoreProperties
     | InterfaceProperties
-    | TrustBoundaryProperties;
+    | TrustBoundaryProperties
+    | ChipBoundaryProperties;
 }
 
 // ==================== DFD CONNECTION ====================
@@ -195,6 +197,7 @@ export interface DFDStats {
   dataStores: number;
   dataFlows: number;
   trustBoundaries: number;
+  chipBoundaries: number;
   interfaces: number;
 
   /** Number of unique assets in the project */

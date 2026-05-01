@@ -18,6 +18,8 @@ export class DFDGraphAnalysisContext implements DFDAnalysisContext {
       elementTrustBoundaries: new Map(),
       trustBoundaryElements: new Map(),
       effectiveElementTrustBoundary: new Map(),
+      elementChipBoundaries: new Map(),
+      chipBoundaryElements: new Map(),
     };
     return new DFDGraphAnalysisContext(dummyGraph);
   }

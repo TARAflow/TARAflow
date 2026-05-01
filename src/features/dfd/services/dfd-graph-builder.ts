@@ -6,6 +6,7 @@ import type {
   InterfaceProperties,
   DataFlowProperties,
   TrustBoundaryProperties,
+  ChipBoundaryProperties,
   ExposureLevel,
 } from "../models/element-properties";
 import type { DFDAsset } from "../models/dfd-asset-types";
@@ -114,6 +115,10 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     const { elementTrustBoundaries, trustBoundaryElements } =
       this.buildTrustBoundaryMembership(elements);
 
+    // 3b. Chip Boundary membership (overlap-based, analog to TB)
+    const { elementChipBoundaries, chipBoundaryElements } =
+      this.buildChipBoundaryMembership(elements);
+
     // 4. Trust Boundary hierarchy (containment-based)
     const trustBoundaryHierarchy = this.buildTrustBoundaryHierarchy(elements);
 
@@ -130,6 +135,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       elementsById,
       elementTrustBoundaries,
       effectiveElementTrustBoundary,
+      elementChipBoundaries,
     );
 
     // 7. Derive Exposure Levels
@@ -138,6 +144,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       connections,
       dataFlowAnalysis,
       elementTrustBoundaries,
+      elementChipBoundaries,
     );
 
     return {
@@ -148,6 +155,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       incomingConnections,
       elementTrustBoundaries,
       trustBoundaryElements,
+      elementChipBoundaries,
+      chipBoundaryElements,
       dataFlowAnalysis,
       trustBoundaryHierarchy,
       effectiveElementTrustBoundary,
@@ -227,6 +236,49 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     }
 
     return { elementTrustBoundaries, trustBoundaryElements };
+  }
+
+  /**
+   * Build ChipBoundary membership based on geometric overlap.
+   * Rule: Process, ExternalEntity, Interface may be inside a ChipBoundary.
+   * Unlike TrustBoundary: ExternalEntity IS allowed inside (e.g. Developer
+   * with JTAG access inside Device Boundary).
+   * No hierarchy — ChipBoundaries do not nest.
+   */
+  private buildChipBoundaryMembership(elements: DFDElement[]): {
+    elementChipBoundaries: Map<string, string[]>;
+    chipBoundaryElements: Map<string, string[]>;
+  } {
+    const elementChipBoundaries = new Map<string, string[]>();
+    const chipBoundaryElements = new Map<string, string[]>();
+
+    const chipBoundaries = elements.filter((e) => e.type === "ChipBoundary");
+
+    for (const element of elements) {
+      // ChipBoundary itself is not a member of another ChipBoundary
+      if (element.type === "ChipBoundary") continue;
+      // TrustBoundary is not a member
+      if (element.type === "TrustBoundary") continue;
+
+      const memberChips: string[] = [];
+      const elementBox = getBoundingBox(element);
+
+      for (const chip of chipBoundaries) {
+        const chipBox = getBoundingBox(chip);
+
+        if (boundingBoxesOverlap(elementBox, chipBox)) {
+          memberChips.push(chip.id);
+
+          const chipElems = chipBoundaryElements.get(chip.id) || [];
+          chipElems.push(element.id);
+          chipBoundaryElements.set(chip.id, chipElems);
+        }
+      }
+
+      elementChipBoundaries.set(element.id, memberChips);
+    }
+
+    return { elementChipBoundaries, chipBoundaryElements };
   }
 
   // ==================== TRUST BOUNDARY HIERARCHY ====================
@@ -357,6 +409,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     elementsById: Map<string, DFDElement>,
     elementTrustBoundaries: Map<string, string[]>,
     effectiveElementTrustBoundary: Map<string, string | undefined>,
+    elementChipBoundaries: Map<string, string[]>,
   ): Map<string, DataFlowAnalysis> {
     const analysis = new Map<string, DataFlowAnalysis>();
 
@@ -412,6 +465,20 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
 
       const viaInterface = interfaceIds.length > 0;
 
+      // Check if flow crosses a ChipBoundary
+      const fromChips = elementChipBoundaries.get(conn.from) || [];
+      const toChips = elementChipBoundaries.get(conn.to) || [];
+      const fromChipSet = new Set(fromChips);
+      const toChipSet = new Set(toChips);
+      const crossesChipBoundary =
+        fromChips.some((id) => !toChipSet.has(id)) ||
+        toChips.some((id) => !fromChipSet.has(id));
+
+      // Check if flow terminates at a ChipBoundary element directly
+      const terminatesAtChipBoundary =
+        fromElement.type === "ChipBoundary" ||
+        toElement.type === "ChipBoundary";
+
       analysis.set(conn.id, {
         connectionId: conn.id,
         fromElementId: conn.from,
@@ -427,6 +494,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         interfaceIds,
         viaInterface,
         crossingType,
+        crossesChipBoundary,
+        terminatesAtChipBoundary,
       });
     }
 
@@ -438,6 +507,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     connections: DFDConnection[],
     dataFlowAnalysis: Map<string, DataFlowAnalysis>,
     elementTrustBoundaries: Map<string, string[]>,
+    elementChipBoundaries: Map<string, string[]>,
   ): void {
     // Interface → TB-EL als Default
     for (const element of elements) {
@@ -465,6 +535,30 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         (element.properties as InterfaceProperties).exposureLevel = undefined;
         (element.properties as InterfaceProperties).exposureLevelSource =
           undefined;
+      }
+    }
+
+    // Interface inside ChipBoundary: derive EL from ChipBoundary if no TB-EL found
+    for (const element of elements) {
+      if (element.type !== "Interface") continue;
+      const props = element.properties as InterfaceProperties;
+      if (props.exposureLevelSource === "manual") continue;
+      if (props.exposureLevel) continue; // Already derived from TB
+
+      const chipIds = elementChipBoundaries.get(element.id) ?? [];
+      let derivedEL: string | undefined;
+      for (const chipId of chipIds) {
+        const chip = elements.find((e) => e.id === chipId);
+        const chipEL = (chip?.properties as ChipBoundaryProperties)
+          ?.defaultExposureLevel;
+        derivedEL = maxEL(derivedEL, chipEL);
+      }
+
+      if (derivedEL) {
+        (element.properties as InterfaceProperties).exposureLevel =
+          derivedEL as ExposureLevel;
+        (element.properties as InterfaceProperties).exposureLevelSource =
+          "derived";
       }
     }
 

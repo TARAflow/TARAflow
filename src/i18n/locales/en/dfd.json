@@ -194,7 +194,8 @@
         "sections": {
           "context": "Context",
           "security": "Security",
-          "documentation": "Documentation"
+          "documentation": "Documentation",
+          "hardware_security": "Hardware Security"
         },
         "process": {
           "safetyAnnotation": {
@@ -1054,6 +1055,112 @@
             "owner": {
               "label": "Owner / Responsible Team",
               "placeholder": "Who maintains this boundary?"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
+          }
+        },
+        "chipboundary": {
+          "warning": {
+            "title": "Hardware boundary — physical attack surface!",
+            "hint": "Debug interfaces, firmware protection, and supply chain trust must be explicitly verified before production release."
+          },
+          "fields": {
+            "chipType": {
+              "label": "Chip Type",
+              "options": {
+                "mcu": "MCU (Microcontroller)",
+                "som": "SOM (System-on-Module)",
+                "fpga": "FPGA",
+                "dsp": "DSP (Digital Signal Processor)",
+                "se": "SE (Secure Element)",
+                "hsm": "HSM (Hardware Security Module)"
+              },
+              "tooltips": {
+                "mcu": "Microcontroller — STM32, NXP, Renesas. Threats: JTAG access, firmware tampering, secure boot bypass.",
+                "som": "System-on-Module — Toradex, RPi CM, Variscite. Supply chain trust especially relevant.",
+                "fpga": "Field Programmable Gate Array. Threats: bitstream tampering, readback, partial reconfiguration.",
+                "dsp": "Digital Signal Processor. Threat profile similar to MCU.",
+                "se": "Secure Element — ATECC608. Hardware-backed key storage, non-extractable by design.",
+                "hsm": "Hardware Security Module. Highest hardware assurance. Verify FIPS 140-2 or CC EAL4+ certification."
+              }
+            },
+            "debugInterfacePresent": {
+              "label": "Debug Interface",
+              "options": {
+                "none": "None",
+                "jtag": "JTAG",
+                "swd": "SWD",
+                "jtag_trace": "JTAG + Trace Port (ETM)",
+                "swd_swo": "SWD + SWO (ITM)",
+                "custom": "Custom"
+              },
+              "tooltips": {
+                "none": "No debug interface present or fully disabled. Recommended for production firmware.",
+                "jtag": "Full JTAG — CPU halt, memory access, flash read/write. Highest risk if not locked via fuse/OTP before production release.",
+                "swd": "SWD (ARM Serial Wire Debug) — similar capabilities to JTAG with fewer pins. Must be locked via RDP or equivalent before production release.",
+                "jtag_trace": "JTAG with ETM Trace Port — full instruction trace via parallel port. Requires separate physical connector (Mictor). Threat: complete code-flow disclosure.",
+                "swd_swo": "SWD with Single Wire Output — lightweight software trace via ITM. Single additional pin. Threat: software-generated trace messages readable.",
+                "custom": "Proprietary or vendor-specific debug interface. Document access method and locking mechanism in notes."
+              }
+            },
+            "debugInterfaceLocked": {
+              "label": "Debug interface locked / disabled in production (Fuse / OTP)"
+            },
+            "secureBootEnabled": {
+              "label": "Secure Boot enabled"
+            },
+            "firmwareProtection": {
+              "label": "Firmware Protection",
+              "options": {
+                "none": "None",
+                "rdp_level1": "RDP Level 1",
+                "rdp_level2": "RDP Level 2",
+                "locked": "Locked",
+                "encrypted": "Encrypted"
+              },
+              "tooltips": {
+                "none": "No protection — firmware readable and replaceable.",
+                "rdp_level1": "STM32 RDP1: readback disabled, debug limited.",
+                "rdp_level2": "STM32 RDP2: JTAG fully disabled, mass erase on tamper.",
+                "locked": "Write-protected, no debug access.",
+                "encrypted": "Firmware image is encrypted at rest."
+              }
+            },
+            "bitstreamEncryption": {
+              "label": "Bitstream encryption enabled"
+            },
+            "tamperProtection": {
+              "label": "Tamper Protection",
+              "options": {
+                "none": "None",
+                "basic": "Basic",
+                "active": "Active"
+              },
+              "tooltips": {
+                "none": "No tamper protection.",
+                "basic": "Enclosure seal, tamper-evident label, or potting.",
+                "active": "Active tamper detection: voltage glitch, temperature, or mesh."
+              }
+            },
+            "supplyChainTrust": {
+              "label": "Supply Chain Trust",
+              "options": {
+                "verified": "Verified",
+                "unverified": "Unverified",
+                "unknown": "Unknown"
+              }
+            },
+            "safetyRelevant": {
+              "label": "Safety-relevant hardware"
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "helper": "Required for EN 50742 / MVO 2027 documentation"
             },
             "notes": {
               "label": "Notes"

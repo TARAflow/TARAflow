@@ -202,15 +202,17 @@ export const PHYSICAL_CONTACT_QUALIFIER_LABELS: Record<PhysicalContactQualifier,
 // ==================== ALLOWED RELATIONS MATRIX ====================
 // Defines which relation types are allowed per element type + asset group.
 
-export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationType[]> = {
-  Process:        ["creates", "reads", "modifies", "deletes", "is_an"],
-  Multiprocess:   ["creates", "reads", "modifies", "deletes", "is_an"],
-  DataStore:      ["stores", "deletes", "is_an"],
-  DataFlow:       ["transports"],
-  ExternalEntity: ["creates", "reads", "is_an"],
-  Interface:      ["transports"],
-  TrustBoundary:  [],
-};
+export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationType[]> =
+  {
+    Process: ["creates", "reads", "modifies", "deletes", "is_an"],
+    Multiprocess: ["creates", "reads", "modifies", "deletes", "is_an"],
+    DataStore: ["stores", "deletes", "is_an"],
+    DataFlow: ["transports"],
+    ExternalEntity: ["creates", "reads", "is_an"],
+    Interface: ["transports"],
+    TrustBoundary: [],
+    ChipBoundary: ["reads", "stores", "modifies"],
+  };
 
 export const ALLOWED_FUNCTION_RELATIONS: Record<
   DFDElementType,
@@ -237,26 +239,70 @@ export const ALLOWED_FUNCTION_RELATIONS: Record<
   ExternalEntity: ["invokes", "monitors", "depends_on", "is_an"],
   Interface: ["invokes", "monitors"],
   TrustBoundary: [],
+  ChipBoundary: ["implements", "depends_on"],
 };
 
-export const ALLOWED_PROCESS_RELATIONS: Record<DFDElementType, ProcessAssetRelationType[]> = {
-  Process:        ["executes", "invokes", "terminates", "suspends", "monitors", "is_an"],
-  Multiprocess:   ["executes", "invokes", "terminates", "suspends", "monitors", "is_an"],
-  DataStore:      [],
-  DataFlow:       ["invokes"],
+export const ALLOWED_PROCESS_RELATIONS: Record<
+  DFDElementType,
+  ProcessAssetRelationType[]
+> = {
+  Process: [
+    "executes",
+    "invokes",
+    "terminates",
+    "suspends",
+    "monitors",
+    "is_an",
+  ],
+  Multiprocess: [
+    "executes",
+    "invokes",
+    "terminates",
+    "suspends",
+    "monitors",
+    "is_an",
+  ],
+  DataStore: [],
+  DataFlow: ["invokes"],
   ExternalEntity: ["invokes", "terminates", "suspends", "monitors", "is_an"],
-  Interface:      ["invokes", "monitors"],
-  TrustBoundary:  [],
+  Interface: ["invokes", "monitors"],
+  TrustBoundary: [],
+  ChipBoundary: [],
 };
 
-export const ALLOWED_SYSTEM_RELATIONS: Record<DFDElementType, SystemAssetRelationType[]> = {
-  Process:        ["controls", "configures", "monitors", "uses", "depends_on", "is_an"],
-  Multiprocess:   ["controls", "configures", "monitors", "uses", "depends_on", "is_an"],
-  DataStore:      ["depends_on", "is_an"],
-  DataFlow:       ["uses"],
-  ExternalEntity: ["controls", "configures", "monitors", "uses", "depends_on", "is_an"],
-  Interface:      ["monitors", "uses", "depends_on", "is_an"],
-  TrustBoundary:  [],
+export const ALLOWED_SYSTEM_RELATIONS: Record<
+  DFDElementType,
+  SystemAssetRelationType[]
+> = {
+  Process: [
+    "controls",
+    "configures",
+    "monitors",
+    "uses",
+    "depends_on",
+    "is_an",
+  ],
+  Multiprocess: [
+    "controls",
+    "configures",
+    "monitors",
+    "uses",
+    "depends_on",
+    "is_an",
+  ],
+  DataStore: ["depends_on", "is_an"],
+  DataFlow: ["uses"],
+  ExternalEntity: [
+    "controls",
+    "configures",
+    "monitors",
+    "uses",
+    "depends_on",
+    "is_an",
+  ],
+  Interface: ["monitors", "uses", "depends_on", "is_an"],
+  TrustBoundary: [],
+  ChipBoundary: ["is_an", "uses", "depends_on"],
 };
 
 export const ALLOWED_INFRA_RELATIONS: Record<
@@ -277,6 +323,7 @@ export const ALLOWED_INFRA_RELATIONS: Record<
   ],
   Interface: ["accesses", "secures", "monitors", "is_an"],
   TrustBoundary: [],
+  ChipBoundary: [],
 };
 
 export const ALLOWED_PHYSICAL_RELATIONS: Record<
@@ -291,6 +338,7 @@ export const ALLOWED_PHYSICAL_RELATIONS: Record<
   ExternalEntity: ["accesses", "damages", "secures", "monitors", "is_an"],
   Interface: ["accesses", "monitors"],
   TrustBoundary: [],
+  ChipBoundary: [],
 };
 
 export const ALLOWED_SERVICE_RELATIONS: Record<
@@ -304,16 +352,40 @@ export const ALLOWED_SERVICE_RELATIONS: Record<
   ExternalEntity: ["uses", "configures", "monitors", "depends_on", "is_an"],
   Interface: ["uses", "monitors", "depends_on"],
   TrustBoundary: [],
+  ChipBoundary: [],
 };
 
-export const ALLOWED_HUMAN_RELATIONS: Record<DFDElementType, HumanAssetRelationType[]> = {
-  Process:        ["affects_safety", "affects_privacy", "identifies", "tracks", "exposes"],
-  Multiprocess:   ["affects_safety", "affects_privacy", "identifies", "tracks", "exposes"],
-  DataStore:      ["affects_privacy", "identifies", "tracks"],
-  DataFlow:       ["affects_privacy", "identifies", "tracks", "exposes"],
-  ExternalEntity: ["affects_safety", "affects_privacy", "identifies", "tracks", "exposes", "is_an"],
-  Interface:      ["affects_safety", "affects_privacy", "exposes"],
-  TrustBoundary:  [],
+export const ALLOWED_HUMAN_RELATIONS: Record<
+  DFDElementType,
+  HumanAssetRelationType[]
+> = {
+  Process: [
+    "affects_safety",
+    "affects_privacy",
+    "identifies",
+    "tracks",
+    "exposes",
+  ],
+  Multiprocess: [
+    "affects_safety",
+    "affects_privacy",
+    "identifies",
+    "tracks",
+    "exposes",
+  ],
+  DataStore: ["affects_privacy", "identifies", "tracks"],
+  DataFlow: ["affects_privacy", "identifies", "tracks", "exposes"],
+  ExternalEntity: [
+    "affects_safety",
+    "affects_privacy",
+    "identifies",
+    "tracks",
+    "exposes",
+    "is_an",
+  ],
+  Interface: ["affects_safety", "affects_privacy", "exposes"],
+  TrustBoundary: [],
+  ChipBoundary: [],
 };
 
 // ==================== LOOKUP HELPERS ====================

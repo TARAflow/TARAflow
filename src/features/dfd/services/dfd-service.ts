@@ -452,6 +452,7 @@ class DFDService {
           mergedConnections,
           dfdGraph.dataFlowAnalysis,
           dfdGraph.elementTrustBoundaries,
+          dfdGraph.elementChipBoundaries,
         );
       }
 

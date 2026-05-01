@@ -21,6 +21,10 @@ export interface DFDGraph {
   elementTrustBoundaries: Map<string, string[]>; // elementId -> trustBoundaryIds
   trustBoundaryElements: Map<string, string[]>; // trustBoundaryId -> elementIds
 
+  /** ChipBoundary relations — analog to TrustBoundary */
+  elementChipBoundaries: Map<string, string[]>; // elementId -> chipBoundaryIds
+  chipBoundaryElements: Map<string, string[]>; // chipBoundaryId -> elementIds
+
   /** DataFlow semantic analysis */
   dataFlowAnalysis: Map<string, DataFlowAnalysis>;
 
@@ -65,6 +69,12 @@ export interface DataFlowAnalysis {
 
   /** Direction of trust boundary crossing */
   crossingType: "none" | "inbound" | "outbound" | "lateral";
+
+  /** Whether this flow crosses a ChipBoundary */
+  crossesChipBoundary: boolean;
+
+  /** Whether this flow terminates at a ChipBoundary (via Interface on boundary edge) */
+  terminatesAtChipBoundary: boolean;
 }
 
 // ==================== INTERNAL HELPERS ====================

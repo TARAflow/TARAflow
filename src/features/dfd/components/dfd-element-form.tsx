@@ -20,6 +20,7 @@ import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
 import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
 import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
+import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
 
 // ==================== PROPS ====================
 
@@ -132,6 +133,14 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
     case "TrustBoundary":
       return (
         <TrustBoundaryDescriptionForm
+          element={element}
+          onChange={onChange as (updates: Partial<DFDElement>) => void}
+        />
+      );
+
+    case "ChipBoundary":
+      return (
+        <ChipBoundaryDescriptionForm
           element={element}
           onChange={onChange as (updates: Partial<DFDElement>) => void}
         />

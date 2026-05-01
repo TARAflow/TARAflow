@@ -598,6 +598,139 @@ export interface TrustBoundaryProperties {
   notes?: string;
 }
 
+// ==================== CHIP BOUNDARY PROPERTIES ====================
+// Represents a hardware chip boundary in the DFD.
+// Connectable: DataFlows may terminate at or originate from this boundary
+// via an Interface element placed on the boundary edge.
+//
+// Threat classes triggered by chipType:
+//   mcu / dsp / som → Firmware Tampering, JTAG Access, Secure Boot Bypass
+//   fpga            → Bitstream Tampering, Readback Attack, Partial Reconfig
+//   se / hsm        → Key Extraction, Side Channel Attack, Physical Tampering
+//
+// STRIDE relevance:
+//   S — Spoofing via debug interface impersonation
+//   T — Tampering with firmware, bitstream, or key material
+//   R — Repudiation (no audit trail at hardware level)
+//   I — Information Disclosure via readback / side channel
+//   D — DoS via debug halt, firmware brick
+//   E — Elevation via JTAG full access
+ 
+export interface ChipBoundaryProperties {
+  // ── Primary classifier ────────────────────────────────────────────────────
+  /**
+   * Hardware type of the chip boundary.
+   * Drives cascade defaults and threat generator selection.
+   */
+  chipType?:
+    | "mcu"   // Microcontroller — STM32, NXP, Renesas, etc.
+    | "som"   // System-on-Module — Toradex, RPi CM, Variscite, etc.
+    | "fpga"  // Field Programmable Gate Array — Xilinx, Intel/Altera, Lattice
+    | "se"    // Secure Element — ATECC608, SLB9670, etc.
+    | "hsm"   // Hardware Security Module — higher assurance than SE
+    | "dsp";  // Digital Signal Processor — threat profile similar to MCU
+ 
+  // ── Exposure ──────────────────────────────────────────────────────────────
+  /**
+   * Default exposure level for interfaces on this chip boundary.
+   * EL0 = internal only, EL1 = physical access required.
+   * SE/HSM typically EL0; MCU/SOM/FPGA typically EL1 (requires disassembly).
+   */
+  defaultExposureLevel?: ExposureLevel;
+ 
+  // ── Debug Interface ───────────────────────────────────────────────────────
+  /**
+   * Type of debug/programming interface present on this chip.
+   * "none" = no debug interface (or fully disabled).
+   * Drives Interface symbol type suggestion in the form.
+   */
+  debugInterfacePresent?:
+    | "none"
+    | "jtag"          // Full JTAG — CPU halt, memory access, flash R/W
+    | "jtag_trace"    // JTAG + Trace Port (ETM) — full debug + instruction trace
+    | "swd"           // SWD (ARM) — similar capabilities to JTAG
+    | "swd_swo"       // SWD + SWO — debug + lightweight software trace (ITM)
+    | "custom";       // Proprietary debug interface
+ 
+  /**
+   * Debug interface is locked / disabled in production firmware.
+   * STM32: RDP Level ≥ 1. FPGA: JTAG fuse blown.
+   * Default: false — surfaces threat if interface is present.
+   */
+  debugInterfaceLocked?: boolean;
+ 
+  // ── Boot Security ─────────────────────────────────────────────────────────
+  /**
+   * Secure Boot is enabled — boot chain is cryptographically verified.
+   * If false: Bootloader Tampering threat is automatically generated.
+   */
+  secureBootEnabled?: boolean;
+ 
+  /**
+   * Firmware readback / tampering protection level.
+   * Specific to MCU/SOM. Not applicable to FPGA (use bitstreamEncryption).
+   *
+   * none        → No protection — firmware readable and replaceable
+   * rdp_level1  → STM32 RDP1: readback disabled, debug limited
+   * rdp_level2  → STM32 RDP2: JTAG fully disabled, mass erase on tamper
+   * locked      → Generic: write-protected, no debug
+   * encrypted   → Firmware image is encrypted at rest
+   */
+  firmwareProtection?:
+    | "none"
+    | "rdp_level1"
+    | "rdp_level2"
+    | "locked"
+    | "encrypted";
+ 
+  /**
+   * FPGA bitstream encryption enabled.
+   * Only relevant when chipType = "fpga".
+   * If false: Bitstream Readback / Reverse Engineering threat is generated.
+   */
+  bitstreamEncryption?: boolean;
+ 
+  // ── Physical / Tamper Protection ──────────────────────────────────────────
+  /**
+   * Physical tamper protection present on the chip or module.
+   *
+   * none   → No tamper protection
+   * basic  → Enclosure seal, tamper-evident label, potting
+   * active → Active tamper detection: voltage glitch, temperature, mesh
+   */
+  tamperProtection?: "none" | "basic" | "active";
+ 
+  // ── Supply Chain ──────────────────────────────────────────────────────────
+  /**
+   * Confidence in the chip supply chain.
+   * Relevant for: Hardware Trojan threat class, SOM vendor trust.
+   *
+   * verified   → Authorized distributor, traceability confirmed
+   * unverified → Unknown or grey-market source
+   * unknown    → Not assessed
+   */
+  supplyChainTrust?: "verified" | "unverified" | "unknown";
+ 
+  // ── Documentation ─────────────────────────────────────────────────────────
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
+
+  // ---- Safety annotation ----
+  /**
+   * This chip boundary contains or supports safety-relevant hardware or functions.
+   * Used for: EN 50742 "Identification of safety-relevant interfaces".
+   * @example Safety MCU (SIL-certified) → safetyRelevant: true
+   * @example SE protecting Safety PLC auth key → safetyRelevant: true
+   */
+  safetyRelevant?: boolean;
+  safetyRationale?: string;
+ 
+  notes?: string;
+}
+
 // ==================== UNION TYPE ====================
 
 export type ElementProperties =
@@ -607,4 +740,5 @@ export type ElementProperties =
   | DataStoreProperties
   | DataFlowProperties
   | InterfaceProperties
-  | TrustBoundaryProperties;
+  | TrustBoundaryProperties
+  | ChipBoundaryProperties;

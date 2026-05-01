@@ -10,6 +10,7 @@ import type {
   DataFlowProperties,
   InterfaceProperties,
   TrustBoundaryProperties,
+  ChipBoundaryProperties,
 } from "./element-properties";
 
 // ==================== PROCESS DEFAULTS ====================
@@ -506,6 +507,122 @@ export const TB_TYPE_DRIVEN_FIELDS: (keyof TrustBoundaryProperties)[] = [
   "defaultExposureLevel",
   "monitoringEnabled",
 ];
+
+// ==================== CHIP BOUNDARY DEFAULTS ====================
+
+type ChipType = NonNullable<ChipBoundaryProperties["chipType"]>;
+
+/**
+ * Cascade defaults based on ChipBoundary.chipType selection.
+ *
+ * Design principle: MCU/SOM/FPGA/DSP default to the LEAST secure state
+ * to surface threats. SE/HSM default to the most secure state because
+ * that is their design contract — deviations must be consciously entered.
+ */
+export const CHIP_TYPE_DEFAULTS: Record<
+  ChipType,
+  Partial<ChipBoundaryProperties>
+> = {
+  mcu: {
+    defaultExposureLevel: "EL1",
+    debugInterfaceLocked: false, // Surfaces: JTAG not locked threat
+    secureBootEnabled: false, // Surfaces: Secure Boot missing threat
+    firmwareProtection: "none", // Surfaces: Firmware Readback threat
+    tamperProtection: "none",
+    supplyChainTrust: "unknown",
+  },
+  som: {
+    defaultExposureLevel: "EL1",
+    debugInterfaceLocked: false,
+    secureBootEnabled: false,
+    firmwareProtection: "none",
+    tamperProtection: "none",
+    supplyChainTrust: "unknown", // SOM: supply chain especially relevant
+  },
+  fpga: {
+    defaultExposureLevel: "EL1",
+    debugInterfaceLocked: false,
+    secureBootEnabled: false,
+    bitstreamEncryption: false, // Surfaces: Bitstream Readback threat
+    tamperProtection: "none",
+    supplyChainTrust: "unknown",
+  },
+  se: {
+    defaultExposureLevel: "EL0", // SE is always deeply internal
+    debugInterfaceLocked: true, // SE has no accessible debug interface
+    secureBootEnabled: true, // SE's core contract: secure by design
+    firmwareProtection: "locked",
+    tamperProtection: "basic", // Most SEs have basic tamper resistance
+    supplyChainTrust: "verified",
+  },
+  hsm: {
+    defaultExposureLevel: "EL0",
+    debugInterfaceLocked: true,
+    secureBootEnabled: true,
+    firmwareProtection: "locked",
+    tamperProtection: "active", // HSMs typically have active tamper detection
+    supplyChainTrust: "verified",
+  },
+  dsp: {
+    defaultExposureLevel: "EL1",
+    debugInterfaceLocked: false,
+    secureBootEnabled: false,
+    firmwareProtection: "none",
+    tamperProtection: "none",
+    supplyChainTrust: "unknown",
+  },
+};
+
+/**
+ * Security assumptions placeholder text per chipType.
+ * Displayed in the Notes/Assumptions field — hints only, never auto-filled.
+ */
+export const CHIP_TYPE_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<
+  ChipType,
+  string
+> = {
+  mcu: "MCU is assumed physically accessible only after enclosure is opened. JTAG/SWD must be locked before production release.",
+  som: "SOM is a third-party module. Supply chain trust must be verified. Debug interface must be locked in production.",
+  fpga: "FPGA bitstream must be encrypted to prevent readback and IP theft. JTAG boundary scan should be disabled in production.",
+  se: "Secure Element provides hardware-backed key storage. Keys are non-extractable by design. Verify genuine part from authorized distributor.",
+  hsm: "HSM provides highest hardware assurance. Physical tamper response active. Verify certification (FIPS 140-2 or CC EAL4+).",
+  dsp: "DSP threat profile similar to MCU. Verify debug interface is locked and firmware is integrity-protected.",
+};
+
+/**
+ * Fields driven by ChipBoundary.chipType — cleared when driver is reset.
+ */
+export const CHIP_TYPE_DRIVEN_FIELDS: (keyof ChipBoundaryProperties)[] = [
+  "defaultExposureLevel",
+  "debugInterfaceLocked",
+  "secureBootEnabled",
+  "firmwareProtection",
+  "bitstreamEncryption",
+  "tamperProtection",
+  "supplyChainTrust",
+];
+
+/**
+ * Get default properties for a ChipBoundary based on chipType selection.
+ * Only cascades into fields that are currently unset — consistent with
+ * applyCascadeDefaults pattern.
+ */
+export function getChipBoundaryDefaults(
+  current: ChipBoundaryProperties,
+  chipType: ChipType,
+): ChipBoundaryProperties {
+  const next: ChipBoundaryProperties = { ...current, chipType };
+  const defaults = CHIP_TYPE_DEFAULTS[chipType] ?? {};
+
+  Object.entries(defaults).forEach(([key, value]) => {
+    const currentVal = next[key as keyof ChipBoundaryProperties];
+    if (currentVal === undefined || currentVal === null) {
+      (next as any)[key] = value;
+    }
+  });
+
+  return next;
+}
 
 // ==================== PROCESS PROPERTY HELPERS ====================
 

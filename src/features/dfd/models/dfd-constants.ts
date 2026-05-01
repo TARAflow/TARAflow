@@ -64,6 +64,12 @@ export const DFD_ELEMENT_CONFIG: Record<
     description: "Physical/logical interface (USB, UART, Ethernet, etc.)",
     icon: "▢",
   },
+  ChipBoundary: {
+    name: "Chip Boundary",
+    nameDE: "Chip Boundary",
+    description: "Hardware chip boundary — MCU, SOM, FPGA, SE, HSM, DSP",
+    icon: "⬡",
+  },
 };
 
 export const EXPOSURE_LEVEL_LABELS: Record<ExposureLevel, string> = {

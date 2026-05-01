@@ -58,12 +58,13 @@ export function getDFDElementTypePluralText(
 ): string {
   const plurals: Record<DFDElementType, { en: string; de: string }> = {
     ExternalEntity: { en: "External Entities", de: "Externe Entitäten" },
-    Process:        { en: "Processes",         de: "Prozesse" },
-    Multiprocess:   { en: "Multiprocesses",    de: "Multiprozesse" },
-    DataStore:      { en: "Data Stores",       de: "Datenspeicher" },
-    DataFlow:       { en: "Data Flows",        de: "Datenflüsse" },
-    TrustBoundary:  { en: "Trust Boundaries",  de: "Vertrauensgrenzen" },
-    Interface:      { en: "Interfaces",        de: "Schnittstellen" },
+    Process: { en: "Processes", de: "Prozesse" },
+    Multiprocess: { en: "Multiprocesses", de: "Multiprozesse" },
+    DataStore: { en: "Data Stores", de: "Datenspeicher" },
+    DataFlow: { en: "Data Flows", de: "Datenflüsse" },
+    TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
+    Interface: { en: "Interfaces", de: "Schnittstellen" },
+    ChipBoundary: { en: "Chip Boundaries", de: "Chip Boundaries" },
   };
   return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);
 }
