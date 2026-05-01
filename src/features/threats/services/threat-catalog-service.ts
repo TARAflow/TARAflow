@@ -14,7 +14,7 @@ import type {
   MitigationDraft,
   VerificationDraft,
   TemplateContext,
-  ProjectSettings,
+  ThreatProjectData,
 } from "../models/threat-types";
 
 import elementTemplatesData from "./element-templates.json";
@@ -49,14 +49,18 @@ const ALL_VERIFICATIONS: VerificationEntry[] =
  */
 export function matchesContext(
   templateCtx: TemplateContext,
-  settings: ProjectSettings
+  threatData: ThreatProjectData, // War: settings: ProjectSettings
 ): boolean {
-  const { industry, platform, standards } = templateCtx;
-  if (industry?.length && !industry.includes(settings.industry)) return false;
-  if (platform?.length && !platform.includes(settings.platform)) return false;
+  const tags = threatData.info?.tags;
+  if (!tags) return true;
+  const { domain, platform, regulation } = templateCtx;
+  if (domain?.length && !domain.some((d) => tags.domain.includes(d)))
+    return false;
+  if (platform?.length && !platform.some((p) => tags.platform.includes(p)))
+    return false;
   if (
-    standards?.length &&
-    !standards.some((s) => settings.standards.includes(s))
+    regulation?.length &&
+    !regulation.some((r) => tags.regulation.includes(r))
   )
     return false;
   return true;
@@ -75,12 +79,12 @@ export function getAllElementTemplates(): ElementTemplate[] {
 export function getApplicableElementTemplates(
   strideCategory: StrideCategory,
   elementType: string,
-  settings?: ProjectSettings
+  threatData?: ThreatProjectData,
 ): ElementTemplate[] {
   return ALL_ELEMENT_TEMPLATES.filter((t) => {
     if (t.strideCategory !== strideCategory) return false;
     if (!t.elementTypes.includes(elementType)) return false;
-    if (settings && !matchesContext(t.context, settings)) return false;
+    if (threatData && !matchesContext(t.context, threatData)) return false;
     return true;
   });
 }
@@ -88,12 +92,12 @@ export function getApplicableElementTemplates(
 export function findElementTemplate(
   strideCategory: StrideCategory,
   elementType: string,
-  settings?: ProjectSettings
+  threatData?: ThreatProjectData,
 ): ElementTemplate | undefined {
   return getApplicableElementTemplates(
     strideCategory,
     elementType,
-    settings,
+    threatData,
   )[0];
 }
 
@@ -110,12 +114,12 @@ export function getAllMitigations(): MitigationEntry[] {
 export function getApplicableInteractionTemplates(
   strideCategory: StrideCategory,
   perspective: "sender" | "receiver",
-  settings?: ProjectSettings
+  threatData?: ThreatProjectData,
 ): InteractionTemplate[] {
   return ALL_INTERACTION_TEMPLATES.filter((t) => {
     if (t.strideCategory !== strideCategory) return false;
     if (t.perspective !== perspective) return false;
-    if (settings && !matchesContext(t.context, settings)) return false;
+    if (threatData && !matchesContext(t.context, threatData)) return false;
     return true;
   });
 }
@@ -123,12 +127,12 @@ export function getApplicableInteractionTemplates(
 export function findInteractionTemplate(
   strideCategory: StrideCategory,
   perspective: "sender" | "receiver",
-  settings?: ProjectSettings
+  threatData?: ThreatProjectData,
 ): InteractionTemplate | undefined {
   return getApplicableInteractionTemplates(
     strideCategory,
     perspective,
-    settings
+    threatData,
   )[0];
 }
 

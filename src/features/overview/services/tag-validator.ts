@@ -8,7 +8,7 @@
 //   A consultant tagging a Medical project with CRA is valid — no hard block.
 
 import i18n from "i18next";
-import type { ProjectTags } from "../models/overview-types";
+import type { ProjectTags } from "shared";
 
 // ==================== TYPES ====================
 

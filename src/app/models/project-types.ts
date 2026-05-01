@@ -1,11 +1,7 @@
-import type {
-  ProjectInfoData,
-  ProjectSettingsData,
-  ProjectTags,
-} from "features/overview";
+import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
-import { PhaseStatus, PhaseStatusMap } from "shared";
+import { PhaseStatus, PhaseStatusMap, ProjectTags } from "shared";
 import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
 import { AttackTreeData } from "features/attacktree";

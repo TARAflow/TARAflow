@@ -1,5 +1,5 @@
 import React from "react";
-import { PhaseDefinition, PhaseStatus, PhaseStatusMap } from "shared";
+import { PhaseDefinition, PhaseStatus, flattenProjectTags } from "shared";
 import { ProjectInfo } from "./project-info";
 import { ProjectProgress } from "./project-progress";
 import { ProjectSettings } from "./project-settings";
@@ -10,7 +10,6 @@ import {
   ProjectSettingsData,
   PhaseValidationInfo,
   getWorkflowMode,
-  flattenProjectTags,
 } from "../models/overview-types";
 
 // ==================== GENERAL TAB ====================

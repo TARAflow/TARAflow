@@ -111,3 +111,13 @@ export type { AssetGroup, A2ARelationType } from "./models/asset-group-types";
 // AssetGroupConfig is re-exported here for consumers that need the config shape.
 export type { AssetGroupConfig } from "./models/asset-color-constants";
 export { ASSET_GROUP_CONFIG } from "./models/asset-color-constants";
+
+export {
+  type ProjectTags,
+  EMPTY_PROJECT_TAGS,
+  migrateProjectTags,
+  addTagToProject,
+  removeTagFromProject,
+  flattenProjectTags,
+  isProjectTags,
+} from "./models/project-tags";

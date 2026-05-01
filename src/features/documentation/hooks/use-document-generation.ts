@@ -18,7 +18,7 @@ import {
   validateProjectForDoc,
   getMimeType,
 } from "../utils/doc-generator";
-import { isRegulationTag } from "shared";
+import { isRegulationTag, flattenProjectTags } from "shared";
 import {
   createProjectWithPng,
   createPdfBlob,
@@ -26,7 +26,6 @@ import {
 } from "../utils/pdf-helpers";
 
 import type { DocTabProps } from "../models/doc-types";
-import { flattenProjectTags } from "features/overview";
 
 // ==================== TYPES ====================
 

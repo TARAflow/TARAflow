@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, File, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { flattenProjectTags, isProjectTags } from "features/overview";
+import { flattenProjectTags, isProjectTags } from "shared";
 
 
 // ==================== IMPORT PROJECT DIALOG ====================

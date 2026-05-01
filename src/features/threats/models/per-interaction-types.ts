@@ -48,9 +48,9 @@ export interface InteractionThreatTemplate {
   strideCategory: StrideCategory;
   perspective: "sender" | "receiver";
   context: {
-    industry?: string[];
+    domain?: string[];
     platform?: string[];
-    standards?: string[];
+    regulation?: string[];
   };
   mitigations: string[];
   verifications: string[];

@@ -1,10 +1,9 @@
 // ==================== STORAGE SERVICE ====================
 // Wrapper for browser localStorage API with error handling and type safety
 
-import { PhaseStatus, PhaseStatusMap } from "shared";
+import { PhaseStatusMap, migrateProjectTags, EMPTY_PROJECT_TAGS } from "shared";
 import {
-  migrateProjectTags,
-  EMPTY_PROJECT_TAGS,
+
   ProjectSettingsData,
 } from "features/overview";
 import { Project, ProjectMetadata } from "../models/project-types";

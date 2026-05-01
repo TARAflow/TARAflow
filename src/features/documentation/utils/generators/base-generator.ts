@@ -36,7 +36,7 @@ import {
 // - Relative: "../../../../shared/utils/tag-categories"
 // - Alias: "@/shared/utils/tag-categories" or "@shared/utils/tag-categories"
 // - Barrel: "shared" (if shared/index.ts exports it)
-import { TAG_CATEGORIES, getRegulationTags } from "shared";
+import { TAG_CATEGORIES, flattenProjectTags, getRegulationTags } from "shared";
 import {
   getElementSecurityLevel,
   getElementTrustLevel,
@@ -55,9 +55,6 @@ import {
   getRelationTypeLabel,
   type PropertyGroup,
 } from "./property-doc-mappers";
-
-import { flattenProjectTags } from "features/overview";
-
 
 // ==================== TYPES ====================
 

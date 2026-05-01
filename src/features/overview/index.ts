@@ -14,11 +14,8 @@ export type {
   ProjectInfoData,
   ProjectProgressData,
   ProjectSettingsData,
-  ProjectTags,
   PhaseValidationInfo,
 } from "./models/overview-types";
-
-export { EMPTY_PROJECT_TAGS } from "./models/overview-types";
 
 // ==================== HOOKS ====================
 
@@ -31,12 +28,4 @@ export {
   isPhaseAccessible,
 } from "./services/phase-helpers";
 
-export {
-  getWorkflowMode,
-  sortPhasesByWorkflow,
-  migrateProjectTags,
-  isProjectTags,
-  flattenProjectTags,
-  addTagToProject,
-  removeTagFromProject,
-} from "./models/overview-types";
+export { getWorkflowMode, sortPhasesByWorkflow } from "./models/overview-types";

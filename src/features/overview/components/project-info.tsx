@@ -8,7 +8,7 @@ import {
   removeTagFromProject,
   flattenProjectTags,
   ProjectTags,
-} from "../models/overview-types";
+} from "shared";
 import {
   TAG_CATEGORIES,
   TagCategoryKey,

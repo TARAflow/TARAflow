@@ -7,13 +7,9 @@ import {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../models/project-types";
-import {
-  ProjectSettingsData,
-  migrateProjectTags,
-  isProjectTags,
-} from "features/overview";
+import { ProjectSettingsData } from "features/overview";
 
-import { PhaseStatus, formatExportFilename } from "shared";
+import { PhaseStatus, formatExportFilename, migrateProjectTags } from "shared";
 
 // ==================== PROJECT SERVICE CLASS ====================
 

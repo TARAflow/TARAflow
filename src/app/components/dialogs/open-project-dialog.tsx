@@ -3,7 +3,7 @@ import { Search, FolderOpen, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ProjectMetadata } from "../../models/project-types";
 import { Button } from "shared";
-import { flattenProjectTags } from "features/overview";
+import { flattenProjectTags } from "shared";
 
 
 // ==================== OPEN PROJECT DIALOG ====================

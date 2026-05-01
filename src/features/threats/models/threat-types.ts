@@ -8,6 +8,7 @@ import type {
   DFDReference,
   MitigationPropertyRole,
   PhaseStatusMap,
+  ProjectTags,
   StrideCategory,
 } from "shared";
 
@@ -430,17 +431,9 @@ export interface VerificationEntry {
  * Non-empty = AND across keys, OR within a key
  */
 export interface TemplateContext {
-  industry?: Array<"ot_ics" | "automotive" | "medical" | "financial" | "generic">;
-  platform?: Array<"embedded" | "iot" | "cloud" | "web" | "generic">;
-  standards?: Array<"iec_62443" | "iso_21434" | "eu_cra" | "en_50742">;
-}
-
-// ==================== PROJECT SETTINGS ====================
-
-export interface ProjectSettings {
-  platform: "embedded" | "iot" | "cloud" | "web" | "generic";
-  industry: "ot_ics" | "automotive" | "medical" | "financial" | "generic";
-  standards: Array<"iec_62443" | "iso_21434" | "eu_cra" | "en_50742">;
+  domain?: string[];
+  platform?: string[];
+  regulation?: string[];
 }
 
 // ==================== CONFIGURATION ====================
@@ -496,7 +489,9 @@ export interface ThreatProjectData {
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;
-  settings?: ProjectSettings;
+  info?: {
+    tags: ProjectTags;
+  };
   /** DFD state — used for mitigation coverage badges in Threat Dialog */
   dfd?: DFDReference | null;
   lastModified: string;

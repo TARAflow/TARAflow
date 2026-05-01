@@ -334,11 +334,7 @@ export class ElementThreatGenerator {
     threat.source = "auto";
 
     // ── Catalog lookup ────────────────────────────────────────────────────
-    const template = findElementTemplate(
-      strideCategory,
-      element.type,
-      project.settings,
-    );
+    const template = findElementTemplate(strideCategory, element.type, project);
 
     if (template) {
       // Descriptions stored empty → rendered from i18n at display time.

@@ -10,7 +10,7 @@ import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models
 import { formatDocDate } from "../../models/doc-types";
 import type { TranslationFn } from "./base-generator";
 import type { PdfOptions } from "./pdf-generator-adaptive";
-import { flattenProjectTags } from "features/overview";
+import { flattenProjectTags } from "shared";
 
 // ==================== PDFMAKE CONVERTER ====================
 

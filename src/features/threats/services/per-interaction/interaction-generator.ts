@@ -273,7 +273,7 @@ export class InteractionThreatGenerator {
     const template = findInteractionTemplate(
       strideCategory,
       perspective,
-      project.settings,
+      project,
     );
 
     if (template) {
@@ -349,7 +349,7 @@ export class InteractionThreatGenerator {
     const template = findInteractionTemplate(
       strideCategory,
       "receiver",
-      project.settings,
+      project,
     );
 
     if (template) {

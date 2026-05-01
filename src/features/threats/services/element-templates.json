@@ -1,5 +1,5 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "elementTemplates": [
     {
       "id": "S-EE-001",
@@ -330,8 +330,7 @@
       "strideCategory": "S",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"],
-        "industry": ["ot_ics"]
+        "platform": ["Embedded", "OT"]
       },
       "mitigations": ["M-S-001", "M-S-002", "M-S-003"],
       "verifications": ["V-S-001", "V-S-004"],
@@ -342,7 +341,7 @@
       "strideCategory": "S",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["cloud"]
+        "platform": ["Cloud"]
       },
       "mitigations": ["M-S-001", "M-S-002", "M-S-004"],
       "verifications": ["V-S-001", "V-S-003"],
@@ -362,7 +361,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"]
+        "platform": ["Embedded"]
       },
       "mitigations": ["M-T-001", "M-T-004", "M-T-005"],
       "verifications": ["V-T-001", "V-T-004"],
@@ -373,7 +372,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"]
+        "platform": ["Embedded"]
       },
       "mitigations": ["M-T-001", "M-T-003"],
       "verifications": ["V-T-001", "V-T-003"],
@@ -384,7 +383,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["cloud"]
+        "platform": ["Cloud"]
       },
       "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
       "verifications": ["V-T-001", "V-T-002"],
@@ -395,7 +394,7 @@
       "strideCategory": "T",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["generic"]
+        "platform": ["Mobile"]
       },
       "mitigations": ["M-T-001", "M-T-004"],
       "verifications": ["V-T-001", "V-T-004"],
@@ -415,8 +414,7 @@
       "strideCategory": "D",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"],
-        "industry": ["ot_ics"]
+        "platform": ["Embedded", "OT"]
       },
       "mitigations": ["M-D-001", "M-D-003", "M-D-005"],
       "verifications": ["V-D-001", "V-D-003"],
@@ -427,8 +425,7 @@
       "strideCategory": "D",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"],
-        "industry": ["ot_ics"]
+        "platform": ["Embedded", "OT"]
       },
       "mitigations": ["M-D-001", "M-D-002", "M-D-004"],
       "verifications": ["V-D-001", "V-D-004"],
@@ -448,7 +445,7 @@
       "strideCategory": "E",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"]
+        "platform": ["Embedded"]
       },
       "mitigations": ["M-E-001", "M-E-006", "M-IF-E-001"],
       "verifications": ["V-E-001", "V-E-004", "V-IF-E-001"],
@@ -459,7 +456,7 @@
       "strideCategory": "E",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["embedded"]
+        "platform": ["Embedded"]
       },
       "mitigations": ["M-E-001", "M-T-004", "M-T-005"],
       "verifications": ["V-E-001", "V-T-004"],
@@ -470,7 +467,7 @@
       "strideCategory": "E",
       "elementTypes": ["Multiprocess"],
       "context": {
-        "platform": ["cloud"]
+        "platform": ["Cloud"]
       },
       "mitigations": ["M-E-001", "M-E-002", "M-E-005"],
       "verifications": ["V-E-001", "V-E-002", "V-E-003"],

@@ -11,15 +11,12 @@ import {
   getTagStyles,
   getTagDefinition,
   getAvailablePredefinedTags,
-} from "shared";
-
-import {
   ProjectTags,
   EMPTY_PROJECT_TAGS,
   addTagToProject,
   removeTagFromProject,
   flattenProjectTags,
-} from "features/overview";
+} from "shared";
 
 // ==================== NEW PROJECT DIALOG ====================
 // Creates a new project with the same layout as project-info

@@ -9,7 +9,7 @@ import {
 } from "../models/project-types";
 import { projectService } from "../services/project-service";
 import { MAX_OPEN_PROJECTS } from "../config/phase-config";
-import { flattenProjectTags } from "features/overview";
+import { flattenProjectTags } from "shared";
 
 // ==================== TYPES ====================
 
