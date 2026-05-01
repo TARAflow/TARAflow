@@ -88,5 +88,23 @@
   },
   "V-IF-E-002": {
     "verification": "Firmware verification and secure boot testing"
+  },
+  "V-CB-T-001": {
+    "verification": "Verify Secure Boot is enabled and boot chain is cryptographically verified"
+  },
+  "V-CB-T-002": {
+    "verification": "Verify firmware readback protection level (RDP1/RDP2 or equivalent) is set"
+  },
+  "V-CB-T-003": {
+    "verification": "Verify chip provenance — confirm sourced from authorized distributor"
+  },
+  "V-CB-I-001": {
+    "verification": "Verify side-channel countermeasures are implemented (power analysis, timing)"
+  },
+  "V-CB-E-001": {
+    "verification": "Verify JTAG/SWD interface is locked via OTP/fuse in production units"
+  },
+  "V-CB-E-002": {
+    "verification": "Verify full debug disable (RDP2 or equivalent) is applied in production"
   }
 }

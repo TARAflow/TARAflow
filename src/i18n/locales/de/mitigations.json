@@ -130,5 +130,26 @@
   },
   "M-IF-E-001": {
     "mitigation": "Debug-Schnittstellen in Produktionseinheiten physisch trennen oder entfernen"
+  },
+  "M-CB-T-001": {
+    "mitigation": "Secure Boot mit kryptografischer Signaturverifikation der Boot-Chain aktivieren"
+  },
+  "M-CB-T-002": {
+    "mitigation": "Firmware-Leseschutz anwenden (RDP Level 1/2 oder äquivalenter OTP-Mechanismus)"
+  },
+  "M-CB-T-003": {
+    "mitigation": "FPGA-Bitstream mit gerätespezifischem Schlüssel verschlüsseln um Auslesung und IP-Diebstahl zu verhindern"
+  },
+  "M-CB-T-004": {
+    "mitigation": "Supply-Chain-Integrität verifizieren — Chips ausschliesslich von autorisierten Distributoren mit Rückverfolgbarkeit beziehen"
+  },
+  "M-CB-I-001": {
+    "mitigation": "Seitenkanal-Gegenmassnahmen anwenden (Leistungsanalyse-Schutz, Timing-Angriff-Resistenz)"
+  },
+  "M-CB-E-001": {
+    "mitigation": "JTAG/SWD Debug-Schnittstelle via OTP-Fuse vor Produktionsfreigabe sperren oder deaktivieren"
+  },
+  "M-CB-E-002": {
+    "mitigation": "RDP Level 2 anwenden — vollständige JTAG-Deaktivierung mit automatischem Mass-Erase bei Manipulationsversuch"
   }
 }

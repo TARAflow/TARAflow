@@ -20,10 +20,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-002"
-      ]
+      "verifications": ["V-S-001", "V-S-002"]
     },
     {
       "id": "M-S-002",
@@ -45,10 +42,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-003"
-      ]
+      "verifications": ["V-S-001", "V-S-003"]
     },
     {
       "id": "M-S-003",
@@ -63,9 +57,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-004"
-      ]
+      "verifications": ["V-S-004"]
     },
     {
       "id": "M-S-004",
@@ -88,10 +80,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-003"
-      ]
+      "verifications": ["V-S-001", "V-S-003"]
     },
     {
       "id": "M-S-005",
@@ -114,10 +103,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-003"
-      ]
+      "verifications": ["V-S-001", "V-S-003"]
     },
     {
       "id": "M-T-001",
@@ -139,9 +125,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-001"
-      ]
+      "verifications": ["V-T-001"]
     },
     {
       "id": "M-T-002",
@@ -157,10 +141,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-001",
-        "V-T-002"
-      ]
+      "verifications": ["V-T-001", "V-T-002"]
     },
     {
       "id": "M-T-003",
@@ -181,9 +162,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-003"
-      ]
+      "verifications": ["V-T-003"]
     },
     {
       "id": "M-T-004",
@@ -198,10 +177,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-002",
-        "V-T-004"
-      ]
+      "verifications": ["V-T-002", "V-T-004"]
     },
     {
       "id": "M-T-005",
@@ -231,10 +207,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-001",
-        "V-T-002"
-      ]
+      "verifications": ["V-T-001", "V-T-002"]
     },
     {
       "id": "M-R-001",
@@ -242,9 +215,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-R-001"
-      ]
+      "verifications": ["V-R-001"]
     },
     {
       "id": "M-R-002",
@@ -260,9 +231,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-R-002"
-      ]
+      "verifications": ["V-R-002"]
     },
     {
       "id": "M-R-003",
@@ -270,9 +239,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-R-003"
-      ]
+      "verifications": ["V-R-003"]
     },
     {
       "id": "M-R-004",
@@ -280,9 +247,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-R-001"
-      ]
+      "verifications": ["V-R-001"]
     },
     {
       "id": "M-R-005",
@@ -297,10 +262,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-R-001",
-        "V-R-002"
-      ]
+      "verifications": ["V-R-001", "V-R-002"]
     },
     {
       "id": "M-I-001",
@@ -315,9 +277,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-I-001"
-      ]
+      "verifications": ["V-I-001"]
     },
     {
       "id": "M-I-002",
@@ -333,10 +293,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-I-001",
-        "V-I-002"
-      ]
+      "verifications": ["V-I-001", "V-I-002"]
     },
     {
       "id": "M-I-003",
@@ -351,9 +308,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-I-003"
-      ]
+      "verifications": ["V-I-003"]
     },
     {
       "id": "M-I-004",
@@ -368,9 +323,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-I-001"
-      ]
+      "verifications": ["V-I-001"]
     },
     {
       "id": "M-I-005",
@@ -378,9 +331,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-I-004"
-      ]
+      "verifications": ["V-I-004"]
     },
     {
       "id": "M-D-001",
@@ -395,10 +346,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-D-001",
-        "V-D-003"
-      ]
+      "verifications": ["V-D-001", "V-D-003"]
     },
     {
       "id": "M-D-002",
@@ -406,10 +354,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-D-001",
-        "V-D-002"
-      ]
+      "verifications": ["V-D-001", "V-D-002"]
     },
     {
       "id": "M-D-003",
@@ -424,9 +369,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-001"
-      ]
+      "verifications": ["V-D-001"]
     },
     {
       "id": "M-D-004",
@@ -434,9 +377,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-D-004"
-      ]
+      "verifications": ["V-D-004"]
     },
     {
       "id": "M-D-005",
@@ -444,10 +385,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-D-001",
-        "V-D-002"
-      ]
+      "verifications": ["V-D-001", "V-D-002"]
     },
     {
       "id": "M-E-001",
@@ -462,9 +400,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-E-001"
-      ]
+      "verifications": ["V-E-001"]
     },
     {
       "id": "M-E-002",
@@ -479,9 +415,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-E-002"
-      ]
+      "verifications": ["V-E-002"]
     },
     {
       "id": "M-E-003",
@@ -496,10 +430,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-E-002",
-        "V-E-003"
-      ]
+      "verifications": ["V-E-002", "V-E-003"]
     },
     {
       "id": "M-E-004",
@@ -514,9 +445,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-E-003"
-      ]
+      "verifications": ["V-E-003"]
     },
     {
       "id": "M-E-005",
@@ -531,9 +460,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-E-001"
-      ]
+      "verifications": ["V-E-001"]
     },
     {
       "id": "M-E-006",
@@ -548,9 +475,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-E-004"
-      ]
+      "verifications": ["V-E-004"]
     },
     {
       "id": "M-IF-S-001",
@@ -565,9 +490,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-S-001"
-      ]
+      "verifications": ["V-IF-S-001"]
     },
     {
       "id": "M-IF-T-001",
@@ -575,9 +498,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-T-002",
@@ -585,9 +506,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-T-003",
@@ -595,9 +514,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-T-004",
@@ -605,9 +522,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-R-001",
@@ -615,9 +530,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-R-001"
-      ]
+      "verifications": ["V-IF-R-001"]
     },
     {
       "id": "M-IF-I-001",
@@ -633,9 +546,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-I-001"
-      ]
+      "verifications": ["V-IF-I-001"]
     },
     {
       "id": "M-IF-I-002",
@@ -650,9 +561,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-I-001"
-      ]
+      "verifications": ["V-IF-I-001"]
     },
     {
       "id": "M-IF-D-001",
@@ -660,9 +569,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-D-001"
-      ]
+      "verifications": ["V-IF-D-001"]
     },
     {
       "id": "M-IF-D-002",
@@ -670,9 +577,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-D-001"
-      ]
+      "verifications": ["V-IF-D-001"]
     },
     {
       "id": "M-IF-E-001",
@@ -687,9 +592,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-E-001"
-      ]
+      "verifications": ["V-IF-E-001"]
     },
     {
       "id": "M-IF-E-002",
@@ -704,9 +607,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-E-001"
-      ]
+      "verifications": ["V-IF-E-001"]
     },
     {
       "id": "M-IF-E-003",
@@ -721,9 +622,118 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-E-002"
-      ]
+      "verifications": ["V-IF-E-002"]
+    },
+    {
+      "id": "M-CB-T-001",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "secureBootEnabled",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-T-001"]
+    },
+    {
+      "id": "M-CB-T-002",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "firmwareProtection",
+          "expectedValue": "rdp_level1",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-CB-T-002"]
+    },
+    {
+      "id": "M-CB-T-003",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "bitstreamEncryption",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-T-003"]
+    },
+    {
+      "id": "M-CB-T-004",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "supplyChainTrust",
+          "expectedValue": "verified",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-T-003"]
+    },
+    {
+      "id": "M-CB-I-001",
+      "strideCategory": "I",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "tamperProtection",
+          "expectedValue": "active",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-CB-I-001"]
+    },
+    {
+      "id": "M-CB-E-001",
+      "strideCategory": "E",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "debugInterfaceLocked",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-E-001"]
+    },
+    {
+      "id": "M-CB-E-002",
+      "strideCategory": "E",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "firmwareProtection",
+          "expectedValue": "rdp_level2",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "ChipBoundary",
+          "property": "debugInterfaceLocked",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-E-001", "V-CB-E-002"]
     }
   ]
 }

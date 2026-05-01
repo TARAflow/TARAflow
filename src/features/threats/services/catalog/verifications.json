@@ -180,6 +180,42 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false
+    },
+    {
+      "id": "V-CB-T-001",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false
+    },
+    {
+      "id": "V-CB-T-002",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false
+    },
+    {
+      "id": "V-CB-T-003",
+      "strideCategory": "T",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false
+    },
+    {
+      "id": "V-CB-I-001",
+      "strideCategory": "I",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false
+    },
+    {
+      "id": "V-CB-E-001",
+      "strideCategory": "E",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false
+    },
+    {
+      "id": "V-CB-E-002",
+      "strideCategory": "E",
+      "context": { "platform": ["Embedded"] },
+      "isCustom": false
     }
   ]
 }

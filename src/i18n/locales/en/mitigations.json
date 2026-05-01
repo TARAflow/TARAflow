@@ -130,5 +130,26 @@
   },
   "M-IF-E-001": {
     "mitigation": "Physically separate or remove debug interfaces in production units"
+  },
+  "M-CB-T-001": {
+    "mitigation": "Enable Secure Boot with cryptographic signature verification of the boot chain"
+  },
+  "M-CB-T-002": {
+    "mitigation": "Apply firmware readback protection (RDP Level 1/2 or equivalent OTP mechanism)"
+  },
+  "M-CB-T-003": {
+    "mitigation": "Encrypt FPGA bitstream with device-specific key to prevent readback and IP theft"
+  },
+  "M-CB-T-004": {
+    "mitigation": "Verify supply chain integrity — source chips exclusively from authorized distributors with traceability"
+  },
+  "M-CB-I-001": {
+    "mitigation": "Apply side-channel countermeasures (power analysis protection, timing attack resistance)"
+  },
+  "M-CB-E-001": {
+    "mitigation": "Lock or disable JTAG/SWD debug interface via OTP fuse before production release"
+  },
+  "M-CB-E-002": {
+    "mitigation": "Apply RDP Level 2 — full JTAG disable with automatic mass-erase on tamper attempt"
   }
 }

@@ -10,6 +10,10 @@ import type { LinkedDFDElement } from "shared";
 /**
  * STRIDE categories applicable per DFD element type
  * Based on TARA Table 2
+ * Chipboundary:
+ * T — Firmware/Bitstream/Key Tampering
+ * I — Readback, Side-Channel, Key Extraction
+ * E — JTAG Privilege Escalation, Secure Boot Bypass
  */
 export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
   ExternalEntity: ["S", "R"],
@@ -19,7 +23,9 @@ export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
   DataStore: ["T", "R", "I", "D"],
   PhysicalInterface: ["S", "T", "R", "I", "D", "E"],
   Interface: ["S", "T", "R", "I", "D", "E"],
+  ChipBoundary: ["T", "I", "E"],
 };
+
 
 // ==================== ELEMENT CHANGE ====================
 

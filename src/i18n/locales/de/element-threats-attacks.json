@@ -254,5 +254,75 @@
     "threat": "Privilege Escalation über fehlkonfiguriertes IAM",
     "cause": "Übermäßig permissive IAM-Richtlinien oder fehlende Least-Privilege-Durchsetzung — eine kompromittierte Low-Privilege-Identität kann auf High-Privilege-Ressourcen zugreifen",
     "attack": "Angreifer kompromittiert einen Low-Privilege-Service-Account und nutzt fehlkonfigurierte Rollenbindungen oder Wildcard-Berechtigungen, um zu administrativem Zugriff zu eskalieren"
+  },
+  "T-CB-001": {
+    "threat": "Firmware-Manipulation über nicht gesperrte Debug-Schnittstelle",
+    "cause": "Debug-Schnittstelle (JTAG/SWD) ist in Produktion nicht gesperrt — Angreifer kann direkt auf Flash zugreifen",
+    "attack": "Angreifer verbindet einen Debug-Adapter mit dem JTAG/SWD-Port und überschreibt die Firmware mit einem bösartigen Image, das Sicherheitskontrollen deaktiviert"
+  },
+  "T-CB-002": {
+    "threat": "Firmware-Auslesung oder Bitstream-Extraktion",
+    "cause": "Firmware-Leseschutz (RDP) oder Bitstream-Verschlüsselung nicht aktiviert — Flash oder Konfigurationsspeicher über Debug-Schnittstelle auslesbar",
+    "attack": "Angreifer liest Firmware-Image oder FPGA-Bitstream via JTAG aus, um proprietäre Algorithmen, kryptografisches Material oder Sicherheitslogik zu extrahieren"
+  },
+  "T-CB-003": {
+    "threat": "Hardware-Trojaner über Supply-Chain-Kompromittierung",
+    "cause": "Chip aus nicht autorisierter Quelle bezogen — gefälschter oder modifizierter Chip kann versteckte Funktionalität enthalten",
+    "attack": "Angreifer ersetzt echten Chip durch Fälschung mit zusätzlicher Logik zur Daten-Exfiltration, Schlüssel-Leckage oder Erstellung eines verdeckten Kanals"
+  },
+  "I-CB-001": {
+    "threat": "Kryptografische Schlüssel-Extraktion via Seitenkanal-Angriff",
+    "cause": "Keine Seitenkanal-Gegenmassnahmen implementiert — Stromverbrauch, Timing oder EM-Emissionen korrelieren mit kryptografischen Operationen",
+    "attack": "Angreifer misst Stromkurven oder EM-Emissionen während kryptografischer Operationen und wendet Differential Power Analysis (DPA) an"
+  },
+  "I-CB-002": {
+    "threat": "Firmware-Informationspreisgabe über nicht gesperrte Debug-Schnittstelle",
+    "cause": "Debug-Schnittstelle erlaubt Speicher-Lesezugriff ohne Authentifizierung",
+    "attack": "Angreifer verbindet sich mit der Debug-Schnittstelle und liest Flash-Speicher aus, um Konfigurationsdaten, Credentials oder proprietäre Firmware zu extrahieren"
+  },
+  "E-CB-001": {
+    "threat": "Rechteausweitung über JTAG/SWD Debug-Schnittstelle",
+    "cause": "JTAG oder SWD Debug-Schnittstelle in Produktion nicht deaktiviert — bietet vollen Lese-/Schreibzugriff auf Prozessorspeicher und Ausführungsfluss",
+    "attack": "Angreifer verbindet Debug-Adapter, hält Prozessor an, liest Sicherheitsschlüssel aus dem Speicher und modifiziert Ausführungsfluss zur Umgehung von Zugriffskontrollen"
+  },
+  "E-CB-002": {
+    "threat": "Secure Boot Bypass über Debug-Schnittstelle",
+    "cause": "Debug-Schnittstelle bleibt in Produktion aktiv — ermöglicht Modifikation von Boot-Parametern vor Secure Boot Verifikation",
+    "attack": "Angreifer nutzt Debug-Zugriff um Bootloader zu überschreiben oder Secure Boot Konfiguration zu ändern, sodass unsignierte Firmware beim nächsten Start ausgeführt wird"
+  },
+  "T-P-EMB-001": {
+    "threat": "Embedded-Prozess-Manipulation über Firmware-Update-Kanal",
+    "cause": "Firmware-Update-Mechanismus prüft keine kryptografische Signatur — unsignierte oder modifizierte Firmware wird akzeptiert",
+    "attack": "Angreifer liefert modifiziertes Firmware-Image über Update-Kanal (OTA, USB, JTAG), das das Gerät akzeptiert und ausführt"
+  },
+  "E-P-EMB-001": {
+    "threat": "Rechteausweitung über Embedded Debug- oder Service-Schnittstelle",
+    "cause": "Debug- oder Service-Schnittstelle in Produktion ohne Authentifizierung zugänglich",
+    "attack": "Angreifer nutzt Debug-Schnittstelle um laufenden Prozesszustand zu modifizieren, Code einzuschleusen oder Authentifizierungsprüfungen zu umgehen"
+  },
+  "T-DS-EMB-001": {
+    "threat": "Embedded-Datenspeicher-Manipulation via direktem Flash-Zugriff",
+    "cause": "Flash oder EEPROM über Debug-Schnittstelle ohne Leseschutz zugänglich",
+    "attack": "Angreifer verbindet Debug-Adapter und überschreibt gespeicherte Konfiguration, Kalibrierungsdaten oder Sicherheitsparameter in Flash oder EEPROM"
+  },
+  "I-DS-EMB-001": {
+    "threat": "Extraktion sensibler Daten aus Embedded-Speicher",
+    "cause": "Flash oder EEPROM enthält unverschlüsselte sensible Daten und ist via Debug-Schnittstelle oder physischer Sonde auslesbar",
+    "attack": "Angreifer liest Flash-Speicher via JTAG oder physischer Sonde aus, um API-Keys, Gerätezertifikate oder Benutzerdaten ohne Verschlüsselung zu extrahieren"
+  },
+  "S-P-OT-001": {
+    "threat": "Controller-Identitäts-Spoofing auf Feldbus",
+    "cause": "Feldbus-Protokolle (Modbus, CAN, Profibus) haben keine Sender-Authentifizierung — jeder Knoten kann jede Geräteadresse beanspruchen",
+    "attack": "Angreifer verbindet ein Rogue-Gerät mit dem Feldbus und antwortet auf Anfragen die an den legitimen Controller gerichtet sind"
+  },
+  "T-P-OT-001": {
+    "threat": "OT-Prozesslogik-Manipulation über unauthentifiziertes Protokoll",
+    "cause": "Industrieprotokoll hat keinen Integritätsschutz — Prozessparameter können ohne Authentifizierung überschrieben werden",
+    "attack": "Angreifer injiziert manipulierte Protokollrahmen um Prozess-Sollwerte zu überschreiben, Ausgänge zu forcieren oder Steuerungslogik-Parameter zu ändern"
+  },
+  "D-P-OT-001": {
+    "threat": "OT-Controller Denial of Service via Feldbus-Flooding",
+    "cause": "Controller hat kein Rate-Limiting auf Feldbus-Eingang — alle eingehenden Rahmen werden unabhängig vom Volumen verarbeitet",
+    "attack": "Angreifer flutet den Feldbus mit hochfrequenten Rahmen, sättigt den Controller-Kommunikations-Stack und entzieht Echtzeit-Steuerungsaufgaben Verarbeitungszeit"
   }
 }

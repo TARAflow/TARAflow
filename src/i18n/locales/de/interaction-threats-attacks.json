@@ -118,5 +118,40 @@
     "threat": "Kompromittierter {{sourceName}} sendet Privilege-Escalation-Payloads an {{targetName}}",
     "cause": "{{targetName}} gewährt erhöhte Operationen basierend auf dem Payload-Inhalt von {{sourceName}} ohne unabhängige Autorisierungsverifizierung",
     "attack": "Angreifer, der {{sourceName}} kontrolliert, erstellt Anfragen mit erhöhten Berechtigungsansprüchen oder Admin-Operationscodes, die {{targetName}} ausführt und damit unautorisierten administrativen Zugriff gewährt"
+  },
+  "S-INT-OT-001": {
+    "threat": "Feldbus-Sender-Spoofing: Angreifer gibt sich als {{sourceName}} aus um Befehle in {{targetName}} einzuschleusen",
+    "cause": "Feldbus-Protokoll hat keine Sender-Authentifizierung — {{targetName}} kann den Ursprung eingehender Rahmen nicht verifizieren",
+    "attack": "Angreifer platziert einen Rogue-Knoten auf dem Feldbus mit der Adresse von {{sourceName}} und sendet gefälschte Befehle oder Sensorwerte an {{targetName}}"
+  },
+  "T-INT-OT-001": {
+    "threat": "Datenmanipulation über unauthentifiziertes Feldbus-Protokoll zwischen {{sourceName}} und {{targetName}}",
+    "cause": "{{dataFlowName}} hat keinen Integritätsschutz — Daten können im Transit unerkannt modifiziert werden",
+    "attack": "Angreifer fängt Feldbus-Rahmen zwischen {{sourceName}} und {{targetName}} ab und modifiziert sie, um falsche Sollwerte einzuschleusen"
+  },
+  "D-INT-OT-001": {
+    "threat": "Feldbus-Flooding verursacht Denial of Service bei {{targetName}}",
+    "cause": "{{targetName}} hat kein Rate-Limiting auf {{dataFlowName}} — alle eingehenden Rahmen werden verarbeitet",
+    "attack": "Angreifer flutet {{dataFlowName}} mit hochfrequenten Rahmen und sättigt den Kommunikations-Stack von {{targetName}}"
+  },
+  "E-INT-OT-001": {
+    "threat": "Privilegierter Befehls-Einschuss via unauthentifiziertem Feldbus-Protokoll in {{targetName}}",
+    "cause": "{{dataFlowName}} hat keine Autorisierung — {{targetName}} führt alle syntaktisch gültigen Befehle aus",
+    "attack": "Angreifer injiziert privilegierte Befehle (Parameter schreiben, Ausgänge forcieren, Programmiermodus) via {{dataFlowName}}"
+  },
+  "T-INT-EMB-001": {
+    "threat": "Datenmanipulation auf Embedded-Bus {{dataFlowName}} zwischen {{sourceName}} und {{targetName}}",
+    "cause": "Embedded-Bus (SPI, I2C, UART) hat keinen Integritätsschutz — Daten werden im Klartext übertragen",
+    "attack": "Angreifer hängt Hardware-Sonde oder Rogue-Gerät an den Embedded-Bus und injiziert oder modifiziert Datenpakete"
+  },
+  "I-INT-EMB-001": {
+    "threat": "Abhören des Embedded-Bus {{dataFlowName}} zwischen {{sourceName}} und {{targetName}}",
+    "cause": "Embedded-Bus-Kommunikation ist unverschlüsselt und physisch zugänglich",
+    "attack": "Angreifer hängt Logikanalysator oder passive Sonde an den Embedded-Bus und zeichnet den gesamten Datenverkehr auf"
+  },
+  "E-INT-EMB-001": {
+    "threat": "Befehlseinschuss über Embedded-Bus {{dataFlowName}} zur Rechteausweitung in {{targetName}}",
+    "cause": "{{targetName}} verarbeitet alle Befehle auf {{dataFlowName}} ohne Quellenverifikation oder Zugriffskontrolle",
+    "attack": "Angreifer injiziert privilegierte Befehle auf den Embedded-Bus, die {{targetName}} mit erhöhten Rechten ausführt"
   }
 }

@@ -257,5 +257,75 @@
     "threat": "Privilege escalation via misconfigured IAM",
     "cause": "Overly permissive IAM policies or missing least-privilege enforcement — a compromised low-privilege identity can reach high-privilege resources",
     "attack": "Attacker compromises a low-privilege service account and exploits misconfigured role bindings or wildcard permissions to escalate to administrative access"
+  },
+  "T-CB-001": {
+    "threat": "Firmware tampering via unlocked debug interface",
+    "cause": "Debug interface (JTAG/SWD) is not locked or disabled in production — attacker can access flash memory directly",
+    "attack": "Attacker connects a debug probe to the JTAG/SWD port and overwrites firmware with a malicious image that disables security controls or introduces a backdoor"
+  },
+  "T-CB-002": {
+    "threat": "Firmware readback or bitstream extraction",
+    "cause": "Firmware readback protection (RDP) or bitstream encryption is not enabled — flash or configuration memory is readable via debug interface",
+    "attack": "Attacker reads firmware image or FPGA bitstream via JTAG to extract proprietary algorithms, cryptographic material, or security logic"
+  },
+  "T-CB-003": {
+    "threat": "Hardware trojan via supply chain compromise",
+    "cause": "Chip sourced from unauthorized or grey-market distributor — counterfeit or modified chip may contain hidden functionality",
+    "attack": "Attacker substitutes genuine chip with a counterfeit that contains additional logic to exfiltrate data, leak keys, or create a covert channel"
+  },
+  "I-CB-001": {
+    "threat": "Cryptographic key extraction via side-channel attack",
+    "cause": "No side-channel countermeasures implemented — power consumption, timing, or electromagnetic emissions correlate with cryptographic operations",
+    "attack": "Attacker measures power traces or EM emissions during cryptographic operations and applies differential power analysis (DPA) to extract private keys"
+  },
+  "I-CB-002": {
+    "threat": "Firmware information disclosure via unlocked debug interface",
+    "cause": "Debug interface allows memory read access without authentication — firmware, configuration, and stored secrets are readable",
+    "attack": "Attacker connects to the debug interface and reads flash memory to extract configuration data, credentials, or proprietary firmware"
+  },
+  "E-CB-001": {
+    "threat": "Privilege escalation via JTAG/SWD debug interface",
+    "cause": "JTAG or SWD debug interface is not disabled or locked in production — provides full read/write access to processor memory, registers, and execution flow",
+    "attack": "Attacker connects a debug probe, halts the processor, reads security keys from memory, and modifies execution flow to bypass access controls or disable security checks"
+  },
+  "E-CB-002": {
+    "threat": "Secure Boot bypass via debug interface",
+    "cause": "Debug interface remains active in production — allows modification of boot parameters or direct flash overwrite before Secure Boot verification",
+    "attack": "Attacker uses debug access to overwrite the bootloader or modify secure boot configuration, enabling unsigned firmware to execute at next power-on"
+  },
+  "T-P-EMB-001": {
+    "threat": "Embedded process tampering via firmware update channel",
+    "cause": "Firmware update mechanism does not enforce cryptographic signature verification — unsigned or modified firmware is accepted",
+    "attack": "Attacker delivers a modified firmware image through the update channel (OTA, USB, JTAG) that the device accepts and executes, altering process behavior"
+  },
+  "E-P-EMB-001": {
+    "threat": "Privilege escalation via embedded debug or service interface",
+    "cause": "Debug or service interface is accessible in production without authentication — grants elevated access to process internals",
+    "attack": "Attacker uses the debug interface to modify running process state, inject code, or bypass authentication checks at runtime"
+  },
+  "T-DS-EMB-001": {
+    "threat": "Embedded data store tampering via direct flash access",
+    "cause": "Flash or EEPROM is accessible via debug interface without readback protection — stored data can be modified directly",
+    "attack": "Attacker connects debug probe and overwrites stored configuration, calibration data, or security parameters in flash or EEPROM"
+  },
+  "I-DS-EMB-001": {
+    "threat": "Sensitive data extraction from embedded storage",
+    "cause": "Flash or EEPROM contains unencrypted sensitive data and is readable via debug interface or physical probing",
+    "attack": "Attacker reads flash memory via JTAG or physical probing to extract API keys, device certificates, or user data stored without encryption"
+  },
+  "S-P-OT-001": {
+    "threat": "Controller identity spoofing on fieldbus",
+    "cause": "Fieldbus protocols (Modbus, CAN, Profibus) carry no sender authentication — any node can claim any device address",
+    "attack": "Attacker connects a rogue device to the fieldbus and responds to requests addressed to the legitimate controller, injecting false sensor readings or accepting commands"
+  },
+  "T-P-OT-001": {
+    "threat": "OT process logic manipulation via unauthenticated protocol",
+    "cause": "Industrial protocol carries no integrity protection — process parameters can be overwritten without authentication",
+    "attack": "Attacker injects crafted protocol frames to overwrite process setpoints, force outputs, or modify control logic parameters"
+  },
+  "D-P-OT-001": {
+    "threat": "OT controller denial of service via fieldbus flooding",
+    "cause": "Controller has no rate limiting on fieldbus input — all incoming frames are processed regardless of volume",
+    "attack": "Attacker floods the fieldbus with high-frequency frames, saturating the controller communication stack and starving real-time control tasks"
   }
 }

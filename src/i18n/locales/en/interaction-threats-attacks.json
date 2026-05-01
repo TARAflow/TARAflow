@@ -118,5 +118,40 @@
     "threat": "Compromised {{sourceName}} sends privilege-escalating payloads to {{targetName}}",
     "cause": "{{targetName}} grants elevated operations based on payload content from {{sourceName}} without independent authorization verification",
     "attack": "Attacker who controls {{sourceName}} crafts requests with elevated permission claims or admin-level operation codes that {{targetName}} executes, granting unauthorized administrative access"
+  },
+  "S-INT-OT-001": {
+    "threat": "Fieldbus sender spoofing: Attacker impersonates {{sourceName}} to inject commands into {{targetName}}",
+    "cause": "Fieldbus protocol carries no sender authentication — {{targetName}} cannot verify the origin of incoming frames",
+    "attack": "Attacker places a rogue node on the fieldbus claiming the address of {{sourceName}} and sends falsified commands or sensor values to {{targetName}}"
+  },
+  "T-INT-OT-001": {
+    "threat": "Data tampering via unauthenticated fieldbus protocol between {{sourceName}} and {{targetName}}",
+    "cause": "{{dataFlowName}} carries no integrity protection — data can be modified in transit without detection",
+    "attack": "Attacker intercepts and modifies fieldbus frames between {{sourceName}} and {{targetName}} to inject false setpoints or corrupt process data"
+  },
+  "D-INT-OT-001": {
+    "threat": "Fieldbus flooding causing denial of service at {{targetName}}",
+    "cause": "{{targetName}} has no rate limiting on {{dataFlowName}} — all incoming frames are processed regardless of volume",
+    "attack": "Attacker floods {{dataFlowName}} with high-frequency frames, saturating {{targetName}} communication stack and starving real-time tasks"
+  },
+  "E-INT-OT-001": {
+    "threat": "Privileged command injection via unauthenticated fieldbus protocol into {{targetName}}",
+    "cause": "{{dataFlowName}} carries no authorization — {{targetName}} executes all syntactically valid commands regardless of source",
+    "attack": "Attacker injects privileged operation commands (write parameters, force outputs, enter programming mode) via {{dataFlowName}} that {{targetName}} executes"
+  },
+  "T-INT-EMB-001": {
+    "threat": "Data tampering on embedded bus {{dataFlowName}} between {{sourceName}} and {{targetName}}",
+    "cause": "Embedded bus (SPI, I2C, UART) carries no integrity protection or authentication — data is transmitted in plaintext",
+    "attack": "Attacker attaches a hardware probe or rogue device to the embedded bus and injects or modifies data packets between {{sourceName}} and {{targetName}}"
+  },
+  "I-INT-EMB-001": {
+    "threat": "Eavesdropping on embedded bus {{dataFlowName}} between {{sourceName}} and {{targetName}}",
+    "cause": "Embedded bus communication is unencrypted and physically accessible — data can be passively captured",
+    "attack": "Attacker attaches a logic analyzer or passive probe to the embedded bus and captures all traffic between {{sourceName}} and {{targetName}}"
+  },
+  "E-INT-EMB-001": {
+    "threat": "Command injection via embedded bus {{dataFlowName}} to escalate privileges in {{targetName}}",
+    "cause": "{{targetName}} processes all commands received on {{dataFlowName}} without source verification or access control",
+    "attack": "Attacker injects privileged commands onto the embedded bus that {{targetName}} executes with elevated permissions, bypassing software-level access controls"
   }
 }

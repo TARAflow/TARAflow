@@ -88,5 +88,23 @@
   },
   "V-IF-E-002": {
     "verification": "Firmware-Verifizierung und Secure-Boot-Tests"
+  },
+  "V-CB-T-001": {
+    "verification": "Secure Boot ist aktiviert und Boot-Chain wird kryptografisch verifiziert"
+  },
+  "V-CB-T-002": {
+    "verification": "Firmware-Leseschutz-Level (RDP1/RDP2 oder äquivalent) ist gesetzt"
+  },
+  "V-CB-T-003": {
+    "verification": "Chip-Herkunft verifiziert — Bezug von autorisiertem Distributor bestätigt"
+  },
+  "V-CB-I-001": {
+    "verification": "Seitenkanal-Gegenmassnahmen implementiert (Leistungsanalyse, Timing)"
+  },
+  "V-CB-E-001": {
+    "verification": "JTAG/SWD-Schnittstelle via OTP/Fuse in Produktionseinheiten gesperrt"
+  },
+  "V-CB-E-002": {
+    "verification": "Vollständige Debug-Deaktivierung (RDP2 oder äquivalent) in Produktion angewendet"
   }
 }

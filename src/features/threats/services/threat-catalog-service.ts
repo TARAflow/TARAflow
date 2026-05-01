@@ -17,18 +17,24 @@ import type {
   ThreatProjectData,
 } from "../models/threat-types";
 
-import elementTemplatesData from "./element-templates.json";
-import interactionTemplatesData from "./interaction-templates.json";
-import mitigationsData from "./mitigations.json";
-import verificationsData from "./verifications.json";
+import elementTemplatesData from "./catalog/element-templates.json";
+import interactionTemplatesData from "./catalog/interaction-templates.json";
+import mitigationsData from "./catalog/mitigations.json";
+import verificationsData from "./catalog/verifications.json";
+import embeddedElementTemplatesData from "./catalog/embedded-element-templates.json";
+import embeddedInteractionTemplatesData from "./catalog/embedded-interaction-templates.json";
 
 // ==================== CATALOG SINGLETONS ====================
 
-const ALL_ELEMENT_TEMPLATES: ElementTemplate[] =
-  (elementTemplatesData as any).elementTemplates ?? [];
-
-const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] =
-  (interactionTemplatesData as any).interactionTemplates ?? [];
+const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [
+  ...((elementTemplatesData as any).elementTemplates ?? []),
+  ...((embeddedElementTemplatesData as any).elementTemplates ?? []),
+];
+ 
+const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [
+  ...((interactionTemplatesData as any).interactionTemplates ?? []),
+  ...((embeddedInteractionTemplatesData as any).interactionTemplates ?? []),
+];
 
 const ALL_MITIGATIONS: MitigationEntry[] =
   (mitigationsData as any).mitigations ?? [];
@@ -109,6 +115,10 @@ export function getAllInteractionTemplates(): InteractionTemplate[] {
 
 export function getAllMitigations(): MitigationEntry[] {
   return ALL_MITIGATIONS;
+}
+
+export function getAllVerifications(): VerificationEntry[] {
+  return ALL_VERIFICATIONS;
 }
 
 export function getApplicableInteractionTemplates(

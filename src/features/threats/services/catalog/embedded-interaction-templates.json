@@ -1,0 +1,69 @@
+{
+  "version": "1.0.0",
+  "description": "Embedded and OT-specific interaction threat templates. Context: platform Embedded or OT.",
+  "interactionTemplates": [
+    {
+      "id": "S-INT-OT-001",
+      "strideCategory": "S",
+      "perspective": "receiver",
+      "context": { "platform": ["OT"] },
+      "mitigations": ["M-S-001", "M-S-002", "M-IF-S-001"],
+      "verifications": ["V-S-001", "V-IF-S-001"],
+      "isCustom": false
+    },
+    {
+      "id": "T-INT-OT-001",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": { "platform": ["OT"] },
+      "mitigations": ["M-T-001", "M-T-002", "M-IF-I-001"],
+      "verifications": ["V-T-001", "V-IF-T-001"],
+      "isCustom": false
+    },
+    {
+      "id": "D-INT-OT-001",
+      "strideCategory": "D",
+      "perspective": "receiver",
+      "context": { "platform": ["OT"] },
+      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001"],
+      "verifications": ["V-D-001", "V-IF-D-001"],
+      "isCustom": false
+    },
+    {
+      "id": "E-INT-OT-001",
+      "strideCategory": "E",
+      "perspective": "receiver",
+      "context": { "platform": ["OT"] },
+      "mitigations": ["M-E-001", "M-E-002", "M-CB-E-001"],
+      "verifications": ["V-E-001", "V-CB-E-001"],
+      "isCustom": false
+    },
+    {
+      "id": "T-INT-EMB-001",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": { "platform": ["Embedded"] },
+      "mitigations": ["M-T-001", "M-T-002", "M-IF-I-001"],
+      "verifications": ["V-T-001", "V-T-002"],
+      "isCustom": false
+    },
+    {
+      "id": "I-INT-EMB-001",
+      "strideCategory": "I",
+      "perspective": "receiver",
+      "context": { "platform": ["Embedded"] },
+      "mitigations": ["M-I-001", "M-I-002", "M-IF-I-001", "M-IF-I-002"],
+      "verifications": ["V-I-001", "V-IF-I-001"],
+      "isCustom": false
+    },
+    {
+      "id": "E-INT-EMB-001",
+      "strideCategory": "E",
+      "perspective": "receiver",
+      "context": { "platform": ["Embedded"] },
+      "mitigations": ["M-CB-E-001", "M-E-001", "M-E-003"],
+      "verifications": ["V-CB-E-001", "V-E-001"],
+      "isCustom": false
+    }
+  ]
+}
