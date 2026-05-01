@@ -1,4 +1,8 @@
-import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
+import type {
+  ProjectInfoData,
+  ProjectSettingsData,
+  ProjectTags,
+} from "features/overview";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
 import { PhaseStatus, PhaseStatusMap } from "shared";
@@ -96,7 +100,7 @@ export interface CreateProjectInput {
   description: string;
   version?: string;
   responsible?: string;
-  tags?: string[];
+  tags?: ProjectTags[];
   isHighImpact?: boolean;
 }
 
@@ -105,7 +109,7 @@ export interface UpdateProjectInput {
   description?: string;
   version?: string;
   responsible?: string;
-  tags?: string[];
+  tags?: ProjectTags[];
   team?: string[];
   status?: ProjectStatus;
   settings?: Partial<ProjectSettingsData>;

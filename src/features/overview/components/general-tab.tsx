@@ -10,6 +10,7 @@ import {
   ProjectSettingsData,
   PhaseValidationInfo,
   getWorkflowMode,
+  flattenProjectTags,
 } from "../models/overview-types";
 
 // ==================== GENERAL TAB ====================
@@ -78,8 +79,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       missingFields.push("version");
     if (!data.info.responsible || data.info.responsible.trim().length === 0)
       missingFields.push("responsible");
-    if (!data.info.tags || data.info.tags.length === 0)
-      missingFields.push("tags");
+    const totalTags = flattenProjectTags(data.info.tags).length;
+    if (totalTags === 0) missingFields.push("tags");
     validationInfo[0] = { errors: 0, warnings: missingFields.length };
 
     // Phase 1: DFD - use validation from data

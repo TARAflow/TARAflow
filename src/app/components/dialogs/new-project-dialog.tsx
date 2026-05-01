@@ -13,6 +13,14 @@ import {
   getAvailablePredefinedTags,
 } from "shared";
 
+import {
+  ProjectTags,
+  EMPTY_PROJECT_TAGS,
+  addTagToProject,
+  removeTagFromProject,
+  flattenProjectTags,
+} from "features/overview";
+
 // ==================== NEW PROJECT DIALOG ====================
 // Creates a new project with the same layout as project-info
 // Layout:
@@ -34,7 +42,7 @@ export interface NewProjectData {
   description: string;
   version: string;
   responsible: string;
-  tags: string[];
+  tags: ProjectTags;
   isHighImpact?: boolean;
   filePath?: string; // Electron mode only
 }
@@ -50,16 +58,13 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     description: "",
     version: "1.0",
     responsible: "",
-    tags: [],
+    tags: { ...EMPTY_PROJECT_TAGS },
     isHighImpact: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tagInput, setTagInput] = useState("");
   const [tagCategory, setTagCategory] = useState<TagCategoryKey>("domain");
-  const [customTagCategories, setCustomTagCategories] = useState<
-    Record<string, TagCategoryKey>
-  >({});
 
   // Validation
   const validate = (): boolean => {
@@ -84,38 +89,19 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   };
 
   // Tag handlers
-  const addTag = (tag: string, category?: TagCategoryKey) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !formData.tags.includes(trimmedTag)) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, trimmedTag],
-      }));
-
-      if (!isPredefinedTag(trimmedTag) && category) {
-        setCustomTagCategories((prev) => ({
-          ...prev,
-          [trimmedTag]: category,
-        }));
-      }
-
-      setTagInput("");
-    }
+  const addTag = (tag: string, categoryOverride?: TagCategoryKey) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: addTagToProject(prev.tags, tag, categoryOverride),
+    }));
+    setTagInput("");
   };
 
   const removeTag = (tagToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+      tags: removeTagFromProject(prev.tags, tagToRemove),
     }));
-
-    if (!isPredefinedTag(tagToRemove)) {
-      setCustomTagCategories((prev) => {
-        const newCategories = { ...prev };
-        delete newCategories[tagToRemove];
-        return newCategories;
-      });
-    }
   };
 
   const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -126,22 +112,11 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   };
 
   // Get tags grouped by category
-  const getTagsByCategory = (
-    tags: string[]
-  ): { category: TagCategory; tags: string[] }[] => {
-    const result: { category: TagCategory; tags: string[] }[] = [];
-
-    TAG_CATEGORIES.forEach((category) => {
-      const categoryTags = tags.filter((tag) => {
-        const tagCat = getTagCategory(tag, customTagCategories);
-        return tagCat?.key === category.key;
-      });
-      if (categoryTags.length > 0) {
-        result.push({ category, tags: categoryTags });
-      }
-    });
-
-    return result;
+  const getTagsByCategory = (tags: ProjectTags) => {
+    return TAG_CATEGORIES.map((cat) => ({
+      category: cat,
+      tags: tags[cat.key as keyof ProjectTags] as string[],
+    })).filter(({ tags }) => tags.length > 0);
   };
 
   // Form submit
@@ -194,7 +169,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
    * Render a single tag badge with optional tooltip (for regulations)
    */
   const renderTagBadge = (tag: string, showRemoveButton: boolean = false) => {
-    const styles = getTagStyles(tag, customTagCategories);
+    const styles = getTagStyles(tag, {});
     const tagDef = getTagDefinition(tag);
     const hasTooltip = tagDef?.tooltipKey;
 
@@ -490,7 +465,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
               </label>
 
               {/* Selected Tags */}
-              {formData.tags.length > 0 && (
+              {flattenProjectTags(formData.tags).length > 0 && (
                 <div className="p-3 bg-gray-50 rounded-lg mb-3">
                   <label className="block text-xs font-medium text-gray-500 mb-2">
                     {t("projectInfo.selectedTags", {
@@ -512,7 +487,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                           </span>
                           {tags.map((tag) => renderTagBadge(tag, true))}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -523,7 +498,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                 {TAG_CATEGORIES.map((category) => {
                   const availableTags = getAvailablePredefinedTags(
                     category,
-                    formData.tags
+                    flattenProjectTags(formData.tags),
                   );
                   if (availableTags.length === 0) return null;
 
@@ -534,7 +509,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                       </label>
                       <div className="flex flex-wrap gap-1.5">
                         {availableTags.map((tagDef) =>
-                          renderAvailableTagButton(tagDef.name, category)
+                          renderAvailableTagButton(tagDef.name, category),
                         )}
                       </div>
                     </div>

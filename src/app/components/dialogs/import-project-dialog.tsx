@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, File, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { flattenProjectTags, isProjectTags } from "features/overview";
+
 
 // ==================== IMPORT PROJECT DIALOG ====================
 
@@ -288,23 +290,31 @@ export const ImportProjectDialog: React.FC<ImportProjectDialogProps> = ({
                       </span>
                     </div>
                   )}
-                  {fileContent.tags && fileContent.tags.length > 0 && (
-                    <div>
-                      <span className="text-sm text-gray-600 block mb-2">
-                        {t("project.tags")}:
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {fileContent.tags.map((tag: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-                          >
-                            {tag}
+                  {fileContent.tags &&
+                    (() => {
+                      const flatTags = isProjectTags(fileContent.tags)
+                        ? flattenProjectTags(fileContent.tags)
+                        : Array.isArray(fileContent.tags)
+                          ? (fileContent.tags as string[])
+                          : [];
+                      return flatTags.length > 0 ? (
+                        <div>
+                          <span className="text-sm text-gray-600 block mb-2">
+                            {t("project.tags")}:
                           </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                          <div className="flex flex-wrap gap-2">
+                            {flatTags.map((tag: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                 </div>
               </div>
 

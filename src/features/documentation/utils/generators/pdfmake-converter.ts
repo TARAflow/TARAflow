@@ -8,10 +8,9 @@
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import { formatDocDate } from "../../models/doc-types";
-import type { DFDElement } from "../../../dfd/models/dfd-types";
-import { getSecurityLevelText, getTrustLevelText } from "../../../dfd/models/dfd-types";
 import type { TranslationFn } from "./base-generator";
 import type { PdfOptions } from "./pdf-generator-adaptive";
+import { flattenProjectTags } from "features/overview";
 
 // ==================== PDFMAKE CONVERTER ====================
 
@@ -352,14 +351,15 @@ export class PdfMakeConverter {
     }
 
     // Tags
-    if (this.project.info.tags && this.project.info.tags.length > 0) {
+    const flatTags = flattenProjectTags(this.project.info.tags);
+    if (flatTags.length > 0) {
       content.push({
         text: this.t("doc.chapters.system-overview.tags"),
         style: "h2",
       });
 
       content.push({
-        text: this.project.info.tags.join(", "),
+        text: flatTags.join(", "),
         margin: [0, 0, 0, 15],
       });
     }

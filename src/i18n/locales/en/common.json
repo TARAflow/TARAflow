@@ -232,7 +232,20 @@
     "namePlaceholder": "Enter project name...",
     "versionPlaceholder": "1.0",
     "responsiblePlaceholder": "Person responsible...",
-    "descriptionPlaceholder": "Describe your project..."
+    "descriptionPlaceholder": "Describe your project...",
+    "tagWarnings": {
+      "iso21434": "ISO 21434 is automotive-specific. Consider adding the Automotive domain tag.",
+      "clcTs50701": "CLC/TS 50701 is railway-specific. Consider adding the Railway domain tag.",
+      "iec63452": "IEC 63452 is railway-specific. Consider adding the Railway domain tag.",
+      "iec81001": "IEC 81001 is medical-specific. Consider adding the Medical domain tag.",
+      "iecTr60601": "IEC TR 60601 is medical-specific. Consider adding the Medical domain tag.",
+      "iec62351": "IEC 62351 is energy-sector specific. Consider adding the Energy domain tag.",
+      "etsiEn303645": "ETSI EN 303 645 targets IoT/Embedded devices. Consider adding Embedded or IoT platform tag.",
+      "en17927": "EN 17927 targets IoT/Embedded devices. Consider adding Embedded or IoT platform tag.",
+      "en18031": "EN 18031 targets connected products. Consider adding a platform tag (Embedded, IoT, Web, or Mobile).",
+      "iec62443": "IEC 62443 targets OT/industrial systems. Consider adding OT platform or an industrial domain tag.",
+      "iso27017": "ISO 27017 is cloud-specific. Consider adding the Cloud platform tag."
+    }
   },
   "stride": {
     "S": {

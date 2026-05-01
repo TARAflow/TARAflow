@@ -26,6 +26,7 @@ import {
 } from "../utils/pdf-helpers";
 
 import type { DocTabProps } from "../models/doc-types";
+import { flattenProjectTags } from "features/overview";
 
 // ==================== TYPES ====================
 
@@ -148,8 +149,8 @@ export const useDocumentGeneration = ({
 
     const map: Record<DocChapterId, boolean> = {
       "executive-summary": true, // Always has content
-      "applicable-regulations": project.info.tags.some((tag: any) =>
-        isRegulationTag(tag),
+      "applicable-regulations": flattenProjectTags(project.info.tags).some(
+        (tag: string) => isRegulationTag(tag),
       ),
       "system-overview": true, // Always has content
       dfd: project.dfd != null,

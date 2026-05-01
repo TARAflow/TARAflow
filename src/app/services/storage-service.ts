@@ -2,7 +2,11 @@
 // Wrapper for browser localStorage API with error handling and type safety
 
 import { PhaseStatus, PhaseStatusMap } from "shared";
-import { ProjectSettingsData } from "features/overview";
+import {
+  migrateProjectTags,
+  EMPTY_PROJECT_TAGS,
+  ProjectSettingsData,
+} from "features/overview";
 import { Project, ProjectMetadata } from "../models/project-types";
 
 export interface StorageResult<T> {
@@ -118,7 +122,7 @@ class StorageService {
   /**
    * Repairs incomplete project data by filling in missing required fields
    */
-  private repairProject(project: Partial<Project>): Project | null {
+  private repairProject(project: any): Project | null {
     // Minimum required: id and name
     if (!project.id || !project.info) {
       console.warn("Cannot repair project without id or name:", project);
@@ -132,7 +136,7 @@ class StorageService {
       id: project.id,
       info: {
         ...project.info,
-        tags: project.info.tags ?? [],
+        tags: migrateProjectTags(project.info.tags ?? []),
         team: project.info.team ?? [],
         lastModified: project.info.lastModified ?? now,
       },
@@ -321,7 +325,11 @@ class StorageService {
             return { success: false, error: result.error };
           }
 
-          const project = JSON.parse(result.data) as Partial<Project>;
+          const rawProject = JSON.parse(result.data) as any;
+          if (Array.isArray(rawProject.info?.tags)) {
+            rawProject.info.tags = migrateProjectTags(rawProject.info.tags);
+          }
+          const project = rawProject as Partial<Project>;
 
           // Check if project needs repair
           if (!this.isValidProject(project)) {
@@ -335,7 +343,11 @@ class StorageService {
             return { success: true, data: repaired };
           }
 
-          return { success: true, data: project as Project };
+          const data = result.data as any;
+          if (Array.isArray(data.info?.tags)) {
+            data.info.tags = migrateProjectTags(data.info.tags);
+          }
+          return { success: true, data: data as Project };
         } catch (error: any) {
           return { success: false, error: error.message };
         }
@@ -441,7 +453,11 @@ class StorageService {
             );
 
             if (result.success) {
-              const project = JSON.parse(result.data) as Project;
+              const raw = JSON.parse(result.data) as any;
+              if (Array.isArray(raw.info?.tags)) {
+                raw.info.tags = migrateProjectTags(raw.info.tags);
+              }
+              const project = raw as Project;
               projects.push(project);
             } else {
               failedIds.push(metadata.id);
@@ -530,7 +546,7 @@ class StorageService {
         responsible,
         created: now,
         lastModified: now,
-        tags: [],
+        tags: { ...EMPTY_PROJECT_TAGS },
         team: responsible ? [responsible] : [],
         isHighImpact,
       },

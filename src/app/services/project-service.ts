@@ -7,7 +7,11 @@ import {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../models/project-types";
-import { ProjectSettingsData } from "features/overview";
+import {
+  ProjectSettingsData,
+  migrateProjectTags,
+  isProjectTags,
+} from "features/overview";
 
 import { PhaseStatus, formatExportFilename } from "shared";
 
@@ -19,7 +23,7 @@ class ProjectService {
    */
   // ProjectService.ts
   async createProject(
-    input: CreateProjectInput
+    input: CreateProjectInput,
   ): Promise<StorageResult<Project>> {
     try {
       const project = storageService.createEmptyProject(
@@ -28,7 +32,7 @@ class ProjectService {
         input.version,
         input.responsible,
         input.isHighImpact,
-        (input as any).filePath // filePath from NewProjectData
+        (input as any).filePath, // filePath from NewProjectData
       );
       const result = await storageService.saveProject(project);
       return result;
@@ -46,7 +50,7 @@ class ProjectService {
    */
   async updateProject(
     projectId: string,
-    updates: UpdateProjectInput
+    updates: UpdateProjectInput,
   ): Promise<StorageResult<Project>> {
     try {
       const result = await storageService.getProject(projectId);
@@ -148,7 +152,14 @@ class ProjectService {
   async importProject(file: File, overwrite = false) {
     try {
       const text = await file.text();
-      const project = JSON.parse(text) as Project;
+      const raw = JSON.parse(text) as any;
+
+      // Migration guard — convert legacy string[] tags
+      if (Array.isArray(raw.info?.tags)) {
+        raw.info.tags = migrateProjectTags(raw.info.tags as string[]);
+      }
+
+      const project = raw as Project;
 
       if (!this.validateProjectStructure(project)) {
         return { success: false, error: "Invalid project file" };
@@ -188,7 +199,13 @@ class ProjectService {
   async importProjectAsCopy(file: File) {
     try {
       const text = await file.text();
-      const project = JSON.parse(text) as Project;
+      const raw = JSON.parse(text) as any;
+
+      if (Array.isArray(raw.info?.tags)) {
+        raw.info.tags = migrateProjectTags(raw.info.tags as string[]);
+      }
+
+      const project = raw as Project;
 
       if (!this.validateProjectStructure(project)) {
         return { success: false, error: "Invalid project format" };
@@ -228,7 +245,7 @@ class ProjectService {
   async updatePhaseStatus(
     projectId: string,
     phase: number,
-    status: PhaseStatus
+    status: PhaseStatus,
   ) {
     const result = await storageService.getProject(projectId);
     if (!result.success || !result.data) {
@@ -316,7 +333,7 @@ class ProjectService {
       .sort(
         (a, b) =>
           new Date(b.lastOpened || b.info.lastModified).getTime() -
-          new Date(a.lastOpened || a.info.lastModified).getTime()
+          new Date(a.lastOpened || a.info.lastModified).getTime(),
       )
       .slice(0, limit);
 
@@ -333,12 +350,15 @@ class ProjectService {
   /**
    * Struct validation
    */
+  // In validateProjectStructure — fix the broken check (was checking p.name
+  // at top level, but name lives in p.info.name):
   private validateProjectStructure(p: any): p is Project {
     return (
       p &&
       typeof p.id === "string" &&
-      typeof p.name === "string" &&
-      typeof p.description === "string"
+      p.info &&
+      typeof p.info.name === "string" && // Fixed: was p.name
+      typeof p.info.description === "string" // Fixed: was p.description
     );
   }
 }

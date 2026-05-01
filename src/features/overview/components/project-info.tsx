@@ -4,6 +4,12 @@ import { Edit3, Save, X, Plus, AlertTriangle, Info } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import type { ProjectInfoData } from "../models/overview-types";
 import {
+  addTagToProject,
+  removeTagFromProject,
+  flattenProjectTags,
+  ProjectTags,
+} from "../models/overview-types";
+import {
   TAG_CATEGORIES,
   TagCategoryKey,
   TagCategory,
@@ -13,6 +19,7 @@ import {
   getTagDefinition,
   getAvailablePredefinedTags,
 } from "shared";
+import { getTagWarnings } from "../services/tag-validator";
 
 // ==================== PROJECT INFO ====================
 // Displays and allows editing of project metadata
@@ -35,20 +42,6 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
   const [editData, setEditData] = useState<ProjectInfoData>(info);
   const [tagInput, setTagInput] = useState("");
   const [tagCategory, setTagCategory] = useState<TagCategoryKey>("domain");
-
-  // Track which category each custom tag belongs to
-  const [customTagCategories, setCustomTagCategories] = useState<
-    Record<string, TagCategoryKey>
-  >(() => {
-    // Initialize from existing tags that aren't predefined
-    const categories: Record<string, TagCategoryKey> = {};
-    info.tags.forEach((tag) => {
-      if (!isPredefinedTag(tag)) {
-        categories[tag] = "domain"; // Default to domain for existing custom tags
-      }
-    });
-    return categories;
-  });
 
   const handleEdit = () => {
     setEditData(info);
@@ -78,40 +71,21 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
 
   // ==================== TAG HANDLERS ====================
 
-  const addTag = (tag: string, category?: TagCategoryKey) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !editData.tags.includes(trimmedTag)) {
-      setEditData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, trimmedTag],
-      }));
-
-      // If it's a custom tag, store its category
-      if (!isPredefinedTag(trimmedTag) && category) {
-        setCustomTagCategories((prev) => ({
-          ...prev,
-          [trimmedTag]: category,
-        }));
-      }
-
-      setTagInput("");
-    }
+  const addTag = (tag: string, categoryOverride?: TagCategoryKey) => {
+    const trimmed = tag.trim();
+    if (!trimmed) return;
+    setEditData((prev) => ({
+      ...prev,
+      tags: addTagToProject(prev.tags, trimmed, categoryOverride),
+    }));
+    setTagInput("");
   };
 
   const removeTag = (tagToRemove: string) => {
     setEditData((prev) => ({
       ...prev,
-      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+      tags: removeTagFromProject(prev.tags, tagToRemove),
     }));
-
-    // Remove from custom categories if it was custom
-    if (!isPredefinedTag(tagToRemove)) {
-      setCustomTagCategories((prev) => {
-        const newCategories = { ...prev };
-        delete newCategories[tagToRemove];
-        return newCategories;
-      });
-    }
   };
 
   const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -122,22 +96,11 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
   };
 
   // Get tags grouped by category (including custom tags in their assigned category)
-  const getTagsByCategory = (
-    tags: string[]
-  ): { category: TagCategory; tags: string[] }[] => {
-    const result: { category: TagCategory; tags: string[] }[] = [];
-
-    TAG_CATEGORIES.forEach((category) => {
-      const categoryTags = tags.filter((tag) => {
-        const tagCat = getTagCategory(tag, customTagCategories);
-        return tagCat?.key === category.key;
-      });
-      if (categoryTags.length > 0) {
-        result.push({ category, tags: categoryTags });
-      }
-    });
-
-    return result;
+  const getTagsByCategory = (tags: ProjectTags) => {
+    return TAG_CATEGORIES.map((cat) => ({
+      category: cat,
+      tags: tags[cat.key as keyof ProjectTags] as string[],
+    })).filter(({ tags }) => tags.length > 0);
   };
 
   // ==================== TAG RENDERING HELPERS ====================
@@ -150,7 +113,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
     showRemoveButton: boolean = false,
     onClick?: () => void
   ) => {
-    const styles = getTagStyles(tag, customTagCategories);
+    const styles = getTagStyles(tag, {});
     const tagDef = getTagDefinition(tag);
     const hasTooltip = tagDef?.tooltipKey;
 
@@ -526,7 +489,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
           {isEditing ? (
             <div className="space-y-4">
               {/* Selected Tags */}
-              {editData.tags.length > 0 && (
+              {flattenProjectTags(editData.tags).length > 0 && (
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <label className="block text-xs font-medium text-gray-500 mb-2">
                     {t("projectInfo.selectedTags", {
@@ -548,7 +511,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                           </span>
                           {tags.map((tag) => renderTagBadge(tag, true))}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -559,7 +522,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                 {TAG_CATEGORIES.map((category) => {
                   const availableTags = getAvailablePredefinedTags(
                     category,
-                    editData.tags
+                    flattenProjectTags(editData.tags),
                   );
                   if (availableTags.length === 0) return null;
 
@@ -570,7 +533,7 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                       </label>
                       <div className="flex flex-wrap gap-1.5">
                         {availableTags.map((tagDef) =>
-                          renderAvailableTagButton(tagDef.name, category)
+                          renderAvailableTagButton(tagDef.name, category),
                         )}
                       </div>
                     </div>
@@ -626,11 +589,30 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
                   </button>
                 </div>
               </div>
+              {/* Tag Warnings — shown immediately during editing */}
+              {(() => {
+                const warnings = getTagWarnings(editData.tags);
+                console.log("Tag warnings:", warnings, editData.tags);
+                if (warnings.length === 0) return null;
+                return (
+                  <div className="space-y-1">
+                    {warnings.map((w) => (
+                      <p
+                        key={w.regulation}
+                        className="text-xs text-amber-600 flex items-center gap-1"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        {w.message}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             // Display mode
             <div className="py-2">
-              {info.tags.length > 0 ? (
+              {flattenProjectTags(info.tags).length > 0 ? (
                 <div className="space-y-2">
                   {getTagsByCategory(info.tags).map(({ category, tags }) => (
                     <div key={category.key} className="flex flex-wrap gap-2">

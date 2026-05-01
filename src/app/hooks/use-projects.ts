@@ -9,6 +9,7 @@ import {
 } from "../models/project-types";
 import { projectService } from "../services/project-service";
 import { MAX_OPEN_PROJECTS } from "../config/phase-config";
+import { flattenProjectTags } from "features/overview";
 
 // ==================== TYPES ====================
 
@@ -375,12 +376,12 @@ export const useProjects = (): UseProjectsReturn => {
         (project) =>
           project.info.name.toLowerCase().includes(lowerQuery) ||
           project.info.description.toLowerCase().includes(lowerQuery) ||
-          project.info.tags.some((tag) =>
-            tag.toLowerCase().includes(lowerQuery)
-          )
+          flattenProjectTags(project.info.tags).some((tag: string) =>
+            tag.toLowerCase().includes(lowerQuery),
+          ),
       );
     },
-    [projects]
+    [projects],
   );
 
   const refreshProjects = useCallback(async () => {

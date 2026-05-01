@@ -15,19 +15,15 @@ import {
   getClassificationText,
   getCriticalityText,
 } from "../../models/doc-types";
-import type {
-  DFDElement,
-  DFDConnection,
-  DFDElementType,
-} from "../../../dfd/models/dfd-types";
-import type { Asset } from "../../../assets/models/asset-types";
-import { deriveImplementationProgress } from "../../../risks/models/risk-types";
+import type { DFDElement, DFDConnection, DFDElementType } from "features/dfd";
+import type { Asset } from "features/assets";
+import { deriveImplementationProgress } from "features/risks";
 import {
   getSecurityLevelText,
   getTrustLevelText,
   getDFDElementTypeText,
   getDFDElementTypePluralText,
-} from "../../../dfd/models/dfd-types";
+} from "features/dfd";
 import {
   replacePlaceholders,
   processConditionals,
@@ -40,10 +36,7 @@ import {
 // - Relative: "../../../../shared/utils/tag-categories"
 // - Alias: "@/shared/utils/tag-categories" or "@shared/utils/tag-categories"
 // - Barrel: "shared" (if shared/index.ts exports it)
-import {
-  TAG_CATEGORIES,
-  getRegulationTags,
-} from "../../../../shared/utils/tag-categories";
+import { TAG_CATEGORIES, getRegulationTags } from "shared";
 import {
   getElementSecurityLevel,
   getElementTrustLevel,
@@ -62,6 +55,9 @@ import {
   getRelationTypeLabel,
   type PropertyGroup,
 } from "./property-doc-mappers";
+
+import { flattenProjectTags } from "features/overview";
+
 
 // ==================== TYPES ====================
 
@@ -275,7 +271,9 @@ export abstract class BaseDocumentGenerator {
       ? getClassificationText(config.template.classification, lang)
       : "";
 
-    const tagsByCategory = this.getTagsGroupedByCategory(info.tags);
+    const tagsByCategory = this.getTagsGroupedByCategory(
+      flattenProjectTags(info.tags),
+    );
     const tagsGrouped = this.formatTagsGrouped(tagsByCategory);
 
     const values = {
@@ -376,7 +374,9 @@ export abstract class BaseDocumentGenerator {
   protected generateApplicableRegulations(title: string): ChapterContent {
     const { project, t } = this.ctx;
 
-    const regulationTags = getRegulationTags(project.info.tags);
+    const regulationTags = getRegulationTags(
+      flattenProjectTags(project.info.tags),
+    );
 
     if (regulationTags.length === 0) {
       return {
@@ -424,7 +424,9 @@ export abstract class BaseDocumentGenerator {
     const { project } = this.ctx;
     const info = project.info;
 
-    const tagsByCategory = this.getTagsGroupedByCategory(info.tags);
+    const tagsByCategory = this.getTagsGroupedByCategory(
+      flattenProjectTags(info.tags),
+    );
     const tagsGrouped = this.formatTagsGrouped(tagsByCategory);
 
     const values = {

@@ -230,7 +230,20 @@
     "namePlaceholder": "Projektname eingeben...",
     "versionPlaceholder": "1.0",
     "responsiblePlaceholder": "Verantwortliche Person...",
-    "descriptionPlaceholder": "Beschreibe dein Projekt..."
+    "descriptionPlaceholder": "Beschreibe dein Projekt...",
+    "tagWarnings": {
+      "iso21434": "ISO 21434 ist automotive-spezifisch. Erwäge das Domain-Tag Automotive hinzuzufügen.",
+      "clcTs50701": "CLC/TS 50701 ist bahnspezifisch. Erwäge das Domain-Tag Railway hinzuzufügen.",
+      "iec63452": "IEC 63452 ist bahnspezifisch. Erwäge das Domain-Tag Railway hinzuzufügen.",
+      "iec81001": "IEC 81001 ist medizinspezifisch. Erwäge das Domain-Tag Medical hinzuzufügen.",
+      "iecTr60601": "IEC TR 60601 ist medizinspezifisch. Erwäge das Domain-Tag Medical hinzuzufügen.",
+      "iec62351": "IEC 62351 ist energiesektorspezifisch. Erwäge das Domain-Tag Energy hinzuzufügen.",
+      "etsiEn303645": "ETSI EN 303 645 zielt auf IoT/Embedded-Geräte. Erwäge Embedded oder IoT als Plattform-Tag hinzuzufügen.",
+      "en17927": "EN 17927 zielt auf IoT/Embedded-Geräte. Erwäge Embedded oder IoT als Plattform-Tag hinzuzufügen.",
+      "en18031": "EN 18031 zielt auf vernetzte Produkte. Erwäge ein Plattform-Tag hinzuzufügen (Embedded, IoT, Web oder Mobile).",
+      "iec62443": "IEC 62443 zielt auf OT/Industriesysteme. Erwäge OT als Plattform-Tag oder ein industrielles Domain-Tag hinzuzufügen.",
+      "iso27017": "ISO 27017 ist cloudspezifisch. Erwäge das Plattform-Tag Cloud hinzuzufügen."
+    }
   },
   "stride": {
     "S": {

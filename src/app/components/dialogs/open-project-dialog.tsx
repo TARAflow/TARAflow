@@ -3,6 +3,8 @@ import { Search, FolderOpen, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ProjectMetadata } from "../../models/project-types";
 import { Button } from "shared";
+import { flattenProjectTags } from "features/overview";
+
 
 // ==================== OPEN PROJECT DIALOG ====================
 
@@ -36,7 +38,9 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
     (p) =>
       p.info.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.info.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.info.tags?.some((tag) =>
+      flattenProjectTags(
+        p.info.tags ?? { domain: [], platform: [], regulation: [], custom: [] },
+      ).some((tag: string) =>
         tag.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
   );
@@ -230,19 +234,21 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
                 </div>
 
                 {/* Tags */}
-                {project.info.tags && project.info.tags.length > 0 && (
+                {flattenProjectTags(project.info.tags).length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {project.info.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {project.info.tags.length > 3 && (
+                    {flattenProjectTags(project.info.tags)
+                      .slice(0, 3)
+                      .map((tag: string) => (
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    {flattenProjectTags(project.info.tags).length > 3 && (
                       <span className="text-xs text-gray-400">
-                        +{project.info.tags.length - 3}
+                        +{flattenProjectTags(project.info.tags).length - 3}
                       </span>
                     )}
                   </div>
