@@ -4,6 +4,7 @@
 import type { LinkedDFDElement, StrideCategory } from "shared";
 import type {
   Threat,
+  ThreatConfiguration,
   ThreatTable,
   ThreatProjectData,
   DFDElementReference,
@@ -16,17 +17,25 @@ import {
 } from "../../models/per-element-types";
 import { createEmptyThreat } from "../../models/threat-types";
 import {
-  findElementTemplate,
   getLocalizedElementThreat,
   getLocalizedElementAttack,
   getLocalizedElementCause,
 } from "../threat-catalog-service";
+import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
+import type { IGeneratorStrategy } from "../../models/strategy-types";
 
 // ==================== ELEMENT THREAT GENERATOR ====================
 
 export class ElementThreatGenerator {
-  generateThreatsForProject(project: ThreatProjectData): ThreatTable[] {
+  generateThreatsForProject(
+    project: ThreatProjectData,
+    configuration?: ThreatConfiguration,
+  ): ThreatTable[] {
     if (!project.dfdGraph) return [];
+
+    // Create strategy for this generation run
+    const strategyType = detectStrategy(project);
+    const strategy = createStrategy(strategyType);
 
     const graph = project.dfdGraph;
     const tables: ThreatTable[] = [];
@@ -67,6 +76,7 @@ export class ElementThreatGenerator {
         trustBoundary.displayId ?? "",
         elementToAssets,
         project,
+        strategy,
       );
 
       if (threats.length > 0) {
@@ -81,7 +91,12 @@ export class ElementThreatGenerator {
 
     // ── Data Flows ────────────────────────────────────────────────────────
     const { tbThreats, crossBoundaryThreats } =
-      this.generateDataFlowThreatsGrouped(graph, elementToAssets, project);
+      this.generateDataFlowThreatsGrouped(
+        graph,
+        elementToAssets,
+        project,
+        strategy,
+      );
 
     for (const table of tables) {
       if (!table.trustBoundaryId) continue;
@@ -115,6 +130,7 @@ export class ElementThreatGenerator {
       graph,
       elementToAssets,
       project,
+      strategy,
     );
     if (eeThreats.length > 0) {
       tables.push({
@@ -130,6 +146,7 @@ export class ElementThreatGenerator {
       graph,
       elementToAssets,
       project,
+      strategy,
     );
     if (ifThreats.length > 0) {
       tables.push({
@@ -149,6 +166,7 @@ export class ElementThreatGenerator {
     graph: DFDGraphReference,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat[] {
     const threats: Threat[] = [];
     for (const element of graph.elementsById.values()) {
@@ -164,6 +182,7 @@ export class ElementThreatGenerator {
           "",
           elementToAssets,
           project,
+          strategy,
         ),
       );
     }
@@ -174,6 +193,7 @@ export class ElementThreatGenerator {
     graph: DFDGraphReference,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): { tbThreats: Map<string, Threat[]>; crossBoundaryThreats: Threat[] } {
     const tbThreats = new Map<string, Threat[]>();
     const crossBoundaryThreats: Threat[] = [];
@@ -204,6 +224,7 @@ export class ElementThreatGenerator {
           tb?.displayId ?? "",
           elementToAssets,
           project,
+          strategy,
         );
         const existing = tbThreats.get(tbId) ?? [];
         tbThreats.set(tbId, [...existing, ...threats]);
@@ -216,6 +237,7 @@ export class ElementThreatGenerator {
             "",
             elementToAssets,
             project,
+            strategy,
           ),
         );
       }
@@ -228,6 +250,7 @@ export class ElementThreatGenerator {
     graph: DFDGraphReference,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat[] {
     const threats: Threat[] = [];
     for (const element of graph.elementsById.values()) {
@@ -240,6 +263,7 @@ export class ElementThreatGenerator {
           "",
           elementToAssets,
           project,
+          strategy,
         ),
       );
     }
@@ -253,6 +277,7 @@ export class ElementThreatGenerator {
     trustBoundaryDisplayId: string,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat[] {
     return elements.flatMap((el) =>
       this.generateThreatsForElement(
@@ -262,6 +287,7 @@ export class ElementThreatGenerator {
         trustBoundaryDisplayId,
         elementToAssets,
         project,
+        strategy,
       ),
     );
   }
@@ -273,8 +299,17 @@ export class ElementThreatGenerator {
     trustBoundaryDisplayId: string,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat[] {
-    const applicableStride = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
+    const baseCategories = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
+
+    // Strategy modulates STRIDE categories based on element properties
+    const applicableStride = strategy.getStrideCategories(
+      element,
+      baseCategories,
+      project,
+    );
+
     const isInterface =
       element.type === "Interface" || element.type === "PhysicalInterface";
 
@@ -288,6 +323,7 @@ export class ElementThreatGenerator {
         isInterface,
         elementToAssets,
         project,
+        strategy,
       ),
     );
   }
@@ -301,6 +337,7 @@ export class ElementThreatGenerator {
     isInterface: boolean,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat {
     const threatId = isInterface
       ? generateThreatIdForInterface(
@@ -334,7 +371,11 @@ export class ElementThreatGenerator {
     threat.source = "auto";
 
     // ── Catalog lookup ────────────────────────────────────────────────────
-    const template = findElementTemplate(strideCategory, element.type, project);
+    const template = strategy.selectElementTemplate(
+      strideCategory,
+      element.type,
+      project,
+    );
 
     if (template) {
       // Descriptions stored empty → rendered from i18n at display time.
@@ -350,6 +391,30 @@ export class ElementThreatGenerator {
     }
 
     return threat;
+  }
+
+  /**
+   * Public entry point for sync — generates threats for a single element.
+   * Strategy is auto-detected from project context.
+   */
+  public generateThreatsForSingleElement(
+    element: DFDElementReference,
+    trustBoundaryId: string | null,
+    trustBoundaryName: string,
+    trustBoundaryDisplayId: string,
+    elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
+  ): Threat[] {
+    const strategy = createStrategy(detectStrategy(project));
+    return this.generateThreatsForElement(
+      element,
+      trustBoundaryId,
+      trustBoundaryName,
+      trustBoundaryDisplayId,
+      elementToAssets,
+      project,
+      strategy,
+    );
   }
 }
 

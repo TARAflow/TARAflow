@@ -31,6 +31,7 @@ import {
   generateThreatIdPerInteraction,
   createInteractionContext,
 } from "../../models/per-interaction-types";
+import { STRIDE_PER_ELEMENT_TYPE } from "../../models/per-element-types";
 import { createEmptyThreat } from "../../models/threat-types";
 import { DataFlowReference, DFDAnalysisContext } from "shared";
 import {
@@ -39,6 +40,8 @@ import {
   getLocalizedInteractionAttack,
   getLocalizedInteractionCause,
 } from "../threat-catalog-service";
+import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
+import type { IGeneratorStrategy } from "../../models/strategy-types";
 
 // ==================== TYPES ====================
 
@@ -53,6 +56,9 @@ export class InteractionThreatGenerator {
     configuration?: ThreatConfiguration,
   ): ThreatTable[] {
     if (!project.dfdGraph) return [];
+
+    const strategyType = detectStrategy(project);
+    const strategy = createStrategy(strategyType);
 
     const graph = project.dfdGraph;
     const zeroTrust = configuration?.zeroTrustMode ?? false;
@@ -95,8 +101,23 @@ export class InteractionThreatGenerator {
       const receiverTB = df.toEffectiveTrustBoundary ?? null;
       const internalFlow = senderTB !== null && senderTB === receiverTB;
 
+      // Wrap connection properties for strategy STRIDE modulation
+      const dataFlowElementWithProps: DFDElementReference = {
+        id: connection?.id ?? df.connectionId,
+        type: "DataFlow",
+        name: connection?.name || dfDisplayId,
+        displayId: dfDisplayId,
+        properties: (connection as any)?.properties ?? {},
+      } as DFDElementReference;
+
+      const applicableStride = strategy.getStrideCategories(
+        dataFlowElementWithProps,
+        STRIDE_PER_INTERACTION,
+        project,
+      );
+
       if (senderTB) {
-        for (const stride of STRIDE_PER_INTERACTION) {
+        for (const stride of applicableStride) {
           addThreat(
             senderTB,
             this.createDataFlowThreat(
@@ -112,6 +133,7 @@ export class InteractionThreatGenerator {
               this.getTBDisplayId(graph, senderTB),
               elementToAssets,
               project,
+              strategy,
             ),
           );
         }
@@ -121,7 +143,7 @@ export class InteractionThreatGenerator {
         !senderTB || (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
 
       if (needsReceiverPerspective && receiverTB) {
-        for (const stride of STRIDE_PER_INTERACTION) {
+        for (const stride of applicableStride) {
           addThreat(
             receiverTB,
             this.createDataFlowThreat(
@@ -137,6 +159,7 @@ export class InteractionThreatGenerator {
               this.getTBDisplayId(graph, receiverTB),
               elementToAssets,
               project,
+              strategy,
             ),
           );
         }
@@ -154,7 +177,14 @@ export class InteractionThreatGenerator {
       const tbDisplayId = tbId ? this.getTBDisplayId(graph, tbId) : "";
       const tableKey = tbId ?? "__no_tb__";
 
-      for (const stride of STRIDE_PER_INTERACTION) {
+      // Strategy modulates STRIDE for Interface based on its properties
+      const applicableInterfaceStride = strategy.getStrideCategories(
+        element,
+        STRIDE_PER_INTERACTION,
+        project,
+      );
+
+      for (const stride of applicableInterfaceStride) {
         const threat = this.createInterfaceThreat(
           element,
           stride,
@@ -163,6 +193,7 @@ export class InteractionThreatGenerator {
           tbDisplayId,
           elementToAssets,
           project,
+          strategy,
         );
         const existing = tableMap.get(tableKey) ?? [];
         existing.push(threat);
@@ -221,6 +252,7 @@ export class InteractionThreatGenerator {
     trustBoundaryDisplayId: string,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat {
     const direction: InteractionDirection =
       perspective === "sender" ? "outgoing" : "incoming";
@@ -270,7 +302,7 @@ export class InteractionThreatGenerator {
     threat.source = "auto";
 
     // ── Catalog lookup ────────────────────────────────────────────────────
-    const template = findInteractionTemplate(
+    const template = strategy.selectInteractionTemplate(
       strideCategory,
       perspective,
       project,
@@ -314,6 +346,7 @@ export class InteractionThreatGenerator {
     trustBoundaryDisplayId: string,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
   ): Threat {
     const displayId = element.displayId || element.id;
     const interfaceNumber = displayId.replace(/^IF-/, "");
@@ -346,7 +379,7 @@ export class InteractionThreatGenerator {
     threat.source = "auto";
 
     // ── Catalog lookup (interface = receiver perspective by convention) ────
-    const template = findInteractionTemplate(
+    const template = strategy.selectInteractionTemplate(
       strideCategory,
       "receiver",
       project,

@@ -38,6 +38,20 @@ export type {
 
 export type { ControlInstance } from "./models/control-instance";
 
+// ==================== ASSET RELATION UNION TYPES ====================
+// String union types for asset relations — used by dfd and threats features.
+export type {
+  DataAssetRelationType,
+  FunctionAssetRelationType,
+  ProcessAssetRelationType,
+  SystemAssetRelationType,
+  InfraAssetRelationType,
+  PhysicalAssetRelationType,
+  ServiceAssetRelationType,
+  HumanAssetRelationType,
+  AnyAssetRelationType,
+} from "./models/asset-relation-union-types";
+
 // ==================== UI COMPONENTS ====================
 export { Button } from "./components/button";
 export { Toast, ToastContainer } from "./components/toast";

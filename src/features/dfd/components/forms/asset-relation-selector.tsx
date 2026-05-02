@@ -53,7 +53,6 @@ import { useTranslation } from "react-i18next";
 
 import { ConfirmDialog } from "../shared/confirm-dialog";
 import type {
-  AnyAssetRelationType,
   AssetGroup,
   AssetRelation,
   InfraAccessesQualifier,
@@ -70,6 +69,7 @@ import {
   isIsAnRelation,
 } from "../../models/asset-relation-types";
 import type { SafetyAnnotation } from "../../models/safety-types";
+import { AnyAssetRelationType } from "shared";
 
 // ==================== PUBLIC TYPES ====================
 

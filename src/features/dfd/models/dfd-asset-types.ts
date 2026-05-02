@@ -11,13 +11,13 @@ import type { ValueSource } from "./safety-types";
 import type {
   AssetGroup,
   AssetToAssetRelation,
-  AnyAssetRelationType,
   SystemUsesQualifier,
   InfraAccessesQualifier,
   PhysicalContactQualifier,
   ServiceUsesQualifier,
 } from "./asset-relation-types";
 import type { DFDElementType } from "./dfd-element-types";
+import { AnyAssetRelationType } from "shared";
 
 // ==================== SHARED SUB-TYPES ====================
 

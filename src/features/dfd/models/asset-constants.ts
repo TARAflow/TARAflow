@@ -4,6 +4,13 @@
 import type { DFDElementType } from "./dfd-types";
 import type {
   AssetGroup,
+  SystemUsesQualifier,
+  ServiceUsesQualifier,
+  InfraAccessesQualifier,
+  PhysicalContactQualifier,
+  A2ARelationType,
+} from "./asset-relation-types";
+import {
   DataAssetRelationType,
   FunctionAssetRelationType,
   ProcessAssetRelationType,
@@ -12,12 +19,7 @@ import type {
   PhysicalAssetRelationType,
   ServiceAssetRelationType,
   HumanAssetRelationType,
-  SystemUsesQualifier,
-  ServiceUsesQualifier,
-  InfraAccessesQualifier,
-  PhysicalContactQualifier,
-  A2ARelationType,
-} from "./asset-relation-types";
+} from "shared";
 
 // ==================== UI DISPLAY CONFIGURATION ====================
 

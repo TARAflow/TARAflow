@@ -12,6 +12,8 @@ import type {
   StrideCategory,
 } from "shared";
 
+import type { StrategyType } from "./strategy-types";
+
 // ==================== STRIDE METHOD ====================
 
 export type StrideMethod = "per-element" | "per-interaction";
@@ -446,6 +448,7 @@ export interface ThreatConfiguration {
   customInteractionTemplates: InteractionTemplate[];
   customMitigations: MitigationEntry[];
   customVerifications: VerificationEntry[];
+  strategyOverride?: StrategyType;
 }
 
 export const DEFAULT_THREAT_CONFIGURATION: ThreatConfiguration = {

@@ -17,6 +17,7 @@ import {
 } from "../../models/per-element-types";
 import { elementThreatGenerator } from "./element-generator";
 import { DFDAnalysisContext, type LinkedDFDElement } from "shared";
+import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
 
 // ==================== TRUST BOUNDARY CHANGE ====================
 
@@ -493,16 +494,17 @@ export class ElementThreatSync {
           },
         } as ThreatProjectData;
 
-        const newThreats = elementThreatGenerator["generateThreatsForElement"](
-          missingElement,
-          missingElement.type === "ExternalEntity" || isInterfaceWithoutTB
-            ? null
-            : trustBoundaryId,
-          trustBoundaryName,
-          trustBoundaryDisplayId,
-          new Map(), // elementToAssets
-          projectStub, // project
-        );
+        const newThreats =
+          elementThreatGenerator.generateThreatsForSingleElement(
+            missingElement,
+            missingElement.type === "ExternalEntity" || isInterfaceWithoutTB
+              ? null
+              : trustBoundaryId,
+            trustBoundaryName,
+            trustBoundaryDisplayId,
+            new Map(), // elementToAssets
+            projectStub, // project
+          );
 
         let table = updatedTables.find((t) => {
           if (missingElement.type === "ExternalEntity") {
@@ -557,7 +559,7 @@ export class ElementThreatSync {
             displayId: conn.displayId,
           };
 
-          return elementThreatGenerator["generateThreatsForElement"](
+          return elementThreatGenerator.generateThreatsForSingleElement(
             dfElem,
             null,
             "Data Flows",

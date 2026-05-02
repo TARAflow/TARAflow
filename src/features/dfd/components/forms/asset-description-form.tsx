@@ -74,10 +74,7 @@ import type {
   DFDElementType,
 } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
-import type {
-  AnyAssetRelationType,
-  AssetToAssetRelation,
-} from "../../models/asset-relation-types";
+import type { AssetToAssetRelation } from "../../models/asset-relation-types";
 import {
   hasQualifier,
   isIsAnRelation,
@@ -89,6 +86,7 @@ import {
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { ConfirmDialog } from "../shared/confirm-dialog";
 import { AssetToAssetSelector } from "./asset-to-asset-selector";
+import { AnyAssetRelationType } from "shared";
 
 // ==================== TYPES ====================
 

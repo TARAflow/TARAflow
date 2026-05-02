@@ -20,6 +20,17 @@ import type {
 import type { DFDGraph } from "./dfd-graph-types";
 import type { DFDElementType } from "./dfd-element-types";
 import type { DFDAsset } from "./dfd-asset-types";
+import {
+  AnyAssetRelationType,
+  DataAssetRelationType,
+  FunctionAssetRelationType,
+  ProcessAssetRelationType,
+  SystemAssetRelationType,
+  InfraAssetRelationType,
+  PhysicalAssetRelationType,
+  ServiceAssetRelationType,
+  HumanAssetRelationType,
+} from "shared";
 
 // ==================== DFD ELEMENT TYPES ====================
 // Re-exported from dfd-element-types.ts for backwards compatibility
@@ -38,54 +49,45 @@ export type {
   // Core
   AssetGroup,
   AssetRelation,
-  AnyAssetRelationType,
   IsAnRelation,
 
   // Data
-  DataAssetRelationType,
   DataAssetRelation,
   DataAssetInteractionRelation,
 
   // Function (new)
-  FunctionAssetRelationType,
   FunctionAssetRelation,
   FunctionAssetInteractionRelation,
 
   // Process
-  ProcessAssetRelationType,
   ProcessAssetRelation,
   ProcessAssetInteractionRelation,
 
   // System
-  SystemAssetRelationType,
   SystemAssetRelation,
   SystemUsesRelation,
   SystemUsesQualifier,
   SystemOtherRelation,
 
   // Infrastructure
-  InfraAssetRelationType,
   InfraAssetRelation,
   InfraAccessesRelation,
   InfraAccessesQualifier,
   InfraOtherRelation,
 
   // Physical (new)
-  PhysicalAssetRelationType,
   PhysicalAssetRelation,
   PhysicalAccessesRelation,
   PhysicalContactQualifier,
   PhysicalOtherRelation,
 
   // Service (new)
-  ServiceAssetRelationType,
   ServiceAssetRelation,
   ServiceUsesRelation,
   ServiceUsesQualifier,
   ServiceOtherRelation,
 
   // Human
-  HumanAssetRelationType,
   HumanAssetRelation,
   HumanAssetInteractionRelation,
 

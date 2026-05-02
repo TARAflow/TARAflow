@@ -42,37 +42,24 @@ export type {
 export type {
   // Asset group
   AssetGroup,
-
-  // Unified relation type
   AssetRelation,
-  AnyAssetRelationType,
-
   // Data asset
-  DataAssetRelationType,
   DataAssetRelation,
   DataAssetInteractionRelation,
-
   // Process asset
-  ProcessAssetRelationType,
   ProcessAssetRelation,
   ProcessAssetInteractionRelation,
-
   // System asset
-  SystemAssetRelationType,
   SystemAssetRelation,
   SystemUsesRelation,
   SystemUsesQualifier,
   SystemOtherRelation,
-
   // Infrastructure asset
-  InfraAssetRelationType,
   InfraAssetRelation,
   InfraAccessesRelation,
   InfraAccessesQualifier,
   InfraOtherRelation,
-
   // Human asset
-  HumanAssetRelationType,
   HumanAssetRelation,
   HumanAssetInteractionRelation,
 
