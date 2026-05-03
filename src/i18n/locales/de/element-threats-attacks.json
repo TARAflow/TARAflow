@@ -324,5 +324,15 @@
     "threat": "OT-Controller Denial of Service via Feldbus-Flooding",
     "cause": "Controller hat kein Rate-Limiting auf Feldbus-Eingang — alle eingehenden Rahmen werden unabhängig vom Volumen verarbeitet",
     "attack": "Angreifer flutet den Feldbus mit hochfrequenten Rahmen, sättigt den Controller-Kommunikations-Stack und entzieht Echtzeit-Steuerungsaufgaben Verarbeitungszeit"
+  },
+  "R-SYS-001": {
+    "threat": "Repudiation auf Systemebene — Aktionen können nicht zugeordnet werden",
+    "cause": "Kein manipulationssicherer Audit-Trail an der Systemgrenze — das System kann abstreiten, Aktionen durchgeführt oder empfangen zu haben",
+    "attack": "Angreifer nutzt fehlende oder unzureichende Protokollierung um böswillige Aktionen abzustreiten, was forensische Untersuchungen verunmöglicht"
+  },
+  "R-SYS-EMB-001": {
+    "threat": "Repudiation von Steuerungsaktionen in Embedded- oder OT-System",
+    "cause": "Embedded Controller und SCADA-Systeme haben oft keine kryptografischen Audit-Trails — Bedienbefehle und Systemaktionen werden nicht nicht-abstreitbar protokolliert",
+    "attack": "Bediener oder Angreifer streitet ab, einen Steuerungsbefehl ausgeführt zu haben (z.B. Not-Aus-Übersteuern, Sollwertänderung) weil kein kryptografisch gebundener Audit-Trail existiert"
   }
 }

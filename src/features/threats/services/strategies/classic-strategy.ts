@@ -17,7 +17,7 @@ import {
  
 export class ClassicStrategy implements IGeneratorStrategy {
   readonly type: StrategyType = "ClassicStrategy";
- 
+
   getStrideCategories(
     element: DFDElementReference,
     baseCategories: StrideCategory[],
@@ -26,15 +26,21 @@ export class ClassicStrategy implements IGeneratorStrategy {
     // No modulation — return base categories unchanged
     return baseCategories;
   }
- 
+
   selectElementTemplate(
     strideCategory: StrideCategory,
     elementType: string,
     project: ThreatProjectData,
+    elementProps: Record<string, unknown>,
   ): ElementTemplate | undefined {
-    return findElementTemplate(strideCategory, elementType, project);
+    return findElementTemplate(
+      strideCategory,
+      elementType,
+      project,
+      elementProps,
+    );
   }
- 
+
   selectInteractionTemplate(
     strideCategory: StrideCategory,
     perspective: "sender" | "receiver",

@@ -12,14 +12,16 @@ import {
   modifyTrustBoundaryStride,
   modifyInterfaceStride,
   modifyChipBoundaryStride,
+  modifyMultiprocessStride,
 } from "../../utils/stride-modifier";
 import type {
   ProcessModifierProps,
+  MultiprocessModifierProps,
   DataFlowModifierProps,
   DataStoreModifierProps,
   TrustBoundaryModifierProps,
   InterfaceModifierProps,
-  ChipBoundaryModifierProps
+  ChipBoundaryModifierProps,
 } from "../../utils/stride-modifier";
 import {
   findElementTemplate,
@@ -28,49 +30,78 @@ import {
  
 export class HybridStrategy implements IGeneratorStrategy {
   readonly type: StrategyType = "HybridStrategy";
- 
+
   getStrideCategories(
     element: DFDElementReference,
     baseCategories: StrideCategory[],
     _project: ThreatProjectData,
   ): StrideCategory[] {
     const props = (element as any).properties ?? {};
- 
+
     switch (element.type) {
       case "Process":
+        return modifyProcessStride(
+          baseCategories,
+          props as ProcessModifierProps,
+        );
+
       case "Multiprocess":
-        return modifyProcessStride(baseCategories, props as ProcessModifierProps);
- 
+        return modifyMultiprocessStride(
+          baseCategories,
+          props as MultiprocessModifierProps,
+        );
+
       case "DataFlow":
-        return modifyDataFlowStride(baseCategories, props as DataFlowModifierProps);
- 
+        return modifyDataFlowStride(
+          baseCategories,
+          props as DataFlowModifierProps,
+        );
+
       case "DataStore":
-        return modifyDataStoreStride(baseCategories, props as DataStoreModifierProps);
- 
+        return modifyDataStoreStride(
+          baseCategories,
+          props as DataStoreModifierProps,
+        );
+
       case "TrustBoundary":
-        return modifyTrustBoundaryStride(baseCategories, props as TrustBoundaryModifierProps);
- 
+        return modifyTrustBoundaryStride(
+          baseCategories,
+          props as TrustBoundaryModifierProps,
+        );
+
       case "Interface":
       case "PhysicalInterface":
-        return modifyInterfaceStride(baseCategories, props as InterfaceModifierProps);
- 
+        return modifyInterfaceStride(
+          baseCategories,
+          props as InterfaceModifierProps,
+        );
+
       case "ChipBoundary":
-        return modifyChipBoundaryStride(baseCategories, props as ChipBoundaryModifierProps);
- 
+        return modifyChipBoundaryStride(
+          baseCategories,
+          props as ChipBoundaryModifierProps,
+        );
+
       default:
         return baseCategories;
     }
   }
- 
+
   selectElementTemplate(
     strideCategory: StrideCategory,
     elementType: string,
     project: ThreatProjectData,
+    elementProps: Record<string, unknown>,
   ): ElementTemplate | undefined {
     // Context-filtered — project.info.tags drives template selection
-    return findElementTemplate(strideCategory, elementType, project);
+    return findElementTemplate(
+      strideCategory,
+      elementType,
+      project,
+      elementProps,
+    );
   }
- 
+
   selectInteractionTemplate(
     strideCategory: StrideCategory,
     perspective: "sender" | "receiver",

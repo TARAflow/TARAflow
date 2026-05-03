@@ -371,10 +371,13 @@ export class ElementThreatGenerator {
     threat.source = "auto";
 
     // ── Catalog lookup ────────────────────────────────────────────────────
+    const elementProps =
+      ((element as any).properties as Record<string, unknown> | null) ?? null;
     const template = strategy.selectElementTemplate(
       strideCategory,
       element.type,
       project,
+      elementProps,
     );
 
     if (template) {

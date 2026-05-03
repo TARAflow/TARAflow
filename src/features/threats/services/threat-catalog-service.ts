@@ -23,17 +23,21 @@ import mitigationsData from "./catalog/mitigations.json";
 import verificationsData from "./catalog/verifications.json";
 import embeddedElementTemplatesData from "./catalog/embedded-element-templates.json";
 import embeddedInteractionTemplatesData from "./catalog/embedded-interaction-templates.json";
+import multiprocessElementTemplatesData from "./catalog/multiprocess-element-templates.json";
+import multiprocessInteractionTemplatesData from "./catalog/multiprocess-interaction-templates.json";
 
 // ==================== CATALOG SINGLETONS ====================
 
 const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [
   ...((elementTemplatesData as any).elementTemplates ?? []),
   ...((embeddedElementTemplatesData as any).elementTemplates ?? []),
+  ...((multiprocessElementTemplatesData as any).elementTemplates ?? []),
 ];
  
 const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [
   ...((interactionTemplatesData as any).interactionTemplates ?? []),
   ...((embeddedInteractionTemplatesData as any).interactionTemplates ?? []),
+  ...((multiprocessInteractionTemplatesData as any).interactionTemplates ?? []),
 ];
 
 const ALL_MITIGATIONS: MitigationEntry[] =
@@ -45,30 +49,54 @@ const ALL_VERIFICATIONS: VerificationEntry[] =
 // ==================== CONTEXT FILTERING ====================
 
 /**
- * Returns true when a template's context matches the given project settings.
- * AND logic across keys (industry AND platform AND standards must all match).
- * OR logic within a key (any single value in the array suffices).
- * Missing or empty array = universal (always matches).
+ * Returns true when a template's context matches the project and/or element.
  *
- * NOTE: Context filtering is wired here but NOT yet activated in the generators
- * (Step 4). Generators currently call getAllElementTemplates() directly.
+ * Matching rules:
+ *   systemClass  → element-level (elementProps.systemClass)
+ *   chipType     → element-level (elementProps.chipType)
+ *   regulation   → project-level (project.info.tags.regulation)
+ *   platform     → project-level (project.info.tags.platform) — deprecated fallback
+ *   domain       → project-level (project.info.tags.domain) — deprecated fallback
+ *
+ * AND logic across keys, OR logic within a key.
+ * Missing or empty array = universal (always matches).
  */
 export function matchesContext(
   templateCtx: TemplateContext,
-  threatData: ThreatProjectData, // War: settings: ProjectSettings
+  project: ThreatProjectData,
+  elementProps: Record<string, unknown> | null,
 ): boolean {
-  const tags = threatData.info?.tags;
-  if (!tags) return true;
-  const { domain, platform, regulation } = templateCtx;
-  if (domain?.length && !domain.some((d) => tags.domain.includes(d)))
-    return false;
-  if (platform?.length && !platform.some((p) => tags.platform.includes(p)))
-    return false;
-  if (
-    regulation?.length &&
-    !regulation.some((r) => tags.regulation.includes(r))
-  )
-    return false;
+  const { systemClass, chipType, regulation, platform, domain } = templateCtx;
+  const tags = project.info?.tags;
+
+  // ── Element-level checks ──────────────────────────────────────────────────
+
+  if (systemClass?.length) {
+    const elemClass = elementProps?.["systemClass"] as string | undefined;
+    if (!elemClass || !systemClass.includes(elemClass)) return false;
+  }
+
+  if (chipType?.length) {
+    const elemChipType = elementProps?.["chipType"] as string | undefined;
+    if (!elemChipType || !chipType.includes(elemChipType)) return false;
+  }
+
+  // ── Project-level checks ──────────────────────────────────────────────────
+
+  if (regulation?.length && tags) {
+    if (!regulation.some((r) => tags.regulation.includes(r))) return false;
+  }
+
+  // Deprecated — platform fallback
+  if (platform?.length && tags) {
+    if (!platform.some((p) => tags.platform.includes(p))) return false;
+  }
+
+  // Deprecated — domain fallback
+  if (domain?.length && tags) {
+    if (!domain.some((d) => tags.domain.includes(d))) return false;
+  }
+
   return true;
 }
 
@@ -85,12 +113,14 @@ export function getAllElementTemplates(): ElementTemplate[] {
 export function getApplicableElementTemplates(
   strideCategory: StrideCategory,
   elementType: string,
-  threatData?: ThreatProjectData,
+  project?: ThreatProjectData,
+  elementProps: Record<string, unknown> | null = null,
 ): ElementTemplate[] {
   return ALL_ELEMENT_TEMPLATES.filter((t) => {
     if (t.strideCategory !== strideCategory) return false;
     if (!t.elementTypes.includes(elementType)) return false;
-    if (threatData && !matchesContext(t.context, threatData)) return false;
+    if (project && !matchesContext(t.context, project, elementProps))
+      return false;
     return true;
   });
 }
@@ -98,12 +128,14 @@ export function getApplicableElementTemplates(
 export function findElementTemplate(
   strideCategory: StrideCategory,
   elementType: string,
-  threatData?: ThreatProjectData,
+  project?: ThreatProjectData,
+  elementProps?: Record<string, unknown>,
 ): ElementTemplate | undefined {
   return getApplicableElementTemplates(
     strideCategory,
     elementType,
-    threatData,
+    project,
+    elementProps,
   )[0];
 }
 
@@ -125,11 +157,13 @@ export function getApplicableInteractionTemplates(
   strideCategory: StrideCategory,
   perspective: "sender" | "receiver",
   threatData?: ThreatProjectData,
+  elementProps: Record<string, unknown> | null = null,
 ): InteractionTemplate[] {
   return ALL_INTERACTION_TEMPLATES.filter((t) => {
     if (t.strideCategory !== strideCategory) return false;
     if (t.perspective !== perspective) return false;
-    if (threatData && !matchesContext(t.context, threatData)) return false;
+    if (threatData && !matchesContext(t.context, threatData, elementProps))
+      return false;
     return true;
   });
 }
@@ -138,11 +172,13 @@ export function findInteractionTemplate(
   strideCategory: StrideCategory,
   perspective: "sender" | "receiver",
   threatData?: ThreatProjectData,
+  elementProps: Record<string, unknown> | null = null,
 ): InteractionTemplate | undefined {
   return getApplicableInteractionTemplates(
     strideCategory,
     perspective,
     threatData,
+    elementProps,
   )[0];
 }
 

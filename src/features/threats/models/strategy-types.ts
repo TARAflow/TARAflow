@@ -18,6 +18,7 @@ import type {
   ThreatConfiguration,
   DFDElementReference,
   ElementTemplate,
+  InteractionTemplate,
 } from "./threat-types";
 import type { DFDAnalysisContext } from "shared";
 
@@ -66,6 +67,7 @@ export interface IGeneratorStrategy {
     strideCategory: StrideCategory,
     elementType: string,
     project: ThreatProjectData,
+    elementProps: Record<string, unknown> | null,
   ): ElementTemplate | undefined;
 
   /**
@@ -75,5 +77,6 @@ export interface IGeneratorStrategy {
     strideCategory: StrideCategory,
     perspective: "sender" | "receiver",
     project: ThreatProjectData,
-  ): import("./threat-types").InteractionTemplate | undefined;
+    elementProps: Record<string, unknown> | null,
+  ): InteractionTemplate | undefined;
 }

@@ -31,7 +31,6 @@ import {
   generateThreatIdPerInteraction,
   createInteractionContext,
 } from "../../models/per-interaction-types";
-import { STRIDE_PER_ELEMENT_TYPE } from "../../models/per-element-types";
 import { createEmptyThreat } from "../../models/threat-types";
 import { DataFlowReference, DFDAnalysisContext } from "shared";
 import {
@@ -101,7 +100,12 @@ export class InteractionThreatGenerator {
       const receiverTB = df.toEffectiveTrustBoundary ?? null;
       const internalFlow = senderTB !== null && senderTB === receiverTB;
 
-      // Wrap connection properties for strategy STRIDE modulation
+      // Element props for context-aware template matching:
+      // sender → source properties, receiver → target properties
+      const sourceProps = (source as any).properties as Record<string, unknown> | null ?? null;
+      const targetProps = (target as any).properties as Record<string, unknown> | null ?? null;
+
+      // Strategy modulates STRIDE based on DataFlow properties
       const dataFlowElementWithProps: DFDElementReference = {
         id: connection?.id ?? df.connectionId,
         type: "DataFlow",
@@ -134,6 +138,7 @@ export class InteractionThreatGenerator {
               elementToAssets,
               project,
               strategy,
+              sourceProps,
             ),
           );
         }
@@ -160,6 +165,7 @@ export class InteractionThreatGenerator {
               elementToAssets,
               project,
               strategy,
+              targetProps,
             ),
           );
         }
@@ -177,14 +183,7 @@ export class InteractionThreatGenerator {
       const tbDisplayId = tbId ? this.getTBDisplayId(graph, tbId) : "";
       const tableKey = tbId ?? "__no_tb__";
 
-      // Strategy modulates STRIDE for Interface based on its properties
-      const applicableInterfaceStride = strategy.getStrideCategories(
-        element,
-        STRIDE_PER_INTERACTION,
-        project,
-      );
-
-      for (const stride of applicableInterfaceStride) {
+      for (const stride of STRIDE_PER_INTERACTION) {
         const threat = this.createInterfaceThreat(
           element,
           stride,
@@ -253,6 +252,7 @@ export class InteractionThreatGenerator {
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
     strategy: IGeneratorStrategy,
+    elementProps: Record<string, unknown> | null,
   ): Threat {
     const direction: InteractionDirection =
       perspective === "sender" ? "outgoing" : "incoming";
@@ -306,6 +306,7 @@ export class InteractionThreatGenerator {
       strideCategory,
       perspective,
       project,
+      elementProps,
     );
 
     if (template) {
@@ -378,11 +379,15 @@ export class InteractionThreatGenerator {
     threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
     threat.source = "auto";
 
+    // Interface element properties for context matching
+    const elementProps = (element as any).properties as Record<string, unknown> | null ?? null;
+
     // ── Catalog lookup (interface = receiver perspective by convention) ────
     const template = strategy.selectInteractionTemplate(
       strideCategory,
       "receiver",
       project,
+      elementProps,
     );
 
     if (template) {

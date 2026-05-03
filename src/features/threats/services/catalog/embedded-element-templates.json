@@ -1,12 +1,14 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Embedded and OT-specific element threat templates. Context: platform Embedded or OT.",
   "elementTemplates": [
     {
       "id": "T-CB-001",
       "strideCategory": "T",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-T-001", "M-CB-E-001"],
       "verifications": ["V-CB-T-001", "V-CB-E-001"],
       "isCustom": false
@@ -15,7 +17,9 @@
       "id": "T-CB-002",
       "strideCategory": "T",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-T-002", "M-CB-T-003"],
       "verifications": ["V-CB-T-001", "V-CB-T-002"],
       "isCustom": false
@@ -24,7 +28,9 @@
       "id": "T-CB-003",
       "strideCategory": "T",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-T-004"],
       "verifications": ["V-CB-T-003"],
       "isCustom": false
@@ -33,7 +39,9 @@
       "id": "I-CB-001",
       "strideCategory": "I",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-I-001"],
       "verifications": ["V-CB-I-001"],
       "isCustom": false
@@ -42,7 +50,9 @@
       "id": "I-CB-002",
       "strideCategory": "I",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-E-001", "M-CB-T-002"],
       "verifications": ["V-CB-I-001", "V-CB-T-002"],
       "isCustom": false
@@ -51,7 +61,9 @@
       "id": "E-CB-001",
       "strideCategory": "E",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-E-001", "M-CB-E-002"],
       "verifications": ["V-CB-E-001", "V-CB-E-002"],
       "isCustom": false
@@ -60,7 +72,9 @@
       "id": "E-CB-002",
       "strideCategory": "E",
       "elementTypes": ["ChipBoundary"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-T-001", "M-CB-E-001"],
       "verifications": ["V-CB-T-001", "V-CB-E-001"],
       "isCustom": false
@@ -68,8 +82,10 @@
     {
       "id": "T-P-EMB-001",
       "strideCategory": "T",
-      "elementTypes": ["Process"],
-      "context": { "platform": ["Embedded"] },
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-T-001", "M-T-001", "M-IF-T-001"],
       "verifications": ["V-CB-T-001", "V-T-001"],
       "isCustom": false
@@ -77,8 +93,10 @@
     {
       "id": "E-P-EMB-001",
       "strideCategory": "E",
-      "elementTypes": ["Process"],
-      "context": { "platform": ["Embedded"] },
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-E-001", "M-CB-E-002", "M-E-001"],
       "verifications": ["V-CB-E-001", "V-E-001"],
       "isCustom": false
@@ -87,7 +105,9 @@
       "id": "T-DS-EMB-001",
       "strideCategory": "T",
       "elementTypes": ["DataStore"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-T-002", "M-T-001", "M-T-003"],
       "verifications": ["V-CB-T-002", "V-T-001"],
       "isCustom": false
@@ -96,7 +116,9 @@
       "id": "I-DS-EMB-001",
       "strideCategory": "I",
       "elementTypes": ["DataStore"],
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "mitigations": ["M-CB-I-001", "M-I-001", "M-I-003"],
       "verifications": ["V-CB-I-001", "V-I-001"],
       "isCustom": false
@@ -104,8 +126,11 @@
     {
       "id": "S-P-OT-001",
       "strideCategory": "S",
-      "elementTypes": ["Process"],
-      "context": { "platform": ["OT"], "regulation": ["IEC 62443"] },
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "platform": ["OT"],
+        "regulation": ["IEC 62443"]
+      },
       "mitigations": ["M-S-001", "M-S-002", "M-IF-S-001"],
       "verifications": ["V-S-001", "V-IF-S-001"],
       "isCustom": false
@@ -113,8 +138,10 @@
     {
       "id": "T-P-OT-001",
       "strideCategory": "T",
-      "elementTypes": ["Process"],
-      "context": { "platform": ["OT"] },
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "platform": ["OT"]
+      },
       "mitigations": ["M-T-001", "M-T-002", "M-IF-I-001"],
       "verifications": ["V-T-001", "V-IF-T-001"],
       "isCustom": false
@@ -122,8 +149,10 @@
     {
       "id": "D-P-OT-001",
       "strideCategory": "D",
-      "elementTypes": ["Process"],
-      "context": { "platform": ["OT"] },
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "platform": ["OT"]
+      },
       "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001"],
       "verifications": ["V-D-001", "V-IF-D-001"],
       "isCustom": false

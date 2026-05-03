@@ -433,9 +433,36 @@ export interface VerificationEntry {
  * Non-empty = AND across keys, OR within a key
  */
 export interface TemplateContext {
-  domain?: string[];
-  platform?: string[];
+  /**
+   * Element-level: matches Multiprocess.systemClass.
+   * Preferred over platform for Multiprocess templates.
+   */
+  systemClass?: string[];
+
+  /**
+   * Element-level: matches ChipBoundary.chipType.
+   * Used for chip-specific templates.
+   */
+  chipType?: string[];
+
+  /**
+   * Project-level: matches project.info.tags.regulation.
+   * Used for regulatory-specific templates.
+   */
   regulation?: string[];
+
+  /**
+   * Project-level: matches project.info.tags.platform.
+   * @deprecated Prefer systemClass for Multiprocess templates.
+   * Kept for backwards compatibility with existing templates.
+   */
+  platform?: string[];
+
+  /**
+   * Project-level: matches project.info.tags.domain.
+   * @deprecated Prefer regulation for domain-specific requirements.
+   */
+  domain?: string[];
 }
 
 // ==================== CONFIGURATION ====================

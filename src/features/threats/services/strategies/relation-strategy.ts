@@ -44,7 +44,7 @@ const RELATION_TO_STRIDE: Partial<Record<AnyAssetRelationType, StrideCategory[]>
  
 export class RelationStrategy implements IGeneratorStrategy {
   readonly type: StrategyType = "RelationStrategy";
- 
+
   getStrideCategories(
     element: DFDElementReference,
     baseCategories: StrideCategory[],
@@ -52,32 +52,39 @@ export class RelationStrategy implements IGeneratorStrategy {
   ): StrideCategory[] {
     // Find asset relations for this element
     const assetRelations = (element as any).assetRelations ?? [];
- 
+
     if (assetRelations.length === 0) {
       // No relations — fall back to base categories
       return baseCategories;
     }
- 
+
     // Derive STRIDE from relation types
     const derived = new Set<StrideCategory>();
     for (const relation of assetRelations) {
-      const strideForRelation = RELATION_TO_STRIDE[relation.relationType as AnyAssetRelationType];
+      const strideForRelation =
+        RELATION_TO_STRIDE[relation.relationType as AnyAssetRelationType];
       if (strideForRelation) {
         strideForRelation.forEach((s) => derived.add(s));
       }
     }
- 
+
     return derived.size > 0 ? Array.from(derived) : baseCategories;
   }
- 
+
   selectElementTemplate(
     strideCategory: StrideCategory,
     elementType: string,
     project: ThreatProjectData,
+    elementProps: Record<string, unknown>,
   ): ElementTemplate | undefined {
-    return findElementTemplate(strideCategory, elementType, project);
+    return findElementTemplate(
+      strideCategory,
+      elementType,
+      project,
+      elementProps,
+    );
   }
- 
+
   selectInteractionTemplate(
     strideCategory: StrideCategory,
     perspective: "sender" | "receiver",

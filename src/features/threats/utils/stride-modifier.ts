@@ -11,10 +11,14 @@
 //   - "Skip" = remove category from output
 //   - "Reduce" = keep category, mark as low priority
 
-import { ChipBoundaryProperties, DataFlowProperties, DataStoreProperties, InterfaceProperties, TrustBoundaryProperties } from "features/dfd/models/element-properties";
+import {
+  ChipBoundaryProperties,
+  DataFlowProperties,
+  DataStoreProperties,
+  InterfaceProperties,
+  TrustBoundaryProperties,
+} from "features/dfd/models/element-properties";
 import type { StrideCategory } from "shared";
-
-
 
 export interface ProcessModifierProps {
   technology?: string;
@@ -64,6 +68,16 @@ export interface ChipBoundaryModifierProps {
   supplyChainTrust?: string;
   tamperProtection?: string;
   safetyRelevant?: boolean;
+}
+
+export interface MultiprocessModifierProps {
+  systemClass?: string;
+  airGapped?: boolean;
+  safetyRelevant?: boolean;
+  updateMechanism?: string;
+  boundaryAuthentication?: string;
+  exposedToInternet?: boolean;
+  multiTenant?: boolean;
 }
 
 // ==================== HELPERS ====================
@@ -283,6 +297,47 @@ export function modifyChipBoundaryStride(
     props.debugInterfaceLocked === true
   ) {
     result = skip(result, "E");
+  }
+
+  return result;
+}
+
+/**
+ * Modulate STRIDE for Multiprocess elements based on system properties.
+ *
+ * Rules:
+ *   airGapped = true              → Skip S, Skip I (no network attack surface)
+ *   safetyRelevant = true         → Add T, Add D (safety impact escalation)
+ *   systemClass = safety_system   → Add T, Add D (same as above)
+ *   updateMechanism = none        → Add T (no patch path = persistent vuln)
+ *   boundaryAuthentication = none → keep S (escalate priority)
+ *   exposedToInternet = true      → keep all (escalate all)
+ *   multiTenant = true            → Add I (tenant isolation risk)
+ */
+export function modifyMultiprocessStride(
+  base: StrideCategory[],
+  props: MultiprocessModifierProps,
+): StrideCategory[] {
+  let result = [...base];
+
+  // Air-gapped → no network-based threats
+  if (props.airGapped === true) {
+    result = skip(result, "S", "I");
+  }
+
+  // Safety system or safety-relevant → escalate T + D
+  if (props.safetyRelevant === true || props.systemClass === "safety_system") {
+    result = add(result, "T", "D");
+  }
+
+  // No update mechanism → firmware stays unpatched
+  if (props.updateMechanism === "none") {
+    result = add(result, "T");
+  }
+
+  // Multi-tenant → tenant isolation risk
+  if (props.multiTenant === true) {
+    result = add(result, "I");
   }
 
   return result;

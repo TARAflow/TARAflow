@@ -327,5 +327,15 @@
     "threat": "OT controller denial of service via fieldbus flooding",
     "cause": "Controller has no rate limiting on fieldbus input — all incoming frames are processed regardless of volume",
     "attack": "Attacker floods the fieldbus with high-frequency frames, saturating the controller communication stack and starving real-time control tasks"
+  },
+  "R-SYS-001": {
+    "threat": "System-level repudiation — actions cannot be attributed",
+    "cause": "No tamper-proof audit trail at the system boundary — the system can deny having performed or received actions",
+    "attack": "Attacker exploits missing or insufficient logging to deny malicious actions, making forensic investigation impossible"
+  },
+  "R-SYS-EMB-001": {
+    "threat": "Repudiation of control actions in embedded or OT system",
+    "cause": "Embedded controllers and SCADA systems often lack cryptographic audit trails — operator commands and system actions are not non-repudiably logged",
+    "attack": "Operator or attacker denies having issued a control command (e.g. emergency stop override, setpoint change) because no cryptographically bound audit trail exists"
   }
 }
