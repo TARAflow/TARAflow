@@ -77,6 +77,6 @@ export interface IGeneratorStrategy {
     strideCategory: StrideCategory,
     perspective: "sender" | "receiver",
     project: ThreatProjectData,
-    elementProps: Record<string, unknown> | null,
+    elementProps: Record<string, unknown>,
   ): InteractionTemplate | undefined;
 }

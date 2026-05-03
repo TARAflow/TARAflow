@@ -153,5 +153,20 @@
     "threat": "Command injection via embedded bus {{dataFlowName}} to escalate privileges in {{targetName}}",
     "cause": "{{targetName}} processes all commands received on {{dataFlowName}} without source verification or access control",
     "attack": "Attacker injects privileged commands onto the embedded bus that {{targetName}} executes with elevated permissions, bypassing software-level access controls"
+  },
+  "T-CB-INT-001": {
+    "threat": "Firmware tampering via {{dataFlowName}} interface on {{targetName}}",
+    "cause": "Debug or programming interface (JTAG/SWD/Serial) is accessible and not locked — attacker can read and overwrite flash memory directly",
+    "attack": "Attacker connects a debug probe to the {{dataFlowName}} interface and overwrites firmware on {{targetName}} with a malicious image that disables security controls or introduces a backdoor"
+  },
+  "I-CB-INT-001": {
+    "threat": "Sensitive data extraction via {{dataFlowName}} interface from {{targetName}}",
+    "cause": "Debug interface is accessible without readback protection — firmware, cryptographic keys and configuration data are readable",
+    "attack": "Attacker connects to the {{dataFlowName}} interface and reads flash memory or RAM of {{targetName}} to extract firmware, API keys, device certificates or cryptographic material"
+  },
+  "E-CB-INT-001": {
+    "threat": "Privilege escalation via {{dataFlowName}} debug interface on {{targetName}}",
+    "cause": "JTAG or SWD interface provides full processor access — attacker can halt CPU, read/write memory and modify execution flow without authentication",
+    "attack": "Attacker uses the {{dataFlowName}} interface to halt the processor on {{targetName}}, reads security keys from memory and modifies execution flow to bypass access controls or disable Secure Boot verification"
   }
 }

@@ -102,8 +102,10 @@ export class InteractionThreatGenerator {
 
       // Element props for context-aware template matching:
       // sender → source properties, receiver → target properties
-      const sourceProps = (source as any).properties as Record<string, unknown> | null ?? null;
-      const targetProps = (target as any).properties as Record<string, unknown> | null ?? null;
+      const sourceProps =
+        ((source as any).properties as Record<string, unknown>) ?? null;
+      const targetProps =
+        ((target as any).properties as Record<string, unknown>) ?? null;
 
       // Strategy modulates STRIDE based on DataFlow properties
       const dataFlowElementWithProps: DFDElementReference = {
@@ -252,7 +254,7 @@ export class InteractionThreatGenerator {
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
     strategy: IGeneratorStrategy,
-    elementProps: Record<string, unknown> | null,
+    elementProps: Record<string, unknown>,
   ): Threat {
     const direction: InteractionDirection =
       perspective === "sender" ? "outgoing" : "incoming";
@@ -380,7 +382,8 @@ export class InteractionThreatGenerator {
     threat.source = "auto";
 
     // Interface element properties for context matching
-    const elementProps = (element as any).properties as Record<string, unknown> | null ?? null;
+    const elementProps =
+      ((element as any).properties as Record<string, unknown>) ?? null;
 
     // ── Catalog lookup (interface = receiver perspective by convention) ────
     const template = strategy.selectInteractionTemplate(

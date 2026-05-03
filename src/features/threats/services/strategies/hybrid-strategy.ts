@@ -106,7 +106,13 @@ export class HybridStrategy implements IGeneratorStrategy {
     strideCategory: StrideCategory,
     perspective: "sender" | "receiver",
     project: ThreatProjectData,
+    elementProps: Record<string, unknown>,
   ): InteractionTemplate | undefined {
-    return findInteractionTemplate(strideCategory, perspective, project);
+    return findInteractionTemplate(
+      strideCategory,
+      perspective,
+      project,
+      elementProps,
+    );
   }
 }

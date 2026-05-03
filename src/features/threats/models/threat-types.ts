@@ -446,6 +446,31 @@ export interface TemplateContext {
   chipType?: string[];
 
   /**
+   * Element-level: matches Process.technology or DataStore.technology.
+   * Used for technology-specific templates (bootloader, rtos_task, flash, etc.)
+   */
+  technology?: string[];
+
+  /**
+   * Element-level: matches DataFlow.protocol.
+   * Used for protocol-specific templates (modbus, spi, i2c, mqtt, etc.)
+   */
+  protocol?: string[];
+
+  /**
+   * Element-level: matches ExternalEntity.entityType.
+   * Used for entity-type-specific templates (iot, mobile_app, service, etc.)
+   */
+  entityType?: string[];
+
+  /**
+   * Element-level: matches Interface.type.
+   * Used for interface-type-specific templates (usb, gpio, serial, jtag, etc.)
+   * Note: stored as "type" on InterfaceProperties, not "interfaceType".
+   */
+  interfaceType?: string[];
+
+  /**
    * Project-level: matches project.info.tags.regulation.
    * Used for regulatory-specific templates.
    */
@@ -453,7 +478,7 @@ export interface TemplateContext {
 
   /**
    * Project-level: matches project.info.tags.platform.
-   * @deprecated Prefer systemClass for Multiprocess templates.
+   * @deprecated Prefer element-level keys (technology, protocol, interfaceType).
    * Kept for backwards compatibility with existing templates.
    */
   platform?: string[];

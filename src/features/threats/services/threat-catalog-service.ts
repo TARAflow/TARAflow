@@ -64,21 +64,51 @@ const ALL_VERIFICATIONS: VerificationEntry[] =
 export function matchesContext(
   templateCtx: TemplateContext,
   project: ThreatProjectData,
-  elementProps: Record<string, unknown> | null,
+  elementProps: Record<string, unknown> | null = null,
 ): boolean {
-  const { systemClass, chipType, regulation, platform, domain } = templateCtx;
+  const {
+    systemClass,
+    chipType,
+    technology,
+    protocol,
+    entityType,
+    interfaceType,
+    regulation,
+    platform,
+    domain,
+  } = templateCtx;
   const tags = project.info?.tags;
 
   // ── Element-level checks ──────────────────────────────────────────────────
 
   if (systemClass?.length) {
-    const elemClass = elementProps?.["systemClass"] as string | undefined;
-    if (!elemClass || !systemClass.includes(elemClass)) return false;
+    const v = elementProps?.["systemClass"] as string | undefined;
+    if (!v || !systemClass.includes(v)) return false;
   }
 
   if (chipType?.length) {
-    const elemChipType = elementProps?.["chipType"] as string | undefined;
-    if (!elemChipType || !chipType.includes(elemChipType)) return false;
+    const v = elementProps?.["chipType"] as string | undefined;
+    if (!v || !chipType.includes(v)) return false;
+  }
+
+  if (technology?.length) {
+    const v = elementProps?.["technology"] as string | undefined;
+    if (!v || !technology.includes(v)) return false;
+  }
+
+  if (protocol?.length) {
+    const v = elementProps?.["protocol"] as string | undefined;
+    if (!v || !protocol.includes(v)) return false;
+  }
+
+  if (entityType?.length) {
+    const v = elementProps?.["entityType"] as string | undefined;
+    if (!v || !entityType.includes(v)) return false;
+  }
+
+  if (interfaceType?.length) {
+    const v = elementProps?.["type"] as string | undefined;
+    if (!v || !interfaceType.includes(v)) return false;
   }
 
   // ── Project-level checks ──────────────────────────────────────────────────
@@ -87,12 +117,10 @@ export function matchesContext(
     if (!regulation.some((r) => tags.regulation.includes(r))) return false;
   }
 
-  // Deprecated — platform fallback
   if (platform?.length && tags) {
     if (!platform.some((p) => tags.platform.includes(p))) return false;
   }
 
-  // Deprecated — domain fallback
   if (domain?.length && tags) {
     if (!domain.some((d) => tags.domain.includes(d))) return false;
   }
