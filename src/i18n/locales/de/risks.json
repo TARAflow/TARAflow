@@ -42,6 +42,11 @@
       "assessed": "Bewertet",
       "assessedTooltip": "Bewertete Risiken / Gesamtrisiken",
       "wontMissingJustification": "Fehlende Begründung",
+      "physicalInterfaces": "Physische Schnittstellen",
+      "priority": "Priorität",
+      "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
+      "uncertain": "Unsicher",
+      "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen.",
       "columns": {
         "threatId": "B-ID",
         "stride": "STRIDE",
@@ -213,11 +218,19 @@
       "validation": {
         "required": "Pflichtfeld"
       },
-      "physicalInterfaces": "Physische Schnittstellen",
-      "priority": "Priorität",
-      "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
-      "uncertain": "Unsicher",
-      "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen."
+      "mitigationStatusDialog": {
+        "title": "Implementierungsstatus",
+        "status": "Status",
+        "evidence": "Nachweis",
+        "evidencePlaceholder": "Notiz, Commit-Hash, Testergebnis, Audit-Referenz...",
+        "reference": "Referenz",
+        "referencePlaceholder": "Ticket-ID, PR-Link, Jira/ADO-Referenz...",
+        "noMitigations": "Keine Maßnahmen ausgewählt. Öffne den Risiko-Dialog, um Maßnahmen auszuwählen.",
+        "rejectionReason": "Begründung*",
+        "rejectionPlaceholder": "Begründung, warum diese Maßnahme nicht umgesetzt wird...",
+        "rejectionRequired": "Für Audit erforderlich",
+        "verifications": "Verifikationen (zur Testreferenz)"
+      }
     }
   },
   "risks": {
@@ -281,9 +294,20 @@
       "wont_do": { "label": "Wird nicht umgesetzt" }
     },
     "mitigationStatus": {
-      "selected": { "label": "Ausgewählt" },
-      "planned": { "label": "Geplant" },
+      "open": { "label": "Offen" },
       "in_progress": { "label": "In Bearbeitung" },
+      "in_review": { "label": "In Prüfung" },
+      "implemented": { "label": "Umgesetzt" },
+      "verified": { "label": "Verifiziert" },
+      "rejected": { "label": "Abgelehnt" }
+    },
+    "implementation": {
+      "not_started": {
+        "label": "Nicht gestartet"
+      },
+      "open": { "label": "Offen" },
+      "in_progress": { "label": "In Bearbeitung" },
+      "in_review": { "label": "In Prüfung" },
       "implemented": { "label": "Umgesetzt" },
       "verified": { "label": "Verifiziert" },
       "rejected": { "label": "Abgelehnt" }
@@ -400,11 +424,6 @@
       "exposure_level": {
         "name": "Exponierungsgrad (EL)",
         "description": "Wie exponiert ist das Asset/System gegenüber potenziellen Angreifern?"
-      }
-    },
-    "implementation": {
-      "not_started": {
-        "label": "Nicht gestartet"
       }
     }
   }

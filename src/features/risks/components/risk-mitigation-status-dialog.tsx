@@ -121,7 +121,12 @@ export const RiskMitigationStatusDialog: React.FC<
   const impl = deriveImplementationProgress(mitigations);
   const implConfig = MITIGATION_STATUS_CONFIGS.find(
     (c) => c.value === impl,
-  )!;
+  ) ?? {
+    value: "open",
+    label: "Open",
+    color: "#9ca3af",
+    icon: "⚪",
+  };
 
   const hasMitigations = mitigations.length > 0;
 

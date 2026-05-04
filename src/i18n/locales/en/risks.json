@@ -42,6 +42,9 @@
       "assessed": "Assessed",
       "assessedTooltip": "Assessed risks / Total risks",
       "wontMissingJustification": "Missing justification",
+      "physicalInterfaces": "Physical Interfaces",
+      "priority": "Priority",
+      "uncertainWarning": "{{count}} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.",
       "columns": {
         "threatId": "T-ID",
         "stride": "STRIDE",
@@ -212,9 +215,19 @@
       "validation": {
         "required": "Required"
       },
-      "physicalInterfaces": "Physical Interfaces",
-      "priority": "Priority",
-      "uncertainWarning": "{{count}} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab."
+      "mitigationStatusDialog": {
+        "title": "Implementation Status",
+        "status": "Status",
+        "evidence": "Evidence",
+        "evidencePlaceholder": "Note, commit hash, test result, audit reference...",
+        "reference": "Reference",
+        "referencePlaceholder": "Ticket ID, PR link, Jira/ADO reference...",
+        "noMitigations": "No mitigations selected. Open the Risk Dialog to select mitigations.",
+        "rejectionReason": "Reason*",
+        "rejectionPlaceholder": "Reason for not implementing this mitigation...",
+        "rejectionRequired": "Required for audit trail",
+        "verifications": "Verifications (for testing reference)"
+      }
     }
   },
   "risks": {
@@ -281,6 +294,19 @@
       "selected": { "label": "Selected" },
       "planned": { "label": "Planned" },
       "in_progress": { "label": "In Progress" },
+      "implemented": { "label": "Implemented" },
+      "verified": { "label": "Verified" },
+      "rejected": { "label": "Rejected" },
+      "open": { "label": "Open" },
+      "in_review": { "label": "In Review" }
+    },
+    "implementation": {
+      "not_started": {
+        "label": "Not Started"
+      },
+      "open": { "label": "Open" },
+      "in_progress": { "label": "In Progress" },
+      "in_review": { "label": "In Review" },
       "implemented": { "label": "Implemented" },
       "verified": { "label": "Verified" },
       "rejected": { "label": "Rejected" }
@@ -397,11 +423,6 @@
       "exposure_level": {
         "name": "Exposure Level (EL)",
         "description": "How exposed is the asset or system to potential attackers?"
-      }
-    },
-    "implementation": {
-      "not_started": {
-        "label": "Not Started"
       }
     }
   }

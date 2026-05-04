@@ -11,6 +11,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 import {
   Box,
   Typography,
@@ -20,6 +21,7 @@ import {
   Chip,
   ToggleButton,
   ToggleButtonGroup,
+  Divider,
 } from "@mui/material";
 
 import {
@@ -29,6 +31,11 @@ import {
   generateRiskMatrix,
   RiskMatrixCell,
 } from "../models/risk-types";
+import {
+  calculateRiskValues,
+  getRiskColor,
+  getRiskLabel,
+} from "../services/risk-calculation-service";
 
 // ==================== TYPES ====================
 
@@ -36,23 +43,71 @@ interface RiskMatrixProps {
   risks: Risk[];
   configuration: RiskConfiguration;
   onRiskClick?: (risk: Risk) => void;
+  assetDataRef?: {
+    assets: Array<{
+      id: string;
+      aggregatedImpact?: string;
+      physicalImpact?: string;
+    }>;
+  };
 }
 
 type ViewMode = "before" | "after";
 
+// ==================== IMPACT LEVEL ====================
+// Shared with element-threat-table — same type, same colors
+
+type ImpactLevel = "CRITICAL" | "HIGH+" | "HIGH" | "MED+" | "MED" | "LOW";
+
+const IMPACT_ORDER: ImpactLevel[] = ["CRITICAL", "HIGH+", "HIGH", "MED+", "MED", "LOW"];
+
+const IMPACT_CHIP_COLORS: Record<ImpactLevel, { bg: string; border: string; color: string }> = {
+  "CRITICAL": { bg: "#dc262618", border: "#dc2626", color: "#dc2626" },
+  "HIGH+":    { bg: "#ea580c18", border: "#ea580c", color: "#ea580c" },
+  "HIGH":     { bg: "#f9731618", border: "#f97316", color: "#f97316" },
+  "MED+":     { bg: "#ca8a0418", border: "#ca8a04", color: "#ca8a04" },
+  "MED":      { bg: "#eab30818", border: "#d97706", color: "#d97706" },
+  "LOW":      { bg: "#16a34a18", border: "#16a34a", color: "#16a34a" },
+};
+
+/**
+ * Derive worst asset impact for a single Risk.
+ * Mirrors countImpacts() logic from element-threat-table.tsx.
+ */
+function getWorstImpactForRisk(
+  risk: Risk,
+  assetDataRef?: { assets: Array<{ id: string; aggregatedImpact?: string; physicalImpact?: string }> },
+): ImpactLevel | undefined {
+  if (!assetDataRef) return undefined;
+  const linked = (risk.linkedAssetIds ?? [])
+    .map((id) => assetDataRef.assets.find((a) => a.id === id))
+    .filter(Boolean) as Array<{ id: string; aggregatedImpact?: string; physicalImpact?: string }>;
+  if (!linked.length) return undefined;
+
+  const hasSafety = linked.some(
+    (a) => a.physicalImpact === "fatality" || a.physicalImpact === "irreversible_injury",
+  );
+  const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
+    const imp = a.aggregatedImpact as ImpactLevel | undefined;
+    if (!imp) return acc;
+    if (!acc) return imp;
+    return IMPACT_ORDER.indexOf(imp) < IMPACT_ORDER.indexOf(acc) ? imp : acc;
+  }, undefined);
+
+  if (hasSafety && worstBusiness === "CRITICAL") return "CRITICAL";
+  if (hasSafety) return "HIGH";
+  return worstBusiness;
+}
+
 // ==================== COMPONENT ====================
 
 export const RiskMatrix = React.memo<RiskMatrixProps>(
-  ({ risks, configuration, onRiskClick }) => {
+  ({ risks, configuration, onRiskClick, assetDataRef }) => {
     const { t } = useTranslation();
-    const isSimple = configuration.method === "complex";
-
     const [selectedCell, setSelectedCell] = useState<{
       impact: number;
       likelihood: number;
     } | null>(null);
-
-    const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
 
     // Toggle between Before/After view (default: After if available)
     const [viewMode, setViewMode] = useState<ViewMode>("after");
@@ -76,7 +131,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
 
     const matrix = useMemo(
       () => generateRiskMatrix(configuration.scale),
-      [configuration.scale]
+      [configuration.scale],
     );
 
     // ==================== MAP RISKS TO CELLS (for complex) ====================
@@ -85,83 +140,44 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
       const map = new Map<string, Risk[]>();
 
       for (const risk of risks) {
-        const impact = Math.round(risk.calculatedImpact);
-        const likelihood = Math.round(risk.calculatedLikelihood);
+        const ratings =
+          viewMode === "before"
+            ? risk.factorRatings
+            : risk.mitigatedFactorRatings;
 
-        // Clamp to valid range
-        const clampedImpact = Math.max(1, Math.min(matrixSize, impact));
-        const clampedLikelihood = Math.max(1, Math.min(matrixSize, likelihood));
+        const { impact, likelihood } = calculateRiskValues(
+          ratings,
+          configuration,
+        );
+
+        const clampedImpact = Math.max(
+          1,
+          Math.min(matrixSize, Math.round(impact)),
+        );
+
+        const clampedLikelihood = Math.max(
+          1,
+          Math.min(matrixSize, Math.round(likelihood)),
+        );
 
         const key = `${clampedImpact}-${clampedLikelihood}`;
+
         if (!map.has(key)) {
           map.set(key, []);
         }
+
         map.get(key)!.push(risk);
       }
 
       return map;
-    }, [risks, matrixSize]);
+    }, [risks, matrixSize, viewMode, configuration]);
 
-    // ==================== MAP RISKS TO LEVELS (for simple) ====================
-
-    const risksByLevel = useMemo(() => {
-      const map = new Map<number, Risk[]>();
-
-      // Initialize all levels
-      for (const level of scale.levels) {
-        map.set(level.value, []);
-      }
-
-      for (const risk of risks) {
-        // Get the risk value to display based on view mode
-        // - "before": Always show calculatedRiskBeforeMitigation
-        // - "after": Show After if > 0, otherwise show Before
-        let riskValue: number;
-        if (viewMode === "before") {
-          riskValue = risk.calculatedRiskBeforeMitigation;
-        } else {
-          riskValue =
-            risk.calculatedRiskAfterMitigation > 0
-              ? risk.calculatedRiskAfterMitigation
-              : risk.calculatedRiskBeforeMitigation;
-        }
-
-        // Skip unrated (0)
-        if (riskValue <= 0) continue;
-
-        // Use configured rounding method to match getRiskColor/getRiskLabel logic
-        const roundingMethod = configuration.roundingMethod || "round";
-        let levelValue: number;
-        if (roundingMethod === "ceil") {
-          // Conservative: 2.01-3.0 = High
-          levelValue = Math.min(Math.max(Math.ceil(riskValue), 1), matrixSize);
-        } else {
-          // Standard: 2.5-3.49 = High
-          levelValue = Math.min(Math.max(Math.round(riskValue), 1), matrixSize);
-        }
-
-        if (!map.has(levelValue)) {
-          map.set(levelValue, []);
-        }
-        map.get(levelValue)!.push(risk);
-      }
-
-      return map;
-    }, [
-      risks,
-      matrixSize,
-      scale.levels,
-      viewMode,
-      configuration.roundingMethod,
-    ]);
-
-    // Unrated risks for simple view
+    // ==================== HELPER: Sort risks by priority ====================
     const unratedRisks = useMemo(() => {
       return risks.filter((r) => {
         if (viewMode === "before") {
           return r.calculatedRiskBeforeMitigation === 0;
         }
-        // "after" mode: unrated if both Before and After are 0
         return (
           r.calculatedRiskBeforeMitigation === 0 &&
           r.calculatedRiskAfterMitigation === 0
@@ -187,28 +203,18 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
           selectedCell?.impact === impact &&
             selectedCell?.likelihood === likelihood
             ? null
-            : { impact, likelihood }
+            : { impact, likelihood },
         );
-      }
-    };
-
-    const handleLevelClick = (level: number) => {
-      const levelRisks = risksByLevel.get(level) || [];
-
-      if (levelRisks.length === 1 && onRiskClick) {
-        onRiskClick(levelRisks[0]);
-      } else if (levelRisks.length > 0) {
-        setSelectedLevel(selectedLevel === level ? null : level);
       }
     };
 
     const handleViewModeChange = (
       _event: React.MouseEvent<HTMLElement>,
-      newMode: ViewMode | null
+      newMode: ViewMode | null,
     ) => {
       if (newMode !== null) {
         setViewMode(newMode);
-        setSelectedLevel(null); // Reset selection on mode change
+        setSelectedCell(null); // Reset selection on mode change
       }
     };
 
@@ -244,7 +250,232 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
       });
     };
 
-    // ==================== RENDER CELL (for complex matrix) ====================
+    // ==================== HELPER: Risk chip tooltip content ====================
+
+    const getRiskChipTooltip = (risk: Risk) => {
+      const before = risk.calculatedRiskBeforeMitigation;
+      const beforeColor = getRiskColor(
+        before,
+        configuration.scale,
+        configuration.roundingMethod,
+        configuration.severityThresholds,
+      );
+      const after = risk.calculatedRiskAfterMitigation;
+      const afterColor = getRiskColor(
+        after,
+        configuration.scale,
+        configuration.roundingMethod,
+        configuration.severityThresholds,
+      );
+      const beforeLabel =
+        before > 0
+          ? getRiskLabel(
+              before,
+              configuration.scale,
+              configuration.roundingMethod,
+            )
+          : undefined;
+
+      const afterLabel =
+        after > 0
+          ? getRiskLabel(
+              after,
+              configuration.scale,
+              configuration.roundingMethod,
+            )
+          : undefined;
+
+      const impact = getWorstImpactForRisk(risk, assetDataRef);
+      const impactColors = impact ? IMPACT_CHIP_COLORS[impact] : null;
+      const mitigations =
+        risk.selectedMitigations ?? risk.proposedMitigations ?? [];
+      const improved = after > 0 && before > 0 && after < before;
+
+      return (
+        <Box sx={{ maxWidth: 260 }}>
+          {/* Header: threatId + impact badge */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 1,
+            }}
+          >
+            <Typography variant="body2" fontWeight="bold">
+              {risk.threatId} ({risk.strideCategory})
+            </Typography>
+            {impactColors && impact && (
+              <Box
+                sx={{
+                  flexShrink: 0,
+                  px: 0.75,
+                  py: 0.1,
+                  borderRadius: 0.5,
+                  border: `1px solid ${impactColors.border}`,
+                  backgroundColor: impactColors.bg,
+                  color: impactColors.color,
+                  fontSize: "0.65rem",
+                  fontWeight: "bold",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {impact}
+              </Box>
+            )}
+          </Box>
+
+          {/* Threat description */}
+          {risk.threatDescription && (
+            <Typography
+              variant="caption"
+              display="block"
+              sx={{ mt: 0.5, opacity: 0.9 }}
+            >
+              {risk.threatDescription.length > 100
+                ? `${risk.threatDescription.slice(0, 100)}…`
+                : risk.threatDescription}
+            </Typography>
+          )}
+
+          <Divider sx={{ borderColor: "rgba(255,255,255,0.15)" }} />
+
+          {/* Before / After */}
+          <Box
+            sx={{
+              mt: 0.75,
+              display: "flex",
+              gap: 1.5,
+              alignItems: "flex-end",
+            }}
+          >
+            {/* BEFORE */}
+            <Box>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                Before
+              </Typography>
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                {beforeColor && beforeLabel && (
+                  <Box
+                    sx={{
+                      px: 0.5,
+                      borderRadius: 0.5,
+                      backgroundColor: beforeColor,
+                      color: "#fff",
+                      fontSize: "0.6rem",
+                      fontWeight: "bold",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {beforeLabel}
+                  </Box>
+                )}
+
+                <Typography variant="caption" fontWeight="bold">
+                  {before > 0 ? before.toFixed(1) : "—"}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* ARROW (optional but nice) */}
+            {before > 0 && after > 0 && (
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                →
+              </Typography>
+            )}
+
+            {/* AFTER */}
+            <Box>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                After
+              </Typography>
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                {afterColor && afterLabel && (
+                  <Box
+                    sx={{
+                      px: 0.5,
+                      borderRadius: 0.5,
+                      backgroundColor: afterColor,
+                      color: "#fff",
+                      fontSize: "0.6rem",
+                      fontWeight: "bold",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {afterLabel}
+                  </Box>
+                )}
+
+                <Typography
+                  variant="caption"
+                  fontWeight="bold"
+                  sx={{
+                    color: improved ? "#16a34a" : undefined,
+                  }}
+                >
+                  {after > 0 ? after.toFixed(1) : "—"}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* WON'T FIX */}
+            {risk.moscowPriority === "wont" && (
+              <Typography
+                variant="caption"
+                sx={{
+                  opacity: 0.7,
+                  fontStyle: "italic",
+                  alignSelf: "flex-end",
+                }}
+              >
+                Won't Fix
+              </Typography>
+            )}
+          </Box>
+
+          {/* Mitigations */}
+          {mitigations.length > 0 && (
+            <Box
+              sx={{
+                mt: 0.75,
+                borderTop: "1px solid rgba(255,255,255,0.15)",
+                pt: 0.5,
+              }}
+            >
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                Mitigations
+              </Typography>
+              {mitigations.slice(0, 4).map((m: any) => {
+                const id = m.id ?? m;
+                const text = id
+                  ? i18n.t(`${id}.mitigation`, {
+                      ns: "mitigations",
+                      defaultValue: id,
+                    })
+                  : (m.notes ?? "");
+                return (
+                  <Typography
+                    key={id || text}
+                    variant="caption"
+                    display="block"
+                    sx={{ opacity: 0.85 }}
+                  >
+                    · {text.length > 60 ? `${text.slice(0, 60)}…` : text}
+                  </Typography>
+                );
+              })}
+              {mitigations.length > 4 && (
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                  +{mitigations.length - 4} more
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
+      );
+    };
 
     const renderCell = (cell: RiskMatrixCell) => {
       const key = `${cell.impact}-${cell.likelihood}`;
@@ -254,63 +485,29 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
         selectedCell?.impact === cell.impact &&
         selectedCell?.likelihood === cell.likelihood;
 
-      // Sort by priority and get top 3
+      // Sort by priority — show all, overflow hidden clips the rest
       const sortedRisks = sortRisksByPriority(cellRisks);
-      const displayRisks = sortedRisks.slice(0, 3);
-      const hasMore = count > 3;
 
       return (
         <Tooltip
           key={key}
           title={
-            <Box>
-              <Typography variant="body2" fontWeight="bold">
-                {cell.label}
-              </Typography>
-              <Typography variant="caption">
-                {t("tabs.risks.matrix.impact", { defaultValue: "Impact" })}:{" "}
-                {cell.impact}
-              </Typography>
-              <br />
-              <Typography variant="caption">
-                {t("tabs.risks.matrix.likelihood", {
-                  defaultValue: "Likelihood",
-                })}
-                : {cell.likelihood}
-              </Typography>
-              {count > 0 && (
-                <>
-                  <br />
-                  <Typography variant="caption" fontWeight="bold">
-                    {count} {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
-                  </Typography>
-                  <Box sx={{ mt: 0.5 }}>
-                    {sortedRisks.slice(0, 5).map((r) => (
-                      <Typography key={r.id} variant="caption" display="block">
-                        • {r.threatId}: {r.strideCategory} (
-                        {r.calculatedRiskBeforeMitigation.toFixed(1)})
-                      </Typography>
-                    ))}
-                    {count > 5 && (
-                      <Typography variant="caption" display="block">
-                        ... +{count - 5}{" "}
-                        {t("tabs.risks.matrix.more", { defaultValue: "more" })}
-                      </Typography>
-                    )}
-                  </Box>
-                </>
-              )}
-            </Box>
+            <Typography variant="caption">
+              {cell.label} — {count}{" "}
+              {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
+            </Typography>
           }
           placement="top"
           arrow
+          disableHoverListener={count === 0}
         >
           <Box
             onClick={() => handleCellClick(cell.impact, cell.likelihood)}
             sx={{
+              position: "relative",
               width: "100%",
               height: "100%",
-              minHeight: 50,
+              minHeight: 0,
               backgroundColor: cell.color,
               opacity: count > 0 ? 1 : 0.4,
               display: "flex",
@@ -327,255 +524,75 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
             }}
           >
             {count > 0 && (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 0.25,
-                }}
-              >
-                {displayRisks.map((risk) => (
-                  <Typography
-                    key={risk.id}
-                    variant="caption"
-                    sx={{
-                      backgroundColor: "rgba(255,255,255,0.9)",
-                      color: cell.color,
-                      px: 0.5,
-                      borderRadius: 0.5,
-                      fontWeight: "bold",
-                      fontSize: "0.65rem",
-                      lineHeight: 1.2,
-                      ...(risk.moscowPriority === "wont" && {
-                        opacity: 0.6,
-                        textDecoration: "line-through",
-                        border: "1px dashed rgba(0,0,0,0.3)",
-                      }),
-                    }}
-                  >
-                    {risk.threatId}
-                  </Typography>
-                ))}
-                {hasMore && (
-                  <Typography
-                    variant="caption"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedCell({
-                        impact: cell.impact,
-                        likelihood: cell.likelihood,
-                      });
-                    }}
-                    sx={{
-                      backgroundColor: "rgba(255,255,255,0.9)",
-                      color: cell.color,
-                      px: 0.5,
-                      borderRadius: 0.5,
-                      fontWeight: "bold",
-                      fontSize: "0.6rem",
-                      cursor: "pointer",
-                      "&:hover": {
-                        backgroundColor: "white",
-                        textDecoration: "underline",
-                      },
-                    }}
-                  >
-                    +{count - 3}
-                  </Typography>
-                )}
-              </Box>
-            )}
-          </Box>
-        </Tooltip>
-      );
-    };
-
-    // ==================== RENDER LEVEL ROW (for simple view) ====================
-
-    const renderLevelRow = (levelValue: number) => {
-      const level = scale.levels.find((l) => l.value === levelValue);
-      if (!level) return null;
-
-      const levelRisks = risksByLevel.get(levelValue) || [];
-      const count = levelRisks.length;
-      const isSelected = selectedLevel === levelValue;
-
-      // Sort by priority (highest risk value first, then alphabetically)
-      const sortedRisks = sortRisksByPriority(levelRisks);
-      const displayRisks = sortedRisks.slice(0, 8);
-      const hasMore = count > 8;
-
-      return (
-        <Tooltip
-          key={levelValue}
-          title={
-            count > 0 ? (
-              <Box>
-                <Typography variant="body2" fontWeight="bold">
-                  {level.label}
-                </Typography>
-                <Typography variant="caption" fontWeight="bold">
-                  {count} {t("tabs.risks.risks", { defaultValue: "risk(s)" })}
-                </Typography>
-                <Box sx={{ mt: 0.5 }}>
-                  {sortedRisks.slice(0, 5).map((r) => (
-                    <Typography key={r.id} variant="caption" display="block">
-                      • {r.threatId}: {r.strideCategory} (
-                      {r.calculatedRiskBeforeMitigation.toFixed(1)} →{" "}
-                      {r.calculatedRiskAfterMitigation > 0
-                        ? r.calculatedRiskAfterMitigation.toFixed(1)
-                        : "-"}
-                      )
-                    </Typography>
-                  ))}
-                  {count > 5 && (
-                    <Typography variant="caption" display="block">
-                      ... +{count - 5}{" "}
-                      {t("tabs.risks.matrix.more", { defaultValue: "more" })}
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            ) : (
-              <Typography variant="body2">
-                {level.label} -{" "}
-                {t("tabs.risks.matrix.noRisks", { defaultValue: "No risks" })}
-              </Typography>
-            )
-          }
-          placement="right"
-          arrow
-        >
-          <Box
-            onClick={() => handleLevelClick(levelValue)}
-            sx={{
-              display: "flex",
-              alignItems: "stretch",
-              minHeight: 60,
-              cursor: count > 0 ? "pointer" : "default",
-              border: isSelected ? "3px solid" : "1px solid",
-              borderColor: isSelected ? "primary.main" : "divider",
-              borderRadius: 1,
-              overflow: "hidden",
-              transition: "all 0.2s",
-              "&:hover":
-                count > 0 ? { transform: "scale(1.01)", boxShadow: 2 } : {},
-            }}
-          >
-            {/* Level Label */}
-            <Box
-              sx={{
-                width: 100,
-                backgroundColor: level.color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                p: 1,
-              }}
-            >
-              <Typography
-                variant="body2"
-                fontWeight="bold"
-                sx={{ color: "white", textAlign: "center" }}
-              >
-                {level.label}
-              </Typography>
-            </Box>
-
-            {/* Risks Container */}
-            <Box
-              sx={{
-                flexGrow: 1,
-                backgroundColor: count > 0 ? `${level.color}15` : "grey.50",
-                display: "flex",
-                alignItems: "center",
-                p: 1,
-                gap: 0.5,
-                flexWrap: "wrap",
-                opacity: count > 0 ? 1 : 0.5,
-              }}
-            >
-              {count === 0 ? (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontStyle: "italic" }}
+              <>
+                {/* All chips — overflow hidden clips what doesn't fit */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    alignContent: "flex-start",
+                    gap: 0.25,
+                    width: "100%",
+                    height: "100%",
+                    overflow: "hidden",
+                    p: 0.25,
+                    pb: 2, // leave room for count badge
+                  }}
                 >
-                  {t("tabs.risks.matrix.noRisksAtLevel", {
-                    defaultValue: "No risks at this level",
-                  })}
-                </Typography>
-              ) : (
-                <>
-                  {displayRisks.map((risk) => (
-                    <Chip
+                  {sortedRisks.map((risk) => (
+                    <Tooltip
                       key={risk.id}
-                      label={risk.threatId}
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRiskClick?.(risk);
-                      }}
-                      sx={{
-                        backgroundColor: level.color,
-                        color: "white",
-                        fontWeight: "bold",
-                        fontSize: "0.7rem",
-                        height: 24,
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: level.color,
-                          opacity: 0.8,
-                        },
-                        ...getWontStyles(risk),
-                      }}
-                    />
+                      title={getRiskChipTooltip(risk)}
+                      placement="top"
+                      arrow
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          backgroundColor: "rgba(255,255,255,0.9)",
+                          color: cell.color,
+                          px: 0.5,
+                          borderRadius: 0.5,
+                          fontWeight: "bold",
+                          fontSize: "0.65rem",
+                          lineHeight: 1.2,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          cursor: "default",
+                          ...(risk.moscowPriority === "wont" && {
+                            opacity: 0.6,
+                            textDecoration: "line-through",
+                            border: "1px dashed rgba(0,0,0,0.3)",
+                          }),
+                        }}
+                      >
+                        {risk.threatId}
+                      </Typography>
+                    </Tooltip>
                   ))}
-                  {hasMore && (
-                    <Chip
-                      label={`+${count - 8}`}
-                      size="small"
-                      variant="outlined"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedLevel(levelValue);
-                      }}
-                      sx={{
-                        borderColor: level.color,
-                        color: level.color,
-                        fontWeight: "bold",
-                        fontSize: "0.7rem",
-                        height: 24,
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: `${level.color}20`,
-                        },
-                      }}
-                    />
-                  )}
-                </>
-              )}
-            </Box>
+                </Box>
 
-            {/* Count Badge */}
-            <Box
-              sx={{
-                width: 50,
-                backgroundColor: count > 0 ? level.color : "grey.300",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-                sx={{ color: "white" }}
-              >
-                {count}
-              </Typography>
-            </Box>
+                {/* Absolute count badge — always visible */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 2,
+                    right: 2,
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    color: cell.color,
+                    borderRadius: 0.5,
+                    px: 0.5,
+                    fontSize: "0.6rem",
+                    fontWeight: "bold",
+                    lineHeight: 1.4,
+                    pointerEvents: "none",
+                  }}
+                >
+                  {count}
+                </Box>
+              </>
+            )}
           </Box>
         </Tooltip>
       );
@@ -583,22 +600,17 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
 
     // ==================== SELECTED RISKS ====================
 
-    const selectedCellRisks = selectedCell
+    const selectedCellRisks: Risk[] = selectedCell
       ? sortRisksByPriority(
           risksByCell.get(
-            `${selectedCell.impact}-${selectedCell.likelihood}`
-          ) || []
+            `${selectedCell.impact}-${selectedCell.likelihood}`,
+          ) || [],
         )
       : [];
 
-    const selectedLevelRisks =
-      selectedLevel !== null
-        ? sortRisksByPriority(risksByLevel.get(selectedLevel) || [])
-        : [];
+    // ==================== RENDER COMPLEX VIEW (2D Matrix) ====================
 
-    // ==================== RENDER SIMPLE VIEW ====================
-
-    const renderSimpleView = () => (
+    const renderComplexView = () => (
       <Box
         sx={{
           display: "flex",
@@ -607,38 +619,25 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
           gap: 2,
         }}
       >
-        {/* Vertical Level Bars */}
+        {/* Matrix Grid */}
         <Box
           sx={{
             display: "flex",
             flexDirection: "column",
             flexGrow: 1,
-            gap: 1,
+            minHeight: 0, // Allow flex child to shrink below content size
+            minWidth: 0,
           }}
         >
-          {/* Header with Title and Toggle */}
           <Stack
             direction="row"
             justifyContent="space-between"
             alignItems="center"
             sx={{ mb: 1 }}
           >
-            <Box>
-              <Typography variant="subtitle2">
-                {t("tabs.risks.matrix.riskLevels", {
-                  defaultValue: "Risk Levels",
-                })}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {viewMode === "before"
-                  ? t("tabs.risks.matrix.showingBefore", {
-                      defaultValue: "Before Mitigation",
-                    })
-                  : t("tabs.risks.matrix.showingAfter", {
-                      defaultValue: "After Mitigation (where rated)",
-                    })}
-              </Typography>
-            </Box>
+            <Typography variant="subtitle2" align="center">
+              {t("tabs.risks.matrix.title", { defaultValue: "Risk Matrix" })}
+            </Typography>
             <ToggleButtonGroup
               value={viewMode}
               exclusive
@@ -660,216 +659,12 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
             </ToggleButtonGroup>
           </Stack>
 
-          {/* Render levels from highest to lowest */}
-          <Stack spacing={1} sx={{ flexGrow: 1 }}>
-            {scale.levels
-              .slice()
-              .reverse()
-              .map((level) => renderLevelRow(level.value))}
-          </Stack>
-
-          {/* Unrated Section */}
-          {unratedRisks.length > 0 && (
-            <Box
-              sx={{
-                mt: 2,
-                pt: 2,
-                borderTop: "1px dashed",
-                borderColor: "divider",
-              }}
-            >
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                {t("tabs.risks.matrix.unratedRisks", {
-                  defaultValue: "Unrated Risks",
-                })}
-              </Typography>
-              <Box
-                sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}
-              >
-                {unratedRisks.slice(0, 10).map((risk) => (
-                  <Chip
-                    key={risk.id}
-                    label={risk.threatId}
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onRiskClick?.(risk)}
-                    sx={{ cursor: "pointer", ...getWontStyles(risk) }}
-                  />
-                ))}
-                {unratedRisks.length > 10 && (
-                  <Chip
-                    label={`+${unratedRisks.length - 10}`}
-                    size="small"
-                    variant="outlined"
-                    color="default"
-                  />
-                )}
-              </Box>
-            </Box>
-          )}
-        </Box>
-
-        {/* Legend & Statistics */}
-        <Paper
-          variant="outlined"
-          sx={{
-            width: 200,
-            p: 1.5,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          {/* Statistics */}
-          <Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-              sx={{ mb: 0.5 }}
-            >
-              {t("tabs.risks.matrix.statistics", {
-                defaultValue: "Statistics",
-              })}
-            </Typography>
-            <Stack spacing={0.5}>
-              {scale.levels
-                .slice()
-                .reverse()
-                .map((level) => {
-                  const count = risksByLevel.get(level.value)?.length || 0;
-                  return (
-                    <Stack
-                      key={level.value}
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      justifyContent="space-between"
-                    >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: level.color,
-                            borderRadius: 0.5,
-                          }}
-                        />
-                        <Typography variant="caption">{level.label}</Typography>
-                      </Stack>
-                      <Typography variant="caption" fontWeight="bold">
-                        {count}
-                      </Typography>
-                    </Stack>
-                  );
-                })}
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ pt: 1, borderTop: "1px solid", borderColor: "divider" }}
-              >
-                <Typography variant="caption" fontWeight="bold">
-                  {t("tabs.risks.matrix.total", { defaultValue: "Total" })}
-                </Typography>
-                <Typography variant="caption" fontWeight="bold">
-                  {risks.length}
-                </Typography>
-              </Stack>
-              {unratedRisks.length > 0 && (
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    {t("tabs.risks.matrix.unrated", {
-                      defaultValue: "Unrated",
-                    })}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {unratedRisks.length}
-                  </Typography>
-                </Stack>
-              )}
-            </Stack>
-          </Box>
-
-          {/* Mitigation Progress */}
-          <Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-              sx={{ mb: 0.5 }}
-            >
-              {t("tabs.risks.matrix.mitigationProgress", {
-                defaultValue: "Mitigation Progress",
-              })}
-            </Typography>
-            <Typography variant="body2">
-              {risksWithAfterRated} / {risks.length}{" "}
-              {t("tabs.risks.matrix.rated", { defaultValue: "rated" })}
-            </Typography>
-          </Box>
-
-          {/* Selected Level Risks */}
-          {selectedLevelRisks.length > 0 && (
-            <Box sx={{ flexGrow: 1, overflow: "auto" }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-                sx={{ mb: 0.5 }}
-              >
-                {t("tabs.risks.matrix.selectedRisks", {
-                  defaultValue: "Selected Risks",
-                })}
-              </Typography>
-              <Stack spacing={0.5}>
-                {selectedLevelRisks.map((risk) => (
-                  <Chip
-                    key={risk.id}
-                    label={`${risk.threatId} (${risk.strideCategory})`}
-                    size="small"
-                    onClick={() => onRiskClick?.(risk)}
-                    sx={{ cursor: "pointer", ...getWontStyles(risk) }}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          )}
-        </Paper>
-      </Box>
-    );
-
-    // ==================== RENDER COMPLEX VIEW (2D Matrix) ====================
-
-    const renderComplexView = () => (
-      <Box
-        sx={{
-          display: "flex",
-          height: "100%",
-          p: 2,
-          gap: 2,
-        }}
-      >
-        {/* Matrix Grid */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            flexGrow: 1,
-          }}
-        >
-          <Typography variant="subtitle2" align="center" gutterBottom>
-            {t("tabs.risks.matrix.title", { defaultValue: "Risk Matrix" })}
-          </Typography>
-
           <Box
             sx={{
               display: "flex",
               flexGrow: 1,
+              minHeight: 0,
+              minWidth: 0,
             }}
           >
             {/* Y-Axis Label */}
@@ -888,15 +683,20 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
               </Typography>
             </Box>
 
-            {/* Y-Axis Values */}
+            {/* Single grid: column 1 = Y-axis labels, columns 2..N+1 = matrix cells.
+                All rows share the same 1fr height — perfect alignment guaranteed. */}
             <Box
               sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-around",
-                pr: 0.5,
+                display: "grid",
+                gridTemplateColumns: `24px repeat(${matrixSize}, 1fr)`,
+                gridTemplateRows: `repeat(${matrixSize}, 1fr)`,
+                gap: 0.5,
+                flexGrow: 1,
+                minHeight: 0,
+                minWidth: 0,
               }}
             >
+              {/* Y-axis labels — column 1, one per row (highest impact first) */}
               {scale.levels
                 .slice()
                 .reverse()
@@ -905,29 +705,29 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                     key={level.value}
                     variant="caption"
                     sx={{
-                      height: `${100 / matrixSize}%`,
+                      gridColumn: 1,
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "flex-end",
+                      pr: 0.5,
                     }}
                   >
                     {level.value}
                   </Typography>
                 ))}
-            </Box>
 
-            {/* Matrix Grid */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateRows: `repeat(${matrixSize}, 1fr)`,
-                gridTemplateColumns: `repeat(${matrixSize}, 1fr)`,
-                gap: 0.5,
-                flexGrow: 1,
-                aspectRatio: "1",
-                maxHeight: 300,
-              }}
-            >
-              {matrix.flat().map((cell) => renderCell(cell))}
+              {/* Matrix cells — columns 2..N+1, rows 1..N */}
+              {matrix.flat().map((cell) => (
+                <Box
+                  key={`${cell.impact}-${cell.likelihood}`}
+                  sx={{
+                    gridColumn: cell.likelihood + 1,
+                    gridRow: matrixSize - cell.impact + 1,
+                  }}
+                >
+                  {renderCell(cell)}
+                </Box>
+              ))}
             </Box>
           </Box>
 
@@ -952,6 +752,70 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
             {t("tabs.risks.matrix.likelihood", { defaultValue: "Likelihood" })}{" "}
             →
           </Typography>
+
+          {/* Unrated Section */}
+          {unratedRisks.length > 0 && (
+            <Box
+              sx={{
+                mt: 1.5,
+                pt: 1.5,
+                borderTop: "1px dashed",
+                borderColor: "divider",
+                minHeight: 60,
+              }}
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                gutterBottom
+                display="block"
+              >
+                {t("tabs.risks.matrix.unratedRisks", {
+                  defaultValue: "Unrated Risks",
+                })}
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 0.5,
+                  mt: 0.5,
+                }}
+              >
+                {unratedRisks.map((risk) => {
+                  const impact = getWorstImpactForRisk(risk, assetDataRef);
+                  const colors = impact ? IMPACT_CHIP_COLORS[impact] : null;
+                  return (
+                    <Tooltip
+                      key={risk.id}
+                      title={getRiskChipTooltip(risk)}
+                      placement="top"
+                      arrow
+                    >
+                      <Chip
+                        label={risk.threatId}
+                        size="small"
+                        variant="outlined"
+                        onClick={() => onRiskClick?.(risk)}
+                        sx={{
+                          cursor: "pointer",
+                          ...(colors
+                            ? {
+                                backgroundColor: colors.bg,
+                                borderColor: colors.border,
+                                color: colors.color,
+                                fontWeight: "bold",
+                              }
+                            : {}),
+                          ...getWontStyles(risk),
+                        }}
+                      />
+                    </Tooltip>
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
         </Box>
 
         {/* Legend & Selected Risks */}
@@ -1047,13 +911,19 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
               </Typography>
               <Stack spacing={0.5}>
                 {selectedCellRisks.map((risk) => (
-                  <Chip
+                  <Tooltip
                     key={risk.id}
-                    label={`${risk.threatId} (${risk.strideCategory})`}
-                    size="small"
-                    onClick={() => onRiskClick?.(risk)}
-                    sx={{ cursor: "pointer", ...getWontStyles(risk) }}
-                  />
+                    title={getRiskChipTooltip(risk)}
+                    placement="left"
+                    arrow
+                  >
+                    <Chip
+                      label={`${risk.threatId} (${risk.strideCategory})`}
+                      size="small"
+                      onClick={() => onRiskClick?.(risk)}
+                      sx={{ cursor: "pointer", ...getWontStyles(risk) }}
+                    />
+                  </Tooltip>
                 ))}
               </Stack>
             </Box>
@@ -1064,8 +934,8 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
 
     // ==================== RENDER ====================
 
-    return isSimple ? renderSimpleView() : renderComplexView();
-  }
+    return renderComplexView();
+  },
 );
 
 RiskMatrix.displayName = "RiskMatrix";
