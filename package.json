@@ -16,13 +16,14 @@
     "fix:electron": "node scripts/fix-electron-imports.cjs",
     "build:electron-dev": "npm run clean:electron && npm run compile:electron && npm run fix:electron",
     "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build:electron": "electron-builder"
+    "build:electron": "npm run build && npm run build:electron-dev && electron-builder",
+    "build:electron:clean": "rm -rf dist dist-electron release && npm run build:electron"
   },
   "build": {
     "appId": "com.taraflow.app",
     "productName": "Taraflow",
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "linux": {
       "target": [
@@ -30,7 +31,12 @@
         "deb"
       ],
       "category": "Utility"
-    }
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ]
   },
   "dependencies": {
     "@codemirror/language": "^6.12.1",

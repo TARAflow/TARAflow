@@ -876,7 +876,47 @@
               }
             },
             "integrityProtection": {
-              "label": "Integrity Protection (HMAC, Signatures)"
+              "label": "Integrity Protection",
+              "options": {
+                "none": "None — no integrity protection",
+                "crc": "CRC — detects errors, NOT targeted manipulation",
+                "hash": "Hash (SHA-256) — detects changes, no key",
+                "hmac": "HMAC — keyed hash, manipulation-resistant",
+                "signature": "Digital Signature — asymmetric, strongest guarantee",
+                "custom": "Custom / proprietary"
+              },
+              "tooltip": "How is the integrity of data in transit protected? Modbus RTU CRC = 'crc' — present but NOT cryptographic. Only HMAC and Signature protect against targeted MITM manipulation."
+            },
+            "location": {
+              "label": "Physical Medium / Routing",
+              "options": {
+                "on_chip": "On-chip (internal bus / register)",
+                "on_board": "On-board PCB trace (same board)",
+                "in_enclosure": "In-enclosure cable (sealed housing)",
+                "field_cable": "Field cable (M12, DIN rail, cable duct)",
+                "local_network": "Local wired network (OT / LAN segment)",
+                "enterprise_network": "Enterprise network (OT–IT boundary)",
+                "wireless_local": "Local wireless (WLAN / Bluetooth)",
+                "internet": "Public internet / WAN",
+                "custom": "Custom / proprietary medium"
+              },
+              "tooltip": "Physical medium or routing path this flow traverses. Determines DoS attack vectors: field_cable → plug-pull DoS (seconds, no tools); wireless_local → RF jammer / 802.11 Deauth attack (no network access needed). Distinct from Exposure Level (the consequence) — location is the cause."
+            },
+            "locationRationale": {
+              "label": "Location Rationale",
+              "placeholder": "e.g. Field cable runs through public corridor → EL2 not EL1",
+              "helper": "Required when physical medium and exposure level deviate from the standard mapping",
+              "tooltip": "Justify deviations from the standard location→ExposureLevel mapping. IEC 62443-4-1: documented rationale required for audit traceability."
+            },
+            "redundancy": {
+              "label": "Redundancy / Fallback",
+              "options": {
+                "none": "None — single point of failure",
+                "failover": "Failover — automatic switch to backup path",
+                "degraded": "Degraded — system continues with reduced functionality",
+                "buffered": "Buffered — local buffer bridges short interruptions"
+              },
+              "tooltip": "System behaviour when this flow is interrupted. Drives DoS impact: 'none' + field_cable = Critical DoS (plug-pull stops the flow, no fallback). 'degraded' = device keeps running but loses that communication path."
             },
             "dataTypes": {
               "label": "Data Types",
@@ -939,7 +979,19 @@
               }
             },
             "integrityProtection": {
-              "label": "Integrity Protection (Checksums, Signatures)"
+              "label": "Integrity Protection (Checksums, Signatures)",
+              "options": {
+                "none": "None — no integrity protection",
+                "crc": "CRC — detects transmission errors, NOT targeted manipulation",
+                "hash": "Hash (SHA-256) — detects changes, no key required",
+                "hmac": "HMAC — keyed hash, manipulation-resistant",
+                "signature": "Digital Signature — asymmetric, strongest guarantee",
+                "custom": "Custom / proprietary"
+              },
+              "tooltip": "How is the integrity of stored data protected? CRC is NOT cryptographic — an attacker can recompute it after manipulation. Only HMAC and Signature provide tamper-resistance.",
+              "warnings": {
+                "weak_integrity": "CRC or no integrity protection — Tampering threat active (undetected manipulation possible)"
+              }
             },
             "backupEnabled": {
               "label": "Backup & Retention Policy Exists"
@@ -949,12 +1001,35 @@
               "placeholder": "e.g. User credentials, Transaction logs, Configuration",
               "helper": "Separate multiple types with commas"
             },
+            "accessControlMechanism": {
+              "label": "Access Control Mechanism",
+              "options": {
+                "none": "None — no access control enforced",
+                "process_enforced": "Process-enforced (via guarding process)",
+                "mpu_protected": "MPU-protected (Memory Protection Unit)",
+                "os_permissions": "OS file / block permissions",
+                "crypto_erase": "Crypto-erase (encryption-as-access-control)",
+                "custom": "Custom / proprietary"
+              },
+              "tooltip": "Technical mechanism enforcing access to this store. A DataStore is passive — enforcement always lives in a guarding Process or hardware. Complements the Access Control Policy field below."
+            },
             "accessControl": {
-              "label": "Access Control",
-              "placeholder": "Who can read/write? e.g. Admin only, Service account X"
+              "label": "Access Control Policy",
+              "placeholder": "Which processes may read/write and under what conditions?",
+              "tooltip": "Policy description: which processes or actors have read/write access and under what conditions. Complements Access Control Mechanism (the how) with the who and when."
             },
             "deletionPolicy": {
-              "label": "Deletion Policy",
+              "label": "Deletion Mechanism",
+              "options": {
+                "none": "None — no secure deletion planned",
+                "overwrite": "Overwrite with zeros / random data",
+                "factory_reset": "Factory Reset clears this store",
+                "crypto_erase": "Crypto-erase (delete encryption key)",
+                "physical": "Physical destruction of medium",
+                "retention_period": "Automatic deletion after retention period",
+                "custom": "Custom / proprietary"
+              },
+              "tooltip": "Technical mechanism for secure data deletion. Note: overwrite on Flash is unreliable due to wear-leveling — prefer crypto_erase when encryptionAtRest is set. Complements the Deletion Policy field below.",
               "placeholder": "e.g. Soft delete with 30-day retention, GDPR-compliant"
             },
             "technology": {

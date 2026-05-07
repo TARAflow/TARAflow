@@ -689,7 +689,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               } else if (selectedConnection) {
                 editor.updateConnectionDescription(
                   selectedConnection.id,
-                  updates,
+                  updates as Partial<
+                    import("../models/dfd-types").DFDConnection
+                  >,
                 );
               }
             }}

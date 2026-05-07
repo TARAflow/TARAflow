@@ -589,29 +589,158 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         </Grid>
 
         {/* Integrity Protection */}
-        <Grid
-          item
-          xs={12}
-          sm={6}
-          sx={{ display: "flex", alignItems: "center" }}
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={props.integrityProtection || false}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "integrityProtection",
-                    e.target.checked,
-                  )
-                }
-              />
-            }
-            label={t(
-              "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
-              { defaultValue: "Integrity Protection (HMAC, Signatures)" },
-            )}
-          />
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
+                { defaultValue: "Integrity Protection" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.integrityProtection ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("integrityProtection", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
+                { defaultValue: "Integrity Protection" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                ["none", "crc", "hash", "hmac", "signature", "custom"] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.integrityProtection.options.${opt}`,
+                    { defaultValue: opt.toUpperCase() },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Physical Location / Medium */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.location.label",
+                { defaultValue: "Physical Medium / Routing" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.location ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("location", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.location.label",
+                { defaultValue: "Physical Medium / Routing" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                [
+                  "on_chip",
+                  "on_board",
+                  "in_enclosure",
+                  "field_cable",
+                  "local_network",
+                  "enterprise_network",
+                  "wireless_local",
+                  "internet",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.location.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {props.location && (
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.locationRationale.label",
+                { defaultValue: "Location Rationale" },
+              )}
+              value={props.locationRationale ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("locationRationale", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.dataflow.fields.locationRationale.placeholder",
+                {
+                  defaultValue:
+                    "e.g. Cable runs through public corridor → EL2 not EL1",
+                },
+              )}
+              helperText={t(
+                "tabs.dfd.element_description.dataflow.fields.locationRationale.helper",
+                {
+                  defaultValue:
+                    "Required when location and exposure level deviate from standard mapping",
+                },
+              )}
+            />
+          </Grid>
+        )}
+
+        {/* Redundancy */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
+                { defaultValue: "Redundancy / Fallback" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.redundancy ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("redundancy", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
+                { defaultValue: "Redundancy / Fallback" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(["none", "failover", "degraded", "buffered"] as const).map(
+                (opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.redundancy.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
         </Grid>
 
         {/* Safety Relevant */}

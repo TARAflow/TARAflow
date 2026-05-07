@@ -370,15 +370,27 @@ export const DATASTORE_TECH_DEFAULTS: Record<
   NonNullable<DataStoreProperties["technology"]>,
   Partial<DataStoreProperties>
 > = {
-  database:   { encryptionAtRest: "tde",    integrityProtection: true  },
-  cloud:      { encryptionAtRest: "kms",    integrityProtection: true,  multiTenant: true },
-  filesystem: { encryptionAtRest: "none",   integrityProtection: false, multiTenant: false },
-  cache:      { encryptionAtRest: "none",   integrityProtection: false },
-  queue:      { encryptionAtRest: "none",   integrityProtection: false },
-  blockchain: { encryptionAtRest: "custom", integrityProtection: true,  multiTenant: false },
-  flash:  { encryptionAtRest: "none", integrityProtection: false },
-  eeprom: { encryptionAtRest: "none", integrityProtection: false },
-  nvram:  { encryptionAtRest: "none", integrityProtection: false },
+  database: { encryptionAtRest: "tde", integrityProtection: "hmac" },
+  cloud: {
+    encryptionAtRest: "kms",
+    integrityProtection: "hmac",
+    multiTenant: true,
+  },
+  filesystem: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    multiTenant: false,
+  },
+  cache: { encryptionAtRest: "none", integrityProtection: "none" },
+  queue: { encryptionAtRest: "none", integrityProtection: "none" },
+  blockchain: {
+    encryptionAtRest: "custom",
+    integrityProtection: "signature",
+    multiTenant: false,
+  },
+  flash: { encryptionAtRest: "none", integrityProtection: "none" },
+  eeprom: { encryptionAtRest: "none", integrityProtection: "none" },
+  nvram: { encryptionAtRest: "none", integrityProtection: "none" },
 };
 
 /** Fields driven by DataStore.technology — used for clearing on driver reset */

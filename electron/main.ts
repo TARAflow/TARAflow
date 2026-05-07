@@ -533,9 +533,15 @@ function createWindow() {
   win.webContents.setZoomLevel(0);
   win.webContents.setZoomFactor(1.0);
 
-  // Load Vite Dev Server
-  win.loadURL("http://localhost:5173");
-  if (process.env.NODE_ENV === "development") {
+  // Load app: filesystem in production, Vite dev server in development
+  if (app.isPackaged) {
+    // Production: load the built index.html from filesystem — no server needed
+    // Renderer lives at dist/ in the project root;
+    // inside the AppImage: resources/app/dist/index.html
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  } else {
+    // Development: load from Vite dev server
+    win.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   }
 

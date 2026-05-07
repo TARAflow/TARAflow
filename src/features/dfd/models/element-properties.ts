@@ -385,9 +385,103 @@ export interface DataStoreProperties {
     | "restricted"
     | "secret";
   encryptionAtRest?: "none" | "yes" | "aes256" | "tde" | "kms" | "custom";
+
+  /**
+   * Technical mechanism enforcing access to this store.
+   * A DataStore is passive — enforcement always lives in a guarding Process or hardware.
+   * This field makes the enforcement mechanism explicit and machine-queryable.
+   *
+   * Distinct from accessControl (string) which describes the policy
+   * (which processes may read/write and under what conditions).
+   *
+   * none             → No access control — physical access = full access
+   * process_enforced → Access only via a dedicated guarding process (API gate)
+   * mpu_protected    → MCU Memory Protection Unit isolates the memory region
+   * os_permissions   → OS-level file/block permissions
+   * crypto_erase     → Encryption-as-access-control — no key = no plaintext
+   * custom           → Proprietary mechanism (document in accessControl)
+   *
+   * Threat implication: "none" → Information Disclosure + Tampering threats generated
+   * regardless of dataClassification.
+   */
+  accessControlMechanism?:
+    | "none"
+    | "process_enforced"
+    | "mpu_protected"
+    | "os_permissions"
+    | "crypto_erase"
+    | "custom";
+
+  /**
+   * Policy description — which processes or actors may read/write this store
+   * and under what conditions. Free text, complements accessControlMechanism.
+   * @example "Write: only P-4 (Persistence Controller) after Auth via P-9.
+   *           Read: P-1 (Modbus RTU Master) via pull. No direct external access."
+   */
   accessControl?: string;
-  integrityProtection?: boolean;
+
+  /**
+   * Integrity protection mechanism for stored data.
+   *
+   * Replaces boolean — the mechanism determines actual security guarantees:
+   *   none      → No protection — undetected manipulation possible
+   *   crc       → CRC (detects transmission errors, NOT targeted manipulation)
+   *   hash      → Cryptographic hash (SHA-256) — detects changes, no key → attacker
+   *               can recompute hash after manipulation
+   *   hmac      → HMAC — keyed hash, protects against manipulation if key is secret
+   *   signature → Digital signature — asymmetric, strongest guarantee
+   *   custom    → Proprietary mechanism
+   *
+   * Threat implication:
+   *   none / crc  → Tampering threat generated (undetected manipulation possible)
+   *   hash        → Tampering threat generated (hash recomputable without key)
+   *   hmac / signature → Tampering threat mitigated (requires key compromise first)
+   *
+   * @example DS-3 (Firmware) → "signature" (Secure Boot verification)
+   * @example DS-6 (Calibration params) → "none" → Critical Tampering threat
+   */
+  integrityProtection?:
+    | "none"
+    | "crc"
+    | "hash"
+    | "hmac"
+    | "signature"
+    | "custom";
+
   backupEnabled?: boolean;
+
+  /**
+   * Technical mechanism for secure data deletion.
+   * Relevant for: device return, end-of-life, GDPR compliance.
+   *
+   * Distinct from deletionPolicy (string) which describes when/what is deleted.
+   *
+   * none             → No secure deletion planned — data remains on returned device
+   * overwrite        → Overwrite with zeros / random data (note: Flash wear-leveling
+   *                    may retain copies — crypto_erase preferred for Flash)
+   * factory_reset    → Device-level factory reset clears this store
+   * crypto_erase     → Key deletion — only effective if encryptionAtRest ≠ none
+   * physical         → Physical destruction of storage medium (end-of-life)
+   * retention_period → Automatic deletion after configured retention duration
+   * custom           → Proprietary mechanism
+   *
+   * Threat implication: "none" → Residual Data Exposure threat on device return / DoS
+   */
+  deletionMechanism?:
+    | "none"
+    | "overwrite"
+    | "factory_reset"
+    | "crypto_erase"
+    | "physical"
+    | "retention_period"
+    | "custom";
+
+  /**
+   * Policy description — which data is deleted at which event and what is retained.
+   * Free text, complements deletionMechanism.
+   * @example "Factory Reset clears DS-2 (config) and DS-4 (logs).
+   *           DS-3 (firmware) is retained — requires separate service-tool step."
+   */
   deletionPolicy?: string;
   technology?:
     | "database"
@@ -457,7 +551,35 @@ export interface DataFlowProperties {
   frequency?: "continuous" | "periodic" | "ondemand" | "batch";
   volume?: string;
   encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
-  integrityProtection?: boolean;
+  /**
+   * Integrity protection mechanism for data in transit.
+   *
+   * Replaces boolean — the mechanism determines actual security guarantees:
+   *   none      → No protection
+   *   crc       → CRC (detects transmission errors, NOT targeted manipulation —
+   *               Modbus RTU frame CRC falls here)
+   *   hash      → Cryptographic hash — detects changes, no key
+   *   hmac      → HMAC — keyed hash, manipulation-resistant if key is secret
+   *   signature → Digital signature — asymmetric, strongest guarantee
+   *               (use for firmware update flows)
+   *   custom    → Proprietary mechanism
+   *
+   * Threat implication:
+   *   none / crc  → Tampering (MITM data manipulation) threat generated
+   *   hmac / signature → Tampering threat mitigated
+   *
+   * @example DF-1 (Modbus RTU sensor values) → "crc"  — frame CRC present,
+   *          not cryptographic — Tampering threat still active
+   * @example DF-6 (Firmware Update) → "signature" (SHOULD) — critical gap if absent
+   * @example DF-5 (HTTPS Web UI) → "hmac"  — TLS record MAC provides HMAC integrity
+   */
+  integrityProtection?:
+    | "none"
+    | "crc"
+    | "hash"
+    | "hmac"
+    | "signature"
+    | "custom";
   endpointAuthentication?:
     | "none"
     | "token"
@@ -470,6 +592,84 @@ export interface DataFlowProperties {
   exposureLevel?: ExposureLevel;
   exposureLevelSource?: "derived" | "manual";
   exposureLevelRationale?: string;
+
+  // ── Physical routing / medium ─────────────────────────────────────────────
+
+  /**
+   * Physical medium or routing path this data flow traverses.
+   *
+   * Semantically distinct from:
+   *   Interface.location  — a point (where the connector is)
+   *   DataFlow.location   — a path (the medium the flow traverses)
+   *   exposureLevel       — the resulting attack surface (the consequence)
+   *
+   * location is the cause; exposureLevel is the effect.
+   * Knowing both enables plausibility checks and medium-specific threat templates.
+   *
+   * on_chip          → Internal chip bus / register — EL0
+   *                    (only reachable via open debug interface)
+   * on_board         → PCB trace, same board — EL0/EL1
+   * in_enclosure     → Cable/trace within sealed enclosure — EL1
+   *                    (requires disassembly to access)
+   * field_cable      → External field cable (M12, DIN rail, cable duct) — EL1/EL2
+   *                    DoS: plug pull (seconds, no tools) → DoS-Physical threat
+   * local_network    → Wired local OT/IT network segment — EL2
+   *                    DoS: port flooding, switch overload
+   * enterprise_network → OT-IT boundary, enterprise network — EL3
+   * wireless_local   → Local wireless (WLAN, Bluetooth) within facility — EL3
+   *                    DoS: RF jammer (~30 CHF), 802.11 Deauth attack (no network
+   *                    access required) → DoS-Wireless threat
+   * internet         → Public network — EL4
+   *                    DoS: DDoS, BGP hijack
+   * custom           → Proprietary medium
+   *
+   * Cascade rules:
+   *   field_cable | in_enclosure | on_board →
+   *     Threat: "Physical Disconnection / Cable Tampering" (STRIDE: D)
+   *   wireless_local →
+   *     Threat: "RF Jamming / 802.11 Deauth Attack" (STRIDE: D)
+   *
+   * Plausibility check with exposureLevel:
+   *   field_cable + EL1  → consistent (normal case)
+   *   field_cable + EL2  → locationRationale required (cable through public area?)
+   *   wireless_local + EL4 → locationRationale required (AP internet-exposed?)
+   */
+  location?:
+    | "on_chip"
+    | "on_board"
+    | "in_enclosure"
+    | "field_cable"
+    | "local_network"
+    | "enterprise_network"
+    | "wireless_local"
+    | "internet"
+    | "custom";
+
+  /**
+   * Rationale when location and exposureLevel deviate from the standard mapping,
+   * or when the physical path has circumstances requiring documentation.
+   * @example "Field cable runs through publicly accessible corridor → EL2 not EL1."
+   * @example "WLAN AP is internet-connected in this installation → EL4."
+   */
+  locationRationale?: string;
+
+  /**
+   * System behaviour when this data flow is interrupted.
+   * Drives DoS impact assessment — a flow with no redundancy is a single point
+   * of failure; disruption causes immediate, full loss of that data path.
+   *
+   * Cascade rule: location=field_cable + redundancy=none + high operationalImpact
+   *   → Critical DoS threat (physical plug-pull = process blind, no tools required)
+   *
+   * none      → Single point of failure — complete loss on interruption
+   *             @example DF-1 (sensor values via UART): cable pull = process blind
+   * failover  → Automatic failover to backup path (transparent to application)
+   * degraded  → System continues with reduced functionality
+   *             @example DF-5 (WLAN Web UI): device keeps measuring, only HMI lost
+   * buffered  → Local buffering bridges short interruptions
+   *             @example DF-3 (Profibus): PLC may buffer last known value
+   */
+  redundancy?: "none" | "failover" | "degraded" | "buffered";
 
   // ---- Safety annotation (optional, non-invasive) ----
   // "Safety Context/Boundary" is NOT a separate DFD element (unlike TrustBoundary).

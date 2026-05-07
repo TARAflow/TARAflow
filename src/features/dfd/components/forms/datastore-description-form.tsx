@@ -104,8 +104,9 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
 
   // Safety-relevant data without integrity protection → Tampering threat
   const showSafetyIntegrityWarning =
-    props.containsSafetyRelevantData === true &&
-    props.integrityProtection === false;
+    (props.containsSafetyRelevantData === true &&
+      props.integrityProtection == null) ||
+    props.integrityProtection === "none";
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -309,14 +310,62 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
           )}
         </Grid>
 
-        {/* Access Control */}
+        {/* Access Control Mechanism */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.datastore.fields.accessControlMechanism.label",
+                { defaultValue: "Access Control Mechanism" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.accessControlMechanism ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "accessControlMechanism",
+                  e.target.value,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.accessControlMechanism.label",
+                { defaultValue: "Access Control Mechanism" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                [
+                  "none",
+                  "process_enforced",
+                  "mpu_protected",
+                  "os_permissions",
+                  "crypto_erase",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.datastore.fields.accessControlMechanism.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Access Control Policy */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             size="small"
             label={t(
               "tabs.dfd.element_description.datastore.fields.accessControl.label",
-              { defaultValue: "Access Control" },
+              { defaultValue: "Access Control Policy" },
             )}
             value={props.accessControl ?? ""}
             onChange={(e) =>
@@ -326,36 +375,48 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
               "tabs.dfd.element_description.datastore.fields.accessControl.placeholder",
               {
                 defaultValue:
-                  "Who can read/write? e.g. Admin only, Service account X",
+                  "Which processes may read/write and under what conditions?",
               },
             )}
           />
         </Grid>
 
         {/* Integrity Protection */}
-        <Grid
-          item
-          xs={12}
-          sm={6}
-          sx={{ display: "flex", alignItems: "center" }}
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={props.integrityProtection || false}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "integrityProtection",
-                    e.target.checked,
-                  )
-                }
-              />
-            }
-            label={t(
-              "tabs.dfd.element_description.datastore.fields.integrityProtection.label",
-              { defaultValue: "Integrity Protection (Checksums, Signatures)" },
-            )}
-          />
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.datastore.fields.integrityProtection.label",
+                { defaultValue: "Integrity Protection" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.integrityProtection ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("integrityProtection", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.integrityProtection.label",
+                { defaultValue: "Integrity Protection" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                ["none", "crc", "hash", "hmac", "signature", "custom"] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.datastore.fields.integrityProtection.options.${opt}`,
+                    { defaultValue: opt.toUpperCase() },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
 
         {/* Multi-tenant */}
@@ -488,6 +549,49 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
         })}
       />
 
+      <FormControl fullWidth size="small">
+        <InputLabel>
+          {t(
+            "tabs.dfd.element_description.datastore.fields.deletionMechanism.label",
+            { defaultValue: "Deletion Mechanism" },
+          )}
+        </InputLabel>
+        <Select
+          value={props.deletionMechanism ?? ""}
+          onChange={(e) =>
+            form.handlePropertyChange("deletionMechanism", e.target.value)
+          }
+          label={t(
+            "tabs.dfd.element_description.datastore.fields.deletionMechanism.label",
+            { defaultValue: "Deletion Mechanism" },
+          )}
+        >
+          <MenuItem value="">
+            <em>
+              {t("common.not_specified", { defaultValue: "Not specified" })}
+            </em>
+          </MenuItem>
+          {(
+            [
+              "none",
+              "overwrite",
+              "factory_reset",
+              "crypto_erase",
+              "physical",
+              "retention_period",
+              "custom",
+            ] as const
+          ).map((opt) => (
+            <MenuItem key={opt} value={opt}>
+              {t(
+                `tabs.dfd.element_description.datastore.fields.deletionMechanism.options.${opt}`,
+                { defaultValue: opt },
+              )}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
       <TextField
         fullWidth
         size="small"
@@ -503,7 +607,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
           "tabs.dfd.element_description.datastore.fields.deletionPolicy.placeholder",
           {
             defaultValue:
-              "e.g. Soft delete with 30-day retention, GDPR-compliant",
+              "e.g. Factory Reset clears config and logs. Firmware retained — requires service tool.",
           },
         )}
       />
