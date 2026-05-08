@@ -28,6 +28,7 @@ import type { AssetGroup, DFDConnection } from "../../models/dfd-types";
 import type {
   DataFlowProperties,
   ExposureLevel,
+  Protocol,
 } from "../../models/element-properties";
 import {
   EXPOSURE_LEVEL_LABELS,
@@ -44,6 +45,7 @@ import {
   applyCascadeDefaults,
   buildClearPatch,
 } from "../../models/element-property-defaults";
+import { PROTOCOL_META } from "../../models/protocol-registry";
 
 // ==================== PROPS ====================
 
@@ -84,6 +86,20 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   </Box>
 );
 
+function groupBy<T, K extends string | number | symbol>(
+  arr: T[],
+  fn: (item: T) => K,
+): Record<K, T[]> {
+  return arr.reduce(
+    (acc, item) => {
+      const key = fn(item);
+      (acc[key] ??= []).push(item);
+      return acc;
+    },
+    {} as Record<K, T[]>,
+  );
+}
+
 const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   connection,
   onChange,
@@ -93,6 +109,9 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   const { t } = useTranslation();
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
   const { props } = form;
+
+  const PROTOCOL_LIST: Protocol[] = Object.keys(PROTOCOL_META) as Protocol[];
+  const PROTOCOL_GROUPS = groupBy(PROTOCOL_LIST, (p) => PROTOCOL_META[p].group);
 
   // ── Cascade: protocol driver ─────────────────────────────────────────────
   const handleProtocolChange = (value: string) => {
@@ -186,42 +205,32 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 { defaultValue: "Protocol" },
               )}
             >
+              {/* empty */}
               <MenuItem value="">
                 <em>
                   {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
-              {(
-                [
-                  "http",
-                  "https",
-                  "grpc",
-                  "mqtt",
-                  "amqp",
-                  "websocket",
-                  "file",
-                  "database",
-                  "custom",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.protocol.options.${opt}`,
-                    { defaultValue: opt.toUpperCase() },
-                  )}
-                </MenuItem>
-              ))}
-              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
-                — Embedded protocols —
-              </MenuItem>
-              {(["can", "modbus", "uart", "spi", "i2c"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.protocol.options.${opt}`,
-                    { defaultValue: opt.toUpperCase() },
-                  )}
-                </MenuItem>
-              ))}
+
+              {/* GROUPED PROTOCOLS */}
+              {Object.entries(PROTOCOL_GROUPS).map(([group, protocols]) => [
+                <MenuItem
+                  key={`group-${group}`}
+                  disabled
+                  sx={{ opacity: 0.6, fontSize: "0.75rem" }}
+                >
+                  — {t(`protocol_groups.${group}`, { defaultValue: group })} —
+                </MenuItem>,
+
+                protocols.map((p) => (
+                  <MenuItem key={p} value={p}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.protocol.options.${p}`,
+                      { defaultValue: p.toUpperCase() },
+                    )}
+                  </MenuItem>
+                )),
+              ])}
             </Select>
           </FormControl>
         </Grid>

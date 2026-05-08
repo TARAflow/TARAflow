@@ -61,25 +61,36 @@
           "label": {
             "empty": "{{name}} — empty or unparseable label",
             "deprecatedVerb": "{{name}} — deprecated verb, replace 'send'/'recv' with 'push' or 'pull'",
-            "unknownVerb": "{{name}} — unknown verb (valid verbs are pull, push, write, stream)",
+            "unknownVerb": "{{name}} — unknown verb (valid verbs: pull, push, write, stream)",
             "missingObject": "{{name}} — missing object, expected format '<verb> <object> [<flow-type>]'"
           },
           "pull": {
-            "missingFlowType": "{{name}} — pull requires a flow-type [req] or [resp]",
-            "invalidFlowType": "{{name}} — invalid flow-type for pull (expected [req] or [resp])",
+            "missingFlowType": "{{name}} — pull requires a flow-type: [req], [resp], or [req_resp]",
+            "invalidFlowType": "{{name}} — invalid flow-type for pull (valid: [req], [resp], [req_resp])",
             "missingResponse": "{{name}} — no matching pull [resp] found for this pull [req]",
             "multipleResponses": "{{name}} — multiple pull [resp] found, expected exactly one",
             "orphanedResponse": "{{name}} — orphaned pull [resp], no matching pull [req] found"
           },
           "push": {
-            "missingCmd": "{{name}} — push requires flow-type [cmd]",
-            "invalidFlowType": "{{name}} — invalid flow-type for push (expected [cmd])"
+            "missingCmd": "{{name}} — push requires a flow-type: [cmd], [event], or [event_ack]",
+            "missingFlowType": "{{name}} — push requires a flow-type: [cmd], [event], or [event_ack]",
+            "invalidFlowType": "{{name}} — invalid flow-type for push (valid: [cmd], [event], [event_ack])"
           },
           "write": {
-            "redundantFlowType": "{{name}} — write is self-describing, flow-type is redundant"
+            "redundantFlowType": "{{name}} — write must not carry a flow-type or annotation"
           },
           "stream": {
-            "invalidFlowType": "{{name}} — stream flow-type should be [stream]"
+            "invalidFlowType": "{{name}} — invalid flow-type for stream (only [stream] is allowed, or omit entirely)",
+            "logicalAnnotationForbidden": "{{name}} — stream flows may not use logical annotations ([req_resp], [event_ack] are semantically incompatible with stream)"
+          },
+          "reqResp": {
+            "duplicateCoverage": "{{name}} — [req_resp] coexists with an explicit [req] or [resp] on the same interaction; remove one to avoid duplicate threat coverage"
+          },
+          "eventAck": {
+            "duplicateCoverage": "{{name}} — [event_ack] coexists with an explicit [event] on the same flow; remove one to avoid duplicate threat coverage"
+          },
+          "object": {
+            "forbiddenTerm": "{{name}} — object contains a transport or encoding term ({{terms}}); use a domain-oriented name instead"
           },
           "prop": {
             "bidirectionalForbidden": "{{name}} — bidirectional flows are forbidden, model as two unidirectional flows",
@@ -87,11 +98,12 @@
             "pushIsReqResp": "{{name}} — push is fire-and-forget, 'Request-Response' direction contradicts push semantics",
             "pushWrongDirection": "{{name}} — push requires direction 'Uni-directional', update the Direction property",
             "writeIsReqResp": "{{name}} — write is a one-way operation, 'Request-Response' direction contradicts write semantics",
-            "writeNotDatastore": "{{name}} — write with non-datastore protocol, verify flow targets a Data Store (expected database or file)",
+            "writeNotDatastore": "{{name}} — write with non-datastore protocol, verify flow targets a Data Store (expected: database or file)",
             "streamNotContinuous": "{{name}} — stream requires continuous frequency, update the Frequency property",
             "streamIsReqResp": "{{name}} — stream is unidirectional, 'Request-Response' direction is unexpected for stream",
             "continuousUseStream": "{{name}} — continuous push/pull detected, consider using 'stream' instead",
-            "excludeMissingRationale": "DataFlow {{context}}: excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail"
+            "excludeMissingRationale": "DataFlow {{context}}: excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
+            "protocolMissing": "{{name}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
           }
         }
       },
@@ -834,16 +846,42 @@
                 "https": "HTTPS",
                 "grpc": "gRPC",
                 "mqtt": "MQTT",
-                "amqp": "AMQP / Message Queue",
+                "amqp": "AMQP",
                 "websocket": "WebSocket",
-                "file": "File Transfer",
-                "database": "Database Protocol",
-                "can": "CAN",
-                "modbus": "Modbus",
+                "file": "File",
+                "database": "Database",
+                "can": "CAN Bus",
                 "uart": "UART",
                 "spi": "SPI",
                 "i2c": "I2C",
-                "custom": "Custom Protocol"
+                "modbus_rtu": "Modbus RTU / ASCII (RS-232/RS-485)",
+                "modbus_tcp": "Modbus/TCP (Port 502)",
+                "modbus_sec": "Modbus/TCP Security (Port 802, TLS)",
+                "profibus": "Profibus (DP/PA)",
+                "foundation_fieldbus": "Foundation Fieldbus (H1/H2)",
+                "dnp3": "DNP3",
+                "controlnet": "ControlNet",
+                "devicenet": "DeviceNet",
+                "ethernet_ip": "EtherNet/IP",
+                "profinet": "PROFINET",
+                "hart": "HART",
+                "lontalk": "LonTalk / LonWorks",
+                "bacnet": "BACnet (MS/TP)",
+                "bacnet_ip": "BACnet/IP",
+                "hart_ip": "HART-IP",
+                "opc_da": "OPC DA / AE / HDA (legacy)",
+                "opc_ua": "OPC UA",
+                "wireless_hart": "WirelessHART (IEC 62591)",
+                "isa100": "ISA 100.11a",
+                "zigbee": "ZigBee (IEEE 802.15.4)",
+                "custom": "Custom / Other"
+              },
+              "groups": {
+                "it": "IT / Cloud",
+                "embedded": "Embedded Bus",
+                "fieldbus": "Fieldbus",
+                "secure_ot": "Secure OT",
+                "wireless": "Wireless"
               }
             },
             "direction": {
@@ -866,13 +904,18 @@
               "warning": "Unencrypted flow crosses trust boundary → Information Disclosure risk"
             },
             "endpointAuthentication": {
-              "label": "Authentication of Endpoints",
+              "label": "Endpoint Authentication",
               "options": {
                 "none": "None",
-                "token": "Token / Bearer",
-                "certificate": "Certificate (mTLS)",
+                "password": "Password (username + password)",
+                "symmetric_key": "Symmetric Key (shared secret)",
+                "token": "Token (smart card / hardware token)",
+                "mfa": "Multi-Factor Authentication (MFA)",
+                "biometric": "Biometric (fingerprint / facial recognition)",
+                "certificate": "Certificate (X.509 / PKI)",
                 "apikey": "API Key",
-                "oauth": "OAuth 2.0"
+                "oauth": "OAuth 2.0",
+                "mutual_tls": "Mutual TLS (mTLS)"
               }
             },
             "integrityProtection": {

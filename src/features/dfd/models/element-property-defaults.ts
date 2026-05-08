@@ -403,6 +403,10 @@ export const DATASTORE_TECH_DRIVEN_FIELDS: (keyof DataStoreProperties)[] = [
 // ==================== DATA FLOW DEFAULTS ====================
 
 /**
+ * Design principle: OT protocols default to insecure state to surface threats.
+ * Exception: OPC UA defaults to certificate+tls (security is its core contract).
+ * WirelessHART / ISA100: AES-128 is mandatory per spec → custom encryption.
+ * ZigBee: encryption optional → none to surface threat.
  * Cascade defaults based on DataFlow.protocol selection.
  * Note: websocket uses "unidirectional" to avoid triggering validator C7.
  */
@@ -410,22 +414,183 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   NonNullable<DataFlowProperties["protocol"]>,
   Partial<DataFlowProperties>
 > = {
-  https:     { direction: "requestresponse", endpointAuthentication: "token",       encryptionInTransit: "tls"  },
-  grpc:      { direction: "requestresponse", endpointAuthentication: "certificate", encryptionInTransit: "tls"  },
-  http:      { direction: "requestresponse", endpointAuthentication: "none",        encryptionInTransit: "none" },
-  mqtt:      { direction: "unidirectional",  endpointAuthentication: "none",        encryptionInTransit: "none" },
-  amqp:      { direction: "unidirectional",  endpointAuthentication: "token",       encryptionInTransit: "none" },
-  websocket: { direction: "unidirectional",  endpointAuthentication: "token",       encryptionInTransit: "tls"  },
-  file:      { direction: "unidirectional",  endpointAuthentication: "none",        encryptionInTransit: "none" },
-  database:  { direction: "requestresponse", endpointAuthentication: "certificate", encryptionInTransit: "none" },
-  // Embedded protocols — no auth, no encryption by design; forces analyst to consciously add controls
-  can:       { direction: "unidirectional",  endpointAuthentication: "none",        encryptionInTransit: "none" },
-  modbus:    { direction: "requestresponse", endpointAuthentication: "none",        encryptionInTransit: "none" },
-  uart:      { direction: "unidirectional",  endpointAuthentication: "none",        encryptionInTransit: "none" },
-  spi:       { direction: "unidirectional",  endpointAuthentication: "none",        encryptionInTransit: "none" },
-  i2c:       { direction: "unidirectional",  endpointAuthentication: "none",        encryptionInTransit: "none" },
-  custom:    {},
+  // ── IT / Cloud ────────────────────────────────────────────────────────────
+  https: {
+    direction: "requestresponse",
+    endpointAuthentication: "token",
+    encryptionInTransit: "tls",
+  },
+  grpc: {
+    direction: "requestresponse",
+    endpointAuthentication: "certificate",
+    encryptionInTransit: "tls",
+  },
+  http: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  mqtt: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  amqp: {
+    direction: "unidirectional",
+    endpointAuthentication: "token",
+    encryptionInTransit: "none",
+  },
+  websocket: {
+    direction: "unidirectional",
+    endpointAuthentication: "token",
+    encryptionInTransit: "tls",
+  },
+  file: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  database: {
+    direction: "requestresponse",
+    endpointAuthentication: "certificate",
+    encryptionInTransit: "none",
+  },
+
+  // ── Embedded bus (no auth, no encryption — surfaces threats by design) ────
+  can: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  modbus_rtu: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  modbus_tcp: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  modbus_sec: {
+    direction: "requestresponse",
+    endpointAuthentication: "certificate",
+    encryptionInTransit: "tls",
+  },
+  uart: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  spi: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  i2c: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+
+  // ── Fieldbus (no auth, no encryption — IEC 62443 baseline gap) ───────────
+  profibus: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  foundation_fieldbus: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  dnp3: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  controlnet: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  devicenet: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  ethernet_ip: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  profinet: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  hart: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  lontalk: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  bacnet: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  bacnet_ip: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  hart_ip: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+  opc_da: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+
+  // ── Secure OT ─────────────────────────────────────────────────────────────
+  // OPC UA has built-in security profiles — certificate + sign/encrypt is the contract
+  opc_ua: {
+    direction: "requestresponse",
+    endpointAuthentication: "certificate",
+    encryptionInTransit: "tls",
+  },
+
+  // ── Wireless ──────────────────────────────────────────────────────────────
+  // WirelessHART (IEC 62591): AES-128 CBC mandatory, network-layer joining keys
+  wireless_hart: {
+    direction: "unidirectional",
+    endpointAuthentication: "symmetric_key",
+    encryptionInTransit: "custom",
+  },
+  // ISA 100.11a: AES-128 CCM mandatory, device certificates optional
+  isa100: {
+    direction: "unidirectional",
+    endpointAuthentication: "symmetric_key",
+    encryptionInTransit: "custom",
+  },
+  // ZigBee (IEEE 802.15.4): optional AES-128 — defaults to none to surface risk
+  zigbee: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+  },
+
+  custom: {},
 };
+
 
 /** Fields driven by DataFlow.protocol — used for clearing on driver reset */
 export const DATAFLOW_PROTOCOL_DRIVEN_FIELDS: (keyof DataFlowProperties)[] = [

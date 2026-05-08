@@ -4,12 +4,27 @@
 // Convention: <verb> <object> [<flow-type>]
 //
 // Valid verbs:
-//   pull   → Request/Response pair (always paired, same verb both ways)
-//   push   → One-way action / fire-and-forget [cmd]
-//   write  → One-way write to Data Store (no flow-type)
-//   stream → Continuous data flow [stream] optional
+//   pull   → Request/Response
+//              Physical:  [req] / [resp]  — explicit pair (opposite direction, same object)
+//              Compact:   [req_resp]      — standalone notation; both directions expanded internally
+//   push   → One-way asynchronous
+//              Physical:  [cmd]           — command / action
+//              Physical:  [event]         — notification
+//              Compact:   [event_ack]     — event with expected acknowledgement (metadata only)
+//   write  → Persistence into datastore — MUST NOT carry any tag (error if present)
+//   stream → Continuous data flow — [stream] optional; logical annotations forbidden (error)
 //
 // Deprecated verbs → ERROR: send, recv
+//
+// Duplication checks (Option B — compact notations are valid standalone):
+//   D1: pull [req_resp] + pull [req]    same direction same object → WARNING
+//   D2: pull [req_resp] + pull [resp]   reverse direction same object → WARNING
+//   D3: push [event_ack] + push [event] same direction same object → WARNING
+//
+// Object rules:
+//   - Must be present (error if missing)
+//   - MUST NOT contain transport/encoding terms → WARNING
+//   - Canonical identity: lowercase, strip HTML, normalize whitespace
 //
 // Message format: `${ValidationMessages.KEY}:${context}`
 //   context = "DF-3 — read safety params [req]"
@@ -33,7 +48,6 @@ interface ParsedLabel {
 
 interface ParsedConnection {
   conn: DFDConnection;
-  /** Context shown in the UI: "DF-3 — read safety params [req]" */
   context: string;
   parsed: ParsedLabel;
 }
@@ -47,24 +61,31 @@ type ValidVerb = (typeof VALID_VERBS)[number];
 
 const DEPRECATED_VERBS = ["send", "recv"] as const;
 
+const VALID_FLOW_TYPES_PULL = ["req", "resp", "req_resp"] as const;
+const VALID_FLOW_TYPES_PUSH = ["cmd", "event", "event_ack"] as const;
+
+const FORBIDDEN_OBJECT_TERMS = [
+  "json",
+  "mqtt",
+  "http",
+  "grpc",
+  "rest",
+  "payload",
+  "message",
+  "packet",
+  "frame",
+  "buffer",
+] as const;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Build the context string shown in the UI.
- * Uses em dash (—) instead of colon to avoid breaking the KEY:name split
- * in translateMessage().
- */
 function buildContext(conn: DFDConnection): string {
   const name = conn.name || `(unnamed DF ${conn.id})`;
   return conn.displayId ? `${conn.displayId} \u2014 ${name}` : name;
 }
 
-/**
- * Parse a DF label into verb / object / flow-type.
- * Handles multi-line labels from draw.io (<br>, \n).
- */
 function parseLabel(raw: string): ParsedLabel {
   const trimmed = raw
     .replace(/<br\s*\/?>/gi, " ")
@@ -111,14 +132,6 @@ function normalizeObject(obj: string): string {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Validate all dataflow labels against the TARAflow naming convention.
- *
- * Message format: `${ValidationMessages.KEY}:${context}`
- * The UI (dfd-validation-panel.tsx) splits on the first ":" to get:
- *   parts[0] → i18n key  (e.g. "dfdValidation.dfUnknownVerb")
- *   parts[1] → {{name}}  (e.g. "DF-3 — read safety params [req] [read]")
- */
 export function validateDataflowLabels(
   connections: DFDConnection[],
   errors: string[],
@@ -142,7 +155,6 @@ export function validateDataflowLabels(
       continue;
     }
 
-    // R1a: Deprecated verb — append [verb] for clarity
     if ((DEPRECATED_VERBS as readonly string[]).includes(p.verb)) {
       errors.push(
         `${ValidationMessages.DF_DEPRECATED_VERB}:${context} [${p.verb}]`,
@@ -150,7 +162,6 @@ export function validateDataflowLabels(
       continue;
     }
 
-    // R1b: Unknown verb — append [verb] for clarity
     if (!(VALID_VERBS as readonly string[]).includes(p.verb)) {
       errors.push(
         `${ValidationMessages.DF_UNKNOWN_VERB}:${context} [${p.verb}]`,
@@ -158,7 +169,6 @@ export function validateDataflowLabels(
       continue;
     }
 
-    // R2: Object must be present
     if (!p.object) {
       errors.push(`${ValidationMessages.DF_MISSING_OBJECT}:${context}`);
       continue;
@@ -170,7 +180,9 @@ export function validateDataflowLabels(
           errors.push(
             `${ValidationMessages.DF_PULL_MISSING_FLOW_TYPE}:${context}`,
           );
-        } else if (p.flowType !== "req" && p.flowType !== "resp") {
+        } else if (
+          !(VALID_FLOW_TYPES_PULL as readonly string[]).includes(p.flowType)
+        ) {
           errors.push(
             `${ValidationMessages.DF_PULL_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
           );
@@ -179,8 +191,12 @@ export function validateDataflowLabels(
 
       case "push":
         if (p.flowType === null) {
-          errors.push(`${ValidationMessages.DF_PUSH_MISSING_CMD}:${context}`);
-        } else if (p.flowType !== "cmd") {
+          errors.push(
+            `${ValidationMessages.DF_PUSH_MISSING_FLOW_TYPE}:${context}`,
+          );
+        } else if (
+          !(VALID_FLOW_TYPES_PUSH as readonly string[]).includes(p.flowType)
+        ) {
           errors.push(
             `${ValidationMessages.DF_PUSH_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
           );
@@ -189,7 +205,7 @@ export function validateDataflowLabels(
 
       case "write":
         if (p.flowType !== null) {
-          warnings.push(
+          errors.push(
             `${ValidationMessages.DF_WRITE_REDUNDANT_FLOW_TYPE}:${context} [${p.flowType}]`,
           );
         }
@@ -197,19 +213,28 @@ export function validateDataflowLabels(
 
       case "stream":
         if (p.flowType !== null && p.flowType !== "stream") {
-          warnings.push(
-            `${ValidationMessages.DF_STREAM_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
-          );
+          if (p.flowType === "req_resp" || p.flowType === "event_ack") {
+            errors.push(
+              `${ValidationMessages.DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN}:${context} [${p.flowType}]`,
+            );
+          } else {
+            errors.push(
+              `${ValidationMessages.DF_STREAM_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
+            );
+          }
         }
         break;
     }
   }
 
   validatePullPairs(parsed, errors, warnings);
+  validateReqRespDuplication(parsed, warnings);
+  validateEventAckDuplication(parsed, warnings);
+  validateObjectForbiddenTerms(parsed, warnings);
 }
 
 // ---------------------------------------------------------------------------
-// Pair validation
+// Explicit [req] / [resp] pair validation
 // ---------------------------------------------------------------------------
 
 function validatePullPairs(
@@ -232,7 +257,6 @@ function validatePullPairs(
         r.conn.from === req.conn.to &&
         r.conn.to === req.conn.from,
     );
-
     if (matches.length === 0) {
       warnings.push(
         `${ValidationMessages.DF_PULL_MISSING_RESPONSE}:${req.context}`,
@@ -252,10 +276,120 @@ function validatePullPairs(
         r.conn.from === resp.conn.to &&
         r.conn.to === resp.conn.from,
     );
-
     if (matches.length === 0) {
       errors.push(
         `${ValidationMessages.DF_PULL_ORPHANED_RESPONSE}:${resp.context}`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// D1 / D2: [req_resp] duplication check
+// ---------------------------------------------------------------------------
+
+function validateReqRespDuplication(
+  parsed: ParsedConnection[],
+  warnings: string[],
+): void {
+  const reqResps = parsed.filter(
+    (p) => p.parsed.verb === "pull" && p.parsed.flowType === "req_resp",
+  );
+
+  if (reqResps.length === 0) return;
+
+  const reqs = parsed.filter(
+    (p) => p.parsed.verb === "pull" && p.parsed.flowType === "req",
+  );
+  const resps = parsed.filter(
+    (p) => p.parsed.verb === "pull" && p.parsed.flowType === "resp",
+  );
+
+  for (const rr of reqResps) {
+    const obj = normalizeObject(rr.parsed.object);
+
+    const conflictingReq = reqs.find(
+      (r) =>
+        normalizeObject(r.parsed.object) === obj &&
+        r.conn.from === rr.conn.from &&
+        r.conn.to === rr.conn.to,
+    );
+    const conflictingResp = resps.find(
+      (r) =>
+        normalizeObject(r.parsed.object) === obj &&
+        r.conn.from === rr.conn.to &&
+        r.conn.to === rr.conn.from,
+    );
+
+    if (conflictingReq) {
+      warnings.push(
+        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}:${rr.context} \u2014 conflicts with ${conflictingReq.context}`,
+      );
+    }
+    if (conflictingResp) {
+      warnings.push(
+        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}:${rr.context} \u2014 conflicts with ${conflictingResp.context}`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// D3: [event_ack] duplication check
+// ---------------------------------------------------------------------------
+
+function validateEventAckDuplication(
+  parsed: ParsedConnection[],
+  warnings: string[],
+): void {
+  const eventAcks = parsed.filter(
+    (p) => p.parsed.verb === "push" && p.parsed.flowType === "event_ack",
+  );
+
+  if (eventAcks.length === 0) return;
+
+  const pushEvents = parsed.filter(
+    (p) => p.parsed.verb === "push" && p.parsed.flowType === "event",
+  );
+
+  for (const ea of eventAcks) {
+    const obj = normalizeObject(ea.parsed.object);
+
+    const conflictingEvent = pushEvents.find(
+      (e) =>
+        normalizeObject(e.parsed.object) === obj &&
+        e.conn.from === ea.conn.from &&
+        e.conn.to === ea.conn.to,
+    );
+
+    if (conflictingEvent) {
+      warnings.push(
+        `${ValidationMessages.DF_EVENT_ACK_DUPLICATE_COVERAGE}:${ea.context} \u2014 conflicts with ${conflictingEvent.context}`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Object forbidden-term validation
+// Whole-word match after normalization. Severity: warning.
+// ---------------------------------------------------------------------------
+
+function validateObjectForbiddenTerms(
+  parsed: ParsedConnection[],
+  warnings: string[],
+): void {
+  for (const { context, parsed: p } of parsed) {
+    if (!p.parseable || !p.object) continue;
+
+    const tokens = normalizeObject(p.object).split(/\s+/);
+    const found = FORBIDDEN_OBJECT_TERMS.filter((term) =>
+      tokens.some((token) => token === term),
+    );
+
+    if (found.length > 0) {
+      warnings.push(
+        `${ValidationMessages.DF_OBJECT_FORBIDDEN_TERM}:${context} | terms: ${found.join(", ")}`,
       );
     }
   }

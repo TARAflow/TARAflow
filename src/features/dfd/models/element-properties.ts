@@ -528,25 +528,99 @@ export interface DataStoreProperties {
 
 // ==================== DATA FLOW PROPERTIES ====================
 
+// ---------------------------------------------------------------------------
+// protocol — grouped by ICS/OT category for clarity
+// ---------------------------------------------------------------------------
+//
+// IT protocols
+//   http, https, grpc, mqtt, amqp, websocket, file, database, custom
+//
+// Embedded bus (no auth, no encryption by design — IEC 62443 baseline risk)
+//   can, modbus_rtu, modbus_tcp, modbus_sec, uart, spi, i2c
+//
+// Fieldbus protocols (IEC 61158 / IEC 61784 family)
+//   profibus, foundation_fieldbus, dnp3, controlnet, devicenet, ethernet_ip,
+//   profinet, hart, lontalk, bacnet, bacnet_ip, hart_ip, opc_da
+//
+// IIoT / Secure OT
+//   opc_ua  — OPC UA with security profiles (sign + encrypt)
+//
+// Wireless (ISA/IEC course: wireless field device protocols)
+//   wireless_hart  — WirelessHART (IEC 62591) — AES-128 mandatory
+//   isa100         — ISA 100.11a — AES-128 mandatory
+//   zigbee         — ZigBee (IEEE 802.15.4) — encryption optional
+ 
+export type Protocol =
+  // ── IT / Cloud ────────────────────────────────────────────────────────────
+  | "http"
+  | "https"
+  | "grpc"
+  | "mqtt"
+  | "amqp"
+  | "websocket"
+  | "file"
+  | "database"
+  // ── Embedded bus ─────────────────────────────────────────────────────────
+  | "can" // CAN bus — no auth, no encryption
+  | "modbus_rtu" // Modbus RTU/ASCII (RS-232/RS-485) — no auth, no encryption
+  | "modbus_tcp" // Modbus/TCP (port 502) — no auth, no encryption
+  | "modbus_sec" // Modbus/TCP Security (port 802, TLS) — IEC 62443 SL2+
+  | "uart" // UART serial — no auth, no encryption
+  | "spi" // SPI bus — no auth, no encryption
+  | "i2c" // I2C bus — no auth, no encryption
+  // ── Fieldbus ─────────────────────────────────────────────────────────────
+  | "profibus" // Profibus DP/PA (IEC 61158) — no auth, no encryption
+  | "foundation_fieldbus" // Foundation Fieldbus H1/H2 — no auth, no encryption
+  | "dnp3" // DNP3 (IEEE 1815) — no auth by default
+  | "controlnet" // ControlNet (IEC 61158) — no auth, no encryption
+  | "devicenet" // DeviceNet (IEC 62026-3) — no auth, no encryption
+  | "ethernet_ip" // EtherNet/IP (IEC 61158 type 2) — no auth by default
+  | "profinet" // PROFINET (IEC 61158 type 10) — no auth by default
+  | "hart" // HART (IEC 61518) — no auth, no encryption
+  | "lontalk" // LonTalk / LonWorks — no auth, no encryption
+  | "bacnet" // BACnet MS/TP — no auth, no encryption
+  | "bacnet_ip" // BACnet/IP (ASHRAE 135) — no auth by default
+  | "hart_ip" // HART-IP — no auth by default
+  | "opc_da" // OPC DA / AE / HDA (DCOM-based) — no auth
+  // ── Secure OT ────────────────────────────────────────────────────────────
+  | "opc_ua" // OPC UA — sign + encrypt via security profiles
+  // ── Wireless ─────────────────────────────────────────────────────────────
+  | "wireless_hart" // WirelessHART (IEC 62591) — AES-128 mandatory
+  | "isa100" // ISA 100.11a — AES-128 mandatory
+  | "zigbee" // ZigBee (IEEE 802.15.4) — optional AES-128
+  // ── Other ────────────────────────────────────────────────────────────────
+  | "custom";
+
+// ---------------------------------------------------------------------------
+// endpointAuthentication — extended with OT/ICS auth methods
+// ---------------------------------------------------------------------------
+//
+// ISA/IEC 62443 auth categories:
+//   Password-based   — username + password (SCADA HMI, OPC server login)
+//   Biometric        — fingerprint, facial recognition (operator stations)
+//   Token-based      — smart card, hardware token, security key
+//   MFA              — two-factor or multi-factor combination
+//   Symmetric key    — shared secret (WirelessHART, ISA100, legacy OT)
+//   Certificate      — X.509 PKI (OPC UA, HTTPS, mTLS)
+//   API key          — pre-shared key (REST APIs, cloud connectors)
+//   OAuth            — delegated auth (cloud, IIoT platforms)
+//   Mutual TLS       — client + server cert (high-assurance OT gateways)
+
+type EndpointAuthentication =
+  | "none"
+  | "password" // Username + password (SCADA, HMI login)
+  | "symmetric_key" // Shared symmetric key (WirelessHART, ISA100, legacy OT)
+  | "token" // Hardware token / smart card / security key
+  | "mfa" // Multi-factor authentication (combination of ≥2 factors)
+  | "biometric" // Biometric (fingerprint, facial recognition — operator stations)
+  | "certificate" // X.509 certificate — PKI-based
+  | "apikey" // Pre-shared API key
+  | "oauth" // OAuth 2.0 / delegated authorization
+  | "mutual_tls"; // Mutual TLS — client + server certificate
+
 export interface DataFlowProperties {
   dataTypes?: string;
-  protocol?:
-    | "http"
-    | "https"
-    | "grpc"
-    | "mqtt"
-    | "amqp"
-    | "websocket"
-    | "file"
-    | "database"
-    | "custom"
-    // Embedded field-bus and serial protocols
-    // All default to: direction=unidirectional, endpointAuth=none, encryptionInTransit=none
-    | "can" // CAN bus — no auth, no encryption by design
-    | "modbus" // Modbus RTU/TCP — no auth, no encryption by design
-    | "uart" // UART serial — no auth, no encryption by design
-    | "spi" // SPI bus — no auth, no encryption by design
-    | "i2c"; // I2C bus — no auth, no encryption by design
+  protocol?: Protocol;
   direction?: "unidirectional" | "bidirectional" | "requestresponse";
   frequency?: "continuous" | "periodic" | "ondemand" | "batch";
   volume?: string;
@@ -580,13 +654,7 @@ export interface DataFlowProperties {
     | "hmac"
     | "signature"
     | "custom";
-  endpointAuthentication?:
-    | "none"
-    | "token"
-    | "certificate"
-    | "apikey"
-    | "oauth"
-    | "mutual_tls";
+  endpointAuthentication?: EndpointAuthentication;
 
   // EN 50742 Annex B — Exposure Level
   exposureLevel?: ExposureLevel;

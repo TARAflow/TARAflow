@@ -59,39 +59,51 @@
         "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich",
         "df": {
           "label": {
-            "empty": "{{name}} — leeres oder nicht lesbares Label",
-            "deprecatedVerb": "{{name}} — veraltetes Verb, 'send'/'recv' durch 'push' oder 'pull' ersetzen",
-            "unknownVerb": "{{name}} — unbekanntes Verb (gültige Verben sind pull, push, write, stream)",
-            "missingObject": "{{name}} — Objekt fehlt, erwartet '<verb> <objekt> [<flow-type>]'"
+            "empty": "{{name}} — leeres oder nicht auswertbares Label",
+            "deprecatedVerb": "{{name}} — veraltetes Verb; 'send'/'recv' durch 'push' oder 'pull' ersetzen",
+            "unknownVerb": "{{name}} — unbekanntes Verb (gültige Verben: pull, push, write, stream)",
+            "missingObject": "{{name}} — fehlendes Objekt, erwartetes Format: '<verb> <objekt> [<flow-type>]'"
           },
           "pull": {
-            "missingFlowType": "{{name}} — pull erfordert einen Flow-Type [req] oder [resp]",
-            "invalidFlowType": "{{name}} — ungültiger Flow-Type für pull (erwartet [req] oder [resp])",
+            "missingFlowType": "{{name}} — pull erfordert einen Flow-Typ: [req], [resp] oder [req_resp]",
+            "invalidFlowType": "{{name}} — ungültiger Flow-Typ für pull (gültig: [req], [resp], [req_resp])",
             "missingResponse": "{{name}} — kein passendes pull [resp] für dieses pull [req] gefunden",
-            "multipleResponses": "{{name}} — mehrere pull [resp] gefunden, genau eines erwartet",
-            "orphanedResponse": "{{name}} — verwaistes pull [resp], kein passendes pull [req] gefunden"
+            "multipleResponses": "{{name}} — mehrere pull [resp] gefunden, erwartet wird genau eines",
+            "orphanedResponse": "{{name}} — verwaistes pull [resp]: kein passendes pull [req] gefunden"
           },
           "push": {
-            "missingCmd": "{{name}} — push erfordert den Flow-Type [cmd]",
-            "invalidFlowType": "{{name}} — ungültiger Flow-Type für push (erwartet [cmd])"
+            "missingCmd": "{{name}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
+            "missingFlowType": "{{name}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
+            "invalidFlowType": "{{name}} — ungültiger Flow-Typ für push (gültig: [cmd], [event], [event_ack])"
           },
           "write": {
-            "redundantFlowType": "{{name}} — write ist selbsterklärend, Flow-Type ist redundant"
+            "redundantFlowType": "{{name}} — write darf keinen Flow-Typ oder Annotation tragen"
           },
           "stream": {
-            "invalidFlowType": "{{name}} — Stream-Flow-Type sollte [stream] sein"
+            "invalidFlowType": "{{name}} — ungültiger Flow-Typ für stream (nur [stream] erlaubt oder weglassen)",
+            "logicalAnnotationForbidden": "{{name}} — stream-Flows dürfen keine logischen Annotationen tragen ([req_resp], [event_ack] sind semantisch inkompatibel mit stream)"
+          },
+          "reqResp": {
+            "duplicateCoverage": "{{name}} — [req_resp] und ein explizites [req] oder [resp] für dieselbe Interaktion gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
+          },
+          "eventAck": {
+            "duplicateCoverage": "{{name}} — [event_ack] und ein explizites [event] auf demselben Flow gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
+          },
+          "object": {
+            "forbiddenTerm": "{{name}} — Objekt enthält einen Transport- oder Kodierungsbegriff ({{terms}}); domänenorientierten Namen verwenden"
           },
           "prop": {
-            "bidirectionalForbidden": "{{name}} — bidirektionale Flows sind nicht erlaubt, als zwei unidirektionale Flows modellieren",
-            "pullNotReqResp": "{{name}} — pull setzt Richtung 'Request-Response' voraus, Direction-Eigenschaft anpassen",
-            "pushIsReqResp": "{{name}} — push ist Fire-and-Forget, 'Request-Response' widerspricht der push-Semantik",
-            "pushWrongDirection": "{{name}} — push setzt Richtung 'Unidirektional' voraus, Direction-Eigenschaft anpassen",
-            "writeIsReqResp": "{{name}} — write ist ein Einwegvorgang, 'Request-Response' widerspricht der write-Semantik",
-            "writeNotDatastore": "{{name}} — write mit Nicht-Datenspeicher-Protokoll, prüfen ob Ziel ein Data Store ist (erwartet database oder file)",
-            "streamNotContinuous": "{{name}} — stream setzt kontinuierliche Häufigkeit voraus, Frequency-Eigenschaft anpassen",
-            "streamIsReqResp": "{{name}} — stream ist unidirektional, 'Request-Response' ist für stream nicht erwartet",
-            "continuousUseStream": "{{name}} — kontinuierlicher push/pull erkannt, Verb 'stream' in Betracht ziehen",
-            "excludeMissingRationale": "Datenfluss {{context}}: von Threat-Generierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1 Audit-Trail erforderlich"
+            "bidirectionalForbidden": "{{name}} — bidirektionale Flows sind verboten; als zwei unidirektionale Flows modellieren",
+            "pullNotReqResp": "{{name}} — pull erfordert die Richtung 'Request-Response'; Eigenschaft Direction anpassen",
+            "pushIsReqResp": "{{name}} — push ist Fire-and-Forget; 'Request-Response'-Richtung widerspricht der push-Semantik",
+            "pushWrongDirection": "{{name}} — push erfordert die Richtung 'Unidirektional'; Eigenschaft Direction anpassen",
+            "writeIsReqResp": "{{name}} — write ist eine Einweg-Operation; 'Request-Response'-Richtung widerspricht der write-Semantik",
+            "writeNotDatastore": "{{name}} — write mit Nicht-Datastore-Protokoll; prüfen ob der Flow auf einen Data Store zeigt (erwartet: database oder file)",
+            "streamNotContinuous": "{{name}} — stream erfordert kontinuierliche Frequenz; Eigenschaft Frequency anpassen",
+            "streamIsReqResp": "{{name}} — stream ist unidirektional; 'Request-Response'-Richtung ist für stream unerwartet",
+            "continuousUseStream": "{{name}} — kontinuierlicher push/pull erkannt; 'stream' in Betracht ziehen",
+            "excludeMissingRationale": "Datenfluss {{context}}: von der Threat-Generierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1 Audit-Trail ergänzen",
+            "protocolMissing": "{{name}} — Transportprotokoll nicht angegeben; für die Threat-Analyse als unbekannt / höchstes Risiko behandeln"
           }
         }
       },
@@ -879,16 +891,42 @@
                 "https": "HTTPS",
                 "grpc": "gRPC",
                 "mqtt": "MQTT",
-                "amqp": "AMQP / Message Queue",
+                "amqp": "AMQP",
                 "websocket": "WebSocket",
-                "file": "Dateiübertragung",
-                "database": "Datenbankprotokoll",
-                "can": "CAN",
-                "modbus": "Modbus",
+                "file": "Datei",
+                "database": "Datenbank",
+                "can": "CAN-Bus",
                 "uart": "UART",
                 "spi": "SPI",
                 "i2c": "I2C",
-                "custom": "Benutzerdefiniertes Protokoll"
+                "modbus_rtu": "Modbus RTU / ASCII (RS-232/RS-485)",
+                "modbus_tcp": "Modbus/TCP (Port 502)",
+                "modbus_sec": "Modbus/TCP Security (Port 802, TLS)",
+                "profibus": "Profibus (DP/PA)",
+                "foundation_fieldbus": "Foundation Fieldbus (H1/H2)",
+                "dnp3": "DNP3",
+                "controlnet": "ControlNet",
+                "devicenet": "DeviceNet",
+                "ethernet_ip": "EtherNet/IP",
+                "profinet": "PROFINET",
+                "hart": "HART",
+                "lontalk": "LonTalk / LonWorks",
+                "bacnet": "BACnet (MS/TP)",
+                "bacnet_ip": "BACnet/IP",
+                "hart_ip": "HART-IP",
+                "opc_da": "OPC DA / AE / HDA (Legacy)",
+                "opc_ua": "OPC UA",
+                "wireless_hart": "WirelessHART (IEC 62591)",
+                "isa100": "ISA 100.11a",
+                "zigbee": "ZigBee (IEEE 802.15.4)",
+                "custom": "Benutzerdefiniert / Sonstige"
+              },
+              "groups": {
+                "it": "IT / Cloud",
+                "embedded": "Embedded-Bus",
+                "fieldbus": "Feldbus",
+                "secure_ot": "Sicheres OT",
+                "wireless": "Drahtlos"
               }
             },
             "direction": {
@@ -911,13 +949,18 @@
               "warning": "Unverschlüsselter Fluss überschreitet Vertrauensgrenze → Risiko der Informationsoffenlegung"
             },
             "endpointAuthentication": {
-              "label": "Authentifizierung der Endpunkte",
+              "label": "Endpunkt-Authentifizierung",
               "options": {
                 "none": "Keine",
-                "token": "Token / Bearer",
-                "certificate": "Zertifikat (mTLS)",
+                "password": "Passwort (Benutzername + Passwort)",
+                "symmetric_key": "Symmetrischer Schlüssel (Shared Secret)",
+                "token": "Token (Chipkarte / Hardware-Token)",
+                "mfa": "Multi-Faktor-Authentifizierung (MFA)",
+                "biometric": "Biometrie (Fingerabdruck / Gesichtserkennung)",
+                "certificate": "Zertifikat (X.509 / PKI)",
                 "apikey": "API-Schlüssel",
-                "oauth": "OAuth 2.0"
+                "oauth": "OAuth 2.0",
+                "mutual_tls": "Mutual TLS (mTLS)"
               }
             },
             "dataTypes": {

@@ -37,7 +37,7 @@ export const ValidationMessages = {
   ASSET_NOT_PLACED: "dfdValidation.assetNotPlaced",
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
 
-  // Asset Relations (NEW)
+  // Asset Relations
   // ASSET_MARKER_NO_RELATION: "dfdValidation.assetMarkerNoRelation",
   // ASSET_RELATION_NO_MARKER: "dfdValidation.assetRelationNoMarker",
   ASSET_RELATION_TYPE_INVALID: "dfdValidation.assetRelationTypeInvalid",
@@ -64,6 +64,7 @@ export const ValidationMessages = {
 
   // ── Push ────────────────────────────────────────────────────────────────
   DF_PUSH_MISSING_CMD: "tabs.dfd.validation.df.push.missingCmd",
+  DF_PUSH_MISSING_FLOW_TYPE: "tabs.dfd.validation.df.push.missingFlowType",
   DF_PUSH_INVALID_FLOW_TYPE: "tabs.dfd.validation.df.push.invalidFlowType",
 
   // ── Write ───────────────────────────────────────────────────────────────
@@ -72,6 +73,17 @@ export const ValidationMessages = {
 
   // ── Stream ──────────────────────────────────────────────────────────────
   DF_STREAM_INVALID_FLOW_TYPE: "tabs.dfd.validation.df.stream.invalidFlowType",
+  DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN:
+    "tabs.dfd.validation.df.stream.logicalAnnotationForbidden",
+
+  // ── Compact notation duplication ────────────────────────────────────────
+  DF_REQ_RESP_DUPLICATE_COVERAGE:
+    "tabs.dfd.validation.df.reqResp.duplicateCoverage",
+  DF_EVENT_ACK_DUPLICATE_COVERAGE:
+    "tabs.dfd.validation.df.eventAck.duplicateCoverage",
+
+  // ── Object semantics ────────────────────────────────────────────────────
+  DF_OBJECT_FORBIDDEN_TERM: "tabs.dfd.validation.df.object.forbiddenTerm",
 
   // ── Properties ──────────────────────────────────────────────────────────
   DF_PROP_BIDIRECTIONAL_FORBIDDEN:
@@ -87,6 +99,7 @@ export const ValidationMessages = {
   DF_PROP_STREAM_IS_REQRESP: "tabs.dfd.validation.df.prop.streamIsReqResp",
   DF_PROP_CONTINUOUS_USE_STREAM:
     "tabs.dfd.validation.df.prop.continuousUseStream",
+  DF_PROP_PROTOCOL_MISSING: "tabs.dfd.validation.df.prop.protocolMissing",
 
   // ── Threat Analysis ─────────────────────────────────────────────────────
   DF_PROP_EXCLUDE_MISSING_RATIONALE:
@@ -133,16 +146,15 @@ export const DEFAULT_NAMES = [
 export function isDefaultName(name: string): boolean {
   const normalized = name.toLowerCase().trim();
 
-  // Check if name matches a default name
   const isDefault = DEFAULT_NAMES.some(
     (defaultName) =>
       normalized === defaultName ||
       normalized.startsWith(defaultName + " ") ||
-      normalized.endsWith(" " + defaultName)
+      normalized.endsWith(" " + defaultName),
   );
 
-  // Also check for very short names (1-2 chars) that aren't ID labels
-  const isTooShort = normalized.length <= 2 && !normalized.match(/^[a-z]{1,2}-?\d+$/i);
+  const isTooShort =
+    normalized.length <= 2 && !normalized.match(/^[a-z]{1,2}-?\d+$/i);
 
   return isDefault || isTooShort;
 }

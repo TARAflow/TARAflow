@@ -12,6 +12,12 @@
 //   C7  direction "bidirectional" (any verb) → ERROR (forbidden globally)
 //   C8  stream + direction "requestresponse" → WARNING
 //   C9  excludeFromThreatGen=true + empty rationale → WARNING
+//   C10 protocol not specified (any verb) → WARNING
+//       Fires even when no properties are set at all.
+//       Rationale: unknown transport = highest risk assumption in threat modeling.
+//       write is exempt when protocol is intentionally omitted (C4 covers the
+//       wrong-protocol case; a write to a local store may legitimately have no
+//       network protocol).
 //
 // Message format: `${ValidationMessages.KEY}:${context}`
 //   context = "DF-3 — read safety params [req]"
@@ -82,7 +88,8 @@ function extractVerb(label: string): string | null {
 
 /**
  * Validate consistency between DF label verbs and DataFlowProperties.
- * Only checks connections that have properties set.
+ * C10 fires for all dataflows regardless of whether properties are set.
+ * All other rules only apply when properties are present.
  */
 export function validateDataflowProperties(
   connections: DFDConnection[],
@@ -101,6 +108,19 @@ export function validateDataflowProperties(
 
     const props = (conn as unknown as { properties?: DataFlowProperties })
       .properties;
+
+    // C10: protocol not specified — fires regardless of whether props exist.
+    // write is exempt: local datastores legitimately have no network protocol,
+    // and C4 already covers the wrong-protocol case for write.
+    if (verb !== "write") {
+      const protocol =
+        props && typeof props === "object" ? props.protocol : undefined;
+      if (protocol === undefined) {
+        warnings.push(
+          `${ValidationMessages.DF_PROP_PROTOCOL_MISSING}:${context}`,
+        );
+      }
+    }
 
     if (!props || typeof props !== "object") continue;
 
