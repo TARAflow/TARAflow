@@ -8,6 +8,7 @@
 //   asset-migration         → schema migration on load
 //   asset-validator         → validation + phase status
 //   asset-sync.service      → DFD synchronisation (separate concern)
+//   asset-cianaaa-deriver   → CIANAAA level refresh after impact changes
 
 import type { PhaseStatusMap } from "shared";
 import type {
@@ -20,7 +21,10 @@ import type {
   AssetDFDElement,
   AssetDFDConnection,
 } from "../models/asset-types";
-import type { ImpactRating } from "../models/asset-impact-types";
+import type {
+  ImpactRating,
+  ImpactScaleType,
+} from "../models/asset-impact-types";
 import { PREDEFINED_IMPACT_CRITERIA } from "../models/asset-impact-types";
 
 import {
@@ -39,9 +43,10 @@ import {
   type PhysicalImpactLevel,
 } from "./asset-physical-impact-deriver";
 import { applyHVAToAsset } from "./asset-hva-deriver";
-import { migrateAssetConfiguration } from "./asset-migration";
+import { migrateAssetConfiguration, migrateAssetData } from "./asset-migration";
 import { validateAssetData, derivePhaseStatus } from "./asset-validator";
 import { syncFromDFD, getAssetsMissingInDFD } from "./asset-sync-service";
+import { deriveSecurityGoalSuggestions } from "./asset-cianaaa-deriver";
 export type { DFDAssetSyncResult } from "./asset-sync-service";
 
 // ==================== RESULT TYPES ====================
@@ -60,6 +65,40 @@ export interface AssetLoadResult {
   hasData: boolean;
   assetCount?: number;
   error?: string;
+}
+
+// ==================== INTERNAL HELPERS ====================
+
+/**
+ * Re-derive CIANAAA levels for all non-manual SecurityGoals after impact changes.
+ *
+ * Called whenever impactRatings or impactScale change:
+ *   - updateAsset()        → single asset, same scale
+ *   - updateConfiguration() → all assets, scale may have changed
+ *   - recalculateAllImpacts() → all assets, same scale
+ *
+ * Preserves source: "manual" entries — only updates source: "suggested" and undefined.
+ */
+function refreshCIANAAALevels(
+  asset: Asset,
+  impactScale: ImpactScaleType,
+): Asset {
+  const refreshed = deriveSecurityGoalSuggestions(
+    asset,
+    asset.securityGoals,
+    impactScale,
+  );
+
+  // Short-circuit if nothing changed (avoids unnecessary re-renders)
+  const hasChanges = refreshed.some(
+    (sg, i) => sg.level !== asset.securityGoals[i]?.level,
+  );
+  if (!hasChanges) return asset;
+
+  return {
+    ...asset,
+    securityGoals: refreshed,
+  };
 }
 
 // ==================== ASSET SERVICE ====================
@@ -87,10 +126,8 @@ class AssetService {
 
   saveAssets(project: AssetProjectData, assetData: AssetData): AssetSaveResult {
     try {
-      const migrated = {
-        ...assetData,
-        configuration: migrateAssetConfiguration(assetData.configuration),
-      };
+      // Full migration: configuration + SecurityGoal boolean→CIANAAALevel
+      const migrated = migrateAssetData(assetData);
 
       const validation = validateAssetData(migrated);
       const phaseStatus = derivePhaseStatus(validation);
@@ -152,7 +189,6 @@ class AssetService {
     const withHVA = applyHVAToAsset({ ...updated, overallImpact });
 
     // Step 3 — re-derive aggregatedImpact with updated HVA and current physicalImpact
-    // undefined if no safety annotations — aggregation handles it correctly
     const physicalLevel = withHVA.physicalImpact as
       | PhysicalImpactLevel
       | undefined;
@@ -176,10 +212,17 @@ class AssetService {
       lastModified: new Date().toISOString(),
     };
 
+    // Step 4 — refresh CIANAAA levels for suggested goals after impact change
+    // Preserves source: "manual" entries; only updates source: "suggested" / undefined
+    const withCIANAAA = refreshCIANAAALevels(
+      withImpact,
+      configuration.impactScale,
+    );
+
     return {
       ...assetData,
       assets: assetData.assets.map((a) =>
-        a.id === withImpact.id ? withImpact : a,
+        a.id === withCIANAAA.id ? withCIANAAA : a,
       ),
       lastModified: new Date().toISOString(),
     };
@@ -188,7 +231,7 @@ class AssetService {
   deleteAsset(assetData: AssetData, assetId: string): AssetData {
     return {
       ...assetData,
-      // No renumbering — DFD-sourced assets have stable IDs (DA-001 etc.)
+      // No renumbering — DFD-sourced assets have stable IDs
       assets: assetData.assets.filter((a) => a.id !== assetId),
       lastModified: new Date().toISOString(),
     };
@@ -207,23 +250,29 @@ class AssetService {
       const newRatings: ImpactRating[] = migratedConfig.impactCriteria.map(
         (criterion) => {
           const existing = asset.impactRatings.find(
-            (r) => r.criterionId === criterion.id, // bug fix: was using criterionId as string
+            (r) => r.criterionId === criterion.id,
           );
           return existing ?? { criterionId: criterion.id, value: 0 };
         },
       );
 
-      return {
+      const newOverallImpact = calculateOverallImpact(
+        newRatings,
+        migratedConfig.calculationMethod,
+        migratedConfig.roundingMethod,
+        migratedConfig.impactCriteria,
+      );
+
+      const withNewRatings: Asset = {
         ...asset,
         impactRatings: newRatings,
-        overallImpact: calculateOverallImpact(
-          newRatings,
-          migratedConfig.calculationMethod,
-          migratedConfig.roundingMethod,
-          migratedConfig.impactCriteria, // pass weights
-        ),
+        overallImpact: newOverallImpact,
         lastModified: new Date().toISOString(),
       };
+
+      // Re-derive CIANAAA levels — scale may have changed (3→4→5 level)
+      // which shifts the numeric→CIANAAALevel bucketing boundaries
+      return refreshCIANAAALevels(withNewRatings, migratedConfig.impactScale);
     });
 
     return {
@@ -255,19 +304,29 @@ class AssetService {
     return createDefaultAssetData();
   }
 
+  /**
+   * Recalculate overallImpact for all assets, then refresh CIANAAA levels.
+   * Called after configuration changes via updateConfiguration — kept here
+   * for callers that bypass updateConfiguration.
+   */
   recalculateAllImpacts(assetData: AssetData): AssetData {
-    return recalculateAllImpacts(assetData);
+    const withImpacts = recalculateAllImpacts(assetData);
+
+    // Refresh CIANAAA levels after impact recalculation
+    const assets = withImpacts.assets.map((asset) =>
+      refreshCIANAAALevels(asset, withImpacts.configuration.impactScale),
+    );
+
+    const hasChanges = assets.some((a, i) => a !== withImpacts.assets[i]);
+    return hasChanges
+      ? { ...withImpacts, assets, lastModified: new Date().toISOString() }
+      : withImpacts;
   }
 
   getImpactCriterion(id: string) {
     return PREDEFINED_IMPACT_CRITERIA.find((c) => c.id === id);
   }
 
-  /**
-   * Validate asset data and return AssetValidation.
-   * Delegates to asset-validator — exposed on the service so components
-   * don't need to import from the service layer directly.
-   */
   validate(assetData: AssetData): AssetValidation {
     return validateAssetData(assetData);
   }

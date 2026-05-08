@@ -868,7 +868,7 @@ export abstract class BaseDocumentGenerator {
 
         // Filter enabled goals and map to format expected by formatSecurityGoals
         const enabledGoals = asset.securityGoals
-          .filter((g) => g.enabled)
+          .filter((g) => g.level !== "none")
           .map((g) => ({ type: g.type, description: g.formalDescription }));
 
         const values = {

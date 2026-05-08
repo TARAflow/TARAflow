@@ -354,8 +354,10 @@ export class DiffService {
       details.push({
         field: "securityGoals",
         fieldLabel: "Security Goals",
-        oldValue: previous.securityGoals.filter((g) => g.enabled).length,
-        newValue: current.securityGoals.filter((g) => g.enabled).length,
+        oldValue: previous.securityGoals.filter((g) => g.level !== "none")
+          .length,
+        newValue: current.securityGoals.filter((g) => g.level !== "none")
+          .length,
         valueType: "number",
       });
     }

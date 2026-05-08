@@ -46,6 +46,7 @@ import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
   WeightedImpactCriterion,
+  IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
 
 // ==================== TYPES ====================
@@ -226,7 +227,9 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                   primary={
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="body2">
-                        {isGerman ? criterion.nameDE : criterion.name}
+                        {t(
+                          `${IMPACT_CRITERION_KEY_PREFIX}.${criterion.id}.name`,
+                        )}
                       </Typography>
                       {isSafetyLocked && (
                         <Chip
@@ -241,9 +244,9 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                       )}
                     </Stack>
                   }
-                  secondary={
-                    isGerman ? criterion.descriptionDE : criterion.description
-                  }
+                  secondary={t(
+                    `${IMPACT_CRITERION_KEY_PREFIX}.${criterion.id}.description`,
+                  )}
                   secondaryTypographyProps={{
                     variant: "caption",
                     sx: { lineHeight: 1.3 },
@@ -360,7 +363,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                 {scale.levels.map((level) => (
                   <Chip
                     key={level.value}
-                    label={`${level.value}: ${isGerman ? level.labelDE : level.label}`}
+                    label={`${level.value}: ${t(level.labelKey)}`}
                     size="small"
                     sx={{ backgroundColor: level.color, color: "white" }}
                   />

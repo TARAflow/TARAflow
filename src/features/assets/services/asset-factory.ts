@@ -39,7 +39,11 @@ export function renumberAssets(assets: Asset[]): Asset[] {
 }
 
 /**
- * Create empty asset with defaults
+ * Create empty asset with defaults.
+ *
+ * Security goals are initialized with level: "none" (was: enabled: false).
+ * They will be populated by the CIANAAA deriver once the analyst completes
+ * the impact assessment and selects Cause Mechanisms.
  */
 export function createEmptyAsset(
   id: string,
@@ -60,7 +64,7 @@ export function createEmptyAsset(
     overallImpact: 0,
     securityGoals: SECURITY_GOALS.map((sg) => ({
       type: sg.type,
-      enabled: false,
+      level: "none", // was: enabled: false
       formalDescription: "",
     })),
     linkedDFDElements: [],

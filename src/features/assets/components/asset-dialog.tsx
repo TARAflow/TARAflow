@@ -42,11 +42,15 @@ import {
   Tab,
   Paper,
   SelectChangeEvent,
+  Divider,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import {
   ExpandMore as ExpandMoreIcon,
   Info as InfoIcon,
   Lightbulb as LightbulbIcon,
+  HelpOutline as HelpOutlineIcon,
 } from "@mui/icons-material";
 
 import { Asset, AssetConfiguration } from "../models/asset-types";
@@ -55,18 +59,57 @@ import {
   IMPACT_SCALES,
   SAFETY_IMPACT_SCALE,
   SAFETY_CRITERION_ID,
+  IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
 import {
   SecurityGoal,
   SecurityGoalType,
+  CIANAAALevel,
+  CauseMechanismType,
   SECURITY_GOALS,
+  CAUSE_MECHANISM_TO_GOAL,
+  SECURITY_GOAL_KEY_PREFIX,
+  CAUSE_MECHANISM_KEY_PREFIX,
+  CIANAAA_LEVEL_KEY_PREFIX,
 } from "../models/asset-security-goals-types";
 import { calculateOverallImpact } from "../services/asset-impact-calculator";
 import {
   safetyRatingToPhysicalLevel,
   physicalLevelToSafetyRating,
 } from "../services/asset-physical-impact-deriver";
+import {
+  computeSuggestedGoalTypes,
+  deriveCIANAAALevel,
+  deriveSecurityGoalSuggestions,
+  explainSuggestion,
+  computeMaxRatingLevel,
+  numericToCIANAAALevel,
+} from "../services/asset-cianaaa-deriver";
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
+
+
+// ==================== CAUSE MECHANISM CONSTANTS ====================
+
+const ALL_CAUSE_MECHANISMS: CauseMechanismType[] = [
+  "content_manipulation",
+  "unavailability",
+  "content_disclosure",
+  "identity_abuse",
+  "unauthorized_access",
+  "missing_evidence",
+  "missing_accountability",
+];
+
+// CAUSE_MECHANISM labels and descriptions → t(`${CAUSE_MECHANISM_KEY_PREFIX}.${mechanism}.label/description`)
+
+/** Color per CIANAAALevel. Label text: t(`${CIANAAA_LEVEL_KEY_PREFIX}.${level}`) */
+const LEVEL_CONFIG: Record<CIANAAALevel, { color: string }> = {
+  none:     { color: "#9ca3af" },
+  low:      { color: "#22c55e" },
+  medium:   { color: "#eab308" },
+  high:     { color: "#f97316" },
+  critical: { color: "#ef4444" },
+};
 
 // ==================== TYPES ====================
 
@@ -104,7 +147,7 @@ function normalizeSecurityGoals(goals: SecurityGoal[]): SecurityGoal[] {
     if (existing) return existing;
     return {
       type: def.type,
-      enabled: false,
+      level: "none" as CIANAAALevel,
       formalDescription: "",
       source: undefined,
       rationale: undefined,
@@ -131,22 +174,58 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
   const [tabValue, setTabValue] = useState(0);
 
-  const [editedAsset, setEditedAsset] = useState<Asset>(() => ({
-    ...asset,
-    securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
-  }));
+  const [editedAsset, setEditedAsset] = useState<Asset>(() => {
+    const base = {
+      ...asset,
+      securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
+    };
+    // Apply graph suggestions immediately so pre-suggested goals open as checked
+    return {
+      ...base,
+      securityGoals: deriveSecurityGoalSuggestions(
+        base,
+        base.securityGoals,
+        configuration.impactScale,
+      ),
+    };
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Re-sync when asset prop changes
   useEffect(() => {
-    setEditedAsset({
+    const base = {
       ...asset,
       securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
+    };
+    setEditedAsset({
+      ...base,
+      securityGoals: deriveSecurityGoalSuggestions(
+        base,
+        base.securityGoals,
+        configuration.impactScale,
+      ),
     });
     setErrors({});
     setTabValue(0);
   }, [asset]);
+
+  // Live CIANAAA refresh: when impact ratings change, re-derive levels for suggested goals.
+  // Preserves source: "manual" entries.
+  useEffect(() => {
+    setEditedAsset((prev) => {
+      const refreshed = deriveSecurityGoalSuggestions(
+        prev,
+        prev.securityGoals,
+        configuration.impactScale,
+      );
+      const hasChanges = refreshed.some(
+        (sg, i) => sg.level !== prev.securityGoals[i]?.level,
+      );
+      return hasChanges ? { ...prev, securityGoals: refreshed } : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedAsset.impactRatings, configuration.impactScale]);
 
   // ==================== VALIDATION ====================
 
@@ -157,8 +236,10 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       newErrors.name = t("validation.required", { defaultValue: "Required" });
     }
 
-    const hasSecurityGoal = editedAsset.securityGoals.some((sg) => sg.enabled);
-    if (!hasSecurityGoal) {
+    const hasActiveGoal = editedAsset.securityGoals.some(
+      (sg) => sg.level !== "none",
+    );
+    if (!hasActiveGoal) {
       newErrors.securityGoals = t("validation.atLeastOneSecurityGoal", {
         defaultValue: "At least one security goal required",
       });
@@ -176,7 +257,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };;
+  };
 
   // ==================== HANDLERS ====================
 
@@ -225,29 +306,85 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     }
   };
 
-  const handleSecurityGoalToggle = (type: SecurityGoalType) => {
+  const handleCauseMechanismToggle = (mechanism: CauseMechanismType) => {
+    const goalType = CAUSE_MECHANISM_TO_GOAL[mechanism];
     setEditedAsset((prev) => {
-      const exists = prev.securityGoals.some((sg) => sg.type === type);
-      const updated: SecurityGoal[] = exists
-        ? prev.securityGoals.map((sg) =>
-            sg.type === type
-              ? { ...sg, enabled: !sg.enabled, source: "manual" as const }
-              : sg,
-          )
-        : [
-            ...prev.securityGoals,
-            {
-              type,
-              enabled: true,
-              formalDescription: "",
-              source: "manual" as const,
-            },
-          ];
-      return { ...prev, securityGoals: updated };
+      const currentGoal = prev.securityGoals.find((sg) => sg.type === goalType);
+      const isCurrentlyActive = (currentGoal?.level ?? "none") !== "none";
+      // Compute suggestion from prev state (avoids stale closure)
+      const isGraphSuggested = computeSuggestedGoalTypes(prev).has(goalType);
+
+      const securityGoals = prev.securityGoals.map((sg) => {
+        if (sg.type !== goalType) return sg;
+        if (isCurrentlyActive) {
+          // Analyst explicitly deactivates — always manual override
+          return {
+            ...sg,
+            level: "none" as CIANAAALevel,
+            source: "manual" as const,
+          };
+        } else {
+          const derived = deriveCIANAAALevel(
+            goalType,
+            prev.impactRatings,
+            configuration.impactScale,
+          );
+          // MAX(ratings) fallback — live, avoids stale overallImpact
+          const fallback = computeMaxRatingLevel(
+            prev.impactRatings,
+            configuration.impactScale,
+          );
+          return {
+            ...sg,
+            level: derived !== "none" ? derived : fallback,
+            // Confirm graph suggestion → "suggested"; analyst adds own goal → "manual"
+            source: isGraphSuggested
+              ? ("suggested" as const)
+              : ("manual" as const),
+          };
+        }
+      });
+
+      return { ...prev, securityGoals };
     });
+
     if (errors.securityGoals) {
       setErrors((prev) => ({ ...prev, securityGoals: "" }));
     }
+  };
+
+  const handleSecurityGoalLevelChange = (
+    type: SecurityGoalType,
+    newLevel: CIANAAALevel,
+  ) => {
+    setEditedAsset((prev) => ({
+      ...prev,
+      securityGoals: prev.securityGoals.map((sg) => {
+        if (sg.type !== type) return sg;
+        // Re-derive the suggested level to detect if analyst is restoring it
+        const derived = deriveCIANAAALevel(
+          type,
+          prev.impactRatings,
+          configuration.impactScale,
+        );
+        const suggested =
+          derived !== "none"
+            ? derived
+            : computeMaxRatingLevel(
+                prev.impactRatings,
+                configuration.impactScale,
+              );
+        return {
+          ...sg,
+          level: newLevel,
+          // If analyst sets the same value as derived → treat as confirmed suggestion
+          source:
+            newLevel === suggested
+              ? ("suggested" as const)
+              : ("manual" as const),
+        };
+      }),
+    }));
   };
 
   const handleSecurityGoalDescription = (
@@ -265,7 +402,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   const handleUseTemplate = (type: SecurityGoalType) => {
     const goalDef = SECURITY_GOALS.find((g) => g.type === type);
     if (goalDef) {
-      const template = isGerman ? goalDef.templateDE : goalDef.templateEN;
+      const template = t(`${SECURITY_GOAL_KEY_PREFIX}.${type}.template`);
       handleSecurityGoalDescription(type, template);
     }
   };
@@ -326,8 +463,17 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   }, [editedAsset.linkedDFDElements]);
 
   const hasSecurityGoalError = !!errors.securityGoals;
-  const enabledGoalCount = editedAsset.securityGoals.filter(
-    (sg) => sg.enabled,
+
+  // suggestedGoalTypes: read-only hint from graph (for "Suggested" chips)
+  const suggestedGoalTypes = useMemo(
+    () => computeSuggestedGoalTypes(editedAsset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editedAsset.linkedDFDElements, editedAsset.assetGroup],
+  );
+
+  // Active goals (level !== "none") — was: sg.enabled
+  const activeGoalCount = editedAsset.securityGoals.filter(
+    (sg) => sg.level !== "none",
   ).length;
 
   // Overall Impact chip on Tab 0 label
@@ -339,8 +485,11 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     const level = scale.levels.find(
       (l) => l.value === Math.round(currentOverallImpact),
     );
-    const label = level ? (isGerman ? level.labelDE : level.label) : "";
-    return isGerman ? `Gesamt: ${label}` : `Overall: ${label}`;
+    const label = level ? t(level.labelKey) : "";
+    return t("tabs.assets.dialog.overallImpactTooltip", {
+      label,
+      defaultValue: `Overall: ${label}`,
+    });
   }, [currentOverallImpact, scale, isGerman]);
 
   // Severity label map for physicalImpact display
@@ -404,7 +553,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <span>
                   {t("tabs.assets.dialog.tabGeneral", {
-                    defaultValue: "General & Rating",
+                    defaultValue: "Impact Assessment",
                   })}
                 </span>
                 {overallImpactBadge > 0 && (
@@ -431,12 +580,12 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <span>
                   {t("tabs.assets.dialog.tabSecurityGoals", {
-                    defaultValue: "Security Goals",
+                    defaultValue: "Derived Protection Requirements",
                   })}
                 </span>
-                {enabledGoalCount > 0 && (
+                {activeGoalCount > 0 && (
                   <Chip
-                    label={enabledGoalCount}
+                    label={activeGoalCount}
                     size="small"
                     color={hasSecurityGoalError ? "error" : "primary"}
                     sx={{
@@ -446,7 +595,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                     }}
                   />
                 )}
-                {hasSecurityGoalError && enabledGoalCount === 0 && (
+                {hasSecurityGoalError && activeGoalCount === 0 && (
                   <Chip
                     label="!"
                     size="small"
@@ -675,10 +824,14 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   const criterion = PREDEFINED_IMPACT_CRITERIA.find(
                     (c) => c.id === rating.criterionId,
                   );
-                  const name = isGerman ? criterion?.nameDE : criterion?.name;
-                  const description = isGerman
-                    ? criterion?.descriptionDE
-                    : criterion?.description;
+                  const name = criterion
+                    ? t(`${IMPACT_CRITERION_KEY_PREFIX}.${criterion.id}.name`)
+                    : "";
+                  const description = criterion
+                    ? t(
+                        `${IMPACT_CRITERION_KEY_PREFIX}.${criterion.id}.description`,
+                      )
+                    : "";
                   return (
                     <Grid item xs={12} sm={6} md={4} key={rating.criterionId}>
                       <Paper variant="outlined" sx={{ p: 1.5 }}>
@@ -778,7 +931,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                               (l) => l.value === Number(val),
                             );
                             return level
-                              ? `${level.value} - ${isGerman ? level.labelDE : level.label}`
+                              ? `${level.value} - ${t(level.labelKey)}`
                               : String(val);
                           }}
                         >
@@ -861,8 +1014,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                                       }}
                                     />
                                     <span>
-                                      {level.value} -{" "}
-                                      {isGerman ? level.labelDE : level.label}
+                                      {level.value} - {t(level.labelKey)}
                                     </span>
                                   </Stack>
                                 </MenuItem>
@@ -900,9 +1052,12 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                 </Stack>
                 <Typography variant="body2" sx={{ opacity: 0.85 }}>
                   {currentOverallImpact > 0
-                    ? (scale.levels.find(
-                        (l) => l.value === Math.round(currentOverallImpact),
-                      )?.[isGerman ? "labelDE" : "label"] ?? "")
+                    ? (() => {
+                        const l = scale.levels.find(
+                          (l) => l.value === Math.round(currentOverallImpact),
+                        );
+                        return l ? t(l.labelKey) : "";
+                      })()
                     : t("tabs.assets.dialog.notRated", {
                         defaultValue: "Not rated",
                       })}
@@ -1117,141 +1272,538 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               <Alert severity="error">{errors.securityGoals}</Alert>
             )}
 
-            {SECURITY_GOALS.map((goalDef) => {
-              const goal = editedAsset.securityGoals.find(
-                (sg) => sg.type === goalDef.type,
-              );
-              const isEnabled = goal?.enabled ?? false;
-              const isSuggested = goal?.source === "suggested";
-
-              return (
-                <Accordion
-                  key={goalDef.type}
-                  defaultExpanded={isEnabled}
-                  sx={{
-                    mb: 1,
-                    ...(isEnabled && {
-                      borderLeft: 3,
-                      borderColor: isSuggested
-                        ? "secondary.main"
-                        : "primary.main",
-                    }),
-                  }}
-                >
-                  <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    sx={{
-                      "& .MuiAccordionSummary-content": {
-                        alignItems: "center",
-                      },
-                    }}
-                  >
-                    <Checkbox
-                      checked={isEnabled}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSecurityGoalToggle(goalDef.type);
-                      }}
-                      sx={{ mr: 1 }}
-                    />
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="body2" fontWeight="medium">
-                          {goalDef.type} –{" "}
-                          {isGerman ? goalDef.nameDE : goalDef.name}
+            {/* ── Cause Mechanism Selection ──────────────────────────────── */}
+            <Box>
+              {/* Heading + graph-info icon */}
+              <Stack
+                direction="row"
+                spacing={0.75}
+                alignItems="center"
+                sx={{ mb: 0.5 }}
+              >
+                <Typography variant="subtitle2">
+                  {t("tabs.assets.causeMechanism.heading", {
+                    defaultValue: "How could the damage occur?",
+                  })}
+                </Typography>
+                <Tooltip
+                  arrow
+                  placement="right"
+                  title={
+                    <Box sx={{ p: 0.5, maxWidth: 280 }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        display="block"
+                        sx={{ mb: 0.75 }}
+                      >
+                        {t("tabs.assets.causeMechanism.graphInfo.title", {
+                          defaultValue: "Graph derivation",
+                        })}
+                      </Typography>
+                      {[
+                        t("tabs.assets.causeMechanism.graphInfo.req1", {
+                          defaultValue:
+                            "Asset is linked to at least one DFD element",
+                        }),
+                        t("tabs.assets.causeMechanism.graphInfo.req2", {
+                          defaultValue:
+                            "Element has an asset relation with a known relation type (stores, reads, controls, …)",
+                        }),
+                        t("tabs.assets.causeMechanism.graphInfo.req3", {
+                          defaultValue:
+                            "Asset category is correctly set (Data, System, …)",
+                        }),
+                      ].map((req, i) => (
+                        <Typography
+                          key={i}
+                          variant="caption"
+                          display="block"
+                          sx={{ mb: 0.25 }}
+                        >
+                          {"• "}
+                          {req}
                         </Typography>
-                        {isEnabled && goal?.source && (
-                          <Chip
-                            label={
-                              isSuggested
-                                ? t("tabs.assets.tooltips.cianaaa.suggested", {
-                                    defaultValue: "Graph suggestion",
-                                  })
-                                : t("tabs.assets.tooltips.cianaaa.manual", {
-                                    defaultValue: "Manually set",
-                                  })
-                            }
-                            size="small"
-                            variant={isSuggested ? "outlined" : "filled"}
-                            color={isSuggested ? "secondary" : "primary"}
-                            sx={{ fontSize: "0.6rem", height: 18 }}
-                          />
-                        )}
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary">
-                        {isGerman ? goalDef.descriptionDE : goalDef.description}
+                      ))}
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ mt: 0.75, opacity: 0.75 }}
+                      >
+                        {t("tabs.assets.causeMechanism.graphInfo.fallback", {
+                          defaultValue:
+                            "Without links: cause mechanisms can be selected manually.",
+                        })}
                       </Typography>
                     </Box>
-                  </AccordionSummary>
+                  }
+                >
+                  <HelpOutlineIcon
+                    sx={{
+                      fontSize: 15,
+                      color: "text.secondary",
+                      cursor: "help",
+                    }}
+                  />
+                </Tooltip>
+              </Stack>
 
-                  <AccordionDetails>
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "start" }}>
-                      <TextField
-                        label={t("tabs.assets.dialog.formalDescription", {
-                          defaultValue: "Formal Security Requirement",
-                        })}
-                        value={goal?.formalDescription ?? ""}
-                        onChange={(e) =>
-                          handleSecurityGoalDescription(
-                            goalDef.type,
-                            e.target.value,
-                          )
-                        }
-                        fullWidth
-                        multiline
-                        rows={2}
-                        size="small"
-                        placeholder={
-                          isGerman ? goalDef.templateDE : goalDef.templateEN
-                        }
-                      />
-                      <Tooltip
-                        title={t("tabs.assets.dialog.useTemplate", {
-                          defaultValue: "Use template",
-                        })}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 1.5 }}
+              >
+                {t("tabs.assets.causeMechanism.subheading", {
+                  defaultValue:
+                    "Select all applicable damage causes. The system derives protection requirements automatically.",
+                })}
+              </Typography>
+
+              <Paper variant="outlined" sx={{ px: 2, py: 1 }}>
+                <Grid container>
+                  {/* Left column: items 0–3, Right column: items 4–6 */}
+                  {[
+                    ALL_CAUSE_MECHANISMS.slice(0, 4),
+                    ALL_CAUSE_MECHANISMS.slice(4),
+                  ].map((column, colIdx) => (
+                    <Grid key={colIdx} item xs={12} sm={6}>
+                      {column.map((mechanism) => {
+                        const goalType = CAUSE_MECHANISM_TO_GOAL[mechanism];
+                        const goal = editedAsset.securityGoals.find(
+                          (sg) => sg.type === goalType,
+                        );
+                        const isActive = (goal?.level ?? "none") !== "none";
+                        const isSuggestedByGraph =
+                          suggestedGoalTypes.has(goalType);
+                        const { levelDriver } = explainSuggestion(
+                          editedAsset,
+                          goalType,
+                          configuration.impactScale,
+                        );
+                        const goalName = t(
+                          `${SECURITY_GOAL_KEY_PREFIX}.${goalType}.name`,
+                        );
+
+                        return (
+                          <FormControlLabel
+                            key={mechanism}
+                            control={
+                              <Checkbox
+                                checked={isActive}
+                                onChange={() =>
+                                  handleCauseMechanismToggle(mechanism)
+                                }
+                                size="small"
+                                color={
+                                  goal?.source === "manual"
+                                    ? "primary"
+                                    : "secondary"
+                                }
+                              />
+                            }
+                            label={
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                                sx={{ py: 0.5, minWidth: 0 }}
+                              >
+                                <Tooltip
+                                  placement="right"
+                                  title={
+                                    <span>
+                                      {t(
+                                        `${CAUSE_MECHANISM_KEY_PREFIX}.${mechanism}.description`,
+                                      )}
+                                      {" → "}
+                                      {goalType} ({goalName})
+                                    </span>
+                                  }
+                                >
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ flexShrink: 0 }}
+                                  >
+                                    {t(
+                                      `${CAUSE_MECHANISM_KEY_PREFIX}.${mechanism}.label`,
+                                    )}
+                                  </Typography>
+                                </Tooltip>
+                                {isActive && goal && (
+                                  <Chip
+                                    label={
+                                      `${goalType} — ` +
+                                      t(
+                                        `${CIANAAA_LEVEL_KEY_PREFIX}.${goal.level}`,
+                                      )
+                                    }
+                                    size="small"
+                                    sx={{
+                                      height: 18,
+                                      fontSize: "0.65rem",
+                                      backgroundColor:
+                                        LEVEL_CONFIG[goal.level].color,
+                                      color: "white",
+                                      "& .MuiChip-label": { px: 0.75 },
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                )}
+                                {!isActive &&
+                                  isSuggestedByGraph &&
+                                  goal?.source !== "manual" && (
+                                    <Chip
+                                      label={t(
+                                        "tabs.assets.tooltips.cianaaa.suggested",
+                                        {
+                                          defaultValue: "Graph suggestion",
+                                        },
+                                      )}
+                                      size="small"
+                                      variant="outlined"
+                                      color="secondary"
+                                      sx={{
+                                        height: 16,
+                                        fontSize: "0.6rem",
+                                        "& .MuiChip-label": { px: 0.5 },
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                  )}
+                                {!isActive &&
+                                  isSuggestedByGraph &&
+                                  goal?.source === "manual" && (
+                                    <Chip
+                                      label={t(
+                                        "tabs.assets.tooltips.cianaaa.excluded",
+                                        {
+                                          defaultValue: "Manually excluded",
+                                        },
+                                      )}
+                                      size="small"
+                                      variant="outlined"
+                                      color="warning"
+                                      sx={{
+                                        height: 16,
+                                        fontSize: "0.6rem",
+                                        "& .MuiChip-label": { px: 0.5 },
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                  )}
+                                {levelDriver && isActive && (
+                                  <Tooltip
+                                    title={levelDriver}
+                                    placement="right"
+                                    arrow
+                                  >
+                                    <InfoIcon
+                                      sx={{
+                                        fontSize: 14,
+                                        color: "text.secondary",
+                                        flexShrink: 0,
+                                        cursor: "help",
+                                      }}
+                                    />
+                                  </Tooltip>
+                                )}
+                              </Stack>
+                            }
+                            sx={{
+                              display: "flex",
+                              ml: 0,
+                              width: "100%",
+                              mr: 0,
+                            }}
+                          />
+                        );
+                      })}
+                    </Grid>
+                  ))}
+                </Grid>
+              </Paper>
+            </Box>
+
+            {/* ── Security Goal Requirements ─────────────────────────────── */}
+            {editedAsset.securityGoals.some((sg) => sg.level !== "none") && (
+              <Box>
+                <Divider sx={{ mb: 2 }} />
+                <Typography variant="subtitle2" gutterBottom>
+                  {isGerman
+                    ? "Schutzanforderungen"
+                    : "Security Goal Requirements"}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 1.5 }}
+                >
+                  {isGerman
+                    ? "Formuliere für jedes aktive Schutzziel eine verbindliche Anforderung (Audit-relevant)."
+                    : "Define a formal requirement for each active security goal (audit-relevant)."}
+                </Typography>
+
+                {SECURITY_GOALS.filter(
+                  (def) =>
+                    (editedAsset.securityGoals.find(
+                      (sg) => sg.type === def.type,
+                    )?.level ?? "none") !== "none",
+                ).map((goalDef) => {
+                  const goal = editedAsset.securityGoals.find(
+                    (sg) => sg.type === goalDef.type,
+                  );
+                  const level = goal?.level ?? "none";
+                  const isSuggested = goal?.source === "suggested";
+                  const levelCfg = LEVEL_CONFIG[level];
+
+                  return (
+                    <Accordion
+                      key={goalDef.type}
+                      defaultExpanded
+                      sx={{ mb: 1, borderLeft: 3, borderColor: levelCfg.color }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          "& .MuiAccordionSummary-content": {
+                            alignItems: "center",
+                          },
+                        }}
                       >
-                        <IconButton
-                          onClick={() => handleUseTemplate(goalDef.type)}
-                          size="small"
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" fontWeight="medium">
+                              {goalDef.type} –{" "}
+                              {t(
+                                `${SECURITY_GOAL_KEY_PREFIX}.${goalDef.type}.name`,
+                              )}
+                            </Typography>
+                            <Chip
+                              label={t(`${CIANAAA_LEVEL_KEY_PREFIX}.${level}`)}
+                              size="small"
+                              sx={{
+                                height: 18,
+                                fontSize: "0.65rem",
+                                backgroundColor: levelCfg.color,
+                                color: "white",
+                                "& .MuiChip-label": { px: 0.75 },
+                              }}
+                            />
+                            {goal?.source && (
+                              <Chip
+                                label={
+                                  isSuggested
+                                    ? t(
+                                        "tabs.assets.tooltips.cianaaa.suggested",
+                                        { defaultValue: "Graph suggestion" },
+                                      )
+                                    : t("tabs.assets.tooltips.cianaaa.manual", {
+                                        defaultValue: "Manually set",
+                                      })
+                                }
+                                size="small"
+                                variant={isSuggested ? "outlined" : "filled"}
+                                color={isSuggested ? "secondary" : "primary"}
+                                sx={{ fontSize: "0.6rem", height: 18 }}
+                              />
+                            )}
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            {t(
+                              `${SECURITY_GOAL_KEY_PREFIX}.${goalDef.type}.description`,
+                            )}
+                          </Typography>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        {/* ── Protection Strength selector ── */}
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          sx={{ mb: 1.5 }}
                         >
-                          <LightbulbIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ flexShrink: 0 }}
+                          >
+                            {t("tabs.assets.dialog.protectionStrength", {
+                              defaultValue: "Protection Strength:",
+                            })}
+                          </Typography>
+                          <ToggleButtonGroup
+                            value={level}
+                            exclusive
+                            size="small"
+                            onChange={(_, newLevel: CIANAAALevel | null) => {
+                              if (newLevel !== null) {
+                                handleSecurityGoalLevelChange(
+                                  goalDef.type,
+                                  newLevel,
+                                );
+                              }
+                            }}
+                          >
+                            {(
+                              [
+                                "low",
+                                "medium",
+                                "high",
+                                "critical",
+                              ] as CIANAAALevel[]
+                            ).map((lvl) => (
+                              <ToggleButton
+                                key={lvl}
+                                value={lvl}
+                                sx={{
+                                  fontSize: "0.65rem",
+                                  py: 0.25,
+                                  px: 1,
+                                  "&.Mui-selected": {
+                                    backgroundColor: LEVEL_CONFIG[lvl].color,
+                                    color: "white",
+                                    fontWeight: "bold",
+                                    "&:hover": {
+                                      backgroundColor: LEVEL_CONFIG[lvl].color,
+                                    },
+                                  },
+                                }}
+                              >
+                                {t(`${CIANAAA_LEVEL_KEY_PREFIX}.${lvl}`)}
+                              </ToggleButton>
+                            ))}
+                          </ToggleButtonGroup>
+                        </Stack>
 
-                    {goal?.source === "manual" && (
-                      <TextField
-                        label={
-                          isGerman
-                            ? "Begründung (Abweichung)"
-                            : "Rationale (deviation)"
-                        }
-                        value={goal?.rationale ?? ""}
-                        onChange={(e) =>
-                          setEditedAsset((prev) => ({
-                            ...prev,
-                            securityGoals: prev.securityGoals.map((sg) =>
-                              sg.type === goalDef.type
-                                ? { ...sg, rationale: e.target.value }
-                                : sg,
-                            ),
-                          }))
-                        }
-                        fullWidth
-                        size="small"
-                        sx={{ mt: 1 }}
-                        placeholder={
-                          isGerman
-                            ? "Warum wurde dieses Schutzziel manuell gesetzt?"
-                            : "Why was this security goal set manually?"
-                        }
-                      />
-                    )}
-                  </AccordionDetails>
-                </Accordion>
-              );
-            })}
+                        {/* ── Derivation trace — shows impact driver + cause mechanism ── */}
+                        {(() => {
+                          const { levelDriver } = explainSuggestion(
+                            editedAsset,
+                            goalDef.type,
+                            configuration.impactScale,
+                          );
+                          // Look up which Cause Mechanism maps to this goal type
+                          const mechanism = (
+                            Object.entries(CAUSE_MECHANISM_TO_GOAL) as [
+                              CauseMechanismType,
+                              SecurityGoalType,
+                            ][]
+                          ).find(([, g]) => g === goalDef.type)?.[0];
+                          const mechanismLabel = mechanism
+                            ? t(
+                                `${CAUSE_MECHANISM_KEY_PREFIX}.${mechanism}.label`,
+                              )
+                            : null;
+                          const parts = [levelDriver, mechanismLabel]
+                            .filter(Boolean)
+                            .join(" · ");
+                          return parts ? (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: "block",
+                                mb: 1.5,
+                                fontStyle: "italic",
+                              }}
+                            >
+                              {"↳ "}
+                              {parts}
+                            </Typography>
+                          ) : null;
+                        })()}
+
+                        {/* ── Formal description ── */}
+                        <Box
+                          sx={{ display: "flex", gap: 1, alignItems: "start" }}
+                        >
+                          <TextField
+                            label={t("tabs.assets.dialog.formalDescription", {
+                              defaultValue: "Formal Security Requirement",
+                            })}
+                            value={goal?.formalDescription ?? ""}
+                            onChange={(e) =>
+                              handleSecurityGoalDescription(
+                                goalDef.type,
+                                e.target.value,
+                              )
+                            }
+                            fullWidth
+                            multiline
+                            rows={2}
+                            size="small"
+                            placeholder={t(
+                              `${SECURITY_GOAL_KEY_PREFIX}.${goalDef.type}.template`,
+                            )}
+                          />
+                          <Tooltip
+                            title={t("tabs.assets.dialog.useTemplate", {
+                              defaultValue: "Use template",
+                            })}
+                          >
+                            <IconButton
+                              onClick={() => handleUseTemplate(goalDef.type)}
+                              size="small"
+                            >
+                              <LightbulbIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+
+                        {/* ── Override rationale — shown for manual adjustments ── */}
+                        {goal?.source === "manual" && (
+                          <TextField
+                            label={t("tabs.assets.dialog.levelRationale", {
+                              defaultValue: "Override Rationale",
+                            })}
+                            value={goal?.rationale ?? ""}
+                            onChange={(e) =>
+                              setEditedAsset((prev) => ({
+                                ...prev,
+                                securityGoals: prev.securityGoals.map((sg) =>
+                                  sg.type === goalDef.type
+                                    ? { ...sg, rationale: e.target.value }
+                                    : sg,
+                                ),
+                              }))
+                            }
+                            fullWidth
+                            size="small"
+                            sx={{ mt: 1 }}
+                            placeholder={t(
+                              "tabs.assets.dialog.levelRationalePlaceholder",
+                              {
+                                defaultValue:
+                                  "Why does this protection level differ from the system suggestion?",
+                              },
+                            )}
+                          />
+                        )}
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })}
+              </Box>
+            )}
+
+            {/* Empty state */}
+            {!editedAsset.securityGoals.some((sg) => sg.level !== "none") &&
+              !errors.securityGoals && (
+                <Box
+                  sx={{ py: 3, textAlign: "center", color: "text.secondary" }}
+                >
+                  <Typography variant="body2">
+                    {isGerman
+                      ? "Wähle mindestens eine Schadensursache oben aus."
+                      : "Select at least one damage cause above."}
+                  </Typography>
+                </Box>
+              )}
           </TabPanel>
         </Box>
       </DialogContent>
@@ -1266,6 +1818,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+};;
 
 export default AssetDialog;

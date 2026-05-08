@@ -18,12 +18,15 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
       errors.push(`tabs.assets.validation.noName:${asset.id}`);
     }
 
-    if (!asset.securityGoals.some((sg) => sg.enabled)) {
+    // Check if at least one CIANAAA dimension is active (level !== "none")
+    // Replaces former: !asset.securityGoals.some((sg) => sg.enabled)
+    if (!asset.securityGoals.some((sg) => sg.level !== "none")) {
       errors.push(`tabs.assets.validation.noSecurityGoal:${asset.id}`);
     }
 
+    // Warn about active goals without a formal description
     for (const sg of asset.securityGoals.filter(
-      (sg) => sg.enabled && !sg.formalDescription.trim(),
+      (sg) => sg.level !== "none" && !sg.formalDescription.trim(),
     )) {
       warnings.push(
         `tabs.assets.validation.noSecurityGoalDescription:${asset.id}:${sg.type}`,

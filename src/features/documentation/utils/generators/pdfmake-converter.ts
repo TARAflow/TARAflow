@@ -445,10 +445,11 @@ export class PdfMakeConverter {
 
     for (const asset of this.getAssets()) {
       // Filter enabled security goals
-      const enabledGoals = asset.securityGoals
-        .filter(g => g.enabled)
-        .map(g => g.type)
-        .join(", ") || "-";
+      const enabledGoals =
+        asset.securityGoals
+          .filter((g) => g.level !== "none")
+          .map((g) => g.type)
+          .join(", ") || "-";
       
       // Get impact label from cache or fallback to value
       const impactLabel = this.project.computed.impactLabels.get(asset.id) ?? 

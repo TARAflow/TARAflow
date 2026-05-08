@@ -15,6 +15,181 @@
       "noDFDImageHint": "Save the DFD to generate a preview image",
       "exportAssets": "Export Assets",
       "importAssets": "Import Assets",
+      "securityGoals": {
+        "C": {
+          "name": "Confidentiality",
+          "description": "Protection against unauthorized disclosure",
+          "template": "{{assetName}} must only be accessible by authorized personnel and systems."
+        },
+        "I": {
+          "name": "Integrity",
+          "description": "Protection against unauthorized modification",
+          "template": "{{assetName}} must be protected against unauthorized modification. Any change must be detectable."
+        },
+        "A": {
+          "name": "Availability",
+          "description": "Ensuring timely and reliable access",
+          "template": "{{assetName}} must be available to authorized users within defined service levels."
+        },
+        "N": {
+          "name": "Non-repudiation",
+          "description": "Ensuring actions cannot be denied",
+          "template": "All operations on {{assetName}} must be traceable and undeniable by the acting party."
+        },
+        "AuthZ": {
+          "name": "Authorization",
+          "description": "Controlling access rights and permissions",
+          "template": "Access to {{assetName}} must be restricted based on explicitly defined permissions."
+        },
+        "AuthN": {
+          "name": "Authentication",
+          "description": "Verifying identity of users or systems",
+          "template": "The identity of any principal accessing {{assetName}} must be verified before access is granted."
+        },
+        "Acc": {
+          "name": "Accountability",
+          "description": "Tracking and logging of actions",
+          "template": "All actions on {{assetName}} must be logged with sufficient detail for audit and forensic purposes."
+        }
+      },
+      "causeMechanism": {
+        "heading": "How could the damage occur?",
+        "subheading": "Select all applicable damage causes. The system derives protection requirements automatically.",
+        "graphInfo": {
+          "title": "Graph derivation — prerequisites",
+          "req1": "Asset is linked to at least one DFD element",
+          "req2": "Element has an asset relation with a known relation type (stores, reads, controls, uses, …)",
+          "req3": "Asset category is correctly set (Data, System, Infrastructure, …)",
+          "fallback": "Without DFD links: cause mechanisms can be selected manually."
+        },
+        "content_manipulation": {
+          "label": "Content Manipulation",
+          "description": "Unauthorized modification of data, parameters, or configuration"
+        },
+        "unavailability": {
+          "label": "Unavailability / Outage",
+          "description": "Failure or blocking of systems, functions, or data"
+        },
+        "content_disclosure": {
+          "label": "Content Disclosure",
+          "description": "Unauthorized access to confidential information"
+        },
+        "identity_abuse": {
+          "label": "Identity Abuse",
+          "description": "Impersonation of another identity (spoofing)"
+        },
+        "unauthorized_access": {
+          "label": "Unauthorized Access",
+          "description": "Access without valid authorization (privilege escalation)"
+        },
+        "missing_evidence": {
+          "label": "Missing Evidence",
+          "description": "Actions cannot be proven or denied (non-repudiation failure)"
+        },
+        "missing_accountability": {
+          "label": "Missing Accountability",
+          "description": "Actions cannot be attributed to an actor (missing audit trail)"
+        }
+      },
+      "cianaaa": {
+        "level": {
+          "none": "None",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "critical": "Critical"
+        }
+      },
+      "impactScale": {
+        "3-level": {
+          "1": {
+            "label": "Low"
+          },
+          "2": {
+            "label": "Medium"
+          },
+          "3": {
+            "label": "High"
+          }
+        },
+        "4-level": {
+          "1": {
+            "label": "Low"
+          },
+          "2": {
+            "label": "Medium"
+          },
+          "3": {
+            "label": "High"
+          },
+          "4": {
+            "label": "Critical"
+          }
+        },
+        "5-level": {
+          "1": {
+            "label": "Low"
+          },
+          "2": {
+            "label": "Medium"
+          },
+          "3": {
+            "label": "High"
+          },
+          "4": {
+            "label": "Very High"
+          },
+          "5": {
+            "label": "Critical"
+          }
+        }
+      },
+      "impactCriteria": {
+        "financial_damage": {
+          "name": "Financial Damage",
+          "description": "Costs from outages, SLA violations, RMA, fines"
+        },
+        "regulatory_compliance": {
+          "name": "Regulatory / Compliance",
+          "description": "Violations of GDPR, ISO 27001, FDA, etc."
+        },
+        "reputation": {
+          "name": "Reputation / Brand",
+          "description": "Loss of customer trust, negative media"
+        },
+        "privacy": {
+          "name": "Privacy / Data Protection",
+          "description": "Sensitivity/amount of affected personal data"
+        },
+        "operational": {
+          "name": "Operational Impact",
+          "description": "Disruption of critical processes"
+        },
+        "affected_users": {
+          "name": "Affected Users / Systems",
+          "description": "How many users, units, machines or systems are affected"
+        },
+        "recoverability": {
+          "name": "Recoverability",
+          "description": "Effort and time to restore asset after loss or manipulation"
+        },
+        "safety": {
+          "name": "Safety Impact",
+          "description": "Risk to persons through physical damage"
+        },
+        "physical_damage": {
+          "name": "Physical Asset Damage",
+          "description": "Destruction or damage to physical assets"
+        },
+        "environmental": {
+          "name": "Environmental Impact",
+          "description": "Environmental damage through manipulated processes"
+        },
+        "supply_chain": {
+          "name": "Supply Chain / Logistics",
+          "description": "Disruption of physical supply and transport chains"
+        }
+      },
       "validation": {
         "noAssets": "No assets defined",
         "noName": "Asset {{id}}: name is missing",
@@ -74,7 +249,8 @@
           "title": "Security Goals (CIANAAA)",
           "description": "Derived from impact factors via CIANAAA rules. Manual override possible.",
           "manual": "Manually set",
-          "suggested": "Graph suggestion"
+          "suggested": "Graph suggestion",
+          "excluded": "Manuell deaktiviert"
         },
         "derived": "Derived (Graph)",
         "manual": "Manual (Override)",
@@ -95,18 +271,22 @@
         "supply_chain": "Supply Chain"
       },
       "dialog": {
+        "protectionStrength": "Protection Strength:",
+        "levelRationale": "Override Rationale",
+        "levelRationalePlaceholder": "Why does this protection level differ from the system suggestion?",
         "createTitle": "Create Asset",
         "editTitle": "Edit Asset {{id}}",
         "basicInfo": "Basic Information",
         "impactRatings": "Impact Ratings",
         "overall": "Overall",
+        "overallImpactTooltip": "Overall: {{label}}",
         "securityGoals": "Security Goals (CIANAAA)",
         "formalDescription": "Formal Security Requirement",
         "useTemplate": "Use template",
         "linkedElements": "Linked DFD Elements",
         "tooManyCriteria": "You have selected more than 6 criteria...",
-        "tabGeneral": "General & Rating",
-        "tabSecurityGoals": "Security Goals",
+        "tabGeneral": "Impact Assessment",
+        "tabSecurityGoals": "Derived Protection Requirements",
         "notRated": "Not rated",
         "notSet": "Not set",
         "hvaTitle": "High-Value Asset Assessment",

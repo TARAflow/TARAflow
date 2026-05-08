@@ -11,6 +11,7 @@ import type {
   ImpactRoundingMethod,
 } from "./asset-impact-types";
 import type {
+  CIANAAALevel,
   SecurityGoal,
   SecurityGoalType,
 } from "./asset-security-goals-types";
@@ -392,7 +393,7 @@ export function createEmptyAsset(
     overallImpact: 0,
     securityGoals: SECURITY_GOALS.map((sg) => ({
       type: sg.type,
-      enabled: false,
+      level: "none" as CIANAAALevel,
       formalDescription: "",
     })),
     linkedDFDElements: [],

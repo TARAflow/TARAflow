@@ -52,12 +52,16 @@ import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
   SAFETY_CRITERION_ID,
+  IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
 import type {
   SecurityGoal,
   SecurityGoalType,
 } from "../models/asset-security-goals-types";
-import { SECURITY_GOALS } from "../models/asset-security-goals-types";
+import {
+  SECURITY_GOALS,
+  SECURITY_GOAL_KEY_PREFIX,
+} from "../models/asset-security-goals-types";
 import { getImpactLevel } from "../services/asset-impact-calculator";
 
 // Import color config from shared — no dependency on dfd-types or relation-types
@@ -283,13 +287,16 @@ export const AssetTable = React.memo<AssetTableProps>(
           const criterion = PREDEFINED_IMPACT_CRITERIA.find(
             (c) => c.id === criterionId,
           );
-          // criterion name/description come from constant definitions — not i18n strings
-          const headerName = isGerman
-            ? (criterion?.nameDE ?? criterionId)
-            : (criterion?.name ?? criterionId);
-          const description = isGerman
-            ? (criterion?.descriptionDE ?? "")
-            : (criterion?.description ?? "");
+          const headerName = criterion
+            ? t(`${IMPACT_CRITERION_KEY_PREFIX}.${criterionId}.name`, {
+                defaultValue: criterionId,
+              })
+            : criterionId;
+          const description = criterion
+            ? t(`${IMPACT_CRITERION_KEY_PREFIX}.${criterionId}.description`, {
+                defaultValue: "",
+              })
+            : "";
 
           return {
             field: `impact_${criterionId}`,
@@ -324,7 +331,7 @@ export const AssetTable = React.memo<AssetTableProps>(
               if (!value || value === 0)
                 return <Typography color="text.disabled">–</Typography>;
 
-              const levelLabel = getImpactLevelLabel(value, scale, isGerman);
+              const levelLabel = getImpactLevelLabel(value, scale, t);
               const bg = getImpactColorByLevel(value, scale.levels.length);
 
               return (
@@ -555,11 +562,7 @@ export const AssetTable = React.memo<AssetTableProps>(
           const scaleLevel = scale.levels.find(
             (l) => l.value === Math.round(level),
           );
-          const label = scaleLevel
-            ? isGerman
-              ? scaleLevel.labelDE
-              : scaleLevel.label
-            : "-";
+          const label = scaleLevel ? t(scaleLevel.labelKey) : "-";
 
           const factorLines =
             params.row.impactRatings
@@ -968,7 +971,7 @@ export const AssetTable = React.memo<AssetTableProps>(
             return <Typography color="text.disabled">–</Typography>;
 
           const enabledGoals: SecurityGoal[] = row.securityGoals.filter(
-            (sg: SecurityGoal) => sg.enabled,
+            (sg: SecurityGoal) => sg.level !== "none",
           );
           if (enabledGoals.length === 0)
             return <Typography color="text.disabled">–</Typography>;
@@ -984,7 +987,7 @@ export const AssetTable = React.memo<AssetTableProps>(
               {enabledGoals.map((goal: SecurityGoal) => {
                 const isManual = goal.source === "manual";
                 const isSuggested = goal.source === "suggested";
-                const goalName = getSecurityGoalName(goal.type, isGerman);
+                const goalName = getSecurityGoalName(goal.type, t);
 
                 return (
                   <Tooltip
@@ -1380,12 +1383,8 @@ export default AssetTable;
 
 // ==================== PURE HELPERS ====================
 
-function getSecurityGoalName(
-  type: SecurityGoalType,
-  isGerman: boolean,
-): string {
-  const goal = SECURITY_GOALS.find((g) => g.type === type);
-  return isGerman ? (goal?.nameDE ?? type) : (goal?.name ?? type);
+function getSecurityGoalName(type: SecurityGoalType, t: TFunction): string {
+  return t(`${SECURITY_GOAL_KEY_PREFIX}.${type}.name`, { defaultValue: type });
 }
 
 function getImpactColorByLevel(value: number, maxLevels: number): string {
@@ -1401,22 +1400,14 @@ function getImpactColorByLevel(value: number, maxLevels: number): string {
 function getImpactLevelLabel(
   value: number | string,
   scale: (typeof IMPACT_SCALES)[keyof typeof IMPACT_SCALES],
-  isGerman: boolean,
+  t: TFunction,
 ): string {
-  // value in Zahl umwandeln, falls es ein String ist
   const numericValue = typeof value === "number" ? value : Number(value);
-
-  // Sonderfälle: "na" oder keine Zahl
   if (value === "na" || isNaN(numericValue)) return "N/A";
-
-  // Sonderfall 0
   if (numericValue === 0) return "-";
-
-  // Level anhand gerundetem Wert finden
   const level = scale.levels.find((l) => l.value === Math.round(numericValue));
   if (!level) return numericValue.toString();
-
-  return isGerman ? level.labelDE : level.label;
+  return t(level.labelKey);
 }
 
 function getCriterionLabel(criterionId: string, t: TFunction): string {

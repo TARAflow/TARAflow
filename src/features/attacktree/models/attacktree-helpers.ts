@@ -26,7 +26,7 @@ export function extractAssetReferences(project: Project): AssetReference[] {
       securityGoals: asset.securityGoals.map(function(sg) {
         return {
           type: sg.type,
-          enabled: sg.enabled,
+          enabled: sg.level !== "none",
         };
       }),
       overallImpact: asset.overallImpact,
