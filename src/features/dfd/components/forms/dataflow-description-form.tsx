@@ -130,7 +130,16 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
     }
     const protocolKey = value as NonNullable<DataFlowProperties["protocol"]>;
     const defaults = DATAFLOW_PROTOCOL_DEFAULTS[protocolKey] ?? {};
-    const cascaded = applyCascadeDefaults<DataFlowProperties>(props, defaults);
+    // Clear driven fields first so new protocol defaults always take effect
+    // (applyCascadeDefaults only sets undefined fields)
+    const cleared = {
+      ...props,
+      ...buildClearPatch<DataFlowProperties>(DATAFLOW_PROTOCOL_DRIVEN_FIELDS),
+    };
+    const cascaded = applyCascadeDefaults<DataFlowProperties>(
+      cleared,
+      defaults,
+    );
     onChange({
       properties: {
         ...props,
@@ -153,9 +162,69 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   );
 
   const encryptionInTransit = props.encryptionInTransit ?? "";
+
+  // Derive electrical signal context from selected protocol
+  const selectedMeta = props.protocol
+    ? PROTOCOL_META[props.protocol]
+    : undefined;
+  const isElectrical = selectedMeta?.group === "electrical";
+
+  // Physical locations that require physical access to the medium
+  const PHYSICAL_ACCESS_LOCATIONS = new Set([
+    "on_chip",
+    "on_board",
+    "in_enclosure",
+    "field_cable",
+  ]);
+  const requiresPhysicalAccess = props.location
+    ? PHYSICAL_ACCESS_LOCATIONS.has(props.location)
+    : isElectrical; // Fallback: electrical without location set → assume true
+
+  // Standard EL mapping per location — rationale only needed when deviating
+  const LOCATION_EL_STANDARD: Partial<Record<string, ExposureLevel[]>> = {
+    on_chip: ["EL0"],
+    on_board: ["EL0", "EL1"],
+    in_enclosure: ["EL1"],
+    field_cable: ["EL1", "EL2"],
+    local_network: ["EL2"],
+    enterprise_network: ["EL3"],
+    wireless_local: ["EL3"],
+    internet: ["EL4"],
+  };
+  const showLocationRationale =
+    !!props.location &&
+    (props.exposureLevelSource === "manual" ||
+      (!!props.exposureLevel &&
+        props.location !== "custom" &&
+        !(LOCATION_EL_STANDARD[props.location] ?? []).includes(
+          props.exposureLevel,
+        )));
+
+  // Unencrypted network/fieldbus flow crossing a trust boundary
   const showEncryptionWarning =
+    !isElectrical &&
     crossesTrustBoundary &&
     (encryptionInTransit === "" || encryptionInTransit === "none");
+
+  // Physical access risk when crossing a trust boundary
+  const showPhysicalAccessWarning =
+    requiresPhysicalAccess && crossesTrustBoundary;
+
+  // Safety function helpers
+  const safetyFunction = props.safetyFunction;
+  const isSafetyRelevant =
+    safetyFunction !== undefined && safetyFunction !== "none";
+  const safetyRationaleRequired = safetyFunction === "custom";
+  const safetyRationaleError =
+    safetyRationaleRequired && !props.safetyRationale?.trim();
+
+  const protocolLabel = isElectrical
+    ? t("tabs.dfd.element_description.dataflow.fields.protocol.label_signal", {
+        defaultValue: "Signal Type",
+      })
+    : t("tabs.dfd.element_description.dataflow.fields.protocol.label", {
+        defaultValue: "Protocol",
+      });
 
   return (
     <Stack spacing={2}>
@@ -191,19 +260,11 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         {/* Protocol */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.protocol.label",
-                { defaultValue: "Protocol" },
-              )}
-            </InputLabel>
+            <InputLabel>{protocolLabel}</InputLabel>
             <Select
               value={props.protocol ?? ""}
               onChange={(e) => handleProtocolChange(e.target.value)}
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.protocol.label",
-                { defaultValue: "Protocol" },
-              )}
+              label={protocolLabel}
             >
               {/* empty */}
               <MenuItem value="">
@@ -219,7 +280,12 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   disabled
                   sx={{ opacity: 0.6, fontSize: "0.75rem" }}
                 >
-                  — {t(`protocol_groups.${group}`, { defaultValue: group })} —
+                  —{" "}
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.protocol.groups.${group}`,
+                    { defaultValue: group },
+                  )}{" "}
+                  —
                 </MenuItem>,
 
                 protocols.map((p) => (
@@ -273,29 +339,134 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Data Types */}
+        {/* Message Type */}
         <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            size="small"
-            label={t(
-              "tabs.dfd.element_description.dataflow.fields.dataTypes.label",
-              { defaultValue: "Data Types" },
-            )}
-            value={props.dataTypes ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("dataTypes", e.target.value)
-            }
-            placeholder={t(
-              "tabs.dfd.element_description.dataflow.fields.dataTypes.placeholder",
-              { defaultValue: "e.g. PII, Credentials, Business Data, Secrets" },
-            )}
-            helperText={t(
-              "tabs.dfd.element_description.dataflow.fields.dataTypes.helper",
-              { defaultValue: "Separate multiple types with commas" },
-            )}
-          />
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.messageType.label",
+                { defaultValue: "Message Type" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.messageType ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "messageType",
+                  e.target.value || undefined,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.messageType.label",
+                { defaultValue: "Message Type" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                [
+                  "measurement",
+                  "command",
+                  "status",
+                  "alarm_event",
+                  "config",
+                  "credentials",
+                  "firmware",
+                  "log_audit",
+                  "pii",
+                  "telemetry",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.messageType.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
+
+        {/* Data Classification */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.dataClassification.label",
+                { defaultValue: "Data Classification" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.dataClassification ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "dataClassification",
+                  e.target.value || undefined,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.dataClassification.label",
+                { defaultValue: "Data Classification" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(["public", "internal", "confidential", "secret"] as const).map(
+                (opt) => (
+                  <Tooltip
+                    key={opt}
+                    title={t(
+                      `tabs.dfd.element_description.dataflow.fields.dataClassification.tooltips.${opt}`,
+                      { defaultValue: "" },
+                    )}
+                    placement="right"
+                    arrow
+                  >
+                    <MenuItem value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.dataClassification.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  </Tooltip>
+                ),
+              )}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Data Type Notes — only when messageType=custom */}
+        {props.messageType === "custom" && (
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.dataTypeNotes.label",
+                { defaultValue: "Data Type Notes" },
+              )}
+              value={props.dataTypeNotes ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("dataTypeNotes", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.dataflow.fields.dataTypeNotes.placeholder",
+                {
+                  defaultValue:
+                    "e.g. Proprietary telemetry frame, mixed sensor + status",
+                },
+              )}
+            />
+          </Grid>
+        )}
 
         {/* Frequency */}
         <Grid item xs={12} sm={6}>
@@ -321,16 +492,32 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
-              {(["continuous", "periodic", "ondemand", "batch"] as const).map(
-                (opt) => (
-                  <MenuItem key={opt} value={opt}>
+              {(
+                [
+                  "continuous",
+                  "periodic",
+                  "ondemand",
+                  "batch",
+                  "event_based",
+                ] as const
+              ).map((opt) => (
+                <Tooltip
+                  key={opt}
+                  title={t(
+                    `tabs.dfd.element_description.dataflow.fields.frequency.tooltips.${opt}`,
+                    { defaultValue: "" },
+                  )}
+                  placement="right"
+                  arrow
+                >
+                  <MenuItem value={opt}>
                     {t(
                       `tabs.dfd.element_description.dataflow.fields.frequency.options.${opt}`,
                       { defaultValue: opt },
                     )}
                   </MenuItem>
-                ),
-              )}
+                </Tooltip>
+              ))}
             </Select>
           </FormControl>
         </Grid>
@@ -342,6 +529,38 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           defaultValue: "Security",
         })}
       />
+
+      {/* Electrical context alerts — shown before any security fields */}
+      {isElectrical && (
+        <Alert severity="info" sx={{ py: 0.5 }}>
+          <Typography variant="caption">
+            {t(
+              "tabs.dfd.element_description.dataflow.fields.electrical.not_applicable_hint",
+              {
+                defaultValue:
+                  "Hardwired signal — encryption and endpoint authentication are not applicable. " +
+                  "Physical access to the wiring is the primary attack vector.",
+              },
+            )}
+          </Typography>
+        </Alert>
+      )}
+
+      {showPhysicalAccessWarning && (
+        <Alert severity="warning" sx={{ py: 0.5 }}>
+          <Typography variant="caption">
+            {t(
+              "tabs.dfd.element_description.dataflow.fields.electrical.physical_boundary_warning",
+              {
+                defaultValue:
+                  "Hardwired signal crosses a Trust Boundary — physical wire access " +
+                  "is the attack vector. Consider: cable routing, tamper seals, " +
+                  "terminal access control.",
+              },
+            )}
+          </Typography>
+        </Alert>
+      )}
 
       <Grid container rowSpacing={2} columnSpacing={2}>
         {/* Exposure Level */}
@@ -503,137 +722,161 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </Stack>
         </Grid>
 
-        {/* Encryption in Transit */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small" error={showEncryptionWarning}>
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
-                { defaultValue: "Encryption in Transit" },
-              )}
-            </InputLabel>
-            <Select
-              value={encryptionInTransit}
-              onChange={(e) =>
-                form.handlePropertyChange("encryptionInTransit", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
-                { defaultValue: "Encryption in Transit" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(["none", "tls", "mtls", "vpn", "custom"] as const).map(
-                (opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.dataflow.fields.encryptionInTransit.options.${opt}`,
-                      { defaultValue: opt.toUpperCase() },
-                    )}
+        {/* Encryption / Auth / Integrity — hidden for electrical signals */}
+        {!isElectrical && (
+          <>
+            {/* Encryption in Transit */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small" error={showEncryptionWarning}>
+                <InputLabel>
+                  {t(
+                    "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
+                    { defaultValue: "Encryption in Transit" },
+                  )}
+                </InputLabel>
+                <Select
+                  value={encryptionInTransit}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "encryptionInTransit",
+                      e.target.value,
+                    )
+                  }
+                  label={t(
+                    "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
+                    { defaultValue: "Encryption in Transit" },
+                  )}
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t("common.not_specified", {
+                        defaultValue: "Not specified",
+                      })}
+                    </em>
                   </MenuItem>
-                ),
-              )}
-            </Select>
-          </FormControl>
-          {showEncryptionWarning && (
-            <Typography
-              variant="caption"
-              color="error"
-              sx={{ mt: 0.5, display: "block" }}
-            >
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.warning",
-                {
-                  defaultValue:
-                    "Unencrypted flow crosses trust boundary → Information Disclosure risk",
-                },
-              )}
-            </Typography>
-          )}
-        </Grid>
-
-        {/* Endpoint Authentication */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
-                { defaultValue: "Authentication of Endpoints" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.endpointAuthentication ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange(
-                  "endpointAuthentication",
-                  e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
-                { defaultValue: "Authentication of Endpoints" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(
-                ["none", "token", "certificate", "apikey", "oauth"] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.endpointAuthentication.options.${opt}`,
-                    { defaultValue: opt },
+                  {(["none", "tls", "mtls", "vpn", "custom"] as const).map(
+                    (opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.dataflow.fields.encryptionInTransit.options.${opt}`,
+                          { defaultValue: opt.toUpperCase() },
+                        )}
+                      </MenuItem>
+                    ),
                   )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Integrity Protection */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
-                { defaultValue: "Integrity Protection" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.integrityProtection ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("integrityProtection", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
-                { defaultValue: "Integrity Protection" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(
-                ["none", "crc", "hash", "hmac", "signature", "custom"] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
+                </Select>
+              </FormControl>
+              {showEncryptionWarning && (
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ mt: 0.5, display: "block" }}
+                >
                   {t(
-                    `tabs.dfd.element_description.dataflow.fields.integrityProtection.options.${opt}`,
-                    { defaultValue: opt.toUpperCase() },
+                    "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.warning",
+                    {
+                      defaultValue:
+                        "Unencrypted flow crosses trust boundary → Information Disclosure risk",
+                    },
                   )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+                </Typography>
+              )}
+            </Grid>
+
+            {/* Endpoint Authentication */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>
+                  {t(
+                    "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
+                    { defaultValue: "Authentication of Endpoints" },
+                  )}
+                </InputLabel>
+                <Select
+                  value={props.endpointAuthentication ?? ""}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "endpointAuthentication",
+                      e.target.value,
+                    )
+                  }
+                  label={t(
+                    "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
+                    { defaultValue: "Authentication of Endpoints" },
+                  )}
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t("common.not_specified", {
+                        defaultValue: "Not specified",
+                      })}
+                    </em>
+                  </MenuItem>
+                  {(
+                    ["none", "token", "certificate", "apikey", "oauth"] as const
+                  ).map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.endpointAuthentication.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Integrity Protection */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>
+                  {t(
+                    "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
+                    { defaultValue: "Integrity Protection" },
+                  )}
+                </InputLabel>
+                <Select
+                  value={props.integrityProtection ?? ""}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "integrityProtection",
+                      e.target.value,
+                    )
+                  }
+                  label={t(
+                    "tabs.dfd.element_description.dataflow.fields.integrityProtection.label",
+                    { defaultValue: "Integrity Protection" },
+                  )}
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t("common.not_specified", {
+                        defaultValue: "Not specified",
+                      })}
+                    </em>
+                  </MenuItem>
+                  {(
+                    [
+                      "none",
+                      "crc",
+                      "hash",
+                      "hmac",
+                      "signature",
+                      "custom",
+                    ] as const
+                  ).map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.integrityProtection.options.${opt}`,
+                        { defaultValue: opt.toUpperCase() },
+                      )}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </>
+        )}
 
         {/* Physical Location / Medium */}
         <Grid item xs={12} sm={6}>
@@ -683,7 +926,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {props.location && (
+        {showLocationRationale && (
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
@@ -752,25 +995,54 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Safety Relevant */}
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={props.safetyRelevant || false}
-                onChange={(e) =>
-                  form.handlePropertyChange("safetyRelevant", e.target.checked)
-                }
-              />
-            }
-            label={t(
-              "tabs.dfd.element_description.dataflow.fields.safetyRelevant.label",
-              {
-                defaultValue:
-                  "Carries safety-relevant data / supports safety function (EN 50742)",
-              },
-            )}
-          />
+        {/* Safety Function */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.safetyFunction.label",
+                { defaultValue: "Safety Function (EN 50742)" },
+              )}
+            </InputLabel>
+            <Select
+              value={safetyFunction ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "safetyFunction",
+                  e.target.value || undefined,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.safetyFunction.label",
+                { defaultValue: "Safety Function (EN 50742)" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                [
+                  "none",
+                  "emergency_stop",
+                  "safety_gate",
+                  "pressure_relief",
+                  "limit_switch",
+                  "fire_gas",
+                  "motor_protection",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.safetyFunction.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
 
         {props.crossesSafetyBoundary && (
@@ -789,13 +1061,15 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </Grid>
         )}
 
-        {props.safetyRelevant && (
+        {isSafetyRelevant && (
           <Grid item xs={12}>
             <TextField
               fullWidth
               size="small"
               multiline
               rows={2}
+              required={safetyRationaleRequired}
+              error={safetyRationaleError}
               label={t(
                 "tabs.dfd.element_description.dataflow.fields.safetyRationale.label",
                 { defaultValue: "Safety Rationale" },
@@ -811,10 +1085,23 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                     "e.g. Carries sensor data used by emergency stop logic",
                 },
               )}
-              helperText={t(
-                "tabs.dfd.element_description.dataflow.fields.safetyRationale.helper",
-                { defaultValue: "Used in EN 50742 / MVO 2027 documentation" },
-              )}
+              helperText={
+                safetyRationaleError
+                  ? t(
+                      "tabs.dfd.element_description.dataflow.fields.safetyRationale.error",
+                      {
+                        defaultValue:
+                          "Rationale required for custom safety function",
+                      },
+                    )
+                  : t(
+                      "tabs.dfd.element_description.dataflow.fields.safetyRationale.helper",
+                      {
+                        defaultValue:
+                          "Used in EN 50742 / MVO 2027 documentation",
+                      },
+                    )
+              }
             />
           </Grid>
         )}
@@ -927,7 +1214,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};
+};;;
 
 // ==================== MAIN COMPONENT ====================
 
@@ -939,22 +1226,72 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     availableAssets = [],
     onCreateAsset,
     defaultExposureLevel,
-  }) => (
-    <ConnectionFormShell
-      connection={connection}
-      onChange={onChange}
-      availableAssets={availableAssets}
-      onCreateAsset={onCreateAsset}
-      generalTab={
-        <DataFlowGeneralTab
-          connection={connection}
-          onChange={onChange}
-          crossesTrustBoundary={crossesTrustBoundary}
-          defaultExposureLevel={defaultExposureLevel}
-        />
-      }
-    />
-  ),
+  }) => {
+    const { t } = useTranslation();
+    const props = connection.properties as DataFlowProperties | undefined;
+
+    // Determine protocol group for context-aware checks
+    const isElectrical = props?.protocol
+      ? PROTOCOL_META[props.protocol]?.group === "electrical"
+      : false;
+
+    const incompleteFields: string[] = [];
+
+    if (!props?.protocol)
+      incompleteFields.push(
+        t("tabs.dfd.element_description.dataflow.fields.protocol.label", {
+          defaultValue: "Protocol",
+        }),
+      );
+
+    if (!props?.direction)
+      incompleteFields.push(
+        t("tabs.dfd.element_description.dataflow.fields.direction.label", {
+          defaultValue: "Direction",
+        }),
+      );
+
+    if (!props?.messageType)
+      incompleteFields.push(
+        t("tabs.dfd.element_description.dataflow.fields.messageType.label", {
+          defaultValue: "Message Type",
+        }),
+      );
+
+    if (!isElectrical && !props?.encryptionInTransit)
+      incompleteFields.push(
+        t(
+          "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
+          { defaultValue: "Encryption in Transit" },
+        ),
+      );
+
+    if (!isElectrical && !props?.endpointAuthentication)
+      incompleteFields.push(
+        t(
+          "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
+          { defaultValue: "Endpoint Authentication" },
+        ),
+      );
+
+    return (
+      <ConnectionFormShell
+        connection={connection}
+        onChange={onChange}
+        availableAssets={availableAssets}
+        onCreateAsset={onCreateAsset}
+        incompleteFields={incompleteFields}
+        generalTab={
+          <DataFlowGeneralTab
+            connection={connection}
+            onChange={onChange}
+            crossesTrustBoundary={crossesTrustBoundary}
+            defaultExposureLevel={defaultExposureLevel}
+          />
+        }
+      />
+    );
+  },
   (prev, next) =>
     prev.connection === next.connection &&
     prev.availableAssets === next.availableAssets &&

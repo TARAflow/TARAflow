@@ -841,6 +841,7 @@
             },
             "protocol": {
               "label": "Protocol",
+              "label_signal": "Signal Type",
               "options": {
                 "http": "HTTP",
                 "https": "HTTPS",
@@ -874,6 +875,13 @@
                 "wireless_hart": "WirelessHART (IEC 62591)",
                 "isa100": "ISA 100.11a",
                 "zigbee": "ZigBee (IEEE 802.15.4)",
+                "digital_io": "Digital I/O",
+                "dry_contact": "Dry Contact / Relay",
+                "relay_output": "Relay Output",
+                "analog_voltage": "Analog Voltage (0–10V)",
+                "analog_current": "Analog Current (4–20mA)",
+                "pulse": "Pulse / Frequency Signal",
+                "pwm": "PWM Signal",
                 "custom": "Custom / Other"
               },
               "groups": {
@@ -881,8 +889,13 @@
                 "embedded": "Embedded Bus",
                 "fieldbus": "Fieldbus",
                 "secure_ot": "Secure OT",
-                "wireless": "Wireless"
+                "wireless": "Wireless",
+                "electrical": "Electrical / Hardwired IO"
               }
+            },
+            "electrical": {
+              "not_applicable_hint": "Hardwired signal — encryption and endpoint authentication are not applicable. Physical access to the wiring is the primary attack vector.",
+              "physical_boundary_warning": "Hardwired signal crosses a Trust Boundary — physical wire access is the attack vector. Consider: cable routing, tamper seals, terminal access control."
             },
             "direction": {
               "label": "Direction",
@@ -961,10 +974,40 @@
               },
               "tooltip": "System behaviour when this flow is interrupted. Drives DoS impact: 'none' + field_cable = Critical DoS (plug-pull stops the flow, no fallback). 'degraded' = device keeps running but loses that communication path."
             },
-            "dataTypes": {
-              "label": "Data Types",
-              "placeholder": "e.g. PII, Credentials, Business Data, Secrets",
-              "helper": "Separate multiple types with commas"
+            "messageType": {
+              "label": "Message Type",
+              "options": {
+                "measurement": "Measurement",
+                "command": "Command",
+                "status": "Status",
+                "alarm_event": "Alarm / Event",
+                "config": "Configuration",
+                "credentials": "Credentials",
+                "firmware": "Firmware",
+                "log_audit": "Log / Audit",
+                "pii": "Personal Data (PII)",
+                "telemetry": "Telemetry",
+                "custom": "Other"
+              }
+            },
+            "dataClassification": {
+              "label": "Data Classification",
+              "options": {
+                "public": "Public",
+                "internal": "Internal",
+                "confidential": "Confidential",
+                "secret": "Secret"
+              },
+              "tooltips": {
+                "public": "Freely shareable — no confidentiality protection required",
+                "internal": "Internal use only — not for external parties",
+                "confidential": "Restricted distribution — needs encryption in transit",
+                "secret": "Highest sensitivity — credentials, keys, PII"
+              }
+            },
+            "dataTypeNotes": {
+              "label": "Data Type Notes",
+              "placeholder": "e.g. Proprietary telemetry frame, mixed sensor + status"
             },
             "frequency": {
               "label": "Frequency",
@@ -972,7 +1015,15 @@
                 "continuous": "Continuous / Real-time",
                 "periodic": "Periodic (Scheduled)",
                 "ondemand": "On-demand",
-                "batch": "Batch"
+                "batch": "Batch",
+                "event_based": "Event-Based"
+              },
+              "tooltips": {
+                "continuous": "Uninterrupted stream — analog signals, video feeds",
+                "periodic": "Regular polling interval — Modbus, HART, SCADA cycles",
+                "ondemand": "Request-triggered — HTTP, OPC UA, database queries",
+                "batch": "Bulk transfer at intervals — file sync, log upload",
+                "event_based": "Triggered by state change — dry contact, alarm, MQTT publish"
               }
             },
             "volume": {
@@ -991,10 +1042,24 @@
             "crossesSafetyBoundary": {
               "hint": "This flow crosses a safety boundary (one side safety-relevant, other not). Extra scrutiny required for Tampering and Information Disclosure."
             },
+            "safetyFunction": {
+              "label": "Safety Function (EN 50742)",
+              "options": {
+                "none": "None",
+                "emergency_stop": "Emergency Stop (E-Stop / STO)",
+                "safety_gate": "Safety Gate / Light Curtain",
+                "pressure_relief": "Pressure / Temperature Safety",
+                "limit_switch": "Limit Switch / Overflow Protection",
+                "fire_gas": "Fire & Gas Detection",
+                "motor_protection": "Motor Protection Relay",
+                "custom": "Other (describe in rationale)"
+              }
+            },
             "safetyRationale": {
               "label": "Safety Rationale",
               "placeholder": "e.g. Carries sensor data used by emergency stop logic",
-              "helper": "Used in EN 50742 / MVO 2027 documentation"
+              "helper": "Used in EN 50742 / MVO 2027 documentation",
+              "error": "Rationale required for custom safety function"
             }
           }
         },

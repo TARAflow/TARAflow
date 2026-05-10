@@ -886,6 +886,7 @@
             },
             "protocol": {
               "label": "Protokoll",
+              "label_signal": "Signaltyp",
               "options": {
                 "http": "HTTP",
                 "https": "HTTPS",
@@ -919,6 +920,13 @@
                 "wireless_hart": "WirelessHART (IEC 62591)",
                 "isa100": "ISA 100.11a",
                 "zigbee": "ZigBee (IEEE 802.15.4)",
+                "digital_io": "Digital I/O",
+                "dry_contact": "Potenzialfreier Kontakt / Relais",
+                "relay_output": "Relaisausgang",
+                "analog_voltage": "Analogspannung (0–10V)",
+                "analog_current": "Analogstrom (4–20mA)",
+                "pulse": "Puls- / Frequenzsignal",
+                "pwm": "PWM-Signal",
                 "custom": "Benutzerdefiniert / Sonstige"
               },
               "groups": {
@@ -926,8 +934,13 @@
                 "embedded": "Embedded-Bus",
                 "fieldbus": "Feldbus",
                 "secure_ot": "Sicheres OT",
-                "wireless": "Drahtlos"
+                "wireless": "Drahtlos",
+                "electrical": "Elektrisch / Hardwired IO"
               }
+            },
+            "electrical": {
+              "not_applicable_hint": "Hardwired-Signal — Verschlüsselung und Endpunkt-Authentisierung sind nicht anwendbar. Physischer Zugang zur Verdrahtung ist der primäre Angriffsvektor.",
+              "physical_boundary_warning": "Hardwired-Signal überschreitet eine Trust Boundary — physischer Zugang zur Leitung ist der Angriffsvektor. Massnahmen prüfen: Kabelführung, Plombierung, Klemmenschrankzugang."
             },
             "direction": {
               "label": "Richtung",
@@ -936,6 +949,41 @@
                 "bidirectional": "Bidirektional (Zweiweg)",
                 "requestresponse": "Anfrage-Antwort"
               }
+            },
+            "messageType": {
+              "label": "Nachrichtentyp",
+              "options": {
+                "measurement": "Messwert",
+                "command": "Steuerbefehl",
+                "status": "Zustandsmeldung",
+                "alarm_event": "Alarm / Ereignis",
+                "config": "Konfiguration",
+                "credentials": "Zugangsdaten",
+                "firmware": "Firmware",
+                "log_audit": "Log / Audit",
+                "pii": "Personenbezogene Daten (PII)",
+                "telemetry": "Telemetrie",
+                "custom": "Sonstiges"
+              }
+            },
+            "dataClassification": {
+              "label": "Datenklassifizierung",
+              "options": {
+                "public": "Öffentlich",
+                "internal": "Intern",
+                "confidential": "Vertraulich",
+                "secret": "Geheim"
+              },
+              "tooltips": {
+                "public": "Frei verwendbar — kein Vertraulichkeitsschutz erforderlich",
+                "internal": "Nur für internen Gebrauch — nicht für externe Parteien",
+                "confidential": "Eingeschränkte Weitergabe — Verschlüsselung bei Übertragung erforderlich",
+                "secret": "Höchste Sensitivität — Zugangsdaten, Schlüssel, PII"
+              }
+            },
+            "dataTypeNotes": {
+              "label": "Datentypnotizen",
+              "placeholder": "z.B. Proprietärer Telemetrierahmen, gemischte Sensor- und Statusdaten"
             },
             "encryptionInTransit": {
               "label": "Verschlüsselung in Übertragung",
@@ -963,18 +1011,21 @@
                 "mutual_tls": "Mutual TLS (mTLS)"
               }
             },
-            "dataTypes": {
-              "label": "Datentypen",
-              "placeholder": "z.B. Personendaten, Anmeldedaten, Geschäftsdaten, Geheimnisse",
-              "helper": "Mehrere Typen mit Komma trennen"
-            },
             "frequency": {
               "label": "Häufigkeit",
               "options": {
                 "continuous": "Kontinuierlich / Echtzeit",
                 "periodic": "Periodisch (geplant)",
                 "ondemand": "Auf Anfrage",
-                "batch": "Stapelverarbeitung"
+                "batch": "Stapelverarbeitung",
+                "event_based": "Ereignisgesteuert"
+              },
+              "tooltips": {
+                "continuous": "Unterbrechungsloser Strom — Analogsignale, Video",
+                "periodic": "Regelmässiges Polling-Intervall — Modbus, HART, SCADA-Zyklen",
+                "ondemand": "Anfrage-gesteuert — HTTP, OPC UA, Datenbankabfragen",
+                "batch": "Mengenübertragung in Intervallen — Dateisync, Log-Upload",
+                "event_based": "Ausgelöst durch Zustandsänderung — Dry Contact, Alarm, MQTT Publish"
               }
             },
             "volume": {
@@ -993,10 +1044,24 @@
             "crossesSafetyBoundary": {
               "hint": "Dieser Datenfluss überquert eine Sicherheitsgrenze (eine Seite sicherheitsrelevant, andere nicht). Erhöhte Prüfung für Manipulation und Informationsoffenlegung erforderlich."
             },
+            "safetyFunction": {
+              "label": "Sicherheitsfunktion (EN 50742)",
+              "options": {
+                "none": "Keine",
+                "emergency_stop": "Not-Halt (E-Stop / STO)",
+                "safety_gate": "Schutztür / Lichtvorhang",
+                "pressure_relief": "Druck- / Temperatursicherung",
+                "limit_switch": "Endlagenschalter / Überlaufschutz",
+                "fire_gas": "Brand- & Gasdetektion",
+                "motor_protection": "Motorschutzrelais",
+                "custom": "Sonstiges (in Begründung beschreiben)"
+              }
+            },
             "safetyRationale": {
               "label": "Sicherheitsbegründung",
-              "placeholder": "z.B. Transportiert Sensordaten für die Notausschaltlogik",
-              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
+              "placeholder": "z.B. Überträgt Sensordaten für die Not-Halt-Logik",
+              "helper": "Verwendet in EN 50742 / MVO 2027 Dokumentation",
+              "error": "Begründung erforderlich für benutzerdefinierte Sicherheitsfunktion"
             }
           }
         },

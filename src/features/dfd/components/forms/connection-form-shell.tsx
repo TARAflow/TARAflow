@@ -15,7 +15,7 @@
 
 import React, { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Tab, Tabs } from "@mui/material";
+import { Box, Stack, Tab, Tabs, Typography, Tooltip } from "@mui/material";
 import { WarningAmber as WarningAmberIcon } from "@mui/icons-material";
 import type { AssetGroup, DFDConnection } from "../../models/dfd-types";
 import { isIsAnRelation } from "../../models/asset-relation-types";
@@ -63,6 +63,9 @@ export interface ConnectionFormShellProps {
   /** Controlled active tab (optional — shell manages own state if omitted) */
   activeTab?: number;
   onTabChange?: (tab: number) => void;
+
+  /** Incomplete required fields — shown as warning icon on General tab */
+  incompleteFields?: string[];
 }
 
 // ==================== COMPONENT ====================
@@ -77,6 +80,7 @@ export const ConnectionFormShell: React.FC<ConnectionFormShellProps> = ({
   assetTabLabel,
   activeTab: controlledTab,
   onTabChange,
+  incompleteFields = [],
 }) => {
   const { t } = useTranslation();
 
@@ -103,10 +107,43 @@ export const ConnectionFormShell: React.FC<ConnectionFormShellProps> = ({
       >
         <Tab
           label={
-            generalTabLabel ??
-            t("tabs.dfd.element_description.tabs.general", {
-              defaultValue: "General",
-            })
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <span>
+                {generalTabLabel ??
+                  t("tabs.dfd.element_description.tabs.general", {
+                    defaultValue: "General",
+                  })}
+              </span>
+              {incompleteFields.length > 0 && (
+                <Tooltip
+                  title={
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 600, display: "block" }}
+                      >
+                        {t("common.incomplete_fields", {
+                          defaultValue: "Incomplete fields",
+                        })}
+                        :
+                      </Typography>
+                      <ul style={{ margin: "4px 0 0 0", paddingLeft: 14 }}>
+                        {incompleteFields.map((f) => (
+                          <li key={f}>
+                            <Typography variant="caption">{f}</Typography>
+                          </li>
+                        ))}
+                      </ul>
+                    </Box>
+                  }
+                  placement="right"
+                >
+                  <WarningAmberIcon
+                    sx={{ fontSize: 14, color: "warning.main" }}
+                  />
+                </Tooltip>
+              )}
+            </Stack>
           }
         />
         <Tab

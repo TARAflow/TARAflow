@@ -549,7 +549,11 @@ export interface DataStoreProperties {
 //   wireless_hart  — WirelessHART (IEC 62591) — AES-128 mandatory
 //   isa100         — ISA 100.11a — AES-128 mandatory
 //   zigbee         — ZigBee (IEEE 802.15.4) — encryption optional
- 
+//
+// Electrical / Hardwired IO (no protocol — physical signal types)
+//   digital_io, dry_contact, relay_output, analog_voltage,
+//   analog_current, pulse, pwm
+
 export type Protocol =
   // ── IT / Cloud ────────────────────────────────────────────────────────────
   | "http"
@@ -588,6 +592,14 @@ export type Protocol =
   | "wireless_hart" // WirelessHART (IEC 62591) — AES-128 mandatory
   | "isa100" // ISA 100.11a — AES-128 mandatory
   | "zigbee" // ZigBee (IEEE 802.15.4) — optional AES-128
+  // ── Electrical / Hardwired IO ─────────────────────────────────────────────
+  | "digital_io" // Generic discrete I/O — no auth, physical access required
+  | "dry_contact" // Potential-free contact / relay — safety-relevant
+  | "relay_output" // Relay-switched output — safety-relevant
+  | "analog_voltage" // Generic analog voltage (0-10V range) — spoofable
+  | "analog_current" // Current loop (4-20mA range) — spoofable
+  | "pulse" // Pulse/frequency signal — counter manipulation
+  | "pwm" // Pulse-width modulation — control manipulation
   // ── Other ────────────────────────────────────────────────────────────────
   | "custom";
 
@@ -619,10 +631,61 @@ type EndpointAuthentication =
   | "mutual_tls"; // Mutual TLS — client + server certificate
 
 export interface DataFlowProperties {
-  dataTypes?: string;
   protocol?: Protocol;
   direction?: "unidirectional" | "bidirectional" | "requestresponse";
-  frequency?: "continuous" | "periodic" | "ondemand" | "batch";
+
+  /**
+   * Transmission frequency pattern.
+   *   continuous   → Uninterrupted stream (analog signals, video)
+   *   periodic     → Regular polling interval (Modbus, HART, SCADA)
+   *   ondemand     → Request-triggered (HTTP, OPC UA, database)
+   *   batch        → Bulk transfer at intervals (file sync, log upload)
+   *   event_based  → Triggered by state change (dry contact, alarm, MQTT pub)
+   */
+  frequency?: "continuous" | "periodic" | "ondemand" | "batch" | "event_based";
+
+  /**
+   * Primary semantic type of data carried by this flow.
+   * Drives threat heuristics — e.g. credentials → Spoofing priority,
+   * firmware → Tampering critical, command → Repudiation + Tampering.
+   *
+   *   measurement  → Sensor value (temperature, pressure, current, flow)
+   *   command      → Control instruction (setpoint, enable, start/stop)
+   *   status       → State report (running, fault, ready, position)
+   *   alarm_event  → Alarm or event notification (E-Stop, limit breach)
+   *   config       → Configuration or parameter data
+   *   credentials  → Auth tokens, certificates, keys, passwords
+   *   firmware     → Firmware or software update package
+   *   log_audit    → Log, audit trail, or diagnostic data
+   *   pii          → Personal data (GDPR-relevant)
+   *   telemetry    → Aggregated operational / diagnostic metrics
+   *   custom       → Other — describe in dataTypeNotes
+   */
+  messageType?:
+    | "measurement"
+    | "command"
+    | "status"
+    | "alarm_event"
+    | "config"
+    | "credentials"
+    | "firmware"
+    | "log_audit"
+    | "pii"
+    | "telemetry"
+    | "custom";
+
+  /**
+   * Confidentiality classification of data in this flow.
+   *   public       → Freely shareable, no confidentiality required
+   *   internal     → Internal use only — not for external parties
+   *   confidential → Restricted — limited distribution, needs protection
+   *   secret       → Highest sensitivity — credentials, keys, PII
+   */
+  dataClassification?: "public" | "internal" | "confidential" | "secret";
+
+  /** Free-text details when messageType=custom or to clarify content. */
+  dataTypeNotes?: string;
+
   volume?: string;
   encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
   /**
@@ -744,26 +807,56 @@ export interface DataFlowProperties {
   // It is a logical categorisation via element properties + automatic detection.
   //
   // Auto-derivation of crossesSafetyBoundary:
-  //   source.safetyRelevant XOR target.safetyRelevant → crossesSafetyBoundary = true
+  //   source.safetyFunction !== "none" XOR target.safetyFunction !== "none"
+  //   → crossesSafetyBoundary = true
+  //
+  // Computed helper (not stored): safetyRelevant = safetyFunction !== undefined
+  //                                              && safetyFunction !== "none"
   //
   // Threat implication: flows crossing the safety boundary require extra scrutiny
   // for Tampering and Information Disclosure (EN 50742: safety-relevant interfaces).
 
   /**
-   * This flow carries safety-relevant data or supports safety functions.
-   * Set manually or derived when any linked asset has SafetyAnnotation.relevance !== 'none'.
+   * Safety function supported or carried by this data flow.
+   *
+   * Replaces safetyRelevant: boolean — the specific function determines threat
+   * priority, IEC 61511 SIL relevance, and EN 50742 documentation requirements.
+   *
+   *   none              → Not safety-relevant
+   *   emergency_stop    → E-Stop / STO (Safe Torque Off) signal
+   *   safety_gate       → Safety door / light curtain / guard
+   *   pressure_relief   → Pressure or temperature safety limit
+   *   limit_switch      → End-of-travel / overflow protection
+   *   fire_gas          → Fire & gas detection signal
+   *   motor_protection  → Motor protection relay / thermal overload
+   *   custom            → Other — safetyRationale is required
+   *
+   * Threat implication:
+   *   emergency_stop / safety_gate → Critical Tampering + DoS (SIL-relevant)
+   *   pressure_relief / limit_switch → High Tampering (process safety)
+   *   fire_gas → High Spoofing + DoS (false alarm / suppression)
+   *   motor_protection → Medium Tampering
    */
-  safetyRelevant?: boolean;
+  safetyFunction?:
+    | "none"
+    | "emergency_stop"
+    | "safety_gate"
+    | "pressure_relief"
+    | "limit_switch"
+    | "fire_gas"
+    | "motor_protection"
+    | "custom";
 
   /**
    * This flow connects a safety-relevant element to a non-safety element (or vice versa).
-   * Auto-derived by comparing safetyRelevant flags of source and target elements.
+   * Auto-derived by comparing safetyFunction of source and target elements.
    * Can be manually overridden by the analyst.
    */
   crossesSafetyBoundary?: boolean;
 
   /**
    * Rationale for safety classification — used in EN 50742 / MVO 2027 documentation.
+   * Required when safetyFunction === "custom".
    * @example "Carries sensor data used by emergency stop logic"
    */
   safetyRationale?: string;

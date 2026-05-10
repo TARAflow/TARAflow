@@ -38,7 +38,8 @@
     "none": "Nichts",
     "collapse": "Zuklappen",
     "notApplicable": "N/A – Nicht anwendbar",
-    "not_specified": "Nicht angegeben"
+    "not_specified": "Nicht angegeben",
+    "incomplete_fields": "Fehlende Felder"
   },
   "project": {
     "title": "Projekt",

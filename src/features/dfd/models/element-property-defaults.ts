@@ -403,12 +403,16 @@ export const DATASTORE_TECH_DRIVEN_FIELDS: (keyof DataStoreProperties)[] = [
 // ==================== DATA FLOW DEFAULTS ====================
 
 /**
- * Design principle: OT protocols default to insecure state to surface threats.
- * Exception: OPC UA defaults to certificate+tls (security is its core contract).
- * WirelessHART / ISA100: AES-128 is mandatory per spec → custom encryption.
- * ZigBee: encryption optional → none to surface threat.
- * Cascade defaults based on DataFlow.protocol selection.
- * Note: websocket uses "unidirectional" to avoid triggering validator C7.
+ * Design principles:
+ * - OT protocols default to insecure state to surface threats.
+ * - integrityProtection: CRC where frame-level CRC exists (CAN, Modbus RTU),
+ *   but CRC ≠ cryptographic — Tampering threat still fires.
+ * - OPC UA / Modbus SEC: certificate + tls + hmac — security is their core contract.
+ * - WirelessHART / ISA100: AES-128 mandatory → custom encryption + hmac.
+ * - ZigBee: optional encryption → none to surface risk.
+ * - Electrical signals: no auth/encryption, physical access is the attack vector.
+ * - safetyFunction: only cascaded where semantically unambiguous (dry_contact, relay_output).
+ *   All others left undefined — analyst must decide.
  */
 export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   NonNullable<DataFlowProperties["protocol"]>,
@@ -416,187 +420,287 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
 > = {
   // ── IT / Cloud ────────────────────────────────────────────────────────────
   https: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "token",
-    encryptionInTransit: "tls",
+    encryptionInTransit:   "tls",
+    integrityProtection:   "hmac",
+    frequency:             "ondemand",
+    dataClassification:    "internal",
   },
   grpc: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "certificate",
-    encryptionInTransit: "tls",
+    encryptionInTransit:   "tls",
+    integrityProtection:   "hmac",
+    frequency:             "ondemand",
+    dataClassification:    "internal",
   },
   http: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "ondemand",
+    dataClassification:    "internal",
   },
   mqtt: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "event_based",
+    messageType:           "telemetry",
   },
   amqp: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "token",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "event_based",
+    messageType:           "telemetry",
   },
+  // websocket uses "unidirectional" to avoid triggering validator C7
   websocket: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "token",
-    encryptionInTransit: "tls",
+    encryptionInTransit:   "tls",
+    integrityProtection:   "hmac",
+    frequency:             "continuous",
   },
   file: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "batch",
+    messageType:           "log_audit",
   },
   database: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "certificate",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "ondemand",
+    dataClassification:    "confidential",
   },
 
-  // ── Embedded bus (no auth, no encryption — surfaces threats by design) ────
+  // ── Embedded bus (no auth, no encryption — IEC 62443 baseline risk) ────
   can: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "crc",   // CAN frame CRC — not cryptographic
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   modbus_rtu: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "crc",   // Modbus RTU frame CRC — not cryptographic
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   modbus_tcp: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",  // No CRC in Modbus/TCP — relies on TCP checksum only
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   modbus_sec: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "certificate",
-    encryptionInTransit: "tls",
+    encryptionInTransit:   "tls",
+    integrityProtection:   "hmac",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   uart: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
   },
   spi: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
   },
   i2c: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
   },
 
   // ── Fieldbus (no auth, no encryption — IEC 62443 baseline gap) ───────────
   profibus: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   foundation_fieldbus: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   dnp3: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "status",
   },
   controlnet: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
   },
   devicenet: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
   },
   ethernet_ip: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
   },
   profinet: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   hart: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   lontalk: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
   },
   bacnet: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   bacnet_ip: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   hart_ip: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   opc_da: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
 
   // ── Secure OT ─────────────────────────────────────────────────────────────
-  // OPC UA has built-in security profiles — certificate + sign/encrypt is the contract
   opc_ua: {
-    direction: "requestresponse",
+    direction:             "requestresponse",
     endpointAuthentication: "certificate",
-    encryptionInTransit: "tls",
+    encryptionInTransit:   "tls",
+    integrityProtection:   "hmac",
+    frequency:             "ondemand",
+    messageType:           "measurement",
   },
 
   // ── Wireless ──────────────────────────────────────────────────────────────
   // WirelessHART (IEC 62591): AES-128 CBC mandatory, network-layer joining keys
   wireless_hart: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "symmetric_key",
-    encryptionInTransit: "custom",
+    encryptionInTransit:   "custom",
+    integrityProtection:   "hmac",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   // ISA 100.11a: AES-128 CCM mandatory, device certificates optional
   isa100: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "symmetric_key",
-    encryptionInTransit: "custom",
+    encryptionInTransit:   "custom",
+    integrityProtection:   "hmac",
+    frequency:             "periodic",
+    messageType:           "measurement",
   },
   // ZigBee (IEEE 802.15.4): optional AES-128 — defaults to none to surface risk
   zigbee: {
-    direction: "unidirectional",
+    direction:             "unidirectional",
     endpointAuthentication: "none",
-    encryptionInTransit: "none",
+    encryptionInTransit:   "none",
+    integrityProtection:   "none",
+    frequency:             "event_based",
   },
+
+  // ── Electrical / Hardwired IO ─────────────────────────────────────────────
+  // No auth, no encryption — physical access is the primary attack vector.
+  // safetyFunction cascaded only where semantically unambiguous.
+  digital_io:     { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "event_based",  messageType: "status"      },
+  dry_contact:    { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "event_based",  messageType: "alarm_event", safetyFunction: "safety_gate"    },
+  relay_output:   { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "event_based",  messageType: "command",    safetyFunction: "emergency_stop" },
+  analog_voltage: { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "continuous",   messageType: "measurement" },
+  analog_current: { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "continuous",   messageType: "measurement" },
+  pulse:          { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "continuous",   messageType: "measurement" },
+  pwm:            { direction: "unidirectional", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", location: "field_cable", redundancy: "none", frequency: "continuous",   messageType: "command"     },
 
   custom: {},
 };
 
-
-/** Fields driven by DataFlow.protocol — used for clearing on driver reset */
+/** Fields driven by DataFlow.protocol — cleared on driver reset, then new defaults applied. */
 export const DATAFLOW_PROTOCOL_DRIVEN_FIELDS: (keyof DataFlowProperties)[] = [
   "direction",
   "endpointAuthentication",
   "encryptionInTransit",
+  "integrityProtection",
+  "frequency",
+  "messageType",
+  "dataClassification",
+  "location",
+  "redundancy",
 ];
 
 // ==================== INTERFACE DEFAULTS ====================

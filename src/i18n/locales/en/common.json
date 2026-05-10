@@ -40,7 +40,8 @@
     "none": "None",
     "collapse": "Collapse",
     "notApplicable": "N/A – Not applicable",
-    "not_specified": "Not specified"
+    "not_specified": "Not specified",
+    "incomplete_fields": "Incomplete fields"
   },
   "project": {
     "title": "Project",
