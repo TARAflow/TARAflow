@@ -61,8 +61,15 @@
           "label": {
             "empty": "{{name}} — leeres oder nicht auswertbares Label",
             "deprecatedVerb": "{{name}} — veraltetes Verb; 'send'/'recv' durch 'push' oder 'pull' ersetzen",
-            "unknownVerb": "{{name}} — unbekanntes Verb (gültige Verben: pull, push, write, stream)",
+            "unknownVerb": "{{name}} — unbekanntes Verb (gültig: pull, push, write, stream)",
             "missingObject": "{{name}} — fehlendes Objekt, erwartetes Format: '<verb> <objekt> [<flow-type>]'"
+          },
+          "label_property": {
+            "verb_direction_conflict": "Verb widerspricht der Flussrichtung",
+            "tag_frequency_mismatch": "Frequenz-Konflikt — [{{combo}}] erwartet {{expected}}, erhalten {{got}}",
+            "tag_message_type_mismatch": "Nachrichtentyp-Konflikt — {{combo}} erwartet {{expected}}, erhalten {{got}}",
+            "electrical_pull_verb": "Protokoll-Konflikt — '{{protocol}}' ist unidirektional, Pull ist nicht anwendbar",
+            "write_target_not_datastore": "Ungültiges Schreibziel — '{{targetName}}' ist ein {{targetType}}, erwartet wird ein Datenspeicher"
           },
           "pull": {
             "missingFlowType": "{{name}} — pull erfordert einen Flow-Typ: [req], [resp] oder [req_resp]",

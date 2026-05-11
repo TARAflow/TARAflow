@@ -102,7 +102,7 @@ export class DFDValidator {
     validateUnconnectedDataflows(options?.unconnectedDataflows, warnings);
     validateUnconnectedElements(elements, connections, warnings);
     validateChipBoundaryConnections(connections, elements, errors);
-    validateDataflowLabels(connections, errors, warnings);
+    validateDataflowLabels(connections, elements, errors, warnings);
     // TEMP DEBUG
     connections.forEach(c => {
       const p = (c as any).properties;

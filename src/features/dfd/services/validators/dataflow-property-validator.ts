@@ -26,34 +26,15 @@
 
 import type { DFDConnection } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
+import type {
+  DataFlowProperties,
+  Protocol,
+} from "../../models/element-properties";
 
 // ---------------------------------------------------------------------------
 // DataFlowProperties — local mirror to avoid import coupling.
 // ---------------------------------------------------------------------------
 
-type Protocol =
-  | "http"
-  | "https"
-  | "grpc"
-  | "mqtt"
-  | "amqp"
-  | "websocket"
-  | "file"
-  | "database"
-  | "custom";
-
-type Direction = "unidirectional" | "bidirectional" | "requestresponse";
-
-type Frequency = "continuous" | "periodic" | "ondemand" | "batch";
-
-interface DataFlowProperties {
-  protocol?: Protocol;
-  direction?: Direction;
-  frequency?: Frequency;
-  excludeFromThreatGen?: boolean;
-  excludeFromThreatGenRationale?: string;
-  [key: string]: unknown;
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -106,8 +87,7 @@ export function validateDataflowProperties(
     const context = buildContext(conn);
     const verb = extractVerb(conn.name || "");
 
-    const props = (conn as unknown as { properties?: DataFlowProperties })
-      .properties;
+    const props = conn.properties;
 
     // C10: protocol not specified — fires regardless of whether props exist.
     // write is exempt: local datastores legitimately have no network protocol,

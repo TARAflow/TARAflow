@@ -452,6 +452,16 @@ function getTrustBoundaryPropertiesGrouped(
   return groups;
 }
 
+// TODO(security-docs):
+// DataFlowProperties became semantic/context-aware.
+// Current export is only a compatibility build-fix.
+// Future refactor should:
+// - align report groups with UI sections
+// - support applicability-aware rendering
+// - support semantic coverage states
+// - suppress non-applicable transport-security fields
+// - integrate computeDataFlowCoverage()
+
 /**
  * Get DataFlow-specific properties grouped
  */
@@ -465,6 +475,7 @@ export function getConnectionPropertiesGrouped(
   const groups: PropertyGroup[] = [];
 
   // Basic Information
+  // Basic Information
   groups.push({
     groupName: getGroupName("basic", lang),
     properties: [
@@ -473,8 +484,16 @@ export function getConnectionPropertiesGrouped(
         value: formatValue(connection.description),
       },
       {
-        label: getPropertyLabel("dataTypes", lang),
-        value: formatValue(props.dataTypes),
+        label: getPropertyLabel("messageType", lang),
+        value: formatValue(props.messageType),
+      },
+      {
+        label: getPropertyLabel("dataClassification", lang),
+        value: formatValue(props.dataClassification),
+      },
+      {
+        label: getPropertyLabel("dataTypeNotes", lang),
+        value: formatValue(props.dataTypeNotes),
       },
       {
         label: getPropertyLabel("protocol", lang),
@@ -487,9 +506,18 @@ export function getConnectionPropertiesGrouped(
   groups.push({
     groupName: getGroupName("security", lang),
     properties: [
-      { label: getPropertyLabel("encryptionInTransit", lang), value: formatValue(props.encryptionInTransit) },
-      { label: getPropertyLabel("endpointAuthentication", lang), value: formatValue(props.endpointAuthentication) },
-      { label: getPropertyLabel("integrityProtection", lang), value: formatValue(props.integrityProtection) },
+      {
+        label: getPropertyLabel("encryptionInTransit", lang),
+        value: formatValue(props.encryptionInTransit),
+      },
+      {
+        label: getPropertyLabel("endpointAuthentication", lang),
+        value: formatValue(props.endpointAuthentication),
+      },
+      {
+        label: getPropertyLabel("integrityProtection", lang),
+        value: formatValue(props.integrityProtection),
+      },
     ],
   });
 
@@ -497,9 +525,18 @@ export function getConnectionPropertiesGrouped(
   groups.push({
     groupName: getGroupName("technical", lang),
     properties: [
-      { label: getPropertyLabel("direction", lang), value: formatValue(props.direction) },
-      { label: getPropertyLabel("frequency", lang), value: formatValue(props.frequency) },
-      { label: getPropertyLabel("volume", lang), value: formatValue(props.volume) },
+      {
+        label: getPropertyLabel("direction", lang),
+        value: formatValue(props.direction),
+      },
+      {
+        label: getPropertyLabel("frequency", lang),
+        value: formatValue(props.frequency),
+      },
+      {
+        label: getPropertyLabel("volume", lang),
+        value: formatValue(props.volume),
+      },
     ],
   });
 
@@ -507,7 +544,10 @@ export function getConnectionPropertiesGrouped(
   groups.push({
     groupName: getGroupName("additional", lang),
     properties: [
-      { label: getPropertyLabel("notes", lang), value: formatValue(props.notes) },
+      {
+        label: getPropertyLabel("notes", lang),
+        value: formatValue(props.notes),
+      },
     ],
   });
 

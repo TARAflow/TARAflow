@@ -46,6 +46,7 @@ import {
   buildClearPatch,
 } from "../../models/element-property-defaults";
 import { PROTOCOL_META } from "../../models/protocol-registry";
+import { computeDataFlowCoverage } from "../../models/dataflow-coverage";
 
 // ==================== PROPS ====================
 
@@ -280,12 +281,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   disabled
                   sx={{ opacity: 0.6, fontSize: "0.75rem" }}
                 >
-                  —{" "}
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.protocol.groups.${group}`,
-                    { defaultValue: group },
-                  )}{" "}
-                  —
+                  — {t(`protocol_groups.${group}`, { defaultValue: group })} —
                 </MenuItem>,
 
                 protocols.map((p) => (
@@ -1138,8 +1134,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
               label={t(
                 "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.label",
                 {
-                  defaultValue:
-                    "Exclusion Rationale (IEC 62443-4-1 audit trail)",
+                  defaultValue: "Exclusion Rationale",
                 },
               )}
               value={props.excludeFromThreatGenRationale ?? ""}
@@ -1162,10 +1157,15 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                       "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.error",
                       {
                         defaultValue:
-                          "Rationale required for IEC 62443-4-1 audit trail",
+                          "Rationale required — needed for IEC 62443-4-1 audit trail",
                       },
                     )
-                  : undefined
+                  : t(
+                      "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.helper",
+                      {
+                        defaultValue: "Required for IEC 62443-4-1 traceability",
+                      },
+                    )
               }
             />
           </Grid>
@@ -1214,7 +1214,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};;;
+};
 
 // ==================== MAIN COMPONENT ====================
 
@@ -1228,51 +1228,21 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     defaultExposureLevel,
   }) => {
     const { t } = useTranslation();
-    const props = connection.properties as DataFlowProperties | undefined;
 
-    // Determine protocol group for context-aware checks
-    const isElectrical = props?.protocol
-      ? PROTOCOL_META[props.protocol]?.group === "electrical"
-      : false;
+    const props =
+      (connection.properties as DataFlowProperties | undefined) ?? {};
 
-    const incompleteFields: string[] = [];
+    // Semantic coverage instead of naive field counting
+    const coverage = computeDataFlowCoverage(props, {
+      crossesTrustBoundary,
+    });
 
-    if (!props?.protocol)
-      incompleteFields.push(
-        t("tabs.dfd.element_description.dataflow.fields.protocol.label", {
-          defaultValue: "Protocol",
-        }),
-      );
-
-    if (!props?.direction)
-      incompleteFields.push(
-        t("tabs.dfd.element_description.dataflow.fields.direction.label", {
-          defaultValue: "Direction",
-        }),
-      );
-
-    if (!props?.messageType)
-      incompleteFields.push(
-        t("tabs.dfd.element_description.dataflow.fields.messageType.label", {
-          defaultValue: "Message Type",
-        }),
-      );
-
-    if (!isElectrical && !props?.encryptionInTransit)
-      incompleteFields.push(
-        t(
-          "tabs.dfd.element_description.dataflow.fields.encryptionInTransit.label",
-          { defaultValue: "Encryption in Transit" },
-        ),
-      );
-
-    if (!isElectrical && !props?.endpointAuthentication)
-      incompleteFields.push(
-        t(
-          "tabs.dfd.element_description.dataflow.fields.endpointAuthentication.label",
-          { defaultValue: "Endpoint Authentication" },
-        ),
-      );
+    // Translate field keys for tooltip display
+    const incompleteFields = coverage.incompleteFields.map((field) =>
+      t(`tabs.dfd.element_description.dataflow.fields.${String(field)}.label`, {
+        defaultValue: String(field),
+      }),
+    );
 
     return (
       <ConnectionFormShell

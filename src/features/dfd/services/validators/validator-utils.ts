@@ -54,6 +54,9 @@ export const ValidationMessages = {
   DF_DEPRECATED_VERB: "tabs.dfd.validation.df.label.deprecatedVerb",
   DF_UNKNOWN_VERB: "tabs.dfd.validation.df.label.unknownVerb",
   DF_MISSING_OBJECT: "tabs.dfd.validation.df.label.missingObject",
+  DF_MULTIPLE_TAGS: "tabs.dfd.validation.df.label.multipleTags",
+  DF_SYNONYM_VERB: "tabs.dfd.validation.df.label.synonymVerb",
+  DF_OBJECT_EMBEDDED_VERB: "tabs.dfd.validation.df.label.objectEmbeddedVerb",
 
   // ── Pull ────────────────────────────────────────────────────────────────
   DF_PULL_MISSING_FLOW_TYPE: "tabs.dfd.validation.df.pull.missingFlowType",
@@ -104,6 +107,18 @@ export const ValidationMessages = {
   // ── Threat Analysis ─────────────────────────────────────────────────────
   DF_PROP_EXCLUDE_MISSING_RATIONALE:
     "tabs.dfd.validation.df.prop.excludeMissingRationale",
+
+  // ── Label ↔ Property Semantic Validation ───────────────────────────────
+  DF_LP_VERB_DIRECTION_CONFLICT:
+    "tabs.dfd.validation.df.label_property.verb_direction_conflict",
+  DF_LP_TAG_FREQUENCY_MISMATCH:
+    "tabs.dfd.validation.df.label_property.tag_frequency_mismatch",
+  DF_LP_TAG_MESSAGETYPE_MISMATCH:
+    "tabs.dfd.validation.df.label_property.tag_message_type_mismatch",
+  DF_LP_ELECTRICAL_PULL_VERB:
+    "tabs.dfd.validation.df.label_property.electrical_pull_verb",
+  DF_LP_WRITE_TARGET_NOT_DATASTORE:
+    "tabs.dfd.validation.df.label_property.write_target_not_datastore",
 } as const;
 
 /**

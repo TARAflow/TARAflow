@@ -59,38 +59,48 @@
         "atLeastOneSecurityGoal": "At least one security goal required",
         "df": {
           "label": {
-            "empty": "{{name}} — empty or unparseable label",
-            "deprecatedVerb": "{{name}} — deprecated verb, replace 'send'/'recv' with 'push' or 'pull'",
-            "unknownVerb": "{{name}} — unknown verb (valid verbs: pull, push, write, stream)",
-            "missingObject": "{{name}} — missing object, expected format '<verb> <object> [<flow-type>]'"
+            "empty": "{{detail}} — empty or unparseable label",
+            "deprecatedVerb": "{{detail}} — deprecated verb, replace 'send'/'recv' with 'push' or 'pull'",
+            "unknownVerb": "{{detail}} — unknown verb (valid: pull, push, write, stream)",
+            "missingObject": "{{detail}} — missing object, expected format '<verb> <object> [<flow-type>]'",
+            "multipleTags": "{{detail}} — only one [flow-type] tag allowed per flow",
+            "synonymVerb": "{{detail}} — not permitted; use 'pull' instead of read/fetch/query, 'push' instead of emit/notify/publish/receive",
+            "objectEmbeddedVerb": "{{detail}} — object must not start with a verb; use a domain-oriented noun instead"
+          },
+          "label_property": {
+            "verb_direction_conflict": "Verb conflicts with flow direction",
+            "tag_frequency_mismatch": "Frequency mismatch — [{{combo}}] expects {{expected}}, got {{got}}",
+            "tag_message_type_mismatch": "Message type mismatch — {{combo}} expects {{expected}}, got {{got}}",
+            "electrical_pull_verb": "Protocol conflict — '{{protocol}}' is unidirectional, pull is not applicable",
+            "write_target_not_datastore": "Invalid write target — '{{targetName}}' is a {{targetType}}, expected DataStore"
           },
           "pull": {
-            "missingFlowType": "{{name}} — pull requires a flow-type: [req], [resp], or [req_resp]",
-            "invalidFlowType": "{{name}} — invalid flow-type for pull (valid: [req], [resp], [req_resp])",
-            "missingResponse": "{{name}} — no matching pull [resp] found for this pull [req]",
-            "multipleResponses": "{{name}} — multiple pull [resp] found, expected exactly one",
-            "orphanedResponse": "{{name}} — orphaned pull [resp], no matching pull [req] found"
+            "missingFlowType": "{{detail}} — pull requires a flow-type: [req], [resp], or [req_resp]",
+            "invalidFlowType": "{{detail}} — invalid flow-type for pull (valid: [req], [resp], [req_resp])",
+            "missingResponse": "{{detail}} — no matching pull [resp] found for this pull [req]",
+            "multipleResponses": "{{detail}} — multiple pull [resp] found, expected exactly one",
+            "orphanedResponse": "{{detail}} — orphaned pull [resp], no matching pull [req] found"
           },
           "push": {
-            "missingCmd": "{{name}} — push requires a flow-type: [cmd], [event], or [event_ack]",
-            "missingFlowType": "{{name}} — push requires a flow-type: [cmd], [event], or [event_ack]",
-            "invalidFlowType": "{{name}} — invalid flow-type for push (valid: [cmd], [event], [event_ack])"
+            "missingCmd": "{{detail}} — push requires a flow-type: [cmd], [event], or [event_ack]",
+            "missingFlowType": "{{detail}} — push requires a flow-type: [cmd], [event], or [event_ack]",
+            "invalidFlowType": "{{detail}} — invalid flow-type for push (valid: [cmd], [event], [event_ack])"
           },
           "write": {
-            "redundantFlowType": "{{name}} — write must not carry a flow-type or annotation"
+            "redundantFlowType": "{{detail}} — write must not carry a flow-type or annotation"
           },
           "stream": {
-            "invalidFlowType": "{{name}} — invalid flow-type for stream (only [stream] is allowed, or omit entirely)",
-            "logicalAnnotationForbidden": "{{name}} — stream flows may not use logical annotations ([req_resp], [event_ack] are semantically incompatible with stream)"
+            "invalidFlowType": "{{detail}} — invalid flow-type for stream (only [stream] is allowed, or omit entirely)",
+            "logicalAnnotationForbidden": "{{detail}} — stream flows may not use logical annotations ([req_resp], [event_ack] are semantically incompatible with stream)"
           },
           "reqResp": {
-            "duplicateCoverage": "{{name}} — [req_resp] coexists with an explicit [req] or [resp] on the same interaction; remove one to avoid duplicate threat coverage"
+            "duplicateCoverage": "{{detail}} — [req_resp] coexists with an explicit [req] or [resp] on the same interaction; remove one to avoid duplicate threat coverage"
           },
           "eventAck": {
-            "duplicateCoverage": "{{name}} — [event_ack] coexists with an explicit [event] on the same flow; remove one to avoid duplicate threat coverage"
+            "duplicateCoverage": "{{detail}} — [event_ack] coexists with an explicit [event] on the same flow; remove one to avoid duplicate threat coverage"
           },
           "object": {
-            "forbiddenTerm": "{{name}} — object contains a transport or encoding term ({{terms}}); use a domain-oriented name instead"
+            "forbiddenTerm": "{{detail}} — object contains a transport or encoding term ({{terms}}); use a domain-oriented name instead"
           },
           "prop": {
             "bidirectionalForbidden": "{{name}} — bidirectional flows are forbidden, model as two unidirectional flows",
@@ -105,7 +115,8 @@
             "excludeMissingRationale": "DataFlow {{context}}: excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
             "protocolMissing": "{{name}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
           }
-        }
+        },
+        "label_property": {}
       },
       "descriptionView": {
         "title": "DFD Element Descriptions"

@@ -50,6 +50,7 @@ interface BaseNotification {
 interface ValidationNotification extends BaseNotification {
   type: "error" | "warning";
   message: string;
+  displayId?: string;
 }
 
 interface SecurityNotification extends BaseNotification {
@@ -118,17 +119,80 @@ function useValidationTranslation() {
   const { t } = useTranslation();
 
   const translateMessage = (message: string): string => {
+    // ── Neues Format: KEY|displayId|...  (LP-Validator) ─────────────────────
+    if (message.includes("|")) {
+      const parts = message.split("|");
+      const key = parts[0];
+      // parts[1] = displayId — wird als Chip gerendert, nicht in t()
+
+      // LP-2: KEY|displayId|tag|expected,csv|got
+      // LP-3: KEY|displayId|verbTag|expected,csv|got
+      if (parts.length === 5) {
+        const combo = parts[2];
+        const expected = parts[3]
+          .split(",")
+          .map((v) =>
+            t(
+              `tabs.dfd.element_description.dataflow.fields.messageType.options.${v}`,
+              { defaultValue: v },
+            ),
+          )
+          .join(", ");
+        const got = t(
+          `tabs.dfd.element_description.dataflow.fields.messageType.options.${parts[4]}`,
+          {
+            defaultValue: parts[4],
+          },
+        );
+        return t(key, {
+          combo,
+          expected,
+          got,
+          defaultValue: `${combo}: expected ${expected}, got ${got}`,
+        });
+      }
+
+      // LP-4: KEY|displayId|protocol
+      if (parts.length === 3) {
+        return t(key, {
+          protocol: parts[2],
+          name: parts[2],
+          defaultValue: parts[2],
+        });
+      }
+
+      // LP-5: KEY|displayId|targetName|targetType
+      if (parts.length === 4) {
+        const targetName = parts[2];
+        const targetType = t(`dfdValidation.elementTypes.${parts[3]}`, {
+          defaultValue: parts[3],
+        });
+        return t(key, {
+          targetName,
+          targetType,
+          defaultValue: `${targetName} (${targetType})`,
+        });
+      }
+
+      // Fallback: unbekanntes LP-Format
+      return t(key, { defaultValue: parts.slice(2).join(" — ") });
+    }
+
+    // ── Bestehendes Format: KEY  oder  KEY:name  oder  KEY:type:name ─────────
     const parts = message.split(":");
     const key = parts[0];
+
     if (parts.length === 1) return t(key);
+
     if (parts.length === 2) return t(key, { name: parts[1] });
+
     if (parts.length === 3) {
-      const translatedType = t(
-        `dfdValidation.elementTypes.${parts[1]}`,
-        parts[1],
-      );
+      const translatedType = t(`dfdValidation.elementTypes.${parts[1]}`, {
+        defaultValue: parts[1],
+      });
       return t(key, { type: translatedType, name: parts[2] });
     }
+
     return message;
   };
 
@@ -147,18 +211,22 @@ function buildNotifications(
   const notifications: Notification[] = [];
 
   (validation?.errors ?? []).forEach((msg, idx) => {
+    const displayId = msg.includes("|") ? msg.split("|")[1] : undefined;
     notifications.push({
       key: `error:${idx}:${msg}`,
       type: "error",
       message: msg,
+      displayId,
     });
   });
 
   (validation?.warnings ?? []).forEach((msg, idx) => {
+    const displayId = msg.includes("|") ? msg.split("|")[1] : undefined;
     notifications.push({
       key: `warning:${idx}:${msg}`,
       type: "warning",
       message: msg,
+      displayId,
     });
   });
 
@@ -421,6 +489,8 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
 
 // ==================== VALIDATION ROW ====================
 
+// ==================== VALIDATION ROW ====================
+
 interface ValidationRowProps {
   notification: ValidationNotification;
   translateMessage: (msg: string) => string;
@@ -441,6 +511,8 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
       borderColor: "divider",
       "&:last-child": { borderBottom: "none" },
       bgcolor: notification.type === "error" ? "error.50" : "warning.50",
+      flexWrap: "nowrap",
+      minWidth: 0,
     }}
   >
     {notification.type === "error" ? (
@@ -452,7 +524,23 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
         sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
       />
     )}
-    <Typography variant="caption" sx={{ color: "text.primary" }}>
+
+    {/* displayId-Chip — nur bei LP-Meldungen im |KEY|displayId|detail Format */}
+    {notification.displayId && (
+      <Chip
+        label={notification.displayId}
+        size="small"
+        variant="outlined"
+        color={notification.type === "error" ? "error" : "warning"}
+        sx={{ height: 16, fontSize: "0.6rem", flexShrink: 0 }}
+      />
+    )}
+
+    <Typography
+      variant="caption"
+      sx={{ color: "text.primary", minWidth: 0 }}
+      noWrap
+    >
       {translateMessage(notification.message)}
     </Typography>
   </Box>

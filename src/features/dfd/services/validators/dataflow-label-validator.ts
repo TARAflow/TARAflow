@@ -15,6 +15,7 @@
 //   stream → Continuous data flow — [stream] optional; logical annotations forbidden (error)
 //
 // Deprecated verbs → ERROR: send, recv
+// Synonym verbs    → ERROR: read, fetch, query, emit, notify, publish, receive
 //
 // Duplication checks (Option B — compact notations are valid standalone):
 //   D1: pull [req_resp] + pull [req]    same direction same object → WARNING
@@ -24,15 +25,23 @@
 // Object rules:
 //   - Must be present (error if missing)
 //   - MUST NOT contain transport/encoding terms → WARNING
+//   - MUST NOT begin with a verb → WARNING
 //   - Canonical identity: lowercase, strip HTML, normalize whitespace
 //
-// Message format: `${ValidationMessages.KEY}:${context}`
-//   context = "DF-3 — read safety params [req]"
-//   Uses em dash (—) not colon to avoid breaking the KEY:name split
-//   in dfd-validation-panel.tsx translateMessage().
+// Hard Invariant 2:
+//   A flow may carry either a physical flow-type OR a logical annotation — not both.
+//   Multiple [...] tags → ERROR
+//
+// Message format: `${ValidationMessages.KEY}|${displayId}|${detail}`
+//   displayId = "DF-3"                        — rendered as Chip in notification panel
+//   detail    = "read safety params [req]"    — human-readable context for translated message
+//   The | separator avoids conflict with the i18next namespace separator (:)
+//   and allows the panel to extract displayId without regex.
 
+import type { DFDElement } from "../../models/dfd-types";
 import type { DFDConnection } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
+import { validateDataflowLabelProperties } from "./dataflow-label-property-validator";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,12 +52,14 @@ interface ParsedLabel {
   verb: string;
   object: string;
   flowType: string | null;
+  extraTags: string[]; // additional [...] tags beyond the last one — Hard Invariant 2
   parseable: boolean;
 }
 
 interface ParsedConnection {
   conn: DFDConnection;
-  context: string;
+  displayId: string; // "DF-3" — for Chip rendering in notification panel
+  detail: string; // "read safety params [req]" — for message text
   parsed: ParsedLabel;
 }
 
@@ -59,7 +70,22 @@ interface ParsedConnection {
 const VALID_VERBS = ["pull", "push", "write", "stream"] as const;
 type ValidVerb = (typeof VALID_VERBS)[number];
 
+/** Formerly used verbs — replaced by pull/push */
 const DEPRECATED_VERBS = ["send", "recv"] as const;
+
+/**
+ * Common synonyms explicitly forbidden by the convention.
+ * Provide a targeted hint toward the correct verb.
+ */
+const SYNONYM_VERBS = [
+  "read",
+  "fetch",
+  "query",
+  "emit",
+  "notify",
+  "publish",
+  "receive",
+] as const;
 
 const VALID_FLOW_TYPES_PULL = ["req", "resp", "req_resp"] as const;
 const VALID_FLOW_TYPES_PUSH = ["cmd", "event", "event_ack"] as const;
@@ -77,13 +103,28 @@ const FORBIDDEN_OBJECT_TERMS = [
   "buffer",
 ] as const;
 
+/**
+ * Verbs that must not appear as the first word of the object.
+ * Covers all deprecated, synonym, and valid verbs to catch
+ * patterns like "get vehicle state", "send data", "push config".
+ */
+const OBJECT_FORBIDDEN_START_VERBS = [
+  // valid verbs
+  "pull", "push", "write", "stream",
+  // deprecated
+  "send", "recv",
+  // synonyms
+  "read", "fetch", "query", "emit", "notify", "publish", "receive",
+  // other common embedded verbs from the convention doc
+  "get", "set",
+] as const;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function buildContext(conn: DFDConnection): string {
-  const name = conn.name || `(unnamed DF ${conn.id})`;
-  return conn.displayId ? `${conn.displayId} \u2014 ${name}` : name;
+function buildDetail(conn: DFDConnection): string {
+  return conn.name || `(unnamed DF ${conn.id})`;
 }
 
 function parseLabel(raw: string): ParsedLabel {
@@ -93,21 +134,35 @@ function parseLabel(raw: string): ParsedLabel {
     .trim();
 
   if (!trimmed) {
-    return { raw, verb: "", object: "", flowType: null, parseable: false };
+    return {
+      raw,
+      verb: "",
+      object: "",
+      flowType: null,
+      extraTags: [],
+      parseable: false,
+    };
   }
 
-  const flowTypeMatch = trimmed.match(/\[([^\]]+)\]\s*$/);
-  const flowType = flowTypeMatch
-    ? flowTypeMatch[1].toLowerCase().trim()
-    : null;
+  // Collect ALL [...] tags at the end of the string, right to left
+  const allTags: string[] = [];
+  let rest = trimmed;
+  const tagPattern = /\[([^\]]+)\]\s*$/;
 
-  const withoutFlowType = flowTypeMatch
-    ? trimmed.slice(0, flowTypeMatch.index).trim()
-    : trimmed;
+  let match = rest.match(tagPattern);
+  while (match) {
+    allTags.unshift(match[1].toLowerCase().trim());
+    rest = rest.slice(0, match.index).trim();
+    match = rest.match(tagPattern);
+  }
 
-  const tokens = withoutFlowType.split(/\s+/);
+  // Last tag = flowType, any preceding tags = extraTags (Hard Invariant 2)
+  const flowType = allTags.length > 0 ? allTags[allTags.length - 1] : null;
+  const extraTags = allTags.slice(0, allTags.length - 1);
+
+  const tokens = rest.split(/\s+/);
   if (!tokens[0]) {
-    return { raw, verb: "", object: "", flowType, parseable: false };
+    return { raw, verb: "", object: "", flowType, extraTags, parseable: false };
   }
 
   return {
@@ -115,6 +170,7 @@ function parseLabel(raw: string): ParsedLabel {
     verb: tokens[0].toLowerCase(),
     object: tokens.slice(1).join(" ").trim(),
     flowType,
+    extraTags,
     parseable: true,
   };
 }
@@ -134,6 +190,7 @@ function normalizeObject(obj: string): string {
 
 export function validateDataflowLabels(
   connections: DFDConnection[],
+  elements: DFDElement[],
   errors: string[],
   warnings: string[],
 ): void {
@@ -145,32 +202,55 @@ export function validateDataflowLabels(
 
   const parsed: ParsedConnection[] = dataflows.map((conn) => ({
     conn,
-    context: buildContext(conn),
+    displayId: conn.displayId ?? conn.id,
+    detail: buildDetail(conn),
     parsed: parseLabel(conn.name || ""),
   }));
 
-  for (const { context, parsed: p } of parsed) {
+  for (const { displayId, detail, parsed: p } of parsed) {
     if (!p.parseable || !p.verb) {
-      warnings.push(`${ValidationMessages.DF_EMPTY_LABEL}:${context}`);
-      continue;
-    }
-
-    if ((DEPRECATED_VERBS as readonly string[]).includes(p.verb)) {
-      errors.push(
-        `${ValidationMessages.DF_DEPRECATED_VERB}:${context} [${p.verb}]`,
+      warnings.push(
+        `${ValidationMessages.DF_EMPTY_LABEL}|${displayId}|${detail}`,
       );
       continue;
     }
 
+    // Hard Invariant 2: only one [...] tag allowed
+    if (p.extraTags.length > 0) {
+      errors.push(
+        `${ValidationMessages.DF_MULTIPLE_TAGS}|${displayId}|${detail} \u2014 [${p.extraTags.join("], [")}]`,
+      );
+      continue;
+    }
+
+    // Deprecated: send / recv
+    if ((DEPRECATED_VERBS as readonly string[]).includes(p.verb)) {
+      errors.push(
+        `${ValidationMessages.DF_DEPRECATED_VERB}|${displayId}|${detail} \u2014 "${p.verb}"`,
+      );
+      continue;
+    }
+
+    // Synonym: read, fetch, query, emit, notify, publish, receive
+    if ((SYNONYM_VERBS as readonly string[]).includes(p.verb)) {
+      errors.push(
+        `${ValidationMessages.DF_SYNONYM_VERB}|${displayId}|${detail} \u2014 "${p.verb}"`,
+      );
+      continue;
+    }
+
+    // Fully unknown verb
     if (!(VALID_VERBS as readonly string[]).includes(p.verb)) {
       errors.push(
-        `${ValidationMessages.DF_UNKNOWN_VERB}:${context} [${p.verb}]`,
+        `${ValidationMessages.DF_UNKNOWN_VERB}|${displayId}|${detail} \u2014 "${p.verb}"`,
       );
       continue;
     }
 
     if (!p.object) {
-      errors.push(`${ValidationMessages.DF_MISSING_OBJECT}:${context}`);
+      errors.push(
+        `${ValidationMessages.DF_MISSING_OBJECT}|${displayId}|${detail}`,
+      );
       continue;
     }
 
@@ -178,13 +258,13 @@ export function validateDataflowLabels(
       case "pull":
         if (p.flowType === null) {
           errors.push(
-            `${ValidationMessages.DF_PULL_MISSING_FLOW_TYPE}:${context}`,
+            `${ValidationMessages.DF_PULL_MISSING_FLOW_TYPE}|${displayId}|${detail}`,
           );
         } else if (
           !(VALID_FLOW_TYPES_PULL as readonly string[]).includes(p.flowType)
         ) {
           errors.push(
-            `${ValidationMessages.DF_PULL_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
+            `${ValidationMessages.DF_PULL_INVALID_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
           );
         }
         break;
@@ -192,13 +272,13 @@ export function validateDataflowLabels(
       case "push":
         if (p.flowType === null) {
           errors.push(
-            `${ValidationMessages.DF_PUSH_MISSING_FLOW_TYPE}:${context}`,
+            `${ValidationMessages.DF_PUSH_MISSING_FLOW_TYPE}|${displayId}|${detail}`,
           );
         } else if (
           !(VALID_FLOW_TYPES_PUSH as readonly string[]).includes(p.flowType)
         ) {
           errors.push(
-            `${ValidationMessages.DF_PUSH_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
+            `${ValidationMessages.DF_PUSH_INVALID_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
           );
         }
         break;
@@ -206,7 +286,7 @@ export function validateDataflowLabels(
       case "write":
         if (p.flowType !== null) {
           errors.push(
-            `${ValidationMessages.DF_WRITE_REDUNDANT_FLOW_TYPE}:${context} [${p.flowType}]`,
+            `${ValidationMessages.DF_WRITE_REDUNDANT_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
           );
         }
         break;
@@ -215,11 +295,11 @@ export function validateDataflowLabels(
         if (p.flowType !== null && p.flowType !== "stream") {
           if (p.flowType === "req_resp" || p.flowType === "event_ack") {
             errors.push(
-              `${ValidationMessages.DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN}:${context} [${p.flowType}]`,
+              `${ValidationMessages.DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN}|${displayId}|${detail} [${p.flowType}]`,
             );
           } else {
             errors.push(
-              `${ValidationMessages.DF_STREAM_INVALID_FLOW_TYPE}:${context} [${p.flowType}]`,
+              `${ValidationMessages.DF_STREAM_INVALID_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
             );
           }
         }
@@ -231,6 +311,9 @@ export function validateDataflowLabels(
   validateReqRespDuplication(parsed, warnings);
   validateEventAckDuplication(parsed, warnings);
   validateObjectForbiddenTerms(parsed, warnings);
+  validateObjectEmbeddedVerb(parsed, warnings);
+  // Phase 2
+  validateDataflowLabelProperties(connections, elements, errors, warnings);
 }
 
 // ---------------------------------------------------------------------------
@@ -259,11 +342,11 @@ function validatePullPairs(
     );
     if (matches.length === 0) {
       warnings.push(
-        `${ValidationMessages.DF_PULL_MISSING_RESPONSE}:${req.context}`,
+        `${ValidationMessages.DF_PULL_MISSING_RESPONSE}|${req.displayId}|${req.detail}`,
       );
     } else if (matches.length > 1) {
       warnings.push(
-        `${ValidationMessages.DF_PULL_MULTIPLE_RESPONSES}:${req.context}`,
+        `${ValidationMessages.DF_PULL_MULTIPLE_RESPONSES}|${req.displayId}|${req.detail}`,
       );
     }
   }
@@ -278,7 +361,7 @@ function validatePullPairs(
     );
     if (matches.length === 0) {
       errors.push(
-        `${ValidationMessages.DF_PULL_ORPHANED_RESPONSE}:${resp.context}`,
+        `${ValidationMessages.DF_PULL_ORPHANED_RESPONSE}|${resp.displayId}|${resp.detail}`,
       );
     }
   }
@@ -323,12 +406,12 @@ function validateReqRespDuplication(
 
     if (conflictingReq) {
       warnings.push(
-        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}:${rr.context} \u2014 conflicts with ${conflictingReq.context}`,
+        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}|${rr.displayId}|${rr.detail} \u2014 conflicts with ${conflictingReq.displayId} ${conflictingReq.detail}`,
       );
     }
     if (conflictingResp) {
       warnings.push(
-        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}:${rr.context} \u2014 conflicts with ${conflictingResp.context}`,
+        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}|${rr.displayId}|${rr.detail} \u2014 conflicts with ${conflictingResp.displayId} ${conflictingResp.detail}`,
       );
     }
   }
@@ -364,7 +447,7 @@ function validateEventAckDuplication(
 
     if (conflictingEvent) {
       warnings.push(
-        `${ValidationMessages.DF_EVENT_ACK_DUPLICATE_COVERAGE}:${ea.context} \u2014 conflicts with ${conflictingEvent.context}`,
+        `${ValidationMessages.DF_EVENT_ACK_DUPLICATE_COVERAGE}|${ea.displayId}|${ea.detail} \u2014 conflicts with ${conflictingEvent.displayId} ${conflictingEvent.detail}`,
       );
     }
   }
@@ -379,7 +462,7 @@ function validateObjectForbiddenTerms(
   parsed: ParsedConnection[],
   warnings: string[],
 ): void {
-  for (const { context, parsed: p } of parsed) {
+  for (const { displayId, detail, parsed: p } of parsed) {
     if (!p.parseable || !p.object) continue;
 
     const tokens = normalizeObject(p.object).split(/\s+/);
@@ -389,7 +472,32 @@ function validateObjectForbiddenTerms(
 
     if (found.length > 0) {
       warnings.push(
-        `${ValidationMessages.DF_OBJECT_FORBIDDEN_TERM}:${context} | terms: ${found.join(", ")}`,
+        `${ValidationMessages.DF_OBJECT_FORBIDDEN_TERM}|${displayId}|${detail} \u2014 terms: ${found.join(", ")}`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Object embedded-verb validation
+// First word of object must not be a verb. Severity: warning.
+// Catches: "get vehicle state", "send data", "push config" etc.
+// ---------------------------------------------------------------------------
+
+function validateObjectEmbeddedVerb(
+  parsed: ParsedConnection[],
+  warnings: string[],
+): void {
+  for (const { displayId, detail, parsed: p } of parsed) {
+    if (!p.parseable || !p.object) continue;
+
+    const firstToken = normalizeObject(p.object).split(/\s+/)[0];
+
+    if (
+      (OBJECT_FORBIDDEN_START_VERBS as readonly string[]).includes(firstToken)
+    ) {
+      warnings.push(
+        `${ValidationMessages.DF_OBJECT_EMBEDDED_VERB}|${displayId}|${detail} \u2014 "${firstToken}"`,
       );
     }
   }

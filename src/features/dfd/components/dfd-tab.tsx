@@ -751,7 +751,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       />
     </Box>
   );
-};;;;;;;;
+}
 
 // ==================== SUB-COMPONENTS ====================
 
