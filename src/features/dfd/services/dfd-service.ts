@@ -516,40 +516,47 @@ class DFDService {
   validateCurrentState(project: DFDProjectData): ValidationResult {
     const adapter = createDFDStorageAdapter(project.id);
     adapter.syncFromLegacy();
-
     const xml = adapter.getXml();
     const { elements, connections, assets, stats, unconnectedDataflows } =
       this.parser.parse(xml || "");
 
-    // Merge properties from project.dfd.connections — XML parsing strips them
     const mergedConnections = this.mergeConnectionProperties(
       connections,
       project.dfd?.connections || [],
     );
-
     const mergedElements = this.mergeElementProperties(
       elements,
       project.dfd?.elements || [],
+    );
+
+    // NEU — Assets aus project.dfd mergen und linkedElements syncen
+    const mergedAssets = this.mergeAssetProperties(
+      assets,
+      project.dfd?.assets || [],
+    );
+    const syncedAssets = this.syncAssetLinkedElements(
+      mergedElements,
+      mergedConnections,
+      mergedAssets,
     );
 
     const graphBuilder = new DefaultDFDGraphBuilder();
     const graph = graphBuilder.build({
       elements: mergedElements,
       connections: mergedConnections,
-      assets,
+      assets: syncedAssets, // NEU
     });
 
     return this.validator.validate(
       mergedElements,
       mergedConnections,
-      assets,
+      syncedAssets, // NEU — statt assets
       stats,
-      {
-        unconnectedDataflows,
-      },
+      { unconnectedDataflows },
       graph,
     );
   }
+
 
   /**
    * Get current DFD stats

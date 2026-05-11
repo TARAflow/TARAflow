@@ -59,10 +59,10 @@
         "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich",
         "df": {
           "label": {
-            "empty": "{{name}} — leeres oder nicht auswertbares Label",
-            "deprecatedVerb": "{{name}} — veraltetes Verb; 'send'/'recv' durch 'push' oder 'pull' ersetzen",
-            "unknownVerb": "{{name}} — unbekanntes Verb (gültig: pull, push, write, stream)",
-            "missingObject": "{{name}} — fehlendes Objekt, erwartetes Format: '<verb> <objekt> [<flow-type>]'"
+            "empty": "{{detail}} — leeres oder nicht auswertbares Label",
+            "deprecatedVerb": "{{detail}} — veraltetes Verb; 'send'/'recv' durch 'push' oder 'pull' ersetzen",
+            "unknownVerb": "{{detail}} — unbekanntes Verb (gültig: pull, push, write, stream)",
+            "missingObject": "{{detail}} — fehlendes Objekt, erwartetes Format: '<verb> <objekt> [<flow-type>]'"
           },
           "label_property": {
             "verb_direction_conflict": "Verb widerspricht der Flussrichtung",
@@ -72,45 +72,45 @@
             "write_target_not_datastore": "Ungültiges Schreibziel — '{{targetName}}' ist ein {{targetType}}, erwartet wird ein Datenspeicher"
           },
           "pull": {
-            "missingFlowType": "{{name}} — pull erfordert einen Flow-Typ: [req], [resp] oder [req_resp]",
-            "invalidFlowType": "{{name}} — ungültiger Flow-Typ für pull (gültig: [req], [resp], [req_resp])",
-            "missingResponse": "{{name}} — kein passendes pull [resp] für dieses pull [req] gefunden",
-            "multipleResponses": "{{name}} — mehrere pull [resp] gefunden, erwartet wird genau eines",
-            "orphanedResponse": "{{name}} — verwaistes pull [resp]: kein passendes pull [req] gefunden"
+            "missingFlowType": "{{detail}} — pull erfordert einen Flow-Typ: [req], [resp] oder [req_resp]",
+            "invalidFlowType": "{{detail}} — ungültiger Flow-Typ für pull (gültig: [req], [resp], [req_resp])",
+            "missingResponse": "{{detail}} — kein passendes pull [resp] für dieses pull [req] gefunden",
+            "multipleResponses": "{{detail}} — mehrere pull [resp] gefunden, erwartet wird genau eines",
+            "orphanedResponse": "{{detail}} — verwaistes pull [resp]: kein passendes pull [req] gefunden"
           },
           "push": {
-            "missingCmd": "{{name}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
-            "missingFlowType": "{{name}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
-            "invalidFlowType": "{{name}} — ungültiger Flow-Typ für push (gültig: [cmd], [event], [event_ack])"
+            "missingCmd": "{{detail}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
+            "missingFlowType": "{{detail}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
+            "invalidFlowType": "{{detail}} — ungültiger Flow-Typ für push (gültig: [cmd], [event], [event_ack])"
           },
           "write": {
-            "redundantFlowType": "{{name}} — write darf keinen Flow-Typ oder Annotation tragen"
+            "redundantFlowType": "{{detail}} — write darf keinen Flow-Typ oder Annotation tragen"
           },
           "stream": {
-            "invalidFlowType": "{{name}} — ungültiger Flow-Typ für stream (nur [stream] erlaubt oder weglassen)",
-            "logicalAnnotationForbidden": "{{name}} — stream-Flows dürfen keine logischen Annotationen tragen ([req_resp], [event_ack] sind semantisch inkompatibel mit stream)"
+            "invalidFlowType": "{{detail}} — ungültiger Flow-Typ für stream (nur [stream] erlaubt oder weglassen)",
+            "logicalAnnotationForbidden": "{{detail}} — stream-Flows dürfen keine logischen Annotationen tragen ([req_resp], [event_ack] sind semantisch inkompatibel mit stream)"
           },
           "reqResp": {
-            "duplicateCoverage": "{{name}} — [req_resp] und ein explizites [req] oder [resp] für dieselbe Interaktion gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
+            "duplicateCoverage": "{{detail}} — [req_resp] und ein explizites [req] oder [resp] für dieselbe Interaktion gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
           },
           "eventAck": {
-            "duplicateCoverage": "{{name}} — [event_ack] und ein explizites [event] auf demselben Flow gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
+            "duplicateCoverage": "{{detail}} — [event_ack] und ein explizites [event] auf demselben Flow gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
           },
           "object": {
-            "forbiddenTerm": "{{name}} — Objekt enthält einen Transport- oder Kodierungsbegriff ({{terms}}); domänenorientierten Namen verwenden"
+            "forbiddenTerm": "{{detail}} — Objekt enthält einen Transport- oder Kodierungsbegriff ({{terms}}); domänenorientierten Namen verwenden"
           },
           "prop": {
-            "bidirectionalForbidden": "{{name}} — bidirektionale Flows sind verboten; als zwei unidirektionale Flows modellieren",
-            "pullNotReqResp": "{{name}} — pull erfordert die Richtung 'Request-Response'; Eigenschaft Direction anpassen",
-            "pushIsReqResp": "{{name}} — push ist Fire-and-Forget; 'Request-Response'-Richtung widerspricht der push-Semantik",
-            "pushWrongDirection": "{{name}} — push erfordert die Richtung 'Unidirektional'; Eigenschaft Direction anpassen",
-            "writeIsReqResp": "{{name}} — write ist eine Einweg-Operation; 'Request-Response'-Richtung widerspricht der write-Semantik",
-            "writeNotDatastore": "{{name}} — write mit Nicht-Datastore-Protokoll; prüfen ob der Flow auf einen Data Store zeigt (erwartet: database oder file)",
-            "streamNotContinuous": "{{name}} — stream erfordert kontinuierliche Frequenz; Eigenschaft Frequency anpassen",
-            "streamIsReqResp": "{{name}} — stream ist unidirektional; 'Request-Response'-Richtung ist für stream unerwartet",
-            "continuousUseStream": "{{name}} — kontinuierlicher push/pull erkannt; 'stream' in Betracht ziehen",
-            "excludeMissingRationale": "Datenfluss {{context}}: von der Threat-Generierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1 Audit-Trail ergänzen",
-            "protocolMissing": "{{name}} — Transportprotokoll nicht angegeben; für die Threat-Analyse als unbekannt / höchstes Risiko behandeln"
+            "bidirectionalForbidden": "{{detail}} — bidirektionale Flows sind verboten; als zwei unidirektionale Flows modellieren",
+            "pullNotReqResp": "{{detail}} — pull erfordert die Richtung 'Request-Response'; Eigenschaft Direction anpassen",
+            "pushIsReqResp": "{{detail}} — push ist Fire-and-Forget; 'Request-Response'-Richtung widerspricht der push-Semantik",
+            "pushWrongDirection": "{{detail}} — push erfordert die Richtung 'Unidirektional'; Eigenschaft Direction anpassen",
+            "writeIsReqResp": "{{detail}} — write ist eine Einweg-Operation; 'Request-Response'-Richtung widerspricht der write-Semantik",
+            "writeNotDatastore": "{{detail}} — write mit Nicht-Datastore-Protokoll; prüfen ob der Flow auf einen Data Store zeigt (erwartet: database oder file)",
+            "streamNotContinuous": "{{detail}} — stream erfordert kontinuierliche Frequenz; Eigenschaft Frequency anpassen",
+            "streamIsReqResp": "{{detail}} — stream ist unidirektional; 'Request-Response'-Richtung ist für stream unerwartet",
+            "continuousUseStream": "{{detail}} — kontinuierlicher push/pull erkannt; 'stream' in Betracht ziehen",
+            "excludeMissingRationale": "Datenfluss {{detail}} — von der Threat-Generierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1 Audit-Trail ergänzen",
+            "protocolMissing": "{{detail}} — Transportprotokoll nicht angegeben; für die Threat-Analyse als unbekannt / höchstes Risiko behandeln"
           }
         }
       },
@@ -1486,13 +1486,12 @@
     "unconnectedDataflow": "Datenfluss \"{{name}}\" ist nicht mit Elementen verbunden",
     "invalidDataflowSource": "Datenfluss \"{{name}}\" hat eine ungültige Quelle",
     "invalidDataflowTarget": "Datenfluss \"{{name}}\" hat ein ungültiges Ziel",
-    "assetNotPlaced": "Asset \"{{name}}\" ist nicht auf einem gültigen Element platziert (Prozess, Multiprozess, Datenspeicher oder Datenfluss)",
     "interfaceUnused": "Interface \"{{name}}\" wird von keinem Datenfluss durchquert",
     "elementDefaultName": "Element \"{{name}}\" hat einen Standard-/Platzhaltername. Bitte geben Sie einen aussagekräftigen Namen ein.",
     "elementMissingIdLabel": "Element \"{{name}}\" hat kein ID-Label. Bitte fügen Sie ein ID-Label hinzu (z.B. [P-1], [EE-1], [DF-1]).",
     "duplicateIdLabel": "ID-Label \"{{id}}\" wird mehrfach verwendet. Jedes Element sollte eine eindeutige ID haben.",
-    "assetMarkerNoRelation": "Das Asset hat keine zugeordnete Beziehung",
-    "assetRelationInconsistent": "Die Beziehung des Assets ist inkonsistent",
+    "assetRelationInconsistent": "Asset \"{{detail}}\" nicht gefunden",
+    "assetRelationTypeInvalid": "Relation \"{{relationType}}\" zu \"{{assetName}}\" nicht erlaubt für {{elementType}}",
     "elementTypes": {
       "Process": "Prozess",
       "Multiprocess": "Multiprozess",

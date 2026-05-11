@@ -124,6 +124,7 @@ function useValidationTranslation() {
       const parts = message.split("|");
       const key = parts[0];
       // parts[1] = displayId — wird als Chip gerendert, nicht in t()
+      const detail = parts[2] ?? "";
 
       // LP-2: KEY|displayId|tag|expected,csv|got
       // LP-3: KEY|displayId|verbTag|expected,csv|got
@@ -140,24 +141,25 @@ function useValidationTranslation() {
           .join(", ");
         const got = t(
           `tabs.dfd.element_description.dataflow.fields.messageType.options.${parts[4]}`,
-          {
-            defaultValue: parts[4],
-          },
+          { defaultValue: parts[4] },
         );
         return t(key, {
           combo,
           expected,
           got,
+          detail,
           defaultValue: `${combo}: expected ${expected}, got ${got}`,
         });
       }
 
       // LP-4: KEY|displayId|protocol
+      // Label-Validator simple messages: KEY|displayId|detail
       if (parts.length === 3) {
         return t(key, {
-          protocol: parts[2],
-          name: parts[2],
-          defaultValue: parts[2],
+          protocol: detail,
+          name: detail,
+          detail,
+          defaultValue: detail,
         });
       }
 
@@ -170,12 +172,14 @@ function useValidationTranslation() {
         return t(key, {
           targetName,
           targetType,
+          name: detail,
+          detail,
           defaultValue: `${targetName} (${targetType})`,
         });
       }
 
-      // Fallback: unbekanntes LP-Format
-      return t(key, { defaultValue: parts.slice(2).join(" — ") });
+      // Fallback: unbekanntes Format
+      return t(key, { detail, defaultValue: parts.slice(2).join(" — ") });
     }
 
     // ── Bestehendes Format: KEY  oder  KEY:name  oder  KEY:type:name ─────────

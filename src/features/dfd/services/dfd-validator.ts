@@ -23,7 +23,7 @@ import {
 } from "./validators/connection-validator";
 import { validateDataflowLabels } from "./validators/dataflow-label-validator";
 import { validateDataflowProperties } from "./validators/dataflow-property-validator";
-import { validateAssetsAndInterfaces } from "./validators/asset-validator";
+import { validateAssetsAndInterfaces } from "./validators/dfd-asset-validator";
 import { validateAssetRelations } from "./validators/asset-relation-validator";
 import {
   isComplete,
@@ -72,14 +72,6 @@ export class DFDValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Im Validator vor dem Aufruf
-    console.log("DfdValidator Elements:", elements);
-    console.log("DfdValidator Assets:", assets);
-    console.log(
-      "DfdValidator Trust Boundaries:",
-      elements.filter((e) => e.type === "TrustBoundary"),
-    );
-
     // Early return if no elements
     if (stats.totalElements === 0) {
       errors.push(ValidationMessages.NO_ELEMENTS);
@@ -103,13 +95,6 @@ export class DFDValidator {
     validateUnconnectedElements(elements, connections, warnings);
     validateChipBoundaryConnections(connections, elements, errors);
     validateDataflowLabels(connections, elements, errors, warnings);
-    // TEMP DEBUG
-    connections.forEach(c => {
-      const p = (c as any).properties;
-      if (p?.excludeFromThreatGen !== undefined) {
-        console.log("[Validator] DF with excludeFromThreatGen:", c.displayId, c.name, p);
-      }
-    });
     validateDataflowProperties(connections, errors, warnings);
 
     // 3. Validate Assets & Interfaces

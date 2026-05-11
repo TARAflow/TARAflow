@@ -20,35 +20,8 @@ export function validateAssetsAndInterfaces(
   // Separate interfaces from elements
   const interfaces = elements.filter((e) => e.type === "Interface");
 
-  // Validate Assets (must overlap with Process, Multiprocess, DataStore, OR Dataflow)
-  validateAssetPlacement(assets, elements, connections, warnings, dfdAnalyzer);
-
   // Validate Interfaces (must have dataflow passing through)
   validateInterfaceUsage(interfaces, warnings, graph);
-}
-
-/**
- * Validate that Assets are placed on valid elements (with partial overlap)
- */
-function validateAssetPlacement(
-  assets: DFDAsset[],
-  allElements: DFDElement[],
-  connections: DFDConnection[],
-  warnings: string[],
-  dfdAnalyzer: any,
-): void {
-  assets.forEach((asset) => {
-    // Use DFDAnalyzer to check if asset has valid placement
-    const hasValidPlacement = dfdAnalyzer.validateAssetPlacement(
-      asset,
-      allElements,
-      connections,
-    );
-
-    if (!hasValidPlacement) {
-      warnings.push(`${ValidationMessages.ASSET_NOT_PLACED}:${asset.id}`);
-    }
-  });
 }
 
 /**

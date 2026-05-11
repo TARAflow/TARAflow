@@ -226,6 +226,12 @@ function filterValidConnectionCells(cells: HTMLCollectionOf<Element>): Element[]
   Array.from(cells).forEach((cell) => {
     const id = cell.getAttribute("id") || null;
     const edge = cell.getAttribute("edge") || null;
+    const connectAble = cell.getAttribute("connectable") || null;
+
+    // Skip connection which are not connectAble
+    if (connectAble !== "1") {
+      return;
+    }
 
     // Skip cells without ID or with root IDs
     if (!id || id === "0" || id === "1") {

@@ -90,15 +90,6 @@ function buildContext(conn: DFDConnection): string {
     ? `${conn.displayId} — ${name}`
     : name;
 
-  if (conn.displayId === "DF-5") {
-    console.log("[DFD DEBUG buildContext DF-5]", {
-      id: conn.id,
-      displayId: conn.displayId,
-      name: conn.name,
-      context,
-    });
-  }
-
   return context;
 }
 

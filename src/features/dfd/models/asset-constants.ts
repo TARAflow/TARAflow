@@ -311,8 +311,8 @@ export const ALLOWED_INFRA_RELATIONS: Record<
   DFDElementType,
   InfraAssetRelationType[]
 > = {
-  Process: ["accesses", "monitors"],
-  Multiprocess: ["accesses", "monitors"],
+  Process: ["accesses", "monitors", "secures"],
+  Multiprocess: ["accesses", "monitors", "secures"],
   DataStore: ["accesses", "is_an"],
   DataFlow: ["accesses"],
   ExternalEntity: [

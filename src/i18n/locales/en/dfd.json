@@ -103,17 +103,17 @@
             "forbiddenTerm": "{{detail}} — object contains a transport or encoding term ({{terms}}); use a domain-oriented name instead"
           },
           "prop": {
-            "bidirectionalForbidden": "{{name}} — bidirectional flows are forbidden, model as two unidirectional flows",
-            "pullNotReqResp": "{{name}} — pull requires direction 'Request-Response', update the Direction property",
-            "pushIsReqResp": "{{name}} — push is fire-and-forget, 'Request-Response' direction contradicts push semantics",
-            "pushWrongDirection": "{{name}} — push requires direction 'Uni-directional', update the Direction property",
-            "writeIsReqResp": "{{name}} — write is a one-way operation, 'Request-Response' direction contradicts write semantics",
-            "writeNotDatastore": "{{name}} — write with non-datastore protocol, verify flow targets a Data Store (expected: database or file)",
-            "streamNotContinuous": "{{name}} — stream requires continuous frequency, update the Frequency property",
-            "streamIsReqResp": "{{name}} — stream is unidirectional, 'Request-Response' direction is unexpected for stream",
-            "continuousUseStream": "{{name}} — continuous push/pull detected, consider using 'stream' instead",
-            "excludeMissingRationale": "DataFlow {{context}}: excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
-            "protocolMissing": "{{name}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
+            "bidirectionalForbidden": "{{detail}} — bidirectional flows are forbidden, model as two unidirectional flows",
+            "pullNotReqResp": "{{detail}} — pull requires direction 'Request-Response', update the Direction property",
+            "pushIsReqResp": "{{detail}} — push is fire-and-forget, 'Request-Response' direction contradicts push semantics",
+            "pushWrongDirection": "{{detail}} — push requires direction 'Uni-directional', update the Direction property",
+            "writeIsReqResp": "{{detail}} — write is a one-way operation, 'Request-Response' direction contradicts write semantics",
+            "writeNotDatastore": "{{detail}} — write with non-datastore protocol, verify flow targets a Data Store (expected: database or file)",
+            "streamNotContinuous": "{{detail}} — stream requires continuous frequency, update the Frequency property",
+            "streamIsReqResp": "{{detail}} — stream is unidirectional, 'Request-Response' direction is unexpected for stream",
+            "continuousUseStream": "{{detail}} — continuous push/pull detected, consider using 'stream' instead",
+            "excludeMissingRationale": "DataFlow {{detail}} — excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
+            "protocolMissing": "{{detail}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
           }
         },
         "label_property": {}
@@ -1479,13 +1479,12 @@
     "unconnectedDataflow": "Data flow \"{{name}}\" is not connected to elements",
     "invalidDataflowSource": "Data flow \"{{name}}\" has an invalid source",
     "invalidDataflowTarget": "Data flow \"{{name}}\" has an invalid target",
-    "assetNotPlaced": "Asset \"{{name}}\" is not placed on a valid element (Process, Multiprocess, Data Store, or Data Flow)",
     "interfaceUnused": "Interface \"{{name}}\" is not crossed by any data flow",
     "elementDefaultName": "Element \"{{name}}\" has a default/placeholder name. Please provide a meaningful name.",
     "elementMissingIdLabel": "Element \"{{name}}\" is missing an ID label. Please add an ID label (e.g., [P-1], [EE-1], [DF-1]).",
     "duplicateIdLabel": "ID label \"{{id}}\" is used multiple times. Each element should have a unique ID.",
-    "assetMarkerNoRelation": "The asset has no associated relation",
-    "assetRelationInconsistent": "The asset's relation is inconsistent",
+    "assetRelationInconsistent": "Asset \"{{detail}}\" not found",
+    "assetRelationTypeInvalid": "Relation \"{{relationType}}\" to \"{{assetName}}\" not allowed for {{elementType}}",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",

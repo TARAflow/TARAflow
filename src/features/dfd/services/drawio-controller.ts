@@ -34,7 +34,6 @@ export default class DrawioController {
     this.drawio.receive(this.handleIncomingEvents.bind(this));
   }
 
-
   private isJsonString = (str: unknown): boolean => {
     if (typeof str !== "string") return false;
     try {
@@ -46,7 +45,6 @@ export default class DrawioController {
   };
 
   private handleIncomingEvents(message: MessageEvent) {
-    console.log("[DrawioController] Parsed Message Event:", message);
     if (!message.origin.includes("diagrams.net")) return;
     if (
       !message.data ||

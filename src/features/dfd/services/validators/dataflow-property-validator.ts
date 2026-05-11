@@ -19,10 +19,11 @@
 //       wrong-protocol case; a write to a local store may legitimately have no
 //       network protocol).
 //
-// Message format: `${ValidationMessages.KEY}:${context}`
-//   context = "DF-3 — read safety params [req]"
-//   Uses em dash (—) not colon to avoid breaking the KEY:name split
-//   in dfd-validation-panel.tsx translateMessage().
+// Message format: `${ValidationMessages.KEY}|${displayId}|${detail}`
+//   displayId = "DF-3"                        — rendered as Chip in notification panel
+//   detail    = "read safety params [req]"    — human-readable context for translated message
+//   The | separator avoids conflict with the i18next namespace separator (:)
+//   and allows the panel to extract displayId without regex.
 
 import type { DFDConnection } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
@@ -32,24 +33,17 @@ import type {
 } from "../../models/element-properties";
 
 // ---------------------------------------------------------------------------
-// DataFlowProperties — local mirror to avoid import coupling.
-// ---------------------------------------------------------------------------
-
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Build context string for UI display.
- * Uses em dash (—) to avoid breaking the KEY:name split.
- */
-function buildContext(conn: DFDConnection): string {
-  const name = conn.name || `(unnamed DF ${conn.id})`;
-  return conn.displayId ? `${conn.displayId} \u2014 ${name}` : name;
+function buildDetail(conn: DFDConnection): string {
+  return conn.name || `(unnamed DF ${conn.id})`;
 }
 
-/** Extract verb (first word, lowercased) from a DF label. */
+/** Extract verb (first word, lowercased) from a DF label.
+ *  Strips ALL trailing [...] tags before tokenizing — consistent
+ *  with parseLabel() in dataflow-label-validator.ts.
+ */
 function extractVerb(label: string): string | null {
   const trimmed = label
     .replace(/<br\s*\/?>/gi, " ")
@@ -58,8 +52,14 @@ function extractVerb(label: string): string | null {
 
   if (!trimmed) return null;
 
-  const withoutFlowType = trimmed.replace(/\[[^\]]*\]\s*$/, "").trim();
-  const tokens = withoutFlowType.split(/\s+/);
+  // Strip ALL trailing [...] tags
+  let rest = trimmed;
+  const tagPattern = /\[[^\]]*\]\s*$/;
+  while (tagPattern.test(rest)) {
+    rest = rest.replace(tagPattern, "").trim();
+  }
+
+  const tokens = rest.split(/\s+/);
   return tokens[0] ? tokens[0].toLowerCase() : null;
 }
 
@@ -67,11 +67,6 @@ function extractVerb(label: string): string | null {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Validate consistency between DF label verbs and DataFlowProperties.
- * C10 fires for all dataflows regardless of whether properties are set.
- * All other rules only apply when properties are present.
- */
 export function validateDataflowProperties(
   connections: DFDConnection[],
   errors: string[],
@@ -84,9 +79,9 @@ export function validateDataflowProperties(
   );
 
   for (const conn of dataflows) {
-    const context = buildContext(conn);
+    const displayId = conn.displayId ?? conn.id;
+    const detail = buildDetail(conn);
     const verb = extractVerb(conn.name || "");
-
     const props = conn.properties;
 
     // C10: protocol not specified — fires regardless of whether props exist.
@@ -97,7 +92,7 @@ export function validateDataflowProperties(
         props && typeof props === "object" ? props.protocol : undefined;
       if (protocol === undefined) {
         warnings.push(
-          `${ValidationMessages.DF_PROP_PROTOCOL_MISSING}:${context}`,
+          `${ValidationMessages.DF_PROP_PROTOCOL_MISSING}|${displayId}|${detail}`,
         );
       }
     }
@@ -110,7 +105,7 @@ export function validateDataflowProperties(
       !props.excludeFromThreatGenRationale?.trim()
     ) {
       warnings.push(
-        `${ValidationMessages.DF_PROP_EXCLUDE_MISSING_RATIONALE}:${context}`,
+        `${ValidationMessages.DF_PROP_EXCLUDE_MISSING_RATIONALE}|${displayId}|${detail}`,
       );
     }
 
@@ -119,22 +114,22 @@ export function validateDataflowProperties(
     // C7: bidirectional forbidden — check first, always fires regardless of verb
     if (props.direction === "bidirectional") {
       errors.push(
-        `${ValidationMessages.DF_PROP_BIDIRECTIONAL_FORBIDDEN}:${context}`,
+        `${ValidationMessages.DF_PROP_BIDIRECTIONAL_FORBIDDEN}|${displayId}|${detail}`,
       );
     }
 
     switch (verb) {
       case "pull":
-        checkPull(context, props, errors, warnings);
+        checkPull(displayId, detail, props, errors, warnings);
         break;
       case "push":
-        checkPush(context, props, errors, warnings);
+        checkPush(displayId, detail, props, errors, warnings);
         break;
       case "write":
-        checkWrite(context, props, errors, warnings);
+        checkWrite(displayId, detail, props, errors, warnings);
         break;
       case "stream":
-        checkStream(context, props, errors, warnings);
+        checkStream(displayId, detail, props, errors, warnings);
         break;
       default:
         break;
@@ -147,7 +142,8 @@ export function validateDataflowProperties(
 // ---------------------------------------------------------------------------
 
 function checkPull(
-  context: string,
+  displayId: string,
+  detail: string,
   props: DataFlowProperties,
   errors: string[],
   warnings: string[],
@@ -159,27 +155,30 @@ function checkPull(
     props.direction !== "bidirectional" // already reported via C7
   ) {
     errors.push(
-      `${ValidationMessages.DF_PROP_PULL_NOT_REQRESP}:${context} [${props.direction}]`,
+      `${ValidationMessages.DF_PROP_PULL_NOT_REQRESP}|${displayId}|${detail} [${props.direction}]`,
     );
   }
 
   // C5
   if (props.frequency === "continuous") {
     warnings.push(
-      `${ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM}:${context}`,
+      `${ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM}|${displayId}|${detail}`,
     );
   }
 }
 
 function checkPush(
-  context: string,
+  displayId: string,
+  detail: string,
   props: DataFlowProperties,
   errors: string[],
   warnings: string[],
 ): void {
   // C2a
   if (props.direction === "requestresponse") {
-    errors.push(`${ValidationMessages.DF_PROP_PUSH_IS_REQRESP}:${context}`);
+    errors.push(
+      `${ValidationMessages.DF_PROP_PUSH_IS_REQRESP}|${displayId}|${detail}`,
+    );
   } else if (
     props.direction !== undefined &&
     props.direction !== "unidirectional" &&
@@ -187,20 +186,21 @@ function checkPush(
   ) {
     // C2b: unexpected direction value
     warnings.push(
-      `${ValidationMessages.DF_PROP_PUSH_WRONG_DIRECTION}:${context} [${props.direction}]`,
+      `${ValidationMessages.DF_PROP_PUSH_WRONG_DIRECTION}|${displayId}|${detail} [${props.direction}]`,
     );
   }
 
   // C5
   if (props.frequency === "continuous") {
     warnings.push(
-      `${ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM}:${context}`,
+      `${ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM}|${displayId}|${detail}`,
     );
   }
 }
 
 function checkWrite(
-  context: string,
+  displayId: string,
+  detail: string,
   props: DataFlowProperties,
   errors: string[],
   warnings: string[],
@@ -212,18 +212,21 @@ function checkWrite(
     !dataStoreProtocols.includes(props.protocol)
   ) {
     warnings.push(
-      `${ValidationMessages.DF_PROP_WRITE_NOT_DATASTORE}:${context} [${props.protocol}]`,
+      `${ValidationMessages.DF_PROP_WRITE_NOT_DATASTORE}|${displayId}|${detail} [${props.protocol}]`,
     );
   }
 
   // C6
   if (props.direction === "requestresponse") {
-    errors.push(`${ValidationMessages.DF_PROP_WRITE_IS_REQRESP}:${context}`);
+    errors.push(
+      `${ValidationMessages.DF_PROP_WRITE_IS_REQRESP}|${displayId}|${detail}`,
+    );
   }
 }
 
 function checkStream(
-  context: string,
+  displayId: string,
+  detail: string,
   props: DataFlowProperties,
   errors: string[],
   warnings: string[],
@@ -231,14 +234,14 @@ function checkStream(
   // C3
   if (props.frequency !== undefined && props.frequency !== "continuous") {
     warnings.push(
-      `${ValidationMessages.DF_PROP_STREAM_NOT_CONTINUOUS}:${context} [${props.frequency}]`,
+      `${ValidationMessages.DF_PROP_STREAM_NOT_CONTINUOUS}|${displayId}|${detail} [${props.frequency}]`,
     );
   }
 
   // C8
   if (props.direction === "requestresponse") {
     warnings.push(
-      `${ValidationMessages.DF_PROP_STREAM_IS_REQRESP}:${context}`,
+      `${ValidationMessages.DF_PROP_STREAM_IS_REQRESP}|${displayId}|${detail}`,
     );
   }
 }

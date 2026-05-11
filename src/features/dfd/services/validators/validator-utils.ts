@@ -34,7 +34,6 @@ export const ValidationMessages = {
     "dfdValidation.chipBoundaryInvalidConnection",
 
   // Asset & Interface
-  ASSET_NOT_PLACED: "dfdValidation.assetNotPlaced",
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
 
   // Asset Relations

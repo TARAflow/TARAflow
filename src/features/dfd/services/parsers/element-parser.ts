@@ -121,7 +121,6 @@ export function parseElementFromObject(
   const objType = getXmlElementType(obj);
 
   if (!id) {
-    console.warn("Skipping object with missing ID.");
     return null;
   }
 
@@ -176,7 +175,6 @@ export function parseElementFromObject(
   // Skip edges (connections)
   const cell = cells[0];
   if (cell.getAttribute("edge") === "1") {
-    console.info(`Skipping edge object with ID: ${id}`);
     return null;
   }
 
