@@ -82,6 +82,7 @@ export interface UseDFDEditorReturn {
 
   // Editor operations
   sendAction: (action: string) => void;
+  selectCell: (cellId: string) => Promise<void>;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -402,6 +403,7 @@ export function useDFDEditor(
 
     // Editor operations
     sendAction: bridge.sendAction,
+    selectCell: bridge.selectCell,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

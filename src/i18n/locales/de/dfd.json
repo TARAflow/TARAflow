@@ -891,6 +891,14 @@
               "placeholder": "z.B. Internes Sensor-Polling innerhalb vertrauenswürdiger Safety-Domäne, kein externer Zugriffspfad vorhanden",
               "error": "Begründung für IEC 62443-4-1 Audit-Trail erforderlich"
             },
+            "protocol_groups": {
+              "it": "IT / Netzwerk",
+              "embedded": "Eingebettet",
+              "fieldbus": "Feldbus",
+              "secure_ot": "Sicheres OT",
+              "wireless": "Drahtlos",
+              "electrical": "Elektrisches Signal"
+            },
             "protocol": {
               "label": "Protokoll",
               "label_signal": "Signaltyp",

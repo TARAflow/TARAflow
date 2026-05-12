@@ -86,6 +86,24 @@ export class DrawioBridge implements IDrawioBridge {
     this.iframe.contentWindow!.postMessage(msg, "*");
   }
 
+  async selectCell(cellId: string): Promise<void> {
+    if (!this.isReady()) {
+      console.warn(`[DrawioBridge] Cannot select cell "${cellId}" - not ready`);
+      return;
+    }
+
+    if (window.electronAPI?.selectDrawioCell) {
+      // Electron: direkt auf draw.io graph via IPC
+      await window.electronAPI.selectDrawioCell(cellId);
+    } else {
+      // Fallback für non-Electron (z.B. Browser-Dev)
+      this.iframe.contentWindow!.postMessage(
+        JSON.stringify({ action: "select", cells: [cellId] }),
+        "*",
+      );
+    }
+  }
+
   /**
    * Load XML into Draw.io AND persist to localStorage.
    * Used for permanent diagram changes (auto-numbering, import, etc.)

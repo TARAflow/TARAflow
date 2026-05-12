@@ -78,9 +78,12 @@ declare global {
       setDrawioViewport: (viewport: {
         translate: { x: number; y: number };
         scale: number;
-        scrollLeft?: number; // NEU
-        scrollTop?: number; // NEU
+        scrollLeft?: number;
+        scrollTop?: number;
       }) => Promise<{ success: boolean; error?: string }>;
+      selectDrawioCell: (
+        cellId: string,
+      ) => Promise<{ success: boolean; error?: string }>;
     };
 
     // Git APIs (für Audit Feature)

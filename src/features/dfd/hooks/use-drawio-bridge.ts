@@ -39,6 +39,7 @@ export interface UseDrawioBridgeReturn {
   getCurrentXML: () => string | null;
   exportImage: () => Promise<string | null>;
   sendAction: (action: string) => void;
+  selectCell: (cellId: string) => Promise<void>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -286,6 +287,12 @@ export function useDrawioBridge(
     bridgeRef.current.sendAction(action);
   }, []);
 
+  const selectCell = useCallback(async (cellId: string): Promise<void> => {
+    if (!bridgeRef.current) return;
+    await bridgeRef.current.selectCell(cellId);
+  }, []);
+
+
   const onImageReady = useCallback((handler: (imageData: string) => void) => {
     imageHandlerRef.current = handler;
   }, []);
@@ -348,6 +355,7 @@ export function useDrawioBridge(
     exportXML,
     exportImage,
     sendAction,
+    selectCell,
     onImageReady,
     loadXMLTransient,
   };

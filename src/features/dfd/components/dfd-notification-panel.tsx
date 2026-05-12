@@ -51,6 +51,7 @@ interface ValidationNotification extends BaseNotification {
   type: "error" | "warning";
   message: string;
   displayId?: string;
+  elementId?: string;
 }
 
 interface SecurityNotification extends BaseNotification {
@@ -214,23 +215,33 @@ function buildNotifications(
 ): Notification[] {
   const notifications: Notification[] = [];
 
+  // displayId → interne XML-id
+  const elementByDisplayId = new Map<string, string>([
+    ...elements.map((e): [string, string] => [e.displayId, e.id]),
+    ...connections.map((c): [string, string] => [c.displayId, c.id]),
+  ]);
+
   (validation?.errors ?? []).forEach((msg, idx) => {
     const displayId = msg.includes("|") ? msg.split("|")[1] : undefined;
+    const elementId = displayId ? elementByDisplayId.get(displayId) : undefined;
     notifications.push({
       key: `error:${idx}:${msg}`,
       type: "error",
       message: msg,
       displayId,
+      elementId,
     });
   });
 
   (validation?.warnings ?? []).forEach((msg, idx) => {
     const displayId = msg.includes("|") ? msg.split("|")[1] : undefined;
+    const elementId = displayId ? elementByDisplayId.get(displayId) : undefined;
     notifications.push({
       key: `warning:${idx}:${msg}`,
       type: "warning",
       message: msg,
       displayId,
+      elementId,
     });
   });
 
@@ -320,6 +331,7 @@ export interface DFDNotificationsPanelProps {
     mitigationId?: string,
     riskId?: string,
   ) => void;
+  onSelectCell?: (cellId: string) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -331,6 +343,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   elements = [],
   connections = [],
   onApply,
+  onSelectCell,
 }) => {
   const { t } = useTranslation();
   const { translateMessage } = useValidationTranslation();
@@ -474,6 +487,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 key={n.key}
                 notification={n as ValidationNotification}
                 translateMessage={translateMessage}
+                onSelectCell={onSelectCell}
               />
             ) : n.type === "drift" || n.type === "conflict" ? (
               <DriftRow key={n.key} notification={n as DriftNotification} />
@@ -498,13 +512,18 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
 interface ValidationRowProps {
   notification: ValidationNotification;
   translateMessage: (msg: string) => string;
+  onSelectCell?: (cellId: string) => void;
 }
 
 const ValidationRow: React.FC<ValidationRowProps> = ({
   notification,
   translateMessage,
+  onSelectCell,
 }) => (
   <Box
+    onClick={() =>
+      notification.elementId && onSelectCell?.(notification.elementId)
+    }
     sx={{
       display: "flex",
       alignItems: "center",
@@ -517,6 +536,8 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
       bgcolor: notification.type === "error" ? "error.50" : "warning.50",
       flexWrap: "nowrap",
       minWidth: 0,
+      cursor: notification.elementId ? "pointer" : "default",
+      "&:hover": notification.elementId ? { filter: "brightness(0.96)" } : {},
     }}
   >
     {notification.type === "error" ? (

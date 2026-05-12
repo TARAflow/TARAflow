@@ -90,6 +90,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   setDrawioViewport: (viewport: any) =>
     ipcRenderer.invoke("drawio:setViewport", viewport),
+  selectDrawioCell: (cellId: string) =>
+    ipcRenderer.invoke("drawio:selectCell", cellId),
 });
 
 console.log("Electron APIs exposed to renderer");

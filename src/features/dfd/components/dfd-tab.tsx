@@ -345,6 +345,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       sendAction: () => {},
       onImageReady: () => {},
       selectedCells: editor.selectedCells || [],
+      selectCell: async () => {},
     },
     {
       isDirty: editor.isDirty,
@@ -720,6 +721,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         elements={project.dfd?.elements ?? []}
         connections={project.dfd?.connections ?? []}
         onApply={handleApplyControlSuggestion}
+        onSelectCell={editor.selectCell}
       />
 
       {/* Preview Dialog */}

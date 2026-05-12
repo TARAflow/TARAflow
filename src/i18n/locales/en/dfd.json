@@ -850,6 +850,14 @@
               "placeholder": "e.g. Internal sensor polling within trusted safety domain, no external access path exists",
               "error": "Rationale required for IEC 62443-4-1 audit trail"
             },
+            "protocol_groups": {
+              "it": "IT / Network",
+              "embedded": "Embedded",
+              "fieldbus": "Fieldbus",
+              "secure_ot": "Secure OT",
+              "wireless": "Wireless",
+              "electrical": "Electrical Signal"
+            },
             "protocol": {
               "label": "Protocol",
               "label_signal": "Signal Type",

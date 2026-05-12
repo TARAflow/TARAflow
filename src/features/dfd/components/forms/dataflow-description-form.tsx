@@ -281,7 +281,12 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   disabled
                   sx={{ opacity: 0.6, fontSize: "0.75rem" }}
                 >
-                  — {t(`protocol_groups.${group}`, { defaultValue: group })} —
+                  —{" "}
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.protocol_groups.${group}`,
+                    { defaultValue: group },
+                  )}{" "}
+                  —
                 </MenuItem>,
 
                 protocols.map((p) => (
@@ -1237,12 +1242,22 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
       crossesTrustBoundary,
     });
 
+    const fieldTranslationKeys: Partial<
+      Record<keyof DataFlowProperties, string>
+    > = {
+      exposureLevel: "tabs.dfd.element_description.exposure_level.label",
+    };
+
     // Translate field keys for tooltip display
-    const incompleteFields = coverage.incompleteFields.map((field) =>
-      t(`tabs.dfd.element_description.dataflow.fields.${String(field)}.label`, {
+    const incompleteFields = coverage.incompleteFields.map((field) => {
+      const translationKey =
+        fieldTranslationKeys[field] ??
+        `tabs.dfd.element_description.dataflow.fields.${String(field)}.label`;
+
+      return t(translationKey, {
         defaultValue: String(field),
-      }),
-    );
+      });
+    });
 
     return (
       <ConnectionFormShell

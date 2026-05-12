@@ -210,6 +210,29 @@ ipcMain.handle('drawio:setViewport', async (_, viewport: { translate: { x: numbe
   }
 });
 
+// ==================== DRAWIO SELECT CELL ====================
+
+ipcMain.handle('drawio:selectCell', async (_, cellId: string) => {
+  if (!cachedDrawioFrame) return { success: false, error: 'No drawio frame cached' };
+  try {
+    await cachedDrawioFrame.executeJavaScript(`
+      (function() {
+        var ui = Draw._taraflowUi;
+        if (!ui) { console.warn('[Main:selectCell] No taraflowUi'); return false; }
+        var graph = ui.editor.graph;
+        var cell = graph.model.getCell("${cellId}");
+        if (!cell) { console.warn('[Main:selectCell] Cell not found: ${cellId}'); return false; }
+        graph.setSelectionCell(cell);
+        graph.scrollCellToVisible(cell, true);
+        return true;
+      })()
+    `);
+    return { success: true };
+  } catch(e: any) {
+    return { success: false, error: e.message };
+  }
+});
+
 // ==================== DRAWIO GET SCROLL ====================
 
 ipcMain.handle('drawio:getScroll', async () => {
