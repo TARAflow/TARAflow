@@ -84,6 +84,10 @@ declare global {
       selectDrawioCell: (
         cellId: string,
       ) => Promise<{ success: boolean; error?: string }>;
+      injectDrawioLibraries: (
+        dfd1Xml: string,
+        dfd2Xml: string,
+      ) => Promise<{ success: boolean; error?: string }>;
     };
 
     // Git APIs (für Audit Feature)

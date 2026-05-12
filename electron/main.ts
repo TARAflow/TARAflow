@@ -57,9 +57,6 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
   try {
     const webContents = event.sender;
 
-    // Warte kurz damit DrawIO ready ist
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     // Finde alle frames
     const frames = webContents.mainFrame.frames;
     console.log(
@@ -83,6 +80,11 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
     }
 
     console.log("[Main] Found DrawIO frame:", drawioFrame.url);
+
+    // No polling needed — library loading happens inside Draw.loadPlugin
+    // callback which draw.io fires when it is ready. The pluginCode below
+    // registers the callback via Draw.loadPlugin(fn) which executes fn(ui)
+    // once draw.io initialises — ui is guaranteed available at that point.
 
     // Plugin Code
     const pluginCode = `
@@ -111,9 +113,55 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
           Draw.loadPlugin(function(ui) {
             Draw._taraflowUi = ui;
             console.log('[Plugin] ✅ Selection Plugin loaded successfully!');
-            console.log('[Plugin] UI:', ui);
-            console.log('[Plugin] Graph:', ui.editor.graph);
-            
+
+            // Load DFD libraries from customEntries registered via configure message.
+            // drawio-controller.ts owns the data — this code only triggers the load
+            // once ui is guaranteed available inside the loadPlugin callback.
+            setTimeout(function() {
+              try {
+                var sidebar = ui.sidebar;
+                if (!sidebar || !sidebar.customEntries) return;
+
+                // Hide all default palettes from localStorage cache
+                Object.keys(sidebar.palettes).forEach(function(k) {
+                  if (k === 'search') return;
+                  var p = sidebar.palettes[k];
+                  if (p && p[0]) p[0].style.display = 'none';
+                  if (p && p[1]) p[1].style.display = 'none';
+                });
+
+                sidebar.customEntries.forEach(function(group) {
+                  (group.entries || []).forEach(function(entry) {
+                    (entry.libs || []).slice().reverse().forEach(function(libDef) {
+                      if (!libDef.data) return;
+                      var title = (libDef.title && (libDef.title.main || libDef.title)) || entry.id;
+                      var lib = new LocalLibrary(ui, libDef.data, title);
+                      ui.loadLibrary(lib, true);
+
+                      setTimeout(function() {
+                        var hash = lib.getHash();
+                        var p = sidebar.palettes[hash];
+                        if (!p) return;
+                        var container = p[1] && p[1].querySelector('.geSidebar');
+                        var images = JSON.parse(
+                          libDef.data.replace('<mxlibrary>', '').replace('</mxlibrary>', '')
+                        );
+                        if (container && container.children.length === 0) {
+                          ui.addLibraryEntries(images, container);
+                        }
+                        if (p[0]) p[0].style.display = '';
+                        if (p[1]) p[1].style.display = '';
+                      }, 200);
+                    });
+                  });
+                });
+
+                console.log('[Plugin] DFD libraries loaded from customEntries');
+              } catch(libErr) {
+                console.warn('[Plugin] Library load failed:', libErr.message);
+              }
+            }, 100);
+
             // Setup selection listener
             ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
               var cells = ui.editor.graph.getSelectionCells();

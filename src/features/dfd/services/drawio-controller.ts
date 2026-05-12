@@ -314,7 +314,7 @@ export default class DrawioController {
         // ==================== LIBRARIES ====================
         enableCustomLibraries: true,
         expandLibraries: true,
-        enabledLibraries: ["general", "dfd1", "dfd2"],
+        enabledLibraries: ["dfd1", "dfd2"],
         libraries: [
           {
             title: { main: "DFD Shapes", de: "DFD Formen" },
@@ -329,11 +329,11 @@ export default class DrawioController {
                 libs: [
                   {
                     title: { main: "DFD Shapes v1", de: "DFD Formen v1" },
-                    data: dfd1,
+                    data: `<mxlibrary>${JSON.stringify(dfd1)}</mxlibrary>`,
                   },
                   {
                     title: { main: "DFD Shapes v2", de: "DFD Formen v2" },
-                    data: dfd2,
+                    data: `<mxlibrary>${JSON.stringify(dfd2)}</mxlibrary>`,
                   },
                 ],
               },
@@ -345,7 +345,6 @@ export default class DrawioController {
 
     this.drawio.send(configurationAction);
   }
-
   private loadDrawio(): void {
     // Lese vom projekt-spezifischen Storage Key
     const draft: string | null = this.storage.read();

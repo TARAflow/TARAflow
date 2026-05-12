@@ -92,6 +92,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("drawio:setViewport", viewport),
   selectDrawioCell: (cellId: string) =>
     ipcRenderer.invoke("drawio:selectCell", cellId),
+  injectDrawioLibraries: (dfd1Xml: string, dfd2Xml: string) =>
+    ipcRenderer.invoke("drawio:injectLibraries", dfd1Xml, dfd2Xml),
 });
 
 console.log("Electron APIs exposed to renderer");
