@@ -57,6 +57,9 @@
         "warnings": "Warnings",
         "required": "Required",
         "atLeastOneSecurityGoal": "At least one security goal required",
+        "element": {
+          "missingProperty": "{{elementType}} {{displayId}} — field '{{field}}' must be set"
+        },
         "df": {
           "label": {
             "empty": "{{detail}} — empty or unparseable label",

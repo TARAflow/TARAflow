@@ -9,6 +9,7 @@ export const ValidationMessages = {
   NO_ELEMENTS: "dfdValidation.noElements",
   NO_PROCESS_OR_DATASTORE: "dfdValidation.noProcessOrDatastore",
   NO_DATAFLOWS: "dfdValidation.noDataflows",
+  ELEMENT_MISSING_PROPERTY: "tabs.dfd.validation.element.missingProperty",
 
   // Trust Boundary
   NO_TRUST_BOUNDARY: "dfdValidation.noTrustBoundary",

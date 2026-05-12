@@ -3,6 +3,7 @@
 
 import type { DFDElement } from "../../models/dfd-types";
 import { ValidationMessages, isDefaultName, validateTrustBoundaryId } from "./validator-utils";
+import { validateElementProperties } from "./element-property-validator";
 
 /**
  * Validate all elements
@@ -15,6 +16,7 @@ export function validateElements(
   validateElementNames(elements, warnings);
   validateIdLabels(elements, warnings);
   validateTrustBoundaryIds(elements, errors);
+  validateElementProperties(elements, warnings);
 }
 
 /**

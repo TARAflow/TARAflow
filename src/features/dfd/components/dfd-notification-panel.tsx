@@ -11,7 +11,13 @@
 //   drift    — SecurityDrift conflicts (Phase 3)
 //   staleness — expired verifications (Phase 3)
 
-import React, { useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Paper,
@@ -37,6 +43,13 @@ import type { ControlInstance } from "shared/models/control-instance";
 import type { SecurityDrift } from "app/hooks/use-security-drift";
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
 import { getLocalizedMitigation } from "features/threats/services/threat-catalog-service";
+
+
+// ==================== RESIZE CONSTANTS ====================
+
+const MIN_PANEL_HEIGHT = 80;
+const DEFAULT_PANEL_HEIGHT = 150;
+const HEADER_HEIGHT = 36;
 
 // ==================== NOTIFICATION TYPES ====================
 
@@ -165,7 +178,10 @@ function useValidationTranslation() {
       }
 
       // LP-5: KEY|displayId|targetName|targetType
-      if (parts.length === 4) {
+      if (
+        parts.length === 4 &&
+        key !== "tabs.dfd.validation.element.missingProperty"
+      ) {
         const targetName = parts[2];
         const targetType = t(`dfdValidation.elementTypes.${parts[3]}`, {
           defaultValue: parts[3],
@@ -176,6 +192,47 @@ function useValidationTranslation() {
           name: detail,
           detail,
           defaultValue: `${targetName} (${targetType})`,
+        });
+      }
+
+      // Element missing property: KEY|displayId|elementType|field
+      if (
+        parts.length === 4 &&
+        key === "tabs.dfd.validation.element.missingProperty"
+      ) {
+        // DFD element type -> i18n namespace key under element_description
+        const ELEMENT_TYPE_NS: Record<string, string> = {
+          Process: "process",
+          Multiprocess: "multiprocess",
+          DataStore: "datastore",
+          ExternalEntity: "external_entity",
+          TrustBoundary: "trustboundary",
+          ChipBoundary: "chipboundary",
+          Interface: "interface",
+        };
+        // Shared field label keys — same as fieldTranslationKeys in
+        // dataflow-description-form.tsx. Checked first; per-type lookup is fallback.
+        const FIELD_SHARED_LABEL: Record<string, string> = {
+          exposureLevel: "tabs.dfd.element_description.exposure_level.label",
+          defaultExposureLevel:
+            "tabs.dfd.element_description.exposure_level.label",
+        };
+        const ns = ELEMENT_TYPE_NS[parts[2]] ?? parts[2].toLowerCase();
+        const rawField = parts[3];
+        const sharedPath = FIELD_SHARED_LABEL[rawField];
+        const elementType = t(`dfdValidation.elementTypes.${parts[2]}`, {
+          defaultValue: parts[2],
+        });
+        const field = sharedPath
+          ? t(sharedPath, { defaultValue: rawField })
+          : t(`tabs.dfd.element_description.${ns}.fields.${rawField}.label`, {
+              defaultValue: rawField,
+            });
+        return t(key, {
+          elementType,
+          displayId: parts[1],
+          field,
+          defaultValue: `${elementType} ${parts[1]}: field '${rawField}' must be set`,
         });
       }
 
@@ -348,6 +405,69 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   const { t } = useTranslation();
   const { translateMessage } = useValidationTranslation();
   const [expanded, setExpanded] = useState(true);
+  const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
+  const [isResizing, setIsResizing] = useState(false);
+  const isResizingRef = useRef<boolean>(false);
+  const startYRef = useRef<number>(0);
+  const startHeightRef = useRef<number>(0);
+  const resizeHandleRef = useRef<HTMLDivElement | null>(null);
+
+  const handlePointerMove = useCallback((e: PointerEvent) => {
+    if (!isResizingRef.current) return;
+    e.preventDefault();
+    // Panel grows upward — dragging up increases height
+    const deltaY = startYRef.current - e.clientY;
+    const newHeight = Math.max(
+      MIN_PANEL_HEIGHT,
+      Math.min(500, startHeightRef.current + deltaY),
+    );
+    setPanelHeight(newHeight);
+  }, []);
+
+  const handlePointerUp = useCallback(
+    (e: PointerEvent) => {
+      if (!isResizingRef.current) return;
+      isResizingRef.current = false;
+      setIsResizing(false);
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      if (resizeHandleRef.current?.hasPointerCapture(e.pointerId)) {
+        resizeHandleRef.current.releasePointerCapture(e.pointerId);
+      }
+    },
+    [handlePointerMove],
+  );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startYRef.current = e.clientY;
+      startHeightRef.current = panelHeight;
+      isResizingRef.current = true;
+      setIsResizing(true);
+      resizeHandleRef.current?.setPointerCapture(e.pointerId);
+      document.addEventListener("pointermove", handlePointerMove, {
+        passive: false,
+      });
+      document.addEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+    },
+    [panelHeight, handlePointerMove, handlePointerUp],
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [handlePointerMove, handlePointerUp]);
 
   const notifications = useMemo(
     () =>
@@ -387,13 +507,41 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
         borderRadius: 0,
         borderTop: "2px solid",
         borderColor,
-        maxHeight: 150,
+        height: expanded ? panelHeight : "auto",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
+        userSelect: isResizing ? "none" : "auto",
       }}
     >
+      {/* Resize Handle — drag upward to increase panel height */}
+      <Box
+        ref={resizeHandleRef}
+        onPointerDown={handlePointerDown}
+        sx={{
+          height: 8,
+          flexShrink: 0,
+          cursor: "row-resize",
+          touchAction: "none",
+          backgroundColor: isResizing ? "primary.light" : "grey.200",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: isResizing ? "none" : "background-color 0.2s",
+          "&:hover": { backgroundColor: "primary.light" },
+          "&:active": { backgroundColor: "primary.main" },
+        }}
+      >
+        <Box
+          sx={{
+            width: 40,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: isResizing ? "primary.contrastText" : "grey.400",
+          }}
+        />
+      </Box>
       {/* Header */}
       <Box
         sx={{
@@ -471,16 +619,19 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
 
         <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
           {expanded ? (
-            <ExpandLessIcon fontSize="small" />
-          ) : (
             <ExpandMoreIcon fontSize="small" />
+          ) : (
+            <ExpandLessIcon fontSize="small" />
           )}
         </IconButton>
       </Box>
 
       {/* Notification list */}
       <Collapse in={expanded}>
-        <Stack spacing={0} sx={{ overflow: "auto", maxHeight: 105 }}>
+        <Stack
+          spacing={0}
+          sx={{ overflow: "auto", maxHeight: panelHeight - HEADER_HEIGHT - 8 }}
+        >
           {notifications.map((n) =>
             n.type === "error" || n.type === "warning" ? (
               <ValidationRow
@@ -504,8 +655,6 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
     </Paper>
   );
 };
-
-// ==================== VALIDATION ROW ====================
 
 // ==================== VALIDATION ROW ====================
 
