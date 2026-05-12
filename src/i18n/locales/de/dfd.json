@@ -703,6 +703,67 @@
                 "custom": "Benutzerdefiniert"
               }
             },
+            "location": {
+              "label": "Physischer Standort",
+              "options": {
+                "on_chip": "Auf dem Chip",
+                "on_board": "Auf der Platine (PCB)",
+                "in_enclosure": "Im Gehäuse",
+                "external_panel": "Externes Panel",
+                "field_accessible": "Feldzugänglich",
+                "network_port": "Netzwerkanschluss",
+                "wireless": "Drahtlos",
+                "internet_facing": "Internetseitig",
+                "custom": "Benutzerdefiniert"
+              },
+              "tooltips": {
+                "on_chip": "Interner Chip-Pad oder Register — EL0, nur Debug-Schnittstelle",
+                "on_board": "PCB-montierter Steckverbinder auf gleicher Platine — EL0/EL1",
+                "in_enclosure": "Port im versiegelten Gehäuse — EL1, erfordert Demontage",
+                "external_panel": "Panelmontierter Port an der Geräteaußenseite — EL1",
+                "field_accessible": "Feldzugänglicher Steckverbinder (M12, DIN, Klemme) — EL1/EL2",
+                "network_port": "Standardnetzwerkanschluss (RJ45, SFP) — EL2/EL3",
+                "wireless": "Drahtlose Schnittstelle (Antenne, eingebautes Radio) — EL3",
+                "internet_facing": "Internetseitige Schnittstelle — EL4",
+                "custom": "Nicht standardisierter Standort — in Notizen beschreiben"
+              }
+            },
+            "operationalState": {
+              "label": "Betriebszustand",
+              "options": {
+                "enabled": "Aktiviert",
+                "enabled_read_only": "Aktiviert — Nur Lesen",
+                "sw_disabled": "Deaktiviert (Software)",
+                "hw_disabled": "Deaktiviert (Hardware)",
+                "permanent_disabled": "Dauerhaft deaktiviert"
+              },
+              "tooltips": {
+                "enabled": "Vollständig aktiv — volle Bedrohungsfläche gilt",
+                "enabled_read_only": "Nur Ausgabe, keine Eingabe möglich (z.B. UART Log-only). Befehlsinjektion ausgeschlossen.",
+                "sw_disabled": "Per Konfiguration oder Firmware deaktiviert — ohne Hardware-Zugriff reversibel. Restrisiko: Reaktivierung per Software-Exploit.",
+                "hw_disabled": "Per Jumper oder DIP-Schalter deaktiviert — erfordert physischen Zugriff zur Reaktivierung. Geringeres Restrisiko.",
+                "permanent_disabled": "Irreversibel deaktiviert — OTP-Sicherung gebrannt, Pad nicht bestückt oder vergossen. Keine Bedrohung wird generiert."
+              }
+            },
+            "connectorType": {
+              "label": "Steckverbindertyp",
+              "options": {
+                "rj45": "RJ45",
+                "sfp": "SFP / SFP+",
+                "m12": "M12 (Industrial)",
+                "usb_a": "USB Typ-A",
+                "usb_c": "USB Typ-C",
+                "micro_usb": "Micro-USB",
+                "db9": "DB9 (RS-232)",
+                "db25": "DB25 (RS-232)",
+                "terminal": "Klemmleiste",
+                "swd_10pin": "SWD 10-Pin",
+                "jtag_20pin": "JTAG 20-Pin",
+                "gpio_header": "GPIO-Header",
+                "pcie": "PCIe",
+                "custom": "Benutzerdefiniert"
+              }
+            },
             "accessControl": {
               "label": "Zugangskontrolle",
               "options": {
@@ -1165,7 +1226,31 @@
               "storedDataTypes": {
                 "label": "Gespeicherte Datentypen",
                 "placeholder": "z.B. Anmeldedaten, Transaktionsprotokolle, Konfiguration",
-                "helper": "Mehrere Typen mit Komma trennen"
+                "helper": "Mehrere Typen mit Komma trennen",
+                "options": {
+                  "credentials": "Zugangsdaten",
+                  "keys_certificates": "Schlüssel & Zertifikate",
+                  "firmware": "Firmware",
+                  "pii": "Personenbezogene Daten (PII)",
+                  "safety_params": "Sicherheitsparameter",
+                  "calibration": "Kalibrierdaten",
+                  "config": "Konfiguration",
+                  "audit_logs": "Audit-Logs",
+                  "telemetry": "Telemetrie",
+                  "custom": "Benutzerdefiniert"
+                }
+              },
+              "deletionMechanism": {
+                "label": "Löschmechanismus",
+                "options": {
+                  "none": "Kein",
+                  "overwrite": "Überschreiben (Nullen / Zufallsdaten)",
+                  "factory_reset": "Werksreset",
+                  "crypto_erase": "Crypto Erase (Schlüssellöschung)",
+                  "physical": "Physische Vernichtung",
+                  "retention_period": "Automatische Aufbewahrungsfrist",
+                  "custom": "Benutzerdefiniert"
+                }
               },
               "deletionPolicy": {
                 "label": "Löschrichtlinie",
@@ -1245,6 +1330,38 @@
               "exposureLevel": {
                 "not_specified": "Nicht angegeben",
                 "helper": "Definiert das Expositionsniveau dieser Sicherheitszone. Elemente mit einem höheren EL sind nicht betroffen."
+              },
+              "boundaryControlTypes": {
+                "label": "Grenzkontrollen",
+                "options": {
+                  "firewall": "Firewall",
+                  "ids_ips": "IDS / IPS",
+                  "data_diode": "Datendiode",
+                  "vpn_gateway": "VPN-Gateway",
+                  "dmz": "DMZ",
+                  "authentication_gateway": "Authentifizierungs-Gateway",
+                  "unidirectional_gateway": "Unidirektionales Gateway",
+                  "network_segmentation": "Netzwerksegmentierung",
+                  "jump_host": "Jump-Host / Bastion",
+                  "custom": "Benutzerdefiniert"
+                },
+                "tooltips": {
+                  "firewall": "Stateful Packet Inspection Firewall",
+                  "ids_ips": "Intrusion Detection / Prevention System",
+                  "data_diode": "Hardware-Datendiode — unidirektionale Durchsetzung (IEC 62443 SL3+)",
+                  "vpn_gateway": "VPN-Konzentrator / verschlüsselter Tunnel-Endpunkt",
+                  "dmz": "Demilitarisierte Zone (Dual-Firewall-Architektur)",
+                  "authentication_gateway": "Identitäts- und Authentifizierungsdurchsetzung an der Grenze",
+                  "unidirectional_gateway": "Software-erzwungenes Einweg-Gateway (z.B. Waterfall)",
+                  "network_segmentation": "VLAN, Mikrosegmentierung oder ACL-basierte Trennung",
+                  "jump_host": "Bastion / Jump-Server für administrativen Zugriff",
+                  "custom": "Anbieter- oder domänenspezifisch — in Zusätzliche Kontrollen beschreiben"
+                }
+              },
+              "customBoundaryControls": {
+                "label": "Zusätzliche Kontrollen",
+                "placeholder": "z.B. Siemens SCALANCE S615, OPC UA Reverse Proxy mit Allowlist",
+                "helper": "Anbieter- oder domänenspezifische Kontrollen, die nicht in der obigen Liste sind"
               },
               "monitoringEnabled": {
                 "label": "Monitoring / Logging aktiviert"
@@ -1510,7 +1627,8 @@
       "ExternalEntity": "Externe Entität",
       "TrustBoundary": "Trust Boundary",
       "Interface": "Interface",
-      "Asset": "Asset"
+      "Asset": "Asset",
+      "ChipBoundary": "Chip-Grenze"
     }
   }
 }

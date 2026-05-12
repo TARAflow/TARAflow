@@ -27,6 +27,7 @@ import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type {
   InterfaceProperties,
   ExposureLevel,
+  InterfaceLocation,
 } from "../../models/element-properties";
 import {
   EXPOSURE_LEVEL_LABELS,
@@ -175,47 +176,204 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Location */}
+        {/* Location — structured enum, mirrors DataFlow.location semantics */}
         <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            size="small"
-            label={t(
-              "tabs.dfd.element_description.interface.fields.location.label",
-            )}
-            value={props.location ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("location", e.target.value)
-            }
-            placeholder={t(
-              "tabs.dfd.element_description.interface.fields.location.placeholder",
-              { defaultValue: "e.g. Server Room, Manufacturing Floor, Field" },
-            )}
-          />
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.interface.fields.location.label",
+                { defaultValue: "Physical Location" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.location ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "location",
+                  (e.target.value as InterfaceLocation) || undefined,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.interface.fields.location.label",
+                { defaultValue: "Physical Location" },
+              )}
+            >
+              <MenuItem value="">
+                <em>{t("common.not_specified")}</em>
+              </MenuItem>
+              {(
+                [
+                  "on_chip",
+                  "on_board",
+                  "in_enclosure",
+                  "external_panel",
+                  "field_accessible",
+                  "network_port",
+                  "wireless",
+                  "internet_facing",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.interface.fields.location.tooltips.${opt}`,
+                      { defaultValue: "" },
+                    )}
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.interface.fields.location.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
-      </Grid>
 
-      {/* Safety hint for embedded attack-surface interface types */}
-      {safetyHintKey && (
-        <Alert severity="info" sx={{ py: 0.5 }}>
-          <Typography variant="caption">
-            {t(safetyHintKey, {
-              defaultValue:
-                "This interface type is a common attack surface on embedded systems. Consider setting safetyRelevant if connected to safety-critical components.",
-            })}
-          </Typography>
-        </Alert>
-      )}
+        {/* Operational State */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.interface.fields.operationalState.label",
+                { defaultValue: "Operational State" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.operationalState ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "operationalState",
+                  e.target.value || undefined,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.interface.fields.operationalState.label",
+                { defaultValue: "Operational State" },
+              )}
+            >
+              <MenuItem value="">
+                <em>{t("common.not_specified")}</em>
+              </MenuItem>
+              {(
+                [
+                  "enabled",
+                  "enabled_read_only",
+                  "sw_disabled",
+                  "hw_disabled",
+                  "permanent_disabled",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.interface.fields.operationalState.tooltips.${opt}`,
+                      { defaultValue: "" },
+                    )}
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.interface.fields.operationalState.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
 
-      {/* ── Security ─────────────────────────────── */}
-      <SectionLabel
-        label={t("tabs.dfd.element_description.sections.security", {
-          defaultValue: "Security",
-        })}
-      />
+        {/* Connector Type */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.interface.fields.connectorType.label",
+                { defaultValue: "Connector Type" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.connectorType ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "connectorType",
+                  e.target.value || undefined,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.interface.fields.connectorType.label",
+                { defaultValue: "Connector Type" },
+              )}
+            >
+              <MenuItem value="">
+                <em>{t("common.not_specified")}</em>
+              </MenuItem>
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Network —
+              </MenuItem>
+              {(["rj45", "sfp", "m12"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
+                    { defaultValue: opt.toUpperCase() },
+                  )}
+                </MenuItem>
+              ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — USB —
+              </MenuItem>
+              {(["usb_a", "usb_c", "micro_usb"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Serial —
+              </MenuItem>
+              {(["db9", "db25", "terminal"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Debug / Board-level —
+              </MenuItem>
+              {(
+                ["swd_10pin", "jtag_20pin", "gpio_header", "pcie"] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+              <MenuItem value="custom">
+                {t(
+                  "tabs.dfd.element_description.interface.fields.connectorType.options.custom",
+                  { defaultValue: "Custom" },
+                )}
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
 
-      <Grid container rowSpacing={2} columnSpacing={2}>
-        {/* Exposure Level */}
+        {/* Exposure Level — Context field (physical/logical position → attack surface) */}
         <Grid item xs={12} sm={6}>
           <Stack spacing={1}>
             <FormControl fullWidth size="small">
@@ -359,7 +517,28 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
             )}
           </Stack>
         </Grid>
+      </Grid>
 
+      {/* Safety hint for embedded attack-surface interface types */}
+      {safetyHintKey && (
+        <Alert severity="info" sx={{ py: 0.5 }}>
+          <Typography variant="caption">
+            {t(safetyHintKey, {
+              defaultValue:
+                "This interface type is a common attack surface on embedded systems. Consider setting safetyRelevant if connected to safety-critical components.",
+            })}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* ── Security ─────────────────────────────── */}
+      <SectionLabel
+        label={t("tabs.dfd.element_description.sections.security", {
+          defaultValue: "Security",
+        })}
+      />
+
+      <Grid container rowSpacing={2} columnSpacing={2}>
         {/* Access Control */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth size="small">

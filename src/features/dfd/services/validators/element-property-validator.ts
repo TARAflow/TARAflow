@@ -127,7 +127,9 @@ function validateMultiprocessProperties(
 }
 
 /**
- * DataStore: technology, dataClassification
+ * DataStore: technology, dataClassification, storedDataTypes
+ * storedDataTypes is critical — without it threat templates cannot determine
+ * which Information Disclosure / Tampering threats apply.
  */
 function validateDataStoreProperties(
   element: DFDElement,
@@ -140,6 +142,9 @@ function validateDataStoreProperties(
   }
   if (!props.dataClassification) {
     warnings.push(missingProp(element, "dataClassification"));
+  }
+  if (!props.storedDataTypes || props.storedDataTypes.length === 0) {
+    warnings.push(missingProp(element, "storedDataTypes"));
   }
 }
 
@@ -164,7 +169,7 @@ function validateExternalEntityProperties(
 }
 
 /**
- * TrustBoundary: boundaryType, defaultExposureLevel
+ * TrustBoundary: boundaryType, defaultExposureLevel, boundaryControlTypes
  */
 function validateTrustBoundaryProperties(
   element: DFDElement,
@@ -177,6 +182,9 @@ function validateTrustBoundaryProperties(
   }
   if (!props.defaultExposureLevel) {
     warnings.push(missingProp(element, "defaultExposureLevel"));
+  }
+  if (!props.boundaryControlTypes || props.boundaryControlTypes.length === 0) {
+    warnings.push(missingProp(element, "boundaryControlTypes"));
   }
 }
 
@@ -199,7 +207,14 @@ function validateChipBoundaryProperties(
 }
 
 /**
- * Interface: type, exposureLevel
+ * Interface: type, location, operationalState, exposureLevel
+ *
+ * location — required for ExposureLevel derivation and physical attack surface
+ * operationalState — required for correct threat prioritisation:
+ *   permanent_disabled → no threats generated
+ *   sw_disabled        → threats at reduced priority
+ *   enabled            → full threat surface
+ * Only validated when type is set (type missing is already warned separately).
  */
 function validateInterfaceProperties(
   element: DFDElement,
@@ -209,6 +224,14 @@ function validateInterfaceProperties(
 
   if (!props.type) {
     warnings.push(missingProp(element, "type"));
+  }
+  if (!props.location) {
+    warnings.push(missingProp(element, "location"));
+  }
+  // Only warn on operationalState when type is set — avoids duplicate noise
+  // on completely empty interfaces
+  if (props.type && !props.operationalState) {
+    warnings.push(missingProp(element, "operationalState"));
   }
   if (!props.exposureLevel) {
     warnings.push(missingProp(element, "exposureLevel"));

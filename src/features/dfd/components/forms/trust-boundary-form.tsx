@@ -10,11 +10,13 @@ import {
   Alert,
   Box,
   Checkbox,
+  Chip,
   Divider,
   FormControl,
   FormControlLabel,
   InputLabel,
   MenuItem,
+  OutlinedInput,
   Select,
   Stack,
   TextField,
@@ -25,6 +27,7 @@ import type { AssetGroup, DFDElement } from "../../models/dfd-types";
 import type {
   TrustBoundaryProperties,
   ExposureLevel,
+  BoundaryControlType,
 } from "../../models/element-properties";
 import {
   EXPOSURE_LEVEL_LABELS,
@@ -269,6 +272,142 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             })}
           />
 
+          {/* Boundary Control Types — structured multi-select */}
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.trustboundary.fields.boundaryControlTypes.label",
+                { defaultValue: "Boundary Controls" },
+              )}
+            </InputLabel>
+            <Select
+              multiple
+              value={
+                (props.boundaryControlTypes ?? []) as BoundaryControlType[]
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                form.handlePropertyChange(
+                  "boundaryControlTypes",
+                  typeof val === "string" ? val.split(",") : val,
+                );
+              }}
+              input={
+                <OutlinedInput
+                  label={t(
+                    "tabs.dfd.element_description.trustboundary.fields.boundaryControlTypes.label",
+                    { defaultValue: "Boundary Controls" },
+                  )}
+                />
+              }
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {(selected as BoundaryControlType[]).map((val) => (
+                    <Chip
+                      key={val}
+                      label={t(
+                        `tabs.dfd.element_description.trustboundary.fields.boundaryControlTypes.options.${val}`,
+                        { defaultValue: val },
+                      )}
+                      size="small"
+                    />
+                  ))}
+                </Box>
+              )}
+            >
+              {(
+                [
+                  "firewall",
+                  "ids_ips",
+                  "data_diode",
+                  "vpn_gateway",
+                  "dmz",
+                  "authentication_gateway",
+                  "unidirectional_gateway",
+                  "network_segmentation",
+                  "jump_host",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Checkbox
+                    checked={(
+                      (props.boundaryControlTypes ??
+                        []) as BoundaryControlType[]
+                    ).includes(opt)}
+                    size="small"
+                    sx={{ py: 0 }}
+                  />
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.trustboundary.fields.boundaryControlTypes.tooltips.${opt}`,
+                      { defaultValue: "" },
+                    )}
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.trustboundary.fields.boundaryControlTypes.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Custom Boundary Controls — vendor/domain-specific free text */}
+          <TextField
+            fullWidth
+            size="small"
+            label={t(
+              "tabs.dfd.element_description.trustboundary.fields.customBoundaryControls.label",
+              { defaultValue: "Additional Controls" },
+            )}
+            value={props.customBoundaryControls ?? ""}
+            onChange={(e) =>
+              form.handlePropertyChange(
+                "customBoundaryControls",
+                e.target.value,
+              )
+            }
+            placeholder={t(
+              "tabs.dfd.element_description.trustboundary.fields.customBoundaryControls.placeholder",
+              {
+                defaultValue:
+                  "e.g. Siemens SCALANCE S615, OPC UA Reverse Proxy with allowlist",
+              },
+            )}
+            helperText={t(
+              "tabs.dfd.element_description.trustboundary.fields.customBoundaryControls.helper",
+              {
+                defaultValue:
+                  "Vendor-specific or domain-specific controls not in the list above",
+              },
+            )}
+          />
+
+          {/* Monitoring */}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={props.monitoringEnabled || false}
+                onChange={(e) =>
+                  form.handlePropertyChange(
+                    "monitoringEnabled",
+                    e.target.checked,
+                  )
+                }
+              />
+            }
+            label={t(
+              "tabs.dfd.element_description.trustboundary.fields.monitoringEnabled.label",
+              { defaultValue: "Monitoring / Logging Enabled" },
+            )}
+          />
+
           {/* Security Assumptions — dynamic placeholder driven by boundaryType */}
           <TextField
             fullWidth
@@ -290,52 +429,6 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                 defaultValue:
                   "What do you assume about each side of this boundary?",
               },
-            )}
-          />
-
-          {/* Boundary Controls */}
-          <TextField
-            fullWidth
-            size="small"
-            multiline
-            rows={2}
-            label={t(
-              "tabs.dfd.element_description.trustboundary.fields.boundaryControls.label",
-              { defaultValue: "Controls at Boundary" },
-            )}
-            value={props.boundaryControls ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("boundaryControls", e.target.value)
-            }
-            placeholder={t(
-              "tabs.dfd.element_description.trustboundary.fields.boundaryControls.placeholder",
-              {
-                defaultValue:
-                  "e.g. Firewall, API Gateway, Authentication Layer",
-              },
-            )}
-            helperText={t(
-              "tabs.dfd.element_description.trustboundary.fields.boundaryControls.helper",
-              { defaultValue: "What enforces this boundary?" },
-            )}
-          />
-
-          {/* Monitoring */}
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={props.monitoringEnabled || false}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "monitoringEnabled",
-                    e.target.checked,
-                  )
-                }
-              />
-            }
-            label={t(
-              "tabs.dfd.element_description.trustboundary.fields.monitoringEnabled.label",
-              { defaultValue: "Monitoring / Logging Enabled" },
             )}
           />
 

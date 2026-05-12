@@ -10,19 +10,24 @@ import {
   Alert,
   Box,
   Checkbox,
+  Chip,
   Divider,
   FormControl,
   FormControlLabel,
   Grid,
   InputLabel,
   MenuItem,
+  OutlinedInput,
   Select,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import type { AssetGroup, DFDElement } from "../../models/dfd-types";
-import type { DataStoreProperties } from "../../models/element-properties";
+import type {
+  DataStoreProperties,
+  StoredDataType,
+} from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
@@ -217,31 +222,78 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Stored Data Types */}
+        {/* Stored Data Types — multi-select */}
         <Grid item xs={12}>
-          <TextField
-            fullWidth
-            size="small"
-            label={t(
-              "tabs.dfd.element_description.datastore.fields.storedDataTypes.label",
-              { defaultValue: "Stored Data Types" },
-            )}
-            value={props.storedDataTypes ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("storedDataTypes", e.target.value)
-            }
-            placeholder={t(
-              "tabs.dfd.element_description.datastore.fields.storedDataTypes.placeholder",
-              {
-                defaultValue:
-                  "e.g. User credentials, Transaction logs, Configuration",
-              },
-            )}
-            helperText={t(
-              "tabs.dfd.element_description.datastore.fields.storedDataTypes.helper",
-              { defaultValue: "Separate multiple types with commas" },
-            )}
-          />
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.datastore.fields.storedDataTypes.label",
+                { defaultValue: "Stored Data Types" },
+              )}
+            </InputLabel>
+            <Select
+              multiple
+              value={(props.storedDataTypes ?? []) as StoredDataType[]}
+              onChange={(e) => {
+                const val = e.target.value;
+                form.handlePropertyChange(
+                  "storedDataTypes",
+                  typeof val === "string" ? val.split(",") : val,
+                );
+              }}
+              input={
+                <OutlinedInput
+                  label={t(
+                    "tabs.dfd.element_description.datastore.fields.storedDataTypes.label",
+                    { defaultValue: "Stored Data Types" },
+                  )}
+                />
+              }
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {(selected as StoredDataType[]).map((val) => (
+                    <Chip
+                      key={val}
+                      label={t(
+                        `tabs.dfd.element_description.datastore.fields.storedDataTypes.options.${val}`,
+                        { defaultValue: val },
+                      )}
+                      size="small"
+                    />
+                  ))}
+                </Box>
+              )}
+            >
+              {(
+                [
+                  "credentials",
+                  "keys_certificates",
+                  "firmware",
+                  "pii",
+                  "safety_params",
+                  "calibration",
+                  "config",
+                  "audit_logs",
+                  "telemetry",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Checkbox
+                    checked={(
+                      (props.storedDataTypes ?? []) as StoredDataType[]
+                    ).includes(opt)}
+                    size="small"
+                    sx={{ py: 0 }}
+                  />
+                  {t(
+                    `tabs.dfd.element_description.datastore.fields.storedDataTypes.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
       </Grid>
 
@@ -662,7 +714,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};;;
+}
 
 export const DataStoreDescriptionForm = React.memo<DataStoreFormProps>(
   ({ element, onChange, availableAssets = [], onCreateAsset }) => (

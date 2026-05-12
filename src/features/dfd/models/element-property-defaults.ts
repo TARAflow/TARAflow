@@ -11,6 +11,9 @@ import type {
   InterfaceProperties,
   TrustBoundaryProperties,
   ChipBoundaryProperties,
+  StoredDataType,
+  InterfaceLocation,
+  BoundaryControlType,
 } from "./element-properties";
 
 // ==================== PROCESS DEFAULTS ====================
@@ -370,11 +373,16 @@ export const DATASTORE_TECH_DEFAULTS: Record<
   NonNullable<DataStoreProperties["technology"]>,
   Partial<DataStoreProperties>
 > = {
-  database: { encryptionAtRest: "tde", integrityProtection: "hmac" },
+  database: {
+    encryptionAtRest: "tde",
+    integrityProtection: "hmac",
+    storedDataTypes: ["config"] as StoredDataType[],
+  },
   cloud: {
     encryptionAtRest: "kms",
     integrityProtection: "hmac",
     multiTenant: true,
+    storedDataTypes: ["telemetry"] as StoredDataType[],
   },
   filesystem: {
     encryptionAtRest: "none",
@@ -382,15 +390,32 @@ export const DATASTORE_TECH_DEFAULTS: Record<
     multiTenant: false,
   },
   cache: { encryptionAtRest: "none", integrityProtection: "none" },
-  queue: { encryptionAtRest: "none", integrityProtection: "none" },
+  queue: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    storedDataTypes: ["telemetry"] as StoredDataType[],
+  },
   blockchain: {
     encryptionAtRest: "custom",
     integrityProtection: "signature",
     multiTenant: false,
   },
-  flash: { encryptionAtRest: "none", integrityProtection: "none" },
-  eeprom: { encryptionAtRest: "none", integrityProtection: "none" },
-  nvram: { encryptionAtRest: "none", integrityProtection: "none" },
+  // Embedded storage: defaults surface threats — insecure by default
+  flash: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    storedDataTypes: ["firmware"] as StoredDataType[],
+  },
+  eeprom: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    storedDataTypes: ["calibration"] as StoredDataType[],
+  },
+  nvram: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    storedDataTypes: ["safety_params"] as StoredDataType[],
+  },
 };
 
 /** Fields driven by DataStore.technology — used for clearing on driver reset */
@@ -398,6 +423,7 @@ export const DATASTORE_TECH_DRIVEN_FIELDS: (keyof DataStoreProperties)[] = [
   "encryptionAtRest",
   "integrityProtection",
   "multiTenant",
+  "storedDataTypes",
 ];
 
 // ==================== DATA FLOW DEFAULTS ====================
@@ -500,6 +526,8 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     integrityProtection: "crc", // Modbus RTU frame CRC — not cryptographic
     frequency: "periodic",
     messageType: "measurement",
+    accessMode: "read_write", // Default surfaces threat — set read_only as CRA mitigation
+    dataMinimization: "none",
   },
   modbus_tcp: {
     direction: "requestresponse",
@@ -508,6 +536,8 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     integrityProtection: "none", // No CRC in Modbus/TCP — relies on TCP checksum only
     frequency: "periodic",
     messageType: "measurement",
+    accessMode: "read_write", // Default surfaces threat — set read_only as CRA mitigation
+    dataMinimization: "none",
   },
   modbus_sec: {
     direction: "requestresponse",
@@ -516,6 +546,8 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     integrityProtection: "hmac",
     frequency: "periodic",
     messageType: "measurement",
+    accessMode: "read_write",
+    dataMinimization: "none",
   },
   uart: {
     direction: "unidirectional",
@@ -636,6 +668,8 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     integrityProtection: "none",
     frequency: "periodic",
     messageType: "measurement",
+    accessMode: "read_write",
+    dataMinimization: "none",
   },
 
   // ── Secure OT ─────────────────────────────────────────────────────────────
@@ -646,6 +680,8 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     integrityProtection: "hmac",
     frequency: "ondemand",
     messageType: "measurement",
+    accessMode: "read_write",
+    dataMinimization: "none",
   },
 
   // ── Wireless ──────────────────────────────────────────────────────────────
@@ -766,6 +802,8 @@ export const DATAFLOW_PROTOCOL_DRIVEN_FIELDS: (keyof DataFlowProperties)[] = [
   "dataClassification",
   "location",
   "redundancy",
+  "accessMode",
+  "dataMinimization",
 ];
 
 // ==================== INTERFACE DEFAULTS ====================
@@ -778,15 +816,57 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
   NonNullable<InterfaceProperties["type"]>,
   Partial<InterfaceProperties>
 > = {
-  ethernet:  { accessControl: "credentials" },
-  wifi:      { accessControl: "credentials" },
-  bluetooth: { accessControl: "credentials" },
-  fiber:     { accessControl: "credentials" },
-  usb:       { accessControl: "none" },
-  serial:    { accessControl: "none" },
-  gpio:      { accessControl: "none" },
-  nfc:       { accessControl: "none" },
-  custom:    { accessControl: "none" },
+  // Network interfaces — enabled by default, credentials expected
+  ethernet: {
+    accessControl: "credentials",
+    location: "network_port" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "rj45",
+  },
+  fiber: {
+    accessControl: "credentials",
+    location: "network_port" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "sfp",
+  },
+  wifi: {
+    accessControl: "credentials",
+    location: "wireless" as InterfaceLocation,
+    operationalState: "enabled",
+  },
+  bluetooth: {
+    accessControl: "credentials",
+    location: "wireless" as InterfaceLocation,
+    operationalState: "enabled",
+  },
+  nfc: {
+    accessControl: "none",
+    location: "external_panel" as InterfaceLocation,
+    operationalState: "enabled",
+  },
+  // Embedded interfaces — no access control by default, surfaces attack surface
+  usb: {
+    accessControl: "none",
+    location: "external_panel" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "usb_a",
+  },
+  serial: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "db9",
+  },
+  gpio: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "gpio_header",
+  },
+  custom: {
+    accessControl: "none",
+    operationalState: "enabled",
+  },
 };
 
 /**
@@ -805,6 +885,9 @@ export const INTERFACE_TYPE_SAFETY_HINTS: Partial<Record<
 /** Fields driven by Interface.type — used for clearing on driver reset */
 export const INTERFACE_TYPE_DRIVEN_FIELDS: (keyof InterfaceProperties)[] = [
   "accessControl",
+  "location",
+  "operationalState",
+  "connectorType",
 ];
 
 // ==================== TRUST BOUNDARY DEFAULTS ====================
@@ -816,16 +899,56 @@ export const TB_TYPE_DEFAULTS: Record<
   NonNullable<TrustBoundaryProperties["boundaryType"]>,
   Partial<TrustBoundaryProperties>
 > = {
-  network:      { defaultExposureLevel: "EL3", monitoringEnabled: true  },
-  cloud:        { defaultExposureLevel: "EL4", monitoringEnabled: true  },
-  privilege:    { defaultExposureLevel: "EL1", monitoringEnabled: false },
-  device:       { defaultExposureLevel: "EL1", monitoringEnabled: false },
-  physical:     { defaultExposureLevel: "EL1", monitoringEnabled: false },
-  organization: { defaultExposureLevel: "EL3", monitoringEnabled: false },
-  legal:        { defaultExposureLevel: "EL2", monitoringEnabled: false },
-  peripheral:   { defaultExposureLevel: "EL1", monitoringEnabled: false },
-  boot:         { defaultExposureLevel: "EL0", monitoringEnabled: false },
-  debug:        { defaultExposureLevel: "EL1", monitoringEnabled: false },
+  // Network boundary — firewall is the expected baseline control
+  network: {
+    defaultExposureLevel: "EL3",
+    monitoringEnabled: true,
+    boundaryControlTypes: ["firewall"] as BoundaryControlType[],
+  },
+  // Cloud boundary — IAM gateway is the baseline, monitoring mandatory
+  cloud: {
+    defaultExposureLevel: "EL4",
+    monitoringEnabled: true,
+    boundaryControlTypes: ["authentication_gateway"] as BoundaryControlType[],
+  },
+  // Privilege boundary — no network control, OS-enforced
+  privilege: {
+    defaultExposureLevel: "EL1",
+    monitoringEnabled: false,
+  },
+  // Device boundary — no default control (analyst must assess)
+  device: {
+    defaultExposureLevel: "EL1",
+    monitoringEnabled: false,
+  },
+  // Physical boundary — no network control
+  physical: {
+    defaultExposureLevel: "EL1",
+    monitoringEnabled: false,
+  },
+  // Organization boundary — VPN is typical for cross-org connectivity
+  organization: {
+    defaultExposureLevel: "EL3",
+    monitoringEnabled: false,
+    boundaryControlTypes: ["vpn_gateway"] as BoundaryControlType[],
+  },
+  legal: {
+    defaultExposureLevel: "EL2",
+    monitoringEnabled: false,
+  },
+  // Embedded-specific — no network controls at chip/boot/debug level
+  peripheral: {
+    defaultExposureLevel: "EL1",
+    monitoringEnabled: false,
+  },
+  boot: {
+    defaultExposureLevel: "EL0",
+    monitoringEnabled: false,
+  },
+  debug: {
+    defaultExposureLevel: "EL1",
+    monitoringEnabled: false,
+  },
 };
 
 /**
@@ -852,6 +975,7 @@ export const TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<
 export const TB_TYPE_DRIVEN_FIELDS: (keyof TrustBoundaryProperties)[] = [
   "defaultExposureLevel",
   "monitoringEnabled",
+  "boundaryControlTypes",
 ];
 
 // ==================== CHIP BOUNDARY DEFAULTS ====================

@@ -16,6 +16,89 @@
 // EL4 (Public): Access via untrusted external networks (e.g., Internet, remote connections
 export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
 
+
+// ==================== STORED DATA TYPES ====================
+//
+// Controlled vocabulary for DataStore.storedDataTypes[].
+// Represents threat classes, not storage technologies — kept deliberately
+// stable so new domains (automotive, medical, rail) extend via custom
+// entries rather than breaking existing threat templates.
+//
+// Threat implications:
+//   credentials / keys_certificates → Spoofing, Elevation of Privilege
+//   firmware                        → Tampering (Secure Boot bypass)
+//   pii                             → Information Disclosure (GDPR)
+//   safety_params                   → Tampering + DoS (SIL-relevant)
+//   calibration                     → Tampering (process accuracy)
+//   config                          → Tampering (system behaviour)
+//   audit_logs                      → Repudiation (log deletion/manipulation)
+//   telemetry                       → Information Disclosure
+//   custom                          → Analyst must describe in notes
+
+export type StoredDataType =
+  | "credentials"       // Passwords, tokens, session keys, API keys
+  | "keys_certificates" // Cryptographic keys, X.509 certificates, PKI material
+  | "firmware"          // Firmware images, bootloader, software update packages
+  | "pii"               // Personal Identifiable Information (GDPR-relevant)
+  | "safety_params"     // Safety-relevant parameters (SIL, emergency stop config)
+  | "calibration"       // Sensor calibration data, process parameters
+  | "config"            // System or application configuration
+  | "audit_logs"        // Audit trail, event logs, diagnostic data
+  | "telemetry"         // Operational metrics, aggregated sensor data
+  | "custom";           // Domain-specific — describe in notes
+
+// ==================== INTERFACE LOCATION ====================
+//
+// Physical location of a connector/port on a device boundary.
+// Mirrors DataFlow.location (the path) — Interface.location is the point.
+// Used for ExposureLevel derivation and physical attack surface assessment.
+//
+// Semantically distinct from:
+//   DataFlow.location   — the medium/path the flow traverses
+//   exposureLevel       — the resulting attack surface (consequence)
+//
+// location is the cause; exposureLevel is the effect.
+
+export type InterfaceLocation =
+  | "on_chip"          // Internal chip pad / register — EL0 (debug interface only)
+  | "on_board"         // PCB-mounted connector, same board — EL0/EL1
+  | "in_enclosure"     // Port inside sealed enclosure — EL1 (requires disassembly)
+  | "external_panel"   // Panel-mounted port on device exterior — EL1
+  | "field_accessible" // Field-accessible connector (M12, DIN, terminal) — EL1/EL2
+  | "network_port"     // Standard network port (RJ45, SFP) — EL2/EL3
+  | "wireless"         // Wireless interface (antenna, built-in radio) — EL3
+  | "internet_facing"  // Internet-exposed interface — EL4
+  | "custom";          // Non-standard location — describe in notes
+
+// ==================== BOUNDARY CONTROL TYPES ====================
+//
+// Structured vocabulary for TrustBoundary security controls.
+// Intentionally kept at a stable semantic core — OT-specific or
+// vendor-specific controls go in customBoundaryControls?: string.
+//
+// Mitigation mapping:
+//   firewall / ids_ips          → Network-level threat reduction
+//   data_diode                  → Unidirectional enforcement (IEC 62443 SL3+)
+//   vpn_gateway                 → Encrypted tunnel across boundary
+//   dmz                         → Demilitarised zone separation
+//   authentication_gateway      → Identity enforcement at boundary
+//   unidirectional_gateway      → Hardware-enforced one-way data flow
+//   network_segmentation        → VLAN / logical separation
+//   jump_host                   → Bastion host for remote access control
+//   custom                      → Describe in customBoundaryControls
+
+export type BoundaryControlType =
+  | "firewall"               // Stateful packet inspection firewall
+  | "ids_ips"                // Intrusion Detection / Prevention System
+  | "data_diode"             // Hardware data diode — unidirectional enforcement
+  | "vpn_gateway"            // VPN concentrator / encrypted tunnel endpoint
+  | "dmz"                    // Demilitarised zone (dual-firewall architecture)
+  | "authentication_gateway" // Identity / auth enforcement at boundary
+  | "unidirectional_gateway" // Software-enforced one-way gateway (e.g. Waterfall)
+  | "network_segmentation"   // VLAN, microsegmentation, ACL-based separation
+  | "jump_host"              // Bastion / jump server for admin access
+  | "custom";                // Vendor/domain-specific — use customBoundaryControls
+
 // ==================== SECURITY CONTROL RECORD ====================
  
 /**
@@ -377,7 +460,14 @@ export interface ExternalEntityProperties {
 // ==================== DATA STORE PROPERTIES ====================
 
 export interface DataStoreProperties {
-  storedDataTypes?: string;
+  /**
+   * Semantic categories of data stored in this store.
+   * Multi-select — real stores often contain multiple data classes simultaneously.
+   * Drives threat template selection (Information Disclosure, Tampering, etc.).
+   * Use "custom" + notes for domain-specific types not covered by the vocabulary.
+   * @see StoredDataType
+   */
+  storedDataTypes?: StoredDataType[];
   dataClassification?:
     | "public"
     | "internal"
@@ -686,6 +776,41 @@ export interface DataFlowProperties {
   /** Free-text details when messageType=custom or to clarify content. */
   dataTypeNotes?: string;
 
+  /**
+   * Access permission enforced on this data flow.
+   * Relevant for protocols without native access control (Modbus, CAN, OPC DA).
+   *
+   * read_only  → Consumer may only read — write/command operations blocked
+   *              Modbus: only FC1-4 (read coils/registers) permitted
+   *              OPC UA: SessionSecurityDiagnostics.userRolePermissions = read
+   *              Threat implication: eliminates Tampering via Write (FC5/FC6/FC15/FC16)
+   * read_write → Full bidirectional access (default for most protocols)
+   * write_only → Producer may only write — read-back blocked
+   *              Rare, but relevant for actuator-only outputs
+   *
+   * CRA relevance: Article 13 — "minimise attack surfaces"
+   * IEC 62443-3-3 SR 2.1: "Authorisation Enforcement"
+   */
+  accessMode?: "read_only" | "read_write" | "write_only";
+
+  /**
+   * Data minimization applied to this flow.
+   * Relevant for CRA Article 13 and GDPR data minimization principle.
+   *
+   * none           → All available data points are exposed (default)
+   * filtered       → Subset of registers/topics exposed via allowlist/filter
+   * aggregated_only → Only aggregated/anonymised values — no raw data
+   *
+   * Threat implication:
+   *   none       → Information Disclosure surface is maximal
+   *   filtered   → Reduces attack surface; filter bypass is a residual threat
+   *   aggregated_only → PII/sensitive data not directly accessible
+   *
+   * CRA relevance: Article 13(1)(d) — "minimise data exposure"
+   * GDPR: Article 5(1)(c) — data minimisation
+   */
+  dataMinimization?: "none" | "filtered" | "aggregated_only";
+
   volume?: string;
   encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
   /**
@@ -890,6 +1015,8 @@ export interface DataFlowProperties {
 // ==================== INTERFACE PROPERTIES ====================
 
 export interface InterfaceProperties {
+  // ── Context ──────────────────────────────────────────────────────────────
+
   type?:
     | "ethernet"
     | "serial"
@@ -900,33 +1027,98 @@ export interface InterfaceProperties {
     | "nfc"
     | "fiber"
     | "custom";
+
+  /**
+   * Physical location of this interface on the device.
+   * Structured enum — mirrors DataFlow.location semantics.
+   * Used for ExposureLevel derivation and physical attack surface assessment.
+   * location is the cause; exposureLevel is the effect.
+   * @see InterfaceLocation
+   */
+  location?: InterfaceLocation;
+
+  /**
+   * Operational state of this interface.
+   *
+   * enabled              → Fully active — full threat surface applies
+   * enabled_read_only    → Output only, no input accepted (e.g. UART log-only mode)
+   *                        Threat: information disclosure; no command injection path
+   * sw_disabled          → Disabled via config/firmware/registry — reversible without
+   *                        hardware access. Residual threat: re-enable via SW exploit.
+   * hw_disabled          → Disabled via jumper/DIP-switch — requires physical access
+   *                        to re-enable. Lower residual risk than sw_disabled.
+   * permanent_disabled   → Irreversibly disabled: OTP fuse blown (e.g. STM32 RDP2,
+   *                        JTAG-disable fuse), pad unpopulated on PCB, epoxy-filled.
+   *                        Threat eliminated — no threat generated for this interface.
+   *
+   * Threat-gen implication:
+   *   enabled             → all threats active
+   *   enabled_read_only   → command injection threats suppressed
+   *   sw_disabled         → threats at reduced priority + "SW re-enable" attack path
+   *   hw_disabled         → threats at low priority + "physical re-enable" residual
+   *   permanent_disabled  → no threats generated
+   */
+  operationalState?:
+    | "enabled"
+    | "enabled_read_only"
+    | "sw_disabled"
+    | "hw_disabled"
+    | "permanent_disabled";
+
+  /**
+   * Physical connector type — attack surface assessment.
+   * Relevant for physical penetration testing and CRA Article 13 (attack surface).
+   * @example "usb_a" → standard consumer cable usable, no special tool needed
+   * @example "swd_10pin" → requires debug probe, higher attacker capability needed
+   */
+  connectorType?:
+    | "rj45" // Standard Ethernet — ubiquitous, no special tool
+    | "sfp" // SFP/SFP+ module — requires specific hardware
+    | "m12" // Industrial M12 — rugged, field-accessible
+    | "usb_a" // USB Type-A — standard consumer cable
+    | "usb_c" // USB Type-C — standard consumer cable
+    | "micro_usb" // Micro-USB — standard consumer cable
+    | "db9" // RS-232 D-Sub 9 — serial console, common on industrial HW
+    | "db25" // RS-232 D-Sub 25 — legacy serial
+    | "terminal" // Screw/spring terminal block — fieldbus, power
+    | "swd_10pin" // SWD 10-pin header — requires debug probe
+    | "jtag_20pin" // JTAG 20-pin header — requires debug probe
+    | "gpio_header" // 0.1" pin header — requires jumper/probe
+    | "pcie" // PCIe slot — internal, board-level
+    | "custom"; // Non-standard — document in notes
+
+  connectionSpeed?: "low" | "medium" | "high";
+  isShieldedCable?: boolean;
+
+  // EN 50742 Annex B — Exposure Level (primary EL carrier in the graph)
+  // Placed in Context: location is the cause, exposureLevel is the effect.
+  exposureLevel?: ExposureLevel;
+  exposureLevelSource?: "derived" | "manual";
+  exposureLevelRationale?: string;
+
+  // ── Security ─────────────────────────────────────────────────────────────
+
   accessControl?:
     | "none"
     | "physical_lock"
     | "credentials"
     | "card"
     | "certificate";
-  connectionSpeed?: "low" | "medium" | "high";
-  isShieldedCable?: boolean;
-  location?: string;
 
-  // EN 50742 Annex B — Exposure Level (primary EL carrier in the graph)
-  exposureLevel?: ExposureLevel;
-  exposureLevelSource?: "derived" | "manual";
-  exposureLevelRationale?: string;
+  // ── Safety annotation ────────────────────────────────────────────────────
 
-  // ---- Safety annotation ----
   /**
    * This interface connects to a safety-relevant element or function.
-   * Used for: EN 50742 "Identification of safety-relevant interfaces".
+   * EN 50742: "Identification of safety-relevant interfaces".
    * @example USB programming interface on a Safety PLC → safetyRelevant: true
    */
   safetyRelevant?: boolean;
   safetyRationale?: string;
 
+  // ── Audit ─────────────────────────────────────────────────────────────────
+
   /**
    * Audit trail of security controls intentionally applied to this element.
-   * Managed via DFDNotificationsPanel Apply or manual analyst entry.
    * @see SecurityControlRecord
    */
   securityControlOwnership?: SecurityControlRecord[];
@@ -952,7 +1144,29 @@ export interface TrustBoundaryProperties {
     | "debug"; // Debug/programming interface (SWD, JTAG, UART console)
   defaultExposureLevel?: ExposureLevel;
   securityAssumptions?: string;
+
+  /**
+   * Structured security controls enforced at this boundary.
+   * Multi-select from a stable semantic vocabulary.
+   * Use customBoundaryControls for vendor/domain-specific controls.
+   * @see BoundaryControlType
+   */
+  boundaryControlTypes?: BoundaryControlType[];
+
+  /**
+   * Free-text for vendor-specific, domain-specific, or composite controls
+   * not covered by BoundaryControlType.
+   * @example "Siemens SCALANCE S615 with Deep Packet Inspection for Profinet"
+   * @example "OPC UA Reverse Proxy with certificate allowlist"
+   */
+  customBoundaryControls?: string;
+
+  /**
+   * @deprecated Use boundaryControlTypes + customBoundaryControls instead.
+   * Retained for backwards compatibility — migrated on next save.
+   */
   boundaryControls?: string;
+
   monitoringEnabled?: boolean;
   complianceRelevance?: string;
   owner?: string;
