@@ -19,6 +19,91 @@ import type {
 import type { DFDElementType } from "./dfd-element-types";
 import { AnyAssetRelationType } from "shared";
 
+// ==================== ASSET ENUM TYPES ====================
+
+/**
+ * Semantic data types for Data Assets.
+ * Parallel to StoredDataType on DataStore — kept separate because
+ * Asset and DataStore have different threat implications.
+ */
+export type AssetDataType =
+  | "credentials"       // Passwords, tokens, session keys, API keys
+  | "keys_certificates" // Cryptographic keys, X.509 certificates, PKI material
+  | "firmware"          // Firmware images, bootloader, software update packages
+  | "pii"               // Personal Identifiable Information (GDPR-relevant)
+  | "safety_params"     // Safety-relevant parameters (SIL, emergency stop config)
+  | "calibration"       // Sensor calibration data, process parameters
+  | "config"            // System or application configuration
+  | "audit_logs"        // Audit trail, event logs, diagnostic data
+  | "telemetry"         // Operational metrics, aggregated sensor data
+  | "custom";           // Domain-specific — describe in notes
+
+/**
+ * Domain / industry sector of a Process Asset.
+ * Values mirror tag-categories.ts domain tags for consistency.
+ */
+export type AssetDomain =
+  | "aerospace"
+  | "automotive"
+  | "aviation"
+  | "consumer"
+  | "energy"
+  | "finance"
+  | "industrial"
+  | "medical"
+  | "military"
+  | "pharma"
+  | "public_sector"
+  | "railway"
+  | "telecom"
+  | "transportation"
+  | "water";
+
+/**
+ * Automation level of a Process Asset.
+ * Replaces the boolean `automated` field.
+ * Affects threat scenarios: fully_automated processes have no human
+ * oversight path — DoS and Tampering threats have higher impact.
+ */
+export type AutomationLevel =
+  | "manual"            // Human-operated, no automation
+  | "partly_automated"  // Human-in-the-loop, assisted by automation
+  | "fully_automated";  // No human intervention at runtime
+
+/**
+ * Physical access control mechanism for Infrastructure Assets.
+ * Replaces physicalAccessPossible (boolean) + isPhysicalBarrier (boolean).
+ *
+ * none:      No physical access control — anyone can reach the asset
+ * lock:      Key or combination lock
+ * biometric: Fingerprint, iris, or face recognition
+ * guard:     Human guard or security personnel
+ * barrier:   Physical barrier (cage, enclosure, sealed cabinet)
+ * custom:    Domain-specific — document in notes
+ */
+export type PhysicalAccessControl =
+  | "none"
+  | "lock"
+  | "biometric"
+  | "guard"
+  | "barrier"
+  | "custom";
+
+/**
+ * Portability of a Physical Asset.
+ * Extends the previous binary fixed/portable with transport method.
+ *
+ * fixed:             Cannot be moved (installed machinery, embedded component)
+ * portable_human:    Can be carried by a person (prototype, key, tool)
+ * portable_machine:  Requires mechanical transport (forklift, crane)
+ * portable_vehicle:  Transported by vehicle (container, equipment truck)
+ */
+export type Portability =
+  | "fixed"
+  | "portable_human"
+  | "portable_machine"
+  | "portable_vehicle";
+
 // ==================== SHARED SUB-TYPES ====================
 
 /**
@@ -65,7 +150,7 @@ export interface AssetProperties {
   // ================================================================
 
   /** Semantic data types contained in this asset */
-  dataType?: string[];
+  dataType?: AssetDataType[];
   /** Lifecycle phase of the data */
   lifecycle?: "transient" | "stored" | "archived";
   /**
@@ -98,8 +183,12 @@ export interface AssetProperties {
   // ---- PROCESS (group: "process") ----
   // ================================================================
 
-  /** Process is automated (no human intervention required at runtime) */
-  automated?: boolean;
+  /**
+   * Automation level of this process.
+   * Replaces the former boolean `automated` field.
+   * fully_automated: no human oversight → DoS and Tampering have higher impact.
+   */
+  automationLevel?: AutomationLevel;
 
   /**
    * How frequently this process changes (relevant for IP-theft threat scenarios).
@@ -113,7 +202,7 @@ export interface AssetProperties {
    * Domain / regulatory context of this process.
    * e.g. "OT-Manufacturing", "Medical", "Pharma", "Automotive"
    */
-  domain?: string;
+  domain?: AssetDomain;
 
   /**
    * Regulatory reference applicable to this process.
@@ -147,8 +236,13 @@ export interface AssetProperties {
   // ---- INFRASTRUCTURE (group: "infrastructure") ----
   // ================================================================
 
-  /** Physical access is possible (relevant for accesses threat scenarios) */
-  physicalAccessPossible?: boolean;
+  /**
+   * Physical access control mechanism at this infrastructure asset.
+   * Replaces physicalAccessPossible (boolean) + isPhysicalBarrier (boolean).
+   * none = uncontrolled access → highest physical threat surface.
+   * barrier = physical enclosure → access requires defeating the barrier.
+   */
+  physicalAccessControl?: PhysicalAccessControl;
   /** Physical deployment location */
   location?: "factory" | "datacenter" | "field" | "cloud";
   /**
@@ -159,11 +253,6 @@ export interface AssetProperties {
    * none:       No special environmental hazard
    */
   environmentalHazard?: "fire" | "chemical" | "mechanical" | "none";
-  /**
-   * Asset is a physical protection barrier (safety enclosure, guard).
-   * Failure = direct safety impact on Human Assets (Safety Override may apply).
-   */
-  isPhysicalBarrier?: boolean;
 
   // ================================================================
   // ---- PHYSICAL (group: "physical") ----
@@ -182,7 +271,13 @@ export interface AssetProperties {
    * Portable: asset can be transported (prototype, physical key, tool).
    * → Affects theft and smuggling threat scenarios.
    */
-  portability?: "fixed" | "portable";
+  /**
+   * Portability of this physical asset.
+   * Affects theft and smuggling threat scenarios.
+   * portable_human: carryable by one person — highest theft risk.
+   * portable_vehicle: requires transport logistics — lower opportunistic risk.
+   */
+  portability?: Portability;
 
   // ================================================================
   // ---- SERVICE (group: "service") ----

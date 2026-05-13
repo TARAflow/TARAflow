@@ -142,10 +142,10 @@ class DFDService {
         mergedConnections,
         syncedAssets,
         stats,
+        graph,
         {
           unconnectedDataflows,
         },
-        graph,
       );
 
       // Assign fully initialized DFD to project
@@ -464,10 +464,10 @@ class DFDService {
         mergedConnections,
         syncedAssets,
         stats,
+        dfdGraph,
         {
           unconnectedDataflows,
         },
-        dfdGraph,
       );
 
       // Create DFD data
@@ -550,10 +550,10 @@ class DFDService {
     return this.validator.validate(
       mergedElements,
       mergedConnections,
-      syncedAssets, // NEU — statt assets
+      syncedAssets,
       stats,
-      { unconnectedDataflows },
       graph,
+      { unconnectedDataflows },
     );
   }
 

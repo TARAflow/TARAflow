@@ -42,6 +42,18 @@ export const ValidationMessages = {
   // ASSET_RELATION_NO_MARKER: "dfdValidation.assetRelationNoMarker",
   ASSET_RELATION_TYPE_INVALID: "dfdValidation.assetRelationTypeInvalid",
   ASSET_RELATION_INCONSISTENT: "dfdValidation.assetRelationInconsistent",
+  ASSET_MISSING_NAME: "dfdValidation.assetMissingName",
+  ASSET_MISSING_PROTECTION_NEED: "dfdValidation.assetMissingProtectionNeed",
+  // Per-group asset property keys
+  ASSET_MISSING_DATA_TYPE: "dfdValidation.assetMissingDataType",
+  ASSET_MISSING_LIFECYCLE: "dfdValidation.assetMissingLifecycle",
+  ASSET_MISSING_CRITICALITY: "dfdValidation.assetMissingCriticality",
+  ASSET_MISSING_EXPOSURE: "dfdValidation.assetMissingExposure",
+  ASSET_MISSING_PHYSICAL_ACCESS: "dfdValidation.assetMissingPhysicalAccess",
+  ASSET_MISSING_SERVICE_TYPE: "dfdValidation.assetMissingServiceType",
+  ASSET_MISSING_RESPONSIBILITY: "dfdValidation.assetMissingResponsibility",
+  ASSET_MISSING_ROLE: "dfdValidation.assetMissingRole",
+  ASSET_MISSING_AUTOMATION_LEVEL: "dfdValidation.assetMissingAutomationLevel",
   // ASSET_MARKER_ON_INVALID_ELEMENT: "dfdValidation.assetMarkerOnInvalidElement",
 
   // Naming & ID Labels

@@ -23,7 +23,7 @@ import {
 } from "./validators/connection-validator";
 import { validateDataflowLabels } from "./validators/dataflow-label-validator";
 import { validateDataflowProperties } from "./validators/dataflow-property-validator";
-import { validateAssetsAndInterfaces } from "./validators/dfd-asset-validator";
+import { validateAssetProperties } from "./validators/asset-property-validator";
 import { validateAssetRelations } from "./validators/asset-relation-validator";
 import {
   isComplete,
@@ -66,8 +66,8 @@ export class DFDValidator {
     connections: DFDConnection[],
     assets: DFDAsset[],
     stats: DFDStats,
+    graph: DFDGraph,
     options?: ValidateOptions,
-    graph?: DFDGraph,
   ): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -84,8 +84,8 @@ export class DFDValidator {
       };
     }
 
-    // 1. Validate Elements
-    validateElements(elements, errors, warnings);
+    // 1. Validate Elements (graph passed for Interface dataflow check)
+    validateElements(elements, errors, warnings, graph);
     validateDuplicateElementIds(elements, warnings);
 
     // 2. Validate Connections
@@ -97,17 +97,10 @@ export class DFDValidator {
     validateDataflowLabels(connections, elements, errors, warnings);
     validateDataflowProperties(connections, errors, warnings);
 
-    // 3. Validate Assets & Interfaces
-    validateAssetsAndInterfaces(
-      assets,
-      elements,
-      connections,
-      warnings,
-      dfdAnalyzer,
-      graph,
-    );
+    // 3. Validate Asset Properties
+    validateAssetProperties(assets, warnings);
 
-    // 4. Validate Asset Relations (NEW)
+    // 4. Validate Asset Relations
     validateAssetRelations(assets, elements, connections, errors, warnings);
 
     // 5. Validate Scenario & Completeness

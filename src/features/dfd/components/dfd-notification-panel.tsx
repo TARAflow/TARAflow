@@ -169,11 +169,12 @@ function useValidationTranslation() {
       // LP-4: KEY|displayId|protocol
       // Label-Validator simple messages: KEY|displayId|detail
       if (parts.length === 3) {
+        const displayId = parts[1];
         return t(key, {
           protocol: detail,
-          name: detail,
+          name: displayId, // {{name}} interpolation uses displayId, not elementType
           detail,
-          defaultValue: detail,
+          defaultValue: displayId,
         });
       }
 

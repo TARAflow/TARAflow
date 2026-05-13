@@ -885,42 +885,68 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
 
             {category === "infrastructure" && (
               <Stack spacing={2}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={
-                        asset.properties?.physicalAccessPossible || false
-                      }
-                      onChange={(e) =>
-                        handlePropertyChange(
-                          "physicalAccessPossible",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label={t("tabs.dfd.element_description.asset.physicalAccess")}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={asset.properties?.isPhysicalBarrier || false}
-                      onChange={(e) =>
-                        handlePropertyChange(
-                          "isPhysicalBarrier",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.asset.isPhysicalBarrier",
-                    {
-                      defaultValue:
-                        "Physical protection barrier (guard, enclosure, fence)",
-                    },
-                  )}
-                />
+                <FormControl fullWidth>
+                  <InputLabel>
+                    {t(
+                      "tabs.dfd.element_description.asset.physicalAccessControl",
+                      {
+                        defaultValue: "Physical Access Control",
+                      },
+                    )}
+                  </InputLabel>
+                  <Select
+                    value={asset.properties?.physicalAccessControl || ""}
+                    onChange={(e) =>
+                      handlePropertyChange(
+                        "physicalAccessControl",
+                        e.target.value,
+                      )
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.asset.physicalAccessControl",
+                      {
+                        defaultValue: "Physical Access Control",
+                      },
+                    )}
+                  >
+                    <MenuItem value="none">
+                      {t(
+                        "tabs.dfd.element_description.asset.physicalAccessControlOptions.none",
+                        { defaultValue: "None — uncontrolled access" },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="lock">
+                      {t(
+                        "tabs.dfd.element_description.asset.physicalAccessControlOptions.lock",
+                        { defaultValue: "Lock" },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="biometric">
+                      {t(
+                        "tabs.dfd.element_description.asset.physicalAccessControlOptions.biometric",
+                        { defaultValue: "Biometric" },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="guard">
+                      {t(
+                        "tabs.dfd.element_description.asset.physicalAccessControlOptions.guard",
+                        { defaultValue: "Guard" },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="barrier">
+                      {t(
+                        "tabs.dfd.element_description.asset.physicalAccessControlOptions.barrier",
+                        { defaultValue: "Physical Barrier" },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="custom">
+                      {t(
+                        "tabs.dfd.element_description.asset.physicalAccessControlOptions.custom",
+                        { defaultValue: "Custom" },
+                      )}
+                    </MenuItem>
+                  </Select>
+                </FormControl>
                 <FormControl fullWidth>
                   <InputLabel>
                     {t("tabs.dfd.element_description.asset.location")}
@@ -975,17 +1001,49 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
 
             {category === "process" && (
               <Stack spacing={2}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={asset.properties?.automated || false}
-                      onChange={(e) =>
-                        handlePropertyChange("automated", e.target.checked)
-                      }
-                    />
-                  }
-                  label={t("tabs.dfd.element_description.asset.automated")}
-                />
+                <FormControl fullWidth>
+                  <InputLabel>
+                    {t("tabs.dfd.element_description.asset.automationLevel", {
+                      defaultValue: "Automation Level",
+                    })}
+                  </InputLabel>
+                  <Select
+                    value={asset.properties?.automationLevel || ""}
+                    onChange={(e) =>
+                      handlePropertyChange("automationLevel", e.target.value)
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.asset.automationLevel",
+                      {
+                        defaultValue: "Automation Level",
+                      },
+                    )}
+                  >
+                    <MenuItem value="manual">
+                      {t(
+                        "tabs.dfd.element_description.asset.automationLevelOptions.manual",
+                        { defaultValue: "Manual — human operated" },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="partly_automated">
+                      {t(
+                        "tabs.dfd.element_description.asset.automationLevelOptions.partly_automated",
+                        {
+                          defaultValue: "Partly Automated — human in the loop",
+                        },
+                      )}
+                    </MenuItem>
+                    <MenuItem value="fully_automated">
+                      {t(
+                        "tabs.dfd.element_description.asset.automationLevelOptions.fully_automated",
+                        {
+                          defaultValue:
+                            "Fully Automated — no human intervention",
+                        },
+                      )}
+                    </MenuItem>
+                  </Select>
+                </FormControl>
                 <FormControl fullWidth>
                   <InputLabel>
                     {t("tabs.dfd.element_description.asset.changeFrequency")}

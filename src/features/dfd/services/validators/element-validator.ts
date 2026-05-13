@@ -4,6 +4,7 @@
 import type { DFDElement } from "../../models/dfd-types";
 import { ValidationMessages, isDefaultName, validateTrustBoundaryId } from "./validator-utils";
 import { validateElementProperties } from "./element-property-validator";
+import type { DFDGraph } from "../../models/dfd-graph-types";
 
 /**
  * Validate all elements
@@ -11,12 +12,43 @@ import { validateElementProperties } from "./element-property-validator";
 export function validateElements(
   elements: DFDElement[],
   errors: string[],
-  warnings: string[]
+  warnings: string[],
+  graph: DFDGraph,
 ): void {
   validateElementNames(elements, warnings);
   validateIdLabels(elements, warnings);
   validateTrustBoundaryIds(elements, errors);
   validateElementProperties(elements, warnings);
+  validateInterfaceUsage(elements, warnings, graph);
+}
+
+/**
+ * Validate that Interfaces have at least one dataflow passing through them.
+ * Message format: KEY|displayId|elementType
+ */
+function validateInterfaceUsage(
+  elements: DFDElement[],
+  warnings: string[],
+  graph?: DFDGraph,
+): void {
+  const interfaces = elements.filter((e) => e.type === "Interface");
+
+  for (const iface of interfaces) {
+    let hasDataflow = false;
+
+    if (graph) {
+      hasDataflow = Array.from(graph.dataFlowAnalysis.values()).some(
+        (analysis) => analysis.interfaceIds.includes(iface.id),
+      );
+    }
+
+    if (!hasDataflow) {
+      const displayId = iface.displayId ?? iface.name;
+      warnings.push(
+        `${ValidationMessages.INTERFACE_UNUSED}|${displayId}|Interface`,
+      );
+    }
+  }
 }
 
 /**
