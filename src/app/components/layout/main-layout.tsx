@@ -1076,6 +1076,11 @@ export const MainLayout: React.FC = () => {
           (el) => (el as any).safety && (el as any).safety.relevance !== "none",
         ) ?? false,
       linkedElementIds: a.linkedDFDElements?.map((el) => el.elementId) ?? [],
+      // Only active goals (level !== "none") — used by RelationStrategy
+      securityGoals:
+        a.securityGoals
+          ?.filter((g) => g.level !== "none")
+          .map((g) => ({ type: g.type, level: g.level })) ?? [],
     }));
 
     const hasSafetyAssets = assetRefs.some(
@@ -1457,6 +1462,6 @@ export const MainLayout: React.FC = () => {
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
-};;;;;;;;;;;;;;;;;
+}
 
 export default MainLayout;

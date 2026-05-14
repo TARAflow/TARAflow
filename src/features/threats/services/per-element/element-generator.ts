@@ -23,6 +23,21 @@ import {
 } from "../threat-catalog-service";
 import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
+import type { StrategyType } from "../../models/strategy-types";
+import type { ThreatSource } from "../../models/threat-types";
+
+// ==================== HELPERS ====================
+
+function strategyTypeToSource(type: StrategyType): ThreatSource {
+  switch (type) {
+    case "ClassicStrategy":
+      return "classic";
+    case "HybridStrategy":
+      return "hybrid";
+    case "RelationStrategy":
+      return "relation";
+  }
+}
 
 // ==================== ELEMENT THREAT GENERATOR ====================
 
@@ -368,7 +383,16 @@ export class ElementThreatGenerator {
     } as LinkedDFDElement;
 
     threat.linkedAssetIds = elementToAssets?.get(element.id) ?? [];
-    threat.source = "auto";
+    threat.source = strategyTypeToSource(strategy.type);
+
+    const initialImpact = strategy.getInitialImpact(
+      element,
+      strideCategory,
+      project,
+    );
+    if (initialImpact !== undefined) {
+      threat.initialImpact = initialImpact;
+    }
 
     // ── Catalog lookup ────────────────────────────────────────────────────
     const elementProps =

@@ -41,6 +41,21 @@ import {
 } from "../threat-catalog-service";
 import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
+import type { StrategyType } from "../../models/strategy-types";
+import type { ThreatSource } from "../../models/threat-types";
+
+// ==================== HELPERS ====================
+
+function strategyTypeToSource(type: StrategyType): ThreatSource {
+  switch (type) {
+    case "ClassicStrategy":
+      return "classic";
+    case "HybridStrategy":
+      return "hybrid";
+    case "RelationStrategy":
+      return "relation";
+  }
+}
 
 // ==================== TYPES ====================
 
@@ -301,7 +316,17 @@ export class InteractionThreatGenerator {
     threat.linkedAssetIds = [
       ...new Set([...connAssets, ...sourceAssets, ...targetAssets]),
     ];
-    threat.source = "auto";
+    threat.source = strategyTypeToSource(strategy.type);
+
+    const impactElement = perspective === "sender" ? source : target;
+    const initialImpact = strategy.getInitialImpact(
+      impactElement,
+      strideCategory,
+      project,
+    );
+    if (initialImpact !== undefined) {
+      threat.initialImpact = initialImpact;
+    }
 
     // ── Catalog lookup ────────────────────────────────────────────────────
     const template = strategy.selectInteractionTemplate(
@@ -379,7 +404,16 @@ export class InteractionThreatGenerator {
     };
 
     threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
-    threat.source = "auto";
+    threat.source = strategyTypeToSource(strategy.type);
+
+    const initialImpact = strategy.getInitialImpact(
+      element,
+      strideCategory,
+      project,
+    );
+    if (initialImpact !== undefined) {
+      threat.initialImpact = initialImpact;
+    }
 
     // Interface element properties for context matching
     const elementProps =

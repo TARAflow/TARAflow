@@ -52,6 +52,7 @@ import {
   DescriptionCell,
   MissingChip,
   ActorCell,
+  SourceBadge,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
 import {
@@ -235,10 +236,10 @@ const ThreatRows: React.FC<{
 
     return (
       <Box sx={{ overflowX: "auto" }}>
-        <Table size="small" sx={{ tableLayout: "fixed", minWidth: 700 }}>
+        <Table size="small" sx={{ tableLayout: "fixed", minWidth: 750 }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...hdSx, width: 60 }}>
+              <TableCell sx={{ ...hdSx, width: 110 }}>
                 <TableSortLabel
                   active={sortField === "id"}
                   direction={sortField === "id" ? sortDir : "asc"}
@@ -348,7 +349,13 @@ const ThreatRows: React.FC<{
                   }}
                 >
                   <TableCell sx={cellSx}>
-                    <ThreatIdCell id={threat.id} />
+                    <Stack spacing={0.5} direction="row" alignItems="center">
+                      <ThreatIdCell id={threat.id} />
+                      <SourceBadge
+                        source={threat.source}
+                        initialImpact={threat.initialImpact}
+                      />
+                    </Stack>
                   </TableCell>
 
                   <TableCell sx={{ ...cellSx, textAlign: "center" }}>

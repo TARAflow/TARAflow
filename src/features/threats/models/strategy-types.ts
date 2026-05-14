@@ -4,14 +4,14 @@
 // Three strategies:
 //   ClassicStrategy  — fixed STRIDE per element type, generic templates
 //   HybridStrategy   — STRIDE modulated by element properties + context templates
-//   RelationStrategy — STRIDE derived from asset relation types (CIANAAA)
+//   RelationStrategy — STRIDE derived from asset securityGoals (CIANAAA)
 //
 // Auto-detection:
 //   assetCoverage === 1.0 → RelationStrategy
 //   assetCoverage > 0 || hasTags → HybridStrategy
 //   else → ClassicStrategy
 
-import type { StrideCategory } from "shared";
+import type { CIANAAALevel, StrideCategory } from "shared";
 import type {
   ThreatTable,
   ThreatProjectData,
@@ -51,13 +51,28 @@ export interface IGeneratorStrategy {
    * Modulate STRIDE categories for a given element based on its properties.
    * ClassicStrategy returns baseCategories unchanged.
    * HybridStrategy adds/removes/escalates based on element properties.
-   * RelationStrategy derives from asset relations.
+   * RelationStrategy derives from asset securityGoals via CIANAAA_TO_STRIDE.
    */
   getStrideCategories(
     element: DFDElementReference,
     baseCategories: StrideCategory[],
     project: ThreatProjectData,
   ): StrideCategory[];
+
+  /**
+   * Returns the initial severity derived from CIANAAA level of linked assets.
+   *
+   * RelationStrategy: MAX(level) of all securityGoals that map to strideCategory
+   *   via CIANAAA_TO_STRIDE. Used to pre-populate threat.initialImpact.
+   *
+   * ClassicStrategy / HybridStrategy: returns undefined — no asset-level
+   *   CIANAAA data available to drive the initial impact.
+   */
+  getInitialImpact(
+    element: DFDElementReference,
+    strideCategory: StrideCategory,
+    project: ThreatProjectData,
+  ): CIANAAALevel | undefined;
 
   /**
    * Select the best matching template for a given stride/element combination.

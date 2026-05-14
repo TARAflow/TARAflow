@@ -54,6 +54,7 @@ import {
   StrideCell,
   MissingChip,
   ActorCell,
+  SourceBadge,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
 import {
@@ -220,10 +221,10 @@ const InteractionThreatRows: React.FC<{
 
     return (
       <Box sx={{ overflowX: "auto" }}>
-        <Table size="small" sx={{ tableLayout: "fixed", minWidth: 700 }}>
+        <Table size="small" sx={{ tableLayout: "fixed", minWidth: 750 }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ ...hdSx, width: 100 }}>
+              <TableCell sx={{ ...hdSx, width: 120 }}>
                 <TableSortLabel
                   active={sortField === "id"}
                   direction={sortField === "id" ? sortDir : "asc"}
@@ -284,43 +285,42 @@ const InteractionThreatRows: React.FC<{
           <TableBody>
             {sorted.map((threat) => {
               const ctx = threat.interactionContext;
-                  const mitigationText = threat.proposedMitigations
-                    ?.map((m) => m.id ?? m.notes ?? "")
-                    .filter(Boolean)
-                    .join(", ");
+              const mitigationText = threat.proposedMitigations
+                ?.map((m) => m.id ?? m.notes ?? "")
+                .filter(Boolean)
+                .join(", ");
 
-                  const verificationText = threat.proposedVerifications
-                    ?.map((v) => v.id ?? v.notes ?? "")
-                    .filter(Boolean)
-                    .join(", ");
+              const verificationText = threat.proposedVerifications
+                ?.map((v) => v.id ?? v.notes ?? "")
+                .filter(Boolean)
+                .join(", ");
 
-                  const hasMitigations = threat.proposedMitigations?.length > 0;
-                  const hasVerifications =
-                    threat.proposedVerifications?.length > 0;
+              const hasMitigations = threat.proposedMitigations?.length > 0;
+              const hasVerifications = threat.proposedVerifications?.length > 0;
 
-                  const mitigationTooltip = resolveMitigationDrafts(
-                    threat.proposedMitigations ?? [],
-                  )
-                    .map((m) =>
-                      m.isCustom
-                        ? `[custom] ${m.notes ?? ""}`
-                        : `${m.id ?? ""}: ${m.text}`,
-                    )
-                    .filter(Boolean)
-                    .map((s) => `• ${s}`)
-                    .join("\n");
+              const mitigationTooltip = resolveMitigationDrafts(
+                threat.proposedMitigations ?? [],
+              )
+                .map((m) =>
+                  m.isCustom
+                    ? `[custom] ${m.notes ?? ""}`
+                    : `${m.id ?? ""}: ${m.text}`,
+                )
+                .filter(Boolean)
+                .map((s) => `• ${s}`)
+                .join("\n");
 
-                  const verificationTooltip = resolveVerificationDrafts(
-                    threat.proposedVerifications ?? [],
-                  )
-                    .map((v) =>
-                      v.isCustom
-                        ? `[custom] ${v.notes ?? ""}`
-                        : `${v.id ?? ""}: ${v.text}`,
-                    )
-                    .filter(Boolean)
-                    .map((s) => `• ${s}`)
-                    .join("\n");
+              const verificationTooltip = resolveVerificationDrafts(
+                threat.proposedVerifications ?? [],
+              )
+                .map((v) =>
+                  v.isCustom
+                    ? `[custom] ${v.notes ?? ""}`
+                    : `${v.id ?? ""}: ${v.text}`,
+                )
+                .filter(Boolean)
+                .map((s) => `• ${s}`)
+                .join("\n");
 
               return (
                 <TableRow
@@ -338,7 +338,13 @@ const InteractionThreatRows: React.FC<{
                   }}
                 >
                   <TableCell sx={cellSx}>
-                    <ThreatIdCell id={threat.id} />
+                    <Stack spacing={0.5} direction="row" alignItems="center">
+                      <ThreatIdCell id={threat.id} />
+                      <SourceBadge
+                        source={threat.source}
+                        initialImpact={threat.initialImpact}
+                      />
+                    </Stack>
                   </TableCell>
                   <TableCell sx={{ ...cellSx, textAlign: "center" }}>
                     <StrideCell cat={threat.strideCategory} />

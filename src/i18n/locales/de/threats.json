@@ -186,8 +186,11 @@
         "noteLabel": "Notiz",
         "advancedSection": "Bedrohungsakteur",
         "source": {
-          "auto": "auto",
-          "manual": "manuell"
+          "auto": "Auto",
+          "classic": "Klassisch",
+          "hybrid": "Hybrid",
+          "relation": "Relation",
+          "manual": "Manuell"
         },
         "threatList": "Bedrohungen in dieser Gruppe"
       },
@@ -204,6 +207,28 @@
         "positionIndicator": "{{current}} / {{total}}",
         "allReviewed": "Alle Bedrohungen bewertet",
         "progress": "{{reviewed}} / {{total}} bewertet"
+      },
+      "strategy": {
+        "relation": "RelationStrategie",
+        "hybrid": "HybridStrategie",
+        "classic": "KlassischeStrategie",
+        "override": "Manuell",
+        "tooltip": "Aktive Threat-Generierungsstrategie",
+        "overrideTooltip": "Strategie wurde manuell gesetzt — automatische Erkennung deaktiviert",
+        "reasonRelation": "Alle {{count}} Elemente haben verknüpfte Assets mit CIANAAA-Bewertung → STRIDE aus Schutzzielen abgeleitet",
+        "reasonHybridAssets": "{{covered}}/{{total}} Elemente mit Assets ({{pct}}%)",
+        "reasonHybridTags": "Projekt-Tags gesetzt",
+        "reasonClassic": "Keine Assets verknüpft, keine Projekt-Tags → generisches STRIDE pro Element-Typ",
+        "reasonOverride": "Manuelle Überschreibung — automatische Erkennung deaktiviert"
+      },
+      "sourceBadge": {
+        "auto": "Automatisch generiert (veraltet)",
+        "classic": "Generiert durch KlassischeStrategie — generisches STRIDE",
+        "hybrid": "Generiert durch HybridStrategie — Element-Properties berücksichtigt",
+        "relation": "Generiert durch RelationStrategie — aus Asset-Schutzzielen abgeleitet",
+        "manual": "Manuell erstellt",
+        "fallback": "Keine aktiven Schutzziele — Standard-STRIDE verwendet",
+        "impact": "Initialer Impact: {{level}}"
       }
     }
   }

@@ -34,6 +34,7 @@ import { useElementThreats } from "../hooks/per-element/use-element-threats";
 import { useInteractionThreats } from "../hooks/per-interaction/use-interaction-threats";
 import { ConfirmDialog } from "shared";
 import type { DFDAnalysisContext } from "shared";
+import { StrategyIndicator } from "./shared/strategy-indicator";
 
 // ==================== HELPER ====================
 
@@ -441,6 +442,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           />
         </Box>
       </Collapse>
+
+      {/* Strategy Indicator */}
+      <StrategyIndicator project={project} />
 
       {/* Main Content - Split View */}
       <Box

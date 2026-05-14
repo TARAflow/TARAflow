@@ -70,6 +70,7 @@ import {
 } from "../../services/threat-catalog-service";
 import { MitigationCoverageBadge, STRIDE_COLORS } from "shared";
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
+import { SourceBadge } from "../../components/shared/threat-table-utils";
 
 // ==================== PROPS ====================
 
@@ -466,19 +467,18 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             variant="caption"
             fontWeight="bold"
             color="text.secondary"
-            sx={{ flexShrink: 0 }}
+            sx={{ flexShrink: 0, fontFamily: "monospace" }}
           >
             {currentThreat.id}
           </Typography>
-          {/* Short description — truncated */}
+          {/* Element / DataFlow — semantic context, fills available space */}
           <Typography
             variant="body2"
             fontWeight="medium"
             noWrap
             sx={{ flexGrow: 1, overflow: "hidden", textOverflow: "ellipsis" }}
           >
-            {currentThreat.threatDescription ||
-              getStrideName(currentThreat.strideCategory)}
+            {contextLabel}
           </Typography>
           {/* Trust Boundary */}
           {currentThreat.trustBoundaryName && (
@@ -491,26 +491,26 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               · {currentThreat.trustBoundaryName}
             </Typography>
           )}
-          {/* Element / DataFlow */}
-          {contextLabel && contextLabel !== currentThreat.id && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ flexShrink: 0 }}
-              noWrap
-            >
-              · {contextLabel}
-            </Typography>
-          )}
-          {/* Source badge */}
+          {/* Relevance chip */}
           <Chip
-            label={t(`tabs.threats.dialog.source.${currentThreat.source}`, {
-              defaultValue: currentThreat.source,
+            label={t(`tabs.threats.eval.${local.relevance}`, {
+              defaultValue: local.relevance,
             })}
             size="small"
-            variant="outlined"
-            sx={{ flexShrink: 0, height: 20, fontSize: 10 }}
-            color={currentThreat.source === "auto" ? "default" : "primary"}
+            sx={{
+              flexShrink: 0,
+              height: 20,
+              fontSize: 10,
+              fontWeight: "medium",
+              bgcolor: RELEVANCE_COLORS[local.relevance],
+              color: "white",
+            }}
+          />
+          {/* Source badge */}
+          <SourceBadge
+            source={currentThreat.source}
+            initialImpact={currentThreat.initialImpact}
+            chipStyle
           />
         </Stack>
       </DialogTitle>
@@ -712,6 +712,152 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               </Box>
             )}
 
+            {/* THREAT DESCRIPTION — blue callout: "What is threatened?" */}
+            <Box
+              sx={{
+                bgcolor: "#eff6ff",
+                border: 1,
+                borderColor: "#3b82f6",
+                borderRadius: 1,
+                p: 1.5,
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{ mb: 0.75 }}
+              >
+                <Typography
+                  variant="caption"
+                  color="#1d4ed8"
+                  fontWeight="bold"
+                  sx={{
+                    flexGrow: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {t("tabs.threats.dialog.threat", { defaultValue: "Threat" })}
+                </Typography>
+                {local.isTextCustomized && (
+                  <Chip
+                    label={t("tabs.threats.dialog.customized", {
+                      defaultValue: "customized",
+                    })}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: 10 }}
+                  />
+                )}
+                <Tooltip
+                  title={
+                    editingThreat
+                      ? t("tabs.threats.dialog.stopEdit", {
+                          defaultValue: "Stop editing",
+                        })
+                      : t("tabs.threats.dialog.edit", { defaultValue: "Edit" })
+                  }
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => setEditingThreat((v) => !v)}
+                    color={editingThreat ? "primary" : "default"}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+              {editingThreat ? (
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  value={local.threatDescription}
+                  onChange={(e) =>
+                    patch({
+                      threatDescription: e.target.value,
+                      isTextCustomized: true,
+                    })
+                  }
+                />
+              ) : (
+                <Typography variant="body2" color="#1e3a5f" fontWeight="medium">
+                  {local.threatDescription || "—"}
+                </Typography>
+              )}
+            </Box>
+
+            {/* ATTACK DESCRIPTION — slate callout: "How is it attacked?" */}
+            <Box
+              sx={{
+                bgcolor: "#f8fafc",
+                borderLeft: "3px solid #94a3b8",
+                borderRadius: "0 4px 4px 0",
+                p: 1.5,
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{ mb: 0.75 }}
+              >
+                <Typography
+                  variant="caption"
+                  color="#475569"
+                  fontWeight="bold"
+                  sx={{
+                    flexGrow: 1,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {t("tabs.threats.dialog.attack", {
+                    defaultValue: "Attack Scenario",
+                  })}
+                </Typography>
+                <Tooltip
+                  title={
+                    editingAttack
+                      ? t("tabs.threats.dialog.stopEdit", {
+                          defaultValue: "Stop editing",
+                        })
+                      : t("tabs.threats.dialog.edit", { defaultValue: "Edit" })
+                  }
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => setEditingAttack((v) => !v)}
+                    color={editingAttack ? "primary" : "default"}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+              {editingAttack ? (
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  value={local.attackDescription}
+                  onChange={(e) =>
+                    patch({
+                      attackDescription: e.target.value,
+                      isTextCustomized: true,
+                    })
+                  }
+                />
+              ) : (
+                <Typography variant="body2" color="#334155" fontStyle="italic">
+                  {local.attackDescription || "—"}
+                </Typography>
+              )}
+            </Box>
+
+            <Divider />
+
             {/* LINKED ASSETS */}
             {assetDataRef &&
               currentThreat.linkedAssetIds?.length > 0 &&
@@ -791,119 +937,6 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   </Box>
                 );
               })()}
-
-            {/* THREAT DESCRIPTION */}
-            <Box>
-              <Stack
-                direction="row"
-                spacing={1}
-                alignItems="center"
-                sx={{ mb: 0.5 }}
-              >
-                <Typography variant="subtitle2">
-                  {t("tabs.threats.dialog.threat", { defaultValue: "Threat" })}
-                </Typography>
-                {local.isTextCustomized && (
-                  <Chip
-                    label={t("tabs.threats.dialog.customized", {
-                      defaultValue: "customized",
-                    })}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                    sx={{ height: 18, fontSize: 10 }}
-                  />
-                )}
-                <Box sx={{ flexGrow: 1 }} />
-                <Tooltip
-                  title={
-                    editingThreat
-                      ? t("tabs.threats.dialog.stopEdit", {
-                          defaultValue: "Stop editing",
-                        })
-                      : t("tabs.threats.dialog.edit", { defaultValue: "Edit" })
-                  }
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => setEditingThreat((v) => !v)}
-                    color={editingThreat ? "primary" : "default"}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-              {editingThreat ? (
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  value={local.threatDescription}
-                  onChange={(e) =>
-                    patch({
-                      threatDescription: e.target.value,
-                      isTextCustomized: true,
-                    })
-                  }
-                />
-              ) : (
-                <Typography variant="body2">
-                  {local.threatDescription || "—"}
-                </Typography>
-              )}
-            </Box>
-
-            {/* ATTACK DESCRIPTION */}
-            <Box>
-              <Stack
-                direction="row"
-                spacing={1}
-                alignItems="center"
-                sx={{ mb: 0.5 }}
-              >
-                <Typography variant="subtitle2">
-                  {t("tabs.threats.dialog.attack", {
-                    defaultValue: "Attack Scenario",
-                  })}
-                </Typography>
-                <Box sx={{ flexGrow: 1 }} />
-                <Tooltip
-                  title={
-                    editingAttack
-                      ? t("tabs.threats.dialog.stopEdit", {
-                          defaultValue: "Stop editing",
-                        })
-                      : t("tabs.threats.dialog.edit", { defaultValue: "Edit" })
-                  }
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => setEditingAttack((v) => !v)}
-                    color={editingAttack ? "primary" : "default"}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-              {editingAttack ? (
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  value={local.attackDescription}
-                  onChange={(e) =>
-                    patch({
-                      attackDescription: e.target.value,
-                      isTextCustomized: true,
-                    })
-                  }
-                />
-              ) : (
-                <Typography variant="body2">
-                  {local.attackDescription || "—"}
-                </Typography>
-              )}
-            </Box>
 
             <Divider />
 
@@ -1197,30 +1230,6 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               </Stack>
             </Box>
 
-            <Divider />
-
-            {/* RELEVANCE — status only, set via footer buttons */}
-            <Box>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="subtitle2">
-                  {t("tabs.threats.eval.relevance", {
-                    defaultValue: "Relevance",
-                  })}
-                </Typography>
-                <Chip
-                  label={t(`tabs.threats.eval.${local.relevance}`, {
-                    defaultValue: local.relevance,
-                  })}
-                  size="small"
-                  sx={{
-                    bgcolor: RELEVANCE_COLORS[local.relevance],
-                    color: "white",
-                    fontWeight: "medium",
-                  }}
-                />
-              </Stack>
-            </Box>
-
             {/* EVAL NOTE */}
             <TextField
               size="small"
@@ -1234,8 +1243,8 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               value={local.evalNote}
               onChange={(e) => patch({ evalNote: e.target.value })}
               multiline
-              minRows={1}
-              maxRows={3}
+              minRows={3}
+              maxRows={6}
             />
 
             {/* THREAT ACTOR — collapsed by default */}

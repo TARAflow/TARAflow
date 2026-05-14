@@ -5,8 +5,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { type Threat } from "../../models/threat-types";
-import type { AssetDataReference, AssetReference } from "shared";
+import { type Threat, type ThreatSource } from "../../models/threat-types";
+import type { AssetDataReference, AssetReference, CIANAAALevel } from "shared";
 import {
   getImpactColor,
   getPhysicalImpactColor,
@@ -44,9 +44,16 @@ export function sortThreats(
 // ==================== CELL RENDERERS ====================
 
 export const ThreatIdCell: React.FC<{ id: string }> = ({ id }) => (
-  <Typography variant="body2" fontFamily="monospace" fontSize="0.75rem" noWrap>
-    {id}
-  </Typography>
+  <Tooltip title={id} placement="top">
+    <Typography
+      variant="body2"
+      fontFamily="monospace"
+      fontSize="0.75rem"
+      noWrap
+    >
+      {id}
+    </Typography>
+  </Tooltip>
 );
 
 export const StrideCell: React.FC<{ cat: StrideCategory }> = ({ cat }) => {
@@ -142,6 +149,139 @@ export const SafetyCell: React.FC<{
     </Tooltip>
   );
 };
+
+// ==================== SOURCE BADGE ====================
+
+const CIANAAA_LEVEL_COLOR: Record<CIANAAALevel, string> = {
+  none:     "#9ca3af",
+  low:      "#16a34a",
+  medium:   "#d97706",
+  high:     "#dc2626",
+  critical: "#7c3aed",
+};
+
+const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  manual:   { label: "M",  color: "#1d4ed8", bg: "#dbeafe" },
+  classic:  { label: "C",  color: "#6b7280", bg: "#f3f4f6" },
+  hybrid:   { label: "H",  color: "#92400e", bg: "#fef3c7" },
+  relation: { label: "R",  color: "#065f46", bg: "#d1fae5" },
+  // Legacy: threats generated before ThreatSource was introduced
+  auto:     { label: "A",  color: "#6b7280", bg: "#f3f4f6" },
+};
+
+/**
+ * Per-threat badge showing generation source and CIANAAA initialImpact.
+ *
+ * source === "relation" + initialImpact set → colored level dot + R badge
+ * source === "relation" + no initialImpact  → R badge with fallback indicator
+ * source === "hybrid"                       → H badge
+ * source === "classic" / "manual"           → minimal badge
+ */
+export const SourceBadge: React.FC<{
+  source: ThreatSource;
+  initialImpact?: CIANAAALevel;
+  /** When true, renders as a filled Chip (for dialog title). Default: compact box+dot for tables. */
+  chipStyle?: boolean;
+}> = ({ source, initialImpact, chipStyle = false }) => {
+  const { t } = useTranslation();
+  const cfg = SOURCE_CONFIG[source] ?? SOURCE_CONFIG["classic"];
+
+  const sourceLabel = t(`tabs.threats.dialog.source.${source}`, {
+    defaultValue: cfg.label,
+  });
+
+  const impactLabel = initialImpact
+    ? t(`tabs.assets.cianaaa.level.${initialImpact}`, {
+        defaultValue: initialImpact,
+      })
+    : undefined;
+
+  const tooltipParts: string[] = [
+    t(`tabs.threats.sourceBadge.${source}`, { defaultValue: sourceLabel }),
+  ];
+  if (source === "relation" && !initialImpact) {
+    tooltipParts.push(
+      t("tabs.threats.sourceBadge.fallback", {
+        defaultValue: "No asset security goals — base STRIDE used",
+      }),
+    );
+  }
+  if (impactLabel) {
+    tooltipParts.push(
+      t("tabs.threats.sourceBadge.impact", {
+        defaultValue: `Initial impact: ${impactLabel}`,
+        level: impactLabel,
+      }),
+    );
+  }
+
+  // ── Chip style (dialog title) ──────────────────────────────────────────
+  if (chipStyle) {
+    const chipLabel = impactLabel
+      ? `${sourceLabel} · ${impactLabel}`
+      : sourceLabel;
+    return (
+      <Tooltip title={tooltipParts.join(" · ")} placement="top">
+        <Chip
+          label={chipLabel}
+          size="small"
+          sx={{
+            flexShrink: 0,
+            height: 20,
+            fontSize: 10,
+            fontWeight: "medium",
+            bgcolor: cfg.color,
+            color: "white",
+          }}
+        />
+      </Tooltip>
+    );
+  }
+
+  // ── Compact box+dot style (tables) ────────────────────────────────────
+  return (
+    <Tooltip title={tooltipParts.join(" · ")} placement="top">
+      <Stack direction="row" spacing={0.25} alignItems="center">
+        <Box
+          sx={{
+            width: 16,
+            height: 16,
+            borderRadius: "3px",
+            bgcolor: cfg.bg,
+            border: "1px solid",
+            borderColor: cfg.color + "60",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.6rem",
+            fontWeight: 700,
+            color: cfg.color,
+            flexShrink: 0,
+          }}
+        >
+          {cfg.label}
+        </Box>
+
+        {/* CIANAAA level dot — only for relation source */}
+        {source === "relation" && (
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              bgcolor: initialImpact
+                ? CIANAAA_LEVEL_COLOR[initialImpact]
+                : "#d1d5db",
+              flexShrink: 0,
+            }}
+          />
+        )}
+      </Stack>
+    </Tooltip>
+  );
+};
+
+// ==================== ASSETS CELL ====================
 
 export const AssetsCell: React.FC<{
   ids: string[];

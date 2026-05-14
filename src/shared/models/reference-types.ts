@@ -8,6 +8,8 @@
 //
 // Location: src/shared/reference-types.ts
 
+import type { StrideCategory } from "shared";
+
 // ==================== DFD REFERENCES ====================
 
 /**
@@ -48,6 +50,62 @@ export interface DFDReference {
   connections?: Array<{ id: string; properties?: Record<string, unknown> }>;
 }
 
+// ==================== CIANAAA ====================
+
+/**
+ * Protection-need level for a single CIANAAA dimension.
+ * Moved to shared so both asset and threat features can use it
+ * without a cross-feature import dependency.
+ *
+ * Semantics:
+ *   none     → dimension not applicable or not rated; no threat generated
+ *   low      → generate threat, base severity = Low
+ *   medium   → generate threat, base severity = Medium
+ *   high     → generate threat, base severity = High
+ *   critical → generate threat, severity = Critical (override — always wins)
+ */
+export type CIANAAALevel = "none" | "low" | "medium" | "high" | "critical";
+
+/**
+ * CIANAAA security goal dimensions.
+ * Moved to shared — used by asset feature (full SecurityGoal) and
+ * threat feature (SecurityGoalReference + CIANAAA_TO_STRIDE).
+ */
+export type SecurityGoalType =
+  | "C"     // Confidentiality
+  | "I"     // Integrity
+  | "A"     // Availability
+  | "N"     // Non-repudiation
+  | "AuthZ" // Authorization
+  | "AuthN" // Authentication
+  | "Acc";  // Accountability
+
+/**
+ * Lightweight security goal reference — only what the threat feature needs.
+ * Full SecurityGoal (with formalDescription, rationale, source) stays in asset feature.
+ */
+export interface SecurityGoalReference {
+  type: SecurityGoalType;
+  level: CIANAAALevel;
+}
+
+/**
+ * Deterministic mapping: SecurityGoalType → StrideCategory.
+ * Lives in shared — used by both asset and threat features.
+ *
+ * Note: Both N (Non-Repudiation) and Acc (Accountability) map to R (Repudiation).
+ * They represent different audit concerns but the same STRIDE threat category.
+ */
+export const CIANAAA_TO_STRIDE: Record<SecurityGoalType, StrideCategory> = {
+  C:     "I", // Information Disclosure
+  I:     "T", // Tampering
+  A:     "D", // Denial of Service
+  N:     "R", // Repudiation
+  AuthN: "S", // Spoofing
+  AuthZ: "E", // Elevation of Privilege
+  Acc:   "R", // Repudiation
+};
+
 // ==================== ASSET REFERENCES ====================
 
 /**
@@ -63,6 +121,12 @@ export interface AssetReference {
   isHighValueAsset?: "low" | "medium" | "high" | "critical";
   hasSafetyAnnotation: boolean;
   linkedElementIds?: string[];
+  /**
+   * Active security goals (level !== "none") — populated by asset feature
+   * via memoizedAssetDataRef in main-layout.tsx.
+   * Used by RelationStrategy to derive STRIDE categories and initialImpact.
+   */
+  securityGoals?: SecurityGoalReference[];
 }
 
 /**

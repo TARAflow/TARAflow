@@ -31,10 +31,14 @@ export type {
 export type {
   AssetDataReference,
   AssetReference,
+  CIANAAALevel,
   DFDReference,
   DataFlowReference,
   LinkedDFDElement,
+  SecurityGoalReference,
 } from "./models/reference-types";
+
+export { CIANAAA_TO_STRIDE } from "./models/reference-types";
 
 export type { ControlInstance } from "./models/control-instance";
 
