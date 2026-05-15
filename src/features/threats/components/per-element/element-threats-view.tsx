@@ -29,7 +29,9 @@ export interface ElementThreatsViewProps {
   onGenerate: () => void;
   onOpenEditDialog: (tableIndex: number, threat: Threat) => void;
   onDelete: (tableIndex: number, threatId: string) => void;
+  onAdd: (tableIndex: number, threat: Threat) => void;
   showFilters?: boolean;
+  reviewedCount?: number;
 }
 
 // ==================== COMPONENT ====================
@@ -45,7 +47,9 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
     onGenerate,
     onOpenEditDialog,
     onDelete,
+    onAdd,
     showFilters = true,
+    reviewedCount,
   }) => {
     const { t } = useTranslation();
 
@@ -110,7 +114,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
               onSearchTextChange={setSearchText}
               onClear={clearFilters}
               show={showFilters}
-              filteredCount={filteredThreats}
+              reviewedCount={reviewedCount}
               totalCount={totalThreats}
             />
           </Box>
@@ -187,6 +191,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
                 showThreatActor={showThreatActor}
                 onEdit={(threat) => handleEdit(index, threat)}
                 onDelete={(threatId) => handleDelete(index, threatId)}
+                onAdd={(threat) => onAdd(index, threat)}
               />
             ))}
           </Box>

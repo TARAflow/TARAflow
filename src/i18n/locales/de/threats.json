@@ -48,6 +48,8 @@
       "totalThreats": "Gesamt: {{count}} Bedrohungen",
       "interfaces": "Physische Interfaces  [{{tbId}}]",
       "showingCount": "{{shown}} von {{total}} angezeigt",
+      "reviewedCount": "{{reviewed}} / {{total}} bewertet",
+      "causeDescription": "Ursache",
       "sync": {
         "action": "Bedrohungen synchronisieren",
         "status": {
@@ -113,7 +115,15 @@
         "zeroTrustMode": "Zero-Trust-Modus",
         "zeroTrustModeDesc": "Erzeuge Bedrohungen sowohl aus Sender- ALS auch aus Empfängerperspektive für jeden Datenfluss. Standard: nur Senderperspektive (+ Empfänger bei grenzüberschreitenden Flows).",
         "showThreatActor": "Bedrohungsakteur anzeigen",
-        "showThreatActorDesc": "Zeigt die Spalte „Bedrohungsakteur“ in den Bedrohungstabellen an. Standardmäßig deaktiviert — der Akteur hat nur begrenzten Einfluss auf die Wahrscheinlichkeitsbewertung."
+        "showThreatActorDesc": "Zeigt die Spalte „Bedrohungsakteur“ in den Bedrohungstabellen an. Standardmäßig deaktiviert — der Akteur hat nur begrenzten Einfluss auf die Wahrscheinlichkeitsbewertung.",
+        "classicMode": "Klassischer Modus",
+        "classicModeDesc": "Alle STRIDE-Modulationen deaktivieren — generiert nur Standard-Basiskategorien. Nützlich für schnelle Generierung oder Debugging.",
+        "enrichment": "Threat-Anreicherung",
+        "enrichmentDesc": "Zusätzliche Anreicherungsquellen die generierte Threats mit Angriffstechniken und domänenspezifischen Beschreibungen annotieren.",
+        "mitreAttck": "Mitre ATT&CK",
+        "mitreAttckDesc": "STRIDE-Threats auf ATT&CK-Techniken und Taktiken abbilden.",
+        "llmEnrichment": "LLM-Anreicherung",
+        "llmEnrichmentDesc": "Domänenspezifische Threat-Beschreibungen mit einem spezialisierten Modell generieren."
       },
       "filters": {
         "toggle": "Filter ein-/ausblenden",
@@ -185,14 +195,39 @@
         "notePlaceholder": "Optionale Notiz für das Audit-Trail...",
         "noteLabel": "Notiz",
         "advancedSection": "Bedrohungsakteur",
+        "mitigations": "Gegenmaßnahmen",
+        "verifications": "Verifikationen",
+        "threatLabel": "Bedrohungsbeschreibung *",
+        "attackLabel": "Angriffsszenario *",
         "source": {
-          "auto": "Auto",
-          "classic": "Klassisch",
-          "hybrid": "Hybrid",
-          "relation": "Relation",
-          "manual": "Manuell"
+          "auto": "Auto (veraltet)",
+          "manual": "Manuell",
+          "generated_classic": "Klassisch",
+          "generated_properties": "Properties",
+          "generated_cianaaa": "CIANAAA",
+          "generated_full": "Vollständig"
         },
         "threatList": "Bedrohungen in dieser Gruppe"
+      },
+      "createDialog": {
+        "title": "Manuelle Bedrohung hinzufügen",
+        "addToGroup": "Manuelle Bedrohung zu dieser Gruppe hinzufügen",
+        "noMitigations": "Noch keine Gegenmaßnahmen hinzugefügt",
+        "strideCategory": "STRIDE-Kategorie *",
+        "threatPlaceholder": "Beschreibe, was bedroht wird und wie sich dies auf das System auswirkt...",
+        "attackPlaceholder": "Beschreibe den konkreten Angriffsweg, den ein Angreifer nutzen würde...",
+        "causeLabel": "Ursache *",
+        "causePlaceholder": "Erkläre, warum diese Bedrohung möglich ist — fehlende Kontrolle, Designlücke...",
+        "addMitigation": "Gegenmaßnahmen hinzufügen *",
+        "addVerification": "Verifikationen hinzufügen *",
+        "noVerifications": "Noch keine Verifikationen hinzugefügt",
+        "create": "Bedrohung erstellen",
+        "catalogSuggestions": "Katalogvorschläge — zum Einfügen anklicken",
+        "noContext": "Fülle die untenstehenden Felder aus, um die Bedrohung zu erstellen.",
+        "perspective": "Perspektive *",
+        "sender": "Sender",
+        "receiver": "Empfänger",
+        "linkedAssets": "Verknüpfte Assets"
       },
       "eval": {
         "relevance": "Relevanz",
@@ -223,10 +258,11 @@
       },
       "sourceBadge": {
         "auto": "Automatisch generiert (veraltet)",
-        "classic": "Generiert durch KlassischeStrategie — generisches STRIDE",
-        "hybrid": "Generiert durch HybridStrategie — Element-Properties berücksichtigt",
-        "relation": "Generiert durch RelationStrategie — aus Asset-Schutzzielen abgeleitet",
         "manual": "Manuell erstellt",
+        "generated_classic": "Generiert — keine Modulation (Standard-STRIDE)",
+        "generated_properties": "Generiert — Element-Properties angewendet",
+        "generated_cianaaa": "Generiert — CIANAAA-Schutzziele angewendet",
+        "generated_full": "Generiert — Element-Properties + CIANAAA-Schutzziele angewendet",
         "fallback": "Keine aktiven Schutzziele — Standard-STRIDE verwendet",
         "impact": "Initialer Impact: {{level}}"
       }

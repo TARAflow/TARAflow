@@ -35,6 +35,8 @@ import {
   Dashboard as ProcessIcon,
   Storage as DataStoreIcon,
   Person as ExternalEntityIcon,
+  AddCircleOutline as AddCircleOutlineIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 
 import {
@@ -61,6 +63,7 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
 } from "../../services/threat-catalog-service";
+import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
 import type { InteractionDirection } from "features/threats/models/per-interaction-types";
 
 // ==================== TYPES ====================
@@ -94,6 +97,7 @@ export interface InteractionThreatTableProps {
   showThreatActor?: boolean;
   onEdit: (threat: Threat) => void;
   onDelete: (threatId: string) => void;
+  onAdd: (threat: Threat) => void;
 }
 
 // ==================== HELPERS ====================
@@ -590,12 +594,21 @@ function countImpacts(
 // ==================== MAIN COMPONENT ====================
 
 export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
-  ({ table, assetDataRef, showThreatActor = false, onEdit, onDelete }) => {
+  ({
+    table,
+    assetDataRef,
+    showThreatActor = false,
+    onEdit,
+    onDelete,
+    onAdd,
+  }) => {
     const { t } = useTranslation();
 
     const [expandedGroups, setExpandedGroups] = useState<
       Record<string, boolean>
     >({});
+    const [createDialogGroup, setCreateDialogGroup] =
+      useState<DataFlowGroup | null>(null);
 
     const toggleGroup = useCallback((key: string) => {
       setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -750,223 +763,317 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
       .join("   ");
 
     return (
-      <Accordion
-        defaultExpanded
-        sx={{
-          "&:before": { display: "none" },
-          boxShadow: "1",
-          mb: 1,
-          borderLeft: `4px solid ${borderColor}`,
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
+      <>
+        <Accordion
+          defaultExpanded
           sx={{
-            backgroundColor: "primary.50",
-            "&:hover": { backgroundColor: "primary.100" },
+            "&:before": { display: "none" },
+            boxShadow: "1",
+            mb: 1,
+            borderLeft: `4px solid ${borderColor}`,
           }}
         >
-          <Stack
-            direction="row"
-            spacing={1.5}
-            alignItems="center"
-            sx={{ flexGrow: 1, mr: 1 }}
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            sx={{
+              backgroundColor: "primary.50",
+              "&:hover": { backgroundColor: "primary.100" },
+            }}
           >
-            <TrustBoundaryIcon color="primary" />
-            <Chip
-              label={table.displayIdentifier}
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ fontFamily: "monospace" }}
-            />
-            <Typography
-              variant="subtitle1"
-              fontWeight="medium"
-              sx={{ flexGrow: 1 }}
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              sx={{ flexGrow: 1, mr: 1 }}
             >
-              {table.trustBoundaryName}
-            </Typography>
-
-            {/* Impact chips — top 2 levels with tooltip */}
-            {topImpacts.length > 0 && (
-              <Tooltip title={impactTooltip} placement="top">
-                <Stack direction="row" spacing={0.5}>
-                  {topImpacts.map((lvl) => {
-                    const col = IMPACT_CHIP_COLORS[lvl];
-                    return (
-                      <Chip
-                        key={lvl}
-                        label={`${lvl} ×${counts[lvl]}`}
-                        size="small"
-                        sx={{
-                          height: 18,
-                          fontSize: "0.65rem",
-                          bgcolor: col.bg,
-                          color: col.color,
-                          border: `1px solid ${col.border}`,
-                          cursor: "default",
-                        }}
-                      />
-                    );
-                  })}
-                </Stack>
-              </Tooltip>
-            )}
-
-            {/* Progress chip with tooltip */}
-            <Tooltip
-              title={
-                <span style={{ whiteSpace: "pre-line" }}>
-                  {progressTooltip}
-                </span>
-              }
-              placement="top"
-            >
+              <TrustBoundaryIcon color="primary" />
               <Chip
+                label={table.displayIdentifier}
                 size="small"
-                label={`${reviewed}/${total}`}
-                sx={{
-                  height: 18,
-                  fontSize: "0.65rem",
-                  cursor: "default",
-                  bgcolor: allDone ? "#f0fdf4" : "#f9fafb",
-                  color: allDone ? "#16a34a" : "#6b7280",
-                  border: `1px solid ${allDone ? "#16a34a" : "#9ca3af"}`,
-                  fontWeight: allDone ? "bold" : "normal",
-                }}
+                color="primary"
+                variant="outlined"
+                sx={{ fontFamily: "monospace" }}
               />
-            </Tooltip>
-          </Stack>
-        </AccordionSummary>
+              <Typography
+                variant="subtitle1"
+                fontWeight="medium"
+                sx={{ flexGrow: 1 }}
+              >
+                {table.trustBoundaryName}
+              </Typography>
 
-        <AccordionDetails sx={{ p: 1 }}>
-          {isInterface
-            ? sortedInterfaceGroups.map((group) => {
-                const key = `${table.trustBoundaryId || "ext"}-${group.elementId}`;
-                const isExpanded = expandedGroups[key] ?? false;
-                return (
-                  <Accordion
-                    key={key}
-                    expanded={isExpanded}
-                    onChange={() => toggleGroup(key)}
-                    sx={{
-                      mb: 0.5,
-                      "&:before": { display: "none" },
-                      boxShadow: "none",
-                      border: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
-                      sx={{
-                        minHeight: 40,
-                        "&.Mui-expanded": { minHeight: 40 },
-                        "& .MuiAccordionSummary-content": { my: 0.5 },
-                        backgroundColor: "grey.50",
-                      }}
-                    >
-                      <Stack direction="row" spacing={1.5} alignItems="center">
-                        {getElementIcon(group.elementType)}
+              {/* Impact chips — top 2 levels with tooltip */}
+              {topImpacts.length > 0 && (
+                <Tooltip title={impactTooltip} placement="top">
+                  <Stack direction="row" spacing={0.5}>
+                    {topImpacts.map((lvl) => {
+                      const col = IMPACT_CHIP_COLORS[lvl];
+                      return (
                         <Chip
-                          label={group.displayId || group.elementId}
+                          key={lvl}
+                          label={`${lvl} ×${counts[lvl]}`}
                           size="small"
-                          variant="outlined"
-                          sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
+                          sx={{
+                            height: 18,
+                            fontSize: "0.65rem",
+                            bgcolor: col.bg,
+                            color: col.color,
+                            border: `1px solid ${col.border}`,
+                            cursor: "default",
+                          }}
                         />
-                        <Typography variant="body2">
-                          {group.elementName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          ({group.threats.length}{" "}
-                          {t("tabs.threats.threats", {
-                            defaultValue: "threats",
-                          })}
-                          )
-                        </Typography>
-                        {renderImpactChips(group.threats, true)}
-                      </Stack>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ p: 0 }}>
-                      {isExpanded && (
-                        <InteractionThreatRows
-                          threats={group.threats}
-                          assetDataRef={assetDataRef}
-                          showThreatActor={showThreatActor}
-                          t={t}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                        />
-                      )}
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })
-            : sortedDataFlowGroups.map((group) => {
-                const key = `${table.trustBoundaryId || "ext"}-${group.dataFlowId}`;
-                const isExpanded = expandedGroups[key] ?? false;
-                return (
-                  <Accordion
-                    key={key}
-                    expanded={isExpanded}
-                    onChange={() => toggleGroup(key)}
-                    sx={{
-                      mb: 0.5,
-                      "&:before": { display: "none" },
-                      boxShadow: "none",
-                      border: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
+                      );
+                    })}
+                  </Stack>
+                </Tooltip>
+              )}
+
+              {/* Progress chip with tooltip */}
+              <Tooltip
+                title={
+                  <span style={{ whiteSpace: "pre-line" }}>
+                    {progressTooltip}
+                  </span>
+                }
+                placement="top"
+              >
+                <Chip
+                  size="small"
+                  label={`${reviewed}/${total}`}
+                  sx={{
+                    height: 18,
+                    fontSize: "0.65rem",
+                    cursor: "default",
+                    bgcolor: allDone ? "#f0fdf4" : "#f9fafb",
+                    color: allDone ? "#16a34a" : "#6b7280",
+                    border: `1px solid ${allDone ? "#16a34a" : "#9ca3af"}`,
+                    fontWeight: allDone ? "bold" : "normal",
+                  }}
+                />
+              </Tooltip>
+            </Stack>
+          </AccordionSummary>
+
+          <AccordionDetails sx={{ p: 1 }}>
+            {isInterface
+              ? sortedInterfaceGroups.map((group) => {
+                  const key = `${table.trustBoundaryId || "ext"}-${group.elementId}`;
+                  const isExpanded = expandedGroups[key] ?? false;
+                  return (
+                    <Accordion
+                      key={key}
+                      expanded={isExpanded}
+                      onChange={() => toggleGroup(key)}
                       sx={{
-                        minHeight: 40,
-                        "&.Mui-expanded": { minHeight: 40 },
-                        "& .MuiAccordionSummary-content": { my: 0.5 },
-                        backgroundColor: "grey.50",
+                        mb: 0.5,
+                        "&:before": { display: "none" },
+                        boxShadow: "none",
+                        border: "1px solid",
+                        borderColor: "divider",
                       }}
                     >
-                      <Stack direction="row" spacing={1.5} alignItems="center">
-                        <DataFlowIcon fontSize="small" />
-                        <Typography variant="body2">
-                          {group.sourceName} → {group.targetName}
-                        </Typography>
-                        {group.dataFlowName &&
-                          group.dataFlowName !== group.dataFlowId &&
-                          !/^DataFlow\s+\S+$/i.test(group.dataFlowName) && (
-                            <Typography variant="body2" color="text.secondary">
-                              ({group.dataFlowName})
-                            </Typography>
-                          )}
-                        <Typography variant="caption" color="text.secondary">
-                          ({group.threats.length}{" "}
-                          {t("tabs.threats.threats", {
-                            defaultValue: "threats",
-                          })}
-                          )
-                        </Typography>
-                        {renderImpactChips(group.threats, true)}
-                      </Stack>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ p: 0 }}>
-                      {isExpanded && (
-                        <InteractionThreatRows
-                          threats={group.threats}
-                          assetDataRef={assetDataRef}
-                          showThreatActor={showThreatActor}
-                          t={t}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                        />
-                      )}
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })}
-        </AccordionDetails>
-      </Accordion>
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          minHeight: 40,
+                          "&.Mui-expanded": { minHeight: 40 },
+                          "& .MuiAccordionSummary-content": { my: 0.5 },
+                          backgroundColor: "grey.50",
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          sx={{ flexGrow: 1, mr: 0.5 }}
+                        >
+                          {getElementIcon(group.elementType)}
+                          <Chip
+                            label={group.displayId || group.elementId}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontSize: "0.75rem",
+                            }}
+                          />
+                          <Typography variant="body2">
+                            {group.elementName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            ({group.threats.length}{" "}
+                            {t("tabs.threats.threats", {
+                              defaultValue: "threats",
+                            })}
+                            )
+                          </Typography>
+                          {renderImpactChips(group.threats, true)}
+                          <Box sx={{ flexGrow: 1 }} />
+                          <Tooltip
+                            title={t("tabs.threats.createDialog.addToGroup", {
+                              defaultValue: "Add manual threat",
+                            })}
+                          >
+                            <IconButton
+                              size="small"
+                              color="default"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCreateDialogGroup({
+                                  dataFlowId: group.elementId,
+                                  displayId: group.displayId,
+                                  dataFlowName: group.elementName,
+                                  sourceName: group.elementName,
+                                  targetName: group.elementName,
+                                  sourceId: group.elementId,
+                                  targetId: group.elementId,
+                                  sourceType: group.elementType,
+                                  targetType: group.elementType,
+                                  threats: group.threats,
+                                });
+                              }}
+                            >
+                              <AddIcon
+                                fontSize="small"
+                                sx={{ color: "text.secondary" }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ p: 0 }}>
+                        {isExpanded && (
+                          <InteractionThreatRows
+                            threats={group.threats}
+                            assetDataRef={assetDataRef}
+                            showThreatActor={showThreatActor}
+                            t={t}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                          />
+                        )}
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })
+              : sortedDataFlowGroups.map((group) => {
+                  const key = `${table.trustBoundaryId || "ext"}-${group.dataFlowId}`;
+                  const isExpanded = expandedGroups[key] ?? false;
+                  return (
+                    <Accordion
+                      key={key}
+                      expanded={isExpanded}
+                      onChange={() => toggleGroup(key)}
+                      sx={{
+                        mb: 0.5,
+                        "&:before": { display: "none" },
+                        boxShadow: "none",
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{
+                          minHeight: 40,
+                          "&.Mui-expanded": { minHeight: 40 },
+                          "& .MuiAccordionSummary-content": { my: 0.5 },
+                          backgroundColor: "grey.50",
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          sx={{ flexGrow: 1, mr: 0.5 }}
+                        >
+                          <DataFlowIcon fontSize="small" />
+                          <Typography variant="body2">
+                            {group.sourceName} → {group.targetName}
+                          </Typography>
+                          {group.dataFlowName &&
+                            group.dataFlowName !== group.dataFlowId &&
+                            !/^DataFlow\s+\S+$/i.test(group.dataFlowName) && (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                ({group.dataFlowName})
+                              </Typography>
+                            )}
+                          <Typography variant="caption" color="text.secondary">
+                            ({group.threats.length}{" "}
+                            {t("tabs.threats.threats", {
+                              defaultValue: "threats",
+                            })}
+                            )
+                          </Typography>
+                          {renderImpactChips(group.threats, true)}
+                          <Box sx={{ flexGrow: 1 }} />
+                          {/* + button right side */}
+                          <Tooltip
+                            title={t("tabs.threats.createDialog.addToGroup", {
+                              defaultValue: "Add manual threat",
+                            })}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCreateDialogGroup(group);
+                              }}
+                            >
+                              <AddIcon
+                                fontSize="small"
+                                sx={{ color: "text.secondary" }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ p: 0 }}>
+                        {isExpanded && (
+                          <InteractionThreatRows
+                            threats={group.threats}
+                            assetDataRef={assetDataRef}
+                            showThreatActor={showThreatActor}
+                            t={t}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                          />
+                        )}
+                      </AccordionDetails>
+                    </Accordion>
+                  );
+                })}
+          </AccordionDetails>
+        </Accordion>
+
+        <CreateThreatDialog
+          open={!!createDialogGroup}
+          table={table}
+          existingThreats={table.threats}
+          assetDataRef={assetDataRef}
+          dataFlowRef={
+            createDialogGroup
+              ? {
+                  dataFlowId: createDialogGroup.dataFlowId,
+                  displayId: createDialogGroup.displayId,
+                  dataFlowName: createDialogGroup.dataFlowName,
+                  sourceName: createDialogGroup.sourceName,
+                  targetName: createDialogGroup.targetName,
+                  sourceId: createDialogGroup.sourceId,
+                  targetId: createDialogGroup.targetId,
+                }
+              : undefined
+          }
+          onClose={() => setCreateDialogGroup(null)}
+          onAdd={(threat) => {
+            onAdd(threat);
+            setCreateDialogGroup(null);
+          }}
+        />
+      </>
     );
   },
 );

@@ -21,23 +21,9 @@ import {
   getLocalizedElementAttack,
   getLocalizedElementCause,
 } from "../threat-catalog-service";
-import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
+import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
-import type { StrategyType } from "../../models/strategy-types";
-import type { ThreatSource } from "../../models/threat-types";
-
-// ==================== HELPERS ====================
-
-function strategyTypeToSource(type: StrategyType): ThreatSource {
-  switch (type) {
-    case "ClassicStrategy":
-      return "classic";
-    case "HybridStrategy":
-      return "hybrid";
-    case "RelationStrategy":
-      return "relation";
-  }
-}
+import { modulesToSource } from "../../models/strategy-types";
 
 // ==================== ELEMENT THREAT GENERATOR ====================
 
@@ -49,8 +35,7 @@ export class ElementThreatGenerator {
     if (!project.dfdGraph) return [];
 
     // Create strategy for this generation run
-    const strategyType = detectStrategy(project);
-    const strategy = createStrategy(strategyType);
+    const strategy = createStrategy();
 
     const graph = project.dfdGraph;
     const tables: ThreatTable[] = [];
@@ -318,11 +303,21 @@ export class ElementThreatGenerator {
   ): Threat[] {
     const baseCategories = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
 
-    // Strategy modulates STRIDE categories based on element properties
-    const applicableStride = strategy.getStrideCategories(
+    // Unified pipeline — returns categories + which modules were active
+    const { categories: applicableStride } = strategy.getStrideCategories(
       element,
       baseCategories,
       project,
+      project.threats?.configuration ?? {
+        activeMethod: "per-element",
+        zeroTrustMode: false,
+        showThreatActor: false,
+        forceClassicMode: false,
+        customElementTemplates: [],
+        customInteractionTemplates: [],
+        customMitigations: [],
+        customVerifications: [],
+      },
     );
 
     const isInterface =
@@ -383,13 +378,15 @@ export class ElementThreatGenerator {
     } as LinkedDFDElement;
 
     threat.linkedAssetIds = elementToAssets?.get(element.id) ?? [];
-    threat.source = strategyTypeToSource(strategy.type);
 
-    const initialImpact = strategy.getInitialImpact(
-      element,
-      strideCategory,
-      project,
-    );
+    // Determine source from active modules
+    const config = project.threats?.configuration;
+    const defaultConfig = { activeMethod: "per-element" as const, zeroTrustMode: false, showThreatActor: false, forceClassicMode: false, customElementTemplates: [], customInteractionTemplates: [], customMitigations: [], customVerifications: [] };
+    const { modules } = strategy.getStrideCategories(element, [strideCategory], project, config ?? defaultConfig);
+    threat.source = modulesToSource(modules);
+
+    // Set initial impact from CIANAAA module
+    const initialImpact = strategy.getInitialImpact(element, strideCategory, project);
     if (initialImpact !== undefined) {
       threat.initialImpact = initialImpact;
     }
@@ -432,7 +429,7 @@ export class ElementThreatGenerator {
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
   ): Threat[] {
-    const strategy = createStrategy(detectStrategy(project));
+    const strategy = createStrategy();
     return this.generateThreatsForElement(
       element,
       trustBoundaryId,

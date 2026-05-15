@@ -1,45 +1,51 @@
 // ==================== STRATEGY TYPES ====================
-// Defines the Strategy Pattern for threat generation.
+// Defines the UnifiedStrategy pattern for threat generation.
 //
-// Three strategies:
-//   ClassicStrategy  — fixed STRIDE per element type, generic templates
-//   HybridStrategy   — STRIDE modulated by element properties + context templates
-//   RelationStrategy — STRIDE derived from asset securityGoals (CIANAAA)
+// Single additive pipeline — modules applied based on available data:
+//   Module 1: Element Properties  → STRIDE modulated by DFD element properties
+//   Module 2: Asset CIANAAA Goals → STRIDE derived from securityGoals + initialImpact
 //
-// Auto-detection:
-//   assetCoverage === 1.0 → RelationStrategy
-//   assetCoverage > 0 || hasTags → HybridStrategy
-//   else → ClassicStrategy
+// If forceClassicMode is true: both modules are skipped → base STRIDE only.
+//
+// Future enrichment (Phase E1, E2) via IEnrichmentProvider hook — called after
+// STRIDE derivation, before threat is returned to the generator.
 
 import type { CIANAAALevel, StrideCategory } from "shared";
 import type {
-  ThreatTable,
   ThreatProjectData,
   ThreatConfiguration,
+  ThreatSource,
   DFDElementReference,
   ElementTemplate,
   InteractionTemplate,
 } from "./threat-types";
-import type { DFDAnalysisContext } from "shared";
 
 // ==================== STRATEGY TYPE ====================
 
-export type StrategyType =
-  | "ClassicStrategy"
-  | "HybridStrategy"
-  | "RelationStrategy";
+export type StrategyType = "UnifiedStrategy";
 
-// ==================== STRIDE MODIFIER RESULT ====================
+// ==================== GENERATION MODULES ====================
 
 /**
- * Result of applying a strategy's STRIDE modulation.
- * priority: 1 (highest) → 5 (lowest) — used for threat sorting.
- * skip: true → this STRIDE category is excluded for this element.
+ * Which modules were active during generation of a specific threat.
+ * Drives ThreatSource value.
  */
-export interface StrideModulation {
-  categories: StrideCategory[];
-  priorityOverrides?: Partial<Record<StrideCategory, number>>;
-  skipped?: StrideCategory[];
+export interface GenerationModules {
+  /** Element properties module was active and modified STRIDE */
+  propertiesApplied: boolean;
+  /** CIANAAA security goals module was active and derived STRIDE */
+  cianaaaApplied: boolean;
+}
+
+/**
+ * Derives ThreatSource from active generation modules.
+ */
+export function modulesToSource(modules: GenerationModules): ThreatSource {
+  const { propertiesApplied, cianaaaApplied } = modules;
+  if (propertiesApplied && cianaaaApplied) return "generated:full";
+  if (propertiesApplied) return "generated:properties";
+  if (cianaaaApplied) return "generated:cianaaa";
+  return "generated:classic";
 }
 
 // ==================== STRATEGY INTERFACE ====================
@@ -48,25 +54,19 @@ export interface IGeneratorStrategy {
   readonly type: StrategyType;
 
   /**
-   * Modulate STRIDE categories for a given element based on its properties.
-   * ClassicStrategy returns baseCategories unchanged.
-   * HybridStrategy adds/removes/escalates based on element properties.
-   * RelationStrategy derives from asset securityGoals via CIANAAA_TO_STRIDE.
+   * Derive STRIDE categories for a given element via the additive pipeline.
+   * Returns both the categories and which modules were active.
    */
   getStrideCategories(
     element: DFDElementReference,
     baseCategories: StrideCategory[],
     project: ThreatProjectData,
-  ): StrideCategory[];
+    config: ThreatConfiguration,
+  ): { categories: StrideCategory[]; modules: GenerationModules };
 
   /**
-   * Returns the initial severity derived from CIANAAA level of linked assets.
-   *
-   * RelationStrategy: MAX(level) of all securityGoals that map to strideCategory
-   *   via CIANAAA_TO_STRIDE. Used to pre-populate threat.initialImpact.
-   *
-   * ClassicStrategy / HybridStrategy: returns undefined — no asset-level
-   *   CIANAAA data available to drive the initial impact.
+   * Returns initial severity derived from CIANAAA level of linked assets.
+   * undefined when CIANAAA module was not active for this element/stride.
    */
   getInitialImpact(
     element: DFDElementReference,
@@ -75,8 +75,7 @@ export interface IGeneratorStrategy {
   ): CIANAAALevel | undefined;
 
   /**
-   * Select the best matching template for a given stride/element combination.
-   * Allows strategy to influence template selection beyond context filtering.
+   * Select the best matching element template.
    */
   selectElementTemplate(
     strideCategory: StrideCategory,
@@ -94,4 +93,35 @@ export interface IGeneratorStrategy {
     project: ThreatProjectData,
     elementProps: Record<string, unknown>,
   ): InteractionTemplate | undefined;
+}
+
+// ==================== ENRICHMENT PROVIDER ====================
+
+/**
+ * Interface for Phase E1 (Mitre ATT&CK) and Phase E2 (LLM) enrichment.
+ * Called after STRIDE derivation — adds technique references, descriptions, etc.
+ * Returning an empty object means no enrichment for this threat.
+ */
+export interface IEnrichmentProvider {
+  readonly id: string;
+  readonly phase: "E1" | "E2";
+
+  enrich(
+    element: DFDElementReference,
+    strideCategory: StrideCategory,
+    project: ThreatProjectData,
+  ): EnrichmentResult;
+}
+
+export interface EnrichmentResult {
+  mitreReferences?: MitreReference[];
+  llmDescription?: string;
+}
+
+export interface MitreReference {
+  techniqueId: string;
+  techniqueName: string;
+  tactic: string;
+  url: string;
+  source: "auto" | "manual";
 }

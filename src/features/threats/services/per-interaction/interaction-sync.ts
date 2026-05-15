@@ -94,6 +94,18 @@ export class InteractionThreatSync {
         if (threat.dataFlow) {
           const connId = threat.dataFlow.connectionId;
           if (connId) {
+            // Manual threats have no graph connection ID — find actual connection by displayId
+            if (threat.source === "manual") {
+              const actualConn = Array.from(
+                graph.connectionsById.values(),
+              ).find((c) => c.displayId === connId || c.id === connId);
+              if (actualConn) {
+                threatenedConnections.add(actualConn.id);
+              }
+              continue;
+            }
+
+            // Auto-generated threats: mark connection as covered
             threatenedConnections.add(connId);
 
             // Check if connection still exists in graph
@@ -167,6 +179,9 @@ export class InteractionThreatSync {
 
         // ==================== Check interface threats ====================
         if (threat.linkedElement) {
+          // Manual threats survive sync regardless of graph state
+          if (threat.source === "manual") continue;
+
           const elementId = threat.linkedElement.elementId;
           const elementType = threat.linkedElement.elementType;
 

@@ -160,22 +160,34 @@ const CIANAAA_LEVEL_COLOR: Record<CIANAAALevel, string> = {
   critical: "#7c3aed",
 };
 
-const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  manual:   { label: "M",  color: "#1d4ed8", bg: "#dbeafe" },
-  classic:  { label: "C",  color: "#6b7280", bg: "#f3f4f6" },
-  hybrid:   { label: "H",  color: "#92400e", bg: "#fef3c7" },
-  relation: { label: "R",  color: "#065f46", bg: "#d1fae5" },
-  // Legacy: threats generated before ThreatSource was introduced
-  auto:     { label: "A",  color: "#6b7280", bg: "#f3f4f6" },
+const SOURCE_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  // Current values
+  manual: { label: "M", color: "#1d4ed8", bg: "#dbeafe" },
+  "generated:classic": { label: "C", color: "#6b7280", bg: "#f3f4f6" },
+  "generated:properties": { label: "P", color: "#92400e", bg: "#fef3c7" },
+  "generated:cianaaa": { label: "G", color: "#065f46", bg: "#d1fae5" },
+  "generated:full": { label: "★", color: "#1d4ed8", bg: "#eff6ff" },
+  // Legacy: threats from before ThreatSource was extended
+  auto: { label: "A", color: "#6b7280", bg: "#f3f4f6" },
+  classic: { label: "C", color: "#6b7280", bg: "#f3f4f6" },
+  hybrid: { label: "H", color: "#92400e", bg: "#fef3c7" },
+  relation: { label: "G", color: "#065f46", bg: "#d1fae5" },
 };
+
+/** Sources where CIANAAA was active — show impact dot */
+const CIANAAA_SOURCES = new Set(["generated:cianaaa", "generated:full", "relation"]);
 
 /**
  * Per-threat badge showing generation source and CIANAAA initialImpact.
  *
- * source === "relation" + initialImpact set → colored level dot + R badge
- * source === "relation" + no initialImpact  → R badge with fallback indicator
- * source === "hybrid"                       → H badge
- * source === "classic" / "manual"           → minimal badge
+ * generated:classic    → C grey  — generic STRIDE, no modulation
+ * generated:properties → P amber — element properties applied
+ * generated:cianaaa    → G green — CIANAAA goals applied + impact dot
+ * generated:full       → ★ blue  — both modules + impact dot
+ * manual               → M blue  — analyst created
  */
 export const SourceBadge: React.FC<{
   source: ThreatSource;
@@ -186,7 +198,8 @@ export const SourceBadge: React.FC<{
   const { t } = useTranslation();
   const cfg = SOURCE_CONFIG[source] ?? SOURCE_CONFIG["classic"];
 
-  const sourceLabel = t(`tabs.threats.dialog.source.${source}`, {
+  const sourceKey = source.replace(/:/g, "_");
+  const sourceLabel = t(`tabs.threats.dialog.source.${sourceKey}`, {
     defaultValue: cfg.label,
   });
 
@@ -197,9 +210,9 @@ export const SourceBadge: React.FC<{
     : undefined;
 
   const tooltipParts: string[] = [
-    t(`tabs.threats.sourceBadge.${source}`, { defaultValue: sourceLabel }),
+    t(`tabs.threats.sourceBadge.${sourceKey}`, { defaultValue: sourceLabel }),
   ];
-  if (source === "relation" && !initialImpact) {
+  if (CIANAAA_SOURCES.has(source) && !initialImpact) {
     tooltipParts.push(
       t("tabs.threats.sourceBadge.fallback", {
         defaultValue: "No asset security goals — base STRIDE used",
@@ -262,8 +275,8 @@ export const SourceBadge: React.FC<{
           {cfg.label}
         </Box>
 
-        {/* CIANAAA level dot — only for relation source */}
-        {source === "relation" && (
+        {/* CIANAAA level dot — when CIANAAA module was active */}
+        {CIANAAA_SOURCES.has(source) && (
           <Box
             sx={{
               width: 8,

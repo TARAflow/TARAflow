@@ -34,6 +34,7 @@ import {
   Security as TrustBoundaryIcon,
   Cable as CableIcon,
   SettingsInputComponent as InterfaceIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 
 import {
@@ -55,6 +56,7 @@ import {
   SourceBadge,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
+import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
 import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
@@ -78,6 +80,7 @@ export interface ElementThreatTableProps {
   showThreatActor?: boolean;
   onEdit: (threat: Threat) => void;
   onDelete: (threatId: string) => void;
+  onAdd: (threat: Threat) => void;
 }
 
 // ==================== HELPERS ====================
@@ -511,12 +514,26 @@ ThreatRows.displayName = "ThreatRows";
 // ==================== COMPONENT ====================
 
 export const ElementThreatTable = React.memo<ElementThreatTableProps>(
-  ({ table, assetDataRef, showThreatActor = false, onEdit, onDelete }) => {
+  ({
+    table,
+    assetDataRef,
+    showThreatActor = false,
+    onEdit,
+    onDelete,
+    onAdd,
+  }) => {
     const { t } = useTranslation();
 
     const [expandedElements, setExpandedElements] = useState<
       Record<string, boolean>
     >({});
+
+    const [createDialogGroup, setCreateDialogGroup] = useState<{
+      elementId: string;
+      elementName: string;
+      elementType: string;
+      displayId?: string;
+    } | null>(null);
 
     const toggleElement = useCallback((key: string) => {
       setExpandedElements((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -601,199 +618,250 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
       .join("   ");
 
     return (
-      <Accordion
-        defaultExpanded
-        sx={{
-          "&:before": { display: "none" },
-          boxShadow: "1",
-          mb: 1,
-          borderLeft: `4px solid ${borderColor}`,
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
+      <>
+        <Accordion
+          defaultExpanded
           sx={{
-            backgroundColor: "primary.50",
-            "&:hover": { backgroundColor: "primary.100" },
+            "&:before": { display: "none" },
+            boxShadow: "1",
+            mb: 1,
+            borderLeft: `4px solid ${borderColor}`,
           }}
         >
-          <Stack
-            direction="row"
-            spacing={1.5}
-            alignItems="center"
-            sx={{ flexGrow: 1, mr: 1 }}
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            sx={{
+              backgroundColor: "primary.50",
+              "&:hover": { backgroundColor: "primary.100" },
+            }}
           >
-            <TrustBoundaryIcon color="primary" />
-            <Chip
-              label={table.displayIdentifier}
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ fontFamily: "monospace" }}
-            />
-            <Typography
-              variant="subtitle1"
-              fontWeight="medium"
-              sx={{ flexGrow: 1 }}
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              sx={{ flexGrow: 1, mr: 1 }}
             >
-              {table.trustBoundaryName}
-            </Typography>
-
-            {/* Impact chips — top 2 levels with tooltip */}
-            {topImpacts.length > 0 && (
-              <Tooltip title={impactTooltip} placement="top">
-                <Stack direction="row" spacing={0.5}>
-                  {topImpacts.map((lvl) => {
-                    const col = IMPACT_CHIP_COLORS[lvl];
-                    return (
-                      <Chip
-                        key={lvl}
-                        label={`${lvl} ×${counts[lvl]}`}
-                        size="small"
-                        sx={{
-                          height: 18,
-                          fontSize: "0.65rem",
-                          bgcolor: col.bg,
-                          color: col.color,
-                          border: `1px solid ${col.border}`,
-                          cursor: "default",
-                        }}
-                      />
-                    );
-                  })}
-                </Stack>
-              </Tooltip>
-            )}
-
-            {/* Progress chip with tooltip */}
-            <Tooltip
-              title={
-                <span style={{ whiteSpace: "pre-line" }}>
-                  {progressTooltip}
-                </span>
-              }
-              placement="top"
-            >
+              <TrustBoundaryIcon color="primary" />
               <Chip
+                label={table.displayIdentifier}
                 size="small"
-                label={`${reviewed}/${total}`}
-                sx={{
-                  height: 18,
-                  fontSize: "0.65rem",
-                  cursor: "default",
-                  bgcolor: allDone ? "#f0fdf4" : "#f9fafb",
-                  color: allDone ? "#16a34a" : "#6b7280",
-                  border: `1px solid ${allDone ? "#16a34a" : "#9ca3af"}`,
-                  fontWeight: allDone ? "bold" : "normal",
-                }}
+                color="primary"
+                variant="outlined"
+                sx={{ fontFamily: "monospace" }}
               />
-            </Tooltip>
-          </Stack>
-        </AccordionSummary>
-
-        <AccordionDetails sx={{ p: 1 }}>
-          {sortedElementGroups.map((group) => {
-            const elementKey = `${table.trustBoundaryId || "external"}-${group.elementId}`;
-            const isExpanded = expandedElements[elementKey] ?? false;
-
-            return (
-              <Accordion
-                key={elementKey}
-                expanded={isExpanded}
-                onChange={() => toggleElement(elementKey)}
-                sx={{
-                  mb: 0.5,
-                  "&:before": { display: "none" },
-                  boxShadow: "none",
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
+              <Typography
+                variant="subtitle1"
+                fontWeight="medium"
+                sx={{ flexGrow: 1 }}
               >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
+                {table.trustBoundaryName}
+              </Typography>
+
+              {/* Impact chips — top 2 levels with tooltip */}
+              {topImpacts.length > 0 && (
+                <Tooltip title={impactTooltip} placement="top">
+                  <Stack direction="row" spacing={0.5}>
+                    {topImpacts.map((lvl) => {
+                      const col = IMPACT_CHIP_COLORS[lvl];
+                      return (
+                        <Chip
+                          key={lvl}
+                          label={`${lvl} ×${counts[lvl]}`}
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: "0.65rem",
+                            bgcolor: col.bg,
+                            color: col.color,
+                            border: `1px solid ${col.border}`,
+                            cursor: "default",
+                          }}
+                        />
+                      );
+                    })}
+                  </Stack>
+                </Tooltip>
+              )}
+
+              {/* Progress chip with tooltip */}
+              <Tooltip
+                title={
+                  <span style={{ whiteSpace: "pre-line" }}>
+                    {progressTooltip}
+                  </span>
+                }
+                placement="top"
+              >
+                <Chip
+                  size="small"
+                  label={`${reviewed}/${total}`}
                   sx={{
-                    minHeight: 40,
-                    "&.Mui-expanded": { minHeight: 40 },
-                    "& .MuiAccordionSummary-content": { my: 0.5 },
-                    backgroundColor: "grey.50",
+                    height: 18,
+                    fontSize: "0.65rem",
+                    cursor: "default",
+                    bgcolor: allDone ? "#f0fdf4" : "#f9fafb",
+                    color: allDone ? "#16a34a" : "#6b7280",
+                    border: `1px solid ${allDone ? "#16a34a" : "#9ca3af"}`,
+                    fontWeight: allDone ? "bold" : "normal",
+                  }}
+                />
+              </Tooltip>
+            </Stack>
+          </AccordionSummary>
+
+          <AccordionDetails sx={{ p: 1 }}>
+            {sortedElementGroups.map((group) => {
+              const elementKey = `${table.trustBoundaryId || "external"}-${group.elementId}`;
+              const isExpanded = expandedElements[elementKey] ?? false;
+
+              return (
+                <Accordion
+                  key={elementKey}
+                  expanded={isExpanded}
+                  onChange={() => toggleElement(elementKey)}
+                  sx={{
+                    mb: 0.5,
+                    "&:before": { display: "none" },
+                    boxShadow: "none",
+                    border: "1px solid",
+                    borderColor: "divider",
                   }}
                 >
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                    sx={{ flexGrow: 1 }}
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{
+                      minHeight: 40,
+                      "&.Mui-expanded": { minHeight: 40 },
+                      "& .MuiAccordionSummary-content": { my: 0.5 },
+                      backgroundColor: "grey.50",
+                    }}
                   >
-                    {getElementIcon(group.elementType)}
-                    <Chip
-                      label={
-                        group.displayId || formatDisplayId(group.elementId)
-                      }
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
-                    />
-                    <Typography variant="body2">{group.elementName}</Typography>
-                    <Chip
-                      label={group.elementType}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: "0.7rem" }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      ({group.threats.length}{" "}
-                      {t("tabs.threats.threats", { defaultValue: "threats" })})
-                    </Typography>
-                    {(() => {
-                      const counts = countImpacts(group.threats, assetDataRef);
-                      const completedByLevel = countCompletedByLevel(
-                        group.threats,
-                        assetDataRef,
-                      );
-                      return (
-                        <>
-                          {IMPACT_ORDER.filter(
-                            (lvl) => (counts[lvl] ?? 0) > 0,
-                          ).map((lvl) => {
-                            const c = IMPACT_CHIP_COLORS[lvl];
-                            return (
-                              <Chip
-                                key={lvl}
-                                label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
-                                size="small"
-                                sx={{
-                                  height: 16,
-                                  fontSize: "0.6rem",
-                                  bgcolor: c.bg,
-                                  color: c.color,
-                                  border: `1px solid ${c.border}`,
-                                }}
-                              />
-                            );
-                          })}
-                        </>
-                      );
-                    })()}
-                  </Stack>
-                </AccordionSummary>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="center"
+                      sx={{ flexGrow: 1, mr: 0.5 }}
+                    >
+                      {getElementIcon(group.elementType)}
+                      <Chip
+                        label={
+                          group.displayId || formatDisplayId(group.elementId)
+                        }
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
+                      />
+                      <Typography variant="body2">
+                        {group.elementName}
+                      </Typography>
+                      <Chip
+                        label={group.elementType}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: "0.7rem" }}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        ({group.threats.length}{" "}
+                        {t("tabs.threats.threats", { defaultValue: "threats" })}
+                        )
+                      </Typography>
+                      {(() => {
+                        const counts = countImpacts(
+                          group.threats,
+                          assetDataRef,
+                        );
+                        const completedByLevel = countCompletedByLevel(
+                          group.threats,
+                          assetDataRef,
+                        );
+                        return (
+                          <>
+                            {IMPACT_ORDER.filter(
+                              (lvl) => (counts[lvl] ?? 0) > 0,
+                            ).map((lvl) => {
+                              const c = IMPACT_CHIP_COLORS[lvl];
+                              return (
+                                <Chip
+                                  key={lvl}
+                                  label={`${completedByLevel[lvl]?.done ?? 0}/${completedByLevel[lvl]?.total ?? counts[lvl] ?? 0} ${lvl}`}
+                                  size="small"
+                                  sx={{
+                                    height: 16,
+                                    fontSize: "0.6rem",
+                                    bgcolor: c.bg,
+                                    color: c.color,
+                                    border: `1px solid ${c.border}`,
+                                  }}
+                                />
+                              );
+                            })}
+                          </>
+                        );
+                      })()}
+                      {/* + button rightmost, left of expand — stopPropagation prevents accordion toggle */}
+                      <Box sx={{ flexGrow: 1 }} />
+                      <Tooltip
+                        title={t("tabs.threats.createDialog.addToGroup", {
+                          defaultValue: "Add manual threat",
+                        })}
+                      >
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCreateDialogGroup({
+                              elementId: group.elementId,
+                              elementName: group.elementName,
+                              elementType: group.elementType,
+                              displayId: group.displayId,
+                            });
+                          }}
+                        >
+                          <AddIcon
+                            fontSize="small"
+                            sx={{ color: "text.secondary" }}
+                          />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  </AccordionSummary>
 
-                <AccordionDetails sx={{ p: 0 }}>
-                  {isExpanded && (
-                    <ThreatRows
-                      threats={group.threats}
-                      assetDataRef={assetDataRef}
-                      showThreatActor={showThreatActor}
-                      t={t}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                    />
-                  )}
-                </AccordionDetails>
-              </Accordion>
-            );
-          })}
-        </AccordionDetails>
-      </Accordion>
+                  <AccordionDetails sx={{ p: 0 }}>
+                    {isExpanded && (
+                      <ThreatRows
+                        threats={group.threats}
+                        assetDataRef={assetDataRef}
+                        showThreatActor={showThreatActor}
+                        t={t}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                      />
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              );
+            })}
+          </AccordionDetails>
+        </Accordion>
+
+        {/* Create Threat Dialog */}
+        <CreateThreatDialog
+          open={!!createDialogGroup}
+          table={table}
+          existingThreats={table.threats}
+          assetDataRef={assetDataRef}
+          elementId={createDialogGroup?.elementId}
+          elementName={createDialogGroup?.elementName}
+          elementType={createDialogGroup?.elementType}
+          elementDisplayId={createDialogGroup?.displayId}
+          onClose={() => setCreateDialogGroup(null)}
+          onAdd={(threat) => {
+            onAdd(threat);
+            setCreateDialogGroup(null);
+          }}
+        />
+      </>
     );
   },
 );

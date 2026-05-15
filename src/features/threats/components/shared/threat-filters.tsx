@@ -28,8 +28,8 @@ export interface ThreatFiltersProps {
   onSearchTextChange: (text: string) => void;
   onClear: () => void;
   show: boolean;
-  filteredCount: number;
   totalCount: number;
+  reviewedCount?: number;
 }
 
 // ==================== COMPONENT ====================
@@ -41,8 +41,8 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
     onStrideCategoryChange,
     onSearchTextChange,
     show,
-    filteredCount,
     totalCount,
+    reviewedCount,
   }) => {
     const { t } = useTranslation();
 
@@ -101,14 +101,20 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Count */}
-          <Typography variant="body2" color="text.secondary">
-            {t("tabs.threats.showingCount", {
-              count: filteredCount,
-              total: totalCount,
-              defaultValue: `Showing ${filteredCount} of ${totalCount}`,
-            })}
-          </Typography>
+          {/* Reviewed count */}
+          {reviewedCount !== undefined && totalCount > 0 && (
+            <Chip
+              label={t("tabs.threats.reviewedCount", {
+                reviewed: reviewedCount,
+                total: totalCount,
+                defaultValue: `${reviewedCount} / ${totalCount} reviewed`,
+              })}
+              size="small"
+              color={reviewedCount === totalCount ? "success" : "default"}
+              variant="outlined"
+              sx={{ height: 20, fontSize: "0.7rem" }}
+            />
+          )}
         </Box>
       </Collapse>
     );

@@ -14,20 +14,12 @@ import {
   Button,
   Box,
   Typography,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Switch,
   Divider,
-  Alert,
+  Chip,
 } from "@mui/material";
 
-import type {
-  ThreatConfiguration,
-  StrideMethod,
-} from "../../models/threat-types";
+import type { ThreatConfiguration } from "../../models/threat-types";
 
 // ==================== TYPES ====================
 
@@ -50,21 +42,26 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const [activeMethod, setActiveMethod] = useState<StrideMethod>(
-    configuration.activeMethod,
-  );
   const [zeroTrustMode, setZeroTrustMode] = useState(
     configuration.zeroTrustMode ?? false,
   );
   const [showThreatActor, setShowThreatActor] = useState(
     configuration.showThreatActor ?? false,
   );
+  const [forceClassicMode, setForceClassicMode] = useState(
+    configuration.forceClassicMode ?? false,
+  );
 
   const handleSave = () => {
     onSave({
-      activeMethod,
+      activeMethod: configuration.activeMethod,
       zeroTrustMode,
       showThreatActor,
+      forceClassicMode,
+      enrichment: configuration.enrichment ?? {
+        mitreEnabled: false,
+        llmEnabled: false,
+      },
       customElementTemplates: configuration.customElementTemplates,
       customInteractionTemplates: configuration.customInteractionTemplates,
       customMitigations: configuration.customMitigations,
@@ -82,45 +79,6 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
 
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Method */}
-          <FormControl>
-            <FormLabel>
-              {t("tabs.threats.config.method", {
-                defaultValue: "Analysis Method",
-              })}
-            </FormLabel>
-            <RadioGroup
-              value={activeMethod}
-              onChange={(e) => setActiveMethod(e.target.value as StrideMethod)}
-            >
-              <FormControlLabel
-                value="per-element"
-                control={<Radio />}
-                label={t("tabs.threats.config.perElement", {
-                  defaultValue: "STRIDE per Element",
-                })}
-              />
-              <FormControlLabel
-                value="per-interaction"
-                control={<Radio />}
-                label={t("tabs.threats.config.perInteraction", {
-                  defaultValue: "STRIDE per Interaction",
-                })}
-              />
-            </RadioGroup>
-          </FormControl>
-
-          {hasExistingThreats && (
-            <Alert severity="warning">
-              {t("tabs.threats.config.methodChangeWarning", {
-                defaultValue:
-                  "Changing the method will replace all existing threats.",
-              })}
-            </Alert>
-          )}
-
-          <Divider />
-
           {/* Zero Trust Mode */}
           <Box
             sx={{
@@ -176,6 +134,116 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
               checked={showThreatActor}
               onChange={(e) => setShowThreatActor(e.target.checked)}
             />
+          </Box>
+          <Divider />
+
+          {/* Classic Mode */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box>
+              <Typography fontWeight="medium">
+                {t("tabs.threats.config.classicMode", {
+                  defaultValue: "Classic Mode",
+                })}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t("tabs.threats.config.classicModeDesc", {
+                  defaultValue:
+                    "Disable all STRIDE modulation — generate generic base categories only. " +
+                    "Useful for quick generation or debugging.",
+                })}
+              </Typography>
+            </Box>
+            <Switch
+              checked={forceClassicMode}
+              onChange={(e) => setForceClassicMode(e.target.checked)}
+            />
+          </Box>
+
+          <Divider />
+
+          {/* Enrichment — Phase E1 / E2 */}
+          <Box>
+            <Typography fontWeight="medium" sx={{ mb: 1 }}>
+              {t("tabs.threats.config.enrichment", {
+                defaultValue: "Threat Enrichment",
+              })}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              {t("tabs.threats.config.enrichmentDesc", {
+                defaultValue:
+                  "Additional enrichment sources that annotate generated threats " +
+                  "with attack techniques and domain-specific descriptions.",
+              })}
+            </Typography>
+
+            {/* Mitre ATT&CK — Phase E1 */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: 0.5,
+              }}
+            >
+              <Box>
+                <Typography variant="body2" fontWeight="medium">
+                  {t("tabs.threats.config.mitreAttck", {
+                    defaultValue: "Mitre ATT&CK",
+                  })}{" "}
+                  <Chip
+                    label="Phase E1"
+                    size="small"
+                    variant="outlined"
+                    sx={{ height: 16, fontSize: 9 }}
+                  />
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {t("tabs.threats.config.mitreAttckDesc", {
+                    defaultValue:
+                      "Map STRIDE threats to ATT&CK techniques and tactics.",
+                  })}
+                </Typography>
+              </Box>
+              <Switch disabled checked={false} />
+            </Box>
+
+            {/* LLM Enrichment — Phase E2 */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: 0.5,
+                mt: 1,
+              }}
+            >
+              <Box>
+                <Typography variant="body2" fontWeight="medium">
+                  {t("tabs.threats.config.llmEnrichment", {
+                    defaultValue: "LLM Enrichment",
+                  })}{" "}
+                  <Chip
+                    label="Phase E2"
+                    size="small"
+                    variant="outlined"
+                    sx={{ height: 16, fontSize: 9 }}
+                  />
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {t("tabs.threats.config.llmEnrichmentDesc", {
+                    defaultValue:
+                      "Generate domain-specific threat descriptions using a specialized model.",
+                  })}
+                </Typography>
+              </Box>
+              <Switch disabled checked={false} />
+            </Box>
           </Box>
         </Box>
       </DialogContent>

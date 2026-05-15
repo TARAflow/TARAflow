@@ -17,7 +17,6 @@ import {
 } from "../../models/per-element-types";
 import { elementThreatGenerator } from "./element-generator";
 import { DFDAnalysisContext, type LinkedDFDElement } from "shared";
-import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
 
 // ==================== TRUST BOUNDARY CHANGE ====================
 

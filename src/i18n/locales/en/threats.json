@@ -49,6 +49,13 @@
       "totalThreats": "Total: {{count}} threats",
       "interfaces": "Physical Interfaces [{{tbId}}]",
       "showingCount": "Showing {{shown}} of {{total}}",
+      "reviewedCount": "{{reviewed}} / {{total}} reviewed",
+      "causeDescription": "Cause",
+      "toolbar": {
+        "classicMode": "Classic Mode",
+        "hideStrategy": "Hide Strategy Indicator",
+        "showStrategy": "Show Strategy Indicator"
+      },
       "sync": {
         "action": "Sync Threats",
         "status": {
@@ -114,7 +121,15 @@
         "zeroTrustMode": "Zero Trust Mode",
         "zeroTrustModeDesc": "Generate threats from both sender AND receiver perspective for every data flow. Default: sender perspective only (+ receiver for cross-boundary flows).",
         "showThreatActor": "Show Threat Actor",
-        "showThreatActorDesc": "Display the Threat Actor column in threat tables. Default off — actor has limited value for likelihood assessment."
+        "showThreatActorDesc": "Display the Threat Actor column in threat tables. Default off — actor has limited value for likelihood assessment.",
+        "classicMode": "Classic Mode",
+        "classicModeDesc": "Disable all STRIDE modulation — generate generic base categories only. Useful for quick generation or debugging.",
+        "enrichment": "Threat Enrichment",
+        "enrichmentDesc": "Additional enrichment sources that annotate generated threats with attack techniques and domain-specific descriptions.",
+        "mitreAttck": "Mitre ATT&CK",
+        "mitreAttckDesc": "Map STRIDE threats to ATT&CK techniques and tactics.",
+        "llmEnrichment": "LLM Enrichment",
+        "llmEnrichmentDesc": "Generate domain-specific threat descriptions using a specialized model."
       },
       "filters": {
         "toggle": "Toggle Filters",
@@ -186,14 +201,39 @@
         "notePlaceholder": "Optional note for audit trail...",
         "noteLabel": "Note",
         "advancedSection": "Threat Actor",
+        "mitigations": "Mitigations",
+        "verifications": "Verifications",
+        "threatLabel": "Threat Description *",
+        "attackLabel": "Attack Scenario *",
         "source": {
-          "auto": "Auto",
-          "classic": "Classic",
-          "hybrid": "Hybrid",
-          "relation": "Relation",
-          "manual": "Manual"
+          "auto": "Auto (legacy)",
+          "manual": "Manual",
+          "generated_classic": "Classic",
+          "generated_properties": "Properties",
+          "generated_cianaaa": "CIANAAA",
+          "generated_full": "Full"
         },
         "threatList": "Threats in this group"
+      },
+      "createDialog": {
+        "title": "Add Manual Threat",
+        "addToGroup": "Add manual threat to this group",
+        "noMitigations": "No mitigations added yet",
+        "strideCategory": "STRIDE Category *",
+        "threatPlaceholder": "Describe what is threatened and how it affects the system...",
+        "attackPlaceholder": "Describe the concrete attack path an adversary would take...",
+        "causeLabel": "Root Cause *",
+        "causePlaceholder": "Explain why this threat is possible — missing control, design gap...",
+        "addMitigation": "Add mitigations *",
+        "addVerification": "Add verifications *",
+        "noVerifications": "No verifications added yet",
+        "create": "Create Threat",
+        "catalogSuggestions": "Catalog suggestions — click to insert",
+        "noContext": "Fill in the fields below to build the threat.",
+        "perspective": "Perspective *",
+        "sender": "Sender",
+        "receiver": "Receiver",
+        "linkedAssets": "Linked Assets"
       },
       "eval": {
         "relevance": "Relevance",
@@ -210,24 +250,20 @@
         "progress": "{{reviewed}} / {{total}} reviewed"
       },
       "strategy": {
-        "relation": "RelationStrategy",
-        "hybrid": "HybridStrategy",
-        "classic": "ClassicStrategy",
-        "override": "Override",
-        "tooltip": "Active threat generation strategy",
-        "overrideTooltip": "Strategy was set manually — auto-detection bypassed",
-        "reasonRelation": "All {{count}} elements have linked assets with CIANAAA ratings → STRIDE derived from security goals",
-        "reasonHybridAssets": "{{covered}}/{{total}} elements with assets ({{pct}}%)",
-        "reasonHybridTags": "project tags set",
-        "reasonClassic": "No assets linked, no project tags → generic STRIDE per element type",
-        "reasonOverride": "Manual override — auto-detection bypassed"
+        "unified": "UnifiedStrategy",
+        "classicMode": "Classic Mode",
+        "reasonUnified": "Additive pipeline — element properties + asset CIANAAA goals",
+        "reasonClassicForced": "Forced — all STRIDE modulation disabled",
+        "sourceHint": "Per-threat source visible in ID column badge",
+        "tooltip": "Active threat generation strategy"
       },
       "sourceBadge": {
         "auto": "Auto-generated (legacy)",
-        "classic": "Generated by ClassicStrategy — generic STRIDE",
-        "hybrid": "Generated by HybridStrategy — element properties applied",
-        "relation": "Generated by RelationStrategy — derived from asset security goals",
         "manual": "Manually created",
+        "generated_classic": "Generated — no modulation (base STRIDE)",
+        "generated_properties": "Generated — element properties applied",
+        "generated_cianaaa": "Generated — CIANAAA security goals applied",
+        "generated_full": "Generated — element properties + CIANAAA goals applied",
         "fallback": "No asset security goals — base STRIDE used",
         "impact": "Initial impact: {{level}}"
       }

@@ -39,23 +39,9 @@ import {
   getLocalizedInteractionAttack,
   getLocalizedInteractionCause,
 } from "../threat-catalog-service";
-import { detectStrategy, createStrategy } from "../strategies/strategy-factory";
+import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
-import type { StrategyType } from "../../models/strategy-types";
-import type { ThreatSource } from "../../models/threat-types";
-
-// ==================== HELPERS ====================
-
-function strategyTypeToSource(type: StrategyType): ThreatSource {
-  switch (type) {
-    case "ClassicStrategy":
-      return "classic";
-    case "HybridStrategy":
-      return "hybrid";
-    case "RelationStrategy":
-      return "relation";
-  }
-}
+import { modulesToSource } from "../../models/strategy-types";
 
 // ==================== TYPES ====================
 
@@ -71,8 +57,7 @@ export class InteractionThreatGenerator {
   ): ThreatTable[] {
     if (!project.dfdGraph) return [];
 
-    const strategyType = detectStrategy(project);
-    const strategy = createStrategy(strategyType);
+    const strategy = createStrategy();
 
     const graph = project.dfdGraph;
     const zeroTrust = configuration?.zeroTrustMode ?? false;
@@ -131,10 +116,23 @@ export class InteractionThreatGenerator {
         properties: (connection as any)?.properties ?? {},
       } as DFDElementReference;
 
-      const applicableStride = strategy.getStrideCategories(
+      const config = configuration ?? project.threats?.configuration;
+      const defaultConfig = {
+        activeMethod: "per-interaction" as const,
+        zeroTrustMode: false,
+        showThreatActor: false,
+        forceClassicMode: false,
+        customElementTemplates: [],
+        customInteractionTemplates: [],
+        customMitigations: [],
+        customVerifications: [],
+      };
+
+      const { categories: applicableStride } = strategy.getStrideCategories(
         dataFlowElementWithProps,
         STRIDE_PER_INTERACTION,
         project,
+        config ?? defaultConfig,
       );
 
       if (senderTB) {
@@ -316,14 +314,14 @@ export class InteractionThreatGenerator {
     threat.linkedAssetIds = [
       ...new Set([...connAssets, ...sourceAssets, ...targetAssets]),
     ];
-    threat.source = strategyTypeToSource(strategy.type);
 
+    // Determine source from active modules
     const impactElement = perspective === "sender" ? source : target;
-    const initialImpact = strategy.getInitialImpact(
-      impactElement,
-      strideCategory,
-      project,
-    );
+    const defaultConfig = { activeMethod: "per-interaction" as const, zeroTrustMode: false, showThreatActor: false, forceClassicMode: false, customElementTemplates: [], customInteractionTemplates: [], customMitigations: [], customVerifications: [] };
+    const { modules } = strategy.getStrideCategories(impactElement, [strideCategory], project, project.threats?.configuration ?? defaultConfig);
+    threat.source = modulesToSource(modules);
+
+    const initialImpact = strategy.getInitialImpact(impactElement, strideCategory, project);
     if (initialImpact !== undefined) {
       threat.initialImpact = initialImpact;
     }
@@ -404,15 +402,32 @@ export class InteractionThreatGenerator {
     };
 
     threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
-    threat.source = strategyTypeToSource(strategy.type);
 
-    const initialImpact = strategy.getInitialImpact(
+    const defaultConfig2 = {
+      activeMethod: "per-interaction" as const,
+      zeroTrustMode: false,
+      showThreatActor: false,
+      forceClassicMode: false,
+      customElementTemplates: [],
+      customInteractionTemplates: [],
+      customMitigations: [],
+      customVerifications: [],
+    };
+    const { modules: ifModules } = strategy.getStrideCategories(
+      element,
+      [strideCategory],
+      project,
+      project.threats?.configuration ?? defaultConfig2,
+    );
+    threat.source = modulesToSource(ifModules);
+
+    const ifInitialImpact = strategy.getInitialImpact(
       element,
       strideCategory,
       project,
     );
-    if (initialImpact !== undefined) {
-      threat.initialImpact = initialImpact;
+    if (ifInitialImpact !== undefined) {
+      threat.initialImpact = ifInitialImpact;
     }
 
     // Interface element properties for context matching

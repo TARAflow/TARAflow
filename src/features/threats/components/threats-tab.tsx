@@ -99,6 +99,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [showDFDPreview, setShowDFDPreview] = useState(true);
   const [showFilters, setShowFilters] = useState(true);
+  const [showStrategyIndicator, setShowStrategyIndicator] = useState(true);
   const [showSyncWarning, setShowSyncWarning] = useState(true);
   const [dfdPanelHeight, setDfdPanelHeight] = useState(DEFAULT_DFD_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
@@ -113,8 +114,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   // Dialog state
   const [selectedThreat, setSelectedThreat] = useState<{
     tableIndex: number;
-    threats: Threat[];
-    initialIndex: number;
+    threatId: string;
   } | null>(null);
   const [showThreatDialog, setShowThreatDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
@@ -196,13 +196,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     [threatData, handleUpdate],
   );
 
-  const handleMethodChangeFromToolbar = useCallback(
-    (_event: React.MouseEvent<HTMLElement>, method: StrideMethod | null) => {
-      if (!method) return;
-      handleMethodChange(method);
-    },
-    [handleMethodChange],
-  );
   const handleGenerateConfirm = useCallback(async () => {
     setShowGenerateConfirm(false);
 
@@ -226,12 +219,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   const handleOpenEditDialog = useCallback(
     (tableIndex: number, threat: Threat) => {
-      const table = activeHook.tables[tableIndex];
-      const initialIndex = Math.max(
-        0,
-        table.threats.findIndex((t) => t.id === threat.id),
-      );
-      setSelectedThreat({ tableIndex, threats: table.threats, initialIndex });
+      // Store threatId — initialIndex is computed live at render time
+      // to avoid stale closure bug when tables change after hook mount
+      setSelectedThreat({ tableIndex, threatId: threat.id });
       setShowThreatDialog(true);
     },
     [],
@@ -390,20 +380,25 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
       {/* Toolbar */}
       <ThreatToolbar
-        isDirty={isDirty}
         isGenerating={activeHook.isGenerating}
         isSyncing={activeHook.isSyncing}
         validation={validation}
         activeMethod={activeMethod}
-        threatCount={activeHook.stats.totalThreats}
         hasThreats={hasThreats}
         hasDFD={hasDFD}
         syncStatus={activeHook.syncStatus}
         showDFDPreview={showDFDPreview}
         showFilters={showFilters}
+        showStrategyIndicator={showStrategyIndicator}
+        forceClassicMode={
+          project.threats?.configuration?.forceClassicMode ?? false
+        }
         onToggleDFDPreview={() => setShowDFDPreview((v) => !v)}
         onToggleFilters={() => setShowFilters((v) => !v)}
-        onMethodChange={handleMethodChangeFromToolbar}
+        onToggleStrategyIndicator={() => setShowStrategyIndicator((v) => !v)}
+        onMethodChange={(_, method) => {
+          if (method) handleMethodChange(method);
+        }}
         onGenerate={() => setShowGenerateConfirm(true)}
         onSync={() =>
           activeHook.synchronizeThreats({
@@ -415,7 +410,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         onOpenConfig={() => setShowConfigDialog(true)}
         onExport={exportThreats}
         onImport={handleImportClick}
-        onProceed={() => onPhaseComplete?.()}
       />
 
       {/* Sync Warning Banner */}
@@ -443,8 +437,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         </Box>
       </Collapse>
 
-      {/* Strategy Indicator */}
-      <StrategyIndicator project={project} />
+      {/* Strategy Indicator — toggleable from toolbar */}
+      {showStrategyIndicator && <StrategyIndicator project={project} />}
 
       {/* Main Content - Split View */}
       <Box
@@ -538,7 +532,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               }}
               onOpenEditDialog={handleOpenEditDialog}
               onDelete={elementHook.deleteThreat}
+              onAdd={elementHook.addThreat}
               showFilters={showFilters}
+              reviewedCount={validation.stats.reviewed}
             />
           ) : (
             <InteractionThreatsView
@@ -554,25 +550,37 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               }}
               onOpenEditDialog={handleOpenEditDialog}
               onDelete={interactionHook.deleteThreat}
+              onAdd={interactionHook.addThreat}
               showFilters={showFilters}
+              reviewedCount={validation.stats.reviewed}
             />
           )}
         </Box>
       </Box>
 
       {/* Threat Dialog */}
-      {showThreatDialog && selectedThreat && (
-        <ThreatEvalDialog
-          open={showThreatDialog}
-          threats={activeHook.tables[selectedThreat.tableIndex]?.threats ?? []}
-          initialIndex={selectedThreat.initialIndex}
-          configuration={configuration}
-          assetDataRef={project.assetDataRef}
-          dfdData={project.dfd ?? null}
-          onSave={handleSaveThreat}
-          onClose={handleCloseThreatDialog}
-        />
-      )}
+      {showThreatDialog &&
+        selectedThreat &&
+        (() => {
+          const liveThreatList =
+            activeHook.tables[selectedThreat.tableIndex]?.threats ?? [];
+          const liveIndex = Math.max(
+            0,
+            liveThreatList.findIndex((t) => t.id === selectedThreat.threatId),
+          );
+          return (
+            <ThreatEvalDialog
+              open={showThreatDialog}
+              threats={liveThreatList}
+              initialIndex={liveIndex}
+              configuration={configuration}
+              assetDataRef={project.assetDataRef}
+              dfdData={project.dfd ?? null}
+              onSave={handleSaveThreat}
+              onClose={handleCloseThreatDialog}
+            />
+          );
+        })()}
 
       {/* Config Dialog */}
       {showConfigDialog && (

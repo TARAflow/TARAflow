@@ -6,7 +6,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  Button,
   IconButton,
   Tooltip,
   ToggleButtonGroup,
@@ -18,7 +17,6 @@ import {
 import {
   Settings as SettingsIcon,
   AutoAwesome as GenerateIcon,
-  SkipNext as NextIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Warning as WarningIcon,
@@ -35,33 +33,30 @@ import type { StrideMethod, ThreatSyncStatus } from "../../models/threat-types";
 // ==================== TYPES ====================
 
 export interface ThreatValidation {
-  isComplete: boolean;
-  errors: string[];
-  warnings: string[];
   stats: {
     total: number;
-    completed: number;
-    incomplete: number;
+    reviewed: number;
   };
 }
 
 export interface ThreatToolbarProps {
-  isDirty: boolean;
   isGenerating: boolean;
   isSyncing: boolean;
   validation: ThreatValidation | null;
   activeMethod: StrideMethod;
-  threatCount: number;
   hasThreats: boolean;
   hasDFD: boolean;
   syncStatus: ThreatSyncStatus | null;
   showDFDPreview: boolean;
   showFilters: boolean;
+  showStrategyIndicator: boolean;
+  forceClassicMode: boolean;
   onToggleDFDPreview: () => void;
   onToggleFilters: () => void;
+  onToggleStrategyIndicator: () => void;
   onMethodChange: (
     event: React.MouseEvent<HTMLElement>,
-    method: StrideMethod | null
+    method: StrideMethod | null,
   ) => void;
   onGenerate: () => void;
   onSync: () => void;
@@ -69,26 +64,26 @@ export interface ThreatToolbarProps {
   onOpenConfig: () => void;
   onExport: () => void;
   onImport: () => void;
-  onProceed: () => void;
 }
 
 // ==================== COMPONENT ====================
 
 export const ThreatToolbar = React.memo<ThreatToolbarProps>(
   ({
-    isDirty,
     isGenerating,
     isSyncing,
     validation,
     activeMethod,
-    threatCount,
     hasThreats,
     hasDFD,
     syncStatus,
     showDFDPreview,
     showFilters,
+    showStrategyIndicator,
+    forceClassicMode,
     onToggleDFDPreview,
     onToggleFilters,
+    onToggleStrategyIndicator,
     onMethodChange,
     onGenerate,
     onSync,
@@ -96,30 +91,11 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     onOpenConfig,
     onExport,
     onImport,
-    onProceed,
   }) => {
     const { t } = useTranslation();
-
-    const getStatusColor = () => {
-      if (!validation) return "default";
-      if (validation.isComplete) return "success";
-      if (validation.errors.length > 0) return "error";
-      return "warning";
-    };
-
-    const getStatusText = () => {
-      if (!validation)
-        return t("status.inProgress", { defaultValue: "In Progress" });
-      if (validation.isComplete)
-        return t("status.complete", { defaultValue: "Complete" });
-      if (validation.errors.length > 0)
-        return `${validation.errors.length} ${t("common.errors", {
-          defaultValue: "Errors",
-        })}`;
-      return t("status.inProgress", { defaultValue: "In Progress" });
-    };
-
     const needsSync = syncStatus && !syncStatus.inSync;
+    const reviewed = validation?.stats.reviewed ?? 0;
+    const total = validation?.stats.total ?? 0;
 
     return (
       <Box
@@ -156,9 +132,8 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
           exclusive
           onChange={onMethodChange}
           size="small"
-          aria-label="STRIDE method"
         >
-          <ToggleButton value="per-element" aria-label="per element">
+          <ToggleButton value="per-element">
             <Tooltip
               title={t("tabs.threats.perElement", {
                 defaultValue: "STRIDE per Element",
@@ -167,7 +142,7 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
               <PerElementIcon fontSize="small" />
             </Tooltip>
           </ToggleButton>
-          <ToggleButton value="per-interaction" aria-label="per interaction">
+          <ToggleButton value="per-interaction">
             <Tooltip
               title={t("tabs.threats.perInteraction", {
                 defaultValue: "STRIDE per Interaction",
@@ -178,13 +153,17 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <Chip
-          label={
-            activeMethod === "per-element" ? "Per-Element" : "Per-Interaction"
-          }
-          size="small"
-          variant="outlined"
-        />
+        {/* Classic Mode indicator */}
+        {forceClassicMode && (
+          <Chip
+            label={t("tabs.threats.toolbar.classicMode", {
+              defaultValue: "Classic Mode",
+            })}
+            size="small"
+            color="warning"
+            variant="outlined"
+          />
+        )}
 
         <Divider orientation="vertical" flexItem />
 
@@ -270,6 +249,27 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
           </IconButton>
         </Tooltip>
 
+        {/* Strategy Indicator Toggle */}
+        <Tooltip
+          title={
+            showStrategyIndicator
+              ? t("tabs.threats.toolbar.hideStrategy", {
+                  defaultValue: "Hide Strategy Indicator",
+                })
+              : t("tabs.threats.toolbar.showStrategy", {
+                  defaultValue: "Show Strategy Indicator",
+                })
+          }
+        >
+          <IconButton
+            onClick={onToggleStrategyIndicator}
+            size="small"
+            color={showStrategyIndicator ? "primary" : "default"}
+          >
+            <PerElementIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
         {/* Delete All */}
         <Tooltip
           title={t("tabs.threats.deleteAll", {
@@ -290,6 +290,29 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
 
         <Box sx={{ flexGrow: 1 }} />
 
+        {/* Active method — read-only indicator */}
+        <Chip
+          icon={
+            activeMethod === "per-element" ? (
+              <PerElementIcon sx={{ fontSize: 14 }} />
+            ) : (
+              <PerInteractionIcon sx={{ fontSize: 14 }} />
+            )
+          }
+          label={
+            activeMethod === "per-element"
+              ? t("tabs.threats.perElement", { defaultValue: "Per-Element" })
+              : t("tabs.threats.perInteraction", {
+                  defaultValue: "Per-Interaction",
+                })
+          }
+          size="small"
+          variant="outlined"
+          sx={{ fontSize: "0.7rem" }}
+        />
+
+        <Divider orientation="vertical" flexItem />
+
         {/* Sync Status Badge */}
         {needsSync && (
           <Chip
@@ -301,42 +324,22 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
           />
         )}
 
-        {/* Status */}
-        <Chip
-          label={`${threatCount} ${t("tabs.threats.threats", {
-            defaultValue: "Threats",
-          })}`}
-          size="small"
-          variant="outlined"
-        />
-
-        <Chip label={getStatusText()} size="small" color={getStatusColor()} />
-
-        {isDirty && (
+        {/* Reviewed progress */}
+        {total > 0 && (
           <Chip
-            label={t("common.unsaved", { defaultValue: "Unsaved" })}
+            label={t("tabs.threats.reviewedCount", {
+              reviewed,
+              total,
+              defaultValue: `${reviewed} / ${total} reviewed`,
+            })}
             size="small"
-            color="warning"
+            color={reviewed === total ? "success" : "default"}
             variant="outlined"
           />
         )}
-
-        <Divider orientation="vertical" flexItem />
-
-        {/* Proceed */}
-        <Button
-          endIcon={<NextIcon />}
-          onClick={onProceed}
-          disabled={!validation?.isComplete}
-          size="small"
-          variant="outlined"
-          color="success"
-        >
-          {t("common.continue", { defaultValue: "Continue" })}
-        </Button>
       </Box>
     );
-  }
+  },
 );
 
 ThreatToolbar.displayName = "ThreatToolbar";
