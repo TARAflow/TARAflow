@@ -47,6 +47,12 @@
       "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
       "uncertain": "Unsicher",
       "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen.",
+      "safetyRemovalDialog": {
+        "title": "Safety-Faktor-Quelle entfernt",
+        "message": "Die Safety-Annotationen, die den Safety-Auswirkungs-Faktor automatisch aktiviert haben, wurden aus dem DFD und dem Asset-Tab entfernt. Möchten Sie den Safety-Auswirkungs-Faktor aktiv behalten?\n\nBeim Behalten bleiben bestehende Safety-Bewertungen erhalten. Beim Entfernen werden alle Safety-Faktorwerte aus Ihren Risikobewertungen gelöscht.",
+        "keep": "Safety-Faktor behalten",
+        "remove": "Safety-Faktor entfernen"
+      },
       "columns": {
         "threatId": "B-ID",
         "stride": "STRIDE",
@@ -77,53 +83,59 @@
         "afterMitigation": "Nach der Massnahme",
         "riskFactors": "Risikofaktoren",
         "riskFactorsAfter": "Faktoren neu bewerten (Nach)",
-        "likelihoodFactors": "Wahrscheinlichkeitsfaktoren",
-        "likelihoodFactorsAfter": "Wahrscheinlichkeitsfaktoren (Nach)",
-        "impactFactors": "Auswirkungsfaktoren",
-        "impactFactorsAfter": "Auswirkungsfaktoren (Nach)",
+        "likelihoodFactors": "Wahrscheinlichkeitsfaktoren (Vorher)",
+        "likelihoodFactorsAfter": "Wahrscheinlichkeitsfaktoren (Nachher)",
+        "impactFactors": "Auswirkungsfaktoren (Vorher)",
+        "impactFactorsAfter": "Auswirkungsfaktoren (Nachher)",
         "impact": "Auswirkung",
         "likelihood": "Wahrscheinlichkeit",
         "overallRisk": "Gesamtrisiko",
         "residualRisk": "Restrisiko",
-        "copyFromBefore": "Bewertungen von Vorher kopieren",
-        "selectedMitigations": "Vorgeschlagene Massnahmen",
+        "copyFromBefore": "Von Vorher kopieren",
+        "selectedMitigations": "Ausgewählte Massnahmen",
         "mitigationStatus": "Status:",
-        "mitigationPlaceholder": "Describe the mitigation...",
-        "addMitigation": "Add Mitigation",
+        "mitigationPlaceholder": "Massnahme beschreiben...",
+        "addMitigation": "Massnahme hinzufügen",
         "notRated": "Nicht bewertet",
         "priority": "MoSCoW-Priorität",
         "status": "Status",
         "treatment": "Risikobehandlung",
         "treatmentJustification": "Begründung der Behandlung (erforderlich)",
         "wontJustification": "Begründung für \"Wird nicht\" (erforderlich)",
-        "syncFromThreat": "Sync from Threat",
-        "syncConfirmTitle": "Sync from Threat?",
-        "syncConfirm": "Sync",
-        "syncWarning": "This will replace your current selected mitigations with the new value from the Threat.",
-        "currentDescription": "Current Description:",
-        "newDescription": "New Description (from Threat):",
-        "currentAttack": "Current Attack:",
-        "newAttack": "New Attack (from Threat):",
-        "currentMitigation": "Current Mitigation:",
-        "newMitigation": "New Mitigation (from Threat):",
-        "threatDescriptionChanged": "Threat description has changed in the Threats tab.",
-        "mitigationChanged": "Mitigation has changed in the Threats tab.",
-        "threatAndMitigationChanged": "Threat description and mitigation have changed in the Threats tab.",
-        "cause": "Ursache",
+        "syncFromThreat": "Aus Bedrohung synchronisieren",
+        "syncConfirmTitle": "Aus Bedrohung synchronisieren?",
+        "syncConfirm": "Synchronisieren",
+        "syncWarning": "Dadurch werden die aktuell ausgewählten Massnahmen durch den neuen Wert aus der Bedrohung ersetzt.",
+        "currentDescription": "Aktuelle Beschreibung:",
+        "newDescription": "Neue Beschreibung (aus Bedrohung):",
+        "currentAttack": "Aktueller Angriff:",
+        "newAttack": "Neuer Angriff (aus Bedrohung):",
+        "currentMitigation": "Aktuelle Massnahme:",
+        "newMitigation": "Neue Massnahme (aus Bedrohung):",
+        "threatDescriptionChanged": "Die Bedrohungsbeschreibung wurde im Bedrohungs-Tab geändert.",
+        "mitigationChanged": "Die Massnahme wurde im Bedrohungs-Tab geändert.",
+        "threatAndMitigationChanged": "Bedrohungsbeschreibung und Massnahme wurden im Bedrohungs-Tab geändert.",
+        "cause": "Grundursache",
         "tabBefore": "Risiko Vorher",
         "tabMitigations": "Massnahmen",
         "tabAfter": "Risiko Nachher",
-        "verifications": "Vorgeschlagene Verifikationen",
+        "verifications": "Ausgewählte Verifikationen",
         "treatmentJustificationRequired": "Erforderlich für Akzeptieren / Transfer / Teilen",
         "noMitigationWarning": "Keine Massnahme ausgewählt. Bitte wählen Sie mindestens eine Massnahme für diese Behandlungsart.",
-        "acceptedNote": "Risiko ist akzeptiert — keine Maßnahmen erforderlich. Risiko danach entspricht dem Risiko davor.",
-        "riskAfterAutoSynced": "Risiko danach wird automatisch auf das Risiko davor gesetzt (keine Maßnahmen angewendet)."
+        "acceptedNote": "Risiko ist akzeptiert — keine Massnahmen erforderlich. Risiko Nachher entspricht dem Risiko Vorher.",
+        "riskAfterAutoSynced": "Risiko Nachher wird automatisch auf das Risiko Vorher gesetzt (keine Massnahmen angewendet).",
+        "factorDerived": "Assets",
+        "factorDerivedTooltip": "Aus Asset-Tab-Daten vorausgefüllt",
+        "factorOverridden": "Überschrieben",
+        "factorOverriddenTooltip": "Aus Assets abgeleiteter Wert: {{value}}. ↺ zum Zurücksetzen.",
+        "factorReset": "Auf abgeleiteten Wert zurücksetzen",
+        "factorOriginal": "original"
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",
         "methodTab": "Methode & Anzeige",
         "factorsTab": "Faktoren",
-        "displayTab": "Display",
+        "displayTab": "Anzeige",
         "assessmentMethod": "Bewertungsmethode",
         "complexMethod": "Komplex (OWASP/ETSI-ähnlich)",
         "complexDesc": "Separate Auswirkungs- und Wahrscheinlichkeitsfaktoren. Detailliertere Analyse nach Industriestandards.",
@@ -132,8 +144,8 @@
         "scale4": "4-stufig (+ Kritisch)",
         "scale5": "5-stufig (+ Sehr Hoch)",
         "displayOptions": "Anzeigeoptionen",
-        "factorCountInfo": "{{count}} Faktoren ausgewählt (empfohlen: {{min}}-{{max}})",
-        "dreadFactors": "DREAD Factors",
+        "factorCountInfo": "{{count}} Faktoren ausgewählt (empfohlen: {{min}}–{{max}})",
+        "dreadFactors": "DREAD-Faktoren",
         "likelihoodFactors": "Wahrscheinlichkeitsfaktoren",
         "impactFactors": "Auswirkungsfaktoren",
         "customFactors": "Eigene Faktoren",
@@ -151,17 +163,20 @@
         "roundingRoundDesc": "Symmetrische Schwellenwerte bei .5-Grenzen",
         "roundingCeil": "Konservativ",
         "roundingCeilTitle": "Konservative Rundung (Math.ceil)",
-        "roundingCeilDesc": "Rundet immer auf die höhere Risikostufe",
+        "roundingCeilDesc": "Rundet immer auf die höhere Risikostufe auf",
         "assetImpact": "Asset-Auswirkung",
-        "useAssetImpact": "Auswirkung aus verknüpftem Asset-Schweregrad vorausfüllen",
-        "useAssetImpactDesc": "Wenn aktiviert, wird der schlechteste aggregierte Asset-Impact als Standard-Auswirkungswert verwendet. Der Analyst kann den Wert überschreiben.",
-        "assetImpactMapping": "Asset-Impact → Risikoskala-Zuordnung",
+        "useAssetImpact": "Auswirkung aus Asset-Tab-Daten vorausfüllen",
+        "useAssetImpactDesc": "Auswirkungsfaktoren werden aus verknüpften Asset-Kriterien vorausgefüllt (1:1-Zuordnung per ID). Der Analyst kann jeden Wert überschreiben — ein «Überschrieben»-Chip markiert Werte, die vom abgeleiteten Wert abweichen.",
+        "assetImpactMapping": "Aggregierter Asset-Impact → Risikoskala (Fallback)",
+        "assetImpactMappingDesc": "Wird verwendet, wenn für einen Faktor keine kriteriumsspezifischen Daten verfügbar sind.",
         "assetImpactMappingHint": "Standard-Zuordnung wird bei Skalenwechsel zurückgesetzt.",
         "en50742Factors": "EN 50742 Angreiferpotenzial-Faktoren",
         "attackerPotential": "Angreiferpotenzial (AP = EL×WoO + AC)",
         "severityThresholds": "Severity-Schwellenwerte (R = I × L)",
         "severityThresholdsHint": "Werte über dem höchsten Schwellenwert werden immer dem letzten Level zugeordnet.",
-        "severityMatrix": "Severity-Matrix"
+        "severityMatrix": "Severity-Matrix",
+        "autoEnabled": "Auto",
+        "safetyAutoEnabledTooltip": "Automatisch aktiviert — Safety-Annotationen in DFD oder Asset-Tab erkannt. Manuell deaktivieren, um Safety-Auswirkungen aus der Risikobewertung auszuschliessen."
       },
       "matrix": {
         "title": "Risikomatrix",
@@ -213,7 +228,9 @@
         "partially_mitigated": {
           "label": "Teilweise reduziert"
         },
-        "transferred": { "label": "Übertragen" }
+        "transferred": {
+          "label": "Übertragen"
+        }
       },
       "validation": {
         "required": "Pflichtfeld"
@@ -225,9 +242,9 @@
         "evidencePlaceholder": "Notiz, Commit-Hash, Testergebnis, Audit-Referenz...",
         "reference": "Referenz",
         "referencePlaceholder": "Ticket-ID, PR-Link, Jira/ADO-Referenz...",
-        "noMitigations": "Keine Maßnahmen ausgewählt. Öffne den Risiko-Dialog, um Maßnahmen auszuwählen.",
+        "noMitigations": "Keine Massnahmen ausgewählt. Öffnen Sie den Risiko-Dialog, um Massnahmen auszuwählen.",
         "rejectionReason": "Begründung*",
-        "rejectionPlaceholder": "Begründung, warum diese Maßnahme nicht umgesetzt wird...",
+        "rejectionPlaceholder": "Begründung, warum diese Massnahme nicht umgesetzt wird...",
         "rejectionRequired": "Für Audit erforderlich",
         "verifications": "Verifikationen (zur Testreferenz)"
       }
@@ -283,147 +300,272 @@
       }
     },
     "status": {
-      "open": { "label": "Offen" },
-      "in_review": { "label": "In Prüfung" },
-      "partially_mitigated": { "label": "Teilweise reduziert" },
-      "mitigated": { "label": "Mitigiert" },
-      "verified": { "label": "Verifiziert" },
-      "accepted": { "label": "Akzeptiert" },
-      "transferred": { "label": "Übertragen" },
-      "eliminated": { "label": "Eliminiert" },
-      "wont_do": { "label": "Wird nicht umgesetzt" }
+      "open": {
+        "label": "Offen"
+      },
+      "in_review": {
+        "label": "In Prüfung"
+      },
+      "partially_mitigated": {
+        "label": "Teilweise reduziert"
+      },
+      "mitigated": {
+        "label": "Mitigiert"
+      },
+      "verified": {
+        "label": "Verifiziert"
+      },
+      "accepted": {
+        "label": "Akzeptiert"
+      },
+      "transferred": {
+        "label": "Übertragen"
+      },
+      "eliminated": {
+        "label": "Eliminiert"
+      },
+      "wont_do": {
+        "label": "Wird nicht umgesetzt"
+      }
     },
     "mitigationStatus": {
-      "open": { "label": "Offen" },
-      "in_progress": { "label": "In Bearbeitung" },
-      "in_review": { "label": "In Prüfung" },
-      "implemented": { "label": "Umgesetzt" },
-      "verified": { "label": "Verifiziert" },
-      "rejected": { "label": "Abgelehnt" }
+      "open": {
+        "label": "Offen"
+      },
+      "in_progress": {
+        "label": "In Bearbeitung"
+      },
+      "in_review": {
+        "label": "In Prüfung"
+      },
+      "implemented": {
+        "label": "Umgesetzt"
+      },
+      "verified": {
+        "label": "Verifiziert"
+      },
+      "rejected": {
+        "label": "Abgelehnt"
+      }
     },
     "implementation": {
       "not_started": {
         "label": "Nicht gestartet"
       },
-      "open": { "label": "Offen" },
-      "in_progress": { "label": "In Bearbeitung" },
-      "in_review": { "label": "In Prüfung" },
-      "implemented": { "label": "Umgesetzt" },
-      "verified": { "label": "Verifiziert" },
-      "rejected": { "label": "Abgelehnt" }
+      "open": {
+        "label": "Offen"
+      },
+      "in_progress": {
+        "label": "In Bearbeitung"
+      },
+      "in_review": {
+        "label": "In Prüfung"
+      },
+      "implemented": {
+        "label": "Umgesetzt"
+      },
+      "verified": {
+        "label": "Verifiziert"
+      },
+      "rejected": {
+        "label": "Abgelehnt"
+      }
     },
     "factors": {
       "damage_potential": {
         "name": "Schadenspotenzial",
-        "description": "Wie viel Schaden könnte durch die Bedrohung entstehen?"
+        "description": "Wie viel Schaden könnte durch die Bedrohung entstehen?",
+        "shortName": "Schaden"
       },
       "reproducibility": {
         "name": "Reproduzierbarkeit",
-        "description": "Wie einfach ist der Angriff zu reproduzieren?"
+        "description": "Wie einfach ist der Angriff zu reproduzieren?",
+        "shortName": "Reprod."
       },
       "exploitability": {
         "name": "Ausnutzbarkeit",
-        "description": "Welche Fähigkeiten werden zur Ausnutzung benötigt?"
-      },
-      "affected_users": {
-        "name": "Betroffene Nutzer",
-        "description": "Wie viele Nutzer wären betroffen?"
+        "description": "Welche Fähigkeiten werden zur Ausnutzung benötigt?",
+        "shortName": "Exploit."
       },
       "discoverability": {
         "name": "Entdeckbarkeit",
-        "description": "Wie einfach ist die Schwachstelle zu entdecken?"
+        "description": "Wie einfach ist die Schwachstelle zu entdecken?",
+        "shortName": "Entdeckung"
       },
       "skill_level": {
         "name": "Fähigkeitsniveau",
-        "description": "Wie technisch versiert ist der Angreifer?"
+        "description": "Wie technisch versiert ist der Angreifer?",
+        "shortName": "Fähigkeit"
       },
       "motive": {
         "name": "Motivation",
-        "description": "Wie motiviert ist der Angreifer?"
+        "description": "Wie motiviert ist der Angreifer?",
+        "shortName": "Motivation"
       },
       "opportunity": {
         "name": "Gelegenheit",
-        "description": "Welche Ressourcen und Gelegenheiten sind erforderlich?"
+        "description": "Welche Ressourcen und Gelegenheiten sind erforderlich?",
+        "shortName": "Gelegenheit"
       },
       "size": {
         "name": "Grösse",
-        "description": "Wie gross ist die Gruppe potenzieller Angreifer?"
+        "description": "Wie gross ist die Gruppe potenzieller Angreifer?",
+        "shortName": "Grösse"
       },
       "ease_of_discovery": {
         "name": "Einfachheit der Entdeckung",
-        "description": "Wie einfach ist die Schwachstelle zu finden?"
+        "description": "Wie einfach ist die Schwachstelle zu finden?",
+        "shortName": "Entdeckung"
       },
       "ease_of_exploit": {
         "name": "Einfachheit der Ausnutzung",
-        "description": "Wie einfach ist die Schwachstelle auszunutzen?"
+        "description": "Wie einfach ist die Schwachstelle auszunutzen?",
+        "shortName": "Ausnutzung"
       },
       "awareness": {
         "name": "Bekanntheit",
-        "description": "Wie bekannt ist die Schwachstelle?"
+        "description": "Wie bekannt ist die Schwachstelle?",
+        "shortName": "Bekanntheit"
       },
       "intrusion_detection": {
         "name": "Einbruchserkennung",
-        "description": "Wie wahrscheinlich ist die Erkennung eines Angriffs?"
-      },
-      "loss_of_confidentiality": {
-        "name": "Vertraulichkeitsverlust",
-        "description": "Wie viele Daten könnten offengelegt werden?"
-      },
-      "loss_of_integrity": {
-        "name": "Integritätsverlust",
-        "description": "Wie viele Daten könnten beschädigt werden?"
-      },
-      "loss_of_availability": {
-        "name": "Verfügbarkeitsverlust",
-        "description": "Wie viel Dienst könnte ausfallen?"
-      },
-      "loss_of_accountability": {
-        "name": "Nachweisbarkeitsverlust",
-        "description": "Sind Aktionen zum Angreifer rückverfolgbar?"
-      },
-      "financial_damage": {
-        "name": "Finanzieller Schaden",
-        "description": "Wie viel finanzieller Schaden würde entstehen?"
-      },
-      "reputation_damage": {
-        "name": "Reputationsschaden",
-        "description": "Würde die Reputation beeinträchtigt?"
-      },
-      "non_compliance": {
-        "name": "Nichteinhaltung",
-        "description": "Wie viel Regulierungsrisiko?"
-      },
-      "privacy_violation": {
-        "name": "Datenschutzverletzung",
-        "description": "Wie viele personenbezogene Daten betroffen?"
+        "description": "Wie wahrscheinlich ist die Erkennung eines Angriffs?",
+        "shortName": "Erkennung"
       },
       "knowledge": {
         "name": "Wissensfaktor",
-        "description": "Erforderliches Wissen zur Ausnutzung"
+        "description": "Erforderliches Wissen zur Ausnutzung",
+        "shortName": "Wissen"
       },
       "expertise": {
         "name": "Expertisefaktor",
-        "description": "Erforderliches Expertenniveau"
+        "description": "Erforderliches Expertenniveau",
+        "shortName": "Expertise"
       },
       "time": {
         "name": "Zeitfaktor",
-        "description": "Erforderliche Zeit zur Ausnutzung"
+        "description": "Erforderliche Zeit zur Ausnutzung",
+        "shortName": "Zeit"
       },
       "equipment": {
         "name": "Ausrüstungsfaktor",
-        "description": "Erforderliche Ausrüstung zur Ausnutzung"
+        "description": "Erforderliche Ausrüstung zur Ausnutzung",
+        "shortName": "Ausrüstung"
       },
       "window_of_opportunity": {
         "name": "Angriffsfenster (WoO)",
-        "description": "Wie lange ist die Schwachstelle für einen Angreifer zugänglich?"
+        "description": "Wie lange ist die Schwachstelle für einen Angreifer zugänglich?",
+        "shortName": "Zeitfenster (WoO)"
       },
       "attacker_capability": {
         "name": "Angreiferkapazität (AC)",
-        "description": "Fähigkeiten, Motivation und Ressourcen eines potenziellen Angreifers."
+        "description": "Fähigkeiten, Motivation und Ressourcen eines potenziellen Angreifers.",
+        "shortName": "Kapazität (AC)"
       },
       "exposure_level": {
         "name": "Exponierungsgrad (EL)",
-        "description": "Wie exponiert ist das Asset/System gegenüber potenziellen Angreifern?"
+        "description": "Wie exponiert ist das Asset/System gegenüber potenziellen Angreifern?",
+        "shortName": "Exposition (EL)"
+      },
+      "financial_damage": {
+        "name": "Finanzieller Schaden",
+        "description": "Wie gross wäre der finanzielle Schaden durch einen erfolgreichen Angriff?",
+        "shortName": "Finanziell"
+      },
+      "regulatory_compliance": {
+        "name": "Regulatorik & Compliance",
+        "description": "Wie gross wäre die regulatorische Exposition oder der Compliance-Verstoss?",
+        "shortName": "Regulatorik"
+      },
+      "reputation": {
+        "name": "Reputationsschaden",
+        "description": "Wie stark wäre der Reputationsschaden für die Organisation?",
+        "shortName": "Reputation"
+      },
+      "privacy": {
+        "name": "Datenschutzverletzung",
+        "description": "Wie viele personenbezogene Daten könnten offengelegt werden?",
+        "shortName": "Datenschutz"
+      },
+      "operational": {
+        "name": "Betriebliche Auswirkung",
+        "description": "Wie gross wäre die Betriebsunterbrechung oder der Dienstausfall?",
+        "shortName": "Operativ"
+      },
+      "affected_users": {
+        "name": "Betroffene Einheiten",
+        "description": "Wie viele Personen, Kunden, Maschinen oder Anlagen sind betroffen, wenn diese Schwachstelle erfolgreich ausgenutzt wird? 1 = einzelner Benutzer/Maschine, 2 = mehrere Systeme beim selben Kunden, 3 = viele Kunden / alle Anlagen eines Produkttyps, 4 = kundenübergreifend / Supply-Chain-weit.",
+        "shortName": "Betroffene"
+      },
+      "recoverability": {
+        "name": "Wiederherstellbarkeit",
+        "description": "Wie schwierig ist die Wiederherstellung nach dem Schaden? 1 = vollständig wiederherstellbar, 4 = nicht wiederherstellbar / dauerhafter Schaden.",
+        "shortName": "Wiederherst."
+      },
+      "accountability": {
+        "name": "Nachvollziehbarkeitsverlust",
+        "description": "Wie stark wird die Nachverfolgbarkeit von Aktionen beeinträchtigt?",
+        "shortName": "Nachvollziehb."
+      },
+      "safety": {
+        "name": "Safety-Auswirkung",
+        "description": "Welchen potenziellen Personenschaden gibt es? 1 = reversible leichte Verletzung, 2 = reversible moderate Verletzung, 3 = irreversible Verletzung, 4 = Todesfall. Gemäss ISO 12100 / EN 50742.",
+        "shortName": "Safety"
+      },
+      "physical_damage": {
+        "name": "Physischer Schaden",
+        "description": "Wie gross wäre der physische Schaden an Hardware, Infrastruktur oder Eigentum?",
+        "shortName": "Physisch"
+      },
+      "environmental": {
+        "name": "Umweltauswirkung",
+        "description": "Welche Umweltschäden könnten entstehen (Lecks, Emissionen, Kontamination)?",
+        "shortName": "Umwelt"
+      },
+      "supply_chain": {
+        "name": "Lieferketten-Auswirkung",
+        "description": "Wie stark würde die Lieferkette oder der Produktionsablauf gestört?",
+        "shortName": "Lieferkette"
+      },
+      "loss_of_confidentiality": {
+        "name": "Vertraulichkeitsverlust",
+        "description": "Wie viele Daten könnten offengelegt werden?",
+        "shortName": "Vertraulichkeit"
+      },
+      "loss_of_integrity": {
+        "name": "Integritätsverlust",
+        "description": "Wie viele Daten könnten beschädigt werden?",
+        "shortName": "Integrität"
+      },
+      "loss_of_availability": {
+        "name": "Verfügbarkeitsverlust",
+        "description": "Wie viel Dienst könnte ausfallen?",
+        "shortName": "Verfügbarkeit"
+      },
+      "loss_of_accountability": {
+        "name": "Nachweisbarkeitsverlust",
+        "description": "Sind Aktionen zum Angreifer rückverfolgbar?",
+        "shortName": "Nachweisbarkeit"
+      },
+      "reputation_damage": {
+        "name": "Reputationsschaden",
+        "description": "Würde die Reputation beeinträchtigt?",
+        "shortName": "Reputation"
+      },
+      "non_compliance": {
+        "name": "Nichteinhaltung",
+        "description": "Wie viel Regulierungsrisiko?",
+        "shortName": "Compliance"
+      },
+      "privacy_violation": {
+        "name": "Datenschutzverletzung",
+        "description": "Wie viele personenbezogene Daten betroffen?",
+        "shortName": "Datenschutz"
+      },
+      "deployment_scope": {
+        "name": "Verbreitungsreichweite",
+        "shortName": "Reichweite",
+        "description": "Kann ein einzelner erfolgreicher Angriff gleichzeitig mehrere Installationen kompromittieren? 1 = Nein — jede Anlage muss einzeln angegriffen werden, 2 = Teilweise — Angriff betrifft mehrere Systeme beim selben Kunden, 3 = Ja — gemeinsame Infrastruktur (Cloud, OTA, SCADA) betrifft alle Anlagen eines Typs gleichzeitig, 4 = Ja — Supply-Chain-Angriff kompromittiert alle Kunden auf einmal."
       }
     }
   }

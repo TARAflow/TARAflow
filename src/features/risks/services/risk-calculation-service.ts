@@ -1,6 +1,12 @@
 // ==================== RISK CALCULATION SERVICE ====================
 // Single Responsibility: All risk score calculations and asset impact mapping.
-// Extracted from risk-types.ts and risk-service.ts.
+//
+// Phase 3 additions:
+//   applyAssetCriteriaToFactorRatings() — 1:1 criterion→factor prefill from Asset Tab
+//   deriveSafetyValue()                 — physicalImpact → safety factor value
+//   resetFactorToDerived()              — reset manual override back to derived value
+//
+// Dependencies: shared AssetReference / AssetDataReference (no custom reference types)
 
 import type {
   FactorRating,
@@ -15,6 +21,8 @@ import {
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
 } from "../models/risk-types";
+import type { AssetReference, AssetDataReference } from "shared";
+import { getWorstCriterionValue, normaliseImpactValue } from "shared";
 
 // ==================== CALCULATION RESULTS ====================
 
@@ -24,76 +32,12 @@ export interface RiskCalculationResult {
   risk: number;
 }
 
-// ==================== ASSET IMPACT MAPPING ====================
-
-/**
- * Returns the risk scale value for a given asset impact level.
- * Uses the configured mapping or falls back to the default for the active scale.
- */
-export function getAssetImpactValue(
-  assetImpact: AssetImpactLevel,
-  configuration: RiskConfiguration
-): number {
-  const mapping: AssetImpactMapping =
-    configuration.assetImpactMapping ??
-    DEFAULT_ASSET_IMPACT_MAPPINGS[configuration.scale];
-  return mapping[assetImpact] ?? 1;
-}
-
-/**
- * Given a list of asset impact levels (from linked assets),
- * returns the worst-case mapped risk value.
- * Returns 0 if no assets provided (unrated).
- */
-export function getWorstAssetImpactValue(
-  assetImpacts: AssetImpactLevel[],
-  configuration: RiskConfiguration
-): number {
-  if (!assetImpacts.length) return 0;
-
-  const ORDER: AssetImpactLevel[] = [
-    "LOW", "MED", "MED+", "HIGH", "HIGH+", "CRITICAL",
-  ];
-
-  const worst = assetImpacts.reduce<AssetImpactLevel>((acc, cur) => {
-    return ORDER.indexOf(cur) > ORDER.indexOf(acc) ? cur : acc;
-  }, "LOW");
-
-  return getAssetImpactValue(worst, configuration);
-}
-
-/**
- * Builds a pre-filled set of FactorRatings where all impact factors
- * are set to the asset-derived value.
- * Only applies when configuration.useAssetImpact === true.
- */
-export function applyAssetImpactToFactorRatings(
-  ratings: FactorRating[],
-  assetImpacts: AssetImpactLevel[],
-  configuration: RiskConfiguration
-): FactorRating[] {
-  if (!configuration.useAssetImpact || !assetImpacts.length) return ratings;
-
-  const assetValue = getWorstAssetImpactValue(assetImpacts, configuration);
-  const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
-
-  return ratings.map((rating) => {
-    const factor = allFactors.find((f) => f.id === rating.factorId);
-    if (factor?.category === "impact" && rating.value === 0) {
-      // Only pre-fill if not yet rated by analyst
-      return { ...rating, value: assetValue };
-    }
-    return rating;
-  });
-}
-
 // ==================== RISK SCORE CALCULATION ====================
 
 /**
  * Calculate impact, likelihood, and overall risk score.
- * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2 severity matrix)
- * Severity range: 1 to N² where N = number of scale levels (e.g. 1–16 for 4-level)
- * Level mapping is threshold-based via RISK_SCALES or configuration.severityThresholds.
+ * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2)
+ * Severity range: 1 to N² where N = number of scale levels.
  */
 export function calculateRiskValues(
   ratings: FactorRating[],
@@ -123,8 +67,6 @@ export function calculateRiskValues(
 
   const impact = weightedAvg(impactRatings);
   const likelihood = weightedAvg(likelihoodRatings);
-
-  // R = I × L — raw severity, no normalization
   const risk = impact > 0 && likelihood > 0 ? impact * likelihood : 0;
 
   return {
@@ -136,10 +78,6 @@ export function calculateRiskValues(
 
 // ==================== DISPLAY HELPERS ====================
 
-/**
- * Resolve the scale level for a severity value (R = I × L) using thresholds.
- * Returns the matching RiskScaleLevel, or the last level if above all thresholds.
- */
 function getSeverityLevel(
   severity: number,
   scale: RiskScaleType,
@@ -154,9 +92,8 @@ function getSeverityLevel(
 }
 
 /**
- * Get color for a risk severity value (R = I × L) based on thresholds.
- * Returns gray for unrated (value <= 0).
- * roundingMethod kept for call-site compatibility but no longer used.
+ * Get color for a risk severity value (R = I×L) using threshold mapping.
+ * Returns gray (#6b7280) for unrated (value <= 0).
  */
 export function getRiskColor(
   value: number,
@@ -169,7 +106,7 @@ export function getRiskColor(
 }
 
 /**
- * Get label for a risk severity value (R = I × L) based on thresholds.
+ * Get label for a risk severity value (R = I×L) using threshold mapping.
  * Returns "-" for unrated.
  */
 export function getRiskLabel(
@@ -182,12 +119,9 @@ export function getRiskLabel(
   return getSeverityLevel(value, scale, severityThresholds).label;
 }
 
-// ==================== FACTOR DISPLAY HELPERS ====================
-
 /**
  * Get color for a factor average value (Impact or Likelihood, range 1–N).
- * Uses direct index mapping: value 1 → level[0], value N → level[N-1].
- * This is separate from getRiskColor which uses severity thresholds for R=I×L.
+ * Uses direct index mapping — separate from getRiskColor which uses severity thresholds.
  */
 export function getFactorColor(value: number, scale: RiskScaleType): string {
   if (value <= 0) return "#6b7280";
@@ -206,28 +140,234 @@ export function getFactorLabel(value: number, scale: RiskScaleType): string {
   return levels[idx].label;
 }
 
+// ==================== ASSET IMPACT MAPPING (aggregated fallback) ====================
+
+/**
+ * Returns the risk scale value for a given aggregated asset impact level.
+ * Used as fallback when no per-criterion match exists.
+ */
+export function getAssetImpactValue(
+  assetImpact: AssetImpactLevel,
+  configuration: RiskConfiguration,
+): number {
+  const mapping: AssetImpactMapping =
+    configuration.assetImpactMapping ??
+    DEFAULT_ASSET_IMPACT_MAPPINGS[configuration.scale];
+  return mapping[assetImpact] ?? 1;
+}
+
+/**
+ * Given a list of aggregated asset impact levels, returns the worst-case
+ * mapped risk scale value. Returns 0 if no assets provided.
+ */
+export function getWorstAssetImpactValue(
+  assetImpacts: AssetImpactLevel[],
+  configuration: RiskConfiguration,
+): number {
+  if (!assetImpacts.length) return 0;
+
+  const ORDER: AssetImpactLevel[] = [
+    "LOW", "MED", "MED+", "HIGH", "HIGH+", "CRITICAL",
+  ];
+
+  const worst = assetImpacts.reduce<AssetImpactLevel>(
+    (acc, cur) => (ORDER.indexOf(cur) > ORDER.indexOf(acc) ? cur : acc),
+    "LOW",
+  );
+
+  return getAssetImpactValue(worst, configuration);
+}
+
+// ==================== SAFETY FACTOR DERIVATION ====================
+
+/**
+ * Maps a physicalImpact annotation to a 4-level safety factor value.
+ * Aligned with SAFETY_IMPACT_SCALE in asset-impact-types.ts.
+ *
+ * reversible_injury   → 2  (moderate — covers reversible_minor + reversible_moderate)
+ * irreversible_injury → 3
+ * fatality            → 4
+ *
+ * Note: "reversible_injury" maps to 2 (not 1) to be conservative —
+ * the Asset model doesn't distinguish minor from moderate at this level.
+ */
+export function deriveSafetyValueFromPhysicalImpact(
+  physicalImpact: "reversible_injury" | "irreversible_injury" | "fatality",
+): number {
+  switch (physicalImpact) {
+    case "reversible_injury":   return 2;
+    case "irreversible_injury": return 3;
+    case "fatality":            return 4;
+  }
+}
+
+/**
+ * Derives the safety factor value for a risk from linked assets.
+ *
+ * Priority order (highest wins):
+ * 1. Worst physicalImpact → deriveSafetyValueFromPhysicalImpact()
+ * 2. Worst "safety" impactRating numeric value (normalised to risk scale)
+ * 3. 0 (no safety data)
+ *
+ * Safety factor uses a fixed 4-level scale — no normalisation applied
+ * for physicalImpact path. Normalisation is applied for the impactRating path.
+ */
+export function deriveSafetyValue(
+  linkedAssets: AssetReference[],
+  assetScaleLevels: number,
+  riskScaleLevels: number,
+): number {
+  // Priority 1: physicalImpact annotation (fixed 4-level, no normalisation)
+  const ORDER = [
+    "reversible_injury",
+    "irreversible_injury",
+    "fatality",
+  ] as const;
+
+  const physicalImpacts = linkedAssets
+    .map((a) => a.physicalImpact)
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+  if (physicalImpacts.length > 0) {
+    const worst = physicalImpacts.reduce((acc, cur) =>
+      ORDER.indexOf(cur) > ORDER.indexOf(acc) ? cur : acc,
+    );
+    return deriveSafetyValueFromPhysicalImpact(worst);
+  }
+
+  // Priority 2: safety impactRating numeric value (normalised)
+  const safetyRatingValue = getWorstCriterionValue(linkedAssets, "safety");
+  if (safetyRatingValue > 0) {
+    return normaliseImpactValue(safetyRatingValue, assetScaleLevels, riskScaleLevels);
+  }
+
+  return 0;
+}
+
+// ==================== ASSET CRITERIA PREFILL ====================
+
+/**
+ * Pre-fills impact FactorRatings from linked asset criteria using 1:1 ID matching.
+ *
+ * Rules:
+ * - Only applied when configuration.useAssetImpact === true
+ * - Only pre-fills when source !== "manual" (never overwrites analyst entries)
+ * - Sets source = "derived", derivedValue = computed value
+ * - Safety factor handled via deriveSafetyValue() (physicalImpact takes priority)
+ * - Scale normalisation applied when asset scale ≠ risk scale
+ *
+ * @param ratings       Current FactorRating[] for the risk
+ * @param linkedAssets  Assets linked to this threat (resolved from linkedAssetIds)
+ * @param assetDataRef  Full asset data bundle (provides impactScale)
+ * @param configuration Risk configuration (provides scale + useAssetImpact flag)
+ */
+export function applyAssetCriteriaToFactorRatings(
+  ratings: FactorRating[],
+  linkedAssets: AssetReference[],
+  assetDataRef: AssetDataReference,
+  configuration: RiskConfiguration,
+): FactorRating[] {
+  if (!configuration.useAssetImpact || linkedAssets.length === 0) return ratings;
+
+  const assetScaleStr = assetDataRef.impactScale ?? "4-level";
+  const assetScaleLevels = parseInt(assetScaleStr.split("-")[0], 10);
+  const riskScaleLevels = RISK_SCALES[configuration.scale].levels.length;
+  const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
+
+  return ratings.map((rating) => {
+    // Only process impact factors
+    const factor = allFactors.find((f) => f.id === rating.factorId);
+    if (!factor || factor.category !== "impact") return rating;
+
+    // Never overwrite a manually set value
+    if (rating.source === "manual") return rating;
+
+    let derivedValue = 0;
+
+    if (rating.factorId === "safety") {
+      // Safety: uses physicalImpact annotation with priority over impactRatings
+      derivedValue = deriveSafetyValue(linkedAssets, assetScaleLevels, riskScaleLevels);
+    } else {
+      // All other impact factors: direct 1:1 criterion ID match
+      const worstValue = getWorstCriterionValue(linkedAssets, rating.factorId);
+      if (worstValue > 0) {
+        derivedValue = normaliseImpactValue(worstValue, assetScaleLevels, riskScaleLevels);
+      }
+    }
+
+    if (derivedValue === 0) {
+      // No asset data for this factor — clear stale derivedValue if present
+      if (rating.source === "derived") {
+        return { ...rating, value: 0, derivedValue: undefined, source: undefined };
+      }
+      return rating;
+    }
+
+    return {
+      ...rating,
+      value: derivedValue,
+      derivedValue,
+      source: "derived" as const,
+    };
+  });
+}
+
+/**
+ * Legacy wrapper — used by RiskDialog init when configuration.useAssetImpact
+ * is true but only aggregatedImpact is available (no per-criterion data).
+ * Sets all impact factors to the same worst-case value.
+ *
+ * @deprecated Prefer applyAssetCriteriaToFactorRatings() when impactRatings[] is available.
+ */
+export function applyAssetImpactToFactorRatings(
+  ratings: FactorRating[],
+  assetImpacts: AssetImpactLevel[],
+  configuration: RiskConfiguration,
+): FactorRating[] {
+  if (!configuration.useAssetImpact || !assetImpacts.length) return ratings;
+
+  const assetValue = getWorstAssetImpactValue(assetImpacts, configuration);
+  const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
+
+  return ratings.map((rating) => {
+    const factor = allFactors.find((f) => f.id === rating.factorId);
+    if (factor?.category === "impact" && rating.value === 0 && rating.source !== "manual") {
+      return { ...rating, value: assetValue, derivedValue: assetValue, source: "derived" as const };
+    }
+    return rating;
+  });
+}
+
+/**
+ * Reset a single FactorRating back to its derived value.
+ * Called when analyst clicks "Reset to derived" in the Risk Dialog.
+ */
+export function resetFactorToDerived(rating: FactorRating): FactorRating {
+  if (rating.derivedValue === undefined) return rating;
+  return {
+    ...rating,
+    value: rating.derivedValue,
+    source: "derived",
+  };
+}
+
 // ==================== EN 50742 ATTACKER POTENTIAL ====================
 
 /**
  * Calculate Attacker Potential per EN 50742 / IEC 62443-3-2.
  * Formula: AP = (EL × WoO) + AC
- *
- * @param el  Exposure Level (1–scale max)
- * @param woo Window of Opportunity (1–scale max)
- * @param ac  Attacker Capability (1–scale max)
  */
 export function calculateAttackerPotential(
   el: number,
   woo: number,
-  ac: number
+  ac: number,
 ): number {
   if (el <= 0 || woo <= 0 || ac <= 0) return 0;
-  return (el * woo) + ac;
+  return el * woo + ac;
 }
 
 /**
- * Extract EN 50742 factor values from a set of FactorRatings.
- * Returns { el, woo, ac } with 0 if not rated.
+ * Extract EN 50742 factor values from a FactorRating[].
  */
 export function extractEN50742Factors(ratings: FactorRating[]): {
   el: number;

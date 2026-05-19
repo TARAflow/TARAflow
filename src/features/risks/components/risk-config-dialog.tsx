@@ -1,6 +1,13 @@
 // ==================== RISK CONFIG DIALOG ====================
-// Configuration dialog for risk assessment method, scale, and factors
-// Likelihood × Impact method (OWASP / ETSI / EN 50742)
+// Configuration dialog for risk assessment method, scale, and factors.
+// Likelihood × Impact method (OWASP / ETSI / EN 50742 / TARAflow)
+//
+// Phase 3 changes:
+// - OWASP_IMPACT_FACTORS → ALL_PREDEFINED_FACTORS filtered by category "impact"
+//   (includes new aligned factors: affected_users, operational, safety, etc.)
+// - Safety factor shows "Auto" badge when autoEnabled === true
+// - handleToggleFactor sets autoEnabled: false on manual toggle
+// - useAssetImpact description updated to reflect per-criterion prefill
 
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -41,13 +48,11 @@ import {
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
-  Functions as FormulaIcon,
   Info as InfoIcon,
 } from "@mui/icons-material";
 
 import {
   RiskConfiguration,
-  RiskMethodType,
   RiskScaleType,
   RiskRoundingMethod,
   ActiveFactor,
@@ -58,12 +63,15 @@ import {
   RISK_SCALES,
   OWASP_LIKELIHOOD_FACTORS,
   EN50742_FACTORS,
-  OWASP_IMPACT_FACTORS,
   ETSI_FACTORS,
   ALL_PREDEFINED_FACTORS,
-  DEFAULT_CONFIGURATION,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
 } from "../models/risk-types";
+
+// Derive impact factors directly from ALL_PREDEFINED_FACTORS — always in sync.
+const ALL_IMPACT_FACTORS = ALL_PREDEFINED_FACTORS.filter(
+  (f) => f.category === "impact",
+);
 
 const ASSET_IMPACT_LEVELS: AssetImpactLevel[] = [
   "LOW",
@@ -89,8 +97,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+function TabPanel({ children, value, index, ...other }: TabPanelProps) {
   return (
     <div role="tabpanel" hidden={value !== index} {...other}>
       {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
@@ -108,7 +115,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // Local state
+  // ── Local state ───────────────────────────────────────────────────────────
   const [tabValue, setTabValue] = useState(0);
   const [scale, setScale] = useState<RiskScaleType>(configuration.scale);
   const [roundingMethod, setRoundingMethod] = useState<RiskRoundingMethod>(
@@ -124,15 +131,13 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     configuration.customFactors,
   );
   const [useAssetImpact, setUseAssetImpact] = useState(
-    configuration.useAssetImpact ?? false,
+    configuration.useAssetImpact ?? true,
   );
   const [assetImpactMapping, setAssetImpactMapping] =
     useState<AssetImpactMapping>(
       configuration.assetImpactMapping ??
         DEFAULT_ASSET_IMPACT_MAPPINGS[configuration.scale],
     );
-
-  // Severity thresholds — per-level max R=I×L value
   const [severityThresholds, setSeverityThresholds] = useState<
     Record<number, number>
   >(
@@ -145,13 +150,13 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       ),
   );
 
-  // New custom factor state
+  // New custom factor form state
   const [newFactorName, setNewFactorName] = useState("");
   const [newFactorDescription, setNewFactorDescription] = useState("");
   const [newFactorCategory, setNewFactorCategory] =
     useState<RiskFactorCategory>("likelihood");
 
-  // ==================== FACTOR GROUPS ====================
+  // ── Factor groups ─────────────────────────────────────────────────────────
 
   const factorGroups = useMemo(
     () => ({
@@ -160,22 +165,30 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         ...ETSI_FACTORS,
         ...EN50742_FACTORS,
       ],
-      impact: OWASP_IMPACT_FACTORS,
+      // Phase 3: derived from ALL_PREDEFINED_FACTORS — includes all aligned
+      // impact factors (financial_damage, operational, affected_users, safety, etc.)
+      impact: ALL_IMPACT_FACTORS,
     }),
     [],
   );
 
-  // ==================== HANDLERS ====================
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleToggleFactor = (factorId: string) => {
     setActiveFactors((prev) => {
       const existing = prev.find((f) => f.factorId === factorId);
       if (existing) {
         return prev.map((f) =>
-          f.factorId === factorId ? { ...f, enabled: !f.enabled } : f,
+          f.factorId === factorId
+            ? {
+                ...f,
+                enabled: !f.enabled,
+                // Analyst explicitly toggled → clear auto-enabled flag
+                autoEnabled: false,
+              }
+            : f,
         );
       } else {
-        // Add new factor with default weight
         const def = [...ALL_PREDEFINED_FACTORS, ...customFactors].find(
           (f) => f.id === factorId,
         );
@@ -185,6 +198,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
             factorId,
             enabled: true,
             weight: def?.defaultWeight ?? 1.0,
+            autoEnabled: false,
           },
         ];
       }
@@ -199,7 +213,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
   const handleAddCustomFactor = () => {
     if (!newFactorName.trim()) return;
-
     const id = `custom-${Date.now()}`;
     const newFactor: RiskFactorDefinition = {
       id,
@@ -209,14 +222,11 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       defaultWeight: 1.0,
       source: "custom",
     };
-
     setCustomFactors((prev) => [...prev, newFactor]);
     setActiveFactors((prev) => [
       ...prev,
-      { factorId: id, enabled: true, weight: 1.0 },
+      { factorId: id, enabled: true, weight: 1.0, autoEnabled: false },
     ]);
-
-    // Reset form
     setNewFactorName("");
     setNewFactorDescription("");
   };
@@ -241,11 +251,10 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     });
   };
 
-  // ==================== RENDER FACTOR LIST ====================
+  // ── Render factor list ────────────────────────────────────────────────────
 
   const renderFactorList = (factors: RiskFactorDefinition[], title: string) => {
     if (factors.length === 0) return null;
-
     return (
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -258,6 +267,8 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
             );
             const isEnabled = activeFactor?.enabled ?? false;
             const weight = activeFactor?.weight ?? factor.defaultWeight;
+            const isAutoEnabled =
+              factor.id === "safety" && activeFactor?.autoEnabled === true;
 
             return (
               <ListItem
@@ -295,6 +306,27 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                           variant="outlined"
                           sx={{ fontSize: "0.6rem", height: 18 }}
                         />
+                        {/* Safety auto-enabled badge */}
+                        {isAutoEnabled && (
+                          <Tooltip
+                            title={t(
+                              "tabs.risks.config.safetyAutoEnabledTooltip",
+                              {
+                                defaultValue:
+                                  "Automatically enabled — safety annotations detected in DFD or Asset Tab. Disable manually to exclude safety impact from risk scoring.",
+                              },
+                            )}
+                          >
+                            <Chip
+                              label={t("tabs.risks.config.autoEnabled", {
+                                defaultValue: "Auto",
+                              })}
+                              size="small"
+                              color="info"
+                              sx={{ fontSize: "0.6rem", height: 18 }}
+                            />
+                          </Tooltip>
+                        )}
                       </Stack>
                     }
                     secondary={t(`risks.factors.${factor.id}.description`, {
@@ -336,14 +368,13 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     );
   };
 
-  // ==================== RENDER CUSTOM FACTOR LIST ====================
+  // ── Render custom factor list ─────────────────────────────────────────────
 
   const renderCustomFactorList = () => {
-    const relevantCustomFactors = customFactors.filter(
+    const relevant = customFactors.filter(
       (f) => f.category === "likelihood" || f.category === "impact",
     );
-
-    if (relevantCustomFactors.length === 0) return null;
+    if (relevant.length === 0) return null;
 
     return (
       <Box sx={{ mb: 3 }}>
@@ -353,7 +384,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
           })}
         </Typography>
         <List dense disablePadding>
-          {relevantCustomFactors.map((factor) => {
+          {relevant.map((factor) => {
             const activeFactor = activeFactors.find(
               (af) => af.factorId === factor.id,
             );
@@ -450,14 +481,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     );
   };
 
-  // ==================== COUNT ENABLED FACTORS ====================
+  // ── Derived stats ─────────────────────────────────────────────────────────
 
   const enabledCount = activeFactors.filter((f) => f.enabled).length;
   const minFactors = 3;
   const maxFactors = 10;
   const isValidCount = enabledCount >= minFactors && enabledCount <= maxFactors;
 
-  // ==================== RENDER ====================
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Dialog
@@ -465,9 +496,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: { height: 600, maxHeight: "90vh" },
-      }}
+      PaperProps={{ sx: { height: 600, maxHeight: "90vh" } }}
     >
       <DialogTitle>
         {t("tabs.risks.config.title", {
@@ -489,7 +518,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
           />
         </Tabs>
 
-        {/* Method & Display Tab (combined) */}
+        {/* ══ TAB 0: Method & Display ══════════════════════════════════════ */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Scale Selection */}
@@ -534,8 +563,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   })}
                 />
               </RadioGroup>
-
-              {/* Scale Preview */}
               <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
                 {RISK_SCALES[scale].levels.map((level) => (
                   <Chip
@@ -545,10 +572,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                       { defaultValue: level.label },
                     )}`}
                     size="small"
-                    sx={{
-                      backgroundColor: level.color,
-                      color: "white",
-                    }}
+                    sx={{ backgroundColor: level.color, color: "white" }}
                   />
                 ))}
               </Box>
@@ -556,7 +580,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
             <Divider />
 
-            {/* Severity Thresholds + Matrix — two equal columns */}
+            {/* Severity Thresholds + Matrix — two columns */}
             <Box
               sx={{
                 display: "grid",
@@ -565,7 +589,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 alignItems: "start",
               }}
             >
-              {/* LEFT column: Severity Thresholds */}
+              {/* LEFT: Severity Thresholds */}
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
                   {t("tabs.risks.config.severityThresholds", {
@@ -596,9 +620,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         <Chip
                           label={t(
                             `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
-                            {
-                              defaultValue: level.label,
-                            },
+                            { defaultValue: level.label },
                           )}
                           size="small"
                           sx={{
@@ -657,21 +679,13 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 </Box>
               </Box>
 
-              {/* RIGHT column: Severity Matrix */}
+              {/* RIGHT: Severity Matrix */}
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
                   {t("tabs.risks.config.severityMatrix", {
                     defaultValue: "Severity Matrix",
                   })}
                 </Typography>
-                {/* <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                  mb={1.5}
-                >
-                  {"I × L"}
-                </Typography> */}
                 {(() => {
                   const levels = RISK_SCALES[scale].levels;
                   const cellSize = Math.min(
@@ -691,7 +705,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   };
                   return (
                     <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-                      {/* Rotated Impact label */}
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -705,7 +718,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         Impact →
                       </Typography>
                       <Box>
-                        {/* Column headers */}
                         <Box sx={{ display: "flex", ml: `${cellSize}px` }}>
                           {levels.map((l) => (
                             <Box
@@ -721,7 +733,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                             </Box>
                           ))}
                         </Box>
-                        {/* Rows: Impact high → low */}
                         {[...levels].reverse().map((impact) => (
                           <Box
                             key={impact.value}
@@ -775,7 +786,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                             })}
                           </Box>
                         ))}
-                        {/* Likelihood axis */}
                         <Box
                           sx={{ display: "flex", ml: `${cellSize}px`, mt: 0.5 }}
                         >
@@ -943,16 +953,17 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     <Typography variant="body2" color="text.secondary">
                       {t("tabs.risks.config.showIndividualFactorsDesc", {
                         defaultValue:
-                          "When disabled, only aggregated Impact/Likelihood values are shown. Hover shows details.",
+                          "When disabled, only aggregated Impact/Likelihood values are shown.",
                       })}
                     </Typography>
                   </Box>
                 }
               />
             </FormControl>
+
             <Divider />
 
-            {/* Asset Impact for Risk Assessment */}
+            {/* Asset Impact Prefill */}
             <FormControl component="fieldset">
               <FormLabel sx={{ mb: 1 }}>
                 {t("tabs.risks.config.assetImpact", {
@@ -977,14 +988,15 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   <Box>
                     <Typography>
                       {t("tabs.risks.config.useAssetImpact", {
-                        defaultValue:
-                          "Pre-fill Impact from linked Asset severity",
+                        defaultValue: "Pre-fill Impact from Asset Tab data",
                       })}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {t("tabs.risks.config.useAssetImpactDesc", {
                         defaultValue:
-                          "When enabled, the worst aggregatedImpact of linked assets is used as the default Impact factor value. Analyst can still override per risk.",
+                          "Impact factors are pre-filled from linked asset criteria " +
+                          "(1:1 match by ID). The analyst can override any value — " +
+                          "an 'Overridden' chip marks values that differ from the derived value.",
                       })}
                     </Typography>
                   </Box>
@@ -999,7 +1011,19 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     gutterBottom
                   >
                     {t("tabs.risks.config.assetImpactMapping", {
-                      defaultValue: "Asset Impact → Risk Scale Mapping",
+                      defaultValue:
+                        "Aggregated Asset Impact → Risk Scale (fallback)",
+                    })}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    mb={1}
+                  >
+                    {t("tabs.risks.config.assetImpactMappingDesc", {
+                      defaultValue:
+                        "Used when no per-criterion data is available for a factor.",
                     })}
                   </Typography>
                   <Box
@@ -1068,7 +1092,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
           </Box>
         </TabPanel>
 
-        {/* Factors Tab */}
+        {/* ══ TAB 1: Factors ═══════════════════════════════════════════════ */}
         <TabPanel value={tabValue} index={1}>
           <Box
             sx={{
@@ -1079,13 +1103,12 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               flexGrow: 1,
             }}
           >
-            {/* Factor count indicator */}
             <Alert severity={isValidCount ? "info" : "warning"}>
               {t("tabs.risks.config.factorCountInfo", {
                 count: enabledCount,
                 min: minFactors,
                 max: maxFactors,
-                defaultValue: `${enabledCount} factors selected (recommended: ${minFactors}-${maxFactors})`,
+                defaultValue: `${enabledCount} factors selected (recommended: ${minFactors}–${maxFactors})`,
               })}
             </Alert>
 
@@ -1112,7 +1135,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               )}
             </Box>
 
-            {/* Custom Factors */}
             <Divider />
 
             {renderCustomFactorList()}
@@ -1124,9 +1146,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   defaultValue: "Add Custom Factor",
                 })}
               </Typography>
-
               <Stack spacing={2}>
-                {/* Name field */}
                 <TextField
                   size="small"
                   label={t("tabs.risks.config.factorName", {
@@ -1136,8 +1156,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   onChange={(e) => setNewFactorName(e.target.value)}
                   fullWidth
                 />
-
-                {/* Description field */}
                 <TextField
                   size="small"
                   label={t("tabs.risks.config.factorDescription", {
@@ -1149,8 +1167,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   multiline
                   rows={2}
                 />
-
-                {/* Category (only for complex method) */}
                 <Stack direction="row" spacing={2} alignItems="center">
                   <FormControl size="small" sx={{ minWidth: 150 }}>
                     <InputLabel>
@@ -1173,9 +1189,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                       <MenuItem value="impact">Impact</MenuItem>
                     </Select>
                   </FormControl>
-
                   <Box sx={{ flexGrow: 1 }} />
-
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
@@ -1207,6 +1221,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};;;;;;;;
+};
 
 export default RiskConfigDialog;

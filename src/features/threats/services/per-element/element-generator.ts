@@ -53,7 +53,18 @@ export class ElementThreatGenerator {
     }
 
     // ── Trust Boundary tables ─────────────────────────────────────────────
-    for (const [trustBoundaryId, elementIds] of graph.trustBoundaryElements) {
+    // Build effective TB → elements map from effectiveElementTrustBoundary.
+    // This uses the INNERMOST TB per element, preventing duplicates when
+    // TrustBoundaries are nested (TB-B inside TB-A: element only appears in TB-B).
+    const effectiveTBElements = new Map<string, string[]>();
+    for (const [elementId, tbId] of graph.effectiveElementTrustBoundary) {
+      if (!tbId) continue;
+      const existing = effectiveTBElements.get(tbId) ?? [];
+      existing.push(elementId);
+      effectiveTBElements.set(tbId, existing);
+    }
+
+    for (const [trustBoundaryId, elementIds] of effectiveTBElements) {
       const trustBoundary = graph.elementsById.get(trustBoundaryId);
       if (!trustBoundary) continue;
 
@@ -157,7 +168,22 @@ export class ElementThreatGenerator {
       });
     }
 
-    return tables;
+    // Safety net: deduplicate threat IDs across all tables.
+    // Handles edge cases not covered by effectiveTBElements logic
+    // (e.g. DataFlow threats that could theoretically appear twice).
+    const seenThreatIds = new Set<string>();
+    const deduplicatedTables = tables
+      .map((table) => ({
+        ...table,
+        threats: table.threats.filter((threat) => {
+          if (seenThreatIds.has(threat.id)) return false;
+          seenThreatIds.add(threat.id);
+          return true;
+        }),
+      }))
+      .filter((table) => table.threats.length > 0);
+
+    return deduplicatedTables;
   }
 
   // ── Private generators ──────────────────────────────────────────────────

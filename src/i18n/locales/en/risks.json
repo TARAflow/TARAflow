@@ -45,6 +45,14 @@
       "physicalInterfaces": "Physical Interfaces",
       "priority": "Priority",
       "uncertainWarning": "{{count}} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.",
+      "uncertain": "Uncertain",
+      "uncertainRiskWarning": "This risk is based on an uncertain threat. Please confirm its relevance in the Threat Eval tab before finalizing the risk assessment.",
+      "safetyRemovalDialog": {
+        "title": "Safety Factor Source Removed",
+        "message": "The safety annotations that automatically enabled the Safety Impact factor have been removed from the DFD and Asset Tab. Do you want to keep the Safety Impact factor active?\n\nKeeping it preserves existing safety ratings. Removing it will clear all safety factor values from your risk assessments.",
+        "keep": "Keep Safety Factor",
+        "remove": "Remove Safety Factor"
+      },
       "columns": {
         "threatId": "T-ID",
         "stride": "STRIDE",
@@ -63,7 +71,7 @@
       },
       "dialog": {
         "title": "Risk Assessment: {{id}}",
-        "threatDescription": "Threat Description",
+        "threatDescription": "Threat",
         "originalThreatData": "Original Threat Data (from Phase 3)",
         "attackDescription": "Attack Scenario",
         "originalMitigation": "Original Mitigation (from Threat)",
@@ -75,15 +83,15 @@
         "afterMitigation": "After Mitigation",
         "riskFactors": "Risk Factors (DREAD)",
         "riskFactorsAfter": "Re-rate Factors After Mitigation",
-        "likelihoodFactors": "Likelihood Factors",
+        "likelihoodFactors": "Likelihood Factors (Before)",
         "likelihoodFactorsAfter": "Likelihood Factors (After)",
-        "impactFactors": "Impact Factors",
+        "impactFactors": "Impact Factors (Before)",
         "impactFactorsAfter": "Impact Factors (After)",
         "impact": "Impact",
         "likelihood": "Likelihood",
         "overallRisk": "Overall Risk",
         "residualRisk": "Residual Risk",
-        "copyFromBefore": "Copy Ratings from Before",
+        "copyFromBefore": "Copy from Before",
         "selectedMitigations": "Selected Mitigations",
         "mitigationStatus": "Status:",
         "mitigationPlaceholder": "Describe the mitigation...",
@@ -111,10 +119,16 @@
         "tabMitigations": "Mitigations",
         "tabAfter": "Risk After",
         "cause": "Root Cause",
-        "verifications": "Proposed Verifications",
+        "verifications": "Selected Verifications",
         "noMitigationWarning": "No mitigation selected. Please select at least one mitigation for this treatment type.",
         "acceptedNote": "Risk is accepted — no mitigations required. Risk After equals Risk Before.",
-        "riskAfterAutoSynced": "Risk After is automatically set equal to Risk Before (no mitigation applied)."
+        "riskAfterAutoSynced": "Risk After is automatically set equal to Risk Before (no mitigation applied).",
+        "factorDerived": "Assets",
+        "factorDerivedTooltip": "Pre-filled from Asset Tab data",
+        "factorOverridden": "Overridden",
+        "factorOverriddenTooltip": "Asset-derived value: {{value}}. Click ↺ to reset.",
+        "factorReset": "Reset to derived value",
+        "factorOriginal": "original"
       },
       "config": {
         "title": "Risk Assessment Configuration",
@@ -129,7 +143,7 @@
         "scale4": "4-Level (+ Critical)",
         "scale5": "5-Level (+ Very High)",
         "displayOptions": "Display Options",
-        "factorCountInfo": "{{count}} factors selected (recommended: {{min}}-{{max}})",
+        "factorCountInfo": "{{count}} factors selected (recommended: {{min}}–{{max}})",
         "dreadFactors": "DREAD Factors",
         "likelihoodFactors": "Likelihood Factors",
         "impactFactors": "Impact Factors",
@@ -150,15 +164,18 @@
         "roundingCeilTitle": "Conservative Rounding (Math.ceil)",
         "roundingCeilDesc": "Always rounds up to higher risk level",
         "assetImpact": "Asset Impact",
-        "useAssetImpact": "Pre-fill Impact from linked Asset severity",
-        "useAssetImpactDesc": "When enabled, the worst aggregated impact of linked assets is used as the default Impact factor value. Analyst can still override per risk.",
-        "assetImpactMapping": "Asset Impact → Risk Scale Mapping",
+        "useAssetImpact": "Pre-fill Impact from Asset Tab data",
+        "useAssetImpactDesc": "Impact factors are pre-filled from linked asset criteria (1:1 match by ID). The analyst can override any value — an 'Overridden' chip marks values that differ from the derived value.",
+        "assetImpactMapping": "Aggregated Asset Impact → Risk Scale (fallback)",
+        "assetImpactMappingDesc": "Used when no per-criterion data is available for a factor.",
         "assetImpactMappingHint": "Default mapping resets when scale changes.",
         "en50742Factors": "EN 50742 Attacker Potential Factors",
         "attackerPotential": "Attacker Potential (AP = EL×WoO + AC)",
         "severityThresholds": "Severity Thresholds (R = I × L)",
         "severityThresholdsHint": "Scores above the highest threshold always map to the last level.",
-        "severityMatrix": "Severity Matrix"
+        "severityMatrix": "Severity Matrix",
+        "autoEnabled": "Auto",
+        "safetyAutoEnabledTooltip": "Automatically enabled — safety annotations detected in DFD or Asset Tab. Disable manually to exclude safety impact from risk scoring."
       },
       "matrix": {
         "title": "Risk Matrix",
@@ -210,7 +227,9 @@
         "partially-mitigated": {
           "label": "Partially Mitigated"
         },
-        "transferred": { "label": "Transferred" }
+        "transferred": {
+          "label": "Transferred"
+        }
       },
       "validation": {
         "required": "Required"
@@ -280,149 +299,278 @@
       }
     },
     "status": {
-      "open": { "label": "Open" },
-      "in_review": { "label": "In Review" },
-      "partially_mitigated": { "label": "Partially Mitigated" },
-      "mitigated": { "label": "Mitigated" },
-      "verified": { "label": "Verified" },
-      "accepted": { "label": "Accepted" },
-      "transferred": { "label": "Transferred" },
-      "eliminated": { "label": "Eliminated" },
-      "wont_do": { "label": "Won't Do" }
+      "open": {
+        "label": "Open"
+      },
+      "in_review": {
+        "label": "In Review"
+      },
+      "partially_mitigated": {
+        "label": "Partially Mitigated"
+      },
+      "mitigated": {
+        "label": "Mitigated"
+      },
+      "verified": {
+        "label": "Verified"
+      },
+      "accepted": {
+        "label": "Accepted"
+      },
+      "transferred": {
+        "label": "Transferred"
+      },
+      "eliminated": {
+        "label": "Eliminated"
+      },
+      "wont_do": {
+        "label": "Won't Do"
+      }
     },
     "mitigationStatus": {
-      "selected": { "label": "Selected" },
-      "planned": { "label": "Planned" },
-      "in_progress": { "label": "In Progress" },
-      "implemented": { "label": "Implemented" },
-      "verified": { "label": "Verified" },
-      "rejected": { "label": "Rejected" },
-      "open": { "label": "Open" },
-      "in_review": { "label": "In Review" }
+      "selected": {
+        "label": "Selected"
+      },
+      "planned": {
+        "label": "Planned"
+      },
+      "in_progress": {
+        "label": "In Progress"
+      },
+      "implemented": {
+        "label": "Implemented"
+      },
+      "verified": {
+        "label": "Verified"
+      },
+      "rejected": {
+        "label": "Rejected"
+      },
+      "open": {
+        "label": "Open"
+      },
+      "in_review": {
+        "label": "In Review"
+      }
     },
     "implementation": {
       "not_started": {
         "label": "Not Started"
       },
-      "open": { "label": "Open" },
-      "in_progress": { "label": "In Progress" },
-      "in_review": { "label": "In Review" },
-      "implemented": { "label": "Implemented" },
-      "verified": { "label": "Verified" },
-      "rejected": { "label": "Rejected" }
+      "open": {
+        "label": "Open"
+      },
+      "in_progress": {
+        "label": "In Progress"
+      },
+      "in_review": {
+        "label": "In Review"
+      },
+      "implemented": {
+        "label": "Implemented"
+      },
+      "verified": {
+        "label": "Verified"
+      },
+      "rejected": {
+        "label": "Rejected"
+      }
     },
     "factors": {
       "damage_potential": {
         "name": "Damage Potential",
-        "description": "How much damage could result from the threat?"
+        "description": "How much damage could result from the threat?",
+        "shortName": "Damage"
       },
       "reproducibility": {
         "name": "Reproducibility",
-        "description": "How easy is it to reproduce the attack?"
+        "description": "How easy is it to reproduce the attack?",
+        "shortName": "Repro."
       },
       "exploitability": {
         "name": "Exploitability",
-        "description": "How much skill is needed to exploit the vulnerability?"
-      },
-      "affected_users": {
-        "name": "Affected Users",
-        "description": "How many users would be affected?"
+        "description": "How much skill is needed to exploit the vulnerability?",
+        "shortName": "Exploit."
       },
       "discoverability": {
         "name": "Discoverability",
-        "description": "How easy is it to discover the vulnerability?"
+        "description": "How easy is it to discover the vulnerability?",
+        "shortName": "Discovery"
       },
       "skill_level": {
         "name": "Skill Level",
-        "description": "How technically skilled is the attacker?"
+        "description": "How technically skilled is the attacker?",
+        "shortName": "Skill"
       },
       "motive": {
         "name": "Motive",
-        "description": "How motivated is the attacker?"
+        "description": "How motivated is the attacker?",
+        "shortName": "Motive"
       },
       "opportunity": {
         "name": "Opportunity",
-        "description": "What resources and opportunities are required?"
+        "description": "What resources and opportunities are required?",
+        "shortName": "Opportunity"
       },
       "size": {
         "name": "Size",
-        "description": "How large is the group of potential attackers?"
+        "description": "How large is the group of potential attackers?",
+        "shortName": "Size"
       },
       "ease_of_discovery": {
         "name": "Ease of Discovery",
-        "description": "How easy is it to find the vulnerability?"
+        "description": "How easy is it to find the vulnerability?",
+        "shortName": "Discovery"
       },
       "ease_of_exploit": {
         "name": "Ease of Exploit",
-        "description": "How easy is it to actually exploit the vulnerability?"
+        "description": "How easy is it to actually exploit the vulnerability?",
+        "shortName": "Exploit"
       },
       "awareness": {
         "name": "Awareness",
-        "description": "How well known is the vulnerability?"
+        "description": "How well known is the vulnerability?",
+        "shortName": "Awareness"
       },
       "intrusion_detection": {
         "name": "Intrusion Detection",
-        "description": "How likely is detection of an exploit?"
-      },
-      "loss_of_confidentiality": {
-        "name": "Loss of Confidentiality",
-        "description": "How much data could be disclosed?"
-      },
-      "loss_of_integrity": {
-        "name": "Loss of Integrity",
-        "description": "How much data could be corrupted?"
-      },
-      "loss_of_availability": {
-        "name": "Loss of Availability",
-        "description": "How much service could be lost?"
-      },
-      "loss_of_accountability": {
-        "name": "Loss of Accountability",
-        "description": "Are actions traceable to the attacker?"
-      },
-      "financial_damage": {
-        "name": "Financial Damage",
-        "description": "How much financial damage would result?"
-      },
-      "reputation_damage": {
-        "name": "Reputation Damage",
-        "description": "Would reputation be affected?"
-      },
-      "non_compliance": {
-        "name": "Non-Compliance",
-        "description": "How much regulation exposure?"
-      },
-      "privacy_violation": {
-        "name": "Privacy Violation",
-        "description": "How much personally identifiable information affected?"
+        "description": "How likely is detection of an exploit?",
+        "shortName": "Detection"
       },
       "knowledge": {
         "name": "Knowledge Factor",
-        "description": "Required knowledge to exploit"
+        "description": "Required knowledge to exploit",
+        "shortName": "Knowledge"
       },
       "expertise": {
         "name": "Expertise Factor",
-        "description": "Required expertise level"
+        "description": "Required expertise level",
+        "shortName": "Expertise"
       },
       "time": {
         "name": "Time Factor",
-        "description": "Time required to exploit"
+        "description": "Time required to exploit",
+        "shortName": "Time"
       },
       "equipment": {
         "name": "Equipment Factor",
-        "description": "Equipment required to exploit"
+        "description": "Equipment required to exploit",
+        "shortName": "Equipment"
       },
       "window_of_opportunity": {
         "name": "Window of Opportunity (WoO)",
-        "description": "How long is the vulnerability accessible to an attacker?"
+        "description": "How long is the vulnerability accessible to an attacker?",
+        "shortName": "Window (WoO)"
       },
       "attacker_capability": {
         "name": "Attacker Capability (AC)",
-        "description": "Skill level, motivation and resources of a potential attacker."
+        "description": "Skill level, motivation and resources of a potential attacker.",
+        "shortName": "Capability (AC)"
       },
       "exposure_level": {
         "name": "Exposure Level (EL)",
-        "description": "How exposed is the asset or system to potential attackers?"
+        "description": "How exposed is the asset or system to potential attackers?",
+        "shortName": "Exposure (EL)"
+      },
+      "financial_damage": {
+        "name": "Financial Damage",
+        "description": "How much financial damage would result from a successful attack?",
+        "shortName": "Financial"
+      },
+      "regulatory_compliance": {
+        "name": "Regulatory & Compliance",
+        "description": "How much regulatory exposure or compliance violation would result?",
+        "shortName": "Regulatory"
+      },
+      "reputation": {
+        "name": "Reputation Damage",
+        "description": "How severely would the organisation's reputation be affected?",
+        "shortName": "Reputation"
+      },
+      "privacy": {
+        "name": "Privacy Violation",
+        "description": "How much personally identifiable information could be exposed?",
+        "shortName": "Privacy"
+      },
+      "operational": {
+        "name": "Operational Impact",
+        "description": "How much operational disruption or service loss would result?",
+        "shortName": "Operational"
+      },
+      "affected_users": {
+        "name": "Affected Users",
+        "description": "How many persons, customers, machines or plants are affected when this vulnerability is successfully exploited? 1 = single user/machine, 2 = multiple systems at the same customer, 3 = many customers / all installations of a product type, 4 = cross-customer / supply-chain-wide.",
+        "shortName": "Affected"
+      },
+      "recoverability": {
+        "name": "Recoverability",
+        "description": "How difficult is it to recover from the impact? 1 = fully recoverable, 4 = unrecoverable / permanent damage.",
+        "shortName": "Recovery"
+      },
+      "accountability": {
+        "name": "Accountability Loss",
+        "description": "How much is the traceability of actions compromised?",
+        "shortName": "Accountability"
+      },
+      "safety": {
+        "name": "Safety Impact",
+        "description": "What is the potential harm to persons? 1 = reversible minor injury, 2 = reversible moderate, 3 = irreversible injury, 4 = fatality. Aligned with ISO 12100 / EN 50742.",
+        "shortName": "Safety"
+      },
+      "physical_damage": {
+        "name": "Physical Damage",
+        "description": "How much physical damage to hardware, infrastructure or property would result?",
+        "shortName": "Physical"
+      },
+      "environmental": {
+        "name": "Environmental Impact",
+        "description": "What environmental harm could result (spills, emissions, contamination)?",
+        "shortName": "Environment"
+      },
+      "supply_chain": {
+        "name": "Supply Chain Impact",
+        "description": "How severely would the supply chain or production pipeline be disrupted?",
+        "shortName": "Supply Chain"
+      },
+      "loss_of_confidentiality": {
+        "name": "Loss of Confidentiality",
+        "description": "How much data could be disclosed?",
+        "shortName": "Confidentiality"
+      },
+      "loss_of_integrity": {
+        "name": "Loss of Integrity",
+        "description": "How much data could be corrupted?",
+        "shortName": "Integrity"
+      },
+      "loss_of_availability": {
+        "name": "Loss of Availability",
+        "description": "How much service could be lost?",
+        "shortName": "Availability"
+      },
+      "loss_of_accountability": {
+        "name": "Loss of Accountability",
+        "description": "Are actions traceable to the attacker?",
+        "shortName": "Accountability"
+      },
+      "reputation_damage": {
+        "name": "Reputation Damage",
+        "description": "Would reputation be affected?",
+        "shortName": "Reputation"
+      },
+      "non_compliance": {
+        "name": "Non-Compliance",
+        "description": "How much regulation exposure?",
+        "shortName": "Compliance"
+      },
+      "privacy_violation": {
+        "name": "Privacy Violation",
+        "description": "How much personally identifiable information affected?",
+        "shortName": "Privacy"
+      },
+      "deployment_scope": {
+        "name": "Deployment Scope",
+        "shortName": "Depl. Scope",
+        "description": "Can a single successful attack simultaneously compromise multiple installations? 1 = no — each installation must be attacked individually, 2 = partially — attack affects multiple systems at the same customer, 3 = yes — shared infrastructure (cloud, OTA, SCADA) affects all installations of a product type simultaneously, 4 = yes — supply-chain attack compromises all customers at once."
       }
     }
   }

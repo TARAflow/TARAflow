@@ -1,14 +1,10 @@
-// ==================== RISKS TAB (PHASE 4) - REFACTORED ====================
-// Main component for risk assessment
-// Features:
-// - Toggle between Risk Table and Risk Matrix views
-// - Optional DFD Preview in split view (top panel)
-// - Toggleable filters in Risk Table (search, priority, status)
-// - Configurable assessment methods (Simple/Complex)
-// - MoSCoW prioritization with Won't-Risk filtering
-// - Status-based completion tracking (open → complete)
-// - UI state persisted to localStorage (DFD preview, view mode, etc.)
-// - Follows Clean Architecture - only depends on shared types
+// ==================== RISKS TAB (PHASE 4) ====================
+// Main component for risk assessment.
+//
+// Phase 3 additions:
+// - Safety factor removal dialog (when safety data disappears from DFD/Asset Tab)
+// - Sync calls pass dfd + assetDataRef for asset criteria prefill
+// - pendingSafetySourceRemoval checked on mount and project change
 
 import React, {
   useState,
@@ -24,10 +20,17 @@ import {
   Collapse,
   Button,
   Typography,
-  Chip,
-  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
-import { Sync as SyncIcon, Warning as WarningIcon } from "@mui/icons-material";
+import {
+  Sync as SyncIcon,
+  Warning as WarningIcon,
+  Security as SecurityIcon,
+} from "@mui/icons-material";
 
 import {
   Risk,
@@ -40,7 +43,10 @@ import {
 } from "../models/risk-types";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
-import { getEligibleThreats } from "../services/risk-sync-service";
+import {
+  getEligibleThreats,
+  applySafetyRemovalDecision,
+} from "../services/risk-sync-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
 import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
@@ -74,12 +80,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // ==================== STATE ====================
 
-  // Risk data (local working copy)
   const [riskData, setRiskData] = useState<RiskData>(() =>
     ensureValidRiskData(project.risks),
   );
-
-  // Dirty tracking
   const [isDirty, setIsDirty] = useState(false);
 
   // UI state with localStorage persistence
@@ -104,23 +107,19 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     return saved === "true";
   });
 
-  // Persist UI state to localStorage
+  // Persist UI state
   useEffect(() => {
     localStorage.setItem("risks-tab-showDfdPreview", String(showDfdPreview));
   }, [showDfdPreview]);
-
   useEffect(() => {
     localStorage.setItem("risks-tab-mainView", mainView);
   }, [mainView]);
-
   useEffect(() => {
     localStorage.setItem("risks-tab-topPanelHeight", String(topPanelHeight));
   }, [topPanelHeight]);
-
   useEffect(() => {
     localStorage.setItem("risks-tab-showWontTable", String(showWontTable));
   }, [showWontTable]);
-
   useEffect(() => {
     localStorage.setItem("risks-tab-showFilters", String(showFilters));
   }, [showFilters]);
@@ -136,17 +135,19 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
 
-  // Validation
+  // ── Safety removal dialog ─────────────────────────────────────────────────
+  // Shown when safety data disappears from DFD/Asset Tab but the Safety factor
+  // was auto-enabled. The user decides whether to keep or remove the factor.
+  const [showSafetyRemovalDialog, setShowSafetyRemovalDialog] = useState(false);
+
   const [validation, setValidation] = useState<RiskValidation | null>(
     project.risks?.validation ?? null,
   );
 
-  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ==================== HOOKS ====================
 
-  // Split view resize
   const {
     topPanelHeight: resizedHeight,
     isResizing,
@@ -157,13 +158,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     minHeight: MIN_PANEL_HEIGHT,
   });
 
-  // Update topPanelHeight when resize changes (for localStorage persistence)
   useEffect(() => {
     setTopPanelHeight(resizedHeight);
   }, [resizedHeight]);
 
-  // Risk sync
-  // Only eligible threats (relevant + uncertain) go to Risk Tab
   const allThreats = useMemo(
     () =>
       getEligibleThreats([
@@ -173,7 +171,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [project.perElementThreats, project.perInteractionThreats],
   );
 
-  // All threats (unfiltered) — used for asset/cause lookup in RiskDialog
   const allThreatsUnfiltered = useMemo(
     () => [...project.perElementThreats, ...project.perInteractionThreats],
     [project.perElementThreats, project.perInteractionThreats],
@@ -188,6 +185,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   } = useRiskSync({
     allThreats,
     riskData,
+    // Pass DFD + asset data so sync service can apply safety auto-enable + prefill
+    dfd: project.dfd ?? null,
+    assetDataRef: project.assetDataRef,
     onUpdate: (updatedData) => {
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
@@ -199,9 +199,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const riskMethod = riskData.configuration?.method ?? "complex";
 
-  // Active STRIDE method is driven by the Threat Tab.
-  // Tab switch only available when both methods have eligible threats.
-  // If only per-interaction was used, open that directly.
   const perElementEligible = useMemo(
     () => getEligibleThreats(project.perElementThreats).length,
     [project.perElementThreats],
@@ -211,16 +208,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [project.perInteractionThreats],
   );
 
-  // Determine initial / effective stride method
   const activeStrideMethod = useMemo((): StrideMethod => {
     const saved = riskData.configuration?.activeStrideMethod;
-    // If only per-interaction has eligible threats → force per-interaction
     if (perElementEligible === 0 && perInteractionEligible > 0)
       return "per-interaction";
-    // If only per-element has eligible threats → force per-element
     if (perInteractionEligible === 0 && perElementEligible > 0)
       return "per-element";
-    // Both available → use saved preference
     return saved ?? "per-element";
   }, [
     riskData.configuration?.activeStrideMethod,
@@ -228,12 +221,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     perInteractionEligible,
   ]);
 
-  // Tab switch is enabled when BOTH methods have threats (regardless of relevance eval state)
   const canSwitchStrideMethod =
     project.perElementThreats.length > 0 &&
     project.perInteractionThreats.length > 0;
 
-  // Filter risks by current STRIDE method
   const activeRisks = useMemo(
     () => getActiveRisksByStrideMethod(riskData.risks, activeStrideMethod),
     [riskData.risks, activeStrideMethod],
@@ -246,7 +237,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const hasRisks = riskData.risks.length > 0;
   const hasRisksForMethod = activeRisks.length > 0 || wontRisks.length > 0;
 
-  // Count assessed risks (Before > 0) and risks with implemented mitigations
   const assessedRiskCount = useMemo(
     () =>
       activeRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
@@ -262,24 +252,22 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [activeRisks],
   );
 
-  // Get threats for current STRIDE method
-  const currentThreats = useMemo(() => {
-    return activeStrideMethod === "per-element"
-      ? project.perElementThreats
-      : project.perInteractionThreats;
-  }, [
-    activeStrideMethod,
-    project.perElementThreats,
-    project.perInteractionThreats,
-  ]);
+  const currentThreats = useMemo(
+    () =>
+      activeStrideMethod === "per-element"
+        ? project.perElementThreats
+        : project.perInteractionThreats,
+    [
+      activeStrideMethod,
+      project.perElementThreats,
+      project.perInteractionThreats,
+    ],
+  );
 
   const hasThreatsForMethod = currentThreats.length > 0;
   const hasAnyThreats = allThreats.length > 0;
-
-  // Count threats per method for badges
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
-
   const needsSync = hasAnyThreats && syncStatus.needsSync;
   const hasWarnings = syncWarnings.length > 0;
   const uncertainCount = syncStatus.uncertainRisks ?? 0;
@@ -292,8 +280,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     filterRisks,
     hasActiveFilters,
   } = useRiskFilters();
-
-  // NEU: Filtered risks berechnen
   const filteredActiveRisks = useMemo(
     () => filterRisks(activeRisks),
     [activeRisks, filterRisks],
@@ -301,18 +287,16 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // ==================== EFFECTS ====================
 
-  // Update dirty state
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  // Sync from project when it changes
   useEffect(() => {
     setRiskData(ensureValidRiskData(project.risks));
     setValidation(project.risks?.validation ?? null);
   }, [project.risks]);
 
-  // Auto-sync from threats on mount if no risks
+  // Auto-sync on mount if no risks
   useEffect(() => {
     if (riskData.risks.length === 0 && hasAnyThreats) {
       handleSyncFromThreats();
@@ -320,18 +304,24 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Safety removal dialog: check on mount and when project/riskData changes ──
+  // pendingSafetySourceRemoval is set by risk-sync-service when safety data
+  // disappears and the Safety factor was autoEnabled.
+  useEffect(() => {
+    if (riskData.configuration.pendingSafetySourceRemoval) {
+      setShowSafetyRemovalDialog(true);
+    }
+  }, [riskData.configuration.pendingSafetySourceRemoval]);
+
   // Auto-save when dirty (debounced)
   useEffect(() => {
     if (!isDirty) return;
-
     const timeoutId = setTimeout(() => {
       const result = riskService.saveRiskData(project, riskData);
-
       if (result.success) {
         setRiskData(result.risks);
         setValidation(result.risks.validation ?? null);
         setIsDirty(false);
-
         onUpdate({
           risks: result.risks,
           phaseStatus: result.phaseStatus,
@@ -339,43 +329,33 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         });
       }
     }, 1000);
-
     return () => clearTimeout(timeoutId);
   }, [isDirty, riskData, project, onUpdate]);
 
   // ==================== DIRTY TRACKING ====================
 
   const markDirty = useCallback(() => {
-    if (!isDirty) {
-      setIsDirty(true);
-    }
+    if (!isDirty) setIsDirty(true);
   }, [isDirty]);
 
   // ==================== HANDLERS ====================
 
   const handleSyncClick = useCallback(() => {
-    if (hasRisks) {
-      setShowSyncConfirm(true);
-    } else {
-      handleSyncFromThreats();
-    }
+    if (hasRisks) setShowSyncConfirm(true);
+    else handleSyncFromThreats();
   }, [hasRisks, handleSyncFromThreats]);
 
   const handleStrideMethodChange = useCallback(
     (_: React.MouseEvent<HTMLElement>, newMethod: StrideMethod | null) => {
       if (!newMethod || newMethod === activeStrideMethod) return;
-
-      const updatedConfig: RiskConfiguration = {
-        ...riskData.configuration,
-        activeStrideMethod: newMethod,
-      };
-
       const updatedData: RiskData = {
         ...riskData,
-        configuration: updatedConfig,
+        configuration: {
+          ...riskData.configuration,
+          activeStrideMethod: newMethod,
+        },
         lastModified: new Date().toISOString(),
       };
-
       setRiskData(updatedData);
       markDirty();
     },
@@ -384,20 +364,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const handleEditRisk = useCallback(
     (risk: Risk, _groupRisks?: Risk[]) => {
-      // Find all risks in the same Trust Boundary group as the clicked risk
       const threat = allThreats.find((t) => t.id === risk.threatId);
       const tbId = threat?.trustBoundaryId ?? null;
-
-      // Determine source pool: wont risks or active risks
       const isWontRisk = risk.moscowPriority === "wont";
       const pool = isWontRisk ? wontRisks : activeRisks;
-
-      // Group = all risks from the same pool with same trustBoundaryId
       const group = pool.filter((r) => {
-        const t = allThreats.find((th) => th.id === r.threatId);
-        return t?.trustBoundaryId === tbId;
+        const th = allThreats.find((t) => t.id === r.threatId);
+        return th?.trustBoundaryId === tbId;
       });
-
       const effectiveGroup = group.length > 0 ? group : [risk];
       const index = effectiveGroup.findIndex((r) => r.id === risk.id);
       setSelectedRiskInfo({ risks: effectiveGroup, index: Math.max(0, index) });
@@ -410,16 +384,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     (riskId: string, updates: Partial<Risk>) => {
       const existing = riskData.risks.find((r) => r.id === riskId);
       if (!existing) return;
-      const updatedRisk = { ...existing, ...updates };
-      const updatedData = riskService.updateRisk(riskData, updatedRisk);
+      const updatedData = riskService.updateRisk(riskData, {
+        ...existing,
+        ...updates,
+      });
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
       markDirty();
-
-      // Auto-show Won't table when a risk is set to Won't priority
-      if (updatedRisk.moscowPriority === "wont") {
-        setShowWontTable(true);
-      }
+      if ((updates as any).moscowPriority === "wont") setShowWontTable(true);
     },
     [riskData, markDirty],
   );
@@ -448,7 +420,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
       markDirty();
-      // Keep dialog open with fresh data
       const updated = updatedData.risks.find((r) => r.id === riskId);
       if (updated) setSelectedImplementationRisk(updated);
     },
@@ -466,11 +437,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));
       markDirty();
-
-      // Auto-show Won't table when a risk is set to Won't priority
-      if (priority === "wont") {
-        setShowWontTable(true);
-      }
+      if (priority === "wont") setShowWontTable(true);
     },
     [riskData, markDirty],
   );
@@ -489,9 +456,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [riskData, markDirty],
   );
 
-  const handleOpenConfig = useCallback(() => {
-    setShowConfigDialog(true);
-  }, []);
+  const handleOpenConfig = useCallback(() => setShowConfigDialog(true), []);
 
   const handleSaveConfig = useCallback(
     (config: RiskConfiguration) => {
@@ -510,22 +475,17 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `risks-${project.name}-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    a.download = `risks-${project.name}-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }, [riskData, project.name]);
 
-  const handleImport = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+  const handleImport = useCallback(() => fileInputRef.current?.click(), []);
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
       try {
         const text = await file.text();
         const result = riskService.importFromJSON(text);
@@ -540,15 +500,31 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       } catch {
         setSyncWarnings(["Failed to read file"]);
       }
-
       e.target.value = "";
     },
     [markDirty, setSyncWarnings],
   );
 
-  const handleProceed = useCallback(() => {
-    onPhaseComplete?.();
-  }, [onPhaseComplete]);
+  const handleProceed = useCallback(
+    () => onPhaseComplete?.(),
+    [onPhaseComplete],
+  );
+
+  // ── Safety removal dialog handlers ────────────────────────────────────────
+
+  const handleSafetyRemovalKeep = useCallback(() => {
+    const updatedData = applySafetyRemovalDecision(riskData, true);
+    setRiskData(updatedData);
+    setShowSafetyRemovalDialog(false);
+    markDirty();
+  }, [riskData, markDirty]);
+
+  const handleSafetyRemovalRemove = useCallback(() => {
+    const updatedData = applySafetyRemovalDecision(riskData, false);
+    setRiskData(updatedData);
+    setShowSafetyRemovalDialog(false);
+    markDirty();
+  }, [riskData, markDirty]);
 
   // ==================== RENDER ====================
 
@@ -657,7 +633,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           position: "relative",
         }}
       >
-        {/* Top Panel (DFD Preview only) */}
         {showDfdPreview && (
           <>
             <Box
@@ -672,8 +647,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
             >
               <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
             </Box>
-
-            {/* Resize Handle */}
             <Box
               onMouseDown={handleMouseDown}
               sx={{
@@ -702,25 +675,15 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           </>
         )}
 
-        {/* Main Content Area (Table or Matrix) */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            minHeight: 0,
-            overflow: "auto",
-            px: 2,
-            pt: 1,
-          }}
-        >
+        {/* Main Content Area */}
+        <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto", px: 2, pt: 1 }}>
           {mainView === "matrix" ? (
-            // Risk Matrix View - show all risks including Won't
             <RiskMatrix
               risks={[...activeRisks, ...wontRisks]}
               configuration={riskData.configuration}
               onRiskClick={handleEditRisk}
             />
           ) : !hasAnyThreats ? (
-            // No threats at all
             <Box
               sx={{
                 display: "flex",
@@ -745,7 +708,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
               </Typography>
             </Box>
           ) : !hasThreatsForMethod ? (
-            // No threats for current STRIDE method
             <Box
               sx={{
                 display: "flex",
@@ -774,7 +736,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
               </Typography>
             </Box>
           ) : !hasRisksForMethod ? (
-            // Threats exist but no risks yet
             <Box
               sx={{
                 display: "flex",
@@ -809,7 +770,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
             </Box>
           ) : (
             <>
-              {/* Active Risks Table */}
               <RiskTableView
                 risks={activeRisks}
                 threats={currentThreats}
@@ -826,8 +786,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onTreatmentChange={handleTreatmentChange}
                 onImplementationClick={handleImplementationClick}
               />
-
-              {/* Won't Risks Table (collapsible) */}
               {wontRisks.length > 0 && showWontTable && (
                 <Box sx={{ mt: 2 }}>
                   <WontRiskTable
@@ -858,7 +816,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         />
       )}
 
-      {/* Implementation Status Dialog — opens from chip click */}
       {selectedImplementationRisk && (
         <RiskMitigationStatusDialog
           open={!!selectedImplementationRisk}
@@ -868,7 +825,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         />
       )}
 
-      {/* Configuration Dialog */}
       <RiskConfigDialog
         open={showConfigDialog}
         configuration={riskData.configuration}
@@ -876,28 +832,76 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onClose={() => setShowConfigDialog(false)}
       />
 
-      {/* Sync Confirmation Dialog */}
-      {showSyncConfirm && (
-        <ConfirmDialog
-          title={t("tabs.risks.syncConfirmTitle", {
-            defaultValue: "Sync Risks from Threats",
+      <ConfirmDialog
+        title={t("tabs.risks.syncConfirmTitle", {
+          defaultValue: "Sync Risks from Threats",
+        })}
+        message={t("tabs.risks.syncConfirmMessage", {
+          defaultValue:
+            "This will add new risks for new threats and remove risks for deleted threats. Existing assessments will be preserved.",
+        })}
+        variant="warning"
+        confirmLabel={t("tabs.risks.sync", { defaultValue: "Sync" })}
+        cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+        onConfirm={() => {
+          handleSyncFromThreats();
+          setShowSyncConfirm(false);
+        }}
+        onCancel={() => setShowSyncConfirm(false)}
+        // @ts-ignore — open prop added conditionally; ConfirmDialog renders null when closed
+        open={showSyncConfirm}
+      />
+
+      {/* ── Safety Factor Removal Dialog ─────────────────────────────────── */}
+      <Dialog
+        open={showSafetyRemovalDialog}
+        onClose={() => {
+          // Closing without choosing = keep (conservative default)
+          handleSafetyRemovalKeep();
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <SecurityIcon color="warning" />
+          {t("tabs.risks.safetyRemovalDialog.title", {
+            defaultValue: "Safety Factor Source Removed",
           })}
-          message={t("tabs.risks.syncConfirmMessage", {
-            defaultValue:
-              "This will add new risks for new threats and remove risks for deleted threats. Existing assessments will be preserved.",
-          })}
-          variant="warning"
-          confirmLabel={t("tabs.risks.sync", { defaultValue: "Sync" })}
-          cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
-          onConfirm={() => {
-            handleSyncFromThreats();
-            setShowSyncConfirm(false);
-          }}
-          onCancel={() => setShowSyncConfirm(false)}
-        />
-      )}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t("tabs.risks.safetyRemovalDialog.message", {
+              defaultValue:
+                "The safety annotations that automatically enabled the Safety Impact factor have been removed from the DFD and Asset Tab. " +
+                "Do you want to keep the Safety Impact factor active?\n\n" +
+                "Keeping it preserves existing safety ratings. Removing it will clear all safety factor values from your risk assessments.",
+            })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleSafetyRemovalRemove}
+            color="error"
+            variant="outlined"
+          >
+            {t("tabs.risks.safetyRemovalDialog.remove", {
+              defaultValue: "Remove Safety Factor",
+            })}
+          </Button>
+          <Button
+            onClick={handleSafetyRemovalKeep}
+            color="primary"
+            variant="contained"
+            autoFocus
+          >
+            {t("tabs.risks.safetyRemovalDialog.keep", {
+              defaultValue: "Keep Safety Factor",
+            })}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
-};;;
+};;
 
 export default RisksTab;

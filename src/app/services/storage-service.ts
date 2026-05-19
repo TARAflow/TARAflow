@@ -19,6 +19,7 @@ const PROJECT_PREFIX = `${STORAGE_PREFIX}project_`;
 const SETTINGS_KEY = `${STORAGE_PREFIX}settings`;
 const METADATA_KEY = `${STORAGE_PREFIX}metadata`;
 const RECENT_PROJECTS_KEY = `${STORAGE_PREFIX}recent_projects`; // Browser fallback
+import { migrateRiskData } from "features/risks";
 
 // ==================== DEFAULT VALUES ====================
 
@@ -339,14 +340,14 @@ class StorageService {
                 error: "Project is corrupted and cannot be repaired",
               };
             }
+            if (repaired.risks)
+              repaired.risks = migrateRiskData(repaired.risks);
             return { success: true, data: repaired };
           }
 
-          const data = result.data as any;
-          if (Array.isArray(data.info?.tags)) {
-            data.info.tags = migrateProjectTags(data.info.tags);
-          }
-          return { success: true, data: data as Project };
+          if (rawProject.risks)
+            rawProject.risks = migrateRiskData(rawProject.risks);
+          return { success: true, data: rawProject as Project };
         } catch (error: any) {
           return { success: false, error: error.message };
         }
@@ -374,12 +375,14 @@ class StorageService {
         };
       }
 
-      // Save repaired project
+      if (repaired.risks) repaired.risks = migrateRiskData(repaired.risks);
       await this.saveProject(repaired);
       return { success: true, data: repaired };
     }
 
-    return { success: true, data: result.data as Project };
+    const project = result.data as Project;
+    if (project.risks) project.risks = migrateRiskData(project.risks);
+    return { success: true, data: project };
   }
 
   async saveProject(project: Project): Promise<StorageResult<Project>> {
@@ -456,6 +459,7 @@ class StorageService {
               if (Array.isArray(raw.info?.tags)) {
                 raw.info.tags = migrateProjectTags(raw.info.tags);
               }
+              if (raw.risks) raw.risks = migrateRiskData(raw.risks);
               const project = raw as Project;
               projects.push(project);
             } else {
@@ -621,6 +625,8 @@ class StorageService {
           error: "Invalid project structure - missing id or name",
         };
       }
+
+      if (project.risks) project.risks = migrateRiskData(project.risks);
 
       // Set filePath
       project.filePath = filePath;

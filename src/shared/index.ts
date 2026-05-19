@@ -28,17 +28,43 @@ export type {
   StorageService,
 } from "./models/feature-interfaces";
 
+// DFD
 export type {
-  AssetDataReference,
-  AssetReference,
-  CIANAAALevel,
-  DFDReference,
-  DataFlowReference,
   LinkedDFDElement,
-  SecurityGoalReference,
-} from "./models/reference-types";
+  DataFlowReference,
+  SafetySeverityRef,
+  SafetyAnnotationRef,
+  DFDProcessRef,
+  DFDReference,
+} from "./models/dfd-reference-types";
+export { hasDFDSafetyAnnotations } from "./models/dfd-reference-types";
 
-export { CIANAAA_TO_STRIDE } from "./models/reference-types";
+// CIANAAA
+export type {
+  CIANAAALevel,
+  SecurityGoalType,
+  SecurityGoalReference,
+} from "./models/cianaaa-reference-types";
+export { CIANAAA_TO_STRIDE } from "./models/cianaaa-reference-types";
+
+// Asset
+export type {
+  AssetImpactRatingRef,
+  AssetReference,
+  AssetDataReference,
+} from "./models/asset-reference-types";
+export {
+  hasSafetyData,
+  getWorstCriterionValue,
+  normaliseImpactValue,
+} from "./models/asset-reference-types";
+
+// Threat
+export type {
+  ThreatRelevanceRef,
+  MitigationDraftRef,
+  ThreatReference,
+} from "./models/threat-reference-types";
 
 export type { ControlInstance } from "./models/control-instance";
 

@@ -1047,6 +1047,19 @@ export const MainLayout: React.FC = () => {
     const dfd = activeProject?.dfd;
     if (!dfd) return null;
     return {
+      // Phase 3: process elements with safety annotations for Safety factor auto-enable
+      processes: dfd.elements
+        ?.filter((e) => e.type === "Process" || e.type === "Multiprocess")
+        .map((e) => ({
+          id: e.id,
+          label: e.name ?? e.id,
+          safetyAnnotation: (e.properties as any)?.safetyAnnotation
+            ? {
+                severity: (e.properties as any).safetyAnnotation.severity,
+                description: (e.properties as any).safetyAnnotation.description,
+              }
+            : undefined,
+        })),
       elements: dfd.elements?.map((e) => ({
         id: e.id,
         properties: e.properties as Record<string, unknown>,
@@ -1081,14 +1094,29 @@ export const MainLayout: React.FC = () => {
         a.securityGoals
           ?.filter((g) => g.level !== "none")
           .map((g) => ({ type: g.type, level: g.level })) ?? [],
+      // Phase 3: per-criterion impact ratings for 1:1 factor prefill in Risk Tab
+      impactRatings:
+        a.impactRatings?.map((r) => ({
+          criterionId: r.criterionId,
+          value: r.value,
+        })) ?? [],
     }));
 
     const hasSafetyAssets = assetRefs.some(
       (a) => a.physicalImpact !== undefined || a.hasSafetyAnnotation,
     );
 
-    return { assets: assetRefs, hasSafetyAssets };
-  }, [activeProject?.assets?.assets]);
+    return {
+      assets: assetRefs,
+      hasSafetyAssets,
+      // Phase 3: asset impact scale for normalisation when scale ≠ risk scale
+      impactScale:
+        activeProject?.assets?.configuration?.impactScale ?? "4-level",
+    };
+  }, [
+    activeProject?.assets?.assets,
+    activeProject?.assets?.configuration?.impactScale,
+  ]);
 
   // ==================== RENDER ====================
 
@@ -1231,6 +1259,8 @@ export const MainLayout: React.FC = () => {
                       "per-interaction",
                     ),
                     assetDataRef: memoizedAssetDataRef,
+                    // Phase 3: DFD snapshot for Safety annotation detection
+                    dfd: memoizedDFDReference,
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
                     lastModified: activeProject.info?.lastModified || "",
                   }}

@@ -51,6 +51,7 @@ import {
   NavigateNext as NextIcon,
   Warning as WarningIcon,
   ContentCopy as CopyIcon,
+  Refresh as ResetIcon,
 } from "@mui/icons-material";
 
 import {
@@ -96,10 +97,10 @@ import {
   computeAllMitigationCoverage,
 } from "shared";
 import {
-  getWorstAssetImpactValue,
+  applyAssetCriteriaToFactorRatings,
   applyAssetImpactToFactorRatings,
+  resetFactorToDerived,
 } from "../services/risk-calculation-service";
-
 import { RiskScorePanel } from "./shared/risk-score-panel";
 
 // ==================== CONSTANTS ====================
@@ -205,25 +206,53 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   useEffect(() => {
     if (!currentRisk) return;
     let state = riskToLocal(currentRisk);
-    // Pre-fill impact factors from asset severity if enabled and not yet rated
-    if (configuration.useAssetImpact && currentRisk.linkedAssetIds?.length) {
-      const assets = assetDataRef?.assets ?? [];
-      const levels = currentRisk.linkedAssetIds
-        .map((id) => assets.find((a) => a.id === id)?.aggregatedImpact)
-        .filter(Boolean) as string[];
-      if (levels.length > 0) {
-        state = {
-          ...state,
-          factorRatings: applyAssetImpactToFactorRatings(
-            state.factorRatings,
-            levels as any,
-            configuration,
-          ),
-        };
+
+    if (
+      configuration.useAssetImpact &&
+      currentRisk.linkedAssetIds?.length &&
+      assetDataRef
+    ) {
+      const linkedAssets = currentRisk.linkedAssetIds
+        .map((id) => assetDataRef.assets.find((a) => a.id === id))
+        .filter((a): a is AssetReference => Boolean(a));
+
+      if (linkedAssets.length > 0) {
+        const hasPerCriterionData = linkedAssets.some(
+          (a) => a.impactRatings && a.impactRatings.length > 0,
+        );
+
+        if (hasPerCriterionData) {
+          // Phase 3: direct 1:1 criterion → factor mapping (non-destructive)
+          state = {
+            ...state,
+            factorRatings: applyAssetCriteriaToFactorRatings(
+              state.factorRatings,
+              linkedAssets,
+              assetDataRef,
+              configuration,
+            ),
+          };
+        } else {
+          // Legacy fallback: aggregated impact → all impact factors
+          const levels = linkedAssets
+            .map((a) => a.aggregatedImpact)
+            .filter(Boolean) as string[];
+          if (levels.length > 0) {
+            state = {
+              ...state,
+              factorRatings: applyAssetImpactToFactorRatings(
+                state.factorRatings,
+                levels as any,
+                configuration,
+              ),
+            };
+          }
+        }
       }
     }
+
     setLocal(state);
-  }, [currentRisk?.id]);
+  }, [currentRisk?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (open) {
@@ -394,8 +423,37 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         const key = mitigated ? "mitigatedFactorRatings" : "factorRatings";
         return {
           ...prev,
+          [key]: prev[key].map((r) => {
+            if (r.factorId !== factorId) return r;
+            // Returning to the derived value → clear manual override
+            const isReturningToDerived =
+              r.derivedValue !== undefined && value === r.derivedValue;
+            return {
+              ...r,
+              value,
+              source: isReturningToDerived
+                ? ("derived" as const)
+                : r.derivedValue !== undefined
+                  ? ("manual" as const)
+                  : undefined,
+            };
+          }),
+        };
+      });
+    },
+    [],
+  );
+
+  /** Reset a factor back to its Asset-derived value. Clears the Overridden chip. */
+  const handleResetFactor = useCallback(
+    (factorId: string, mitigated: boolean) => {
+      setLocal((prev) => {
+        if (!prev) return prev;
+        const key = mitigated ? "mitigatedFactorRatings" : "factorRatings";
+        return {
+          ...prev,
           [key]: prev[key].map((r) =>
-            r.factorId === factorId ? { ...r, value } : r,
+            r.factorId === factorId ? resetFactorToDerived(r) : r,
           ),
         };
       });
@@ -556,18 +614,92 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   ) => {
     const def = factor.definition;
     if (!def) return null;
+
     const ratings = mitigated
       ? local.mitigatedFactorRatings
       : local.factorRatings;
-    const value =
-      ratings.find((r) => r.factorId === factor.factorId)?.value ?? 0;
+    const rating = ratings.find((r) => r.factorId === factor.factorId);
+    const value = rating?.value ?? 0;
+
+    const isOverridden =
+      rating?.source === "manual" &&
+      rating.derivedValue !== undefined &&
+      value !== rating.derivedValue;
+
+    const isDerived = rating?.source === "derived";
 
     return (
       <Paper key={factor.factorId} variant="outlined" sx={{ p: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
           <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
-            {t(`risks.factors.${def.id}.name`, { defaultValue: def.name })}
+            {t(`risks.factors.${def.id}.shortName`, {
+              defaultValue: t(`risks.factors.${def.id}.name`, {
+                defaultValue: def.name,
+              }),
+            })}
           </Typography>
+
+          {/* "From Assets" badge — subtle, shown when value is derived and not overridden */}
+          {isDerived && !isOverridden && (
+            <Tooltip
+              title={t("tabs.risks.dialog.factorDerivedTooltip", {
+                defaultValue: "Pre-filled from Asset Tab data",
+              })}
+            >
+              <Chip
+                label={t("tabs.risks.dialog.factorDerived", {
+                  defaultValue: "Assets",
+                })}
+                size="small"
+                sx={{
+                  height: 18,
+                  fontSize: 10,
+                  bgcolor: "primary.50",
+                  color: "primary.main",
+                  border: "1px solid",
+                  borderColor: "primary.200",
+                }}
+              />
+            </Tooltip>
+          )}
+
+          {/* Overridden chip — analyst changed a derived value */}
+          {isOverridden && (
+            <Tooltip
+              title={t("tabs.risks.dialog.factorOverriddenTooltip", {
+                value: rating!.derivedValue,
+                defaultValue: `Asset-derived value: ${rating!.derivedValue}. Click ↺ to reset.`,
+              })}
+            >
+              <Chip
+                label={t("tabs.risks.dialog.factorOverridden", {
+                  defaultValue: "Overridden",
+                })}
+                size="small"
+                color="warning"
+                sx={{ height: 18, fontSize: 10 }}
+              />
+            </Tooltip>
+          )}
+
+          {/* Reset button — only when overridden */}
+          {isOverridden && (
+            <Tooltip
+              title={t("tabs.risks.dialog.factorReset", {
+                defaultValue: "Reset to derived value",
+              })}
+            >
+              <IconButton
+                size="small"
+                onClick={() => handleResetFactor(factor.factorId, mitigated)}
+                sx={{ p: 0.25, color: "warning.main" }}
+              >
+                <ResetIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Description tooltip */}
           <Tooltip
             title={t(`risks.factors.${def.id}.description`, {
               defaultValue: def.description,
@@ -582,6 +714,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             </Typography>
           </Tooltip>
         </Stack>
+
         <Select
           value={value}
           onChange={(e) =>
@@ -589,33 +722,66 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           }
           size="small"
           fullWidth
+          sx={
+            isOverridden
+              ? {
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "warning.main",
+                  },
+                }
+              : undefined
+          }
         >
           <MenuItem value={0}>
             <em>
               {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
             </em>
           </MenuItem>
-          {scale.levels.map((level) => (
-            <MenuItem key={level.value} value={level.value}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    bgcolor: level.color,
-                  }}
-                />
-                <span>
-                  {level.value} –{" "}
-                  {t(
-                    `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
-                    { defaultValue: level.label },
-                  )}
-                </span>
-              </Stack>
-            </MenuItem>
-          ))}
+          {scale.levels.map((level) => {
+            const isAssetValue =
+              (isDerived || isOverridden) &&
+              level.value === rating?.derivedValue;
+            return (
+              <MenuItem key={level.value} value={level.value}>
+                <Tooltip
+                  title={
+                    isAssetValue
+                      ? t("tabs.risks.dialog.factorDerivedTooltip", {
+                          defaultValue: "Pre-filled from Asset Tab data",
+                        })
+                      : ""
+                  }
+                  placement="right"
+                  disableHoverListener={!isAssetValue}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    width="100%"
+                    sx={{ fontWeight: isAssetValue ? "bold" : "normal" }}
+                  >
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        bgcolor: level.color,
+                      }}
+                    />
+                    <span>
+                      {level.value} –{" "}
+                      {t(
+                        `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                        { defaultValue: level.label },
+                      )}
+                      {isAssetValue && " *"}
+                    </span>
+                  </Stack>
+                </Tooltip>
+              </MenuItem>
+            );
+          })}
         </Select>
       </Paper>
     );

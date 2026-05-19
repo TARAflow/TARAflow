@@ -201,7 +201,7 @@ export function useControlInstanceDerivation(
     // Accumulator: instanceKey → ControlInstance (for deduplication)
     const instances = new Map<string, ControlInstance>();
 
-    for (const risk of riskData.risks) {
+    for (const risk of riskData.risks ?? []) {
       if (risk.selectedMitigations.length === 0) continue;
 
       // accept   → risk retained as-is, no control action needed
@@ -213,7 +213,8 @@ export function useControlInstanceDerivation(
         risk.treatment === "accept" ||
         risk.treatment === "eliminate" ||
         risk.treatment === "transfer"
-      ) continue;
+      )
+        continue;
 
       const threat = threatById.get(risk.threatId);
       if (!threat) continue;
@@ -239,9 +240,9 @@ export function useControlInstanceDerivation(
             const roleMatches =
               effect.role === undefined
                 ? true // no role = applies universally regardless of scope
-                : (mitigation.scopeOverride as MitigationPropertyRole[]).includes(
-                    effect.role as MitigationPropertyRole
-                  );
+                : (
+                    mitigation.scopeOverride as MitigationPropertyRole[]
+                  ).includes(effect.role as MitigationPropertyRole);
             if (!roleMatches) continue;
           }
 
@@ -251,11 +252,16 @@ export function useControlInstanceDerivation(
           // Read current property value from DFD for status derivation
           const el = elementById.get(elementId);
           const conn = connectionById.get(elementId);
-          const currentValue = el?.properties?.[effect.property]
-            ?? conn?.properties?.[effect.property];
+          const currentValue =
+            el?.properties?.[effect.property] ??
+            conn?.properties?.[effect.property];
 
           const status = deriveStatus(currentValue, effect.expectedValue);
-          const key = makeInstanceKey(elementId, effect.property, effect.expectedValue);
+          const key = makeInstanceKey(
+            elementId,
+            effect.property,
+            effect.expectedValue,
+          );
 
           const existing = instances.get(key);
           if (existing) {

@@ -176,6 +176,7 @@ export interface RiskFactorDefinition {
 
 /**
  * OWASP Risk Rating factors (complex method default)
+ * Names and descriptions are i18n keys: risks.factors.{id}.name / .description
  */
 export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   // Threat Agent Factors
@@ -183,7 +184,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "skill_level",
     category: "likelihood",
     name: "Skill Level",
-    description: "How technically skilled is the attacker?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -191,7 +192,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "motive",
     category: "likelihood",
     name: "Motive",
-    description: "How motivated is the attacker?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -199,7 +200,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "opportunity",
     category: "likelihood",
     name: "Opportunity",
-    description: "What resources and opportunities are required?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -207,7 +208,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "size",
     category: "likelihood",
     name: "Size",
-    description: "How large is the group of potential attackers?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -216,7 +217,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "ease_of_discovery",
     category: "likelihood",
     name: "Ease of Discovery",
-    description: "How easy is it to find the vulnerability?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -224,7 +225,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "ease_of_exploit",
     category: "likelihood",
     name: "Ease of Exploit",
-    description: "How easy is it to actually exploit the vulnerability?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -232,7 +233,7 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "awareness",
     category: "likelihood",
     name: "Awareness",
-    description: "How well known is the vulnerability?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
@@ -240,90 +241,49 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
     id: "intrusion_detection",
     category: "likelihood",
     name: "Intrusion Detection",
-    description: "How likely is detection of an exploit?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-];
-
-export const OWASP_IMPACT_FACTORS: RiskFactorDefinition[] = [
-  // Technical Impact
-  {
-    id: "loss_of_confidentiality",
-    category: "impact",
-    name: "Loss of Confidentiality",
-    description: "How much data could be disclosed?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  {
-    id: "loss_of_integrity",
-    category: "impact",
-    name: "Loss of Integrity",
-    description: "How much data could be corrupted?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  {
-    id: "loss_of_availability",
-    category: "impact",
-    name: "Loss of Availability",
-    description: "How much service could be lost?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  {
-    id: "loss_of_accountability",
-    category: "impact",
-    name: "Loss of Accountability",
-    description: "Are actions traceable to the attacker?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  // Business Impact (optional)
-  {
-    id: "financial_damage",
-    category: "impact",
-    name: "Financial Damage",
-    description: "How much financial damage would result?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  {
-    id: "reputation_damage",
-    category: "impact",
-    name: "Reputation Damage",
-    description: "Would reputation be affected?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  {
-    id: "non_compliance",
-    category: "impact",
-    name: "Non-Compliance",
-    description: "How much regulation exposure?",
-    defaultWeight: 1.0,
-    source: "OWASP",
-  },
-  {
-    id: "privacy_violation",
-    category: "impact",
-    name: "Privacy Violation",
-    description: "How much personally identifiable information affected?",
+    description: "",
     defaultWeight: 1.0,
     source: "OWASP",
   },
 ];
 
 /**
+ * Impact factors — IDs aligned with Asset impact criteria (1:1 mapping).
+ * Replaces the old OWASP loss_of_* factors which duplicated STRIDE categories.
+ *
+ * @deprecated Use IMPACT_FACTORS instead. Kept as alias for call-site compatibility.
+ */
+export const IMPACT_FACTORS: RiskFactorDefinition[] = [
+  // ── Business / Organisational ─────────────────────────────────────────
+  // Names and descriptions are i18n keys: risks.factors.{id}.name / .description
+  { id: "financial_damage",      category: "impact", name: "Financial Damage",      description: "", defaultWeight: 1.0, source: "OWASP" },
+  { id: "regulatory_compliance", category: "impact", name: "Regulatory Compliance", description: "", defaultWeight: 1.0, source: "OWASP" },
+  { id: "reputation",            category: "impact", name: "Reputation Damage",     description: "", defaultWeight: 1.0, source: "OWASP" },
+  { id: "privacy",               category: "impact", name: "Privacy Violation",     description: "", defaultWeight: 1.0, source: "OWASP" },
+  { id: "operational",           category: "impact", name: "Operational Impact",    description: "", defaultWeight: 1.0, source: "OWASP" },
+  // OT/TARA extended: persons, machines or plants affected at this specific asset
+  { id: "affected_users",        category: "impact", name: "Affected Users",        description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+  { id: "recoverability",        category: "impact", name: "Recoverability",        description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+  { id: "accountability",        category: "impact", name: "Accountability Loss",   description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+  // ── Physical ──────────────────────────────────────────────────────────
+  // safety: auto-enabled when DFD / Asset Tab safety annotations detected
+  { id: "safety",                category: "impact", name: "Safety Impact",         description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+  { id: "physical_damage",       category: "impact", name: "Physical Damage",       description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+  // ── Extended (disabled by default) ────────────────────────────────────
+  { id: "environmental",         category: "impact", name: "Environmental Impact",  description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+  { id: "supply_chain",          category: "impact", name: "Supply Chain Impact",   description: "", defaultWeight: 1.0, source: "TARAflow" as any },
+];
+
+/**
  * ETSI TVRA factors (alternative complex method)
+ * Names and descriptions are i18n keys: risks.factors.{id}.name / .description
  */
 export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "knowledge",
     category: "likelihood",
     name: "Knowledge Factor",
-    description: "Required knowledge to exploit",
+    description: "",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -331,7 +291,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "expertise",
     category: "likelihood",
     name: "Expertise Factor",
-    description: "Required expertise level",
+    description: "",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -339,7 +299,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "time",
     category: "likelihood",
     name: "Time Factor",
-    description: "Time required to exploit",
+    description: "",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -347,7 +307,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
     id: "equipment",
     category: "likelihood",
     name: "Equipment Factor",
-    description: "Equipment required to exploit",
+    description: "",
     defaultWeight: 1.0,
     source: "ETSI",
   },
@@ -364,7 +324,7 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
     id: "window_of_opportunity",
     category: "likelihood",
     name: "Window of Opportunity (WoO)",
-    description: "How long is the vulnerability accessible to an attacker?",
+    description: "",
     defaultWeight: 1.0,
     source: "EN50742",
   },
@@ -372,7 +332,7 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
     id: "attacker_capability",
     category: "likelihood",
     name: "Attacker Capability (AC)",
-    description: "Skill level, motivation and resources of a potential attacker.",
+    description: "",
     defaultWeight: 1.0,
     source: "EN50742",
   },
@@ -380,9 +340,27 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
     id: "exposure_level",
     category: "likelihood",
     name: "Exposure Level (EL)",
-    description: "How exposed is the asset or system to potential attackers?",
+    description: "",
     defaultWeight: 1.0,
     source: "EN50742",
+  },
+];
+
+/**
+ * TARAflow OT/Embedded/IoT specific factors
+ * Names and descriptions are i18n keys: risks.factors.{id}.name / .description
+ */
+export const TARAFLOW_FACTORS: RiskFactorDefinition[] = [
+  {
+    // Likelihood factor: can a single attack compromise multiple installations simultaneously?
+    // Distinct from affected_users (Impact: how many are harmed) —
+    // deployment_scope measures attack amplification, not damage breadth.
+    id: "deployment_scope",
+    category: "likelihood",
+    name: "Deployment Scope",
+    description: "",
+    defaultWeight: 1.0,
+    source: "TARAflow" as any,
   },
 ];
 
@@ -391,9 +369,10 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
  */
 export const ALL_PREDEFINED_FACTORS: RiskFactorDefinition[] = [
   ...OWASP_LIKELIHOOD_FACTORS,
-  ...OWASP_IMPACT_FACTORS,
+  ...IMPACT_FACTORS,
   ...ETSI_FACTORS,
   ...EN50742_FACTORS,
+  ...TARAFLOW_FACTORS,
 ];
 
 // ==================== MOSCOW PRIORITY ====================
@@ -489,8 +468,26 @@ export function mapTicketStatusToMitigationStatus(
  */
 export interface FactorRating {
   factorId: string;
-  value: number; // 0 = not rated, 1-5 depending on scale
-  weight: number; // 0.0 - 1.0
+  /** Current value. 0 = not rated, 1–N depending on active scale. */
+  value: number;
+  /** Weight for weighted average calculation (0.0–1.0). */
+  weight: number;
+  /**
+   * The value automatically derived from Asset Tab data (asset criteria or CIANAAA).
+   * Populated when source === "derived". Undefined if no derivation was available.
+   * Displayed in the Risk Dialog as the "suggested" value alongside the analyst's override.
+   */
+  derivedValue?: number;
+  /**
+   * How the current value was set:
+   * - "derived"  → set from Asset Tab data, not manually changed
+   * - "manual"   → analyst explicitly overrode the derived value
+   * - undefined  → no derivation available; analyst entered from scratch
+   *
+   * Overridden chip shown in Risk Dialog when:
+   *   source === "manual" && value !== derivedValue
+   */
+  source?: "derived" | "manual";
 }
 
 // ==================== MITIGATION STATUS ====================
@@ -751,11 +748,24 @@ export interface ActiveFactor {
   /** Reference to factor definition */
   factorId: string;
 
-  /** Is this factor currently active? */
+  /** Is this factor currently included in calculations? */
   enabled: boolean;
 
   /** Current weight (can be modified from default) */
   weight: number;
+
+  /**
+   * Was this factor automatically enabled (not by explicit analyst action)?
+   *
+   * Used for Safety factor auto-enable/disable logic:
+   * - true  → enabled because safety data was detected in DFD/Asset Tab
+   * - false / undefined → analyst explicitly enabled this factor
+   *
+   * When safety data disappears:
+   * - autoEnabled === true  → show dialog asking to keep or remove
+   * - autoEnabled === false → never auto-disable (analyst's explicit choice)
+   */
+  autoEnabled?: boolean;
 }
 
 // ==================== RISK CONFIGURATION ====================
@@ -825,6 +835,13 @@ export interface RiskConfiguration {
    * Falls back to RISK_SCALES defaults when not set.
    */
   severityThresholds?: Record<number, number>;
+
+  /**
+   * Tracks whether the Safety factor source check has flagged a removal.
+   * Set to true by risk-sync-service when safety data disappears and the
+   * Safety factor was autoEnabled. Cleared after the user responds to the dialog.
+   */
+  pendingSafetySourceRemoval?: boolean;
 }
 
 
@@ -838,23 +855,39 @@ export const DEFAULT_CONFIGURATION: RiskConfiguration = {
   roundingMethod: "round",
   activeStrideMethod: "per-element",
   activeFactors: [
-    // Likelihood — OWASP + EN 50742
+    // ── Likelihood — OT/Embedded default (5 factors) ─────────────────────
     { factorId: "skill_level", enabled: true, weight: 1.0 },
     { factorId: "motive", enabled: true, weight: 1.0 },
     { factorId: "opportunity", enabled: true, weight: 1.0 },
     { factorId: "ease_of_exploit", enabled: true, weight: 1.0 },
+    { factorId: "deployment_scope", enabled: true, weight: 1.0 },
+    // Likelihood — available but disabled by default
     { factorId: "window_of_opportunity", enabled: false, weight: 1.0 },
     { factorId: "attacker_capability", enabled: false, weight: 1.0 },
     { factorId: "exposure_level", enabled: false, weight: 1.0 },
-    // Impact — OWASP
-    { factorId: "loss_of_confidentiality", enabled: true, weight: 1.0 },
-    { factorId: "loss_of_integrity", enabled: true, weight: 1.0 },
-    { factorId: "loss_of_availability", enabled: true, weight: 1.0 },
-    { factorId: "financial_damage", enabled: true, weight: 1.0 },
+    { factorId: "size", enabled: false, weight: 1.0 },
+    { factorId: "ease_of_discovery", enabled: false, weight: 1.0 },
+    { factorId: "awareness", enabled: false, weight: 1.0 },
+    { factorId: "intrusion_detection", enabled: false, weight: 1.0 },
+    // ── Impact — all start disabled; syncActiveFactorsFromAssets enables ──
+    // them based on which criteria are rated in the Asset Tab
+    { factorId: "financial_damage", enabled: false, weight: 1.0 },
+    { factorId: "regulatory_compliance", enabled: false, weight: 1.0 },
+    { factorId: "operational", enabled: false, weight: 1.0 },
+    { factorId: "recoverability", enabled: false, weight: 1.0 },
+    { factorId: "affected_users", enabled: false, weight: 1.0 },
+    { factorId: "reputation", enabled: false, weight: 1.0 },
+    { factorId: "privacy", enabled: false, weight: 1.0 },
+    { factorId: "accountability", enabled: false, weight: 1.0 },
+    { factorId: "physical_damage", enabled: false, weight: 1.0 },
+    { factorId: "environmental", enabled: false, weight: 1.0 },
+    { factorId: "supply_chain", enabled: false, weight: 1.0 },
+    // Safety — auto-enabled when DFD / Asset Tab safety annotations detected
+    { factorId: "safety", enabled: false, weight: 1.0, autoEnabled: false },
   ],
   showIndividualFactors: false,
   customFactors: [],
-  useAssetImpact: false,
+  useAssetImpact: true, // Phase 3: enabled by default
   assetImpactMapping: DEFAULT_ASSET_IMPACT_MAPPINGS["4-level"],
 };
 
@@ -1272,5 +1305,110 @@ export function getRiskStatistics(risks: Risk[]): {
     byTreatment,
     highRiskCount,
     unratedCount,
+  };
+}
+
+// ==================== FACTOR ID MIGRATION ====================
+
+const LEGACY_DREAD_FACTOR_IDS = [
+  "damage_potential", "reproducibility", "exploitability", "discoverability",
+];
+
+export const FACTOR_ID_MIGRATION_MAP: Record<string, string> = {
+  loss_of_confidentiality: "privacy",
+  loss_of_integrity:       "operational",
+  loss_of_availability:    "operational",
+  loss_of_accountability:  "accountability",
+  reputation_damage:       "reputation",
+  non_compliance:          "regulatory_compliance",
+  privacy_violation:       "privacy",
+};
+
+function migrateFactorRatings(ratings: FactorRating[]): FactorRating[] {
+  const migrated = new Map<string, FactorRating>();
+  for (const rating of ratings) {
+    const newId = FACTOR_ID_MIGRATION_MAP[rating.factorId] ?? rating.factorId;
+    const existing = migrated.get(newId);
+    if (!existing || rating.value > existing.value) {
+      migrated.set(newId, { ...rating, factorId: newId });
+    }
+  }
+  return Array.from(migrated.values());
+}
+
+function migrateActiveFactors(activeFactors: ActiveFactor[]): ActiveFactor[] {
+  const migrated: ActiveFactor[] = [];
+  const seenIds = new Set<string>();
+
+  for (const f of activeFactors) {
+    // Drop legacy DREAD factors entirely
+    if (LEGACY_DREAD_FACTOR_IDS.includes(f.factorId)) continue;
+    // Rename old IDs
+    const newId = FACTOR_ID_MIGRATION_MAP[f.factorId] ?? f.factorId;
+    if (seenIds.has(newId)) continue; // deduplicate
+    seenIds.add(newId);
+    migrated.push({ ...f, factorId: newId });
+  }
+
+  // Add new default factors if missing
+  const newDefaults: ActiveFactor[] = [
+    // Likelihood — OT/Embedded default
+    { factorId: "deployment_scope",      enabled: true,  weight: 1.0 },
+    // Impact — all disabled; syncActiveFactorsFromAssets enables from Asset Tab
+    { factorId: "financial_damage",      enabled: false, weight: 1.0 },
+    { factorId: "regulatory_compliance", enabled: false, weight: 1.0 },
+    { factorId: "reputation",            enabled: false, weight: 1.0 },
+    { factorId: "privacy",               enabled: false, weight: 1.0 },
+    { factorId: "operational",           enabled: false, weight: 1.0 },
+    { factorId: "affected_users",        enabled: false, weight: 1.0 },
+    { factorId: "recoverability",        enabled: false, weight: 1.0 },
+    { factorId: "accountability",        enabled: false, weight: 1.0 },
+    { factorId: "physical_damage",       enabled: false, weight: 1.0 },
+    { factorId: "environmental",         enabled: false, weight: 1.0 },
+    { factorId: "supply_chain",          enabled: false, weight: 1.0 },
+    { factorId: "safety",                enabled: false, weight: 1.0, autoEnabled: false },
+  ];
+  for (const f of newDefaults) {
+    if (!seenIds.has(f.factorId)) {
+      migrated.push(f);
+      seenIds.add(f.factorId);
+    }
+  }
+
+  return migrated;
+}
+
+export function migrateRiskData(data: RiskData | null | undefined): RiskData | null {
+  if (!data) return null;
+
+  // Guard: risks may not be an array in corrupt / partially deleted projects
+  const risksArray = Array.isArray(data.risks) ? data.risks : [];
+
+  if (!data.configuration) {
+    return {
+      ...data,
+      configuration: { ...DEFAULT_CONFIGURATION },  // ← Default einsetzen
+      risks: risksArray.map((risk) => ({
+        ...risk,
+        factorRatings: migrateFactorRatings(risk.factorRatings ?? []),
+        mitigatedFactorRatings: migrateFactorRatings(
+          risk.mitigatedFactorRatings ?? [],
+        ),
+      })),
+    };
+  }
+
+  return {
+    ...data,
+    configuration: {
+      ...data.configuration,
+      activeFactors: migrateActiveFactors(data.configuration.activeFactors ?? []),
+      useAssetImpact: true,
+    },
+    risks: risksArray.map((risk) => ({
+      ...risk,
+      factorRatings: migrateFactorRatings(risk.factorRatings ?? []),
+      mitigatedFactorRatings: migrateFactorRatings(risk.mitigatedFactorRatings ?? []),
+    })),
   };
 }

@@ -66,11 +66,14 @@ export interface AssetConfiguration {
  */
 export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
   impactCriteria: [
-    { id: "financial_damage", weight: 0.2 },
-    { id: "regulatory_compliance", weight: 0.2 },
-    { id: "reputation", weight: 0.15 },
+    // Core OT/Embedded impact criteria — covers financial, operational, regulatory,
+    // recoverability and affected scope. Safety is added by analyst when relevant.
+    { id: "financial_damage", weight: 0.25 },
     { id: "operational", weight: 0.25 },
-    { id: "safety", weight: 0.2 },
+    { id: "regulatory_compliance", weight: 0.2 },
+    { id: "recoverability", weight: 0.15 },
+    { id: "affected_users", weight: 0.15 },
+    // safety: not in default — analyst adds when DFD safety annotations are present
   ],
   impactScale: "4-level",
   calculationMethod: "conservative",
