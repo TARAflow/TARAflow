@@ -2,8 +2,8 @@
 // Pure functions for calculating risk completion progress.
 // Progress is derived from MitigationStatus — Risk no longer has a status field.
 
-import type { Risk } from "../models/risk-types";
-import { deriveImplementationProgress } from "../models/risk-types";
+import type { Risk } from "../models/risk-assessment-types";
+import { deriveImplementationProgress } from "../models/risk-mitigation-types";
 
 export interface RiskProgress {
   done: number;

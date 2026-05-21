@@ -24,7 +24,7 @@ import CallMadeIcon from "@mui/icons-material/CallMade";
 import CallReceivedIcon from "@mui/icons-material/CallReceived";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
-import type { SelectedMitigation } from "../models/risk-types";
+import type { SelectedMitigation } from "../models/risk-mitigation-types";
 import type { MitigationPropertyRole } from "shared";
 import type { MitigationEntry } from "../../threats/models/threat-types";
 

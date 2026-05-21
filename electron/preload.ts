@@ -94,6 +94,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("drawio:selectCell", cellId),
   injectDrawioLibraries: (dfd1Xml: string, dfd2Xml: string) =>
     ipcRenderer.invoke("drawio:injectLibraries", dfd1Xml, dfd2Xml),
+  jiraRequest: (config: { url: string; options: any }) =>
+    ipcRenderer.invoke("jira:request", config),
+  jira: {
+    saveToken: (account: string, token: string) =>
+      ipcRenderer.invoke("jira:saveToken", { account, token }),
+    getToken: (account: string) =>
+      ipcRenderer.invoke("jira:getToken", { account }),
+    deleteToken: (account: string) =>
+      ipcRenderer.invoke("jira:deleteToken", { account }),
+  },
 });
 
 console.log("Electron APIs exposed to renderer");

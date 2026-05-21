@@ -24,13 +24,13 @@ import {
   Divider,
 } from "@mui/material";
 
+import { Risk } from "../models/risk-assessment-types";
 import {
-  Risk,
-  RiskConfiguration,
   RISK_SCALES,
   generateRiskMatrix,
   RiskMatrixCell,
-} from "../models/risk-types";
+} from "../models/risk-scale-types";
+import { RiskConfiguration } from "../models/risk-config-types";
 import {
   calculateRiskValues,
   getRiskColor,

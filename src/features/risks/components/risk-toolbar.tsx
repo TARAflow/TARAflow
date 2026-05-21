@@ -34,7 +34,7 @@ import {
 } from "@mui/icons-material";
 
 import type { StrideMethod } from "shared";
-import { RiskMethodType } from "../models/risk-types";
+import { RiskMethodType } from "../models/risk-scale-types";
 import { MainView } from "../utils/risks-tab-helpers";
 
 // ==================== PROPS ====================

@@ -3,13 +3,9 @@
 // based on the STRIDE method (per-element vs per-interaction)
 
 import React from "react";
-import {
-  Risk,
-  RiskConfiguration,
-  ThreatReference,
-  MoSCoWPriority,
-  RiskTreatment,
-} from "../models/risk-types";
+import { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
+import { Risk, ThreatReference } from "../models/risk-assessment-types";
+import { RiskConfiguration } from "../models/risk-config-types";
 import type { StrideMethod } from "shared";
 import { ElementRiskView } from "./element-risk-view";
 import { InteractionRiskView } from "./interaction-risk-view";

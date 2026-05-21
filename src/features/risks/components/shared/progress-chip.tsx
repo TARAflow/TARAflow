@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack, Chip, Box, LinearProgress } from "@mui/material";
-import { Risk } from "../../models/risk-types";
+import { Risk } from "../../models/risk-assessment-types";
 import {
   calculateProgress,
   getProgressColor,

@@ -4,12 +4,9 @@ import { Box, Typography, Stack, Chip, Tooltip } from "@mui/material";
 import {
   Security as TrustBoundaryIcon,
 } from "@mui/icons-material";
-import {
-  Risk,
-  RiskConfiguration,
-  ThreatReference,
-  MoSCoWPriority,
-} from "../models/risk-types";
+import { Risk, ThreatReference } from "../models/risk-assessment-types";
+import { RiskConfiguration } from "../models/risk-config-types";
+import { MoSCoWPriority } from "../models/risk-scale-types";
 import { RiskFilters } from "./risk-filters";
 import { useAccordionState } from "../hooks/shared/use-accordion-state";
 import { useRiskGrouping } from "../hooks/use-risk-grouping";
@@ -19,12 +16,7 @@ import { OuterHeader } from "shared";
 import { InnerHeader } from "shared";
 import { RiskTable } from "./shared/risk-table";
 import { ProgressChip } from "./shared/progress-chip";
-import {
-  RISK_SCALES,
-  RiskScaleType,
-  RiskRoundingMethod,
-} from "../models/risk-types";
-import { getRiskColor } from "../services/risk-calculation-service";
+import { RISK_SCALES } from "../models/risk-scale-types";
 import {
   formatElementId,
   getElementIconComponent,
@@ -102,10 +94,6 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   const groupsForRender = useMemo(() => {
     return [...groupedByTrustBoundary].reverse();
   }, [groupedByTrustBoundary]);
-  console.log(
-    "[element-view] onImplementationClick prop:",
-    !!onImplementationClick,
-  );
   const columns = useRiskColumns({
     configuration,
     onEdit,
@@ -113,10 +101,6 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
     onTreatmentChange,
     onImplementationClick,
   });
-  console.log(
-    "[element-view] columns created:",
-    columns.map((c) => c.id),
-  );
   // ── Accordion header helpers ───────────────────────────────────────────
   const scale = configuration.scale;
   const rounding = configuration.roundingMethod;

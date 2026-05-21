@@ -107,9 +107,15 @@ export const useIntegrationConnection = (
     (projectKey: string) => {
       if (!currentConnection || currentConnection.tool !== "jira") return;
 
+      const updatedCredentials = {
+        ...(currentConnection.credentials as JiraCredentials),
+        projectKey,
+      };
+
       const updatedConnection: IntegrationConnection = {
         ...currentConnection,
         status: "connected",
+        credentials: updatedCredentials,
         projectName: projectKey,
       };
 
@@ -126,16 +132,39 @@ export const useIntegrationConnection = (
 
   // Handle Jira connection test
   const handleJiraTestConnection = useCallback(
-    async (credentials: JiraCredentials): Promise<ConnectionTestResult> => {
-      const result = await integrationService.testConnection("jira", credentials);
+    async (
+      credentials: JiraCredentials & { apiToken?: string },
+    ): Promise<ConnectionTestResult> => {
+      const result = (await integrationService.testConnection(
+        "jira",
+        credentials,
+      )) as any;
 
       if (result.success) {
+        // Save token in OS keychain using accountId (preferred) or email as fallback
+        const keychainKey = result.accountId || credentials.email;
+        if (keychainKey && credentials.apiToken) {
+          try {
+            await (window as any).electronAPI.jira.saveToken(
+              keychainKey,
+              credentials.apiToken,
+            );
+          } catch {
+            // Keychain not available in browser mode
+          }
+        }
+
+        // Strip apiToken, store accountId in credentials
+        const { apiToken: _token, ...safeCredentials } = credentials as any;
+        const persistedCredentials: JiraCredentials = {
+          ...safeCredentials,
+          accountId: result.accountId,
+        };
+
         const newConnection: IntegrationConnection = {
           tool: "jira",
           status: "connected",
-          credentials: {
-            ...credentials,
-          },
+          credentials: persistedCredentials,
           lastTested: new Date().toISOString(),
         };
 
@@ -150,7 +179,7 @@ export const useIntegrationConnection = (
 
       return result;
     },
-    [data.integration, onUpdate]
+    [data.integration, onUpdate],
   );
 
   return {

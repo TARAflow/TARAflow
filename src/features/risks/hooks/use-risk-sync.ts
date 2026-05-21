@@ -7,8 +7,8 @@
 //   - Asset criteria prefill on new and updated risks
 
 import { useState, useCallback, useMemo } from "react";
-import { RiskData } from "../models/risk-types";
-import type { ThreatReference } from "../models/risk-types";
+import { RiskData } from "../models/risk-assessment-types";
+import type { ThreatReference } from "../models/risk-assessment-types";
 import {
   checkRiskSyncStatus,
   syncRisksFromThreats,

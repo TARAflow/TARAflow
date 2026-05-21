@@ -88,6 +88,23 @@ declare global {
         dfd1Xml: string,
         dfd2Xml: string,
       ) => Promise<{ success: boolean; error?: string }>;
+      jiraRequest: (config: { url: string; options: any }) => Promise<any>;
+      jira: {
+        saveToken: (
+          account: string,
+          token: string,
+        ) => Promise<{ success: boolean; error?: string }>;
+        getToken: (
+          account: string,
+        ) => Promise<{
+          success: boolean;
+          token: string | null;
+          error?: string;
+        }>;
+        deleteToken: (
+          account: string,
+        ) => Promise<{ success: boolean; error?: string }>;
+      };
     };
 
     // Git APIs (für Audit Feature)

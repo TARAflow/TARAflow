@@ -53,23 +53,24 @@ import {
   ContentCopy as CopyIcon,
   Refresh as ResetIcon,
 } from "@mui/icons-material";
-
 import {
-  Risk,
-  RiskConfiguration,
-  ThreatReference,
-  FactorRating,
-  MoSCoWPriority,
-  RiskTreatment,
   MitigationStatus,
   SelectedMitigation,
+} from "../models/risk-mitigation-types";
+import { FactorRating } from "../models/risk-factor-types";
+import { RiskConfiguration } from "../models/risk-config-types";
+import {
+  Risk,
+  ThreatReference,
+  getFactorDefinition,
+} from "../models/risk-assessment-types";
+import {
+  MoSCoWPriority,
+  RiskTreatment,
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
   RISK_SCALES,
-  getFactorDefinition,
-  deriveImplementationProgress,
-  MITIGATION_STATUS_CONFIGS,
-} from "../models/risk-types";
+} from "../models/risk-scale-types";
 import {
   calculateRiskValues,
   getRiskColor,
@@ -421,11 +422,20 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       setLocal((prev) => {
         if (!prev) return prev;
         const key = mitigated ? "mitigatedFactorRatings" : "factorRatings";
+        const existing = prev[key].find((r) => r.factorId === factorId);
+
+        if (!existing) {
+          // Factor missing from ratings (e.g. added after risk was created) — add it
+          return {
+            ...prev,
+            [key]: [...prev[key], { factorId, value, weight: 1.0 }],
+          };
+        }
+
         return {
           ...prev,
           [key]: prev[key].map((r) => {
             if (r.factorId !== factorId) return r;
-            // Returning to the derived value → clear manual override
             const isReturningToDerived =
               r.derivedValue !== undefined && value === r.derivedValue;
             return {

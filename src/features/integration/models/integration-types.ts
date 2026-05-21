@@ -25,16 +25,21 @@ export interface AzureDevOpsCredentials {
 
 export interface JiraCredentials {
   authMethod: AuthMethod;
-  // OAuth
+  baseUrl: string;
+  email?: string;
+  /**
+   * Jira account ID — used as keychain key for secure token storage.
+   * Retrieved from /rest/api/3/myself after successful authentication.
+   * Never store apiToken here — use window.electronAPI.jira.getToken(accountId).
+   */
+  accountId?: string;
+  // OAuth fields
   accessToken?: string;
   refreshToken?: string;
   cloudId?: string;
-  // PAT
-  baseUrl: string;
-  email?: string;
-  apiToken?: string;
-  projectKey?: string;
   expiresAt?: string;
+  // Project selection
+  projectKey?: string;
 }
 
 export type ToolCredentials = AzureDevOpsCredentials | JiraCredentials;
@@ -62,9 +67,25 @@ export interface AzureDevOpsProject {
 
 export interface JiraProject {
   id: string;
-  key: string; // e.g., "PROJ"
+  key: string;
   name: string;
-  projectTypeKey: string; // e.g., "software"
+  projectTypeKey: string;
+  // Rich details (loaded via expand=insight,description)
+  description?: string;
+  avatarUrl?: string; // 48x48 icon URL
+  lead?: {
+    displayName: string;
+    avatarUrl?: string;
+  };
+  insight?: {
+    totalIssueCount: number;
+    lastIssueUpdateTime?: string;
+  };
+  issueTypes?: Array<{
+    id: string;
+    name: string;
+    iconUrl?: string;
+  }>;
 }
 
 export type ExternalProject = AzureDevOpsProject | JiraProject;

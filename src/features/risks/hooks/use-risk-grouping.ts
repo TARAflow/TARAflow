@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Risk, ThreatReference } from "../models/risk-types";
+import { Risk, ThreatReference } from "../models/risk-assessment-types";
 import { isInterfaceThreat } from "../utils/risk-formatting";
 
 export interface ElementGroup {

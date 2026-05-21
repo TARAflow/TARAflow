@@ -1262,6 +1262,23 @@ export const MainLayout: React.FC = () => {
                     // Phase 3: DFD snapshot for Safety annotation detection
                     dfd: memoizedDFDReference,
                     dfdPreviewImage: activeProject.dfd?.thumbnail,
+                    // Integration connection for Jira ticket linking
+                    integration: activeProject.integration
+                      ? {
+                          connection: {
+                            tool:
+                              activeProject.integration.connection?.tool ??
+                              "jira",
+                            status:
+                              activeProject.integration.connection?.status ??
+                              "disconnected",
+                            projectName:
+                              activeProject.integration.connection?.projectName,
+                            credentials: activeProject.integration.connection
+                              ?.credentials as any,
+                          },
+                        }
+                      : null,
                     lastModified: activeProject.info?.lastModified || "",
                   }}
                   onUpdate={handleRisksUpdate}

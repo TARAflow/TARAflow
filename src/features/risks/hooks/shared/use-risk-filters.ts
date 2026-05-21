@@ -4,11 +4,11 @@
 // Filter by: searchText, priorityFilter (MoSCoW), treatmentFilter.
 
 import { useState, useCallback, useMemo } from "react";
+import type { Risk } from "../../models/risk-assessment-types";
 import type {
-  Risk,
   MoSCoWPriority,
   RiskTreatment,
-} from "../../models/risk-types";
+} from "../../models/risk-scale-types";
 
 // ==================== TYPES ====================
 

@@ -5,7 +5,7 @@ import {
   getFactorColor,
   getFactorLabel,
 } from "../../services/risk-calculation-service";
-import { RiskConfiguration } from "../../models/risk-types";
+import { RiskConfiguration } from "../../models/risk-config-types";
 
 interface RiskScorePanelProps {
   impact: number;

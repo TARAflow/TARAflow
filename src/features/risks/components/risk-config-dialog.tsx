@@ -52,21 +52,23 @@ import {
 } from "@mui/icons-material";
 
 import {
-  RiskConfiguration,
-  RiskScaleType,
-  RiskRoundingMethod,
   ActiveFactor,
   RiskFactorDefinition,
   RiskFactorCategory,
   AssetImpactMapping,
   AssetImpactLevel,
-  RISK_SCALES,
   OWASP_LIKELIHOOD_FACTORS,
   EN50742_FACTORS,
   ETSI_FACTORS,
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
-} from "../models/risk-types";
+} from "../models/risk-factor-types";
+import {
+  RiskScaleType,
+  RiskRoundingMethod,
+  RISK_SCALES,
+} from "../models/risk-scale-types";
+import { RiskConfiguration } from "../models/risk-config-types";
 
 // Derive impact factors directly from ALL_PREDEFINED_FACTORS — always in sync.
 const ALL_IMPACT_FACTORS = ALL_PREDEFINED_FACTORS.filter(

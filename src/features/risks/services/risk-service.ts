@@ -5,24 +5,30 @@
 // Calculation → risk-calculation-service.ts
 
 import type { PhaseStatusMap } from "shared";
-import {
+import type {
   Risk,
   RiskData,
-  RiskConfiguration,
-  RiskValidation,
   RiskProjectData,
   ThreatReference,
-  FactorRating,
-  MoSCoWPriority,
-  RiskMethodType,
-  RiskTreatment,
-  SelectedMitigation,
-  ALL_PREDEFINED_FACTORS,
-  DEFAULT_CONFIGURATION,
+} from "../models/risk-assessment-types";
+import {
   getActiveRisks,
   getWontRisks,
   getRiskStatistics,
-} from "../models/risk-types";
+} from "../models/risk-assessment-types";
+import type {
+  RiskConfiguration,
+  RiskValidation,
+} from "../models/risk-config-types";
+import { DEFAULT_CONFIGURATION } from "../models/risk-config-types";
+import type { FactorRating } from "../models/risk-factor-types";
+import { ALL_PREDEFINED_FACTORS } from "../models/risk-factor-types";
+import type {
+  MoSCoWPriority,
+  RiskTreatment,
+  RiskMethodType,
+} from "../models/risk-scale-types";
+import type { SelectedMitigation } from "../models/risk-mitigation-types";
 import { calculateRiskValues } from "./risk-calculation-service";
 
 // ==================== RESULT TYPES ====================

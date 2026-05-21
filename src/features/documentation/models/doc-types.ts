@@ -7,12 +7,12 @@ import type { PhaseStatusMap, StrideMethod, StrideCategory } from "shared";
 // ==================== DIRECT IMPORTS FROM FEATURES ====================
 // Single Source of Truth - no duplication!
 
-import type { ProjectInfoData } from "../../overview/models/overview-types";
-import type { DFDData } from "../../dfd/models/dfd-types";
-import type { AssetData } from "../../assets/models/asset-types";
-import type { ThreatData } from "../../threats/models/threat-types";
-import type { RiskData } from "../../risks/models/risk-types";
-import type { AttackTreeData } from "../../attacktree/models/attacktree-types";
+import type { ProjectInfoData } from "features/overview";
+import type { DFDData } from "features/dfd";
+import type { AssetData } from "features/assets";
+import type { ThreatData } from "features/threats";
+import type { RiskData } from "features/risks";
+import type { AttackTreeData } from "features/attacktree";
 
 // ==================== DOCUMENT FORMAT ====================
 

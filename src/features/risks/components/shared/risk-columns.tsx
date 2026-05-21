@@ -18,17 +18,16 @@ import {
 } from "@mui/material";
 import { Edit as EditIcon } from "@mui/icons-material";
 import {
-  Risk,
-  RiskConfiguration,
-  MoSCoWPriority,
-  MitigationStatus,
+  MOSCOW_PRIORITIES,
+  RISK_TREATMENTS,
+} from "../../models/risk-scale-types";
+import { RiskConfiguration } from "../../models/risk-config-types";
+import { Risk, getFactorDefinition } from "../../models/risk-assessment-types";
+import {
   MITIGATION_STATUS_CONFIGS,
   ImplementationProgress,
   deriveImplementationProgress,
-  MOSCOW_PRIORITIES,
-  RISK_TREATMENTS,
-  getFactorDefinition,
-} from "../../models/risk-types";
+} from "../../models/risk-mitigation-types";
 import {
   getRiskColor,
   getRiskLabel,
@@ -43,12 +42,14 @@ const IMPLEMENTATION_DISPLAY: Record<
   ImplementationProgress,
   { label: string; color: string; icon: string }
 > = {
+  open: { label: "Open", color: "#9ca3af", icon: "⚪" },
   not_started: { label: "Not Started", color: "#9ca3af", icon: "⚪" },
   in_progress: { label: "In Progress", color: "#3b82f6", icon: "🔵" },
-  partial:     { label: "Partial",     color: "#f97316", icon: "🟡" },
+  in_review: { label: "In Review", color: "#7c3aed", icon: "🟣" },
+  partial: { label: "Partial", color: "#f97316", icon: "🟡" },
   implemented: { label: "Implemented", color: "#22c55e", icon: "🟢" },
-  verified:    { label: "Verified",    color: "#16a34a", icon: "✅" },
-  rejected:    { label: "Rejected",    color: "#ef4444", icon: "🔴" },
+  verified: { label: "Verified", color: "#16a34a", icon: "✅" },
+  rejected: { label: "Rejected", color: "#ef4444", icon: "🔴" },
 };
 
 export interface RiskColumn {
@@ -585,6 +586,7 @@ export const useRiskColumns = ({
                         (s) => s.value === m.status,
                       );
                       const icon = statusConf?.icon ?? "⚪";
+                      const statusColor = statusConf?.color ?? "#9ca3af";
                       return (
                         <Stack
                           key={id}
@@ -594,7 +596,11 @@ export const useRiskColumns = ({
                         >
                           <Typography
                             variant="caption"
-                            sx={{ minWidth: 70, fontWeight: 600 }}
+                            sx={{
+                              minWidth: 70,
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
                           >
                             {id}
                           </Typography>
@@ -609,12 +615,44 @@ export const useRiskColumns = ({
                           >
                             {shortText}
                           </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ whiteSpace: "nowrap" }}
+                          {/* Ticket key if linked */}
+                          {m.ticketId && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontFamily: "monospace",
+                                fontSize: "0.65rem",
+                                color: "#93c5fd",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {m.ticketId}
+                            </Typography>
+                          )}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.25,
+                              flexShrink: 0,
+                            }}
                           >
-                            {icon} {m.status}
-                          </Typography>
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                bgcolor: statusColor,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <Typography
+                              variant="caption"
+                              sx={{ whiteSpace: "nowrap", color: statusColor }}
+                            >
+                              {icon} {m.status}
+                            </Typography>
+                          </Box>
                         </Stack>
                       );
                     })}

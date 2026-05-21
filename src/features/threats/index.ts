@@ -10,6 +10,8 @@ export type {
   ThreatSyncStatus,
   ThreatSyncResult,
   DFDConnectionReference,
+  MitigationEntry,
+  MitigationPropertyEffect,
 } from "./models/threat-types";
 
 export type {

@@ -134,6 +134,48 @@ export class CredentialService {
     }
   }
 
+  // ==================== JIRA ====================
+
+  /**
+   * Save Jira API Token
+   * @param account - Account identifier (email address)
+   * @param token - Jira API token
+   */
+  async saveJiraToken(account: string, token: string): Promise<void> {
+    try {
+      await keytar.setPassword(SERVICE_NAME, `jira:${account}`, token);
+    } catch (error) {
+      console.error("Failed to save Jira token:", error);
+      throw new Error("Failed to save Jira token securely");
+    }
+  }
+
+  /**
+   * Get Jira API Token
+   * @param account - Account identifier (email address)
+   */
+  async getJiraToken(account: string): Promise<string | null> {
+    try {
+      return await keytar.getPassword(SERVICE_NAME, `jira:${account}`);
+    } catch (error) {
+      console.error("Failed to retrieve Jira token:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete Jira API Token
+   * @param account - Account identifier (email address)
+   */
+  async deleteJiraToken(account: string): Promise<boolean> {
+    try {
+      return await keytar.deletePassword(SERVICE_NAME, `jira:${account}`);
+    } catch (error) {
+      console.error("Failed to delete Jira token:", error);
+      return false;
+    }
+  }
+
   // ==================== UTILITY ====================
 
   /**

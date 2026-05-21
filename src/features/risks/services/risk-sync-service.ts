@@ -14,11 +14,11 @@
 import type {
   Risk,
   RiskData,
-  RiskConfiguration,
-  ActiveFactor,
-} from "../models/risk-types";
-import { createEmptyRisk } from "../models/risk-types";
-import type { ThreatReference } from "../models/risk-types";
+  ThreatReference,
+} from "../models/risk-assessment-types";
+import type { RiskConfiguration } from "../models/risk-config-types";
+import type { ActiveFactor } from "../models/risk-factor-types";
+import { createEmptyRisk } from "../models/risk-assessment-types";
 import type { AssetReference, AssetDataReference, DFDReference } from "shared";
 import { hasSafetyData, hasDFDSafetyAnnotations } from "shared";
 import {

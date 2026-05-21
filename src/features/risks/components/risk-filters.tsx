@@ -20,8 +20,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
 } from "@mui/icons-material";
-import { MOSCOW_PRIORITIES } from "../models/risk-types";
-import type { MoSCoWPriority } from "../models/risk-types";
+import { MOSCOW_PRIORITIES } from "../models/risk-scale-types";
+import type { MoSCoWPriority } from "../models/risk-scale-types";
 
 // ==================== TYPES ====================
 

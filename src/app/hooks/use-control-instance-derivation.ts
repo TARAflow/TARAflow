@@ -14,10 +14,13 @@
 // Multiple mitigations/risks can reference the same instance — all sources are tracked.
 
 import { useMemo } from "react";
-import type { ThreatData } from "features/threats/models/threat-types";
-import type { RiskData, SelectedMitigation } from "features/risks/models/risk-types";
-import type { MitigationEntry, MitigationPropertyEffect } from "features/threats/models/threat-types";
-import type { DFDData } from "features/dfd/models/dfd-types";
+import type { ThreatData } from "features/threats";
+import type { RiskData, SelectedMitigation } from "features/risks";
+import type {
+  MitigationEntry,
+  MitigationPropertyEffect,
+} from "features/threats";
+import type { DFDData } from "features/dfd";
 import type { ControlInstance, MitigationPropertyRole } from "shared";
 
 // ==================== HELPERS ====================

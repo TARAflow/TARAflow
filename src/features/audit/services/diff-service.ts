@@ -9,11 +9,11 @@ import type {
   ChangeDetail,
   CommitMessageData,
 } from "../models/audit-types";
-import type { AssetData, Asset } from "features/assets/models/asset-types";
-import type { DFDData } from "features/dfd/models/dfd-types";
-import type { ThreatData, Threat } from "features/threats/models/threat-types";
-import type { RiskData, Risk } from "features/risks/models/risk-types";
-import type { AttackTreeData, AttackTree } from "features/attacktree/models/attacktree-types";
+import type { AssetData, Asset } from "features/assets";
+import type { DFDData } from "features/dfd";
+import type { ThreatData, Threat } from "features/threats";
+import type { RiskData, Risk } from "features/risks";
+import type { AttackTreeData, AttackTree } from "features/attacktree";
 
 // ==================== DIFF SERVICE ====================
 

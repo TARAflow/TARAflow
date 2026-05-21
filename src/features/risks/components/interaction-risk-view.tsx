@@ -6,12 +6,9 @@ import {
   SwapHoriz as DataFlowIcon,
   SettingsInputComponent as InterfaceIcon,
 } from "@mui/icons-material";
-import {
-  Risk,
-  RiskConfiguration,
-  ThreatReference,
-  MoSCoWPriority,
-} from "../models/risk-types";
+import { Risk, ThreatReference } from "../models/risk-assessment-types";
+import { RiskConfiguration } from "../models/risk-config-types";
+import { MoSCoWPriority } from "../models/risk-scale-types";
 import { RiskFilters } from "./risk-filters";
 import { useAccordionState } from "../hooks/shared/use-accordion-state";
 import { useRiskGrouping } from "../hooks/use-risk-grouping";
@@ -21,7 +18,7 @@ import { OuterHeader } from "shared";
 import { InnerHeader } from "shared";
 import { RiskTable } from "./shared/risk-table";
 import { ProgressChip } from "./shared/progress-chip";
-import { RISK_SCALES } from "../models/risk-types";
+import { RISK_SCALES } from "../models/risk-scale-types";
 import { formatElementId } from "../utils/risk-formatting";
 
 interface InteractionRiskViewProps {

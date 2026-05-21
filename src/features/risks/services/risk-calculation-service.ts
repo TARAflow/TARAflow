@@ -10,17 +10,19 @@
 
 import type {
   FactorRating,
-  RiskConfiguration,
-  RiskScaleType,
-  RiskRoundingMethod,
   AssetImpactLevel,
   AssetImpactMapping,
-} from "../models/risk-types";
+} from "../models/risk-factor-types";
+import type {
+  RiskScaleType,
+  RiskRoundingMethod,
+} from "../models/risk-scale-types";
+import type { RiskConfiguration } from "../models/risk-config-types";
+import { RISK_SCALES } from "../models/risk-scale-types";
 import {
-  RISK_SCALES,
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
-} from "../models/risk-types";
+} from "../models/risk-factor-types";
 import type { AssetReference, AssetDataReference } from "shared";
 import { getWorstCriterionValue, normaliseImpactValue } from "shared";
 

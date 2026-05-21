@@ -35,12 +35,12 @@ import {
 import {
   Risk,
   RiskData,
-  RiskConfiguration,
   RiskTabProps,
-  RiskValidation,
   getActiveRisksByStrideMethod,
   getWontRisksByStrideMethod,
-} from "../models/risk-types";
+} from "../models/risk-assessment-types";
+
+import { RiskConfiguration, RiskValidation } from "../models/risk-config-types";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import {
@@ -52,6 +52,12 @@ import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
+import { syncAllMitigationTickets } from "../services/jira-mitigation-service";
+import type {
+  JiraCredentials,
+  JiraProject,
+} from "../../integration/models/integration-types";
+
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
 import { WontRiskTable } from "./wont-risk-table";
@@ -312,6 +318,84 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setShowSafetyRemovalDialog(true);
     }
   }, [riskData.configuration.pendingSafetySourceRemoval]);
+
+  // ── Jira project for dialog (resolved from integration connection) ─────────
+  const jiraProjectForDialog = useMemo((): JiraProject | null => {
+    const conn = project.integration?.connection;
+    if (!conn || conn.tool !== "jira" || conn.status !== "connected")
+      return null;
+
+    // Use issueTypes from stored connection credentials if available
+    // (populated when user tests connection in Integration Tab)
+    const storedIssueTypes = (conn.credentials as any)?.issueTypes as
+      | Array<{ id: string; name: string; iconUrl?: string }>
+      | undefined;
+
+    const issueTypes = storedIssueTypes?.length
+      ? storedIssueTypes.filter(
+          (it) => !it.name.toLowerCase().includes("subtask"),
+        )
+      : [
+          // Fallback with Jira Cloud standard issue type icons
+          { id: "task", name: "Task", iconUrl: undefined },
+          { id: "story", name: "Story", iconUrl: undefined },
+          { id: "bug", name: "Bug", iconUrl: undefined },
+          { id: "feature", name: "Feature", iconUrl: undefined },
+          { id: "epic", name: "Epic", iconUrl: undefined },
+        ];
+
+    return {
+      id: conn.projectName ?? "",
+      key: conn.projectName ?? "",
+      name: conn.projectName ?? "",
+      projectTypeKey: "software",
+      issueTypes,
+    };
+  }, [project.integration?.connection]);
+
+  // ── Auto-sync Jira ticket statuses every 10 seconds ──────────────────────
+  // Only runs when Jira is connected and there are mitigations with linked tickets.
+  useEffect(() => {
+    const conn = project.integration?.connection;
+    if (!conn || conn.tool !== "jira" || conn.status !== "connected") return;
+
+    const hasMitigationTickets = riskData.risks.some((r) =>
+      r.selectedMitigations.some((m) => !!m.ticketId),
+    );
+    if (!hasMitigationTickets) return;
+
+    const credentials = conn.credentials as JiraCredentials;
+
+    const interval = setInterval(async () => {
+      const updatedRisks = await Promise.all(
+        riskData.risks.map(async (risk) => {
+          const updatedMitigations = await syncAllMitigationTickets(
+            credentials,
+            risk.selectedMitigations,
+          );
+          const mitigationsChanged =
+            JSON.stringify(updatedMitigations) !==
+            JSON.stringify(risk.selectedMitigations);
+          return mitigationsChanged
+            ? { ...risk, selectedMitigations: updatedMitigations }
+            : risk;
+        }),
+      );
+
+      const anyChanged = updatedRisks.some((r, i) => r !== riskData.risks[i]);
+      if (anyChanged) {
+        // Only update local state — do not call onUpdate to avoid
+        // triggering main-layout re-render and persistence log every 5s.
+        // Changes will be persisted on next manual save.
+        setRiskData((prev) => ({ ...prev, risks: updatedRisks }));
+      }
+    }, 5_000);
+
+    return () => clearInterval(interval);
+    // Intentionally exclude riskData.risks from deps to avoid resetting interval
+    // on every risk change — stale closure is acceptable for background sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.integration?.connection]);
 
   // Auto-save when dirty (debounced)
   useEffect(() => {
@@ -820,6 +904,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         <RiskMitigationStatusDialog
           open={!!selectedImplementationRisk}
           risk={selectedImplementationRisk}
+          integrationConnection={project.integration?.connection ?? null}
+          jiraProject={jiraProjectForDialog}
           onSave={handleSaveImplementation}
           onClose={handleCloseImplementationDialog}
         />
@@ -832,25 +918,25 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onClose={() => setShowConfigDialog(false)}
       />
 
-      <ConfirmDialog
-        title={t("tabs.risks.syncConfirmTitle", {
-          defaultValue: "Sync Risks from Threats",
-        })}
-        message={t("tabs.risks.syncConfirmMessage", {
-          defaultValue:
-            "This will add new risks for new threats and remove risks for deleted threats. Existing assessments will be preserved.",
-        })}
-        variant="warning"
-        confirmLabel={t("tabs.risks.sync", { defaultValue: "Sync" })}
-        cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
-        onConfirm={() => {
-          handleSyncFromThreats();
-          setShowSyncConfirm(false);
-        }}
-        onCancel={() => setShowSyncConfirm(false)}
-        // @ts-ignore — open prop added conditionally; ConfirmDialog renders null when closed
-        open={showSyncConfirm}
-      />
+      {showSyncConfirm && (
+        <ConfirmDialog
+          title={t("tabs.risks.syncConfirmTitle", {
+            defaultValue: "Sync Risks from Threats",
+          })}
+          message={t("tabs.risks.syncConfirmMessage", {
+            defaultValue:
+              "This will add new risks for new threats and remove risks for deleted threats. Existing assessments will be preserved.",
+          })}
+          variant="warning"
+          confirmLabel={t("tabs.risks.sync", { defaultValue: "Sync" })}
+          cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+          onConfirm={() => {
+            handleSyncFromThreats();
+            setShowSyncConfirm(false);
+          }}
+          onCancel={() => setShowSyncConfirm(false)}
+        />
+      )}
 
       {/* ── Safety Factor Removal Dialog ─────────────────────────────────── */}
       <Dialog
@@ -902,6 +988,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Dialog>
     </Box>
   );
-};;
+};;;;
 
 export default RisksTab;

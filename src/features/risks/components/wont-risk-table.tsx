@@ -8,11 +8,8 @@ import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Chip, Typography, Paper } from "@mui/material";
 import { DoNotDisturb as WontIcon } from "@mui/icons-material";
-import type {
-  Risk,
-  RiskConfiguration,
-  ThreatReference,
-} from "../models/risk-types";
+import type { Risk, ThreatReference } from "../models/risk-assessment-types";
+import type { RiskConfiguration } from "../models/risk-config-types";
 import { RiskTable } from "./shared/risk-table";
 import { useRiskColumns } from "./shared/risk-columns";
 

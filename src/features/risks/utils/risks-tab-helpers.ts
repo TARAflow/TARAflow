@@ -2,7 +2,10 @@
 // Helper functions and constants for the Risks Tab
 // Pure functions without side effects
 
-import { RiskData, createDefaultRiskData } from "../models/risk-types";
+import {
+  RiskData,
+  createDefaultRiskData,
+} from "../models/risk-assessment-types";
 
 // ==================== CONSTANTS ====================
 

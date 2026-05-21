@@ -12,38 +12,50 @@ import type {
 
 // ==================== API HELPERS ====================
 
-const getAuthToken = (credentials: JiraCredentials): string | null => {
-  return credentials.authMethod === "oauth"
-    ? credentials.accessToken || null
-    : credentials.apiToken || null;
+/**
+ * Retrieve token from OS keychain via IPC bridge.
+ * Uses accountId as key (stable Jira identifier).
+ * Falls back to email if accountId not yet set.
+ */
+const getJiraTokenSecure = async (
+  credentials: JiraCredentials,
+): Promise<string | null> => {
+  try {
+    const key = credentials.accountId || credentials.email;
+    if (!key) return null;
+    const result = await (window as any).electronAPI.jira.getToken(key);
+    return result?.token ?? null;
+  } catch {
+    return null;
+  }
 };
 
 /**
- * Create authorization header for Jira API
+ * Create authorization header for Jira API.
+ * Token is always fetched from OS keychain — never from credentials object.
  */
-const createAuthHeader = (credentials: JiraCredentials): Record<string, string> | null => {
+const createAuthHeader = async (
+  credentials: JiraCredentials,
+): Promise<Record<string, string> | null> => {
   if (credentials.authMethod === "oauth") {
-    // OAuth: Bearer Token
-    const token = credentials.accessToken;
+    const token = await getJiraTokenSecure(credentials);
     if (!token) return null;
-    
     return {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-  } else {
-    // PAT: Basic Auth (email:token)
-    const { email, apiToken } = credentials;
-    if (!email || !apiToken) return null;
-    
-    const encoded = btoa(`${email}:${apiToken}`);
-    return {
-      Authorization: `Basic ${encoded}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
   }
+
+  // PAT: Basic Auth (email:token)
+  const token = await getJiraTokenSecure(credentials);
+  if (!credentials.email || !token) return null;
+  const encoded = btoa(`${credentials.email}:${token}`);
+  return {
+    Authorization: `Basic ${encoded}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
 };
 
 /**
@@ -91,46 +103,110 @@ const mapPriorityToId = (priority: string): string => {
 // ==================== PUBLIC API ====================
 
 /**
- * Test connection to Jira and fetch available projects
+ * Test connection to Jira and fetch available projects.
+ * Also resolves accountId from /rest/api/3/myself for stable keychain key.
  */
 export const testJiraConnection = async (
-  credentials: JiraCredentials
-): Promise<ConnectionTestResult> => {
+  credentials: JiraCredentials & { apiToken?: string },
+): Promise<ConnectionTestResult & { accountId?: string }> => {
   try {
-    const headers = createAuthHeader(credentials);
-    if (!headers) {
-      return {
-        success: false,
-        message: "Invalid credentials",
+    // Build headers manually for test — token comes from param, not keychain yet
+    let headers: Record<string, string> | null = null;
+    if (credentials.authMethod === "oauth") {
+      const token = credentials.accessToken;
+      if (!token) return { success: false, message: "No OAuth token provided" };
+      headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+    } else {
+      const { email, apiToken } = credentials;
+      if (!email || !apiToken) {
+        return {
+          success: false,
+          message: "Invalid credentials: Check your email and API token",
+        };
+      }
+      const encoded = btoa(`${email}:${apiToken}`);
+      headers = {
+        Authorization: `Basic ${encoded}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
       };
     }
 
-    const url = `${credentials.baseUrl}/rest/api/3/project`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
+    // Resolve accountId from /myself
+    let accountId: string | undefined;
+    try {
+      const myselfResponse = await (window as any).electronAPI.jiraRequest({
+        url: `${credentials.baseUrl}/rest/api/3/myself`,
+        options: { method: "GET", headers },
+      });
+      if (myselfResponse.ok && myselfResponse.data?.accountId) {
+        accountId = myselfResponse.data.accountId;
+      }
+    } catch {
+      // Non-fatal — accountId stays undefined, fall back to email as keychain key
+    }
+
+    // Fetch projects with rich details
+    const response = await (window as any).electronAPI.jiraRequest({
+      url: `${credentials.baseUrl}/rest/api/3/project?expand=insight,description,lead,issueTypes`,
+      options: { method: "GET", headers },
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorDetail = response.data?.errorMessages?.[0] || "Unknown Error";
       return {
         success: false,
-        message: `Connection failed: ${response.status} - ${errorText}`,
+        message: `Connection failed: ${response.status} - ${errorDetail}`,
       };
     }
 
-    const data = await response.json();
+    const data = response.data;
+    if (!Array.isArray(data)) {
+      return {
+        success: false,
+        message: "Unexpected response format from Jira",
+      };
+    }
+
     const projects: JiraProject[] = data.map((proj: any) => ({
       id: proj.id,
       key: proj.key,
       name: proj.name,
       projectTypeKey: proj.projectTypeKey,
+      description: proj.description || undefined,
+      avatarUrl: proj.avatarUrls?.["48x48"] || undefined,
+      lead: proj.lead
+        ? {
+            displayName: proj.lead.displayName,
+            avatarUrl: proj.lead.avatarUrls?.["24x24"] || undefined,
+          }
+        : undefined,
+      insight: proj.insight
+        ? {
+            totalIssueCount: proj.insight.totalIssueCount ?? 0,
+            lastIssueUpdateTime: proj.insight.lastIssueUpdateTime || undefined,
+          }
+        : undefined,
+      issueTypes: proj.issueTypes
+        ? proj.issueTypes
+            .filter((it: any) => !it.subtask)
+            .map((it: any) => ({
+              id: it.id,
+              name: it.name,
+              iconUrl: it.iconUrl || undefined,
+            }))
+        : undefined,
     }));
 
     return {
       success: true,
       message: `Connected successfully. Found ${projects.length} project(s).`,
       projects,
+      accountId,
     };
   } catch (error) {
     return {
@@ -150,24 +226,19 @@ export const createJiraIssue = async (
   title: string,
   description: string,
   priority: string,
-  labels?: string[]
+  labels?: string[],
 ): Promise<TicketCreationResult> => {
   try {
-    if (!credentials.projectKey) {
-      return {
-        success: false,
-        error: "No project selected",
-      };
+    const headers = await createAuthHeader(credentials);
+    if (!headers) {
+      return { success: false, error: "Invalid credentials — check keychain" };
     }
 
     const url = `${credentials.baseUrl}/rest/api/3/issue`;
 
-    // Build the issue creation payload
-    const issueData = {
+    const issueData: any = {
       fields: {
-        project: {
-          key: projectKey,
-        },
+        project: { key: projectKey },
         summary: title,
         description: {
           type: "doc",
@@ -175,69 +246,43 @@ export const createJiraIssue = async (
           content: [
             {
               type: "paragraph",
-              content: [
-                {
-                  type: "text",
-                  text: description,
-                },
-              ],
+              content: [{ type: "text", text: description }],
             },
           ],
         },
-        issuetype: {
-          name: issueType,
-        },
-        priority: {
-          id: mapPriorityToId(priority),
-        },
+        issuetype: { name: issueType },
+        priority: { id: mapPriorityToId(priority) },
       },
     };
 
-    // Add labels if provided
     if (labels && labels.length > 0) {
-      (issueData.fields as any).labels = labels;
+      issueData.fields.labels = labels;
     }
 
-    const headers = createAuthHeader(credentials);
-    if (!headers) {
-      return {
-        success: false,
-        error: "Invalid credentials",
-      };
-    }
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(issueData),
+    const response = await (window as any).electronAPI.jiraRequest({
+      url,
+      options: { method: "POST", headers, body: JSON.stringify(issueData) },
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorDetail = response.data?.errorMessages?.[0] || "Unknown error";
       return {
         success: false,
-        error: `Failed to create issue: ${response.status} - ${errorText}`,
+        error: `Failed to create issue: ${response.status} - ${errorDetail}`,
       };
     }
 
-    const issue = await response.json();
-
-    // Fetch full issue details to get status
-    const issueDetails = await getJiraIssueDetails(credentials, issue.key);
-
+    const issue = response.data;
     const ticket: TicketInfo = {
       id: issue.key,
       url: `${credentials.baseUrl}/browse/${issue.key}`,
-      status: issueDetails?.status || "OPEN",
-      title: title,
+      status: "OPEN",
+      title,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    return {
-      success: true,
-      ticket,
-    };
+    return { success: true, ticket };
   } catch (error) {
     return {
       success: false,
@@ -251,30 +296,20 @@ export const createJiraIssue = async (
  */
 const getJiraIssueDetails = async (
   credentials: JiraCredentials,
-  issueKey: string
+  issueKey: string,
 ): Promise<{ status: TicketStatus } | null> => {
   try {
-    const url = `${credentials.baseUrl}/rest/api/3/issue/${issueKey}`;
+    const headers = await createAuthHeader(credentials);
+    if (!headers) return null;
 
-    const headers = createAuthHeader(credentials);
-    if (!headers) {
-      return {
-        status: mapIssueStatus("Invalid credentials"),
-      };
-    }
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
+    const response = await (window as any).electronAPI.jiraRequest({
+      url: `${credentials.baseUrl}/rest/api/3/issue/${issueKey}`,
+      options: { method: "GET", headers },
     });
 
-    if (!response.ok) {
-      return null;
-    }
-
-    const issue = await response.json();
+    if (!response.ok) return null;
     return {
-      status: mapIssueStatus(issue.fields.status.name),
+      status: mapIssueStatus(response.data?.fields?.status?.name ?? ""),
     };
   } catch (error) {
     console.error("Error fetching issue details:", error);
@@ -287,7 +322,7 @@ const getJiraIssueDetails = async (
  */
 export const getJiraIssueStatus = async (
   credentials: JiraCredentials,
-  issueKey: string
+  issueKey: string,
 ): Promise<TicketStatus> => {
   try {
     const details = await getJiraIssueDetails(credentials, issueKey);
@@ -303,33 +338,24 @@ export const getJiraIssueStatus = async (
  */
 export const getJiraIssueStatuses = async (
   credentials: JiraCredentials,
-  issueKeys: string[]
+  issueKeys: string[],
 ): Promise<Map<string, TicketStatus>> => {
   const statusMap = new Map<string, TicketStatus>();
-
   if (issueKeys.length === 0) return statusMap;
 
-  const headers = createAuthHeader(credentials);
-  if (!headers) {
-    return statusMap;
-  }
-
   try {
-    // Jira JQL search for multiple issues
-    const jql = `key in (${issueKeys.join(",")})`;
-    const url = `${credentials.baseUrl}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=status`;
+    const headers = await createAuthHeader(credentials);
+    if (!headers) return statusMap;
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
+    const jql = `key in (${issueKeys.join(",")})`;
+    const response = await (window as any).electronAPI.jiraRequest({
+      url: `${credentials.baseUrl}/rest/api/3/search?jql=${encodeURIComponent(jql)}&fields=status`,
+      options: { method: "GET", headers },
     });
 
-    if (!response.ok) {
-      return statusMap;
-    }
+    if (!response.ok) return statusMap;
 
-    const data = await response.json();
-    data.issues.forEach((issue: any) => {
+    (response.data?.issues ?? []).forEach((issue: any) => {
       statusMap.set(issue.key, mapIssueStatus(issue.fields.status.name));
     });
   } catch (error) {

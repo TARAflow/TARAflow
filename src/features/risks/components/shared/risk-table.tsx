@@ -11,14 +11,14 @@ import {
   TableCell,
   Box,
 } from "@mui/material";
+import type { Risk } from "../../models/risk-assessment-types";
+import type { RiskConfiguration } from "../../models/risk-config-types";
 import type {
-  Risk,
-  RiskConfiguration,
   RiskScaleType,
   RiskRoundingMethod,
-} from "../../models/risk-types";
+} from "../../models/risk-scale-types";
 import type { RiskColumn } from "./risk-columns";
-import { RISK_SCALES } from "../../models/risk-types";
+import { RISK_SCALES } from "../../models/risk-scale-types";
 
 // ==================== ROW BACKGROUND COLORS ====================
 
