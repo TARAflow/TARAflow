@@ -453,6 +453,7 @@ class DFDService {
           dfdGraph.dataFlowAnalysis,
           dfdGraph.elementTrustBoundaries,
           dfdGraph.elementChipBoundaries,
+          dfdGraph.elementPhysicalBoundaries,
         );
       }
 

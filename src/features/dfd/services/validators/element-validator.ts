@@ -20,6 +20,7 @@ export function validateElements(
   validateTrustBoundaryIds(elements, errors);
   validateElementProperties(elements, warnings);
   validateInterfaceUsage(elements, warnings, graph);
+  validateInterfacePhysicalBoundary(elements, warnings, graph);
 }
 
 /**
@@ -65,6 +66,7 @@ function validateElementNames(
     "ExternalEntity",
     "TrustBoundary",
     "ChipBoundary",
+    "PhysicalBoundary",
   ];
 
   for (const element of elements) {
@@ -116,7 +118,10 @@ function validateTrustBoundaryIds(
 ): void {
   // Validate both TrustBoundary and ChipBoundary — same [ID] convention
   const boundaryElements = elements.filter(
-    (e) => e.type === "TrustBoundary" || e.type === "ChipBoundary",
+    (e) =>
+      e.type === "TrustBoundary" ||
+      e.type === "ChipBoundary" ||
+      e.type === "PhysicalBoundary",
   );
 
   for (const boundary of boundaryElements) {
@@ -124,6 +129,46 @@ function validateTrustBoundaryIds(
     if (!validation.isValid) {
       errors.push(
         `${ValidationMessages.TRUST_BOUNDARY_MISSING_ID}:${boundary.name}`,
+      );
+    }
+  }
+}
+
+/**
+ * Validate that each Interface geometrically overlaps at least one PhysicalBoundary.
+ *
+ * Rationale: An Interface without a physical context has no defined reachability.
+ * The PhysicalBoundary it overlaps determines whether an attacker must cross it
+ * to reach the interface (interface on boundary edge) or must first open the
+ * boundary (interface fully inside).
+ *
+ * Rule only fires when at least one PhysicalBoundary exists in the diagram —
+ * in early modelling phases analysts may not have drawn PBs yet.
+ *
+ * Severity: WARNING — not an error, since PBs may be added iteratively.
+ *
+ * Message format: KEY|displayId|elementType
+ */
+function validateInterfacePhysicalBoundary(
+  elements: DFDElement[],
+  warnings: string[],
+  graph?: DFDGraph,
+): void {
+  // Only enforce when at least one PB exists — otherwise rule has no context
+  const hasPhysicalBoundaries = elements.some(
+    (e) => e.type === "PhysicalBoundary",
+  );
+  if (!hasPhysicalBoundaries || !graph) return;
+
+  const interfaces = elements.filter((e) => e.type === "Interface");
+
+  for (const iface of interfaces) {
+    const memberPBs = graph.elementPhysicalBoundaries?.get(iface.id) ?? [];
+
+    if (memberPBs.length === 0) {
+      const displayId = iface.displayId ?? iface.name;
+      warnings.push(
+        `${ValidationMessages.INTERFACE_NO_PHYSICAL_BOUNDARY}|${displayId}|Interface`,
       );
     }
   }

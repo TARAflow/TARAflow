@@ -31,6 +31,8 @@ import {
   SwapHoriz as DataFlowIcon,
   Cable as InterfaceIcon,
   MonetizationOnOutlined as AssetIcon,
+  Memory as ChipBoundaryIcon,
+  LockOutlined as PhysicalBoundaryIcon,
 } from "@mui/icons-material";
 
 import type {
@@ -51,6 +53,8 @@ import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
 import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
+import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
+import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
@@ -175,6 +179,10 @@ const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
       return <InterfaceIcon {...iconProps} />;
     case "TrustBoundary":
       return <TrustBoundaryIcon {...iconProps} />;
+    case "ChipBoundary":
+      return <ChipBoundaryIcon {...iconProps} />;
+    case "PhysicalBoundary":
+      return <PhysicalBoundaryIcon {...iconProps} />;
     default:
       return null;
   }
@@ -278,6 +286,8 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
     "DataStore",
     "Interface",
     "TrustBoundary",
+    "ChipBoundary",
+    "PhysicalBoundary",
   ];
 
   /**
@@ -605,6 +615,20 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
         case "TrustBoundary":
           return (
             <TrustBoundaryDescriptionForm
+              element={element}
+              onChange={onUpdate}
+            />
+          );
+        case "ChipBoundary":
+          return (
+            <ChipBoundaryDescriptionForm
+              element={element}
+              onChange={onUpdate}
+            />
+          );
+        case "PhysicalBoundary":
+          return (
+            <PhysicalBoundaryDescriptionForm
               element={element}
               onChange={onUpdate}
             />

@@ -34,6 +34,11 @@ export const ValidationMessages = {
   CHIPBOUNDARY_INVALID_CONNECTION:
     "dfdValidation.chipBoundaryInvalidConnection",
 
+  // Physical Boundary
+  PHYSICALBOUNDARY_INVALID_CONNECTION:
+    "dfdValidation.physicalBoundaryInvalidConnection",
+  INTERFACE_NO_PHYSICAL_BOUNDARY: "dfdValidation.interfaceNoPhysicalBoundary",
+
   // Asset & Interface
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
 
@@ -151,6 +156,8 @@ export const DEFAULT_NAMES = [
   "boundary",
   "chip boundary",
   "chipboundary",
+  "physical boundary",
+  "physicalboundary",
   // German defaults
   "prozess",
   "externe entität",
@@ -158,6 +165,7 @@ export const DEFAULT_NAMES = [
   "vertrauensgrenze",
   "multiprozess",
   "schnittstelle",
+  "physische grenze",
   // Generic
   "name",
   "label",

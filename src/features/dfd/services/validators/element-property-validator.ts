@@ -20,6 +20,7 @@ import type {
   ExternalEntityProperties,
   TrustBoundaryProperties,
   ChipBoundaryProperties,
+  PhysicalBoundaryProperties,
   InterfaceProperties,
 } from "../../models/element-properties";
 import { ValidationMessages } from "./validator-utils";
@@ -55,6 +56,9 @@ export function validateElementProperties(
         break;
       case "ChipBoundary":
         validateChipBoundaryProperties(element, warnings);
+        break;
+      case "PhysicalBoundary":
+        validatePhysicalBoundaryProperties(element, warnings);
         break;
       case "Interface":
         validateInterfaceProperties(element, warnings);
@@ -192,6 +196,50 @@ function validateTrustBoundaryProperties(
  * ChipBoundary: chipType, defaultExposureLevel
  * chipType is critical — without it no threat generation occurs.
  */
+/**
+ * PhysicalBoundary: boundaryType (required), physicalExposureLevel (required),
+ * physicalMobility (required for device_enclosure + vehicle),
+ * accessibility (required).
+ *
+ * physicalMobility warning is only raised when boundaryType is one that
+ * can physically move (device_enclosure, vehicle) — rooms and buildings
+ * are implicitly fixed.
+ */
+function validatePhysicalBoundaryProperties(
+  element: DFDElement,
+  warnings: string[]
+): void {
+  const props = (element.properties ?? {}) as PhysicalBoundaryProperties;
+
+  // boundaryType is the primary classifier — always required
+  if (!props.boundaryType) {
+    warnings.push(missingProp(element, "boundaryType"));
+  }
+
+  // physicalExposureLevel required — drives threat feasibility scoring
+  if (!props.physicalExposureLevel) {
+    warnings.push(missingProp(element, "physicalExposureLevel"));
+  }
+
+  // accessibility required — captures environmental/attacker context
+  if (!props.accessibility) {
+    warnings.push(missingProp(element, "accessibility"));
+  }
+
+  // physicalMobility only required for types that can actually move
+  const mobilityRelevantTypes: PhysicalBoundaryProperties["boundaryType"][] = [
+    "device_enclosure",
+    "vehicle",
+  ];
+  if (
+    props.boundaryType &&
+    mobilityRelevantTypes.includes(props.boundaryType) &&
+    !props.physicalMobility
+  ) {
+    warnings.push(missingProp(element, "physicalMobility"));
+  }
+}
+
 function validateChipBoundaryProperties(
   element: DFDElement,
   warnings: string[]

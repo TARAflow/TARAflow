@@ -202,3 +202,44 @@ export function validateChipBoundaryConnections(
     }
   }
 }
+/**
+ * R10: PhysicalBoundary is non-connectable — no DataFlow may use it as endpoint.
+ *
+ * Physical Boundaries are spatial containers, not communication endpoints.
+ * Interaction through a PhysicalBoundary is modelled via an Interface element
+ * that geometrically overlaps the boundary — not via a direct DataFlow connection.
+ *
+ * Severity: error — a DataFlow terminating at a PhysicalBoundary has no valid
+ * threat modelling meaning and indicates a modelling mistake.
+ *
+ * Invalid: Any element ↔ PhysicalBoundary (direct DataFlow connection)
+ * Correct: Interface overlaps PhysicalBoundary geometrically (no DataFlow needed)
+ *
+ * Note: This is intentionally stricter than ChipBoundary (which allows
+ * ExternalEntity/Process/ChipBoundary connections). PhysicalBoundary is purely
+ * a spatial container — it has no communication interface of its own.
+ */
+export function validatePhysicalBoundaryConnections(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  errors: string[],
+): void {
+  const elementById = new Map(elements.map((e) => [e.id, e]));
+
+  for (const conn of connections) {
+    const source = elementById.get(conn.from);
+    const target = elementById.get(conn.to);
+
+    if (!source || !target) continue;
+
+    const sourceIsPB = source.type === "PhysicalBoundary";
+    const targetIsPB = target.type === "PhysicalBoundary";
+
+    if (!sourceIsPB && !targetIsPB) continue;
+
+    // Any direct connection to/from a PhysicalBoundary is invalid
+    errors.push(
+      `${ValidationMessages.PHYSICALBOUNDARY_INVALID_CONNECTION}:${conn.name || conn.id}`,
+    );
+  }
+}

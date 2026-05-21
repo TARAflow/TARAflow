@@ -2,7 +2,10 @@
 // Configuration constants for DFD elements
 // NO types here - only constant data
 
-import type { ExposureLevel } from "./element-properties";
+import type {
+  ExposureLevel,
+  PhysicalExposureLevel,
+} from "./element-properties";
 import type { DFDElementType } from "./dfd-element-types";
 
 // ==================== DFD ELEMENT CONFIGURATION ====================
@@ -70,6 +73,13 @@ export const DFD_ELEMENT_CONFIG: Record<
     description: "Hardware chip boundary — MCU, SOM, FPGA, SE, HSM, DSP",
     icon: "⬡",
   },
+  PhysicalBoundary: {
+    name: "Physical Boundary",
+    nameDE: "Physische Grenze",
+    description:
+      "Spatial physical access barrier — enclosure, cabinet, room, building",
+    icon: "⬜",
+  },
 };
 
 export const EXPOSURE_LEVEL_LABELS: Record<ExposureLevel, string> = {
@@ -88,3 +98,27 @@ export const EXPOSURE_LEVEL_DESCRIPTION_KEYS: Record<ExposureLevel, string> = {
   EL4: "tabs.dfd.element_description.exposure_level.el4_description",
 };
 
+// ── Physical Exposure Level (PEL) labels ──────────────────────────────────────
+// Separate from EL — PEL describes physical reachability, not network exposure.
+
+export const PHYSICAL_EXPOSURE_LEVEL_LABELS: Record<
+  PhysicalExposureLevel,
+  string
+> = {
+  PEL0: "PEL0 – Inaccessible", // No access without physical destruction
+  PEL1: "PEL1 – Deep Internal", // Multiple physical barriers
+  PEL2: "PEL2 – Internal", // One barrier (enclosure, lock)
+  PEL3: "PEL3 – Protected", // External but behind a barrier
+  PEL4: "PEL4 – Exposed", // Directly reachable — no barrier
+};
+
+export const PHYSICAL_EXPOSURE_LEVEL_DESCRIPTION_KEYS: Record<
+  PhysicalExposureLevel,
+  string
+> = {
+  PEL0: "tabs.dfd.element_description.physical_exposure_level.pel0_description",
+  PEL1: "tabs.dfd.element_description.physical_exposure_level.pel1_description",
+  PEL2: "tabs.dfd.element_description.physical_exposure_level.pel2_description",
+  PEL3: "tabs.dfd.element_description.physical_exposure_level.pel3_description",
+  PEL4: "tabs.dfd.element_description.physical_exposure_level.pel4_description",
+};

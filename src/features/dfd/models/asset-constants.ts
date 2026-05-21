@@ -214,6 +214,7 @@ export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationTyp
     Interface: ["transports"],
     TrustBoundary: [],
     ChipBoundary: ["reads", "stores", "modifies"],
+    PhysicalBoundary: [],
   };
 
 export const ALLOWED_FUNCTION_RELATIONS: Record<
@@ -242,6 +243,7 @@ export const ALLOWED_FUNCTION_RELATIONS: Record<
   Interface: ["invokes", "monitors"],
   TrustBoundary: [],
   ChipBoundary: ["implements", "depends_on"],
+  PhysicalBoundary: [],
 };
 
 export const ALLOWED_PROCESS_RELATIONS: Record<
@@ -270,6 +272,7 @@ export const ALLOWED_PROCESS_RELATIONS: Record<
   Interface: ["invokes", "monitors"],
   TrustBoundary: [],
   ChipBoundary: [],
+  PhysicalBoundary: [],
 };
 
 export const ALLOWED_SYSTEM_RELATIONS: Record<
@@ -305,6 +308,7 @@ export const ALLOWED_SYSTEM_RELATIONS: Record<
   Interface: ["monitors", "uses", "depends_on", "is_an"],
   TrustBoundary: [],
   ChipBoundary: ["is_an", "uses", "depends_on"],
+  PhysicalBoundary: ["is_an", "depends_on"],
 };
 
 export const ALLOWED_INFRA_RELATIONS: Record<
@@ -326,6 +330,7 @@ export const ALLOWED_INFRA_RELATIONS: Record<
   Interface: ["accesses", "secures", "monitors", "is_an"],
   TrustBoundary: [],
   ChipBoundary: [],
+  PhysicalBoundary: ["is_an", "secures", "powers"],
 };
 
 export const ALLOWED_PHYSICAL_RELATIONS: Record<
@@ -341,6 +346,7 @@ export const ALLOWED_PHYSICAL_RELATIONS: Record<
   Interface: ["accesses", "monitors"],
   TrustBoundary: [],
   ChipBoundary: [],
+  PhysicalBoundary: ["is_an", "secures", "accesses", "damages"],
 };
 
 export const ALLOWED_SERVICE_RELATIONS: Record<
@@ -355,6 +361,7 @@ export const ALLOWED_SERVICE_RELATIONS: Record<
   Interface: ["uses", "monitors", "depends_on"],
   TrustBoundary: [],
   ChipBoundary: [],
+  PhysicalBoundary: [],
 };
 
 export const ALLOWED_HUMAN_RELATIONS: Record<
@@ -388,6 +395,7 @@ export const ALLOWED_HUMAN_RELATIONS: Record<
   Interface: ["affects_safety", "affects_privacy", "exposes"],
   TrustBoundary: [],
   ChipBoundary: [],
+  PhysicalBoundary: [],
 };
 
 // ==================== LOOKUP HELPERS ====================

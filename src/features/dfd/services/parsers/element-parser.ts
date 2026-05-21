@@ -4,6 +4,7 @@
 import type { DFDElement, DFDElementType } from "../../models/dfd-types";
 import type {
   ChipBoundaryProperties,
+  PhysicalBoundaryProperties,
   TrustBoundaryProperties,
 } from "../../models/element-properties";
 import {
@@ -165,6 +166,14 @@ export function parseElementFromObject(
     }
   }
 
+  if (objType === "physicalboundary") {
+    const cleanLabel = label.trim();
+    const validLabelRegex = /\[.*\]/;
+    if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
+      return null;
+    }
+  }
+
   // Get child mxCell
   const cells = obj.getElementsByTagName("mxCell");
   if (cells.length === 0) {
@@ -232,6 +241,17 @@ export function parseElementFromObject(
         ...element.properties,
         // No boundaryId needed — chipType is the classifier
       } as ChipBoundaryProperties;
+    }
+  }
+
+  if (type === "PhysicalBoundary") {
+    const pbId = extractTrustBoundaryId(name); // Same regex pattern — [ID] suffix
+    if (pbId) {
+      element.displayId = pbId;
+      element.properties = {
+        ...element.properties,
+        // No boundaryId needed — boundaryType is the classifier
+      } as PhysicalBoundaryProperties;
     }
   }
 
@@ -309,6 +329,17 @@ export function parseElementFromCell(cell: Element): DFDElement | null {
         ...element.properties,
         // No boundaryId needed — chipType is the classifier
       } as ChipBoundaryProperties;
+    }
+  }
+
+  if (type === "PhysicalBoundary") {
+    const pbId = extractTrustBoundaryId(name); // Same regex pattern — [ID] suffix
+    if (pbId) {
+      element.displayId = pbId;
+      element.properties = {
+        ...element.properties,
+        // No boundaryId needed — boundaryType is the classifier
+      } as PhysicalBoundaryProperties;
     }
   }
 

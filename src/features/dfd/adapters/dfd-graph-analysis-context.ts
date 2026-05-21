@@ -20,6 +20,8 @@ export class DFDGraphAnalysisContext implements DFDAnalysisContext {
       effectiveElementTrustBoundary: new Map(),
       elementChipBoundaries: new Map(),
       chipBoundaryElements: new Map(),
+      elementPhysicalBoundaries: new Map(),
+      physicalBoundaryElements: new Map(),
     };
     return new DFDGraphAnalysisContext(dummyGraph);
   }
@@ -53,6 +55,12 @@ export class DFDGraphAnalysisContext implements DFDAnalysisContext {
         crossesMultipleTrustBoundaries: fromTBs.length + toTBs.length > 1,
         viaInterface: df.viaInterface ?? false,
         crossingType: df.crossingType ?? "none",
+        // ChipBoundary crossing signals
+        crossesChipBoundary: df.crossesChipBoundary ?? false,
+        terminatesAtChipBoundary: df.terminatesAtChipBoundary ?? false,
+        // PhysicalBoundary crossing signals
+        crossesPhysicalBoundary: df.crossesPhysicalBoundary ?? false,
+        terminatesAtPhysicalBoundary: df.terminatesAtPhysicalBoundary ?? false,
       };
     }
   }
@@ -60,6 +68,32 @@ export class DFDGraphAnalysisContext implements DFDAnalysisContext {
   *getTrustBoundaries() {
     for (const tb of this.graph.trustBoundaryHierarchy.values()) {
       const el = this.graph.elementsById.get(tb.trustBoundaryId);
+      if (!el) continue;
+
+      yield {
+        id: el.id,
+        name: el.name,
+        displayId: el.displayId,
+      };
+    }
+  }
+
+  *getChipBoundaries() {
+    for (const [chipBoundaryId] of this.graph.chipBoundaryElements) {
+      const el = this.graph.elementsById.get(chipBoundaryId);
+      if (!el) continue;
+
+      yield {
+        id: el.id,
+        name: el.name,
+        displayId: el.displayId,
+      };
+    }
+  }
+
+  *getPhysicalBoundaries() {
+    for (const [physicalBoundaryId] of this.graph.physicalBoundaryElements) {
+      const el = this.graph.elementsById.get(physicalBoundaryId);
       if (!el) continue;
 
       yield {

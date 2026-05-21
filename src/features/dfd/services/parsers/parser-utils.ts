@@ -35,6 +35,11 @@ export function mapTARAflowType(type: string): DFDElementType | "Asset" | null {
     "chip-boundary": "ChipBoundary",
     chip: "ChipBoundary",
 
+    // Physical Boundary
+    physicalboundary: "PhysicalBoundary",
+    "physical-boundary": "PhysicalBoundary",
+    physboundary: "PhysicalBoundary",
+
     // Interface (PhysicalInterface migrated to Interface)
     physicalinterface: "Interface", // MIGRATION
     interface: "Interface",
@@ -114,6 +119,7 @@ export function createEmptyStats(): DFDStats {
     dataFlows: 0,
     trustBoundaries: 0,
     chipBoundaries: 0,
+    physicalBoundaries: 0,
     interfaces: 0, // Includes migrated PhysicalInterface
     assets: 0,
     describedElements: 0,
@@ -146,6 +152,9 @@ export function updateStats(stats: DFDStats, type: DFDElementType): void {
       break;
     case "ChipBoundary":
       stats.chipBoundaries++;
+      break;
+    case "PhysicalBoundary":
+      stats.physicalBoundaries++;
       break;
     case "Interface":
       stats.interfaces++;

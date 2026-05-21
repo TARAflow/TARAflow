@@ -66,6 +66,7 @@ export function getDFDElementTypePluralText(
     TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
     Interface: { en: "Interfaces", de: "Schnittstellen" },
     ChipBoundary: { en: "Chip Boundaries", de: "Chip Boundaries" },
+    PhysicalBoundary: { en: "Physical Boundaries", de: "Physische Grenzen" },
   };
   return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);
 }

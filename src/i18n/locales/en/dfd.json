@@ -217,11 +217,19 @@
           "el3_description": "Industrial factory network, VPN or partner / OT network",
           "el4_description": "Internet-exposed, untrusted public network"
         },
+        "physical_exposure_level": {
+          "pel0_description": "PEL0 – Inaccessible: No practical physical access without destruction — potted, welded, or chip-decap required. No meaningful attack surface from physical side.",
+          "pel1_description": "PEL1 – Deep Internal: Multiple physical barriers must be overcome — e.g. JTAG behind two nested enclosures, or inside a locked sub-module inside a locked cabinet.",
+          "pel2_description": "PEL2 – Internal: One physical barrier to bypass — open enclosure, unlock cabinet, remove screws. Tool or key access required. e.g. LAN port inside device housing.",
+          "pel3_description": "PEL3 – Surface Accessible: Externally reachable without opening anything, but not directly usable — e.g. a service flap that must be opened, a recessed port behind a cover. No tool required.",
+          "pel4_description": "PEL4 – Directly Exposed: No physical barrier — touchscreen, outdoor USB, card reader. Directly reachable by anyone. Combine with PB.accessibility for environmental context."
+        },
         "sections": {
           "context": "Context",
           "security": "Security",
           "documentation": "Documentation",
-          "hardware_security": "Hardware Security"
+          "hardware_security": "Hardware Security",
+          "physical_security": "Physical Security"
         },
         "process": {
           "safetyAnnotation": {
@@ -1489,6 +1497,150 @@
             }
           }
         },
+        "physicalboundary": {
+          "warning": {
+            "title": "Physical boundary — attack surface modelling!",
+            "hint": "Interfaces that cross or lie inside this boundary inherit its physical access preconditions. Verify tamper protection and access control before deployment."
+          },
+          "fields": {
+            "boundaryType": {
+              "label": "Boundary Type",
+              "options": {
+                "device_enclosure": "Device Enclosure",
+                "cabinet": "Cabinet / Switchgear",
+                "room": "Room",
+                "building": "Building / Facility",
+                "vehicle": "Vehicle / Machine",
+                "tamper_zone": "Tamper Zone",
+                "custom": "Custom"
+              },
+              "tooltips": {
+                "device_enclosure": "Device housing — requires tool access (screws, hex key) to open. Typical for embedded devices, control units, sensors.",
+                "cabinet": "Lockable enclosure such as a Schaltschrank or server rack. Key or badge access.",
+                "room": "Access-controlled room such as a server room, production hall, or control room. Badge or key access.",
+                "building": "Building or facility perimeter. Highest-level physical boundary in most OT deployments.",
+                "vehicle": "Vehicle, machine, or mobile plant. Physical access controlled by enclosure or cab.",
+                "tamper_zone": "Sealed zone with active tamper protection — potting, tamper bag, or conductive mesh. No access without destruction.",
+                "custom": "Proprietary or non-standard physical boundary type. Describe in notes."
+              }
+            },
+            "physicalExposureLevel": {
+              "label": "Physical Exposure Level (PEL)"
+            },
+            "accessibility": {
+              "label": "Accessibility",
+              "options": {
+                "public": "Public — no barrier",
+                "controlled": "Controlled — key, badge, or PIN required",
+                "guarded": "Guarded — manned and monitored",
+                "sealed": "Sealed — destructive access only"
+              },
+              "tooltips": {
+                "public": "No barrier — freely reachable (lobby, outdoor installation, public area). Maximum attacker exposure.",
+                "controlled": "Access restricted by a mechanism (key, badge, PIN). Role-based entry.",
+                "guarded": "Manned and monitored entry — active human presence at the boundary.",
+                "sealed": "Deprecated — use PEL0 + tamperProtection instead. Sealed is a tamper property, not an environmental context."
+              }
+            },
+            "physicalAccessControl": {
+              "label": "Physical Access Control",
+              "options": {
+                "none": "None",
+                "key": "Mechanical Key",
+                "badge": "Badge (RFID/NFC)",
+                "badge_pin": "Badge + PIN",
+                "biometric": "Biometric",
+                "guard": "Guard / Personnel Check"
+              },
+              "tooltips": {
+                "none": "No physical access control mechanism present.",
+                "key": "Mechanical key — standard or high-security cylinder.",
+                "badge": "RFID/NFC badge without second factor. Cloneable — relay attack risk applies.",
+                "badge_pin": "Badge plus PIN — mitigates relay attack and card sharing risk.",
+                "biometric": "Biometric authentication (fingerprint, iris) — strongest single physical factor.",
+                "guard": "Manned entry — identity checked by security personnel."
+              }
+            },
+            "tamperProtection": {
+              "label": "Tamper Protection",
+              "options": {
+                "none": "None",
+                "seal": "Tamper-Evident Seal / Label",
+                "switch": "Tamper-Detection Switch",
+                "mesh": "Active Tamper Mesh",
+                "potting": "Epoxy Potting",
+                "active_detection": "Active Detection (Zeroize)"
+              },
+              "tooltips": {
+                "none": "No tamper protection — opening the boundary leaves no trace.",
+                "seal": "Tamper-evident label or seal — provides post-hoc evidence of opening, but does not prevent access.",
+                "switch": "Microswitch that triggers on enclosure opening — generates alert or interrupts power.",
+                "mesh": "Conductive mesh embedded in enclosure — cutting or drilling triggers detection.",
+                "potting": "Epoxy potting — no rework possible without destroying the board. Highest passive protection.",
+                "active_detection": "Voltage, temperature, or light sensor with automatic zeroize response — HSM / payment terminal level."
+              }
+            },
+            "monitoringType": {
+              "label": "Physical Monitoring",
+              "options": {
+                "none": "None",
+                "camera": "CCTV / IP Camera",
+                "alarm": "Motion / Door Alarm",
+                "soc": "SOC-Connected Alarm",
+                "guard_patrol": "Guard Patrol",
+                "tamper_monitoring": "Electronic Tamper Monitoring"
+              },
+              "tooltips": {
+                "none": "No monitoring — attacker can operate undetected. Generates Repudiation threat.",
+                "camera": "CCTV or IP camera — post-hoc evidence only. Does not prevent access or trigger response.",
+                "alarm": "Motion or door alarm — real-time alert, but no active response capability.",
+                "soc": "Alarm routed to Security Operations Centre — active response capability.",
+                "guard_patrol": "Periodic manned patrol — detection window depends on patrol interval.",
+                "tamper_monitoring": "Electronic tamper sensor (switch, mesh, voltage) — often paired with zeroize response on adjacent Chip Boundary."
+              }
+            },
+            "requiresToolAccess": {
+              "label": "Requires tool access to open (screwdriver, hex key)"
+            },
+            "safetyRelevant": {
+              "label": "Protects safety-relevant hardware or functions"
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "helper": "Required for EN 50742 / MVO 2027 documentation"
+            },
+            "owner": {
+              "label": "Owner / Responsible"
+            },
+            "notes": {
+              "label": "Security Assumptions / Notes"
+            },
+            "description": {
+              "label": "Description"
+            },
+            "physicalMobility": {
+              "label": "Device Mobility",
+              "options": {
+                "fixed": "Fixed — cannot be removed",
+                "removable": "Removable — can be extracted (DIN-Rail, module)",
+                "portable": "Portable — can be taken offsite",
+                "vehicle_mounted": "Vehicle-mounted — moves with vehicle"
+              },
+              "tooltips": {
+                "fixed": "Device is permanently installed. Attacker must operate on-site under time pressure with limited tools. Offline lab attacks and device substitution are not applicable.",
+                "removable": "Device can be extracted with some effort (DIN-Rail clip, screws, connector). Enables Depot Attack, Maintenance Abuse, Hardware Swap. Attacker needs physical access and time for extraction.",
+                "portable": "Device can be carried away. Attacker gains full control of attack environment — unlimited time, lab equipment, Fault Injection, Side-Channel, Chip-Off, Firmware Implant. Critical: if safetyRelevant=true, generates Rogue Calibration and Safety-Critical Implant threats.",
+                "vehicle_mounted": "Device is installed in a vehicle and moves with it. Mobile but not hand-carried. Enables vehicle theft scenario and depot attack during maintenance windows."
+              }
+            },
+            "debugInterfaceAccessible": {
+              "label": "Debug / programming port physically accessible (JTAG, SWD, UART)"
+            },
+            "removableMediaAccessible": {
+              "label": "Removable media physically accessible (USB, SD card)"
+            }
+          }
+        },
         "asset": {
           "regulatoryReference": "Regulatory Reference",
           "containsSafetyRelevantData": "Contains safety-relevant data (EN 50742)",
@@ -1621,6 +1773,8 @@
     "assetMissingResponsibility": "Asset \"{{name}}\" has no responsibility set — required for CRA Art. 13 supply chain obligations",
     "assetMissingRole": "Asset \"{{name}}\" has no role set — required for privilege escalation / insider threat scenarios",
     "assetMissingAutomationLevel": "Asset \"{{name}}\" has no automation level set",
+    "physicalBoundaryInvalidConnection": "Physical Boundary is non-connectable — use an Interface element on the boundary edge instead",
+    "interfaceNoPhysicalBoundary": "Interface has no physical context — it must overlap or lie inside a Physical Boundary",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",
@@ -1629,7 +1783,8 @@
       "TrustBoundary": "Trust Boundary",
       "Interface": "Interface",
       "Asset": "Asset",
-      "ChipBoundary": "Chip Boundary"
+      "ChipBoundary": "Chip Boundary",
+      "PhysicalBoundary": "Physical Boundary"
     }
   }
 }

@@ -10,10 +10,13 @@ import type {
   DataFlowProperties,
   InterfaceProperties,
   TrustBoundaryProperties,
+  PhysicalBoundaryProperties,
   ChipBoundaryProperties,
   StoredDataType,
   InterfaceLocation,
   BoundaryControlType,
+  PhysicalExposureLevel,
+  PhysicalMonitoringType,
 } from "./element-properties";
 
 // ==================== PROCESS DEFAULTS ====================
@@ -921,11 +924,6 @@ export const TB_TYPE_DEFAULTS: Record<
     defaultExposureLevel: "EL1",
     monitoringEnabled: false,
   },
-  // Physical boundary — no network control
-  physical: {
-    defaultExposureLevel: "EL1",
-    monitoringEnabled: false,
-  },
   // Organization boundary — VPN is typical for cross-org connectivity
   organization: {
     defaultExposureLevel: "EL3",
@@ -959,16 +957,19 @@ export const TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<
   NonNullable<TrustBoundaryProperties["boundaryType"]>,
   string
 > = {
-  network:      "External network is untrusted. All ingress/egress requires authentication and encryption.",
-  cloud:        "Cloud perimeter is public. IAM policies and encryption are mandatory.",
-  privilege:    "Lower privilege zone cannot initiate connections to higher privilege zone.",
-  device:       "Device boundary. External interfaces require authentication.",
-  physical:     "Physical access required for attack. Tamper-evident enclosure assumed.",
+  network:
+    "External network is untrusted. All ingress/egress requires authentication and encryption.",
+  cloud:
+    "Cloud perimeter is public. IAM policies and encryption are mandatory.",
+  privilege:
+    "Lower privilege zone cannot initiate connections to higher privilege zone.",
+  device: "Device boundary. External interfaces require authentication.",
   organization: "Organizational boundary. Contractual controls apply.",
-  legal:        "Regulatory boundary. Compliance controls apply.",
-  peripheral:   "MCU to external chip boundary. Bus protocol has no authentication.",
-  boot:         "Bootloader to application boundary. Secure Boot chain enforced.",
-  debug:        "Debug interface boundary. Must be locked or disabled in production.",
+  legal: "Regulatory boundary. Compliance controls apply.",
+  peripheral:
+    "MCU to external chip boundary. Bus protocol has no authentication.",
+  boot: "Bootloader to application boundary. Secure Boot chain enforced.",
+  debug: "Debug interface boundary. Must be locked or disabled in production.",
 };
 
 /** Fields driven by TrustBoundary.boundaryType — used for clearing on driver reset */
@@ -977,6 +978,147 @@ export const TB_TYPE_DRIVEN_FIELDS: (keyof TrustBoundaryProperties)[] = [
   "monitoringEnabled",
   "boundaryControlTypes",
 ];
+
+// ==================== PHYSICAL BOUNDARY DEFAULTS ====================
+
+type PhysicalBoundaryType = NonNullable<PhysicalBoundaryProperties["boundaryType"]>;
+
+/**
+ * Cascade defaults based on PhysicalBoundary.boundaryType selection.
+ *
+ * Design principle: defaults reflect realistic baseline for the boundary type,
+ * not ideal state. This surfaces missing controls as threats rather than
+ * assuming security that may not be present.
+ *
+ * physicalExposureLevel follows the EL scale:
+ *   EL0 = sealed (tamper_zone with potting)
+ *   EL1 = physical tool access required (device_enclosure, vehicle)
+ *   EL2 = key/badge controlled (cabinet, room)
+ *   EL3 = guarded perimeter (building with security desk)
+ */
+export const PHYSICAL_BOUNDARY_TYPE_DEFAULTS: Record<
+  PhysicalBoundaryType,
+  Partial<PhysicalBoundaryProperties>
+> = {
+  device_enclosure: {
+    physicalExposureLevel:     "PEL2",
+    physicalMobility:          "fixed",   // Conservative default — override to "portable" for handhelds/calibration devices
+    accessibility:             "controlled",
+    requiresToolAccess:        true,
+    debugInterfaceAccessible:  false,     // Conservative: assume locked in production
+    removableMediaAccessible:  false,     // Conservative: assume no exposed media slot
+    tamperProtection:          "none",    // Surfaces: No tamper detection threat
+    physicalAccessControl:     "none",    // Enclosure opened without auth -> threat
+    monitoringType:            "none",
+  },
+  cabinet: {
+    physicalExposureLevel:  "PEL2",   // One barrier: lock on cabinet
+    physicalMobility:       "fixed",  // Cabinets are installed, not portable
+    accessibility:          "controlled",
+    physicalAccessControl:  "key",    // Conservative baseline: mechanical key only
+    tamperProtection:       "none",
+    monitoringType:         "none",
+  },
+  room: {
+    physicalExposureLevel:  "PEL1",   // Multiple barriers: building + controlled door + badge
+    physicalMobility:       "fixed",  // Rooms are fixed by definition
+    accessibility:          "controlled",
+    physicalAccessControl:  "badge",  // Typical: badge-only -> relay attack threat surfaces
+    tamperProtection:       "none",
+    monitoringType:         "none",   // Surfaces: No monitoring threat
+  },
+  building: {
+    physicalExposureLevel:  "PEL1",   // Significant restrictions: perimeter + checkpoint
+    physicalMobility:       "fixed",  // Buildings are fixed by definition
+    accessibility:          "guarded",
+    physicalAccessControl:  "badge",
+    tamperProtection:       "none",
+    monitoringType:         "none",
+  },
+  vehicle: {
+    physicalExposureLevel:     "PEL2",
+    physicalMobility:          "vehicle_mounted", // Moves with vehicle — depot attack risk
+    accessibility:             "controlled",
+    requiresToolAccess:        true,
+    debugInterfaceAccessible:  false,    // Conservative: OBD/CAN debug not exposed by default
+    removableMediaAccessible:  false,    // Conservative: no exposed media slot by default
+    tamperProtection:          "none",
+    physicalAccessControl:     "key",
+    monitoringType:            "none",
+  },
+  tamper_zone: {
+    physicalExposureLevel:    "PEL0",
+    physicalMobility:         "fixed",  // Tamper zones are typically fixed installations
+    accessibility:            "controlled", // Sealed nature expressed via PEL0 + tamperProtection
+    tamperProtection:         "potting",
+    requiresToolAccess:       false,    // PEL0: no tool opens this — destruction required
+    debugInterfaceAccessible: false,    // Sealed: no debug access without destruction
+    physicalAccessControl:    "none",   // Sealed zone: no access control meaningful
+    monitoringType:           "none",
+  },
+  custom: {},
+};
+
+/**
+ * Fields driven by PhysicalBoundary.boundaryType — cleared when driver is reset.
+ */
+export const PHYSICAL_BOUNDARY_TYPE_DRIVEN_FIELDS: (keyof PhysicalBoundaryProperties)[] = [
+  "physicalExposureLevel",
+  "physicalMobility",
+  "accessibility",
+  "tamperProtection",
+  "physicalAccessControl",
+  "requiresToolAccess",
+  "debugInterfaceAccessible",
+  "removableMediaAccessible",
+  "monitoringType",
+];
+
+/**
+ * Security assumptions placeholder text per boundaryType.
+ * Displayed in the Notes/Assumptions field — hints only, never auto-filled.
+ */
+export const PHYSICAL_BOUNDARY_TYPE_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<
+  PhysicalBoundaryType,
+  string
+> = {
+  device_enclosure:
+    "Device enclosure must be sealed before deployment. Verify no accessible debug ports (JTAG/UART/SWD) remain open inside enclosure. Consider tamper-evident label on screws.",
+  cabinet:
+    "Schaltschrank must be locked at all times outside maintenance windows. Key management procedure required. Verify no USB ports or removable media slots are accessible.",
+  room:
+    "Physical access log required. Badge access must be role-restricted. Camera coverage of entry point recommended. Verify no tailgating risk.",
+  building:
+    "Perimeter access control required. Visitor management procedure must be in place. Deliveries to secure areas must be escorted.",
+  vehicle:
+    "Vehicle access must be controlled when containing active devices. Verify enclosure integrity before deployment in field. Consider GPS tracking for theft detection.",
+  tamper_zone:
+    "Tamper zone must be inspected for integrity before each maintenance window. Potting or mesh breach must trigger incident response. Verify zeroize response is functional.",
+  custom:
+    "Document physical access control, tamper protection, and monitoring measures. Assess exposure level based on attacker reachability in deployment context.",
+};
+
+/**
+ * Get default properties for a PhysicalBoundary based on boundaryType selection.
+ * Only cascades into fields that are currently unset — consistent with
+ * applyCascadeDefaults pattern.
+ */
+export function getPhysicalBoundaryDefaults(
+  current: PhysicalBoundaryProperties,
+  boundaryType: PhysicalBoundaryType,
+): PhysicalBoundaryProperties {
+  const next: PhysicalBoundaryProperties = { ...current, boundaryType };
+  const defaults = PHYSICAL_BOUNDARY_TYPE_DEFAULTS[boundaryType] ?? {};
+
+  Object.entries(defaults).forEach(([key, value]) => {
+    const currentVal = next[key as keyof PhysicalBoundaryProperties];
+    if (currentVal === undefined || currentVal === null) {
+      (next as any)[key] = value;
+    }
+  });
+
+  return next;
+}
 
 // ==================== CHIP BOUNDARY DEFAULTS ====================
 

@@ -9,6 +9,8 @@ import type {
   ChipBoundaryProperties,
   ExposureLevel,
 } from "../models/element-properties";
+// PhysicalBoundaryProperties imported for type guard in membership building
+import type { PhysicalBoundaryProperties } from "../models/element-properties";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type {
   DFDGraph,
@@ -119,6 +121,10 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     const { elementChipBoundaries, chipBoundaryElements } =
       this.buildChipBoundaryMembership(elements);
 
+    // 3c. Physical Boundary membership (overlap-based, analog to ChipBoundary)
+    const { elementPhysicalBoundaries, physicalBoundaryElements } =
+      this.buildPhysicalBoundaryMembership(elements);
+
     // 4. Trust Boundary hierarchy (containment-based)
     const trustBoundaryHierarchy = this.buildTrustBoundaryHierarchy(elements);
 
@@ -136,6 +142,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       elementTrustBoundaries,
       effectiveElementTrustBoundary,
       elementChipBoundaries,
+      elementPhysicalBoundaries,
     );
 
     // 7. Derive Exposure Levels
@@ -157,6 +164,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       trustBoundaryElements,
       elementChipBoundaries,
       chipBoundaryElements,
+      elementPhysicalBoundaries,
+      physicalBoundaryElements,
       dataFlowAnalysis,
       trustBoundaryHierarchy,
       effectiveElementTrustBoundary,
@@ -259,6 +268,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       if (element.type === "ChipBoundary") continue;
       // TrustBoundary is not a member
       if (element.type === "TrustBoundary") continue;
+      // PhysicalBoundary is not a member of ChipBoundary
+      if (element.type === "PhysicalBoundary") continue;
 
       const memberChips: string[] = [];
       const elementBox = getBoundingBox(element);
@@ -279,6 +290,51 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     }
 
     return { elementChipBoundaries, chipBoundaryElements };
+  }
+
+  /**
+   * Build PhysicalBoundary membership based on geometric overlap.
+   * Rule: Process, ExternalEntity, Interface, ChipBoundary may be inside a PhysicalBoundary.
+   * PhysicalBoundaries model spatial access barriers — elements inside share the same
+   * physical access precondition for threat feasibility.
+   * No hierarchy — PhysicalBoundaries do not nest (unlike TrustBoundaries).
+   */
+  private buildPhysicalBoundaryMembership(elements: DFDElement[]): {
+    elementPhysicalBoundaries: Map<string, string[]>;
+    physicalBoundaryElements: Map<string, string[]>;
+  } {
+    const elementPhysicalBoundaries = new Map<string, string[]>();
+    const physicalBoundaryElements = new Map<string, string[]>();
+
+    const physicalBoundaries = elements.filter(
+      (e) => e.type === "PhysicalBoundary",
+    );
+
+    for (const element of elements) {
+      // PhysicalBoundary itself is not a member of another PhysicalBoundary
+      if (element.type === "PhysicalBoundary") continue;
+      // TrustBoundary is not a member
+      if (element.type === "TrustBoundary") continue;
+
+      const memberPBs: string[] = [];
+      const elementBox = getBoundingBox(element);
+
+      for (const pb of physicalBoundaries) {
+        const pbBox = getBoundingBox(pb);
+
+        if (boundingBoxesOverlap(elementBox, pbBox)) {
+          memberPBs.push(pb.id);
+
+          const pbElems = physicalBoundaryElements.get(pb.id) || [];
+          pbElems.push(element.id);
+          physicalBoundaryElements.set(pb.id, pbElems);
+        }
+      }
+
+      elementPhysicalBoundaries.set(element.id, memberPBs);
+    }
+
+    return { elementPhysicalBoundaries, physicalBoundaryElements };
   }
 
   // ==================== TRUST BOUNDARY HIERARCHY ====================
@@ -410,6 +466,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     elementTrustBoundaries: Map<string, string[]>,
     effectiveElementTrustBoundary: Map<string, string | undefined>,
     elementChipBoundaries: Map<string, string[]>,
+    elementPhysicalBoundaries: Map<string, string[]>,
   ): Map<string, DataFlowAnalysis> {
     const analysis = new Map<string, DataFlowAnalysis>();
 
@@ -479,6 +536,20 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         fromElement.type === "ChipBoundary" ||
         toElement.type === "ChipBoundary";
 
+      // Check if flow crosses a PhysicalBoundary (endpoints in different PB zones)
+      const fromPBs = elementPhysicalBoundaries.get(conn.from) || [];
+      const toPBs = elementPhysicalBoundaries.get(conn.to) || [];
+      const fromPBSet = new Set(fromPBs);
+      const toPBSet = new Set(toPBs);
+      const crossesPhysicalBoundary =
+        fromPBs.some((id) => !toPBSet.has(id)) ||
+        toPBs.some((id) => !fromPBSet.has(id));
+
+      // Check if flow terminates at a PhysicalBoundary element directly
+      const terminatesAtPhysicalBoundary =
+        fromElement.type === "PhysicalBoundary" ||
+        toElement.type === "PhysicalBoundary";
+
       analysis.set(conn.id, {
         connectionId: conn.id,
         fromElementId: conn.from,
@@ -496,6 +567,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         crossingType,
         crossesChipBoundary,
         terminatesAtChipBoundary,
+        crossesPhysicalBoundary,
+        terminatesAtPhysicalBoundary,
       });
     }
 
@@ -508,6 +581,9 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     dataFlowAnalysis: Map<string, DataFlowAnalysis>,
     elementTrustBoundaries: Map<string, string[]>,
     elementChipBoundaries: Map<string, string[]>,
+    // PhysicalBoundary uses PEL scale — no EL derivation from PB needed.
+    // Parameter accepted for API consistency with DFDGraph shape.
+    _elementPhysicalBoundaries?: Map<string, string[]>,
   ): void {
     // Interface → TB-EL als Default
     for (const element of elements) {

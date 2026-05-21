@@ -213,11 +213,19 @@
           "el3_description": "Industrielles Fabriknetzwerk, VPN oder Partner- / OT-Netzwerk",
           "el4_description": "Internetzugang, nicht vertrauenswürdiges öffentliches Netzwerk"
         },
+        "physical_exposure_level": {
+          "pel0_description": "PEL0 – Unzugänglich: Kein praktischer physischer Zugang ohne Zerstörung — vergossen, verschweisst oder Chip-Decap erforderlich. Keine relevante physische Angriffsfläche.",
+          "pel1_description": "PEL1 – Tief intern: Mehrere physische Barrieren müssen überwunden werden — z.B. JTAG hinter zwei verschachtelten Gehäusen, oder innerhalb eines gesicherten Untermoduls im Schaltschrank.",
+          "pel2_description": "PEL2 – Intern: Eine physische Barriere zu überwinden — Gehäuse öffnen, Schrank aufschliessen, Schrauben entfernen. Werkzeug- oder Schlüsselzugang erforderlich.",
+          "pel3_description": "PEL3 – Oberflächlich zugänglich: Von aussen erreichbar ohne etwas zu öffnen, aber nicht direkt benutzbar — z.B. eine Serviceklappe die geöffnet werden muss, ein versenkter Port hinter einer Abdeckung. Kein Werkzeug nötig.",
+          "pel4_description": "PEL4 – Direkt exponiert: Keine physische Barriere — Touchscreen, Outdoor-USB, Kartenleser. Direkt erreichbar für jeden. Mit PB.accessibility für Umgebungskontext kombinieren."
+        },
         "sections": {
           "context": "Kontext",
           "security": "Sicherheit",
           "documentation": "Dokumentation",
-          "hardware_security": "Hardware-Sicherheit"
+          "hardware_security": "Hardware-Sicherheit",
+          "physical_security": "Physische Sicherheit"
         },
         "process": {
           "safetyAnnotation": {
@@ -705,6 +713,7 @@
             },
             "location": {
               "label": "Physischer Standort",
+              "placeholder": "z.B. Serverraum, Fertigungshalle, Feldschrank",
               "options": {
                 "on_chip": "Auf dem Chip",
                 "on_board": "Auf der Platine (PCB)",
@@ -781,10 +790,6 @@
                 "medium": "Mittel (1–100 Mbit/s)",
                 "high": "Hoch (> 100 Mbit/s)"
               }
-            },
-            "location": {
-              "label": "Physischer Standort",
-              "placeholder": "z.B. Serverraum, Fertigungshalle, Feldschrank"
             },
             "isShieldedCable": {
               "label": "Abgeschirmtes Kabel"
@@ -1588,6 +1593,259 @@
             "environmentalHazard": "Umgebungsgefährdung",
             "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
           }
+        },
+        "chipboundary": {
+          "warning": {
+            "title": "Hardware-Grenze — physische Angriffsfläche!",
+            "hint": "Debug-Schnittstellen, Firmware-Schutz und Supply-Chain-Vertrauen müssen explizit bewertet werden. Ungesicherte Debug-Ports sind ein Pflichtbefund in embedded Security Reviews."
+          },
+          "fields": {
+            "chipType": {
+              "label": "Chip-Typ",
+              "options": {
+                "mcu": "MCU (Mikrocontroller)",
+                "som": "SOM (System-on-Module)",
+                "fpga": "FPGA",
+                "dsp": "DSP (Digitaler Signalprozessor)",
+                "se": "SE (Secure Element)",
+                "hsm": "HSM (Hardware Security Module)"
+              },
+              "tooltips": {
+                "mcu": "Mikrocontroller — STM32, NXP, Renesas. Bedrohungen: JTAG-Zugang, Firmware-Tampering, Secure-Boot-Bypass, Firmware-Readback.",
+                "som": "System-on-Module — Toradex, RPi CM, Variscite. Supply-Chain-Vertrauen besonders relevant da Drittanbieter-Modul.",
+                "fpga": "Field Programmable Gate Array. Bedrohungen: Bitstream-Tampering, Readback, Partial Reconfiguration Attack.",
+                "dsp": "Digitaler Signalprozessor. Bedrohungsprofil ähnlich wie MCU.",
+                "se": "Secure Element — ATECC608. Hardware-gesicherter Key-Speicher, nicht extrahierbar by Design.",
+                "hsm": "Hardware Security Module. Höchste Hardware-Absicherung. FIPS 140-2 oder CC EAL4+ Zertifizierung prüfen."
+              }
+            },
+            "defaultExposureLevel": {
+              "label": "Standard-Expositionslevel"
+            },
+            "debugInterfacePresent": {
+              "label": "Debug-Schnittstelle",
+              "options": {
+                "none": "Keine",
+                "jtag": "JTAG",
+                "swd": "SWD",
+                "swd_swo": "SWD + SWO (ITM)",
+                "jtag_trace": "JTAG + Trace Port (ETM)",
+                "custom": "Benutzerdefiniert"
+              },
+              "tooltips": {
+                "none": "Keine Debug-Schnittstelle vorhanden oder vollständig deaktiviert. Empfohlen für Produktionsfirmware.",
+                "jtag": "Vollständiges JTAG — CPU-Halt, Speicherzugriff, Flash Read/Write. Höchstes Risiko wenn nicht gesperrt.",
+                "swd": "SWD (ARM Serial Wire Debug) — ähnliche Fähigkeiten wie JTAG mit weniger Pins. Muss in Produktion gesperrt werden.",
+                "swd_swo": "SWD mit Single Wire Output — leichtgewichtiges Software-Trace via ITM. Einzelner zusätzlicher Pin.",
+                "jtag_trace": "JTAG mit ETM Trace Port — vollständiges Instruction-Trace via Parallelport. Erfordert separates Trace-Hardware.",
+                "custom": "Proprietäre oder herstellerspezifische Debug-Schnittstelle. Zugriffsmethode und Sperrmechanismus dokumentieren."
+              }
+            },
+            "debugInterfaceLocked": {
+              "label": "Debug-Schnittstelle gesperrt / deaktiviert in Produktion (Fuse / OTP)"
+            },
+            "secureBootEnabled": {
+              "label": "Secure Boot aktiviert"
+            },
+            "firmwareProtection": {
+              "label": "Firmware-Schutz",
+              "options": {
+                "none": "Keiner",
+                "locked": "Gesperrt",
+                "encrypted": "Verschlüsselt",
+                "rdp_level1": "RDP Level 1",
+                "rdp_level2": "RDP Level 2"
+              },
+              "tooltips": {
+                "none": "Kein Schutz — Firmware lesbar und ersetzbar.",
+                "locked": "Schreibgeschützt, kein Debug-Zugang.",
+                "encrypted": "Firmware-Image ist verschlüsselt gespeichert.",
+                "rdp_level1": "STM32 RDP1: Readback deaktiviert, Debug eingeschränkt.",
+                "rdp_level2": "STM32 RDP2: JTAG vollständig deaktiviert, Mass Erase bei Tamper."
+              }
+            },
+            "bitstreamEncryption": {
+              "label": "Bitstream-Verschlüsselung aktiviert"
+            },
+            "tamperProtection": {
+              "label": "Tamper-Schutz",
+              "options": {
+                "none": "Keiner",
+                "basic": "Einfach",
+                "active": "Aktiv"
+              },
+              "tooltips": {
+                "none": "Kein Tamper-Schutz.",
+                "basic": "Gehäusesiegel, Tamper-evidentes Label oder Verguss.",
+                "active": "Aktive Tamper-Erkennung: Spannungsglitch, Temperatur oder Mesh."
+              }
+            },
+            "supplyChainTrust": {
+              "label": "Supply-Chain-Vertrauen",
+              "options": {
+                "verified": "Verifiziert",
+                "unverified": "Nicht verifiziert",
+                "unknown": "Unbekannt"
+              }
+            },
+            "safetyRelevant": {
+              "label": "Sicherheitsrelevante Hardware"
+            },
+            "safetyRationale": {
+              "label": "Safety-Begründung",
+              "helper": "Erforderlich für EN 50742 / MVO 2027 Dokumentation"
+            },
+            "notes": {
+              "label": "Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            }
+          }
+        },
+        "physicalboundary": {
+          "warning": {
+            "title": "Physische Grenze — Angriffsflächen-Modellierung!",
+            "hint": "Interfaces die diese Boundary überschneiden oder darin liegen erben ihre physischen Zugangsvoraussetzungen. Tamper-Schutz und Zugangskontrolle vor Deployment verifizieren."
+          },
+          "fields": {
+            "boundaryType": {
+              "label": "Boundary-Typ",
+              "options": {
+                "device_enclosure": "Gerätegehäuse",
+                "cabinet": "Schaltschrank / Rack",
+                "room": "Raum",
+                "building": "Gebäude / Anlage",
+                "vehicle": "Fahrzeug / Maschine",
+                "tamper_zone": "Tamper-Zone",
+                "custom": "Benutzerdefiniert"
+              },
+              "tooltips": {
+                "device_enclosure": "Gerätegehäuse — erfordert Werkzeugzugang (Schrauben, Hex-Key) zum Öffnen. Typisch für Embedded-Geräte, Steuereinheiten, Sensoren.",
+                "cabinet": "Abschliessbares Gehäuse wie Schaltschrank oder Server-Rack. Schlüssel- oder Badge-Zugang.",
+                "room": "Zugangskontrollierter Raum wie Serverraum, Produktionshalle oder Steuerraum. Badge- oder Schlüsselzugang.",
+                "building": "Gebäude- oder Werksgelände-Perimeter. Höchste physische Boundary in den meisten OT-Deployments.",
+                "vehicle": "Fahrzeug, Maschine oder mobile Anlage. Physischer Zugang durch Gehäuse oder Fahrerkabine kontrolliert.",
+                "tamper_zone": "Versiegelter Bereich mit aktivem Tamper-Schutz — Verguss, Tamper-Bag oder leitendes Mesh. Kein Zugang ohne Zerstörung.",
+                "custom": "Proprietärer oder nicht-standardisierter physischer Boundary-Typ. In Notizen beschreiben."
+              }
+            },
+            "physicalExposureLevel": {
+              "label": "Physisches Expositionslevel (PEL)"
+            },
+            "accessibility": {
+              "label": "Zugänglichkeit",
+              "options": {
+                "public": "Öffentlich — keine Barriere",
+                "controlled": "Kontrolliert — Schlüssel, Badge oder PIN erforderlich",
+                "guarded": "Bewacht — bemannt und überwacht",
+                "sealed": "Versiegelt — nur destruktiver Zugang"
+              },
+              "tooltips": {
+                "public": "Keine Barriere — frei erreichbar (Lobby, Outdoor-Installation, öffentlicher Bereich). Maximale Angreiferexposition.",
+                "controlled": "Zugang durch Mechanismus eingeschränkt (Schlüssel, Badge, PIN). Rollenbasierter Zutritt.",
+                "guarded": "Bemannter und überwachter Eingang — aktive menschliche Präsenz an der Boundary.",
+                "sealed": "Vergossen, verschweisst oder tamper-evident — nur destruktiver Zugang. Kein Zutritt ohne Zerstörung der Boundary."
+              }
+            },
+            "physicalAccessControl": {
+              "label": "Physische Zugangskontrolle",
+              "options": {
+                "none": "Keine",
+                "key": "Mechanischer Schlüssel",
+                "badge": "Badge (RFID/NFC)",
+                "badge_pin": "Badge + PIN",
+                "biometric": "Biometrie",
+                "guard": "Wachpersonal / Personenkontrolle"
+              },
+              "tooltips": {
+                "none": "Kein physischer Zugangskontroll-Mechanismus vorhanden.",
+                "key": "Mechanischer Schlüssel — Standard- oder Hochsicherheitszylinder.",
+                "badge": "RFID/NFC-Badge ohne zweiten Faktor. Klonbar — Relay-Attack-Risiko vorhanden.",
+                "badge_pin": "Badge plus PIN — mindert Relay-Attack- und Kartenweitergabe-Risiko.",
+                "biometric": "Biometrische Authentifizierung (Fingerabdruck, Iris) — stärkster einzelner physischer Faktor.",
+                "guard": "Bemannter Eingang — Identität wird durch Sicherheitspersonal geprüft."
+              }
+            },
+            "tamperProtection": {
+              "label": "Tamper-Schutz",
+              "options": {
+                "none": "Keiner",
+                "seal": "Tamper-evident Siegel / Label",
+                "switch": "Tamper-Detection-Schalter",
+                "mesh": "Aktives Tamper-Mesh",
+                "potting": "Epoxidharz-Verguss",
+                "active_detection": "Aktive Erkennung (Zeroize)"
+              },
+              "tooltips": {
+                "none": "Kein Tamper-Schutz — Öffnen der Boundary hinterlässt keine Spuren.",
+                "seal": "Tamper-evidentes Label oder Siegel — liefert nachträglichen Nachweis der Öffnung, verhindert aber keinen Zugang.",
+                "switch": "Mikroschalter der bei Gehäuseöffnung auslöst — generiert Alert oder unterbricht Stromversorgung.",
+                "mesh": "Leitendes Mesh im Gehäuse eingebettet — Durchschneiden oder Bohren löst Erkennung aus.",
+                "potting": "Epoxidharz-Verguss — kein Rework möglich ohne Platinenerstörung. Höchster passiver Schutz.",
+                "active_detection": "Spannungs-, Temperatur- oder Lichtsensor mit automatischer Zeroize-Reaktion — HSM / Payment-Terminal-Niveau."
+              }
+            },
+            "monitoringType": {
+              "label": "Physisches Monitoring",
+              "options": {
+                "none": "Keines",
+                "camera": "CCTV / IP-Kamera",
+                "alarm": "Bewegungs- / Türalarm",
+                "soc": "SOC-verbundener Alarm",
+                "guard_patrol": "Wachbegehung",
+                "tamper_monitoring": "Elektronisches Tamper-Monitoring"
+              },
+              "tooltips": {
+                "none": "Kein Monitoring — Angreifer kann unbeobachtet agieren. Generiert Repudiation-Bedrohung.",
+                "camera": "CCTV oder IP-Kamera — nur nachträgliche Beweise. Verhindert keinen Zugang und löst keine Reaktion aus.",
+                "alarm": "Bewegungs- oder Türalarm — Echtzeit-Alert, aber keine aktive Response-Kapazität.",
+                "soc": "Alarm an Security Operations Centre weitergeleitet — aktive Response-Kapazität vorhanden.",
+                "guard_patrol": "Periodische Begehung durch Wachpersonal — Erkennungsfenster abhängig vom Begehungsintervall.",
+                "tamper_monitoring": "Elektronischer Tamper-Sensor (Schalter, Mesh, Spannung) — oft kombiniert mit Zeroize-Reaktion auf angrenzender Chip Boundary."
+              }
+            },
+            "requiresToolAccess": {
+              "label": "Werkzeugzugang zum Öffnen erforderlich (Schraubenzieher, Hex-Key)"
+            },
+            "safetyRelevant": {
+              "label": "Schützt sicherheitsrelevante Hardware oder Funktionen"
+            },
+            "safetyRationale": {
+              "label": "Safety-Begründung",
+              "helper": "Erforderlich für EN 50742 / MVO 2027 Dokumentation"
+            },
+            "owner": {
+              "label": "Verantwortlicher / Eigentümer"
+            },
+            "notes": {
+              "label": "Sicherheitsannahmen / Notizen"
+            },
+            "description": {
+              "label": "Beschreibung"
+            },
+            "physicalMobility": {
+              "label": "Gerätmobilität",
+              "options": {
+                "fixed": "Fix — kann nicht entfernt werden",
+                "removable": "Ausbaubar — kann entnommen werden (DIN-Rail, Modul)",
+                "portable": "Tragbar — kann ausser Haus gebracht werden",
+                "vehicle_mounted": "Fahrzeugmontiert — bewegt sich mit dem Fahrzeug"
+              },
+              "tooltips": {
+                "fixed": "Gerät ist fest installiert. Angreifer muss vor Ort unter Zeitdruck mit begrenztem Werkzeug arbeiten. Offline-Labor-Angriffe und Device-Substitution sind nicht anwendbar.",
+                "removable": "Gerät kann mit etwas Aufwand entnommen werden (DIN-Rail-Clip, Schrauben, Stecker). Ermöglicht Depot Attack, Maintenance Abuse, Hardware Swap. Angreifer benötigt physischen Zugang und Zeit für die Entnahme.",
+                "portable": "Gerät kann mitgenommen werden. Angreifer erlangt volle Kontrolle über die Angriffsumgebung — unbegrenzte Zeit, Laborausrüstung, Fault Injection, Side-Channel, Chip-Off, Firmware Implant. Kritisch: bei safetyRelevant=true entstehen Rogue-Calibration- und Safety-Critical-Implant-Bedrohungen.",
+                "vehicle_mounted": "Gerät ist im Fahrzeug eingebaut und bewegt sich damit. Mobil aber nicht handtragbar. Ermöglicht Fahrzeugdiebstahl-Szenario und Depot Attack bei Wartungsfenstern."
+              }
+            },
+            "debugInterfaceAccessible": {
+              "label": "Debug- / Programmier-Port physisch zugänglich (JTAG, SWD, UART)"
+            },
+            "removableMediaAccessible": {
+              "label": "Wechselmedium physisch zugänglich (USB, SD-Karte)"
+            }
+          }
         }
       },
       "notifications": {
@@ -1631,6 +1889,8 @@
     "assetMissingResponsibility": "Asset \"{{name}}\" hat keine Verantwortung — erforderlich für CRA Art. 13 Lieferkettenpflichten",
     "assetMissingRole": "Asset \"{{name}}\" hat keine Rolle — erforderlich für Privilege Escalation / Insider Threat Szenarien",
     "assetMissingAutomationLevel": "Asset \"{{name}}\" hat keinen Automatisierungsgrad",
+    "physicalBoundaryInvalidConnection": "Physische Grenze ist nicht verbindbar — verwende stattdessen ein Interface-Element auf der Boundary-Kante",
+    "interfaceNoPhysicalBoundary": "Interface hat keinen physischen Kontext — es muss eine Physische Grenze überschneiden oder darin liegen",
     "elementTypes": {
       "Process": "Prozess",
       "Multiprocess": "Multiprozess",
@@ -1639,7 +1899,8 @@
       "TrustBoundary": "Trust Boundary",
       "Interface": "Interface",
       "Asset": "Asset",
-      "ChipBoundary": "Chip-Grenze"
+      "ChipBoundary": "Chip-Grenze",
+      "PhysicalBoundary": "Physische Grenze"
     }
   }
 }

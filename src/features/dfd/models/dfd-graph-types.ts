@@ -25,6 +25,10 @@ export interface DFDGraph {
   elementChipBoundaries: Map<string, string[]>; // elementId -> chipBoundaryIds
   chipBoundaryElements: Map<string, string[]>; // chipBoundaryId -> elementIds
 
+  /** PhysicalBoundary relations — analog to ChipBoundary */
+  elementPhysicalBoundaries: Map<string, string[]>; // elementId -> physicalBoundaryIds
+  physicalBoundaryElements: Map<string, string[]>; // physicalBoundaryId -> elementIds
+
   /** DataFlow semantic analysis */
   dataFlowAnalysis: Map<string, DataFlowAnalysis>;
 
@@ -75,6 +79,12 @@ export interface DataFlowAnalysis {
 
   /** Whether this flow terminates at a ChipBoundary (via Interface on boundary edge) */
   terminatesAtChipBoundary: boolean;
+
+  /** Whether this flow crosses a PhysicalBoundary */
+  crossesPhysicalBoundary: boolean;
+
+  /** Whether this flow terminates at a PhysicalBoundary (via Interface on boundary edge) */
+  terminatesAtPhysicalBoundary: boolean;
 }
 
 // ==================== INTERNAL HELPERS ====================

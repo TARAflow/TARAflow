@@ -91,6 +91,7 @@ export class DFDChangeDetector {
       "Interface",
       "Multiprocess",
       "ChipBoundary",
+      "PhysicalBoundary", // PB bounds define the physical zone — movement triggers rebuild
     ]);
 
     const prevElemMap = new Map(prevElements.map((e) => [e.id, e]));

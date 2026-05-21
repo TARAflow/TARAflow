@@ -1,13 +1,15 @@
 export interface DFDAnalysisContext {
   // Elements
-  isDummy(): boolean; 
-  
-  getElement(id: string): {
-    id: string;
-    type: string;
-    name: string;
-    displayId: string;
-  } | undefined;
+  isDummy(): boolean;
+
+  getElement(id: string):
+    | {
+        id: string;
+        type: string;
+        name: string;
+        displayId: string;
+      }
+    | undefined;
 
   // Data flows
   getDataFlows(): Iterable<{
@@ -24,6 +26,12 @@ export interface DFDAnalysisContext {
     crossesMultipleTrustBoundaries: boolean;
     viaInterface: boolean;
     crossingType: "none" | "inbound" | "outbound" | "lateral";
+    // ChipBoundary crossing signals
+    crossesChipBoundary: boolean;
+    terminatesAtChipBoundary: boolean;
+    // PhysicalBoundary crossing signals
+    crossesPhysicalBoundary: boolean;
+    terminatesAtPhysicalBoundary: boolean;
   }>;
 
   // Trust boundaries
@@ -34,4 +42,20 @@ export interface DFDAnalysisContext {
   }>;
 
   getEffectiveTrustBoundary(elementId: string): string | undefined;
+
+  // Chip boundaries
+  // Threat generator uses this to enumerate CB elements and their properties
+  getChipBoundaries(): Iterable<{
+    id: string;
+    name: string;
+    displayId: string;
+  }>;
+
+  // Physical boundaries
+  // Threat generator uses this to enumerate PB elements and their properties
+  getPhysicalBoundaries(): Iterable<{
+    id: string;
+    name: string;
+    displayId: string;
+  }>;
 }

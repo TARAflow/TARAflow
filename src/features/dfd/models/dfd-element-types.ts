@@ -21,7 +21,8 @@ export type DFDElementType =
   | "DataFlow"
   | "TrustBoundary"
   | "Interface"
-  | "ChipBoundary";
+  | "ChipBoundary"
+  | "PhysicalBoundary";
 
 // ==================== SECURITY / TRUST LEVEL ====================
 

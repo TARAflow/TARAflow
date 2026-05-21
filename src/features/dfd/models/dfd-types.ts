@@ -13,6 +13,7 @@ import type {
   DataFlowProperties,
   InterfaceProperties,
   TrustBoundaryProperties,
+  PhysicalBoundaryProperties,
   ExposureLevel,
   ChipBoundaryProperties,
 } from "./element-properties";
@@ -149,6 +150,7 @@ export interface DFDElement extends DFDBaseEntity {
     | DataStoreProperties
     | InterfaceProperties
     | TrustBoundaryProperties
+    | PhysicalBoundaryProperties
     | ChipBoundaryProperties;
 }
 
@@ -200,6 +202,7 @@ export interface DFDStats {
   dataFlows: number;
   trustBoundaries: number;
   chipBoundaries: number;
+  physicalBoundaries: number;
   interfaces: number;
 
   /** Number of unique assets in the project */
@@ -322,7 +325,3 @@ export {
   getDFDElementTypeText,
   getDFDElementTypePluralText,
 } from "./dfd-formatters";
-
-// REMOVED: ALLOWED_ASSET_RELATIONS → now in asset-constants.ts
-// REMOVED: getAllowedAssetRelations, isAssetRelationAllowed, getAssetRelationTypeText
-//          → now in asset-constants.ts and asset-relation-types.ts

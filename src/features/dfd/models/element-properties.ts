@@ -16,6 +16,71 @@
 // EL4 (Public): Access via untrusted external networks (e.g., Internet, remote connections
 export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
 
+// ==================== PHYSICAL EXPOSURE LEVELS ====================
+//
+// PEL — Physical Exposure Level.
+// Describes how physically reachable an interface or boundary is.
+// Direction is aligned with network ExposureLevel: higher = more exposed.
+// Designed to be combined with PhysicalBoundary.accessibility which captures
+// the environmental context (public / controlled / guarded / sealed).
+//
+// PEL0 (Inaccessible): No access without physical destruction — potted, welded,
+//                       chip-decap required. No practical attack surface.
+// PEL1 (Deep Internal): Multiple physical barriers to overcome — e.g. JTAG behind
+//                       two nested enclosures, or inside a sealed sub-module.
+// PEL2 (Internal):      One physical barrier to bypass — open enclosure, unlock
+//                       cabinet, remove screws. Tool or key access required.
+// PEL3 (Externally Protected): Accessible from outside but with a barrier —
+//                       locked panel, service door, badge-controlled port.
+// PEL4 (Directly Exposed): No barrier — touchscreen, outdoor port, public USB.
+//                       Highest physical attack surface. Combine with
+//                       PB.accessibility="public" for full threat context.
+//
+// Example — Ticket machine:
+//   Touchscreen: PEL4, PB.accessibility="public"  → maximum exposure
+//   USB-Service: PEL2, PB.accessibility="public"  → one barrier, public context
+//   JTAG/SWD:    PEL1, PB.accessibility="public"  → deep internal, public context
+//
+export type PhysicalExposureLevel = "PEL0" | "PEL1" | "PEL2" | "PEL3" | "PEL4";
+
+// PhysicalMobility — can the device be removed from its security environment?
+// This is a qualitatively different threat dimension from PEL or accessibility.
+// Mobility determines whether an attacker can control the attack environment:
+//
+// fixed         → Attack must happen on-site, under time pressure, limited tools.
+//                 Offline lab attacks, device substitution: not applicable.
+// removable     → Device can be extracted (DIN-Rail module, plug-in card) with some
+//                 effort. Enables Depot Attack, Maintenance Abuse, Hardware Swap.
+// portable      → Device can be taken home by attacker. Enables full Lab analysis:
+//                 Evil-Maid, Firmware Implant, Side-Channel, Chip-Off, Fault Injection,
+//                 Device Substitution. Especially critical if safetyRelevant=true
+//                 (e.g. calibration device → rogue calibration data injection).
+// vehicle_mounted → Device moves with a vehicle. Mobile but not easily hand-carried.
+//                 Enables: vehicle theft scenario, depot attack during maintenance.
+//
+// Key insight: a fixed PLC and a portable calibration device may share identical
+// PEL/accessibility/tamper values but have completely different threat landscapes.
+export type PhysicalMobility = "fixed" | "removable" | "portable" | "vehicle_mounted";
+
+// ==================== PHYSICAL MONITORING TYPE ====================
+//
+// Structured vocabulary for physical monitoring mechanisms on PhysicalBoundary.
+//
+// Threat-reduction mapping (attack feasibility scoring):
+//   none             -> No detection — attacker operates unobserved
+//   camera           -> Post-hoc evidence only — does not prevent access
+//   alarm            -> Real-time alert on breach — reduces dwell time
+//   soc              -> Alarm routed to SOC — active response capability
+//   guard_patrol     -> Periodic human presence — detection window varies
+//   tamper_monitoring -> Electronic tamper detection (mesh, switch, sensor)
+//                        often paired with zeroize response on ChipBoundary
+export type PhysicalMonitoringType =
+  | "none"
+  | "camera"            // CCTV / IP camera — evidence, not prevention
+  | "alarm"             // Motion / door alarm — real-time alert, no active response
+  | "soc"               // Alarm routed to Security Operations Centre — active response
+  | "guard_patrol"      // Periodic manned patrol — detection gap depends on interval
+  | "tamper_monitoring"; // Electronic tamper detection (switch, mesh, voltage sensor)
 
 // ==================== STORED DATA TYPES ====================
 //
@@ -1131,13 +1196,12 @@ export interface InterfaceProperties {
 export interface TrustBoundaryProperties {
   boundaryId?: string;
   boundaryType?:
-    | "network"
-    | "privilege"
-    | "organization"
-    | "cloud"
-    | "physical"
-    | "legal"
-    | "device"
+    | "network" // Network segment boundary (VLAN, subnet, firewall zone)
+    | "privilege" // Privilege level change (user ↔ admin, process ↔ kernel)
+    | "organization" // Organisational boundary (company, department, partner)
+    | "cloud" // Cloud service boundary (tenant, region, provider)
+    | "legal" // Legal/contractual boundary (data processing agreement)
+    | "device" // Logical device boundary (between two connected devices)
     // Embedded-specific boundaries
     | "peripheral" // MCU ↔ external chip (SPI, I2C, UART sensor/EEPROM)
     | "boot" // Bootloader ↔ Application boundary
@@ -1306,6 +1370,203 @@ export interface ChipBoundaryProperties {
   notes?: string;
 }
 
+// ==================== PHYSICAL BOUNDARY PROPERTIES ====================
+// Represents a spatially-defined physical access barrier in the DFD.
+//
+// Semantically distinct from TrustBoundary (logical/policy) and
+// ChipBoundary (hardware/electrical isolation). PhysicalBoundary models
+// the question: "Who can physically reach this?"
+//
+// Threat classes triggered:
+//   device_enclosure / tamper_zone → Firmware Extraction, Debug Attach, Cable Tamper
+//   cabinet / room                 → Unauthorized Physical Access, Relay Attack
+//   building / vehicle             → Theft, Maintenance Abuse, Sensor Spoofing
+//
+// STRIDE relevance:
+//   S — Relay attack (badge cloning), maintenance impersonation
+//   T — Cable tampering, USB insertion, sensor spoofing, debug attachment
+//   R — No physical audit trail if monitoringEnabled = false
+//   I — Side-channel preparation, debug port access, removable media
+//   D — Device theft, physical destruction, power disruption
+//   E — Debug access, JTAG attachment, bypassing logical controls physically
+//
+// Visual convention (draw.io):
+//   Color: #1B4F8A (dark navy)   Stroke: long dash   Weight: same as TB/CB
+
+export interface PhysicalBoundaryProperties {
+  // ── Primary classifier ────────────────────────────────────────────────────
+  /**
+   * Physical boundary type.
+   * Drives cascade defaults and threat template selection.
+   *
+   * device_enclosure: Device housing — screws/clips to open, tool required
+   * cabinet:          Lockable enclosure (Schaltschrank, server rack)
+   * room:             Access-controlled room (server room, production hall)
+   * building:         Building or facility perimeter
+   * vehicle:          Vehicle, machine, or mobile plant
+   * tamper_zone:      Sealed zone with tamper protection (potting, tamper bag)
+   */
+  boundaryType?:
+    | "device_enclosure"
+    | "cabinet"
+    | "room"
+    | "building"
+    | "vehicle"
+    | "tamper_zone"
+    | "custom";
+
+  // ── Exposure ──────────────────────────────────────────────────────────────
+  /**
+   * Physical exposure level — how reachable is this boundary or its interfaces?
+   * Higher = more exposed, aligned with network ExposureLevel direction.
+   *
+   * PEL0 = Inaccessible (destruction required — potted, chip-decap)
+   * PEL1 = Deep internal (multiple barriers to overcome)
+   * PEL2 = Internal (one barrier — enclosure, lock, screws)
+   * PEL3 = Surface accessible (externally reachable, not directly usable)
+   * PEL4 = Directly exposed (no barrier — touchscreen, outdoor port)
+   *
+   * Combine with accessibility for environmental context (public / controlled).
+   * @see PhysicalExposureLevel
+   */
+  physicalExposureLevel?: PhysicalExposureLevel;
+
+  /**
+   * Physical mobility — can the device be removed from its security environment?
+   * This is orthogonal to PEL and accessibility. It determines whether an attacker
+   * can control the attack environment (time, tools, lab equipment).
+   *
+   * Only meaningful for boundaryType: "device_enclosure" | "vehicle".
+   *
+   * fixed          → On-site attack only. Limited time/tools.
+   * removable      → Can be extracted (DIN-Rail, plug-in module). Depot attack risk.
+   * portable       → Can be taken home. Full lab attack possible. Evil-Maid threat.
+   * vehicle_mounted → Moves with vehicle. Mobile but not hand-carried.
+   *
+   * Critical: portable + safetyRelevant=true generates Calibration Manipulation
+   * and Safety-Critical Firmware Implant threats (e.g. calibration device).
+   * @see PhysicalMobility
+   */
+  physicalMobility?: PhysicalMobility;
+
+  /**
+   * Physical exposure category of this boundary.
+   * Describes HOW OPEN the boundary is — not what mechanism protects it.
+   * The protection mechanism is captured separately in physicalAccessControl.
+   *
+   * Keeping these two fields separate allows clean feasibility scoring:
+   *   accessibility  = exposure dimension  ("How open is it?")
+   *   physicalAccessControl = mechanism dimension ("What protects it?")
+   *
+   * public:     No barrier — freely reachable (lobby, outdoor, public area)
+   * controlled: Access is restricted by some mechanism (key, badge, PIN)
+   * guarded:    Manned + monitored entry — active human presence at boundary
+   * sealed:     Destructive access only — potted, welded, tamper-zoned
+   */
+  accessibility?:
+    | "public"
+    | "controlled"
+    | "guarded"
+    | "sealed";
+
+  // ── Physical Security Controls ─────────────────────────────────────────────
+  /**
+   * Tamper protection mechanism present on or inside this boundary.
+   *
+   * none:             No tamper protection
+   * seal:             Tamper-evident label or seal
+   * switch:           Tamper-detection microswitch (triggers on enclosure open)
+   * mesh:             Active tamper mesh (conductive — triggers on cut/drill)
+   * potting:          Epoxy potting — no rework possible without destruction
+   * active_detection: Voltage/temperature/light sensor with zeroize response
+   */
+  tamperProtection?:
+    | "none"
+    | "seal"
+    | "switch"
+    | "mesh"
+    | "potting"
+    | "active_detection";
+
+  /**
+   * Physical access control mechanism enforced at this boundary.
+   *
+   * none:       No access control
+   * key:        Mechanical key (standard or high-security)
+   * badge:      RFID/NFC badge (cloneable without second factor)
+   * badge_pin:  Badge + PIN — mitigates relay attack risk
+   * biometric:  Biometric (fingerprint, iris) — strongest single factor
+   * guard:      Manned entry point — identity checked by personnel
+   */
+  physicalAccessControl?:
+    | "none"
+    | "key"
+    | "badge"
+    | "badge_pin"
+    | "biometric"
+    | "guard";
+
+  /**
+   * Physical monitoring mechanism present at this boundary.
+   * Drives attack feasibility reduction in the threat scoring model.
+   *
+   * none             -> No detection capability — attacker operates unobserved
+   * camera           -> CCTV/IP camera — post-hoc evidence, not prevention
+   * alarm            -> Real-time alert on breach — reduces attacker dwell time
+   * soc              -> Alarm routed to SOC — active response capability
+   * guard_patrol     -> Periodic manned patrol — detection gap depends on interval
+   * tamper_monitoring -> Electronic tamper sensor — often triggers zeroize on ChipBoundary
+   *
+   * @see PhysicalMonitoringType
+   */
+  monitoringType?: PhysicalMonitoringType;
+
+  // ── Attack Surface Hints ───────────────────────────────────────────────────
+  /**
+   * A debug or programming port (JTAG, SWD, UART console) is physically
+   * accessible inside or on this boundary without further disassembly.
+   * Relevant for: device_enclosure, vehicle, tamper_zone.
+   * When true: Debug Attachment and Firmware Readback threats are generated.
+   * Distinct from ChipBoundary.debugInterfacePresent which models the port itself —
+   * this models whether it is physically reachable from outside the boundary.
+   */
+  debugInterfaceAccessible?: boolean;
+
+  /**
+   * Removable media (USB flash, SD card, CF card) is physically accessible
+   * at this boundary without further disassembly.
+   * Relevant for: device_enclosure, vehicle.
+   * When true: Removable Media Insertion and Data Exfiltration threats generated.
+   * Note: models physical accessibility, not policy (allowed/denied by SW).
+   */
+  removableMediaAccessible?: boolean;
+
+  /**
+   * Opening this boundary requires a tool (screwdriver, hex key, etc.).
+   * Contributes to physical exposure assessment — raises attacker effort.
+   */
+  requiresToolAccess?: boolean;
+
+  // ── Safety / Compliance ────────────────────────────────────────────────────
+  /**
+   * This physical boundary protects safety-relevant hardware or functions.
+   * Used for: EN 50742 "Identification of safety-relevant interfaces".
+   * @example Schaltschrank housing a safety PLC → safetyRelevant: true
+   */
+  safetyRelevant?: boolean;
+  safetyRationale?: string;
+
+  // ── Audit ──────────────────────────────────────────────────────────────────
+  /**
+   * Audit trail of security controls intentionally applied to this element.
+   * @see SecurityControlRecord
+   */
+  securityControlOwnership?: SecurityControlRecord[];
+
+  owner?: string;
+  notes?: string;
+}
+
 // ==================== UNION TYPE ====================
 
 export type ElementProperties =
@@ -1316,4 +1577,5 @@ export type ElementProperties =
   | DataFlowProperties
   | InterfaceProperties
   | TrustBoundaryProperties
+  | PhysicalBoundaryProperties
   | ChipBoundaryProperties;
