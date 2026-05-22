@@ -48,6 +48,8 @@ import {
 } from "../dialogs/import-project-dialog";
 import { DeleteProjectDialog } from "../dialogs/delete-project-dialog";
 import { projectService } from "../../services/project-service";
+import { projectRepository } from "../../services/project-repository";
+import { projectRegistry } from "../../services/project-registry";
 import storageService from "../../services/storage-service";
 import { OpenProjectDialog } from "../dialogs/open-project-dialog";
 import { UnsavedChangesDialog } from "../dialogs/unsaved-changes-dialog";
@@ -140,7 +142,9 @@ export const MainLayout: React.FC = () => {
   }, []);
 
   const loadRecentProjects = async () => {
-    const metadata = await storageService.getRecentFiles();
+    // One-time migration from old taraflow_recent_projects key (pre-Phase-B).
+    await projectRegistry.migrateFromLegacyKey();
+    const metadata = await projectRegistry.getAll();
     setRecentProjectsMetadata(metadata);
   };
 
@@ -149,26 +153,28 @@ export const MainLayout: React.FC = () => {
   // dialog here — just read the file and register it.
   const handleOpenFromFile = async (filePath: string) => {
     try {
-      const readResult = await (window as any).electron.file.readProject(
-        filePath,
-      );
-
-      if (!readResult.success) {
-        toast.error(`Failed to read file: ${readResult.error}`);
+      const loadResult = await projectRepository.loadFromPath(filePath);
+      if (!loadResult.success || !loadResult.data) {
+        toast.error(`Failed to read file: ${loadResult.error}`);
         return;
       }
-
-      const raw = JSON.parse(readResult.data);
+      const { _migrated, _fromVersion, ...rawProject } = loadResult.data as any;
       const project = ensureProjectGraph({
-        ...raw,
-        filePath,
+        ...rawProject,
         isOpen: true,
         lastOpened: new Date().toISOString(),
         hasUnsavedChanges: false,
       });
 
       // Register in recent-projects.json so it appears in the sidebar.
-      await storageService.updateRecentFile(project);
+      await projectRegistry.upsert(project);
+
+      if (_migrated) {
+        toast.success(
+          `Project "${project.info.name}" was migrated from schema v${_fromVersion}. ` +
+            `A backup of the original file was saved alongside it.`,
+        );
+      }
 
       setProjects((prev) => {
         const exists = prev.find((p) => p.id === project.id);
@@ -203,7 +209,7 @@ export const MainLayout: React.FC = () => {
       // In localStorage fallback there is no real file — persistence adapter
       // silently succeeds. Still register metadata so it appears in recent list.
       await persistence.saveExistingProject(projectWithGraph);
-      await storageService.updateRecentFile(projectWithGraph);
+      await projectRegistry.upsert(projectWithGraph);
 
       setProjects((prev) => [...prev, projectWithGraph]);
       setActiveProjectId(projectWithGraph.id);
@@ -245,43 +251,33 @@ export const MainLayout: React.FC = () => {
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await storageService.getAllProjects();
+      // projectService.getAllProjects() routes to ProjectRepository (Electron)
+      // or StorageService localStorage fallback (Browser).
+      const result = await projectService.getAllProjects();
       if (result.success && result.data) {
-        // In Electron mode, getAllProjects() reads file content from disk but
-        // does NOT include filePath (it reads from the file, not the metadata).
-        // Inject filePath from the metadata registry so auto-save works.
-        const recentFiles = await storageService.getRecentFiles();
-        const filePathMap = new Map(recentFiles.map((f) => [f.id, f.filePath]));
+        const validProjects = result.data.filter((p) => {
+          const isValid = p && p.id && p.info && p.phaseStatus;
+          if (!isValid) {
+            console.warn(
+              "[loadProjects] Skipping invalid project:",
+              p?.id ?? "unknown",
+            );
+          }
+          return isValid;
+        });
 
-        const validProjects = result.data
-          .filter((p) => {
-            const isValid = p && p.id && p.info && p.phaseStatus;
-            if (!isValid) {
-              console.warn("Skipping invalid project:", p?.id || "unknown");
-              if (p?.id) storageService.deleteProject(p.id);
-            }
-            return isValid;
-          })
-          .map((p) => ({
-            ...p,
-            // Attach filePath so persistence adapter can write to the right file.
-            filePath: p.filePath ?? filePathMap.get(p.id) ?? undefined,
-          }));
-
-        // Build computed graph for projects that have DFD elements.
         const projectsWithGraph = validProjects.map(ensureProjectGraph);
         setProjects(projectsWithGraph);
 
-        // Restore active project (last open one).
         const firstOpen = projectsWithGraph.find((p) => p.isOpen);
         if (firstOpen) {
           setActiveProjectId(firstOpen.id);
           setActivePhase(firstOpen.currentPhase ?? 0);
         }
 
-        if (validProjects.length < (result.data?.length || 0)) {
+        if (validProjects.length < result.data.length) {
           toast.warning(
-            `${result.data.length - validProjects.length} invalid project(s) were removed`,
+            `${result.data.length - validProjects.length} invalid project(s) were skipped`,
           );
         }
       }
@@ -308,7 +304,7 @@ export const MainLayout: React.FC = () => {
       return false;
     }
     // Keep metadata registry (recent-projects.json) in sync.
-    await storageService.updateRecentFile(project);
+    await projectRegistry.upsert(project);
     return true;
   };
 
@@ -356,33 +352,28 @@ export const MainLayout: React.FC = () => {
     // Load full project from disk using its filePath from the metadata registry.
     // The project object in state only carries metadata at this point — we need
     // the full file to get dfd, assets, threats, etc.
-    const recentFiles = await storageService.getRecentFiles();
-    const meta = recentFiles.find((f) => f.id === projectId);
-
-    if (!meta?.filePath) {
-      toast.error("Cannot open project: file path not found in registry");
+    const loadResult = await projectRepository.loadById(projectId);
+    if (!loadResult.success || !loadResult.data) {
+      toast.error(`Cannot open project: ${loadResult.error}`);
       return;
     }
 
     try {
-      const readResult = await (window as any).electron.file.readProject(
-        meta.filePath,
-      );
-
-      if (!readResult.success) {
-        toast.error(`Failed to read project file: ${readResult.error}`);
-        return;
-      }
-
       const now = new Date().toISOString();
-      const raw = JSON.parse(readResult.data);
+      const { _migrated, _fromVersion, ...rawLoaded } = loadResult.data as any;
       const fullProject = ensureProjectGraph({
-        ...raw,
-        filePath: meta.filePath,
+        ...rawLoaded,
         isOpen: true,
         lastOpened: now,
         hasUnsavedChanges: false,
       });
+
+      if (_migrated) {
+        toast.success(
+          `Project "${fullProject.info.name}" was migrated from schema v${_fromVersion}. ` +
+            `A backup of the original file was saved alongside it.`,
+        );
+      }
 
       // Auto-close oldest if at limit
       if (openProjects.length >= MAX_OPEN_PROJECTS) {
@@ -509,7 +500,7 @@ export const MainLayout: React.FC = () => {
     const project = projects.find((p) => p.id === projectToDelete);
     if (!project) return;
 
-    const result = await storageService.deleteProject(projectToDelete);
+    const result = await projectService.deleteProject(projectToDelete);
 
     if (result.success) {
       // Remove from state
@@ -1526,7 +1517,7 @@ export const MainLayout: React.FC = () => {
 
             // Step 5: Register in recent-projects.json (Electron) or
             // localStorage (browser fallback).
-            await storageService.updateRecentFile(savedProject);
+            await projectRegistry.upsert(savedProject);
 
             // Step 6: Update React state and close dialog.
             setProjects((prev) => [...prev, savedProject]);
@@ -1547,9 +1538,11 @@ export const MainLayout: React.FC = () => {
             file: File,
             options: ImportOptions,
           ): Promise<ImportResult> => {
-            const result = await storageService.importProjectFromJSON(file);
+            const result = await projectService.importProjectAsCopy(file);
             if (result.success && result.data) {
-              setProjects([...projects, result.data]);
+              await persistence.saveExistingProject(result.data);
+              await projectRegistry.upsert(result.data);
+              setProjects((prev) => [...prev, result.data!]);
               setActiveProjectId(result.data.id);
               setActivePhase(0);
               toast.success(`Project "${result.data.info?.name}" imported!`);

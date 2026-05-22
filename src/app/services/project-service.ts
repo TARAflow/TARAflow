@@ -1,29 +1,47 @@
 // ==================== PROJECT SERVICE ====================
-// Business logic for project management
+// Single Responsibility: business logic for project lifecycle.
+//
+// After Phase B:
+//   I/O          → projectRepository
+//   Metadata     → projectRegistry
+//   Migration    → migration-service (called inside projectRepository)
+//   Primitives   → storageService (browser fallback only)
+//
+// This service knows WHAT to do — Repository knows HOW to store it.
 
 import { storageService, type StorageResult } from "./storage-service";
+import { projectRepository } from "./project-repository";
+import { projectRegistry } from "./project-registry";
 import {
   Project,
   CreateProjectInput,
   UpdateProjectInput,
 } from "../models/project-types";
-import { ProjectSettingsData } from "features/overview";
-
+import type { ProjectSettingsData } from "features/overview";
 import { PhaseStatus, formatExportFilename, migrateProjectTags } from "shared";
+import { parseAndRepair } from "./migration-service";
 
-// ==================== PROJECT SERVICE CLASS ====================
+// ==================== HELPERS ====================
+
+function isElectron(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof (window as any).electron?.file !== "undefined"
+  );
+}
+
+// ==================== SERVICE ====================
 
 class ProjectService {
+  // ── Factory ──────────────────────────────────────────────────────────────
+
   /**
-   * Create new project
+   * Build a new empty Project object — no I/O, no dialog.
+   * The caller (main-layout) owns the save dialog and the first write.
    */
-  // Only constructs the project object — does NOT save it.
-  // The caller (main-layout) saves after the file dialog completes
-  // and filePath is known. Saving here would trigger a premature write
-  // or a second native save dialog in Electron mode.
   createProject(input: CreateProjectInput): StorageResult<Project> {
     try {
-      const project = storageService.createEmptyProject(
+      const project = projectRepository.createEmpty(
         input.name,
         input.description,
         input.version,
@@ -36,20 +54,44 @@ class ProjectService {
     }
   }
 
-  getProject(projectId: string) {
+  // ── Read ─────────────────────────────────────────────────────────────────
+
+  async getAllProjects(): Promise<StorageResult<Project[]>> {
+    if (isElectron()) {
+      return projectRepository.loadAll();
+    }
+    return storageService.getAllProjects();
+  }
+
+  async getProject(projectId: string): Promise<StorageResult<Project>> {
+    if (isElectron()) {
+      return projectRepository.loadById(projectId);
+    }
     return storageService.getProject(projectId);
   }
 
+  // ── Write ─────────────────────────────────────────────────────────────────
+
   /**
-   * Update project
+   * Persist a project — routes to the correct backend.
+   * Electron: writes to .tara.json + updates registry
+   * Browser:  writes to localStorage
    */
+  async saveProject(project: Project): Promise<StorageResult<Project>> {
+    if (isElectron()) {
+      return projectRepository.save(project);
+    }
+    return storageService.saveProject(project);
+  }
+
+  // ── Update ────────────────────────────────────────────────────────────────
+
   async updateProject(
     projectId: string,
     updates: UpdateProjectInput,
   ): Promise<StorageResult<Project>> {
     try {
-      const result = await storageService.getProject(projectId);
-
+      const result = await this.getProject(projectId);
       if (!result.success || !result.data) {
         return { success: false, error: "Project not found" };
       }
@@ -69,46 +111,70 @@ class ProjectService {
         ...project,
         ...updates,
         settings: updatedSettings,
-        info: {
-          ...project.info,
-          lastModified: now,
-        },
+        info: { ...project.info, lastModified: now },
         hasUnsavedChanges: false,
       };
 
-      return storageService.saveProject(updated);
-    } catch (error: any) {
+      return this.saveProject(updated);
+    } catch (err: any) {
       return {
         success: false,
-        error: error.message || "Failed to update project",
+        error: err.message ?? "Failed to update project",
       };
     }
   }
 
-  deleteProject(id: string) {
-    return storageService.deleteProject(id);
+  // ── Delete ────────────────────────────────────────────────────────────────
+
+  async deleteProject(projectId: string): Promise<StorageResult<boolean>> {
+    // Remove from registry (Electron) or localStorage (Browser)
+    if (isElectron()) {
+      return projectRepository.unregister(projectId);
+    }
+    return storageService.deleteProject(projectId);
   }
 
-  getAllProjects() {
-    return storageService.getAllProjects();
+  // ── Lifecycle helpers ─────────────────────────────────────────────────────
+
+  async markProjectOpened(id: string): Promise<StorageResult<Project>> {
+    const r = await this.getProject(id);
+    if (!r.success || !r.data) return { success: false, error: "Not found" };
+
+    const updated: Project = {
+      ...r.data,
+      lastOpened: new Date().toISOString(),
+      isOpen: true,
+    };
+    return this.saveProject(updated);
   }
 
-  /**
-   * Duplicate project
-   */
-  async duplicateProject(projectId: string) {
-    const result = await storageService.getProject(projectId);
+  async markProjectClosed(id: string): Promise<StorageResult<Project>> {
+    const r = await this.getProject(id);
+    if (!r.success || !r.data) return { success: false, error: "Not found" };
+
+    const updated: Project = {
+      ...r.data,
+      isOpen: false,
+      hasUnsavedChanges: false,
+    };
+    return this.saveProject(updated);
+  }
+
+  // ── Duplicate ─────────────────────────────────────────────────────────────
+
+  async duplicateProject(projectId: string): Promise<StorageResult<Project>> {
+    const result = await this.getProject(projectId);
     if (!result.success || !result.data) {
       return { success: false, error: "Project not found" };
     }
 
     const original = result.data;
     const now = new Date().toISOString();
-    const newId = `proj_${Date.now()}`;
 
     const copy: Project = {
       ...original,
-      id: newId,
+      id: `proj_${Date.now()}`,
+      filePath: undefined, // Copy has no file until user saves it
       info: {
         ...original.info,
         name: `${original.info.name} (Copy)`,
@@ -120,16 +186,19 @@ class ProjectService {
       hasUnsavedChanges: false,
     };
 
-    return storageService.saveProject(copy);
+    // Copy is not written to disk here — main-layout will call saveNewProject
+    // via useProjectPersistence after the save dialog completes.
+    return { success: true, data: copy };
   }
 
-  /**
-   * Export project
-   */
-  async exportProject(projectId: string) {
-    const result = await storageService.getProject(projectId);
+  // ── Export ────────────────────────────────────────────────────────────────
+
+  async exportProject(
+    projectId: string,
+  ): Promise<StorageResult<{ blob: Blob; filename: string }>> {
+    const result = await this.getProject(projectId);
     if (!result.success || !result.data) {
-      return { success: false, error: result.error || "Project not found" };
+      return { success: false, error: result.error ?? "Project not found" };
     }
 
     const project = result.data;
@@ -137,224 +206,101 @@ class ProjectService {
       type: "application/json",
     });
     const filename = formatExportFilename(project.info.name);
-
     return { success: true, data: { blob, filename } };
   }
 
+  // ── Import ────────────────────────────────────────────────────────────────
+
   /**
-   * Import project (overwrite or not)
+   * Parse and validate a project file.
+   * Does NOT write to disk — the caller decides where to save it
+   * (native dialog in Electron, download in browser).
    */
-  async importProject(file: File, overwrite = false) {
+  async parseImportFile(file: File): Promise<StorageResult<Project>> {
     try {
       const text = await file.text();
-      const raw = JSON.parse(text) as any;
+      const raw = JSON.parse(text);
+      const project = parseAndRepair(raw);
 
-      // Migration guard — convert legacy string[] tags
-      if (Array.isArray(raw.info?.tags)) {
-        raw.info.tags = migrateProjectTags(raw.info.tags as string[]);
+      if (!project) {
+        return {
+          success: false,
+          error: "Invalid or unrecoverable project file",
+        };
       }
 
-      const project = raw as Project;
-
-      if (!this.validateProjectStructure(project)) {
-        return { success: false, error: "Invalid project file" };
-      }
-
-      const exists = await storageService.projectExists(project.id);
-      if (exists && !overwrite) {
-        return { success: false, error: "Project exists already" };
-      }
-
-      const now = new Date().toISOString();
-      const imported: Project = {
-        ...project,
-        info: {
-          ...project.info,
-          lastModified: now,
-        },
-        lastOpened: now,
-        isOpen: true,
-        hasUnsavedChanges: false,
-      };
-
-      const result = await storageService.saveProject(imported);
-      return {
-        success: result.success,
-        data: result.data,
-        error: result.error,
-      };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+      return { success: true, data: project };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
   }
 
   /**
-   * Import as copy (always new ID)
+   * Import a project as a new copy (new ID, name suffixed with "(Imported)").
+   * Returns the project object — caller saves it.
    */
-  async importProjectAsCopy(file: File) {
-    try {
-      const text = await file.text();
-      const raw = JSON.parse(text) as any;
+  async importProjectAsCopy(file: File): Promise<StorageResult<Project>> {
+    const result = await this.parseImportFile(file);
+    if (!result.success || !result.data) return result;
 
-      if (Array.isArray(raw.info?.tags)) {
-        raw.info.tags = migrateProjectTags(raw.info.tags as string[]);
-      }
+    const now = new Date().toISOString();
+    const imported: Project = {
+      ...result.data,
+      id: `proj_${Date.now()}`,
+      filePath: undefined,
+      info: {
+        ...result.data.info,
+        name: `${result.data.info.name} (Imported)`,
+        created: now,
+        lastModified: now,
+      },
+      lastOpened: now,
+      isOpen: true,
+      hasUnsavedChanges: false,
+    };
 
-      const project = raw as Project;
-
-      if (!this.validateProjectStructure(project)) {
-        return { success: false, error: "Invalid project format" };
-      }
-
-      const now = new Date().toISOString();
-      const newId = `proj_${Date.now()}`;
-
-      const imported: Project = {
-        ...project,
-        id: newId,
-        info: {
-          ...project.info,
-          name: `${project.info.name} (Imported)`,
-          created: now,
-          lastModified: now,
-        },
-        lastOpened: now,
-        isOpen: true,
-        hasUnsavedChanges: false,
-      };
-
-      const result = await storageService.saveProject(imported);
-      return {
-        success: result.success,
-        data: result.data,
-        error: result.error,
-      };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
+    return { success: true, data: imported };
   }
 
   /**
-   * Update phase status
+   * Import overwriting an existing project (same ID).
+   * Returns the project object — caller saves it.
    */
+  async importProjectOverwrite(file: File): Promise<StorageResult<Project>> {
+    const result = await this.parseImportFile(file);
+    if (!result.success || !result.data) return result;
+
+    const now = new Date().toISOString();
+    const imported: Project = {
+      ...result.data,
+      info: { ...result.data.info, lastModified: now },
+      lastOpened: now,
+      isOpen: true,
+      hasUnsavedChanges: false,
+    };
+
+    return { success: true, data: imported };
+  }
+
+  // ── Phase status ──────────────────────────────────────────────────────────
+
   async updatePhaseStatus(
     projectId: string,
     phase: number,
     status: PhaseStatus,
-  ) {
-    const result = await storageService.getProject(projectId);
+  ): Promise<StorageResult<Project>> {
+    const result = await this.getProject(projectId);
     if (!result.success || !result.data) {
       return { success: false, error: "Project not found" };
     }
 
-    const project = result.data;
-    const now = new Date().toISOString();
-
     const updated: Project = {
-      ...project,
-      phaseStatus: {
-        ...project.phaseStatus,
-        [phase]: status,
-      },
-      info: {
-        ...project.info,
-        lastModified: now,
-      },
+      ...result.data,
+      phaseStatus: { ...result.data.phaseStatus, [phase]: status },
+      info: { ...result.data.info, lastModified: new Date().toISOString() },
     };
 
-    return storageService.saveProject(updated);
-  }
-
-  async markProjectOpened(id: string) {
-    const r = await storageService.getProject(id);
-    if (!r.success || !r.data) return { success: false, error: "Not found" };
-
-    const now = new Date().toISOString();
-    const project: Project = {
-      ...r.data,
-      lastOpened: now,
-      isOpen: true,
-    };
-
-    return storageService.saveProject(project);
-  }
-
-  async markProjectClosed(id: string) {
-    const r = await storageService.getProject(id);
-    if (!r.success || !r.data) return { success: false, error: "Not found" };
-
-    const project: Project = {
-      ...r.data,
-      isOpen: false,
-      hasUnsavedChanges: false,
-    };
-
-    return storageService.saveProject(project);
-  }
-
-  /**
-   * Mark unsaved changes
-   */
-  async markUnsavedChanges(id: string, hasChanges: boolean) {
-    const r = await storageService.getProject(id);
-    if (!r.success || !r.data) return { success: false, error: "Not found" };
-
-    const project: Project = { ...r.data, hasUnsavedChanges: hasChanges };
-    return storageService.saveProject(project);
-  }
-
-  /**
-   * Open projects
-   */
-  async getOpenProjects() {
-    const r = await storageService.getAllProjects();
-    if (!r.success || !r.data) return r;
-
-    return {
-      success: true,
-      data: r.data.filter((p) => p.isOpen),
-    };
-  }
-
-  /**
-   * Recent projects
-   */
-  async getRecentProjects(limit = 10) {
-    const r = await storageService.getAllProjects();
-    if (!r.success || !r.data) return r;
-
-    const recent = r.data
-      .filter((p) => !p.isOpen)
-      .sort(
-        (a, b) =>
-          new Date(b.lastOpened || b.info.lastModified).getTime() -
-          new Date(a.lastOpened || a.info.lastModified).getTime(),
-      )
-      .slice(0, limit);
-
-    return { success: true, data: recent };
-  }
-
-  /**
-   * Open project from file (Electron mode)
-   */
-  async openProjectFromFile(filePath: string): Promise<StorageResult<Project>> {
-    return storageService.loadProjectFromFile(filePath);
-  }
-
-  /**
-   * Struct validation
-   */
-  // In validateProjectStructure — fix the broken check (was checking p.name
-  // at top level, but name lives in p.info.name):
-  private validateProjectStructure(p: any): p is Project {
-    return (
-      p &&
-      typeof p.id === "string" &&
-      p.info &&
-      typeof p.info.name === "string" && // Fixed: was p.name
-      typeof p.info.description === "string" // Fixed: was p.description
-    );
+    return this.saveProject(updated);
   }
 }
 

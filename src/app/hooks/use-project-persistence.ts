@@ -260,4 +260,4 @@ export const useProjectPersistence = () => {
     clearCurrentFile,
     hasFileReference: !!(currentFileHandle || currentFilePath),
   };
-};;
+}

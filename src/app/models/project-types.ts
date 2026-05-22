@@ -68,6 +68,12 @@ export interface Threat {
 
 export interface Project {
   id: string;
+  /**
+   * Schema version for migration tracking.
+   * Missing field = pre-release project (treated as version 0).
+   * Increment whenever the persisted data structure changes.
+   */
+  schemaVersion?: number;
   info: ProjectInfoData;
   lastOpened?: string;
   currentPhase: number;

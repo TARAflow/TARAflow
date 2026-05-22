@@ -1,12 +1,32 @@
 // ==================== STORAGE SERVICE ====================
-// Wrapper for browser localStorage API with error handling and type safety
+// Single Responsibility: localStorage primitives only.
+//
+// After Phase B this service is intentionally minimal:
+//   get / set / delete / list  — raw key-value operations
+//   Browser-mode project CRUD  — fallback when no file system is available
+//   App settings / metadata    — small non-project data
+//
+// What was removed in Phase B:
+//   isValidProject   → migration-service.ts
+//   repairProject    → migration-service.ts
+//   updateRecentFile → project-registry.ts
+//   getRecentFiles   → project-registry.ts
+//   removeRecentFile → project-registry.ts
+//   getAllProjects (Electron branch) → project-repository.ts
+//   loadProjectFromFile → project-repository.ts
+//   saveProject (Electron branch)   → project-repository.ts
+//   createEmptyProject → project-repository.ts
+//   importProjectFromJSON → project-service.ts
+//
+// Browser-fallback project storage is intentionally preserved so the
+// app can be tested in the browser and so a future browser build is
+// possible without rewriting from scratch.
 
-import { PhaseStatusMap, migrateProjectTags, EMPTY_PROJECT_TAGS } from "shared";
-import {
-
-  ProjectSettingsData,
-} from "features/overview";
-import { Project, ProjectMetadata } from "../models/project-types";
+import { migrateProjectTags } from "shared";
+import type { ProjectSettingsData } from "features/overview";
+import type { Project } from "../models/project-types";
+import { parseAndRepair } from "./migration-service";
+import { migrateRiskData } from "features/risks";
 
 export interface StorageResult<T> {
   success: boolean;
@@ -14,36 +34,17 @@ export interface StorageResult<T> {
   error?: string;
 }
 
+// ==================== CONSTANTS ====================
+
 const STORAGE_PREFIX = "taraflow_";
 const PROJECT_PREFIX = `${STORAGE_PREFIX}project_`;
 const SETTINGS_KEY = `${STORAGE_PREFIX}settings`;
-const METADATA_KEY = `${STORAGE_PREFIX}metadata`;
-const RECENT_PROJECTS_KEY = `${STORAGE_PREFIX}recent_projects`; // Browser fallback
-import { migrateRiskData } from "features/risks";
 
-// ==================== DEFAULT VALUES ====================
-
-const DEFAULT_PHASE_STATUS: PhaseStatusMap = {
-  0: "not-started",
-  1: "not-started",
-  2: "not-started",
-  3: "not-started",
-  4: "not-started",
-  5: "not-started",
-  6: "not-started", // Documentation
-  7: "not-started", // Audit
-  8: "not-started", // Integration
-};
-
-const DEFAULT_SETTINGS: ProjectSettingsData = {
-  strictMode: false,
-  autoSave: true,
-  autoSaveInterval: 2, // Auto-save every 2 seconds
-};
-
-const RECENT_FILES_KEY = `${STORAGE_PREFIX}recent_files`;
+// ==================== STORAGE SERVICE ====================
 
 class StorageService {
+  // ── Availability ────────────────────────────────────────────────────────
+
   private isAvailable(): boolean {
     return (
       typeof window !== "undefined" &&
@@ -51,26 +52,23 @@ class StorageService {
     );
   }
 
-  private isElectron(): boolean {
-    return (
-      typeof window !== "undefined" &&
-      typeof (window as any).electron?.file !== "undefined"
-    );
+  private handleError(operation: string, error: any): StorageResult<any> {
+    console.error(`[StorageService] ${operation} failed:`, error);
+    return {
+      success: false,
+      error: error?.message ?? `Failed to ${operation}`,
+    };
   }
 
-  private handleError(operation: string, error: any): StorageResult<any> {
-    console.error(`Storage ${operation} failed:`, error);
-    return { success: false, error: error.message || `Failed to ${operation}` };
-  }
+  // ── Primitives ──────────────────────────────────────────────────────────
 
   async get<T = any>(key: string): Promise<StorageResult<T>> {
     if (!this.isAvailable())
-      return this.handleError("get", new Error("Storage not available"));
+      return this.handleError("get", new Error("localStorage not available"));
 
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return { success: false, error: "Key not found" };
-
       return { success: true, data: JSON.parse(raw) };
     } catch (error) {
       return this.handleError("get", error);
@@ -79,7 +77,7 @@ class StorageService {
 
   async set<T = any>(key: string, value: T): Promise<StorageResult<T>> {
     if (!this.isAvailable())
-      return this.handleError("set", new Error("Storage not available"));
+      return this.handleError("set", new Error("localStorage not available"));
 
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -91,7 +89,10 @@ class StorageService {
 
   async delete(key: string): Promise<StorageResult<boolean>> {
     if (!this.isAvailable())
-      return this.handleError("delete", new Error("Storage not available"));
+      return this.handleError(
+        "delete",
+        new Error("localStorage not available"),
+      );
 
     try {
       localStorage.removeItem(key);
@@ -105,7 +106,7 @@ class StorageService {
     prefix: string = STORAGE_PREFIX,
   ): Promise<StorageResult<string[]>> {
     if (!this.isAvailable())
-      return this.handleError("list", new Error("Storage not available"));
+      return this.handleError("list", new Error("localStorage not available"));
 
     try {
       const keys = Object.keys(localStorage).filter((k) =>
@@ -117,320 +118,58 @@ class StorageService {
     }
   }
 
-  // ==================== PROJECT REPAIR ====================
+  // ── Browser-mode project CRUD ────────────────────────────────────────────
+  // Used when running in a browser without Electron.
+  // In Electron mode these methods are not called — ProjectRepository handles
+  // all file I/O and ProjectRegistry handles the metadata list.
 
   /**
-   * Repairs incomplete project data by filling in missing required fields
+   * Save a project to localStorage (browser fallback only).
+   * In Electron mode callers should use ProjectRepository.save() instead.
    */
-  private repairProject(project: any): Project | null {
-    // Minimum required: id and name
-    if (!project.id || !project.info) {
-      console.warn("Cannot repair project without id or name:", project);
-      return null;
-    }
-
-    const now = new Date().toISOString();
-
-    const repaired: Project = {
-      // Required fields with defaults
-      id: project.id,
-      info: {
-        ...project.info,
-        tags: migrateProjectTags(project.info.tags ?? []),
-        team: project.info.team ?? [],
-        lastModified: project.info.lastModified ?? now,
-      },
-      lastOpened: project.lastOpened ?? now,
-      currentPhase: project.currentPhase ?? 0,
-      strideMethod: project.strideMethod ?? null,
-      methodSelected: project.methodSelected ?? false,
-
-      // Ensure phaseStatus is complete
-      phaseStatus: {
-        0: project.phaseStatus?.[0] ?? "not-started",
-        1: project.phaseStatus?.[1] ?? "not-started",
-        2: project.phaseStatus?.[2] ?? "not-started",
-        3: project.phaseStatus?.[3] ?? "not-started",
-        4: project.phaseStatus?.[4] ?? "not-started",
-        5: project.phaseStatus?.[5] ?? "not-started",
-        6: project.phaseStatus?.[6] ?? "not-started",
-        7: project.phaseStatus?.[7] ?? "not-started",
-        8: project.phaseStatus?.[8] ?? "not-started",
-      },
-
-      // Ensure settings is complete
-      settings: {
-        strictMode: project.settings?.strictMode ?? false,
-        autoSave: project.settings?.autoSave ?? true,
-        autoSaveInterval: project.settings?.autoSaveInterval ?? 30,
-      },
-
-      // Arrays with defaults
-      assets: project.assets ?? null,
-      threats: project.threats ?? null,
-      risks: project.risks ?? null,
-      attackTrees: project.attackTrees ?? null,
-      documentation: null,
-      audit: null,
-      integration: project.integration ?? null,
-
-      // Other fields
-      status: project.status ?? "draft",
-      dfd: project.dfd ?? null,
-      isOpen: project.isOpen ?? false,
-      hasUnsavedChanges: project.hasUnsavedChanges ?? false,
+  async saveProject(project: Project): Promise<StorageResult<Project>> {
+    const toStore: Project = {
+      ...project,
+      dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,
+      hasUnsavedChanges: undefined as any,
     };
-
-    return repaired;
+    return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, toStore);
   }
 
   /**
-   * Validates if a project has all required fields
+   * Load a project from localStorage (browser fallback only).
    */
-  private isValidProject(project: any): project is Project {
-    return (
-      project &&
-      typeof project.id === "string" &&
-      typeof project.info?.name === "string" &&
-      project.phaseStatus &&
-      typeof project.phaseStatus[0] !== "undefined"
-    );
-  }
-
-  // ==================== RECENT FILES (METADATA) ====================
-
-  /**
-   * Update recent files metadata
-   * Electron: Uses app.getPath('userData')/recent-projects.json via IPC
-   * Browser: Uses localStorage as fallback
-   */
-  public async updateRecentFile(project: Project): Promise<void> {
-    if (!project.filePath && this.isElectron()) {
-      // Electron mode requires filePath
-      console.warn("Cannot update metadata without filePath in Electron mode");
-      return;
-    }
-
-    const metadata: ProjectMetadata = {
-      id: project.id,
-      filePath: project.filePath || "",
-      lastOpened: project.lastOpened || new Date().toISOString(),
-      info: project.info,
-      status: project.status,
-      currentPhase: project.currentPhase,
-      completedPhases: Object.values(project.phaseStatus).filter(
-        (s) => s === "complete",
-      ).length,
-      totalPhases: Object.keys(project.phaseStatus).length,
-    };
-
-    if (this.isElectron()) {
-      // Electron: Use IPC to save to userData
-      try {
-        const result = await (
-          window as any
-        ).electron.metadata.getRecentProjects();
-        let recentProjects: ProjectMetadata[] =
-          result.success && result.data ? result.data : [];
-
-        // Remove existing entry
-        recentProjects = recentProjects.filter((p) => p.id !== project.id);
-
-        // Add at beginning
-        recentProjects.unshift(metadata);
-
-        // Keep last 20
-        recentProjects = recentProjects.slice(0, 20);
-
-        await (window as any).electron.metadata.saveRecentProjects(
-          recentProjects,
-        );
-      } catch (error) {
-        console.error("Failed to update metadata in Electron:", error);
-      }
-    } else {
-      // Browser: Use localStorage fallback
-      const result = await this.get<ProjectMetadata[]>(RECENT_PROJECTS_KEY);
-      let recentProjects: ProjectMetadata[] =
-        result.success && result.data ? result.data : [];
-
-      recentProjects = recentProjects.filter((p) => p.id !== project.id);
-      recentProjects.unshift(metadata);
-      recentProjects = recentProjects.slice(0, 20);
-
-      await this.set(RECENT_PROJECTS_KEY, recentProjects);
-    }
-  }
-
-  /**
-   * Get recent files metadata
-   */
-  public async getRecentFiles(): Promise<ProjectMetadata[]> {
-    if (this.isElectron()) {
-      try {
-        const result = await (
-          window as any
-        ).electron.metadata.getRecentProjects();
-        return result.success && result.data ? result.data : [];
-      } catch (error) {
-        console.error("Failed to get metadata from Electron:", error);
-        return [];
-      }
-    } else {
-      const result = await this.get<ProjectMetadata[]>(RECENT_PROJECTS_KEY);
-      return result.success && result.data ? result.data : [];
-    }
-  }
-
-  /**
-   * Remove from recent files
-   */
-  private async removeRecentFile(projectId: string): Promise<void> {
-    if (this.isElectron()) {
-      try {
-        const result = await (
-          window as any
-        ).electron.metadata.getRecentProjects();
-        if (result.success && result.data) {
-          const filtered = result.data.filter(
-            (p: ProjectMetadata) => p.id !== projectId,
-          );
-          await (window as any).electron.metadata.saveRecentProjects(filtered);
-        }
-      } catch (error) {
-        console.error("Failed to remove metadata in Electron:", error);
-      }
-    } else {
-      const recentFiles = await this.getRecentFiles();
-      const filtered = recentFiles.filter((f) => f.id !== projectId);
-      await this.set(RECENT_PROJECTS_KEY, filtered);
-    }
-  }
-
-  // ==================== PROJECTS ====================
-
   async getProject(projectId: string): Promise<StorageResult<Project>> {
-    // In Electron mode, try to find filePath from recent files
-    if (this.isElectron()) {
-      const recentFiles = await this.getRecentFiles();
-      const metadata = recentFiles.find((f) => f.id === projectId);
-
-      if (metadata?.filePath) {
-        try {
-          const result = await (window as any).electron.file.readProject(
-            metadata.filePath,
-          );
-
-          if (!result.success) {
-            return { success: false, error: result.error };
-          }
-
-          const rawProject = JSON.parse(result.data) as any;
-          if (Array.isArray(rawProject.info?.tags)) {
-            rawProject.info.tags = migrateProjectTags(rawProject.info.tags);
-          }
-          const project = rawProject as Partial<Project>;
-
-          // Check if project needs repair
-          if (!this.isValidProject(project)) {
-            const repaired = this.repairProject(project);
-            if (!repaired) {
-              return {
-                success: false,
-                error: "Project is corrupted and cannot be repaired",
-              };
-            }
-            if (repaired.risks)
-              repaired.risks = migrateRiskData(repaired.risks);
-            return { success: true, data: repaired };
-          }
-
-          if (rawProject.risks)
-            rawProject.risks = migrateRiskData(rawProject.risks);
-          return { success: true, data: rawProject as Project };
-        } catch (error: any) {
-          return { success: false, error: error.message };
-        }
-      }
-    }
-
-    // Browser Mode: localStorage fallback
-    const result = await this.get<Partial<Project>>(
-      `${PROJECT_PREFIX}${projectId}`,
-    );
+    const result = await this.get<any>(`${PROJECT_PREFIX}${projectId}`);
 
     if (!result.success || !result.data) {
-      return { success: false, error: result.error || "Project not found" };
+      return { success: false, error: result.error ?? "Project not found" };
     }
 
-    // Check if project needs repair
-    if (!this.isValidProject(result.data)) {
-      console.warn(`Project ${projectId} is incomplete, attempting repair...`);
-      const repaired = this.repairProject(result.data);
+    const project = parseAndRepair(result.data);
 
-      if (!repaired) {
-        return {
-          success: false,
-          error: "Project is corrupted and cannot be repaired",
-        };
-      }
-
-      if (repaired.risks) repaired.risks = migrateRiskData(repaired.risks);
-      await this.saveProject(repaired);
-      return { success: true, data: repaired };
+    if (!project) {
+      return {
+        success: false,
+        error: "Project is corrupted and cannot be repaired",
+      };
     }
 
-    const project = result.data as Project;
     if (project.risks) project.risks = migrateRiskData(project.risks);
     return { success: true, data: project };
   }
 
-  async saveProject(project: Project): Promise<StorageResult<Project>> {
-    const projectToSave: Project = {
-      ...project,
-      dfd: project.dfd
-        ? {
-            ...project.dfd,
-            graph: undefined,
-          }
-        : null,
-    };
-
-    if (this.isElectron() && projectToSave.filePath) {
-      // Electron Mode: Write to file
-      try {
-        const projectData = JSON.stringify(projectToSave, null, 2);
-        const result = await (window as any).electron.file.writeProject(
-          projectToSave.filePath,
-          projectData,
-        );
-
-        if (!result.success) {
-          return { success: false, error: result.error };
-        }
-
-        await this.updateRecentFile(projectToSave);
-        return { success: true, data: project };
-      } catch (error: any) {
-        return { success: false, error: error.message };
-      }
-    } else {
-      // Browser Mode: localStorage fallback
-      return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, projectToSave);
-    }
-  }
-
+  /**
+   * Delete a project from localStorage (browser fallback only).
+   */
   async deleteProject(projectId: string): Promise<StorageResult<boolean>> {
-    // Remove from recent files in Electron mode
-    if (this.isElectron()) {
-      await this.removeRecentFile(projectId);
-    }
-
-    // Delete from localStorage (Browser mode or metadata)
     return this.delete(`${PROJECT_PREFIX}${projectId}`);
   }
 
-  async listProjects(): Promise<StorageResult<string[]>> {
+  /**
+   * List all project IDs stored in localStorage (browser fallback only).
+   */
+  async listProjectIds(): Promise<StorageResult<string[]>> {
     const result = await this.list(PROJECT_PREFIX);
     if (!result.success || !result.data) return result;
 
@@ -440,47 +179,13 @@ class StorageService {
     };
   }
 
+  /**
+   * Load all projects from localStorage (browser fallback only).
+   * Skips and deletes corrupted entries.
+   */
   async getAllProjects(): Promise<StorageResult<Project[]>> {
     try {
-      if (this.isElectron()) {
-        // Electron Mode: Load from recent files
-        const recentFiles = await this.getRecentFiles();
-        const projects: Project[] = [];
-        const failedIds: string[] = [];
-
-        for (const metadata of recentFiles) {
-          try {
-            const result = await (window as any).electron.file.readProject(
-              metadata.filePath,
-            );
-
-            if (result.success) {
-              const raw = JSON.parse(result.data) as any;
-              if (Array.isArray(raw.info?.tags)) {
-                raw.info.tags = migrateProjectTags(raw.info.tags);
-              }
-              if (raw.risks) raw.risks = migrateRiskData(raw.risks);
-              const project = raw as Project;
-              projects.push(project);
-            } else {
-              failedIds.push(metadata.id);
-            }
-          } catch (error) {
-            console.warn(`Failed to load project ${metadata.id}:`, error);
-            failedIds.push(metadata.id);
-          }
-        }
-
-        // Remove failed projects from recent files
-        for (const id of failedIds) {
-          await this.removeRecentFile(id);
-        }
-
-        return { success: true, data: projects };
-      }
-
-      // Browser Mode: Load from localStorage
-      const listResult = await this.listProjects();
+      const listResult = await this.listProjectIds();
       if (!listResult.success || !listResult.data)
         return { success: false, error: "Failed to list projects" };
 
@@ -492,14 +197,16 @@ class StorageService {
         if (r.success && r.data) {
           projects.push(r.data);
         } else {
-          console.warn(`Failed to load project ${id}:`, r.error);
+          console.warn(
+            `[StorageService] Failed to load project ${id}:`,
+            r.error,
+          );
           failedIds.push(id);
         }
       }
 
-      // Optionally delete corrupted projects
       for (const id of failedIds) {
-        console.warn(`Removing corrupted project: ${id}`);
+        console.warn(`[StorageService] Removing corrupted project: ${id}`);
         await this.deleteProject(id);
       }
 
@@ -509,191 +216,8 @@ class StorageService {
     }
   }
 
-  /**
-   * Check if a key exists
-   */
-  async exists(key: string): Promise<boolean> {
-    try {
-      const result = await this.get(key);
-      return result.success;
-    } catch {
-      return false;
-    }
-  }
+  // ── Settings ─────────────────────────────────────────────────────────────
 
-  /**
-   * Check if a project exists
-   */
-  async projectExists(projectId: string): Promise<boolean> {
-    return this.exists(`${PROJECT_PREFIX}${projectId}`);
-  }
-
-  public createEmptyProject(
-    name: string,
-    description: string,
-    version: string = "1.0",
-    responsible: string = "",
-    isHighImpact: boolean = false,
-    filePath?: string,
-  ): Project {
-    const now = new Date().toISOString();
-
-    return {
-      id: `proj_${Date.now()}`,
-
-      // Project metadata
-      info: {
-        name,
-        description,
-        version,
-        responsible,
-        created: now,
-        lastModified: now,
-        tags: { ...EMPTY_PROJECT_TAGS },
-        team: responsible ? [responsible] : [],
-        isHighImpact,
-      },
-
-      lastOpened: now,
-      currentPhase: 0,
-      strideMethod: null,
-      methodSelected: false,
-
-      phaseStatus: { ...DEFAULT_PHASE_STATUS },
-      settings: { ...DEFAULT_SETTINGS },
-
-      status: "draft",
-
-      dfd: null,
-      assets: null,
-      threats: null,
-      risks: null,
-      attackTrees: null,
-      documentation: null,
-      audit: null,
-      integration: null,
-
-      isOpen: true,
-      hasUnsavedChanges: false,
-      filePath: filePath,
-    };
-  }
-
-  public exportProjectAsJSON(project: Project): void {
-    const json = JSON.stringify(project, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const filename = `${project.info.name.replace(/[^a-z0-9]/gi, "_")}_TARA_${
-      new Date().toISOString().split("T")[0]
-    }.json`;
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  }
-
-  /**
-   * Load project from file (Electron mode)
-   */
-  public async loadProjectFromFile(
-    filePath: string,
-  ): Promise<StorageResult<Project>> {
-    if (!this.isElectron()) {
-      return {
-        success: false,
-        error: "File loading only available in Electron mode",
-      };
-    }
-
-    try {
-      const result = await (window as any).electron.file.readProject(filePath);
-
-      if (!result.success) {
-        return { success: false, error: result.error };
-      }
-
-      const rawProject = JSON.parse(result.data);
-      const project = this.repairProject(rawProject);
-
-      if (!project) {
-        return {
-          success: false,
-          error: "Invalid project structure - missing id or name",
-        };
-      }
-
-      if (project.risks) project.risks = migrateRiskData(project.risks);
-
-      // Set filePath
-      project.filePath = filePath;
-
-      // Update timestamps
-      const now = new Date().toISOString();
-      project.lastOpened = now;
-      project.isOpen = true;
-      project.hasUnsavedChanges = false;
-
-      // Save to update metadata
-      await this.saveProject(project);
-
-      return { success: true, data: project };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  public async importProjectFromJSON(
-    file: File,
-    filePath?: string,
-  ): Promise<StorageResult<Project>> {
-    try {
-      const text = await file.text();
-      const rawProject = JSON.parse(text);
-
-      // Attempt to repair if incomplete
-      const project = this.repairProject(rawProject);
-
-      if (!project) {
-        return {
-          success: false,
-          error: "Invalid project structure - missing id or name",
-        };
-      }
-
-      // Check for duplicate ID
-      const exists = await this.projectExists(project.id);
-      if (exists) {
-        project.id = `proj_${Date.now()}`;
-      }
-
-      // Update timestamps
-      const now = new Date().toISOString();
-      project.info.lastModified = now;
-      project.lastOpened = now;
-      project.isOpen = true;
-      project.hasUnsavedChanges = false;
-
-      // Set filePath if provided (Electron mode)
-      if (filePath) {
-        project.filePath = filePath;
-      }
-
-      const result = await this.saveProject(project);
-      if (!result.success) {
-        return { success: false, error: "Failed to save imported project" };
-      }
-
-      return { success: true, data: result.data };
-    } catch (error) {
-      return { success: false, error: `Failed to parse JSON: ${error}` };
-    }
-  }
-
-  // ==================== SETTINGS ====================
   getSettings<T = any>() {
     return this.get<T>(SETTINGS_KEY);
   }
@@ -702,24 +226,33 @@ class StorageService {
     return this.set<T>(SETTINGS_KEY, settings);
   }
 
-  // ==================== METADATA ====================
-  getMetadata<T = any>() {
-    return this.get<T>(METADATA_KEY);
-  }
-
-  saveMetadata<T = any>(metadata: T) {
-    return this.set<T>(METADATA_KEY, metadata);
-  }
-
-  // ==================== UTILITIES ====================
+  // ── Utilities ─────────────────────────────────────────────────────────────
 
   /**
-   * Clear all TARAflow data from localStorage
+   * Export a project as a downloadable JSON file (browser mode).
+   */
+  exportProjectAsJSON(project: Project): void {
+    const json = JSON.stringify(project, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const filename = `${project.info.name.replace(/[^a-z0-9]/gi, "_")}_TARA_${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Clears all TARAflow data from localStorage.
+   * Use with caution — for dev/testing only.
    */
   async clearAllData(): Promise<StorageResult<boolean>> {
     try {
-      const keys = Object.keys(localStorage).filter((k) =>
-        k.startsWith(STORAGE_PREFIX),
+      const keys = Object.keys(localStorage).filter(
+        (k) => k.startsWith(STORAGE_PREFIX) || k.startsWith("taraflow:"),
       );
       keys.forEach((k) => localStorage.removeItem(k));
       return { success: true, data: true };
@@ -729,23 +262,21 @@ class StorageService {
   }
 
   /**
-   * Get storage usage info
+   * Returns storage usage info for diagnostics.
    */
   getStorageInfo(): { used: number; available: number; projectCount: number } {
     const keys = Object.keys(localStorage).filter((k) =>
       k.startsWith(STORAGE_PREFIX),
     );
     const projectKeys = keys.filter((k) => k.startsWith(PROJECT_PREFIX));
-
     let used = 0;
     keys.forEach((k) => {
       const item = localStorage.getItem(k);
-      if (item) used += item.length * 2; // UTF-16 = 2 bytes per char
+      if (item) used += item.length * 2;
     });
-
     return {
       used,
-      available: 5 * 1024 * 1024, // ~5MB typical limit
+      available: 5 * 1024 * 1024,
       projectCount: projectKeys.length,
     };
   }
