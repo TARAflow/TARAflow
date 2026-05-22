@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Project } from '../models/project-types';
-import { storageService } from '../services/storage-service';
+import { Project } from "../models/project-types";
 
 // ==================== AUTO-SAVE HOOK ====================
 
@@ -18,7 +17,7 @@ export const useAutoSave = (
 ) => {
   const { enabled, interval, onSuccess, onError } = options;
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSaveRef = useRef<string>(''); // JSON string of last saved state
+  const lastSaveRef = useRef<string>(""); // JSON string of last saved state
 
   useEffect(() => {
     // Clear any existing interval
@@ -46,19 +45,20 @@ export const useAutoSave = (
       }
 
       try {
-        // Use unified persistence
+        // Write full project to linked .tara.json via persistence adapter.
+        // storageService.saveProject() is intentionally NOT called here —
+        // it would write to localStorage which is not the source of truth
+        // in Electron mode. Metadata sync happens in syncProjectToStorage.
         const result = await persistence.saveExistingProject(activeProject);
-        
+
         if (result.success) {
-          // Also update localStorage (for metadata)
-          await storageService.saveProject(activeProject);
           lastSaveRef.current = currentState;
           onSuccess?.(activeProject.id);
         } else {
-          onError?.(activeProject.id, result.error || 'Save failed');
+          onError?.(activeProject.id, result.error || "Save failed");
         }
       } catch (error: any) {
-        onError?.(activeProject.id, error.message || 'Save failed');
+        onError?.(activeProject.id, error.message || "Save failed");
       }
     }, interval * 1000);
 
@@ -70,23 +70,23 @@ export const useAutoSave = (
     };
   }, [activeProject, enabled, interval, onSuccess, onError]);
 
-  // Manual save function
+  // Manual save — same persistence adapter as auto-save interval.
   const saveNow = async (): Promise<boolean> => {
     if (!activeProject) return false;
 
     try {
-      const result = await storageService.saveProject(activeProject);
+      const result = await persistence.saveExistingProject(activeProject);
 
       if (result.success) {
         lastSaveRef.current = JSON.stringify(activeProject);
         onSuccess?.(activeProject.id);
         return true;
       } else {
-        onError?.(activeProject.id, result.error || 'Save failed');
+        onError?.(activeProject.id, result.error || "Save failed");
         return false;
       }
     } catch (error: any) {
-      onError?.(activeProject.id, error.message || 'Save failed');
+      onError?.(activeProject.id, error.message || "Save failed");
       return false;
     }
   };

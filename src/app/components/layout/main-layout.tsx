@@ -144,54 +144,72 @@ export const MainLayout: React.FC = () => {
     setRecentProjectsMetadata(metadata);
   };
 
-  // STEP 3: Add handler for opening from file (add near other handlers)
-  const handleOpenFromFile = async () => {
-    const result = await persistence.openProject();
+  // Called by OpenProjectDialog with the filePath already resolved by the
+  // native dialog inside the dialog component. We must NOT open a second
+  // dialog here — just read the file and register it.
+  const handleOpenFromFile = async (filePath: string) => {
+    try {
+      const readResult = await (window as any).electron.file.readProject(
+        filePath,
+      );
 
-    if (result.success && result.data?.project) {
-      const project = ensureProjectGraph(result.data.project);
-
-      // Save to localStorage (for metadata)
-      await storageService.saveProject(project);
-
-      setProjects([...projects, project]);
-      setActiveProjectId(project.id);
-      setActivePhase(project.currentPhase);
-
-      if (persistence.mode === "file-system-access") {
-        toast.success(
-          `Project "${project.info.name}" opened and linked to file!`,
-        );
-      } else {
-        toast.success(`Project "${project.info.name}" opened!`);
+      if (!readResult.success) {
+        toast.error(`Failed to read file: ${readResult.error}`);
+        return;
       }
 
+      const raw = JSON.parse(readResult.data);
+      const project = ensureProjectGraph({
+        ...raw,
+        filePath,
+        isOpen: true,
+        lastOpened: new Date().toISOString(),
+        hasUnsavedChanges: false,
+      });
+
+      // Register in recent-projects.json so it appears in the sidebar.
+      await storageService.updateRecentFile(project);
+
+      setProjects((prev) => {
+        const exists = prev.find((p) => p.id === project.id);
+        return exists
+          ? prev.map((p) => (p.id === project.id ? project : p))
+          : [...prev, project];
+      });
+      setActiveProjectId(project.id);
+      setActivePhase(project.currentPhase ?? 0);
+
+      toast.success(`Project "${project.info.name}" opened!`);
       await loadRecentProjects();
-    } else if (result.error && result.error !== "User canceled") {
-      toast.error(`Failed to open: ${result.error}`);
+    } catch (error: any) {
+      toast.error(`Failed to open project: ${error.message}`);
     }
   };
 
+  // Browser localStorage-fallback mode only.
+  // In Electron mode this handler is not exposed (see OpenProjectDialog props).
   const handleImportFile = async (project: any) => {
     try {
-      // Validate project structure
-      if (!project.id || !project.info || !project.dfd) {
+      if (!project.id || !project.info) {
         throw new Error("Invalid project structure");
       }
 
-      const projectWithGraph = ensureProjectGraph(project);
+      const projectWithGraph = ensureProjectGraph({
+        ...project,
+        isOpen: true,
+        lastOpened: new Date().toISOString(),
+      });
 
-      // Save to localStorage (Browser mode)
-      await storageService.saveProject(projectWithGraph);
+      // In localStorage fallback there is no real file — persistence adapter
+      // silently succeeds. Still register metadata so it appears in recent list.
+      await persistence.saveExistingProject(projectWithGraph);
+      await storageService.updateRecentFile(projectWithGraph);
 
-      // Add to projects list
-      setProjects([...projects, projectWithGraph]);
+      setProjects((prev) => [...prev, projectWithGraph]);
       setActiveProjectId(projectWithGraph.id);
       setActivePhase(projectWithGraph.currentPhase || 0);
 
-      // Update metadata
       await loadRecentProjects();
-
       toast.success(
         `Project "${projectWithGraph.info.name}" imported successfully!`,
       );
@@ -229,35 +247,33 @@ export const MainLayout: React.FC = () => {
     try {
       const result = await storageService.getAllProjects();
       if (result.success && result.data) {
-        // Filter out invalid/incomplete projects
-        const validProjects = result.data.filter((p) => {
-          const isValid = p && p.id && p.info && p.phaseStatus;
-          if (!isValid) {
-            console.warn("Skipping invalid project:", p?.id || "unknown");
-            // Optionally remove invalid project from storage
-            if (p?.id) {
-              storageService.deleteProject(p.id);
+        // In Electron mode, getAllProjects() reads file content from disk but
+        // does NOT include filePath (it reads from the file, not the metadata).
+        // Inject filePath from the metadata registry so auto-save works.
+        const recentFiles = await storageService.getRecentFiles();
+        const filePathMap = new Map(recentFiles.map((f) => [f.id, f.filePath]));
+
+        const validProjects = result.data
+          .filter((p) => {
+            const isValid = p && p.id && p.info && p.phaseStatus;
+            if (!isValid) {
+              console.warn("Skipping invalid project:", p?.id || "unknown");
+              if (p?.id) storageService.deleteProject(p.id);
             }
-          }
-          return isValid;
-        });
+            return isValid;
+          })
+          .map((p) => ({
+            ...p,
+            // Attach filePath so persistence adapter can write to the right file.
+            filePath: p.filePath ?? filePathMap.get(p.id) ?? undefined,
+          }));
 
-        setProjects(validProjects.map(ensureProjectGraph));
-
-        // Build graph for projects that have DFD elements but no graph yet
-        const projectsWithGraph = validProjects.map((p) => {
-          if (p.dfd?.graph || !p.dfd?.elements?.length) return p;
-          try {
-            const graph = new DefaultDFDGraphBuilder().build(p.dfd);
-            return { ...p, dfd: { ...p.dfd, graph } };
-          } catch {
-            return p;
-          }
-        });
+        // Build computed graph for projects that have DFD elements.
+        const projectsWithGraph = validProjects.map(ensureProjectGraph);
         setProjects(projectsWithGraph);
 
-        // Set active project to first open project
-        const firstOpen = validProjects.find((p) => p.isOpen);
+        // Restore active project (last open one).
+        const firstOpen = projectsWithGraph.find((p) => p.isOpen);
         if (firstOpen) {
           setActiveProjectId(firstOpen.id);
           setActivePhase(firstOpen.currentPhase ?? 0);
@@ -265,9 +281,7 @@ export const MainLayout: React.FC = () => {
 
         if (validProjects.length < (result.data?.length || 0)) {
           toast.warning(
-            `${
-              result.data.length - validProjects.length
-            } invalid project(s) were removed`,
+            `${result.data.length - validProjects.length} invalid project(s) were removed`,
           );
         }
       }
@@ -284,12 +298,17 @@ export const MainLayout: React.FC = () => {
 
   // ==================== SYNC HELPER ====================
 
+  // Single save path for all project updates (DFD, assets, threats, etc.).
+  // Uses persistence.saveExistingProject() so Electron writes to the linked
+  // .tara.json file on disk. Falls back gracefully when no file is linked yet.
   const syncProjectToStorage = async (project: Project): Promise<boolean> => {
-    const result = await storageService.saveProject(project);
+    const result = await persistence.saveExistingProject(project);
     if (!result.success) {
       toast.error(`Failed to save: ${result.error}`);
       return false;
     }
+    // Keep metadata registry (recent-projects.json) in sync.
+    await storageService.updateRecentFile(project);
     return true;
   };
 
@@ -326,47 +345,78 @@ export const MainLayout: React.FC = () => {
   // ==================== PROJECT HANDLERS ====================
 
   const handleProjectOpen = async (projectId: string) => {
-    const project = projects.find((p) => p.id === projectId);
-    if (!project || project.isOpen) return;
-
-    const now = new Date().toISOString();
-
-    // Check if max open projects reached
-    if (openProjects.length >= MAX_OPEN_PROJECTS) {
-      // Auto-close oldest project
-      const oldestProject = [...openProjects].sort(
-        (a, b) =>
-          new Date(a.lastOpened || a.info?.lastModified || 0).getTime() -
-          new Date(b.lastOpened || b.info?.lastModified || 0).getTime(),
-      )[0];
-
-      const closedProject = { ...oldestProject, isOpen: false };
-      const openedProject = { ...project, isOpen: true, lastOpened: now };
-
-      // Sync both to storage
-      await syncProjectToStorage(closedProject);
-      await syncProjectToStorage(openedProject);
-
-      setProjects(
-        projects.map((p) => {
-          if (p.id === oldestProject.id) return closedProject;
-          if (p.id === projectId) return openedProject;
-          return p;
-        }),
-      );
-
-      toast.error(`Auto-closed "${oldestProject.info?.name}" (oldest project)`);
-    } else {
-      const openedProject = { ...project, isOpen: true, lastOpened: now };
-      await syncProjectToStorage(openedProject);
-
-      setProjects(
-        projects.map((p) => (p.id === projectId ? openedProject : p)),
-      );
+    // If already open in state, just switch to it.
+    const existing = projects.find((p) => p.id === projectId);
+    if (existing?.isOpen) {
+      setActiveProjectId(projectId);
+      setActivePhase(existing.currentPhase ?? 0);
+      return;
     }
 
-    setActiveProjectId(projectId);
-    setActivePhase(project.currentPhase);
+    // Load full project from disk using its filePath from the metadata registry.
+    // The project object in state only carries metadata at this point — we need
+    // the full file to get dfd, assets, threats, etc.
+    const recentFiles = await storageService.getRecentFiles();
+    const meta = recentFiles.find((f) => f.id === projectId);
+
+    if (!meta?.filePath) {
+      toast.error("Cannot open project: file path not found in registry");
+      return;
+    }
+
+    try {
+      const readResult = await (window as any).electron.file.readProject(
+        meta.filePath,
+      );
+
+      if (!readResult.success) {
+        toast.error(`Failed to read project file: ${readResult.error}`);
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const raw = JSON.parse(readResult.data);
+      const fullProject = ensureProjectGraph({
+        ...raw,
+        filePath: meta.filePath,
+        isOpen: true,
+        lastOpened: now,
+        hasUnsavedChanges: false,
+      });
+
+      // Auto-close oldest if at limit
+      if (openProjects.length >= MAX_OPEN_PROJECTS) {
+        const oldest = [...openProjects].sort(
+          (a, b) =>
+            new Date(a.lastOpened || a.info?.lastModified || 0).getTime() -
+            new Date(b.lastOpened || b.info?.lastModified || 0).getTime(),
+        )[0];
+
+        if (oldest) {
+          const closedProject = { ...oldest, isOpen: false };
+          await syncProjectToStorage(closedProject);
+          setProjects((prev) =>
+            prev.map((p) => (p.id === oldest.id ? closedProject : p)),
+          );
+          toast.warning(`Auto-closed "${oldest.info?.name}"`);
+        }
+      }
+
+      // Write isOpen=true + lastOpened back to the file on disk.
+      await syncProjectToStorage(fullProject);
+
+      setProjects((prev) => {
+        const exists = prev.find((p) => p.id === projectId);
+        return exists
+          ? prev.map((p) => (p.id === projectId ? fullProject : p))
+          : [...prev, fullProject];
+      });
+
+      setActiveProjectId(projectId);
+      setActivePhase(fullProject.currentPhase ?? 0);
+    } catch (error: any) {
+      toast.error(`Failed to open project: ${error.message}`);
+    }
   };
 
   const handleProjectSwitch = (projectId: string) => {
@@ -384,8 +434,8 @@ export const MainLayout: React.FC = () => {
     if (save && activeProject) {
       const savedProject = { ...activeProject, hasUnsavedChanges: false };
       await syncProjectToStorage(savedProject);
-      setProjects(
-        projects.map((p) => (p.id === activeProject.id ? savedProject : p)),
+      setProjects((prev) =>
+        prev.map((p) => (p.id === activeProject.id ? savedProject : p)),
       );
       toast.success(`Project "${activeProject.info?.name}" saved`);
     }
@@ -514,14 +564,12 @@ export const MainLayout: React.FC = () => {
       hasUnsavedChanges: true,
     };
 
-    // Update local state immediately for responsiveness
-    setProjects(
-      projects.map((p) =>
-        p.id === updatedProject.id ? projectWithChanges : p,
-      ),
+    // Functional updater prevents stale-closure overwrites when multiple
+    // handlers fire in quick succession (e.g. DFD + bidirectional asset sync).
+    setProjects((prev) =>
+      prev.map((p) => (p.id === updatedProject.id ? projectWithChanges : p)),
     );
 
-    // Auto-save if enabled
     if (updatedProject.settings.autoSave) {
       const savedProject: Project = {
         ...projectWithChanges,
@@ -530,8 +578,8 @@ export const MainLayout: React.FC = () => {
 
       const success = await syncProjectToStorage(savedProject);
       if (success) {
-        setProjects(
-          projects.map((p) => (p.id === updatedProject.id ? savedProject : p)),
+        setProjects((prev) =>
+          prev.map((p) => (p.id === updatedProject.id ? savedProject : p)),
         );
       }
     }
@@ -556,7 +604,9 @@ export const MainLayout: React.FC = () => {
 
     const success = await syncProjectToStorage(savedProject);
     if (success) {
-      setProjects(projects.map((p) => (p.id === projectId ? savedProject : p)));
+      setProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? savedProject : p)),
+      );
       toast.success(`Project "${project.info.name}" saved`);
     }
   };
@@ -616,27 +666,34 @@ export const MainLayout: React.FC = () => {
   };
 
   // ==================== DFD HANDLER ====================
-  /**
-   * Handle DFD tab updates
-   * Converts DFDUpdateResult to full Project update
-   */
+
+  // Ref that always points to the current activeProject.
+  // handleDFDUpdate uses this instead of closing over activeProject directly,
+  // which would cause stale data to be written when the user switches projects
+  // quickly while a DFD update is still in flight.
+  const activeProjectRef = React.useRef<Project | undefined>(undefined);
+  activeProjectRef.current = activeProject;
+
   const handleDFDUpdate = useCallback(
     async (updates: DFDUpdateResult) => {
-      if (!activeProject) return;
+      // Read from ref — guaranteed to be the project that is active RIGHT NOW,
+      // not the one that was active when this callback was created.
+      const current = activeProjectRef.current;
+      if (!current) return;
 
-      const graph = updates.dfd?.graph ?? activeProject.dfd?.graph;
+      const graph = updates.dfd?.graph ?? current.dfd?.graph;
       if (!graph) {
         throw new Error(
           "[DFD] Invariant violation: graph must exist after DFD update",
         );
       }
 
-      // Mapping der alten Threats auf neue displayIds
-      const syncedThreats = activeProject.threats
+      // Sync threat displayIds when DFD elements are renamed/renumbered.
+      const syncedThreats = current.threats
         ? {
-            ...activeProject.threats,
-            perInteractionTables:
-              activeProject.threats.perInteractionTables?.map((table) => ({
+            ...current.threats,
+            perInteractionTables: current.threats.perInteractionTables?.map(
+              (table) => ({
                 ...table,
                 threats: table.threats.map((threat) => {
                   if (!threat.linkedElement) return threat;
@@ -655,14 +712,15 @@ export const MainLayout: React.FC = () => {
                     },
                   };
                 }),
-              })),
+              }),
+            ),
           }
         : null;
 
       const updatedProject: Project = {
-        ...activeProject,
+        ...current,
         dfd: {
-          ...activeProject.dfd,
+          ...current.dfd,
           ...updates.dfd,
           graph,
         },
@@ -672,11 +730,10 @@ export const MainLayout: React.FC = () => {
 
       await updateProject(updatedProject);
     },
-    // Use activeProject ref pattern to avoid recreating callback on every save.
-    // The callback reads activeProject at call time via closure — this is safe
-    // because activeProject is always current when handleDFDUpdate fires.
+    // Stable callback — never needs to be recreated because it reads the
+    // current project via ref, not via closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeProject?.id],
+    [],
   );
 
   // ==================== Asset HANDLER ====================
@@ -1417,7 +1474,10 @@ export const MainLayout: React.FC = () => {
       {showNewDialog && (
         <NewProjectDialog
           onCreate={async (data: NewProjectData) => {
-            const result = await projectService.createProject({
+            // Step 1: Build project object only — no save yet.
+            // projectService.createProject() is now synchronous and
+            // does NOT write to storage or open any dialog.
+            const result = projectService.createProject({
               name: data.name,
               description: data.description,
               version: data.version,
@@ -1425,43 +1485,56 @@ export const MainLayout: React.FC = () => {
               isHighImpact: data.isHighImpact,
             });
 
-            if (result.success && result.data) {
-              const projectWithTags: Project = {
-                ...result.data,
-                info: {
-                  ...result.data.info,
-                  tags: data.tags,
-                },
-              };
+            if (!result.success || !result.data) {
+              toast.error(`Failed to create project: ${result.error}`);
+              setShowNewDialog(false);
+              return;
+            }
 
-              // Save with unified persistence
-              const saveResult =
-                await persistence.saveNewProject(projectWithTags);
+            // Step 2: Apply tags — data.tags comes from the dialog form.
+            // data.filePath is NOT set here — new-project-dialog no longer
+            // opens the save dialog itself; main-layout owns that.
+            const projectWithTags: Project = {
+              ...result.data,
+              info: { ...result.data.info, tags: data.tags },
+            };
 
-              if (saveResult.success) {
-                // Also save to localStorage (for metadata)
-                await storageService.saveProject(projectWithTags);
+            // Step 3: Show native save dialog and write to filesystem.
+            // This is the ONE AND ONLY save dialog call for a new project.
+            // new-project-dialog must not call electron.file.saveDialog()
+            // because that would open a second dialog before this one.
+            const saveResult =
+              await persistence.saveNewProject(projectWithTags);
 
-                setProjects([...projects, projectWithTags]);
-                setActiveProjectId(projectWithTags.id);
-                setActivePhase(0);
-
-                // Mode-specific feedback
-                if (persistence.mode === "file-system-access") {
-                  toast.success(
-                    `Project "${projectWithTags.info.name}" created and linked to file!`,
-                  );
-                } else {
-                  toast.success(
-                    `Project "${projectWithTags.info.name}" created!`,
-                  );
-                }
-              } else if (saveResult.error !== "User canceled") {
+            if (!saveResult.success) {
+              if (saveResult.error !== "Save canceled") {
                 toast.error(`Failed to save: ${saveResult.error}`);
               }
-            } else {
-              toast.error(`Failed to create project: ${result.error}`);
+              // Stay in dialog only if user canceled — close on real errors.
+              if (saveResult.error !== "Save canceled") {
+                setShowNewDialog(false);
+              }
+              return;
             }
+
+            // Step 4: Attach the resolved filePath so auto-save can find the
+            // file immediately without needing another dialog.
+            const savedProject: Project = {
+              ...projectWithTags,
+              filePath: saveResult.data?.filePath ?? projectWithTags.filePath,
+            };
+
+            // Step 5: Register in recent-projects.json (Electron) or
+            // localStorage (browser fallback).
+            await storageService.updateRecentFile(savedProject);
+
+            // Step 6: Update React state and close dialog.
+            setProjects((prev) => [...prev, savedProject]);
+            setActiveProjectId(savedProject.id);
+            setActivePhase(0);
+            setShowNewDialog(false);
+
+            toast.success(`Project "${savedProject.info.name}" created!`);
           }}
           onClose={() => setShowNewDialog(false)}
         />
@@ -1509,6 +1582,6 @@ export const MainLayout: React.FC = () => {
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   );
-}
+};
 
 export default MainLayout;

@@ -17,10 +17,11 @@ class ProjectService {
   /**
    * Create new project
    */
-  // ProjectService.ts
-  async createProject(
-    input: CreateProjectInput,
-  ): Promise<StorageResult<Project>> {
+  // Only constructs the project object — does NOT save it.
+  // The caller (main-layout) saves after the file dialog completes
+  // and filePath is known. Saving here would trigger a premature write
+  // or a second native save dialog in Electron mode.
+  createProject(input: CreateProjectInput): StorageResult<Project> {
     try {
       const project = storageService.createEmptyProject(
         input.name,
@@ -28,10 +29,8 @@ class ProjectService {
         input.version,
         input.responsible,
         input.isHighImpact,
-        (input as any).filePath, // filePath from NewProjectData
       );
-      const result = await storageService.saveProject(project);
-      return result;
+      return { success: true, data: project };
     } catch (err: any) {
       return { success: false, error: err.message };
     }

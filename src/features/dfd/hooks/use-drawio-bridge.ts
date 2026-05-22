@@ -17,14 +17,16 @@ import dfdService from "../services/dfd-service";
 export interface UseDrawioBridgeOptions {
   darkMode?: boolean;
   onDiagramChange?: () => void;
-  onSelectionChanged?: (cells: any[]) => void; // ✅ NEU
+  onSelectionChanged?: (cells: any[]) => void;
+  /** Called once after draw.io plugin is fully injected and ready for export */
+  onPluginReady?: () => void;
 }
 
 export interface UseDrawioBridgeReturn {
   // State
   isLoading: boolean;
   iframeKey: number;
-  selectedCells: any[]; // ✅ NEU
+  selectedCells: any[];
 
   // Refs
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
@@ -52,7 +54,12 @@ export function useDrawioBridge(
   project: DFDProjectData,
   options: UseDrawioBridgeOptions = {},
 ): UseDrawioBridgeReturn {
-  const { darkMode = false, onDiagramChange, onSelectionChanged } = options; // ✅ NEU: onSelectionChanged
+  const {
+    darkMode = false,
+    onDiagramChange,
+    onSelectionChanged,
+    onPluginReady,
+  } = options;
 
   // ==================== STATE ====================
 
@@ -75,7 +82,6 @@ export function useDrawioBridge(
   // Stable refs to avoid stale closures — callbacks may change after
   // bridge initialization (e.g. when data.dfd updates rebuild useCallback)
   const onSelectionChangedRef = useRef(onSelectionChanged);
-
   useEffect(() => {
     onSelectionChangedRef.current = onSelectionChanged;
   }, [onSelectionChanged]);
@@ -84,6 +90,13 @@ export function useDrawioBridge(
   useEffect(() => {
     onDiagramChangeRef.current = onDiagramChange;
   }, [onDiagramChange]);
+
+  // Called once after the draw.io plugin is fully injected — the only
+  // reliable moment when exportImage() will actually return data.
+  const onPluginReadyRef = useRef(onPluginReady);
+  useEffect(() => {
+    onPluginReadyRef.current = onPluginReady;
+  }, [onPluginReady]);
 
   // ==================== BRIDGE INITIALIZATION ====================
 
@@ -143,10 +156,9 @@ export function useDrawioBridge(
       });
 
       const injectPlugin = async () => {
-        // Warte bis DrawIO vollständig geladen ist
+        // Wait until draw.io is fully loaded before injecting the plugin.
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
-        // Check if running in Electron
         if (window.electronAPI?.injectDrawioPlugin) {
           try {
             const result = await window.electronAPI.injectDrawioPlugin();
@@ -157,6 +169,10 @@ export function useDrawioBridge(
                 result.error,
               );
               console.error("[useDrawioBridge] Details:", result);
+            } else {
+              // Plugin is fully ready — draw.io can now respond to exportImage().
+              // Notify the caller so an initial thumbnail can be generated.
+              onPluginReadyRef.current?.();
             }
           } catch (error) {
             console.error(
@@ -164,6 +180,9 @@ export function useDrawioBridge(
               error,
             );
           }
+        } else {
+          // Non-Electron (browser dev mode) — no plugin needed, bridge is ready.
+          onPluginReadyRef.current?.();
         }
       };
 

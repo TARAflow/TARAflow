@@ -133,15 +133,28 @@ export const useProjectPersistence = () => {
     async (project: Project): Promise<PersistenceResult> => {
       // Mode 1: Electron
       if (mode === "electron") {
-        if (!currentFilePath) {
-          // No file linked yet — not an error, project lives in localStorage only
+        // Prefer filePath on the project object — it is set when the project
+        // was opened from disk or saved for the first time. Fall back to the
+        // hook-local currentFilePath (set by saveNewProject).
+        const targetPath = project.filePath ?? currentFilePath;
+
+        if (!targetPath) {
+          // No file linked yet — silent success. The project has not been
+          // saved to disk via the save dialog yet; that is not an error.
           return { success: true };
         }
 
+        // Strip the computed DFD graph before writing — it is derived data
+        // and would inflate the file size unnecessarily.
+        const projectToWrite = {
+          ...project,
+          dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,
+        };
+
         try {
           const result = await (window as any).electron.file.writeProject(
-            currentFilePath,
-            JSON.stringify(project, null, 2),
+            targetPath,
+            JSON.stringify(projectToWrite, null, 2),
           );
           return result;
         } catch (error: any) {

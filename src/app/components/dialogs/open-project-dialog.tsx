@@ -5,14 +5,18 @@ import { ProjectMetadata } from "../../models/project-types";
 import { Button } from "shared";
 import { flattenProjectTags } from "shared";
 
-
 // ==================== OPEN PROJECT DIALOG ====================
 
 interface OpenProjectDialogProps {
   recentProjects: ProjectMetadata[];
+  // Called with projectId when user picks from the recent list and clicks Open.
   onOpen: (projectId: string) => void;
-  onOpenFile?: (filePath: string) => void; // Electron mode: open from file
-  onImportFile?: (project: any) => void; // Browser mode: import from file
+  // Electron mode: called with the filePath the native dialog returned.
+  // The dialog itself calls electron.file.openDialog() — main-layout must NOT
+  // open a second dialog for the same click.
+  onOpenFile?: (filePath: string) => void;
+  // Browser mode: called with parsed project JSON from the file input.
+  onImportFile?: (project: any) => void;
   onClose: () => void;
 }
 
@@ -29,6 +33,10 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
     null,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isElectron =
+    typeof window !== "undefined" &&
+    typeof (window as any).electron?.file !== "undefined";
 
   const sortedProjects = [...recentProjects].sort((a, b) =>
     a.info.name.localeCompare(b.info.name),
@@ -52,20 +60,19 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
     }
   };
 
-  // Electron: Browse file system
+  // Electron: This component owns the native dialog call.
+  // main-layout's onOpenFile handler must NOT open a second dialog —
+  // it only receives the filePath and loads the project from disk.
   const handleBrowseFile = async () => {
-    const isElectron =
-      typeof window !== "undefined" &&
-      typeof (window as any).electron?.file !== "undefined";
-
     if (!isElectron || !onOpenFile) return;
 
     try {
       const result = await (window as any).electron.file.openDialog();
 
       if (result.success && result.data) {
-        onOpenFile(result.data);
+        // Close dialog first, then notify parent with the resolved path.
         onClose();
+        onOpenFile(result.data);
       } else if (result.error && result.error !== "Open canceled") {
         console.error("Open dialog error:", result.error);
       }
@@ -74,30 +81,26 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
     }
   };
 
-  // Browser: Upload file
+  // Browser: Parse file content here, pass project object to parent.
   const handleBrowserFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Reset input so same file can be selected again
     event.target.value = "";
 
     try {
-      // Read file content
       const content = await file.text();
       const project = JSON.parse(content);
 
-      // Basic validation
       if (!project.id || !project.info) {
         throw new Error("Invalid project file format");
       }
 
-      // Call import handler
       if (onImportFile) {
-        onImportFile(project);
         onClose();
+        onImportFile(project);
       }
     } catch (error: any) {
       console.error("Failed to load file:", error);
@@ -105,14 +108,9 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
     }
   };
 
-  // Browser: Trigger file input
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-
-  const isElectron =
-    typeof window !== "undefined" &&
-    typeof (window as any).electron?.file !== "undefined";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -123,7 +121,6 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
               {t("project.openProject")}
             </h2>
 
-            {/* Electron: Browse File System */}
             {isElectron && onOpenFile && (
               <Button
                 variant="secondary"
@@ -137,7 +134,6 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
               </Button>
             )}
 
-            {/* Browser: Upload File */}
             {!isElectron && onImportFile && (
               <>
                 <input
@@ -194,7 +190,6 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
                 <div className="flex items-center justify-between mb-1">
                   <div className="font-medium">{project.info.name}</div>
                   <div className="flex items-center gap-2">
-                    {/* Status Badge */}
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         project.status === "complete"
@@ -208,7 +203,6 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
                     >
                       {project.status}
                     </span>
-                    {/* Phase Progress */}
                     {project.completedPhases !== undefined &&
                       project.totalPhases !== undefined && (
                         <span className="text-xs text-gray-500">
@@ -233,7 +227,6 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
                   </span>
                 </div>
 
-                {/* Tags */}
                 {flattenProjectTags(project.info.tags).length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {flattenProjectTags(project.info.tags)

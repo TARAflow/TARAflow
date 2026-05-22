@@ -2,7 +2,7 @@
 // Single Responsibility: Orchestrate atomic hooks into unified API
 // Follows Facade Pattern - simple interface, complex implementation
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DFDProjectData,
   DFDUpdateResult,
@@ -20,7 +20,10 @@ import type {
 
 // Atomic hooks
 import { useDFDData } from "./use-dfd-data";
-import { useDrawioBridge } from "./use-drawio-bridge";
+import {
+  useDrawioBridge,
+  type UseDrawioBridgeReturn,
+} from "./use-drawio-bridge";
 import { useDFDValidation } from "./use-dfd-validation";
 import { useDFDPersistence } from "./use-dfd-persistence";
 import { useDFDThumbnail } from "./use-dfd-thumbnail";
@@ -206,11 +209,41 @@ export function useDFDEditor(
     autoValidateDelay: autoValidateInterval,
   });
 
+  // Ref to persistence.save — used inside onAfterDrawioSave to avoid a
+  // circular reference (persistence is not yet declared when the options
+  // object is constructed, so we access it via ref at call time).
+  const persistenceSaveRef = useRef<
+    ((thumbnail?: string) => Promise<any>) | null
+  >(null);
+
   // Persistence layer
   const persistence = useDFDPersistence(project, {
     onUpdate,
     onDirtyChange,
+    // Called after every DrawIO autosave (1.5s debounce after diagram change).
+    // At this point the XML is already persisted — generate a fresh thumbnail
+    // so the preview stays in sync without requiring a manual save.
+    onAfterDrawioSave: generateThumbnailOnSave
+      ? async () => {
+          try {
+            const imageData = (await bridgeRef.current?.exportImage()) ?? null;
+            if (!imageData) return;
+
+            // Write thumbnail via the persistence ref — avoids referencing
+            // the persistence object before it is declared.
+            await persistenceSaveRef.current?.(imageData);
+          } catch (err) {
+            console.warn(
+              "[useDFDEditor] Thumbnail update after autosave failed:",
+              err,
+            );
+          }
+        }
+      : undefined,
   });
+
+  // Keep the ref current after persistence is constructed.
+  persistenceSaveRef.current = persistence.save;
 
   // iframe communication layer
   const handleDiagramChange = useCallback(() => {
@@ -219,11 +252,47 @@ export function useDFDEditor(
     persistence.scheduleDrawioSave();
   }, [persistence, validation, autoValidateInterval]);
 
+  // Called once after the draw.io plugin is fully injected (~3 s after mount).
+  // This is the first moment exportImage() can reliably return data.
+  // We generate an initial thumbnail here so new projects get a preview
+  // even before the user manually saves.
+  const handlePluginReady = useCallback(async () => {
+    if (!generateThumbnailOnSave) return;
+
+    console.log("[useDFDEditor] Plugin ready — generating initial thumbnail");
+    // Small extra delay: give draw.io time to finish rendering after inject.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    try {
+      const imageData = (await bridgeRef.current?.exportImage?.()) ?? null;
+      if (imageData) {
+        // Push thumbnail into the project via a lightweight save so it
+        // persists immediately without requiring a full manual save.
+        const result = await persistence.save(imageData);
+        if (result) {
+          console.log("[useDFDEditor] Initial thumbnail saved");
+        }
+      }
+    } catch (err) {
+      console.warn("[useDFDEditor] Initial thumbnail generation failed:", err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generateThumbnailOnSave]);
+
+  // Ref so handlePluginReady can call bridge.exportImage without closing
+  // over a stale bridge instance from a previous render.
+  const bridgeRef = useRef<UseDrawioBridgeReturn | null>(null);
+
   const bridge = useDrawioBridge(project, {
     darkMode,
     onDiagramChange: handleDiagramChange,
     onSelectionChanged: handleSelectionChanged,
+    onPluginReady: handlePluginReady,
   });
+
+  // Keep bridgeRef in sync so handlePluginReady can call bridge.exportImage
+  // without closing over a stale bridge instance.
+  bridgeRef.current = bridge;
 
   // Thumbnail layer
   const thumbnail = useDFDThumbnail(bridge, project, {

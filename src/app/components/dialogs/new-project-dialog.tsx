@@ -116,41 +116,16 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     })).filter(({ tags }) => tags.length > 0);
   };
 
-  // Form submit
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Form submit — the dialog only validates and passes data to the parent.
+  // main-layout owns the native save dialog (Electron) or download (Browser).
+  // Opening the save dialog here would cause a double-dialog because
+  // main-layout calls persistence.saveNewProject() which opens it again.
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-
-    // Check if Electron mode
-    const isElectron =
-      typeof window !== "undefined" &&
-      typeof (window as any).electron?.file !== "undefined";
-
-    if (isElectron) {
-      // Open Save Dialog
-      try {
-        const sanitizedName = formData.name.replace(/[^a-z0-9]/gi, "_");
-        const result = await(window as any).electron.file.saveDialog(
-          sanitizedName
-        );
-
-        if (result.success && result.data) {
-          // Pass filePath to onCreate
-          onCreate({ ...formData, filePath: result.data });
-          onClose();
-        } else if (result.error && result.error !== "Save canceled") {
-          // Show error (will be handled in Etappe 4)
-          console.error("Save dialog error:", result.error);
-        }
-        // If canceled, do nothing (stay in dialog)
-      } catch (error) {
-        console.error("Failed to open save dialog:", error);
-      }
-    } else {
-      // Browser mode: no file dialog
-      onCreate(formData);
-      onClose();
-    }
+    onCreate(formData);
+    // Do NOT call onClose() here — main-layout closes the dialog after the
+    // save dialog completes (or immediately in browser mode).
   };
 
   // Keyboard shortcuts

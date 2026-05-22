@@ -155,7 +155,7 @@ class StorageService {
         5: project.phaseStatus?.[5] ?? "not-started",
         6: project.phaseStatus?.[6] ?? "not-started",
         7: project.phaseStatus?.[7] ?? "not-started",
-        8: project.phaseStatus?.[7] ?? "not-started",
+        8: project.phaseStatus?.[8] ?? "not-started",
       },
 
       // Ensure settings is complete
@@ -191,7 +191,7 @@ class StorageService {
     return (
       project &&
       typeof project.id === "string" &&
-      typeof project.name === "string" &&
+      typeof project.info?.name === "string" &&
       project.phaseStatus &&
       typeof project.phaseStatus[0] !== "undefined"
     );
@@ -204,7 +204,7 @@ class StorageService {
    * Electron: Uses app.getPath('userData')/recent-projects.json via IPC
    * Browser: Uses localStorage as fallback
    */
-  private async updateRecentFile(project: Project): Promise<void> {
+  public async updateRecentFile(project: Project): Promise<void> {
     if (!project.filePath && this.isElectron()) {
       // Electron mode requires filePath
       console.warn("Cannot update metadata without filePath in Electron mode");
