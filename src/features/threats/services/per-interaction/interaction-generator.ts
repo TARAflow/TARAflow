@@ -45,6 +45,10 @@ import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
 import { modulesToSource } from "../../models/strategy-types";
 import { shouldEliminateThreat } from "../threat-elimination-filter";
+import {
+  getImplementedMitigationHints,
+  mergeMitigationHints,
+} from "../implemented-controls-mapper";
 
 // ==================== TYPES ====================
 
@@ -411,7 +415,16 @@ export class InteractionThreatGenerator {
         template.id,
         placeholders,
       );
-      threat.proposedMitigations = template.mitigations.map((id) => ({ id }));
+      const templateMitigations = template.mitigations.map((id) => ({ id }));
+      const hints = getImplementedMitigationHints(
+        perspective === "sender" ? source.type : target.type,
+        elementProps,
+        strideCategory,
+      );
+      threat.proposedMitigations = mergeMitigationHints(
+        templateMitigations,
+        hints,
+      );
       threat.proposedVerifications = template.verifications.map((id) => ({
         id,
       }));
@@ -519,7 +532,16 @@ export class InteractionThreatGenerator {
         template.id,
         placeholders,
       );
-      threat.proposedMitigations = template.mitigations.map((id) => ({ id }));
+      const templateMitigations = template.mitigations.map((id) => ({ id }));
+      const ifHints = getImplementedMitigationHints(
+        element.type,
+        elementProps,
+        strideCategory,
+      );
+      threat.proposedMitigations = mergeMitigationHints(
+        templateMitigations,
+        ifHints,
+      );
       threat.proposedVerifications = template.verifications.map((id) => ({
         id,
       }));

@@ -28,6 +28,10 @@ import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
 import { modulesToSource } from "../../models/strategy-types";
 import { shouldEliminateThreat } from "../threat-elimination-filter";
+import {
+  getImplementedMitigationHints,
+  mergeMitigationHints,
+} from "../implemented-controls-mapper";
 
 // ==================== ELEMENT THREAT GENERATOR ====================
 
@@ -437,18 +441,29 @@ export class ElementThreatGenerator {
       elementProps,
     );
 
-    if (template) {
       // Descriptions stored empty → rendered from i18n at display time.
       // Set them here so the dialog/table has immediate content without
       // requiring a separate i18n lookup call at each render.
-      threat.threatDescription = getLocalizedElementThreat(template.id);
-      threat.attackDescription = getLocalizedElementAttack(template.id);
-      threat.causeDescription = getLocalizedElementCause(template.id);
-      threat.proposedMitigations = template.mitigations.map((id) => ({ id }));
-      threat.proposedVerifications = template.verifications.map((id) => ({
-        id,
-      }));
-    }
+      if (template) {
+        threat.threatDescription = getLocalizedElementThreat(template.id);
+        threat.attackDescription = getLocalizedElementAttack(template.id);
+        threat.causeDescription = getLocalizedElementCause(template.id);
+        const templateMitigations = template.mitigations.map((id) => ({
+          id,
+        }));
+        const hints = getImplementedMitigationHints(
+          element.type,
+          elementProps,
+          strideCategory,
+        );
+        threat.proposedMitigations = mergeMitigationHints(
+          templateMitigations,
+          hints,
+        );
+        threat.proposedVerifications = template.verifications.map((id) => ({
+          id,
+        }));
+      }
 
     return threat;
   }
