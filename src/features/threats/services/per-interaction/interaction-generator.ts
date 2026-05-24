@@ -61,6 +61,17 @@ export class InteractionThreatGenerator {
 
     const strategy = createStrategy();
 
+    const defaultConfig = {
+      activeMethod: "per-interaction" as const,
+      zeroTrustMode: false,
+      showThreatActor: false,
+      forceClassicMode: false,
+      customElementTemplates: [],
+      customInteractionTemplates: [],
+      customMitigations: [],
+      customVerifications: [],
+    };
+
     const graph = project.dfdGraph;
     const zeroTrust = configuration?.zeroTrustMode ?? false;
 
@@ -119,17 +130,6 @@ export class InteractionThreatGenerator {
       } as DFDElementReference;
 
       const config = configuration ?? project.threats?.configuration;
-      const defaultConfig = {
-        activeMethod: "per-interaction" as const,
-        zeroTrustMode: false,
-        showThreatActor: false,
-        forceClassicMode: false,
-        customElementTemplates: [],
-        customInteractionTemplates: [],
-        customMitigations: [],
-        customVerifications: [],
-      };
-
       const { categories: applicableStride } = strategy.getStrideCategories(
         dataFlowElementWithProps,
         STRIDE_PER_INTERACTION,
@@ -194,13 +194,41 @@ export class InteractionThreatGenerator {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
         continue;
 
+      const elProps = element.properties ?? {};
+
+      // permanent_disabled → no threats at all
+      if (elProps["operationalState"] === "permanent_disabled") continue;
+
       const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
       const tbId = effectiveTB ?? null;
-      const tbName = tbId ? this.getTBName(graph, tbId) : "Physical Interfaces";
-      const tbDisplayId = tbId ? this.getTBDisplayId(graph, tbId) : "";
-      const tableKey = tbId ?? "__no_tb__";
 
-      for (const stride of STRIDE_PER_INTERACTION) {
+      // Resolve parent boundary name: TB > PB > CB > fallback
+      let tbName: string;
+      let tbDisplayId: string;
+      if (tbId) {
+        tbName = this.getTBName(graph, tbId);
+        tbDisplayId = this.getTBDisplayId(graph, tbId);
+      } else {
+        const pbIds = graph.elementPhysicalBoundaries?.get(element.id) ?? [];
+        const cbIds = graph.elementChipBoundaries?.get(element.id) ?? [];
+        tbName =
+          (pbIds.length > 0 ? graph.elementsById.get(pbIds[0])?.name : null) ??
+          (cbIds.length > 0 ? graph.elementsById.get(cbIds[0])?.name : null) ??
+          "Physical Interfaces";
+        tbDisplayId = "";
+      }
+
+      const tableKey = tbId ?? "__no_tb__";
+      const config = project.threats?.configuration ?? defaultConfig;
+
+      const { categories: applicableStride } = strategy.getStrideCategories(
+        element,
+        STRIDE_PER_INTERACTION,
+        project,
+        config,
+      );
+
+      for (const stride of applicableStride) {
         const threat = this.createInterfaceThreat(
           element,
           stride,
