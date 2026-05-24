@@ -421,12 +421,30 @@ export class ElementThreatGenerator {
 
     // Determine source from active modules
     const config = project.threats?.configuration;
-    const defaultConfig = { activeMethod: "per-element" as const, zeroTrustMode: false, showThreatActor: false, forceClassicMode: false, customElementTemplates: [], customInteractionTemplates: [], customMitigations: [], customVerifications: [] };
-    const { modules } = strategy.getStrideCategories(element, [strideCategory], project, config ?? defaultConfig);
+    const defaultConfig = {
+      activeMethod: "per-element" as const,
+      zeroTrustMode: false,
+      showThreatActor: false,
+      forceClassicMode: false,
+      customElementTemplates: [],
+      customInteractionTemplates: [],
+      customMitigations: [],
+      customVerifications: [],
+    };
+    const { modules } = strategy.getStrideCategories(
+      element,
+      [strideCategory],
+      project,
+      config ?? defaultConfig,
+    );
     threat.source = modulesToSource(modules);
 
     // Set initial impact from CIANAAA module
-    const initialImpact = strategy.getInitialImpact(element, strideCategory, project);
+    const initialImpact = strategy.getInitialImpact(
+      element,
+      strideCategory,
+      project,
+    );
     if (initialImpact !== undefined) {
       threat.initialImpact = initialImpact;
     }
@@ -441,29 +459,29 @@ export class ElementThreatGenerator {
       elementProps,
     );
 
-      // Descriptions stored empty → rendered from i18n at display time.
-      // Set them here so the dialog/table has immediate content without
-      // requiring a separate i18n lookup call at each render.
-      if (template) {
-        threat.threatDescription = getLocalizedElementThreat(template.id);
-        threat.attackDescription = getLocalizedElementAttack(template.id);
-        threat.causeDescription = getLocalizedElementCause(template.id);
-        const templateMitigations = template.mitigations.map((id) => ({
-          id,
-        }));
-        const hints = getImplementedMitigationHints(
-          element.type,
-          elementProps,
-          strideCategory,
-        );
-        threat.proposedMitigations = mergeMitigationHints(
-          templateMitigations,
-          hints,
-        );
-        threat.proposedVerifications = template.verifications.map((id) => ({
-          id,
-        }));
-      }
+    // Descriptions stored empty → rendered from i18n at display time.
+    // Set them here so the dialog/table has immediate content without
+    // requiring a separate i18n lookup call at each render.
+    if (template) {
+      threat.threatDescription = getLocalizedElementThreat(template.id);
+      threat.attackDescription = getLocalizedElementAttack(template.id);
+      threat.causeDescription = getLocalizedElementCause(template.id);
+      const templateMitigations = template.mitigations.map((id) => ({
+        id,
+      }));
+      const hints = getImplementedMitigationHints(
+        element.type,
+        elementProps,
+        strideCategory,
+      );
+      threat.proposedMitigations = mergeMitigationHints(
+        templateMitigations,
+        hints,
+      );
+      threat.proposedVerifications = template.verifications.map((id) => ({
+        id,
+      }));
+    }
 
     return threat;
   }

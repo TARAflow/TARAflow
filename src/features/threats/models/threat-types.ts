@@ -600,6 +600,89 @@ export interface TemplateContext {
    * When true in context: template only matches elements where this flag is true.
    */
   removableMediaAccessible?: boolean;
+
+  // ── Process / Multiprocess context ───────────────────────────────────────
+
+  /**
+   * Element-level: matches Process.failSafeOutputState.
+   * Used to generate CR 3.6 gap threat when no fail-safe state is defined.
+   * @example ["not_defined"]
+   */
+  failSafeOutputState?: string[];
+
+  /**
+   * Element-level: matches Process.processSemantic.
+   * Restricts templates to specific process roles (functional_block, execution_unit).
+   * @example ["functional_block"]
+   */
+  processSemantic?: string[];
+
+  /**
+   * Element-level: matches Process.accountManagement or Multiprocess.accountManagement.
+   * Used to generate CR 1.3 gap threat when no central account management exists.
+   * @example ["local_only"]
+   */
+  accountManagement?: string[];
+
+  /**
+   * Element-level: matches Multiprocess.updateMechanism.
+   * Used to generate CR 7.2 gap threat when update signing is absent.
+   * @example ["none", "manual_local"]
+   */
+  updateMechanism?: string[];
+
+  /**
+   * Element-level: matches Process.authenticatorStorage,
+   * Multiprocess.authenticatorStorage, or ChipBoundary.authenticatorStorage.
+   * Used to generate CR 1.5 RE1 gap threat when keys are software-only.
+   * @example ["software_only"]
+   */
+  authenticatorStorage?: string[];
+
+  /**
+   * Element-level: matches Multiprocess.backupMechanism.
+   * Used to generate CR 7.3 gap threat when no backup is configured.
+   * @example ["none"]
+   */
+  backupMechanism?: string[];
+
+  /**
+   * Element-level: matches ChipBoundary.cryptoStandard, DataFlow.cryptoStandard,
+   * or DataStore.cryptoStandard.
+   * Used to generate CR 4.3 gap threat when crypto compliance is unassessed.
+   * @example ["not_assessed"]
+   */
+  cryptoStandard?: string[];
+
+  // ── DataFlow context ──────────────────────────────────────────────────────
+
+  /**
+   * Element-level: matches DataFlow.location (physical routing medium).
+   * Used to trigger physical cable protection templates.
+   * @example ["field_cable", "in_enclosure", "on_board"]
+   */
+  location?: string[];
+
+  /**
+   * Element-level: matches DataFlow.redundancy.
+   * Used to generate DoS threat when safety-critical flow has no redundant path.
+   * @example ["none"]
+   */
+  redundancy?: string[];
+
+  /**
+   * Element-level: matches DataFlow.safetyFunction.
+   * Used to generate critical Tampering and DoS threats on safety-relevant flows.
+   * @example ["emergency_stop", "safety_gate", "pressure_relief"]
+   */
+  safetyFunction?: string[];
+
+  /**
+   * Element-level: matches DataFlow.accessMode.
+   * Used to generate Tampering threat on OT protocols with read_write access.
+   * @example ["read_write"]
+   */
+  accessMode?: string[];
 }
 
 // ==================== CONFIGURATION ====================

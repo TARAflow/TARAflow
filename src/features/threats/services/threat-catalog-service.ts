@@ -76,6 +76,24 @@ export function matchesContext(
     regulation,
     platform,
     domain,
+    boundaryType,
+    serviceAccessPolicy,
+    physicalMobility,
+    accessibility,
+    monitoringType,
+    debugInterfaceAccessible,
+    removableMediaAccessible,
+    failSafeOutputState,
+    processSemantic,
+    accountManagement,
+    updateMechanism,
+    authenticatorStorage,
+    backupMechanism,
+    cryptoStandard,
+    location,
+    redundancy,
+    safetyFunction,
+    accessMode,
   } = templateCtx;
   const tags = project.info?.tags;
 
@@ -109,6 +127,104 @@ export function matchesContext(
   if (interfaceType?.length) {
     const v = elementProps?.["type"] as string | undefined;
     if (!v || !interfaceType.includes(v)) return false;
+  }
+
+  // ── Physical Boundary context ─────────────────────────────────────────────
+
+  if (boundaryType?.length) {
+    const v = elementProps?.["boundaryType"] as string | undefined;
+    if (!v || !boundaryType.includes(v)) return false;
+  }
+
+  if (serviceAccessPolicy?.length) {
+    const controls = elementProps?.["implementedControls"] as
+      | Record<string, unknown>
+      | undefined;
+    const v = controls?.["serviceAccessPolicy"] as string | undefined;
+    if (!v || !serviceAccessPolicy.includes(v)) return false;
+  }
+
+  if (physicalMobility?.length) {
+    const v = elementProps?.["physicalMobility"] as string | undefined;
+    if (!v || !physicalMobility.includes(v)) return false;
+  }
+
+  if (accessibility?.length) {
+    const v = elementProps?.["accessibility"] as string | undefined;
+    if (!v || !accessibility.includes(v)) return false;
+  }
+
+  if (monitoringType?.length) {
+    const v = elementProps?.["monitoringType"] as string | undefined;
+    if (!v || !monitoringType.includes(v)) return false;
+  }
+
+  // Boolean flags — only match when explicitly true in context
+  if (debugInterfaceAccessible === true) {
+    if (elementProps?.["debugInterfaceAccessible"] !== true) return false;
+  }
+
+  if (removableMediaAccessible === true) {
+    if (elementProps?.["removableMediaAccessible"] !== true) return false;
+  }
+
+  // ── Process / Multiprocess context ───────────────────────────────────────
+
+  if (failSafeOutputState?.length) {
+    const v = elementProps?.["failSafeOutputState"] as string | undefined;
+    if (!v || !failSafeOutputState.includes(v)) return false;
+  }
+
+  if (processSemantic?.length) {
+    const v = elementProps?.["processSemantic"] as string | undefined;
+    if (!v || !processSemantic.includes(v)) return false;
+  }
+
+  if (accountManagement?.length) {
+    const v = elementProps?.["accountManagement"] as string | undefined;
+    if (!v || !accountManagement.includes(v)) return false;
+  }
+
+  if (updateMechanism?.length) {
+    const v = elementProps?.["updateMechanism"] as string | undefined;
+    if (!v || !updateMechanism.includes(v)) return false;
+  }
+
+  if (authenticatorStorage?.length) {
+    const v = elementProps?.["authenticatorStorage"] as string | undefined;
+    if (!v || !authenticatorStorage.includes(v)) return false;
+  }
+
+  if (backupMechanism?.length) {
+    const v = elementProps?.["backupMechanism"] as string | undefined;
+    if (!v || !backupMechanism.includes(v)) return false;
+  }
+
+  if (cryptoStandard?.length) {
+    const v = elementProps?.["cryptoStandard"] as string | undefined;
+    if (!v || !cryptoStandard.includes(v)) return false;
+  }
+
+  // ── DataFlow context ──────────────────────────────────────────────────────
+
+  if (location?.length) {
+    const v = elementProps?.["location"] as string | undefined;
+    if (!v || !location.includes(v)) return false;
+  }
+
+  if (redundancy?.length) {
+    const v = elementProps?.["redundancy"] as string | undefined;
+    if (!v || !redundancy.includes(v)) return false;
+  }
+
+  if (safetyFunction?.length) {
+    const v = elementProps?.["safetyFunction"] as string | undefined;
+    if (!v || !safetyFunction.includes(v)) return false;
+  }
+
+  if (accessMode?.length) {
+    const v = elementProps?.["accessMode"] as string | undefined;
+    if (!v || !accessMode.includes(v)) return false;
   }
 
   // ── Project-level checks ──────────────────────────────────────────────────
