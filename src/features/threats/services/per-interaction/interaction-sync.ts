@@ -7,16 +7,19 @@ import type {
   ThreatProjectData,
   ThreatSyncStatus,
   ThreatSyncResult,
-  DFDElementReference,
-  DFDConnectionReference,
-  DFDGraphReference,
 } from "../../models/threat-types";
 import {
   DataFlowChange,
   generateThreatIdPerInteraction,
 } from "../../models/per-interaction-types";
 import { interactionThreatGenerator } from "./interaction-generator";
-import { DataFlowReference, DFDAnalysisContext } from "shared";
+import {
+  DataFlowReference,
+  DFDElementReference,
+  DFDConnectionReference,
+  DFDGraphReference,
+  DFDAnalysisContext,
+} from "shared";
 
 // ==================== ELEMENT CHANGE ====================
 

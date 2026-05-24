@@ -7,16 +7,19 @@ import type {
   ThreatProjectData,
   ThreatSyncStatus,
   ThreatSyncResult,
-  DFDElementReference,
-  DFDConnectionReference,
-  DFDGraphReference,
 } from "../../models/threat-types";
 import {
   ElementChange,
   STRIDE_PER_ELEMENT_TYPE,
 } from "../../models/per-element-types";
 import { elementThreatGenerator } from "./element-generator";
-import { DFDAnalysisContext, type LinkedDFDElement } from "shared";
+import {
+  DFDAnalysisContext,
+  DFDElementReference,
+  DFDConnectionReference,
+  DFDGraphReference,
+  type LinkedDFDElement,
+} from "shared";
 
 // ==================== TRUST BOUNDARY CHANGE ====================
 

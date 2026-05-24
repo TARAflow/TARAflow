@@ -79,6 +79,8 @@ import {
   mapDFDConnectionsToAssetFeature,
   mapDFDElementsToAssetFeature,
 } from "../../utils/dfd-to-asset-mapper";
+ 
+import { toReferenceGraph } from "../../utils/to-reference-graph";
 
 import type { Project } from "../../models/project-types";
 
@@ -696,12 +698,16 @@ export const WorkspaceLayout: React.FC = () => {
               threats: activeProject.threats ?? null,
               phaseStatus: activeProject.phaseStatus,
               dfdXml: activeProject.dfd?.xml,
-              dfdElements: activeProject.dfd?.elements || [],
-              dfdConnections: activeProject.dfd?.connections,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              dfdElements: (activeProject.dfd?.elements || []) as any[],
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              dfdConnections: activeProject.dfd?.connections as any,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               assetIds: activeProject.assets?.assets?.map((a) => a.id),
               lastModified: activeProject.info?.lastModified || "",
-              dfdGraph: activeProject.dfd?.graph,
+              dfdGraph: activeProject.dfd?.graph
+                ? toReferenceGraph(activeProject.dfd.graph)
+                : undefined,
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
             }}

@@ -15,6 +15,18 @@ import type {
 
 import type { StrategyType } from "./strategy-types";
 
+// DFDGraphReference and its supporting types now live in shared/models/dfd-reference-types.
+// Re-exported here so existing imports from "features/threats" continue to work
+// without changes in consumers (element-generator, interaction-generator, etc.).
+import type {
+  DFDElementReference,
+  DFDConnectionReference,
+  DFDAssetReference,
+  DataFlowAnalysisReference,
+  TrustBoundaryAnalysisReference,
+  DFDGraphReference,
+} from "shared/models/dfd-reference-types";
+
 // ==================== THREAT SOURCE ====================
 
 /**
@@ -80,6 +92,28 @@ export interface MitigationDraft {
   id?: string;
   /** Annotation for catalog entries, or full description for custom entries. */
   notes?: string;
+  /**
+   * True when the corresponding security control is already implemented on the
+   * DFD element at threat-generation time (derived from element properties).
+   *
+   * Drives the "already implemented" badge in the Threat Eval dialog.
+   * Risk treatment implication: threat exists but is Reduced, not Open.
+   *
+   * Reset to false on the next threat sync if implementedByProperty reverts
+   * to "none" — this is the close-loop drift detection mechanism.
+   */
+  alreadyImplemented?: boolean;
+  /**
+   * The element property path that drives the implemented state.
+   * Used for drift detection on threat sync.
+   * @example "implementedControls.logicalAccessControl"
+   */
+  implementedByProperty?: string;
+  /**
+   * The property value that triggered the implemented state.
+   * @example "certificate"
+   */
+  implementedByValue?: string;
 }
 
 // ==================== VERIFICATION DRAFT ====================
@@ -297,6 +331,8 @@ export interface Threat {
   /**
    * Proposed mitigations from the catalog generator, optionally annotated by the analyst.
    * Catalog entries carry an id; custom analyst additions carry only notes.
+   * alreadyImplemented = true when the mitigation is already reflected in the
+   * element's security control properties at generation time (close-loop).
    */
   proposedMitigations: MitigationDraft[];
 
@@ -412,7 +448,9 @@ export type MitigationTargetType =
   | "DataFlow"
   | "DataStore"
   | "ExternalEntity"
-  | "Interface";
+  | "Interface"
+  | "PhysicalBoundary"
+  | "ChipBoundary";
 
 /**
  * Describes the expected effect of a mitigation on a specific DFD element property.
@@ -455,9 +493,9 @@ export interface VerificationEntry {
 }
 
 /**
- * Context field for project-based filtering (Step 4)
- * Empty / missing = universal (shown always)
- * Non-empty = AND across keys, OR within a key
+ * Context field for template filtering.
+ * Empty / missing = universal (shown always).
+ * Non-empty = AND across keys, OR within a key.
  */
 export interface TemplateContext {
   /**
@@ -491,7 +529,7 @@ export interface TemplateContext {
   entityType?: string[];
 
   /**
-   * Element-level: matches Interface.type.
+   * Element-level: matches Interface.type (InterfaceType enum value).
    * Used for interface-type-specific templates (usb, gpio, serial, jtag, etc.)
    * Note: stored as "type" on InterfaceProperties, not "interfaceType".
    */
@@ -515,6 +553,53 @@ export interface TemplateContext {
    * @deprecated Prefer regulation for domain-specific requirements.
    */
   domain?: string[];
+
+  // ── Physical Boundary context ─────────────────────────────────────────────
+
+  /**
+   * Element-level: matches PhysicalBoundary.boundaryType.
+   * @example ["device_enclosure", "cabinet"]
+   */
+  boundaryType?: string[];
+
+  /**
+   * Element-level: matches Interface.implementedControls.serviceAccessPolicy.
+   * Used to generate "factory interface active in production" gap threat.
+   * @example ["factory_only"]
+   */
+  serviceAccessPolicy?: string[];
+
+  /**
+   * Element-level: matches PhysicalBoundary.physicalMobility.
+   * @example ["portable", "removable"]
+   */
+  physicalMobility?: string[];
+
+  /**
+   * Element-level: matches PhysicalBoundary.accessibility.
+   * @example ["public"]
+   */
+  accessibility?: string[];
+
+  /**
+   * Element-level: matches PhysicalBoundary.monitoringType.
+   * Used to generate R-PB-001 (no physical audit trail).
+   * @example ["none"]
+   */
+  monitoringType?: string[];
+
+  /**
+   * Element-level boolean flag: matches PhysicalBoundary.debugInterfaceAccessible.
+   * When true in context: template only matches elements where this flag is true.
+   * Omit (undefined) for templates that are universal regardless of debug access.
+   */
+  debugInterfaceAccessible?: boolean;
+
+  /**
+   * Element-level boolean flag: matches PhysicalBoundary.removableMediaAccessible.
+   * When true in context: template only matches elements where this flag is true.
+   */
+  removableMediaAccessible?: boolean;
 }
 
 // ==================== CONFIGURATION ====================
@@ -596,69 +681,6 @@ export interface ThreatProjectData {
   /** DFD state — used for mitigation coverage badges in Threat Dialog */
   dfd?: DFDReference | null;
   lastModified: string;
-}
-
-// ==================== DFD REFERENCES ====================
-
-export interface DFDElementReference {
-  id: string;
-  type: string;
-  name: string;
-  displayId: string;
-}
-
-export interface DFDConnectionReference {
-  id: string;
-  from: string;
-  to: string;
-  name?: string;
-  label?: string;
-  displayId: string;
-  excludeFromThreatGen?: boolean;
-  assumedTrusted?: boolean;
-}
-
-export interface DFDGraphReference {
-  elementsById: Map<string, DFDElementReference>;
-  connectionsById: Map<string, DFDConnectionReference>;
-  assetsById: Map<string, DFDAssetReference>;
-
-  outgoingConnections: Map<string, string[]>;
-  incomingConnections: Map<string, string[]>;
-
-  elementTrustBoundaries: Map<string, string[]>;
-  trustBoundaryElements: Map<string, string[]>;
-
-  dataFlowAnalysis: Map<string, DataFlowAnalysisReference>;
-  trustBoundaryHierarchy: Map<string, TrustBoundaryAnalysisReference>;
-  effectiveElementTrustBoundary: Map<string, string | undefined>;
-}
-
-export interface DFDAssetReference {
-  id: string;
-  name: string;
-}
-
-export interface DataFlowAnalysisReference {
-  connectionId: string;
-  fromElementId: string;
-  toElementId: string;
-  fromElementType: string;
-  toElementType: string;
-  fromTrustBoundaryIds: string[];
-  toTrustBoundaryIds: string[];
-  fromEffectiveTrustBoundary?: string | null;
-  toEffectiveTrustBoundary?: string | null;
-  crossesTrustBoundary: boolean;
-  crossesMultipleTrustBoundaries: boolean;
-  viaInterface?: boolean;
-  crossingType?: "none" | "inbound" | "outbound" | "lateral";
-}
-
-export interface TrustBoundaryAnalysisReference {
-  trustBoundaryId: string;
-  parentTrustBoundaryId?: string;
-  depth: number;
 }
 
 // ==================== SYNC STATUS ====================

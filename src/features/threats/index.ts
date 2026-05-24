@@ -9,7 +9,6 @@ export type {
   ThreatConfiguration,
   ThreatSyncStatus,
   ThreatSyncResult,
-  DFDConnectionReference,
   MitigationEntry,
   MitigationPropertyEffect,
 } from "./models/threat-types";
@@ -19,11 +18,6 @@ export type {
   InteractionDirection,
 } from "./models/per-interaction-types";
 
-export type {
-  DFDGraphReference,
-  DataFlowAnalysisReference,
-  TrustBoundaryAnalysisReference,
-} from "./models/threat-types";
 
 // ==================== COMPONENTS ====================
 export { ThreatsTab } from "./components/threats-tab";

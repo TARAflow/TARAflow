@@ -36,6 +36,17 @@ export type {
   SafetyAnnotationRef,
   DFDProcessRef,
   DFDReference,
+  // Graph reference — full analysis graph snapshot consumed by threat
+  // generators, risk analysis, and audit features.
+  // Moved here from features/threats/models/threat-types so that
+  // dfd-graph-builder.ts and to-reference-graph.ts can import without
+  // creating a circular dependency back into the threat feature.
+  DFDElementReference,
+  DFDConnectionReference,
+  DFDAssetReference,
+  DataFlowAnalysisReference,
+  TrustBoundaryAnalysisReference,
+  DFDGraphReference,
 } from "./models/dfd-reference-types";
 export { hasDFDSafetyAnnotations } from "./models/dfd-reference-types";
 

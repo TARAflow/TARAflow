@@ -10,12 +10,11 @@
 // Future enrichment (Phase E1, E2) via IEnrichmentProvider hook — called after
 // STRIDE derivation, before threat is returned to the generator.
 
-import type { CIANAAALevel, StrideCategory } from "shared";
+import type { CIANAAALevel, DFDElementReference, StrideCategory } from "shared";
 import type {
   ThreatProjectData,
   ThreatConfiguration,
   ThreatSource,
-  DFDElementReference,
   ElementTemplate,
   InteractionTemplate,
 } from "./threat-types";

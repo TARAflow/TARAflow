@@ -13,13 +13,17 @@
 //
 // GenerationModules tracks which modules were active → drives ThreatSource.
 
-import type { CIANAAALevel, SecurityGoalReference, StrideCategory } from "shared";
+import type {
+  CIANAAALevel,
+  DFDElementReference,
+  SecurityGoalReference,
+  StrideCategory,
+} from "shared";
 import { CIANAAA_TO_STRIDE } from "shared";
 import type { IGeneratorStrategy, StrategyType, GenerationModules } from "../../models/strategy-types";
 import type {
   ThreatProjectData,
   ThreatConfiguration,
-  DFDElementReference,
   ElementTemplate,
   InteractionTemplate,
 } from "../../models/threat-types";

@@ -373,7 +373,10 @@ function getInterfacePropertiesGrouped(
   groups.push({
     groupName: getGroupName("security", lang),
     properties: [
-      { label: getPropertyLabel("accessControl", lang), value: formatValue(props.accessControl) },
+      {
+        label: getPropertyLabel("logicalAccessControl", lang),
+        value: formatValue(props.implementedControls?.logicalAccessControl),
+      },
     ],
   });
 
@@ -381,8 +384,14 @@ function getInterfacePropertiesGrouped(
   groups.push({
     groupName: getGroupName("technical", lang),
     properties: [
-      { label: getPropertyLabel("connectionSpeed", lang), value: formatValue(props.connectionSpeed) },
-      { label: getPropertyLabel("isShieldedCable", lang), value: formatValue(props.isShieldedCable) },
+      {
+        label: getPropertyLabel("connectionSpeed", lang),
+        value: formatValue(props.connectionSpeed),
+      },
+      {
+        label: getPropertyLabel("signalProtection", lang),
+        value: formatValue(props.implementedControls?.signalProtection),
+      },
     ],
   });
 
@@ -671,26 +680,31 @@ export function isElementAuthenticationRequired(
     case "Process": {
       const props = element.properties as ProcessProperties;
       // authenticationRequired can be "yes", "no", "optional", or specific methods
-      return props.authenticationRequired !== undefined && 
-             props.authenticationRequired !== "no";
+      return (
+        props.authenticationRequired !== undefined &&
+        props.authenticationRequired !== "no"
+      );
     }
     case "ExternalEntity": {
       const props = element.properties as ExternalEntityProperties;
       // Check if authentication method is set and not "none"
-      return props.authenticationMethod !== undefined && 
-             props.authenticationMethod !== "none";
+      return (
+        props.authenticationMethod !== undefined &&
+        props.authenticationMethod !== "none"
+      );
     }
     case "DataStore": {
       const props = element.properties as DataStoreProperties;
       // Check if access control is defined
-      return props.accessControl !== undefined && 
-             props.accessControl.trim() !== "";
+      return (
+        props.accessControl !== undefined && props.accessControl.trim() !== ""
+      );
     }
     case "Interface": {
       const props = element.properties as InterfaceProperties;
-      // Check if access control is set and not "none"
-      return props.accessControl !== undefined && 
-             props.accessControl !== "none";
+      // logicalAccessControl replaces the former accessControl field
+      const lac = props.implementedControls?.logicalAccessControl;
+      return lac !== undefined && lac !== "none";
     }
     default:
       return false;

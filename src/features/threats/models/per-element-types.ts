@@ -1,8 +1,7 @@
 // ==================== PER-ELEMENT TYPES ====================
 // Types specific to STRIDE per-element threat modeling method
 
-import type { StrideCategory } from "shared";
-import type { DFDElementReference } from "./threat-types";
+import type { DFDElementReference, StrideCategory } from "shared";
 import type { LinkedDFDElement } from "shared";
 
 // ==================== STRIDE MAPPING ====================

@@ -15,15 +15,17 @@
 //   Internal flow (same TB):
 //     Sender perspective only → that TB
 
-import type { StrideCategory } from "shared";
+import type {
+  DFDGraphReference,
+  DFDElementReference,
+  DataFlowAnalysisReference,
+  StrideCategory,
+} from "shared";
 import type {
   Threat,
   ThreatTable,
   ThreatProjectData,
   ThreatConfiguration,
-  DFDGraphReference,
-  DFDElementReference,
-  DataFlowAnalysisReference,
 } from "../../models/threat-types";
 import {
   InteractionDirection,

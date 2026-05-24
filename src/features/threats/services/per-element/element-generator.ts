@@ -1,14 +1,17 @@
 // ==================== ELEMENT THREAT GENERATOR ====================
 // Single Responsibility: Generate threats using STRIDE per-element method
 
-import type { LinkedDFDElement, StrideCategory } from "shared";
+import type {
+  DFDElementReference,
+  DFDGraphReference,
+  LinkedDFDElement,
+  StrideCategory,
+} from "shared";
 import type {
   Threat,
   ThreatConfiguration,
   ThreatTable,
   ThreatProjectData,
-  DFDElementReference,
-  DFDGraphReference,
 } from "../../models/threat-types";
 import {
   STRIDE_PER_ELEMENT_TYPE,
