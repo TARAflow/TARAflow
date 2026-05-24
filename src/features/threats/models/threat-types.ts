@@ -865,13 +865,21 @@ export function createEmptyThreat(
 }
 
 export function isInterfaceTable(table: ThreatTable): boolean {
-  return table.trustBoundaryName.includes("Physical Interfaces");
+  // Detect by threat content — not by table name.
+  // Interface tables are grouped under PhysicalBoundary or ChipBoundary
+  // and can have any boundary name (e.g. "Device Boundary [DB]").
+  // All threats in an interface table have linkedElement set; dataFlow is null.
+  if (table.threats.length === 0) return false;
+  const first = table.threats[0];
+  return (
+    first.linkedElement != null &&
+    first.linkedElement.elementType === "Interface"
+  );
 }
 
 export function isInterfaceThreat(threat: Threat): boolean {
   return (
-    threat.linkedElement !== null &&
-    (threat.linkedElement.elementType === "Interface" ||
-      threat.linkedElement.elementType === "PhysicalInterface")
+    threat.linkedElement != null &&
+    threat.linkedElement.elementType === "Interface"
   );
 }

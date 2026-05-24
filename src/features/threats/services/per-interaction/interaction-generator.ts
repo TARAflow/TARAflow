@@ -172,6 +172,43 @@ export class InteractionThreatGenerator {
       const needsReceiverPerspective =
         !senderTB || (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
 
+      // ── Special case: flow terminates at ChipBoundary ─────────────────
+      // ChipBoundary has no effectiveTB → senderTB/receiverTB are both null.
+      // Route under the ChipBoundary element as its own boundary group.
+      if (!senderTB && !receiverTB && df.terminatesAtChipBoundary) {
+        const targetEl = graph.elementsById.get(df.toElementId);
+        const sourceEl = graph.elementsById.get(df.fromElementId);
+        if (targetEl?.type === "ChipBoundary") {
+          const cbId = targetEl.id;
+          const cbName = targetEl.name;
+          const cbDisplayId = targetEl.displayId ?? cbId;
+          const targetPropsForElim = targetProps ?? {};
+          for (const stride of applicableStride) {
+            if (shouldEliminateThreat("DataFlow", targetPropsForElim, stride))
+              continue;
+            addThreat(
+              cbId,
+              this.createDataFlowThreat(
+                df,
+                dfDisplayId,
+                connection?.label || connection?.name || dfDisplayId,
+                source,
+                target,
+                stride,
+                "receiver",
+                cbId,
+                cbName,
+                cbDisplayId,
+                elementToAssets,
+                project,
+                strategy,
+                targetProps,
+              ),
+            );
+          }
+        }
+      }
+
       if (needsReceiverPerspective && receiverTB) {
         const targetPropsForElim = targetProps ?? {};
         for (const stride of applicableStride) {
@@ -210,30 +247,32 @@ export class InteractionThreatGenerator {
       const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
       const tbId = effectiveTB ?? null;
 
-      // Resolve parent boundary name: TB > PB > CB > fallback
+      // Resolve parent boundary: TB > PB > CB > fallback.
+      // tableKey uses the parent id so each PhysicalBoundary and ChipBoundary
+      // gets its own threat table instead of a shared "__no_tb__" bucket.
       let tbName: string;
       let tbDisplayId: string;
+      let tableKey: string;
+
       if (tbId) {
         tbName = this.getTBName(graph, tbId);
         tbDisplayId = this.getTBDisplayId(graph, tbId);
+        tableKey = tbId;
       } else {
         const pbIds = graph.elementPhysicalBoundaries?.get(element.id) ?? [];
         const cbIds = graph.elementChipBoundaries?.get(element.id) ?? [];
-        tbName =
-          (pbIds.length > 0 ? graph.elementsById.get(pbIds[0])?.name : null) ??
-          (cbIds.length > 0 ? graph.elementsById.get(cbIds[0])?.name : null) ??
-          "Physical Interfaces";
-        tbDisplayId = "";
+        const parentId = pbIds[0] ?? cbIds[0] ?? null;
+        const parent = parentId ? graph.elementsById.get(parentId) : null;
+        tbName = parent?.name ?? "Physical Interfaces";
+        tbDisplayId = parent?.displayId ?? "";
+        tableKey = parentId ?? "__no_tb__";
       }
-
-      const tableKey = tbId ?? "__no_tb__";
-      const config = project.threats?.configuration ?? defaultConfig;
 
       const { categories: applicableStride } = strategy.getStrideCategories(
         element,
         STRIDE_PER_INTERACTION,
         project,
-        config,
+        project.threats?.configuration ?? defaultConfig,
       );
 
       for (const stride of applicableStride) {
@@ -270,11 +309,11 @@ export class InteractionThreatGenerator {
           threats,
         });
       } else {
-        const tb = graph.elementsById.get(tbId);
+        const boundary = graph.elementsById.get(tbId);
         tables.push({
           trustBoundaryId: tbId,
-          trustBoundaryName: tb?.name ?? tbId,
-          displayIdentifier: `[${tb?.displayId ?? tbId}]`,
+          trustBoundaryName: boundary?.name ?? tbId,
+          displayIdentifier: `[${boundary?.displayId ?? tbId}]`,
           threats,
         });
       }

@@ -160,19 +160,50 @@ export class ElementThreatGenerator {
       });
     }
 
-    // ── Physical Interfaces without TB ───────────────────────────────────
-    const ifThreats = this.generateInterfacesWithoutTB(
+    // ── Interfaces — grouped by PhysicalBoundary or ChipBoundary ─────────
+    // Each PB/CB gets its own threat table. Interfaces with no parent
+    // boundary fall into a shared "[IF]" fallback table.
+    const ifTableMap = this.generateInterfaceThreatsGrouped(
       graph,
       elementToAssets,
       project,
       strategy,
     );
-    if (ifThreats.length > 0) {
+    for (const [parentId, threats] of ifTableMap) {
+      if (threats.length === 0) continue;
+      if (parentId === "__no_parent__") {
+        tables.push({
+          trustBoundaryId: null,
+          trustBoundaryName: "Physical Interfaces",
+          displayIdentifier: "[IF]",
+          threats,
+        });
+      } else {
+        const parent = graph.elementsById.get(parentId);
+        tables.push({
+          trustBoundaryId: parentId,
+          trustBoundaryName: parent?.name ?? parentId,
+          displayIdentifier: `[${parent?.displayId ?? parentId}]`,
+          threats,
+        });
+      }
+    }
+
+    // ── ChipBoundary element threats — one table per ChipBoundary ─────────
+    const cbTableMap = this.generateChipBoundaryThreats(
+      graph,
+      elementToAssets,
+      project,
+      strategy,
+    );
+    for (const [cbId, threats] of cbTableMap) {
+      if (threats.length === 0) continue;
+      const cb = graph.elementsById.get(cbId);
       tables.push({
-        trustBoundaryId: null,
-        trustBoundaryName: "Physical Interfaces",
-        displayIdentifier: "[IF]",
-        threats: ifThreats,
+        trustBoundaryId: cbId,
+        trustBoundaryName: cb?.name ?? cbId,
+        displayIdentifier: `[${cb?.displayId ?? cbId}]`,
+        threats,
       });
     }
 
@@ -196,31 +227,78 @@ export class ElementThreatGenerator {
 
   // ── Private generators ──────────────────────────────────────────────────
 
-  private generateInterfacesWithoutTB(
+  /**
+   * Generate Interface threats grouped by parent PhysicalBoundary or ChipBoundary.
+   * Interfaces belong exclusively to PB or CB — never to TrustBoundary.
+   * Returns a Map<parentId | "__no_parent__", Threat[]> for table building.
+   */
+  private generateInterfaceThreatsGrouped(
     graph: DFDGraphReference,
     elementToAssets: Map<string, string[]>,
     project: ThreatProjectData,
     strategy: IGeneratorStrategy,
-  ): Threat[] {
-    const threats: Threat[] = [];
+  ): Map<string, Threat[]> {
+    const tableMap = new Map<string, Threat[]>();
+
     for (const element of graph.elementsById.values()) {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
         continue;
-      const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
-      if (effectiveTB !== undefined) continue;
-      threats.push(
-        ...this.generateThreatsForElement(
-          element,
-          null,
-          "Physical Interfaces",
-          "",
-          elementToAssets,
-          project,
-          strategy,
-        ),
+
+      // Resolve parent: PB > CB > fallback
+      const pbIds = graph.elementPhysicalBoundaries?.get(element.id) ?? [];
+      const cbIds = graph.elementChipBoundaries?.get(element.id) ?? [];
+      const parentId = pbIds[0] ?? cbIds[0] ?? "__no_parent__";
+      const parent =
+        parentId !== "__no_parent__" ? graph.elementsById.get(parentId) : null;
+      const parentName = parent?.name ?? "Physical Interfaces";
+      const parentDisplayId = parent?.displayId ?? "";
+
+      const threats = this.generateThreatsForElement(
+        element,
+        parentId !== "__no_parent__" ? parentId : null,
+        parentName,
+        parentDisplayId,
+        elementToAssets,
+        project,
+        strategy,
       );
+
+      const existing = tableMap.get(parentId) ?? [];
+      tableMap.set(parentId, [...existing, ...threats]);
     }
-    return threats;
+
+    return tableMap;
+  }
+
+  /**
+   * Generate ChipBoundary element threats, one table per ChipBoundary.
+   * Returns Map<chipBoundaryId, Threat[]>.
+   */
+  private generateChipBoundaryThreats(
+    graph: DFDGraphReference,
+    elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
+  ): Map<string, Threat[]> {
+    const tableMap = new Map<string, Threat[]>();
+
+    for (const element of graph.elementsById.values()) {
+      if (element.type !== "ChipBoundary") continue;
+
+      const threats = this.generateThreatsForElement(
+        element,
+        element.id,
+        element.name,
+        element.displayId ?? "",
+        elementToAssets,
+        project,
+        strategy,
+      );
+
+      tableMap.set(element.id, threats);
+    }
+
+    return tableMap;
   }
 
   generateDataFlowThreatsGrouped(

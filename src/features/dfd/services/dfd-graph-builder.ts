@@ -225,6 +225,20 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         continue;
       }
 
+      // Skip Interfaces — they belong to PhysicalBoundary or ChipBoundary,
+      // never to a TrustBoundary. TB grouping handled by parent PB/CB.
+      if (element.type === "Interface") {
+        elementTrustBoundaries.set(element.id, []);
+        continue;
+      }
+
+      // Skip ChipBoundary — it is a standalone boundary type,
+      // not a member of a TrustBoundary even if geometrically nested.
+      if (element.type === "ChipBoundary") {
+        elementTrustBoundaries.set(element.id, []);
+        continue;
+      }
+
       // Check overlap with each TB
       const memberTBs: string[] = [];
       const elementBox = getBoundingBox(element);
@@ -428,6 +442,12 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
 
     for (const element of elements) {
       if (element.type === "TrustBoundary") continue;
+      // Interface and ChipBoundary are excluded from TB membership
+      // → they are grouped under PhysicalBoundary/ChipBoundary in generators
+      if (element.type === "Interface" || element.type === "ChipBoundary") {
+        effective.set(element.id, undefined);
+        continue;
+      }
 
       const memberTBs = elementTrustBoundaries.get(element.id) || [];
 
