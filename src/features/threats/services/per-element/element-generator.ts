@@ -27,6 +27,7 @@ import {
 import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
 import { modulesToSource } from "../../models/strategy-types";
+import { shouldEliminateThreat } from "../threat-elimination-filter";
 
 // ==================== ELEMENT THREAT GENERATOR ====================
 
@@ -352,19 +353,25 @@ export class ElementThreatGenerator {
     const isInterface =
       element.type === "Interface" || element.type === "PhysicalInterface";
 
-    return applicableStride.map((strideCategory) =>
-      this.createThreatForElement(
-        element,
-        strideCategory,
-        trustBoundaryId,
-        trustBoundaryName,
-        trustBoundaryDisplayId,
-        isInterface,
-        elementToAssets,
-        project,
-        strategy,
-      ),
-    );
+    const elementProps = (element as any).properties ?? {};
+    return applicableStride
+      .filter(
+        (strideCategory) =>
+          !shouldEliminateThreat(element.type, elementProps, strideCategory),
+      )
+      .map((strideCategory) =>
+        this.createThreatForElement(
+          element,
+          strideCategory,
+          trustBoundaryId,
+          trustBoundaryName,
+          trustBoundaryDisplayId,
+          isInterface,
+          elementToAssets,
+          project,
+          strategy,
+        ),
+      );
   }
 
   private createThreatForElement(

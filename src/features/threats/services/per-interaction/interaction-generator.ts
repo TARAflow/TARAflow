@@ -44,6 +44,7 @@ import {
 import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
 import { modulesToSource } from "../../models/strategy-types";
+import { shouldEliminateThreat } from "../threat-elimination-filter";
 
 // ==================== TYPES ====================
 
@@ -138,7 +139,10 @@ export class InteractionThreatGenerator {
       );
 
       if (senderTB) {
+        const sourcePropsForElim = sourceProps ?? {};
         for (const stride of applicableStride) {
+          if (shouldEliminateThreat("DataFlow", sourcePropsForElim, stride))
+            continue;
           addThreat(
             senderTB,
             this.createDataFlowThreat(
@@ -165,7 +169,10 @@ export class InteractionThreatGenerator {
         !senderTB || (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
 
       if (needsReceiverPerspective && receiverTB) {
+        const targetPropsForElim = targetProps ?? {};
         for (const stride of applicableStride) {
+          if (shouldEliminateThreat("DataFlow", targetPropsForElim, stride))
+            continue;
           addThreat(
             receiverTB,
             this.createDataFlowThreat(
@@ -195,9 +202,6 @@ export class InteractionThreatGenerator {
         continue;
 
       const elProps = element.properties ?? {};
-
-      // permanent_disabled → no threats at all
-      if (elProps["operationalState"] === "permanent_disabled") continue;
 
       const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
       const tbId = effectiveTB ?? null;
@@ -229,6 +233,10 @@ export class InteractionThreatGenerator {
       );
 
       for (const stride of applicableStride) {
+        // shouldEliminateThreat covers permanent_disabled, fused_off,
+        // sealed, fiber_optic, enabled_read_only per STRIDE category.
+        if (shouldEliminateThreat(element.type, elProps, stride)) continue;
+
         const threat = this.createInterfaceThreat(
           element,
           stride,
@@ -347,11 +355,29 @@ export class InteractionThreatGenerator {
 
     // Determine source from active modules
     const impactElement = perspective === "sender" ? source : target;
-    const defaultConfig = { activeMethod: "per-interaction" as const, zeroTrustMode: false, showThreatActor: false, forceClassicMode: false, customElementTemplates: [], customInteractionTemplates: [], customMitigations: [], customVerifications: [] };
-    const { modules } = strategy.getStrideCategories(impactElement, [strideCategory], project, project.threats?.configuration ?? defaultConfig);
+    const defaultConfig = {
+      activeMethod: "per-interaction" as const,
+      zeroTrustMode: false,
+      showThreatActor: false,
+      forceClassicMode: false,
+      customElementTemplates: [],
+      customInteractionTemplates: [],
+      customMitigations: [],
+      customVerifications: [],
+    };
+    const { modules } = strategy.getStrideCategories(
+      impactElement,
+      [strideCategory],
+      project,
+      project.threats?.configuration ?? defaultConfig,
+    );
     threat.source = modulesToSource(modules);
 
-    const initialImpact = strategy.getInitialImpact(impactElement, strideCategory, project);
+    const initialImpact = strategy.getInitialImpact(
+      impactElement,
+      strideCategory,
+      project,
+    );
     if (initialImpact !== undefined) {
       threat.initialImpact = initialImpact;
     }
@@ -433,7 +459,7 @@ export class InteractionThreatGenerator {
 
     threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
 
-    const defaultConfig2 = {
+    const defaultConfig = {
       activeMethod: "per-interaction" as const,
       zeroTrustMode: false,
       showThreatActor: false,
@@ -447,7 +473,7 @@ export class InteractionThreatGenerator {
       element,
       [strideCategory],
       project,
-      project.threats?.configuration ?? defaultConfig2,
+      project.threats?.configuration ?? defaultConfig,
     );
     threat.source = modulesToSource(ifModules);
 
