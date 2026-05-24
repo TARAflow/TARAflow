@@ -57,6 +57,23 @@ interface TrustBoundaryFormProps {
 
 const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
 
+const SHOW_BOUNDARY_CONTROLS = new Set([
+  "network",
+  "privilege",
+  "organization",
+  "cloud",
+  "device",
+]);
+
+const SHOW_MONITORING = new Set([
+  "network",
+  "privilege",
+  "organization",
+  "cloud",
+  "device",
+  "debug",
+]);
+
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <Box sx={{ pt: 1 }}>
     <Typography
@@ -388,24 +405,87 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             )}
           />
 
-          {/* Monitoring */}
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={props.monitoringEnabled || false}
+          {/* Monitoring — not applicable for legal/peripheral/boot */}
+          {(props.boundaryType == null ||
+            SHOW_MONITORING.has(props.boundaryType)) && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.monitoringEnabled || false}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "monitoringEnabled",
+                      e.target.checked,
+                    )
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.trustboundary.fields.monitoringEnabled.label",
+                { defaultValue: "Monitoring / Logging Enabled" },
+              )}
+            />
+          )}
+
+          {/* Default Deny Policy — NDR 5.2 RE(1)/(2)/(3) — only for network/cloud */}
+          {(props.boundaryType === "network" ||
+            props.boundaryType === "cloud") && (
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.label",
+                  { defaultValue: "Default Traffic Policy" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.defaultDenyPolicy ?? ""}
                 onChange={(e) =>
                   form.handlePropertyChange(
-                    "monitoringEnabled",
-                    e.target.checked,
+                    "defaultDenyPolicy",
+                    e.target.value || undefined,
                   )
                 }
-              />
-            }
-            label={t(
-              "tabs.dfd.element_description.trustboundary.fields.monitoringEnabled.label",
-              { defaultValue: "Monitoring / Logging Enabled" },
-            )}
-          />
+                label={t(
+                  "tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.label",
+                  { defaultValue: "Default Traffic Policy" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "allow_all",
+                    "deny_all_permit_exception",
+                    "island_mode",
+                    "fail_close",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    <Tooltip
+                      title={t(
+                        `tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.tooltips.${opt}`,
+                        { defaultValue: "" },
+                      )}
+                      placement="right"
+                      arrow
+                    >
+                      <span style={{ width: "100%", display: "block" }}>
+                        {t(
+                          `tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </span>
+                    </Tooltip>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {/* Security Assumptions — dynamic placeholder driven by boundaryType */}
           <TextField

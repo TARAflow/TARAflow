@@ -120,42 +120,51 @@ export const PROCESS_TECH_DEFAULTS: Record<
     authorizationModel: "none",
     inputValidation: "basic",
     errorHandling: "silent",
+    malwareProtection: "none", // Surfaces CR 3.2 / EDR 3.2 gap
   },
   bare_metal: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "none",
     errorHandling: "silent",
+    malwareProtection: "none", // Surfaces CR 3.2 / EDR 3.2 gap
+    failSafeOutputState: "not_defined", // Surfaces CR 3.6 gap for bare-metal blocks
   },
   isr: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "none",
     errorHandling: "silent",
+    malwareProtection: "none", // Surfaces CR 3.2 gap
   },
   state_machine: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "strict",
     errorHandling: "silent",
+    malwareProtection: "none", // Surfaces CR 3.2 gap
+    failSafeOutputState: "not_defined", // Surfaces CR 3.6 gap — state machines need fail-safe
   },
   bootloader: {
     authenticationRequired: "certificate",
     authorizationModel: "none",
     inputValidation: "strict",
     errorHandling: "silent",
+    malwareProtection: "code_signing", // Bootloader baseline: signed firmware only
   },
   driver: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "basic",
     errorHandling: "silent",
+    malwareProtection: "none", // Surfaces CR 3.2 gap
   },
   protocol_stack: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "strict",
     errorHandling: "silent",
+    malwareProtection: "none", // Surfaces CR 3.2 gap
   },
 };
 
@@ -180,100 +189,125 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
 > = {
   // Klasse 1 — Dedicated Embedded Controller (PLC, CNC, Robot, ECU)
   embedded_controller: {
-    operatingSystem:          "rtos",
-    updateMechanism:          "signed_local",
-    boundaryAuthentication:   "none",      // Fieldbus: auth absent by default → surfaces threat
-    authorizationModel:       "none",
-    remoteAccessEnabled:      false,
-    airGapped:                false,
-    exposedToInternet:        false,
+    operatingSystem: "rtos",
+    updateMechanism: "signed_local",
+    boundaryAuthentication: "none", // Fieldbus: auth absent by default → surfaces threat
+    authorizationModel: "none",
+    remoteAccessEnabled: false,
+    airGapped: false,
+    exposedToInternet: false,
+    malwareProtection: "none", // Surfaces CR 3.2 / EDR 3.2 gap
+    accountManagement: "local_only", // Surfaces CR 1.3 gap — no central management
+    backupMechanism: "none", // Surfaces CR 7.3 gap
   },
- 
+
   // Klasse 2 — SCADA / HMI / DCS
   scada_hmi: {
-    operatingSystem:          "windows_hardened",
-    updateMechanism:          "vendor_only",
-    boundaryAuthentication:   "password",
-    authorizationModel:       "rbac",
-    remoteAccessEnabled:      true,         // Typical: remote HMI access exists
-    airGapped:                false,
-    exposedToInternet:        false,
+    operatingSystem: "windows_hardened",
+    updateMechanism: "vendor_only",
+    boundaryAuthentication: "password",
+    authorizationModel: "rbac",
+    remoteAccessEnabled: true, // Typical: remote HMI access exists
+    airGapped: false,
+    exposedToInternet: false,
+    malwareProtection: "av_software", // SCADA on Windows: AV baseline
+    accountManagement: "local_only", // Surfaces CR 1.3 gap — LDAP often missing
+    backupMechanism: "manual_local", // Typical baseline for OT systems
   },
- 
+
   // Klasse 3 — Backend Application / Server (MES, API, Microservices)
   backend_application: {
-    operatingSystem:          "linux_standard",
-    updateMechanism:          "ci_cd",
-    boundaryAuthentication:   "oauth",
-    authorizationModel:       "rbac",
-    remoteAccessEnabled:      true,
-    multiTenant:              false,
-    exposedToInternet:        false,
+    operatingSystem: "linux_standard",
+    updateMechanism: "ci_cd",
+    boundaryAuthentication: "oauth",
+    authorizationModel: "rbac",
+    remoteAccessEnabled: true,
+    multiTenant: false,
+    exposedToInternet: false,
+    malwareProtection: "none", // Analyst must assess (av / whitelist / container)
+    accountManagement: "ldap", // Enterprise default: centralized
+    backupMechanism: "automated_remote",
   },
- 
+
   // Klasse 4 — Gateway / Edge Device
   gateway: {
-    operatingSystem:          "linux_hardened",
-    updateMechanism:          "signed_ota",
-    boundaryAuthentication:   "certificate",
-    authorizationModel:       "acl",
-    remoteAccessEnabled:      false,
-    exposedToInternet:        false,
+    operatingSystem: "linux_hardened",
+    updateMechanism: "signed_ota",
+    boundaryAuthentication: "certificate",
+    authorizationModel: "acl",
+    remoteAccessEnabled: false,
+    exposedToInternet: false,
+    malwareProtection: "application_whitelist", // Hardened gateway: whitelist baseline
+    accountManagement: "local_only", // Gateway: typically local accounts
+    backupMechanism: "automated_remote",
   },
- 
+
   // Klasse 5 — Mobile / Portable Device
   mobile_device: {
     // operatingSystem: intentionally not cascaded — analyst must choose ios / android
-    updateMechanism:          "mdm_managed",
-    boundaryAuthentication:   "mfa",
-    exposedToInternet:        true,         // Mobile devices are internet-connected by nature
+    updateMechanism: "mdm_managed",
+    boundaryAuthentication: "mfa",
+    exposedToInternet: true, // Mobile devices are internet-connected by nature
+    malwareProtection: "sandbox", // Mobile OS sandbox model
+    accountManagement: "iam", // MDM-managed → cloud IAM
+    backupMechanism: "automated_remote",
   },
- 
+
   // Klasse 6 — Cloud Platform / Service
   cloud_platform: {
     // operatingSystem: not applicable for cloud_platform — hidden in form
-    updateMechanism:          "ci_cd",
-    boundaryAuthentication:   "oauth",
-    authorizationModel:       "rbac",
-    remoteAccessEnabled:      true,
-    multiTenant:              true,
-    exposedToInternet:        true,
+    updateMechanism: "ci_cd",
+    boundaryAuthentication: "oauth",
+    authorizationModel: "rbac",
+    remoteAccessEnabled: true,
+    multiTenant: true,
+    exposedToInternet: true,
+    malwareProtection: "sandbox", // Cloud: container/sandbox model
+    accountManagement: "iam", // Cloud IAM is the baseline
+    backupMechanism: "automated_remote",
   },
- 
+
   // Klasse 7 — Workstation / Engineering PC
   workstation: {
-    operatingSystem:          "windows_standard",
-    updateMechanism:          "manual_local",
-    boundaryAuthentication:   "password",
-    authorizationModel:       "rbac",
-    remoteAccessEnabled:      false,
-    exposedToInternet:        false,
+    operatingSystem: "windows_standard",
+    updateMechanism: "manual_local",
+    boundaryAuthentication: "password",
+    authorizationModel: "rbac",
+    remoteAccessEnabled: false,
+    exposedToInternet: false,
+    malwareProtection: "av_software", // Workstation: AV baseline
+    accountManagement: "active_directory", // Engineering PC: typical AD membership
+    backupMechanism: "manual_local",
   },
- 
+
   // Klasse 8 — Safety System (SIS, Safety PLC, SIL-certified)
   safety_system: {
-    operatingSystem:          "none",       // Bare-metal — safety systems avoid OS
-    updateMechanism:          "vendor_only",
-    boundaryAuthentication:   "none",       // Air-gapped: no network auth needed
-    airGapped:                true,         // Default: isolated — analyst must justify override
-    remoteAccessEnabled:      false,
-    exposedToInternet:        false,
-    safetyRelevant:           true,         // Always true by definition
+    operatingSystem: "none", // Bare-metal — safety systems avoid OS
+    updateMechanism: "vendor_only",
+    boundaryAuthentication: "none", // Air-gapped: no network auth needed
+    airGapped: true, // Default: isolated — analyst must justify override
+    remoteAccessEnabled: false,
+    exposedToInternet: false,
+    safetyRelevant: true, // Always true by definition
   },
 };
  
 /** Fields that are driven by systemClass — used for clearing when driver is reset. */
-export const MULTIPROCESS_SYSTEMCLASS_DRIVEN_FIELDS: (keyof MultiprocessProperties)[] = [
-  "operatingSystem",
-  "updateMechanism",
-  "boundaryAuthentication",
-  "authorizationModel",
-  "remoteAccessEnabled",
-  "airGapped",
-  "exposedToInternet",
-  "multiTenant",
-  "safetyRelevant",
-];
+export const MULTIPROCESS_SYSTEMCLASS_DRIVEN_FIELDS: (keyof MultiprocessProperties)[] =
+  [
+    "operatingSystem",
+    "updateMechanism",
+    "boundaryAuthentication",
+    "authorizationModel",
+    "remoteAccessEnabled",
+    "airGapped",
+    "exposedToInternet",
+    "multiTenant",
+    "safetyRelevant",
+    "malwareProtection",
+    "accountManagement",
+    "backupMechanism",
+  ];
  
 /**
  * Get default properties for a Multiprocess based on systemClass selection.
@@ -813,7 +847,16 @@ export const DATAFLOW_PROTOCOL_DRIVEN_FIELDS: (keyof DataFlowProperties)[] = [
 
 /**
  * Cascade defaults based on Interface.type selection.
- * usb, serial, gpio intentionally default to "none" to surface attack surface.
+ *
+ * Design principles:
+ * - implementedControls are NOT cascaded — they are analyst decisions, not type properties.
+ *   The type cascade sets context/exposure fields only (location, operationalState, connectorType).
+ * - Serial/bus/debug interfaces default to operationalState: "enabled" to surface
+ *   the full attack surface. Analysts must explicitly apply controls.
+ * - Debug interfaces (jtag, swd*) default to "hw_disabled" — the expected secure baseline.
+ *   If a project has these enabled, a threat is surfaced immediately.
+ * - "accessControl" is gone — replaced by implementedControls.logicalAccessControl.
+ *   The cascade table no longer touches security controls.
  */
 export const INTERFACE_TYPE_DEFAULTS: Record<
   NonNullable<InterfaceProperties["type"]>,
@@ -821,138 +864,117 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
 > = {
   // ── Network / Wireless ───────────────────────────────────────────────────
   ethernet: {
-    accessControl: "credentials",
     location: "network_port" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "rj45",
   },
   fiber: {
-    accessControl: "credentials",
     location: "network_port" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "sfp",
   },
   wifi: {
-    accessControl: "credentials",
     location: "wireless" as InterfaceLocation,
     operationalState: "enabled",
     // no connectorType — wireless, no physical connector
   },
   bluetooth: {
-    accessControl: "credentials",
     location: "wireless" as InterfaceLocation,
     operationalState: "enabled",
   },
   nfc: {
-    accessControl: "none",
     location: "external_panel" as InterfaceLocation,
     operationalState: "enabled",
   },
   // ── Serial / Bus ─────────────────────────────────────────────────────────
-  // No access control by default — surfaces attack surface for threat generation
+  // No implementedControls cascaded — analyst must assess and apply
   uart: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "gpio_header",
   },
   rs232: {
-    accessControl: "none",
     location: "in_enclosure" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "db9",
   },
   rs485: {
-    accessControl: "none",
     location: "in_enclosure" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
   },
   can: {
-    accessControl: "none",
     location: "in_enclosure" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
   },
   i2c: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "gpio_header",
   },
   spi: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "gpio_header",
   },
   lin: {
-    accessControl: "none",
     location: "in_enclosure" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
   },
   // ── USB ───────────────────────────────────────────────────────────────────
   usb: {
-    accessControl: "none",
     location: "external_panel" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "usb_a",
   },
   // ── Debug / Programming ───────────────────────────────────────────────────
-  // hw_disabled by default — must be explicitly enabled; surfaces threat if enabled
+  // hw_disabled by default — secure production baseline.
+  // If operationalState is overridden to "enabled", debug threats are surfaced immediately.
   jtag: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "hw_disabled",
     connectorType: "jtag_20pin",
   },
   swd: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "hw_disabled",
     connectorType: "swd_10pin",
   },
   swd_swo: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "hw_disabled",
     connectorType: "swd_10pin",
   },
   jtag_trace: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "hw_disabled",
     connectorType: "jtag_20pin",
   },
   // ── Digital / Analog I/O ─────────────────────────────────────────────────
   gpio: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "gpio_header",
   },
   analog_in: {
-    accessControl: "none",
     location: "in_enclosure" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
   },
   analog_out: {
-    accessControl: "none",
     location: "in_enclosure" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
   },
   pwm: {
-    accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
   },
   // ── Other ─────────────────────────────────────────────────────────────────
   custom: {
-    accessControl: "none",
     operationalState: "enabled",
   },
 };
@@ -978,9 +1000,10 @@ export const INTERFACE_TYPE_SAFETY_HINTS: Partial<
   jtag_trace: "tabs.dfd.element_description.interface.cascade_hints.jtag",
 };
 
-/** Fields driven by Interface.type — used for clearing on driver reset */
+/** Fields driven by Interface.type — used for clearing on driver reset.
+ *  implementedControls is intentionally excluded: it is analyst-owned,
+ *  not type-driven, and must survive a type change. */
 export const INTERFACE_TYPE_DRIVEN_FIELDS: (keyof InterfaceProperties)[] = [
-  "accessControl",
   "location",
   "operationalState",
   "connectorType",
@@ -1000,12 +1023,14 @@ export const TB_TYPE_DEFAULTS: Record<
     defaultExposureLevel: "EL3",
     monitoringEnabled: true,
     boundaryControlTypes: ["firewall"] as BoundaryControlType[],
+    defaultDenyPolicy: "allow_all", // Surfaces NDR 5.2 RE(1) gap — analyst must tighten
   },
   // Cloud boundary — IAM gateway is the baseline, monitoring mandatory
   cloud: {
     defaultExposureLevel: "EL4",
     monitoringEnabled: true,
     boundaryControlTypes: ["authentication_gateway"] as BoundaryControlType[],
+    defaultDenyPolicy: "allow_all", // Surfaces NDR 5.2 RE(1) gap
   },
   // Privilege boundary — no network control, OS-enforced
   privilege: {

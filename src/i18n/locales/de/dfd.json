@@ -2,361 +2,370 @@
   "tabs": {
     "dfd": {
       "title": "DFD Editor",
-      "description": "Erstellen und bearbeiten Sie hier Ihr Datenflussdiagramm.",
-      "loading": "DFD Editor wird geladen...",
-      "proceed": "Weiter",
+      "description": "Create and edit your Data Flow Diagram here.",
+      "loading": "Loading DFD Editor...",
+      "proceed": "Continue",
       "toolbar": {
-        "zoomIn": "Vergrössern",
-        "zoomOut": "Verkleinern",
-        "fitToScreen": "Einpassen",
-        "undo": "Rückgängig",
-        "redo": "Wiederholen",
-        "exportImage": "Als Bild exportieren",
-        "refresh": "Validierung aktualisieren",
-        "autoNumber": "Labels automatisch nummerieren",
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fitToScreen": "Fit to Screen",
+        "undo": "Undo",
+        "redo": "Redo",
+        "exportImage": "Export as Image",
+        "refresh": "Refresh Validation",
+        "autoNumber": "Auto-Number Labels",
         "darkMode": "Dark Mode",
-        "draw": "DFD zeichnen",
-        "describe": "DFD beschreiben",
-        "exportDFD": "DFD exportieren",
-        "importDFD": "DFD importieren",
-        "settings": "DFD-Einstellungen"
+        "draw": "Draw DFD",
+        "describe": "Describe DFD",
+        "exportDFD": "Export DFD",
+        "importDFD": "Import DFD",
+        "settings": "DFD Settings"
       },
       "config": {
-        "title": "DFD-Einstellungen"
+        "title": "DFD Settings"
       },
       "autoNumbering": {
-        "sortStrategy": "Auto-Nummerierung – Reihenfolge",
-        "diagonal": "Diagonal (obere linke Ecke gewinnt)",
-        "diagonalHint": "Score = gewichtX·x + gewichtY·y. Das Element am nächsten zur oberen linken Ecke gewinnt. Konfigurierbare Gewichte, IdLabel-Position als Tiebreaker.",
-        "topDown": "Oben → Unten (dann Links → Rechts)",
-        "topDownHint": "Elemente weiter oben erhalten niedrigere Nummern. Innerhalb der gleichen Zeile (Toleranzband) gewinnt links. Geeignet für dokumentartige DFDs.",
-        "leftRight": "Links → Rechts (dann Oben → Unten)",
-        "leftRightHint": "Elemente weiter links erhalten niedrigere Nummern. Innerhalb der gleichen Spalte (Toleranzband) gewinnt oben. Geeignet für OT/ICS-Diagramme mit Feld–Steuerung–IT-Zonen.",
-        "tolerance": "Ausrichtungstoleranz",
-        "toleranceHintX": "Maximaler X-Abstand (px), innerhalb dessen zwei Elemente als gleiche Spalte gelten. Das obere Element gewinnt im Band.",
-        "toleranceHintY": "Maximaler Y-Abstand (px), innerhalb dessen zwei Elemente als gleiche Zeile gelten. Das linke Element gewinnt im Band.",
-        "weights": "Diagonale Gewichte",
-        "weightsHint": "Score = gewichtX·x + gewichtY·y. Höheres Y-Gewicht → vertikale Position zählt mehr. Standard: 0.8x + 1.0y.",
-        "weightX": "X-Gewicht (horizontal)",
-        "weightY": "Y-Gewicht (vertikal)",
-        "configHint": "Nach dem Speichern «Auto-Nummerieren» klicken. Alle Elemente werden von Grund auf neu nummeriert."
+        "sortStrategy": "Auto-Numbering Order",
+        "diagonal": "Diagonal (Top-Left corner wins)",
+        "diagonalHint": "Score = weightX·x + weightY·y. The element closest to the top-left corner wins. Configurable weights, IdLabel position as tiebreaker.",
+        "topDown": "Top → Bottom (then Left → Right)",
+        "topDownHint": "Elements higher up get lower numbers. Within the same row (tolerance band), left wins. Best for document-style DFDs.",
+        "leftRight": "Left → Right (then Top → Bottom)",
+        "leftRightHint": "Elements further left get lower numbers. Within the same column (tolerance band), top wins. Best for OT/ICS diagrams with field–control–IT zones.",
+        "tolerance": "Alignment Tolerance",
+        "toleranceHintX": "Maximum X-distance (px) for two elements to be treated as the same column. Top wins within the band.",
+        "toleranceHintY": "Maximum Y-distance (px) for two elements to be treated as the same row. Left wins within the band.",
+        "weights": "Diagonal Weights",
+        "weightsHint": "Score = weightX·x + weightY·y. Higher Y weight → vertical position matters more. Default: 0.8x + 1.0y.",
+        "weightX": "X weight (horizontal)",
+        "weightY": "Y weight (vertical)",
+        "configHint": "Click Auto-Number after saving to apply. All elements will be renumbered from scratch."
       },
       "preview": {
-        "title": "DFD Vorschau",
-        "generating": "Vorschau wird generiert...",
-        "download": "Herunterladen"
+        "title": "DFD Preview",
+        "generating": "Generating preview...",
+        "download": "Download"
       },
       "stats": {
-        "elements": "Elemente",
-        "flows": "Datenflüsse",
-        "described": "Beschrieben"
+        "elements": "Elements",
+        "flows": "Flows",
+        "described": "Described"
       },
       "validation": {
-        "valid": "Gültig",
-        "errors": "Fehler",
-        "warnings": "Warnungen",
-        "required": "Erforderlich",
-        "atLeastOneSecurityGoal": "Mindestens ein Schutzziel erforderlich",
+        "valid": "Valid",
+        "errors": "Errors",
+        "warnings": "Warnings",
+        "required": "Required",
+        "atLeastOneSecurityGoal": "At least one security goal required",
         "element": {
-          "missingProperty": "{{elementType}} {{displayId}} — Feld '{{field}}' muss gesetzt sein"
+          "missingProperty": "{{elementType}} {{displayId}} — field '{{field}}' must be set"
         },
         "df": {
           "label": {
-            "empty": "{{detail}} — leeres oder nicht auswertbares Label",
-            "deprecatedVerb": "{{detail}} — veraltetes Verb; 'send'/'recv' durch 'push' oder 'pull' ersetzen",
-            "unknownVerb": "{{detail}} — unbekanntes Verb (gültig: pull, push, write, stream)",
-            "missingObject": "{{detail}} — fehlendes Objekt, erwartetes Format: '<verb> <objekt> [<flow-type>]'"
+            "empty": "{{detail}} — empty or unparseable label",
+            "deprecatedVerb": "{{detail}} — deprecated verb, replace 'send'/'recv' with 'push' or 'pull'",
+            "unknownVerb": "{{detail}} — unknown verb (valid: pull, push, write, stream)",
+            "missingObject": "{{detail}} — missing object, expected format '<verb> <object> [<flow-type>]'",
+            "multipleTags": "{{detail}} — only one [flow-type] tag allowed per flow",
+            "synonymVerb": "{{detail}} — not permitted; use 'pull' instead of read/fetch/query, 'push' instead of emit/notify/publish/receive",
+            "objectEmbeddedVerb": "{{detail}} — object must not start with a verb; use a domain-oriented noun instead"
           },
           "label_property": {
-            "verb_direction_conflict": "Verb widerspricht der Flussrichtung",
-            "tag_frequency_mismatch": "Frequenz-Konflikt — [{{combo}}] erwartet {{expected}}, erhalten {{got}}",
-            "tag_message_type_mismatch": "Nachrichtentyp-Konflikt — {{combo}} erwartet {{expected}}, erhalten {{got}}",
-            "electrical_pull_verb": "Protokoll-Konflikt — '{{protocol}}' ist unidirektional, Pull ist nicht anwendbar",
-            "write_target_not_datastore": "Ungültiges Schreibziel — '{{targetName}}' ist ein {{targetType}}, erwartet wird ein Datenspeicher"
+            "verb_direction_conflict": "Verb conflicts with flow direction",
+            "tag_frequency_mismatch": "Frequency mismatch — [{{combo}}] expects {{expected}}, got {{got}}",
+            "tag_message_type_mismatch": "Message type mismatch — {{combo}} expects {{expected}}, got {{got}}",
+            "electrical_pull_verb": "Protocol conflict — '{{protocol}}' is unidirectional, pull is not applicable",
+            "write_target_not_datastore": "Invalid write target — '{{targetName}}' is a {{targetType}}, expected DataStore"
           },
           "pull": {
-            "missingFlowType": "{{detail}} — pull erfordert einen Flow-Typ: [req], [resp] oder [req_resp]",
-            "invalidFlowType": "{{detail}} — ungültiger Flow-Typ für pull (gültig: [req], [resp], [req_resp])",
-            "missingResponse": "{{detail}} — kein passendes pull [resp] für dieses pull [req] gefunden",
-            "multipleResponses": "{{detail}} — mehrere pull [resp] gefunden, erwartet wird genau eines",
-            "orphanedResponse": "{{detail}} — verwaistes pull [resp]: kein passendes pull [req] gefunden"
+            "missingFlowType": "{{detail}} — pull requires a flow-type: [req], [resp], or [req_resp]",
+            "invalidFlowType": "{{detail}} — invalid flow-type for pull (valid: [req], [resp], [req_resp])",
+            "missingResponse": "{{detail}} — no matching pull [resp] found for this pull [req]",
+            "multipleResponses": "{{detail}} — multiple pull [resp] found, expected exactly one",
+            "orphanedResponse": "{{detail}} — orphaned pull [resp], no matching pull [req] found"
           },
           "push": {
-            "missingCmd": "{{detail}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
-            "missingFlowType": "{{detail}} — push erfordert einen Flow-Typ: [cmd], [event] oder [event_ack]",
-            "invalidFlowType": "{{detail}} — ungültiger Flow-Typ für push (gültig: [cmd], [event], [event_ack])"
+            "missingCmd": "{{detail}} — push requires a flow-type: [cmd], [event], or [event_ack]",
+            "missingFlowType": "{{detail}} — push requires a flow-type: [cmd], [event], or [event_ack]",
+            "invalidFlowType": "{{detail}} — invalid flow-type for push (valid: [cmd], [event], [event_ack])"
           },
           "write": {
-            "redundantFlowType": "{{detail}} — write darf keinen Flow-Typ oder Annotation tragen"
+            "redundantFlowType": "{{detail}} — write must not carry a flow-type or annotation"
           },
           "stream": {
-            "invalidFlowType": "{{detail}} — ungültiger Flow-Typ für stream (nur [stream] erlaubt oder weglassen)",
-            "logicalAnnotationForbidden": "{{detail}} — stream-Flows dürfen keine logischen Annotationen tragen ([req_resp], [event_ack] sind semantisch inkompatibel mit stream)"
+            "invalidFlowType": "{{detail}} — invalid flow-type for stream (only [stream] is allowed, or omit entirely)",
+            "logicalAnnotationForbidden": "{{detail}} — stream flows may not use logical annotations ([req_resp], [event_ack] are semantically incompatible with stream)"
           },
           "reqResp": {
-            "duplicateCoverage": "{{detail}} — [req_resp] und ein explizites [req] oder [resp] für dieselbe Interaktion gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
+            "duplicateCoverage": "{{detail}} — [req_resp] coexists with an explicit [req] or [resp] on the same interaction; remove one to avoid duplicate threat coverage"
           },
           "eventAck": {
-            "duplicateCoverage": "{{detail}} — [event_ack] und ein explizites [event] auf demselben Flow gefunden; eines entfernen um doppelte Threat-Generierung zu vermeiden"
+            "duplicateCoverage": "{{detail}} — [event_ack] coexists with an explicit [event] on the same flow; remove one to avoid duplicate threat coverage"
           },
           "object": {
-            "forbiddenTerm": "{{detail}} — Objekt enthält einen Transport- oder Kodierungsbegriff ({{terms}}); domänenorientierten Namen verwenden"
+            "forbiddenTerm": "{{detail}} — object contains a transport or encoding term ({{terms}}); use a domain-oriented name instead"
           },
           "prop": {
-            "bidirectionalForbidden": "{{detail}} — bidirektionale Flows sind verboten; als zwei unidirektionale Flows modellieren",
-            "pullNotReqResp": "{{detail}} — pull erfordert die Richtung 'Request-Response'; Eigenschaft Direction anpassen",
-            "pushIsReqResp": "{{detail}} — push ist Fire-and-Forget; 'Request-Response'-Richtung widerspricht der push-Semantik",
-            "pushWrongDirection": "{{detail}} — push erfordert die Richtung 'Unidirektional'; Eigenschaft Direction anpassen",
-            "writeIsReqResp": "{{detail}} — write ist eine Einweg-Operation; 'Request-Response'-Richtung widerspricht der write-Semantik",
-            "writeNotDatastore": "{{detail}} — write mit Nicht-Datastore-Protokoll; prüfen ob der Flow auf einen Data Store zeigt (erwartet: database oder file)",
-            "streamNotContinuous": "{{detail}} — stream erfordert kontinuierliche Frequenz; Eigenschaft Frequency anpassen",
-            "streamIsReqResp": "{{detail}} — stream ist unidirektional; 'Request-Response'-Richtung ist für stream unerwartet",
-            "continuousUseStream": "{{detail}} — kontinuierlicher push/pull erkannt; 'stream' in Betracht ziehen",
-            "excludeMissingRationale": "Datenfluss {{detail}} — von der Threat-Generierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1 Audit-Trail ergänzen",
-            "protocolMissing": "{{detail}} — Transportprotokoll nicht angegeben; für die Threat-Analyse als unbekannt / höchstes Risiko behandeln"
+            "bidirectionalForbidden": "{{detail}} — bidirectional flows are forbidden, model as two unidirectional flows",
+            "pullNotReqResp": "{{detail}} — pull requires direction 'Request-Response', update the Direction property",
+            "pushIsReqResp": "{{detail}} — push is fire-and-forget, 'Request-Response' direction contradicts push semantics",
+            "pushWrongDirection": "{{detail}} — push requires direction 'Uni-directional', update the Direction property",
+            "writeIsReqResp": "{{detail}} — write is a one-way operation, 'Request-Response' direction contradicts write semantics",
+            "writeNotDatastore": "{{detail}} — write with non-datastore protocol, verify flow targets a Data Store (expected: database or file)",
+            "streamNotContinuous": "{{detail}} — stream requires continuous frequency, update the Frequency property",
+            "streamIsReqResp": "{{detail}} — stream is unidirectional, 'Request-Response' direction is unexpected for stream",
+            "continuousUseStream": "{{detail}} — continuous push/pull detected, consider using 'stream' instead",
+            "excludeMissingRationale": "DataFlow {{detail}} — excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
+            "protocolMissing": "{{detail}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
           }
-        }
+        },
+        "label_property": {}
       },
       "descriptionView": {
-        "title": "DFD-Element-Beschreibungen"
+        "title": "DFD Element Descriptions"
       },
       "detailsPanel": {
-        "assetsTitle": "Asset-Liste",
+        "assetsTitle": "Asset List",
         "tabs": {
           "element": "Element",
           "assets": "Assets"
         }
       },
       "assetPanel": {
-        "noAssets": "Keine Assets vorhanden",
-        "selectAsset": "Asset oben auswählen, um Details anzuzeigen und zu bearbeiten",
-        "showInDFD": "Im DFD anzeigen",
-        "hideInDFD": "Im DFD ausblenden",
-        "showTree": "Asset-Baum anzeigen",
-        "hideTree": "Detailansicht vergrössern",
-        "createAsset": "Neues Asset",
-        "deleteAsset": "Asset löschen",
-        "clearAllOverlays": "Alle Overlays ausschalten",
+        "noAssets": "No assets",
+        "selectAsset": "Select an asset above to view and edit its details",
+        "showInDFD": "Show in DFD",
+        "hideInDFD": "Hide in DFD",
+        "showTree": "Show asset tree",
+        "hideTree": "Expand detail view",
+        "createAsset": "New asset",
+        "deleteAsset": "Delete asset",
+        "clearAllOverlays": "Clear all overlays",
         "confirmDelete": {
-          "title": "Asset löschen?",
-          "message": "Dies entfernt das Asset und alle zugehörigen Relationen aus dem DFD. Diese Aktion kann nicht rückgängig gemacht werden."
+          "title": "Delete asset?",
+          "message": "This will remove the asset and all its relations from the DFD. This action cannot be undone."
         }
       },
       "assetGroups": {
-        "data": "Daten",
+        "data": "Data",
         "system": "System",
-        "process": "Prozess",
-        "infrastructure": "Infrastruktur",
-        "human": "Mensch"
+        "process": "Process",
+        "infrastructure": "Infrastructure",
+        "human": "Human"
       },
       "element_description": {
-        "title": "Element-Beschreibungen",
+        "title": "Element Descriptions",
         "assets": "Assets",
-        "dataFlows": "Datenflüsse",
+        "dataFlows": "Data Flows",
         "tabs": {
-          "general": "Allgemein",
-          "relations": "Beziehungen"
+          "general": "General",
+          "relations": "Relations"
         },
         "assetRelations": {
-          "isAnSection": "Identitaet (is_an)",
-          "relationsSection": "Asset-Beziehungen",
-          "empty": "Keine Asset-Beziehungen definiert.",
-          "addRelation": "Asset-Beziehung hinzufuegen",
-          "editRelations": "Beziehungen bearbeiten",
-          "isAnDescription": "Dieses Element repraesentiert dieses Asset",
-          "cancel": "Abbrechen",
-          "save": "Speichern",
+          "isAnSection": "Identity (is_an)",
+          "relationsSection": "Asset Relations",
+          "empty": "No asset relations defined.",
+          "addRelation": "Add asset relation",
+          "editRelations": "Edit relations",
+          "isAnDescription": "This element represents this asset",
+          "cancel": "Cancel",
+          "save": "Save",
           "relationType": {
-            "label": "Beziehungstyp"
+            "label": "Relation Type"
           },
-          "selectedRelations": "Ausgewaehlte Beziehungen",
-          "notes": "Notizen (optional)",
-          "notesPlaceholder": "Notizen zu diesem Asset im Kontext dieses Elements…",
-          "removeAllRelations": "Alle entfernen",
-          "deselect": "Abwaehlen",
+          "selectedRelations": "Selected Relations",
+          "notes": "Notes (optional)",
+          "notesPlaceholder": "Notes about this asset in the context of this element…",
+          "removeAllRelations": "Remove all",
+          "deselect": "Deselect",
           "safetyAnnotation": {
-            "title": "Safety-Annotation",
-            "relevance": "Safety-Relevanz"
+            "title": "Safety Annotation",
+            "relevance": "Safety Relevance"
           },
           "groupChange": {
-            "title": "Asset-Gruppe aendern?",
-            "warning": "Das Aendern der Asset-Gruppe entfernt alle aktuell ausgewaehlten Beziehungstypen, da diese gruppenspezifisch sind.",
-            "confirm": "Aendern & Beziehungen loeschen"
+            "title": "Change Asset Group?",
+            "warning": "Changing the asset group will remove all currently selected relation types, as they are specific to the current group.",
+            "confirm": "Change & clear relations"
           },
           "asset": {
             "label": "Asset",
-            "createNew": "Neues Asset erstellen…",
+            "createNew": "Create new asset…",
             "newAsset": {
-              "title": "Neues Asset erstellen",
-              "name": "Asset-Name",
-              "group": "Asset-Gruppe",
-              "confirm": "Erstellen"
+              "title": "Create New Asset",
+              "name": "Asset Name",
+              "group": "Asset Group",
+              "confirm": "Create"
             }
           },
           "degradationMode": {
-            "label": "Abhängigkeitsmodus",
-            "description": "Fallback-Beschreibung (erforderlich)",
-            "placeholder": "z.B. Lokaler Cache für 24h verfügbar, danach Ausfall",
-            "required": "Erforderlich für Prüfnachweis (IEC 62443-4-1)"
+            "label": "Dependency Mode",
+            "description": "Fallback description (required)",
+            "placeholder": "e.g. Local cache available for 24h, then failure",
+            "required": "Required for audit trail (IEC 62443-4-1)"
           }
         },
         "exposure_level": {
-          "label": "Expositionsstufe",
-          "derived_hint": "Abgeleitet von der Vertrauensgrenze",
-          "override": "Überschreiben",
-          "below_tb_hint": "Unterhalb des Trust Boundary EL — Überschreiben erfordert eine Begründung",
-          "rationale_label": "Begründung",
-          "rationale_placeholder": "Warum weicht dieser Wert vom TB-EL ab?",
-          "el0_description": "Innerhalb des Maschinengehäuses, kein externer Zugriff möglich",
-          "el1_description": "Physischer Zugriff erforderlich (USB, serielle Schnittstelle, abgeschlossenes Gehäuse)",
-          "el2_description": "Lokales Netzwerksegment (Feldbus, Ethernet, LAN)",
-          "el3_description": "Industrielles Fabriknetzwerk, VPN oder Partner- / OT-Netzwerk",
-          "el4_description": "Internetzugang, nicht vertrauenswürdiges öffentliches Netzwerk"
+          "label": "Exposure Level",
+          "derived_hint": "Derived from Trust Boundary",
+          "override": "Override",
+          "below_tb_hint": "Below Trust Boundary EL — override requires rationale",
+          "rationale_label": "Override Rationale",
+          "rationale_placeholder": "Why does this differ from the Trust Boundary EL?",
+          "el0_description": "Inside the machine enclosure, no external access possible",
+          "el1_description": "Physical access required (USB, serial port, locked cabinet)",
+          "el2_description": "Local network segment (fieldbus, Ethernet, LAN)",
+          "el3_description": "Industrial factory network, VPN or partner / OT network",
+          "el4_description": "Internet-exposed, untrusted public network"
         },
         "physical_exposure_level": {
-          "pel0_description": "PEL0 – Unzugänglich: Kein praktischer physischer Zugang ohne Zerstörung — vergossen, verschweisst oder Chip-Decap erforderlich. Keine relevante physische Angriffsfläche.",
-          "pel1_description": "PEL1 – Tief intern: Mehrere physische Barrieren müssen überwunden werden — z.B. JTAG hinter zwei verschachtelten Gehäusen, oder innerhalb eines gesicherten Untermoduls im Schaltschrank.",
-          "pel2_description": "PEL2 – Intern: Eine physische Barriere zu überwinden — Gehäuse öffnen, Schrank aufschliessen, Schrauben entfernen. Werkzeug- oder Schlüsselzugang erforderlich.",
-          "pel3_description": "PEL3 – Oberflächlich zugänglich: Von aussen erreichbar ohne etwas zu öffnen, aber nicht direkt benutzbar — z.B. eine Serviceklappe die geöffnet werden muss, ein versenkter Port hinter einer Abdeckung. Kein Werkzeug nötig.",
-          "pel4_description": "PEL4 – Direkt exponiert: Keine physische Barriere — Touchscreen, Outdoor-USB, Kartenleser. Direkt erreichbar für jeden. Mit PB.accessibility für Umgebungskontext kombinieren."
+          "pel0_description": "PEL0 – Inaccessible: No practical physical access without destruction — potted, welded, or chip-decap required. No meaningful attack surface from physical side.",
+          "pel1_description": "PEL1 – Deep Internal: Multiple physical barriers must be overcome — e.g. JTAG behind two nested enclosures, or inside a locked sub-module inside a locked cabinet.",
+          "pel2_description": "PEL2 – Internal: One physical barrier to bypass — open enclosure, unlock cabinet, remove screws. Tool or key access required. e.g. LAN port inside device housing.",
+          "pel3_description": "PEL3 – Surface Accessible: Externally reachable without opening anything, but not directly usable — e.g. a service flap that must be opened, a recessed port behind a cover. No tool required.",
+          "pel4_description": "PEL4 – Directly Exposed: No physical barrier — touchscreen, outdoor USB, card reader. Directly reachable by anyone. Combine with PB.accessibility for environmental context."
         },
         "sections": {
           "context": "Kontext",
-          "security": "Sicherheit",
+          "security": "Security",
           "documentation": "Dokumentation",
-          "hardware_security": "Hardware-Sicherheit",
-          "physical_security": "Physische Sicherheit"
+          "hardware_security": "Hardware Security",
+          "physical_security": "Physische Sicherheit",
+          "implemented_controls": "Implementierte Controls",
+          "safety": "Safety",
+          "security_controls": "Security Controls"
         },
         "process": {
           "safetyAnnotation": {
-            "title": "Safety-Annotation",
-            "noRelations": "Füge mindestens eine Asset-Relation hinzu, um Safety-Annotationen zu erfassen.",
-            "perRelationHint": "Safety-Annotationen werden pro Relation in der obigen Liste gesetzt (Relevanz, Auswirkung, physisches Gefährdungspotenzial, Begründung)."
+            "title": "Safety Annotation",
+            "noRelations": "Add at least one asset relation to enable safety annotation.",
+            "perRelationHint": "Safety annotations are set per relation in the list above (relevance, impact, physical hazard potential, rationale)."
           },
           "sections": {
-            "required": "Pflichtfelder",
-            "security": "Sicherheit & Ausführungskontext",
-            "advanced": "Erweitert / Optional"
+            "required": "Required Fields",
+            "security": "Security & Execution Context",
+            "advanced": "Advanced / Optional"
           },
           "cianaaa": {
-            "sectionTitle": "CIANAAA-Auswirkungsbewertung",
-            "noAsset": "Verknüpfen Sie ein primäres Asset via <strong>is_an</strong>, um die Auswirkungsbewertung zu bearbeiten.",
+            "sectionTitle": "CIANAAA Impact Assessment",
+            "noAsset": "Link a primary asset via <strong>is_an</strong> above to enable impact assessment editing.",
             "groups": {
-              "cia": "CIA-Auswirkungsstufen",
-              "naaa": "NAAA-Sicherheitseigenschaften",
-              "business": "Geschäftlicher Einfluss",
-              "physical": "Safety-Auswirkung (Physisch)",
-              "aggregated": "Aggregierte Kritikalität (berechnet, schreibgeschützt):",
-              "classification": "Datenklassifizierung"
+              "cia": "CIA Impact Levels",
+              "naaa": "NAAA Security Properties",
+              "business": "Business Impact",
+              "physical": "Safety Impact (Physical)",
+              "aggregated": "Aggregated Criticality (computed, read-only):",
+              "classification": "Data Classification"
             },
             "fields": {
-              "confidentialityImpact": "Vertraulichkeits-Auswirkung",
-              "integrityImpact": "Integritäts-Auswirkung",
-              "availabilityImpact": "Verfügbarkeits-Auswirkung",
-              "nonRepudiation": "Nicht-Abstreitbarkeit",
-              "nonRepudiationHint": "(R in STRIDE — Audit-Log, digitale Signatur)",
-              "authentication": "Authentifizierung",
-              "authenticationHint": "(S in STRIDE — Identitätsnachweis erforderlich)",
-              "authorization": "Autorisierung",
-              "authorizationHint": "(E in STRIDE — Berechtigungsprüfung erforderlich)",
-              "accountability": "Rechenschaftspflicht",
-              "accountabilityHint": "(DSGVO Art. 5 — zusätzlich zu Nicht-Abstreitbarkeit)",
-              "businessImpact": "Geschäftlicher Einfluss",
-              "businessImpactCategory": "Business-Impact-Kategorie",
-              "physicalImpact": "Physische Auswirkung",
-              "physicalHazardPotential": "Physisches Gefährdungspotenzial",
-              "personalData": "Personenbezogene Daten (DSGVO Art. 5 — aktiviert Rechenschaftspflicht)",
-              "businessSecret": "Geschäftsgeheimnis (aktiviert Vertraulichkeit bei is_an)"
+              "confidentialityImpact": "Confidentiality Impact",
+              "integrityImpact": "Integrity Impact",
+              "availabilityImpact": "Availability Impact",
+              "nonRepudiation": "Non-Repudiation",
+              "nonRepudiationHint": "(R in STRIDE — audit log, digital signature)",
+              "authentication": "Authentication",
+              "authenticationHint": "(S in STRIDE — identity verification required)",
+              "authorization": "Authorization",
+              "authorizationHint": "(E in STRIDE — permission check required)",
+              "accountability": "Accountability",
+              "accountabilityHint": "(GDPR Art. 5 — additional to Non-Repudiation)",
+              "businessImpact": "Business Impact",
+              "businessImpactCategory": "Business Impact Category",
+              "physicalImpact": "Physical Impact",
+              "physicalHazardPotential": "Physical Hazard Potential",
+              "personalData": "Personal Data (GDPR Art. 5 — enables Accountability)",
+              "businessSecret": "Business Secret (enables Confidentiality on is_an)"
             },
             "impactOptions": {
-              "not_set": "Nicht gesetzt",
-              "low": "Niedrig",
-              "medium": "Mittel",
-              "high": "Hoch",
-              "critical": "Kritisch"
+              "not_set": "Not set",
+              "low": "Low",
+              "medium": "Medium",
+              "high": "High",
+              "critical": "Critical"
             },
             "physicalImpactOptions": {
-              "not_set": "Nicht gesetzt",
-              "none": "Keiner",
-              "reversible_injury": "Reversible Verletzung",
-              "irreversible_injury": "Irreversible Verletzung",
-              "fatality": "Tod / Tödlich"
+              "not_set": "Not set",
+              "none": "None",
+              "reversible_injury": "Reversible Injury",
+              "irreversible_injury": "Irreversible Injury",
+              "fatality": "Fatality"
             },
             "hazardOptions": {
-              "not_set": "Nicht gesetzt",
-              "low": "Niedrig",
-              "medium": "Mittel",
-              "high": "Hoch"
+              "not_set": "Not set",
+              "low": "Low",
+              "medium": "Medium",
+              "high": "High"
             },
             "businessImpactCategoryOptions": {
-              "not_set": "Nicht gesetzt",
-              "operational": "Operationell",
-              "financial": "Finanziell",
-              "privacy": "Datenschutz",
-              "reputational": "Reputation"
+              "not_set": "Not set",
+              "operational": "Operational",
+              "financial": "Financial",
+              "privacy": "Privacy",
+              "reputational": "Reputational"
             },
             "criticalityChip": {
-              "not_set": "NICHT GESETZT",
-              "low": "NIEDRIG",
-              "medium": "MITTEL",
-              "high": "HOCH",
-              "critical": "KRITISCH",
+              "not_set": "NOT SET",
+              "low": "LOW",
+              "medium": "MEDIUM",
+              "high": "HIGH",
+              "critical": "CRITICAL",
               "safetyOverrideSuffix": "(Safety Override)"
             },
             "safetyOverride": {
-              "title": "Safety Override Rule aktiv",
-              "description": "Physische Auswirkung \"{{impact}}\" erzwingt aggregierte Kritikalität KRITISCH (ISO 12100 — nicht überschreibbar)."
+              "title": "Safety Override Rule active",
+              "description": "Physical impact \"{{impact}}\" forces aggregated criticality to CRITICAL (ISO 12100 — non-overrideable)."
             },
             "source": {
-              "derived": "Abgeleitet",
-              "manual": "Manuell",
-              "manualOverrideActive": "MANUELLER OVERRIDE AKTIV",
-              "overrideTooltip": "Abgeleiteten Wert manuell überschreiben",
-              "resetToDerived": "Auf abgeleiteten Wert zurücksetzen",
-              "rationaleLabel": "Begründung (Pflichtfeld)",
-              "rationalePlaceholder": "Warum wurde dieser Wert nicht aus den Asset-Relationen abgeleitet?",
-              "rationaleRequired": "Begründung ist bei manuellen Overrides Pflicht (IEC 62443-4-1)"
+              "derived": "Derived",
+              "manual": "Manual",
+              "manualOverrideActive": "MANUAL OVERRIDE ACTIVE",
+              "overrideTooltip": "Override derived value manually",
+              "resetToDerived": "Reset to derived value",
+              "rationaleLabel": "Rationale (required)",
+              "rationalePlaceholder": "Why was this value not derived from asset relations?",
+              "rationaleRequired": "Rationale is required for manual overrides (IEC 62443-4-1)"
             }
           },
           "fields": {
             "description": {
               "label": "Beschreibung",
-              "helperText": "Was macht dieser Prozess?"
+              "helperText": "What does this process do?"
             },
             "purpose": {
-              "label": "Zweck / Funktion",
-              "placeholder": "z.B. Benutzerauthentifizierung, Datentransformation"
+              "label": "Zweck",
+              "placeholder": "e.g., User authentication, Data transformation"
             },
             "runsAs": {
               "label": "Läuft als",
               "options": {
+                "not_specified": "Nicht angegeben",
                 "user": "Benutzer",
                 "admin_user": "Administrator",
                 "root": "Root / Superuser",
-                "system": "Systemkonto",
-                "service": "Service-Konto",
-                "guest": "Gast / eingeschränkter Benutzer",
-                "anonymous": "Anonym / Öffentlichkeit",
-                "contractor": "Externe Person / Auftragnehmer"
+                "system": "System-Dienst",
+                "service": "Dienst",
+                "guest": "Gast",
+                "anonymous": "Anonym",
+                "contractor": "Auftragnehmer"
+              }
+            },
+            "privilegeLevel": {
+              "label": "Privilegien-Stufe",
+              "options": {
+                "not_specified": "Nicht angegeben",
+                "low": "Niedrig",
+                "medium": "Mittel",
+                "high": "Hoch",
+                "root": "Root"
               }
             },
             "processSemantic": {
               "label": "Prozess-Semantik",
               "options": {
-                "execution_unit": "Ausführungseinheit (OS/RTOS-isoliert)",
-                "functional_block": "Funktionaler Block (logisch, keine OS-Isolation)",
-                "security_boundary": "Sicherheitsgrenze (HSM, TEE, Crypto-Engine)"
+                "execution_unit": "Ausführungseinheit (OS-Prozess, RTOS-Task)",
+                "functional_block": "Funktionsblock (Bare-Metal, ISR, Logikblock)",
+                "security_boundary": "Security-Grenze (HSM, TEE, Crypto-Engine)"
               },
-              "hint_functional_block": "Dieser Prozess repräsentiert einen funktionalen Block, keinen OS-Prozess. Es existiert keine Hardwareisolationsgrenze — Vertrauensannahmen müssen explizit gemacht werden."
-            },
-            "privilegeLevel": {
-              "label": "Berechtigungsstufe",
-              "options": {
-                "low": "Niedrig (Benutzer)",
-                "medium": "Mittel (Dienst)",
-                "high": "Hoch (Admin)",
-                "root": "Root / SYSTEM"
-              }
+              "hint_functional_block": "This process represents a functional block, not an OS process. No hardware isolation boundary exists — trust assumptions must be explicit."
             },
             "authenticationRequired": {
               "label": "Authentifizierung erforderlich",
@@ -364,208 +373,270 @@
                 "no": "Nein",
                 "yes": "Ja",
                 "optional": "Optional",
-                "oauth": "OAuth / OIDC",
+                "oauth": "OAuth 2.0",
                 "saml": "SAML",
-                "certificate": "Zertifikatbasiert",
-                "apikey": "API-Schlüssel",
-                "jwt": "JWT (JSON Web Token)",
-                "mtls": "Mutual TLS (mTLS)"
+                "certificate": "Zertifikat (PKI)",
+                "apikey": "API-Key",
+                "jwt": "JWT",
+                "mtls": "Mutual TLS"
               }
             },
             "authorizationModel": {
               "label": "Autorisierungsmodell",
               "options": {
-                "none": "Keine",
-                "rbac": "RBAC (Rollenbasiert)",
-                "abac": "ABAC (Attributbasiert)",
-                "acl": "ACL (Zugriffskontrollliste)",
+                "not_specified": "Nicht angegeben",
+                "none": "Keines",
+                "rbac": "RBAC (rollenbasiert)",
+                "abac": "ABAC (attributbasiert)",
+                "acl": "ACL (Zugriffsliste)",
                 "custom": "Benutzerdefiniert"
               }
             },
             "inputValidation": {
               "label": "Eingabevalidierung",
               "options": {
+                "not_specified": "Nicht angegeben",
                 "none": "Keine",
-                "basic": "Basis (Typprüfung)",
-                "strict": "Streng (Whitelist + Bereinigung)",
-                "schema": "Schema-Validierung"
+                "basic": "Basis",
+                "strict": "Streng",
+                "schema": "Schema-basiert"
               }
             },
             "errorHandling": {
               "label": "Fehlerbehandlung",
               "options": {
-                "silent": "Still (Keine Details)",
-                "verbose": "Ausführlich (Stack-Traces)",
-                "sanitized": "Bereinigt (Benutzerfreundlich)"
+                "not_specified": "Nicht angegeben",
+                "silent": "Stumm (kein Output)",
+                "verbose": "Ausführlich",
+                "sanitized": "Bereinigt"
               }
             },
-            "securityControls": {
-              "label": "Sicherheitskontrollen",
-              "placeholder": "z.B. Sandboxing, Rate Limiting, WAF"
-            },
             "exposedToInternet": {
-              "label": "Im Internet exponiert"
+              "label": "Dem Internet ausgesetzt"
             },
             "technology": {
               "label": "Technologie",
               "options": {
                 "api": "API (REST/GraphQL)",
-                "batch": "Batch-Job",
+                "batch": "Batch Job",
                 "ui": "UI / Frontend",
                 "microservice": "Microservice",
                 "lambda": "Serverless / Lambda",
-                "daemon": "Hintergrunddienst",
+                "daemon": "Background Daemon",
                 "websocket": "WebSocket",
-                "event": "Ereignisgesteuert",
-                "cli": "CLI-Tool",
-                "database": "Datenbankdienst",
-                "cron": "Geplante Aufgabe (Cron)",
-                "iot": "IoT-System",
-                "rtos_task": "RTOS-Task (FreeRTOS, Zephyr, ThreadX)",
-                "bare_metal": "Bare-metal Logikblock",
+                "event": "Event-driven",
+                "cli": "CLI Tool",
+                "database": "Database Service",
+                "cron": "Scheduled Task (Cron)",
+                "iot": "IoT System",
+                "rtos_task": "RTOS Task (FreeRTOS, Zephyr, ThreadX)",
+                "bare_metal": "Bare-metal Logic Block",
                 "isr": "Interrupt Service Routine (ISR)",
-                "state_machine": "Zustandsmaschine (Safety FSM)",
+                "state_machine": "State Machine (Safety FSM)",
                 "bootloader": "Bootloader",
-                "driver": "Hardware-Treiber",
-                "protocol_stack": "Protokoll-Stack (CAN, Modbus, etc.)"
+                "driver": "Hardware Driver",
+                "protocol_stack": "Protocol Stack (CAN, Modbus, etc.)"
               }
             },
             "owner": {
-              "label": "Verantwortlich",
-              "placeholder": "Team oder verantwortliche Person"
+              "label": "Verantwortlicher",
+              "placeholder": "Team or person responsible"
             },
             "notes": {
-              "label": "Zusätzliche Notizen"
+              "label": "Notizen"
+            },
+            "malwareProtection": {
+              "label": "Malware-Schutz",
+              "options": {
+                "none": "Keiner",
+                "av_software": "Antivirus / EDR-Software",
+                "application_whitelist": "Applikations-Whitelist",
+                "code_signing": "Code Signing (nur signierte Binaries)",
+                "nx_dep": "NX / DEP (Hardware-Ausführungsschutz)",
+                "sandbox": "Sandbox / Container-Isolation",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "failSafeOutputState": {
+              "label": "Fail-Safe Ausgangszustand",
+              "options": {
+                "not_defined": "Nicht definiert",
+                "unpowered": "Stromlos (Ausgänge de-energisieren)",
+                "hold_last_value": "Letzten bekannten guten Wert halten",
+                "fixed_value": "Fixer sicherer Wert",
+                "dynamic": "Dynamisch (kontextabhängig)"
+              }
+            },
+            "accountManagement": {
+              "label": "Account-Verwaltung",
+              "options": {
+                "local_only": "Nur lokale Accounts",
+                "ldap": "LDAP-Verzeichnis",
+                "active_directory": "Active Directory",
+                "radius": "RADIUS",
+                "iam": "Cloud IAM",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "authenticatorStorage": {
+              "label": "Authenticator-Speicherung",
+              "options": {
+                "software_only": "Software (extrahierbar)",
+                "tpm": "TPM (Trusted Platform Module)",
+                "secure_element": "Secure Element (ATECC608 etc.)",
+                "hsm": "Hardware Security Module",
+                "keychain_os": "OS Keychain (iOS / Android Keystore)",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "nonRepudiation": {
+              "label": "Nicht-Abstreitbarkeit",
+              "options": {
+                "none": "Keine",
+                "audit_log": "Audit-Log mit Benutzeridentität",
+                "digital_signature": "Digitale Signatur von Aktionen",
+                "hardware_backed": "Hardware-gesichert (HSM / TPM)"
+              }
+            },
+            "sessionControl": {
+              "sessionLockEnabled": {
+                "label": "Session-Sperre nach Inaktivität"
+              },
+              "remoteTerminationEnabled": {
+                "label": "Remote-Session-Terminierung"
+              },
+              "maxConcurrentSessions": {
+                "label": "Max. gleichzeitige Sessions (0 = unbegrenzt)"
+              }
             }
           },
           "stride_hint": {
-            "title": "STRIDE-Relevanz: Alle (S, T, R, I, D, E)",
-            "description": "Prozesse sind kritische Angriffsflächen. Stellen Sie sicher, dass Authentifizierung, Autorisierung und Eingabevalidierung korrekt konfiguriert sind."
+            "title": "STRIDE Relevance: All (S, T, R, I, D, E)",
+            "description": "Processes are critical attack surfaces. Ensure authentication, authorization, and input validation are properly configured."
           },
           "assetTab": {
-            "title": "Asset-Relationen",
-            "deleteRelation": "Relation löschen",
+            "title": "Asset Relations",
+            "deleteRelation": "Delete relation",
             "relation": "Relation #{{index}}",
-            "relationsSection": "Asset-Beziehungen",
-            "empty": "Keine Asset-Beziehungen definiert.",
-            "addRelation": "Asset-Beziehung hinzufügen",
-            "cancel": "Abbrechen",
-            "save": "Speichern",
+            "relationsSection": "Asset Relations",
+            "empty": "No asset relations defined.",
+            "addRelation": "Add asset relation",
+            "cancel": "Cancel",
+            "save": "Save",
             "groupChange": {
-              "title": "Asset-Gruppe ändern?",
-              "warning": "Eine Änderung der Asset-Gruppe entfernt alle aktuell ausgewählten Relationstypen, da diese gruppenspezifisch sind.",
-              "confirm": "Ändern & Relationen löschen"
+              "title": "Change Asset Group?",
+              "warning": "Changing the asset group will remove all currently selected relation types, as they are specific to the current group.",
+              "confirm": "Change & clear relations"
             },
             "assetGroup": {
-              "data": "Daten",
+              "data": "Data",
               "system": "System",
-              "process": "Prozess",
-              "infrastructure": "Infrastruktur",
-              "human": "Personen"
+              "process": "Process",
+              "infrastructure": "Infrastructure",
+              "human": "People"
             },
             "relationType": {
-              "label": "Relationstyp",
+              "label": "Relation Type",
               "options": {
-                "is_an": "ist ein (Klasse)",
-                "creates": "erzeugt",
-                "reads": "liest",
-                "modifies": "modifiziert",
-                "deletes": "löscht",
-                "stores": "speichert",
-                "transports": "transportiert",
-                "executes": "führt aus",
-                "invokes": "ruft auf",
-                "terminates": "beendet",
-                "suspends": "pausiert",
-                "monitors": "überwacht",
-                "controls": "kontrolliert",
-                "configures": "konfiguriert",
-                "uses": "nutzt",
-                "depends_on": "hängt ab von",
-                "accesses": "greift zu auf",
-                "secures": "sichert",
-                "damages": "beschädigt",
-                "powers": "versorgt (Energie)",
-                "affects_safety": "beeinflusst Sicherheit",
-                "affects_privacy": "beeinflusst Datenschutz",
-                "identifies": "identifiziert",
-                "tracks": "verfolgt",
-                "exposes": "gefährdet"
+                "is_an": "is a (class)",
+                "creates": "creates",
+                "reads": "reads",
+                "modifies": "modifies",
+                "deletes": "deletes",
+                "stores": "stores",
+                "transports": "transports",
+                "executes": "executes",
+                "invokes": "invokes",
+                "terminates": "terminates",
+                "suspends": "suspends",
+                "monitors": "monitors",
+                "controls": "controls",
+                "configures": "configures",
+                "uses": "uses",
+                "depends_on": "depends on",
+                "accesses": "accesses",
+                "secures": "secures",
+                "damages": "damages",
+                "powers": "powers",
+                "affects_safety": "affects safety",
+                "affects_privacy": "affects privacy",
+                "identifies": "identifies",
+                "tracks": "tracks",
+                "exposes": "exposes"
               }
             },
             "qualifier": {
               "label": "Qualifier",
               "options": {
-                "network": "Netzwerk",
-                "local": "lokal",
-                "internal": "intern",
+                "network": "network",
+                "local": "local",
+                "internal": "internal",
                 "remote": "remote",
-                "authentication": "Authentifizierung",
-                "authorization": "Autorisierung",
-                "api": "API",
-                "storage": "Speicher",
-                "computation": "Berechnung",
-                "messaging": "Messaging",
-                "configuration": "Konfiguration",
-                "monitoring": "Monitoring",
-                "networking": "Netzwerkfunktion"
+                "authentication": "authentication",
+                "authorization": "authorization",
+                "api": "api",
+                "storage": "storage",
+                "computation": "computation",
+                "messaging": "messaging",
+                "configuration": "configuration",
+                "monitoring": "monitoring",
+                "networking": "networking"
               }
             },
             "asset": {
-              "label": "Asset",
-              "noAssets": "Keine Assets in diesem Scope verfügbar",
-              "createNew": "+ Neues Asset anlegen…",
               "categoryChange": {
-                "title": "Asset-Kategorie ändern?",
-                "warning": "Dieses Asset wird von DFD-Elementen referenziert. Eine Änderung der Kategorie macht alle bestehenden Relationstypen in diesen Elementen ungültig, da Relationstypen kategoriespezifisch sind.",
-                "confirm": "Kategorie ändern"
+                "title": "Change Asset Category?",
+                "warning": "This asset is referenced by DFD elements. Changing the category will invalidate all existing relation types in those elements, as relation types are category-specific.",
+                "confirm": "Change category"
               },
               "tabs": {
-                "general": "Allgemein",
-                "relations": "Beziehungen",
-                "usedIn": "Verwendet in"
+                "general": "General",
+                "usedIn": "Used in"
               },
+              "label": "Asset",
+              "noAssets": "No assets available in scope",
+              "createNew": "+ Create new asset…",
               "newAsset": {
-                "name": "Asset-Name",
-                "assetGroup": "Asset-Gruppe",
-                "confirm": "Bestätigen",
-                "cancel": "Abbrechen"
+                "name": "Asset Name",
+                "assetGroup": "Asset Group",
+                "confirm": "Confirm",
+                "cancel": "Cancel"
               }
             },
             "safetyAnnotation": {
-              "title": "Safety-Annotation",
-              "derived": "abgeleitet",
-              "manual": "manuell",
-              "resetToDerived": "Auf abgeleitete Werte zurücksetzen",
+              "title": "Safety Annotation",
+              "derived": "derived",
+              "manual": "manual",
+              "resetToDerived": "Reset to derived values",
               "relevance": {
-                "label": "Sicherheitsrelevanz",
+                "label": "Safety Relevance",
                 "options": {
-                  "none": "Keine",
-                  "indirect": "Indirekt",
-                  "direct": "Direkt"
+                  "none": "None",
+                  "indirect": "Indirect",
+                  "direct": "Direct"
                 }
               },
               "impact": {
-                "label": "Schlimmster Schadensfall",
+                "label": "Worst-Case Impact",
                 "options": {
-                  "none": "Kein Schaden",
-                  "reversible_injury": "Reversible Verletzung",
-                  "irreversible_injury": "Irreversible Verletzung",
-                  "fatality": "Todesfolge"
+                  "none": "None",
+                  "reversible_injury": "Reversible injury",
+                  "irreversible_injury": "Irreversible injury",
+                  "fatality": "Fatality"
                 }
               },
               "physicalHazardPotential": {
-                "label": "Physisches Gefährdungspotenzial (ISO 12100)",
+                "label": "Physical Hazard Potential (ISO 12100)",
                 "options": {
-                  "low": "Gering",
-                  "medium": "Mittel",
-                  "high": "Hoch"
+                  "low": "Low",
+                  "medium": "Medium",
+                  "high": "High"
                 }
               },
               "rationale": {
-                "label": "Begründung",
-                "placeholder": "Sicherheitseinstufung begründen…",
-                "helperManual": "Manuelle Überschreibung — Begründung für Audit-Trail erforderlich"
+                "label": "Rationale",
+                "placeholder": "Justify the safety classification…",
+                "helperManual": "Manual override — rationale required for audit trail"
               }
             }
           }
@@ -573,36 +644,36 @@
         "multiprocess": {
           "fields": {
             "systemClass": {
-              "label": "Systemklasse",
+              "label": "System Class",
               "options": {
-                "embedded_controller": "Embedded Controller (SPS, CNC, Roboter, ECU)",
-                "scada_hmi": "SCADA / HMI / Leitsystem",
+                "embedded_controller": "Embedded Controller (PLC, CNC, Robot, ECU)",
+                "scada_hmi": "SCADA / HMI / DCS",
                 "gateway": "Gateway / Edge Device",
-                "safety_system": "Safety-System (SIS, Safety-SPS)",
-                "backend_application": "Backend-Applikation / Server",
-                "cloud_platform": "Cloud-Plattform / Service",
-                "workstation": "Workstation / Engineering-PC",
-                "mobile_device": "Mobiles Gerät / Handheld"
+                "safety_system": "Safety System (SIS, Safety PLC)",
+                "backend_application": "Backend Application / Server",
+                "cloud_platform": "Cloud Platform / Service",
+                "workstation": "Workstation / Engineering PC",
+                "mobile_device": "Mobile / Portable Device"
               }
             },
             "operatingSystem": {
-              "label": "Betriebssystem",
+              "label": "Operating System",
               "options": {
-                "none": "Bare-Metal (kein Betriebssystem)",
+                "none": "Bare-Metal (no OS)",
                 "rtos": "RTOS (FreeRTOS, Zephyr, VxWorks ...)",
-                "custom": "Proprietäres / eigenes Betriebssystem",
-                "linux_hardened": "Linux (gehärtet)",
-                "linux_standard": "Linux (Standard)",
-                "windows_hardened": "Windows (gehärtet / LTSC)",
-                "windows_standard": "Windows (Standard)",
+                "custom": "Proprietary / Custom OS",
+                "linux_hardened": "Linux (hardened)",
+                "linux_standard": "Linux (standard)",
+                "windows_hardened": "Windows (hardened / LTSC)",
+                "windows_standard": "Windows (standard)",
                 "ios": "iOS",
                 "android": "Android"
               }
             },
             "certificationLevel": {
-              "label": "Zertifizierungsstufe",
+              "label": "Certification Level",
               "options": {
-                "none": "Keine",
+                "none": "None",
                 "iec62443_sl1": "IEC 62443 SL 1",
                 "iec62443_sl2": "IEC 62443 SL 2",
                 "iec62443_sl3": "IEC 62443 SL 3",
@@ -616,423 +687,487 @@
               }
             },
             "updateMechanism": {
-              "label": "Update-Mechanismus",
+              "label": "Update Mechanism",
               "options": {
-                "none": "Kein Update vorgesehen",
-                "manual_local": "Manuell (lokal, physischer Zugang erforderlich)",
-                "signed_local": "Signiertes Paket (lokal)",
-                "signed_ota": "Signiertes OTA",
-                "vendor_only": "Nur durch Hersteller / Lieferant",
-                "mdm_managed": "MDM-verwaltet",
-                "ci_cd": "Automatisiertes CI/CD-Deployment"
+                "none": "No update planned",
+                "manual_local": "Manual (local, physical access)",
+                "signed_local": "Signed package (local)",
+                "signed_ota": "Signed OTA",
+                "vendor_only": "Vendor-managed only",
+                "mdm_managed": "MDM-managed",
+                "ci_cd": "Automated CI/CD deployment"
               }
             },
             "exposedToInternet": {
-              "label": "Internetexponiert"
+              "label": "Exposed to Internet"
             },
             "remoteAccessEnabled": {
-              "label": "Fernzugriff aktiviert"
+              "label": "Remote Access Enabled"
             },
             "airGapped": {
-              "label": "Air-Gapped (physisch isoliert)"
+              "label": "Air-Gapped"
             },
             "multiTenant": {
-              "label": "Multi-Mandant (Multi-Tenant)"
+              "label": "Multi-Tenant"
             },
             "boundaryAuthentication": {
-              "label": "Authentifizierung an Systemgrenze",
+              "label": "Boundary Authentication",
               "options": {
-                "none": "Keine",
-                "password": "Passwort",
-                "mfa": "Multi-Faktor (MFA)",
-                "certificate": "Zertifikat (PKI)",
+                "none": "None",
+                "password": "Password",
+                "mfa": "Multi-Factor (MFA)",
+                "certificate": "Certificate (PKI)",
                 "mtls": "Mutual TLS (mTLS)",
                 "oauth": "OAuth 2.0",
-                "apikey": "API-Schlüssel",
-                "hardware_token": "Hardware-Token"
+                "apikey": "API Key",
+                "hardware_token": "Hardware Token"
               }
             },
             "authorizationModel": {
-              "label": "Autorisierungsmodell",
+              "label": "Authorization Model",
               "options": {
-                "none": "Keines",
-                "rbac": "RBAC (Rollenbasiert)",
-                "abac": "ABAC (Attributbasiert)",
-                "acl": "ACL (Zugriffskontrollliste)",
-                "capability_based": "Capability-basiert"
+                "none": "None",
+                "rbac": "RBAC (Role-Based)",
+                "abac": "ABAC (Attribute-Based)",
+                "acl": "ACL (Access Control List)",
+                "capability_based": "Capability-Based"
               }
             },
             "safetyRelevant": {
-              "label": "Sicherheitsrelevantes System"
+              "label": "Safety-Relevant System"
             },
             "safetyRationale": {
-              "label": "Safety-Begründung",
-              "placeholder": "z.B. Steuert Not-Aus. SIL-2-zertifiziert nach IEC 61508. Hardware-Watchdog, kein Remote-Update in Produktion."
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Controls emergency stop. SIL-2 certified per IEC 61508. Hardware watchdog, no remote update in production."
             },
             "internalComponents": {
-              "label": "Interne Komponenten",
-              "placeholder": "z.B. RTOS Tasks: motion_ctrl, comm_stack, safety_monitor + Bootloader"
+              "label": "Internal Components",
+              "placeholder": "e.g. RTOS Tasks: motion_ctrl, comm_stack, safety_monitor + Bootloader"
             },
             "securitySummary": {
-              "label": "Security-Zusammenfassung",
-              "placeholder": "z.B. SIL-2-zertifiziert, Hardware-Watchdog, kein Remote-Update, nur signierte Firmware"
+              "label": "Security Summary",
+              "placeholder": "e.g. SIL-2 certified, Hardware watchdog, no remote update, signed firmware only"
             },
             "owner": {
-              "label": "Verantwortlicher",
-              "placeholder": "z.B. OT-Security-Team"
+              "label": "Owner",
+              "placeholder": "e.g. OT Security Team"
             },
             "notes": {
-              "label": "Notizen"
+              "label": "Notes"
             },
             "description": {
-              "label": "Beschreibung"
+              "label": "Description"
+            },
+            "malwareProtection": {
+              "label": "Malware-Schutz",
+              "options": {
+                "none": "Keiner",
+                "av_software": "Antivirus / EDR-Software",
+                "application_whitelist": "Applikations-Whitelist",
+                "code_signing": "Code Signing (nur signierte Binaries)",
+                "nx_dep": "NX / DEP (Hardware-Ausführungsschutz)",
+                "sandbox": "Sandbox / Container-Isolation",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "accountManagement": {
+              "label": "Account-Verwaltung",
+              "options": {
+                "local_only": "Nur lokale Accounts",
+                "ldap": "LDAP-Verzeichnis",
+                "active_directory": "Active Directory",
+                "radius": "RADIUS",
+                "iam": "Cloud IAM",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "authenticatorStorage": {
+              "label": "Authenticator-Speicherung",
+              "options": {
+                "system_software": "System-Software (extrahierbar)",
+                "tpm": "TPM (Trusted Platform Module)",
+                "secure_element": "Secure Element",
+                "hsm": "Hardware Security Module",
+                "custom": "Benutzerdefiniert"
+              }
+            },
+            "backupMechanism": {
+              "label": "Backup-Mechanismus",
+              "options": {
+                "none": "Keiner",
+                "manual_local": "Manuelles lokales Backup",
+                "automated_local": "Automatisiertes lokales Backup",
+                "automated_remote": "Automatisiertes Remote-Backup",
+                "redundant_system": "Redundantes System (Hot-Standby)",
+                "vendor_managed": "Vom Hersteller verwaltet"
+              }
+            },
+            "nonRepudiation": {
+              "label": "Nicht-Abstreitbarkeit",
+              "options": {
+                "none": "Keine",
+                "audit_log": "Audit-Log mit Benutzeridentität",
+                "digital_signature": "Digitale Signatur von Aktionen",
+                "hardware_backed": "Hardware-gesichert (HSM / TPM)"
+              }
             }
           }
         },
         "interface": {
           "cascade_hints": {
-            "usb": "USB-Schnittstellen sind häufige Angriffsflächen auf Embedded-Systemen. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle mit sicherheitskritischen Komponenten verbunden ist.",
-            "serial": "Serielle Schnittstellen sind oft mit Debug-Konsolen oder sicherheitskritischen Komponenten verbunden. Erwäge, Safety Relevant zu setzen, wenn zutreffend.",
-            "gpio": "GPIO-Pins können direkt mit Sicherheitsaktuatoren oder -sensoren verbunden sein. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle sicherheitskritische Hardware steuert oder ausliest.",
-            "uart": "UART wird häufig als ungeschützter Debug-Konsolenport oder Konfigurationsschnittstelle verwendet. Stellen Sie sicher, dass der Zugriff in der Produktion eingeschränkt ist.",
-            "rs232": "RS-232-Schnittstellen ermöglichen oft Diagnose- oder Konfigurationszugriff. Physische Zugriffskontrollen empfohlen.",
-            "rs485": "RS-485 / Modbus ist in sicherheitskritischen Industriesystemen verbreitet. Safety Relevant setzen, wenn Aktoren oder Sensoren angeschlossen sind.",
-            "can": "CAN-Bus hat keine eingebaute Authentifizierung oder Verschlüsselung. Safety Relevant setzen, wenn in Automotive- oder Industriesicherheitssystemen eingesetzt.",
-            "analog_in": "Analogeingänge sind mit physischen Sensoren verbunden. Manipulation der Signalpegel kann Messungen verfälschen. Safety Relevant erwägen.",
-            "analog_out": "Analogausgänge steuern Aktoren. Manipulation der Ausgangssignale kann sicherheitskritische Folgen haben. Safety Relevant setzen.",
-            "jtag": "JTAG bietet vollständigen CPU-Debug-Zugriff einschließlich Speicher-R/W und Flash-Programmierung. Dieser Port muss in der Produktion gesperrt oder deaktiviert sein.",
-            "swd": "SWD bietet ARM-Debug- und Flash-Programmierzugriff. Dieser Port muss in der Produktion gesperrt oder deaktiviert sein. Safety Relevant setzen, wenn sicherheitskritische Firmware betroffen ist."
+            "usb": "USB interfaces are a common attack surface on embedded systems. Consider setting Safety Relevant if this interface is connected to safety-critical components.",
+            "serial": "Serial interfaces are often connected to debug consoles or safety-critical components. Consider setting Safety Relevant if applicable.",
+            "gpio": "GPIO pins may be directly connected to safety actuators or sensors. Consider setting Safety Relevant if this interface controls or reads safety-critical hardware.",
+            "uart": "UART is frequently used as an unprotected debug console or configuration interface. Ensure access is restricted in production.",
+            "rs232": "RS-232 interfaces often allow diagnostic or configuration access. Physical access controls are recommended.",
+            "rs485": "RS-485 / Modbus is common in safety-critical industrial systems. Set Safety Relevant if actuators or sensors are connected.",
+            "can": "CAN Bus has no built-in authentication or encryption. Set Safety Relevant if used in automotive or industrial safety systems.",
+            "analog_in": "Analog inputs are connected to physical sensors. Manipulation of signal levels can falsify measurements. Consider Safety Relevant.",
+            "analog_out": "Analog outputs control actuators. Manipulation of output signals can have safety-critical consequences. Set Safety Relevant.",
+            "jtag": "JTAG provides full CPU debug access including memory R/W and flash programming. This port must be locked or disabled in production.",
+            "swd": "SWD provides ARM debug and flash programming access. This port must be locked or disabled in production. Set Safety Relevant if safety-critical firmware is affected."
+          },
+          "sections": {
+            "physical_controls": "Physisch",
+            "logical_controls": "Logisch"
           },
           "fields": {
             "type": {
-              "label": "Schnittstellentyp",
+              "label": "Interface Type",
               "groups": {
-                "network": "Netzwerk / Funk",
-                "serial": "Seriell / Bus",
+                "network": "Network / Wireless",
+                "serial": "Serial / Bus",
                 "usb": "USB",
-                "debug": "Debug / Programmierung",
-                "io": "Digital- / Analog-E/A",
-                "other": "Sonstige"
+                "debug": "Debug / Programming",
+                "io": "Digital / Analog I/O",
+                "other": "Other"
               },
               "options": {
                 "ethernet": "Ethernet",
-                "wifi": "WLAN",
+                "wifi": "Wi-Fi",
                 "bluetooth": "Bluetooth",
                 "nfc": "NFC",
-                "fiber": "Glasfaser",
-
+                "fiber": "Fibre Optic",
                 "uart": "UART",
                 "rs232": "RS-232",
                 "rs485": "RS-485",
-                "can": "CAN-Bus",
+                "can": "CAN Bus",
                 "i2c": "I²C",
                 "spi": "SPI",
-                "lin": "LIN-Bus",
-
+                "lin": "LIN Bus",
                 "usb": "USB",
-
                 "jtag": "JTAG",
                 "swd": "SWD",
                 "swd_swo": "SWD + SWO (Trace)",
-                "jtag_trace": "JTAG + ETM-Trace",
-
+                "jtag_trace": "JTAG + ETM Trace",
                 "gpio": "GPIO",
-                "analog_in": "Analogeingang",
-                "analog_out": "Analogausgang",
+                "analog_in": "Analog Input",
+                "analog_out": "Analog Output",
                 "pwm": "PWM",
-
-                "custom": "Benutzerdefiniert"
+                "custom": "Custom"
               },
               "tooltips": {
-                "ethernet": "Kabelgebundenes Ethernet (10/100/1000 Mbit/s, PoE). Physischer Anschluss erforderlich.",
-                "wifi": "IEEE 802.11 WLAN. Kein physischer Zugriff erforderlich — aus der Ferne erreichbar.",
-                "bluetooth": "Bluetooth Classic / BLE. Kein physischer Zugriff erforderlich.",
-                "nfc": "Near-Field Communication. Nähe (~10 cm) erforderlich.",
-                "fiber": "Glasfaser. Physisches Anzapfen erfordert Kabelunterbrechung.",
-
-                "uart": "UART/USART — häufig ungeschützter Debug-Konsolenport. Hohes Risiko.",
-                "rs232": "RS-232-Punkt-zu-Punkt-Verbindung. Häufig in älterer Industrieausrüstung.",
-                "rs485": "RS-485 / Modbus RTU. Multi-Drop-Bus — jedes Gerät am Bus kann Daten mitlesen.",
-                "can": "CAN-Bus — standardmäßig ohne Authentifizierung oder Verschlüsselung. Automotive und Industrie.",
-                "i2c": "I²C — Kurzstreckenbus zu Sensoren, EEPROMs und Peripheriegeräten. PCB-Zugriff erforderlich.",
-                "spi": "SPI — Hochgeschwindigkeitsbus zu Peripheriegeräten. PCB-Zugriff erforderlich.",
-                "lin": "LIN-Bus — Eindraht, niedrige Geschwindigkeit. Automotive Karosserie/Fahrwerk.",
-
-                "usb": "USB (beliebige Klasse). Risiko: DFU-Modus, HID-Injektion (BadUSB), Massenspeicher.",
-
-                "jtag": "Vollständiges JTAG: CPU-Halt, Speicher-R/W, Flash lesen/schreiben. Höchstes Debug-Risiko.",
-                "swd": "ARM Serial Wire Debug — vergleichbare Fähigkeiten wie JTAG. In Produktion sperren.",
-                "swd_swo": "SWD + SWO (Single Wire Output) — Debug-Zugriff plus leichtgewichtiger ITM-Trace.",
-                "jtag_trace": "JTAG + ETM-Trace-Port — vollständiger Debug-Zugriff plus Befehls-Trace.",
-
-                "gpio": "Allgemeiner digitaler E/A-Port. Risiko abhängig von der Funktion.",
-                "analog_in": "Analogeingang (ADC) — Sensor- oder Signaleingang. Manipulation beeinflusst Messungen.",
-                "analog_out": "Analogausgang (DAC) — Aktor- oder Signalausgang. Sicherheitskritisch in vielen Systemen.",
-                "pwm": "PWM-Ausgang — Motorsteuerung, Dimmung. Sicherheitsrelevant für Aktoren.",
-
-                "custom": "Proprietärer oder nicht aufgeführter Schnittstellentyp."
+                "ethernet": "Wired Ethernet (10/100/1000 Mbps, PoE). Physical connection required.",
+                "wifi": "IEEE 802.11 Wi-Fi. No physical access required — remotely reachable.",
+                "bluetooth": "Bluetooth Classic / BLE. No physical access required.",
+                "nfc": "Near-Field Communication. Proximity (~10 cm) required.",
+                "fiber": "Fibre optic. Physical tap requires cable interruption.",
+                "uart": "UART/USART — frequently an unprotected debug console port. High risk.",
+                "rs232": "RS-232 point-to-point serial. Common in legacy industrial equipment.",
+                "rs485": "RS-485 / Modbus RTU. Multi-drop bus — any device on the bus can read data.",
+                "can": "CAN Bus — no authentication or encryption by default. Automotive and industrial.",
+                "i2c": "I²C — short-range bus to sensors, EEPROMs, and peripherals. PCB access required.",
+                "spi": "SPI — high-speed bus to peripherals. PCB access required.",
+                "lin": "LIN Bus — single-wire, low speed. Automotive body/chassis.",
+                "usb": "USB (any class). Risk: DFU mode, HID injection (BadUSB), mass storage.",
+                "jtag": "Full JTAG: CPU halt, memory R/W, flash read/write. Highest debug risk.",
+                "swd": "ARM Serial Wire Debug — comparable capabilities to JTAG. Lock in production.",
+                "swd_swo": "SWD + SWO (Single Wire Output) — debug access plus lightweight ITM trace.",
+                "jtag_trace": "JTAG + ETM Trace Port — full debug access plus instruction trace.",
+                "gpio": "General Purpose I/O. Risk depends on function.",
+                "analog_in": "Analog Input (ADC) — sensor or signal input. Manipulation affects measurements.",
+                "analog_out": "Analog Output (DAC) — actuator or signal output. Safety-critical in many systems.",
+                "pwm": "PWM Output — motor control, dimming. Safety-relevant for actuators.",
+                "custom": "Proprietary or unlisted interface type."
               }
             },
             "location": {
-              "label": "Physischer Standort",
-              "placeholder": "z.B. Serverraum, Fertigungshalle, Feldschrank",
+              "label": "Physical Location",
+              "placeholder": "e.g. server room, production floor, field cabinet",
               "options": {
-                "on_chip": "Auf dem Chip",
-                "on_board": "Auf der Platine (PCB)",
-                "in_enclosure": "Im Gehäuse",
-                "external_panel": "Externes Panel",
-                "field_accessible": "Feldzugänglich",
-                "network_port": "Netzwerkanschluss",
-                "wireless": "Drahtlos",
-                "internet_facing": "Internetseitig",
-                "custom": "Benutzerdefiniert"
+                "on_chip": "On Chip",
+                "on_board": "On Board (PCB)",
+                "in_enclosure": "Inside Enclosure",
+                "external_panel": "External Panel",
+                "field_accessible": "Field Accessible",
+                "network_port": "Network Port",
+                "wireless": "Wireless",
+                "internet_facing": "Internet-Facing",
+                "custom": "Custom"
               },
               "tooltips": {
-                "on_chip": "Interner Chip-Pad oder Register — EL0, nur Debug-Schnittstelle",
-                "on_board": "PCB-montierter Steckverbinder auf gleicher Platine — EL0/EL1",
-                "in_enclosure": "Port im versiegelten Gehäuse — EL1, erfordert Demontage",
-                "external_panel": "Panelmontierter Port an der Geräteaußenseite — EL1",
-                "field_accessible": "Feldzugänglicher Steckverbinder (M12, DIN, Klemme) — EL1/EL2",
-                "network_port": "Standardnetzwerkanschluss (RJ45, SFP) — EL2/EL3",
-                "wireless": "Drahtlose Schnittstelle (Antenne, eingebautes Radio) — EL3",
-                "internet_facing": "Internetseitige Schnittstelle — EL4",
-                "custom": "Nicht standardisierter Standort — in Notizen beschreiben"
+                "on_chip": "Internal chip pad or register — EL0, debug interface only",
+                "on_board": "PCB-mounted connector, same board — EL0/EL1",
+                "in_enclosure": "Port inside sealed enclosure — EL1, requires disassembly",
+                "external_panel": "Panel-mounted port on device exterior — EL1",
+                "field_accessible": "Field-accessible connector (M12, DIN, terminal) — EL1/EL2",
+                "network_port": "Standard network port (RJ45, SFP) — EL2/EL3",
+                "wireless": "Wireless interface (antenna, built-in radio) — EL3",
+                "internet_facing": "Internet-exposed interface — EL4",
+                "custom": "Non-standard location — describe in notes"
               }
             },
             "operationalState": {
-              "label": "Betriebszustand",
+              "label": "Operational State",
               "options": {
-                "enabled": "Aktiviert",
-                "enabled_read_only": "Aktiviert — Nur Lesen",
-                "sw_disabled": "Deaktiviert (Software)",
-                "hw_disabled": "Deaktiviert (Hardware)",
-                "permanent_disabled": "Dauerhaft deaktiviert"
+                "enabled": "Enabled",
+                "enabled_read_only": "Enabled — Read Only",
+                "sw_disabled": "Disabled (Software)",
+                "hw_disabled": "Disabled (Hardware)",
+                "permanent_disabled": "Permanently Disabled"
               },
               "tooltips": {
-                "enabled": "Vollständig aktiv — volle Bedrohungsfläche gilt",
-                "enabled_read_only": "Nur Ausgabe, keine Eingabe möglich (z.B. UART Log-only). Befehlsinjektion ausgeschlossen.",
-                "sw_disabled": "Per Konfiguration oder Firmware deaktiviert — ohne Hardware-Zugriff reversibel. Restrisiko: Reaktivierung per Software-Exploit.",
-                "hw_disabled": "Per Jumper oder DIP-Schalter deaktiviert — erfordert physischen Zugriff zur Reaktivierung. Geringeres Restrisiko.",
-                "permanent_disabled": "Irreversibel deaktiviert — OTP-Sicherung gebrannt, Pad nicht bestückt oder vergossen. Keine Bedrohung wird generiert."
+                "enabled": "Fully active — full threat surface applies",
+                "enabled_read_only": "Output only, no input accepted (e.g. UART log-only mode). Command injection path eliminated.",
+                "sw_disabled": "Disabled via config or firmware — reversible without hardware access. Residual risk: re-enable via software exploit.",
+                "hw_disabled": "Disabled via jumper or DIP switch — requires physical access to re-enable. Lower residual risk.",
+                "permanent_disabled": "Irreversibly disabled — OTP fuse blown, pad unpopulated, or epoxy-filled. No threats generated."
               }
             },
             "connectorType": {
-              "label": "Steckverbindertyp",
+              "label": "Connector Type",
+              "not_applicable": "Not applicable for this interface type",
               "options": {
                 "rj45": "RJ45",
                 "sfp": "SFP / SFP+",
                 "m12": "M12 (Industrial)",
-                "usb_a": "USB Typ-A",
-                "usb_c": "USB Typ-C",
+                "usb_a": "USB Type-A",
+                "usb_c": "USB Type-C",
                 "micro_usb": "Micro-USB",
                 "db9": "DB9 (RS-232)",
                 "db25": "DB25 (RS-232)",
-                "terminal": "Klemmleiste",
+                "terminal": "Terminal Block",
                 "swd_10pin": "SWD 10-Pin",
                 "jtag_20pin": "JTAG 20-Pin",
-                "gpio_header": "GPIO-Header",
+                "gpio_header": "GPIO Header",
                 "pcie": "PCIe",
-                "custom": "Benutzerdefiniert"
-              }
-            },
-            "accessControl": {
-              "label": "Zugangskontrolle",
-              "options": {
-                "none": "Keine",
-                "physical_lock": "Physisches Schloss",
-                "credentials": "Anmeldedaten (Benutzername / Passwort)",
-                "card": "Zugangskarte / Badge",
-                "certificate": "Zertifikat / PKI"
+                "custom": "Custom"
               }
             },
             "connectionSpeed": {
-              "label": "Übertragungsgeschwindigkeit",
+              "label": "Connection Speed",
               "options": {
-                "low": "Niedrig (< 1 Mbit/s)",
-                "medium": "Mittel (1–100 Mbit/s)",
-                "high": "Hoch (> 100 Mbit/s)"
+                "low": "Low (< 1 Mbps)",
+                "medium": "Medium (1–100 Mbps)",
+                "high": "High (> 100 Mbps)"
               }
             },
-            "isShieldedCable": {
-              "label": "Abgeschirmtes Kabel"
+            "physicalAccessProtection": {
+              "label": "Physischer Zugriffsschutz",
+              "options": {
+                "none": "Keiner",
+                "inside_enclosure": "Im Gehäuse",
+                "locked_panel": "Verschlossenes Panel",
+                "sealed": "Versiegelt",
+                "requires_tool": "Werkzeugzugang erforderlich",
+                "tamper_evident": "Manipulationsschutzsiegel"
+              }
+            },
+            "signalProtection": {
+              "label": "Signal- / Mediumschutz",
+              "options": {
+                "none": "Keiner",
+                "shielded": "Abgeschirmtes Kabel",
+                "twisted_pair": "Twisted Pair",
+                "fiber_optic": "Glasfaser",
+                "isolated": "Galvanisch getrennt",
+                "conduit_protected": "Kabelschutzrohr"
+              }
+            },
+            "logicalAccessControl": {
+              "label": "Logische Zugangskontrolle",
+              "options": {
+                "none": "Keine",
+                "password": "Passwort",
+                "certificate": "Zertifikat (PKI)",
+                "challenge_response": "Challenge / Response",
+                "secure_pairing": "Secure Pairing",
+                "hardware_token": "Hardware-Token",
+                "mfa": "Multi-Faktor-Authentifizierung (MFA)"
+              }
+            },
+            "serviceAccessPolicy": {
+              "label": "Service-Zugriffsrichtlinie",
+              "options": {
+                "always_enabled": "Immer aktiv",
+                "maintenance_only": "Nur Wartung",
+                "factory_only": "Nur Fertigung",
+                "temporary_enable": "Temporär freigegeben"
+              }
+            },
+            "debugProtection": {
+              "label": "Debug-Schutz",
+              "options": {
+                "none": "Keiner",
+                "auth_required": "Authentifizierung erforderlich",
+                "limited_commands": "Eingeschränkter Befehlssatz",
+                "readout_protection": "Ausleseschutz",
+                "fused_off": "OTP-Fuse deaktiviert"
+              }
+            },
+            "abuseProtection": {
+              "label": "Missbrauchsschutz",
+              "options": {
+                "none": "Keiner",
+                "rate_limited": "Ratenbegrenzung",
+                "lockout": "Sperrung nach Fehlversuchen",
+                "flood_protection": "Flooding-Schutz"
+              }
+            },
+            "monitoringControl": {
+              "label": "Monitoring-Massnahme",
+              "options": {
+                "none": "Keine",
+                "usage_logged": "Zugriffe protokolliert",
+                "tamper_logged": "Manipulationsereignisse protokolliert",
+                "alerted": "Echtzeit-Alarmierung",
+                "active_response": "Aktive Reaktion"
+              }
             },
             "notes": {
-              "label": "Notizen"
+              "label": "Notes"
             },
             "description": {
-              "label": "Beschreibung"
+              "label": "Description"
             },
             "safetyRelevant": {
-              "label": "Sicherheitsrelevante Schnittstelle (EN 50742 — z.B. Programmierschnittstelle einer Sicherheits-SPS)"
+              "label": "Safety-relevant interface (EN 50742 — e.g. programming port on Safety PLC)"
             },
             "safetyRationale": {
-              "label": "Sicherheitsbegründung",
-              "placeholder": "z.B. Direktzugriff auf sicherheitskritische Programmierschnittstelle",
-              "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Direct access to safety-critical programming interface",
+              "helper": "Used in EN 50742 / MVO 2027 documentation"
             }
           }
         },
         "external_entity": {
           "sections": {
-            "required": "Pflichtfelder",
-            "security": "Vertrauen & Zugriffskontrolle",
-            "advanced": "Erweitert / Optional"
+            "required": "Required Fields",
+            "security": "Trust & Access Control",
+            "advanced": "Advanced / Optional"
           },
           "fields": {
             "description": {
-              "label": "Beschreibung",
-              "helperText": "Wer oder was ist diese externe Entität?"
+              "label": "Description",
+              "helperText": "Who or what is this external entity?"
             },
             "entityType": {
-              "label": "Entitätstyp",
+              "label": "Entity Type",
               "options": {
-                "user": "Benutzer (Mensch)",
-                "admin_user": "Administrator (Mensch)",
-                "partner": "Partnersystem",
-                "thirdparty": "Drittanbieter-API",
-                "service": "Externer Dienst / SaaS",
-                "identity_provider": "Identitätsanbieter (IdP)",
-                "payment": "Zahlungsdienstleister",
-                "contractor": "Dienstleister / Lieferant",
-                "bot": "Bot / Automatisiertes System",
-                "webhook": "Webhook-Quelle",
+                "user": "User (Human)",
+                "admin_user": "Administrator (Human)",
+                "partner": "Partner System",
+                "thirdparty": "Third-party API",
+                "service": "External Service / SaaS",
+                "identity_provider": "Identity Provider (IdP)",
+                "payment": "Payment Provider",
+                "contractor": "Contractor / Vendor",
+                "bot": "Bot / Automated System",
+                "webhook": "Webhook Source",
                 "mobile_app": "Mobile App",
-                "iot": "IoT-Gerät"
+                "iot": "IoT Device"
               }
             },
             "trustLevel": {
-              "label": "Vertrauensstufe",
+              "label": "Trust Level",
               "options": {
-                "low": "Niedrig (Nicht vertrauenswürdig / Öffentlich)",
-                "medium": "Mittel (Bekannter Partner)",
-                "high": "Hoch (Verifiziert / Intern)"
+                "low": "Low (Untrusted / Public)",
+                "medium": "Medium (Known Partner)",
+                "high": "High (Verified / Internal)"
               }
             },
             "authenticationMethod": {
-              "label": "Authentifizierungsmethode",
+              "label": "Authentication Method",
               "options": {
-                "none": "Keine (Anonym)",
-                "password": "Benutzername / Passwort",
-                "mfa": "Multi-Faktor-Authentifizierung",
+                "none": "None (Anonymous)",
+                "password": "Username / Password",
+                "mfa": "Multi-Factor Authentication",
                 "oauth": "OAuth / OIDC",
                 "saml": "SAML",
-                "certificate": "Zertifikatbasiert",
-                "apikey": "API-Schlüssel",
-                "mutual_tls": "Mutual TLS (beidseitige Zertifikatsauthentifizierung)",
-                "jwt": "Signiertes Token (JWT)"
+                "certificate": "Certificate-based",
+                "apikey": "API Key",
+                "mutual_tls": "Mutual TLS (mTLS)",
+                "jwt": "Signed Token (JWT)"
               }
             },
             "ownership": {
-              "label": "Eigentümerschaft",
+              "label": "Ownership",
               "options": {
-                "internal": "Intern (Gleiche Organisation)",
-                "external": "Extern (Drittpartei)",
+                "internal": "Internal (Same Organization)",
+                "external": "External (Third Party)",
                 "partner": "Partner / Affiliate"
               }
             },
             "threatActor": {
-              "label": "Angenommener Bedrohungsakteur",
+              "label": "Assumed Threat Actor",
               "options": {
-                "benign": "Gutartig (Vertrauenswürdiger Benutzer)",
-                "curious": "Neugierig (Geringe Motivation)",
-                "malicious": "Böswillig (Aktiver Angreifer)",
+                "benign": "Benign (Trusted User)",
+                "curious": "Curious (Low Motivation)",
+                "malicious": "Malicious (Active Attacker)",
                 "advanced": "Advanced Persistent Threat (APT)",
-                "insider": "Insider (Fehlverhalten / Fehlbedienung)",
-                "compromised": "Kompromittierte Entität"
+                "insider": "Insider (Misuse / Error)",
+                "compromised": "Compromised Entity"
               }
             },
             "authorizationScope": {
-              "label": "Autorisierungsumfang",
-              "placeholder": "z.B. Nur-Lesen, Bestimmte Endpunkte, Eingeschränkte Operationen"
+              "label": "Authorization Scope",
+              "placeholder": "e.g., Read-only, Specific endpoints, Limited operations"
             },
             "contractExists": {
-              "label": "Vertrag / SLA vorhanden"
+              "label": "Contract / SLA Exists"
             },
             "rateLimited": {
-              "label": "Rate-limitiert"
+              "label": "Rate Limited"
             },
             "owner": {
-              "label": "Kontakt / Verantwortlich",
-              "placeholder": "Kontaktperson oder Team"
+              "label": "Contact / Owner",
+              "placeholder": "Contact person or team"
             },
             "notes": {
-              "label": "Zusätzliche Notizen"
+              "label": "Additional Notes"
             }
           },
           "stride_hint": {
-            "title": "STRIDE-Relevanz: S (Spoofing), R (Repudiation)",
-            "description": "Externe Entitäten sind außerhalb Ihrer Kontrolle. Starke Authentifizierung, geringste Berechtigungen (Least Privilege) und Nichtabstreitbarkeit sicherstellen."
+            "title": "STRIDE Relevance: S (Spoofing), R (Repudiation)",
+            "description": "External entities are outside your control. Enforce strong authentication, least privilege, and non-repudiation."
           }
         },
         "dataflow": {
           "trust_boundary_warning": {
-            "title": "Dieser Datenfluss überschreitet eine Vertrauensgrenze!",
-            "hint": "Hohes Risiko für: Manipulation, Informationsoffenlegung, Denial of Service"
+            "title": "This data flow crosses a Trust Boundary!",
+            "hint": "High risk for: Tampering, Information Disclosure, Denial of Service"
           },
           "fields": {
-            "integrityProtection": {
-              "label": "Integritätsschutz (HMAC, Signaturen)",
-              "options": {
-                "none": "Keiner — kein Integritätsschutz",
-                "crc": "CRC — erkennt Fehler, KEIN Schutz vor gezielter Manipulation",
-                "hash": "Hash (SHA-256) — erkennt Änderungen, kein Schlüssel",
-                "hmac": "HMAC — schlüsselbasierter Hash, manipulationsresistent",
-                "signature": "Digitale Signatur — asymmetrisch, stärkste Garantie",
-                "custom": "Benutzerdefiniert / proprietär"
-              },
-              "tooltip": "Wie ist die Integrität der übertragenen Daten geschützt? Modbus RTU CRC = 'crc' — vorhanden, aber NICHT kryptographisch. Nur HMAC und Signatur schützen vor gezielter MITM-Manipulation."
-            },
-            "location": {
-              "label": "Physisches Medium / Routing",
-              "options": {
-                "on_chip": "On-Chip (interner Bus / Register)",
-                "on_board": "On-Board PCB-Leiterbahn (gleiche Platine)",
-                "in_enclosure": "Im Gehäuse (versiegeltes Gehäuse)",
-                "field_cable": "Feldkabel (M12, DIN-Schiene, Kabelkanal)",
-                "local_network": "Lokales Kabelnetz (OT / LAN-Segment)",
-                "enterprise_network": "Unternehmensnetz (OT-IT-Übergang)",
-                "wireless_local": "Lokales WLAN / Bluetooth",
-                "internet": "Öffentliches Internet / WAN",
-                "custom": "Benutzerdefiniert / proprietär"
-              },
-              "tooltip": "Physisches Medium oder Routing-Pfad dieses Datenflusses. Bestimmt DoS-Angriffsvektoren: field_cable → Stecker abziehen (Sekunden, kein Werkzeug); wireless_local → Störsender / 802.11 Deauth (kein Netzwerkzugang nötig). Unterschied zu Exposure Level (Konsequenz) — location ist die Ursache."
-            },
-            "locationRationale": {
-              "label": "Medium-Begründung",
-              "placeholder": "z.B. Feldkabel verläuft durch öffentlichen Korridor → EL2 statt EL1",
-              "helper": "Erforderlich wenn physisches Medium und Exposure Level vom Standardmapping abweichen",
-              "tooltip": "Begründung für Abweichungen vom Standard-Location→ExposureLevel-Mapping. IEC 62443-4-1: dokumentierte Begründung für Audit-Traceability erforderlich."
-            },
-            "redundancy": {
-              "label": "Redundanz / Fallback",
-              "options": {
-                "none": "Keine — Single Point of Failure",
-                "failover": "Failover — automatischer Wechsel auf Backup-Pfad",
-                "degraded": "Degraded — System läuft mit reduzierter Funktionalität weiter",
-                "buffered": "Gepuffert — lokaler Puffer überbrückt kurze Unterbrechungen"
-              },
-              "tooltip": "Systemverhalten bei Unterbrechung dieses Datenflusses. Beeinflusst DoS-Impact: 'none' + field_cable = Critical DoS (Stecker abziehen = Fluss weg, kein Fallback). 'degraded' = Gerät läuft weiter, verliert aber diesen Kommunikationspfad."
-            },
             "excludeFromThreatGen": {
-              "label": "Von automatischer Threat-Generierung ausschliessen",
-              "warning_no_trust": "Ein Datenfluss ohne Vertrauensannahme auszuschliessen kann echte Bedrohungen verbergen. Bitte oben eine Vertrauensbegründung angeben."
+              "label": "Exclude from automated threat generation",
+              "warning_no_trust": "Excluding a flow without marking it as Assumed Trusted may hide real threats. Add a trust rationale above."
             },
             "excludeFromThreatGenRationale": {
-              "label": "Ausschlussbegründung (IEC 62443-4-1 Audit-Trail)",
-              "placeholder": "z.B. Internes Sensor-Polling innerhalb vertrauenswürdiger Safety-Domäne, kein externer Zugriffspfad vorhanden",
-              "error": "Begründung für IEC 62443-4-1 Audit-Trail erforderlich"
+              "label": "Exclusion Rationale (IEC 62443-4-1 audit trail)",
+              "placeholder": "e.g. Internal sensor polling within trusted safety domain, no external access path exists",
+              "error": "Rationale required for IEC 62443-4-1 audit trail"
             },
             "protocol_groups": {
-              "it": "IT / Netzwerk",
-              "embedded": "Eingebettet",
-              "fieldbus": "Feldbus",
-              "secure_ot": "Sicheres OT",
-              "wireless": "Drahtlos",
-              "electrical": "Elektrisches Signal"
+              "it": "IT / Network",
+              "embedded": "Embedded",
+              "fieldbus": "Fieldbus",
+              "secure_ot": "Secure OT",
+              "wireless": "Wireless",
+              "electrical": "Electrical Signal"
             },
             "protocol": {
-              "label": "Protokoll",
-              "label_signal": "Signaltyp",
+              "label": "Protocol",
+              "label_signal": "Signal Type",
               "options": {
                 "http": "HTTP",
                 "https": "HTTPS",
@@ -1040,9 +1175,9 @@
                 "mqtt": "MQTT",
                 "amqp": "AMQP",
                 "websocket": "WebSocket",
-                "file": "Datei",
-                "database": "Datenbank",
-                "can": "CAN-Bus",
+                "file": "File",
+                "database": "Database",
+                "can": "CAN Bus",
                 "uart": "UART",
                 "spi": "SPI",
                 "i2c": "I2C",
@@ -1061,924 +1196,900 @@
                 "bacnet": "BACnet (MS/TP)",
                 "bacnet_ip": "BACnet/IP",
                 "hart_ip": "HART-IP",
-                "opc_da": "OPC DA / AE / HDA (Legacy)",
+                "opc_da": "OPC DA / AE / HDA (legacy)",
                 "opc_ua": "OPC UA",
                 "wireless_hart": "WirelessHART (IEC 62591)",
                 "isa100": "ISA 100.11a",
                 "zigbee": "ZigBee (IEEE 802.15.4)",
                 "digital_io": "Digital I/O",
-                "dry_contact": "Potenzialfreier Kontakt / Relais",
-                "relay_output": "Relaisausgang",
-                "analog_voltage": "Analogspannung (0–10V)",
-                "analog_current": "Analogstrom (4–20mA)",
-                "pulse": "Puls- / Frequenzsignal",
-                "pwm": "PWM-Signal",
-                "custom": "Benutzerdefiniert / Sonstige"
+                "dry_contact": "Dry Contact / Relay",
+                "relay_output": "Relay Output",
+                "analog_voltage": "Analog Voltage (0–10V)",
+                "analog_current": "Analog Current (4–20mA)",
+                "pulse": "Pulse / Frequency Signal",
+                "pwm": "PWM Signal",
+                "custom": "Custom / Other"
               },
               "groups": {
                 "it": "IT / Cloud",
-                "embedded": "Embedded-Bus",
-                "fieldbus": "Feldbus",
-                "secure_ot": "Sicheres OT",
-                "wireless": "Drahtlos",
-                "electrical": "Elektrisch / Hardwired IO"
+                "embedded": "Embedded Bus",
+                "fieldbus": "Fieldbus",
+                "secure_ot": "Secure OT",
+                "wireless": "Wireless",
+                "electrical": "Electrical / Hardwired IO"
               }
             },
             "electrical": {
-              "not_applicable_hint": "Hardwired-Signal — Verschlüsselung und Endpunkt-Authentisierung sind nicht anwendbar. Physischer Zugang zur Verdrahtung ist der primäre Angriffsvektor.",
-              "physical_boundary_warning": "Hardwired-Signal überschreitet eine Trust Boundary — physischer Zugang zur Leitung ist der Angriffsvektor. Massnahmen prüfen: Kabelführung, Plombierung, Klemmenschrankzugang."
+              "not_applicable_hint": "Hardwired signal — encryption and endpoint authentication are not applicable. Physical access to the wiring is the primary attack vector.",
+              "physical_boundary_warning": "Hardwired signal crosses a Trust Boundary — physical wire access is the attack vector. Consider: cable routing, tamper seals, terminal access control."
             },
             "direction": {
-              "label": "Richtung",
+              "label": "Direction",
               "options": {
-                "unidirectional": "Unidirektional (Einweg)",
-                "bidirectional": "Bidirektional (Zweiweg)",
-                "requestresponse": "Anfrage-Antwort"
+                "unidirectional": "Uni-directional (One-way)",
+                "bidirectional": "Bi-directional (Two-way)",
+                "requestresponse": "Request-Response"
               }
-            },
-            "messageType": {
-              "label": "Nachrichtentyp",
-              "options": {
-                "measurement": "Messwert",
-                "command": "Steuerbefehl",
-                "status": "Zustandsmeldung",
-                "alarm_event": "Alarm / Ereignis",
-                "config": "Konfiguration",
-                "credentials": "Zugangsdaten",
-                "firmware": "Firmware",
-                "log_audit": "Log / Audit",
-                "pii": "Personenbezogene Daten (PII)",
-                "telemetry": "Telemetrie",
-                "custom": "Sonstiges"
-              }
-            },
-            "dataClassification": {
-              "label": "Datenklassifizierung",
-              "options": {
-                "public": "Öffentlich",
-                "internal": "Intern",
-                "confidential": "Vertraulich",
-                "secret": "Geheim"
-              },
-              "tooltips": {
-                "public": "Frei verwendbar — kein Vertraulichkeitsschutz erforderlich",
-                "internal": "Nur für internen Gebrauch — nicht für externe Parteien",
-                "confidential": "Eingeschränkte Weitergabe — Verschlüsselung bei Übertragung erforderlich",
-                "secret": "Höchste Sensitivität — Zugangsdaten, Schlüssel, PII"
-              }
-            },
-            "dataTypeNotes": {
-              "label": "Datentypnotizen",
-              "placeholder": "z.B. Proprietärer Telemetrierahmen, gemischte Sensor- und Statusdaten"
             },
             "encryptionInTransit": {
-              "label": "Verschlüsselung in Übertragung",
+              "label": "Encryption in Transit",
               "options": {
-                "none": "Keine (Klartext)",
+                "none": "None (Plaintext)",
                 "tls": "TLS",
                 "mtls": "mTLS (Mutual TLS)",
                 "vpn": "VPN / IPSec",
-                "custom": "Benutzerdefinierte Verschlüsselung"
+                "custom": "Custom Encryption"
               },
-              "warning": "Unverschlüsselter Fluss überschreitet Vertrauensgrenze → Risiko der Informationsoffenlegung"
+              "warning": "Unencrypted flow crosses trust boundary → Information Disclosure risk"
             },
             "endpointAuthentication": {
-              "label": "Endpunkt-Authentifizierung",
+              "label": "Endpoint Authentication",
               "options": {
-                "none": "Keine",
-                "password": "Passwort (Benutzername + Passwort)",
-                "symmetric_key": "Symmetrischer Schlüssel (Shared Secret)",
-                "token": "Token (Chipkarte / Hardware-Token)",
-                "mfa": "Multi-Faktor-Authentifizierung (MFA)",
-                "biometric": "Biometrie (Fingerabdruck / Gesichtserkennung)",
-                "certificate": "Zertifikat (X.509 / PKI)",
-                "apikey": "API-Schlüssel",
+                "none": "None",
+                "password": "Password (username + password)",
+                "symmetric_key": "Symmetric Key (shared secret)",
+                "token": "Token (smart card / hardware token)",
+                "mfa": "Multi-Factor Authentication (MFA)",
+                "biometric": "Biometric (fingerprint / facial recognition)",
+                "certificate": "Certificate (X.509 / PKI)",
+                "apikey": "API Key",
                 "oauth": "OAuth 2.0",
                 "mutual_tls": "Mutual TLS (mTLS)"
               }
             },
-            "frequency": {
-              "label": "Häufigkeit",
+            "integrityProtection": {
+              "label": "Integrity Protection",
               "options": {
-                "continuous": "Kontinuierlich / Echtzeit",
-                "periodic": "Periodisch (geplant)",
-                "ondemand": "Auf Anfrage",
-                "batch": "Stapelverarbeitung",
-                "event_based": "Ereignisgesteuert"
+                "none": "None — no integrity protection",
+                "crc": "CRC — detects errors, NOT targeted manipulation",
+                "hash": "Hash (SHA-256) — detects changes, no key",
+                "hmac": "HMAC — keyed hash, manipulation-resistant",
+                "signature": "Digital Signature — asymmetric, strongest guarantee",
+                "custom": "Custom / proprietary"
+              },
+              "tooltip": "How is the integrity of data in transit protected? Modbus RTU CRC = 'crc' — present but NOT cryptographic. Only HMAC and Signature protect against targeted MITM manipulation."
+            },
+            "location": {
+              "label": "Physical Medium / Routing",
+              "options": {
+                "on_chip": "On-chip (internal bus / register)",
+                "on_board": "On-board PCB trace (same board)",
+                "in_enclosure": "In-enclosure cable (sealed housing)",
+                "field_cable": "Field cable (M12, DIN rail, cable duct)",
+                "local_network": "Local wired network (OT / LAN segment)",
+                "enterprise_network": "Enterprise network (OT–IT boundary)",
+                "wireless_local": "Local wireless (WLAN / Bluetooth)",
+                "internet": "Public internet / WAN",
+                "custom": "Custom / proprietary medium"
+              },
+              "tooltip": "Physical medium or routing path this flow traverses. Determines DoS attack vectors: field_cable → plug-pull DoS (seconds, no tools); wireless_local → RF jammer / 802.11 Deauth attack (no network access needed). Distinct from Exposure Level (the consequence) — location is the cause."
+            },
+            "locationRationale": {
+              "label": "Location Rationale",
+              "placeholder": "e.g. Field cable runs through public corridor → EL2 not EL1",
+              "helper": "Required when physical medium and exposure level deviate from the standard mapping",
+              "tooltip": "Justify deviations from the standard location→ExposureLevel mapping. IEC 62443-4-1: documented rationale required for audit traceability."
+            },
+            "redundancy": {
+              "label": "Redundancy / Fallback",
+              "options": {
+                "none": "None — single point of failure",
+                "failover": "Failover — automatic switch to backup path",
+                "degraded": "Degraded — system continues with reduced functionality",
+                "buffered": "Buffered — local buffer bridges short interruptions"
+              },
+              "tooltip": "System behaviour when this flow is interrupted. Drives DoS impact: 'none' + field_cable = Critical DoS (plug-pull stops the flow, no fallback). 'degraded' = device keeps running but loses that communication path."
+            },
+            "messageType": {
+              "label": "Message Type",
+              "options": {
+                "measurement": "Measurement",
+                "command": "Command",
+                "status": "Status",
+                "alarm_event": "Alarm / Event",
+                "config": "Configuration",
+                "credentials": "Credentials",
+                "firmware": "Firmware",
+                "log_audit": "Log / Audit",
+                "pii": "Personal Data (PII)",
+                "telemetry": "Telemetry",
+                "custom": "Other"
+              }
+            },
+            "dataClassification": {
+              "label": "Data Classification",
+              "options": {
+                "public": "Public",
+                "internal": "Internal",
+                "confidential": "Confidential",
+                "secret": "Secret"
               },
               "tooltips": {
-                "continuous": "Unterbrechungsloser Strom — Analogsignale, Video",
-                "periodic": "Regelmässiges Polling-Intervall — Modbus, HART, SCADA-Zyklen",
-                "ondemand": "Anfrage-gesteuert — HTTP, OPC UA, Datenbankabfragen",
-                "batch": "Mengenübertragung in Intervallen — Dateisync, Log-Upload",
-                "event_based": "Ausgelöst durch Zustandsänderung — Dry Contact, Alarm, MQTT Publish"
+                "public": "Freely shareable — no confidentiality protection required",
+                "internal": "Internal use only — not for external parties",
+                "confidential": "Restricted distribution — needs encryption in transit",
+                "secret": "Highest sensitivity — credentials, keys, PII"
+              }
+            },
+            "dataTypeNotes": {
+              "label": "Data Type Notes",
+              "placeholder": "e.g. Proprietary telemetry frame, mixed sensor + status"
+            },
+            "frequency": {
+              "label": "Frequency",
+              "options": {
+                "continuous": "Continuous / Real-time",
+                "periodic": "Periodic (Scheduled)",
+                "ondemand": "On-demand",
+                "batch": "Batch",
+                "event_based": "Event-Based"
+              },
+              "tooltips": {
+                "continuous": "Uninterrupted stream — analog signals, video feeds",
+                "periodic": "Regular polling interval — Modbus, HART, SCADA cycles",
+                "ondemand": "Request-triggered — HTTP, OPC UA, database queries",
+                "batch": "Bulk transfer at intervals — file sync, log upload",
+                "event_based": "Triggered by state change — dry contact, alarm, MQTT publish"
               }
             },
             "volume": {
-              "label": "Größe / Volumen",
-              "placeholder": "z.B. 100 MB/Tag, 1000 Anfragen/Sek."
+              "label": "Size / Volume",
+              "placeholder": "e.g. 100 MB/day, 1000 requests/sec"
             },
             "notes": {
-              "label": "Notizen"
+              "label": "Notes"
             },
             "description": {
-              "label": "Beschreibung"
+              "label": "Description"
             },
             "safetyRelevant": {
-              "label": "Trägt sicherheitsrelevante Daten / unterstützt Sicherheitsfunktion (EN 50742)"
+              "label": "Carries safety-relevant data / supports safety function (EN 50742)"
             },
             "crossesSafetyBoundary": {
-              "hint": "Dieser Datenfluss überquert eine Sicherheitsgrenze (eine Seite sicherheitsrelevant, andere nicht). Erhöhte Prüfung für Manipulation und Informationsoffenlegung erforderlich."
+              "hint": "This flow crosses a safety boundary (one side safety-relevant, other not). Extra scrutiny required for Tampering and Information Disclosure."
             },
             "safetyFunction": {
-              "label": "Sicherheitsfunktion (EN 50742)",
+              "label": "Safety Function (EN 50742)",
               "options": {
-                "none": "Keine",
-                "emergency_stop": "Not-Halt (E-Stop / STO)",
-                "safety_gate": "Schutztür / Lichtvorhang",
-                "pressure_relief": "Druck- / Temperatursicherung",
-                "limit_switch": "Endlagenschalter / Überlaufschutz",
-                "fire_gas": "Brand- & Gasdetektion",
-                "motor_protection": "Motorschutzrelais",
-                "custom": "Sonstiges (in Begründung beschreiben)"
+                "none": "None",
+                "emergency_stop": "Emergency Stop (E-Stop / STO)",
+                "safety_gate": "Safety Gate / Light Curtain",
+                "pressure_relief": "Pressure / Temperature Safety",
+                "limit_switch": "Limit Switch / Overflow Protection",
+                "fire_gas": "Fire & Gas Detection",
+                "motor_protection": "Motor Protection Relay",
+                "custom": "Other (describe in rationale)"
               }
             },
             "safetyRationale": {
-              "label": "Sicherheitsbegründung",
-              "placeholder": "z.B. Überträgt Sensordaten für die Not-Halt-Logik",
-              "helper": "Verwendet in EN 50742 / MVO 2027 Dokumentation",
-              "error": "Begründung erforderlich für benutzerdefinierte Sicherheitsfunktion"
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Carries sensor data used by emergency stop logic",
+              "helper": "Used in EN 50742 / MVO 2027 documentation",
+              "error": "Rationale required for custom safety function"
+            },
+            "physicalPathProtection": {
+              "label": "Physischer Pfadschutz",
+              "options": {
+                "none": "Keiner",
+                "cable_duct": "Kabelkanal / -schacht",
+                "conduit": "Schutzrohr (Metall / Kunststoff)",
+                "armored_cable": "Panzerung / Mechanischer Schutz",
+                "tamper_seal": "Manipulationsschutzsiegel an Steckern",
+                "locked_cabinet": "In abschliessbaren Schränken geführt",
+                "buried": "Erdverlegt"
+              }
+            },
+            "cryptoStandard": {
+              "label": "Kryptographischer Standard",
+              "options": {
+                "not_assessed": "Nicht bewertet",
+                "nist_approved": "NIST-zugelassen (AES-256, SHA-256+)",
+                "fips_140_2": "FIPS 140-2",
+                "fips_140_3": "FIPS 140-3",
+                "custom": "Benutzerdefiniert / Regional"
+              }
             }
+          },
+          "sections": {
+            "logical_controls": "Logisch",
+            "physical_controls": "Physisch"
           }
         },
         "datastore": {
-          "warnings": {
-            "classification_no_encryption": "Daten mit Klassifizierung SECRET/RESTRICTED ohne Verschlüsselung im Ruhezustand — hohes Risiko für Information Disclosure",
-            "safety_no_integrity": "Sicherheitsrelevante Daten ohne Integritätsschutz — Tampering-Bedrohung (EN 50742)"
-          },
           "fields": {
-            "accessControl": {
-              "label": "Zugriffskontroll-Policy",
-              "placeholder": "Welche Prozesse dürfen lesen/schreiben und unter welchen Bedingungen?",
-              "tooltip": "Policy-Beschreibung: welche Prozesse oder Akteure haben Lese-/Schreibzugriff und unter welchen Bedingungen. Ergänzt den Zugriffskontroll-Mechanismus (das Wie) um das Wer und Wann."
-            },
-            "accessControlMechanism": {
-              "label": "Zugriffskontroll-Mechanismus",
+            "dataClassification": {
+              "label": "Data Classification",
               "options": {
-                "none": "Keiner — kein Zugriffschutz",
-                "process_enforced": "Prozess-enforced (via bewachenden Prozess)",
-                "mpu_protected": "MPU-geschützt (Memory Protection Unit)",
-                "os_permissions": "Betriebssystem-Dateiberechtigungen",
-                "crypto_erase": "Crypto-Erase (Verschlüsselung als Zugriffsschutz)",
-                "custom": "Benutzerdefiniert / proprietär"
-              },
-              "tooltip": "Technischer Mechanismus, der den Zugriff auf diesen Speicher durchsetzt. Ein DataStore ist passiv — der Enforcement liegt immer in einem bewachenden Prozess oder in Hardware. Ergänzt das Feld Zugriffskontroll-Policy."
+                "public": "Public",
+                "internal": "Internal",
+                "confidential": "Confidential",
+                "restricted": "Restricted",
+                "secret": "Secret"
+              }
+            },
+            "encryptionAtRest": {
+              "label": "Encryption at Rest",
+              "options": {
+                "none": "None (Plaintext)",
+                "yes": "Yes (Algorithm not specified)",
+                "aes256": "AES-256",
+                "tde": "TDE (Transparent Data Encryption)",
+                "kms": "KMS (Key Management Service)",
+                "custom": "Custom Encryption"
+              }
             },
             "integrityProtection": {
-              "label": "Integritätsschutz (Prüfsummen, Signaturen)",
+              "label": "Integrity Protection (Checksums, Signatures)",
               "options": {
-                "none": "Keiner — kein Integritätsschutz",
-                "crc": "CRC — erkennt Übertragungsfehler, KEIN Schutz vor gezielter Manipulation",
-                "hash": "Hash (SHA-256) — erkennt Änderungen, kein Schlüssel erforderlich",
-                "hmac": "HMAC — schlüsselbasierter Hash, manipulationsresistent",
-                "signature": "Digitale Signatur — asymmetrisch, stärkste Garantie",
-                "custom": "Benutzerdefiniert / proprietär"
+                "none": "None — no integrity protection",
+                "crc": "CRC — detects transmission errors, NOT targeted manipulation",
+                "hash": "Hash (SHA-256) — detects changes, no key required",
+                "hmac": "HMAC — keyed hash, manipulation-resistant",
+                "signature": "Digital Signature — asymmetric, strongest guarantee",
+                "custom": "Custom / proprietary"
               },
-              "tooltip": "Wie ist die Integrität gespeicherter Daten geschützt? CRC ist NICHT kryptographisch — ein Angreifer kann den CRC nach einer Manipulation neu berechnen. Nur HMAC und Signatur bieten echten Manipulationsschutz.",
+              "tooltip": "How is the integrity of stored data protected? CRC is NOT cryptographic — an attacker can recompute it after manipulation. Only HMAC and Signature provide tamper-resistance.",
               "warnings": {
-                "weak_integrity": "CRC oder kein Integritätsschutz — Tampering-Bedrohung aktiv (undetektierte Manipulation möglich)"
+                "weak_integrity": "CRC or no integrity protection — Tampering threat active (undetected manipulation possible)"
               }
+            },
+            "backupEnabled": {
+              "label": "Backup & Retention Policy Exists"
+            },
+            "storedDataTypes": {
+              "label": "Stored Data Types",
+              "placeholder": "e.g. User credentials, Transaction logs, Configuration",
+              "helper": "Separate multiple types with commas",
+              "options": {
+                "credentials": "Credentials",
+                "keys_certificates": "Keys & Certificates",
+                "firmware": "Firmware",
+                "pii": "PII (Personal Data)",
+                "safety_params": "Safety Parameters",
+                "calibration": "Calibration Data",
+                "config": "Configuration",
+                "audit_logs": "Audit Logs",
+                "telemetry": "Telemetry",
+                "custom": "Custom"
+              }
+            },
+            "accessControlMechanism": {
+              "label": "Access Control Mechanism",
+              "options": {
+                "none": "None — no access control enforced",
+                "process_enforced": "Process-enforced (via guarding process)",
+                "mpu_protected": "MPU-protected (Memory Protection Unit)",
+                "os_permissions": "OS file / block permissions",
+                "crypto_erase": "Crypto-erase (encryption-as-access-control)",
+                "custom": "Custom / proprietary"
+              },
+              "tooltip": "Technical mechanism enforcing access to this store. A DataStore is passive — enforcement always lives in a guarding Process or hardware. Complements the Access Control Policy field below."
+            },
+            "accessControl": {
+              "label": "Access Control Policy",
+              "placeholder": "Which processes may read/write and under what conditions?",
+              "tooltip": "Policy description: which processes or actors have read/write access and under what conditions. Complements Access Control Mechanism (the how) with the who and when."
             },
             "deletionMechanism": {
-              "label": "Lösch-Mechanismus",
+              "label": "Deletion Mechanism",
               "options": {
-                "none": "Keiner — keine sichere Löschung geplant",
-                "overwrite": "Überschreiben mit Nullen / Zufallsdaten",
-                "factory_reset": "Factory Reset löscht diesen Speicher",
-                "crypto_erase": "Crypto-Erase (Schlüssellöschung)",
-                "physical": "Physische Vernichtung des Mediums",
-                "retention_period": "Automatische Löschung nach Aufbewahrungsfrist",
-                "custom": "Benutzerdefiniert / proprietär"
-              },
-              "tooltip": "Technischer Mechanismus für die sichere Datenlöschung. Hinweis: Überschreiben auf Flash ist wegen Wear-Leveling unzuverlässig — bei gesetzter Verschlüsselung Crypto-Erase bevorzugen. Ergänzt das Feld Lösch-Policy."
+                "none": "None",
+                "overwrite": "Overwrite (zeros / random)",
+                "factory_reset": "Factory Reset",
+                "crypto_erase": "Crypto Erase (key deletion)",
+                "physical": "Physical Destruction",
+                "retention_period": "Automatic Retention Period",
+                "custom": "Custom"
+              }
             },
             "deletionPolicy": {
-              "label": "Lösch-Policy",
-              "placeholder": "z.B. Factory Reset löscht Config und Logs. Firmware bleibt erhalten — separates Service-Tool erforderlich.",
-              "tooltip": "Policy-Beschreibung: welche Daten werden bei welchem Ereignis gelöscht und was bleibt erhalten. Ergänzt den Lösch-Mechanismus (das Wie) um das Was und Wann."
-            },
-            "dataClassification": {
-              "label": "Datenklassifizierung",
+              "label": "Deletion Mechanism",
               "options": {
-                "public": "Öffentlich",
-                "internal": "Intern",
-                "confidential": "Vertraulich",
-                "restricted": "Eingeschränkt",
-                "secret": "Geheim"
+                "none": "None — no secure deletion planned",
+                "overwrite": "Overwrite with zeros / random data",
+                "factory_reset": "Factory Reset clears this store",
+                "crypto_erase": "Crypto-erase (delete encryption key)",
+                "physical": "Physical destruction of medium",
+                "retention_period": "Automatic deletion after retention period",
+                "custom": "Custom / proprietary"
               },
-              "encryptionAtRest": {
-                "label": "Verschlüsselung im Ruhezustand",
-                "options": {
-                  "none": "Keine (Klartext)",
-                  "yes": "Ja (Algorithmus nicht angegeben)",
-                  "aes256": "AES-256",
-                  "tde": "TDE (Transparente Datenverschlüsselung)",
-                  "kms": "KMS (Schlüsselverwaltungsdienst)",
-                  "custom": "Benutzerdefinierte Verschlüsselung"
-                }
-              },
-              "backupEnabled": {
-                "label": "Backup- und Aufbewahrungsrichtlinie vorhanden"
-              },
-              "storedDataTypes": {
-                "label": "Gespeicherte Datentypen",
-                "placeholder": "z.B. Anmeldedaten, Transaktionsprotokolle, Konfiguration",
-                "helper": "Mehrere Typen mit Komma trennen",
-                "options": {
-                  "credentials": "Zugangsdaten",
-                  "keys_certificates": "Schlüssel & Zertifikate",
-                  "firmware": "Firmware",
-                  "pii": "Personenbezogene Daten (PII)",
-                  "safety_params": "Sicherheitsparameter",
-                  "calibration": "Kalibrierdaten",
-                  "config": "Konfiguration",
-                  "audit_logs": "Audit-Logs",
-                  "telemetry": "Telemetrie",
-                  "custom": "Benutzerdefiniert"
-                }
-              },
-              "deletionMechanism": {
-                "label": "Löschmechanismus",
-                "options": {
-                  "none": "Kein",
-                  "overwrite": "Überschreiben (Nullen / Zufallsdaten)",
-                  "factory_reset": "Werksreset",
-                  "crypto_erase": "Crypto Erase (Schlüssellöschung)",
-                  "physical": "Physische Vernichtung",
-                  "retention_period": "Automatische Aufbewahrungsfrist",
-                  "custom": "Benutzerdefiniert"
-                }
-              },
-              "deletionPolicy": {
-                "label": "Löschrichtlinie",
-                "placeholder": "z.B. Soft-Delete mit 30-Tage-Aufbewahrung, DSGVO-konform"
-              },
-              "technology": {
-                "label": "Technologie",
-                "options": {
-                  "database": "Datenbank (SQL/NoSQL)",
-                  "filesystem": "Dateisystem",
-                  "cloud": "Cloud-Speicher (S3, Blob)",
-                  "cache": "Cache (Redis, Memcached)",
-                  "queue": "Message Queue",
-                  "blockchain": "Blockchain",
-                  "flash": "Flash-Speicher",
-                  "eeprom": "EEPROM",
-                  "nvram": "NVRAM"
-                }
-              },
-              "multiTenant": {
-                "label": "Multi-Tenant (von mehreren Kunden gemeinsam genutzt)"
-              },
-              "owner": {
-                "label": "Verantwortlicher",
-                "placeholder": "Verantwortliches Team oder Person"
-              },
-              "notes": {
-                "label": "Notizen"
-              },
-              "description": {
-                "label": "Beschreibung"
-              },
-              "containsSafetyRelevantData": {
-                "label": "Enthält sicherheitsrelevante Konfigurationsdaten (EN 50742)"
-              },
-              "safetyRationale": {
-                "label": "Sicherheitsbegründung",
-                "placeholder": "z.B. Manipulation könnte die Notausschaltfunktion deaktivieren",
-                "helper": "Wird in EN 50742 / MVO 2027 Dokumentation verwendet"
+              "tooltip": "Technical mechanism for secure data deletion. Note: overwrite on Flash is unreliable due to wear-leveling — prefer crypto_erase when encryptionAtRest is set. Complements the Deletion Policy field below.",
+              "placeholder": "e.g. Soft delete with 30-day retention, GDPR-compliant"
+            },
+            "technology": {
+              "label": "Technology",
+              "options": {
+                "database": "Database (SQL/NoSQL)",
+                "filesystem": "Filesystem",
+                "cloud": "Cloud Storage (S3, Blob)",
+                "cache": "Cache (Redis, Memcached)",
+                "queue": "Message Queue",
+                "blockchain": "Blockchain",
+                "flash": "Flash Memory",
+                "eeprom": "EEPROM",
+                "nvram": "NVRAM"
+              }
+            },
+            "multiTenant": {
+              "label": "Multi-tenant (Shared by multiple customers)"
+            },
+            "owner": {
+              "label": "Owner",
+              "placeholder": "Team or person responsible"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            },
+            "containsSafetyRelevantData": {
+              "label": "Contains safety-relevant configuration data (EN 50742)"
+            },
+            "safetyRationale": {
+              "label": "Safety Rationale",
+              "placeholder": "e.g. Manipulation could disable emergency stop function",
+              "helper": "Used in EN 50742 / MVO 2027 documentation"
+            },
+            "cryptoStandard": {
+              "label": "Kryptographischer Standard",
+              "options": {
+                "not_assessed": "Nicht bewertet",
+                "nist_approved": "NIST-zugelassen (AES-256, SHA-256+)",
+                "fips_140_2": "FIPS 140-2",
+                "fips_140_3": "FIPS 140-3",
+                "custom": "Benutzerdefiniert / Regional"
               }
             }
           },
-          "trustboundary": {
-            "warning": {
-              "title": "Vertrauensgrenzen sind kritisch!",
-              "hint": "Jeder Datenfluss der diese Grenze überschreitet erfordert eine genaue Prüfung aller STRIDE-Bedrohungen."
+          "warnings": {
+            "classification_no_encryption": "Data classified as SECRET/RESTRICTED without encryption at rest — high Information Disclosure risk",
+            "safety_no_integrity": "Safety-relevant data without integrity protection — Tampering threat (EN 50742)"
+          }
+        },
+        "trustboundary": {
+          "warning": {
+            "title": "Trust Boundaries are critical!",
+            "hint": "Any data flow crossing this boundary requires extra scrutiny for all STRIDE threats."
+          },
+          "fields": {
+            "boundaryType": {
+              "label": "Boundary Type",
+              "options": {
+                "network": "Network Boundary (DMZ, VPC)",
+                "privilege": "Privilege Boundary (User/Admin)",
+                "organization": "Organizational Boundary",
+                "cloud": "Cloud Account / Tenant",
+                "physical": "Physical Boundary",
+                "legal": "Legal / Regulatory Boundary",
+                "device": "Device Boundary",
+                "peripheral": "Peripheral Boundary (MCU ↔ external chip)",
+                "boot": "Boot Boundary (Bootloader ↔ Application)",
+                "debug": "Debug Interface Boundary (SWD/JTAG)"
+              },
+              "tooltips": {
+                "network": "Separates network segments, e.g. DMZ from internal LAN or VPC from public internet",
+                "privilege": "Separates privilege levels, e.g. user space from kernel or admin from standard user",
+                "organization": "Separates organizational units, e.g. supplier from manufacturer or subsidiary from parent",
+                "cloud": "Separates cloud accounts, tenants or subscriptions with distinct IAM policies",
+                "physical": "Physical enclosure or cabinet boundary, e.g. machine housing or control panel",
+                "legal": "Regulatory or contractual boundary, e.g. GDPR data residency or PCI-DSS scope",
+                "device": "Boundary of a single device or embedded system, e.g. PLC, ECU or IoT gateway",
+                "peripheral": "Boundary between MCU and external chips (SPI/I2C sensors, EEPROM, co-processors). Often overlooked attack surface.",
+                "boot": "Boundary between bootloader and application. Critical for firmware integrity and secure boot chain.",
+                "debug": "SWD, JTAG or UART console interface. Must be disabled or locked in production builds."
+              }
             },
-            "fields": {
-              "boundaryType": {
-                "label": "Grenztyp",
-                "options": {
-                  "not_specified": "Nicht angegeben",
-                  "network": "Netzwerkgrenze (DMZ, VPC)",
-                  "privilege": "Berechtigungsgrenze (Benutzer/Admin)",
-                  "organization": "Organisationsgrenze",
-                  "cloud": "Cloud-Konto / Tenant",
-                  "physical": "Physische Grenze",
-                  "legal": "Rechtliche / Regulatorische Grenze",
-                  "device": "Gerätegrenze",
-                  "peripheral": "Peripherie-Grenze (MCU ↔ externer Chip)",
-                  "boot": "Boot-Grenze (Bootloader ↔ Applikation)",
-                  "debug": "Debug-Interface-Grenze (SWD/JTAG)"
-                },
-                "tooltips": {
-                  "network": "Trennt Netzwerksegmente, z.B. DMZ vom internen LAN oder VPC vom öffentlichen Internet",
-                  "privilege": "Trennt Berechtigungsstufen, z.B. User Space vom Kernel oder Admin vom Standardbenutzer",
-                  "organization": "Trennt Organisationseinheiten, z.B. Lieferant vom Hersteller oder Tochtergesellschaft vom Mutterkonzern",
-                  "cloud": "Trennt Cloud-Konten, Tenants oder Abonnements mit eigenen IAM-Richtlinien",
-                  "physical": "Physische Gehäuse- oder Schrankgrenze, z.B. Maschinengehäuse oder Schaltschrank",
-                  "legal": "Regulatorische oder vertragliche Grenze, z.B. DSGVO-Datenresidenz oder PCI-DSS-Scope",
-                  "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway",
-                  "peripheral": "Grenze zwischen MCU und externen Chips (SPI/I2C Sensoren, EEPROM, Co-Prozessoren). Häufig unterschätzte Angriffsfläche.",
-                  "boot": "Grenze zwischen Bootloader und Applikation. Kritisch für Firmware-Integrität und Secure-Boot-Kette.",
-                  "debug": "SWD-, JTAG- oder UART-Konsoleninterface. Muss in Produktionsbuilds deaktiviert oder gesperrt sein."
-                }
+            "exposureLevel": {
+              "helper": "Defines the exposure level of this security zone. Elements with a higher EL are not affected."
+            },
+            "boundaryControlTypes": {
+              "label": "Boundary Controls",
+              "options": {
+                "firewall": "Firewall",
+                "ids_ips": "IDS / IPS",
+                "data_diode": "Data Diode",
+                "vpn_gateway": "VPN Gateway",
+                "dmz": "DMZ",
+                "authentication_gateway": "Authentication Gateway",
+                "unidirectional_gateway": "Unidirectional Gateway",
+                "network_segmentation": "Network Segmentation",
+                "jump_host": "Jump Host / Bastion",
+                "custom": "Custom"
               },
-              "exposureLevel": {
-                "not_specified": "Nicht angegeben",
-                "helper": "Definiert das Expositionsniveau dieser Sicherheitszone. Elemente mit einem höheren EL sind nicht betroffen."
+              "tooltips": {
+                "firewall": "Stateful packet inspection firewall",
+                "ids_ips": "Intrusion Detection / Prevention System",
+                "data_diode": "Hardware data diode — unidirectional enforcement (IEC 62443 SL3+)",
+                "vpn_gateway": "VPN concentrator / encrypted tunnel endpoint",
+                "dmz": "Demilitarised zone (dual-firewall architecture)",
+                "authentication_gateway": "Identity and authentication enforcement at boundary",
+                "unidirectional_gateway": "Software-enforced one-way gateway (e.g. Waterfall)",
+                "network_segmentation": "VLAN, microsegmentation, or ACL-based separation",
+                "jump_host": "Bastion / jump server for administrative access",
+                "custom": "Vendor or domain-specific — describe in Additional Controls"
+              }
+            },
+            "customBoundaryControls": {
+              "label": "Additional Controls",
+              "placeholder": "e.g. Siemens SCALANCE S615, OPC UA Reverse Proxy with allowlist",
+              "helper": "Vendor-specific or domain-specific controls not in the list above"
+            },
+            "monitoringEnabled": {
+              "label": "Monitoring / Logging Enabled"
+            },
+            "securityAssumptions": {
+              "label": "Security Assumptions",
+              "placeholder": "e.g. Inside is trusted, outside is hostile",
+              "helper": "What do you assume about each side of this boundary?"
+            },
+            "boundaryControls": {
+              "label": "Controls at Boundary",
+              "placeholder": "e.g. Firewall, API Gateway, Authentication Layer",
+              "helper": "What enforces this boundary?"
+            },
+            "complianceRelevance": {
+              "label": "Compliance Relevance",
+              "placeholder": "e.g. GDPR, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
+              "helper": "Which regulations apply to this boundary?"
+            },
+            "owner": {
+              "label": "Owner / Responsible Team",
+              "placeholder": "Who maintains this boundary?"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            },
+            "defaultDenyPolicy": {
+              "label": "Standard-Verkehrsrichtlinie",
+              "options": {
+                "allow_all": "Alles erlauben (keine Einschränkung)",
+                "deny_all_permit_exception": "Alles sperren, Ausnahmen erlauben",
+                "island_mode": "Island-Mode (vollständige Isolation möglich)",
+                "fail_close": "Fail-Close (bei Ausfall kein Datenverkehr)"
               },
-              "boundaryControlTypes": {
-                "label": "Grenzkontrollen",
-                "options": {
-                  "firewall": "Firewall",
-                  "ids_ips": "IDS / IPS",
-                  "data_diode": "Datendiode",
-                  "vpn_gateway": "VPN-Gateway",
-                  "dmz": "DMZ",
-                  "authentication_gateway": "Authentifizierungs-Gateway",
-                  "unidirectional_gateway": "Unidirektionales Gateway",
-                  "network_segmentation": "Netzwerksegmentierung",
-                  "jump_host": "Jump-Host / Bastion",
-                  "custom": "Benutzerdefiniert"
-                },
-                "tooltips": {
-                  "firewall": "Stateful Packet Inspection Firewall",
-                  "ids_ips": "Intrusion Detection / Prevention System",
-                  "data_diode": "Hardware-Datendiode — unidirektionale Durchsetzung (IEC 62443 SL3+)",
-                  "vpn_gateway": "VPN-Konzentrator / verschlüsselter Tunnel-Endpunkt",
-                  "dmz": "Demilitarisierte Zone (Dual-Firewall-Architektur)",
-                  "authentication_gateway": "Identitäts- und Authentifizierungsdurchsetzung an der Grenze",
-                  "unidirectional_gateway": "Software-erzwungenes Einweg-Gateway (z.B. Waterfall)",
-                  "network_segmentation": "VLAN, Mikrosegmentierung oder ACL-basierte Trennung",
-                  "jump_host": "Bastion / Jump-Server für administrativen Zugriff",
-                  "custom": "Anbieter- oder domänenspezifisch — in Zusätzliche Kontrollen beschreiben"
-                }
-              },
-              "customBoundaryControls": {
-                "label": "Zusätzliche Kontrollen",
-                "placeholder": "z.B. Siemens SCALANCE S615, OPC UA Reverse Proxy mit Allowlist",
-                "helper": "Anbieter- oder domänenspezifische Kontrollen, die nicht in der obigen Liste sind"
-              },
-              "monitoringEnabled": {
-                "label": "Monitoring / Logging aktiviert"
-              },
-              "securityAssumptions": {
-                "label": "Sicherheitsannahmen",
-                "placeholder": "z.B. Innen ist vertrauenswürdig, aussen ist feindlich",
-                "helper": "Was nehmen Sie über jede Seite dieser Grenze an?"
-              },
-              "boundaryControls": {
-                "label": "Massnahmen an der Grenze",
-                "placeholder": "z.B. Firewall, API Gateway, Authentifizierungsschicht",
-                "helper": "Was setzt diese Grenze durch?"
-              },
-              "complianceRelevance": {
-                "label": "Compliance-Relevanz",
-                "placeholder": "z.B. DSGVO, ISO 27001, SOC 2, PCI-DSS, IEC 62443",
-                "helper": "Welche Vorschriften gelten für diese Grenze?"
-              },
-              "owner": {
-                "label": "Verantwortlicher / Team",
-                "placeholder": "Wer pflegt diese Grenze?"
-              },
-              "notes": {
-                "label": "Notizen"
-              },
-              "description": {
-                "label": "Beschreibung"
+              "tooltips": {
+                "allow_all": "Keine Verkehrseinschränkung. NDR 5.2 RE(1) nicht erfüllt.",
+                "deny_all_permit_exception": "Whitelist-basiert — nur explizit erlaubte Flows passieren. NDR 5.2 RE(1) erfüllt.",
+                "island_mode": "Zone kann bei Sicherheitsvorfall vollständig isoliert werden. NDR 5.2 RE(2) erfüllt.",
+                "fail_close": "Bei Mechanismusausfall: kein Datenverkehr. NDR 5.2 RE(3) erfüllt."
               }
             }
-          },
-          "chipboundary": {
-            "warning": {
-              "title": "Hardware-Grenze — physische Angriffsfläche!",
-              "hint": "Debug-Schnittstellen, Firmware-Schutz und Supply-Chain-Vertrauen müssen vor der Produktionsfreigabe explizit verifiziert werden."
-            },
-            "fields": {
-              "chipType": {
-                "label": "Chip-Typ",
-                "options": {
-                  "mcu": "MCU (Mikrocontroller)",
-                  "som": "SOM (System-on-Module)",
-                  "fpga": "FPGA",
-                  "dsp": "DSP (Digitaler Signalprozessor)",
-                  "se": "SE (Secure Element)",
-                  "hsm": "HSM (Hardware Security Module)"
-                },
-                "tooltips": {
-                  "mcu": "Mikrocontroller — STM32, NXP, Renesas. Bedrohungen: JTAG-Zugriff, Firmware-Manipulation, Secure Boot Bypass.",
-                  "som": "System-on-Module — Toradex, RPi CM, Variscite. Supply-Chain-Vertrauen besonders relevant.",
-                  "fpga": "Field Programmable Gate Array. Bedrohungen: Bitstream-Manipulation, Readback, partielle Rekonfiguration.",
-                  "dsp": "Digitaler Signalprozessor. Bedrohungsprofil ähnlich MCU.",
-                  "se": "Secure Element — ATECC608. Hardware-basierter Schlüsselspeicher, nicht extrahierbar.",
-                  "hsm": "Hardware Security Module. Höchste Hardware-Absicherung. FIPS 140-2 oder CC EAL4+ Zertifizierung prüfen."
-                }
-              },
-              "debugInterfacePresent": {
-                "label": "Debug-Schnittstelle",
-                "options": {
-                  "none": "Keine",
-                  "jtag": "JTAG",
-                  "swd": "SWD",
-                  "jtag_trace": "JTAG + Trace Port (ETM)",
-                  "swd_swo": "SWD + SWO (ITM)",
-                  "custom": "Benutzerdefiniert"
-                },
-                "tooltips": {
-                  "none": "Keine Debug-Schnittstelle vorhanden oder vollständig deaktiviert. Empfohlen für Produktions-Firmware.",
-                  "jtag": "Vollständiges JTAG — CPU-Halt, Speicherzugriff, Flash lesen/schreiben. Höchstes Risiko wenn nicht via Fuse/OTP vor Produktionsfreigabe gesperrt.",
-                  "swd": "SWD (ARM Serial Wire Debug) — ähnliche Fähigkeiten wie JTAG mit weniger Pins. Muss via RDP oder äquivalent vor Produktionsfreigabe gesperrt werden.",
-                  "jtag_trace": "JTAG mit ETM Trace Port — vollständiger Instruction-Trace über parallelen Port. Erfordert separaten physischen Stecker (Mictor). Bedrohung: vollständige Code-Flow-Offenlegung.",
-                  "swd_swo": "SWD mit Single Wire Output — leichtgewichtiger Software-Trace über ITM. Einzelne zusätzliche Leitung. Bedrohung: software-generierte Trace-Nachrichten lesbar.",
-                  "custom": "Proprietäre oder herstellerspezifische Debug-Schnittstelle. Zugriffsmethode und Sperrmechanismus in den Notizen dokumentieren."
-                }
-              },
-              "debugInterfaceLocked": {
-                "label": "Debug-Schnittstelle in Produktion gesperrt / deaktiviert (Fuse / OTP)"
-              },
-              "secureBootEnabled": {
-                "label": "Secure Boot aktiviert"
-              },
-              "firmwareProtection": {
-                "label": "Firmware-Schutz",
-                "options": {
-                  "none": "Kein Schutz",
-                  "rdp_level1": "RDP Level 1",
-                  "rdp_level2": "RDP Level 2",
-                  "locked": "Gesperrt",
-                  "encrypted": "Verschlüsselt"
-                },
-                "tooltips": {
-                  "none": "Kein Schutz — Firmware les- und ersetzbar.",
-                  "rdp_level1": "STM32 RDP1: Readback deaktiviert, Debug eingeschränkt.",
-                  "rdp_level2": "STM32 RDP2: JTAG vollständig deaktiviert, Mass Erase bei Manipulation.",
-                  "locked": "Schreibgeschützt, kein Debug-Zugriff.",
-                  "encrypted": "Firmware-Image verschlüsselt gespeichert."
-                }
-              },
-              "bitstreamEncryption": {
-                "label": "Bitstream-Verschlüsselung aktiviert"
-              },
-              "tamperProtection": {
-                "label": "Manipulationsschutz",
-                "options": {
-                  "none": "Kein",
-                  "basic": "Einfach",
-                  "active": "Aktiv"
-                },
-                "tooltips": {
-                  "none": "Kein Manipulationsschutz.",
-                  "basic": "Gehäusesiegel, Sicherheitsetikett oder Verguss.",
-                  "active": "Aktive Erkennung: Spannungseinbruch, Temperatur oder Mesh."
-                }
-              },
-              "supplyChainTrust": {
-                "label": "Supply-Chain-Vertrauen",
-                "options": {
-                  "verified": "Verifiziert",
-                  "unverified": "Nicht verifiziert",
-                  "unknown": "Unbekannt"
-                }
-              },
-              "safetyRelevant": {
-                "label": "Sicherheitsrelevante Hardware"
-              },
-              "safetyRationale": {
-                "label": "Safety-Begründung",
-                "helper": "Erforderlich für EN 50742 / MVO 2027 Dokumentation"
-              },
-              "notes": {
-                "label": "Notizen"
-              },
-              "description": {
-                "label": "Beschreibung"
-              }
-            }
-          },
-          "asset": {
-            "regulatoryReference": "Regulatorische Referenz",
-            "containsSafetyRelevantData": "Enthält sicherheitsrelevante Daten (EN 50742)",
-            "safetyRelevant": "Sicherheitsrelevantes System (direkte Beteiligung an sicherheitskritischen Abläufen)",
-            "responsibilityScope": "Verantwortungsbereich",
-            "responsibilityScopeRequired": "Erforderlich bei Drittanbietern (CRA Art. 13 Lieferkette)",
-            "responsibilityScopeHint": "Welche Sicherheitsmaßnahmen liegen im eigenen Verantwortungsbereich und welche beim Anbieter?",
-            "providerName": "Anbietername",
-            "slaReference": "SLA- / Vertragsreferenz",
-            "name": "Asset Name",
-            "nameHelper": "Kurze, eindeutige Bezeichnung",
-            "nameTooltip": "Verwenden Sie konkrete Namen wie 'Kundendatenbank' statt generische Begriffe wie 'Daten'",
-            "category": "Kategorie",
-            "categoryGuidance": "Wählen Sie die Kategorie, die am besten beschreibt, was geschützt werden muss",
-            "categoryData": "Daten",
-            "categoryDataDesc": "Sensordaten, Produktionsdaten, Konfiguration",
-            "categorySystem": "Systeme",
-            "categorySystemDesc": "Server, APIs, SCADA, Cloud-Dienste",
-            "categoryInfrastructure": "Infrastruktur",
-            "categoryInfrastructureDesc": "Maschinen, Netzwerkgeräte",
-            "categoryProcess": "Prozesse",
-            "categoryProcessDesc": "Firmware-Updates, SOPs, Verfahren",
-            "categoryHuman": "Personen",
-            "categoryHumanDesc": "Operatoren, Administratoren, Auftragnehmer",
-            "description": "Beschreibung",
-            "descriptionHelper": "Was repräsentiert dieses Asset und warum ist es wertvoll?",
-            "descriptionTooltip": "Beginnen Sie mit einer kurzen Beschreibung. Details können später verfeinert werden.",
-            "protectionNeed": "Schutzbedarf",
-            "protectionNeedGuidance": "Berücksichtigen Sie die Auswirkungen, wenn dieses Asset verloren geht, manipuliert oder missbraucht wird",
-            "protectionLow": "Niedrig – Verlust ist unangenehm",
-            "protectionMedium": "Mittel – beeinträchtigt den Betrieb",
-            "protectionHigh": "Hoch – verursacht erhebliche Schäden",
-            "protectionCritical": "Kritisch – bedroht Geschäft oder Sicherheit",
-            "referencedIn": "Referenziert im System",
-            "referencedInGuidance": "Diese Elemente referenzieren dieses Asset im DFD. Nutzen Sie dies zur Validierung Ihrer Beschreibung.",
-            "categoryDetails": "{{category}}-spezifische Details",
-            "categoryDetailsGuidance": "Zusätzliche Details spezifisch für diesen Asset-Typ. Optional aber hilfreich.",
-            "dataType": "Datentyp",
-            "lifecycle": "Lebenszyklus",
-            "criticality": "Kritikalität für Betrieb",
-            "exposure": "Exponierung",
-            "physicalAccess": "Physischer Zugriff möglich",
-            "location": "Standort",
-            "automated": "Automatisiert",
-            "changeFrequency": "Änderungsfrequenz",
-            "role": "Rolle",
-            "securityRelevant": "Sicherheitsrelevant (hat Zugriff auf kritische Systeme)",
-            "advanced": "Erweitert / Optional",
-            "advancedGuidance": "Optionale Felder zur Verfeinerung. Nicht erforderlich für initiale Analyse.",
-            "owner": "Verantwortlicher / Eigentümer",
-            "ownerPlaceholder": "Team oder Person verantwortlich",
-            "notes": "Zusätzliche Notizen",
-            "label": "Asset",
-            "noAssets": "Keine Assets in diesem Scope verfügbar",
-            "createNew": "+ Neues Asset anlegen…",
-            "categoryChange": {
-              "title": "Asset-Kategorie ändern?",
-              "warning": "Dieses Asset wird von DFD-Elementen referenziert. Eine Änderung der Kategorie macht alle bestehenden Relationstypen in diesen Elementen ungültig, da Relationstypen kategoriespezifisch sind.",
-              "confirm": "Kategorie ändern"
-            },
-            "tabs": {
-              "general": "Allgemein",
-              "usedIn": "Verwendet in"
-            },
-            "newAsset": {
-              "name": "Asset-Name",
-              "assetGroup": "Asset-Gruppe",
-              "confirm": "Bestätigen",
-              "cancel": "Abbrechen"
-            },
-            "isSafetyFunction": "Sicherheitsfunktion (ISO 12100 / IEC 61508)",
-            "externalRef": "Externer Sicherheitsnachweis (z.B. SF-001)",
-            "externalRefHint": "ID aus dem begleitenden Sicherheitsanalysedokument",
-            "safetyImpact": "Sicherheitsauswirkung (ISO 12100)",
-            "safetyRationale": "Sicherheitsbegründung",
-            "safetyRationalePlaceholder": "z.B. Manipulation ermöglicht unkontrollierte Maschinenbewegung mit Verletzungsrisiko",
-            "safetyRationaleHelper": "Wird in EN 50742 / MVO 2027 Auditdokumentation verwendet",
-            "domain": "Domäne / Regulatorischer Kontext",
-            "isValidatedProcess": "Formell validierter / zertifizierter Prozess",
-            "validationRationale": "Validierungsbegründung (erforderlich)",
-            "isUnique": "Einzigartig / nicht ersetzbar (Kunstwerk, Prototyp, Unikat)",
-            "portability": "Mobilität",
-            "serviceType": "Servicetyp",
-            "responsibility": "Verantwortlichkeitsmodell",
-            "isProtectionTarget": "Schutzobjekt gemäss ISO 12100 / EN 50742 (gefährdete Person)",
-            "isPhysicalBarrier": "Physische Schutzeinrichtung (Schutzgitter, Gehäuse, Zaun)",
-            "environmentalHazard": "Umgebungsgefährdung",
-            "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
           }
         },
         "chipboundary": {
           "warning": {
-            "title": "Hardware-Grenze — physische Angriffsfläche!",
-            "hint": "Debug-Schnittstellen, Firmware-Schutz und Supply-Chain-Vertrauen müssen explizit bewertet werden. Ungesicherte Debug-Ports sind ein Pflichtbefund in embedded Security Reviews."
+            "title": "Hardware boundary — physical attack surface!",
+            "hint": "Debug interfaces, firmware protection, and supply chain trust must be explicitly verified before production release."
           },
           "fields": {
             "chipType": {
-              "label": "Chip-Typ",
+              "label": "Chip Type",
               "options": {
-                "mcu": "MCU (Mikrocontroller)",
+                "mcu": "MCU (Microcontroller)",
                 "som": "SOM (System-on-Module)",
                 "fpga": "FPGA",
-                "dsp": "DSP (Digitaler Signalprozessor)",
+                "dsp": "DSP (Digital Signal Processor)",
                 "se": "SE (Secure Element)",
                 "hsm": "HSM (Hardware Security Module)"
               },
               "tooltips": {
-                "mcu": "Mikrocontroller — STM32, NXP, Renesas. Bedrohungen: JTAG-Zugang, Firmware-Tampering, Secure-Boot-Bypass, Firmware-Readback.",
-                "som": "System-on-Module — Toradex, RPi CM, Variscite. Supply-Chain-Vertrauen besonders relevant da Drittanbieter-Modul.",
-                "fpga": "Field Programmable Gate Array. Bedrohungen: Bitstream-Tampering, Readback, Partial Reconfiguration Attack.",
-                "dsp": "Digitaler Signalprozessor. Bedrohungsprofil ähnlich wie MCU.",
-                "se": "Secure Element — ATECC608. Hardware-gesicherter Key-Speicher, nicht extrahierbar by Design.",
-                "hsm": "Hardware Security Module. Höchste Hardware-Absicherung. FIPS 140-2 oder CC EAL4+ Zertifizierung prüfen."
+                "mcu": "Microcontroller — STM32, NXP, Renesas. Threats: JTAG access, firmware tampering, secure boot bypass.",
+                "som": "System-on-Module — Toradex, RPi CM, Variscite. Supply chain trust especially relevant.",
+                "fpga": "Field Programmable Gate Array. Threats: bitstream tampering, readback, partial reconfiguration.",
+                "dsp": "Digital Signal Processor. Threat profile similar to MCU.",
+                "se": "Secure Element — ATECC608. Hardware-backed key storage, non-extractable by design.",
+                "hsm": "Hardware Security Module. Highest hardware assurance. Verify FIPS 140-2 or CC EAL4+ certification."
               }
             },
-            "defaultExposureLevel": {
-              "label": "Standard-Expositionslevel"
-            },
             "debugInterfacePresent": {
-              "label": "Debug-Schnittstelle",
+              "label": "Debug Interface",
               "options": {
-                "none": "Keine",
+                "none": "None",
                 "jtag": "JTAG",
                 "swd": "SWD",
-                "swd_swo": "SWD + SWO (ITM)",
                 "jtag_trace": "JTAG + Trace Port (ETM)",
-                "custom": "Benutzerdefiniert"
+                "swd_swo": "SWD + SWO (ITM)",
+                "custom": "Custom"
               },
               "tooltips": {
-                "none": "Keine Debug-Schnittstelle vorhanden oder vollständig deaktiviert. Empfohlen für Produktionsfirmware.",
-                "jtag": "Vollständiges JTAG — CPU-Halt, Speicherzugriff, Flash Read/Write. Höchstes Risiko wenn nicht gesperrt.",
-                "swd": "SWD (ARM Serial Wire Debug) — ähnliche Fähigkeiten wie JTAG mit weniger Pins. Muss in Produktion gesperrt werden.",
-                "swd_swo": "SWD mit Single Wire Output — leichtgewichtiges Software-Trace via ITM. Einzelner zusätzlicher Pin.",
-                "jtag_trace": "JTAG mit ETM Trace Port — vollständiges Instruction-Trace via Parallelport. Erfordert separates Trace-Hardware.",
-                "custom": "Proprietäre oder herstellerspezifische Debug-Schnittstelle. Zugriffsmethode und Sperrmechanismus dokumentieren."
+                "none": "No debug interface present or fully disabled. Recommended for production firmware.",
+                "jtag": "Full JTAG — CPU halt, memory access, flash read/write. Highest risk if not locked via fuse/OTP before production release.",
+                "swd": "SWD (ARM Serial Wire Debug) — similar capabilities to JTAG with fewer pins. Must be locked via RDP or equivalent before production release.",
+                "jtag_trace": "JTAG with ETM Trace Port — full instruction trace via parallel port. Requires separate physical connector (Mictor). Threat: complete code-flow disclosure.",
+                "swd_swo": "SWD with Single Wire Output — lightweight software trace via ITM. Single additional pin. Threat: software-generated trace messages readable.",
+                "custom": "Proprietary or vendor-specific debug interface. Document access method and locking mechanism in notes."
               }
             },
             "debugInterfaceLocked": {
-              "label": "Debug-Schnittstelle gesperrt / deaktiviert in Produktion (Fuse / OTP)"
+              "label": "Debug interface locked / disabled in production (Fuse / OTP)"
             },
             "secureBootEnabled": {
-              "label": "Secure Boot aktiviert"
+              "label": "Secure Boot enabled"
             },
             "firmwareProtection": {
-              "label": "Firmware-Schutz",
+              "label": "Firmware Protection",
               "options": {
-                "none": "Keiner",
-                "locked": "Gesperrt",
-                "encrypted": "Verschlüsselt",
+                "none": "None",
                 "rdp_level1": "RDP Level 1",
-                "rdp_level2": "RDP Level 2"
+                "rdp_level2": "RDP Level 2",
+                "locked": "Locked",
+                "encrypted": "Encrypted"
               },
               "tooltips": {
-                "none": "Kein Schutz — Firmware lesbar und ersetzbar.",
-                "locked": "Schreibgeschützt, kein Debug-Zugang.",
-                "encrypted": "Firmware-Image ist verschlüsselt gespeichert.",
-                "rdp_level1": "STM32 RDP1: Readback deaktiviert, Debug eingeschränkt.",
-                "rdp_level2": "STM32 RDP2: JTAG vollständig deaktiviert, Mass Erase bei Tamper."
+                "none": "No protection — firmware readable and replaceable.",
+                "rdp_level1": "STM32 RDP1: readback disabled, debug limited.",
+                "rdp_level2": "STM32 RDP2: JTAG fully disabled, mass erase on tamper.",
+                "locked": "Write-protected, no debug access.",
+                "encrypted": "Firmware image is encrypted at rest."
               }
             },
             "bitstreamEncryption": {
-              "label": "Bitstream-Verschlüsselung aktiviert"
+              "label": "Bitstream encryption enabled"
             },
             "tamperProtection": {
-              "label": "Tamper-Schutz",
+              "label": "Tamper Protection",
               "options": {
-                "none": "Keiner",
-                "basic": "Einfach",
-                "active": "Aktiv"
+                "none": "None",
+                "basic": "Basic",
+                "active": "Active"
               },
               "tooltips": {
-                "none": "Kein Tamper-Schutz.",
-                "basic": "Gehäusesiegel, Tamper-evidentes Label oder Verguss.",
-                "active": "Aktive Tamper-Erkennung: Spannungsglitch, Temperatur oder Mesh."
+                "none": "No tamper protection.",
+                "basic": "Enclosure seal, tamper-evident label, or potting.",
+                "active": "Active tamper detection: voltage glitch, temperature, or mesh."
               }
             },
             "supplyChainTrust": {
-              "label": "Supply-Chain-Vertrauen",
+              "label": "Supply Chain Trust",
               "options": {
-                "verified": "Verifiziert",
-                "unverified": "Nicht verifiziert",
-                "unknown": "Unbekannt"
+                "verified": "Verified",
+                "unverified": "Unverified",
+                "unknown": "Unknown"
               }
             },
             "safetyRelevant": {
-              "label": "Sicherheitsrelevante Hardware"
+              "label": "Safety-relevant hardware"
             },
             "safetyRationale": {
-              "label": "Safety-Begründung",
-              "helper": "Erforderlich für EN 50742 / MVO 2027 Dokumentation"
+              "label": "Safety Rationale",
+              "helper": "Required for EN 50742 / MVO 2027 documentation"
             },
             "notes": {
-              "label": "Notizen"
+              "label": "Notes"
             },
             "description": {
-              "label": "Beschreibung"
+              "label": "Description"
             }
           }
         },
         "physicalboundary": {
           "warning": {
-            "title": "Physische Grenze — Angriffsflächen-Modellierung!",
-            "hint": "Interfaces die diese Boundary überschneiden oder darin liegen erben ihre physischen Zugangsvoraussetzungen. Tamper-Schutz und Zugangskontrolle vor Deployment verifizieren."
+            "title": "Physical boundary — attack surface modelling!",
+            "hint": "Interfaces that cross or lie inside this boundary inherit its physical access preconditions. Verify tamper protection and access control before deployment."
           },
           "fields": {
             "boundaryType": {
-              "label": "Boundary-Typ",
+              "label": "Boundary Type",
               "options": {
-                "device_enclosure": "Gerätegehäuse",
-                "cabinet": "Schaltschrank / Rack",
-                "room": "Raum",
-                "building": "Gebäude / Anlage",
-                "vehicle": "Fahrzeug / Maschine",
-                "tamper_zone": "Tamper-Zone",
-                "custom": "Benutzerdefiniert"
+                "device_enclosure": "Device Enclosure",
+                "cabinet": "Cabinet / Switchgear",
+                "room": "Room",
+                "building": "Building / Facility",
+                "vehicle": "Vehicle / Machine",
+                "tamper_zone": "Tamper Zone",
+                "custom": "Custom"
               },
               "tooltips": {
-                "device_enclosure": "Gerätegehäuse — erfordert Werkzeugzugang (Schrauben, Hex-Key) zum Öffnen. Typisch für Embedded-Geräte, Steuereinheiten, Sensoren.",
-                "cabinet": "Abschliessbares Gehäuse wie Schaltschrank oder Server-Rack. Schlüssel- oder Badge-Zugang.",
-                "room": "Zugangskontrollierter Raum wie Serverraum, Produktionshalle oder Steuerraum. Badge- oder Schlüsselzugang.",
-                "building": "Gebäude- oder Werksgelände-Perimeter. Höchste physische Boundary in den meisten OT-Deployments.",
-                "vehicle": "Fahrzeug, Maschine oder mobile Anlage. Physischer Zugang durch Gehäuse oder Fahrerkabine kontrolliert.",
-                "tamper_zone": "Versiegelter Bereich mit aktivem Tamper-Schutz — Verguss, Tamper-Bag oder leitendes Mesh. Kein Zugang ohne Zerstörung.",
-                "custom": "Proprietärer oder nicht-standardisierter physischer Boundary-Typ. In Notizen beschreiben."
+                "device_enclosure": "Device housing — requires tool access (screws, hex key) to open. Typical for embedded devices, control units, sensors.",
+                "cabinet": "Lockable enclosure such as a Schaltschrank or server rack. Key or badge access.",
+                "room": "Access-controlled room such as a server room, production hall, or control room. Badge or key access.",
+                "building": "Building or facility perimeter. Highest-level physical boundary in most OT deployments.",
+                "vehicle": "Vehicle, machine, or mobile plant. Physical access controlled by enclosure or cab.",
+                "tamper_zone": "Sealed zone with active tamper protection — potting, tamper bag, or conductive mesh. No access without destruction.",
+                "custom": "Proprietary or non-standard physical boundary type. Describe in notes."
               }
             },
             "physicalExposureLevel": {
-              "label": "Physisches Expositionslevel (PEL)"
+              "label": "Physical Exposure Level (PEL)"
             },
             "accessibility": {
-              "label": "Zugänglichkeit",
+              "label": "Accessibility",
               "options": {
-                "public": "Öffentlich — keine Barriere",
-                "controlled": "Kontrolliert — Schlüssel, Badge oder PIN erforderlich",
-                "guarded": "Bewacht — bemannt und überwacht",
-                "sealed": "Versiegelt — nur destruktiver Zugang"
+                "public": "Public — no barrier",
+                "controlled": "Controlled — key, badge, or PIN required",
+                "guarded": "Guarded — manned and monitored",
+                "sealed": "Sealed — destructive access only"
               },
               "tooltips": {
-                "public": "Keine Barriere — frei erreichbar (Lobby, Outdoor-Installation, öffentlicher Bereich). Maximale Angreiferexposition.",
-                "controlled": "Zugang durch Mechanismus eingeschränkt (Schlüssel, Badge, PIN). Rollenbasierter Zutritt.",
-                "guarded": "Bemannter und überwachter Eingang — aktive menschliche Präsenz an der Boundary.",
-                "sealed": "Vergossen, verschweisst oder tamper-evident — nur destruktiver Zugang. Kein Zutritt ohne Zerstörung der Boundary."
+                "public": "No barrier — freely reachable (lobby, outdoor installation, public area). Maximum attacker exposure.",
+                "controlled": "Access restricted by a mechanism (key, badge, PIN). Role-based entry.",
+                "guarded": "Manned and monitored entry — active human presence at the boundary.",
+                "sealed": "Deprecated — use PEL0 + tamperProtection instead. Sealed is a tamper property, not an environmental context."
               }
             },
             "physicalAccessControl": {
-              "label": "Physische Zugangskontrolle",
+              "label": "Physical Access Control",
               "options": {
-                "none": "Keine",
-                "key": "Mechanischer Schlüssel",
+                "none": "None",
+                "key": "Mechanical Key",
                 "badge": "Badge (RFID/NFC)",
                 "badge_pin": "Badge + PIN",
-                "biometric": "Biometrie",
-                "guard": "Wachpersonal / Personenkontrolle"
+                "biometric": "Biometric",
+                "guard": "Guard / Personnel Check"
               },
               "tooltips": {
-                "none": "Kein physischer Zugangskontroll-Mechanismus vorhanden.",
-                "key": "Mechanischer Schlüssel — Standard- oder Hochsicherheitszylinder.",
-                "badge": "RFID/NFC-Badge ohne zweiten Faktor. Klonbar — Relay-Attack-Risiko vorhanden.",
-                "badge_pin": "Badge plus PIN — mindert Relay-Attack- und Kartenweitergabe-Risiko.",
-                "biometric": "Biometrische Authentifizierung (Fingerabdruck, Iris) — stärkster einzelner physischer Faktor.",
-                "guard": "Bemannter Eingang — Identität wird durch Sicherheitspersonal geprüft."
+                "none": "No physical access control mechanism present.",
+                "key": "Mechanical key — standard or high-security cylinder.",
+                "badge": "RFID/NFC badge without second factor. Cloneable — relay attack risk applies.",
+                "badge_pin": "Badge plus PIN — mitigates relay attack and card sharing risk.",
+                "biometric": "Biometric authentication (fingerprint, iris) — strongest single physical factor.",
+                "guard": "Manned entry — identity checked by security personnel."
               }
             },
             "tamperProtection": {
-              "label": "Tamper-Schutz",
+              "label": "Tamper Protection",
               "options": {
-                "none": "Keiner",
-                "seal": "Tamper-evident Siegel / Label",
-                "switch": "Tamper-Detection-Schalter",
-                "mesh": "Aktives Tamper-Mesh",
-                "potting": "Epoxidharz-Verguss",
-                "active_detection": "Aktive Erkennung (Zeroize)"
+                "none": "None",
+                "seal": "Tamper-Evident Seal / Label",
+                "switch": "Tamper-Detection Switch",
+                "mesh": "Active Tamper Mesh",
+                "potting": "Epoxy Potting",
+                "active_detection": "Active Detection (Zeroize)"
               },
               "tooltips": {
-                "none": "Kein Tamper-Schutz — Öffnen der Boundary hinterlässt keine Spuren.",
-                "seal": "Tamper-evidentes Label oder Siegel — liefert nachträglichen Nachweis der Öffnung, verhindert aber keinen Zugang.",
-                "switch": "Mikroschalter der bei Gehäuseöffnung auslöst — generiert Alert oder unterbricht Stromversorgung.",
-                "mesh": "Leitendes Mesh im Gehäuse eingebettet — Durchschneiden oder Bohren löst Erkennung aus.",
-                "potting": "Epoxidharz-Verguss — kein Rework möglich ohne Platinenerstörung. Höchster passiver Schutz.",
-                "active_detection": "Spannungs-, Temperatur- oder Lichtsensor mit automatischer Zeroize-Reaktion — HSM / Payment-Terminal-Niveau."
+                "none": "No tamper protection — opening the boundary leaves no trace.",
+                "seal": "Tamper-evident label or seal — provides post-hoc evidence of opening, but does not prevent access.",
+                "switch": "Microswitch that triggers on enclosure opening — generates alert or interrupts power.",
+                "mesh": "Conductive mesh embedded in enclosure — cutting or drilling triggers detection.",
+                "potting": "Epoxy potting — no rework possible without destroying the board. Highest passive protection.",
+                "active_detection": "Voltage, temperature, or light sensor with automatic zeroize response — HSM / payment terminal level."
               }
             },
             "monitoringType": {
-              "label": "Physisches Monitoring",
+              "label": "Physical Monitoring",
               "options": {
-                "none": "Keines",
-                "camera": "CCTV / IP-Kamera",
-                "alarm": "Bewegungs- / Türalarm",
-                "soc": "SOC-verbundener Alarm",
-                "guard_patrol": "Wachbegehung",
-                "tamper_monitoring": "Elektronisches Tamper-Monitoring"
+                "none": "None",
+                "camera": "CCTV / IP Camera",
+                "alarm": "Motion / Door Alarm",
+                "soc": "SOC-Connected Alarm",
+                "guard_patrol": "Guard Patrol",
+                "tamper_monitoring": "Electronic Tamper Monitoring"
               },
               "tooltips": {
-                "none": "Kein Monitoring — Angreifer kann unbeobachtet agieren. Generiert Repudiation-Bedrohung.",
-                "camera": "CCTV oder IP-Kamera — nur nachträgliche Beweise. Verhindert keinen Zugang und löst keine Reaktion aus.",
-                "alarm": "Bewegungs- oder Türalarm — Echtzeit-Alert, aber keine aktive Response-Kapazität.",
-                "soc": "Alarm an Security Operations Centre weitergeleitet — aktive Response-Kapazität vorhanden.",
-                "guard_patrol": "Periodische Begehung durch Wachpersonal — Erkennungsfenster abhängig vom Begehungsintervall.",
-                "tamper_monitoring": "Elektronischer Tamper-Sensor (Schalter, Mesh, Spannung) — oft kombiniert mit Zeroize-Reaktion auf angrenzender Chip Boundary."
+                "none": "No monitoring — attacker can operate undetected. Generates Repudiation threat.",
+                "camera": "CCTV or IP camera — post-hoc evidence only. Does not prevent access or trigger response.",
+                "alarm": "Motion or door alarm — real-time alert, but no active response capability.",
+                "soc": "Alarm routed to Security Operations Centre — active response capability.",
+                "guard_patrol": "Periodic manned patrol — detection window depends on patrol interval.",
+                "tamper_monitoring": "Electronic tamper sensor (switch, mesh, voltage) — often paired with zeroize response on adjacent Chip Boundary."
               }
             },
             "requiresToolAccess": {
-              "label": "Werkzeugzugang zum Öffnen erforderlich (Schraubenzieher, Hex-Key)"
+              "label": "Requires tool access to open (screwdriver, hex key)"
             },
             "safetyRelevant": {
-              "label": "Schützt sicherheitsrelevante Hardware oder Funktionen"
+              "label": "Protects safety-relevant hardware or functions"
             },
             "safetyRationale": {
-              "label": "Safety-Begründung",
-              "helper": "Erforderlich für EN 50742 / MVO 2027 Dokumentation"
+              "label": "Safety Rationale",
+              "helper": "Required for EN 50742 / MVO 2027 documentation"
             },
             "owner": {
-              "label": "Verantwortlicher / Eigentümer"
+              "label": "Owner / Responsible"
             },
             "notes": {
-              "label": "Sicherheitsannahmen / Notizen"
+              "label": "Security Assumptions / Notes"
             },
             "description": {
-              "label": "Beschreibung"
+              "label": "Description"
             },
             "physicalMobility": {
-              "label": "Gerätmobilität",
+              "label": "Device Mobility",
               "options": {
-                "fixed": "Fix — kann nicht entfernt werden",
-                "removable": "Ausbaubar — kann entnommen werden (DIN-Rail, Modul)",
-                "portable": "Tragbar — kann ausser Haus gebracht werden",
-                "vehicle_mounted": "Fahrzeugmontiert — bewegt sich mit dem Fahrzeug"
+                "fixed": "Fixed — cannot be removed",
+                "removable": "Removable — can be extracted (DIN-Rail, module)",
+                "portable": "Portable — can be taken offsite",
+                "vehicle_mounted": "Vehicle-mounted — moves with vehicle"
               },
               "tooltips": {
-                "fixed": "Gerät ist fest installiert. Angreifer muss vor Ort unter Zeitdruck mit begrenztem Werkzeug arbeiten. Offline-Labor-Angriffe und Device-Substitution sind nicht anwendbar.",
-                "removable": "Gerät kann mit etwas Aufwand entnommen werden (DIN-Rail-Clip, Schrauben, Stecker). Ermöglicht Depot Attack, Maintenance Abuse, Hardware Swap. Angreifer benötigt physischen Zugang und Zeit für die Entnahme.",
-                "portable": "Gerät kann mitgenommen werden. Angreifer erlangt volle Kontrolle über die Angriffsumgebung — unbegrenzte Zeit, Laborausrüstung, Fault Injection, Side-Channel, Chip-Off, Firmware Implant. Kritisch: bei safetyRelevant=true entstehen Rogue-Calibration- und Safety-Critical-Implant-Bedrohungen.",
-                "vehicle_mounted": "Gerät ist im Fahrzeug eingebaut und bewegt sich damit. Mobil aber nicht handtragbar. Ermöglicht Fahrzeugdiebstahl-Szenario und Depot Attack bei Wartungsfenstern."
+                "fixed": "Device is permanently installed. Attacker must operate on-site under time pressure with limited tools. Offline lab attacks and device substitution are not applicable.",
+                "removable": "Device can be extracted with some effort (DIN-Rail clip, screws, connector). Enables Depot Attack, Maintenance Abuse, Hardware Swap. Attacker needs physical access and time for extraction.",
+                "portable": "Device can be carried away. Attacker gains full control of attack environment — unlimited time, lab equipment, Fault Injection, Side-Channel, Chip-Off, Firmware Implant. Critical: if safetyRelevant=true, generates Rogue Calibration and Safety-Critical Implant threats.",
+                "vehicle_mounted": "Device is installed in a vehicle and moves with it. Mobile but not hand-carried. Enables vehicle theft scenario and depot attack during maintenance windows."
               }
             },
             "debugInterfaceAccessible": {
-              "label": "Debug- / Programmier-Port physisch zugänglich (JTAG, SWD, UART)"
+              "label": "Debug / programming port physically accessible (JTAG, SWD, UART)"
             },
             "removableMediaAccessible": {
-              "label": "Wechselmedium physisch zugänglich (USB, SD-Karte)"
+              "label": "Removable media physically accessible (USB, SD card)"
             }
           }
+        },
+        "asset": {
+          "regulatoryReference": "Regulatory Reference",
+          "containsSafetyRelevantData": "Contains safety-relevant data (EN 50742)",
+          "safetyRelevant": "Safety-relevant system (direct involvement in safety-critical operations)",
+          "responsibilityScope": "Responsibility Scope",
+          "responsibilityScopeRequired": "Required for third-party (CRA Art. 13 supply chain)",
+          "responsibilityScopeHint": "Which security controls are in own vs. provider scope?",
+          "providerName": "Provider Name",
+          "slaReference": "SLA / Contract Reference",
+          "name": "Asset Name",
+          "nameHelper": "Short, unique identifier",
+          "nameTooltip": "Use a concrete name like 'Customer Database' instead of generic terms like 'Data'",
+          "category": "Category",
+          "categoryGuidance": "Choose the category that best describes what needs protection",
+          "categoryData": "Data",
+          "categoryDataDesc": "(Sensor data, production data, configuration)",
+          "categorySystem": "Systems",
+          "categorySystemDesc": "Servers, APIs, SCADA, cloud services",
+          "categoryInfrastructure": "Infrastructure",
+          "categoryInfrastructureDesc": "Machines, network devices",
+          "categoryProcess": "Processes",
+          "categoryProcessDesc": "Firmware updates, SOPs, procedures",
+          "categoryHuman": "Humans",
+          "categoryHumanDesc": "Operators, administrators, contractors",
+          "description": "Description",
+          "descriptionHelper": "What does this asset represent and why is it valuable?",
+          "descriptionTooltip": "Start with a short description. Details can be refined later.",
+          "protectionNeed": "Protection Need",
+          "protectionNeedGuidance": "Consider the impact if this asset is lost, manipulated, or misused",
+          "protectionLow": "Low – loss is inconvenient",
+          "protectionMedium": "Medium – impacts operations",
+          "protectionHigh": "High – causes serious damage",
+          "protectionCritical": "Critical – threatens business or safety",
+          "referencedIn": "Referenced in System",
+          "referencedInGuidance": "These elements reference this asset in the DFD. Use this to validate your description.",
+          "categoryDetails": "{{category}}-Specific Details",
+          "categoryDetailsGuidance": "Additional details specific to this asset type. Optional but helpful.",
+          "dataType": "Data Type",
+          "lifecycle": "Lifecycle",
+          "criticality": "Criticality for Operations",
+          "exposure": "Exposure",
+          "physicalAccess": "Physical Access Possible",
+          "location": "Location",
+          "automated": "Automated",
+          "changeFrequency": "Change Frequency",
+          "role": "Role",
+          "securityRelevant": "Security Relevant (has access to critical systems)",
+          "advanced": "Advanced / Optional",
+          "advancedGuidance": "Optional fields for refinement. Not required for initial analysis.",
+          "owner": "Owner / Responsible",
+          "ownerPlaceholder": "Team or person responsible",
+          "notes": "Additional Notes",
+          "categoryChange": {
+            "title": "Change Asset Category?",
+            "warning": "This asset is referenced by DFD elements. Changing the category will invalidate all existing relation types in those elements, as relation types are category-specific.",
+            "confirm": "Change category"
+          },
+          "tabs": {
+            "general": "General",
+            "relations": "Relations",
+            "usedIn": "Used in"
+          },
+          "label": "Asset",
+          "noAssets": "No assets available in scope",
+          "createNew": "+ Create new asset…",
+          "newAsset": {
+            "name": "Asset Name",
+            "assetGroup": "Asset Group",
+            "confirm": "Confirm",
+            "cancel": "Cancel"
+          },
+          "isSafetyFunction": "Safety function (ISO 12100 / IEC 61508)",
+          "externalRef": "External safety ref (e.g. SF-001)",
+          "externalRefHint": "ID from accompanying safety analysis document",
+          "safetyImpact": "Safety Impact (ISO 12100)",
+          "safetyRationale": "Safety Rationale",
+          "safetyRationalePlaceholder": "e.g. Compromise allows uncontrolled machine motion leading to operator injury",
+          "safetyRationaleHelper": "Used in EN 50742 / MVO 2027 audit documentation",
+          "domain": "Domain / Regulatory context",
+          "isValidatedProcess": "Formally validated / certified process",
+          "validationRationale": "Validation rationale (required)",
+          "isUnique": "Unique / irreplaceable (artwork, prototype, one-of-a-kind)",
+          "portability": "Portability",
+          "serviceType": "Service type",
+          "responsibility": "Responsibility model",
+          "isProtectionTarget": "Protection target per ISO 12100 / EN 50742 (person at risk)",
+          "isPhysicalBarrier": "Physical protection barrier (guard, enclosure, fence)",
+          "environmentalHazard": "Environmental Hazard",
+          "notReferenced": "This asset is not yet referenced by any DFD element."
         }
       },
       "notifications": {
-        "applyLabel": "Anwenden",
-        "applyTooltip": "Vorschlag ins Modell übernehmen",
-        "title": "{{count}} Benachrichtigung(en)"
+        "applyLabel": "Apply",
+        "applyTooltip": "Apply suggestion to model",
+        "title": "{{count}} notification(s)"
       }
     }
   },
   "dfdValidation": {
-    "noElements": "Das DFD enthält keine Elemente",
-    "noProcessOrDatastore": "Mindestens ein Prozess oder Datenspeicher ist erforderlich",
-    "noDataflows": "Das DFD enthält keine Datenflüsse",
-    "noTrustBoundary": "Mindestens eine Trust Boundary ist erforderlich",
-    "needTwoTrustBoundaries": "Ohne externe Entitäten sind mindestens zwei Trust Boundaries erforderlich",
-    "emptyTrustBoundary": "Trust Boundary \"{{name}}\" enthält keinen Prozess oder Datenspeicher",
-    "trustBoundaryMissingId": "Trust Boundary \"{{name}}\" hat keine gültige ID in eckigen Klammern [ID]. Erlaubt: Buchstaben, Zahlen, - und _",
-    "noElementInsideTrustBoundary": "Mindestens ein Prozess oder Datenspeicher muss innerhalb einer Trust Boundary liegen",
-    "elementOutsideAllTrustBoundaries": "{{type}} \"{{name}}\" liegt ausserhalb aller Trust Boundaries",
-    "externalEntityInsideTrustBoundary": "Externe Entität \"{{name}}\" liegt innerhalb einer Trust Boundary",
-    "noInternalExternalFlow": "Mindestens ein Datenfluss zwischen einem internen Element und einer externen Entität ist erforderlich",
-    "noCrossBoundaryFlow": "Mindestens ein Datenfluss muss eine Trust Boundary überschreiten",
-    "unconnectedElement": "{{type}} \"{{name}}\" hat keine Datenfluss-Verbindungen",
-    "unconnectedDataflow": "Datenfluss \"{{name}}\" ist nicht mit Elementen verbunden",
-    "invalidDataflowSource": "Datenfluss \"{{name}}\" hat eine ungültige Quelle",
-    "invalidDataflowTarget": "Datenfluss \"{{name}}\" hat ein ungültiges Ziel",
-    "interfaceUnused": "Interface \"{{name}}\" wird von keinem Datenfluss durchquert",
-    "elementDefaultName": "Element \"{{name}}\" hat einen Standard-/Platzhaltername. Bitte geben Sie einen aussagekräftigen Namen ein.",
-    "elementMissingIdLabel": "Element \"{{name}}\" hat kein ID-Label. Bitte fügen Sie ein ID-Label hinzu (z.B. [P-1], [EE-1], [DF-1]).",
-    "duplicateIdLabel": "ID-Label \"{{id}}\" wird mehrfach verwendet. Jedes Element sollte eine eindeutige ID haben.",
-    "assetRelationInconsistent": "Asset \"{{detail}}\" nicht gefunden",
-    "assetRelationTypeInvalid": "Relation \"{{relationType}}\" zu \"{{assetName}}\" nicht erlaubt für {{elementType}}",
-    "assetMissingName": "Asset \"{{name}}\" hat keinen Namen",
-    "assetMissingProtectionNeed": "Asset \"{{name}}\" hat keinen Schutzbedarf — erforderlich für Threat-Priorisierung",
-    "assetMissingDataType": "Asset \"{{name}}\" hat keinen Datentyp — erforderlich für Information Disclosure / Tampering Threats",
-    "assetMissingLifecycle": "Asset \"{{name}}\" hat keinen Lebenszyklus — erforderlich für Aufbewahrungs- und Lösch-Szenarien",
-    "assetMissingCriticality": "Asset \"{{name}}\" hat keine Kritikalität — erforderlich für Threat-Priorisierung",
-    "assetMissingExposure": "Asset \"{{name}}\" hat keine Exposition — erforderlich für Angriffsflächen-Bewertung",
-    "assetMissingPhysicalAccess": "Asset \"{{name}}\" hat keine physische Zugangskontrolle",
-    "assetMissingServiceType": "Asset \"{{name}}\" hat keinen Service-Typ — erforderlich für Supply-Chain-Threat-Bewertung",
-    "assetMissingResponsibility": "Asset \"{{name}}\" hat keine Verantwortung — erforderlich für CRA Art. 13 Lieferkettenpflichten",
-    "assetMissingRole": "Asset \"{{name}}\" hat keine Rolle — erforderlich für Privilege Escalation / Insider Threat Szenarien",
-    "assetMissingAutomationLevel": "Asset \"{{name}}\" hat keinen Automatisierungsgrad",
-    "physicalBoundaryInvalidConnection": "Physische Grenze ist nicht verbindbar — verwende stattdessen ein Interface-Element auf der Boundary-Kante",
-    "interfaceNoPhysicalBoundary": "Interface hat keinen physischen Kontext — es muss eine Physische Grenze überschneiden oder darin liegen",
-    "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" deklariert eine {{detail}}-Debug-Schnittstelle, aber kein passendes Interface-Element überlappt sie — der Debug-Port ist nicht als Angriffsfläche modelliert",
-    "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": Connector-Typ \"{{targetType}}\" ist für eine {{targetName}}-Schnittstelle nicht gültig",
+    "noElements": "The DFD contains no elements",
+    "noProcessOrDatastore": "At least one process or data store is required",
+    "noDataflows": "The DFD contains no data flows",
+    "noTrustBoundary": "At least one trust boundary is required",
+    "needTwoTrustBoundaries": "Without external entities, at least two trust boundaries are required",
+    "emptyTrustBoundary": "Trust boundary \"{{name}}\" contains no process or data store",
+    "trustBoundaryMissingId": "Trust boundary \"{{name}}\" is missing a valid ID in square brackets [ID]. Allowed: letters, numbers, - and _",
+    "noElementInsideTrustBoundary": "At least one process or data store must be inside a trust boundary",
+    "elementOutsideAllTrustBoundaries": "{{type}} \"{{name}}\" is outside all trust boundaries",
+    "externalEntityInsideTrustBoundary": "External entity \"{{name}}\" is inside a trust boundary",
+    "noInternalExternalFlow": "At least one data flow between an internal element and an external entity is required",
+    "noCrossBoundaryFlow": "At least one data flow must cross a trust boundary",
+    "unconnectedElement": "{{type}} \"{{name}}\" has no data flow connections",
+    "unconnectedDataflow": "Data flow \"{{name}}\" is not connected to elements",
+    "invalidDataflowSource": "Data flow \"{{name}}\" has an invalid source",
+    "invalidDataflowTarget": "Data flow \"{{name}}\" has an invalid target",
+    "interfaceUnused": "Interface \"{{name}}\" is not crossed by any data flow",
+    "elementDefaultName": "Element \"{{name}}\" has a default/placeholder name. Please provide a meaningful name.",
+    "elementMissingIdLabel": "Element \"{{name}}\" is missing an ID label. Please add an ID label (e.g., [P-1], [EE-1], [DF-1]).",
+    "duplicateIdLabel": "ID label \"{{id}}\" is used multiple times. Each element should have a unique ID.",
+    "assetRelationInconsistent": "Asset \"{{detail}}\" not found",
+    "assetRelationTypeInvalid": "Relation \"{{relationType}}\" to \"{{assetName}}\" not allowed for {{elementType}}",
+    "assetMissingName": "Asset \"{{name}}\" has no name set",
+    "assetMissingProtectionNeed": "Asset \"{{name}}\" has no protection need set — required for threat prioritisation",
+    "assetMissingDataType": "Asset \"{{name}}\" has no data type set — required for Information Disclosure / Tampering threat selection",
+    "assetMissingLifecycle": "Asset \"{{name}}\" has no lifecycle set — required for retention and deletion threat scenarios",
+    "assetMissingCriticality": "Asset \"{{name}}\" has no criticality set — required for threat prioritisation",
+    "assetMissingExposure": "Asset \"{{name}}\" has no exposure set — required for attack surface assessment",
+    "assetMissingPhysicalAccess": "Asset \"{{name}}\" has no physical access control set",
+    "assetMissingServiceType": "Asset \"{{name}}\" has no service type set — required for supply chain threat assessment",
+    "assetMissingResponsibility": "Asset \"{{name}}\" has no responsibility set — required for CRA Art. 13 supply chain obligations",
+    "assetMissingRole": "Asset \"{{name}}\" has no role set — required for privilege escalation / insider threat scenarios",
+    "assetMissingAutomationLevel": "Asset \"{{name}}\" has no automation level set",
+    "physicalBoundaryInvalidConnection": "Physical Boundary is non-connectable — use an Interface element on the boundary edge instead",
+    "interfaceNoPhysicalBoundary": "Interface has no physical context — it must overlap or lie inside a Physical Boundary",
+    "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" declares a {{detail}} debug interface but no matching Interface element overlaps it — the debug port is not modelled as an attack surface",
+    "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": connector type \"{{targetType}}\" is not valid for a {{targetName}} interface",
     "elementTypes": {
-      "Process": "Prozess",
-      "Multiprocess": "Multiprozess",
-      "DataStore": "Datenspeicher",
-      "ExternalEntity": "Externe Entität",
+      "Process": "Process",
+      "Multiprocess": "Multiprocess",
+      "DataStore": "Data Store",
+      "ExternalEntity": "External Entity",
       "TrustBoundary": "Trust Boundary",
       "Interface": "Interface",
       "Asset": "Asset",
-      "ChipBoundary": "Chip-Grenze",
-      "PhysicalBoundary": "Physische Grenze",
+      "ChipBoundary": "Chip Boundary",
+      "PhysicalBoundary": "Physical Boundary",
       "rj45": "RJ45",
       "sfp": "SFP/SFP+",
       "m12": "M12",
-      "usb_a": "USB Typ-A",
-      "usb_c": "USB Typ-C",
+      "usb_a": "USB Type-A",
+      "usb_c": "USB Type-C",
       "micro_usb": "Micro-USB",
       "db9": "DB9 (D-Sub 9)",
       "db25": "DB25 (D-Sub 25)",
-      "terminal": "Klemmenleiste",
-      "swd_10pin": "SWD 10-Pin-Header",
-      "jtag_20pin": "JTAG 20-Pin-Header",
-      "gpio_header": "GPIO-Header",
+      "terminal": "Terminal Block",
+      "swd_10pin": "SWD 10-pin Header",
+      "jtag_20pin": "JTAG 20-pin Header",
+      "gpio_header": "GPIO Header",
       "pcie": "PCIe",
-      "custom": "Benutzerdefiniert"
+      "custom": "Custom"
     }
   }
 }

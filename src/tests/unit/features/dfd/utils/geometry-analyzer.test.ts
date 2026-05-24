@@ -1,4 +1,4 @@
-// tests/unit/features/dfd/utils/geometry-analyzer.test.ts
+// src/tests/unit/features/dfd/utils/geometry-analyzer.test.ts
 //
 // Unit tests for GeometryAnalyzer.rectangleIntersectsLine
 //
@@ -11,6 +11,10 @@
 //   moveTo(start=(580,620))
 //   quadTo(ctrl=WP1=(580,450), end=mid(WP1,WP2)=(499.5,450))
 //   quadTo(ctrl=WP2=(419,450), end=(419,278))
+//
+// CURVE_TOL=2: the QB curve at the left boundary (x=494) passes
+// 1.25px outside the rect corner at (544,470). TOL=2 gives clean
+// HIT/MISS separation verified across all measured boundary positions.
 
 import { describe, it, expect } from "vitest";
 import { geometryAnalyzer } from "features/dfd/utils/geometry-analyzer";
@@ -23,10 +27,13 @@ function rect(x: number, y: number, w = 50, h = 50) {
 
 // DF-2: EE-1→P-1 with two waypoints, curved=1
 const DF2 = {
-  start:     { x: 580, y: 620 },
-  end:       { x: 419, y: 278 },
-  waypoints: [{ x: 580, y: 450 }, { x: 419, y: 450 }],
-  curved:    true,
+  start: { x: 580, y: 620 },
+  end: { x: 419, y: 278 },
+  waypoints: [
+    { x: 580, y: 450 },
+    { x: 419, y: 450 },
+  ],
+  curved: true,
 };
 
 function checkDF2(ifaceRect: ReturnType<typeof rect>): boolean {
@@ -42,9 +49,9 @@ function checkDF2(ifaceRect: ReturnType<typeof rect>): boolean {
 // ==================== TESTS ====================
 
 describe("GeometryAnalyzer — rectangleIntersectsLine (curved QB)", () => {
-
   describe("Left side of DF-2 curve", () => {
     it("x=494 — right edge (544,470) touches curve → HIT", () => {
+      // Curve passes 1.25px outside right edge at y=470 — within CURVE_TOL=2
       expect(checkDF2(rect(494, 470))).toBe(true);
     });
 
@@ -67,8 +74,7 @@ describe("GeometryAnalyzer — rectangleIntersectsLine (curved QB)", () => {
     });
 
     it("x=619 — SVG export confirms outside curve → MISS", () => {
-      // SVG: rect x=161 (offset from 419) = x=580 original.
-      // Curve never exceeds x=580 (start point).
+      // Curve never exceeds x=580 (start point x-value).
       expect(checkDF2(rect(619, 470))).toBe(false);
     });
 
@@ -83,8 +89,8 @@ describe("GeometryAnalyzer — rectangleIntersectsLine (curved QB)", () => {
     });
 
     it("IF right of curve at y=390 → MISS", () => {
-      // The final QB segment passes through x≈440 at y≈408 (confirmed by analysis).
-      // A rect at x=550 is clearly to the right of the curve at this height.
+      // Final QB segment passes through x≈440 at y≈408.
+      // x=550 is clearly to the right of the curve at this height.
       expect(checkDF2(rect(550, 390))).toBe(false);
     });
   });
@@ -153,7 +159,6 @@ describe("GeometryAnalyzer — elementInsideBoundary", () => {
   });
 
   it("Center outside boundary → false", () => {
-    // EE-2 center (645, 550) outside JTAG rect
     expect(
       geometryAnalyzer.elementInsideBoundary(
         { position: { x: 600, y: 530 }, size: { width: 90, height: 41 } },
@@ -163,8 +168,12 @@ describe("GeometryAnalyzer — elementInsideBoundary", () => {
   });
 });
 
-describe("SVG regression false positives", () => {
-  it("Curve stays left of rectangle → MISS", () => {
+describe("SVG regression — false positives", () => {
+  // SVG path: M 160.5 341  Q 160.47 171  80.24 171  Q 0 171  0.04 0.01
+  // Curve at y=191-241 passes through x=121-152.
+
+  it("rect(161,191) — curve is left of rect → MISS", () => {
+    // Curve at x=121-152, rect left=161 → clear gap
     expect(
       geometryAnalyzer.rectangleIntersectsLine(
         rect(161, 191),
@@ -179,18 +188,21 @@ describe("SVG regression false positives", () => {
     ).toBe(false);
   });
 
-  it("Exact tangent on rect edge → HIT", () => {
-  expect(
-    geometryAnalyzer.rectangleIntersectsLine(
-      rect(160, 191),
-      { x: 160.5, y: 341 },
-      { x: 0.04, y: 0.01 },
-      [
-        { x: 160.47, y: 171 },
-        { x: 0, y: 171 },
-      ],
-      true,
-    ),
-  ).toBe(true);
-});
+  it("rect(160,191) — curve still left of rect → MISS", () => {
+    // Geometrically verified: curve at y=191-241 is at x=121-152.
+    // rect(160,191) left=160, right=210 — no intersection.
+    // The test name "tangent" was misleading — this is a clear MISS.
+    expect(
+      geometryAnalyzer.rectangleIntersectsLine(
+        rect(160, 191),
+        { x: 160.5, y: 341 },
+        { x: 0.04, y: 0.01 },
+        [
+          { x: 160.47, y: 171 },
+          { x: 0, y: 171 },
+        ],
+        true,
+      ),
+    ).toBe(false);
+  });
 });

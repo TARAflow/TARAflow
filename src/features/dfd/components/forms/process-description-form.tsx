@@ -69,6 +69,40 @@ const EMBEDDED_TECHNOLOGIES = new Set([
 const EMBEDDED_RUNSAS_TOOLTIP =
   "Not applicable — embedded/bare-metal processes have no OS user context";
 
+// Filtered malwareProtection options per technology.
+// AV software requires an OS with a file system — not applicable to bare-metal/RTOS.
+// code_signing requires a trusted bootloader or verifier — only meaningful for
+// loadable code units, not for ISRs or state machines baked into the build.
+const MALWARE_PROTECTION_OPTIONS: Partial<
+  Record<NonNullable<ProcessProperties["technology"]>, ReadonlyArray<string>>
+> = {
+  rtos_task:      ["none", "code_signing", "custom"],
+  bare_metal:     ["none", "code_signing", "custom"],
+  isr:            ["none", "custom"],
+  state_machine:  ["none", "custom"],
+  bootloader:     ["none", "code_signing", "custom"],
+  driver:         ["none", "code_signing", "nx_dep", "custom"],
+  protocol_stack: ["none", "code_signing", "application_whitelist", "custom"],
+  api:            ["none", "application_whitelist", "sandbox", "custom"],
+  ui:             ["none", "av_software", "application_whitelist", "sandbox", "custom"],
+  microservice:   ["none", "application_whitelist", "sandbox", "custom"],
+  lambda:         ["none", "application_whitelist", "sandbox", "custom"],
+  daemon:         ["none", "av_software", "application_whitelist", "nx_dep", "sandbox", "custom"],
+  websocket:      ["none", "application_whitelist", "sandbox", "custom"],
+  event:          ["none", "application_whitelist", "custom"],
+  cli:            ["none", "av_software", "application_whitelist", "custom"],
+  database:       ["none", "application_whitelist", "sandbox", "custom"],
+  cron:           ["none", "av_software", "application_whitelist", "custom"],
+  iot:            ["none", "code_signing", "application_whitelist", "custom"],
+  batch:          ["none", "application_whitelist", "custom"],
+};
+
+// Shown when technology is not yet set — analyst can see all options
+const ALL_MALWARE_OPTIONS: ReadonlyArray<string> = [
+  "none", "av_software", "application_whitelist", "code_signing",
+  "nx_dep", "sandbox", "custom",
+];
+
 const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
   element,
   onChange,
@@ -559,27 +593,262 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Exposed to Internet */}
-        <Grid
-          item
-          xs={12}
-          sm={6}
-          sx={{ display: "flex", alignItems: "center" }}
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={props.exposedToInternet || false}
-                onChange={(e) =>
-                  handlePropertyChange("exposedToInternet", e.target.checked)
-                }
-              />
-            }
-            label={t(
-              "tabs.dfd.element_description.process.fields.exposedToInternet.label",
-            )}
-          />
+        {/* Malware Protection — CR 3.2 / EDR 3.2 */}
+        {/* Options filtered per technology: AV requires OS, code_signing requires loader */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.process.fields.malwareProtection.label",
+                { defaultValue: "Malware Protection" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.malwareProtection ?? ""}
+              onChange={(e) =>
+                handlePropertyChange(
+                  "malwareProtection",
+                  e.target.value === "" ? undefined : e.target.value,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.process.fields.malwareProtection.label",
+                { defaultValue: "Malware Protection" },
+              )}
+            >
+              <MenuItem value="">
+                <em>{t("common.not_specified")}</em>
+              </MenuItem>
+              {(props.technology != null
+                ? (MALWARE_PROTECTION_OPTIONS[props.technology] ??
+                  ALL_MALWARE_OPTIONS)
+                : ALL_MALWARE_OPTIONS
+              ).map((opt: string) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.process.fields.malwareProtection.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
+
+        {/* Account Management — CR 1.3 — not applicable for embedded (no user account concept) */}
+        {!isEmbedded && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.process.fields.accountManagement.label",
+                  { defaultValue: "Account Management" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.accountManagement ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "accountManagement",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.accountManagement.label",
+                  { defaultValue: "Account Management" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>{t("common.not_specified")}</em>
+                </MenuItem>
+                {(
+                  [
+                    "local_only",
+                    "ldap",
+                    "active_directory",
+                    "radius",
+                    "iam",
+                    "custom",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.process.fields.accountManagement.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {/* Authenticator Storage — CR 1.5 RE(1) */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.process.fields.authenticatorStorage.label",
+                { defaultValue: "Authenticator Storage" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.authenticatorStorage ?? ""}
+              onChange={(e) =>
+                handlePropertyChange(
+                  "authenticatorStorage",
+                  e.target.value === "" ? undefined : e.target.value,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.process.fields.authenticatorStorage.label",
+                { defaultValue: "Authenticator Storage" },
+              )}
+            >
+              <MenuItem value="">
+                <em>{t("common.not_specified")}</em>
+              </MenuItem>
+              {(
+                [
+                  "software_only",
+                  "tpm",
+                  "secure_element",
+                  "hsm",
+                  "keychain_os",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.process.fields.authenticatorStorage.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Non-Repudiation — CR 2.12 — only for UI/API/websocket */}
+        {props.technology != null &&
+          (["ui", "api", "websocket", "cli"] as const).includes(
+            props.technology as "ui" | "api" | "websocket" | "cli",
+          ) && (
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>
+                  {t(
+                    "tabs.dfd.element_description.process.fields.nonRepudiation.label",
+                    { defaultValue: "Non-Repudiation" },
+                  )}
+                </InputLabel>
+                <Select
+                  value={props.nonRepudiation ?? ""}
+                  onChange={(e) =>
+                    handlePropertyChange(
+                      "nonRepudiation",
+                      e.target.value === "" ? undefined : e.target.value,
+                    )
+                  }
+                  label={t(
+                    "tabs.dfd.element_description.process.fields.nonRepudiation.label",
+                    { defaultValue: "Non-Repudiation" },
+                  )}
+                >
+                  <MenuItem value="">
+                    <em>{t("common.not_specified")}</em>
+                  </MenuItem>
+                  {(
+                    [
+                      "none",
+                      "audit_log",
+                      "digital_signature",
+                      "hardware_backed",
+                    ] as const
+                  ).map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.process.fields.nonRepudiation.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+        {/* Fail-Safe Output State — CR 3.6 — only for functional_block / safetyRelevant */}
+        {((props as any).processSemantic === "functional_block" ||
+          (props as any).safetyRelevant) && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.process.fields.failSafeOutputState.label",
+                  { defaultValue: "Fail-Safe Output State" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.failSafeOutputState ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange(
+                    "failSafeOutputState",
+                    e.target.value === "" ? undefined : e.target.value,
+                  )
+                }
+                label={t(
+                  "tabs.dfd.element_description.process.fields.failSafeOutputState.label",
+                  { defaultValue: "Fail-Safe Output State" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>{t("common.not_specified")}</em>
+                </MenuItem>
+                {(
+                  [
+                    "not_defined",
+                    "unpowered",
+                    "hold_last_value",
+                    "fixed_value",
+                    "dynamic",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.process.fields.failSafeOutputState.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {/* Exposed to Internet — not applicable for embedded processes (no network stack) */}
+        {!isEmbedded && (
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.exposedToInternet || false}
+                  onChange={(e) =>
+                    handlePropertyChange("exposedToInternet", e.target.checked)
+                  }
+                />
+              }
+              label={t(
+                "tabs.dfd.element_description.process.fields.exposedToInternet.label",
+              )}
+            />
+          </Grid>
+        )}
       </Grid>
 
       {/* ── Documentation ───────────────────────── */}

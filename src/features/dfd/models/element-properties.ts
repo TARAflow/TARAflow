@@ -275,6 +275,137 @@ export interface ProcessProperties {
    */
   processSemantic?: "execution_unit" | "functional_block" | "security_boundary";
 
+  // ── Security Controls (CR mapping) ──────────────────────────────────────────
+
+  /**
+   * Protection from malicious code / unauthorized software execution.
+   * CR 3.2 / SAR 3.2 / EDR 3.2 / HDR 3.2 / NDR 3.2
+   * SL-1 through SL-4 (all levels).
+   *
+   * Threat-gen implication:
+   *   none                → Malware injection / unauthorized code execution threat active
+   *   av_software         → AV/EDR installed — detects known malware signatures (HDR 3.2)
+   *   application_whitelist → Only allowlisted binaries may execute — strong control
+   *   code_signing        → Only cryptographically signed code executes (EDR 3.2 RE1)
+   *   nx_dep              → Hardware NX/DEP — prevents code execution in data regions
+   *   sandbox             → Sandbox / container isolation — limits blast radius
+   *   custom              → Proprietary mechanism — document in notes
+   *
+   * Relevant for: rtos_task, driver, bootloader, bare_metal, protocol_stack
+   */
+  malwareProtection?:
+    | "none"
+    | "av_software"
+    | "application_whitelist"
+    | "code_signing"
+    | "nx_dep"
+    | "sandbox"
+    | "custom";
+
+  /**
+   * Fail-safe output state when normal operation cannot be maintained.
+   * CR 3.6 — Deterministic output. SL-1 through SL-4.
+   *
+   * Defines what this process outputs when it detects an attack, error, or
+   * loss of normal operation. Critical for safety-relevant processes.
+   *
+   * not_defined      → No fail-safe defined — Tampering threat fully active
+   * unpowered        → Outputs fall to de-energized / unpowered state
+   * hold_last_value  → Outputs hold last known good value (PLC "hold" mode)
+   * fixed_value      → Outputs go to a configurable safe fixed value
+   * dynamic          → Context-dependent — describe in notes
+   *
+   * Threat implication:
+   *   not_defined → CR 3.6 Gap — uncontrolled output state under attack
+   *   Any other value → CR 3.6 satisfied at SL-1
+   *
+   * Only meaningful for processSemantic = "functional_block" with direct
+   * process I/O, or safetyRelevant = true.
+   */
+  failSafeOutputState?:
+    | "not_defined"
+    | "unpowered"
+    | "hold_last_value"
+    | "fixed_value"
+    | "dynamic";
+
+  /**
+   * Account management mechanism — how user accounts are provisioned and managed.
+   * CR 1.3 — Account management. SL-1 through SL-4.
+   *
+   * Threat-gen implication:
+   *   local_only       → No central revocation — stale/rogue accounts persist
+   *   ldap / active_directory / radius → Central revocation possible; CR 1.3 satisfied
+   *   iam              → Cloud IAM — centralized, policy-driven
+   *   custom           → Proprietary — document in notes
+   *
+   * Combined with authorizationModel for full CR 1.3 compliance evidence.
+   */
+  accountManagement?:
+    | "local_only"
+    | "ldap"
+    | "active_directory"
+    | "radius"
+    | "iam"
+    | "custom";
+
+  /**
+   * Where authenticators (credentials, keys, tokens) are stored and protected.
+   * CR 1.5 RE(1) — Hardware security for authenticators. SL-3, SL-4.
+   *
+   * Threat-gen implication:
+   *   software_only → Key material extractable from memory — key theft threat active
+   *   tpm           → TPM-protected keys — extraction requires physical attack on TPM
+   *   secure_element → SE-protected keys — hardware-enforced non-extractability
+   *   hsm           → HSM — highest assurance, tamper-responsive
+   *   keychain_os   → OS keychain (iOS Keychain, Android Keystore) — app-level isolation
+   *   custom        → Proprietary mechanism
+   *
+   * Relevant for processes that handle: credentials, certificates, symmetric keys.
+   */
+  authenticatorStorage?:
+    | "software_only"
+    | "tpm"
+    | "secure_element"
+    | "hsm"
+    | "keychain_os"
+    | "custom";
+
+  /**
+   * Session management controls for human-user-facing processes.
+   * CR 2.5 (session lock, SL-1+), CR 2.6 (remote termination, SL-2+),
+   * CR 2.7 (concurrent session control, SL-3+).
+   *
+   * Only meaningful for processes with a human user interface:
+   * technology = "ui" | "websocket" | "cli" | "api" (with HMI access).
+   *
+   * sessionLockEnabled:          CR 2.5 — lock after inactivity timeout
+   * remoteTerminationEnabled:    CR 2.6 — manual termination by authority
+   * maxConcurrentSessions:       CR 2.7 — per-user session limit (0 = unlimited)
+   */
+  sessionControl?: {
+    sessionLockEnabled?: boolean;
+    remoteTerminationEnabled?: boolean;
+    maxConcurrentSessions?: number;
+  };
+
+  /**
+   * Non-repudiation mechanism — ability to prove a user took a specific action.
+   * CR 2.12 — Non-repudiation. SL-1 through SL-4.
+   *
+   * none             → No proof possible — Repudiation threat fully active
+   * audit_log        → Audit log with user identity + timestamp (CR 2.12 base)
+   * digital_signature → Cryptographic signature of actions (CR 2.12 RE1)
+   * hardware_backed  → HSM/TPM-secured audit trail (strongest guarantee)
+   *
+   * Only meaningful for processes with human user interaction.
+   */
+  nonRepudiation?:
+    | "none"
+    | "audit_log"
+    | "digital_signature"
+    | "hardware_backed";
+
   /**
    * Audit trail of security controls intentionally applied to this element.
    * Managed via DFDNotificationsPanel Apply or manual analyst entry.
@@ -423,6 +554,100 @@ export interface MultiprocessProperties {
    * @example "SIL-2 certified, Hardware watchdog, no remote update in production"
    */
   securitySummary?: string;
+
+  // ── Security Controls (CR mapping) ──────────────────────────────────────────
+
+  /**
+   * Protection from malicious code at system level.
+   * CR 3.2 / EDR 3.2 / HDR 3.2 / NDR 3.2 — SL-1 through SL-4.
+   *
+   * Applies to the system as a whole (complements per-Process malwareProtection).
+   * For embedded_controller / gateway: code_signing or application_whitelist.
+   * For scada_hmi / workstation: av_software is baseline.
+   *
+   * @see ProcessProperties.malwareProtection for per-process granularity.
+   */
+  malwareProtection?:
+    | "none"
+    | "av_software"
+    | "application_whitelist"
+    | "code_signing"
+    | "nx_dep"
+    | "sandbox"
+    | "custom";
+
+  /**
+   * Account management at system boundary.
+   * CR 1.3 — Account management. SL-1 through SL-4.
+   *
+   * Combined with boundaryAuthentication + authorizationModel for
+   * full CR 1.3 compliance evidence.
+   *
+   * @see ProcessProperties.accountManagement for process-level granularity.
+   */
+  accountManagement?:
+    | "local_only"
+    | "ldap"
+    | "active_directory"
+    | "radius"
+    | "iam"
+    | "custom";
+
+  /**
+   * Where system-level authenticators (credentials, keys, tokens) are protected.
+   * CR 1.5 RE(1) — Hardware security for authenticators. SL-3, SL-4.
+   *
+   * system_software → Keys in software/firmware — extractable
+   * tpm             → TPM-bound keys
+   * secure_element  → Dedicated SE on the board
+   * hsm             → Hardware Security Module (external or on-board)
+   * custom          → Proprietary mechanism
+   */
+  authenticatorStorage?:
+    | "system_software"
+    | "tpm"
+    | "secure_element"
+    | "hsm"
+    | "custom";
+
+  /**
+   * Backup and recovery mechanism for this system.
+   * CR 7.3 — Control system backup. CR 7.4 — Recovery and reconstitution.
+   * SL-1 through SL-4.
+   *
+   * Threat-gen implication:
+   *   none              → No recovery possible — DoS impact permanent; CR 7.3 Gap
+   *   manual_local      → Local backup, manual process — CR 7.3 SL-1 satisfied
+   *   automated_local   → Automated local backup — CR 7.3 SL-2 satisfied
+   *   automated_remote  → Off-site automated backup — CR 7.3 SL-3 satisfied
+   *   redundant_system  → Hot-standby / active-active — CR 7.4 satisfied
+   *   vendor_managed    → Vendor-provided backup service
+   *
+   * CR 7.4 (reconstitution to known secure state) additionally requires
+   * updateMechanism to be set to a value that supports rollback.
+   */
+  backupMechanism?:
+    | "none"
+    | "manual_local"
+    | "automated_local"
+    | "automated_remote"
+    | "redundant_system"
+    | "vendor_managed";
+
+  /**
+   * Non-repudiation for system-level actions.
+   * CR 2.12 — Non-repudiation. SL-1 through SL-4.
+   *
+   * Only meaningful for systems with human operator interaction
+   * (scada_hmi, workstation, backend_application).
+   *
+   * @see ProcessProperties.nonRepudiation for process-level granularity.
+   */
+  nonRepudiation?:
+    | "none"
+    | "audit_log"
+    | "digital_signature"
+    | "hardware_backed";
 
   /**
    * Audit trail of security controls intentionally applied to this element.
@@ -604,6 +829,25 @@ export interface DataStoreProperties {
     | "custom";
 
   backupEnabled?: boolean;
+
+  /**
+   * Cryptographic standard compliance for encryption and integrity algorithms.
+   * CR 4.3 — Use of cryptography. SL-1 through SL-4.
+   *
+   * Only meaningful when encryptionAtRest ≠ "none" or integrityProtection ∈ {hmac, signature}.
+   *
+   * not_assessed  → No assessment performed — CR 4.3 unknown
+   * nist_approved → NIST-approved (AES-256, SHA-256+)
+   * fips_140_2    → FIPS 140-2 certified module
+   * fips_140_3    → FIPS 140-3 certified module
+   * custom        → Proprietary — document in notes
+   */
+  cryptoStandard?:
+    | "not_assessed"
+    | "nist_approved"
+    | "fips_140_2"
+    | "fips_140_3"
+    | "custom";
 
   /**
    * Technical mechanism for secure data deletion.
@@ -992,6 +1236,36 @@ export interface DataFlowProperties {
    */
   redundancy?: "none" | "failover" | "degraded" | "buffered";
 
+  /**
+   * Physical protection applied to the cable or transmission path.
+   * Relevant only for physically routed flows: on_board, in_enclosure, field_cable.
+   * NOT meaningful for: local_network, enterprise_network, wireless_local, internet.
+   *
+   * Distinct from Interface.implementedControls.signalProtection:
+   *   signalProtection        -> medium property of the cable itself (shielding, fiber)
+   *   physicalPathProtection  -> access barrier protecting the routing path
+   *
+   * Threat-gen implication:
+   *   none           -> Physical path unprotected — cable tap / plug-pull feasible
+   *   cable_duct     -> Routed inside cable duct/tray — reduces casual access
+   *   conduit        -> Inside metal/plastic conduit — raises physical access effort
+   *   armored_cable  -> Mechanical cable protection against cut/tap
+   *   tamper_seal    -> Tamper-evident seal on connectors/access points — detects breach
+   *   locked_cabinet -> Path segments inside locked cabinet — key/tool required
+   *   buried         -> Underground cable — excavation required for physical access
+   *
+   * CRA relevance: Article 13 "minimise attack surfaces"
+   * IEC 62443-3-3 SR 3.4: Physical access to communication paths
+   */
+  physicalPathProtection?:
+    | "none"
+    | "cable_duct"
+    | "conduit"
+    | "armored_cable"
+    | "tamper_seal"
+    | "locked_cabinet"
+    | "buried";
+
   // ---- Safety annotation (optional, non-invasive) ----
   // "Safety Context/Boundary" is NOT a separate DFD element (unlike TrustBoundary).
   // It is a logical categorisation via element properties + automatic detection.
@@ -1050,6 +1324,26 @@ export interface DataFlowProperties {
    * @example "Carries sensor data used by emergency stop logic"
    */
   safetyRationale?: string;
+
+  /**
+   * Cryptographic standard compliance for algorithms used on this flow.
+   * CR 4.3 — Use of cryptography. SL-1 through SL-4.
+   *
+   * Applies when encryptionInTransit ≠ "none" or integrityProtection ∈ {hmac, signature}.
+   * Only set this when the specific standard has been assessed.
+   *
+   * not_assessed  → No compliance assessment performed — CR 4.3 unknown
+   * nist_approved → NIST-approved algorithms (AES-256, SHA-256+, ECDH P-256)
+   * fips_140_2    → FIPS 140-2 certified implementation
+   * fips_140_3    → FIPS 140-3 certified implementation
+   * custom        → Proprietary or region-specific — document in notes
+   */
+  cryptoStandard?:
+    | "not_assessed"
+    | "nist_approved"
+    | "fips_140_2"
+    | "fips_140_3"
+    | "custom";
 
   /**
    * This flow is assumed to operate in a trusted context.
@@ -1178,7 +1472,6 @@ export interface InterfaceProperties {
     | "custom"; // Non-standard — document in notes
 
   connectionSpeed?: "low" | "medium" | "high";
-  isShieldedCable?: boolean;
 
   // EN 50742 Annex B — Exposure Level (primary EL carrier in the graph)
   // Placed in Context: location is the cause, exposureLevel is the effect.
@@ -1186,14 +1479,154 @@ export interface InterfaceProperties {
   exposureLevelSource?: "derived" | "manual";
   exposureLevelRationale?: string;
 
-  // ── Security ─────────────────────────────────────────────────────────────
+  // ── Implemented Security Controls ────────────────────────────────────────
+  //
+  // Applied mitigations on this interface — not intrinsic properties.
+  // Populated by the analyst directly, or via the Close-Loop apply flow
+  // (Risk-Tab mitigation marked "implemented" → DFD notification → Apply).
+  //
+  // Design principles:
+  //   - physical and logical access controls are separated (different threat classes)
+  //   - debugProtection is embedded-specific; relevant for jtag/swd/uart/usb
+  //   - serviceAccessPolicy complements operationalState (policy vs. actual state)
+  //   - abuseProtection relevant for protocol-level flooding (can, uart, ble, modbus)
+  //   - monitoringControl: "implemented" framing — a process monitors, not the interface itself
+  //   - signalProtection: replaces isShieldedCable boolean with a meaningful enum
 
-  accessControl?:
-    | "none"
-    | "physical_lock"
-    | "credentials"
-    | "card"
-    | "certificate";
+  implementedControls?: {
+    /**
+     * Logical/software access restriction at this interface.
+     * Relevant for: uart, usb, ethernet, wifi, bluetooth, rs232, rs485, can, modbus.
+     * NOT meaningful for: gpio, analog_in, analog_out, pwm, spi, i2c (no auth capability).
+     *
+     * Threat-gen implication:
+     *   none       → Spoofing / Elevation of Privilege threats active
+     *   password   → Spoofing threat reduced; credential theft residual threat
+     *   certificate → Spoofing threat mitigated (PKI-based); requires key mgmt
+     *   challenge_response → Spoofing mitigated; relay attack residual
+     *   secure_pairing     → BLE/NFC specific; MITM risk during pairing window
+     *   hardware_token     → Strongest single-factor; physical token loss residual
+     */
+    logicalAccessControl?:
+      | "none"
+      | "password"
+      | "certificate"
+      | "challenge_response"
+      | "secure_pairing"
+      | "hardware_token"
+      | "mfa"; // CR 1.1 RE(2) — Multi-factor authentication; SL-3/SL-4
+
+    /**
+     * Physical access restriction preventing direct connector interaction.
+     * Relevant for all interface types — raises attacker effort (IEC 62443 attack feasibility).
+     *
+     * Threat-gen implication:
+     *   none             → Physical access = full attack surface
+     *   inside_enclosure → Requires enclosure access (effort: medium)
+     *   locked_panel     → Requires key/tool (effort: medium-high)
+     *   sealed           → Destructive access only (effort: high)
+     *   requires_tool    → Non-destructive but tool-gated (effort: medium)
+     *   tamper_evident   → Reduces dwell time; does not prevent access
+     */
+    physicalAccessProtection?:
+      | "none"
+      | "inside_enclosure"
+      | "locked_panel"
+      | "sealed"
+      | "requires_tool"
+      | "tamper_evident";
+
+    /**
+     * Debug interface hardening control.
+     * Relevant for: jtag, swd, swd_swo, jtag_trace, uart (console use), usb (DFU).
+     * NOT meaningful for network, fieldbus, analog, gpio interfaces.
+     *
+     * Threat-gen implication:
+     *   none              → Full debug access — CPU halt, memory R/W, flash readback
+     *   auth_required     → Debug access gated by auth challenge; credential theft residual
+     *   limited_commands  → Read-only debug / restricted command set; partial threat reduction
+     *   readout_protection → Memory readback blocked (e.g. STM32 RDP1); flash dump mitigated
+     *   fused_off         → OTP fuse blown / pad unpopulated — equivalent to permanent_disabled
+     *                       for debug; no debug threats generated
+     */
+    debugProtection?:
+      | "none"
+      | "auth_required"
+      | "limited_commands"
+      | "readout_protection"
+      | "fused_off";
+
+    /**
+     * Policy controlling when this interface is accessible.
+     * Complements operationalState (actual state) — this captures the intended policy.
+     * Especially relevant for service/debug interfaces in embedded OT systems.
+     *
+     * always_enabled    → No lifecycle restriction; full production attack surface
+     * maintenance_only  → Access restricted to declared maintenance windows
+     * factory_only      → Accessible only during manufacturing; should be disabled post-production
+     * temporary_enable  → Access granted on-demand (e.g. via service token, time-limited)
+     *
+     * CRA relevance: Article 13 "minimise attack surfaces" — factory/maintenance policies
+     * reduce production attack surface without permanent physical changes.
+     */
+    serviceAccessPolicy?:
+      | "always_enabled"
+      | "maintenance_only"
+      | "factory_only"
+      | "temporary_enable";
+
+    /**
+     * Protection against protocol-level abuse (flooding, brute force, spam).
+     * Relevant for: uart (brute force), bluetooth (pairing spam), can (flooding),
+     *               rs485/modbus (request flooding), ethernet interfaces.
+     * NOT meaningful for: gpio, analog, spi, i2c, debug interfaces.
+     *
+     * none           → No abuse protection — flooding/brute-force threat active
+     * rate_limited   → Request rate capped; sustained flood mitigated
+     * lockout        → Interface locked after N failed attempts; brute-force mitigated
+     * flood_protection → Protocol-level flood detection (e.g. CAN bus load limiter)
+     */
+    abuseProtection?: "none" | "rate_limited" | "lockout" | "flood_protection";
+
+    /**
+     * Implemented monitoring/detection mechanism for this interface.
+     * The monitoring logic runs in a process (firmware, OS, security agent) —
+     * this field captures whether such a mechanism has been implemented.
+     *
+     * none           → No detection — attacker operates unobserved
+     * usage_logged   → All accesses logged (USB insert, UART connect, login attempt)
+     * tamper_logged  → Physical tampering events logged (enclosure open, cable pull)
+     * alerted        → Real-time alert on anomalous access; reduces attacker dwell time
+     * active_response → Automated response on detection (disable interface, zeroize)
+     */
+    monitoringControl?:
+      | "none"
+      | "usage_logged"
+      | "tamper_logged"
+      | "alerted"
+      | "active_response";
+
+    /**
+     * Signal/medium protection applied to the cable or transmission path.
+     * Replaces isShieldedCable: boolean — the mechanism determines the threat class.
+     * Relevant for physical interfaces with external cabling (field_cable, in_enclosure).
+     * NOT meaningful for: on_chip/on_board interfaces, wireless interfaces.
+     *
+     * none              → No medium protection — eavesdropping / physical tap possible
+     * shielded          → EM shielding (foil/braid); reduces passive eavesdropping
+     * twisted_pair      → Differential signalling; reduces common-mode noise/crosstalk
+     * fiber_optic       → Optical medium; eliminates galvanic eavesdropping entirely
+     * isolated          → Galvanic isolation (optocoupler/transformer); no ground path
+     * conduit_protected → Cable inside protected conduit; raises physical access effort
+     */
+    signalProtection?:
+      | "none"
+      | "shielded"
+      | "twisted_pair"
+      | "fiber_optic"
+      | "isolated"
+      | "conduit_protected";
+  };
 
   // ── Safety annotation ────────────────────────────────────────────────────
 
@@ -1258,6 +1691,33 @@ export interface TrustBoundaryProperties {
 
   monitoringEnabled?: boolean;
   complianceRelevance?: string;
+
+  /**
+   * Default traffic policy enforced at this boundary.
+   * NDR 5.2 RE(1) — Deny all, permit by exception (SL-2+).
+   * NDR 5.2 RE(2) — Island mode capability (SL-3+).
+   * NDR 5.2 RE(3) — Fail close on mechanism failure (SL-3+).
+   *
+   * Only meaningful for boundaryType = "network" | "cloud".
+   *
+   * allow_all                → No restriction — all zone-crossing flows permitted
+   * deny_all_permit_exception → Whitelist-based; only explicitly permitted flows pass
+   *                             NDR 5.2 RE(1) satisfied
+   * island_mode              → Boundary can isolate zone completely on incident
+   *                             NDR 5.2 RE(2) satisfied (implies RE1)
+   * fail_close               → On mechanism failure: no traffic passes (fail-safe)
+   *                             NDR 5.2 RE(3) satisfied (implies RE1 + RE2)
+   *
+   * Threat implication:
+   *   allow_all → Restricted Data Flow threats active; lateral movement possible
+   *   deny_all_permit_exception → Reduces attack surface to explicitly allowed flows
+   */
+  defaultDenyPolicy?:
+    | "allow_all"
+    | "deny_all_permit_exception"
+    | "island_mode"
+    | "fail_close";
+
   owner?: string;
   notes?: string;
 }
@@ -1287,13 +1747,13 @@ export interface ChipBoundaryProperties {
    * Drives cascade defaults and threat generator selection.
    */
   chipType?:
-    | "mcu"   // Microcontroller — STM32, NXP, Renesas, etc.
-    | "som"   // System-on-Module — Toradex, RPi CM, Variscite, etc.
-    | "fpga"  // Field Programmable Gate Array — Xilinx, Intel/Altera, Lattice
-    | "se"    // Secure Element — ATECC608, SLB9670, etc.
-    | "hsm"   // Hardware Security Module — higher assurance than SE
-    | "dsp";  // Digital Signal Processor — threat profile similar to MCU
- 
+    | "mcu" // Microcontroller — STM32, NXP, Renesas, etc.
+    | "som" // System-on-Module — Toradex, RPi CM, Variscite, etc.
+    | "fpga" // Field Programmable Gate Array — Xilinx, Intel/Altera, Lattice
+    | "se" // Secure Element — ATECC608, SLB9670, etc.
+    | "hsm" // Hardware Security Module — higher assurance than SE
+    | "dsp"; // Digital Signal Processor — threat profile similar to MCU
+
   // ── Exposure ──────────────────────────────────────────────────────────────
   /**
    * Default exposure level for interfaces on this chip boundary.
@@ -1301,7 +1761,7 @@ export interface ChipBoundaryProperties {
    * SE/HSM typically EL0; MCU/SOM/FPGA typically EL1 (requires disassembly).
    */
   defaultExposureLevel?: ExposureLevel;
- 
+
   // ── Debug Interface ───────────────────────────────────────────────────────
   /**
    * Type of debug/programming interface present on this chip.
@@ -1310,26 +1770,26 @@ export interface ChipBoundaryProperties {
    */
   debugInterfacePresent?:
     | "none"
-    | "jtag"          // Full JTAG — CPU halt, memory access, flash R/W
-    | "jtag_trace"    // JTAG + Trace Port (ETM) — full debug + instruction trace
-    | "swd"           // SWD (ARM) — similar capabilities to JTAG
-    | "swd_swo"       // SWD + SWO — debug + lightweight software trace (ITM)
-    | "custom";       // Proprietary debug interface
- 
+    | "jtag" // Full JTAG — CPU halt, memory access, flash R/W
+    | "jtag_trace" // JTAG + Trace Port (ETM) — full debug + instruction trace
+    | "swd" // SWD (ARM) — similar capabilities to JTAG
+    | "swd_swo" // SWD + SWO — debug + lightweight software trace (ITM)
+    | "custom"; // Proprietary debug interface
+
   /**
    * Debug interface is locked / disabled in production firmware.
    * STM32: RDP Level ≥ 1. FPGA: JTAG fuse blown.
    * Default: false — surfaces threat if interface is present.
    */
   debugInterfaceLocked?: boolean;
- 
+
   // ── Boot Security ─────────────────────────────────────────────────────────
   /**
    * Secure Boot is enabled — boot chain is cryptographically verified.
    * If false: Bootloader Tampering threat is automatically generated.
    */
   secureBootEnabled?: boolean;
- 
+
   /**
    * Firmware readback / tampering protection level.
    * Specific to MCU/SOM. Not applicable to FPGA (use bitstreamEncryption).
@@ -1346,14 +1806,14 @@ export interface ChipBoundaryProperties {
     | "rdp_level2"
     | "locked"
     | "encrypted";
- 
+
   /**
    * FPGA bitstream encryption enabled.
    * Only relevant when chipType = "fpga".
    * If false: Bitstream Readback / Reverse Engineering threat is generated.
    */
   bitstreamEncryption?: boolean;
- 
+
   // ── Physical / Tamper Protection ──────────────────────────────────────────
   /**
    * Physical tamper protection present on the chip or module.
@@ -1363,7 +1823,7 @@ export interface ChipBoundaryProperties {
    * active → Active tamper detection: voltage glitch, temperature, mesh
    */
   tamperProtection?: "none" | "basic" | "active";
- 
+
   // ── Supply Chain ──────────────────────────────────────────────────────────
   /**
    * Confidence in the chip supply chain.
@@ -1374,7 +1834,56 @@ export interface ChipBoundaryProperties {
    * unknown    → Not assessed
    */
   supplyChainTrust?: "verified" | "unverified" | "unknown";
- 
+
+  // ── Security Controls (CR mapping) ──────────────────────────────────────────
+
+  /**
+   * Where authenticators (keys, certificates) are stored and protected on this chip.
+   * CR 1.5 RE(1) — Hardware security for authenticators. SL-3, SL-4.
+   * EDR 3.12 / 3.13 — Roots of trust provisioning. SL-2+.
+   *
+   * Derives from chipType when chipType = "se" | "hsm":
+   *   se  → authenticatorStorage = "secure_element" (automatic)
+   *   hsm → authenticatorStorage = "hsm" (automatic)
+   *
+   * For mcu / som / fpga: analyst must explicitly set this field if a
+   * separate SE/HSM/TPM is present on the chip boundary.
+   *
+   * software_only   → Keys in firmware/RAM — extractable via debug or side-channel
+   * tpm             → TPM on same board — hardware-bound, not extractable normally
+   * secure_element  → Dedicated SE (ATECC608, SLB9670) — non-extractable by design
+   * hsm             → Full HSM — tamper-responsive, highest assurance
+   * custom          → Proprietary mechanism — document in notes
+   */
+  authenticatorStorage?:
+    | "software_only"
+    | "tpm"
+    | "secure_element"
+    | "hsm"
+    | "custom";
+
+  /**
+   * Cryptographic standard compliance for algorithms used on this chip.
+   * CR 4.3 — Use of cryptography. SL-1 through SL-4.
+   * EDR 3.12 RE — Roots of trust using approved algorithms.
+   *
+   * Applies to: encryption, signing, MAC, key derivation functions.
+   *
+   * not_assessed     → No compliance assessment performed — CR 4.3 unknown
+   * nist_approved    → NIST-approved algorithms (AES-256, SHA-256+, ECDH P-256)
+   * fips_140_2       → FIPS 140-2 Level 1-4 certified cryptographic module
+   * fips_140_3       → FIPS 140-3 certified (newer standard)
+   * common_criteria  → Common Criteria EAL 2+ (SE) or EAL 4+ (HSM)
+   * custom           → Proprietary or region-specific standard — document in notes
+   */
+  cryptoStandard?:
+    | "not_assessed"
+    | "nist_approved"
+    | "fips_140_2"
+    | "fips_140_3"
+    | "common_criteria"
+    | "custom";
+
   // ── Documentation ─────────────────────────────────────────────────────────
   /**
    * Audit trail of security controls intentionally applied to this element.
@@ -1391,7 +1900,7 @@ export interface ChipBoundaryProperties {
    */
   safetyRelevant?: boolean;
   safetyRationale?: string;
- 
+
   notes?: string;
 }
 

@@ -211,6 +211,13 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   const showPhysicalAccessWarning =
     requiresPhysicalAccess && crossesTrustBoundary;
 
+  // cryptoStandard: only meaningful when cryptography is actually configured
+  const showCryptoStandard =
+    (props.encryptionInTransit != null &&
+      props.encryptionInTransit !== "none") ||
+    props.integrityProtection === "hmac" ||
+    props.integrityProtection === "signature";
+
   // Safety function helpers
   const safetyFunction = props.safetyFunction;
   const isSafetyRelevant =
@@ -524,16 +531,133 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
             </Select>
           </FormControl>
         </Grid>
+
+        {/* Physical Medium / Routing — location is the cause, EL is the effect */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.location.label",
+                { defaultValue: "Physical Medium / Routing" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.location ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("location", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.location.label",
+                { defaultValue: "Physical Medium / Routing" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(
+                [
+                  "on_chip",
+                  "on_board",
+                  "in_enclosure",
+                  "field_cable",
+                  "local_network",
+                  "enterprise_network",
+                  "wireless_local",
+                  "internet",
+                  "custom",
+                ] as const
+              ).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.dataflow.fields.location.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {showLocationRationale && (
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.locationRationale.label",
+                { defaultValue: "Location Rationale" },
+              )}
+              value={props.locationRationale ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("locationRationale", e.target.value)
+              }
+              placeholder={t(
+                "tabs.dfd.element_description.dataflow.fields.locationRationale.placeholder",
+                {
+                  defaultValue:
+                    "e.g. Cable runs through public corridor → EL2 not EL1",
+                },
+              )}
+              helperText={t(
+                "tabs.dfd.element_description.dataflow.fields.locationRationale.helper",
+                {
+                  defaultValue:
+                    "Required when location and exposure level deviate from standard mapping",
+                },
+              )}
+            />
+          </Grid>
+        )}
+
+        {/* Redundancy — availability context, drives DoS impact assessment */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
+                { defaultValue: "Redundancy / Fallback" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.redundancy ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange("redundancy", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
+                { defaultValue: "Redundancy / Fallback" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(["none", "failover", "degraded", "buffered"] as const).map(
+                (opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.redundancy.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
+        </Grid>
       </Grid>
 
-      {/* ── Security ─────────────────────────────── */}
+      {/* ── Security Controls ────────────────────── */}
       <SectionLabel
-        label={t("tabs.dfd.element_description.sections.security", {
-          defaultValue: "Security",
+        label={t("tabs.dfd.element_description.sections.security_controls", {
+          defaultValue: "Security Controls",
         })}
       />
 
-      {/* Electrical context alerts — shown before any security fields */}
+      {/* Electrical info: logical controls not applicable */}
       {isElectrical && (
         <Alert severity="info" sx={{ py: 0.5 }}>
           <Typography variant="caption">
@@ -549,185 +673,193 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         </Alert>
       )}
 
-      {showPhysicalAccessWarning && (
-        <Alert severity="warning" sx={{ py: 0.5 }}>
-          <Typography variant="caption">
+      {/* ── Logical Controls ── */}
+      {!isElectrical && (
+        <>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontWeight: 600,
+              letterSpacing: 0.5,
+            }}
+          >
             {t(
-              "tabs.dfd.element_description.dataflow.fields.electrical.physical_boundary_warning",
-              {
-                defaultValue:
-                  "Hardwired signal crosses a Trust Boundary — physical wire access " +
-                  "is the attack vector. Consider: cable routing, tamper seals, " +
-                  "terminal access control.",
-              },
+              "tabs.dfd.element_description.dataflow.sections.logical_controls",
+              { defaultValue: "Logical" },
             )}
           </Typography>
-        </Alert>
-      )}
-
-      <Grid container rowSpacing={2} columnSpacing={2}>
-        {/* Exposure Level */}
-        <Grid item xs={12} sm={6}>
-          <Stack spacing={1}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t("tabs.dfd.element_description.exposure_level.label", {
-                  defaultValue: "Exposure Level",
-                })}
-              </InputLabel>
-              <Select
-                value={props.exposureLevel ?? ""}
-                sx={{
-                  ...(isCurrentlyOverride && {
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "#d32f2f !important",
-                    },
-                  }),
-                }}
-                onChange={(e) => {
-                  const selected = e.target.value as ExposureLevel;
-                  const isOverride =
-                    defaultExposureLevel &&
-                    selected &&
-                    EL_ORDER[selected] < EL_ORDER[defaultExposureLevel];
-                  onChange({
-                    properties: {
-                      ...connection.properties,
-                      exposureLevel: selected || undefined,
-                      exposureLevelSource: isOverride ? "manual" : undefined,
-                    },
-                  });
-                }}
-                label={t("tabs.dfd.element_description.exposure_level.label", {
-                  defaultValue: "Exposure Level",
-                })}
-                renderValue={(value) => {
-                  if (!value) return "";
-                  const isDefault =
-                    defaultExposureLevel && value === defaultExposureLevel;
-                  const isBelowTB =
-                    defaultExposureLevel &&
-                    EL_ORDER[value as ExposureLevel] <
-                      EL_ORDER[defaultExposureLevel];
-                  return (
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                      <span
-                        style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
-                      >
-                        {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
-                      </span>
-                      {isDefault && (
-                        <Chip
-                          label="default"
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            fontSize: "0.65rem",
-                            height: 16,
-                            pointerEvents: "none",
-                          }}
-                        />
-                      )}
-                    </Stack>
-                  );
-                }}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
+          <Grid container rowSpacing={2} columnSpacing={2}>
+            {/* Exposure Level */} {/* Exposure Level */}
+            <Grid item xs={12} sm={6}>
+              <Stack spacing={1}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
+                    {t("tabs.dfd.element_description.exposure_level.label", {
+                      defaultValue: "Exposure Level",
                     })}
-                  </em>
-                </MenuItem>
-                {EXPOSURE_LEVELS.map((el) => {
-                  const isBelowTB =
-                    defaultExposureLevel &&
-                    EL_ORDER[el] < EL_ORDER[defaultExposureLevel];
-                  const baseTooltip = t(EXPOSURE_LEVEL_DESCRIPTION_KEYS[el], {
-                    defaultValue: "",
-                  });
-                  const overrideHint = t(
-                    "tabs.dfd.element_description.exposure_level.below_tb_hint",
-                    {
-                      defaultValue:
-                        "Below Trust Boundary EL — override requires rationale",
-                    },
-                  );
-                  return (
-                    <MenuItem
-                      key={el}
-                      value={el}
-                      sx={{ color: isBelowTB ? "error.main" : "inherit" }}
-                    >
-                      <Tooltip
-                        title={
-                          isBelowTB
-                            ? `${baseTooltip} — ${overrideHint}`
-                            : baseTooltip
-                        }
-                        placement="right"
-                        arrow
-                      >
-                        <span style={{ width: "100%", display: "block" }}>
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={0.5}
+                  </InputLabel>
+                  <Select
+                    value={props.exposureLevel ?? ""}
+                    sx={{
+                      ...(isCurrentlyOverride && {
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "#d32f2f !important",
+                        },
+                      }),
+                    }}
+                    onChange={(e) => {
+                      const selected = e.target.value as ExposureLevel;
+                      const isOverride =
+                        defaultExposureLevel &&
+                        selected &&
+                        EL_ORDER[selected] < EL_ORDER[defaultExposureLevel];
+                      onChange({
+                        properties: {
+                          ...connection.properties,
+                          exposureLevel: selected || undefined,
+                          exposureLevelSource: isOverride
+                            ? "manual"
+                            : undefined,
+                        },
+                      });
+                    }}
+                    label={t(
+                      "tabs.dfd.element_description.exposure_level.label",
+                      {
+                        defaultValue: "Exposure Level",
+                      },
+                    )}
+                    renderValue={(value) => {
+                      if (!value) return "";
+                      const isDefault =
+                        defaultExposureLevel && value === defaultExposureLevel;
+                      const isBelowTB =
+                        defaultExposureLevel &&
+                        EL_ORDER[value as ExposureLevel] <
+                          EL_ORDER[defaultExposureLevel];
+                      return (
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={0.5}
+                        >
+                          <span
+                            style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
                           >
-                            <span>{EXPOSURE_LEVEL_LABELS[el]}</span>
-                            {defaultExposureLevel &&
-                              el === defaultExposureLevel && (
-                                <Chip
-                                  label="default"
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{
-                                    fontSize: "0.65rem",
-                                    height: 16,
-                                    pointerEvents: "none",
-                                  }}
-                                />
-                              )}
-                          </Stack>
-                        </span>
-                      </Tooltip>
+                            {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
+                          </span>
+                          {isDefault && (
+                            <Chip
+                              label="default"
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                fontSize: "0.65rem",
+                                height: 16,
+                                pointerEvents: "none",
+                              }}
+                            />
+                          )}
+                        </Stack>
+                      );
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>
+                        {t("common.not_specified", {
+                          defaultValue: "Not specified",
+                        })}
+                      </em>
                     </MenuItem>
-                  );
-                })}
-              </Select>
-            </FormControl>
-            {isCurrentlyOverride && (
-              <TextField
-                fullWidth
-                size="small"
-                multiline
-                rows={2}
-                label={t(
-                  "tabs.dfd.element_description.exposure_level.rationale_label",
-                  { defaultValue: "Override Rationale" },
+                    {EXPOSURE_LEVELS.map((el) => {
+                      const isBelowTB =
+                        defaultExposureLevel &&
+                        EL_ORDER[el] < EL_ORDER[defaultExposureLevel];
+                      const baseTooltip = t(
+                        EXPOSURE_LEVEL_DESCRIPTION_KEYS[el],
+                        {
+                          defaultValue: "",
+                        },
+                      );
+                      const overrideHint = t(
+                        "tabs.dfd.element_description.exposure_level.below_tb_hint",
+                        {
+                          defaultValue:
+                            "Below Trust Boundary EL — override requires rationale",
+                        },
+                      );
+                      return (
+                        <MenuItem
+                          key={el}
+                          value={el}
+                          sx={{ color: isBelowTB ? "error.main" : "inherit" }}
+                        >
+                          <Tooltip
+                            title={
+                              isBelowTB
+                                ? `${baseTooltip} — ${overrideHint}`
+                                : baseTooltip
+                            }
+                            placement="right"
+                            arrow
+                          >
+                            <span style={{ width: "100%", display: "block" }}>
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                spacing={0.5}
+                              >
+                                <span>{EXPOSURE_LEVEL_LABELS[el]}</span>
+                                {defaultExposureLevel &&
+                                  el === defaultExposureLevel && (
+                                    <Chip
+                                      label="default"
+                                      size="small"
+                                      variant="outlined"
+                                      sx={{
+                                        fontSize: "0.65rem",
+                                        height: 16,
+                                        pointerEvents: "none",
+                                      }}
+                                    />
+                                  )}
+                              </Stack>
+                            </span>
+                          </Tooltip>
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+                {isCurrentlyOverride && (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    multiline
+                    rows={2}
+                    label={t(
+                      "tabs.dfd.element_description.exposure_level.rationale_label",
+                      { defaultValue: "Override Rationale" },
+                    )}
+                    value={props.exposureLevelRationale ?? ""}
+                    onChange={(e) =>
+                      form.handlePropertyChange(
+                        "exposureLevelRationale",
+                        e.target.value,
+                      )
+                    }
+                    placeholder={t(
+                      "tabs.dfd.element_description.exposure_level.rationale_placeholder",
+                      {
+                        defaultValue:
+                          "Why does this differ from the Trust Boundary EL?",
+                      },
+                    )}
+                  />
                 )}
-                value={props.exposureLevelRationale ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "exposureLevelRationale",
-                    e.target.value,
-                  )
-                }
-                placeholder={t(
-                  "tabs.dfd.element_description.exposure_level.rationale_placeholder",
-                  {
-                    defaultValue:
-                      "Why does this differ from the Trust Boundary EL?",
-                  },
-                )}
-              />
-            )}
-          </Stack>
-        </Grid>
-
-        {/* Encryption / Auth / Integrity — hidden for electrical signals */}
-        {!isElectrical && (
-          <>
+              </Stack>
+            </Grid>
             {/* Encryption in Transit */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small" error={showEncryptionWarning}>
@@ -785,7 +917,6 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 </Typography>
               )}
             </Grid>
-
             {/* Endpoint Authentication */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
@@ -828,7 +959,6 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 </Select>
               </FormControl>
             </Grid>
-
             {/* Integrity Protection */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
@@ -878,126 +1008,106 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 </Select>
               </FormControl>
             </Grid>
-          </>
-        )}
-
-        {/* Physical Location / Medium */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.location.label",
-                { defaultValue: "Physical Medium / Routing" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.location ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("location", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.location.label",
-                { defaultValue: "Physical Medium / Routing" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(
-                [
-                  "on_chip",
-                  "on_board",
-                  "in_enclosure",
-                  "field_cable",
-                  "local_network",
-                  "enterprise_network",
-                  "wireless_local",
-                  "internet",
-                  "custom",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.location.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {showLocationRationale && (
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              size="small"
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.locationRationale.label",
-                { defaultValue: "Location Rationale" },
-              )}
-              value={props.locationRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("locationRationale", e.target.value)
-              }
-              placeholder={t(
-                "tabs.dfd.element_description.dataflow.fields.locationRationale.placeholder",
-                {
-                  defaultValue:
-                    "e.g. Cable runs through public corridor → EL2 not EL1",
-                },
-              )}
-              helperText={t(
-                "tabs.dfd.element_description.dataflow.fields.locationRationale.helper",
-                {
-                  defaultValue:
-                    "Required when location and exposure level deviate from standard mapping",
-                },
-              )}
-            />
           </Grid>
-        )}
+        </>
+      )}
 
-        {/* Redundancy */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
-                { defaultValue: "Redundancy / Fallback" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.redundancy ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("redundancy", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
-                { defaultValue: "Redundancy / Fallback" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(["none", "failover", "degraded", "buffered"] as const).map(
-                (opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.dataflow.fields.redundancy.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
+      {/* ── Physical Controls ── */}
+      {requiresPhysicalAccess && (
+        <>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              pt: 1,
+            }}
+          >
+            {t(
+              "tabs.dfd.element_description.dataflow.sections.physical_controls",
+              { defaultValue: "Physical" },
+            )}
+          </Typography>
+
+          {showPhysicalAccessWarning && (
+            <Alert severity="warning" sx={{ py: 0.5 }}>
+              <Typography variant="caption">
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.electrical.physical_boundary_warning",
+                  {
+                    defaultValue:
+                      "This flow crosses a Trust Boundary via a physical path — cable tap or " +
+                      "plug-pull is the primary attack vector. Consider path protection below.",
+                  },
+                )}
+              </Typography>
+            </Alert>
+          )}
+
+          <Grid container rowSpacing={2} columnSpacing={2}>
+            {/* Physical Path Protection */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>
+                  {t(
+                    "tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label",
+                    { defaultValue: "Physical Path Protection" },
+                  )}
+                </InputLabel>
+                <Select
+                  value={props.physicalPathProtection ?? ""}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "physicalPathProtection",
+                      e.target.value || undefined,
+                    )
+                  }
+                  label={t(
+                    "tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label",
+                    { defaultValue: "Physical Path Protection" },
+                  )}
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t("common.not_specified", {
+                        defaultValue: "Not specified",
+                      })}
+                    </em>
                   </MenuItem>
-                ),
-              )}
-            </Select>
-          </FormControl>
-        </Grid>
+                  {(
+                    [
+                      "none",
+                      "cable_duct",
+                      "conduit",
+                      "armored_cable",
+                      "tamper_seal",
+                      "locked_cabinet",
+                      "buried",
+                    ] as const
+                  ).map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.physicalPathProtection.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </>
+      )}
 
+      {/* ── Safety ────────────────────────────────── */}
+      <SectionLabel
+        label={t("tabs.dfd.element_description.sections.safety", {
+          defaultValue: "Safety",
+        })}
+      />
+
+      <Grid container rowSpacing={2} columnSpacing={2}>
         {/* Safety Function */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth size="small">
@@ -1221,7 +1331,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};
+};;
 
 // ==================== MAIN COMPONENT ====================
 

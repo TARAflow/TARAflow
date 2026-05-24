@@ -229,7 +229,10 @@
           "security": "Security",
           "documentation": "Documentation",
           "hardware_security": "Hardware Security",
-          "physical_security": "Physical Security"
+          "physical_security": "Physical Security",
+          "implemented_controls": "Implemented Controls",
+          "safety": "Safety",
+          "security_controls": "Security Controls"
         },
         "process": {
           "safetyAnnotation": {
@@ -403,10 +406,6 @@
                 "sanitized": "Sanitized (User-friendly)"
               }
             },
-            "securityControls": {
-              "label": "Security Controls",
-              "placeholder": "e.g., Sandboxing, Rate limiting, WAF"
-            },
             "exposedToInternet": {
               "label": "Exposed to Internet"
             },
@@ -440,6 +439,70 @@
             },
             "notes": {
               "label": "Additional Notes"
+            },
+            "malwareProtection": {
+              "label": "Malware Protection",
+              "options": {
+                "none": "None",
+                "av_software": "Antivirus / EDR Software",
+                "application_whitelist": "Application Whitelist",
+                "code_signing": "Code Signing (signed binaries only)",
+                "nx_dep": "NX / DEP (Hardware execution prevention)",
+                "sandbox": "Sandbox / Container Isolation",
+                "custom": "Custom"
+              }
+            },
+            "failSafeOutputState": {
+              "label": "Fail-Safe Output State",
+              "options": {
+                "not_defined": "Not Defined",
+                "unpowered": "Unpowered (de-energize outputs)",
+                "hold_last_value": "Hold Last Known Good Value",
+                "fixed_value": "Fixed Safe Value",
+                "dynamic": "Dynamic (context-dependent)"
+              }
+            },
+            "accountManagement": {
+              "label": "Account Management",
+              "options": {
+                "local_only": "Local Accounts Only",
+                "ldap": "LDAP Directory",
+                "active_directory": "Active Directory",
+                "radius": "RADIUS",
+                "iam": "Cloud IAM",
+                "custom": "Custom"
+              }
+            },
+            "authenticatorStorage": {
+              "label": "Authenticator Storage",
+              "options": {
+                "software_only": "Software Only (extractable)",
+                "tpm": "TPM (Trusted Platform Module)",
+                "secure_element": "Secure Element",
+                "hsm": "Hardware Security Module",
+                "keychain_os": "OS Keychain (iOS / Android Keystore)",
+                "custom": "Custom"
+              }
+            },
+            "nonRepudiation": {
+              "label": "Non-Repudiation",
+              "options": {
+                "none": "None",
+                "audit_log": "Audit Log with User Identity",
+                "digital_signature": "Digital Signature of Actions",
+                "hardware_backed": "Hardware-Backed (HSM / TPM)"
+              }
+            },
+            "sessionControl": {
+              "sessionLockEnabled": {
+                "label": "Session Lock after Inactivity"
+              },
+              "remoteTerminationEnabled": {
+                "label": "Remote Session Termination"
+              },
+              "maxConcurrentSessions": {
+                "label": "Max. Concurrent Sessions (0 = unlimited)"
+              }
             }
           },
           "stride_hint": {
@@ -689,22 +752,79 @@
             },
             "description": {
               "label": "Description"
+            },
+            "malwareProtection": {
+              "label": "Malware Protection",
+              "options": {
+                "none": "None",
+                "av_software": "Antivirus / EDR Software",
+                "application_whitelist": "Application Whitelist",
+                "code_signing": "Code Signing (signed binaries only)",
+                "nx_dep": "NX / DEP (Hardware execution prevention)",
+                "sandbox": "Sandbox / Container Isolation",
+                "custom": "Custom"
+              }
+            },
+            "accountManagement": {
+              "label": "Account Management",
+              "options": {
+                "local_only": "Local Accounts Only",
+                "ldap": "LDAP Directory",
+                "active_directory": "Active Directory",
+                "radius": "RADIUS",
+                "iam": "Cloud IAM",
+                "custom": "Custom"
+              }
+            },
+            "authenticatorStorage": {
+              "label": "Authenticator Storage",
+              "options": {
+                "system_software": "System Software (extractable)",
+                "tpm": "TPM (Trusted Platform Module)",
+                "secure_element": "Secure Element",
+                "hsm": "Hardware Security Module",
+                "custom": "Custom"
+              }
+            },
+            "backupMechanism": {
+              "label": "Backup Mechanism",
+              "options": {
+                "none": "None",
+                "manual_local": "Manual Local Backup",
+                "automated_local": "Automated Local Backup",
+                "automated_remote": "Automated Remote Backup",
+                "redundant_system": "Redundant System (Hot-Standby)",
+                "vendor_managed": "Vendor-Managed"
+              }
+            },
+            "nonRepudiation": {
+              "label": "Non-Repudiation",
+              "options": {
+                "none": "None",
+                "audit_log": "Audit Log with User Identity",
+                "digital_signature": "Digital Signature of Actions",
+                "hardware_backed": "Hardware-Backed (HSM / TPM)"
+              }
             }
           }
         },
         "interface": {
           "cascade_hints": {
-            "usb": "This interface type is a common attack surface on embedded systems. Consider setting Safety Relevant if connected to safety-critical components.",
+            "usb": "USB interfaces are a common attack surface on embedded systems. Consider setting Safety Relevant if this interface is connected to safety-critical components.",
             "serial": "Serial interfaces are often connected to debug consoles or safety-critical components. Consider setting Safety Relevant if applicable.",
-            "gpio": "GPIO pins may connect directly to safety actuators or sensors. Consider setting Safety Relevant if this interface controls or reads safety-critical hardware.",
-            "uart": "UART is frequently used as an unprotected debug console or configuration port. Verify that access is restricted in production.",
-            "rs232": "RS-232 serial interfaces often expose diagnostic or configuration access. Consider physical access controls.",
-            "rs485": "RS-485 / Modbus is common in safety-critical industrial systems. Consider setting Safety Relevant if connected to actuators or sensors.",
-            "can": "CAN Bus has no built-in authentication or encryption. Consider setting Safety Relevant if used in automotive or industrial safety systems.",
-            "analog_in": "Analog inputs connect to physical sensors. Tampering with signal levels may affect measurements. Consider setting Safety Relevant.",
-            "analog_out": "Analog outputs drive actuators. Manipulation of output signals may have safety-critical consequences. Consider setting Safety Relevant.",
-            "jtag": "JTAG provides full CPU debug access including memory read/write and flash programming. This port must be locked or disabled in production.",
-            "swd": "SWD provides ARM debug and flash programming access. This port must be locked or disabled in production. Consider setting safetyRelevant if connected to safety-critical firmware."
+            "gpio": "GPIO pins may be directly connected to safety actuators or sensors. Consider setting Safety Relevant if this interface controls or reads safety-critical hardware.",
+            "uart": "UART is frequently used as an unprotected debug console or configuration interface. Ensure access is restricted in production.",
+            "rs232": "RS-232 interfaces often allow diagnostic or configuration access. Physical access controls are recommended.",
+            "rs485": "RS-485 / Modbus is common in safety-critical industrial systems. Set Safety Relevant if actuators or sensors are connected.",
+            "can": "CAN Bus has no built-in authentication or encryption. Set Safety Relevant if used in automotive or industrial safety systems.",
+            "analog_in": "Analog inputs are connected to physical sensors. Manipulation of signal levels can falsify measurements. Consider Safety Relevant.",
+            "analog_out": "Analog outputs control actuators. Manipulation of output signals can have safety-critical consequences. Set Safety Relevant.",
+            "jtag": "JTAG provides full CPU debug access including memory R/W and flash programming. This port must be locked or disabled in production.",
+            "swd": "SWD provides ARM debug and flash programming access. This port must be locked or disabled in production. Set Safety Relevant if safety-critical firmware is affected."
+          },
+          "sections": {
+            "physical_controls": "Physical",
+            "logical_controls": "Logical"
           },
           "fields": {
             "type": {
@@ -723,7 +843,6 @@
                 "bluetooth": "Bluetooth",
                 "nfc": "NFC",
                 "fiber": "Fibre Optic",
-
                 "uart": "UART",
                 "rs232": "RS-232",
                 "rs485": "RS-485",
@@ -731,78 +850,51 @@
                 "i2c": "I²C",
                 "spi": "SPI",
                 "lin": "LIN Bus",
-
                 "usb": "USB",
-
                 "jtag": "JTAG",
                 "swd": "SWD",
                 "swd_swo": "SWD + SWO (Trace)",
                 "jtag_trace": "JTAG + ETM Trace",
-
                 "gpio": "GPIO",
                 "analog_in": "Analog Input",
                 "analog_out": "Analog Output",
                 "pwm": "PWM",
-
                 "custom": "Custom"
               },
               "tooltips": {
-                "ethernet": "Wired Ethernet (10/100/1000 Mbit/s, PoE). Physical connection required.",
-                "wifi": "IEEE 802.11 wireless. No physical access required — reachable from distance.",
+                "ethernet": "Wired Ethernet (10/100/1000 Mbps, PoE). Physical connection required.",
+                "wifi": "IEEE 802.11 Wi-Fi. No physical access required — remotely reachable.",
                 "bluetooth": "Bluetooth Classic / BLE. No physical access required.",
                 "nfc": "Near-Field Communication. Proximity (~10 cm) required.",
-                "fiber": "Fibre optic. Physical tap requires cutting the cable.",
-
-                "uart": "UART/USART — often an unprotected debug console or config port. High risk.",
+                "fiber": "Fibre optic. Physical tap requires cable interruption.",
+                "uart": "UART/USART — frequently an unprotected debug console port. High risk.",
                 "rs232": "RS-232 point-to-point serial. Common in legacy industrial equipment.",
-                "rs485": "RS-485 / Modbus RTU. Multi-drop bus — any device on the bus can sniff traffic.",
-                "can": "CAN Bus — no authentication or encryption by default. Common in automotive and industrial.",
-                "i2c": "I²C — short-range bus to sensors, EEPROMs, and peripherals. Requires PCB access.",
-                "spi": "SPI — high-speed bus to peripherals. Requires PCB access.",
-                "lin": "LIN Bus — single-wire, low-speed automotive bus. Body/chassis functions.",
-
+                "rs485": "RS-485 / Modbus RTU. Multi-drop bus — any device on the bus can read data.",
+                "can": "CAN Bus — no authentication or encryption by default. Automotive and industrial.",
+                "i2c": "I²C — short-range bus to sensors, EEPROMs, and peripherals. PCB access required.",
+                "spi": "SPI — high-speed bus to peripherals. PCB access required.",
+                "lin": "LIN Bus — single-wire, low speed. Automotive body/chassis.",
                 "usb": "USB (any class). Risk: DFU mode, HID injection (BadUSB), mass storage.",
-
                 "jtag": "Full JTAG: CPU halt, memory R/W, flash read/write. Highest debug risk.",
-                "swd": "ARM Serial Wire Debug — similar capabilities to JTAG. Should be locked in production.",
+                "swd": "ARM Serial Wire Debug — comparable capabilities to JTAG. Lock in production.",
                 "swd_swo": "SWD + SWO (Single Wire Output) — debug access plus lightweight ITM trace.",
-                "jtag_trace": "JTAG + ETM Trace Port — full debug access plus instruction-level trace.",
-
-                "gpio": "General Purpose I/O — digital signal in/out. Risk depends on function.",
-                "analog_in": "Analog Input (ADC) — sensor or signal input. Tampering affects measurements.",
+                "jtag_trace": "JTAG + ETM Trace Port — full debug access plus instruction trace.",
+                "gpio": "General Purpose I/O. Risk depends on function.",
+                "analog_in": "Analog Input (ADC) — sensor or signal input. Manipulation affects measurements.",
                 "analog_out": "Analog Output (DAC) — actuator or signal output. Safety-critical in many systems.",
-                "pwm": "PWM Output — motor control, LED dimming. Safety-relevant for actuators.",
-
+                "pwm": "PWM Output — motor control, dimming. Safety-relevant for actuators.",
                 "custom": "Proprietary or unlisted interface type."
-              }
-            },
-            "accessControl": {
-              "label": "Access Control",
-              "options": {
-                "none": "None",
-                "physical_lock": "Physical Lock",
-                "credentials": "Credentials (Username / Password)",
-                "card": "Access Card / Badge",
-                "certificate": "Certificate / PKI"
-              }
-            },
-            "connectionSpeed": {
-              "label": "Connection Speed",
-              "options": {
-                "low": "Low (< 1 Mbit/s)",
-                "medium": "Medium (1–100 Mbit/s)",
-                "high": "High (> 100 Mbit/s)"
               }
             },
             "location": {
               "label": "Physical Location",
-              "placeholder": "e.g. Server Room, Manufacturing Floor, Field Cabinet",
+              "placeholder": "e.g. server room, production floor, field cabinet",
               "options": {
-                "on_chip": "On-Chip",
-                "on_board": "On-Board (PCB)",
+                "on_chip": "On Chip",
+                "on_board": "On Board (PCB)",
                 "in_enclosure": "Inside Enclosure",
                 "external_panel": "External Panel",
-                "field_accessible": "Field-Accessible",
+                "field_accessible": "Field Accessible",
                 "network_port": "Network Port",
                 "wireless": "Wireless",
                 "internet_facing": "Internet-Facing",
@@ -810,14 +902,14 @@
               },
               "tooltips": {
                 "on_chip": "Internal chip pad or register — EL0, debug interface only",
-                "on_board": "PCB-mounted connector on same board — EL0/EL1",
+                "on_board": "PCB-mounted connector, same board — EL0/EL1",
                 "in_enclosure": "Port inside sealed enclosure — EL1, requires disassembly",
                 "external_panel": "Panel-mounted port on device exterior — EL1",
-                "field_accessible": "Field-accessible connector (M12, DIN, terminal block) — EL1/EL2",
+                "field_accessible": "Field-accessible connector (M12, DIN, terminal) — EL1/EL2",
                 "network_port": "Standard network port (RJ45, SFP) — EL2/EL3",
                 "wireless": "Wireless interface (antenna, built-in radio) — EL3",
                 "internet_facing": "Internet-exposed interface — EL4",
-                "custom": "Non-standard location — document in notes"
+                "custom": "Non-standard location — describe in notes"
               }
             },
             "operationalState": {
@@ -831,14 +923,15 @@
               },
               "tooltips": {
                 "enabled": "Fully active — full threat surface applies",
-                "enabled_read_only": "Output only, no input accepted (e.g. UART log-only). Command injection path eliminated.",
-                "sw_disabled": "Disabled via config or firmware — reversible without hardware access. Residual threat: re-enable via software exploit.",
-                "hw_disabled": "Disabled via jumper or DIP-switch — requires physical access to re-enable. Lower residual risk.",
-                "permanent_disabled": "Irreversibly disabled — OTP fuse blown, pad unpopulated, or epoxy-filled. No threat generated."
+                "enabled_read_only": "Output only, no input accepted (e.g. UART log-only mode). Command injection path eliminated.",
+                "sw_disabled": "Disabled via config or firmware — reversible without hardware access. Residual risk: re-enable via software exploit.",
+                "hw_disabled": "Disabled via jumper or DIP switch — requires physical access to re-enable. Lower residual risk.",
+                "permanent_disabled": "Irreversibly disabled — OTP fuse blown, pad unpopulated, or epoxy-filled. No threats generated."
               }
             },
             "connectorType": {
               "label": "Connector Type",
+              "not_applicable": "Not applicable for this interface type",
               "options": {
                 "rj45": "RJ45",
                 "sfp": "SFP / SFP+",
@@ -849,15 +942,92 @@
                 "db9": "DB9 (RS-232)",
                 "db25": "DB25 (RS-232)",
                 "terminal": "Terminal Block",
-                "swd_10pin": "SWD 10-pin",
-                "jtag_20pin": "JTAG 20-pin",
+                "swd_10pin": "SWD 10-Pin",
+                "jtag_20pin": "JTAG 20-Pin",
                 "gpio_header": "GPIO Header",
                 "pcie": "PCIe",
                 "custom": "Custom"
               }
             },
-            "isShieldedCable": {
-              "label": "Shielded Cable"
+            "connectionSpeed": {
+              "label": "Connection Speed",
+              "options": {
+                "low": "Low (< 1 Mbps)",
+                "medium": "Medium (1–100 Mbps)",
+                "high": "High (> 100 Mbps)"
+              }
+            },
+            "physicalAccessProtection": {
+              "label": "Physical Access Protection",
+              "options": {
+                "none": "None",
+                "inside_enclosure": "Inside Enclosure",
+                "locked_panel": "Locked Panel",
+                "sealed": "Sealed",
+                "requires_tool": "Requires Tool",
+                "tamper_evident": "Tamper-Evident Seal"
+              }
+            },
+            "signalProtection": {
+              "label": "Signal / Medium Protection",
+              "options": {
+                "none": "None",
+                "shielded": "Shielded Cable",
+                "twisted_pair": "Twisted Pair",
+                "fiber_optic": "Fibre Optic",
+                "isolated": "Galvanically Isolated",
+                "conduit_protected": "Conduit Protected"
+              }
+            },
+            "logicalAccessControl": {
+              "label": "Logical Access Control",
+              "options": {
+                "none": "None",
+                "password": "Password",
+                "certificate": "Certificate (PKI)",
+                "challenge_response": "Challenge / Response",
+                "secure_pairing": "Secure Pairing",
+                "hardware_token": "Hardware Token",
+                "mfa": "Multi-Factor Authentication (MFA)"
+              }
+            },
+            "serviceAccessPolicy": {
+              "label": "Service Access Policy",
+              "options": {
+                "always_enabled": "Always Enabled",
+                "maintenance_only": "Maintenance Only",
+                "factory_only": "Factory Only",
+                "temporary_enable": "Temporary Enable"
+              }
+            },
+            "debugProtection": {
+              "label": "Debug Protection",
+              "options": {
+                "none": "None",
+                "auth_required": "Authentication Required",
+                "limited_commands": "Limited Command Set",
+                "readout_protection": "Readout Protection",
+                "fused_off": "Fused Off (OTP)"
+              }
+            },
+            "abuseProtection": {
+              "label": "Abuse Protection",
+              "options": {
+                "none": "None",
+                "rate_limited": "Rate Limited",
+                "lockout": "Lockout after Failed Attempts",
+                "flood_protection": "Flood Protection"
+              }
+            },
+            "monitoringControl": {
+              "label": "Monitoring Control",
+              "options": {
+                "none": "None",
+                "usage_logged": "Usage Logged",
+                "tamper_logged": "Tamper Events Logged",
+                "alerted": "Real-Time Alert",
+                "active_response": "Active Response"
+              }
             },
             "notes": {
               "label": "Notes"
@@ -1211,7 +1381,33 @@
               "placeholder": "e.g. Carries sensor data used by emergency stop logic",
               "helper": "Used in EN 50742 / MVO 2027 documentation",
               "error": "Rationale required for custom safety function"
+            },
+            "physicalPathProtection": {
+              "label": "Physical Path Protection",
+              "options": {
+                "none": "None",
+                "cable_duct": "Cable Duct / Tray",
+                "conduit": "Conduit (metal / plastic)",
+                "armored_cable": "Armored Cable",
+                "tamper_seal": "Tamper-Evident Seal on Connectors",
+                "locked_cabinet": "Routed through Locked Cabinet",
+                "buried": "Buried (underground)"
+              }
+            },
+            "cryptoStandard": {
+              "label": "Cryptographic Standard",
+              "options": {
+                "not_assessed": "Not Assessed",
+                "nist_approved": "NIST Approved (AES-256, SHA-256+)",
+                "fips_140_2": "FIPS 140-2",
+                "fips_140_3": "FIPS 140-3",
+                "custom": "Custom / Regional Standard"
+              }
             }
+          },
+          "sections": {
+            "logical_controls": "Logical",
+            "physical_controls": "Physical"
           }
         },
         "datastore": {
@@ -1349,6 +1545,16 @@
               "label": "Safety Rationale",
               "placeholder": "e.g. Manipulation could disable emergency stop function",
               "helper": "Used in EN 50742 / MVO 2027 documentation"
+            },
+            "cryptoStandard": {
+              "label": "Cryptographic Standard",
+              "options": {
+                "not_assessed": "Not Assessed",
+                "nist_approved": "NIST Approved (AES-256, SHA-256+)",
+                "fips_140_2": "FIPS 140-2",
+                "fips_140_3": "FIPS 140-3",
+                "custom": "Custom / Regional Standard"
+              }
             }
           },
           "warnings": {
@@ -1451,6 +1657,21 @@
             },
             "description": {
               "label": "Description"
+            },
+            "defaultDenyPolicy": {
+              "label": "Default Traffic Policy",
+              "options": {
+                "allow_all": "Allow All (no restriction)",
+                "deny_all_permit_exception": "Deny All, Permit by Exception",
+                "island_mode": "Island Mode (full isolation capability)",
+                "fail_close": "Fail Close (no traffic on mechanism failure)"
+              },
+              "tooltips": {
+                "allow_all": "No traffic restriction — all zone-crossing flows permitted. NDR 5.2 RE(1) not satisfied.",
+                "deny_all_permit_exception": "Whitelist-based — only explicitly permitted flows pass. NDR 5.2 RE(1) satisfied.",
+                "island_mode": "Boundary can fully isolate the zone on security incident. NDR 5.2 RE(2) satisfied.",
+                "fail_close": "On mechanism failure: no traffic passes (fail-safe). NDR 5.2 RE(3) satisfied."
+              }
             }
           }
         },

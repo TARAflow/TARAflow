@@ -103,6 +103,17 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
   const isHighClassification =
     props.dataClassification === "secret" ||
     props.dataClassification === "restricted";
+  // cryptoStandard: only meaningful when cryptography is actually configured on this store
+  const showCryptoStandard =
+    (props.encryptionAtRest != null && props.encryptionAtRest !== "none") ||
+    props.integrityProtection === "hmac" ||
+    props.integrityProtection === "signature";
+
+  // Volatile stores (cache, queue) have no persistent data — encryption/integrity/deletion
+  // controls are not applicable. Show a simplified view for these.
+  const isVolatileStore =
+    props.technology === "cache" || props.technology === "queue";
+
   const showEncryptionClassificationWarning =
     isHighClassification &&
     (props.encryptionAtRest === "none" || props.encryptionAtRest == null);
@@ -298,6 +309,20 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
       </Grid>
 
       {/* ── Security ─────────────────────────────── */}
+      {/* Volatile stores (cache/queue) have no persistent data — controls limited */}
+      {isVolatileStore && (
+        <Alert severity="info" sx={{ py: 0.5, mb: 1 }}>
+          <Typography variant="caption">
+            {t(
+              "tabs.dfd.element_description.datastore.warnings.volatile_store",
+              {
+                defaultValue:
+                  "Volatile store (cache / queue) — encryption, integrity and deletion controls are not applicable. Data is not persisted.",
+              },
+            )}
+          </Typography>
+        </Alert>
+      )}
       <SectionLabel
         label={t("tabs.dfd.element_description.sections.security", {
           defaultValue: "Security",
@@ -714,7 +739,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-}
+};
 
 export const DataStoreDescriptionForm = React.memo<DataStoreFormProps>(
   ({ element, onChange, availableAssets = [], onCreateAsset }) => (

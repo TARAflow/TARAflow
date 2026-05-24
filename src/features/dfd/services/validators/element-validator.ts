@@ -28,6 +28,20 @@ export function validateElements(
 
 /**
  * Validate that Interfaces have at least one dataflow passing through them.
+ *
+ * Two detection paths:
+ *
+ * Path A — Geometric: interfaceIds in DataFlowAnalysis — covers the normal
+ *   case where a DataFlow line geometrically crosses the Interface rectangle
+ *   (Rule 1) or a connected element's center lies inside it (Rule 2).
+ *
+ * Path B — Direct endpoint: the Interface itself is conn.from or conn.to.
+ *   Covers ChipBoundary-mounted debug interfaces (JTAG, SWD, UART console)
+ *   where the DataFlow terminates AT the Interface rather than passing through
+ *   it. In this topology, source and target element centers are never inside
+ *   the Interface box, so the geometric rules cannot detect the connection.
+ *   Example: ExternalEntity(Debugger) → DataFlow → Interface(JTAG-IF)
+ *
  * Message format: KEY|displayId|elementType
  */
 function validateInterfaceUsage(
@@ -41,9 +55,19 @@ function validateInterfaceUsage(
     let hasDataflow = false;
 
     if (graph) {
-      hasDataflow = Array.from(graph.dataFlowAnalysis.values()).some(
+      // Path A: geometric detection via DataFlowAnalysis.interfaceIds
+      const geometricMatch = Array.from(graph.dataFlowAnalysis.values()).some(
         (analysis) => analysis.interfaceIds.includes(iface.id),
       );
+
+      // Path B: Interface is a direct DataFlow endpoint (conn.from or conn.to).
+      // outgoingConnections and incomingConnections are keyed by element ID —
+      // if the Interface ID has entries in either map, it is directly connected.
+      const isDirectEndpoint =
+        (graph.outgoingConnections.get(iface.id)?.length ?? 0) > 0 ||
+        (graph.incomingConnections.get(iface.id)?.length ?? 0) > 0;
+
+      hasDataflow = geometricMatch || isDirectEndpoint;
     }
 
     if (!hasDataflow) {

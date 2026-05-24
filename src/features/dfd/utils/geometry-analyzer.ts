@@ -67,7 +67,10 @@ export class GeometryAnalyzer {
     //   draw.io stroke width and verified against measured boundary positions.
     // Cases 2+3 (straight/orthogonal): TOL=5 for placement flexibility.
     const LINE_TOL = 5;
-    const CURVE_TOL = 0;
+    // CURVE_TOL=2: the curve at the measured left boundary (x=494) passes
+    // 1.25px outside the rect edge at the exact corner — 2px gives clean
+    // HIT/MISS separation without false positives.
+    const CURVE_TOL = 2;
     const EPS = 1e-6;
 
     // ── Case 1: Waypoints + curved=1 — exact draw.io algorithm ──────────

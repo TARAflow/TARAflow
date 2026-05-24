@@ -117,6 +117,55 @@ const SHOW_SAFETY = new Set<SystemClass>([
   "safety_system",
 ]);
 
+// ── New fields (Phase 1 / Compliance) ────────────────────────────────────────
+
+/** malwareProtection: all systems — but options filtered per systemClass below */
+const SHOW_MALWARE_PROTECTION = new Set<SystemClass>([
+  "embedded_controller", "scada_hmi", "backend_application",
+  "gateway", "mobile_device", "cloud_platform", "workstation", "safety_system",
+]);
+
+/** accountManagement: systems with a manageable user account concept.
+ *  safety_system: hardware-enforced access, no account management concept.
+ */
+const SHOW_ACCOUNT_MANAGEMENT = new Set<SystemClass>([
+  "embedded_controller", "scada_hmi", "backend_application",
+  "gateway", "mobile_device", "cloud_platform", "workstation",
+]);
+
+/** authenticatorStorage: all systems that store or handle credentials/keys */
+const SHOW_AUTHENTICATOR_STORAGE = new Set<SystemClass>([
+  "embedded_controller", "scada_hmi", "backend_application",
+  "gateway", "mobile_device", "cloud_platform", "workstation", "safety_system",
+]);
+
+/** backupMechanism: systems with persistent state worth backing up.
+ *  mobile_device: managed via MDM, no classical backup concept.
+ */
+const SHOW_BACKUP_MECHANISM = new Set<SystemClass>([
+  "embedded_controller", "scada_hmi", "backend_application",
+  "gateway", "cloud_platform", "workstation", "safety_system",
+]);
+
+/** nonRepudiation: only systems with human operator interaction */
+const SHOW_NON_REPUDIATION = new Set<SystemClass>([
+  "scada_hmi", "backend_application", "cloud_platform", "workstation",
+]);
+
+// Filtered malwareProtection options per systemClass.
+// AV software requires a general-purpose OS — not applicable to embedded controllers
+// or safety systems. code_signing is the embedded equivalent.
+const MALWARE_PROTECTION_OPTIONS_MP: Record<SystemClass, readonly string[]> = {
+  embedded_controller: ["none", "code_signing", "application_whitelist", "custom"],
+  scada_hmi:           ["none", "av_software", "application_whitelist", "custom"],
+  backend_application: ["none", "av_software", "application_whitelist", "sandbox", "custom"],
+  gateway:             ["none", "code_signing", "application_whitelist", "custom"],
+  mobile_device:       ["none", "sandbox", "application_whitelist", "custom"],
+  cloud_platform:      ["none", "sandbox", "application_whitelist", "custom"],
+  workstation:         ["none", "av_software", "application_whitelist", "nx_dep", "sandbox", "custom"],
+  safety_system:       ["none", "code_signing", "custom"],
+};
+
 /**
  * Returns true if the field should be shown for the given systemClass.
  * When systemClass is undefined (not yet selected), always returns true
@@ -695,6 +744,250 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
               </Grid>
             )}
           </>
+        )}
+        {/* Malware Protection — CR 3.2 / EDR/HDR/NDR 3.2
+             Options filtered per systemClass: AV requires general-purpose OS */}
+        {isVisible(sc, SHOW_MALWARE_PROTECTION) && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
+                  { defaultValue: "Malware Protection" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.malwareProtection ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange("malwareProtection", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
+                  { defaultValue: "Malware Protection" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(sc != null
+                  ? MALWARE_PROTECTION_OPTIONS_MP[sc]
+                  : ([
+                      "none",
+                      "av_software",
+                      "application_whitelist",
+                      "code_signing",
+                      "nx_dep",
+                      "sandbox",
+                      "custom",
+                    ] as const)
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.malwareProtection.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {/* Account Management — CR 1.3 — not applicable for safety_system */}
+        {isVisible(sc, SHOW_ACCOUNT_MANAGEMENT) && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.multiprocess.fields.accountManagement.label",
+                  { defaultValue: "Account Management" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.accountManagement ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange("accountManagement", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.multiprocess.fields.accountManagement.label",
+                  { defaultValue: "Account Management" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "local_only",
+                    "ldap",
+                    "active_directory",
+                    "radius",
+                    "iam",
+                    "custom",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.accountManagement.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {/* Authenticator Storage — CR 1.5 RE(1) */}
+        {isVisible(sc, SHOW_AUTHENTICATOR_STORAGE) && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.label",
+                  { defaultValue: "Authenticator Storage" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.authenticatorStorage ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange("authenticatorStorage", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.label",
+                  { defaultValue: "Authenticator Storage" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "system_software",
+                    "tpm",
+                    "secure_element",
+                    "hsm",
+                    "custom",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {/* Backup Mechanism — CR 7.3 / CR 7.4 — not applicable for mobile_device */}
+        {isVisible(sc, SHOW_BACKUP_MECHANISM) && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.multiprocess.fields.backupMechanism.label",
+                  { defaultValue: "Backup Mechanism" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.backupMechanism ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange("backupMechanism", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.multiprocess.fields.backupMechanism.label",
+                  { defaultValue: "Backup Mechanism" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "none",
+                    "manual_local",
+                    "automated_local",
+                    "automated_remote",
+                    "redundant_system",
+                    "vendor_managed",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.backupMechanism.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {/* Non-Repudiation — CR 2.12 — only for systems with human operator interaction */}
+        {isVisible(sc, SHOW_NON_REPUDIATION) && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.multiprocess.fields.nonRepudiation.label",
+                  { defaultValue: "Non-Repudiation" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.nonRepudiation ?? ""}
+                onChange={(e) =>
+                  handlePropertyChange("nonRepudiation", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.multiprocess.fields.nonRepudiation.label",
+                  { defaultValue: "Non-Repudiation" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(
+                  [
+                    "none",
+                    "audit_log",
+                    "digital_signature",
+                    "hardware_backed",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.multiprocess.fields.nonRepudiation.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
         )}
       </Grid>
 

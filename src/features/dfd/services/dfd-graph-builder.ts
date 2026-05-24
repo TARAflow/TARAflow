@@ -641,8 +641,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     dataFlowAnalysis: Map<string, DataFlowAnalysis>,
     elementTrustBoundaries: Map<string, string[]>,
     elementChipBoundaries: Map<string, string[]>,
-    // PhysicalBoundary uses PEL scale — no EL derivation from PB needed.
-    // Parameter accepted for API consistency with DFDGraph shape.
+    // PhysicalBoundary uses PEL0–PEL4 scale, mapped 1:1 to EL0–EL4.
+    // Used as final fallback when neither TB nor ChipBoundary provides an EL.
     _elementPhysicalBoundaries?: Map<string, string[]>,
   ): void {
     // Interface → TB-EL als Default
@@ -688,6 +688,47 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         const chipEL = (chip?.properties as ChipBoundaryProperties)
           ?.defaultExposureLevel;
         derivedEL = maxEL(derivedEL, chipEL);
+      }
+
+      if (derivedEL) {
+        (element.properties as InterfaceProperties).exposureLevel =
+          derivedEL as ExposureLevel;
+        (element.properties as InterfaceProperties).exposureLevelSource =
+          "derived";
+      }
+    }
+
+    // Interface inside PhysicalBoundary: derive EL from PB.physicalExposureLevel
+    // as final fallback when neither a TB nor a ChipBoundary provided an EL.
+    //
+    // PEL and EL share the same 0–4 scale by design (both: higher = more exposed),
+    // so the mapping is 1:1: PEL0→EL0, PEL1→EL1, PEL2→EL2, PEL3→EL3, PEL4→EL4.
+    //
+    // Rationale: a PhysicalBoundary without an overlapping TrustBoundary is a valid
+    // modelling pattern for purely physical access contexts (e.g. a sealed enclosure
+    // with on-board debug interfaces but no logical network boundary). Without this
+    // loop those interfaces would have no EL at all, making threat feasibility scoring
+    // impossible. The PB.physicalExposureLevel is the best available approximation.
+    for (const element of elements) {
+      if (element.type !== "Interface") continue;
+      const props = element.properties as InterfaceProperties;
+      if (props.exposureLevelSource === "manual") continue;
+      if (props.exposureLevel) continue; // Already derived from TB or ChipBoundary
+
+      const pbIds = _elementPhysicalBoundaries?.get(element.id) ?? [];
+      let derivedEL: string | undefined;
+
+      for (const pbId of pbIds) {
+        const pb = elements.find((e) => e.id === pbId);
+        const pbProps = pb?.properties as
+          | PhysicalBoundaryProperties
+          | undefined;
+        // physicalExposureLevel is "PEL0"–"PEL4"; strip the "PEL" prefix to get "EL0"–"EL4"
+        const pel = pbProps?.physicalExposureLevel;
+        if (pel) {
+          const mappedEL = ("EL" + pel.slice(3)) as ExposureLevel;
+          derivedEL = maxEL(derivedEL, mappedEL);
+        }
       }
 
       if (derivedEL) {
