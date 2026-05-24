@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "description": "Embedded and OT-specific interaction threat templates. Context filtered by DataFlow.protocol or Interface.type \u2014 element-level, not project tags.",
+  "version": "1.3.0",
+  "description": "Embedded and OT-specific interaction threat templates. Context filtered by DataFlow.protocol or Interface.type — element-level, not project tags.",
   "interactionTemplates": [
     {
       "id": "S-INT-OT-001",
@@ -36,7 +36,7 @@
           "iec61850"
         ]
       },
-      "mitigations": ["M-T-001", "M-T-002", "M-IF-I-001"],
+      "mitigations": ["M-T-001", "M-T-002", "M-T-008"],
       "verifications": ["V-T-001", "V-IF-T-001"],
       "isCustom": false
     },
@@ -55,7 +55,7 @@
           "iec61850"
         ]
       },
-      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001"],
+      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001", "M-IF-D-003"],
       "verifications": ["V-D-001", "V-IF-D-001"],
       "isCustom": false
     },
@@ -74,7 +74,7 @@
           "iec61850"
         ]
       },
-      "mitigations": ["M-E-001", "M-E-002", "M-CB-E-001"],
+      "mitigations": ["M-E-001", "M-E-002", "M-E-006"],
       "verifications": ["V-E-001", "V-CB-E-001"],
       "isCustom": false
     },
@@ -85,7 +85,7 @@
       "context": {
         "protocol": ["spi", "i2c", "uart", "can", "lin"]
       },
-      "mitigations": ["M-T-001", "M-T-002", "M-IF-I-001"],
+      "mitigations": ["M-T-001", "M-T-002", "M-T-008"],
       "verifications": ["V-T-001", "V-T-002"],
       "isCustom": false
     },
@@ -129,7 +129,7 @@
       "context": {
         "interfaceType": ["jtag", "swd", "serial"]
       },
-      "mitigations": ["M-CB-I-001", "M-CB-E-001"],
+      "mitigations": ["M-CB-I-001", "M-CB-E-001", "M-IF-DBG-002"],
       "verifications": ["V-CB-I-001", "V-CB-E-001"],
       "isCustom": false
     },

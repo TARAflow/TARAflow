@@ -14,6 +14,9 @@
   "M-S-005": {
     "mitigation": "Implement IPSec for network communication"
   },
+  "M-S-006": {
+    "mitigation": "Use centralized account management with revocation capability (LDAP, Active Directory, RADIUS, IAM)"
+  },
   "M-T-001": {
     "mitigation": "Implement integrity controls and checksums"
   },
@@ -28,6 +31,18 @@
   },
   "M-T-005": {
     "mitigation": "Use TLS 1.3 for data in transit"
+  },
+  "M-T-006": {
+    "mitigation": "Enforce cryptographic code signing — only firmware signed with a trusted key is accepted for execution"
+  },
+  "M-T-007": {
+    "mitigation": "Require cryptographically signed firmware updates — reject unsigned or unverifiable images"
+  },
+  "M-T-008": {
+    "mitigation": "Protect physical cable routing with cable duct, conduit, or armored cable to prevent tap and tampering"
+  },
+  "M-T-010": {
+    "mitigation": "Restrict data flow to read-only access — disable write/command registers at protocol level"
   },
   "M-R-001": {
     "mitigation": "Implement secure, tamper-proof logging"
@@ -59,6 +74,12 @@
   "M-I-005": {
     "mitigation": "Apply data masking for sensitive information"
   },
+  "M-I-006": {
+    "mitigation": "Store cryptographic keys and credentials in hardware-protected storage (TPM, Secure Element, HSM)"
+  },
+  "M-I-008": {
+    "mitigation": "Enforce hardware access control on storage (MPU memory protection or encryption-as-access-control)"
+  },
   "M-D-001": {
     "mitigation": "Implement rate limiting and throttling"
   },
@@ -73,6 +94,12 @@
   },
   "M-D-005": {
     "mitigation": "Use load balancing to distribute traffic"
+  },
+  "M-D-006": {
+    "mitigation": "Implement automated backup and tested recovery procedure for system restoration after attack (CR 7.3/7.4)"
+  },
+  "M-D-008": {
+    "mitigation": "Implement redundant, independent communication path for safety-critical data flows (IEC 61508)"
   },
   "M-E-001": {
     "mitigation": "Apply least privilege principle"
@@ -92,6 +119,9 @@
   "M-E-006": {
     "mitigation": "Disable debug interfaces in production"
   },
+  "M-E-007": {
+    "mitigation": "Implement application whitelisting — only explicitly authorized binaries may execute"
+  },
   "M-IF-S-001": {
     "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
   },
@@ -100,6 +130,12 @@
   },
   "M-IF-T-002": {
     "mitigation": "Epoxy encapsulation and tamper-evident seals"
+  },
+  "M-IF-T-003": {
+    "mitigation": "Enclose interface in lockable, tamper-evident housing"
+  },
+  "M-IF-T-004": {
+    "mitigation": "Use potting compound or conformal coating to protect circuit traces"
   },
   "M-IF-R-001": {
     "mitigation": "Log all physical interface access events with timestamps"
@@ -116,20 +152,20 @@
   "M-IF-D-002": {
     "mitigation": "Use redundant interfaces for critical functions"
   },
+  "M-IF-D-003": {
+    "mitigation": "Implement rate limiting and lockout on interface to prevent brute-force and flooding attacks"
+  },
+  "M-IF-E-001": {
+    "mitigation": "Physically separate or remove debug interfaces in production units"
+  },
   "M-IF-E-002": {
     "mitigation": "Disable or protect debug interfaces in production (JTAG lock, fuse blowing)"
   },
   "M-IF-E-003": {
     "mitigation": "Implement firmware signature verification and rollback protection"
   },
-  "M-IF-T-003": {
-    "mitigation": "Enclose interface in lockable, tamper-evident housing"
-  },
-  "M-IF-T-004": {
-    "mitigation": "Use potting compound or conformal coating to protect circuit traces"
-  },
-  "M-IF-E-001": {
-    "mitigation": "Physically separate or remove debug interfaces in production units"
+  "M-IF-DBG-002": {
+    "mitigation": "Enable memory readback protection (e.g. STM32 RDP1) to prevent firmware extraction via debug interface"
   },
   "M-CB-T-001": {
     "mitigation": "Enable Secure Boot with cryptographic signature verification of the boot chain"

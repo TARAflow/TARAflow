@@ -1,5 +1,5 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "elementTemplates": [
     {
       "id": "S-EE-001",
@@ -332,7 +332,7 @@
       "context": {
         "platform": ["Embedded", "OT"]
       },
-      "mitigations": ["M-S-001", "M-S-002", "M-S-003"],
+      "mitigations": ["M-S-001", "M-S-002", "M-S-003", "M-IF-S-001"],
       "verifications": ["V-S-001", "V-S-004"],
       "isCustom": false
     },
@@ -363,7 +363,7 @@
       "context": {
         "platform": ["Embedded"]
       },
-      "mitigations": ["M-T-001", "M-T-004", "M-T-005"],
+      "mitigations": ["M-T-001", "M-T-004", "M-T-006", "M-T-007"],
       "verifications": ["V-T-001", "V-T-004"],
       "isCustom": false
     },
@@ -374,7 +374,7 @@
       "context": {
         "platform": ["Embedded"]
       },
-      "mitigations": ["M-T-001", "M-T-003"],
+      "mitigations": ["M-T-001", "M-T-003", "M-T-007"],
       "verifications": ["V-T-001", "V-T-003"],
       "isCustom": false
     },
@@ -416,7 +416,7 @@
       "context": {
         "platform": ["Embedded", "OT"]
       },
-      "mitigations": ["M-D-001", "M-D-003", "M-D-005"],
+      "mitigations": ["M-D-001", "M-D-003", "M-D-005", "M-D-006"],
       "verifications": ["V-D-001", "V-D-003"],
       "isCustom": false
     },
@@ -427,7 +427,7 @@
       "context": {
         "platform": ["Embedded", "OT"]
       },
-      "mitigations": ["M-D-001", "M-D-002", "M-D-004"],
+      "mitigations": ["M-D-001", "M-D-002", "M-D-004", "M-D-008"],
       "verifications": ["V-D-001", "V-D-004"],
       "isCustom": false
     },
@@ -447,7 +447,7 @@
       "context": {
         "platform": ["Embedded"]
       },
-      "mitigations": ["M-E-001", "M-E-006", "M-IF-E-001"],
+      "mitigations": ["M-E-001", "M-E-006", "M-IF-E-001", "M-E-007", "M-I-006"],
       "verifications": ["V-E-001", "V-E-004", "V-IF-E-001"],
       "isCustom": false
     },
@@ -458,8 +458,8 @@
       "context": {
         "platform": ["Embedded"]
       },
-      "mitigations": ["M-E-001", "M-T-004", "M-T-005"],
-      "verifications": ["V-E-001", "V-T-004"],
+      "mitigations": ["M-E-001", "M-E-006", "M-CB-E-001"],
+      "verifications": ["V-E-001", "V-E-004", "V-CB-E-001"],
       "isCustom": false
     },
     {

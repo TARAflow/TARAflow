@@ -1,12 +1,12 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "interactionTemplates": [
     {
       "id": "S-INT-IN-001",
       "strideCategory": "S",
       "perspective": "receiver",
       "context": {},
-      "mitigations": ["M-S-001", "M-S-002", "M-S-004"],
+      "mitigations": ["M-S-001", "M-S-002", "M-S-004", "M-IF-S-001"],
       "verifications": ["V-S-001", "V-S-003"],
       "isCustom": false
     },
@@ -116,7 +116,7 @@
       "context": {
         "platform": ["Embedded", "OT"]
       },
-      "mitigations": ["M-S-001", "M-S-002", "M-S-003"],
+      "mitigations": ["M-S-001", "M-S-002", "M-S-003", "M-IF-S-001"],
       "verifications": ["V-S-001", "V-S-004"],
       "isCustom": false
     },
@@ -138,7 +138,7 @@
       "context": {
         "platform": ["Embedded", "OT"]
       },
-      "mitigations": ["M-D-001", "M-D-003", "M-D-005"],
+      "mitigations": ["M-D-001", "M-D-003", "M-D-005", "M-IF-D-003"],
       "verifications": ["V-D-001", "V-D-003"],
       "isCustom": false
     },

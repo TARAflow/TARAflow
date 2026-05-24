@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "description": "Embedded and OT-specific element threat templates. Context filtered by element-level properties (technology, chipType) \u2014 not project tags. ChipBoundary templates are universal (context: {}).",
+  "version": "1.3.0",
+  "description": "Embedded and OT-specific element threat templates. Context filtered by element-level properties (technology, chipType) — not project tags. ChipBoundary templates are universal (context: {}).",
   "elementTemplates": [
     {
       "id": "T-CB-001",
@@ -80,7 +80,13 @@
           "protocol_stack"
         ]
       },
-      "mitigations": ["M-CB-T-001", "M-T-001", "M-IF-T-001"],
+      "mitigations": [
+        "M-CB-T-001",
+        "M-T-001",
+        "M-IF-T-001",
+        "M-T-006",
+        "M-T-007"
+      ],
       "verifications": ["V-CB-T-001", "V-T-001"],
       "isCustom": false
     },
@@ -99,7 +105,7 @@
           "protocol_stack"
         ]
       },
-      "mitigations": ["M-CB-E-001", "M-CB-E-002", "M-E-001"],
+      "mitigations": ["M-CB-E-001", "M-CB-E-002", "M-E-001", "M-E-007"],
       "verifications": ["V-CB-E-001", "V-E-001"],
       "isCustom": false
     },
@@ -110,7 +116,7 @@
       "context": {
         "technology": ["flash", "eeprom", "nvram"]
       },
-      "mitigations": ["M-CB-T-002", "M-T-001", "M-T-003"],
+      "mitigations": ["M-CB-T-002", "M-T-001", "M-T-003", "M-I-008"],
       "verifications": ["V-CB-T-002", "V-T-001"],
       "isCustom": false
     },
@@ -121,7 +127,7 @@
       "context": {
         "technology": ["flash", "eeprom", "nvram"]
       },
-      "mitigations": ["M-CB-I-001", "M-I-001", "M-I-003"],
+      "mitigations": ["M-CB-I-001", "M-I-001", "M-I-003", "M-I-006"],
       "verifications": ["V-CB-I-001", "V-I-001"],
       "isCustom": false
     },
@@ -144,7 +150,7 @@
       "context": {
         "technology": ["protocol_stack", "driver"]
       },
-      "mitigations": ["M-T-001", "M-T-002", "M-IF-I-001"],
+      "mitigations": ["M-T-001", "M-T-002", "M-T-010"],
       "verifications": ["V-T-001", "V-IF-T-001"],
       "isCustom": false
     },
@@ -155,7 +161,7 @@
       "context": {
         "technology": ["protocol_stack", "driver"]
       },
-      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001"],
+      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001", "M-IF-D-003"],
       "verifications": ["V-D-001", "V-IF-D-001"],
       "isCustom": false
     }
