@@ -172,7 +172,6 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                   "privilege",
                   "organization",
                   "cloud",
-                  "physical",
                   "legal",
                   "device",
                 ] as const

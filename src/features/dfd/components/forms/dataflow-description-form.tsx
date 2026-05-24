@@ -422,22 +422,23 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
               </MenuItem>
               {(["public", "internal", "confidential", "secret"] as const).map(
                 (opt) => (
-                  <Tooltip
-                    key={opt}
-                    title={t(
-                      `tabs.dfd.element_description.dataflow.fields.dataClassification.tooltips.${opt}`,
-                      { defaultValue: "" },
-                    )}
-                    placement="right"
-                    arrow
-                  >
-                    <MenuItem value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.dataflow.fields.dataClassification.options.${opt}`,
-                        { defaultValue: opt },
+                  <MenuItem key={opt} value={opt}>
+                    <Tooltip
+                      title={t(
+                        `tabs.dfd.element_description.dataflow.fields.dataClassification.tooltips.${opt}`,
+                        { defaultValue: "" },
                       )}
-                    </MenuItem>
-                  </Tooltip>
+                      placement="right"
+                      arrow
+                    >
+                      <span style={{ width: "100%", display: "block" }}>
+                        {t(
+                          `tabs.dfd.element_description.dataflow.fields.dataClassification.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </span>
+                    </Tooltip>
+                  </MenuItem>
                 ),
               )}
             </Select>
@@ -502,22 +503,23 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   "event_based",
                 ] as const
               ).map((opt) => (
-                <Tooltip
-                  key={opt}
-                  title={t(
-                    `tabs.dfd.element_description.dataflow.fields.frequency.tooltips.${opt}`,
-                    { defaultValue: "" },
-                  )}
-                  placement="right"
-                  arrow
-                >
-                  <MenuItem value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.dataflow.fields.frequency.options.${opt}`,
-                      { defaultValue: opt },
+                <MenuItem key={opt} value={opt}>
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.dataflow.fields.frequency.tooltips.${opt}`,
+                      { defaultValue: "" },
                     )}
-                  </MenuItem>
-                </Tooltip>
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.frequency.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
               ))}
             </Select>
           </FormControl>

@@ -19,6 +19,7 @@ import type {
   TrustBoundaryAnalysis,
 } from "../models/dfd-graph-types";
 import { dfdAnalyzer } from "../utils/dfd-analyzer";
+import { geometryAnalyzer } from "../utils/geometry-analyzer";
 
 // ==================== GEOMETRY HELPERS ====================
 
@@ -507,9 +508,24 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         }
       }
 
-      // Check which interfaces this dataflow passes through (geometric intersection)
+      // Check which interfaces this dataflow passes through.
+      //
+      // Two detection rules:
+      //
+      // Rule 1 — Geometric: The DataFlow line (source→target, with waypoints)
+      //   intersects the Interface bounding box.
+      //   Covers: EE → Interface → Process (classic external crossing).
+      //
+      // Rule 2 — Endpoint containment: source or target element center lies
+      //   inside the Interface bounding box.
+      //   Covers: DataFlows that terminate AT the interface (e.g. EE-2/Debugger
+      //   → JTAG Interface), where the flow does not geometrically cross IF but
+      //   one endpoint is spatially contained within it.
+
       const interfaceIds: string[] = [];
+
       for (const iface of interfaces) {
+        // Rule 1: geometric intersection
         const dataflowsThrough = dfdAnalyzer.findDataflowsThroughInterface(
           iface,
           [conn],
@@ -517,6 +533,50 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         );
         if (dataflowsThrough.length > 0) {
           interfaceIds.push(iface.id);
+          continue;
+        }
+
+        // Rule 2: endpoint containment — source or target element center
+        // lies inside the Interface bounding box.
+        // Covers: DataFlows that terminate AT the interface (e.g. Debugger → JTAG),
+        // where the flow does not geometrically cross the interface rectangle
+        // but one endpoint is spatially inside it.
+        const ifaceBox = {
+          position: iface.position,
+          size: iface.size,
+        };
+
+        const sourceCenter = fromElement
+          ? {
+              x: fromElement.position.x + fromElement.size.width / 2,
+              y: fromElement.position.y + fromElement.size.height / 2,
+            }
+          : null;
+
+        const targetCenter = toElement
+          ? {
+              x: toElement.position.x + toElement.size.width / 2,
+              y: toElement.position.y + toElement.size.height / 2,
+            }
+          : null;
+
+        const sourceInside =
+          sourceCenter !== null &&
+          geometryAnalyzer.elementInsideBoundary(
+            { position: sourceCenter, size: { width: 0, height: 0 } },
+            ifaceBox,
+          );
+
+        const targetInside =
+          targetCenter !== null &&
+          geometryAnalyzer.elementInsideBoundary(
+            { position: targetCenter, size: { width: 0, height: 0 } },
+            ifaceBox,
+          );
+
+        if (sourceInside || targetInside) {
+          interfaceIds.push(iface.id);
+          continue;
         }
       }
 

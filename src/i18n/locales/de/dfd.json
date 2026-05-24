@@ -693,22 +693,84 @@
           "cascade_hints": {
             "usb": "USB-Schnittstellen sind häufige Angriffsflächen auf Embedded-Systemen. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle mit sicherheitskritischen Komponenten verbunden ist.",
             "serial": "Serielle Schnittstellen sind oft mit Debug-Konsolen oder sicherheitskritischen Komponenten verbunden. Erwäge, Safety Relevant zu setzen, wenn zutreffend.",
-            "gpio": "GPIO-Pins können direkt mit Sicherheitsaktuatoren oder -sensoren verbunden sein. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle sicherheitskritische Hardware steuert oder ausliest."
+            "gpio": "GPIO-Pins können direkt mit Sicherheitsaktuatoren oder -sensoren verbunden sein. Erwäge, Safety Relevant zu setzen, wenn diese Schnittstelle sicherheitskritische Hardware steuert oder ausliest.",
+            "uart": "UART wird häufig als ungeschützter Debug-Konsolenport oder Konfigurationsschnittstelle verwendet. Stellen Sie sicher, dass der Zugriff in der Produktion eingeschränkt ist.",
+            "rs232": "RS-232-Schnittstellen ermöglichen oft Diagnose- oder Konfigurationszugriff. Physische Zugriffskontrollen empfohlen.",
+            "rs485": "RS-485 / Modbus ist in sicherheitskritischen Industriesystemen verbreitet. Safety Relevant setzen, wenn Aktoren oder Sensoren angeschlossen sind.",
+            "can": "CAN-Bus hat keine eingebaute Authentifizierung oder Verschlüsselung. Safety Relevant setzen, wenn in Automotive- oder Industriesicherheitssystemen eingesetzt.",
+            "analog_in": "Analogeingänge sind mit physischen Sensoren verbunden. Manipulation der Signalpegel kann Messungen verfälschen. Safety Relevant erwägen.",
+            "analog_out": "Analogausgänge steuern Aktoren. Manipulation der Ausgangssignale kann sicherheitskritische Folgen haben. Safety Relevant setzen.",
+            "jtag": "JTAG bietet vollständigen CPU-Debug-Zugriff einschließlich Speicher-R/W und Flash-Programmierung. Dieser Port muss in der Produktion gesperrt oder deaktiviert sein.",
+            "swd": "SWD bietet ARM-Debug- und Flash-Programmierzugriff. Dieser Port muss in der Produktion gesperrt oder deaktiviert sein. Safety Relevant setzen, wenn sicherheitskritische Firmware betroffen ist."
           },
           "fields": {
             "type": {
               "label": "Schnittstellentyp",
-              "options": {
-                "not_specified": "Nicht angegeben",
-                "ethernet": "Ethernet",
-                "serial": "Seriell (UART / RS-232 / RS-485)",
+              "groups": {
+                "network": "Netzwerk / Funk",
+                "serial": "Seriell / Bus",
                 "usb": "USB",
-                "gpio": "GPIO",
-                "bluetooth": "Bluetooth",
+                "debug": "Debug / Programmierung",
+                "io": "Digital- / Analog-E/A",
+                "other": "Sonstige"
+              },
+              "options": {
+                "ethernet": "Ethernet",
                 "wifi": "WLAN",
+                "bluetooth": "Bluetooth",
                 "nfc": "NFC",
                 "fiber": "Glasfaser",
+
+                "uart": "UART",
+                "rs232": "RS-232",
+                "rs485": "RS-485",
+                "can": "CAN-Bus",
+                "i2c": "I²C",
+                "spi": "SPI",
+                "lin": "LIN-Bus",
+
+                "usb": "USB",
+
+                "jtag": "JTAG",
+                "swd": "SWD",
+                "swd_swo": "SWD + SWO (Trace)",
+                "jtag_trace": "JTAG + ETM-Trace",
+
+                "gpio": "GPIO",
+                "analog_in": "Analogeingang",
+                "analog_out": "Analogausgang",
+                "pwm": "PWM",
+
                 "custom": "Benutzerdefiniert"
+              },
+              "tooltips": {
+                "ethernet": "Kabelgebundenes Ethernet (10/100/1000 Mbit/s, PoE). Physischer Anschluss erforderlich.",
+                "wifi": "IEEE 802.11 WLAN. Kein physischer Zugriff erforderlich — aus der Ferne erreichbar.",
+                "bluetooth": "Bluetooth Classic / BLE. Kein physischer Zugriff erforderlich.",
+                "nfc": "Near-Field Communication. Nähe (~10 cm) erforderlich.",
+                "fiber": "Glasfaser. Physisches Anzapfen erfordert Kabelunterbrechung.",
+
+                "uart": "UART/USART — häufig ungeschützter Debug-Konsolenport. Hohes Risiko.",
+                "rs232": "RS-232-Punkt-zu-Punkt-Verbindung. Häufig in älterer Industrieausrüstung.",
+                "rs485": "RS-485 / Modbus RTU. Multi-Drop-Bus — jedes Gerät am Bus kann Daten mitlesen.",
+                "can": "CAN-Bus — standardmäßig ohne Authentifizierung oder Verschlüsselung. Automotive und Industrie.",
+                "i2c": "I²C — Kurzstreckenbus zu Sensoren, EEPROMs und Peripheriegeräten. PCB-Zugriff erforderlich.",
+                "spi": "SPI — Hochgeschwindigkeitsbus zu Peripheriegeräten. PCB-Zugriff erforderlich.",
+                "lin": "LIN-Bus — Eindraht, niedrige Geschwindigkeit. Automotive Karosserie/Fahrwerk.",
+
+                "usb": "USB (beliebige Klasse). Risiko: DFU-Modus, HID-Injektion (BadUSB), Massenspeicher.",
+
+                "jtag": "Vollständiges JTAG: CPU-Halt, Speicher-R/W, Flash lesen/schreiben. Höchstes Debug-Risiko.",
+                "swd": "ARM Serial Wire Debug — vergleichbare Fähigkeiten wie JTAG. In Produktion sperren.",
+                "swd_swo": "SWD + SWO (Single Wire Output) — Debug-Zugriff plus leichtgewichtiger ITM-Trace.",
+                "jtag_trace": "JTAG + ETM-Trace-Port — vollständiger Debug-Zugriff plus Befehls-Trace.",
+
+                "gpio": "Allgemeiner digitaler E/A-Port. Risiko abhängig von der Funktion.",
+                "analog_in": "Analogeingang (ADC) — Sensor- oder Signaleingang. Manipulation beeinflusst Messungen.",
+                "analog_out": "Analogausgang (DAC) — Aktor- oder Signalausgang. Sicherheitskritisch in vielen Systemen.",
+                "pwm": "PWM-Ausgang — Motorsteuerung, Dimmung. Sicherheitsrelevant für Aktoren.",
+
+                "custom": "Proprietärer oder nicht aufgeführter Schnittstellentyp."
               }
             },
             "location": {
@@ -1891,6 +1953,8 @@
     "assetMissingAutomationLevel": "Asset \"{{name}}\" hat keinen Automatisierungsgrad",
     "physicalBoundaryInvalidConnection": "Physische Grenze ist nicht verbindbar — verwende stattdessen ein Interface-Element auf der Boundary-Kante",
     "interfaceNoPhysicalBoundary": "Interface hat keinen physischen Kontext — es muss eine Physische Grenze überschneiden oder darin liegen",
+    "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" deklariert eine {{detail}}-Debug-Schnittstelle, aber kein passendes Interface-Element überlappt sie — der Debug-Port ist nicht als Angriffsfläche modelliert",
+    "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": Connector-Typ \"{{targetType}}\" ist für eine {{targetName}}-Schnittstelle nicht gültig",
     "elementTypes": {
       "Process": "Prozess",
       "Multiprocess": "Multiprozess",
@@ -1900,7 +1964,21 @@
       "Interface": "Interface",
       "Asset": "Asset",
       "ChipBoundary": "Chip-Grenze",
-      "PhysicalBoundary": "Physische Grenze"
+      "PhysicalBoundary": "Physische Grenze",
+      "rj45": "RJ45",
+      "sfp": "SFP/SFP+",
+      "m12": "M12",
+      "usb_a": "USB Typ-A",
+      "usb_c": "USB Typ-C",
+      "micro_usb": "Micro-USB",
+      "db9": "DB9 (D-Sub 9)",
+      "db25": "DB25 (D-Sub 25)",
+      "terminal": "Klemmenleiste",
+      "swd_10pin": "SWD 10-Pin-Header",
+      "jtag_20pin": "JTAG 20-Pin-Header",
+      "gpio_header": "GPIO-Header",
+      "pcie": "PCIe",
+      "custom": "Benutzerdefiniert"
     }
   }
 }

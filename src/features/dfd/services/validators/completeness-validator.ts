@@ -32,20 +32,34 @@ export function isComplete(
 }
 
 /**
- * Validate scenario-specific requirements
- * 
- * Scenario A – Classic Threat Model DFD (with External Entity)
- * Valid when:
- * 1. ≥ 1 Trust Boundary exists
- * 2. ≥ 1 internal Process or DataStore
- * 3. ≥ 1 External Entity (outside TB)
- * 4. At least 1 dataflow between internal ↔ external
+ * Validate scenario-specific requirements.
  *
- * Scenario B – Internal Threat Modelling (without External Entity)
- * Valid when:
- * 1. ≥ 2 Trust Boundaries exist
- * 2. Each TB contains at least one Process or DataStore
- * 3. At least 1 dataflow crosses a Trust Boundary
+ * Four scenarios are detected automatically from the diagram content:
+ *
+ * Scenario A — Classic Threat Model (External Entity present)
+ *   Requires: ≥1 TrustBoundary, ≥1 internal Process/DataStore,
+ *             ≥1 dataflow between internal ↔ external
+ *
+ * Scenario B — Internal Threat Model (no External Entity, has TrustBoundaries)
+ *   Requires: ≥2 TrustBoundaries, each containing ≥1 Process/DataStore,
+ *             ≥1 dataflow crossing a TrustBoundary
+ *
+ * Scenario C — Embedded Device (no External Entity, no TrustBoundary,
+ *              but has PhysicalBoundary)
+ *   Physical attack surface modelled via PB. No TB required because no
+ *   trust-level or privilege change exists internally.
+ *   PB ≠ TB: physical access and trust/privilege change are orthogonal.
+ *   Requires: ≥1 Process/Multiprocess, ≥1 DataFlow
+ *
+ * Scenario D (no boundary at all) is intentionally not supported:
+ *   without at least one boundary, STRIDE/TARA has no attack surface to analyse.
+ *
+ * Rationale for Scenario C:
+ *   A digital measuring device or standalone embedded system may have no
+ *   network boundary and no logical trust zones. Requiring a TrustBoundary
+ *   would force analysts to add artificial boundaries.
+ *   PhysicalBoundary and TrustBoundary are orthogonal: PB = physical access,
+ *   TB = trust/privilege change. They must not be conflated.
  */
 export function validateScenario(
   elements: DFDElement[],
@@ -54,18 +68,39 @@ export function validateScenario(
   errors: string[],
   warnings: string[],
   graph?: DFDGraph,
-): "A" | "B" | null {
-  // Determine which scenario applies
+): "A" | "B" | "C" | null {
   const hasExternalEntities = stats.externalEntities > 0;
-  const scenario = hasExternalEntities ? "A" : "B";
+  const hasTrustBoundaries = stats.trustBoundaries > 0;
+  const hasPhysicalBoundaries = elements.some(
+    (e) => e.type === "PhysicalBoundary",
+  );
 
-  if (scenario === "A") {
+  if (hasExternalEntities) {
+    // Scenario A: External Entity present → TrustBoundary required
     validateScenarioA(elements, connections, stats, errors, warnings, graph);
-  } else {
-    validateScenarioB(elements, connections, stats, errors, warnings, graph);
+    return errors.length === 0 ? "A" : null;
   }
 
-  return errors.length === 0 ? scenario : null;
+  if (hasTrustBoundaries) {
+    // Scenario B: No External Entity but TrustBoundaries present
+    validateScenarioB(elements, connections, stats, errors, warnings, graph);
+    return errors.length === 0 ? "B" : null;
+  }
+
+  if (hasPhysicalBoundaries) {
+    // Scenario C: No External Entity, no TrustBoundary, but PhysicalBoundary present.
+    // Physical attack surface fully modelled via PB — no separate TB required.
+    // PB ≠ implicit TB: physical access and trust elevation are different dimensions.
+    validateScenarioC(elements, connections, stats, errors, warnings);
+    return errors.length === 0 ? "C" : null;
+  }
+
+  // No boundary of any kind — not a valid threat model.
+  // Without at least one boundary (TB or PB), STRIDE/TARA cannot work meaningfully:
+  // there is no modelled attack surface, no physical access context, and no
+  // trust change to analyze. Scenario D is intentionally not supported.
+  errors.push(ValidationMessages.NO_TRUST_BOUNDARY);
+  return null;
 }
 
 /**
@@ -144,7 +179,11 @@ function validateScenarioA(
 }
 
 /**
- * Validate Scenario B: Internal Threat Model
+ * Validate Scenario B: Internal Threat Model (no External Entity, ≥1 TrustBoundary)
+ *
+ * Requires ≥1 TrustBoundary with at least one cross-boundary dataflow.
+ * A single TB is valid — e.g. MCU ↔ Fieldbus, Bootloader ↔ Application,
+ * Device ↔ Wireless Interface. Requiring ≥2 TB forces artificial boundaries.
  */
 function validateScenarioB(
   elements: DFDElement[],
@@ -154,22 +193,9 @@ function validateScenarioB(
   warnings: string[],
   graph?: DFDGraph,
 ): void {
-  // 1. ≥ 2 Trust Boundaries
-  if (stats.trustBoundaries < 2) {
-    errors.push(ValidationMessages.NEED_TWO_TRUST_BOUNDARIES);
-    return;
-  }
-
   const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
 
-  // 2. Each TB must contain at least one Process/Multiprocess/DataStore
-  const processesAndStores = elements.filter(
-    (e) =>
-      e.type === "Process" ||
-      e.type === "Multiprocess" ||
-      e.type === "DataStore",
-  );
-
+  // 1. Each TB must contain at least one Process/Multiprocess/DataStore
   const emptyBoundaries = trustBoundaries.filter((tb) => {
     const tbElements = graph?.trustBoundaryElements.get(tb.id) || [];
     const hasProcessOrStore = tbElements.some((elemId) => {
@@ -190,7 +216,9 @@ function validateScenarioB(
     });
   }
 
-  // 3. At least 1 dataflow crosses a Trust Boundary
+  // 2. At least 1 dataflow crosses a Trust Boundary
+  // This is the essential requirement: a TB without any cross-boundary flow
+  // has no analytical value for threat modeling.
   const hasCrossBoundaryFlow = connections.some((conn) => {
     const analysis = graph?.dataFlowAnalysis.get(conn.id);
     return analysis?.crossesTrustBoundary || false;
@@ -200,7 +228,14 @@ function validateScenarioB(
     errors.push(ValidationMessages.NO_CROSS_BOUNDARY_FLOW);
   }
 
-  // Optional: All Process/Multiprocess/DataStore should be inside a TB
+  // Advisory: elements outside all TBs (not an error — partial models are valid)
+  const processesAndStores = elements.filter(
+    (e) =>
+      e.type === "Process" ||
+      e.type === "Multiprocess" ||
+      e.type === "DataStore",
+  );
+
   const elementsOutside = processesAndStores.filter((element) => {
     const memberTBs = graph?.elementTrustBoundaries.get(element.id) || [];
     return memberTBs.length === 0;
@@ -212,6 +247,44 @@ function validateScenarioB(
         `${ValidationMessages.ELEMENT_OUTSIDE_ALL_TB}:${element.name}`,
       );
     });
+  }
+}
+
+/**
+ * Validate Scenario C: Embedded Device with PhysicalBoundary, no TrustBoundary.
+ *
+ * Valid for embedded systems where no trust-level or privilege change exists
+ * internally (e.g. vergossenes Messgerät, single-MCU device, standalone sensor).
+ * The physical attack surface is fully modelled via PhysicalBoundary.
+ *
+ * PB ≠ implicit TB:
+ *   PhysicalBoundary → who can physically reach the device/chip/port
+ *   TrustBoundary    → where trust level / privileges / security assumptions change
+ * These are orthogonal security dimensions and must not be conflated.
+ *
+ * Requires: ≥1 Process/Multiprocess, ≥1 DataFlow
+ */
+function validateScenarioC(
+  elements: DFDElement[],
+  connections: DFDConnection[],
+  stats: DFDStats,
+  errors: string[],
+  warnings: string[],
+): void {
+  const hasProcess = stats.processes > 0 || stats.multiprocesses > 0;
+  if (!hasProcess) {
+    errors.push(ValidationMessages.NO_PROCESS_OR_DATASTORE);
+    return;
+  }
+
+  if (stats.dataFlows === 0) {
+    warnings.push(ValidationMessages.NO_DATAFLOWS);
+  }
+
+  // Advisory: no Interface means no modelled attacker entry point via the PB
+  const hasInterface = elements.some((e) => e.type === "Interface");
+  if (!hasInterface) {
+    warnings.push(ValidationMessages.INTERFACE_UNUSED);
   }
 }
 

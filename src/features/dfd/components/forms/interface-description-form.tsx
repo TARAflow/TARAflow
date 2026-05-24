@@ -1,3 +1,7 @@
+import {
+  INTERFACE_TYPE_META,
+  type InterfaceTypeGroup,
+} from "../../models/interface-type-registry";
 // ==================== INTERFACE DESCRIPTION FORM ====================
 // STRIDE: T, I, D (Transport & Communication attacks)
 // Focus: Physical/Logical interfaces (USB, UART, Ethernet, APIs, etc.)
@@ -16,6 +20,7 @@ import {
   FormControlLabel,
   Grid,
   InputLabel,
+  ListSubheader,
   MenuItem,
   Select,
   Stack,
@@ -90,6 +95,11 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
   const form = useElementForm<InterfaceProperties>(element, onChange);
   const { props } = form;
 
+  const TYPE_LIST = Object.keys(
+    INTERFACE_TYPE_META,
+  ) as import("../../models/element-properties").InterfaceType[];
+  const TYPE_GROUPS = groupBy(TYPE_LIST, (t) => INTERFACE_TYPE_META[t].group);
+
   // ── Cascade: type driver ─────────────────────────────────────────────────
   const handleTypeChange = (value: string) => {
     if (!value) {
@@ -153,25 +163,25 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               <MenuItem value="">
                 <em>{t("common.not_specified")}</em>
               </MenuItem>
-              {(
-                [
-                  "ethernet",
-                  "serial",
-                  "usb",
-                  "gpio",
-                  "bluetooth",
-                  "wifi",
-                  "nfc",
-                  "fiber",
-                  "custom",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
+              {Object.entries(TYPE_GROUPS).map(([group, types]) => [
+                <ListSubheader
+                  key={`group-${group}`}
+                  sx={{ lineHeight: "28px", fontSize: "0.7rem" }}
+                >
                   {t(
-                    `tabs.dfd.element_description.interface.fields.type.options.${opt}`,
+                    `tabs.dfd.element_description.interface.fields.type.groups.${group}`,
+                    { defaultValue: group },
                   )}
-                </MenuItem>
-              ))}
+                </ListSubheader>,
+                types!.map((opt) => (
+                  <MenuItem key={opt} value={opt} sx={{ pl: 3 }}>
+                    {t(
+                      `tabs.dfd.element_description.interface.fields.type.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                )),
+              ])}
             </Select>
           </FormControl>
         </Grid>
@@ -292,7 +302,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Connector Type */}
+        {/* Connector Type — filtered by interface type via INTERFACE_TYPE_META.validConnectors */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth size="small">
             <InputLabel>
@@ -317,58 +327,68 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               <MenuItem value="">
                 <em>{t("common.not_specified")}</em>
               </MenuItem>
-              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
-                — Network —
-              </MenuItem>
-              {(["rj45", "sfp", "m12"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
-                    { defaultValue: opt.toUpperCase() },
-                  )}
-                </MenuItem>
-              ))}
-              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
-                — USB —
-              </MenuItem>
-              {(["usb_a", "usb_c", "micro_usb"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
-                — Serial —
-              </MenuItem>
-              {(["db9", "db25", "terminal"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
-                — Debug / Board-level —
-              </MenuItem>
-              {(
-                ["swd_10pin", "jtag_20pin", "gpio_header", "pcie"] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-              <MenuItem value="custom">
-                {t(
-                  "tabs.dfd.element_description.interface.fields.connectorType.options.custom",
-                  { defaultValue: "Custom" },
-                )}
-              </MenuItem>
+              {(() => {
+                // Derive valid connectors from selected interface type.
+                // When no type is selected, show all connectors.
+                const selectedType = props.type;
+                const validConnectors = selectedType
+                  ? (INTERFACE_TYPE_META[selectedType]?.validConnectors ?? [])
+                  : null; // null = show all
+
+                // All known connectors in display order
+                const ALL_CONNECTORS: NonNullable<
+                  InterfaceProperties["connectorType"]
+                >[] = [
+                  "rj45",
+                  "sfp",
+                  "m12",
+                  "usb_a",
+                  "usb_c",
+                  "micro_usb",
+                  "db9",
+                  "db25",
+                  "terminal",
+                  "swd_10pin",
+                  "jtag_20pin",
+                  "gpio_header",
+                  "pcie",
+                  "custom",
+                ];
+
+                const visible =
+                  validConnectors === null
+                    ? ALL_CONNECTORS
+                    : validConnectors.length === 0
+                      ? [] // wireless — no connector applicable
+                      : ALL_CONNECTORS.filter((c) =>
+                          validConnectors.includes(c),
+                        );
+
+                if (visible.length === 0 && selectedType) {
+                  return (
+                    <MenuItem disabled>
+                      <em>
+                        {t(
+                          "tabs.dfd.element_description.interface.fields.connectorType.not_applicable",
+                          {
+                            defaultValue:
+                              "Not applicable for this interface type",
+                          },
+                        )}
+                      </em>
+                    </MenuItem>
+                  );
+                }
+
+                return visible.map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.interface.fields.connectorType.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ));
+              })()}
             </Select>
           </FormControl>
         </Grid>
@@ -689,7 +709,21 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};;
+};
+
+function groupBy<T, K extends string | number | symbol>(
+  arr: T[],
+  key: (item: T) => K,
+): Partial<Record<K, T[]>> {
+  return arr.reduce(
+    (acc, item) => {
+      const k = key(item);
+      (acc[k] = acc[k] ?? []).push(item);
+      return acc;
+    },
+    {} as Partial<Record<K, T[]>>,
+  );
+}
 
 export const InterfaceDescriptionForm = React.memo<InterfaceFormProps>(
   ({

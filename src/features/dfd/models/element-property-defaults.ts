@@ -819,7 +819,7 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
   NonNullable<InterfaceProperties["type"]>,
   Partial<InterfaceProperties>
 > = {
-  // Network interfaces — enabled by default, credentials expected
+  // ── Network / Wireless ───────────────────────────────────────────────────
   ethernet: {
     accessControl: "credentials",
     location: "network_port" as InterfaceLocation,
@@ -836,6 +836,7 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
     accessControl: "credentials",
     location: "wireless" as InterfaceLocation,
     operationalState: "enabled",
+    // no connectorType — wireless, no physical connector
   },
   bluetooth: {
     accessControl: "credentials",
@@ -847,25 +848,109 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
     location: "external_panel" as InterfaceLocation,
     operationalState: "enabled",
   },
-  // Embedded interfaces — no access control by default, surfaces attack surface
+  // ── Serial / Bus ─────────────────────────────────────────────────────────
+  // No access control by default — surfaces attack surface for threat generation
+  uart: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "gpio_header",
+  },
+  rs232: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "db9",
+  },
+  rs485: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "terminal",
+  },
+  can: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "terminal",
+  },
+  i2c: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "gpio_header",
+  },
+  spi: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "gpio_header",
+  },
+  lin: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "terminal",
+  },
+  // ── USB ───────────────────────────────────────────────────────────────────
   usb: {
     accessControl: "none",
     location: "external_panel" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "usb_a",
   },
-  serial: {
+  // ── Debug / Programming ───────────────────────────────────────────────────
+  // hw_disabled by default — must be explicitly enabled; surfaces threat if enabled
+  jtag: {
     accessControl: "none",
-    location: "in_enclosure" as InterfaceLocation,
-    operationalState: "enabled",
-    connectorType: "db9",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "hw_disabled",
+    connectorType: "jtag_20pin",
   },
+  swd: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "hw_disabled",
+    connectorType: "swd_10pin",
+  },
+  swd_swo: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "hw_disabled",
+    connectorType: "swd_10pin",
+  },
+  jtag_trace: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "hw_disabled",
+    connectorType: "jtag_20pin",
+  },
+  // ── Digital / Analog I/O ─────────────────────────────────────────────────
   gpio: {
     accessControl: "none",
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "gpio_header",
   },
+  analog_in: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "terminal",
+  },
+  analog_out: {
+    accessControl: "none",
+    location: "in_enclosure" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "terminal",
+  },
+  pwm: {
+    accessControl: "none",
+    location: "on_board" as InterfaceLocation,
+    operationalState: "enabled",
+    connectorType: "terminal",
+  },
+  // ── Other ─────────────────────────────────────────────────────────────────
   custom: {
     accessControl: "none",
     operationalState: "enabled",
@@ -876,13 +961,21 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
  * Safety hint prompts for embedded interface types that are common attack surfaces.
  * Displayed as an info Alert — not auto-filled.
  */
-export const INTERFACE_TYPE_SAFETY_HINTS: Partial<Record<
-  NonNullable<InterfaceProperties["type"]>,
-  string
->> = {
-  usb:    "tabs.dfd.element_description.interface.cascade_hints.usb",
-  serial: "tabs.dfd.element_description.interface.cascade_hints.serial",
-  gpio:   "tabs.dfd.element_description.interface.cascade_hints.gpio",
+export const INTERFACE_TYPE_SAFETY_HINTS: Partial<
+  Record<NonNullable<InterfaceProperties["type"]>, string>
+> = {
+  usb: "tabs.dfd.element_description.interface.cascade_hints.usb",
+  uart: "tabs.dfd.element_description.interface.cascade_hints.uart",
+  rs232: "tabs.dfd.element_description.interface.cascade_hints.rs232",
+  rs485: "tabs.dfd.element_description.interface.cascade_hints.rs485",
+  can: "tabs.dfd.element_description.interface.cascade_hints.can",
+  gpio: "tabs.dfd.element_description.interface.cascade_hints.gpio",
+  analog_in: "tabs.dfd.element_description.interface.cascade_hints.analog_in",
+  analog_out: "tabs.dfd.element_description.interface.cascade_hints.analog_out",
+  jtag: "tabs.dfd.element_description.interface.cascade_hints.jtag",
+  swd: "tabs.dfd.element_description.interface.cascade_hints.swd",
+  swd_swo: "tabs.dfd.element_description.interface.cascade_hints.swd",
+  jtag_trace: "tabs.dfd.element_description.interface.cascade_hints.jtag",
 };
 
 /** Fields driven by Interface.type — used for clearing on driver reset */

@@ -1077,21 +1077,46 @@ export interface DataFlowProperties {
   notes?: string;
 }
 
+// ==================== INTERFACE TYPE ====================
+// Exported as a standalone type (like Protocol) so interface-type-registry.ts
+// can use it as the Record key without importing from element-properties.
+
+export type InterfaceType =
+  // ── Network / Wireless ───────────────────────────────────────────────
+  | "ethernet"       // Wired Ethernet (10/100/1000, PoE)
+  | "wifi"           // IEEE 802.11 — no physical access required
+  | "bluetooth"      // BT Classic / BLE — no physical access required
+  | "nfc"            // NFC — proximity required (~10cm)
+  | "fiber"          // Fibre optic — physical tap required
+  // ── Serial / Bus ────────────────────────────────────────────────────
+  | "uart"           // UART/USART — often unprotected console/config
+  | "rs232"          // RS-232 — point-to-point serial, legacy
+  | "rs485"          // RS-485 / Modbus — multi-drop, industrial
+  | "can"            // CAN Bus — automotive/industrial, no auth by default
+  | "i2c"            // I²C — short-range internal bus to sensors/EEPROMs
+  | "spi"            // SPI — high-speed internal bus, peripherals
+  | "lin"            // LIN Bus — automotive, single-wire serial
+  // ── USB ─────────────────────────────────────────────────────────────
+  | "usb"            // USB (any class) — DFU, HID, CDC, storage
+  // ── Debug / Programming ─────────────────────────────────────────────
+  | "jtag"           // JTAG — full debug: CPU halt, memory R/W, flash
+  | "swd"            // SWD (ARM) — debug + flash programming
+  | "swd_swo"        // SWD + SWO — debug + lightweight trace (ITM)
+  | "jtag_trace"     // JTAG + ETM Trace Port — full debug + instruction trace
+  // ── Digital I/O ─────────────────────────────────────────────────────
+  | "gpio"           // General Purpose I/O — digital in/out
+  | "analog_in"      // Analog Input — ADC channel (sensor, signal)
+  | "analog_out"     // Analog Output — DAC channel (actuator, signal)
+  | "pwm"            // PWM Output — motor control, dimming
+  // ── Other ───────────────────────────────────────────────────────────
+  | "custom";        // Proprietary / not listed above
+
 // ==================== INTERFACE PROPERTIES ====================
 
 export interface InterfaceProperties {
   // ── Context ──────────────────────────────────────────────────────────────
 
-  type?:
-    | "ethernet"
-    | "serial"
-    | "usb"
-    | "gpio"
-    | "bluetooth"
-    | "wifi"
-    | "nfc"
-    | "fiber"
-    | "custom";
+  type?: InterfaceType;
 
   /**
    * Physical location of this interface on the device.

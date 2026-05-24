@@ -55,6 +55,13 @@ export function useDFDPersistence(
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const drawioSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Always-current project ref — prevents stale closure in scheduleDrawioSave.
+  // Without this, scheduleDrawioSave uses the project object from the render
+  // when it was created, missing properties set via updateConnectionDescription
+  // (which arrives via scheduleSave/onUpdate AFTER the drawio save fires).
+  const projectRef = useRef<DFDProjectData>(project);
+  projectRef.current = project;
+
   // ==================== DIRTY STATE ====================
 
   const markDirty = useCallback(() => {
@@ -79,11 +86,13 @@ export function useDFDPersistence(
 
       try {
         // Sync from legacy storage (draw.io writes there)
-        const adapter = createDFDStorageAdapter(project.id);
+        // Use projectRef.current to include any pending property updates
+        const currentProject = projectRef.current;
+        const adapter = createDFDStorageAdapter(currentProject.id);
         adapter.syncFromLegacy();
 
         // Save via service
-        const result = dfdService.saveDFD(project);
+        const result = dfdService.saveDFD(currentProject);
 
         if (!result.success) {
           console.error("[useDFDPersistence] Save failed:", result.error);
@@ -176,10 +185,14 @@ export function useDFDPersistence(
       console.log("[useDFDPersistence] Executing DrawIO autosave...");
 
       try {
-        const adapter = createDFDStorageAdapter(project.id);
+        // Use projectRef.current — always the latest project state.
+        // This merges any properties set via updateConnectionDescription
+        // (arrived via onUpdate) with the XML from draw.io.
+        const currentProject = projectRef.current;
+        const adapter = createDFDStorageAdapter(currentProject.id);
         adapter.syncFromLegacy();
 
-        const result = dfdService.saveDFD(project);
+        const result = dfdService.saveDFD(currentProject);
 
         if (!result.success) {
           console.error(

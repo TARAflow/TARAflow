@@ -39,8 +39,12 @@ export interface ValidationResult {
   isComplete: boolean;
   errors: string[];
   warnings: string[];
-  /** Which scenario was detected: 'A' (external entity), 'B' (internal only), or null */
-  scenario: 'A' | 'B' | null;
+  /** Which scenario was detected:
+   *  'A' (external entity → TB required),
+   *  'B' (no EE, TB present → cross-boundary flow required),
+   *  'C' (no EE, no TB, PhysicalBoundary present → embedded device),
+   *  null (invalid — no boundary modelled or validation errors) */
+  scenario: "A" | "B" | "C" | null;
 }
 
 export interface ValidateOptions {

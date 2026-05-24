@@ -696,21 +696,84 @@
           "cascade_hints": {
             "usb": "This interface type is a common attack surface on embedded systems. Consider setting Safety Relevant if connected to safety-critical components.",
             "serial": "Serial interfaces are often connected to debug consoles or safety-critical components. Consider setting Safety Relevant if applicable.",
-            "gpio": "GPIO pins may connect directly to safety actuators or sensors. Consider setting Safety Relevant if this interface controls or reads safety-critical hardware."
+            "gpio": "GPIO pins may connect directly to safety actuators or sensors. Consider setting Safety Relevant if this interface controls or reads safety-critical hardware.",
+            "uart": "UART is frequently used as an unprotected debug console or configuration port. Verify that access is restricted in production.",
+            "rs232": "RS-232 serial interfaces often expose diagnostic or configuration access. Consider physical access controls.",
+            "rs485": "RS-485 / Modbus is common in safety-critical industrial systems. Consider setting Safety Relevant if connected to actuators or sensors.",
+            "can": "CAN Bus has no built-in authentication or encryption. Consider setting Safety Relevant if used in automotive or industrial safety systems.",
+            "analog_in": "Analog inputs connect to physical sensors. Tampering with signal levels may affect measurements. Consider setting Safety Relevant.",
+            "analog_out": "Analog outputs drive actuators. Manipulation of output signals may have safety-critical consequences. Consider setting Safety Relevant.",
+            "jtag": "JTAG provides full CPU debug access including memory read/write and flash programming. This port must be locked or disabled in production.",
+            "swd": "SWD provides ARM debug and flash programming access. This port must be locked or disabled in production. Consider setting safetyRelevant if connected to safety-critical firmware."
           },
           "fields": {
             "type": {
               "label": "Interface Type",
+              "groups": {
+                "network": "Network / Wireless",
+                "serial": "Serial / Bus",
+                "usb": "USB",
+                "debug": "Debug / Programming",
+                "io": "Digital / Analog I/O",
+                "other": "Other"
+              },
               "options": {
                 "ethernet": "Ethernet",
-                "serial": "Serial (UART / RS-232 / RS-485)",
-                "usb": "USB",
-                "gpio": "GPIO",
-                "bluetooth": "Bluetooth",
                 "wifi": "Wi-Fi",
+                "bluetooth": "Bluetooth",
                 "nfc": "NFC",
-                "fiber": "Fiber Optic",
+                "fiber": "Fibre Optic",
+
+                "uart": "UART",
+                "rs232": "RS-232",
+                "rs485": "RS-485",
+                "can": "CAN Bus",
+                "i2c": "I²C",
+                "spi": "SPI",
+                "lin": "LIN Bus",
+
+                "usb": "USB",
+
+                "jtag": "JTAG",
+                "swd": "SWD",
+                "swd_swo": "SWD + SWO (Trace)",
+                "jtag_trace": "JTAG + ETM Trace",
+
+                "gpio": "GPIO",
+                "analog_in": "Analog Input",
+                "analog_out": "Analog Output",
+                "pwm": "PWM",
+
                 "custom": "Custom"
+              },
+              "tooltips": {
+                "ethernet": "Wired Ethernet (10/100/1000 Mbit/s, PoE). Physical connection required.",
+                "wifi": "IEEE 802.11 wireless. No physical access required — reachable from distance.",
+                "bluetooth": "Bluetooth Classic / BLE. No physical access required.",
+                "nfc": "Near-Field Communication. Proximity (~10 cm) required.",
+                "fiber": "Fibre optic. Physical tap requires cutting the cable.",
+
+                "uart": "UART/USART — often an unprotected debug console or config port. High risk.",
+                "rs232": "RS-232 point-to-point serial. Common in legacy industrial equipment.",
+                "rs485": "RS-485 / Modbus RTU. Multi-drop bus — any device on the bus can sniff traffic.",
+                "can": "CAN Bus — no authentication or encryption by default. Common in automotive and industrial.",
+                "i2c": "I²C — short-range bus to sensors, EEPROMs, and peripherals. Requires PCB access.",
+                "spi": "SPI — high-speed bus to peripherals. Requires PCB access.",
+                "lin": "LIN Bus — single-wire, low-speed automotive bus. Body/chassis functions.",
+
+                "usb": "USB (any class). Risk: DFU mode, HID injection (BadUSB), mass storage.",
+
+                "jtag": "Full JTAG: CPU halt, memory R/W, flash read/write. Highest debug risk.",
+                "swd": "ARM Serial Wire Debug — similar capabilities to JTAG. Should be locked in production.",
+                "swd_swo": "SWD + SWO (Single Wire Output) — debug access plus lightweight ITM trace.",
+                "jtag_trace": "JTAG + ETM Trace Port — full debug access plus instruction-level trace.",
+
+                "gpio": "General Purpose I/O — digital signal in/out. Risk depends on function.",
+                "analog_in": "Analog Input (ADC) — sensor or signal input. Tampering affects measurements.",
+                "analog_out": "Analog Output (DAC) — actuator or signal output. Safety-critical in many systems.",
+                "pwm": "PWM Output — motor control, LED dimming. Safety-relevant for actuators.",
+
+                "custom": "Proprietary or unlisted interface type."
               }
             },
             "accessControl": {
@@ -1775,6 +1838,8 @@
     "assetMissingAutomationLevel": "Asset \"{{name}}\" has no automation level set",
     "physicalBoundaryInvalidConnection": "Physical Boundary is non-connectable — use an Interface element on the boundary edge instead",
     "interfaceNoPhysicalBoundary": "Interface has no physical context — it must overlap or lie inside a Physical Boundary",
+    "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" declares a {{detail}} debug interface but no matching Interface element overlaps it — the debug port is not modelled as an attack surface",
+    "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": connector type \"{{targetType}}\" is not valid for a {{targetName}} interface",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",
@@ -1784,7 +1849,21 @@
       "Interface": "Interface",
       "Asset": "Asset",
       "ChipBoundary": "Chip Boundary",
-      "PhysicalBoundary": "Physical Boundary"
+      "PhysicalBoundary": "Physical Boundary",
+      "rj45": "RJ45",
+      "sfp": "SFP/SFP+",
+      "m12": "M12",
+      "usb_a": "USB Type-A",
+      "usb_c": "USB Type-C",
+      "micro_usb": "Micro-USB",
+      "db9": "DB9 (D-Sub 9)",
+      "db25": "DB25 (D-Sub 25)",
+      "terminal": "Terminal Block",
+      "swd_10pin": "SWD 10-pin Header",
+      "jtag_20pin": "JTAG 20-pin Header",
+      "gpio_header": "GPIO Header",
+      "pcie": "PCIe",
+      "custom": "Custom"
     }
   }
 }

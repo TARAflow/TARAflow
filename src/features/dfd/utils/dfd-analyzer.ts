@@ -94,12 +94,14 @@ export class DFDAnalyzer {
     const start = this.getElementConnectionPoint(sourceEl, "exit", connection);
     const end = this.getElementConnectionPoint(targetEl, "entry", connection);
 
-    // Use GeometryAnalyzer for line intersection check
+    // Use GeometryAnalyzer for line intersection check.
+    // Pass curved flag so Case 1 (QB Bézier algorithm) fires correctly.
     return geometryAnalyzer.rectangleIntersectsLine(
       assetPlacement,
       start,
       end,
       connection.waypoints,
+      connection.curved,
     );
   }
 

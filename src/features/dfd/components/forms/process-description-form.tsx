@@ -212,85 +212,100 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             </Select>
           </FormControl>
         </Grid>
+        {/* Process Semantic — only relevant for embedded technologies.
+            For web/cloud/IT processes the semantic is always execution_unit
+            (OS-enforced isolation), so the field adds no value and would
+            confuse analysts working on non-embedded systems. */}
+        {isEmbedded && (
+          <>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>
+                  {t(
+                    "tabs.dfd.element_description.process.fields.processSemantic.label",
+                    { defaultValue: "Process Semantic" },
+                  )}
+                </InputLabel>
 
-        {/* Process Semantic */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.processSemantic.label",
-                { defaultValue: "Process Semantic" },
-              )}
-            </InputLabel>
-            <Select
-              value={(props as any).processSemantic ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "processSemantic" as any,
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.processSemantic.label",
-                { defaultValue: "Process Semantic" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              <MenuItem value="execution_unit">
-                {t(
-                  "tabs.dfd.element_description.process.fields.processSemantic.options.execution_unit",
-                  { defaultValue: "Execution Unit (OS/RTOS-isolated)" },
-                )}
-              </MenuItem>
-              <MenuItem value="functional_block">
-                {t(
-                  "tabs.dfd.element_description.process.fields.processSemantic.options.functional_block",
-                  {
-                    defaultValue: "Functional Block (logical, no OS isolation)",
-                  },
-                )}
-              </MenuItem>
-              <MenuItem value="security_boundary">
-                {t(
-                  "tabs.dfd.element_description.process.fields.processSemantic.options.security_boundary",
-                  {
-                    defaultValue: "Security Boundary (HSM, TEE, Crypto Engine)",
-                  },
-                )}
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+                <Select
+                  value={(props as any).processSemantic ?? ""}
+                  onChange={(e) =>
+                    handlePropertyChange(
+                      "processSemantic" as any,
+                      e.target.value === "" ? undefined : e.target.value,
+                    )
+                  }
+                  label={t(
+                    "tabs.dfd.element_description.process.fields.processSemantic.label",
+                    { defaultValue: "Process Semantic" },
+                  )}
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t("common.not_specified", {
+                        defaultValue: "Not specified",
+                      })}
+                    </em>
+                  </MenuItem>
 
-        {/* Hint for functional_block */}
-        {(props as any).processSemantic === "functional_block" && (
-          <Grid item xs={12}>
-            <Box
-              sx={{
-                p: 1,
-                bgcolor: "info.50",
-                borderRadius: 1,
-                border: 1,
-                borderColor: "info.200",
-              }}
-            >
-              <Typography variant="caption" color="info.dark">
-                {t(
-                  "tabs.dfd.element_description.process.fields.processSemantic.hint_functional_block",
-                  {
-                    defaultValue:
-                      "This process represents a functional block, not an OS process. No hardware isolation boundary exists — trust assumptions must be explicit.",
-                  },
-                )}
-              </Typography>
-            </Box>
-          </Grid>
-        )}
+                  <MenuItem value="execution_unit">
+                    {t(
+                      "tabs.dfd.element_description.process.fields.processSemantic.options.execution_unit",
+                      {
+                        defaultValue: "Execution Unit (OS/RTOS-isolated)",
+                      },
+                    )}
+                  </MenuItem>
 
+                  <MenuItem value="functional_block">
+                    {t(
+                      "tabs.dfd.element_description.process.fields.processSemantic.options.functional_block",
+                      {
+                        defaultValue:
+                          "Functional Block (logical, no OS isolation)",
+                      },
+                    )}
+                  </MenuItem>
+
+                  <MenuItem value="security_boundary">
+                    {t(
+                      "tabs.dfd.element_description.process.fields.processSemantic.options.security_boundary",
+                      {
+                        defaultValue:
+                          "Security Boundary (HSM, TEE, Crypto Engine)",
+                      },
+                    )}
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {(props as any).processSemantic === "functional_block" && (
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    p: 1,
+                    bgcolor: "info.50",
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: "info.200",
+                  }}
+                >
+                  <Typography variant="caption" color="info.dark">
+                    {t(
+                      "tabs.dfd.element_description.process.fields.processSemantic.hint_functional_block",
+                      {
+                        defaultValue:
+                          "This process represents a functional block, not an OS process. No hardware isolation boundary exists — trust assumptions must be explicit.",
+                      },
+                    )}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+          </>
+        )}{" "}
+        {/* end isEmbedded conditional for processSemantic */}
         {/* Runs As */}
         <Grid item xs={12} sm={6}>
           <Tooltip
@@ -343,7 +358,6 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             </span>
           </Tooltip>
         </Grid>
-
         {/* Privilege Level */}
         <Grid item xs={12} sm={6}>
           <Tooltip

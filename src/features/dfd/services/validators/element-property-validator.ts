@@ -91,10 +91,19 @@ function missingProp(element: DFDElement, field: string): string {
 
 /**
  * Process: technology, processSemantic, runsAs
+ *
+ * runsAs is only meaningful when an OS process context exists.
+ * When processSemantic === "functional_block", the element represents a
+ * bare-metal logic block, ISR, or state machine — there is no OS, no
+ * privilege separation, and no applicable runsAs value. The field is
+ * disabled in the UI for this semantic; do not warn about it.
+ *
+ * Similarly, processSemantic === "security_boundary" (HSM, OP-TEE TA)
+ * has its own isolated execution model — runsAs is not applicable.
  */
 function validateProcessProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: string[],
 ): void {
   const props = (element.properties ?? {}) as ProcessProperties;
 
@@ -104,7 +113,17 @@ function validateProcessProperties(
   if (!props.processSemantic) {
     warnings.push(missingProp(element, "processSemantic"));
   }
-  if (!props.runsAs || props.runsAs === "not_specified") {
+
+  // runsAs only applies when an OS process context exists.
+  // functional_block = bare-metal / ISR / state machine — no OS, no runsAs.
+  // security_boundary = HSM / OP-TEE TA — isolated execution, runsAs N/A.
+  const semanticRequiresRunsAs =
+    !props.processSemantic || props.processSemantic === "execution_unit";
+
+  if (
+    semanticRequiresRunsAs &&
+    (!props.runsAs || props.runsAs === "not_specified")
+  ) {
     warnings.push(missingProp(element, "runsAs"));
   }
 }
@@ -174,10 +193,18 @@ function validateExternalEntityProperties(
 
 /**
  * TrustBoundary: boundaryType, defaultExposureLevel, boundaryControlTypes
+ *
+ * boundaryControlTypes is only required for network-oriented boundary types.
+ * Hardware/chip/internal boundaries (e.g. MCU Secure vs Non-Secure World,
+ * bare-metal zone separation) have no applicable network security controls —
+ * omitting this field is structurally correct, not a gap.
+ *
+ * Network-oriented types: network, dmz, internet, cloud, vpn
+ * Hardware-oriented types: hardware, chip, internal, embedded — exempt
  */
 function validateTrustBoundaryProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: string[],
 ): void {
   const props = (element.properties ?? {}) as TrustBoundaryProperties;
 
@@ -187,7 +214,24 @@ function validateTrustBoundaryProperties(
   if (!props.defaultExposureLevel) {
     warnings.push(missingProp(element, "defaultExposureLevel"));
   }
-  if (!props.boundaryControlTypes || props.boundaryControlTypes.length === 0) {
+
+  // boundaryControlTypes only applies to network-oriented boundaries.
+  // Hardware/chip/internal boundaries have no network security controls —
+  // the warning would be a false positive for embedded/MCU systems.
+  // Network/software-oriented boundary types where security controls apply.
+  // Embedded-specific types (peripheral, boot, debug) have no applicable
+  // BoundaryControlType entries — hardware enforces the boundary, not software.
+  // privilege/organization/legal/device are also typically control-free in
+  // embedded contexts; only network and cloud boundaries need explicit controls.
+  const CONTROLS_REQUIRED_BOUNDARY_TYPES: string[] = ["network", "cloud"];
+  const isNetworkBoundary =
+    !props.boundaryType ||
+    CONTROLS_REQUIRED_BOUNDARY_TYPES.includes(props.boundaryType);
+
+  if (
+    isNetworkBoundary &&
+    (!props.boundaryControlTypes || props.boundaryControlTypes.length === 0)
+  ) {
     warnings.push(missingProp(element, "boundaryControlTypes"));
   }
 }

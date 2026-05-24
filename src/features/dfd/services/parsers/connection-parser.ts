@@ -130,6 +130,17 @@ export function parseConnectionFromCell(cell: Element): {
 }
 
 /**
+ * Extract a numeric style attribute from a draw.io style string.
+ * e.g. extractStyleValue("entryX=0.175;entryY=0.967;", "entryX") → 0.175
+ */
+function extractStyleValue(style: string, key: string): number | undefined {
+  const match = style.match(new RegExp(`(?:^|;)${key}=([^;]+)`));
+  if (!match) return undefined;
+  const val = parseFloat(match[1]);
+  return isNaN(val) ? undefined : val;
+}
+
+/**
  * Create connection object from parsed data
  */
 function createConnection(
@@ -138,7 +149,7 @@ function createConnection(
   to: string,
   label: string,
   geometry: Element | undefined,
-  style: string
+  style: string,
 ): DFDConnection {
   const connection: DFDConnection = {
     id,
@@ -155,6 +166,30 @@ function createConnection(
     connection.sourcePoint = extractPoint(geometry, "sourcePoint");
     connection.targetPoint = extractPoint(geometry, "targetPoint");
     connection.offset = extractPoint(geometry, "offset");
+  }
+
+  // Extract entryX/entryY/exitX/exitY from draw.io style string.
+  // These fractional anchor values are always authoritative for computing the
+  // actual connection point on the source/target element — even when stale
+  // mxPoint sourcePoint/targetPoint values exist in the XML (draw.io may leave
+  // those from a previous layout). The geometry analyzer uses these to compute
+  // the correct start/end coordinates for intersection checks.
+  const entryX = extractStyleValue(style, "entryX");
+  const entryY = extractStyleValue(style, "entryY");
+  const exitX = extractStyleValue(style, "exitX");
+  const exitY = extractStyleValue(style, "exitY");
+
+  // Store entry/exit fractions as loosely-typed extension fields.
+  // These are internal-only: used by dfd-analyzer.getElementConnectionPoint()
+  // to compute accurate intersection points without requiring mxPoint coords.
+  // Not part of DFDConnection interface — transport only, never persisted.
+  if (entryX !== undefined && entryY !== undefined) {
+    (connection as any).entryX = entryX;
+    (connection as any).entryY = entryY;
+  }
+  if (exitX !== undefined && exitY !== undefined) {
+    (connection as any).exitX = exitX;
+    (connection as any).exitY = exitY;
   }
 
   // Parse style properties

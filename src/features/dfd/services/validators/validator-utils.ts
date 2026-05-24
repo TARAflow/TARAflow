@@ -41,6 +41,10 @@ export const ValidationMessages = {
 
   // Asset & Interface
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
+  CHIPBOUNDARY_MISSING_DEBUG_INTERFACE:
+    "dfdValidation.chipBoundaryMissingDebugInterface",
+  INTERFACE_CONNECTOR_TYPE_INVALID:
+    "dfdValidation.interfaceConnectorTypeInvalid",
 
   // Asset Relations
   // ASSET_MARKER_NO_RELATION: "dfdValidation.assetMarkerNoRelation",

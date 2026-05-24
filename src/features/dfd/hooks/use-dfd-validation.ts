@@ -38,16 +38,25 @@ export function useDFDValidation(
 
   const validateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Always-current project ref — validate() reads from here instead of
+  // closing over project directly. This means validate() never needs to
+  // be recreated when project.dfd changes, but it always validates the
+  // latest data. Without this, validate() would use a stale project
+  // (missing newly-set properties) until the component remounts.
+  const projectRef = useRef<DFDProjectData>(project);
+  projectRef.current = project;
+
   // ==================== VALIDATION ====================
 
   /**
-   * Run validation immediately
+   * Run validation immediately against the current project state.
    */
   const validate = useCallback((): ValidationResult => {
     try {
       console.log("[useDFDValidation] Running validation...");
 
-      const result = dfdService.validateCurrentState(project);
+      // Read from ref — always current, never stale
+      const result = dfdService.validateCurrentState(projectRef.current);
       setValidation(result);
 
       console.log(
@@ -69,7 +78,9 @@ export function useDFDValidation(
       setValidation(emptyResult);
       return emptyResult;
     }
-  }, [project.id]);
+    // Stable — reads current project via ref, no deps needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Schedule validation with debounce
