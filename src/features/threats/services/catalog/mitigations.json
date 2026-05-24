@@ -1,5 +1,5 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "mitigations": [
     {
       "id": "M-S-001",
@@ -17,6 +17,12 @@
           "targetType": "Process",
           "property": "authenticationRequired",
           "expectedValue": "oauth",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "mfa",
           "confidence": "heuristic"
         }
       ],
@@ -38,6 +44,12 @@
         {
           "targetType": "Process",
           "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.logicalAccessControl",
           "expectedValue": "certificate",
           "confidence": "heuristic"
         }
@@ -115,14 +127,14 @@
           "targetType": "DataFlow",
           "role": "channel",
           "property": "integrityProtection",
-          "expectedValue": true,
-          "confidence": "deterministic"
+          "expectedValue": "hmac",
+          "confidence": "heuristic"
         },
         {
           "targetType": "DataStore",
           "property": "integrityProtection",
-          "expectedValue": true,
-          "confidence": "deterministic"
+          "expectedValue": "hmac",
+          "confidence": "heuristic"
         }
       ],
       "verifications": ["V-T-001"]
@@ -137,7 +149,7 @@
           "targetType": "DataFlow",
           "role": "channel",
           "property": "integrityProtection",
-          "expectedValue": true,
+          "expectedValue": "signature",
           "confidence": "deterministic"
         }
       ],
@@ -157,8 +169,8 @@
         },
         {
           "targetType": "DataStore",
-          "property": "accessControl",
-          "expectedValue": "acl",
+          "property": "accessControlMechanism",
+          "expectedValue": "process_enforced",
           "confidence": "heuristic"
         }
       ],
@@ -227,7 +239,7 @@
           "targetType": "DataFlow",
           "role": "channel",
           "property": "integrityProtection",
-          "expectedValue": true,
+          "expectedValue": "signature",
           "confidence": "deterministic"
         }
       ],
@@ -306,6 +318,12 @@
           "property": "authorizationModel",
           "expectedValue": "rbac",
           "confidence": "heuristic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
         }
       ],
       "verifications": ["V-I-003"]
@@ -344,6 +362,12 @@
           "property": "rateLimited",
           "expectedValue": true,
           "confidence": "deterministic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.abuseProtection",
+          "expectedValue": "rate_limited",
+          "confidence": "heuristic"
         }
       ],
       "verifications": ["V-D-001", "V-D-003"]
@@ -367,6 +391,12 @@
           "property": "authorizationModel",
           "expectedValue": "acl",
           "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataStore",
+          "property": "accessControlMechanism",
+          "expectedValue": "process_enforced",
+          "confidence": "heuristic"
         }
       ],
       "verifications": ["V-D-001"]
@@ -376,7 +406,14 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
-      "affectsProperties": [],
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "backupMechanism",
+          "expectedValue": "redundant_system",
+          "confidence": "heuristic"
+        }
+      ],
       "verifications": ["V-D-004"]
     },
     {
@@ -410,6 +447,12 @@
       "affectsProperties": [
         {
           "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Multiprocess",
           "property": "authorizationModel",
           "expectedValue": "rbac",
           "confidence": "heuristic"
@@ -470,8 +513,14 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "accessControl",
-          "expectedValue": "physical_lock",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "fused_off",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "operationalState",
+          "expectedValue": "hw_disabled",
           "confidence": "heuristic"
         }
       ],
@@ -485,7 +534,7 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "accessControl",
+          "property": "implementedControls.logicalAccessControl",
           "expectedValue": "certificate",
           "confidence": "deterministic"
         }
@@ -497,7 +546,14 @@
       "strideCategory": "T",
       "context": {},
       "isCustom": false,
-      "affectsProperties": [],
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.physicalAccessProtection",
+          "expectedValue": "inside_enclosure",
+          "confidence": "heuristic"
+        }
+      ],
       "verifications": ["V-IF-T-001"]
     },
     {
@@ -513,7 +569,14 @@
       "strideCategory": "T",
       "context": {},
       "isCustom": false,
-      "affectsProperties": [],
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.physicalAccessProtection",
+          "expectedValue": "locked_panel",
+          "confidence": "heuristic"
+        }
+      ],
       "verifications": ["V-IF-T-001"]
     },
     {
@@ -556,8 +619,8 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "isShieldedCable",
-          "expectedValue": true,
+          "property": "implementedControls.signalProtection",
+          "expectedValue": "shielded",
           "confidence": "deterministic"
         }
       ],
@@ -587,8 +650,8 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "accessControl",
-          "expectedValue": "physical_lock",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "fused_off",
           "confidence": "deterministic"
         }
       ],
@@ -602,9 +665,9 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "accessControl",
-          "expectedValue": "physical_lock",
-          "confidence": "deterministic"
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "auth_required",
+          "confidence": "heuristic"
         }
       ],
       "verifications": ["V-IF-E-001"]
