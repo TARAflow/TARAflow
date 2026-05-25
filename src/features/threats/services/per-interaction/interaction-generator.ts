@@ -1,19 +1,19 @@
 // ==================== INTERACTION THREAT GENERATOR ====================
 // STRIDE per-interaction: generates threats from sender AND/OR receiver perspective.
 //
-// Threat allocation rules:
-//   Process-A (TB-A) → Process-B (TB-B):
-//     Sender perspective  → TB-A (always)
-//     Receiver perspective → TB-B (only if zeroTrustMode OR crossesTrustBoundary)
+// Threat allocation rules — always both perspectives, one exception:
 //
-//   ExternalEntity → Process-B (TB-B):
-//     EE has no TB → only receiver perspective → TB-B
+//   Any flow (cross-boundary or EE-involved):
+//     Sender perspective  → senderTB if set, else receiverTB
+//     Receiver perspective → receiverTB if set, else senderTB
 //
-//   Process-A (TB-A) → ExternalEntity:
-//     EE has no TB → only sender perspective → TB-A
+//   Internal flow (senderTB === receiverTB, no ZeroTrust):
+//     Sender perspective only → that TB  [the only exception]
 //
-//   Internal flow (same TB):
-//     Sender perspective only → that TB
+// Rationale: both ends must verify identity of the other party.
+// An EE could be spoofed (sender perspective) and a Process target
+// could be spoofed too (receiver perspective). Symmetric coverage
+// regardless of TB presence.
 
 import type {
   DFDGraphReference,
@@ -142,49 +142,19 @@ export class InteractionThreatGenerator {
         config ?? defaultConfig,
       );
 
-      if (senderTB) {
-        const sourcePropsForElim = sourceProps ?? {};
-        for (const stride of applicableStride) {
-          if (shouldEliminateThreat("DataFlow", sourcePropsForElim, stride))
-            continue;
-          addThreat(
-            senderTB,
-            this.createDataFlowThreat(
-              df,
-              dfDisplayId,
-              connection?.label || connection?.name || dfDisplayId,
-              source,
-              target,
-              stride,
-              "sender",
-              senderTB,
-              this.getTBName(graph, senderTB),
-              this.getTBDisplayId(graph, senderTB),
-              elementToAssets,
-              project,
-              strategy,
-              sourceProps,
-            ),
-          );
-        }
-      }
-
-      const needsReceiverPerspective =
-        !senderTB || (!internalFlow && (zeroTrust || df.crossesTrustBoundary));
-
-      // ── Special case: flow terminates at ChipBoundary ─────────────────
-      // ChipBoundary has no effectiveTB → senderTB/receiverTB are both null.
-      // Route under the ChipBoundary element as its own boundary group.
+      // ── Special case: flow terminates at ChipBoundary ───────────────────
+      // ChipBoundary has no effectiveTB → senderTB and receiverTB are both null.
+      // The flow is unidirectional (e.g. Debugger → CB via JTAG) — there is no
+      // modelled response channel. Generate receiver perspective only:
+      // "Can the CB trust the sender?" — is the Debugger really who it claims?
       if (!senderTB && !receiverTB && df.terminatesAtChipBoundary) {
         const targetEl = graph.elementsById.get(df.toElementId);
-        const sourceEl = graph.elementsById.get(df.fromElementId);
         if (targetEl?.type === "ChipBoundary") {
           const cbId = targetEl.id;
           const cbName = targetEl.name;
           const cbDisplayId = targetEl.displayId ?? cbId;
-          const targetPropsForElim = targetProps ?? {};
           for (const stride of applicableStride) {
-            if (shouldEliminateThreat("DataFlow", targetPropsForElim, stride))
+            if (shouldEliminateThreat("DataFlow", targetProps ?? {}, stride))
               continue;
             addThreat(
               cbId,
@@ -207,15 +177,53 @@ export class InteractionThreatGenerator {
             );
           }
         }
+        continue; // Skip normal sender/receiver block
       }
 
-      if (needsReceiverPerspective && receiverTB) {
+      // ── Sender perspective ──────────────────────────────────────────────
+      // Table key: senderTB if set, else receiverTB (EE source has no TB —
+      // threat belongs to the boundary that owns the conversation).
+      const senderTableKey = senderTB ?? receiverTB;
+      if (senderTableKey) {
+        const sourcePropsForElim = sourceProps ?? {};
+        for (const stride of applicableStride) {
+          if (shouldEliminateThreat("DataFlow", sourcePropsForElim, stride))
+            continue;
+          addThreat(
+            senderTableKey,
+            this.createDataFlowThreat(
+              df,
+              dfDisplayId,
+              connection?.label || connection?.name || dfDisplayId,
+              source,
+              target,
+              stride,
+              "sender",
+              senderTableKey,
+              this.getTBName(graph, senderTableKey),
+              this.getTBDisplayId(graph, senderTableKey),
+              elementToAssets,
+              project,
+              strategy,
+              sourceProps,
+            ),
+          );
+        }
+      }
+
+      // ── Receiver perspective ─────────────────────────────────────────────
+      // Exception: internal flows (senderTB === receiverTB, no ZeroTrust)
+      // get sender perspective only — both sides trust each other within same TB.
+      // Table key: receiverTB if set, else senderTB (EE target has no TB).
+      const skipReceiver = internalFlow && !zeroTrust;
+      const receiverTableKey = receiverTB ?? senderTB;
+      if (!skipReceiver && receiverTableKey) {
         const targetPropsForElim = targetProps ?? {};
         for (const stride of applicableStride) {
           if (shouldEliminateThreat("DataFlow", targetPropsForElim, stride))
             continue;
           addThreat(
-            receiverTB,
+            receiverTableKey,
             this.createDataFlowThreat(
               df,
               dfDisplayId,
@@ -224,9 +232,9 @@ export class InteractionThreatGenerator {
               target,
               stride,
               "receiver",
-              receiverTB,
-              this.getTBName(graph, receiverTB),
-              this.getTBDisplayId(graph, receiverTB),
+              receiverTableKey,
+              this.getTBName(graph, receiverTableKey),
+              this.getTBDisplayId(graph, receiverTableKey),
               elementToAssets,
               project,
               strategy,
@@ -247,32 +255,37 @@ export class InteractionThreatGenerator {
       const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
       const tbId = effectiveTB ?? null;
 
-      // Resolve parent boundary: TB > PB > CB > fallback.
-      // tableKey uses the parent id so each PhysicalBoundary and ChipBoundary
-      // gets its own threat table instead of a shared "__no_tb__" bucket.
+      // Resolve parent boundary name: TB > PB > CB > fallback
       let tbName: string;
       let tbDisplayId: string;
-      let tableKey: string;
-
       if (tbId) {
         tbName = this.getTBName(graph, tbId);
         tbDisplayId = this.getTBDisplayId(graph, tbId);
-        tableKey = tbId;
       } else {
         const pbIds = graph.elementPhysicalBoundaries?.get(element.id) ?? [];
         const cbIds = graph.elementChipBoundaries?.get(element.id) ?? [];
-        const parentId = pbIds[0] ?? cbIds[0] ?? null;
-        const parent = parentId ? graph.elementsById.get(parentId) : null;
-        tbName = parent?.name ?? "Physical Interfaces";
-        tbDisplayId = parent?.displayId ?? "";
-        tableKey = parentId ?? "__no_tb__";
+        const parentBoundaryId = pbIds[0] ?? cbIds[0] ?? null;
+        const parentBoundary = parentBoundaryId
+          ? graph.elementsById.get(parentBoundaryId)
+          : null;
+        tbName = parentBoundary?.name ?? "Physical Interfaces";
+        tbDisplayId = parentBoundary?.displayId ?? "";
       }
+
+      // tableKey: use PB or CB id so each boundary gets its own threat table
+      const tableKey =
+        tbId ??
+        (() => {
+          const pbIds = graph.elementPhysicalBoundaries?.get(element.id) ?? [];
+          const cbIds = graph.elementChipBoundaries?.get(element.id) ?? [];
+          return pbIds[0] ?? cbIds[0] ?? "__no_tb__";
+        })();
 
       const { categories: applicableStride } = strategy.getStrideCategories(
         element,
         STRIDE_PER_INTERACTION,
         project,
-        project.threats?.configuration ?? defaultConfig,
+        defaultConfig,
       );
 
       for (const stride of applicableStride) {

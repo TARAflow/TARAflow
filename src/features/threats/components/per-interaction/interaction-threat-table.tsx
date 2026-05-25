@@ -988,6 +988,15 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                           sx={{ flexGrow: 1, mr: 0.5 }}
                         >
                           <DataFlowIcon fontSize="small" />
+                          <Chip
+                            label={group.displayId || group.dataFlowId}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontSize: "0.75rem",
+                            }}
+                          />
                           <Typography variant="body2">
                             {group.sourceName} → {group.targetName}
                           </Typography>
