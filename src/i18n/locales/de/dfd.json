@@ -1063,19 +1063,41 @@
             },
             "entityType": {
               "label": "Entitätstyp",
+              "groups": {
+                "human": "Personen",
+                "system": "Systeme",
+                "infrastructure": "Infrastruktur",
+                "field_device": "Feldgeräte / Embedded",
+                "engineering": "Engineering & Debug",
+                "other": "Sonstiges"
+              },
               "options": {
                 "user": "Benutzer (Mensch)",
                 "admin_user": "Administrator (Mensch)",
-                "partner": "Partnersystem",
-                "thirdparty": "Drittanbieter-API",
-                "service": "Externer Dienst / SaaS",
-                "identity_provider": "Identitätsanbieter (IdP)",
-                "payment": "Zahlungsanbieter",
-                "contractor": "Auftragnehmer / Lieferant",
-                "bot": "Bot / Automatisiertes System",
-                "webhook": "Webhook-Quelle",
-                "mobile_app": "Mobile App",
-                "iot": "IoT-Gerät"
+                "operator": "Bediener / Maschinenführer (OT)",
+                "maintenance": "Wartungstechniker",
+                "contractor": "Auftragnehmer / Servicetechniker",
+                "device_owner": "Geräteeigentümer / Asset-Owner",
+                "service": "Dienst / API / Cloud",
+                "remote_service": "Remote-Dienst / Cloud-Diagnose",
+                "scada_hmi": "SCADA / HMI / DCS",
+                "historian": "Historian / Datenarchiv",
+                "gateway": "Protokoll-Gateway / OPC-UA-Proxy",
+                "update_server": "Firmware- / OTA-Update-Server",
+                "identity_provider": "Identitätsanbieter (IdP / AD / LDAP)",
+                "external_system": "Externes System (ERP / MES)",
+                "bot": "Bot / Automatisierter Client / CI-CD",
+                "network_device": "Netzwerkgerät (Switch / Router / Firewall)",
+                "wireless_access_point": "WLAN-Zugangspunkt (WLAN / 868 MHz / LoRa)",
+                "remote_access": "Fernzugang (VPN / Jump Host / Bastion)",
+                "controller": "Controller (SPS / RTU / ECU)",
+                "safety_controller": "Safety-Controller (SIS / Safety-SPS)",
+                "sensor": "Sensor / Sensor-Node",
+                "actuator": "Aktor (Ventil / Sirene / Relais)",
+                "iot": "IoT-Gerät (unklassifiziert / gemischt)",
+                "debugger": "Debug-Sonde (JTAG / SWD / Lauterbach)",
+                "engineering_workstation": "Engineering-Arbeitsstation / SPS-Programmiergerät",
+                "programming_tool": "Programmierwerkzeug (Flash-Programmer / Nadeladapter)"
               }
             },
             "trustLevel": {
@@ -1317,6 +1339,7 @@
                 "continuous": "Kontinuierlich",
                 "periodic": "Periodisch",
                 "event_based": "Ereignisbasiert",
+                "batch": "Stapelübertragung",
                 "custom": "Benutzerdefiniert"
               }
             },

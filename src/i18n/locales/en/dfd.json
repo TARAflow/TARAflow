@@ -1058,19 +1058,41 @@
             },
             "entityType": {
               "label": "Entity Type",
+              "groups": {
+                "human": "Human Actors",
+                "system": "Systems",
+                "infrastructure": "Infrastructure",
+                "field_device": "Field Devices / Embedded",
+                "engineering": "Engineering & Debug",
+                "other": "Other"
+              },
               "options": {
                 "user": "User (Human)",
                 "admin_user": "Administrator (Human)",
-                "partner": "Partner System",
-                "thirdparty": "Third-party API",
-                "service": "External Service / SaaS",
-                "identity_provider": "Identity Provider (IdP)",
-                "payment": "Payment Provider",
+                "operator": "Operator / Machine Attendant (OT)",
+                "maintenance": "Maintenance Technician",
                 "contractor": "Contractor / Vendor",
-                "bot": "Bot / Automated System",
-                "webhook": "Webhook Source",
-                "mobile_app": "Mobile App",
-                "iot": "IoT Device"
+                "device_owner": "Device Owner / Asset Owner",
+                "service": "Service / API / Cloud",
+                "remote_service": "Remote Service / Cloud Diagnostics",
+                "scada_hmi": "SCADA / HMI / DCS",
+                "historian": "Historian / Data Archive",
+                "gateway": "Protocol Gateway / OPC-UA Proxy",
+                "update_server": "Firmware / OTA Update Server",
+                "identity_provider": "Identity Provider (IdP / AD / LDAP)",
+                "external_system": "External System (ERP / MES)",
+                "bot": "Bot / Automated Client / CI-CD",
+                "network_device": "Network Device (Switch / Router / Firewall)",
+                "wireless_access_point": "Wireless Access Point (WiFi / 868 MHz / LoRa)",
+                "remote_access": "Remote Access (VPN / Jump Host / Bastion)",
+                "controller": "Controller (PLC / RTU / ECU)",
+                "safety_controller": "Safety Controller (SIS / Safety-PLC)",
+                "sensor": "Sensor / Sensor Node",
+                "actuator": "Actuator (Valve / Siren / Relay)",
+                "iot": "IoT Device (unclassified / mixed)",
+                "debugger": "Debug Probe (JTAG / SWD / Lauterbach)",
+                "engineering_workstation": "Engineering Workstation / PLC Programming Station",
+                "programming_tool": "Programming Tool (Flash Programmer / Needle Adapter)"
               }
             },
             "trustLevel": {
@@ -1312,6 +1334,7 @@
                 "continuous": "Continuous",
                 "periodic": "Periodic",
                 "event_based": "Event-based",
+                "batch": "Batch Transfer",
                 "custom": "Custom"
               }
             },

@@ -15,6 +15,7 @@ import {
   FormControlLabel,
   Grid,
   InputLabel,
+  ListSubheader,
   MenuItem,
   Select,
   Stack,
@@ -29,6 +30,12 @@ import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
 import { EXTERNAL_ENTITY_TYPE_DEFAULTS } from "../../models/element-property-defaults";
+import {
+  EXTERNAL_ENTITY_TYPE_META,
+  EXTERNAL_ENTITY_GROUP_ORDER,
+  getEntityTypesByGroup,
+  type ExternalEntityGroup,
+} from "../../models/external-entity-type-registry";
 
 interface ExternalEntityFormProps {
   element: DFDElement;
@@ -57,6 +64,53 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
 function asExternalEntityProperties(props: any): ExternalEntityProperties {
   return props as ExternalEntityProperties;
 }
+
+// ==================== GROUPED ENTITY TYPE SELECT ====================
+
+/**
+ * Render grouped MenuItem list from EXTERNAL_ENTITY_TYPE_META.
+ * Groups rendered in EXTERNAL_ENTITY_GROUP_ORDER sequence.
+ * Each group gets a ListSubheader (non-selectable) followed by its types.
+ * Mirrors the grouped protocol Select in dataflow-description-form.tsx.
+ */
+function renderGroupedEntityTypeOptions(
+  t: ReturnType<typeof useTranslation>["t"],
+): React.ReactNode[] {
+  const items: React.ReactNode[] = [
+    <MenuItem key="__empty" value="">
+      <em>{t("common.not_specified")}</em>
+    </MenuItem>,
+  ];
+
+  for (const group of EXTERNAL_ENTITY_GROUP_ORDER) {
+    const types = getEntityTypesByGroup(group);
+    if (types.length === 0) continue;
+
+    items.push(
+      <ListSubheader key={`group-${group}`} sx={{ lineHeight: "28px", fontSize: "0.7rem" }}>
+        {t(
+          `tabs.dfd.element_description.external_entity.fields.entityType.groups.${group}`,
+          { defaultValue: group },
+        )}
+      </ListSubheader>,
+    );
+
+    for (const type of types) {
+      items.push(
+        <MenuItem key={type} value={type} sx={{ pl: 3 }}>
+          {t(
+            `tabs.dfd.element_description.external_entity.fields.entityType.options.${type}`,
+            { defaultValue: type },
+          )}
+        </MenuItem>,
+      );
+    }
+  }
+
+  return items;
+}
+
+// ==================== FORM ====================
 
 const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
   element,
@@ -92,6 +146,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
       let updatedProperties = { ...element.properties, [field]: value };
 
       if (field === "entityType" && !value) {
+        // Clear cascaded fields when type is cleared
         updatedProperties = {
           entityType: undefined,
           trustLevel: undefined,
@@ -100,7 +155,14 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
           ownership: undefined,
         };
       } else if (field === "entityType" && typeof value === "string") {
-        const defaults = EXTERNAL_ENTITY_TYPE_DEFAULTS[value] ?? {};
+        // Apply cascade defaults from registry — only fills unset fields
+        const defaults =
+          (
+            EXTERNAL_ENTITY_TYPE_DEFAULTS as Record<
+              string,
+              Partial<ExternalEntityProperties>
+            >
+          )[value] ?? {};
         updatedProperties = { ...updatedProperties, ...defaults };
       }
 
@@ -120,7 +182,7 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
         />
 
         <Grid container spacing={2}>
-          {/* Entity Type */}
+          {/* Entity Type — grouped select */}
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth size="small">
               <InputLabel>
@@ -136,17 +198,10 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                 label={t(
                   "tabs.dfd.element_description.external_entity.fields.entityType.label",
                 )}
+                // Required to make ListSubheader non-selectable
+                MenuProps={{ autoFocus: false }}
               >
-                <MenuItem value="">
-                  <em>{t("common.not_specified")}</em>
-                </MenuItem>
-                {Object.keys(EXTERNAL_ENTITY_TYPE_DEFAULTS).map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {t(
-                      `tabs.dfd.element_description.external_entity.fields.entityType.options.${type}`,
-                    )}
-                  </MenuItem>
-                ))}
+                {renderGroupedEntityTypeOptions(t)}
               </Select>
             </FormControl>
           </Grid>
@@ -298,6 +353,8 @@ const ExternalEntityGeneralTab: React.FC<ExternalEntityGeneralTabProps> = ({
                     "saml",
                     "certificate",
                     "apikey",
+                    "mutual_tls",
+                    "jwt",
                   ] as const
                 ).map((opt) => (
                   <MenuItem key={opt} value={opt}>

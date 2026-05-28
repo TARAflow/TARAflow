@@ -694,20 +694,45 @@ export interface ExternalEntityThreatProfile {
   rationale: string;
 }
 
+export type ExternalEntityType =
+  // ── Human ─────────────────────────────────────────────────────────────────
+  | "user"                    // End user, operator (IT context)
+  | "admin_user"              // Privileged IT admin
+  | "operator"                // Machine/plant operator (OT context)
+  | "maintenance"             // Maintenance technician — temporarily privileged
+  | "contractor"              // External contractor / service technician
+  | "device_owner"            // Device/asset owner — manages config + user accounts (IEC 62443: Asset Owner)
+ 
+  // ── System ────────────────────────────────────────────────────────────────
+  | "service"                 // Backend service, cloud service, API
+  | "remote_service"          // Cloud diagnostics, vendor remote monitoring
+  | "scada_hmi"               // SCADA / HMI / DCS system
+  | "historian"               // SCADA historian, data archive
+  | "gateway"                 // Protocol gateway, OPC-UA proxy, VPN endpoint
+  | "update_server"           // OTA / firmware update server
+  | "identity_provider"       // IdP, OAuth server, AD/LDAP
+  | "external_system"         // ERP, MES, generic third-party system
+  | "bot"                     // Automated client, CI/CD pipeline
+ 
+  // ── Infrastructure ────────────────────────────────────────────────────────
+  | "network_device"          // Switch, router, firewall
+  | "wireless_access_point"   // Industrial WiFi, 868MHz AP, LoRa gateway
+  | "remote_access"           // Jump host, VPN appliance, cellular router
+ 
+  // ── Field Device ──────────────────────────────────────────────────────────
+  | "controller"              // PLC, RTU, ECU, MCU node
+  | "safety_controller"       // SIS, Safety-PLC (IEC 61508)
+  | "sensor"                  // Field sensor, sensor node
+  | "actuator"                // Valve, contactor, siren, relay output
+  | "iot"                     // Connected device — unclassified/mixed
+ 
+  // ── Engineering ───────────────────────────────────────────────────────────
+  | "debugger"                // JTAG probe, SWD adapter, Lauterbach, J-Link
+  | "engineering_workstation" // Engineering PC, PLC programming station
+  | "programming_tool";       // Needle adapter, flash programmer, service dongle
+
 export interface ExternalEntityProperties {
-  entityType?:
-    | "user"
-    | "admin_user"
-    | "partner"
-    | "thirdparty"
-    | "service"
-    | "identity_provider"
-    | "payment"
-    | "contractor"
-    | "bot"
-    | "webhook"
-    | "mobile_app"
-    | "iot";
+  entityType?: ExternalEntityType;
   trustLevel?: "low" | "medium" | "high";
   authenticationMethod?:
     | "none"

@@ -18,6 +18,7 @@ import type {
   PhysicalExposureLevel,
   PhysicalMonitoringType,
 } from "./element-properties";
+import type { ExternalEntityType } from "./external-entity-type-registry";
 
 // ==================== PROCESS DEFAULTS ====================
 
@@ -358,45 +359,227 @@ export const EXTERNAL_ENTITY_TYPE_DEFAULTS: Record<
   string,
   Partial<ExternalEntityProperties>
 > = {
+  // ── Human ─────────────────────────────────────────────────────────────────
+
   user: {
     trustLevel: "low",
     authenticationMethod: "password",
     threatActor: "curious",
+    ownership: "external",
   },
+
   admin_user: {
     trustLevel: "medium",
     authenticationMethod: "mfa",
     threatActor: "insider",
+    ownership: "internal",
   },
-  partner: {}, // No defaults
-  thirdparty: {}, // No defaults
-  service: {}, // No defaults
+
+  operator: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "curious",
+    ownership: "internal",
+    // OT operator: physical presence, role-based access, safety-relevant context.
+  },
+
+  maintenance: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "insider",
+    ownership: "external",
+    // IEC 62443: maintenance = weakest link — temporarily privileged,
+    // vendor laptops, USB sticks, direct PLC access, policy bypass risk.
+  },
+
+  contractor: {
+    trustLevel: "low",
+    authenticationMethod: "password",
+    threatActor: "curious",
+    ownership: "external",
+  },
+
+  device_owner: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "curious",
+    ownership: "external",
+    // Higher rights than user, lower than maintenance/contractor.
+    // Can manage user accounts + device config (CR 1.3).
+    // Cannot: firmware update, safety params, debug.
+  },
+
+  // ── System ────────────────────────────────────────────────────────────────
+
+  service: {
+    trustLevel: "medium",
+    authenticationMethod: "certificate",
+    threatActor: "compromised",
+    ownership: "external",
+  },
+
+  remote_service: {
+    trustLevel: "low",
+    authenticationMethod: "certificate",
+    threatActor: "advanced",
+    ownership: "external",
+    // Cloud diagnostics / vendor remote monitoring.
+    // Low trust by default: internet-reachable supply-chain component.
+  },
+
+  scada_hmi: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "compromised",
+    ownership: "internal",
+  },
+
+  historian: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "compromised",
+    ownership: "internal",
+  },
+
+  gateway: {
+    trustLevel: "medium",
+    authenticationMethod: "certificate",
+    threatActor: "compromised",
+    ownership: "internal",
+    // Protocol gateway: trusted intermediary, but pivoting risk.
+    // certificate default: gateways should authenticate to both sides.
+  },
+
+  update_server: {
+    trustLevel: "high",
+    authenticationMethod: "certificate",
+    threatActor: "advanced",
+    ownership: "external",
+    // Trust anchor for firmware integrity. High trust by design,
+    // but advanced threat actor: supply chain compromise = all devices affected.
+  },
+
   identity_provider: {
     trustLevel: "high",
     authenticationMethod: "saml",
     threatActor: "advanced",
+    ownership: "external",
   },
-  payment: {
-    trustLevel: "medium",
+
+  external_system: {
+    trustLevel: "low",
     authenticationMethod: "certificate",
-    threatActor: "malicious",
+    threatActor: "compromised",
+    ownership: "external",
   },
-  contractor: {}, // No defaults
+
   bot: {
     trustLevel: "low",
     authenticationMethod: "apikey",
     threatActor: "compromised",
+    ownership: "external",
   },
-  webhook: {
+
+  // ── Infrastructure ────────────────────────────────────────────────────────
+
+  network_device: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "compromised",
+    ownership: "internal",
+    // Switch, router, firewall. Trusted but compromised → pivot into OT network.
+  },
+
+  wireless_access_point: {
+    trustLevel: "low",
+    authenticationMethod: "password",
+    threatActor: "compromised",
+    ownership: "internal",
+    // Industrial WiFi, 868MHz AP, LoRa. Low trust: wireless = no physical barrier.
+  },
+
+  remote_access: {
+    trustLevel: "low",
+    authenticationMethod: "certificate",
+    threatActor: "advanced",
+    ownership: "internal",
+    // Jump host, VPN appliance, bastion. Common OT compromise entry point.
+    // Low trust default: if compromised, attacker gets full network access.
+  },
+
+  // ── Field Device ──────────────────────────────────────────────────────────
+
+  controller: {
+    trustLevel: "medium",
+    authenticationMethod: "none",
+    threatActor: "compromised",
+    ownership: "internal",
+    // PLC, RTU, ECU. No auth default surfaces IEC 62443 CR 1.1 gap.
+    // Compromised: process integrity + availability threats.
+  },
+
+  safety_controller: {
+    trustLevel: "high",
+    authenticationMethod: "certificate",
+    threatActor: "advanced",
+    ownership: "internal",
+    // SIS, Safety-PLC. High trust + advanced attacker:
+    // compromise = life safety impact (IEC 61508 / IEC 62061).
+  },
+
+  sensor: {
     trustLevel: "low",
     authenticationMethod: "none",
-    threatActor: "malicious",
+    threatActor: "curious",
+    ownership: "internal",
+    // Field sensor node. No auth default: fieldbus sensors typically unauthenticated.
+    // Spoofing threat surfaces automatically.
   },
-  mobile_app: {}, // No defaults
+
+  actuator: {
+    trustLevel: "medium",
+    authenticationMethod: "none",
+    threatActor: "malicious",
+    ownership: "internal",
+    // Valve, contactor, siren, relay. Malicious default: unauthorized actuation
+    // can have immediate physical / safety consequences.
+  },
+
   iot: {
     trustLevel: "low",
     authenticationMethod: "certificate",
     threatActor: "compromised",
+    ownership: "external",
+    // Intentionally low trust: undocumented devices, unknown attack surface.
+  },
+
+  // ── Engineering ───────────────────────────────────────────────────────────
+
+  debugger: {
+    trustLevel: "low",
+    authenticationMethod: "none",
+    threatActor: "insider",
+    ownership: "external",
+    // JTAG probe, SWD adapter. No auth: physical access IS the auth mechanism.
+    // Insider default: debug access typically requires insider knowledge + hardware.
+  },
+
+  engineering_workstation: {
+    trustLevel: "medium",
+    authenticationMethod: "password",
+    threatActor: "insider",
+    ownership: "internal",
+    // Engineering PC. If compromised: full plant potentially compromised.
+    // medium trust + insider: legitimate workstation, but high privilege abuse risk.
+  },
+
+  programming_tool: {
+    trustLevel: "low",
+    authenticationMethod: "none",
+    threatActor: "insider",
+    ownership: "external",
+    // Needle adapter, flash programmer, service dongle.
+    // Physical access + no auth = full firmware read/write capability.
   },
 };
 
