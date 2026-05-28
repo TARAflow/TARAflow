@@ -150,29 +150,10 @@ export function parseElementFromObject(
   // Skip if no type or is idlabel or asset
   if (!objType || objType === "idlabel" || objType === "asset") return null;
 
-  if (objType === "trustboundary") {
-    const cleanLabel = label.trim();
-    const validLabelRegex = /\[.*\]/;
-    if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
-      return null;
-    }
-  }
-
-  if (objType === "chipboundary") {
-    const cleanLabel = label.trim();
-    const validLabelRegex = /\[.*\]/;
-    if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
-      return null;
-    }
-  }
-
-  if (objType === "physicalboundary") {
-    const cleanLabel = label.trim();
-    const validLabelRegex = /\[.*\]/;
-    if (!cleanLabel || !validLabelRegex.test(cleanLabel)) {
-      return null;
-    }
-  }
+  // No [ID] label guard for trustboundary, chipboundary, or physicalboundary.
+  // All three carry type="..." explicitly — the type attribute is the
+  // authoritative discriminator. The [ID] label is optional at parse time;
+  // the validator reports a missing ID label as a warning afterwards.
 
   // Get child mxCell
   const cells = obj.getElementsByTagName("mxCell");

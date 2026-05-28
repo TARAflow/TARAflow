@@ -98,14 +98,35 @@ export function useDFDExportImport(
           );
         }
 
-        // Load XML into editor
+        // Pre-populate project.dfd with imported properties BEFORE save().
+        // persistence.save() uses projectRef.current and calls
+        // dfdService.saveDFD(project), which merges parsed elements with
+        // project.dfd.elements. Without this step, existingElements is []
+        // and all imported properties are silently discarded.
+        project.dfd = {
+          ...(project.dfd ?? {}),
+          xml: data.xml,
+          elements: data.elements,
+          connections: data.connections,
+          assets: data.assets ?? [],
+        };
+
+        // Wait for the browser to restore focus to the iframe after the
+        // file-picker dialog closes. On some browsers/Electron the iframe
+        // loses contentWindow temporarily, causing "bridge not ready".
+        // Two rAF cycles are enough for the browser to re-attach the frame.
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+
+        // Load XML into draw.io and persist to localStorage
         console.log("[useDFDExportImport] Loading XML into editor...");
         await bridge.loadXML(data.xml);
 
-        // Wait for draw.io to process
+        // Wait for draw.io to process and write to localStorage
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // Trigger save to persist
+        // Save: reads XML from localStorage, merges with pre-populated project.dfd
         console.log("[useDFDExportImport] Saving imported data...");
         await persistence.save();
 
@@ -115,7 +136,7 @@ export function useDFDExportImport(
         throw error;
       }
     },
-    [bridge, persistence],
+    [bridge, persistence, project],
   );
 
   /**

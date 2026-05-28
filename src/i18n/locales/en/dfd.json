@@ -1308,7 +1308,11 @@
                 "log_audit": "Log / Audit",
                 "pii": "Personal Data (PII)",
                 "telemetry": "Telemetry",
-                "custom": "Other"
+                "ondemand": "On demand",
+                "continuous": "Continuous",
+                "periodic": "Periodic",
+                "event_based": "Event-based",
+                "custom": "Custom"
               }
             },
             "dataClassification": {
@@ -2071,6 +2075,8 @@
       "Asset": "Asset",
       "ChipBoundary": "Chip Boundary",
       "PhysicalBoundary": "Physical Boundary",
+      "Flash": "Data Store",
+      "DataFlow": "Data Flow",
       "rj45": "RJ45",
       "sfp": "SFP/SFP+",
       "m12": "M12",

@@ -25,8 +25,8 @@ import {
   Settings as SettingsIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
-  Download as ExportIcon,
-  Upload as ImportIcon,
+  Download as ImportIcon,
+  Upload as ExportIcon,
   Draw as DrawIcon,
   Description as DescriptionIcon,
 } from "@mui/icons-material";

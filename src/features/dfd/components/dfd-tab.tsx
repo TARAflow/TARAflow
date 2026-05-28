@@ -330,7 +330,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       iframeKey: editor.iframeKey,
       initialize: editor.initialize,
       toggleTheme: () => {},
-      loadXML: async () => {},
+      loadXML: editor.loadXML,
       loadXMLTransient: () => {}, // war: async () => {}
       exportXML: () =>
         Promise.resolve({

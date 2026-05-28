@@ -114,6 +114,9 @@ export interface UseDFDEditorReturn {
 
   /** Send XML to draw.io without persisting — for transient overlay only. */
   loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
+
+  /** Load XML into draw.io and persist to localStorage. Used by import. */
+  loadXML: (xml: string) => Promise<void>;
 }
 
 // ==================== HOOK ====================
@@ -476,6 +479,7 @@ export function useDFDEditor(
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,
+    loadXML: bridge.loadXML,
     autoNumberLabels: autoNumbering.autoNumber,
 
     // Description editing
