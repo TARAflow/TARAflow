@@ -28,14 +28,64 @@ export function assignDisplayIds(
 }
 
 /**
+ * Build a map of parentId → edge label value from draw.io child edgeLabel cells.
+ *
+ * draw.io sometimes stores DataFlow labels not on the <object label="..."> attribute
+ * but as a separate child <mxCell style="edgeLabel;..." parent="<objectId>" value="..."/>.
+ * This happens when the label is added via double-click on an existing edge in
+ * draw.io Desktop/Web, producing XML that TARAflow would otherwise parse as unnamed.
+ *
+ * Exclusion rules (no false positives):
+ *   - type="idlabel"  → already handled by collectIdLabels() in element-parser
+ *   - vertex !== "1"  → not a label cell (safety guard)
+ *   - empty value     → nothing to fall back to
+ */
+function buildEdgeLabelMap(doc: Document): Map<string, string> {
+  const map = new Map<string, string>();
+  const cells = doc.getElementsByTagName("mxCell");
+
+  Array.from(cells).forEach((cell) => {
+    const style = cell.getAttribute("style") || "";
+    if (!style.includes("edgeLabel")) return;
+
+    const cellType = cell.getAttribute("type") || "";
+    if (cellType === "idlabel") return;
+
+    if (cell.getAttribute("vertex") !== "1") return;
+
+    const parentId = cell.getAttribute("parent");
+    if (!parentId) return;
+
+    const value = cell.getAttribute("value") || "";
+    if (!value.trim()) return;
+
+    // First match wins — draw.io produces at most one edgeLabel per edge
+    if (!map.has(parentId)) {
+      map.set(parentId, value);
+    }
+  });
+
+  return map;
+}
+
+/**
  * Parse connection from DrawIO object
  */
-export function parseConnectionFromObject(obj: Element): {
+export function parseConnectionFromObject(
+  obj: Element,
+  edgeLabelMap?: Map<string, string>,
+): {
   connection: DFDConnection | null;
   unconnected: string | null;
 } {
   const id = obj.getAttribute("id") || "";
-  const label = obj.getAttribute("label") || "";
+
+  // Prefer object.label (TARAflow-native format).
+  // Fall back to edgeLabelMap for diagrams created in draw.io Desktop/Web
+  // where the label is stored as a child edgeLabel cell instead.
+  const rawLabel = obj.getAttribute("label") || "";
+  const label = rawLabel || (edgeLabelMap?.get(id) ?? "");
+
   const objType = getXmlElementType(obj);
 
   // Check if this is a dataflow
@@ -63,7 +113,7 @@ export function parseConnectionFromObject(obj: Element): {
       target,
       label,
       geometry,
-      style
+      style,
     );
     return { connection, unconnected: null };
   } else {
@@ -217,16 +267,20 @@ export function parseConnections(doc: Document): {
   const unconnectedDataflows: string[] = [];
   const seenIds = new Set<string>();
 
+  // Build edge-label fallback map once for the whole document.
+  // Used by parseConnectionFromObject when object.label is empty.
+  const edgeLabelMap = buildEdgeLabelMap(doc);
+
   // Parse object elements (new stencil format)
   const objects = doc.getElementsByTagName("object");
   Array.from(objects).forEach((obj) => {
-    const result = parseConnectionFromObject(obj);
-    
+    const result = parseConnectionFromObject(obj, edgeLabelMap);
+
     if (result.connection && !seenIds.has(result.connection.id)) {
       connections.push(result.connection);
       seenIds.add(result.connection.id);
     }
-    
+
     if (result.unconnected) {
       unconnectedDataflows.push(result.unconnected);
     }
