@@ -5,6 +5,8 @@
 // - Safety factor auto-enable when DFD / Asset safety data detected
 // - Safety factor auto-disable dialog trigger (pendingSafetySourceRemoval)
 // - Asset criteria prefill applied to new and updated risks on sync
+// - Impact factor auto-enable: any asset criterion with a rated value > 0
+//   automatically enables the matching Risk Tab impact factor (non-destructive)
 //
 // Rules:
 //   relevant + uncertain threats  → appear in Risk Tab
@@ -17,10 +19,14 @@ import type {
   ThreatReference,
 } from "../models/risk-assessment-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
-import type { ActiveFactor } from "../models/risk-factor-types";
+import type { ActiveFactor, FactorRating } from "../models/risk-factor-types";
 import { createEmptyRisk } from "../models/risk-assessment-types";
 import type { AssetReference, AssetDataReference, DFDReference } from "shared";
-import { hasSafetyData, hasDFDSafetyAnnotations } from "shared";
+import {
+  hasSafetyData,
+  hasDFDSafetyAnnotations,
+  getWorstCriterionValue,
+} from "shared";
 import {
   applyAssetCriteriaToFactorRatings,
   calculateRiskValues,
@@ -126,6 +132,77 @@ export function updateSafetyFactorAutoEnable(
   return { activeFactors, safetyAutoEnabled: false, safetySourceRemoved: false };
 }
 
+// ==================== IMPACT FACTOR AUTO-ENABLE ====================
+
+/**
+ * Impact factor IDs that map 1:1 to Asset Tab impact criteria.
+ * Safety is intentionally excluded — handled separately by updateSafetyFactorAutoEnable.
+ */
+const IMPACT_FACTOR_IDS = [
+  "financial_damage",
+  "regulatory_compliance",
+  "reputation",
+  "privacy",
+  "operational",
+  "affected_users",
+  "recoverability",
+  "accountability",
+  "physical_damage",
+  "environmental",
+  "supply_chain",
+] as const;
+
+/**
+ * Auto-enables impact factors whose matching Asset Tab criterion has a rated
+ * value > 0 on at least one linked asset across the whole project.
+ *
+ * Rules (mirror safety behaviour):
+ *   - Only enables, never disables — analyst controls disabling manually.
+ *   - Only touches factors with autoEnabled !== false (i.e. not manually disabled).
+ *   - Sets autoEnabled: true so the factor is recognisable as auto-enabled.
+ *
+ * Returns the updated activeFactors array and a count of newly enabled factors.
+ */
+export function updateImpactFactorsAutoEnable(
+  activeFactors: ActiveFactor[],
+  assetDataRef: AssetDataReference | undefined,
+): {
+  activeFactors: ActiveFactor[];
+  autoEnabledCount: number;
+} {
+  if (!assetDataRef?.assets.length) {
+    return { activeFactors, autoEnabledCount: 0 };
+  }
+
+  let autoEnabledCount = 0;
+  const updated = activeFactors.map((factor) => {
+    // Only process known impact factors (not safety, not likelihood factors)
+    if (!(IMPACT_FACTOR_IDS as readonly string[]).includes(factor.factorId)) {
+      return factor;
+    }
+    // Never re-enable a factor the analyst explicitly disabled
+    if (factor.enabled === false && factor.autoEnabled === false) {
+      return factor;
+    }
+    // Already enabled — nothing to do
+    if (factor.enabled) {
+      return factor;
+    }
+    // Check whether any asset has a rated value > 0 for this criterion
+    const worstValue = getWorstCriterionValue(
+      assetDataRef.assets,
+      factor.factorId,
+    );
+    if (worstValue > 0) {
+      autoEnabledCount++;
+      return { ...factor, enabled: true, autoEnabled: true };
+    }
+    return factor;
+  });
+
+  return { activeFactors: updated, autoEnabledCount };
+}
+
 /**
  * Apply the user's decision from the Safety Removal Dialog.
  *
@@ -213,13 +290,25 @@ export function checkRiskSyncStatus(
       hasSafety,
     );
 
+  // Impact factor auto-enable check — used only for needsSync signal here,
+  // actual mutation happens in syncRisksFromThreats.
+  const { autoEnabledCount: impactAutoEnabledCount } =
+    updateImpactFactorsAutoEnable(
+      riskData.configuration.activeFactors,
+      assetDataRef,
+    );
+
   return {
     newThreats,
     orphanedRisks,
     changedDescriptions,
     changedMitigations,
     uncertainRisks,
-    needsSync: newThreats > 0 || orphanedRisks > 0 || changedDescriptions > 0,
+    needsSync:
+      newThreats > 0 ||
+      orphanedRisks > 0 ||
+      changedDescriptions > 0 ||
+      impactAutoEnabledCount > 0,
     safetyAutoEnabled,
     safetySourceRemoved,
   };
@@ -237,7 +326,38 @@ function resolveLinkedAssets(
     .filter((a): a is AssetReference => a !== undefined);
 }
 
-// ==================== SYNC EXECUTION ====================
+// ==================== FACTOR RATINGS RECONCILIATION ====================
+
+/**
+ * Ensures a risk's factorRatings[] contains an entry for every currently
+ * enabled factor in the configuration.
+ *
+ * This is necessary when factors are auto-enabled *after* the risk was
+ * originally created: the risk's factorRatings[] only contains the factors
+ * that were enabled at creation time. applyAssetCriteriaToFactorRatings()
+ * works via ratings.map() and can only update entries that already exist —
+ * so newly enabled factors must be injected here first (value: 0, no source)
+ * before the prefill pass runs.
+ *
+ * Also removes entries for factors that are now disabled, unless the analyst
+ * set a manual value (source === "manual") — those are preserved.
+ */
+function reconcileFactorRatings(
+  ratings: FactorRating[],
+  configuration: RiskConfiguration,
+): FactorRating[] {
+  const enabledFactors = configuration.activeFactors.filter((f) => f.enabled);
+  const ratingMap = new Map(ratings.map((r) => [r.factorId, r]));
+
+  return enabledFactors.map((af) => {
+    const existing = ratingMap.get(af.factorId);
+    if (existing) return existing;
+    // New factor — inject empty placeholder so applyAssetCriteria can fill it
+    return { factorId: af.factorId, value: 0, weight: af.weight };
+  });
+}
+
+
 
 /**
  * Synchronize risk data with the current threat state.
@@ -257,13 +377,25 @@ export function syncRisksFromThreats(
   // ── Safety auto-enable ────────────────────────────────────────────────────
   const hasSafety = projectHasSafetyData(dfd, assetDataRef);
   const {
-    activeFactors: updatedActiveFactors,
+    activeFactors: afterSafetyFactors,
     safetyAutoEnabled,
     safetySourceRemoved,
   } = updateSafetyFactorAutoEnable(
     riskData.configuration.activeFactors,
     hasSafety,
   );
+
+  // ── Impact factors auto-enable ────────────────────────────────────────────
+  // Enables any impact factor whose criterion has a rated value > 0 in the
+  // Asset Tab. Runs after safety so safety is already resolved in the array.
+  const { activeFactors: updatedActiveFactors, autoEnabledCount } =
+    updateImpactFactorsAutoEnable(afterSafetyFactors, assetDataRef);
+
+  if (autoEnabledCount > 0) {
+    warnings.push(
+      `${autoEnabledCount} impact factor(s) auto-enabled — rated asset impact criteria detected.`,
+    );
+  }
 
   const updatedConfiguration: RiskConfiguration = {
     ...riskData.configuration,
@@ -303,12 +435,18 @@ export function syncRisksFromThreats(
 
     // Re-apply asset criteria prefill (non-destructive — respects manual overrides)
     const linkedAssets = resolveLinkedAssets(risk.linkedAssetIds, assetDataRef);
-    let updatedFactorRatings = risk.factorRatings;
+    // Reconcile: inject entries for any factors newly enabled since this risk
+    // was created, so applyAssetCriteriaToFactorRatings can fill them.
+    const reconciledRatings = reconcileFactorRatings(
+      risk.factorRatings,
+      updatedConfiguration,
+    );
+    let updatedFactorRatings = reconciledRatings;
     let updatedMitigatedRatings = risk.mitigatedFactorRatings;
 
     if (assetDataRef && linkedAssets.length > 0) {
       updatedFactorRatings = applyAssetCriteriaToFactorRatings(
-        risk.factorRatings,
+        reconciledRatings,
         linkedAssets,
         assetDataRef,
         updatedConfiguration,
@@ -318,7 +456,7 @@ export function syncRisksFromThreats(
 
     const ratingsChanged =
       JSON.stringify(updatedFactorRatings) !==
-      JSON.stringify(risk.factorRatings);
+      JSON.stringify(reconciledRatings);
 
     if (
       descChanged ||

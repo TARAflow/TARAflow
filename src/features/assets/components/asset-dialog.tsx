@@ -414,8 +414,32 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       calculateOverallImpact(
         editedAsset.impactRatings,
         configuration.calculationMethod,
+        configuration.roundingMethod,
+        configuration.impactCriteria,
       ),
-    [editedAsset.impactRatings, configuration.calculationMethod],
+    [
+      editedAsset.impactRatings,
+      configuration.calculationMethod,
+      configuration.roundingMethod,
+      configuration.impactCriteria,
+    ],
+  );
+
+  // Weighted average — secondary signal for ranking among same-level assets.
+  // Shown alongside the conservative (MAX) level when method = conservative.
+  const currentAverageImpact = useMemo(
+    () =>
+      calculateOverallImpact(
+        editedAsset.impactRatings,
+        "average",
+        configuration.roundingMethod,
+        configuration.impactCriteria,
+      ),
+    [
+      editedAsset.impactRatings,
+      configuration.roundingMethod,
+      configuration.impactCriteria,
+    ],
   );
 
   const getImpactColor = (value: number): string => {
@@ -812,6 +836,82 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               </Stack>
             </Box>
 
+            {/* Overall Impact — compact summary bar above factors */}
+            <Paper
+              variant="outlined"
+              sx={{
+                px: 2,
+                py: 2,
+                mb: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor:
+                  currentOverallImpact > 0
+                    ? getImpactColor(Math.round(currentOverallImpact))
+                    : "grey.100",
+                borderColor:
+                  currentOverallImpact > 0
+                    ? getImpactColor(Math.round(currentOverallImpact))
+                    : "divider",
+                color: currentOverallImpact > 0 ? "white" : "text.secondary",
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="body2" fontWeight="bold">
+                  {t("tabs.assets.dialog.overall", {
+                    defaultValue: "Overall Impact",
+                  })}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  {configuration.calculationMethod === "conservative"
+                    ? t("tabs.assets.dialog.methodConservative", {
+                        defaultValue: "MAX",
+                      })
+                    : t("tabs.assets.dialog.methodAverage", {
+                        defaultValue: "AVG",
+                      })}
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                {configuration.calculationMethod === "conservative" &&
+                  currentAverageImpact > 0 &&
+                  currentAverageImpact !== currentOverallImpact && (
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {t("tabs.assets.dialog.averageImpact", {
+                        defaultValue: "Ø {{value}}",
+                        value: currentAverageImpact.toFixed(1),
+                      })}
+                    </Typography>
+                  )}
+                <Chip
+                  label={
+                    currentOverallImpact > 0
+                      ? (() => {
+                          const l = scale.levels.find(
+                            (l) => l.value === Math.round(currentOverallImpact),
+                          );
+                          return l
+                            ? `${currentOverallImpact.toFixed(1)} – ${t(l.labelKey)}`
+                            : currentOverallImpact.toFixed(1);
+                        })()
+                      : t("tabs.assets.dialog.notRated", {
+                          defaultValue: "Not rated",
+                        })
+                  }
+                  size="small"
+                  sx={{
+                    backgroundColor: "rgba(255,255,255,0.25)",
+                    color:
+                      currentOverallImpact > 0 ? "white" : "text.secondary",
+                    fontWeight: "bold",
+                    fontSize: "0.8rem",
+                    border: "1px solid rgba(255,255,255,0.4)",
+                  }}
+                />
+              </Stack>
+            </Paper>
+
             {/* Impact Ratings */}
             <Box>
               <Typography variant="subtitle2" gutterBottom>
@@ -914,25 +1014,91 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                               );
                             }
                             if (val === "na") {
-                              return t("common.notApplicable", {
-                                defaultValue: "N/A – Not applicable",
-                              });
+                              return (
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 12,
+                                      height: 12,
+                                      borderRadius: "50%",
+                                      backgroundColor: "#94a3b8",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span>
+                                    {t("common.notApplicable", {
+                                      defaultValue: "N/A – Not applicable",
+                                    })}
+                                  </span>
+                                </Stack>
+                              );
                             }
-                            // Safety: show severity label
+                            // Safety: show severity label with color dot
                             if (rating.criterionId === SAFETY_CRITERION_ID) {
                               const safetyLevel = SAFETY_IMPACT_SCALE.find(
                                 (l) => l.value === Number(val),
                               );
-                              return safetyLevel
-                                ? `${safetyLevel.value} – ${t(safetyLevel.labelKey)} (${t(safetyLevel.severityKey)})`
-                                : String(val);
+                              if (!safetyLevel) return String(val);
+                              return (
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 12,
+                                      height: 12,
+                                      borderRadius: "50%",
+                                      backgroundColor: safetyLevel.color,
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span>
+                                    {safetyLevel.value} –{" "}
+                                    {t(safetyLevel.labelKey)}{" "}
+                                    <Typography
+                                      component="span"
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      ({t(safetyLevel.severityKey)})
+                                    </Typography>
+                                  </span>
+                                </Stack>
+                              );
                             }
+                            // Standard impact scale: show color dot + label
                             const level = scale.levels.find(
                               (l) => l.value === Number(val),
                             );
-                            return level
-                              ? `${level.value} - ${t(level.labelKey)}`
-                              : String(val);
+                            if (!level) return String(val);
+                            return (
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                              >
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: "50%",
+                                    backgroundColor: getImpactColor(
+                                      level.value,
+                                    ),
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span>
+                                  {level.value} – {t(level.labelKey)}
+                                </span>
+                              </Stack>
+                            );
                           }}
                         >
                           <MenuItem value="">
@@ -1025,44 +1191,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   );
                 })}
               </Grid>
-
-              {/* Overall Impact */}
-              <Paper
-                sx={{
-                  p: 2,
-                  mt: 3,
-                  backgroundColor:
-                    currentOverallImpact > 0
-                      ? getImpactColor(Math.round(currentOverallImpact))
-                      : "grey.300",
-                  color: currentOverallImpact > 0 ? "white" : "text.secondary",
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="h6">
-                    {t("tabs.assets.dialog.overall", {
-                      defaultValue: "Overall",
-                    })}
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold">
-                    {currentOverallImpact > 0
-                      ? currentOverallImpact.toFixed(1)
-                      : "-"}
-                  </Typography>
-                </Stack>
-                <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                  {currentOverallImpact > 0
-                    ? (() => {
-                        const l = scale.levels.find(
-                          (l) => l.value === Math.round(currentOverallImpact),
-                        );
-                        return l ? t(l.labelKey) : "";
-                      })()
-                    : t("tabs.assets.dialog.notRated", {
-                        defaultValue: "Not rated",
-                      })}
-                </Typography>
-              </Paper>
             </Box>
 
             {/* HVA — High-Value Asset Assessment (Infrastructure / Physical only) */}

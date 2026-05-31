@@ -302,13 +302,21 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     setValidation(project.risks?.validation ?? null);
   }, [project.risks]);
 
-  // Auto-sync on mount if no risks
+  // Auto-sync when risks are empty and asset data is available.
+  // Intentionally waits for assetDataRef to be defined so that
+  // impact factor auto-enable + criteria prefill run with full asset data.
+  // The guard (riskData.risks.length === 0) prevents re-triggering after
+  // the first sync populates the risks array.
   useEffect(() => {
-    if (riskData.risks.length === 0 && hasAnyThreats) {
+    if (riskData.risks.length === 0 && hasAnyThreats && project.assetDataRef) {
       handleSyncFromThreats();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    riskData.risks.length,
+    hasAnyThreats,
+    project.assetDataRef,
+    handleSyncFromThreats,
+  ]);
 
   // ── Safety removal dialog: check on mount and when project/riskData changes ──
   // pendingSafetySourceRemoval is set by risk-sync-service when safety data
@@ -988,6 +996,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Dialog>
     </Box>
   );
-};;;;
+}
 
 export default RisksTab;

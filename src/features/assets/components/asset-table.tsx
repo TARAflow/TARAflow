@@ -62,7 +62,10 @@ import {
   SECURITY_GOALS,
   SECURITY_GOAL_KEY_PREFIX,
 } from "../models/asset-security-goals-types";
-import { getImpactLevel } from "../services/asset-impact-calculator";
+import {
+  getImpactLevel,
+  calculateOverallImpact,
+} from "../services/asset-impact-calculator";
 
 // Import color config from shared — no dependency on dfd-types or relation-types
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
@@ -133,10 +136,14 @@ const AGGREGATED_IMPACT_STYLES: Record<
 };
 
 // Severity-based colors — aligned with ISO 12100 / EN 50742
-const PHYSICAL_IMPACT_STYLES: Record<string, { bg: string; color: string }> = {
-  fatality: { bg: "#dc2626", color: "#fff" },
-  irreversible_injury: { bg: "#f97316", color: "#fff" },
-  reversible_injury: { bg: "#eab308", color: "#fff" },
+// severityKey maps to existing tabs.assets.safetyScale.{n}.severity i18n entries
+const PHYSICAL_IMPACT_STYLES: Record<
+  string,
+  { bg: string; color: string; severityKey: string }
+> = {
+  fatality:            { bg: "#dc2626", color: "#fff", severityKey: "tabs.assets.safetyScale.4.severity" },
+  irreversible_injury: { bg: "#f97316", color: "#fff", severityKey: "tabs.assets.safetyScale.3.severity" },
+  reversible_injury:   { bg: "#eab308", color: "#fff", severityKey: "tabs.assets.safetyScale.2.severity" },
 };
 
 function getBusinessImpactBg(level: number, maxLevels: number): string {
@@ -478,7 +485,7 @@ export const AssetTable = React.memo<AssetTableProps>(
             >
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <Chip
-                  label={t(`tabs.assets.physicalImpact.${impact}`, {
+                  label={t(style.severityKey, {
                     defaultValue: impact,
                   })}
                   size="small"
@@ -564,6 +571,18 @@ export const AssetTable = React.memo<AssetTableProps>(
           );
           const label = scaleLevel ? t(scaleLevel.labelKey) : "-";
 
+          // Weighted average — secondary signal for ranking among same-level assets.
+          // Shown alongside the conservative (MAX) level when method = conservative.
+          const avgValue =
+            configuration.calculationMethod === "conservative"
+              ? calculateOverallImpact(
+                  params.row.impactRatings,
+                  "average",
+                  configuration.roundingMethod,
+                  configuration.impactCriteria,
+                )
+              : null;
+
           const factorLines =
             params.row.impactRatings
               ?.filter(
@@ -637,6 +656,9 @@ export const AssetTable = React.memo<AssetTableProps>(
                       />
                       <Typography variant="caption" fontWeight="bold">
                         {label} ({value.toFixed(1)})
+                        {avgValue !== null && avgValue !== value && (
+                          <> &nbsp;·&nbsp; Ø {avgValue.toFixed(1)}</>
+                        )}
                       </Typography>
                     </Stack>
                   </Box>
@@ -644,7 +666,11 @@ export const AssetTable = React.memo<AssetTableProps>(
               }
             >
               <Chip
-                label={value.toFixed(1)}
+                label={
+                  avgValue !== null && avgValue !== value
+                    ? `${value.toFixed(1)} · Ø ${avgValue.toFixed(1)}`
+                    : value.toFixed(1)
+                }
                 size="small"
                 sx={{
                   backgroundColor: bg,
@@ -653,6 +679,7 @@ export const AssetTable = React.memo<AssetTableProps>(
                   fontSize: "0.8rem",
                   height: 20,
                   cursor: "help",
+                  maxWidth: "none",
                 }}
               />
             </Tooltip>

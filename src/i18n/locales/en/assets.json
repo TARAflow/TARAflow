@@ -15,6 +15,9 @@
       "noDFDImageHint": "Save the DFD to generate a preview image",
       "exportAssets": "Export Assets",
       "importAssets": "Import Assets",
+      "impactLabels": {
+        "highPlus": "HIGH+"
+      },
       "securityGoals": {
         "C": {
           "name": "Confidentiality",
@@ -278,6 +281,7 @@
         "editTitle": "Edit Asset {{id}}",
         "basicInfo": "Basic Information",
         "impactRatings": "Impact Ratings",
+        "averageImpact": "Ø {{value}}",
         "overall": "Overall",
         "overallImpactTooltip": "Overall: {{label}}",
         "securityGoals": "Security Goals (CIANAAA)",
@@ -301,7 +305,9 @@
         "physicalImpactLevel": "Safety Impact Level",
         "physicalImpactRationale": "Override Rationale (required)",
         "physicalImpactRationaleHint": "Required for manual override (IEC 62443-4-1 audit trail)",
-        "derivedFromDFD": "derived from DFD"
+        "derivedFromDFD": "derived from DFD",
+        "methodConservative": "MAX",
+        "methodAverage": "AVG"
       },
       "safetyScale": {
         "1": {
