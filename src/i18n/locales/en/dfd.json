@@ -2044,9 +2044,26 @@
         }
       },
       "notifications": {
+        "title": "{{count}} notification(s)",
+        "heuristic": "Heuristic mapping — confirm before applying",
         "applyLabel": "Apply",
         "applyTooltip": "Apply suggestion to model",
-        "title": "{{count}} notification(s)"
+        "filter": {
+          "all": "All",
+          "errors": "Errors",
+          "warnings": "Warnings",
+          "apply": "Apply"
+        },
+        "conflict": {
+          "label": "Conflict",
+          "manualOverride": "Property set manually but differs from Risk decision",
+          "staleRecord": "Applied value no longer matches current requirement"
+        },
+        "drift": {
+          "label": "Drift",
+          "reverted": "Property was reverted after Apply",
+          "applied": "Applied {{date}}"
+        }
       }
     }
   },

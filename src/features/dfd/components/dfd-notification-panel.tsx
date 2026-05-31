@@ -29,6 +29,9 @@ import {
   IconButton,
   Tooltip,
   Button,
+  Select,
+  MenuItem,
+  FormControl,
 } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -37,6 +40,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckIcon from "@mui/icons-material/Check";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 import type { ValidationResult } from "../services/dfd-validator";
 import type { ControlInstance } from "shared/models/control-instance";
@@ -49,7 +53,7 @@ import { getLocalizedMitigation } from "features/threats/services/threat-catalog
 
 const MIN_PANEL_HEIGHT = 80;
 const DEFAULT_PANEL_HEIGHT = 150;
-const HEADER_HEIGHT = 36;
+const HEADER_HEIGHT = 44;
 
 // ==================== NOTIFICATION TYPES ====================
 
@@ -394,6 +398,8 @@ export interface DFDNotificationsPanelProps {
 
 // ==================== COMPONENT ====================
 
+type FilterType = "all" | "error" | "warning" | "security";
+
 export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   validation,
   controlInstances = [],
@@ -406,6 +412,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   const { t } = useTranslation();
   const { translateMessage } = useValidationTranslation();
   const [expanded, setExpanded] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
   const isResizingRef = useRef<boolean>(false);
@@ -481,6 +488,21 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
       ),
     [validation, controlInstances, securityDrifts, elements, connections],
   );
+
+  const filteredNotifications = useMemo(() => {
+    if (activeFilter === "all") return notifications;
+    if (activeFilter === "error")
+      return notifications.filter(
+        (n) => n.type === "error" || n.type === "conflict",
+      );
+    if (activeFilter === "warning")
+      return notifications.filter(
+        (n) => n.type === "warning" || n.type === "drift",
+      );
+    if (activeFilter === "security")
+      return notifications.filter((n) => n.type === "security");
+    return notifications;
+  }, [notifications, activeFilter]);
 
   if (notifications.length === 0) return null;
 
@@ -560,7 +582,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
         }}
         onClick={() => setExpanded((v) => !v)}
       >
-        <Typography variant="caption" fontWeight={600} sx={{ flexGrow: 1 }}>
+        <Typography variant="body2" fontWeight={600} sx={{ flexGrow: 1 }}>
           {t("tabs.dfd.notifications.title", {
             count: notifications.length,
             defaultValue: "{{count}} notification(s)",
@@ -570,32 +592,36 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
         <Stack direction="row" spacing={0.5}>
           {errorCount > 0 && (
             <Chip
-              icon={<ErrorOutlineIcon sx={{ fontSize: "0.7rem !important" }} />}
+              icon={
+                <ErrorOutlineIcon sx={{ fontSize: "0.95rem !important" }} />
+              }
               label={errorCount}
               size="small"
               color="error"
               variant="filled"
-              sx={{ height: 18, fontSize: "0.65rem" }}
+              sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
           {warningCount > 0 && (
             <Chip
-              icon={<WarningAmberIcon sx={{ fontSize: "0.7rem !important" }} />}
+              icon={
+                <WarningAmberIcon sx={{ fontSize: "0.95rem !important" }} />
+              }
               label={warningCount}
               size="small"
               color="warning"
               variant="filled"
-              sx={{ height: 18, fontSize: "0.65rem" }}
+              sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
           {securityCount > 0 && (
             <Chip
-              icon={<SecurityIcon sx={{ fontSize: "0.7rem !important" }} />}
+              icon={<SecurityIcon sx={{ fontSize: "0.95rem !important" }} />}
               label={securityCount}
               size="small"
               color="warning"
               variant="outlined"
-              sx={{ height: 18, fontSize: "0.65rem" }}
+              sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
           {driftCount > 0 && (
@@ -604,7 +630,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
               size="small"
               color="warning"
               variant="filled"
-              sx={{ height: 18, fontSize: "0.65rem" }}
+              sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
           {conflictCount > 0 && (
@@ -613,16 +639,65 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
               size="small"
               color="error"
               variant="filled"
-              sx={{ height: 18, fontSize: "0.65rem" }}
+              sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
         </Stack>
 
+        {/* Filter dropdown — stop click so header collapse doesn't trigger */}
+        <FormControl
+          size="small"
+          variant="standard"
+          onClick={(e) => e.stopPropagation()}
+          sx={{ minWidth: 100 }}
+        >
+          <Select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value as FilterType)}
+            disableUnderline
+            startAdornment={
+              <FilterListIcon
+                sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }}
+              />
+            }
+            sx={{ fontSize: "0.82rem", "& .MuiSelect-select": { py: 0 } }}
+          >
+            <MenuItem value="all" sx={{ fontSize: "0.85rem" }}>
+              {t("tabs.dfd.notifications.filter.all", { defaultValue: "All" })}{" "}
+              ({notifications.length})
+            </MenuItem>
+            {errorCount + conflictCount > 0 && (
+              <MenuItem value="error" sx={{ fontSize: "0.85rem" }}>
+                {t("tabs.dfd.notifications.filter.errors", {
+                  defaultValue: "Errors",
+                })}{" "}
+                ({errorCount + conflictCount})
+              </MenuItem>
+            )}
+            {warningCount + driftCount > 0 && (
+              <MenuItem value="warning" sx={{ fontSize: "0.85rem" }}>
+                {t("tabs.dfd.notifications.filter.warnings", {
+                  defaultValue: "Warnings",
+                })}{" "}
+                ({warningCount + driftCount})
+              </MenuItem>
+            )}
+            {securityCount > 0 && (
+              <MenuItem value="security" sx={{ fontSize: "0.85rem" }}>
+                {t("tabs.dfd.notifications.filter.apply", {
+                  defaultValue: "Apply",
+                })}{" "}
+                ({securityCount})
+              </MenuItem>
+            )}
+          </Select>
+        </FormControl>
+
         <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
           {expanded ? (
-            <ExpandMoreIcon fontSize="small" />
+            <ExpandMoreIcon fontSize="medium" />
           ) : (
-            <ExpandLessIcon fontSize="small" />
+            <ExpandLessIcon fontSize="medium" />
           )}
         </IconButton>
       </Box>
@@ -633,7 +708,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
           spacing={0}
           sx={{ overflow: "auto", maxHeight: panelHeight - HEADER_HEIGHT - 8 }}
         >
-          {notifications.map((n) =>
+          {filteredNotifications.map((n) =>
             n.type === "error" || n.type === "warning" ? (
               <ValidationRow
                 key={n.key}
@@ -648,6 +723,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 key={n.key}
                 notification={n as SecurityNotification}
                 onApply={onApply}
+                onSelectCell={onSelectCell}
               />
             ),
           )}
@@ -692,11 +768,11 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
   >
     {notification.type === "error" ? (
       <ErrorOutlineIcon
-        sx={{ fontSize: 14, color: "error.main", flexShrink: 0 }}
+        sx={{ fontSize: 18, color: "error.main", flexShrink: 0 }}
       />
     ) : (
       <WarningAmberIcon
-        sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
+        sx={{ fontSize: 18, color: "warning.dark", flexShrink: 0 }}
       />
     )}
 
@@ -707,7 +783,7 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
         size="small"
         variant="outlined"
         color={notification.type === "error" ? "error" : "warning"}
-        sx={{ height: 16, fontSize: "0.6rem", flexShrink: 0 }}
+        sx={{ height: 20, fontSize: "0.78rem", flexShrink: 0 }}
       />
     )}
 
@@ -726,9 +802,14 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
 interface SecurityRowProps {
   notification: SecurityNotification;
   onApply?: DFDNotificationsPanelProps["onApply"];
+  onSelectCell?: (cellId: string) => void;
 }
 
-const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
+const SecurityRow: React.FC<SecurityRowProps> = ({
+  notification,
+  onApply,
+  onSelectCell,
+}) => {
   const { t } = useTranslation();
 
   const mitigationLabel = useMemo(() => {
@@ -738,7 +819,8 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
 
   const additionalCount = notification.coversMitigationIds.length - 1;
 
-  const handleApply = () => {
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onApply?.(
       notification.elementId,
       notification.property,
@@ -751,6 +833,9 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
 
   return (
     <Box
+      onClick={() =>
+        notification.elementId && onSelectCell?.(notification.elementId)
+      }
       sx={{
         display: "flex",
         alignItems: "center",
@@ -763,22 +848,29 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
         bgcolor: "warning.50",
         flexWrap: "nowrap",
         minWidth: 0,
+        cursor: notification.elementId ? "pointer" : "default",
+        "&:hover": notification.elementId ? { filter: "brightness(0.96)" } : {},
       }}
     >
       <SecurityIcon
-        sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
+        sx={{ fontSize: 18, color: "warning.dark", flexShrink: 0 }}
       />
 
       <Chip
         label={notification.elementDisplayId}
         size="small"
         variant="outlined"
-        sx={{ height: 16, fontSize: "0.6rem", flexShrink: 0 }}
+        sx={{ height: 20, fontSize: "0.78rem", flexShrink: 0 }}
       />
       <Typography
         variant="caption"
         noWrap
-        sx={{ color: "text.secondary", flexShrink: 0, maxWidth: 100 }}
+        title={notification.elementName}
+        sx={{
+          color: "text.secondary",
+          flexShrink: 0,
+          maxWidth: 240,
+        }}
       >
         {notification.elementName}
       </Typography>
@@ -792,7 +884,7 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
           sx={{
             color: "text.disabled",
             fontFamily: "monospace",
-            fontSize: "0.6rem",
+            fontSize: "0.78rem",
           }}
         >
           {notification.property}
@@ -800,7 +892,7 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
         <Typography variant="caption" sx={{ color: "error.main" }}>
           {formatValue(notification.currentValue)}
         </Typography>
-        <ArrowForwardIcon sx={{ fontSize: 9, color: "text.disabled" }} />
+        <ArrowForwardIcon sx={{ fontSize: 12, color: "text.disabled" }} />
         <Typography
           variant="caption"
           fontWeight={600}
@@ -823,8 +915,8 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
             size="small"
             variant="outlined"
             sx={{
-              height: 14,
-              fontSize: "0.55rem",
+              height: 22,
+              fontSize: "0.72rem",
               flexShrink: 0,
               cursor: "help",
             }}
@@ -868,13 +960,13 @@ const SecurityRow: React.FC<SecurityRowProps> = ({ notification, onApply }) => {
             size="small"
             variant="outlined"
             color="success"
-            startIcon={<CheckIcon sx={{ fontSize: "0.7rem !important" }} />}
+            startIcon={<CheckIcon sx={{ fontSize: "0.95rem !important" }} />}
             onClick={handleApply}
             sx={{
-              height: 18,
+              height: 22,
               minWidth: 0,
               px: 0.75,
-              fontSize: "0.6rem",
+              fontSize: "0.78rem",
               flexShrink: 0,
               lineHeight: 1,
             }}
@@ -931,11 +1023,11 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
     >
       {isConflict ? (
         <ErrorOutlineIcon
-          sx={{ fontSize: 14, color: "error.main", flexShrink: 0 }}
+          sx={{ fontSize: 18, color: "error.main", flexShrink: 0 }}
         />
       ) : (
         <WarningAmberIcon
-          sx={{ fontSize: 14, color: "warning.dark", flexShrink: 0 }}
+          sx={{ fontSize: 18, color: "warning.dark", flexShrink: 0 }}
         />
       )}
 
@@ -944,7 +1036,7 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
         size="small"
         variant="outlined"
         color={isConflict ? "error" : "warning"}
-        sx={{ height: 16, fontSize: "0.6rem", flexShrink: 0 }}
+        sx={{ height: 20, fontSize: "0.78rem", flexShrink: 0 }}
       />
 
       <Typography
@@ -964,7 +1056,7 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
           sx={{
             color: "text.disabled",
             fontFamily: "monospace",
-            fontSize: "0.6rem",
+            fontSize: "0.78rem",
           }}
         >
           {notification.property}
@@ -975,7 +1067,7 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
         >
           {String(notification.currentValue ?? "—")}
         </Typography>
-        <ArrowForwardIcon sx={{ fontSize: 9, color: "text.disabled" }} />
+        <ArrowForwardIcon sx={{ fontSize: 12, color: "text.disabled" }} />
         <Typography
           variant="caption"
           fontWeight={600}
@@ -1001,8 +1093,8 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
           color={isConflict ? "error" : "warning"}
           variant="outlined"
           sx={{
-            height: 14,
-            fontSize: "0.55rem",
+            height: 22,
+            fontSize: "0.72rem",
             flexShrink: 0,
             cursor: "help",
           }}

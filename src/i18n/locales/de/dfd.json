@@ -2049,9 +2049,26 @@
         }
       },
       "notifications": {
+        "title": "{{count}} Meldung(en)",
+        "heuristic": "Heuristische Zuordnung — vor dem Anwenden prüfen",
         "applyLabel": "Anwenden",
         "applyTooltip": "Vorschlag auf Modell anwenden",
-        "title": "{{count}} Benachrichtigung(en)"
+        "filter": {
+          "all": "Alle",
+          "errors": "Fehler",
+          "warnings": "Warnungen",
+          "apply": "Anwenden"
+        },
+        "conflict": {
+          "label": "Konflikt",
+          "manualOverride": "Eigenschaft manuell gesetzt, weicht aber von Risk-Entscheidung ab",
+          "staleRecord": "Angewendeter Wert entspricht nicht mehr der aktuellen Anforderung"
+        },
+        "drift": {
+          "label": "Drift",
+          "reverted": "Eigenschaft wurde nach dem Anwenden zurückgesetzt",
+          "applied": "Angewendet {{date}}"
+        }
       }
     }
   },
