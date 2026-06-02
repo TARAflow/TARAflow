@@ -1,11 +1,11 @@
 {
   "name": "taraflow",
-  "version": "0.1.0",
+  "version": "0.1.0-pre-alpha",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
   "description": "TARAflow App – Threat Analysis and Risk Assessment app build",
-  "author": "Johann Mustermann <johann@example.com>",
+  "author": "Juergen M. <1004272+messi1@users.noreply.github.com>",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
