@@ -1,5 +1,5 @@
 {
-  "version": "2.4.0",
+  "version": "2.6.0",
   "mitigations": [
     {
       "id": "M-S-001",
@@ -1171,6 +1171,132 @@
         }
       ],
       "verifications": ["V-IF-T-001"]
+    },
+    {
+      "id": "M-CB-SCA-001",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-CB-SCA-001"]
+    },
+    {
+      "id": "M-CB-SCA-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-CB-SCA-002"]
+    },
+    {
+      "id": "M-CB-SCA-003",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-CB-SCA-003"]
+    },
+    {
+      "id": "M-CB-SCA-004",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataFlow",
+          "property": "physicalPathProtection",
+          "expectedValue": "conformal_coating",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-SCA-004"]
+    },
+    {
+      "id": "M-T-FSAFE-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "failSafeOutputState",
+          "expectedValue": "defined",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-T-FSAFE-001"]
+    },
+    {
+      "id": "M-IF-POLICY-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "operationalState",
+          "expectedValue": "permanent_disabled",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-IF-POLICY-001"]
+    },
+    {
+      "id": "M-IF-POLICY-002",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.serviceAccessPolicy",
+          "expectedValue": "none",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-IF-POLICY-001"]
+    },
+    {
+      "id": "M-R-006",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "auditLogging",
+          "expectedValue": "cryptographic",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-R-001"]
     }
   ]
 }

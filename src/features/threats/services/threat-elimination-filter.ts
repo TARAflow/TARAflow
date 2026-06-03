@@ -51,15 +51,26 @@ export function shouldEliminateThreat(
       return ["S", "E"].includes(strideCategory);
   }
 
+  // ── ChipBoundary ──────────────────────────────────────────────────────────
+
+  if (elementType === "ChipBoundary") {
+    // sideChannelProtection === "certified": chip is certified against SCA
+    // (e.g. CC EAL4+, FIPS 140-3 physical security).
+    // No residual side-channel attack path at the model level — eliminate all
+    // I-CB-SCA-* threats. Standard I threats (readback, key extraction) remain.
+    if (
+      props["sideChannelProtection"] === "certified" &&
+      strideCategory === "I"
+    )
+      return true;
+  }
+
   // ── DataFlow ──────────────────────────────────────────────────────────────
 
   if (elementType === "DataFlow") {
     // buried: underground cable — excavation required for physical access.
     // Out of scope for standard TARA threat model.
-    if (
-      props["physicalPathProtection"] === "buried" &&
-      strideCategory === "T"
-    )
+    if (props["physicalPathProtection"] === "buried" && strideCategory === "T")
       return true;
   }
 

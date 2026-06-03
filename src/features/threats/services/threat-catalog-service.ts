@@ -26,6 +26,8 @@ import embeddedInteractionTemplatesData from "./catalog/embedded-interaction-tem
 import multiprocessElementTemplatesData from "./catalog/multiprocess-element-templates.json";
 import multiprocessInteractionTemplatesData from "./catalog/multiprocess-interaction-templates.json";
 import physicalBoundaryTemplatesData from "./catalog/physical-boundary-templates.json";
+import sideChannelTemplatesData from "./catalog/side-channel-templates.json";
+import gapThreatTemplatesData from "./catalog/gap-threat-templates.json";
 
 // ==================== CATALOG SINGLETONS ====================
 
@@ -34,6 +36,8 @@ const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [
   ...((embeddedElementTemplatesData as any).elementTemplates ?? []),
   ...((multiprocessElementTemplatesData as any).elementTemplates ?? []),
   ...((physicalBoundaryTemplatesData as any).elementTemplates ?? []),
+  ...((sideChannelTemplatesData as any).elementTemplates ?? []),
+  ...((gapThreatTemplatesData as any).elementTemplates ?? []),
 ];
  
 const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [
@@ -92,6 +96,7 @@ export function matchesContext(
     authenticatorStorage,
     backupMechanism,
     cryptoStandard,
+    sideChannelProtection,
     location,
     redundancy,
     safetyFunction,
@@ -109,6 +114,13 @@ export function matchesContext(
   if (chipType?.length) {
     const v = elementProps?.["chipType"] as string | undefined;
     if (!v || !chipType.includes(v)) return false;
+  }
+
+  if (sideChannelProtection?.length) {
+    // Default "none" when property is absent — unprotected chips are in scope.
+    const v =
+      (elementProps?.["sideChannelProtection"] as string | undefined) ?? "none";
+    if (!sideChannelProtection.includes(v)) return false;
   }
 
   if (technology?.length) {

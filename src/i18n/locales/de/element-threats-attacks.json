@@ -394,5 +394,70 @@
     "threat": "Physischer Zugang ohne Audit-Trail — Aktionen an physischer Grenze nicht zuordenbar",
     "cause": "Keine physische Überwachung oder Zugriffsprotokollierung an Grenze — wer wann zugegriffen hat ist unbekannt",
     "attack": "Angreifer greift auf Grenze zu und führt Aktionen durch (Tap installieren, Hardware modifizieren) ohne Protokolleintrag — forensische Untersuchung findet keine Beweise"
+  },
+  "I-CB-SCA-001": {
+    "threat": "Leistungs-Seitenkanal-Angriff — kryptografischer Schlüssel über differentielle Leistungsanalyse extrahiert",
+    "cause": "Keine Leistungsanalyse-Gegenmassnahmen auf Chip — schlüsselkorrelierte Leistungssignatur ist an den Versorgungspins messbar",
+    "attack": "Angreifer schliesst Leistungsmessgeräte an die Versorgungspins an, erfasst Leistungskurven während kryptografischer Operationen und gewinnt den geheimen Schlüssel per differentieller Leistungsanalyse (DPA)"
+  },
+  "I-CB-SCA-002": {
+    "threat": "Elektromagnetischer Seitenkanal-Angriff — sensible Daten über Nahfeld-EM-Emission extrahiert",
+    "cause": "Keine elektromagnetische Abschirmung oder EM-Gegenmassnahmen auf Chip — interne Operationen emittieren korrelierte EM-Signale, die mit einer Nahfeldsonde detektierbar sind",
+    "attack": "Angreifer positioniert eine Nahfeld-EM-Sonde nahe dem Chip und erfasst Emissionskurven während kryptografischer Operationen zur Schlüsselgewinnung per elektromagnetischer Analyse (EMA)"
+  },
+  "I-CB-SCA-003": {
+    "threat": "Timing-Seitenkanal-Angriff — geheimer Schlüssel aus Ausführungszeitvariationen abgeleitet",
+    "cause": "Kryptografische Implementierung verwendet datenabhängige Verzweigungen oder Speicherzugriffsmuster — Ausführungszeit variiert mit Schlüssel- oder Klartextwerten",
+    "attack": "Angreifer misst die Dauer kryptografischer Operationen über viele Eingaben und wendet statistische Zeitanalyse zur Schlüsselgewinnung an"
+  },
+  "I-CB-SCA-004": {
+    "threat": "Physisches Bus-Probing — Daten durch Abgriff von Leiterplatten-Leiterbahnen extrahiert",
+    "cause": "Sicherheitskritische Bus-Leiterbahnen (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) liegen ohne Verguss oder Schutzlack auf der Leiterplattenoberfläche frei",
+    "attack": "Angreifer öffnet das Gerät, befestigt Mikrosonden oder einen Logikanalysator an freiliegenden Leiterbahnen und erfasst Klartextdaten zwischen sicherheitskritischen Komponenten"
+  },
+  "I-DF-BUS-001": {
+    "threat": "On-Board-Bus-Abhören — Klartextdaten von freiliegenden Leiterplatten-Leiterbahnen erfasst",
+    "cause": "Datenfluss läuft auf freiliegenden On-Board-Leiterbahnen ohne physischen Schutz oder Verschlüsselung — ein $30-Logikanalysator reicht zur Erfassung",
+    "attack": "Angreifer öffnet das Gerätegehäuse, schliesst einen Logikanalysator an die zugänglichen Bus-Leiterbahnen an und erfasst alle Klartextdaten zwischen den angebundenen Komponenten"
+  },
+  "T-P-FSAFE-001": {
+    "threat": "Undefinierter Fail-Safe-Ausgangszustand — Prozessausgänge erreichen bei Kommunikationsausfall oder Angriff beliebige Werte",
+    "cause": "Kein deterministischer Fail-Safe-Ausgangszustand für Prozessausgänge definiert — bei Fehler oder Angriff sind Aktorausgaben nicht vorhersehbar",
+    "attack": "Angreifer unterbricht die Kommunikation zum Prozess; ohne definierten Fail-Safe-Zustand können Ausgaben Aktoren in eine gefährliche statt sichere Stellung bringen"
+  },
+  "T-IF-POLICY-001": {
+    "threat": "Nur-Werk-Schnittstelle in Produktion aktiv — persistenter privilegierter Zugriffspunkt nach Deployment",
+    "cause": "Schnittstelle für Werksnutzung konfiguriert (Bereitstellung, Kalibrierung) aber vor Produktionsfreigabe nicht deaktiviert — operationalState ist nicht permanent_disabled",
+    "attack": "Angreifer entdeckt aktive Werkschnittstelle am ausgelieferten Gerät und nutzt sie für privilegierte Funktionen die nur für die Fertigung vorgesehen sind, unter Umgehung der Produktionssicherheitskontrollen"
+  },
+  "T-IF-POLICY-002": {
+    "threat": "Wartungsschnittstelle ausserhalb des Wartungsfensters zugänglich — unautorisierter privilegierter Zugriff jederzeit möglich",
+    "cause": "Schnittstelle als wartungsgebunden deklariert aber keine Richtlinienerzwingung deaktiviert sie ausserhalb deklarierter Wartungsfenster — Zugriff dauerhaft verfügbar",
+    "attack": "Angreifer verbindet sich ausserhalb eines geplanten Wartungsfensters mit der Wartungsschnittstelle und greift auf privilegierte Diagnose- oder Konfigurationsfunktionen zu"
+  },
+  "S-P-ACCT-001": {
+    "threat": "Nur lokales Account-Management — veraltete Konten bleiben bestehen, keine zentrale Sperrung möglich",
+    "cause": "Account-Management ist nur lokal — kein zentrales Verzeichnis oder IAM-System. Konten ehemaliger Mitarbeiter, Dienstleister oder kompromittierte Zugangsdaten können nicht geräteübergreifend gesperrt werden",
+    "attack": "Angreifer nutzt Zugangsdaten eines ehemaligen Mitarbeiters oder kompromittiertes Konto das lokal auf dem Gerät noch existiert und erhält authentifizierten Zugang ohne dass eine zentrale Sperrung greift"
+  },
+  "D-SYS-BACKUP-001": {
+    "threat": "Kein Backup-Mechanismus — System nach Ransomware, Hardware-Ausfall oder destruktivem Angriff nicht wiederherstellbar",
+    "cause": "Kein automatisiertes Backup oder getestetes Recovery-Verfahren konfiguriert — Systemdaten und -konfiguration existieren nur auf dem Gerät selbst",
+    "attack": "Angreifer setzt Ransomware oder Wiper-Malware ein die Systemdaten und Konfiguration vernichtet; ohne Backup kann das System nicht wiederhergestellt werden und der Produktionsbetrieb ist auf unbestimmte Zeit unterbrochen"
+  },
+  "T-SYS-UPDATE-001": {
+    "threat": "Unsignierter Firmware-Update-Mechanismus — Angreifer kann Schad-Firmware unerkannt installieren",
+    "cause": "Update-Mechanismus erfordert keine kryptografischen Signaturen — manuelles lokales Update oder kein Update-Mechanismus bedeutet jedes Firmware-Image kann ohne Verifikation installiert werden",
+    "attack": "Angreifer erhält Zugang zum Update-Kanal oder zur physischen Update-Schnittstelle und installiert ein schädliches Firmware-Image das Sicherheitskontrollen deaktiviert, eine Backdoor öffnet oder Daten exfiltriert"
+  },
+  "I-P-AUTH-001": {
+    "threat": "Kryptografische Schlüssel in reinem Software-Speicher — extrahierbar per Memory-Dump, Debug-Zugang oder Seitenkanal",
+    "cause": "Authentifizierungs-Speicher ist nur Software — Schlüssel und Zugangsdaten liegen im normalen Flash oder RAM ohne Hardware-Schutzgrenze und sind über Debug-Schnittstellen, Memory-Dump oder Seitenkanal-Angriff erreichbar",
+    "attack": "Angreifer nutzt Debug-Schnittstelle, Cold-Boot-Angriff oder Firmware-Extraktion um Speicherinhalte des Prozesses auszulesen und gewinnt kryptografische Schlüssel oder Zugangsdaten ohne Hardware-Schutz"
+  },
+  "T-CB-CRYPTO-001": {
+    "threat": "Kryptografischer Standard nicht bewertet — nicht konforme oder schwache Algorithmen könnten im Einsatz sein",
+    "cause": "Krypto-Standard-Konformität für diese Chip-Boundary nicht bewertet — verwendete Algorithmen, Schlüssellängen und Protokolle sind unbekannt und entsprechen möglicherweise nicht aktuellen Anforderungen",
+    "attack": "Angreifer nutzt schwache oder veraltete kryptografische Algorithmen (MD5, SHA-1, DES, RSA-1024) die aufgrund fehlender Konformitätsbewertung beim Design nicht erkannt wurden"
   }
 }

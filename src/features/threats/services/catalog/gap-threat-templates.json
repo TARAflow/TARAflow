@@ -1,0 +1,94 @@
+{
+  "version": "1.0.0",
+  "description": "Gap threat templates — triggered when a property value reveals a missing control. Each template fires only when the specific property gap is present on the element.",
+  "elementTemplates": [
+    {
+      "id": "T-P-FSAFE-001",
+      "strideCategory": "T",
+      "elementTypes": ["Process"],
+      "context": {
+        "failSafeOutputState": ["not_defined"]
+      },
+      "mitigations": ["M-T-FSAFE-001", "M-T-001"],
+      "verifications": ["V-T-FSAFE-001", "V-T-001"],
+      "isCustom": false
+    },
+    {
+      "id": "T-IF-POLICY-001",
+      "strideCategory": "T",
+      "elementTypes": ["Interface", "PhysicalInterface"],
+      "context": {
+        "serviceAccessPolicy": ["factory_only"]
+      },
+      "mitigations": ["M-IF-POLICY-001", "M-IF-E-001"],
+      "verifications": ["V-IF-POLICY-001", "V-E-004"],
+      "isCustom": false
+    },
+    {
+      "id": "T-IF-POLICY-002",
+      "strideCategory": "T",
+      "elementTypes": ["Interface", "PhysicalInterface"],
+      "context": {
+        "serviceAccessPolicy": ["maintenance_only"]
+      },
+      "mitigations": ["M-IF-POLICY-002", "M-IF-E-002"],
+      "verifications": ["V-IF-POLICY-001", "V-IF-E-001"],
+      "isCustom": false
+    },
+    {
+      "id": "S-P-ACCT-001",
+      "strideCategory": "S",
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "accountManagement": ["local_only"]
+      },
+      "mitigations": ["M-S-006", "M-S-001"],
+      "verifications": ["V-S-005", "V-S-001"],
+      "isCustom": false
+    },
+    {
+      "id": "D-SYS-BACKUP-001",
+      "strideCategory": "D",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "backupMechanism": ["none"]
+      },
+      "mitigations": ["M-D-006", "M-D-004"],
+      "verifications": ["V-D-005", "V-D-001"],
+      "isCustom": false
+    },
+    {
+      "id": "T-SYS-UPDATE-001",
+      "strideCategory": "T",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "updateMechanism": ["none", "manual_local"]
+      },
+      "mitigations": ["M-T-007", "M-T-006"],
+      "verifications": ["V-T-001", "V-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "I-P-AUTH-001",
+      "strideCategory": "I",
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "authenticatorStorage": ["software_only"]
+      },
+      "mitigations": ["M-I-006", "M-CB-I-001"],
+      "verifications": ["V-I-001", "V-CB-I-001"],
+      "isCustom": false
+    },
+    {
+      "id": "T-CB-CRYPTO-001",
+      "strideCategory": "T",
+      "elementTypes": ["ChipBoundary"],
+      "context": {
+        "cryptoStandard": ["not_assessed"]
+      },
+      "mitigations": ["M-T-012", "M-CB-T-001"],
+      "verifications": ["V-T-001", "V-CB-T-001"],
+      "isCustom": false
+    }
+  ]
+}

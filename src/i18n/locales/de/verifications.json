@@ -106,5 +106,17 @@
   },
   "V-CB-E-002": {
     "verification": "Vollständige Debug-Deaktivierung (RDP2 oder äquivalent) in Produktion angewendet"
+  },
+  "V-CB-SCA-001": {
+    "verification": "Seitenkanal-Leistungsanalyse (SPA/DPA) — kein schlüsselkorreliertes Leistungssignal unter differentieller Leistungsanalyse nachweisbar"
+  },
+  "V-CB-SCA-002": {
+    "verification": "Elektromagnetische Emissionsanalyse — kein schlüsselkorreliertes EM-Signal mit Standard-Nahfeldprobe bei 10cm detektierbar"
+  },
+  "V-CB-SCA-003": {
+    "verification": "Timing-Angriff-Test — kryptografische Operationen in konstanter Zeit unabhängig von Schlüssel- oder Datenwerten"
+  },
+  "V-CB-SCA-004": {
+    "verification": "Leiterplatteninspektion — sicherheitskritische Bus-Leiterbahnen (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) durch Verguss oder Schutzlack abgedeckt; keine Test-Punkte zugänglich"
   }
 }

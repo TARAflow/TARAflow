@@ -654,6 +654,15 @@ export interface TemplateContext {
    */
   cryptoStandard?: string[];
 
+  /**
+   * Element-level: matches ChipBoundary.sideChannelProtection.
+   * Used to scope SCA templates to unprotected chips.
+   * Templates match when value is in the list; absent property defaults to "none".
+   * Threats are eliminated entirely when value is "certified" (shouldEliminateThreat).
+   * @example ["none"]
+   */
+  sideChannelProtection?: string[];
+
   // ── DataFlow context ──────────────────────────────────────────────────────
 
   /**

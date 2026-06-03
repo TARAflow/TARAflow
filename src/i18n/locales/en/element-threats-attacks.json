@@ -397,5 +397,70 @@
     "threat": "Physical access without audit trail — actions at physical boundary cannot be attributed",
     "cause": "No physical monitoring or access logging at boundary — who accessed the boundary and when is unknown",
     "attack": "Attacker accesses boundary and performs actions (installs tap, modifies hardware) without any record being created — forensic investigation finds no evidence"
+  },
+  "I-CB-SCA-001": {
+    "threat": "Power side-channel attack — cryptographic key extracted via differential power analysis",
+    "cause": "No power analysis countermeasures on chip — key-correlated power signature is measurable at the supply pins",
+    "attack": "Attacker connects power measurement equipment to the supply pins, captures power traces during cryptographic operations and recovers the secret key via differential power analysis (DPA)"
+  },
+  "I-CB-SCA-002": {
+    "threat": "Electromagnetic side-channel attack — sensitive data extracted via near-field EM emission",
+    "cause": "No electromagnetic shielding or EM countermeasures on chip — internal operations emit correlated EM signals detectable with a near-field probe",
+    "attack": "Attacker positions a near-field EM probe close to the chip and captures emission traces during cryptographic operations to recover key material via electromagnetic analysis (EMA)"
+  },
+  "I-CB-SCA-003": {
+    "threat": "Timing side-channel attack — secret key inferred from execution timing variations",
+    "cause": "Cryptographic implementation uses data-dependent branches or memory access patterns — execution time varies with key or plaintext values",
+    "attack": "Attacker measures the duration of cryptographic operations across many inputs and applies statistical timing analysis to recover the secret key"
+  },
+  "I-CB-SCA-004": {
+    "threat": "Physical bus probing — data extracted by probing PCB traces",
+    "cause": "Security-critical bus traces (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) are exposed on PCB surface without potting or conformal coating",
+    "attack": "Attacker opens the device, attaches micro-probes or a logic analyzer to exposed bus traces and captures plaintext data exchanged between security-critical components"
+  },
+  "I-DF-BUS-001": {
+    "threat": "On-board bus eavesdropping — plaintext data captured from exposed PCB traces",
+    "cause": "Data flow runs on exposed on-board traces without physical protection or encryption — a $30 logic analyzer is sufficient for capture",
+    "attack": "Attacker opens the device enclosure, attaches a logic analyzer to the accessible bus traces and captures all plaintext data exchanged between the connected components"
+  },
+  "T-P-FSAFE-001": {
+    "threat": "Undefined fail-safe output state — process outputs reach arbitrary values on communication loss or attack",
+    "cause": "No deterministic fail-safe output state defined for process outputs — under fault or attack condition, actuator outputs are unpredictable",
+    "attack": "Attacker disrupts communication to the process; without a defined fail-safe state, outputs may drive actuators to a dangerous position instead of a safe default"
+  },
+  "T-IF-POLICY-001": {
+    "threat": "Factory-only interface active in production — persistent privileged access point after deployment",
+    "cause": "Interface configured for factory use only (provisioning, calibration) but not disabled before production deployment — operationalState is not permanent_disabled",
+    "attack": "Attacker discovers active factory interface on deployed device and uses it to access privileged functions intended only for manufacturing, bypassing production security controls"
+  },
+  "T-IF-POLICY-002": {
+    "threat": "Maintenance interface accessible outside maintenance window — unauthorized privileged access at any time",
+    "cause": "Interface declared maintenance-only but no policy enforcement disables it outside declared maintenance windows — access is permanently available",
+    "attack": "Attacker connects to the maintenance interface outside any scheduled window and accesses privileged diagnostic or configuration functions that should only be available during authorized maintenance"
+  },
+  "S-P-ACCT-001": {
+    "threat": "Local-only account management — stale accounts persist, no central revocation possible",
+    "cause": "Account management is local-only — no central directory or IAM system. Accounts of former employees, contractors or compromised credentials cannot be revoked across all devices simultaneously",
+    "attack": "Attacker uses credentials of a former employee or compromised account that still exists locally on the device, gaining authenticated access without central revocation having any effect"
+  },
+  "D-SYS-BACKUP-001": {
+    "threat": "No backup mechanism — system unrecoverable after ransomware, hardware failure, or destructive attack",
+    "cause": "No automated backup or tested recovery procedure configured — system data and configuration exist only on the device itself",
+    "attack": "Attacker deploys ransomware or wiper malware that destroys system data and configuration; without a backup, the system cannot be restored and production is halted indefinitely"
+  },
+  "T-SYS-UPDATE-001": {
+    "threat": "Unsigned firmware update mechanism — attacker can install malicious firmware without detection",
+    "cause": "Update mechanism does not require cryptographic signatures — manual local update or no update mechanism means any firmware image can be installed without verification",
+    "attack": "Attacker gains access to the update channel or physical update interface and installs a malicious firmware image that disables security controls, opens a backdoor, or exfiltrates data"
+  },
+  "I-P-AUTH-001": {
+    "threat": "Cryptographic keys in software-only storage — extractable via memory dump, debug access, or side-channel",
+    "cause": "Authenticator storage is software-only — keys and credentials reside in regular flash or RAM without hardware protection boundary, making them accessible via debug interfaces, memory dump or side-channel attack",
+    "attack": "Attacker uses debug interface, cold-boot attack, or firmware extraction to read memory contents of the process and recovers cryptographic keys or credentials stored without hardware protection"
+  },
+  "T-CB-CRYPTO-001": {
+    "threat": "Cryptographic standard not assessed — non-compliant or weak algorithms may be in use",
+    "cause": "Crypto standard compliance has not been assessed for this chip boundary — algorithms, key lengths and protocols in use are unknown and may not meet current requirements (NIST SP 800-131A, BSI TR-02102)",
+    "attack": "Attacker targets the chip boundary using attacks on weak or deprecated cryptographic algorithms (MD5, SHA-1, DES, RSA-1024) that were not identified during design due to missing compliance assessment"
   }
 }

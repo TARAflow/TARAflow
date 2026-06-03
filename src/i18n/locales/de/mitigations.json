@@ -187,5 +187,17 @@
   },
   "M-CB-E-002": {
     "mitigation": "RDP Level 2 anwenden — vollständige JTAG-Deaktivierung mit automatischem Mass-Erase bei Manipulationsversuch"
+  },
+  "M-CB-SCA-001": {
+    "mitigation": "Leistungsanalyse-Gegenmassnahmen anwenden — Constant-Time-Algorithmen, Takt-Randomisierung, Leistungsfilter oder Rauscheinspeisung (NIST SP 800-193)"
+  },
+  "M-CB-SCA-002": {
+    "mitigation": "Elektromagnetische Abschirmung und EM-Emissionsschutz anwenden — Gehäuseabschirmung, Metalldeckel, sicherheitskritische Leitungen auf Innenlagen"
+  },
+  "M-CB-SCA-003": {
+    "mitigation": "Kryptografische Implementierungen mit konstanter Laufzeit verwenden — datenabhängige Verzweigungen und Speicherzugriffsmuster eliminieren"
+  },
+  "M-CB-SCA-004": {
+    "mitigation": "Vergussmasse oder Schutzlack auf sicherheitskritische Leiterplattenregionen auftragen — physisches Probing von Bus-Leiterbahnen zwischen Security-Elementen verhindern"
   }
 }
