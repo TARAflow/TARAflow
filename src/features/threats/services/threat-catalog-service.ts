@@ -25,6 +25,7 @@ import embeddedElementTemplatesData from "./catalog/embedded-element-templates.j
 import embeddedInteractionTemplatesData from "./catalog/embedded-interaction-templates.json";
 import multiprocessElementTemplatesData from "./catalog/multiprocess-element-templates.json";
 import multiprocessInteractionTemplatesData from "./catalog/multiprocess-interaction-templates.json";
+import physicalBoundaryTemplatesData from "./catalog/physical-boundary-templates.json";
 
 // ==================== CATALOG SINGLETONS ====================
 
@@ -32,6 +33,7 @@ const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [
   ...((elementTemplatesData as any).elementTemplates ?? []),
   ...((embeddedElementTemplatesData as any).elementTemplates ?? []),
   ...((multiprocessElementTemplatesData as any).elementTemplates ?? []),
+  ...((physicalBoundaryTemplatesData as any).elementTemplates ?? []),
 ];
  
 const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [

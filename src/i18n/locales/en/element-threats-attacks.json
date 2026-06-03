@@ -337,5 +337,65 @@
     "threat": "Repudiation of control actions in embedded or OT system",
     "cause": "Embedded controllers and SCADA systems often lack cryptographic audit trails — operator commands and system actions are not non-repudiably logged",
     "attack": "Operator or attacker denies having issued a control command (e.g. emergency stop override, setpoint change) because no cryptographically bound audit trail exists"
+  },
+  "T-PB-001": {
+    "threat": "Physical boundary tampering — unauthorized physical access to boundary interior",
+    "cause": "No tamper detection mechanism on physical boundary — unauthorized opening is undetected",
+    "attack": "Attacker opens the enclosure, cabinet, or room without triggering any alarm or leaving detectable evidence, gaining unrestricted access to internal components"
+  },
+  "T-PB-002": {
+    "threat": "Debug interface physically accessible — direct hardware attack surface exposed",
+    "cause": "Debug or programming port (JTAG, SWD, UART) is reachable from boundary exterior without disassembly",
+    "attack": "Attacker attaches a debug probe to the accessible port and gains full processor access — reads security keys, overwrites firmware, or bypasses security controls"
+  },
+  "T-PB-003": {
+    "threat": "Removable media insertion — unauthorized data exfiltration or malware injection via physical media",
+    "cause": "Removable media port (USB, SD) is physically accessible at boundary exterior — no software or physical blocking",
+    "attack": "Attacker inserts a USB drive containing malware or uses it to exfiltrate sensitive data from the device without network access"
+  },
+  "T-PB-004": {
+    "threat": "Device removal or depot attack — portable device taken for lab analysis or substitution",
+    "cause": "Device is portable or removable — attacker can control attack environment (time, tools, lab equipment)",
+    "attack": "Attacker removes the device from its installation environment, takes it to a lab, and performs full hardware analysis: chip-off, fault injection, side-channel, or firmware implant"
+  },
+  "I-PB-001": {
+    "threat": "Side-channel observation — sensitive data extracted via physical measurements",
+    "cause": "Physical boundary provides no electromagnetic shielding or power filtering — internal operations are observable",
+    "attack": "Attacker measures power consumption, electromagnetic emissions, or timing of operations through the boundary and extracts cryptographic keys or sensitive data"
+  },
+  "I-PB-002": {
+    "threat": "Data exfiltration via removable media — sensitive data copied out of device",
+    "cause": "Removable media port accessible at boundary exterior — no data loss prevention mechanism",
+    "attack": "Attacker inserts removable media and copies sensitive files, logs, or cryptographic material without leaving a network trace"
+  },
+  "D-PB-001": {
+    "threat": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+    "cause": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed by physical access",
+    "attack": "Attacker physically damages the device, cuts power, or removes it from service, causing immediate and complete loss of availability"
+  },
+  "D-PB-002": {
+    "threat": "Device theft — portable device stolen, causing DoS and potential data exposure",
+    "cause": "Device is portable and not anchored — theft directly causes loss of availability and potential data breach",
+    "attack": "Attacker steals the portable device from its operating location, causing the controlled system to lose its controller and potentially exposing all stored data"
+  },
+  "S-PB-001": {
+    "threat": "Maintenance impersonation or relay attack — attacker gains physical access by bypassing access control",
+    "cause": "Physical access control is single-factor or absent — badge-only access is vulnerable to relay attack; no guard present",
+    "attack": "Attacker clones RFID badge or uses relay attack device to gain entry, impersonates maintenance personnel, or tailgates through controlled entry"
+  },
+  "E-PB-001": {
+    "threat": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+    "cause": "Physical access to device interior grants debug/hardware access — logical security controls can be bypassed physically",
+    "attack": "Attacker opens the physical boundary, connects to internal debug or hardware interface, and bypasses all software-level authentication and authorization"
+  },
+  "E-PB-002": {
+    "threat": "Debug interface privilege escalation — full processor control via physically accessible debug port",
+    "cause": "JTAG or SWD port is accessible from boundary exterior — provides full read/write access to processor memory and registers",
+    "attack": "Attacker connects debug probe to accessible port, halts processor, reads security keys from memory, and modifies execution flow to bypass security checks"
+  },
+  "R-PB-001": {
+    "threat": "Physical access without audit trail — actions at physical boundary cannot be attributed",
+    "cause": "No physical monitoring or access logging at boundary — who accessed the boundary and when is unknown",
+    "attack": "Attacker accesses boundary and performs actions (installs tap, modifies hardware) without any record being created — forensic investigation finds no evidence"
   }
 }

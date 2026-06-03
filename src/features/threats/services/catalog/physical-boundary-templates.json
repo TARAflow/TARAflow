@@ -1,0 +1,114 @@
+{
+  "version": "1.0.0",
+  "description": "PhysicalBoundary element threat templates. Context filtered by element-level properties (physicalMobility, accessibility, debugInterfaceAccessible, removableMediaAccessible, monitoringType).",
+  "elementTemplates": [
+    {
+      "id": "T-PB-001",
+      "strideCategory": "T",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": {},
+      "mitigations": ["M-T-001", "M-IF-T-001", "M-IF-T-003", "M-PB-T-001"],
+      "verifications": ["V-T-001", "V-IF-T-001", "V-PB-T-001"],
+      "isCustom": false
+    },
+    {
+      "id": "T-PB-002",
+      "strideCategory": "T",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "debugInterfaceAccessible": true },
+      "mitigations": ["M-CB-T-001", "M-CB-T-002", "M-CB-E-001", "M-PB-T-003"],
+      "verifications": ["V-CB-T-001", "V-CB-T-002", "V-PB-T-003"],
+      "isCustom": false
+    },
+    {
+      "id": "T-PB-003",
+      "strideCategory": "T",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "removableMediaAccessible": true },
+      "mitigations": ["M-IF-T-002", "M-IF-T-004", "M-PB-T-004"],
+      "verifications": ["V-IF-T-001", "V-PB-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "T-PB-004",
+      "strideCategory": "T",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "physicalMobility": ["portable", "removable"] },
+      "mitigations": ["M-T-001", "M-IF-T-003", "M-PB-T-005"],
+      "verifications": ["V-T-001", "V-I-001"],
+      "isCustom": false
+    },
+    {
+      "id": "I-PB-001",
+      "strideCategory": "I",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": {},
+      "mitigations": ["M-I-001", "M-IF-I-001", "M-CB-I-001"],
+      "verifications": ["V-I-001", "V-IF-I-001"],
+      "isCustom": false
+    },
+    {
+      "id": "I-PB-002",
+      "strideCategory": "I",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "removableMediaAccessible": true },
+      "mitigations": ["M-I-002", "M-IF-I-002", "M-PB-T-004"],
+      "verifications": ["V-I-001", "V-PB-T-004"],
+      "isCustom": false
+    },
+    {
+      "id": "D-PB-001",
+      "strideCategory": "D",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": {},
+      "mitigations": ["M-D-001", "M-D-002", "M-PB-D-001"],
+      "verifications": ["V-D-001", "V-IF-T-001"],
+      "isCustom": false
+    },
+    {
+      "id": "D-PB-002",
+      "strideCategory": "D",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "physicalMobility": ["portable"] },
+      "mitigations": ["M-D-004", "M-D-005", "M-PB-T-005"],
+      "verifications": ["V-D-001", "V-D-004"],
+      "isCustom": false
+    },
+    {
+      "id": "S-PB-001",
+      "strideCategory": "S",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "accessibility": ["public"] },
+      "mitigations": ["M-S-001", "M-IF-S-001", "M-PB-S-001", "M-PB-S-002"],
+      "verifications": ["V-S-001", "V-IF-S-001", "V-PB-S-001"],
+      "isCustom": false
+    },
+    {
+      "id": "E-PB-001",
+      "strideCategory": "E",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": {},
+      "mitigations": ["M-E-001", "M-CB-E-001", "M-PB-T-001"],
+      "verifications": ["V-E-001", "V-CB-E-001", "V-PB-T-001"],
+      "isCustom": false
+    },
+    {
+      "id": "E-PB-002",
+      "strideCategory": "E",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "debugInterfaceAccessible": true },
+      "mitigations": ["M-CB-E-001", "M-CB-E-002", "M-CB-T-001", "M-PB-T-003"],
+      "verifications": ["V-CB-E-001", "V-CB-E-002", "V-PB-T-003"],
+      "isCustom": false
+    },
+    {
+      "id": "R-PB-001",
+      "strideCategory": "R",
+      "elementTypes": ["PhysicalBoundary"],
+      "context": { "monitoringType": ["none"] },
+      "mitigations": ["M-R-001", "M-PB-R-001", "M-PB-R-002"],
+      "verifications": ["V-R-001", "V-PB-R-001"],
+      "isCustom": false
+    }
+  ]
+}

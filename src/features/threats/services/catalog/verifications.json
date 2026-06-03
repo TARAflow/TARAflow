@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "verifications": [
     {
       "id": "V-S-001",
@@ -184,37 +184,85 @@
     {
       "id": "V-CB-T-001",
       "strideCategory": "T",
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "isCustom": false
     },
     {
       "id": "V-CB-T-002",
       "strideCategory": "T",
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "isCustom": false
     },
     {
       "id": "V-CB-T-003",
       "strideCategory": "T",
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "isCustom": false
     },
     {
       "id": "V-CB-I-001",
       "strideCategory": "I",
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "isCustom": false
     },
     {
       "id": "V-CB-E-001",
       "strideCategory": "E",
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
       "isCustom": false
     },
     {
       "id": "V-CB-E-002",
       "strideCategory": "E",
-      "context": { "platform": ["Embedded"] },
+      "context": {
+        "platform": ["Embedded"]
+      },
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-002",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-003",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-004",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-S-001",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-R-001",
+      "strideCategory": "R",
+      "context": {},
       "isCustom": false
     }
   ]

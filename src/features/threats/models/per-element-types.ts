@@ -23,6 +23,7 @@ export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
   PhysicalInterface: ["S", "T", "R", "I", "D", "E"],
   Interface: ["S", "T", "R", "I", "D", "E"],
   ChipBoundary: ["T", "I", "E"],
+  PhysicalBoundary: ["S", "T", "R", "I", "D", "E"],
 };
 
 
@@ -91,13 +92,9 @@ export function getApplicableStrideCategories(
 }
 
 /**
- * Check if a threat is an Interface/PhysicalInterface threat
+ * Check if a threat is an Interface threat
  */
 export function isInterfaceThreat(linkedElement: LinkedDFDElement | null): boolean {
   if (!linkedElement) return false;
-  return (
-    linkedElement.elementType === "Interface" ||
-    linkedElement.elementType === "PhysicalInterface"
-  );
+  return linkedElement.elementType === "Interface";
 }
-

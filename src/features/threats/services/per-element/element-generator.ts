@@ -207,6 +207,24 @@ export class ElementThreatGenerator {
       });
     }
 
+    // ── PhysicalBoundary element threats — one table per PhysicalBoundary ──
+    const pbTableMap = this.generatePhysicalBoundaryThreats(
+      graph,
+      elementToAssets,
+      project,
+      strategy,
+    );
+    for (const [pbId, threats] of pbTableMap) {
+      if (threats.length === 0) continue;
+      const pb = graph.elementsById.get(pbId);
+      tables.push({
+        trustBoundaryId: pbId,
+        trustBoundaryName: pb?.name ?? pbId,
+        displayIdentifier: `[${pb?.displayId ?? pbId}]`,
+        threats,
+      });
+    }
+
     // Safety net: deduplicate threat IDs across all tables.
     // Handles edge cases not covered by effectiveTBElements logic
     // (e.g. DataFlow threats that could theoretically appear twice).
@@ -284,6 +302,38 @@ export class ElementThreatGenerator {
 
     for (const element of graph.elementsById.values()) {
       if (element.type !== "ChipBoundary") continue;
+
+      const threats = this.generateThreatsForElement(
+        element,
+        element.id,
+        element.name,
+        element.displayId ?? "",
+        elementToAssets,
+        project,
+        strategy,
+      );
+
+      tableMap.set(element.id, threats);
+    }
+
+    return tableMap;
+  }
+
+  /**
+   * Generate PhysicalBoundary element threats, one table per PhysicalBoundary.
+   * PB is always its own table owner — it never has a TrustBoundary as parent.
+   * Returns Map<physicalBoundaryId, Threat[]>.
+   */
+  private generatePhysicalBoundaryThreats(
+    graph: DFDGraphReference,
+    elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
+  ): Map<string, Threat[]> {
+    const tableMap = new Map<string, Threat[]>();
+
+    for (const element of graph.elementsById.values()) {
+      if (element.type !== "PhysicalBoundary") continue;
 
       const threats = this.generateThreatsForElement(
         element,

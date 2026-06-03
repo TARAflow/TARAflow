@@ -309,6 +309,43 @@ export class InteractionThreatGenerator {
       }
     }
 
+    // ── PhysicalBoundary threats ──────────────────────────────────────────
+    // PB has no DataFlows and no interaction partners — generated unconditionally,
+    // same as Interface threats. PB is always its own table key (never has a TB parent).
+    for (const element of graph.elementsById.values()) {
+      if (element.type !== "PhysicalBoundary") continue;
+
+      const elProps = element.properties ?? {};
+      const pbId = element.id;
+      const pbName = element.name;
+      const pbDisplayId = element.displayId ?? pbId;
+
+      const { categories: applicableStride } = strategy.getStrideCategories(
+        element,
+        STRIDE_PER_INTERACTION,
+        project,
+        defaultConfig,
+      );
+
+      for (const stride of applicableStride) {
+        if (shouldEliminateThreat(element.type, elProps, stride)) continue;
+
+        const threat = this.createInterfaceThreat(
+          element,
+          stride,
+          pbId,
+          pbName,
+          pbDisplayId,
+          elementToAssets,
+          project,
+          strategy,
+        );
+        const existing = tableMap.get(pbId) ?? [];
+        existing.push(threat);
+        tableMap.set(pbId, existing);
+      }
+    }
+
     // ── Build tables ──────────────────────────────────────────────────────
     const tables: ThreatTable[] = [];
     for (const [tbId, threats] of tableMap) {
