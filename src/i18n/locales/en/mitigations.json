@@ -205,5 +205,17 @@
   },
   "M-I-007": {
     "mitigation": "Apply data minimization — expose only necessary registers or topics; filter or aggregate at source"
+  },
+  "M-T-012": {
+    "mitigation": "Use only approved cryptographic algorithms and key lengths (NIST SP 800-131A, BSI TR-02102) — CR 4.3"
+  },
+  "M-E-008": {
+    "mitigation": "Deploy antivirus / EDR software and keep signatures up to date"
+  },
+  "M-I-009": {
+    "mitigation": "Implement verifiable secure deletion (crypto erase, factory reset, overwrite) for end-of-life and device return"
+  },
+  "M-CB-I-002": {
+    "mitigation": "Store device keys and certificates in dedicated hardware security module (TPM, Secure Element, HSM)"
   }
 }

@@ -118,5 +118,14 @@
   },
   "V-D-007": {
     "verification": "Verify safety function availability under network attack simulation (flood, jam, injection)"
+  },
+  "V-T-005": {
+    "verification": "Verify malware protection mechanism is active (code signing verification, whitelist check, or AV scan)"
+  },
+  "V-I-005": {
+    "verification": "Verify authenticator storage protection — confirm keys are non-extractable from hardware security component"
+  },
+  "V-CB-I-002": {
+    "verification": "Verify hardware key storage — confirm cryptographic keys are bound to chip and non-extractable"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "version": "2.7.0",
+  "version": "2.8.0",
   "mitigations": [
     {
       "id": "M-S-001",
@@ -1387,6 +1387,66 @@
         }
       ],
       "verifications": ["V-I-001"]
+    },
+    {
+      "id": "M-T-012",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "cryptoStandard",
+          "expectedValue": "nist_approved",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-T-001"]
+    },
+    {
+      "id": "M-E-008",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "malwareProtection",
+          "expectedValue": "av_software",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-T-005"]
+    },
+    {
+      "id": "M-I-009",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "secureDeletion",
+          "expectedValue": "crypto_erase",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-I-001"]
+    },
+    {
+      "id": "M-CB-I-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "keyStorage",
+          "expectedValue": "hsm",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-CB-I-002"]
     }
   ]
 }

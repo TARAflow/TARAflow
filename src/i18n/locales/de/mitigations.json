@@ -217,5 +217,17 @@
   },
   "M-I-007": {
     "mitigation": "Datenminimerung anwenden — nur notwendige Register oder Topics exponieren; an der Quelle filtern oder aggregieren"
+  },
+  "M-T-012": {
+    "mitigation": "Ausschliesslich zugelassene kryptografische Algorithmen und Schlüssellängen verwenden (NIST SP 800-131A, BSI TR-02102) — CR 4.3"
+  },
+  "M-E-008": {
+    "mitigation": "Antiviren- / EDR-Software einsetzen und Signaturen aktuell halten"
+  },
+  "M-I-009": {
+    "mitigation": "Verifizierbare sichere Löschung implementieren (Crypto-Erase, Factory-Reset, Überschreiben) für Lebensende und Geräterückgabe"
+  },
+  "M-CB-I-002": {
+    "mitigation": "Geräteschlüssel und Zertifikate in dediziertem Hardware-Sicherheitsmodul ablegen (TPM, Secure Element, HSM)"
   }
 }

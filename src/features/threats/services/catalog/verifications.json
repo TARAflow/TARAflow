@@ -1,5 +1,5 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "verifications": [
     {
       "id": "V-S-001",
@@ -334,6 +334,24 @@
     {
       "id": "V-D-007",
       "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-005",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-I-005",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-CB-I-002",
+      "strideCategory": "I",
       "context": {},
       "isCustom": false
     }

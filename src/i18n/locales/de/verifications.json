@@ -130,5 +130,14 @@
   },
   "V-D-007": {
     "verification": "Safety-Function-Verfügbarkeit unter Netzwerk-Angriffssimulation verifizieren (Flooding, Jamming, Injection)"
+  },
+  "V-T-005": {
+    "verification": "Malware-Schutz-Mechanismus verifizieren — Code-Signing-Prüfung, Whitelist-Check oder AV-Scan aktiv"
+  },
+  "V-I-005": {
+    "verification": "Authentifizierungs-Speicher-Schutz verifizieren — Schlüssel sind aus Hardware-Komponente nicht extrahierbar"
+  },
+  "V-CB-I-002": {
+    "verification": "Hardware-Schlüsselspeicher verifizieren — Schlüssel sind an Sicherheitschip gebunden und nicht extrahierbar"
   }
 }
