@@ -462,5 +462,30 @@
     "threat": "Cryptographic standard not assessed — non-compliant or weak algorithms may be in use",
     "cause": "Crypto standard compliance has not been assessed for this chip boundary — algorithms, key lengths and protocols in use are unknown and may not meet current requirements (NIST SP 800-131A, BSI TR-02102)",
     "attack": "Attacker targets the chip boundary using attacks on weak or deprecated cryptographic algorithms (MD5, SHA-1, DES, RSA-1024) that were not identified during design due to missing compliance assessment"
+  },
+  "T-DF-PHYSICAL-001": {
+    "threat": "Physical cable tampering — data flow manipulated via accessible cable or connector",
+    "cause": "Data flow runs through a physically accessible cable (field cable, in-enclosure wiring, or on-board trace) without physical protection — no duct, conduit, armoring, or tamper-evident sealing",
+    "attack": "Attacker gains physical access to the cable run, splices in a tap device or signal injector, and manipulates data in transit without triggering any alarm"
+  },
+  "D-DF-PHYSICAL-001": {
+    "threat": "Cable disconnection causing loss of availability — no redundant path for field cable",
+    "cause": "Data flow uses a single field cable with no redundant path — deliberate or accidental disconnection immediately interrupts communication",
+    "attack": "Attacker cuts or disconnects the field cable, causing complete loss of the data flow with no fallback path available"
+  },
+  "T-DF-SAFETY-001": {
+    "threat": "Integrity attack on safety-relevant data flow — false values reach safety function",
+    "cause": "Safety-critical data flow carries no end-to-end integrity protection — values can be modified in transit without detection by the receiving safety function",
+    "attack": "Attacker modifies values on the safety data flow (setpoints, sensor readings, commands) causing the safety function to operate on false data and potentially fail to activate or activate incorrectly"
+  },
+  "D-DF-SAFETY-001": {
+    "threat": "Disruption of safety-critical data flow — safety function unavailable on demand",
+    "cause": "Safety-critical data flow (emergency stop, safety gate) has no redundant path — disruption directly prevents the safety function from operating",
+    "attack": "Attacker floods, jams, or physically disrupts the safety-critical data flow, preventing the emergency stop or safety gate command from reaching its destination when needed"
+  },
+  "T-DF-ACCESS-001": {
+    "threat": "Unauthorized write access via OT protocol — attacker modifies process values or configuration",
+    "cause": "OT protocol data flow is configured with read-write access — any node on the network can issue write commands or parameter changes without additional authorization",
+    "attack": "Attacker places a rogue node on the OT network and sends write commands via the protocol to modify setpoints, force output states, or alter controller configuration"
   }
 }

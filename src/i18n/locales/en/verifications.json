@@ -106,5 +106,17 @@
   },
   "V-CB-E-002": {
     "verification": "Verify full debug disable (RDP2 or equivalent) is applied in production"
+  },
+  "V-T-006": {
+    "verification": "Inspect and document physical cable routing protection (duct, conduit, armoring) — photo evidence required"
+  },
+  "V-T-007": {
+    "verification": "Verify end-to-end integrity on safety-relevant data flows (HMAC or signature test under attack simulation)"
+  },
+  "V-D-006": {
+    "verification": "Test physical cable disconnection resilience — verify system behavior on connector pull and restoration"
+  },
+  "V-D-007": {
+    "verification": "Verify safety function availability under network attack simulation (flood, jam, injection)"
   }
 }

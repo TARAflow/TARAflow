@@ -1,5 +1,5 @@
 {
-  "version": "2.6.0",
+  "version": "2.7.0",
   "mitigations": [
     {
       "id": "M-S-001",
@@ -1297,6 +1297,96 @@
         }
       ],
       "verifications": ["V-R-001"]
+    },
+    {
+      "id": "M-T-009",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "physicalPathProtection",
+          "expectedValue": "tamper_seal",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-T-006"]
+    },
+    {
+      "id": "M-T-011",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "integrityProtection",
+          "expectedValue": "hmac",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-T-007"]
+    },
+    {
+      "id": "M-D-007",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "connectorType",
+          "expectedValue": "m12_locking",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-D-006"]
+    },
+    {
+      "id": "M-D-009",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "TrustBoundary",
+          "property": "islandModeCapable",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-D-001"]
+    },
+    {
+      "id": "M-S-007",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "TrustBoundary",
+          "property": "defaultDenyPolicy",
+          "expectedValue": "deny_all_permit_exception",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-S-001"]
+    },
+    {
+      "id": "M-I-007",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "accessMode",
+          "expectedValue": "read_only",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-I-001"]
     }
   ]
 }

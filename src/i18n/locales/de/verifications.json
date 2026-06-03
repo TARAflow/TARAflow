@@ -118,5 +118,17 @@
   },
   "V-CB-SCA-004": {
     "verification": "Leiterplatteninspektion — sicherheitskritische Bus-Leiterbahnen (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) durch Verguss oder Schutzlack abgedeckt; keine Test-Punkte zugänglich"
+  },
+  "V-T-006": {
+    "verification": "Physischen Kabelverlegungsschutz prüfen und dokumentieren (Kabelkanal, Rohrleitung, Panzerung) — Foto-Nachweis erforderlich"
+  },
+  "V-T-007": {
+    "verification": "Ende-zu-Ende-Integritätsschutz auf sicherheitsrelevanten Datenflüssen verifizieren (HMAC- oder Signatur-Test unter Angriffssimulation)"
+  },
+  "V-D-006": {
+    "verification": "Physische Kabel-Trennungsresilienz testen — Systemverhalten bei Stecker-Zug und Wiederherstellung verifizieren"
+  },
+  "V-D-007": {
+    "verification": "Safety-Function-Verfügbarkeit unter Netzwerk-Angriffssimulation verifizieren (Flooding, Jamming, Injection)"
   }
 }

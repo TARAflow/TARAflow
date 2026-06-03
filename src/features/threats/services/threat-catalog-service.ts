@@ -28,6 +28,7 @@ import multiprocessInteractionTemplatesData from "./catalog/multiprocess-interac
 import physicalBoundaryTemplatesData from "./catalog/physical-boundary-templates.json";
 import sideChannelTemplatesData from "./catalog/side-channel-templates.json";
 import gapThreatTemplatesData from "./catalog/gap-threat-templates.json";
+import safetyDataflowTemplatesData from "./catalog/safety-dataflow-templates.json";
 
 // ==================== CATALOG SINGLETONS ====================
 
@@ -38,12 +39,14 @@ const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [
   ...((physicalBoundaryTemplatesData as any).elementTemplates ?? []),
   ...((sideChannelTemplatesData as any).elementTemplates ?? []),
   ...((gapThreatTemplatesData as any).elementTemplates ?? []),
+  ...((safetyDataflowTemplatesData as any).elementTemplates ?? []),
 ];
  
 const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [
   ...((interactionTemplatesData as any).interactionTemplates ?? []),
   ...((embeddedInteractionTemplatesData as any).interactionTemplates ?? []),
   ...((multiprocessInteractionTemplatesData as any).interactionTemplates ?? []),
+  ...((safetyDataflowTemplatesData as any).interactionTemplates ?? []),
 ];
 
 const ALL_MITIGATIONS: MitigationEntry[] =

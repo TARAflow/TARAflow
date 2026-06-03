@@ -187,5 +187,23 @@
   },
   "M-CB-E-002": {
     "mitigation": "Apply RDP Level 2 — full JTAG disable with automatic mass-erase on tamper attempt"
+  },
+  "M-T-009": {
+    "mitigation": "Secure cable access points with tamper-evident seals or locked enclosures to prevent undetected splicing"
+  },
+  "M-T-011": {
+    "mitigation": "Apply end-to-end integrity protection (HMAC or digital signature) on data flows crossing the safety boundary (EN 50742)"
+  },
+  "M-D-007": {
+    "mitigation": "Use secured connectors (M12 locking, screw terminals) and cable strain relief to prevent accidental or deliberate disconnection"
+  },
+  "M-D-009": {
+    "mitigation": "Enable island mode capability — trust boundary can isolate the zone completely on incident detection (NDR 5.2 RE2)"
+  },
+  "M-S-007": {
+    "mitigation": "Enforce default-deny policy at trust boundary — only explicitly permitted traffic is allowed (NDR 5.2 RE1)"
+  },
+  "M-I-007": {
+    "mitigation": "Apply data minimization — expose only necessary registers or topics; filter or aggregate at source"
   }
 }

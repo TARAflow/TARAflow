@@ -183,6 +183,11 @@ export class InteractionThreatGenerator {
       // ── Sender perspective ──────────────────────────────────────────────
       // Table key: senderTB if set, else receiverTB (EE source has no TB —
       // threat belongs to the boundary that owns the conversation).
+      // connectionProps merged with element props: DataFlow-level properties
+      // (location, safetyFunction, accessMode, protocol) are needed for
+      // safety/physical DataFlow interaction templates.
+      const connectionProps =
+        ((connection as any)?.properties as Record<string, unknown>) ?? {};
       const senderTableKey = senderTB ?? receiverTB;
       if (senderTableKey) {
         const sourcePropsForElim = sourceProps ?? {};
@@ -205,7 +210,7 @@ export class InteractionThreatGenerator {
               elementToAssets,
               project,
               strategy,
-              sourceProps,
+              { ...connectionProps, ...sourceProps },
             ),
           );
         }
@@ -238,7 +243,7 @@ export class InteractionThreatGenerator {
               elementToAssets,
               project,
               strategy,
-              targetProps,
+              { ...connectionProps, ...targetProps },
             ),
           );
         }

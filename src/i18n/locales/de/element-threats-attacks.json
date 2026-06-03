@@ -459,5 +459,30 @@
     "threat": "Kryptografischer Standard nicht bewertet — nicht konforme oder schwache Algorithmen könnten im Einsatz sein",
     "cause": "Krypto-Standard-Konformität für diese Chip-Boundary nicht bewertet — verwendete Algorithmen, Schlüssellängen und Protokolle sind unbekannt und entsprechen möglicherweise nicht aktuellen Anforderungen",
     "attack": "Angreifer nutzt schwache oder veraltete kryptografische Algorithmen (MD5, SHA-1, DES, RSA-1024) die aufgrund fehlender Konformitätsbewertung beim Design nicht erkannt wurden"
+  },
+  "T-DF-PHYSICAL-001": {
+    "threat": "Physisches Kabel-Tampering — Datenfluss über zugängliches Kabel oder Steckverbinder manipuliert",
+    "cause": "Datenfluss verläuft durch ein physisch zugängliches Kabel (Feldkabel, Gehäuseverkabelung oder Leiterbahn) ohne physischen Schutz — kein Kabelkanal, keine Rohrleitung, keine Panzerung oder manipulationssichere Versiegelung",
+    "attack": "Angreifer erhält physischen Zugang zum Kabelweg, schleift ein Abgriffgerät oder Signaleinspeisung ein und manipuliert Daten im Transit ohne Alarm auszulösen"
+  },
+  "D-DF-PHYSICAL-001": {
+    "threat": "Kabeltrennung führt zum Verfügbarkeitsverlust — kein redundanter Pfad für Feldkabel",
+    "cause": "Datenfluss nutzt ein einzelnes Feldkabel ohne redundanten Pfad — absichtliche oder versehentliche Trennung unterbricht die Kommunikation sofort",
+    "attack": "Angreifer durchtrennt oder trennt das Feldkabel, was zum vollständigen Verlust des Datenflusses ohne verfügbaren Fallback führt"
+  },
+  "T-DF-SAFETY-001": {
+    "threat": "Integritätsangriff auf sicherheitsrelevanten Datenfluss — falsche Werte erreichen Sicherheitsfunktion",
+    "cause": "Sicherheitskritischer Datenfluss trägt keinen Ende-zu-Ende-Integritätsschutz — Werte können im Transit ohne Erkennung durch die empfangende Sicherheitsfunktion modifiziert werden",
+    "attack": "Angreifer modifiziert Werte auf dem Safety-Datenfluss (Sollwerte, Sensormesswerte, Befehle) und bringt die Sicherheitsfunktion dazu auf falschen Daten zu operieren — möglicherweise nicht auslösend oder falsch auslösend"
+  },
+  "D-DF-SAFETY-001": {
+    "threat": "Unterbrechung des sicherheitskritischen Datenflusses — Sicherheitsfunktion bei Bedarf nicht verfügbar",
+    "cause": "Sicherheitskritischer Datenfluss (Not-Aus, Sicherheitstor) hat keinen redundanten Pfad — Unterbrechung verhindert direkt den Betrieb der Sicherheitsfunktion",
+    "attack": "Angreifer flutet, stört oder unterbricht physisch den sicherheitskritischen Datenfluss und verhindert dass der Not-Aus- oder Sicherheitstor-Befehl bei Bedarf sein Ziel erreicht"
+  },
+  "T-DF-ACCESS-001": {
+    "threat": "Unautorisierter Schreibzugriff via OT-Protokoll — Angreifer modifiziert Prozesswerte oder Konfiguration",
+    "cause": "OT-Protokoll-Datenfluss ist mit Lese-Schreib-Zugriff konfiguriert — jeder Knoten im Netzwerk kann Schreibbefehle oder Parameteränderungen ohne zusätzliche Autorisierung senden",
+    "attack": "Angreifer platziert einen Rogue-Knoten im OT-Netzwerk und sendet Schreibbefehle via Protokoll um Sollwerte zu modifizieren, Ausgangszustände zu erzwingen oder Controller-Konfiguration zu ändern"
   }
 }
