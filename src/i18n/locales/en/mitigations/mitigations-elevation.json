@@ -1,0 +1,26 @@
+{
+  "M-E-001": {
+    "mitigation": "Apply least privilege principle"
+  },
+  "M-E-002": {
+    "mitigation": "Implement proper ACLs and role-based access control"
+  },
+  "M-E-003": {
+    "mitigation": "Implement strict input validation"
+  },
+  "M-E-004": {
+    "mitigation": "Regular security reviews and updates"
+  },
+  "M-E-005": {
+    "mitigation": "Use sandboxing to isolate processes"
+  },
+  "M-E-006": {
+    "mitigation": "Disable debug interfaces in production"
+  },
+  "M-E-007": {
+    "mitigation": "Implement application whitelisting — only explicitly authorized binaries may execute"
+  },
+  "M-E-008": {
+    "mitigation": "Deploy antivirus / EDR software and keep signatures up to date"
+  }
+}

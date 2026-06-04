@@ -1,0 +1,160 @@
+{
+  "version": "1.0.0",
+  "description": "Denial of Service mitigations (M-D-*). Rate limiting, redundancy, backup, island mode, physical connector protection.",
+  "mitigations": [
+    {
+      "id": "M-D-001",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ExternalEntity",
+          "property": "rateLimited",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.abuseProtection",
+          "expectedValue": "rate_limited",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-003"
+      ]
+    },
+    {
+      "id": "M-D-002",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-D-001",
+        "V-D-002"
+      ]
+    },
+    {
+      "id": "M-D-003",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "acl",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataStore",
+          "property": "accessControlMechanism",
+          "expectedValue": "process_enforced",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-001"
+      ]
+    },
+    {
+      "id": "M-D-004",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "backupMechanism",
+          "expectedValue": "redundant_system",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-004"
+      ]
+    },
+    {
+      "id": "M-D-005",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-D-001",
+        "V-D-002"
+      ]
+    },
+    {
+      "id": "M-D-006",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "backupMechanism",
+          "expectedValue": "automated_remote",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-004"
+      ]
+    },
+    {
+      "id": "M-D-008",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "redundancy",
+          "expectedValue": "failover",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-004"
+      ]
+    },
+    {
+      "id": "M-D-007",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "connectorType",
+          "expectedValue": "m12_locking",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-D-006"
+      ]
+    },
+    {
+      "id": "M-D-009",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "TrustBoundary",
+          "property": "islandModeCapable",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-D-001"
+      ]
+    }
+  ]
+}

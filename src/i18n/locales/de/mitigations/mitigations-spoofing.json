@@ -1,0 +1,23 @@
+{
+  "M-S-001": {
+    "mitigation": "Multi-Faktor-Authentifizierung (MFA) implementieren"
+  },
+  "M-S-002": {
+    "mitigation": "PKI-Systeme und digitale Zertifikate verwenden"
+  },
+  "M-S-003": {
+    "mitigation": "Sichere Sitzungsverwaltung mit angemessenem Timeout implementieren"
+  },
+  "M-S-004": {
+    "mitigation": "Digital signierte Pakete verwenden und Code/Daten authentifizieren"
+  },
+  "M-S-005": {
+    "mitigation": "IPSec für Netzwerkkommunikation implementieren"
+  },
+  "M-S-006": {
+    "mitigation": "Zentralisiertes Account-Management mit Widerrufs-Möglichkeit verwenden (LDAP, Active Directory, RADIUS, IAM)"
+  },
+  "M-S-007": {
+    "mitigation": "Default-Deny-Policy an Vertrauensgrenze durchsetzen — nur explizit erlaubter Datenverkehr ist zulässig (NDR 5.2 RE1)"
+  }
+}

@@ -1,0 +1,265 @@
+{
+  "version": "1.0.0",
+  "description": "Tampering mitigations (M-T-*, M-T-FSAFE-*). Integrity protection, code signing, physical cable protection, fail-safe states.",
+  "mitigations": [
+    {
+      "id": "M-T-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": "hmac",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataStore",
+          "property": "integrityProtection",
+          "expectedValue": "hmac",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-001"
+      ]
+    },
+    {
+      "id": "M-T-002",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": "signature",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-001",
+        "V-T-002"
+      ]
+    },
+    {
+      "id": "M-T-003",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "acl",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataStore",
+          "property": "accessControlMechanism",
+          "expectedValue": "process_enforced",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-003"
+      ]
+    },
+    {
+      "id": "M-T-004",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "inputValidation",
+          "expectedValue": "strict",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-002",
+        "V-T-004"
+      ]
+    },
+    {
+      "id": "M-T-005",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "tls",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "role": "source",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Process",
+          "role": "target",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-001",
+        "V-T-002"
+      ]
+    },
+    {
+      "id": "M-T-006",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "malwareProtection",
+          "expectedValue": "code_signing",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "malwareProtection",
+          "expectedValue": "code_signing",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-001"
+      ]
+    },
+    {
+      "id": "M-T-007",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "updateMechanism",
+          "expectedValue": "signed_local",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-IF-E-002"
+      ]
+    },
+    {
+      "id": "M-T-008",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "physicalPathProtection",
+          "expectedValue": "cable_duct",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-001"
+      ]
+    },
+    {
+      "id": "M-T-010",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "accessMode",
+          "expectedValue": "read_only",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-003"
+      ]
+    },
+    {
+      "id": "M-T-FSAFE-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "failSafeOutputState",
+          "expectedValue": "defined",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-FSAFE-001"
+      ]
+    },
+    {
+      "id": "M-T-009",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "physicalPathProtection",
+          "expectedValue": "tamper_seal",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-006"
+      ]
+    },
+    {
+      "id": "M-T-011",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "integrityProtection",
+          "expectedValue": "hmac",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-007"
+      ]
+    },
+    {
+      "id": "M-T-012",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "cryptoStandard",
+          "expectedValue": "nist_approved",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-T-001"
+      ]
+    }
+  ]
+}

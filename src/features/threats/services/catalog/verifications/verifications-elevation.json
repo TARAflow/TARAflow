@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "description": "Elevation of Privilege verifications (V-E-*). Privilege escalation testing, authorization bypass, SAST, physical debug interface inspection.",
+  "verifications": [
+    {
+      "id": "V-E-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-E-002",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-E-003",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-E-004",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

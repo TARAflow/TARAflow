@@ -1,0 +1,176 @@
+{
+  "version": "1.0.0",
+  "description": "Spoofing mitigations (M-S-*). Authentication, session management, identity verification.",
+  "mitigations": [
+    {
+      "id": "M-S-001",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "boundaryAuthentication",
+          "expectedValue": "mfa",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "oauth",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "mfa",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-002"
+      ]
+    },
+    {
+      "id": "M-S-002",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "endpointAuthentication",
+          "expectedValue": "certificate",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-003"
+      ]
+    },
+    {
+      "id": "M-S-003",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "yes",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-004"
+      ]
+    },
+    {
+      "id": "M-S-004",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "endpointAuthentication",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-003"
+      ]
+    },
+    {
+      "id": "M-S-005",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "vpn",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "endpointAuthentication",
+          "expectedValue": "certificate",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-003"
+      ]
+    },
+    {
+      "id": "M-S-006",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "accountManagement",
+          "expectedValue": "ldap",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "accountManagement",
+          "expectedValue": "ldap",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-S-001"
+      ]
+    },
+    {
+      "id": "M-S-007",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "TrustBoundary",
+          "property": "defaultDenyPolicy",
+          "expectedValue": "deny_all_permit_exception",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-S-001"
+      ]
+    }
+  ]
+}

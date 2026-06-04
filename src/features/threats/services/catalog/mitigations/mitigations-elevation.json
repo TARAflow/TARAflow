@@ -1,0 +1,161 @@
+{
+  "version": "1.0.0",
+  "description": "Elevation of Privilege mitigations (M-E-*). Least privilege, input validation, sandboxing, malware protection, application whitelisting.",
+  "mitigations": [
+    {
+      "id": "M-E-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "privilegeLevel",
+          "expectedValue": "low",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-001"
+      ]
+    },
+    {
+      "id": "M-E-002",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-002"
+      ]
+    },
+    {
+      "id": "M-E-003",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "inputValidation",
+          "expectedValue": "strict",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-E-002",
+        "V-E-003"
+      ]
+    },
+    {
+      "id": "M-E-004",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Multiprocess",
+          "property": "updateMechanism",
+          "expectedValue": "signed_ota",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-003"
+      ]
+    },
+    {
+      "id": "M-E-005",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "processSemantic",
+          "expectedValue": "execution_unit",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-001"
+      ]
+    },
+    {
+      "id": "M-E-006",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "fused_off",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Interface",
+          "property": "operationalState",
+          "expectedValue": "hw_disabled",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-E-004"
+      ]
+    },
+    {
+      "id": "M-E-007",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "malwareProtection",
+          "expectedValue": "application_whitelist",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "malwareProtection",
+          "expectedValue": "application_whitelist",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-E-001"
+      ]
+    },
+    {
+      "id": "M-E-008",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "malwareProtection",
+          "expectedValue": "av_software",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-T-005"
+      ]
+    }
+  ]
+}

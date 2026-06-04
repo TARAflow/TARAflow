@@ -1,0 +1,23 @@
+{
+  "V-D-001": {
+    "verification": "Stress- und Lasttests (k6, JMeter)"
+  },
+  "V-D-002": {
+    "verification": "DDoS-Simulationstests"
+  },
+  "V-D-003": {
+    "verification": "Effektivitätstests für Rate Limiting"
+  },
+  "V-D-004": {
+    "verification": "Failover- und Wiederherstellungstests"
+  },
+  "V-D-005": {
+    "verification": "Backup-Wiederherstellungstest durchführen — System innerhalb RTO vollständig wiederherstellbar"
+  },
+  "V-D-006": {
+    "verification": "Physische Kabel-Trennungsresilienz testen — Systemverhalten bei Stecker-Zug und Wiederherstellung verifizieren"
+  },
+  "V-D-007": {
+    "verification": "Safety-Function-Verfügbarkeit unter Netzwerk-Angriffssimulation verifizieren (Flooding, Jamming, Injection)"
+  }
+}

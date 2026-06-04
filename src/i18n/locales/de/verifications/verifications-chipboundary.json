@@ -1,0 +1,35 @@
+{
+  "V-CB-T-001": {
+    "verification": "Secure Boot ist aktiviert und Boot-Chain wird kryptografisch verifiziert"
+  },
+  "V-CB-T-002": {
+    "verification": "Firmware-Leseschutz-Level (RDP1/RDP2 oder äquivalent) ist gesetzt"
+  },
+  "V-CB-T-003": {
+    "verification": "Chip-Herkunft verifiziert — Bezug von autorisiertem Distributor bestätigt"
+  },
+  "V-CB-I-001": {
+    "verification": "Seitenkanal-Gegenmassnahmen implementiert (Leistungsanalyse, Timing)"
+  },
+  "V-CB-I-002": {
+    "verification": "Hardware-Schlüsselspeicher verifizieren — Schlüssel sind an Sicherheitschip gebunden und nicht extrahierbar"
+  },
+  "V-CB-E-001": {
+    "verification": "JTAG/SWD-Schnittstelle via OTP/Fuse in Produktionseinheiten gesperrt"
+  },
+  "V-CB-E-002": {
+    "verification": "Vollständige Debug-Deaktivierung (RDP2 oder äquivalent) in Produktion angewendet"
+  },
+  "V-CB-SCA-001": {
+    "verification": "Seitenkanal-Leistungsanalyse (SPA/DPA) — kein schlüsselkorreliertes Leistungssignal unter differentieller Leistungsanalyse nachweisbar"
+  },
+  "V-CB-SCA-002": {
+    "verification": "Elektromagnetische Emissionsanalyse — kein schlüsselkorreliertes EM-Signal mit Standard-Nahfeldprobe bei 10cm detektierbar"
+  },
+  "V-CB-SCA-003": {
+    "verification": "Timing-Angriff-Test — kryptografische Operationen in konstanter Zeit unabhängig von Schlüssel- oder Datenwerten"
+  },
+  "V-CB-SCA-004": {
+    "verification": "Leiterplatteninspektion — sicherheitskritische Bus-Leiterbahnen (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) durch Verguss oder Schutzlack abgedeckt; keine Test-Punkte zugänglich"
+  }
+}

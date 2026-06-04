@@ -1,0 +1,26 @@
+{
+  "V-T-001": {
+    "verification": "Integrity check validation testing"
+  },
+  "V-T-002": {
+    "verification": "Fuzzing tests for input validation (AFL, Peach, Radamsa)"
+  },
+  "V-T-003": {
+    "verification": "SQL injection testing (SQLMap, Burp Suite)"
+  },
+  "V-T-004": {
+    "verification": "Code review for buffer overflow vulnerabilities"
+  },
+  "V-T-005": {
+    "verification": "Verify malware protection mechanism is active (code signing verification, whitelist check, or AV scan)"
+  },
+  "V-T-006": {
+    "verification": "Inspect and document physical cable routing protection (duct, conduit, armoring) — photo evidence required"
+  },
+  "V-T-007": {
+    "verification": "Verify end-to-end integrity on safety-relevant data flows (HMAC or signature test under attack simulation)"
+  },
+  "V-T-FSAFE-001": {
+    "verification": "Test fail-safe output state under simulated attack or communication loss — verify defined safe state is reached"
+  }
+}

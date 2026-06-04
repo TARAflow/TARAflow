@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "description": "PhysicalBoundary verifications (V-PB-*). Tamper seal inspection, tamper response testing, debug port accessibility, media port verification, access control testing.",
+  "verifications": [
+    {
+      "id": "V-PB-T-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-002",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-003",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-T-004",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-S-001",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-PB-R-001",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

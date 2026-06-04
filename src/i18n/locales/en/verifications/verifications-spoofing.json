@@ -1,0 +1,17 @@
+{
+  "V-S-001": {
+    "verification": "Penetration testing for authentication bypass"
+  },
+  "V-S-002": {
+    "verification": "Verify MFA implementation with bypass attempts"
+  },
+  "V-S-003": {
+    "verification": "Certificate validation testing (SSL Labs, testssl.sh)"
+  },
+  "V-S-004": {
+    "verification": "Session management security testing"
+  },
+  "V-S-005": {
+    "verification": "Verify account revocation process — confirm stale accounts are removed within SLA"
+  }
+}

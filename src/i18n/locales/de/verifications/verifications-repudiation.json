@@ -1,0 +1,11 @@
+{
+  "V-R-001": {
+    "verification": "Audit-Log-Vollständigkeits- und Integritätstests"
+  },
+  "V-R-002": {
+    "verification": "Digitale Signatur-Implementierung verifizieren"
+  },
+  "V-R-003": {
+    "verification": "Zeitstempelgenauigkeit und Quellenverifizierung"
+  }
+}

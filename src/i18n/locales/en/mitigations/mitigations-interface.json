@@ -1,0 +1,53 @@
+{
+  "M-IF-S-001": {
+    "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
+  },
+  "M-IF-T-001": {
+    "mitigation": "Physical tamper detection and secure boot mechanisms"
+  },
+  "M-IF-T-002": {
+    "mitigation": "Epoxy encapsulation and tamper-evident seals"
+  },
+  "M-IF-T-003": {
+    "mitigation": "Enclose interface in lockable, tamper-evident housing"
+  },
+  "M-IF-T-004": {
+    "mitigation": "Use potting compound or conformal coating to protect circuit traces"
+  },
+  "M-IF-R-001": {
+    "mitigation": "Log all physical interface access events with timestamps"
+  },
+  "M-IF-I-001": {
+    "mitigation": "Encrypt data on physical buses (CAN encryption, secure protocols)"
+  },
+  "M-IF-I-002": {
+    "mitigation": "Shield cables and use EMI protection to prevent eavesdropping"
+  },
+  "M-IF-D-001": {
+    "mitigation": "Implement physical protection (ESD protection, overcurrent protection, fuses)"
+  },
+  "M-IF-D-002": {
+    "mitigation": "Use redundant interfaces for critical functions"
+  },
+  "M-IF-D-003": {
+    "mitigation": "Implement rate limiting and lockout on interface to prevent brute-force and flooding attacks"
+  },
+  "M-IF-E-001": {
+    "mitigation": "Physically separate or remove debug interfaces in production units"
+  },
+  "M-IF-E-002": {
+    "mitigation": "Disable or protect debug interfaces in production (JTAG lock, fuse blowing)"
+  },
+  "M-IF-E-003": {
+    "mitigation": "Implement firmware signature verification and rollback protection"
+  },
+  "M-IF-DBG-002": {
+    "mitigation": "Enable memory readback protection (e.g. STM32 RDP1) to prevent firmware extraction via debug interface"
+  },
+  "M-IF-POLICY-001": {
+    "mitigation": "Decommission factory-only interfaces before production deployment — verify operationalState=permanent_disabled"
+  },
+  "M-IF-POLICY-002": {
+    "mitigation": "Enforce maintenance-window access policy — interface must be automatically disabled outside declared windows"
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "description": "Information Disclosure mitigations (M-I-*). Encryption, access control, key storage, data minimization, secure deletion.",
+  "mitigations": [
+    {
+      "id": "M-I-001",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "encryptionAtRest",
+          "expectedValue": "aes256",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001"
+      ]
+    },
+    {
+      "id": "M-I-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "encryptionInTransit",
+          "expectedValue": "tls",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-002"
+      ]
+    },
+    {
+      "id": "M-I-003",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "authorizationModel",
+          "expectedValue": "rbac",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-I-003"
+      ]
+    },
+    {
+      "id": "M-I-004",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "encryptionAtRest",
+          "expectedValue": "kms",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001"
+      ]
+    },
+    {
+      "id": "M-I-005",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-I-004"
+      ]
+    },
+    {
+      "id": "M-I-006",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authenticatorStorage",
+          "expectedValue": "tpm",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "authenticatorStorage",
+          "expectedValue": "secure_element",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "ChipBoundary",
+          "property": "authenticatorStorage",
+          "expectedValue": "secure_element",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-CB-T-001"
+      ]
+    },
+    {
+      "id": "M-I-008",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "accessControlMechanism",
+          "expectedValue": "mpu_protected",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-I-003"
+      ]
+    },
+    {
+      "id": "M-I-007",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "property": "accessMode",
+          "expectedValue": "read_only",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-I-001"
+      ]
+    },
+    {
+      "id": "M-I-009",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataStore",
+          "property": "secureDeletion",
+          "expectedValue": "crypto_erase",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-I-001"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "version": "1.0.0",
+  "description": "Repudiation mitigations (M-R-*). Audit logging, non-repudiation, digital signatures.",
+  "mitigations": [
+    {
+      "id": "M-R-001",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-R-001"
+      ]
+    },
+    {
+      "id": "M-R-002",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": "signature",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-R-002"
+      ]
+    },
+    {
+      "id": "M-R-003",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-R-003"
+      ]
+    },
+    {
+      "id": "M-R-004",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": [
+        "V-R-001"
+      ]
+    },
+    {
+      "id": "M-R-005",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authenticationRequired",
+          "expectedValue": "certificate",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-002"
+      ]
+    },
+    {
+      "id": "M-R-006",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "auditLogging",
+          "expectedValue": "cryptographic",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-R-001"
+      ]
+    }
+  ]
+}

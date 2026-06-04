@@ -1,0 +1,38 @@
+{
+  "M-CB-T-001": {
+    "mitigation": "Secure Boot mit kryptografischer Signaturverifikation der Boot-Chain aktivieren"
+  },
+  "M-CB-T-002": {
+    "mitigation": "Firmware-Leseschutz anwenden (RDP Level 1/2 oder äquivalenter OTP-Mechanismus)"
+  },
+  "M-CB-T-003": {
+    "mitigation": "FPGA-Bitstream mit gerätespezifischem Schlüssel verschlüsseln um Auslesung und IP-Diebstahl zu verhindern"
+  },
+  "M-CB-T-004": {
+    "mitigation": "Supply-Chain-Integrität verifizieren — Chips ausschliesslich von autorisierten Distributoren mit Rückverfolgbarkeit beziehen"
+  },
+  "M-CB-I-001": {
+    "mitigation": "Seitenkanal-Gegenmassnahmen anwenden (Leistungsanalyse-Schutz, Timing-Angriff-Resistenz)"
+  },
+  "M-CB-I-002": {
+    "mitigation": "Geräteschlüssel und Zertifikate in dediziertem Hardware-Sicherheitsmodul ablegen (TPM, Secure Element, HSM)"
+  },
+  "M-CB-E-001": {
+    "mitigation": "JTAG/SWD Debug-Schnittstelle via OTP-Fuse vor Produktionsfreigabe sperren oder deaktivieren"
+  },
+  "M-CB-E-002": {
+    "mitigation": "RDP Level 2 anwenden — vollständige JTAG-Deaktivierung mit automatischem Mass-Erase bei Manipulationsversuch"
+  },
+  "M-CB-SCA-001": {
+    "mitigation": "Leistungsanalyse-Gegenmassnahmen anwenden — Constant-Time-Algorithmen, Takt-Randomisierung, Leistungsfilter oder Rauscheinspeisung (NIST SP 800-193)"
+  },
+  "M-CB-SCA-002": {
+    "mitigation": "Elektromagnetische Abschirmung und EM-Emissionsschutz anwenden — Gehäuseabschirmung, Metalldeckel, sicherheitskritische Leitungen auf Innenlagen"
+  },
+  "M-CB-SCA-003": {
+    "mitigation": "Kryptografische Implementierungen mit konstanter Laufzeit verwenden — datenabhängige Verzweigungen und Speicherzugriffsmuster eliminieren"
+  },
+  "M-CB-SCA-004": {
+    "mitigation": "Vergussmasse oder Schutzlack auf sicherheitskritische Leiterplattenregionen auftragen — physisches Probing von Bus-Leiterbahnen zwischen Security-Elementen verhindern"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "M-IF-S-001": {
+    "mitigation": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)"
+  },
+  "M-IF-T-001": {
+    "mitigation": "Physische Manipulationserkennung und Secure Boot-Mechanismen"
+  },
+  "M-IF-T-002": {
+    "mitigation": "Epoxid-Verkapselung und manipulationssichere Siegel"
+  },
+  "M-IF-T-003": {
+    "mitigation": "Schnittstelle in abschliessbarem, manipulationssicherem Gehäuse unterbringen"
+  },
+  "M-IF-T-004": {
+    "mitigation": "Vergussmasse oder Schutzlack verwenden, um Leiterbahnen zu schützen"
+  },
+  "M-IF-R-001": {
+    "mitigation": "Alle physischen Schnittstellenzugriffe mit Zeitstempeln protokollieren"
+  },
+  "M-IF-I-001": {
+    "mitigation": "Daten auf physischen Bussen verschlüsseln (CAN-Verschlüsselung, sichere Protokolle)"
+  },
+  "M-IF-I-002": {
+    "mitigation": "Kabel abschirmen und EMI-Schutz verwenden, um Abhören zu verhindern"
+  },
+  "M-IF-D-001": {
+    "mitigation": "Physischen Schutz implementieren (ESD-Schutz, Überstromschutz, Sicherungen)"
+  },
+  "M-IF-D-002": {
+    "mitigation": "Redundante Schnittstellen für kritische Funktionen verwenden"
+  },
+  "M-IF-D-003": {
+    "mitigation": "Rate-Limiting und Sperrung an der Schnittstelle implementieren, um Brute-Force- und Flooding-Angriffe zu verhindern"
+  },
+  "M-IF-E-001": {
+    "mitigation": "Debug-Schnittstellen in Produktionseinheiten physisch trennen oder entfernen"
+  },
+  "M-IF-E-002": {
+    "mitigation": "Debug-Schnittstellen in Produktion deaktivieren oder schützen (JTAG-Sperre, Fuse-Brennen)"
+  },
+  "M-IF-E-003": {
+    "mitigation": "Firmware-Signaturverifizierung und Rollback-Schutz implementieren"
+  },
+  "M-IF-DBG-002": {
+    "mitigation": "Speicher-Readback-Schutz aktivieren (z.B. STM32 RDP1), um Firmware-Extraktion über die Debug-Schnittstelle zu verhindern"
+  },
+  "M-IF-POLICY-001": {
+    "mitigation": "Nur-Werk-Schnittstellen vor Produktionsfreigabe ausser Betrieb nehmen — operationalState=permanent_disabled verifizieren"
+  },
+  "M-IF-POLICY-002": {
+    "mitigation": "Wartungsfenster-Zugriffsrichtlinie durchsetzen — Schnittstelle ausserhalb Wartungsfenster automatisch deaktivieren"
+  }
+}

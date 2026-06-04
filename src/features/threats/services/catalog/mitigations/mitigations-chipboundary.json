@@ -1,0 +1,251 @@
+{
+  "version": "1.0.0",
+  "description": "ChipBoundary mitigations (M-CB-*). Secure Boot, firmware readback protection, debug lock, side-channel countermeasures, hardware key storage.",
+  "mitigations": [
+    {
+      "id": "M-CB-T-001",
+      "strideCategory": "T",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "secureBootEnabled",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-T-001"
+      ]
+    },
+    {
+      "id": "M-CB-T-002",
+      "strideCategory": "T",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "firmwareProtection",
+          "expectedValue": "rdp_level1",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-CB-T-002"
+      ]
+    },
+    {
+      "id": "M-CB-T-003",
+      "strideCategory": "T",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "bitstreamEncryption",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-T-003"
+      ]
+    },
+    {
+      "id": "M-CB-T-004",
+      "strideCategory": "T",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "supplyChainTrust",
+          "expectedValue": "verified",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-T-003"
+      ]
+    },
+    {
+      "id": "M-CB-I-001",
+      "strideCategory": "I",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "tamperProtection",
+          "expectedValue": "active",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-CB-I-001"
+      ]
+    },
+    {
+      "id": "M-CB-E-001",
+      "strideCategory": "E",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "debugInterfaceLocked",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-E-001"
+      ]
+    },
+    {
+      "id": "M-CB-E-002",
+      "strideCategory": "E",
+      "context": {
+        "platform": [
+          "Embedded"
+        ]
+      },
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "firmwareProtection",
+          "expectedValue": "rdp_level2",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "ChipBoundary",
+          "property": "debugInterfaceLocked",
+          "expectedValue": true,
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-E-001",
+        "V-CB-E-002"
+      ]
+    },
+    {
+      "id": "M-CB-SCA-001",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-CB-SCA-001"
+      ]
+    },
+    {
+      "id": "M-CB-SCA-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-CB-SCA-002"
+      ]
+    },
+    {
+      "id": "M-CB-SCA-003",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-CB-SCA-003"
+      ]
+    },
+    {
+      "id": "M-CB-SCA-004",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "sideChannelProtection",
+          "expectedValue": "basic",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "DataFlow",
+          "property": "physicalPathProtection",
+          "expectedValue": "conformal_coating",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-SCA-004"
+      ]
+    },
+    {
+      "id": "M-CB-I-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "ChipBoundary",
+          "property": "keyStorage",
+          "expectedValue": "hsm",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": [
+        "V-CB-I-002"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "description": "Repudiation verifications (V-R-*). Audit log completeness, digital signature verification, timestamp accuracy.",
+  "verifications": [
+    {
+      "id": "V-R-001",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-R-002",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-R-003",
+      "strideCategory": "R",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

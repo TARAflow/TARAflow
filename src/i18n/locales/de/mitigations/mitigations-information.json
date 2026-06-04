@@ -1,0 +1,29 @@
+{
+  "M-I-001": {
+    "mitigation": "Daten im Ruhezustand mit AES-256 verschlüsseln"
+  },
+  "M-I-002": {
+    "mitigation": "Daten während der Übertragung mit TLS 1.3 verschlüsseln"
+  },
+  "M-I-003": {
+    "mitigation": "Korrekte ACLs und rollenbasierte Zugriffskontrolle implementieren"
+  },
+  "M-I-004": {
+    "mitigation": "Sichere Datenspeicherung mit korrekter Schlüsselverwaltung implementieren"
+  },
+  "M-I-005": {
+    "mitigation": "Datenmaskierung für sensible Informationen anwenden"
+  },
+  "M-I-006": {
+    "mitigation": "Kryptografische Schlüssel und Zugangsdaten in hardware-geschütztem Speicher ablegen (TPM, Secure Element, HSM)"
+  },
+  "M-I-007": {
+    "mitigation": "Datenminimerung anwenden — nur notwendige Register oder Topics exponieren; an der Quelle filtern oder aggregieren"
+  },
+  "M-I-008": {
+    "mitigation": "Hardware-Zugriffsschutz auf Speicher erzwingen (MPU-Speicherschutz oder Verschlüsselung als Zugangskontrolle)"
+  },
+  "M-I-009": {
+    "mitigation": "Verifizierbare sichere Löschung implementieren (Crypto-Erase, Factory-Reset, Überschreiben) für Lebensende und Geräterückgabe"
+  }
+}

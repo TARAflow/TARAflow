@@ -1,0 +1,26 @@
+{
+  "V-T-001": {
+    "verification": "Integritätsprüfungsvalidierungstests"
+  },
+  "V-T-002": {
+    "verification": "Fuzzing-Tests für Eingabevalidierung (AFL, Peach, Radamsa)"
+  },
+  "V-T-003": {
+    "verification": "SQL-Injection-Tests (SQLMap, Burp Suite)"
+  },
+  "V-T-004": {
+    "verification": "Code-Review für Pufferüberlauf-Schwachstellen"
+  },
+  "V-T-005": {
+    "verification": "Malware-Schutz-Mechanismus verifizieren — Code-Signing-Prüfung, Whitelist-Check oder AV-Scan aktiv"
+  },
+  "V-T-006": {
+    "verification": "Physischen Kabelverlegungsschutz prüfen und dokumentieren (Kabelkanal, Rohrleitung, Panzerung) — Foto-Nachweis erforderlich"
+  },
+  "V-T-007": {
+    "verification": "Ende-zu-Ende-Integritätsschutz auf sicherheitsrelevanten Datenflüssen verifizieren (HMAC- oder Signatur-Test unter Angriffssimulation)"
+  },
+  "V-T-FSAFE-001": {
+    "verification": "Fail-Safe-Ausgangszustand unter simuliertem Angriff oder Kommunikationsausfall testen — definierten sicheren Zustand verifizieren"
+  }
+}

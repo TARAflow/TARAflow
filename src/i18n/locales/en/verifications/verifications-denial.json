@@ -1,0 +1,23 @@
+{
+  "V-D-001": {
+    "verification": "Stress testing and load testing (k6, JMeter)"
+  },
+  "V-D-002": {
+    "verification": "DDoS simulation testing"
+  },
+  "V-D-003": {
+    "verification": "Rate limiting effectiveness testing"
+  },
+  "V-D-004": {
+    "verification": "Failover and recovery testing"
+  },
+  "V-D-005": {
+    "verification": "Execute backup restore test — verify system can be fully recovered within defined RTO"
+  },
+  "V-D-006": {
+    "verification": "Test physical cable disconnection resilience — verify system behavior on connector pull and restoration"
+  },
+  "V-D-007": {
+    "verification": "Verify safety function availability under network attack simulation (flood, jam, injection)"
+  }
+}

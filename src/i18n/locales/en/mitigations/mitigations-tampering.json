@@ -1,0 +1,41 @@
+{
+  "M-T-001": {
+    "mitigation": "Implement integrity controls and checksums"
+  },
+  "M-T-002": {
+    "mitigation": "Use digital signatures for data integrity"
+  },
+  "M-T-003": {
+    "mitigation": "Implement proper ACLs (Access Control Lists)"
+  },
+  "M-T-004": {
+    "mitigation": "Implement input validation and data sanitization"
+  },
+  "M-T-005": {
+    "mitigation": "Use TLS 1.3 for data in transit"
+  },
+  "M-T-006": {
+    "mitigation": "Enforce cryptographic code signing — only firmware signed with a trusted key is accepted for execution"
+  },
+  "M-T-007": {
+    "mitigation": "Require cryptographically signed firmware updates — reject unsigned or unverifiable images"
+  },
+  "M-T-008": {
+    "mitigation": "Protect physical cable routing with cable duct, conduit, or armored cable to prevent tap and tampering"
+  },
+  "M-T-009": {
+    "mitigation": "Secure cable access points with tamper-evident seals or locked enclosures to prevent undetected splicing"
+  },
+  "M-T-010": {
+    "mitigation": "Restrict data flow to read-only access — disable write/command registers at protocol level"
+  },
+  "M-T-011": {
+    "mitigation": "Apply end-to-end integrity protection (HMAC or digital signature) on data flows crossing the safety boundary (EN 50742)"
+  },
+  "M-T-012": {
+    "mitigation": "Use only approved cryptographic algorithms and key lengths (NIST SP 800-131A, BSI TR-02102) — CR 4.3"
+  },
+  "M-T-FSAFE-001": {
+    "mitigation": "Define and implement a deterministic fail-safe output state for all process outputs (CR 3.6)"
+  }
+}

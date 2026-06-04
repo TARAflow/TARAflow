@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "description": "Spoofing verifications (V-S-*). Authentication bypass testing, MFA verification, certificate validation.",
+  "verifications": [
+    {
+      "id": "V-S-001",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-S-002",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-S-003",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-S-004",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-S-005",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

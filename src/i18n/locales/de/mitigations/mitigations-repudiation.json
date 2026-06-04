@@ -1,0 +1,20 @@
+{
+  "M-R-001": {
+    "mitigation": "Sichere, manipulationssichere Protokollierung implementieren"
+  },
+  "M-R-002": {
+    "mitigation": "Digitale Signaturen für Nichtabstreitbarkeit verwenden"
+  },
+  "M-R-003": {
+    "mitigation": "Sichere Zeitstempel von vertrauenswürdiger Quelle implementieren"
+  },
+  "M-R-004": {
+    "mitigation": "Log-Integritätsprüfungen und regelmässige Audits implementieren"
+  },
+  "M-R-005": {
+    "mitigation": "Starke Authentifizierung mit Audit-Trail"
+  },
+  "M-R-006": {
+    "mitigation": "Nicht-Abstreitbarkeits-Mechanismus für kritische Operationen implementieren (Audit-Log, digitale Signatur, hardware-gestützt)"
+  }
+}

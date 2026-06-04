@@ -1,0 +1,29 @@
+{
+  "M-I-001": {
+    "mitigation": "Encrypt data at rest using AES-256"
+  },
+  "M-I-002": {
+    "mitigation": "Encrypt data in transit using TLS 1.3"
+  },
+  "M-I-003": {
+    "mitigation": "Implement proper ACLs and role-based access control"
+  },
+  "M-I-004": {
+    "mitigation": "Implement secure data storage with proper key management"
+  },
+  "M-I-005": {
+    "mitigation": "Apply data masking for sensitive information"
+  },
+  "M-I-006": {
+    "mitigation": "Store cryptographic keys and credentials in hardware-protected storage (TPM, Secure Element, HSM)"
+  },
+  "M-I-007": {
+    "mitigation": "Apply data minimization — expose only necessary registers or topics; filter or aggregate at source"
+  },
+  "M-I-008": {
+    "mitigation": "Enforce hardware access control on storage (MPU memory protection or encryption-as-access-control)"
+  },
+  "M-I-009": {
+    "mitigation": "Implement verifiable secure deletion (crypto erase, factory reset, overwrite) for end-of-life and device return"
+  }
+}

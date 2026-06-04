@@ -14,8 +14,8 @@
 // Threat catalog namespaces (keyed by template ID, e.g. "T-S-001.threat"):
 //   element-threats-attacks  → threat + attack texts for element templates
 //   interaction-threats-attacks → threat + attack texts for interaction templates (with {{placeholders}})
-//   mitigations              → mitigation texts
-//   verifications            → verification texts
+//   mitigations              → mitigation texts (merged from mitigations-{stride}.json)
+//   verifications            → verification texts (merged from verifications-{stride}.json)
 //
 // All existing t() calls remain unchanged (Option B — full key paths preserved).
 //
@@ -39,8 +39,24 @@ import enDoc from "../locales/en/doc.json";
 import enAudit from "../locales/en/audit.json";
 import enElementThreatsAttacks from "../locales/en/element-threats-attacks.json";
 import enInteractionThreatsAttacks from "../locales/en/interaction-threats-attacks.json";
-import enMitigations from "../locales/en/mitigations.json";
-import enVerifications from "../locales/en/verifications.json";
+import enMitigationsSpoofing from "../locales/en/mitigations/mitigations-spoofing.json";
+import enMitigationsTampering from "../locales/en/mitigations/mitigations-tampering.json";
+import enMitigationsRepudiation from "../locales/en/mitigations/mitigations-repudiation.json";
+import enMitigationsInformation from "../locales/en/mitigations/mitigations-information.json";
+import enMitigationsDenial from "../locales/en/mitigations/mitigations-denial.json";
+import enMitigationsElevation from "../locales/en/mitigations/mitigations-elevation.json";
+import enMitigationsInterface from "../locales/en/mitigations/mitigations-interface.json";
+import enMitigationsChipboundary from "../locales/en/mitigations/mitigations-chipboundary.json";
+import enMitigationsPhysicalboundary from "../locales/en/mitigations/mitigations-physicalboundary.json";
+import enVerificationsSpoofing from "../locales/en/verifications/verifications-spoofing.json";
+import enVerificationsTampering from "../locales/en/verifications/verifications-tampering.json";
+import enVerificationsRepudiation from "../locales/en/verifications/verifications-repudiation.json";
+import enVerificationsInformation from "../locales/en/verifications/verifications-information.json";
+import enVerificationsDenial from "../locales/en/verifications/verifications-denial.json";
+import enVerificationsElevation from "../locales/en/verifications/verifications-elevation.json";
+import enVerificationsInterface from "../locales/en/verifications/verifications-interface.json";
+import enVerificationsChipboundary from "../locales/en/verifications/verifications-chipboundary.json";
+import enVerificationsPhysicalboundary from "../locales/en/verifications/verifications-physicalboundary.json";
 
 // DE namespace imports
 import deCommon from "../locales/de/common.json";
@@ -53,8 +69,24 @@ import deDoc from "../locales/de/doc.json";
 import deAudit from "../locales/de/audit.json";
 import deElementThreatsAttacks from "../locales/de/element-threats-attacks.json";
 import deInteractionThreatsAttacks from "../locales/de/interaction-threats-attacks.json";
-import deMitigations from "../locales/de/mitigations.json";
-import deVerifications from "../locales/de/verifications.json";
+import deMitigationsSpoofing from "../locales/de/mitigations/mitigations-spoofing.json";
+import deMitigationsTampering from "../locales/de/mitigations/mitigations-tampering.json";
+import deMitigationsRepudiation from "../locales/de/mitigations/mitigations-repudiation.json";
+import deMitigationsInformation from "../locales/de/mitigations/mitigations-information.json";
+import deMitigationsDenial from "../locales/de/mitigations/mitigations-denial.json";
+import deMitigationsElevation from "../locales/de/mitigations/mitigations-elevation.json";
+import deMitigationsInterface from "../locales/de/mitigations/mitigations-interface.json";
+import deMitigationsChipboundary from "../locales/de/mitigations/mitigations-chipboundary.json";
+import deMitigationsPhysicalboundary from "../locales/de/mitigations/mitigations-physicalboundary.json";
+import deVerificationsSpoofing from "../locales/de/verifications/verifications-spoofing.json";
+import deVerificationsTampering from "../locales/de/verifications/verifications-tampering.json";
+import deVerificationsRepudiation from "../locales/de/verifications/verifications-repudiation.json";
+import deVerificationsInformation from "../locales/de/verifications/verifications-information.json";
+import deVerificationsDenial from "../locales/de/verifications/verifications-denial.json";
+import deVerificationsElevation from "../locales/de/verifications/verifications-elevation.json";
+import deVerificationsInterface from "../locales/de/verifications/verifications-interface.json";
+import deVerificationsChipboundary from "../locales/de/verifications/verifications-chipboundary.json";
+import deVerificationsPhysicalboundary from "../locales/de/verifications/verifications-physicalboundary.json";
 
 // ── Namespace list ────────────────────────────────────────────────────────────
 const NAMESPACES = [
@@ -87,8 +119,28 @@ const resources = {
     audit: enAudit,
     "element-threats-attacks": enElementThreatsAttacks,
     "interaction-threats-attacks": enInteractionThreatsAttacks,
-    mitigations: enMitigations,
-    verifications: enVerifications,
+    mitigations: {
+      ...enMitigationsSpoofing,
+      ...enMitigationsTampering,
+      ...enMitigationsRepudiation,
+      ...enMitigationsInformation,
+      ...enMitigationsDenial,
+      ...enMitigationsElevation,
+      ...enMitigationsInterface,
+      ...enMitigationsChipboundary,
+      ...enMitigationsPhysicalboundary,
+    },
+    verifications: {
+      ...enVerificationsSpoofing,
+      ...enVerificationsTampering,
+      ...enVerificationsRepudiation,
+      ...enVerificationsInformation,
+      ...enVerificationsDenial,
+      ...enVerificationsElevation,
+      ...enVerificationsInterface,
+      ...enVerificationsChipboundary,
+      ...enVerificationsPhysicalboundary,
+    },
   },
   de: {
     common: deCommon,
@@ -101,8 +153,28 @@ const resources = {
     audit: deAudit,
     "element-threats-attacks": deElementThreatsAttacks,
     "interaction-threats-attacks": deInteractionThreatsAttacks,
-    mitigations: deMitigations,
-    verifications: deVerifications,
+    mitigations: {
+      ...deMitigationsSpoofing,
+      ...deMitigationsTampering,
+      ...deMitigationsRepudiation,
+      ...deMitigationsInformation,
+      ...deMitigationsDenial,
+      ...deMitigationsElevation,
+      ...deMitigationsInterface,
+      ...deMitigationsChipboundary,
+      ...deMitigationsPhysicalboundary,
+    },
+    verifications: {
+      ...deVerificationsSpoofing,
+      ...deVerificationsTampering,
+      ...deVerificationsRepudiation,
+      ...deVerificationsInformation,
+      ...deVerificationsDenial,
+      ...deVerificationsElevation,
+      ...deVerificationsInterface,
+      ...deVerificationsChipboundary,
+      ...deVerificationsPhysicalboundary,
+    },
   },
 };
 

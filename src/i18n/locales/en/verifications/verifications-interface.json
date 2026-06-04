@@ -1,0 +1,26 @@
+{
+  "V-IF-S-001": {
+    "verification": "Hardware authentication testing with unauthorized devices"
+  },
+  "V-IF-T-001": {
+    "verification": "Physical tampering tests (opening case, probing signals)"
+  },
+  "V-IF-R-001": {
+    "verification": "Review interface access logs for completeness"
+  },
+  "V-IF-I-001": {
+    "verification": "Side-channel attack testing (power analysis, electromagnetic analysis)"
+  },
+  "V-IF-D-001": {
+    "verification": "Electrical stress testing (ESD, overvoltage, short circuit)"
+  },
+  "V-IF-E-001": {
+    "verification": "Debug interface security testing (JTAG exploitation attempts)"
+  },
+  "V-IF-E-002": {
+    "verification": "Firmware verification and secure boot testing"
+  },
+  "V-IF-POLICY-001": {
+    "verification": "Verify factory/maintenance interface policy — confirm interface is inaccessible outside maintenance window"
+  }
+}

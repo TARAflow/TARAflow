@@ -1,0 +1,32 @@
+{
+  "M-PB-T-001": {
+    "mitigation": "Apply tamper-evident seals or microswitches to detect unauthorized physical access"
+  },
+  "M-PB-T-002": {
+    "mitigation": "Apply active tamper protection (conductive mesh, potting, voltage/light sensor) with automated response"
+  },
+  "M-PB-T-003": {
+    "mitigation": "Ensure no debug or programming port is reachable from boundary exterior without disassembly"
+  },
+  "M-PB-T-004": {
+    "mitigation": "Disable or physically block all removable media ports accessible at the boundary exterior"
+  },
+  "M-PB-T-005": {
+    "mitigation": "For portable devices: apply full-disk encryption, tamper-evident seal, and remote wipe capability"
+  },
+  "M-PB-S-001": {
+    "mitigation": "Implement multi-factor physical access control (badge + PIN, biometric, or guarded entry)"
+  },
+  "M-PB-S-002": {
+    "mitigation": "Use RFID/NFC badge for physical access control; note: relay attack risk without second factor"
+  },
+  "M-PB-R-001": {
+    "mitigation": "Install camera monitoring or alarm system at physical boundary entry points; route alerts to SOC"
+  },
+  "M-PB-R-002": {
+    "mitigation": "Route physical security alerts to Security Operations Centre with defined response procedure"
+  },
+  "M-PB-D-001": {
+    "mitigation": "Physically anchor or bolt down device/cabinet to prevent removal or relocation"
+  }
+}

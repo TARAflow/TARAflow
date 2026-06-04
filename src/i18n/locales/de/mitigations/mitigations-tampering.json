@@ -1,0 +1,41 @@
+{
+  "M-T-001": {
+    "mitigation": "Integritätskontrollen und Prüfsummen implementieren"
+  },
+  "M-T-002": {
+    "mitigation": "Digitale Signaturen für Datenintegrität verwenden"
+  },
+  "M-T-003": {
+    "mitigation": "Korrekte ACLs (Zugriffskontrolllisten) implementieren"
+  },
+  "M-T-004": {
+    "mitigation": "Eingabevalidierung und Datenbereinigung implementieren"
+  },
+  "M-T-005": {
+    "mitigation": "TLS 1.3 für Daten während der Übertragung verwenden"
+  },
+  "M-T-006": {
+    "mitigation": "Kryptografische Code-Signierung erzwingen — nur mit vertrauenswürdigem Schlüssel signierte Firmware wird zur Ausführung akzeptiert"
+  },
+  "M-T-007": {
+    "mitigation": "Kryptografisch signierte Firmware-Updates vorschreiben — unsignierte oder nicht verifizierbare Images werden abgewiesen"
+  },
+  "M-T-008": {
+    "mitigation": "Physischen Kabelweg durch Kabelkanal, Rohrleitung oder gepanzertes Kabel schützen, um Abzapfen und Manipulation zu verhindern"
+  },
+  "M-T-009": {
+    "mitigation": "Kabelzugangspunkte mit manipulationssicheren Siegeln oder abgeschlossenen Gehäusen sichern, um unerkanntes Einschleifen zu verhindern"
+  },
+  "M-T-010": {
+    "mitigation": "Datenfluss auf Lesezugriff beschränken — Schreib-/Befehlsregister auf Protokollebene deaktivieren"
+  },
+  "M-T-011": {
+    "mitigation": "Ende-zu-Ende-Integritätsschutz (HMAC oder digitale Signatur) auf Datenflüssen über die Sicherheitsgrenze anwenden (EN 50742)"
+  },
+  "M-T-012": {
+    "mitigation": "Ausschliesslich zugelassene kryptografische Algorithmen und Schlüssellängen verwenden (NIST SP 800-131A, BSI TR-02102) — CR 4.3"
+  },
+  "M-T-FSAFE-001": {
+    "mitigation": "Deterministischen Fail-Safe-Ausgangszustand für alle Prozessausgänge definieren und implementieren (CR 3.6)"
+  }
+}

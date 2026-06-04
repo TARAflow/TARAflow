@@ -1,0 +1,17 @@
+{
+  "V-I-001": {
+    "verification": "Verschlüsselungsstärkeverifizierung (korrekte Algorithmen, Schlüssellängen)"
+  },
+  "V-I-002": {
+    "verification": "Netzwerkverkehrsanalyse auf unverschlüsselte Daten"
+  },
+  "V-I-003": {
+    "verification": "Zugriffskontrolltests mit verschiedenen Benutzerrollen"
+  },
+  "V-I-004": {
+    "verification": "Sicherheitsscanning (Lynis, Nessus, OpenVAS)"
+  },
+  "V-I-005": {
+    "verification": "Authentifizierungs-Speicher-Schutz verifizieren — Schlüssel sind aus Hardware-Komponente nicht extrahierbar"
+  }
+}

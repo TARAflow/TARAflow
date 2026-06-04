@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "description": "Information Disclosure verifications (V-I-*). Encryption strength, traffic analysis, access control testing, authenticator storage.",
+  "verifications": [
+    {
+      "id": "V-I-001",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-I-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-I-003",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-I-004",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-I-005",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

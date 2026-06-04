@@ -1,0 +1,20 @@
+{
+  "M-R-001": {
+    "mitigation": "Implement secure, tamper-proof logging"
+  },
+  "M-R-002": {
+    "mitigation": "Use digital signatures for non-repudiation"
+  },
+  "M-R-003": {
+    "mitigation": "Implement secure timestamps from trusted source"
+  },
+  "M-R-004": {
+    "mitigation": "Implement log integrity checks and regular audits"
+  },
+  "M-R-005": {
+    "mitigation": "Strong authentication with audit trail"
+  },
+  "M-R-006": {
+    "mitigation": "Implement non-repudiation mechanism for critical operations (audit log, digital signature, hardware-backed)"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "V-PB-T-001": {
+    "verification": "Inspect physical tamper protection — verify seal integrity, switch function, or mesh continuity"
+  },
+  "V-PB-T-002": {
+    "verification": "Test tamper detection response — trigger tamper event and verify alarm, zeroize, or shutdown response"
+  },
+  "V-PB-T-003": {
+    "verification": "Verify debug interfaces are not reachable from boundary exterior without disassembly"
+  },
+  "V-PB-T-004": {
+    "verification": "Verify removable media ports are disabled in firmware and physically blocked or absent"
+  },
+  "V-PB-S-001": {
+    "verification": "Test physical access control — verify unauthorized entry is denied and access log is complete"
+  },
+  "V-PB-R-001": {
+    "verification": "Verify physical monitoring system is operational — review alert log and test response procedure"
+  }
+}

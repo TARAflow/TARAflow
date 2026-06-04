@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "description": "Denial of Service verifications (V-D-*). Stress testing, DDoS simulation, failover testing, cable disconnection resilience, backup restore.",
+  "verifications": [
+    {
+      "id": "V-D-001",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-D-002",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-D-003",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-D-004",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-D-005",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-D-006",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-D-007",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

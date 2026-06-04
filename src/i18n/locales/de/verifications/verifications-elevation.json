@@ -1,0 +1,14 @@
+{
+  "V-E-001": {
+    "verification": "Penetrationstests für Rechteausweitung"
+  },
+  "V-E-002": {
+    "verification": "Autorisierungsumgehungstests (OWASP ZAP, Burp Suite)"
+  },
+  "V-E-003": {
+    "verification": "SAST Code-Review (SonarQube, Checkmarx)"
+  },
+  "V-E-004": {
+    "verification": "Physische Sicherheitsinspektion von Debug-Schnittstellen"
+  }
+}

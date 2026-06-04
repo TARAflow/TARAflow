@@ -1,0 +1,35 @@
+{
+  "V-CB-T-001": {
+    "verification": "Verify Secure Boot is enabled and boot chain is cryptographically verified"
+  },
+  "V-CB-T-002": {
+    "verification": "Verify firmware readback protection level (RDP1/RDP2 or equivalent) is set"
+  },
+  "V-CB-T-003": {
+    "verification": "Verify chip provenance — confirm sourced from authorized distributor"
+  },
+  "V-CB-I-001": {
+    "verification": "Verify side-channel countermeasures are implemented (power analysis, timing)"
+  },
+  "V-CB-I-002": {
+    "verification": "Verify hardware key storage — confirm cryptographic keys are bound to chip and non-extractable"
+  },
+  "V-CB-E-001": {
+    "verification": "Verify JTAG/SWD interface is locked via OTP/fuse in production units"
+  },
+  "V-CB-E-002": {
+    "verification": "Verify full debug disable (RDP2 or equivalent) is applied in production"
+  },
+  "V-CB-SCA-001": {
+    "verification": "Side-channel power analysis test (SPA/DPA) — verify no key-correlated power signature is present under differential power analysis"
+  },
+  "V-CB-SCA-002": {
+    "verification": "Electromagnetic emission analysis — verify no key-correlated EM signal is detectable with standard near-field probe at 10cm"
+  },
+  "V-CB-SCA-003": {
+    "verification": "Timing attack test — verify cryptographic operations complete in constant time independent of key or data values"
+  },
+  "V-CB-SCA-004": {
+    "verification": "PCB inspection — verify security-critical bus traces (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) are covered by potting or conformal coating; no test points accessible"
+  }
+}

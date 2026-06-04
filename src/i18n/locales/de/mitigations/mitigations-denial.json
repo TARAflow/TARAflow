@@ -1,0 +1,29 @@
+{
+  "M-D-001": {
+    "mitigation": "Rate Limiting und Throttling implementieren"
+  },
+  "M-D-002": {
+    "mitigation": "Quoten und Ressourcenlimits implementieren"
+  },
+  "M-D-003": {
+    "mitigation": "ACLs oder Filterung verwenden, um Zugriff zu beschränken"
+  },
+  "M-D-004": {
+    "mitigation": "Hochverfügbarkeitsdesign mit Redundanz implementieren"
+  },
+  "M-D-005": {
+    "mitigation": "Load Balancing zur Verteilung des Datenverkehrs verwenden"
+  },
+  "M-D-006": {
+    "mitigation": "Automatisiertes Backup und getestetes Recovery-Verfahren zur Systemwiederherstellung implementieren (CR 7.3/7.4)"
+  },
+  "M-D-007": {
+    "mitigation": "Gesicherte Steckverbinder (M12-Verriegelung, Schraubklemmen) und Kabelzugentlastung verwenden um versehentliche oder absichtliche Trennung zu verhindern"
+  },
+  "M-D-008": {
+    "mitigation": "Redundanten, unabhängigen Kommunikationspfad für sicherheitskritische Datenflüsse implementieren (IEC 61508)"
+  },
+  "M-D-009": {
+    "mitigation": "Island-Mode-Fähigkeit aktivieren — Vertrauensgrenze kann Zone bei Zwischenfall vollständig isolieren (NDR 5.2 RE2)"
+  }
+}

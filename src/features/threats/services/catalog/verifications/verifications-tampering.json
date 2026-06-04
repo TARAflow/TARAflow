@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "description": "Tampering verifications (V-T-*, V-T-FSAFE-*). Integrity testing, fuzzing, code review, cable routing inspection, fail-safe testing.",
+  "verifications": [
+    {
+      "id": "V-T-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-002",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-003",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-004",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-FSAFE-001",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-006",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-007",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-005",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "V-I-001": {
+    "verification": "Encryption strength verification (correct algorithms, key lengths)"
+  },
+  "V-I-002": {
+    "verification": "Network traffic analysis for unencrypted data"
+  },
+  "V-I-003": {
+    "verification": "Access control testing with different user roles"
+  },
+  "V-I-004": {
+    "verification": "Security scanning (Lynis, Nessus, OpenVAS)"
+  },
+  "V-I-005": {
+    "verification": "Verify authenticator storage protection — confirm keys are non-extractable from hardware security component"
+  }
+}

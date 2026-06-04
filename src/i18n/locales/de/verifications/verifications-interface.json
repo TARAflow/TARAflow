@@ -1,0 +1,26 @@
+{
+  "V-IF-S-001": {
+    "verification": "Hardware-Authentifizierungstests mit nicht autorisierten Geräten"
+  },
+  "V-IF-T-001": {
+    "verification": "Physische Manipulationstests (Gehäuse öffnen, Signale abhören)"
+  },
+  "V-IF-R-001": {
+    "verification": "Schnittstellenzugriffsprotokolle auf Vollständigkeit überprüfen"
+  },
+  "V-IF-I-001": {
+    "verification": "Seitenkanalangriffstests (Leistungsanalyse, elektromagnetische Analyse)"
+  },
+  "V-IF-D-001": {
+    "verification": "Elektrische Belastungstests (ESD, Überspannung, Kurzschluss)"
+  },
+  "V-IF-E-001": {
+    "verification": "Debug-Schnittstellen-Sicherheitstests (JTAG-Exploit-Versuche)"
+  },
+  "V-IF-E-002": {
+    "verification": "Firmware-Verifizierung und Secure-Boot-Tests"
+  },
+  "V-IF-POLICY-001": {
+    "verification": "Fabrik-/Wartungs-Schnittstellenrichtlinie verifizieren — Schnittstelle ausserhalb Wartungsfenster unzugänglich"
+  }
+}

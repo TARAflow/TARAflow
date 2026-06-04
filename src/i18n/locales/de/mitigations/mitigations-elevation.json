@@ -1,0 +1,26 @@
+{
+  "M-E-001": {
+    "mitigation": "Prinzip der geringsten Rechte anwenden"
+  },
+  "M-E-002": {
+    "mitigation": "Korrekte ACLs und rollenbasierte Zugriffskontrolle implementieren"
+  },
+  "M-E-003": {
+    "mitigation": "Strikte Eingabevalidierung implementieren"
+  },
+  "M-E-004": {
+    "mitigation": "Regelmässige Sicherheitsüberprüfungen und Updates"
+  },
+  "M-E-005": {
+    "mitigation": "Sandboxing zur Isolierung von Prozessen verwenden"
+  },
+  "M-E-006": {
+    "mitigation": "Debug-Schnittstellen in der Produktion deaktivieren"
+  },
+  "M-E-007": {
+    "mitigation": "Anwendungs-Whitelisting implementieren — nur explizit autorisierte Binärdateien dürfen ausgeführt werden"
+  },
+  "M-E-008": {
+    "mitigation": "Antiviren- / EDR-Software einsetzen und Signaturen aktuell halten"
+  }
+}

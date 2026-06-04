@@ -1,0 +1,32 @@
+{
+  "M-PB-T-001": {
+    "mitigation": "Manipulationssichere Siegel oder Mikroschalter anbringen, um unbefugten physischen Zugang zu erkennen"
+  },
+  "M-PB-T-002": {
+    "mitigation": "Aktiven Manipulationsschutz anwenden (Mesh, Verguss, Spannungssensor) mit automatischer Reaktion"
+  },
+  "M-PB-T-003": {
+    "mitigation": "Sicherstellen, dass kein Debug-Port ohne Demontage von der Grenz-Aussenseite erreichbar ist"
+  },
+  "M-PB-T-004": {
+    "mitigation": "Alle Wechselmedien-Ports in der Firmware deaktivieren und physisch blockieren oder entfernen"
+  },
+  "M-PB-T-005": {
+    "mitigation": "Für portable Geräte: Vollverschlüsselung, manipulationssichere Versiegelung und Fernlösch-Funktion anwenden"
+  },
+  "M-PB-S-001": {
+    "mitigation": "Mehrfaktor-Zutrittskontrolle implementieren (Badge + PIN, Biometrie oder bewachter Eingang)"
+  },
+  "M-PB-S-002": {
+    "mitigation": "RFID/NFC-Badge als Zutrittskontrolle verwenden; Relay-Angriffs-Risiko ohne zweiten Faktor beachten"
+  },
+  "M-PB-R-001": {
+    "mitigation": "Kamera-Überwachung oder Alarmsystem an physischen Grenz-Zugangspunkten installieren; Alarme an SOC weiterleiten"
+  },
+  "M-PB-R-002": {
+    "mitigation": "Physische Sicherheitsalarme an Security Operations Centre mit definiertem Response-Verfahren weiterleiten"
+  },
+  "M-PB-D-001": {
+    "mitigation": "Gerät oder Schrank physisch verankern oder verschrauben, um Entfernung oder Umlokation zu verhindern"
+  }
+}

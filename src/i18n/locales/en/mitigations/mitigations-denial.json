@@ -1,0 +1,29 @@
+{
+  "M-D-001": {
+    "mitigation": "Implement rate limiting and throttling"
+  },
+  "M-D-002": {
+    "mitigation": "Implement quotas and resource limits"
+  },
+  "M-D-003": {
+    "mitigation": "Use ACLs or filtering to restrict access"
+  },
+  "M-D-004": {
+    "mitigation": "Implement high availability design with redundancy"
+  },
+  "M-D-005": {
+    "mitigation": "Use load balancing to distribute traffic"
+  },
+  "M-D-006": {
+    "mitigation": "Implement automated backup and tested recovery procedure for system restoration after attack (CR 7.3/7.4)"
+  },
+  "M-D-007": {
+    "mitigation": "Use secured connectors (M12 locking, screw terminals) and cable strain relief to prevent accidental or deliberate disconnection"
+  },
+  "M-D-008": {
+    "mitigation": "Implement redundant, independent communication path for safety-critical data flows (IEC 61508)"
+  },
+  "M-D-009": {
+    "mitigation": "Enable island mode capability — trust boundary can isolate the zone completely on incident detection (NDR 5.2 RE2)"
+  }
+}

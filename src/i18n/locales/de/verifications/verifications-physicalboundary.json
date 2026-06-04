@@ -1,0 +1,20 @@
+{
+  "V-PB-T-001": {
+    "verification": "Physischen Manipulationsschutz prüfen — Siegelintegrität, Schalter-Funktion oder Mesh-Kontinuität verifizieren"
+  },
+  "V-PB-T-002": {
+    "verification": "Manipulationserkennungs-Reaktion testen — Ereignis auslösen und Alarm-, Zeroize- oder Shutdown-Reaktion verifizieren"
+  },
+  "V-PB-T-003": {
+    "verification": "Debug- und Programmierschnittstellen auf Erreichbarkeit von aussen prüfen — ohne Demontage nicht zugänglich"
+  },
+  "V-PB-T-004": {
+    "verification": "Wechselmedien-Ports in Firmware deaktiviert und physisch blockiert verifizieren"
+  },
+  "V-PB-S-001": {
+    "verification": "Physisches Zutrittskontrollsystem testen — unautorisierten Zutritt verweigern und Zugriffsprotokoll vollständig führen"
+  },
+  "V-PB-R-001": {
+    "verification": "Physisches Überwachungssystem auf Betriebsbereitschaft prüfen — Alarmmeldungsprotokoll und Response-Verfahren testen"
+  }
+}

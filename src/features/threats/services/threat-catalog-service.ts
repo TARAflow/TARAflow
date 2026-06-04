@@ -19,8 +19,24 @@ import type {
 
 import elementTemplatesData from "./catalog/element-templates.json";
 import interactionTemplatesData from "./catalog/interaction-templates.json";
-import mitigationsData from "./catalog/mitigations.json";
-import verificationsData from "./catalog/verifications.json";
+import mitigationsSpoofingData from "./catalog/mitigations/mitigations-spoofing.json";
+import mitigationsTamperingData from "./catalog/mitigations/mitigations-tampering.json";
+import mitigationsRepudiationData from "./catalog/mitigations/mitigations-repudiation.json";
+import mitigationsInformationData from "./catalog/mitigations/mitigations-information.json";
+import mitigationsDenialData from "./catalog/mitigations/mitigations-denial.json";
+import mitigationsElevationData from "./catalog/mitigations/mitigations-elevation.json";
+import mitigationsInterfaceData from "./catalog/mitigations/mitigations-interface.json";
+import mitigationsChipBoundaryData from "./catalog/mitigations/mitigations-chipboundary.json";
+import mitigationsPhysicalBoundaryData from "./catalog/mitigations/mitigations-physicalboundary.json";
+import verificationsSpoofingData from "./catalog/verifications/verifications-spoofing.json";
+import verificationsTamperingData from "./catalog/verifications/verifications-tampering.json";
+import verificationsRepudiationData from "./catalog/verifications/verifications-repudiation.json";
+import verificationsInformationData from "./catalog/verifications/verifications-information.json";
+import verificationsDenialData from "./catalog/verifications/verifications-denial.json";
+import verificationsElevationData from "./catalog/verifications/verifications-elevation.json";
+import verificationsInterfaceData from "./catalog/verifications/verifications-interface.json";
+import verificationsChipBoundaryData from "./catalog/verifications/verifications-chipboundary.json";
+import verificationsPhysicalBoundaryData from "./catalog/verifications/verifications-physicalboundary.json";
 import embeddedElementTemplatesData from "./catalog/embedded-element-templates.json";
 import embeddedInteractionTemplatesData from "./catalog/embedded-interaction-templates.json";
 import multiprocessElementTemplatesData from "./catalog/multiprocess-element-templates.json";
@@ -49,11 +65,29 @@ const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [
   ...((safetyDataflowTemplatesData as any).interactionTemplates ?? []),
 ];
 
-const ALL_MITIGATIONS: MitigationEntry[] =
-  (mitigationsData as any).mitigations ?? [];
+const ALL_MITIGATIONS: MitigationEntry[] = [
+  ...((mitigationsSpoofingData as any).mitigations ?? []),
+  ...((mitigationsTamperingData as any).mitigations ?? []),
+  ...((mitigationsRepudiationData as any).mitigations ?? []),
+  ...((mitigationsInformationData as any).mitigations ?? []),
+  ...((mitigationsDenialData as any).mitigations ?? []),
+  ...((mitigationsElevationData as any).mitigations ?? []),
+  ...((mitigationsInterfaceData as any).mitigations ?? []),
+  ...((mitigationsChipBoundaryData as any).mitigations ?? []),
+  ...((mitigationsPhysicalBoundaryData as any).mitigations ?? []),
+];
 
-const ALL_VERIFICATIONS: VerificationEntry[] =
-  (verificationsData as any).verifications ?? [];
+const ALL_VERIFICATIONS: VerificationEntry[] = [
+  ...((verificationsSpoofingData as any).verifications ?? []),
+  ...((verificationsTamperingData as any).verifications ?? []),
+  ...((verificationsRepudiationData as any).verifications ?? []),
+  ...((verificationsInformationData as any).verifications ?? []),
+  ...((verificationsDenialData as any).verifications ?? []),
+  ...((verificationsElevationData as any).verifications ?? []),
+  ...((verificationsInterfaceData as any).verifications ?? []),
+  ...((verificationsChipBoundaryData as any).verifications ?? []),
+  ...((verificationsPhysicalBoundaryData as any).verifications ?? []),
+];
 
 // ==================== CONTEXT FILTERING ====================
 

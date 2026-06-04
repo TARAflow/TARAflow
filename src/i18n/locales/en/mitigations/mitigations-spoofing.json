@@ -1,0 +1,23 @@
+{
+  "M-S-001": {
+    "mitigation": "Implement multi-factor authentication (MFA)"
+  },
+  "M-S-002": {
+    "mitigation": "Use PKI systems and digital certificates"
+  },
+  "M-S-003": {
+    "mitigation": "Implement secure session management with proper timeout"
+  },
+  "M-S-004": {
+    "mitigation": "Use digitally signed packets and authenticate code/data"
+  },
+  "M-S-005": {
+    "mitigation": "Implement IPSec for network communication"
+  },
+  "M-S-006": {
+    "mitigation": "Use centralized account management with revocation capability (LDAP, Active Directory, RADIUS, IAM)"
+  },
+  "M-S-007": {
+    "mitigation": "Enforce default-deny policy at trust boundary — only explicitly permitted traffic is allowed (NDR 5.2 RE1)"
+  }
+}
