@@ -15,9 +15,49 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-S-001"
-      ]
+      "verifications": ["V-IF-S-001"]
+    },
+    {
+      "id": "M-IF-S-002",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "password",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "PhysicalInterface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "password",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-IF-S-001"]
+    },
+    {
+      "id": "M-IF-S-003",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "mfa",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "PhysicalInterface",
+          "property": "implementedControls.logicalAccessControl",
+          "expectedValue": "mfa",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-IF-S-001"]
     },
     {
       "id": "M-IF-T-001",
@@ -32,9 +72,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-T-002",
@@ -42,9 +80,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-T-003",
@@ -59,9 +95,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-T-004",
@@ -69,9 +103,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-T-001"
-      ]
+      "verifications": ["V-IF-T-001"]
     },
     {
       "id": "M-IF-R-001",
@@ -79,9 +111,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-R-001"
-      ]
+      "verifications": ["V-IF-R-001"]
     },
     {
       "id": "M-IF-I-001",
@@ -97,9 +127,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-I-001"
-      ]
+      "verifications": ["V-IF-I-001"]
     },
     {
       "id": "M-IF-I-002",
@@ -114,9 +142,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-I-001"
-      ]
+      "verifications": ["V-IF-I-001"]
     },
     {
       "id": "M-IF-D-001",
@@ -124,9 +150,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-D-001"
-      ]
+      "verifications": ["V-IF-D-001"]
     },
     {
       "id": "M-IF-D-002",
@@ -134,9 +158,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-IF-D-001"
-      ]
+      "verifications": ["V-IF-D-001"]
     },
     {
       "id": "M-IF-D-003",
@@ -151,9 +173,28 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-003"
-      ]
+      "verifications": ["V-D-003"]
+    },
+    {
+      "id": "M-IF-D-004",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.abuseProtection",
+          "expectedValue": "lockout",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "PhysicalInterface",
+          "property": "implementedControls.abuseProtection",
+          "expectedValue": "lockout",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-D-003"]
     },
     {
       "id": "M-IF-E-001",
@@ -168,9 +209,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-E-001"
-      ]
+      "verifications": ["V-IF-E-001"]
     },
     {
       "id": "M-IF-E-002",
@@ -185,9 +224,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-E-001"
-      ]
+      "verifications": ["V-IF-E-001"]
     },
     {
       "id": "M-IF-E-003",
@@ -202,9 +239,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-E-002"
-      ]
+      "verifications": ["V-IF-E-002"]
     },
     {
       "id": "M-IF-DBG-002",
@@ -219,9 +254,49 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-CB-T-002"
-      ]
+      "verifications": ["V-CB-T-002"]
+    },
+    {
+      "id": "M-IF-DBG-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "auth_required",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "PhysicalInterface",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "auth_required",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-IF-DBG-001"]
+    },
+    {
+      "id": "M-IF-DBG-003",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "fused_off",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "PhysicalInterface",
+          "property": "implementedControls.debugProtection",
+          "expectedValue": "fused_off",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-IF-DBG-001"]
     },
     {
       "id": "M-IF-POLICY-001",
@@ -236,9 +311,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-IF-POLICY-001"
-      ]
+      "verifications": ["V-IF-POLICY-001"]
     },
     {
       "id": "M-IF-POLICY-002",
@@ -253,9 +326,28 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-POLICY-001"
-      ]
+      "verifications": ["V-IF-POLICY-001"]
+    },
+    {
+      "id": "M-IF-MON-001",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.monitoringControl",
+          "expectedValue": "alerted",
+          "confidence": "heuristic"
+        },
+        {
+          "targetType": "PhysicalInterface",
+          "property": "implementedControls.monitoringControl",
+          "expectedValue": "alerted",
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": ["V-IF-MON-001"]
     }
   ]
 }

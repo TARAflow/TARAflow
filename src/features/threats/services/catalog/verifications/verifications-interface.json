@@ -49,6 +49,18 @@
       "strideCategory": "T",
       "context": {},
       "isCustom": false
+    },
+    {
+      "id": "V-IF-DBG-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-IF-MON-001",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
     }
   ]
 }

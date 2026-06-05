@@ -1,26 +1,32 @@
 {
   "V-IF-S-001": {
-    "verification": "Hardware-Authentifizierungstests mit nicht autorisierten Geräten"
+    "verification": "Hardware-Authentifizierungsmechanismus verifizieren — kryptographischen Handshake zwischen Schnittstelle und angeschlossenem Gerät testen"
   },
   "V-IF-T-001": {
-    "verification": "Physische Manipulationstests (Gehäuse öffnen, Signale abhören)"
+    "verification": "Physische Manipulationsinspektion — manipulationssichere Siegel und Gehäuseintegrität verifizieren"
   },
   "V-IF-R-001": {
-    "verification": "Schnittstellenzugriffsprotokolle auf Vollständigkeit überprüfen"
+    "verification": "Schnittstellenzugriffsprotokolle prüfen — Zeitstempel und Ereignisaufzeichnungen auf Vollständigkeit und Manipulationsschutz überprüfen"
   },
   "V-IF-I-001": {
-    "verification": "Seitenkanalangriffstests (Leistungsanalyse, elektromagnetische Analyse)"
+    "verification": "Datenverschlüsselung auf physischem Bus verifizieren — Datenverkehr aufzeichnen und bestätigen, dass nur Chiffretext übertragen wird"
   },
   "V-IF-D-001": {
-    "verification": "Elektrische Belastungstests (ESD, Überspannung, Kurzschluss)"
+    "verification": "Schnittstellenresilienz testen — elektrische Belastung anlegen und Aktivierung der Schutzmechanismen verifizieren"
   },
   "V-IF-E-001": {
-    "verification": "Debug-Schnittstellen-Sicherheitstests (JTAG-Exploit-Versuche)"
+    "verification": "Deaktivierung der Debug-Schnittstelle verifizieren — JTAG/SWD-Verbindungsversuch und Zugriffsverweigerung bestätigen"
   },
   "V-IF-E-002": {
-    "verification": "Firmware-Verifizierung und Secure-Boot-Tests"
+    "verification": "Firmware-Signaturerzwingung verifizieren — unsigniertes Image flashen und Ablehnung bestätigen"
   },
   "V-IF-POLICY-001": {
-    "verification": "Fabrik-/Wartungs-Schnittstellenrichtlinie verifizieren — Schnittstelle ausserhalb Wartungsfenster unzugänglich"
+    "verification": "Schnittstellenzugriffsrichtlinie verifizieren — Unzugänglichkeit ausserhalb des deklarierten Wartungsfensters bestätigen"
+  },
+  "V-IF-DBG-001": {
+    "verification": "Debug-Schnittstellen-Zugangskontrolle verifizieren — Authentifizierungspflicht und eingeschränkten Befehlssatz auf Minimum bestätigen"
+  },
+  "V-IF-MON-001": {
+    "verification": "Schnittstellenüberwachung verifizieren — Protokollierung von Zugriffsereignissen und Alarmgenerierung bei Anomalien bestätigen"
   }
 }

@@ -1,26 +1,32 @@
 {
   "V-IF-S-001": {
-    "verification": "Hardware authentication testing with unauthorized devices"
+    "verification": "Verify hardware authentication mechanism — test cryptographic handshake between interface and connected device"
   },
   "V-IF-T-001": {
-    "verification": "Physical tampering tests (opening case, probing signals)"
+    "verification": "Physical tamper inspection — verify tamper-evident seals and enclosure integrity"
   },
   "V-IF-R-001": {
-    "verification": "Review interface access logs for completeness"
+    "verification": "Review interface access logs — confirm timestamps and event records are present and tamper-proof"
   },
   "V-IF-I-001": {
-    "verification": "Side-channel attack testing (power analysis, electromagnetic analysis)"
+    "verification": "Verify data encryption on physical bus — capture traffic and confirm ciphertext only"
   },
   "V-IF-D-001": {
-    "verification": "Electrical stress testing (ESD, overvoltage, short circuit)"
+    "verification": "Test interface resilience — apply electrical stress and verify protection mechanisms activate"
   },
   "V-IF-E-001": {
-    "verification": "Debug interface security testing (JTAG exploitation attempts)"
+    "verification": "Verify debug interface is disabled — attempt JTAG/SWD connection and confirm access is denied"
   },
   "V-IF-E-002": {
-    "verification": "Firmware verification and secure boot testing"
+    "verification": "Verify firmware signature enforcement — attempt to flash unsigned image and confirm rejection"
   },
   "V-IF-POLICY-001": {
-    "verification": "Verify factory/maintenance interface policy — confirm interface is inaccessible outside maintenance window"
+    "verification": "Verify interface access policy — confirm interface is inaccessible outside declared maintenance window"
+  },
+  "V-IF-DBG-001": {
+    "verification": "Verify debug interface access control — confirm authentication is required and command set is restricted to minimum"
+  },
+  "V-IF-MON-001": {
+    "verification": "Verify interface monitoring is active — confirm access events are logged and alerts are generated on anomalies"
   }
 }

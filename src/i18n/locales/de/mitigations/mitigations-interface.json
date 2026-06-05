@@ -49,5 +49,23 @@
   },
   "M-IF-POLICY-002": {
     "mitigation": "Wartungsfenster-Zugriffsrichtlinie durchsetzen — Schnittstelle ausserhalb Wartungsfenster automatisch deaktivieren"
+  },
+  "M-IF-S-002": {
+    "mitigation": "Passwort-Authentifizierung vor Schnittstellenzugriff vorschreiben"
+  },
+  "M-IF-S-003": {
+    "mitigation": "Multi-Faktor-Authentifizierung für Schnittstellenzugriff vorschreiben (CR 1.1 RE2)"
+  },
+  "M-IF-DBG-001": {
+    "mitigation": "Authentifizierung vor Debug-Zugang vorschreiben — verfügbare Befehle auf das erforderliche Minimum beschränken"
+  },
+  "M-IF-DBG-003": {
+    "mitigation": "Debug-Schnittstelle vor Produktionsfreigabe dauerhaft via OTP-Sicherung deaktivieren — irreversible Sperrung"
+  },
+  "M-IF-D-004": {
+    "mitigation": "Schnittstelle nach konfigurierbarer Anzahl fehlgeschlagener Authentifizierungsversuche sperren — manuellen Reset oder Timeout vorschreiben"
+  },
+  "M-IF-MON-001": {
+    "mitigation": "Schnittstellenzugriff überwachen und Alarme bei verdächtiger Aktivität erzeugen — alle Verbindungsversuche protokollieren"
   }
 }

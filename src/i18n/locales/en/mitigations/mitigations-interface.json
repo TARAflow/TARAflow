@@ -49,5 +49,23 @@
   },
   "M-IF-POLICY-002": {
     "mitigation": "Enforce maintenance-window access policy — interface must be automatically disabled outside declared windows"
+  },
+  "M-IF-S-002": {
+    "mitigation": "Require password authentication before granting interface access"
+  },
+  "M-IF-S-003": {
+    "mitigation": "Require multi-factor authentication for interface access (CR 1.1 RE2)"
+  },
+  "M-IF-DBG-001": {
+    "mitigation": "Require authentication before granting debug access — restrict available commands to minimum required set"
+  },
+  "M-IF-DBG-003": {
+    "mitigation": "Permanently disable debug interface via OTP fuse before production deployment — irreversible lock"
+  },
+  "M-IF-D-004": {
+    "mitigation": "Lock interface after configurable number of failed authentication attempts — require manual reset or timeout"
+  },
+  "M-IF-MON-001": {
+    "mitigation": "Monitor interface access and generate alerts on suspicious activity — log all connection attempts"
   }
 }

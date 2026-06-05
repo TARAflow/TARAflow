@@ -1,6 +1,6 @@
 {
   "name": "taraflow",
-  "version": "0.1.0-pre-alpha",
+  "version": "0.2.0-alpha",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
