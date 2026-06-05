@@ -1,0 +1,14 @@
+{
+  "general": {
+    "T-001": {
+      "threat": "Data tampering on incoming flow: Attacker modifies data before it reaches {{targetName}}",
+      "cause": "Missing integrity protection on the data flow from {{sourceName}} — data arrives without tamper evidence",
+      "attack": "Attacker intercepts the data flow from {{sourceName}} and modifies commands or payload before delivery to {{targetName}}"
+    },
+    "T-002": {
+      "threat": "Response tampering: Attacker modifies response data before it reaches {{sourceName}}",
+      "cause": "Missing integrity protection on the response flow from {{targetName}} — {{sourceName}} cannot detect modified responses",
+      "attack": "Attacker intercepts the response from {{targetName}} and modifies data, causing {{sourceName}} to process falsified information"
+    }
+  }
+}

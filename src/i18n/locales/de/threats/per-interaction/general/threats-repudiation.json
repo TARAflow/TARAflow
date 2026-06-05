@@ -1,0 +1,14 @@
+{
+  "general": {
+    "R-001": {
+      "threat": "Absender-Abstreitbarkeit: {{sourceName}} bestreitet das Senden der Anfrage oder der Daten",
+      "cause": "Kein Nichtabstreitbarkeitsmechanismus auf dem Datenfluss — Anfragen von {{sourceName}} sind nicht signiert oder kryptographisch an den Absender gebunden",
+      "attack": "{{sourceName}} behauptet, den Befehl oder die Daten nie gesendet zu haben, die {{targetName}} empfangen und verarbeitet hat"
+    },
+    "R-002": {
+      "threat": "Empfänger-Abstreitbarkeit: {{targetName}} bestreitet den Empfang oder die Verarbeitung der Anfrage",
+      "cause": "Keine Zustellbestätigung oder kryptographischer Empfangsnachweis — {{sourceName}} hat keinen Beweis, dass {{targetName}} die Daten erhalten hat",
+      "attack": "{{targetName}} behauptet, die Daten von {{sourceName}} nie empfangen zu haben, oder bestreitet deren Verarbeitung"
+    }
+  }
+}

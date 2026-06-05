@@ -1,0 +1,14 @@
+{
+  "embedded": {
+    "S-001": {
+      "threat": "Controller-Identitäts-Spoofing auf Feldbus",
+      "cause": "Feldbus-Protokolle (Modbus, CAN, Profibus) haben keine Sender-Authentifizierung — jeder Knoten kann jede Geräteadresse beanspruchen",
+      "attack": "Angreifer verbindet ein Rogue-Gerät mit dem Feldbus und antwortet auf Anfragen die an den legitimen Controller gerichtet sind"
+    },
+    "S-002": {
+      "threat": "Controller-Identitäts-Spoofing auf dem Feldbus",
+      "cause": "Feldbusprotokoll (Modbus, CAN, Profibus) besitzt keine eingebaute Authentifizierung — jeder Knoten kann eine beliebige Geräteadresse beanspruchen",
+      "attack": "Angreifer verbindet einen unautorisierten Knoten mit dem Feldbus, antwortet auf Anfragen an den legitimen Controller und injiziert dabei falsche Sensordaten oder akzeptiert Steuerbefehle"
+    }
+  }
+}

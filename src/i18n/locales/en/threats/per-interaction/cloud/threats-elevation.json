@@ -1,0 +1,14 @@
+{
+  "cloud": {
+    "E-001": {
+      "threat": "Token or JWT manipulation for privilege escalation at {{targetName}} API boundary",
+      "cause": "{{targetName}} does not strictly validate token claims or signature integrity",
+      "attack": "Attacker modifies a JWT to include elevated roles and submits it to {{targetName}}, which grants unauthorized access"
+    },
+    "E-002": {
+      "threat": "Compromised {{sourceName}} sends privilege-escalating payloads to {{targetName}}",
+      "cause": "{{targetName}} grants elevated operations based on payload content without independent authorization verification",
+      "attack": "Attacker who controls {{sourceName}} crafts requests with elevated permission claims that {{targetName}} executes"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "mobile": {
+    "T-001": {
+      "threat": "Mobile device tampering — attacker modifies application or OS on mobile device",
+      "cause": "No application integrity verification on mobile platform",
+      "attack": "Attacker installs a modified application that intercepts credentials or sensitive data"
+    }
+  }
+}

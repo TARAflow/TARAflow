@@ -1,0 +1,29 @@
+{
+  "embedded": {
+    "E-001": {
+      "threat": "Rechteausweitung über JTAG/SWD Debug-Schnittstelle",
+      "cause": "JTAG oder SWD Debug-Schnittstelle in Produktion nicht deaktiviert — bietet vollen Lese-/Schreibzugriff auf Prozessorspeicher und Ausführungsfluss",
+      "attack": "Angreifer verbindet Debug-Adapter, hält Prozessor an, liest Sicherheitsschlüssel aus dem Speicher und modifiziert Ausführungsfluss zur Umgehung von Zugriffskontrollen"
+    },
+    "E-002": {
+      "threat": "Secure Boot Bypass über Debug-Schnittstelle",
+      "cause": "Debug-Schnittstelle bleibt in Produktion aktiv — ermöglicht Modifikation von Boot-Parametern vor Secure Boot Verifikation",
+      "attack": "Angreifer nutzt Debug-Zugriff um Bootloader zu überschreiben oder Secure Boot Konfiguration zu ändern, sodass unsignierte Firmware beim nächsten Start ausgeführt wird"
+    },
+    "E-003": {
+      "threat": "Rechteausweitung über Embedded Debug- oder Service-Schnittstelle",
+      "cause": "Debug- oder Service-Schnittstelle in Produktion ohne Authentifizierung zugänglich",
+      "attack": "Angreifer nutzt Debug-Schnittstelle um laufenden Prozesszustand zu modifizieren, Code einzuschleusen oder Authentifizierungsprüfungen zu umgehen"
+    },
+    "E-004": {
+      "threat": "Privilege Escalation über JTAG / SWD Debug-Interface",
+      "cause": "JTAG- oder SWD-Debug-Interface ist in der Produktion nicht deaktiviert oder gesperrt — ermöglicht vollständigen Lese-/Schreibzugriff auf Prozessorspeicher und Register",
+      "attack": "Angreifer verbindet eine Debug-Probe mit dem JTAG/SWD-Port, hält den Prozessor an, liest Security-Keys aus dem Speicher und modifiziert den Ausführungsfluss zur Umgehung der Zugriffskontrollen"
+    },
+    "E-005": {
+      "threat": "Privilege Escalation über unsigniertes Firmware-Update",
+      "cause": "Firmware-Update-Prozess erzwingt keine kryptographische Signaturprüfung — unsignierte oder schwach signierte Images werden akzeptiert",
+      "attack": "Angreifer erstellt ein Firmware-Image mit erhöhten Privilegien oder deaktivierten Sicherheitsprüfungen und liefert es über den Update-Kanal, wodurch das Gerät dauerhaft kompromittiert wird"
+    }
+  }
+}

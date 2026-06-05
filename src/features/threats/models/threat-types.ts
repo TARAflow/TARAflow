@@ -393,6 +393,12 @@ export interface ThreatTable {
  */
 export interface ElementTemplate {
   id: string;
+  /**
+   * Domain this template belongs to — used as i18n lookup prefix.
+   * Values: "general" | "embedded" | "cloud" | "mobile" | "physical" | "gap"
+   * Fallback to "general" when domain-specific text is missing.
+   */
+  domain: string;
   strideCategory: StrideCategory;
   elementTypes: string[];
   context: TemplateContext;
@@ -406,6 +412,12 @@ export interface ElementTemplate {
  */
 export interface InteractionTemplate {
   id: string;
+  /**
+   * Domain this template belongs to — used as i18n lookup prefix.
+   * Values: "general" | "embedded" | "cloud" | "physical"
+   * Fallback to "general" when domain-specific text is missing.
+   */
+  domain: string;
   strideCategory: StrideCategory;
   perspective: "sender" | "receiver";
   context: TemplateContext;

@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "S-001": {
+      "threat": "Service identity spoofing at cloud boundary: Attacker impersonates {{sourceName}} to inject forged requests into {{targetName}}",
+      "cause": "Missing or insufficient mutual authentication at the service boundary",
+      "attack": "Attacker forges a service token for {{sourceName}} and sends requests to {{targetName}} that are processed as legitimate"
+    }
+  }
+}

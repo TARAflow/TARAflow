@@ -1,0 +1,14 @@
+{
+  "general": {
+    "E-001": {
+      "threat": "Command injection: Attacker injects commands via data flow to escalate privileges in {{targetName}}",
+      "cause": "Insufficient input validation in {{targetName}} — incoming data from {{sourceName}} is processed with elevated trust",
+      "attack": "Attacker injects malicious commands or payloads into the data flow, which {{targetName}} executes with its own privilege level"
+    },
+    "E-002": {
+      "threat": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in {{sourceName}}",
+      "cause": "{{sourceName}} trusts response data from {{targetName}} without integrity verification, enabling privilege decisions based on forged responses",
+      "attack": "Attacker modifies the response from {{targetName}} to include elevated roles or permissions, causing {{sourceName}} to grant unauthorized access"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "embedded": {
+    "E-001": {
+      "threat": "Privileged command injection via unauthenticated fieldbus protocol into {{targetName}}",
+      "cause": "{{dataFlowName}} carries no authorization — {{targetName}} executes all syntactically valid commands regardless of source",
+      "attack": "Attacker injects privileged operation commands via {{dataFlowName}} that {{targetName}} executes"
+    },
+    "E-002": {
+      "threat": "Command injection via embedded bus {{dataFlowName}} to escalate privileges in {{targetName}}",
+      "cause": "{{targetName}} processes all commands received on {{dataFlowName}} without source verification",
+      "attack": "Attacker injects privileged commands onto the embedded bus that {{targetName}} executes with elevated permissions"
+    },
+    "E-003": {
+      "threat": "Privilege escalation via {{dataFlowName}} debug interface on {{targetName}}",
+      "cause": "JTAG or SWD interface provides full processor access — attacker can halt CPU and modify execution flow",
+      "attack": "Attacker uses the {{dataFlowName}} interface to halt the processor, reads security keys and modifies execution flow to bypass access controls"
+    },
+    "E-004": {
+      "threat": "Privileged command injection via unauthenticated protocol: Attacker sends privileged commands to {{targetName}} via {{sourceName}}",
+      "cause": "The protocol carries no authorization information — {{targetName}} executes all syntactically valid commands regardless of source",
+      "attack": "Attacker injects privileged operation commands (write parameters, force outputs) that {{targetName}} executes with its full system authority"
+    }
+  }
+}

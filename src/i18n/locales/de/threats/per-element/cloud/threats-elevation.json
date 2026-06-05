@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "E-001": {
+      "threat": "Privilege Escalation über fehlkonfiguriertes IAM",
+      "cause": "Übermäßig permissive IAM-Richtlinien oder fehlende Least-Privilege-Durchsetzung — eine kompromittierte Low-Privilege-Identität kann auf High-Privilege-Ressourcen zugreifen",
+      "attack": "Angreifer kompromittiert einen Low-Privilege-Service-Account und nutzt fehlkonfigurierte Rollenbindungen oder Wildcard-Berechtigungen, um zu administrativem Zugriff zu eskalieren"
+    }
+  }
+}

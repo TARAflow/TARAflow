@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "T-001": {
+      "threat": "Compromised cloud service {{sourceName}} propagates tampered data to {{targetName}}",
+      "cause": "{{targetName}} implicitly trusts responses from {{sourceName}} — no end-to-end integrity verification exists",
+      "attack": "Attacker who compromised {{sourceName}} modifies API responses causing {{targetName}} to store falsified data"
+    }
+  }
+}

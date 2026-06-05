@@ -1,0 +1,19 @@
+{
+  "embedded": {
+    "I-001": {
+      "threat": "Side-channel key extraction — attacker extracts cryptographic keys via side-channel analysis",
+      "cause": "No side-channel countermeasures — cryptographic operations leak key-correlated signals",
+      "attack": "Attacker measures power or EM emissions during cryptographic operations to extract secret keys"
+    },
+    "I-002": {
+      "threat": "Firmware extraction via debug readback — attacker reads firmware through debug interface",
+      "cause": "Debug interface accessible and readback protection not enabled",
+      "attack": "Attacker connects to unlocked debug interface and reads complete flash contents"
+    },
+    "I-003": {
+      "threat": "Embedded storage information disclosure — attacker reads sensitive data from non-volatile memory",
+      "cause": "Flash/EEPROM/NVRAM lacks readback protection — stored keys and credentials are readable",
+      "attack": "Attacker reads non-volatile memory to extract firmware, cryptographic keys, or sensitive configuration"
+    }
+  }
+}

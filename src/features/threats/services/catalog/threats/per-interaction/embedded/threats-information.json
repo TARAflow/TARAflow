@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "description": "per-interaction/embedded",
+  "interactionTemplates": [
+    {
+      "id": "I-001",
+      "strideCategory": "I",
+      "perspective": "receiver",
+      "context": {
+        "protocol": [
+          "spi",
+          "i2c",
+          "uart",
+          "can",
+          "lin"
+        ]
+      },
+      "mitigations": [
+        "M-I-001",
+        "M-I-002",
+        "M-IF-I-001",
+        "M-IF-I-002"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-IF-I-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "I-002",
+      "strideCategory": "I",
+      "perspective": "receiver",
+      "context": {
+        "interfaceType": [
+          "jtag",
+          "swd",
+          "serial"
+        ]
+      },
+      "mitigations": [
+        "M-CB-I-001",
+        "M-CB-E-001",
+        "M-IF-DBG-002"
+      ],
+      "verifications": [
+        "V-CB-I-001",
+        "V-CB-E-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

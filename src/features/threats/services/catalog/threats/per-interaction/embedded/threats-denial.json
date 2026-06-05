@@ -1,0 +1,105 @@
+{
+  "version": "2.0.0",
+  "description": "per-interaction/embedded",
+  "interactionTemplates": [
+    {
+      "id": "D-001",
+      "strideCategory": "D",
+      "perspective": "receiver",
+      "context": {
+        "systemClass": [
+          "embedded_controller",
+          "safety_system",
+          "scada_hmi",
+          "gateway"
+        ]
+      },
+      "mitigations": [
+        "M-D-001",
+        "M-D-003",
+        "M-D-005",
+        "M-IF-D-003"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-003"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "D-002",
+      "strideCategory": "D",
+      "perspective": "receiver",
+      "context": {
+        "protocol": [
+          "modbus",
+          "profibus",
+          "profinet",
+          "canopen",
+          "s7comm",
+          "dnp3",
+          "iec61850"
+        ]
+      },
+      "mitigations": [
+        "M-D-001",
+        "M-D-003",
+        "M-IF-D-001",
+        "M-IF-D-003"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-IF-D-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "D-003",
+      "strideCategory": "D",
+      "perspective": "receiver",
+      "context": {
+        "location": [
+          "field_cable"
+        ],
+        "redundancy": [
+          "none"
+        ]
+      },
+      "mitigations": [
+        "M-D-007",
+        "M-D-008",
+        "M-D-001"
+      ],
+      "verifications": [
+        "V-D-006",
+        "V-D-001"
+      ],
+      "isCustom": false,
+      "domain": "physical"
+    },
+    {
+      "id": "D-004",
+      "strideCategory": "D",
+      "perspective": "receiver",
+      "context": {
+        "safetyFunction": [
+          "emergency_stop",
+          "safety_gate"
+        ]
+      },
+      "mitigations": [
+        "M-D-008",
+        "M-D-001",
+        "M-D-007"
+      ],
+      "verifications": [
+        "V-D-007",
+        "V-D-006"
+      ],
+      "isCustom": false,
+      "domain": "physical"
+    }
+  ]
+}

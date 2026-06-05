@@ -12,8 +12,8 @@
 //   audit                    → audit.*
 //
 // Threat catalog namespaces (keyed by template ID, e.g. "T-S-001.threat"):
-//   element-threats-attacks  → threat + attack texts for element templates
-//   interaction-threats-attacks → threat + attack texts for interaction templates (with {{placeholders}})
+//   element-threats-attacks  → threat + attack texts for element templates (merged from threats/{domain}/*)
+//   interaction-threats-attacks → threat + attack texts for interaction templates (merged from threats/{domain}/*)
 //   mitigations              → mitigation texts (merged from mitigations-{stride}.json)
 //   verifications            → verification texts (merged from verifications-{stride}.json)
 //
@@ -37,8 +37,10 @@ import enRisks from "../locales/en/risks.json";
 import enAttacktree from "../locales/en/attacktree.json";
 import enDoc from "../locales/en/doc.json";
 import enAudit from "../locales/en/audit.json";
-import enElementThreatsAttacks from "../locales/en/element-threats-attacks.json";
-import enInteractionThreatsAttacks from "../locales/en/interaction-threats-attacks.json";
+import {
+  ELEMENT_THREAT_TEXTS as enElementThreatsAttacks,
+  INTERACTION_THREAT_TEXTS as enInteractionThreatsAttacks,
+} from "../locales/en/threats/index";
 import enMitigationsSpoofing from "../locales/en/mitigations/mitigations-spoofing.json";
 import enMitigationsTampering from "../locales/en/mitigations/mitigations-tampering.json";
 import enMitigationsRepudiation from "../locales/en/mitigations/mitigations-repudiation.json";
@@ -67,8 +69,10 @@ import deRisks from "../locales/de/risks.json";
 import deAttacktree from "../locales/de/attacktree.json";
 import deDoc from "../locales/de/doc.json";
 import deAudit from "../locales/de/audit.json";
-import deElementThreatsAttacks from "../locales/de/element-threats-attacks.json";
-import deInteractionThreatsAttacks from "../locales/de/interaction-threats-attacks.json";
+import {
+  ELEMENT_THREAT_TEXTS as deElementThreatsAttacks,
+  INTERACTION_THREAT_TEXTS as deInteractionThreatsAttacks,
+} from "../locales/de/threats/index";
 import deMitigationsSpoofing from "../locales/de/mitigations/mitigations-spoofing.json";
 import deMitigationsTampering from "../locales/de/mitigations/mitigations-tampering.json";
 import deMitigationsRepudiation from "../locales/de/mitigations/mitigations-repudiation.json";

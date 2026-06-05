@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "description": "per-interaction/general",
+  "interactionTemplates": [
+    {
+      "id": "R-001",
+      "strideCategory": "R",
+      "perspective": "receiver",
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-002"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "R-002",
+      "strideCategory": "R",
+      "perspective": "sender",
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    }
+  ]
+}

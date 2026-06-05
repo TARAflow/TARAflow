@@ -1,0 +1,94 @@
+{
+  "physical": {
+    "T-001": {
+      "threat": "Physische Grenz-Manipulation — unautorisierter physischer Zugang zum Grenzinneren",
+      "cause": "Kein Manipulationserkennungsmechanismus an physischer Grenze — unautorisiertes Öffnen bleibt unerkannt",
+      "attack": "Angreifer öffnet Gehäuse, Schrank oder Raum, ohne Alarm auszulösen oder nachweisbare Spuren zu hinterlassen, und erhält uneingeschränkten Zugang zu internen Komponenten"
+    },
+    "T-002": {
+      "threat": "Debug-Schnittstelle physisch zugänglich — direkter Hardware-Angriffspunkt exponiert",
+      "cause": "Debug-Port (JTAG, SWD, UART) ist ohne Demontage von der Grenz-Aussenseite erreichbar",
+      "attack": "Angreifer verbindet Debug-Probe mit zugänglichem Port und erhält vollen Prozessorzugang — liest Sicherheitsschlüssel, überschreibt Firmware oder umgeht Sicherheitskontrollen"
+    },
+    "T-003": {
+      "threat": "Wechselmedien-Einschleusung — unautorisierte Datenexfiltration oder Malware-Injektion via physische Medien",
+      "cause": "Wechselmedien-Port (USB, SD) ist physisch zugänglich — kein Software- oder physischer Schutz",
+      "attack": "Angreifer steckt USB-Stick mit Malware ein oder exfiltriert sensible Daten ohne Netzwerkzugang"
+    },
+    "T-004": {
+      "threat": "Geräteentnahme oder Depot-Angriff — portables Gerät für Lab-Analyse oder Substitution entfernt",
+      "cause": "Gerät ist portabel oder entnehmbar — Angreifer kann Angriffumgebung kontrollieren (Zeit, Werkzeuge, Laborausstattung)",
+      "attack": "Angreifer entfernt Gerät aus Installationsumgebung, bringt es ins Labor und führt vollständige Hardware-Analyse durch: Chip-Off, Fault-Injection, Side-Channel oder Firmware-Implant"
+    },
+    "I-005": {
+      "threat": "Seitenkanal-Beobachtung — sensible Daten über physikalische Messungen extrahiert",
+      "cause": "Physische Grenze bietet keine elektromagnetische Abschirmung oder Stromfilterung — interne Operationen sind beobachtbar",
+      "attack": "Angreifer misst Stromverbrauch, EM-Emissionen oder Timing von Operationen durch die Grenze und extrahiert kryptografische Schlüssel oder sensible Daten"
+    },
+    "I-006": {
+      "threat": "Datenexfiltration via Wechselmedien — sensible Daten aus Gerät kopiert",
+      "cause": "Wechselmedien-Port an Grenz-Aussenseite zugänglich — kein Data-Loss-Prevention-Mechanismus",
+      "attack": "Angreifer steckt Wechselmedium ein und kopiert sensible Dateien, Logs oder kryptografisches Material ohne Netzwerkspur"
+    },
+    "D-007": {
+      "threat": "Physische Zerstörung oder Stromunterbrechung — Gerät durch physischen Angriff nicht mehr verfügbar",
+      "cause": "Kein physischer Schutz oder Verankerung — Gerät kann beschädigt, abgesteckt oder zerstört werden",
+      "attack": "Angreifer beschädigt Gerät physisch, unterbricht Stromversorgung oder entfernt es, was zum sofortigen und vollständigen Verfügbarkeitsverlust führt"
+    },
+    "D-008": {
+      "threat": "Gerätediebstahl — portables Gerät gestohlen, DoS und potenzielle Datenexposition",
+      "cause": "Gerät ist portabel und nicht verankert — Diebstahl führt direkt zum Verfügbarkeitsverlust und potenziell zu Datenverlust",
+      "attack": "Angreifer stiehlt portables Gerät aus Betriebsumgebung — das kontrollierte System verliert seinen Controller und alle gespeicherten Daten sind potenziell exponiert"
+    },
+    "S-008": {
+      "threat": "Physische Grenze Identitätsfälschung — Angreifer gibt sich als autorisiertes Personal aus um physischen Zugang zu erhalten",
+      "cause": "Physische Zutrittskontrolle basiert auf Einzel-Faktor-Authentifizierung — kein zweiter Faktor verhindert Identitätsfälschung",
+      "attack": "Angreifer gibt sich als autorisierte Person aus (z.B. Wartungstechniker) um Zugang zum Inneren der physischen Grenze zu erlangen"
+    },
+    "S-009": {
+      "threat": "Wartungs-Impersonation oder Relay-Angriff — Angreifer erlangt physischen Zugang durch Umgehung der Zugangskontrolle",
+      "cause": "Physische Zugangskontrolle ist einfaktorig oder abwesend — Badge-Only ist für Relay-Angriff anfällig; kein Wächter vorhanden",
+      "attack": "Angreifer klont RFID-Badge, nutzt Relay-Angriff oder schleust sich als Wartungspersonal ein"
+    },
+    "E-010": {
+      "threat": "Physische Rechteausweitung — Angreifer erhält erhöhten Systemzugang durch physische Grenzverletzung",
+      "cause": "Physischer Zugang zum Gerätinneren gewährt Debug-/Hardware-Zugang — logische Sicherheitskontrollen können physisch umgangen werden",
+      "attack": "Angreifer öffnet physische Grenze, verbindet sich mit internem Debug- oder Hardware-Interface und umgeht alle software-seitigen Authentifizierungs- und Autorisierungskontrollen"
+    },
+    "E-011": {
+      "threat": "Debug-Schnittstellen-Rechteausweitung — voller Prozessorzugang via physisch zugänglichem Debug-Port",
+      "cause": "JTAG/SWD-Port ist von Grenz-Aussenseite zugänglich — bietet vollen Lese-/Schreibzugang zu Prozessorspeicher und Registern",
+      "attack": "Angreifer verbindet Debug-Probe, stoppt Prozessor, liest Sicherheitsschlüssel aus Speicher und modifiziert Execution-Flow zur Umgehung von Sicherheitsprüfungen"
+    },
+    "R-012": {
+      "threat": "Physischer Zugang ohne Audit-Trail — Aktionen an physischer Grenze nicht zuordenbar",
+      "cause": "Keine physische Überwachung oder Zugriffsprotokollierung an Grenze — wer wann zugegriffen hat ist unbekannt",
+      "attack": "Angreifer greift auf Grenze zu und führt Aktionen durch (Tap installieren, Hardware modifizieren) ohne Protokolleintrag — forensische Untersuchung findet keine Beweise"
+    },
+    "I-013": {
+      "threat": "Leistungs-Seitenkanal-Angriff — kryptografischer Schlüssel über differentielle Leistungsanalyse extrahiert",
+      "cause": "Keine Leistungsanalyse-Gegenmassnahmen auf Chip — schlüsselkorrelierte Leistungssignatur ist an den Versorgungspins messbar",
+      "attack": "Angreifer schliesst Leistungsmessgeräte an die Versorgungspins an, erfasst Leistungskurven während kryptografischer Operationen und gewinnt den geheimen Schlüssel per differentieller Leistungsanalyse (DPA)"
+    },
+    "I-014": {
+      "threat": "Elektromagnetischer Seitenkanal-Angriff — sensible Daten über Nahfeld-EM-Emission extrahiert",
+      "cause": "Keine elektromagnetische Abschirmung oder EM-Gegenmassnahmen auf Chip — interne Operationen emittieren korrelierte EM-Signale, die mit einer Nahfeldsonde detektierbar sind",
+      "attack": "Angreifer positioniert eine Nahfeld-EM-Sonde nahe dem Chip und erfasst Emissionskurven während kryptografischer Operationen zur Schlüsselgewinnung per elektromagnetischer Analyse (EMA)"
+    },
+    "I-015": {
+      "threat": "Timing-Seitenkanal-Angriff — geheimer Schlüssel aus Ausführungszeitvariationen abgeleitet",
+      "cause": "Kryptografische Implementierung verwendet datenabhängige Verzweigungen oder Speicherzugriffsmuster — Ausführungszeit variiert mit Schlüssel- oder Klartextwerten",
+      "attack": "Angreifer misst die Dauer kryptografischer Operationen über viele Eingaben und wendet statistische Zeitanalyse zur Schlüsselgewinnung an"
+    },
+    "I-016": {
+      "threat": "Physisches Bus-Probing — Daten durch Abgriff von Leiterplatten-Leiterbahnen extrahiert",
+      "cause": "Sicherheitskritische Bus-Leiterbahnen (CPU↔TPM, CPU↔Secure Element, CPU↔Flash) liegen ohne Verguss oder Schutzlack auf der Leiterplattenoberfläche frei",
+      "attack": "Angreifer öffnet das Gerät, befestigt Mikrosonden oder einen Logikanalysator an freiliegenden Leiterbahnen und erfasst Klartextdaten zwischen sicherheitskritischen Komponenten"
+    },
+    "I-017": {
+      "threat": "On-Board-Bus-Abhören — Klartextdaten von freiliegenden Leiterplatten-Leiterbahnen erfasst",
+      "cause": "Datenfluss läuft auf freiliegenden On-Board-Leiterbahnen ohne physischen Schutz oder Verschlüsselung — ein $30-Logikanalysator reicht zur Erfassung",
+      "attack": "Angreifer öffnet das Gerätegehäuse, schliesst einen Logikanalysator an die zugänglichen Bus-Leiterbahnen an und erfasst alle Klartextdaten zwischen den angebundenen Komponenten"
+    }
+  }
+}

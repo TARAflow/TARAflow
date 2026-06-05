@@ -1,0 +1,19 @@
+{
+  "embedded": {
+    "S-001": {
+      "threat": "Fieldbus sender spoofing: Attacker impersonates {{sourceName}} to inject commands into {{targetName}}",
+      "cause": "Fieldbus protocol carries no sender authentication — {{targetName}} cannot verify the origin of incoming frames",
+      "attack": "Attacker places a rogue node on the fieldbus claiming the address of {{sourceName}} and sends falsified commands"
+    },
+    "S-002": {
+      "threat": "Fieldbus sender spoofing: Attacker impersonates {{sourceName}} on the fieldbus to inject commands into {{targetName}}",
+      "cause": "Fieldbus protocol carries no sender authentication — {{targetName}} cannot verify the origin of incoming frames",
+      "attack": "Attacker places a rogue node on the fieldbus claiming the address of {{sourceName}} and sends falsified commands that {{targetName}} accepts as legitimate"
+    },
+    "S-003": {
+      "threat": "Compromised {{sourceName}} impersonates trusted controller towards {{targetName}}",
+      "cause": "{{targetName}} has no means to verify data originates from the authentic {{sourceName}}",
+      "attack": "After compromising {{sourceName}}, attacker sends falsified sensor readings or control signals that {{targetName}} trusts"
+    }
+  }
+}

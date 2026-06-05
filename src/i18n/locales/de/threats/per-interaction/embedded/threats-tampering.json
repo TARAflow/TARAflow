@@ -1,0 +1,44 @@
+{
+  "embedded": {
+    "T-001": {
+      "threat": "Datenmanipulation über unauthentifiziertes Feldbus-Protokoll zwischen {{sourceName}} und {{targetName}}",
+      "cause": "{{dataFlowName}} hat keinen Integritätsschutz — Daten können im Transit unerkannt modifiziert werden",
+      "attack": "Angreifer fängt Feldbus-Rahmen zwischen {{sourceName}} und {{targetName}} ab und modifiziert sie, um falsche Sollwerte einzuschleusen"
+    },
+    "T-002": {
+      "threat": "Datenmanipulation auf Embedded-Bus {{dataFlowName}} zwischen {{sourceName}} und {{targetName}}",
+      "cause": "Embedded-Bus (SPI, I2C, UART) hat keinen Integritätsschutz — Daten werden im Klartext übertragen",
+      "attack": "Angreifer hängt Hardware-Sonde oder Rogue-Gerät an den Embedded-Bus und injiziert oder modifiziert Datenpakete"
+    },
+    "T-003": {
+      "threat": "Firmware-Manipulation über {{dataFlowName}}-Schnittstelle an {{targetName}}",
+      "cause": "Debug- oder Programmierschnittstelle (JTAG/SWD/Serial) ist zugänglich und nicht gesperrt — Angreifer kann Flash-Speicher direkt lesen und überschreiben",
+      "attack": "Angreifer verbindet einen Debug-Adapter mit der {{dataFlowName}}-Schnittstelle und überschreibt die Firmware auf {{targetName}} mit einem bösartigen Image das Sicherheitskontrollen deaktiviert"
+    },
+    "T-004": {
+      "threat": "Missgeformte Protokoll-Frame-Injektion: Angreifer sendet manipulierte Frames um {{targetName}} zu korrumpieren oder zum Absturz zu bringen",
+      "cause": "{{targetName}} verarbeitet alle eingehenden Frames ohne strikte Protokoll-Konformitätsprüfung — missgeformte Frames erreichen die interne Parsing-Logik",
+      "attack": "Angreifer erstellt Protokoll-Frames mit Werten ausserhalb des Wertebereichs, überdimensionierten Payloads oder ungültigen Sequenzen und injiziert sie in den Datenfluss, um undefiniertes Verhalten in {{targetName}} auszulösen"
+    },
+    "T-005": {
+      "threat": "Kompromittierter {{sourceName}} injiziert manipulierte Daten in nachgelagerten {{targetName}}",
+      "cause": "{{targetName}} vertraut Daten von {{sourceName}} ohne Integritätsprüfung — ein kompromittierter Sender kann den Payload-Inhalt beliebig verändern",
+      "attack": "Angreifer, der die Kontrolle über {{sourceName}} erlangt hat, manipuliert ausgehende Daten (Sollwerte, Messgrössen, Status) vor der Übertragung, sodass {{targetName}} auf Basis falscher Informationen agiert"
+    },
+    "T-006": {
+      "threat": "Physische Kabelmanipulation — Datenfluss über zugängliches Kabel oder Stecker manipuliert",
+      "cause": "Datenfluss verläuft über ein physisch zugängliches Kabel ohne physischen Schutz — kein Kabelkanal, Rohrleitung oder Panzerung",
+      "attack": "Angreifer schleift ein Tap-Gerät oder Signal-Injektor ein und manipuliert Daten im Transit ohne Alarm auszulösen"
+    },
+    "T-007": {
+      "threat": "Integritätsangriff auf sicherheitsrelevanten Datenfluss — Falschwerte erreichen Sicherheitsfunktion",
+      "cause": "Sicherheitskritischer Datenfluss hat keinen Ende-zu-Ende-Integritätsschutz",
+      "attack": "Angreifer modifiziert Werte auf dem Safety-Datenfluss und bewirkt, dass die Sicherheitsfunktion auf falschen Daten operiert"
+    },
+    "T-008": {
+      "threat": "Unberechtigter Schreibzugriff via OT-Protokoll — Angreifer modifiziert Prozesswerte oder Konfiguration",
+      "cause": "OT-Protokoll-Datenfluss ist mit Lese-Schreib-Zugriff konfiguriert — jeder Knoten kann Schreibbefehle ohne Autorisierung senden",
+      "attack": "Angreifer platziert einen Rogue-Node im OT-Netzwerk und sendet Schreibbefehle um Sollwerte oder Reglerkonfiguration zu ändern"
+    }
+  }
+}

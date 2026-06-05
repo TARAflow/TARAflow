@@ -1,0 +1,29 @@
+{
+  "general": {
+    "S-001": {
+      "threat": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+      "cause": "No authentication mechanism enforced for external entities",
+      "attack": "Attacker crafts requests that appear to originate from a legitimate external entity"
+    },
+    "S-002": {
+      "threat": "Process identity spoofing — attacker impersonates a legitimate process",
+      "cause": "Insufficient process authentication — callers are not required to prove their identity",
+      "attack": "Attacker injects requests pretending to be a legitimate caller"
+    },
+    "S-003": {
+      "threat": "Session hijacking — attacker takes over an authenticated process session",
+      "cause": "Weak session management — session tokens are predictable or transmitted insecurely",
+      "attack": "Attacker captures or predicts a valid session token and impersonates a legitimate user"
+    },
+    "S-004": {
+      "threat": "Credential stuffing — attacker uses leaked credentials to authenticate",
+      "cause": "No brute-force protection or multi-factor authentication",
+      "attack": "Attacker uses breached credentials to authenticate against the process"
+    },
+    "S-005": {
+      "threat": "System identity spoofing — attacker impersonates the system or one of its components",
+      "cause": "No system-level authentication — the system does not verify the identity of communicating peers",
+      "attack": "Attacker sets up a rogue system claiming to be a legitimate component"
+    }
+  }
+}

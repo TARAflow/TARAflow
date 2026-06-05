@@ -1,0 +1,29 @@
+{
+  "embedded": {
+    "D-001": {
+      "threat": "OT protocol flooding — attacker floods OT protocol stack causing denial of service",
+      "cause": "OT protocol stack has no rate limiting — flooding causes processing overload",
+      "attack": "Attacker floods the OT protocol interface with high-frequency frames starving legitimate traffic"
+    },
+    "D-002": {
+      "threat": "Embedded system flooding — attacker overwhelms embedded controller communication stack",
+      "cause": "No rate limiting on embedded communication interface — all frames are processed regardless of volume",
+      "attack": "Attacker floods the fieldbus with high-frequency frames exhausting the embedded system communication stack"
+    },
+    "D-003": {
+      "threat": "Safety system denial of service — attacker disrupts safety-critical communication",
+      "cause": "Safety-critical communication has no redundant path and lacks DoS protection",
+      "attack": "Attacker disrupts communication to the safety system causing it to fail safe or fail dangerous"
+    },
+    "D-004": {
+      "threat": "Cable disconnection causing loss of availability — no redundant path for field cable",
+      "cause": "Data flow uses a single field cable with no redundant path",
+      "attack": "Attacker cuts or disconnects the field cable, causing complete loss of the data flow"
+    },
+    "D-005": {
+      "threat": "Disruption of safety-critical data flow — safety function unavailable on demand",
+      "cause": "Safety-critical data flow has no redundant path — disruption directly prevents the safety function from operating",
+      "attack": "Attacker floods or physically disrupts the safety-critical data flow, preventing emergency stop commands from reaching their destination"
+    }
+  }
+}

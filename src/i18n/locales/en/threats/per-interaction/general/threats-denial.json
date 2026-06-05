@@ -1,0 +1,14 @@
+{
+  "general": {
+    "D-001": {
+      "threat": "Request flooding: Attacker overwhelms {{targetName}} with excessive incoming requests",
+      "cause": "No rate limiting or request throttling protecting {{targetName}} from high-volume input via {{sourceName}}",
+      "attack": "Attacker sends a high volume of requests via the data flow, exhausting the processing capacity of {{targetName}}"
+    },
+    "D-002": {
+      "threat": "Response blocking: Attacker prevents {{sourceName}} from receiving responses from {{targetName}}",
+      "cause": "No redundancy or timeout protection — {{sourceName}} depends on responses from {{targetName}} to continue operation",
+      "attack": "Attacker disrupts or delays the response channel from {{targetName}}, causing {{sourceName}} to stall or fail"
+    }
+  }
+}

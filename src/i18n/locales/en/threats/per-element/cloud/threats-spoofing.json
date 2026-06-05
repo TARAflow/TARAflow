@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "S-001": {
+      "threat": "Cloud service identity spoofing — attacker impersonates a legitimate cloud platform or backend",
+      "cause": "No mutual authentication at cloud service boundary",
+      "attack": "Attacker forges service identity to inject requests processed as legitimate cloud service traffic"
+    }
+  }
+}

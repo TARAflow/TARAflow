@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "D-001": {
+      "threat": "API-Request-Flooding: Angreifer überwältigt {{targetName}} via übermässiger Anfragen von {{sourceName}}",
+      "cause": "Keine Rate-Limitierung oder Request-Throttling schützt {{targetName}} an der API-Grenze — das Anfragevolumen von {{sourceName}} ist nicht begrenzt",
+      "attack": "Angreifer sendet ein hohes Volumen an Anfragen durch den Datenfluss, erschöpft die Verarbeitungskapazität von {{targetName}} und macht den Service für legitime Aufrufer unavailable"
+    }
+  }
+}

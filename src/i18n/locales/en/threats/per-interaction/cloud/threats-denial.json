@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "D-001": {
+      "threat": "API request flooding: Attacker overwhelms {{targetName}} via excessive requests from {{sourceName}}",
+      "cause": "No rate limiting protecting {{targetName}} at the API boundary",
+      "attack": "Attacker sends high volume of requests exhausting the processing capacity of {{targetName}}"
+    }
+  }
+}

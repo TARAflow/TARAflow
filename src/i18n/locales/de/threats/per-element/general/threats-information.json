@@ -1,0 +1,34 @@
+{
+  "general": {
+    "I-001": {
+      "threat": "Informationsoffenlegung durch Fehlermeldungen",
+      "cause": "Übermäßige Informationsfreigabe in der Fehlerbehandlung",
+      "attack": "Detaillierte Fehlermeldungen offenbaren sensible System- oder interne Informationen"
+    },
+    "I-002": {
+      "threat": "Speicherinhalt-Offenlegung",
+      "cause": "Fehlende Speicherisolierung oder Seitenkanal-Schutzmaßnahmen",
+      "attack": "Angreifer extrahiert sensible Daten aus dem Prozessspeicher mittels Seitenkanaltechniken"
+    },
+    "I-003": {
+      "threat": "Abhören von Datenflüssen",
+      "cause": "Unverschlüsselte oder schwach geschützte Kommunikationskanäle",
+      "attack": "Angreifer fängt sensible Daten während der Übertragung zwischen Komponenten ab und liest sie"
+    },
+    "I-004": {
+      "threat": "Informationsleck durch Verkehrsanalyse",
+      "cause": "Fehlende Verkehrsverschleierung oder Metadatenschutz",
+      "attack": "Angreifer analysiert Kommunikationsmuster, um auf sensible Informationen zu schließen"
+    },
+    "I-005": {
+      "threat": "Unbefugter Zugriff auf gespeicherte Daten",
+      "cause": "Schwache Zugriffsschutzmechanismen auf den Speicher",
+      "attack": "Angreifer erhält unbefugten Lesezugriff auf sensible gespeicherte Daten"
+    },
+    "I-006": {
+      "threat": "Datenexposition über Hilfsdateien",
+      "cause": "Unsachgemäßer Umgang mit Backups, Protokollen oder temporären Dateien",
+      "attack": "Angreifer greift über ungesicherte Backups oder Protokolldateien auf sensible Daten zu"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "general": {
+    "I-001": {
+      "threat": "Abhören eingehender Daten: Angreifer fängt sensible Daten ab, die an {{targetName}} fließen",
+      "cause": "Unverschlüsselter oder schwach geschützter Kommunikationskanal zwischen {{sourceName}} und {{targetName}}",
+      "attack": "Angreifer überwacht passiv den Datenfluss und liest sensible Nutzdaten, die von {{sourceName}} an {{targetName}} übertragen werden"
+    },
+    "I-002": {
+      "threat": "Abhören der Antwort: Angreifer fängt sensible Antwortdaten von {{targetName}} ab",
+      "cause": "Unverschlüsselter oder schwach geschützter Antwortkanal — Antwortdaten sind während der Übertragung lesbar",
+      "attack": "Angreifer fängt die Antwort von {{targetName}} an {{sourceName}} ab und liest sensible Informationen"
+    }
+  }
+}

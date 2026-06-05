@@ -1,0 +1,24 @@
+{
+  "general": {
+    "E-001": {
+      "threat": "Rechteausweitung durch Eingabemanipulation",
+      "cause": "Unsachgemäße Eingabevalidierung und Rechtedurchsetzung",
+      "attack": "Angreifer nutzt Eingabevalidierungsfehler aus, um erhöhte Rechte zu erlangen"
+    },
+    "E-002": {
+      "threat": "Autorisierungsumgehung",
+      "cause": "Fehlerhafte oder fehlende Autorisierungsprüfungen",
+      "attack": "Angreifer umgeht Autorisierungskontrollen, um auf eingeschränkte Funktionen zuzugreifen"
+    },
+    "E-003": {
+      "threat": "Ausführung beliebigen Codes",
+      "cause": "Injection-Schwachstellen oder unsichere Ausführungspfade",
+      "attack": "Angreifer injiziert und führt bösartigen Code im Prozesskontext aus"
+    },
+    "E-004": {
+      "threat": "Privilege Escalation an der Systemgrenze",
+      "cause": "Unzureichende Autorisierungsdurchsetzung an der Systemgrenze — ein Angreifer kann durch Ausnutzung von Boundary-Schwächen erhöhte Zugriffsrechte erlangen",
+      "attack": "Angreifer nutzt eine Schwachstelle an der Systemgrenze (unauthentiziertes Management-Interface, schwache Rollentrennung) aus, um administrative oder Operator-Privilegien zu erlangen"
+    }
+  }
+}

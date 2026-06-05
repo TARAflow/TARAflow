@@ -1,0 +1,14 @@
+{
+  "general": {
+    "I-001": {
+      "threat": "Eavesdropping on incoming data: Attacker intercepts sensitive data flowing to {{targetName}}",
+      "cause": "Unencrypted or weakly protected communication channel between {{sourceName}} and {{targetName}}",
+      "attack": "Attacker passively monitors the data flow and reads sensitive payload transmitted from {{sourceName}} to {{targetName}}"
+    },
+    "I-002": {
+      "threat": "Eavesdropping on response: Attacker intercepts sensitive response data from {{targetName}}",
+      "cause": "Unencrypted or weakly protected response channel — response data is readable in transit",
+      "attack": "Attacker intercepts the response from {{targetName}} to {{sourceName}} and reads sensitive information"
+    }
+  }
+}

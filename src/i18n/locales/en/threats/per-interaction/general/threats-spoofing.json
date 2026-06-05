@@ -1,0 +1,14 @@
+{
+  "general": {
+    "S-001": {
+      "threat": "Sender spoofing: Attacker impersonates {{sourceName}} to deceive {{targetName}}",
+      "cause": "Missing sender authentication on incoming data flow — {{targetName}} cannot verify the true origin of received data",
+      "attack": "Attacker forges the identity of {{sourceName}} and sends malicious data to {{targetName}}, which processes it as legitimate"
+    },
+    "S-002": {
+      "threat": "Receiver spoofing: Attacker impersonates {{targetName}} to intercept data from {{sourceName}}",
+      "cause": "Missing endpoint validation before data transmission — {{sourceName}} cannot verify the true identity of the receiving endpoint",
+      "attack": "Attacker sets up a rogue endpoint pretending to be {{targetName}}, causing {{sourceName}} to send sensitive data to the attacker"
+    }
+  }
+}

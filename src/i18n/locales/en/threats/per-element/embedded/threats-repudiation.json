@@ -1,0 +1,9 @@
+{
+  "embedded": {
+    "R-001": {
+      "threat": "Embedded system action repudiation — embedded controller denies having sent data or executed a command",
+      "cause": "No non-repudiation mechanism on embedded communication — messages are not cryptographically signed",
+      "attack": "Embedded controller denies having sent a control command that another system received and acted upon"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "S-001": {
+      "threat": "Service-Identitäts-Spoofing an der Cloud-Grenze: Angreifer imitiert {{sourceName}} um gefälschte Anfragen in {{targetName}} einzuschleusen",
+      "cause": "Fehlende oder unzureichende gegenseitige Authentifizierung an der Service-Grenze — {{targetName}} kann legitime von gefälschten Anfragen nicht unterscheiden",
+      "attack": "Angreifer beschafft oder fälscht ein Service-Token für {{sourceName}} und sendet Anfragen an {{targetName}}, die so verarbeitet werden, als kämen sie vom vertrauenswürdigen Upstream-Service"
+    }
+  }
+}

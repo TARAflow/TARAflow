@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "S-001": {
+      "threat": "Cloud-Service-Identitäts-Spoofing via Token-Diebstahl",
+      "cause": "Gestohlene oder gefälschte Access-Tokens ermöglichen es einem Angreifer, den Cloud-Service gegenüber verbundenen Clients zu imitieren",
+      "attack": "Angreifer beschafft sich ein Service-Token (z.B. via Credential-Leak oder SSRF) und präsentiert es Clients, um Datenflüsse umzuleiten oder unautorisiierte Befehle auszuführen"
+    }
+  }
+}

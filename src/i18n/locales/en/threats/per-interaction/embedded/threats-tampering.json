@@ -1,0 +1,44 @@
+{
+  "embedded": {
+    "T-001": {
+      "threat": "Data tampering via unauthenticated fieldbus protocol between {{sourceName}} and {{targetName}}",
+      "cause": "{{dataFlowName}} carries no integrity protection — data can be modified in transit without detection",
+      "attack": "Attacker intercepts and modifies fieldbus frames between {{sourceName}} and {{targetName}} to inject false setpoints"
+    },
+    "T-002": {
+      "threat": "Data tampering on embedded bus {{dataFlowName}} between {{sourceName}} and {{targetName}}",
+      "cause": "Embedded bus carries no integrity protection or authentication — data is transmitted in plaintext",
+      "attack": "Attacker attaches a hardware probe to the embedded bus and injects or modifies data packets"
+    },
+    "T-003": {
+      "threat": "Firmware tampering via {{dataFlowName}} interface on {{targetName}}",
+      "cause": "Debug or programming interface is accessible and not locked — attacker can overwrite flash memory directly",
+      "attack": "Attacker connects a debug probe to the {{dataFlowName}} interface and overwrites firmware with a malicious image"
+    },
+    "T-004": {
+      "threat": "Malformed protocol frame injection: Attacker sends crafted frames to corrupt or crash {{targetName}}",
+      "cause": "{{targetName}} processes all incoming frames without strict protocol conformance validation",
+      "attack": "Attacker crafts protocol frames with out-of-range values or invalid sequences to trigger undefined behavior in {{targetName}}"
+    },
+    "T-005": {
+      "threat": "Compromised {{sourceName}} injects tampered data into downstream {{targetName}}",
+      "cause": "{{targetName}} trusts data from {{sourceName}} without integrity verification",
+      "attack": "Attacker who controls {{sourceName}} manipulates outgoing data causing {{targetName}} to act on falsified information"
+    },
+    "T-006": {
+      "threat": "Physical cable tampering — data flow manipulated via accessible cable or connector",
+      "cause": "Data flow runs through a physically accessible cable without physical protection",
+      "attack": "Attacker splices in a tap device or signal injector and manipulates data in transit without triggering any alarm"
+    },
+    "T-007": {
+      "threat": "Integrity attack on safety-relevant data flow — false values reach safety function",
+      "cause": "Safety-critical data flow carries no end-to-end integrity protection",
+      "attack": "Attacker modifies values on the safety data flow causing the safety function to operate on false data"
+    },
+    "T-008": {
+      "threat": "Unauthorized write access via OT protocol — attacker modifies process values or configuration",
+      "cause": "OT protocol data flow is configured with read-write access — any node can issue write commands without authorization",
+      "attack": "Attacker places a rogue node on the OT network and sends write commands to modify setpoints or controller configuration"
+    }
+  }
+}

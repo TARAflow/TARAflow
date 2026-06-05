@@ -1,0 +1,39 @@
+{
+  "general": {
+    "T-001": {
+      "threat": "Process input tampering — attacker modifies input data to alter process behavior",
+      "cause": "Insufficient input validation — the process accepts data without verifying its integrity",
+      "attack": "Attacker injects malformed or malicious input data that causes the process to behave incorrectly"
+    },
+    "T-002": {
+      "threat": "Process state tampering — attacker modifies process state to gain unauthorized capabilities",
+      "cause": "Process state is stored without integrity protection",
+      "attack": "Attacker modifies process state variables to bypass security checks"
+    },
+    "T-003": {
+      "threat": "Data flow tampering — attacker modifies data in transit between components",
+      "cause": "Data flow is unprotected — no integrity check or encryption prevents modification",
+      "attack": "Attacker intercepts and modifies values before they reach the destination"
+    },
+    "T-004": {
+      "threat": "Data flow replay attack — attacker replays captured legitimate messages",
+      "cause": "No replay protection on data flow — messages lack sequence numbers or nonces",
+      "attack": "Attacker captures a legitimate message and replays it to trigger the same action without authorization"
+    },
+    "T-005": {
+      "threat": "Data store tampering — attacker modifies stored data to alter system behavior",
+      "cause": "Data store lacks access controls or integrity protection",
+      "attack": "Attacker modifies configuration, state, or security parameters in the data store"
+    },
+    "T-006": {
+      "threat": "Data store injection — attacker injects malicious data into the data store",
+      "cause": "No input sanitization before writing to the data store",
+      "attack": "Attacker writes malicious payloads that are later executed by other system components"
+    },
+    "T-007": {
+      "threat": "System configuration tampering — attacker modifies system configuration",
+      "cause": "System configuration is stored without integrity protection or access control",
+      "attack": "Attacker modifies configuration parameters to disable security controls or create backdoors"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "cloud": {
+    "E-001": {
+      "threat": "Token- oder JWT-Manipulation zur Privilege Escalation an der API-Grenze von {{targetName}}",
+      "cause": "{{targetName}} validiert Token-Claims oder Signatur-Integrität nicht streng genug — gefälschte oder manipulierte Tokens werden akzeptiert",
+      "attack": "Angreifer modifiziert ein JWT oder Access-Token um erhöhte Rollen oder Scopes einzuschliessen und übermittelt es an {{targetName}}, das daraufhin unautorisierten Zugriff auf Basis der gefälschten Claims gewährt"
+    },
+    "E-002": {
+      "threat": "Kompromittierter {{sourceName}} sendet Privilege-Escalation-Payloads an {{targetName}}",
+      "cause": "{{targetName}} gewährt erhöhte Operationen basierend auf dem Payload-Inhalt von {{sourceName}} ohne unabhängige Autorisierungsverifizierung",
+      "attack": "Angreifer, der {{sourceName}} kontrolliert, erstellt Anfragen mit erhöhten Berechtigungsansprüchen oder Admin-Operationscodes, die {{targetName}} ausführt und damit unautorisierten administrativen Zugriff gewährt"
+    }
+  }
+}

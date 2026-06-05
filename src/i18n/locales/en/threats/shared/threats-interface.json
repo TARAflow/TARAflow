@@ -1,0 +1,39 @@
+{
+  "interface": {
+    "S-005": {
+      "threat": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+      "cause": "No hardware authentication on the interface — any device connecting is trusted without verification",
+      "attack": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access"
+    },
+    "T-007": {
+      "threat": "Interface tampering — attacker physically or logically tampers with the interface",
+      "cause": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+      "attack": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications"
+    },
+    "R-005": {
+      "threat": "Interface access repudiation — physical interface access cannot be attributed",
+      "cause": "No logging of physical interface connections — who connected and when is unknown",
+      "attack": "Attacker connects to the physical interface and denies having accessed it because no log record exists"
+    },
+    "I-007": {
+      "threat": "Interface eavesdropping — attacker intercepts data on the physical interface",
+      "cause": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+      "attack": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data"
+    },
+    "D-006": {
+      "threat": "Interface denial of service — attacker renders the interface unavailable",
+      "cause": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+      "attack": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail"
+    },
+    "E-004": {
+      "threat": "Interface privilege escalation — attacker uses interface to gain elevated system access",
+      "cause": "Interface provides access to privileged functions without sufficient authentication or authorization",
+      "attack": "Attacker exploits the interface to access privileged commands or bypass software-level access controls"
+    },
+    "E-005": {
+      "threat": "Interface firmware injection — attacker installs unauthorized firmware via interface",
+      "cause": "Interface accepts firmware updates without signature verification — any firmware image is accepted",
+      "attack": "Attacker uses the interface to upload malicious firmware that disables security controls or introduces a persistent backdoor"
+    }
+  }
+}

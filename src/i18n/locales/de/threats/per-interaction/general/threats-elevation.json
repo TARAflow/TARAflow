@@ -1,0 +1,14 @@
+{
+  "general": {
+    "E-001": {
+      "threat": "Befehlsinjektion: Angreifer injiziert Befehle über den Datenfluss, um Rechte in {{targetName}} auszuweiten",
+      "cause": "Unzureichende Eingabevalidierung in {{targetName}} — eingehende Daten von {{sourceName}} werden mit erhöhtem Vertrauen verarbeitet",
+      "attack": "Angreifer injiziert bösartige Befehle oder Nutzdaten in den Datenfluss, die {{targetName}} mit eigenem Rechteprofil ausführt"
+    },
+    "E-002": {
+      "threat": "Antwortmanipulation zur Rechteausweitung: Angreifer manipuliert Antwort für erhöhten Zugriff in {{sourceName}}",
+      "cause": "{{sourceName}} vertraut Antwortdaten von {{targetName}} ohne Integritätsprüfung, was Rechtsentscheidungen auf Basis gefälschter Antworten ermöglicht",
+      "attack": "Angreifer modifiziert die Antwort von {{targetName}} mit erhöhten Rollen oder Berechtigungen, wodurch {{sourceName}} unbefugten Zugriff gewährt"
+    }
+  }
+}

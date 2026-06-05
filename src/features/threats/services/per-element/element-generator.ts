@@ -591,9 +591,18 @@ export class ElementThreatGenerator {
     // Set them here so the dialog/table has immediate content without
     // requiring a separate i18n lookup call at each render.
     if (template) {
-      threat.threatDescription = getLocalizedElementThreat(template.id);
-      threat.attackDescription = getLocalizedElementAttack(template.id);
-      threat.causeDescription = getLocalizedElementCause(template.id);
+      threat.threatDescription = getLocalizedElementThreat(
+        template.id,
+        template.domain ?? "general",
+      );
+      threat.attackDescription = getLocalizedElementAttack(
+        template.id,
+        template.domain ?? "general",
+      );
+      threat.causeDescription = getLocalizedElementCause(
+        template.id,
+        template.domain ?? "general",
+      );
       const templateMitigations = template.mitigations.map((id) => ({
         id,
       }));

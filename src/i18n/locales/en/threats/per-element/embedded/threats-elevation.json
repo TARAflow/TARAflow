@@ -1,0 +1,29 @@
+{
+  "embedded": {
+    "E-001": {
+      "threat": "JTAG privilege escalation — attacker gains full processor control via JTAG interface",
+      "cause": "JTAG interface is accessible and not locked via OTP fuse",
+      "attack": "Attacker connects JTAG probe, halts CPU, reads/writes memory and bypasses all software security controls"
+    },
+    "E-002": {
+      "threat": "Secure Boot disable via RDP downgrade — attacker removes all debug protection",
+      "cause": "RDP Level 2 not applied — JTAG can be re-enabled allowing firmware modification",
+      "attack": "Attacker uses unlocked JTAG to disable Secure Boot verification and install persistent malicious firmware"
+    },
+    "E-003": {
+      "threat": "Embedded process privilege escalation — attacker gains elevated access on embedded process",
+      "cause": "Debug interface or privileged API accessible without proper authentication",
+      "attack": "Attacker exploits embedded process debug interface to execute code with elevated privileges"
+    },
+    "E-004": {
+      "threat": "Embedded system privilege escalation — attacker gains elevated access on embedded controller",
+      "cause": "Debug interfaces or privileged commands accessible without authentication",
+      "attack": "Attacker exploits debug interface to execute code with system-level authority on the embedded controller"
+    },
+    "E-005": {
+      "threat": "Secure boot bypass on embedded system — attacker bypasses firmware signature verification",
+      "cause": "Secure Boot is not enforced or can be bypassed via debug interface",
+      "attack": "Attacker disables Secure Boot to execute malicious firmware that persists across device resets"
+    }
+  }
+}

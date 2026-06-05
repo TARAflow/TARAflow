@@ -1,0 +1,14 @@
+{
+  "embedded": {
+    "I-001": {
+      "threat": "Abhören des Embedded-Bus {{dataFlowName}} zwischen {{sourceName}} und {{targetName}}",
+      "cause": "Embedded-Bus-Kommunikation ist unverschlüsselt und physisch zugänglich",
+      "attack": "Angreifer hängt Logikanalysator oder passive Sonde an den Embedded-Bus und zeichnet den gesamten Datenverkehr auf"
+    },
+    "I-002": {
+      "threat": "Extraktion sensibler Daten über {{dataFlowName}}-Schnittstelle von {{targetName}}",
+      "cause": "Debug-Schnittstelle ist ohne Leseschutz zugänglich — Firmware, kryptografische Schlüssel und Konfigurationsdaten sind auslesbar",
+      "attack": "Angreifer verbindet sich mit der {{dataFlowName}}-Schnittstelle und liest Flash-Speicher oder RAM von {{targetName}} aus um Firmware, API-Keys, Gerätezertifikate oder kryptografisches Material zu extrahieren"
+    }
+  }
+}

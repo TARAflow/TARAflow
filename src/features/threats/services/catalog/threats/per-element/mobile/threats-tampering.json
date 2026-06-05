@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/mobile",
+  "elementTemplates": [
+    {
+      "id": "T-001",
+      "strideCategory": "T",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {
+        "systemClass": [
+          "mobile_device",
+          "workstation"
+        ]
+      },
+      "mitigations": [
+        "M-T-001",
+        "M-T-004"
+      ],
+      "verifications": [
+        "V-T-001",
+        "V-T-004"
+      ],
+      "isCustom": false,
+      "domain": "mobile"
+    }
+  ]
+}

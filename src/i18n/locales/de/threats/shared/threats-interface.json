@@ -1,0 +1,39 @@
+{
+  "interface": {
+    "S-005": {
+      "threat": "Schnittstellen-Identitätsfälschung — Angreifer gibt sich als legitimes Gerät an der Schnittstelle aus",
+      "cause": "Keine Hardware-Authentifizierung an der Schnittstelle — jedes angeschlossene Gerät wird ohne Verifikation vertraut",
+      "attack": "Angreifer schließt ein gefälschtes Gerät an und gibt sich als legitimes System aus"
+    },
+    "T-007": {
+      "threat": "Schnittstellenmanipulation — Angreifer manipuliert die Schnittstelle physisch oder logisch",
+      "cause": "Schnittstelle hat keine Manipulationserkennung und keinen physischen Schutz",
+      "attack": "Angreifer modifiziert die Schnittstellen-Hardware oder -Firmware um Kommunikation abzufangen oder zu injizieren"
+    },
+    "R-005": {
+      "threat": "Schnittstellenzugriff nicht zurechenbar — physischer Zugriff kann nicht attribuiert werden",
+      "cause": "Keine Protokollierung physischer Schnittstellenverbindungen — wer wann zugegriffen hat ist unbekannt",
+      "attack": "Angreifer verbindet sich mit der physischen Schnittstelle und bestreitet den Zugriff mangels Protokolleintrag"
+    },
+    "I-007": {
+      "threat": "Schnittstellen-Abhören — Angreifer interceptiert Daten an der physischen Schnittstelle",
+      "cause": "Physische Schnittstelle überträgt Daten ohne Verschlüsselung — Signale sind mit einfachem Prüfgerät lesbar",
+      "attack": "Angreifer klemmt Messgerät an die physische Schnittstelle und zeichnet übertragene Daten auf"
+    },
+    "D-006": {
+      "threat": "Schnittstellen-Denial-of-Service — Angreifer macht die Schnittstelle unverfügbar",
+      "cause": "Schnittstelle hat keinen Schutz gegen elektrische Überlastung oder Signalflutung",
+      "attack": "Angreifer legt übermässige elektrische Eingaben oder Flutungssignale an die Schnittstelle an"
+    },
+    "E-004": {
+      "threat": "Schnittstellen-Rechteausweitung — Angreifer nutzt Schnittstelle um erhöhten Systemzugriff zu erlangen",
+      "cause": "Schnittstelle bietet Zugang zu privilegierten Funktionen ohne ausreichende Authentifizierung",
+      "attack": "Angreifer nutzt die Schnittstelle um privilegierte Befehle auszuführen oder Software-Zugriffskontrolle zu umgehen"
+    },
+    "E-005": {
+      "threat": "Schnittstellen-Firmware-Injektion — Angreifer installiert nicht autorisierte Firmware via Schnittstelle",
+      "cause": "Schnittstelle akzeptiert Firmware-Updates ohne Signaturprüfung",
+      "attack": "Angreifer lädt über die Schnittstelle bösartige Firmware hoch die Sicherheitskontrollen deaktiviert"
+    }
+  }
+}

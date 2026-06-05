@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "T-001": {
+      "threat": "Cloud service configuration tampering — attacker modifies cloud service configuration",
+      "cause": "Cloud configuration lacks integrity protection",
+      "attack": "Attacker modifies cloud service configuration to disable security controls or redirect traffic"
+    }
+  }
+}

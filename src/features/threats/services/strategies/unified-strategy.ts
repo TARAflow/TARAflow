@@ -179,14 +179,18 @@ export class UnifiedStrategy implements IGeneratorStrategy {
     // Combine: CIANAAA overrides/extends properties result when both active
     let finalCategories: StrideCategory[];
     if (cianaaaResult.applied) {
-      // CIANAAA is authoritative when available — union with properties result
       const combined = new Set([
         ...cianaaaResult.categories,
         ...(propsResult.applied ? propsResult.categories : []),
       ]);
-      finalCategories = Array.from(combined);
+      // baseCategories are law — CIANAAA and properties cannot add new categories
+      finalCategories = Array.from(combined).filter((c) =>
+        baseCategories.includes(c),
+      );
     } else if (propsResult.applied) {
-      finalCategories = propsResult.categories;
+      finalCategories = propsResult.categories.filter((c) =>
+        baseCategories.includes(c),
+      );
     } else {
       finalCategories = baseCategories;
     }

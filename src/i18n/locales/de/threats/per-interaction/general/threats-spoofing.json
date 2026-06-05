@@ -1,0 +1,14 @@
+{
+  "general": {
+    "S-001": {
+      "threat": "Sender-Spoofing: Angreifer gibt sich als {{sourceName}} aus, um {{targetName}} zu täuschen",
+      "cause": "Fehlende Sender-Authentifizierung auf dem eingehenden Datenfluss — {{targetName}} kann den tatsächlichen Ursprung empfangener Daten nicht verifizieren",
+      "attack": "Angreifer fälscht die Identität von {{sourceName}} und sendet bösartige Daten an {{targetName}}, das diese als legitim verarbeitet"
+    },
+    "S-002": {
+      "threat": "Empfänger-Spoofing: Angreifer gibt sich als {{targetName}} aus, um Daten von {{sourceName}} abzufangen",
+      "cause": "Fehlende Endpunkt-Validierung vor der Datenübertragung — {{sourceName}} kann die wahre Identität des Empfängers nicht verifizieren",
+      "attack": "Angreifer richtet einen gefälschten Endpunkt ein, der {{targetName}} imitiert, und veranlasst {{sourceName}}, sensible Daten an den Angreifer zu senden"
+    }
+  }
+}

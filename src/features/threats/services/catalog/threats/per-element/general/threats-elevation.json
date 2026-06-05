@@ -1,0 +1,93 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/general",
+  "elementTemplates": [
+    {
+      "id": "E-001",
+      "strideCategory": "E",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-003",
+        "M-E-005"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-E-002",
+        "V-E-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "E-002",
+      "strideCategory": "E",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-003",
+        "M-E-005"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-E-002",
+        "V-E-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "E-003",
+      "strideCategory": "E",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-003",
+        "M-E-005"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-E-002",
+        "V-E-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "E-006",
+      "strideCategory": "E",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-003",
+        "M-E-005"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-E-002",
+        "V-E-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    }
+  ]
+}

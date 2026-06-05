@@ -1,0 +1,24 @@
+{
+  "embedded": {
+    "D-001": {
+      "threat": "Fieldbus flooding causing denial of service at {{targetName}}",
+      "cause": "{{targetName}} has no rate limiting on {{dataFlowName}} — all incoming frames are processed regardless of volume",
+      "attack": "Attacker floods {{dataFlowName}} with high-frequency frames, saturating {{targetName}} communication stack"
+    },
+    "D-002": {
+      "threat": "Fieldbus flooding: Attacker saturates {{targetName}} input buffer via high-frequency frames from {{sourceName}}",
+      "cause": "{{targetName}} has no rate limiting on its communication interface — all incoming frames are queued and processed",
+      "attack": "Attacker floods the fieldbus with high-frequency frames exhausting {{targetName}} communication stack"
+    },
+    "D-003": {
+      "threat": "Cable disconnection causing loss of availability — no redundant path for field cable",
+      "cause": "Data flow uses a single field cable with no redundant path",
+      "attack": "Attacker cuts or disconnects the field cable, causing complete loss of the data flow"
+    },
+    "D-004": {
+      "threat": "Disruption of safety-critical data flow — safety function unavailable on demand",
+      "cause": "Safety-critical data flow has no redundant path — disruption directly prevents the safety function from operating",
+      "attack": "Attacker floods or physically disrupts the safety-critical data flow, preventing emergency stop commands from reaching their destination"
+    }
+  }
+}

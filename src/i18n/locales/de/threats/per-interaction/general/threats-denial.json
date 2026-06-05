@@ -1,0 +1,14 @@
+{
+  "general": {
+    "D-001": {
+      "threat": "Anfragen-Flutung: Angreifer überwältigt {{targetName}} mit übermäßigen eingehenden Anfragen",
+      "cause": "Keine Ratenbegrenzung oder Drosselung zum Schutz von {{targetName}} vor hohem Anfragevolumen über {{sourceName}}",
+      "attack": "Angreifer sendet ein hohes Volumen an Anfragen über den Datenfluss und erschöpft die Verarbeitungskapazität von {{targetName}}"
+    },
+    "D-002": {
+      "threat": "Antwortblockierung: Angreifer verhindert, dass {{sourceName}} Antworten von {{targetName}} empfängt",
+      "cause": "Keine Redundanz oder Timeout-Schutz — {{sourceName}} ist für den weiteren Betrieb auf Antworten von {{targetName}} angewiesen",
+      "attack": "Angreifer unterbricht oder verzögert den Antwortkanal von {{targetName}}, wodurch {{sourceName}} blockiert oder ausfällt"
+    }
+  }
+}

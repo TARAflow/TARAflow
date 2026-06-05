@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "T-001": {
+      "threat": "Kompromittierter Cloud-Service {{sourceName}} propagiert manipulierte Daten an {{targetName}}",
+      "cause": "{{targetName}} vertraut Antworten von {{sourceName}} im Service-Mesh implizit — keine Ende-zu-Ende-Integritätsprüfung existiert zwischen den Services",
+      "attack": "Angreifer, der {{sourceName}} kompromittiert hat, modifiziert ausgehende API-Antworten oder Event-Payloads, sodass {{targetName}} gefälschte Daten speichert oder darauf reagiert, ohne die Manipulation zu erkennen"
+    }
+  }
+}

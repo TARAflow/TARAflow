@@ -1,0 +1,44 @@
+{
+  "gap": {
+    "T-001": {
+      "threat": "Undefinierter Fail-Safe-Ausgangszustand — Prozessausgänge erreichen bei Kommunikationsausfall oder Angriff beliebige Werte",
+      "cause": "Kein deterministischer Fail-Safe-Ausgangszustand für Prozessausgänge definiert — bei Fehler oder Angriff sind Aktorausgaben nicht vorhersehbar",
+      "attack": "Angreifer unterbricht die Kommunikation zum Prozess; ohne definierten Fail-Safe-Zustand können Ausgaben Aktoren in eine gefährliche statt sichere Stellung bringen"
+    },
+    "T-002": {
+      "threat": "Nur-Werk-Schnittstelle in Produktion aktiv — persistenter privilegierter Zugriffspunkt nach Deployment",
+      "cause": "Schnittstelle für Werksnutzung konfiguriert (Bereitstellung, Kalibrierung) aber vor Produktionsfreigabe nicht deaktiviert — operationalState ist nicht permanent_disabled",
+      "attack": "Angreifer entdeckt aktive Werkschnittstelle am ausgelieferten Gerät und nutzt sie für privilegierte Funktionen die nur für die Fertigung vorgesehen sind, unter Umgehung der Produktionssicherheitskontrollen"
+    },
+    "T-003": {
+      "threat": "Wartungsschnittstelle ausserhalb des Wartungsfensters zugänglich — unautorisierter privilegierter Zugriff jederzeit möglich",
+      "cause": "Schnittstelle als wartungsgebunden deklariert aber keine Richtlinienerzwingung deaktiviert sie ausserhalb deklarierter Wartungsfenster — Zugriff dauerhaft verfügbar",
+      "attack": "Angreifer verbindet sich ausserhalb eines geplanten Wartungsfensters mit der Wartungsschnittstelle und greift auf privilegierte Diagnose- oder Konfigurationsfunktionen zu"
+    },
+    "S-001": {
+      "threat": "Nur lokales Account-Management — veraltete Konten bleiben bestehen, keine zentrale Sperrung möglich",
+      "cause": "Account-Management ist nur lokal — kein zentrales Verzeichnis oder IAM-System. Konten ehemaliger Mitarbeiter, Dienstleister oder kompromittierte Zugangsdaten können nicht geräteübergreifend gesperrt werden",
+      "attack": "Angreifer nutzt Zugangsdaten eines ehemaligen Mitarbeiters oder kompromittiertes Konto das lokal auf dem Gerät noch existiert und erhält authentifizierten Zugang ohne dass eine zentrale Sperrung greift"
+    },
+    "D-001": {
+      "threat": "Kein Backup-Mechanismus — System nach Ransomware, Hardware-Ausfall oder destruktivem Angriff nicht wiederherstellbar",
+      "cause": "Kein automatisiertes Backup oder getestetes Recovery-Verfahren konfiguriert — Systemdaten und -konfiguration existieren nur auf dem Gerät selbst",
+      "attack": "Angreifer setzt Ransomware oder Wiper-Malware ein die Systemdaten und Konfiguration vernichtet; ohne Backup kann das System nicht wiederhergestellt werden und der Produktionsbetrieb ist auf unbestimmte Zeit unterbrochen"
+    },
+    "T-004": {
+      "threat": "Unsignierter Firmware-Update-Mechanismus — Angreifer kann Schad-Firmware unerkannt installieren",
+      "cause": "Update-Mechanismus erfordert keine kryptografischen Signaturen — manuelles lokales Update oder kein Update-Mechanismus bedeutet jedes Firmware-Image kann ohne Verifikation installiert werden",
+      "attack": "Angreifer erhält Zugang zum Update-Kanal oder zur physischen Update-Schnittstelle und installiert ein schädliches Firmware-Image das Sicherheitskontrollen deaktiviert, eine Backdoor öffnet oder Daten exfiltriert"
+    },
+    "I-001": {
+      "threat": "Kryptografische Schlüssel in reinem Software-Speicher — extrahierbar per Memory-Dump, Debug-Zugang oder Seitenkanal",
+      "cause": "Authentifizierungs-Speicher ist nur Software — Schlüssel und Zugangsdaten liegen im normalen Flash oder RAM ohne Hardware-Schutzgrenze und sind über Debug-Schnittstellen, Memory-Dump oder Seitenkanal-Angriff erreichbar",
+      "attack": "Angreifer nutzt Debug-Schnittstelle, Cold-Boot-Angriff oder Firmware-Extraktion um Speicherinhalte des Prozesses auszulesen und gewinnt kryptografische Schlüssel oder Zugangsdaten ohne Hardware-Schutz"
+    },
+    "T-005": {
+      "threat": "Kryptografischer Standard nicht bewertet — nicht konforme oder schwache Algorithmen könnten im Einsatz sein",
+      "cause": "Krypto-Standard-Konformität für diese Chip-Boundary nicht bewertet — verwendete Algorithmen, Schlüssellängen und Protokolle sind unbekannt und entsprechen möglicherweise nicht aktuellen Anforderungen",
+      "attack": "Angreifer nutzt schwache oder veraltete kryptografische Algorithmen (MD5, SHA-1, DES, RSA-1024) die aufgrund fehlender Konformitätsbewertung beim Design nicht erkannt wurden"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/embedded",
+  "elementTemplates": [
+    {
+      "id": "S-001",
+      "strideCategory": "S",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {
+        "systemClass": [
+          "embedded_controller",
+          "safety_system",
+          "scada_hmi"
+        ]
+      },
+      "mitigations": [
+        "M-S-001",
+        "M-S-002",
+        "M-S-003",
+        "M-IF-S-001",
+        "M-S-006"
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-S-004"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "S-002",
+      "strideCategory": "S",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {
+        "technology": [
+          "protocol_stack",
+          "driver"
+        ],
+        "regulation": [
+          "IEC 62443"
+        ]
+      },
+      "mitigations": [
+        "M-S-001",
+        "M-S-002",
+        "M-IF-S-001"
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-IF-S-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

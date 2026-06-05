@@ -1,0 +1,9 @@
+{
+  "mobile": {
+    "T-001": {
+      "threat": "Manipulation des mobilen Applikations-Binaries",
+      "cause": "Applikations-Binary ist nicht gegen Repackaging geschützt — Angreifer kann bösartigen Code injizieren und die modifizierte App weiterverbreiten",
+      "attack": "Angreifer dekompiliert die App, injiziert bösartige Logik oder Backdoors, verpackt sie neu und verbreitet sie via Sideloading oder Drittanbieter-Stores"
+    }
+  }
+}

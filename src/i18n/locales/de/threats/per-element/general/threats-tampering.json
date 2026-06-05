@@ -1,0 +1,39 @@
+{
+  "general": {
+    "T-001": {
+      "threat": "Manipulation von Prozesslogik oder Konfiguration",
+      "cause": "Unzureichender Integritätsschutz für Code oder Konfiguration",
+      "attack": "Angreifer modifiziert Prozesscode oder Laufzeitkonfiguration, um das beabsichtigte Verhalten zu verändern"
+    },
+    "T-002": {
+      "threat": "Speichermanipulation",
+      "cause": "Fehlende Speichersicherheitsmechanismen",
+      "attack": "Angreifer nutzt Speicherschwachstellen wie Pufferüberläufe aus, um den Prozessspeicher zu manipulieren"
+    },
+    "T-003": {
+      "threat": "Datenmanipulation während der Übertragung",
+      "cause": "Fehlender Integritätsschutz auf Datenflüssen",
+      "attack": "Angreifer fängt Daten während der Übertragung zwischen Komponenten ab und verändert sie"
+    },
+    "T-004": {
+      "threat": "Man-in-the-Middle-Angriff",
+      "cause": "Fehlende gegenseitige Authentifizierung oder sichere Kanalabsicherung",
+      "attack": "Angreifer positioniert sich zwischen kommunizierenden Parteien, um übertragene Daten abzufangen und zu verändern"
+    },
+    "T-005": {
+      "threat": "Manipulation gespeicherter Daten",
+      "cause": "Unzureichende Zugriffskontrollen oder Integritätsschutz im Speicher",
+      "attack": "Angreifer verändert gespeicherte Daten direkt unter Umgehung der anwendungsseitigen Kontrollen"
+    },
+    "T-006": {
+      "threat": "Datenmanipulation durch Injection",
+      "cause": "Unsachgemäße Eingabevalidierung und Abfragekonstruktion",
+      "attack": "Angreifer injiziert bösartige Eingaben (z. B. SQL), um gespeicherte Daten zu manipulieren oder zu verändern"
+    },
+    "T-007": {
+      "threat": "Manipulation von System-Software oder Konfiguration",
+      "cause": "Unzureichender Integritätsschutz für System-Software, Firmware oder Konfiguration — sowohl im Ruhezustand als auch während des Updates",
+      "attack": "Angreifer verändert System-Software oder Konfiguration, um das Systemverhalten zu manipulieren, Sicherheitsmaßnahmen zu deaktivieren oder eine Hintertür einzubauen"
+    }
+  }
+}

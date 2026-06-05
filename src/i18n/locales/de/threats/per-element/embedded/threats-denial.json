@@ -1,0 +1,29 @@
+{
+  "embedded": {
+    "D-001": {
+      "threat": "OT-Controller Denial of Service via Feldbus-Flooding",
+      "cause": "Controller hat kein Rate-Limiting auf Feldbus-Eingang — alle eingehenden Rahmen werden unabhängig vom Volumen verarbeitet",
+      "attack": "Angreifer flutet den Feldbus mit hochfrequenten Rahmen, sättigt den Controller-Kommunikations-Stack und entzieht Echtzeit-Steuerungsaufgaben Verarbeitungszeit"
+    },
+    "D-002": {
+      "threat": "Controller-Ressourcenerschöpfung via Feldbus-Flooding",
+      "cause": "Controller besitzt keine Rate-Limitierung oder Priorisierung auf dem Feldbus — alle eingehenden Frames werden unabhängig von Quelle und Volumen verarbeitet",
+      "attack": "Angreifer überflutet den Feldbus mit hochfrequenten Frames an den Controller, saturiert dessen Kommunikationsstack und entzieht Echtzeit-Steuerungsaufgaben die Prozessorzeit"
+    },
+    "D-003": {
+      "threat": "Denial of Service des Safety-Systems via Injektion ungültiger Safety-Parameter",
+      "cause": "Safety-System akzeptiert Parameter-Updates ohne strenge Quellenvalidierung oder Rate-Limitierung — ungültige Parameter können einen Schutzabschaltung auslösen",
+      "attack": "Angreifer injiziert ungültige oder außerhalb des Wertebereichs liegende Safety-Parameter und veranlasst das Safety-System damit zu einem unnötigen Schutz-Shutdown, der den gesteuerten Prozess zum Stillstand bringt"
+    },
+    "D-004": {
+      "threat": "Kabelunterbrechung führt zu Verfügbarkeitsausfall — kein redundanter Pfad für Feldkabel",
+      "cause": "Datenfluss nutzt ein einzelnes Feldkabel ohne redundanten Pfad",
+      "attack": "Angreifer trennt das Feldkabel und verursacht vollständigen Verlust des Datenflusses"
+    },
+    "D-005": {
+      "threat": "Unterbrechung des sicherheitskritischen Datenflusses — Sicherheitsfunktion bei Bedarf nicht verfügbar",
+      "cause": "Sicherheitskritischer Datenfluss hat keinen redundanten Pfad — Unterbrechung verhindert direkt den Betrieb der Sicherheitsfunktion",
+      "attack": "Angreifer flutet oder stört physisch den sicherheitskritischen Datenfluss und verhindert dass Not-Halt-Befehle ihr Ziel erreichen"
+    }
+  }
+}

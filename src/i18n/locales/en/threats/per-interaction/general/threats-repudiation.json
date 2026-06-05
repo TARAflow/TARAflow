@@ -1,0 +1,14 @@
+{
+  "general": {
+    "R-001": {
+      "threat": "Sender repudiation: {{sourceName}} denies sending the request or data",
+      "cause": "No non-repudiation mechanism on the data flow — requests from {{sourceName}} are not signed or cryptographically bound to the sender",
+      "attack": "{{sourceName}} claims it never sent the command or data that {{targetName}} received and acted upon"
+    },
+    "R-002": {
+      "threat": "Receiver repudiation: {{targetName}} denies receiving or processing the request",
+      "cause": "No delivery confirmation or cryptographic receipt — {{sourceName}} has no proof that {{targetName}} received its data",
+      "attack": "{{targetName}} claims it never received the data from {{sourceName}}, or denies having processed it"
+    }
+  }
+}

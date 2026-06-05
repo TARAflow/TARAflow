@@ -1,0 +1,118 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/general",
+  "elementTemplates": [
+    {
+      "id": "I-001",
+      "strideCategory": "I",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-I-002",
+        "M-I-005"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-004"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "I-002",
+      "strideCategory": "I",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-I-002",
+        "M-I-005"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-004"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "I-003",
+      "strideCategory": "I",
+      "elementTypes": [
+        "DataFlow"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-I-001",
+        "M-I-002"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-002"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "I-004",
+      "strideCategory": "I",
+      "elementTypes": [
+        "DataFlow"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-I-001",
+        "M-I-002"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-002"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "I-005",
+      "strideCategory": "I",
+      "elementTypes": [
+        "DataStore"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-I-001",
+        "M-I-003",
+        "M-I-004"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "I-006",
+      "strideCategory": "I",
+      "elementTypes": [
+        "DataStore"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-I-001",
+        "M-I-003",
+        "M-I-004"
+      ],
+      "verifications": [
+        "V-I-001",
+        "V-I-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "embedded": {
+    "D-001": {
+      "threat": "Feldbus-Flooding verursacht Denial of Service bei {{targetName}}",
+      "cause": "{{targetName}} hat kein Rate-Limiting auf {{dataFlowName}} — alle eingehenden Rahmen werden verarbeitet",
+      "attack": "Angreifer flutet {{dataFlowName}} mit hochfrequenten Rahmen und sättigt den Kommunikations-Stack von {{targetName}}"
+    },
+    "D-002": {
+      "threat": "Feldbus-Flooding: Angreifer saturiert den Eingangspuffer von {{targetName}} via hochfrequenter Frames von {{sourceName}}",
+      "cause": "{{targetName}} besitzt keine Rate-Limitierung oder Frame-Priorisierung auf seinem Kommunikations-Interface — alle eingehenden Frames werden in eine Queue gestellt und verarbeitet",
+      "attack": "Angreifer überflutet den Feldbus mit hochfrequenten Frames an {{targetName}}, erschöpft dessen Kommunikationsstack und entzieht den Echtzeit-Steuerungsaufgaben die Prozessorzeit"
+    },
+    "D-003": {
+      "threat": "Kabelunterbrechung führt zu Verfügbarkeitsausfall — kein redundanter Pfad für Feldkabel",
+      "cause": "Datenfluss nutzt ein einzelnes Feldkabel ohne redundanten Pfad",
+      "attack": "Angreifer trennt das Feldkabel und verursacht vollständigen Verlust des Datenflusses"
+    },
+    "D-004": {
+      "threat": "Unterbrechung des sicherheitskritischen Datenflusses — Sicherheitsfunktion bei Bedarf nicht verfügbar",
+      "cause": "Sicherheitskritischer Datenfluss hat keinen redundanten Pfad — Unterbrechung verhindert direkt den Betrieb der Sicherheitsfunktion",
+      "attack": "Angreifer flutet oder stört physisch den sicherheitskritischen Datenfluss und verhindert dass Not-Halt-Befehle ihr Ziel erreichen"
+    }
+  }
+}

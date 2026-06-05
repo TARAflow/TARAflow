@@ -1,0 +1,142 @@
+{
+  "version": "2.0.0",
+  "description": "Interface and PhysicalInterface element threat templates — method-agnostic, generated in both per-element and per-interaction mode.",
+  "elementTemplates": [
+    {
+      "id": "S-005",
+      "strideCategory": "S",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-S-001",
+        "M-IF-S-001"
+      ],
+      "verifications": [
+        "V-S-001",
+        "V-IF-S-001"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    },
+    {
+      "id": "T-007",
+      "strideCategory": "T",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-IF-T-001",
+        "M-IF-T-002",
+        "M-IF-T-003",
+        "M-IF-T-004"
+      ],
+      "verifications": [
+        "V-IF-T-001"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    },
+    {
+      "id": "R-005",
+      "strideCategory": "R",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-IF-R-001"
+      ],
+      "verifications": [
+        "V-IF-R-001"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    },
+    {
+      "id": "I-007",
+      "strideCategory": "I",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-IF-I-001",
+        "M-IF-I-002"
+      ],
+      "verifications": [
+        "V-IF-I-001"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    },
+    {
+      "id": "D-006",
+      "strideCategory": "D",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-IF-D-001",
+        "M-IF-D-002"
+      ],
+      "verifications": [
+        "V-IF-D-001"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    },
+    {
+      "id": "E-004",
+      "strideCategory": "E",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-E-006",
+        "M-IF-E-001",
+        "M-IF-E-002",
+        "M-IF-E-003"
+      ],
+      "verifications": [
+        "V-E-004",
+        "V-IF-E-001",
+        "V-IF-E-002"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    },
+    {
+      "id": "E-005",
+      "strideCategory": "E",
+      "elementTypes": [
+        "PhysicalInterface",
+        "Interface"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-E-006",
+        "M-IF-E-001",
+        "M-IF-E-002",
+        "M-IF-E-003"
+      ],
+      "verifications": [
+        "V-E-004",
+        "V-IF-E-001",
+        "V-IF-E-002"
+      ],
+      "isCustom": false,
+      "domain": "interface"
+    }
+  ]
+}

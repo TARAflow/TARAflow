@@ -1,0 +1,24 @@
+{
+  "general": {
+    "E-001": {
+      "threat": "Privilege escalation via process vulnerability — attacker gains elevated privileges through process flaw",
+      "cause": "Insufficient input validation or privilege boundary enforcement in the process",
+      "attack": "Attacker exploits a process vulnerability to execute code or trigger operations with elevated privileges"
+    },
+    "E-002": {
+      "threat": "Insecure direct object reference — attacker accesses unauthorized resources via manipulated references",
+      "cause": "Process does not validate that the caller is authorized to access the referenced object",
+      "attack": "Attacker manipulates object references in process requests to access unauthorized data or functions"
+    },
+    "E-003": {
+      "threat": "Privilege escalation via environment manipulation — attacker modifies process environment",
+      "cause": "Process relies on environment variables or configuration that can be modified by lower-privileged callers",
+      "attack": "Attacker modifies environment variables or shared libraries to inject code that executes with elevated privileges"
+    },
+    "E-004": {
+      "threat": "System privilege escalation — attacker gains system-level privileges",
+      "cause": "Insufficient privilege separation — a lower-privileged component can trigger system-level operations",
+      "attack": "Attacker exploits a privilege boundary violation to execute operations with system-level authority"
+    }
+  }
+}

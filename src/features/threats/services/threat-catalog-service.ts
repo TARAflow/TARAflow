@@ -17,8 +17,11 @@ import type {
   ThreatProjectData,
 } from "../models/threat-types";
 
-import elementTemplatesData from "./catalog/element-templates.json";
-import interactionTemplatesData from "./catalog/interaction-templates.json";
+import {
+  ALL_ELEMENT_TEMPLATES as CATALOG_EL,
+  ALL_INTERACTION_TEMPLATES as CATALOG_INT,
+} from "./catalog/threats/index";
+
 import mitigationsSpoofingData from "./catalog/mitigations/mitigations-spoofing.json";
 import mitigationsTamperingData from "./catalog/mitigations/mitigations-tampering.json";
 import mitigationsRepudiationData from "./catalog/mitigations/mitigations-repudiation.json";
@@ -37,33 +40,12 @@ import verificationsElevationData from "./catalog/verifications/verifications-el
 import verificationsInterfaceData from "./catalog/verifications/verifications-interface.json";
 import verificationsChipBoundaryData from "./catalog/verifications/verifications-chipboundary.json";
 import verificationsPhysicalBoundaryData from "./catalog/verifications/verifications-physicalboundary.json";
-import embeddedElementTemplatesData from "./catalog/embedded-element-templates.json";
-import embeddedInteractionTemplatesData from "./catalog/embedded-interaction-templates.json";
-import multiprocessElementTemplatesData from "./catalog/multiprocess-element-templates.json";
-import multiprocessInteractionTemplatesData from "./catalog/multiprocess-interaction-templates.json";
-import physicalBoundaryTemplatesData from "./catalog/physical-boundary-templates.json";
-import sideChannelTemplatesData from "./catalog/side-channel-templates.json";
-import gapThreatTemplatesData from "./catalog/gap-threat-templates.json";
-import safetyDataflowTemplatesData from "./catalog/safety-dataflow-templates.json";
 
 // ==================== CATALOG SINGLETONS ====================
 
-const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [
-  ...((elementTemplatesData as any).elementTemplates ?? []),
-  ...((embeddedElementTemplatesData as any).elementTemplates ?? []),
-  ...((multiprocessElementTemplatesData as any).elementTemplates ?? []),
-  ...((physicalBoundaryTemplatesData as any).elementTemplates ?? []),
-  ...((sideChannelTemplatesData as any).elementTemplates ?? []),
-  ...((gapThreatTemplatesData as any).elementTemplates ?? []),
-  ...((safetyDataflowTemplatesData as any).elementTemplates ?? []),
-];
+const ALL_ELEMENT_TEMPLATES: ElementTemplate[] = [...CATALOG_EL];
  
-const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [
-  ...((interactionTemplatesData as any).interactionTemplates ?? []),
-  ...((embeddedInteractionTemplatesData as any).interactionTemplates ?? []),
-  ...((multiprocessInteractionTemplatesData as any).interactionTemplates ?? []),
-  ...((safetyDataflowTemplatesData as any).interactionTemplates ?? []),
-];
+const ALL_INTERACTION_TEMPLATES: InteractionTemplate[] = [...CATALOG_INT];
 
 const ALL_MITIGATIONS: MitigationEntry[] = [
   ...((mitigationsSpoofingData as any).mitigations ?? []),
@@ -379,74 +361,170 @@ export function findInteractionTemplate(
 
 // ==================== LOCALIZATION ====================
 
-export function getLocalizedElementThreat(templateId: string): string {
-  return i18n.t(`${templateId}.threat`, { ns: "element-threats-attacks" });
-}
-
-export function getLocalizedElementAttack(templateId: string): string {
-  return i18n.t(`${templateId}.attack`, { ns: "element-threats-attacks" });
-}
-
-export function getLocalizedElementCause(templateId: string): string {
-  return i18n.t(`${templateId}.cause`, {
+export function getLocalizedElementThreat(
+  templateId: string,
+  domain: string = "general",
+): string {
+  const key = `${domain}.${templateId}.threat`;
+  const result = i18n.t(key, {
     ns: "element-threats-attacks",
-    defaultValue: "",
+    defaultValue: "__MISSING__",
   });
+  if (result === "__MISSING__") {
+    if (domain !== "general") {
+      console.error(
+        `[ThreatCatalog] Missing element threat text: domain="${domain}" id="${templateId}" — falling back to "general"`,
+      );
+      return i18n.t(`general.${templateId}.threat`, {
+        ns: "element-threats-attacks",
+      });
+    }
+    console.error(
+      `[ThreatCatalog] Missing element threat text: domain="general" id="${templateId}"`,
+    );
+  }
+  return result;
 }
+
+export function getLocalizedElementAttack(
+  templateId: string,
+  domain: string = "general",
+): string {
+  const key = `${domain}.${templateId}.attack`;
+  const result = i18n.t(key, {
+    ns: "element-threats-attacks",
+    defaultValue: "__MISSING__",
+  });
+  if (result === "__MISSING__") {
+    if (domain !== "general") {
+      console.error(
+        `[ThreatCatalog] Missing element attack text: domain="${domain}" id="${templateId}" — falling back to "general"`,
+      );
+      return i18n.t(`general.${templateId}.attack`, {
+        ns: "element-threats-attacks",
+      });
+    }
+    console.error(
+      `[ThreatCatalog] Missing element attack text: domain="general" id="${templateId}"`,
+    );
+  }
+  return result;
+}
+
+export function getLocalizedElementCause(
+  templateId: string,
+  domain: string = "general",
+): string {
+  const key = `${domain}.${templateId}.cause`;
+  const result = i18n.t(key, {
+    ns: "element-threats-attacks",
+    defaultValue: "__MISSING__",
+  });
+  if (result === "__MISSING__") {
+    if (domain !== "general") {
+      return i18n.t(`general.${templateId}.cause`, {
+        ns: "element-threats-attacks",
+        defaultValue: "",
+      });
+    }
+    return "";
+  }
+  return result;
+}
+
+type InteractionPlaceholders = {
+  sourceName: string;
+  targetName: string;
+  dataFlowName: string;
+  trustBoundaryName: string;
+  sourceType?: string;
+  targetType?: string;
+};
 
 export function getLocalizedInteractionThreat(
   templateId: string,
-  placeholders: {
-    sourceName: string;
-    targetName: string;
-    dataFlowName: string;
-    trustBoundaryName: string;
-    sourceType?: string;
-    targetType?: string;
-  }
+  placeholders: InteractionPlaceholders,
+  domain: string = "general",
 ): string {
-  return i18n.t(`${templateId}.threat`, {
+  const key = `${domain}.${templateId}.threat`;
+  const result = i18n.t(key, {
     ns: "interaction-threats-attacks",
     interpolation: { escapeValue: false },
+    defaultValue: "__MISSING__",
     ...placeholders,
   });
+  if (result === "__MISSING__") {
+    if (domain !== "general") {
+      console.error(
+        `[ThreatCatalog] Missing interaction threat text: domain="${domain}" id="${templateId}" — falling back to "general"`,
+      );
+      return i18n.t(`general.${templateId}.threat`, {
+        ns: "interaction-threats-attacks",
+        interpolation: { escapeValue: false },
+        ...placeholders,
+      });
+    }
+    console.error(
+      `[ThreatCatalog] Missing interaction threat text: domain="general" id="${templateId}"`,
+    );
+  }
+  return result;
 }
 
 export function getLocalizedInteractionAttack(
   templateId: string,
-  placeholders: {
-    sourceName: string;
-    targetName: string;
-    dataFlowName: string;
-    trustBoundaryName: string;
-    sourceType?: string;
-    targetType?: string;
-  }
+  placeholders: InteractionPlaceholders,
+  domain: string = "general",
 ): string {
-  return i18n.t(`${templateId}.attack`, {
+  const key = `${domain}.${templateId}.attack`;
+  const result = i18n.t(key, {
     ns: "interaction-threats-attacks",
     interpolation: { escapeValue: false },
+    defaultValue: "__MISSING__",
     ...placeholders,
   });
+  if (result === "__MISSING__") {
+    if (domain !== "general") {
+      console.error(
+        `[ThreatCatalog] Missing interaction attack text: domain="${domain}" id="${templateId}" — falling back to "general"`,
+      );
+      return i18n.t(`general.${templateId}.attack`, {
+        ns: "interaction-threats-attacks",
+        interpolation: { escapeValue: false },
+        ...placeholders,
+      });
+    }
+    console.error(
+      `[ThreatCatalog] Missing interaction attack text: domain="general" id="${templateId}"`,
+    );
+  }
+  return result;
 }
 
 export function getLocalizedInteractionCause(
   templateId: string,
-  placeholders: {
-    sourceName: string;
-    targetName: string;
-    dataFlowName: string;
-    trustBoundaryName: string;
-    sourceType?: string;
-    targetType?: string;
-  }
+  placeholders: InteractionPlaceholders,
+  domain: string = "general",
 ): string {
-  return i18n.t(`${templateId}.cause`, {
+  const key = `${domain}.${templateId}.cause`;
+  const result = i18n.t(key, {
     ns: "interaction-threats-attacks",
     interpolation: { escapeValue: false },
-    defaultValue: "",
+    defaultValue: "__MISSING__",
     ...placeholders,
   });
+  if (result === "__MISSING__") {
+    if (domain !== "general") {
+      return i18n.t(`general.${templateId}.cause`, {
+        ns: "interaction-threats-attacks",
+        interpolation: { escapeValue: false },
+        defaultValue: "",
+        ...placeholders,
+      });
+    }
+    return "";
+  }
+  return result;
 }
 
 export function getLocalizedMitigation(mitigationId: string): string {

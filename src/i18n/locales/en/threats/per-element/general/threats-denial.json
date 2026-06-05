@@ -1,0 +1,34 @@
+{
+  "general": {
+    "D-001": {
+      "threat": "Process resource exhaustion — attacker exhausts process resources causing denial of service",
+      "cause": "No resource limits or rate limiting — process allocates unbounded resources in response to requests",
+      "attack": "Attacker sends high volume of requests consuming all available CPU, memory, or file handles"
+    },
+    "D-002": {
+      "threat": "Process crash via malformed input — attacker crashes the process with crafted input",
+      "cause": "Insufficient input validation — malformed input causes buffer overflow or unhandled exception",
+      "attack": "Attacker sends crafted input that triggers a crash, causing the process to become unavailable"
+    },
+    "D-003": {
+      "threat": "Data flow disruption — attacker blocks or delays the data flow",
+      "cause": "No redundancy or timeout protection — disruption causes loss of communication",
+      "attack": "Attacker blocks or corrupts the data flow causing dependent components to lose communication"
+    },
+    "D-004": {
+      "threat": "Data store unavailability — attacker makes the data store inaccessible",
+      "cause": "No redundancy for data store access — single point of failure",
+      "attack": "Attacker fills the data store to capacity or corrupts its index causing all operations to fail"
+    },
+    "D-005": {
+      "threat": "Data store deletion attack — attacker deletes critical stored data",
+      "cause": "Data store lacks access control or backup — critical data can be deleted and is unrecoverable",
+      "attack": "Attacker gains write access and deletes critical configuration or state data causing system failure"
+    },
+    "D-006": {
+      "threat": "System denial of service — attacker renders the system unavailable",
+      "cause": "No rate limiting at system boundary — the system processes all incoming requests without restriction",
+      "attack": "Attacker floods the system with requests preventing legitimate users from accessing services"
+    }
+  }
+}

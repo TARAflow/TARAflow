@@ -1,0 +1,34 @@
+{
+  "general": {
+    "I-001": {
+      "threat": "Process data leakage — sensitive data processed by the process is exposed",
+      "cause": "Process outputs or error messages contain sensitive information — no output filtering applied",
+      "attack": "Attacker observes process output and extracts sensitive configuration data, credentials, or business information"
+    },
+    "I-002": {
+      "threat": "Process memory disclosure — attacker reads sensitive data from process memory",
+      "cause": "Process memory is accessible without authorization — debug interfaces not disabled",
+      "attack": "Attacker uses debug interface to read process memory and extract cryptographic keys or credentials"
+    },
+    "I-003": {
+      "threat": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+      "cause": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+      "attack": "Attacker passively monitors the data flow and captures sensitive data"
+    },
+    "I-004": {
+      "threat": "Data flow metadata disclosure — attacker infers sensitive information from traffic patterns",
+      "cause": "No traffic obfuscation — timing and volume of data flows reveal sensitive operational information",
+      "attack": "Attacker analyzes data flow metadata to infer sensitive operational state"
+    },
+    "I-005": {
+      "threat": "Data store information disclosure — attacker reads sensitive data from the data store",
+      "cause": "Data store lacks encryption or access control — data is stored in plaintext",
+      "attack": "Attacker gains read access to the data store and extracts sensitive configuration or credentials"
+    },
+    "I-006": {
+      "threat": "Data store backup disclosure — sensitive data exposed through unprotected backup",
+      "cause": "Backup files are not encrypted or access-controlled",
+      "attack": "Attacker accesses backup files and extracts sensitive data without compromising the primary store"
+    }
+  }
+}

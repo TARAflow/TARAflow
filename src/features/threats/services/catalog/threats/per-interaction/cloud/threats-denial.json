@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "description": "per-interaction/cloud",
+  "interactionTemplates": [
+    {
+      "id": "D-001",
+      "strideCategory": "D",
+      "perspective": "receiver",
+      "context": {
+        "systemClass": [
+          "cloud_platform",
+          "backend_application"
+        ]
+      },
+      "mitigations": [
+        "M-D-001",
+        "M-D-002",
+        "M-D-005"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-002"
+      ],
+      "isCustom": false,
+      "domain": "cloud"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "T-001": {
+      "threat": "Container-Image-Manipulation",
+      "cause": "Container-Images werden beim Deployment nicht kryptographisch signiert oder verifiziert — ein manipuliertes Image kann in der Registry substituiert werden",
+      "attack": "Angreifer schiebt ein modifiziertes Container-Image in die Registry oder fängt den Image-Pull ab und ersetzt den legitimen Service durch einen bösartigen"
+    }
+  }
+}

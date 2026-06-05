@@ -1,0 +1,70 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/embedded",
+  "elementTemplates": [
+    {
+      "id": "E-001",
+      "strideCategory": "E",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "systemClass": ["embedded_controller", "safety_system"]
+      },
+      "mitigations": ["M-E-001", "M-E-006", "M-IF-E-001", "M-E-007", "M-I-006"],
+      "verifications": ["V-E-001", "V-E-004", "V-IF-E-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-002",
+      "strideCategory": "E",
+      "elementTypes": ["Multiprocess"],
+      "context": {
+        "systemClass": ["embedded_controller", "scada_hmi", "gateway"]
+      },
+      "mitigations": ["M-E-001", "M-E-006", "M-CB-E-001"],
+      "verifications": ["V-E-001", "V-E-004", "V-CB-E-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-003",
+      "strideCategory": "E",
+      "elementTypes": ["ChipBoundary"],
+      "context": {},
+      "mitigations": ["M-CB-E-001", "M-CB-E-002"],
+      "verifications": ["V-CB-E-001", "V-CB-E-002"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-004",
+      "strideCategory": "E",
+      "elementTypes": ["ChipBoundary"],
+      "context": {},
+      "mitigations": ["M-CB-T-001", "M-CB-E-001"],
+      "verifications": ["V-CB-T-001", "V-CB-E-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-005",
+      "strideCategory": "E",
+      "elementTypes": ["Process", "Multiprocess"],
+      "context": {
+        "technology": [
+          "bootloader",
+          "rtos_task",
+          "bare_metal",
+          "isr",
+          "state_machine",
+          "driver",
+          "protocol_stack"
+        ]
+      },
+      "mitigations": ["M-CB-E-001", "M-CB-E-002", "M-E-001", "M-E-007"],
+      "verifications": ["V-CB-E-001", "V-E-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

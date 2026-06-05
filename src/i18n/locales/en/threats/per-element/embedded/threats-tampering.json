@@ -1,0 +1,59 @@
+{
+  "embedded": {
+    "T-001": {
+      "threat": "Secure Boot bypass — attacker bypasses cryptographic boot chain verification",
+      "cause": "Secure Boot is not enforced — unsigned firmware can execute",
+      "attack": "Attacker loads malicious firmware that bypasses Secure Boot verification"
+    },
+    "T-002": {
+      "threat": "Firmware readback — attacker extracts firmware image from the chip",
+      "cause": "Firmware readback protection not enabled — flash memory is readable via debug interface",
+      "attack": "Attacker connects to debug interface and reads flash memory to extract the complete firmware image"
+    },
+    "T-003": {
+      "threat": "Counterfeit chip insertion — attacker substitutes genuine chip with malicious version",
+      "cause": "No supply chain verification — chips cannot be authenticated",
+      "attack": "Attacker introduces counterfeit chips containing hardware backdoors into the supply chain"
+    },
+    "T-004": {
+      "threat": "Embedded process firmware tampering — attacker modifies firmware of embedded process component",
+      "cause": "No cryptographic code signing on embedded process firmware",
+      "attack": "Attacker replaces embedded process firmware to disable security checks or introduce a backdoor"
+    },
+    "T-005": {
+      "threat": "Embedded storage tampering — attacker modifies data in non-volatile memory",
+      "cause": "Flash/EEPROM/NVRAM storage lacks access control or integrity protection",
+      "attack": "Attacker uses debug interface to modify firmware, configuration, or calibration data"
+    },
+    "T-006": {
+      "threat": "OT protocol data tampering — attacker modifies data on OT protocol stack",
+      "cause": "OT protocol stack carries no integrity protection",
+      "attack": "Attacker intercepts OT protocol messages and modifies setpoints or process values"
+    },
+    "T-007": {
+      "threat": "Embedded firmware tampering — attacker modifies firmware on embedded controller",
+      "cause": "No cryptographic code signing enforced — unsigned firmware is accepted for execution",
+      "attack": "Attacker replaces firmware with a malicious version that disables safety interlocks"
+    },
+    "T-008": {
+      "threat": "Configuration tampering on embedded system — attacker modifies stored configuration",
+      "cause": "Configuration storage lacks integrity protection — parameters can be modified without detection",
+      "attack": "Attacker modifies safety-critical configuration parameters stored on the embedded system"
+    },
+    "T-009": {
+      "threat": "Physical cable tampering — data flow manipulated via accessible cable or connector",
+      "cause": "Data flow runs through a physically accessible cable without physical protection",
+      "attack": "Attacker splices in a tap device or signal injector and manipulates data in transit without triggering any alarm"
+    },
+    "T-010": {
+      "threat": "Integrity attack on safety-relevant data flow — false values reach safety function",
+      "cause": "Safety-critical data flow carries no end-to-end integrity protection",
+      "attack": "Attacker modifies values on the safety data flow causing the safety function to operate on false data"
+    },
+    "T-011": {
+      "threat": "Unauthorized write access via OT protocol — attacker modifies process values or configuration",
+      "cause": "OT protocol data flow is configured with read-write access — any node can issue write commands without authorization",
+      "attack": "Attacker places a rogue node on the OT network and sends write commands to modify setpoints or controller configuration"
+    }
+  }
+}

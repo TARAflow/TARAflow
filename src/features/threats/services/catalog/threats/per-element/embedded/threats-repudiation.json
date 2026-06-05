@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/embedded",
+  "elementTemplates": [
+    {
+      "id": "R-001",
+      "strideCategory": "R",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {
+        "systemClass": [
+          "embedded_controller",
+          "safety_system",
+          "scada_hmi"
+        ]
+      },
+      "mitigations": [
+        "M-R-001",
+        "M-IF-R-001"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-IF-R-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

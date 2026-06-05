@@ -1,0 +1,14 @@
+{
+  "general": {
+    "T-001": {
+      "threat": "Datenmanipulation auf eingehendem Fluss: Angreifer modifiziert Daten bevor sie {{targetName}} erreichen",
+      "cause": "Fehlender Integritätsschutz auf dem Datenfluss von {{sourceName}} — Daten kommen ohne Manipulationsnachweis an",
+      "attack": "Angreifer fängt den Datenfluss von {{sourceName}} ab und modifiziert Befehle oder Nutzdaten vor der Zustellung an {{targetName}}"
+    },
+    "T-002": {
+      "threat": "Antwortmanipulation: Angreifer modifiziert Antwortdaten bevor sie {{sourceName}} erreichen",
+      "cause": "Fehlender Integritätsschutz auf dem Antwortfluss von {{targetName}} — {{sourceName}} kann modifizierte Antworten nicht erkennen",
+      "attack": "Angreifer fängt die Antwort von {{targetName}} ab und modifiziert Daten, wodurch {{sourceName}} gefälschte Informationen verarbeitet"
+    }
+  }
+}

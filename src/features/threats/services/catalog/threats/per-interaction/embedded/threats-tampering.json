@@ -1,0 +1,135 @@
+{
+  "version": "2.0.0",
+  "description": "Embedded interaction — Tampering.",
+  "interactionTemplates": [
+    {
+      "id": "T-001",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "protocol": [
+          "modbus",
+          "profibus",
+          "profinet",
+          "canopen",
+          "s7comm",
+          "dnp3",
+          "iec61850"
+        ]
+      },
+      "mitigations": ["M-T-001", "M-T-002", "M-T-008"],
+      "verifications": ["V-T-001", "V-IF-T-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-002",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "protocol": ["spi", "i2c", "uart", "can", "lin"]
+      },
+      "mitigations": ["M-T-001", "M-T-002", "M-T-008"],
+      "verifications": ["V-T-001", "V-T-002"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-003",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "interfaceType": ["jtag", "swd", "serial"]
+      },
+      "mitigations": ["M-CB-T-001", "M-CB-T-002", "M-CB-E-001"],
+      "verifications": ["V-CB-T-001", "V-CB-T-002", "V-CB-E-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-004",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "systemClass": [
+          "embedded_controller",
+          "safety_system",
+          "scada_hmi",
+          "gateway"
+        ]
+      },
+      "mitigations": ["M-T-001", "M-T-002", "M-T-004"],
+      "verifications": ["V-T-001", "V-T-004"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-005",
+      "strideCategory": "T",
+      "perspective": "sender",
+      "context": {
+        "systemClass": [
+          "embedded_controller",
+          "safety_system",
+          "scada_hmi",
+          "gateway"
+        ]
+      },
+      "mitigations": ["M-T-001", "M-T-002"],
+      "verifications": ["V-T-001", "V-T-002"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-006",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "location": ["field_cable", "in_enclosure", "on_board"]
+      },
+      "mitigations": ["M-T-008", "M-T-009", "M-T-001"],
+      "verifications": ["V-T-006", "V-T-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-007",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "safetyFunction": [
+          "emergency_stop",
+          "safety_gate",
+          "pressure_relief",
+          "overspeed_protection",
+          "fire_suppression"
+        ]
+      },
+      "mitigations": ["M-T-011", "M-T-001", "M-T-002"],
+      "verifications": ["V-T-007", "V-T-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-008",
+      "strideCategory": "T",
+      "perspective": "receiver",
+      "context": {
+        "protocol": [
+          "modbus",
+          "profibus",
+          "profinet",
+          "canopen",
+          "s7comm",
+          "dnp3",
+          "iec61850"
+        ],
+        "accessMode": ["read_write"]
+      },
+      "mitigations": ["M-T-010", "M-T-001", "M-I-007"],
+      "verifications": ["V-T-001", "V-IF-T-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "embedded": {
+    "R-001": {
+      "threat": "Repudiation von Steuerungsaktionen in Embedded- oder OT-System",
+      "cause": "Embedded Controller und SCADA-Systeme haben oft keine kryptografischen Audit-Trails — Bedienbefehle und Systemaktionen werden nicht nicht-abstreitbar protokolliert",
+      "attack": "Bediener oder Angreifer streitet ab, einen Steuerungsbefehl ausgeführt zu haben (z.B. Not-Aus-Übersteuern, Sollwertänderung) weil kein kryptografisch gebundener Audit-Trail existiert"
+    }
+  }
+}

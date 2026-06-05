@@ -1,0 +1,9 @@
+{
+  "cloud": {
+    "E-001": {
+      "threat": "Cloud service privilege escalation — attacker gains elevated privileges in cloud environment",
+      "cause": "Insufficient IAM role separation — services have overly permissive roles",
+      "attack": "Attacker exploits overly permissive IAM roles to escalate to admin-level cloud access"
+    }
+  }
+}

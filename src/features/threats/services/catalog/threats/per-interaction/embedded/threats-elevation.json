@@ -1,0 +1,103 @@
+{
+  "version": "2.0.0",
+  "description": "per-interaction/embedded",
+  "interactionTemplates": [
+    {
+      "id": "E-001",
+      "strideCategory": "E",
+      "perspective": "receiver",
+      "context": {
+        "systemClass": [
+          "embedded_controller",
+          "safety_system",
+          "scada_hmi",
+          "gateway"
+        ]
+      },
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-003"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-E-002"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-002",
+      "strideCategory": "E",
+      "perspective": "receiver",
+      "context": {
+        "protocol": [
+          "modbus",
+          "profibus",
+          "profinet",
+          "canopen",
+          "s7comm",
+          "dnp3",
+          "iec61850"
+        ]
+      },
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-006"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-CB-E-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-003",
+      "strideCategory": "E",
+      "perspective": "receiver",
+      "context": {
+        "protocol": [
+          "spi",
+          "i2c",
+          "uart",
+          "can",
+          "lin"
+        ]
+      },
+      "mitigations": [
+        "M-CB-E-001",
+        "M-E-001",
+        "M-E-003"
+      ],
+      "verifications": [
+        "V-CB-E-001",
+        "V-E-001"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "E-004",
+      "strideCategory": "E",
+      "perspective": "receiver",
+      "context": {
+        "interfaceType": [
+          "jtag",
+          "swd"
+        ]
+      },
+      "mitigations": [
+        "M-CB-E-001",
+        "M-CB-E-002"
+      ],
+      "verifications": [
+        "V-CB-E-001",
+        "V-CB-E-002"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

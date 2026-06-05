@@ -1,0 +1,29 @@
+{
+  "general": {
+    "R-001": {
+      "threat": "Abstreitbarkeit durch externe Entität",
+      "cause": "Fehlende zuverlässige Protokollierung und Nichtabstreitbarkeitsmechanismen",
+      "attack": "Externe Entität bestreitet eine ausgeführte Aktion aufgrund fehlender oder unzureichender Audit-Trails"
+    },
+    "R-002": {
+      "threat": "Nicht nachverfolgbare Prozessaktionen",
+      "cause": "Unzureichende Protokollierungs- oder Audit-Mechanismen",
+      "attack": "Angreifer führt Aktionen aus, die aufgrund fehlender oder unvollständiger Protokolle nicht zurückverfolgt werden können"
+    },
+    "R-003": {
+      "threat": "Log-Manipulation",
+      "cause": "Fehlender Schutz und fehlende Integritätskontrollen für Protokolle",
+      "attack": "Angreifer verändert oder löscht Protokolleinträge, um Beweise für bösartige Aktivitäten zu verbergen"
+    },
+    "R-004": {
+      "threat": "Nicht zuordenbare Datenänderungen",
+      "cause": "Fehlender Audit-Trail für Datenänderungen",
+      "attack": "Angreifer verändert gespeicherte Daten ohne nachverfolgbare Spuren zu hinterlassen"
+    },
+    "R-005": {
+      "threat": "Repudiation auf Systemebene — Aktionen können nicht zugeordnet werden",
+      "cause": "Kein manipulationssicherer Audit-Trail an der Systemgrenze — das System kann abstreiten, Aktionen durchgeführt oder empfangen zu haben",
+      "attack": "Angreifer nutzt fehlende oder unzureichende Protokollierung um böswillige Aktionen abzustreiten, was forensische Untersuchungen verunmöglicht"
+    }
+  }
+}

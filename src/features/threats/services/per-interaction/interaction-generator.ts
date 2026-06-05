@@ -250,6 +250,25 @@ export class InteractionThreatGenerator {
       }
     }
 
+    // TEMP DEBUG
+    let crossCount = 0,
+      internalCount = 0,
+      noTbCount = 0;
+    for (const df of dfdContext.getDataFlows()) {
+      const senderTB = df.fromEffectiveTrustBoundary ?? null;
+      const receiverTB = df.toEffectiveTrustBoundary ?? null;
+      if (senderTB && senderTB === receiverTB) internalCount++;
+      else if (senderTB || receiverTB) crossCount++;
+      else noTbCount++;
+    }
+    console.log(
+      `[DEBUG] Cross: ${crossCount}, Internal: ${internalCount}, NoTB: ${noTbCount}`,
+    );
+    console.log(
+      `[DEBUG] Expected max threats: ${crossCount * 12 + internalCount * 6 + noTbCount * 6}`,
+    );
+    // END TEMP DEBUG
+
     // ── Interface threats ─────────────────────────────────────────────────
     for (const element of graph.elementsById.values()) {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
@@ -500,14 +519,17 @@ export class InteractionThreatGenerator {
       threat.threatDescription = getLocalizedInteractionThreat(
         template.id,
         placeholders,
+        template.domain ?? "general",
       );
       threat.attackDescription = getLocalizedInteractionAttack(
         template.id,
         placeholders,
+        template.domain ?? "general",
       );
       threat.causeDescription = getLocalizedInteractionCause(
         template.id,
         placeholders,
+        template.domain ?? "general",
       );
       const templateMitigations = template.mitigations.map((id) => ({ id }));
       const hints = getImplementedMitigationHints(
@@ -617,14 +639,17 @@ export class InteractionThreatGenerator {
       threat.threatDescription = getLocalizedInteractionThreat(
         template.id,
         placeholders,
+        template.domain ?? "general",
       );
       threat.attackDescription = getLocalizedInteractionAttack(
         template.id,
         placeholders,
+        template.domain ?? "general",
       );
       threat.causeDescription = getLocalizedInteractionCause(
         template.id,
         placeholders,
+        template.domain ?? "general",
       );
       const templateMitigations = template.mitigations.map((id) => ({ id }));
       const ifHints = getImplementedMitigationHints(

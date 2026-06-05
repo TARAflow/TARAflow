@@ -1,0 +1,29 @@
+{
+  "general": {
+    "S-001": {
+      "threat": "Identitätsfälschung einer externen Entität",
+      "cause": "Fehlende oder unzureichende Authentifizierung und Validierung externer Entitäten",
+      "attack": "Angreifer gibt sich als vertrauenswürdige externe Entität aus, indem er gefälschte Anfragen sendet, Identitätsprüfungen umgeht oder gestohlene Anmeldedaten wiederverwendet"
+    },
+    "S-002": {
+      "threat": "Unbefugter Prozesszugriff durch Identitätsfälschung",
+      "cause": "Schwache oder fehlende Authentifizierungsmechanismen für den Prozesszugriff",
+      "attack": "Angreifer fälscht eine legitime Identität, um unbefugten Zugriff auf einen geschützten Prozess zu erlangen"
+    },
+    "S-003": {
+      "threat": "Prozess-Spoofing durch böswilligen Prozessaustausch",
+      "cause": "Fehlende Prozessintegritätsprüfung oder Vertrauensvalidierung",
+      "attack": "Angreifer ersetzt einen legitimen Prozess durch einen bösartigen mit gleicher Kennung oder Schnittstelle"
+    },
+    "S-004": {
+      "threat": "Session-Hijacking",
+      "cause": "Unsachgemäße Sitzungsverwaltung oder schwache Sitzungsbindung",
+      "attack": "Angreifer übernimmt eine gültige Benutzersitzung durch Stehlen oder Vorhersagen von Sitzungskennungen"
+    },
+    "S-005": {
+      "threat": "Systemidentitäts-Spoofing an der Systemgrenze",
+      "cause": "Fehlende oder unzureichende Authentifizierung an der Systemgrenze — kommunizierende Parteien können die tatsächliche Systemidentität nicht verifizieren",
+      "attack": "Angreifer gibt sich gegenüber einer verbundenen Komponente als das System aus und injiziert gefälschte Antworten oder Befehle, die als legitim akzeptiert werden"
+    }
+  }
+}

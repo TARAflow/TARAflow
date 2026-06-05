@@ -1,0 +1,94 @@
+{
+  "physical": {
+    "T-001": {
+      "threat": "Physical boundary tampering — unauthorized physical access to boundary interior",
+      "cause": "No tamper detection mechanism — unauthorized opening is undetected",
+      "attack": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components"
+    },
+    "T-002": {
+      "threat": "Debug interface physically accessible — direct hardware attack surface exposed",
+      "cause": "Debug port is reachable from boundary exterior without disassembly",
+      "attack": "Attacker attaches a debug probe and gains full processor access"
+    },
+    "T-003": {
+      "threat": "Removable media insertion — unauthorized data exfiltration or malware injection via physical media",
+      "cause": "Removable media port is physically accessible — no software or physical blocking",
+      "attack": "Attacker inserts a USB drive containing malware or uses it to exfiltrate sensitive data"
+    },
+    "T-004": {
+      "threat": "Device removal or depot attack — portable device taken for lab analysis",
+      "cause": "Device is portable — attacker can control attack environment with lab equipment",
+      "attack": "Attacker removes the device and performs full hardware analysis including chip-off or fault injection"
+    },
+    "I-005": {
+      "threat": "Side-channel observation — sensitive data extracted via physical measurements",
+      "cause": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+      "attack": "Attacker measures power consumption or EM emissions and extracts cryptographic keys"
+    },
+    "I-006": {
+      "threat": "Data exfiltration via removable media — sensitive data copied out of device",
+      "cause": "Removable media port accessible — no data loss prevention mechanism",
+      "attack": "Attacker inserts removable media and copies sensitive files or cryptographic material"
+    },
+    "D-007": {
+      "threat": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+      "cause": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+      "attack": "Attacker physically damages the device or cuts power, causing immediate loss of availability"
+    },
+    "D-008": {
+      "threat": "Device theft — portable device stolen, causing DoS and potential data exposure",
+      "cause": "Device is portable and not anchored — theft directly causes loss of availability",
+      "attack": "Attacker steals the portable device causing the controlled system to lose its controller"
+    },
+    "S-008": {
+      "threat": "Physical boundary identity spoofing — attacker impersonates authorized personnel to gain physical access",
+      "cause": "Physical access control relies on single-factor authentication — no second factor prevents impersonation",
+      "attack": "Attacker impersonates an authorized person (e.g. maintenance technician) to gain physical access to the boundary interior"
+    },
+    "S-009": {
+      "threat": "Maintenance impersonation or relay attack — attacker gains physical access by bypassing access control",
+      "cause": "Physical access control is single-factor — badge-only access is vulnerable to relay attack",
+      "attack": "Attacker clones RFID badge or tailgates through controlled entry"
+    },
+    "E-010": {
+      "threat": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+      "cause": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+      "attack": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication"
+    },
+    "E-011": {
+      "threat": "Debug interface privilege escalation — full processor control via physically accessible debug port",
+      "cause": "JTAG or SWD port is accessible from boundary exterior — provides full read/write access",
+      "attack": "Attacker connects debug probe, halts processor, reads security keys and modifies execution flow"
+    },
+    "R-012": {
+      "threat": "Physical access without audit trail — actions at physical boundary cannot be attributed",
+      "cause": "No physical monitoring or access logging at boundary — who accessed it and when is unknown",
+      "attack": "Attacker accesses boundary and performs actions without any record being created"
+    },
+    "I-013": {
+      "threat": "Power side-channel attack — cryptographic key extracted via differential power analysis",
+      "cause": "No power analysis countermeasures on chip — key-correlated power signature is measurable",
+      "attack": "Attacker captures power traces during cryptographic operations and recovers the secret key via DPA"
+    },
+    "I-014": {
+      "threat": "Electromagnetic side-channel attack — sensitive data extracted via near-field EM emission",
+      "cause": "No electromagnetic shielding on chip — internal operations emit correlated EM signals",
+      "attack": "Attacker positions a near-field EM probe close to the chip and captures emission traces to recover key material"
+    },
+    "I-015": {
+      "threat": "Timing side-channel attack — secret key inferred from execution timing variations",
+      "cause": "Cryptographic implementation uses data-dependent branches — execution time varies with key values",
+      "attack": "Attacker measures cryptographic operation durations and applies statistical timing analysis to recover the key"
+    },
+    "I-016": {
+      "threat": "Physical bus probing — data extracted by probing PCB traces",
+      "cause": "Security-critical bus traces exposed on PCB surface without potting or conformal coating",
+      "attack": "Attacker opens the device and attaches micro-probes to exposed bus traces to capture plaintext data"
+    },
+    "I-017": {
+      "threat": "On-board bus eavesdropping — plaintext data captured from exposed PCB traces",
+      "cause": "Data flow runs on exposed on-board traces without physical protection or encryption",
+      "attack": "Attacker opens the device enclosure and attaches a logic analyzer to bus traces"
+    }
+  }
+}

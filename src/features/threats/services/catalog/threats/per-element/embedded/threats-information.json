@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "description": "Embedded element — Information.",
+  "elementTemplates": [
+    {
+      "id": "I-001",
+      "strideCategory": "I",
+      "elementTypes": ["ChipBoundary"],
+      "context": {},
+      "mitigations": ["M-CB-I-001"],
+      "verifications": ["V-CB-I-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "I-002",
+      "strideCategory": "I",
+      "elementTypes": ["ChipBoundary"],
+      "context": {},
+      "mitigations": ["M-CB-E-001", "M-CB-T-002"],
+      "verifications": ["V-CB-I-001", "V-CB-T-002"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "I-003",
+      "strideCategory": "I",
+      "elementTypes": ["DataStore"],
+      "context": {
+        "technology": ["flash", "eeprom", "nvram"]
+      },
+      "mitigations": ["M-CB-I-001", "M-I-001", "M-I-003", "M-I-006"],
+      "verifications": ["V-CB-I-001", "V-I-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    }
+  ]
+}

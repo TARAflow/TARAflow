@@ -1,0 +1,44 @@
+{
+  "gap": {
+    "T-001": {
+      "threat": "Undefined fail-safe output state — process outputs reach arbitrary values on communication loss",
+      "cause": "No deterministic fail-safe output state defined — actuator outputs are unpredictable under fault",
+      "attack": "Attacker disrupts communication; without a defined fail-safe state, outputs may drive actuators dangerously"
+    },
+    "T-002": {
+      "threat": "Factory-only interface active in production — persistent privileged access point after deployment",
+      "cause": "Interface configured for factory use only but not disabled before production deployment",
+      "attack": "Attacker discovers active factory interface and uses it to access privileged manufacturing functions"
+    },
+    "T-003": {
+      "threat": "Maintenance interface accessible outside maintenance window — unauthorized privileged access at any time",
+      "cause": "Interface declared maintenance-only but no policy enforcement disables it outside windows",
+      "attack": "Attacker connects to the maintenance interface outside any scheduled window"
+    },
+    "S-001": {
+      "threat": "Local-only account management — stale accounts persist, no central revocation possible",
+      "cause": "Account management is local-only — no central directory or IAM system",
+      "attack": "Attacker uses credentials of a former employee that still exists locally on the device"
+    },
+    "D-001": {
+      "threat": "No backup mechanism — system unrecoverable after ransomware, hardware failure, or destructive attack",
+      "cause": "No automated backup or tested recovery procedure configured",
+      "attack": "Attacker deploys ransomware that destroys system data; without a backup the system cannot be restored"
+    },
+    "T-004": {
+      "threat": "Unsigned firmware update mechanism — attacker can install malicious firmware without detection",
+      "cause": "Update mechanism does not require cryptographic signatures",
+      "attack": "Attacker installs malicious firmware that disables security controls or opens a backdoor"
+    },
+    "I-001": {
+      "threat": "Cryptographic keys in software-only storage — extractable via memory dump or debug access",
+      "cause": "Authenticator storage is software-only — keys reside in flash or RAM without hardware protection",
+      "attack": "Attacker uses debug interface or firmware extraction to read memory and recover cryptographic keys"
+    },
+    "T-005": {
+      "threat": "Cryptographic standard not assessed — non-compliant or weak algorithms may be in use",
+      "cause": "Crypto standard compliance has not been assessed — algorithms in use may not meet current requirements",
+      "attack": "Attacker targets weak or deprecated cryptographic algorithms not identified during design"
+    }
+  }
+}

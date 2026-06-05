@@ -1,0 +1,24 @@
+{
+  "embedded": {
+    "E-001": {
+      "threat": "Privilegierter Befehls-Einschuss via unauthentifiziertem Feldbus-Protokoll in {{targetName}}",
+      "cause": "{{dataFlowName}} hat keine Autorisierung — {{targetName}} führt alle syntaktisch gültigen Befehle aus",
+      "attack": "Angreifer injiziert privilegierte Befehle (Parameter schreiben, Ausgänge forcieren, Programmiermodus) via {{dataFlowName}}"
+    },
+    "E-002": {
+      "threat": "Befehlseinschuss über Embedded-Bus {{dataFlowName}} zur Rechteausweitung in {{targetName}}",
+      "cause": "{{targetName}} verarbeitet alle Befehle auf {{dataFlowName}} ohne Quellenverifikation oder Zugriffskontrolle",
+      "attack": "Angreifer injiziert privilegierte Befehle auf den Embedded-Bus, die {{targetName}} mit erhöhten Rechten ausführt"
+    },
+    "E-003": {
+      "threat": "Rechteausweitung über {{dataFlowName}} Debug-Schnittstelle an {{targetName}}",
+      "cause": "JTAG oder SWD Schnittstelle bietet vollen Prozessorzugriff — Angreifer kann CPU anhalten, Speicher lesen/schreiben und Ausführungsfluss ohne Authentifizierung modifizieren",
+      "attack": "Angreifer nutzt die {{dataFlowName}}-Schnittstelle um den Prozessor von {{targetName}} anzuhalten, liest Sicherheitsschlüssel aus dem Speicher und modifiziert den Ausführungsfluss um Zugriffskontrollen oder Secure Boot Verifikation zu umgehen"
+    },
+    "E-004": {
+      "threat": "Privilegierter Befehlsinjektion über unauthentiziertes Protokoll: Angreifer sendet privilegierte Befehle an {{targetName}} über {{sourceName}}",
+      "cause": "Das im Datenfluss von {{sourceName}} verwendete Protokoll trägt keine Autorisierungsinformationen — {{targetName}} führt alle syntaktisch validen Befehle unabhängig von der Quelle aus",
+      "attack": "Angreifer injiziert privilegierte Operationsbefehle (z.B. Parameter schreiben, Ausgänge erzwingen, Programmiermodus aktivieren) in den Datenfluss, die {{targetName}} mit seiner vollen Systemautorität ausführt"
+    }
+  }
+}

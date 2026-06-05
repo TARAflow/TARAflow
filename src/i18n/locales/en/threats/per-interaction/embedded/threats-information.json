@@ -1,0 +1,14 @@
+{
+  "embedded": {
+    "I-001": {
+      "threat": "Eavesdropping on embedded bus {{dataFlowName}} between {{sourceName}} and {{targetName}}",
+      "cause": "Embedded bus communication is unencrypted and physically accessible — data can be passively captured",
+      "attack": "Attacker attaches a logic analyzer to the embedded bus and captures all traffic"
+    },
+    "I-002": {
+      "threat": "Sensitive data extraction via {{dataFlowName}} interface from {{targetName}}",
+      "cause": "Debug interface is accessible without readback protection — firmware and cryptographic keys are readable",
+      "attack": "Attacker connects to the {{dataFlowName}} interface and reads flash memory to extract firmware, API keys, or cryptographic material"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "embedded": {
+    "I-001": {
+      "threat": "Kryptografische Schlüssel-Extraktion via Seitenkanal-Angriff",
+      "cause": "Keine Seitenkanal-Gegenmassnahmen implementiert — Stromverbrauch, Timing oder EM-Emissionen korrelieren mit kryptografischen Operationen",
+      "attack": "Angreifer misst Stromkurven oder EM-Emissionen während kryptografischer Operationen und wendet Differential Power Analysis (DPA) an"
+    },
+    "I-002": {
+      "threat": "Firmware-Informationspreisgabe über nicht gesperrte Debug-Schnittstelle",
+      "cause": "Debug-Schnittstelle erlaubt Speicher-Lesezugriff ohne Authentifizierung",
+      "attack": "Angreifer verbindet sich mit der Debug-Schnittstelle und liest Flash-Speicher aus, um Konfigurationsdaten, Credentials oder proprietäre Firmware zu extrahieren"
+    },
+    "I-003": {
+      "threat": "Extraktion sensibler Daten aus Embedded-Speicher",
+      "cause": "Flash oder EEPROM enthält unverschlüsselte sensible Daten und ist via Debug-Schnittstelle oder physischer Sonde auslesbar",
+      "attack": "Angreifer liest Flash-Speicher via JTAG oder physischer Sonde aus, um API-Keys, Gerätezertifikate oder Benutzerdaten ohne Verschlüsselung zu extrahieren"
+    }
+  }
+}

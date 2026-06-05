@@ -1,0 +1,124 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/general",
+  "elementTemplates": [
+    {
+      "id": "D-001",
+      "strideCategory": "D",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-D-001",
+        "M-D-002",
+        "M-D-005"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-002",
+        "V-D-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "D-002",
+      "strideCategory": "D",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-D-001",
+        "M-D-002",
+        "M-D-005"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-002",
+        "V-D-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "D-003",
+      "strideCategory": "D",
+      "elementTypes": [
+        "DataFlow"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-D-001",
+        "M-D-003"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "D-004",
+      "strideCategory": "D",
+      "elementTypes": [
+        "DataStore"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-D-001",
+        "M-D-002",
+        "M-D-004"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-004"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "D-005",
+      "strideCategory": "D",
+      "elementTypes": [
+        "DataStore"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-D-001",
+        "M-D-002",
+        "M-D-004"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-004"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "D-007",
+      "strideCategory": "D",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-D-001",
+        "M-D-002",
+        "M-D-005"
+      ],
+      "verifications": [
+        "V-D-001",
+        "V-D-002",
+        "V-D-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    }
+  ]
+}

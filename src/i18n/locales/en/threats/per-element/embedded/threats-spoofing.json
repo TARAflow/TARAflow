@@ -1,0 +1,14 @@
+{
+  "embedded": {
+    "S-001": {
+      "threat": "OT protocol sender spoofing — attacker impersonates a legitimate OT device",
+      "cause": "OT protocol stack carries no sender authentication",
+      "attack": "Attacker connects a rogue device to the OT network and impersonates a legitimate PLC or sensor"
+    },
+    "S-002": {
+      "threat": "Embedded system identity spoofing — attacker impersonates a legitimate embedded controller or safety system",
+      "cause": "No hardware-based authentication between embedded systems — systemClass identity is not verified",
+      "attack": "Attacker places a rogue embedded device claiming to be a legitimate controller and injects falsified commands"
+    }
+  }
+}

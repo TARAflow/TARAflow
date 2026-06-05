@@ -1,0 +1,34 @@
+{
+  "general": {
+    "D-001": {
+      "threat": "Prozessabsturz",
+      "cause": "Unsachgemäße Eingabevalidierung oder Fehlerbehandlung",
+      "attack": "Angreifer sendet fehlerhafte Eingaben, um Abstürze oder Ausnahmen auszulösen"
+    },
+    "D-002": {
+      "threat": "Ressourcenerschöpfung",
+      "cause": "Fehlende Ratenbegrenzung oder Ressourcenkontrollen",
+      "attack": "Angreifer überflutet den Prozess mit Anfragen, um Systemressourcen zu erschöpfen"
+    },
+    "D-003": {
+      "threat": "Netzwerkflutung",
+      "cause": "Unzureichende Schutzmaßnahmen auf Netzwerkebene",
+      "attack": "Angreifer flutet Netzwerkkanäle, um legitime Kommunikation zu unterbrechen"
+    },
+    "D-004": {
+      "threat": "Speichererschöpfung",
+      "cause": "Fehlende Quoten oder Speicherlimits",
+      "attack": "Angreifer füllt die Speicherkapazität, um legitime Operationen zu blockieren"
+    },
+    "D-005": {
+      "threat": "Datenbankressourcen-Sperrung",
+      "cause": "Ineffiziente Abfrageverarbeitung und fehlende Ressourcensicherungen",
+      "attack": "Angreifer führt aufwändige oder langläufige Datenbankabfragen aus, um Ressourcen zu sperren"
+    },
+    "D-006": {
+      "threat": "Denial of Service auf Systemebene",
+      "cause": "Keine Ressourcenschutz- oder Watchdog-Mechanismen an der Systemgrenze — das System kann durch Ressourcenerschöpfung unavailable werden",
+      "attack": "Angreifer überflutet das System mit Anfragen oder missgeformten Eingaben und erschöpft CPU-, Speicher- oder Netzwerkressourcen bis das System nicht mehr reagiert"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/cloud",
+  "elementTemplates": [
+    {
+      "id": "E-001",
+      "strideCategory": "E",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {
+        "systemClass": [
+          "cloud_platform",
+          "backend_application"
+        ]
+      },
+      "mitigations": [
+        "M-E-001",
+        "M-E-002",
+        "M-E-005"
+      ],
+      "verifications": [
+        "V-E-001",
+        "V-E-002",
+        "V-E-003"
+      ],
+      "isCustom": false,
+      "domain": "cloud"
+    }
+  ]
+}

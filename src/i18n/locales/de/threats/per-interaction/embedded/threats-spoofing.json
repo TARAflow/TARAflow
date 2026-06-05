@@ -1,0 +1,19 @@
+{
+  "embedded": {
+    "S-001": {
+      "threat": "Feldbus-Sender-Spoofing: Angreifer gibt sich als {{sourceName}} aus um Befehle in {{targetName}} einzuschleusen",
+      "cause": "Feldbus-Protokoll hat keine Sender-Authentifizierung — {{targetName}} kann den Ursprung eingehender Rahmen nicht verifizieren",
+      "attack": "Angreifer platziert einen Rogue-Knoten auf dem Feldbus mit der Adresse von {{sourceName}} und sendet gefälschte Befehle oder Sensorwerte an {{targetName}}"
+    },
+    "S-002": {
+      "threat": "Feldbus-Sender-Spoofing: Angreifer imitiert {{sourceName}} auf dem Feldbus um Befehle in {{targetName}} einzuschleusen",
+      "cause": "Das Feldbusprotokoll (Modbus, CAN, Profibus) kennt keine Sender-Authentifizierung — {{targetName}} kann die Herkunft eingehender Frames nicht verifizieren",
+      "attack": "Angreifer platziert einen unautorisierten Knoten auf dem Feldbus, der die Adresse von {{sourceName}} beansprucht, und sendet gefälschte Befehle oder Sensorwerte, die {{targetName}} als legitim akzeptiert"
+    },
+    "S-003": {
+      "threat": "Kompromittierter {{sourceName}} imitiert vertrauenswürdigen Controller gegenüber {{targetName}}",
+      "cause": "{{targetName}} besitzt keine Möglichkeit zu verifizieren, dass Daten vom authentischen {{sourceName}} stammen — ein kompromittiertes oder ersetztes System kann als legitim durchgehen",
+      "attack": "Nach der Kompromittierung von {{sourceName}} nutzt der Angreifer dessen Netzwerkidentität um gefälschte Sensorwerte, Statusmeldungen oder Steuersignale zu senden, denen {{targetName}} ohne weitere Verifikation vertraut"
+    }
+  }
+}

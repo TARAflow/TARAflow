@@ -1,0 +1,98 @@
+{
+  "version": "2.0.0",
+  "description": "per-element/general",
+  "elementTemplates": [
+    {
+      "id": "R-001",
+      "strideCategory": "R",
+      "elementTypes": [
+        "ExternalEntity"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-002"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "R-002",
+      "strideCategory": "R",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "R-003",
+      "strideCategory": "R",
+      "elementTypes": [
+        "Process",
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-003"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "R-004",
+      "strideCategory": "R",
+      "elementTypes": [
+        "DataStore"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-002"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    },
+    {
+      "id": "R-006",
+      "strideCategory": "R",
+      "elementTypes": [
+        "Multiprocess"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-R-001",
+        "M-R-002"
+      ],
+      "verifications": [
+        "V-R-001",
+        "V-R-002"
+      ],
+      "isCustom": false,
+      "domain": "general"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "general": {
+    "R-001": {
+      "threat": "External entity repudiation — external entity denies having sent a request",
+      "cause": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+      "attack": "External entity denies having sent a command that the system received and acted upon"
+    },
+    "R-002": {
+      "threat": "Process action repudiation — process denies having performed an action",
+      "cause": "Audit log is absent, incomplete, or not tamper-proof",
+      "attack": "Process or its operator denies having executed a command that affected the system"
+    },
+    "R-003": {
+      "threat": "Audit log tampering — attacker modifies or deletes audit log entries",
+      "cause": "Audit log lacks integrity protection — entries can be modified after the fact",
+      "attack": "Attacker deletes or modifies audit log entries to cover traces of unauthorized actions"
+    },
+    "R-004": {
+      "threat": "Data store access repudiation — access to the data store cannot be attributed",
+      "cause": "No access logging on the data store",
+      "attack": "Attacker accesses the data store and denies having done so because no log entry exists"
+    },
+    "R-005": {
+      "threat": "System action repudiation — system or operator denies having performed a system-level action",
+      "cause": "No tamper-proof system-level audit log",
+      "attack": "Operator denies having executed a system-level operation that affected other components"
+    }
+  }
+}
