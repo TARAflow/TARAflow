@@ -68,8 +68,7 @@ import {
   hasQualifier,
   isIsAnRelation,
 } from "../../models/asset-relation-types";
-import type { SafetyAnnotation } from "../../models/safety-types";
-import { AnyAssetRelationType } from "shared";
+import { AnyAssetRelationType, SafetyAnnotation } from "shared";
 
 // ==================== PUBLIC TYPES ====================
 

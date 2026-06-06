@@ -93,6 +93,37 @@ export type {
   AnyAssetRelationType,
 } from "./models/asset-relation-union-types";
 
+// ==================== SAFETY TYPES ====================
+export type {
+  SafetyRelevance,
+  SafetyImpact,
+  SafetyAnnotation,
+  ValueSource,
+} from "./models/safety-types";
+
+export {
+  isSafetyCritical,
+  hasSafetyRelevance,
+  createDefaultSafetyAnnotation,
+} from "./models/safety-types";
+
+// ==================== HAZARD TYPES ====================
+export {
+  DEFAULT_HAZARD_COMBINATION_TYPE,
+  isContributesTo,
+  isEndangers,
+  type ContributesToRelation,
+  type EndangersRelation,
+  type HazardItem,
+  type HazardItemId,
+  type HazardRelation,
+} from "./models/hazard-types";
+export {
+  HUMAN_HARM_SEVERITY,
+  SEVERITY_SCALE_BY_TARGET,
+  isHumanImpact,
+} from "./models/hazard-impact";
+
 // ==================== UI COMPONENTS ====================
 export { Button } from "./components/button";
 export { Toast, ToastContainer } from "./components/toast";

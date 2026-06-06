@@ -81,19 +81,6 @@ export {
   hasIsAnConflict,
 } from "./models/asset-relation-types";
 
-// ==================== SAFETY TYPES ====================
-export type {
-  SafetyRelevance,
-  SafetyImpact,
-  SafetyAnnotation,
-} from "./models/safety-types";
-
-export {
-  isSafetyCritical,
-  hasSafetyRelevance,
-  createDefaultSafetyAnnotation,
-} from "./models/safety-types";
-
 // ==================== ASSET CONSTANTS ====================
 export {
   ASSET_GROUP_CONFIG,

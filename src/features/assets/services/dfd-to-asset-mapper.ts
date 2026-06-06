@@ -36,7 +36,7 @@ import type {
   AssetRelation,
   AssetToAssetRelation,
 } from "../../dfd/models/asset-relation-types";
-import type { SafetyAnnotation } from "../../dfd/models/safety-types";
+import type { SafetyAnnotation } from "shared";
 
 import {
   isSystemUsesRelation,

@@ -46,6 +46,23 @@ export type ValueSource = "derived" | "manual";
  */
 export type SafetyRelevance = "none" | "indirect" | "direct";
 
+// ==================== Physical Hazard Potential ====================
+
+/**
+ * Physical hazard potential — qualitative assessment per ISO 12100 / EN 50742.
+ * Rates how much physical-safety leverage an asset (or a hazard) carries,
+ * independent of likelihood.
+ *
+ * low:    Minimal risk — no control over the physical action
+ *         (e.g. monitoring port, read-only interface).
+ * medium: Moderate risk — indirect/systemic influence on the safety situation
+ *         (e.g. configuration interface, parameter access).
+ * high:   High risk — direct access to safety logic or energetic motion
+ *         (e.g. drive control, safety interlock, dosage actuator).
+ */
+export type PhysicalHazardPotential = "low" | "medium" | "high";
+
+
 // ==================== SAFETY IMPACT ====================
 
 /**
@@ -96,7 +113,7 @@ export interface SafetyAnnotation {
    * medium: Moderate risk (configuration interface)
    * high:   High risk (direct access to safety logic, machine motion)
    */
-  physicalHazardPotential?: "low" | "medium" | "high";
+  physicalHazardPotential?: PhysicalHazardPotential;
 
   /**
    * Asset is a physical protection barrier (guard, enclosure, fence).

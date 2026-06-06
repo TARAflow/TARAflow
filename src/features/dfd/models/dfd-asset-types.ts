@@ -7,7 +7,7 @@
 // Import hierarchy (no cycles):
 //   safety-types.ts → asset-relation-types.ts → asset-types.ts → dfd-types.ts
 
-import type { ValueSource } from "./safety-types";
+import type { ValueSource } from "shared";
 import type {
   AssetGroup,
   AssetToAssetRelation,

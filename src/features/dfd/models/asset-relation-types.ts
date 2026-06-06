@@ -18,7 +18,7 @@ import type {
   ServiceAssetRelationType,
   HumanAssetRelationType,
 } from "shared";
-import type { SafetyAnnotation } from "./safety-types";
+import type { SafetyAnnotation } from "shared";
 
 // ==================== ASSET GROUP ====================
 
