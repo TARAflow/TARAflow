@@ -96,6 +96,7 @@ class ProjectRepository {
       phaseStatus: { ...DEFAULT_PHASE_STATUS },
       settings: { ...DEFAULT_SETTINGS },
       status: "draft",
+      hazards: null,
       dfd: null,
       assets: null,
       threats: null,

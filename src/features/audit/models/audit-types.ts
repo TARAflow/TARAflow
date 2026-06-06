@@ -259,17 +259,18 @@ export interface AuditProjectData {
   name: string;
   audit: AuditData | null;
   phaseStatus: PhaseStatusMap;
-  
+
   // For change detection (full project snapshot)
   info: any;
+  hazards: any;
   dfd: any;
   assets: any;
   threats: any;
   risks: any;
   attackTrees: any;
-  
+
   lastModified: string;
-  
+
   // Additional fields to satisfy Project interface
   currentPhase?: number;
   strideMethod?: StrideMethod | null;

@@ -37,49 +37,56 @@ export const PHASES: PhaseDefinition[] = [
   },
   {
     id: 1,
-    label: "1 - DFD",
+    label: "Hazard",
+    shortLabel: "Hazard",
+    description: "Hazard identification and asset linkage (safety)",
+    icon: "🚨",
+  },
+  {
+    id: 2,
+    label: "DFD",
     shortLabel: "DFD",
     description: "Data Flow Diagram modeling",
     icon: "📊",
   },
   {
-    id: 2,
-    label: "2 - Assets",
+    id: 3,
+    label: "Assets",
     shortLabel: "Assets",
     description: "Asset identification and security goals",
     icon: "🛡️",
   },
   {
-    id: 3,
-    label: "3 - Threats",
+    id: 4,
+    label: "Threats",
     shortLabel: "Threats",
     description: "Threat identification and mitigation",
     icon: "⚠️",
   },
   {
-    id: 4,
-    label: "4 - Risk",
+    id: 5,
+    label: "Risk",
     shortLabel: "Risk",
     description: "Risk assessment and prioritization",
     icon: "📈",
   },
   {
-    id: 5,
-    label: "5 - Attack Tree",
+    id: 6,
+    label: "Attack Tree",
     shortLabel: "Attack Tree",
     description: "Attack tree modeling and analysis of threat paths",
     icon: "🌳",
   },
   {
-    id: 6,
-    label: "6 - Documentation",
+    id: 7,
+    label: "Documentation",
     shortLabel: "Docs",
     description: "Threat model documentation and reporting",
     icon: "📄",
   },
   {
-    id: 7,
-    label: "7 - Audit",
+    id: 8,
+    label: "Audit",
     shortLabel: "Audit",
     description: "Version control and change tracking with Git",
     icon: "🔍",
@@ -87,6 +94,8 @@ export const PHASES: PhaseDefinition[] = [
 ];
 
 // ==================== COMMON INTERFACES ====================
+
+export type WorkflowMode = "standard" | "critical";
 
 export interface PhaseDefinition {
   id: number;
@@ -98,14 +107,15 @@ export interface PhaseDefinition {
 
 export interface PhaseStatusMap {
   0: PhaseStatus; // General
-  1: PhaseStatus; // DFD
-  2: PhaseStatus; // Assets
-  3: PhaseStatus; // Threats
-  4: PhaseStatus; // Risk
-  5: PhaseStatus; // Attack Tree
-  6: PhaseStatus; // Documentation
-  7: PhaseStatus; // Audit
-  8: PhaseStatus; // Integration
+  1: PhaseStatus; // Hazards
+  2: PhaseStatus; // DFD
+  3: PhaseStatus; // Assets
+  4: PhaseStatus; // Threats
+  5: PhaseStatus; // Risk
+  6: PhaseStatus; // Attack Tree
+  7: PhaseStatus; // Documentation
+  8: PhaseStatus; // Audit
+  9: PhaseStatus; // Integration
 }
 
 // Generic Validation Pattern

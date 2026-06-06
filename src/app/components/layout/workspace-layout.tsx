@@ -20,6 +20,7 @@
 import React, { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
+import { PhaseId } from "../../models/phase-types";
 import type {
   AssetDataReference,
   DFDReference,
@@ -640,7 +641,7 @@ export const WorkspaceLayout: React.FC = () => {
       />
 
       <div className="flex-1 overflow-y-auto">
-        {activePhase === 0 && (
+        {activePhase === PhaseId.General && (
           <GeneralTab
             data={generalTabData}
             phases={PHASES}
@@ -648,6 +649,13 @@ export const WorkspaceLayout: React.FC = () => {
             getStatusColor={getPhaseStatusColor}
             onUpdate={handleGeneralTabUpdate}
           />
+        )}
+
+        {activePhase === PhaseId.Hazard && (
+          <div className="p-6 text-sm text-gray-500">
+            {/* HazardsTab placeholder — implemented in the next step */}
+            Hazard analysis — coming soon.
+          </div>
         )}
 
         {/* DFDTab: always mounted within a project to prevent iframe reload
@@ -658,7 +666,7 @@ export const WorkspaceLayout: React.FC = () => {
         {dfdTabProject && (
           <div
             style={{
-              display: activePhase === 1 ? "flex" : "none",
+              display: activePhase === PhaseId.DFD ? "flex" : "none",
               flexDirection: "column",
               height: "100%",
             }}
@@ -673,7 +681,7 @@ export const WorkspaceLayout: React.FC = () => {
           </div>
         )}
 
-        {activePhase === 2 && (
+        {activePhase === PhaseId.Assets && (
           <AssetsTab
             project={{
               id: activeProject.id,
@@ -690,7 +698,7 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
 
-        {activePhase === 3 && memoizedDFDContext && (
+        {activePhase === PhaseId.Threats && memoizedDFDContext && (
           <ThreatsTab
             project={{
               id: activeProject.id,
@@ -716,7 +724,7 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
 
-        {activePhase === 4 && (
+        {activePhase === PhaseId.Risk && (
           <RisksTab
             project={{
               id: activeProject.id,
@@ -759,7 +767,7 @@ export const WorkspaceLayout: React.FC = () => {
         {/* AttackTreeTab always mounted — prevents resize listener accumulation */}
         <div
           style={{
-            display: activePhase === 5 ? "flex" : "none",
+            display: activePhase === PhaseId.AttackTree ? "flex" : "none",
             flexDirection: "column",
             height: "100%",
           }}
@@ -785,7 +793,7 @@ export const WorkspaceLayout: React.FC = () => {
           />
         </div>
 
-        {activePhase === 6 && (
+        {activePhase === PhaseId.Documentation && (
           <DocTab
             project={transformProjectToDocData(
               activeProject,
@@ -795,7 +803,7 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
 
-        {activePhase === 7 && (
+        {activePhase === PhaseId.Audit && (
           <AuditTab
             project={{
               id: activeProject.id,
@@ -803,6 +811,7 @@ export const WorkspaceLayout: React.FC = () => {
               audit: activeProject.audit,
               phaseStatus: activeProject.phaseStatus,
               info: activeProject.info,
+              hazards: activeProject.hazards,
               dfd: activeProject.dfd,
               assets: activeProject.assets,
               threats: activeProject.threats,
@@ -816,7 +825,7 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
 
-        {activePhase === 8 && (
+        {activePhase === PhaseId.Integration && (
           <IntegrationTab
             data={{ integration: activeProject.integration ?? null }}
             onUpdate={handleIntegrationUpdate}

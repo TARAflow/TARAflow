@@ -1,4 +1,5 @@
 import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
+import { HazardData } from "features/hazards";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
 import { PhaseStatus, PhaseStatusMap, ProjectTags } from "shared";
@@ -82,6 +83,7 @@ export interface Project {
   phaseStatus: PhaseStatusMap;
   settings: ProjectSettingsData;
   status: ProjectStatus;
+  hazards: HazardData | null;
   dfd: DFDData | null;
   assets: AssetData | null;
   threats: ThreatData | null;

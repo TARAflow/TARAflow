@@ -4,10 +4,11 @@
 // Imported by ProjectRepository; never by UI components directly.
 
 import { migrateProjectTags, EMPTY_PROJECT_TAGS } from "shared";
-import type { PhaseStatusMap } from "shared";
+import type { PhaseStatus, PhaseStatusMap } from "shared";
 import type { ProjectSettingsData } from "features/overview";
 import type { Project } from "../models/project-types";
 import { migrateRiskData } from "features/risks";
+
 
 // ==================== SCHEMA VERSION ====================
 
@@ -19,7 +20,7 @@ import { migrateRiskData } from "features/risks";
  *   0 = pre-release (no schemaVersion field present)
  *   1 = Release 1 — first official version
  */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 // ==================== DEFAULTS ====================
 // Single source of truth — previously duplicated across StorageService,
@@ -35,6 +36,7 @@ export const DEFAULT_PHASE_STATUS: PhaseStatusMap = {
   6: "not-started",
   7: "not-started",
   8: "not-started",
+  9: "not-started",
 };
 
 export const DEFAULT_SETTINGS: ProjectSettingsData = {
@@ -115,6 +117,7 @@ export function repairProject(raw: any): Project | null {
       6: raw.phaseStatus?.[6] ?? "not-started",
       7: raw.phaseStatus?.[7] ?? "not-started",
       8: raw.phaseStatus?.[8] ?? "not-started",
+      9: raw.phaseStatus?.[9] ?? "not-started",
     },
     settings: {
       strictMode: raw.settings?.strictMode ?? DEFAULT_SETTINGS.strictMode,
@@ -123,6 +126,7 @@ export function repairProject(raw: any): Project | null {
         raw.settings?.autoSaveInterval ?? DEFAULT_SETTINGS.autoSaveInterval,
     },
     status: raw.status ?? "draft",
+    hazards: raw.hazards ?? null,
     dfd: raw.dfd ?? null,
     assets: raw.assets ?? null,
     threats: raw.threats ?? null,
@@ -228,6 +232,34 @@ function migrate_0_to_1(data: any): any {
   return data;
 }
 
+/**
+ * Migrate schema version 1 -> 2.
+ * Inserts the Hazard phase at position 1: every existing phase id >= 1 shifts up
+ * by one (DFD 1->2 ... Integration 8->9), a new Hazard phase (id 1) is added as
+ * "not-started", and the Project.hazards slot is introduced (default null).
+ */
+function migrate_1_to_2(data: any): any {
+  const oldStatus = data.phaseStatus ?? {};
+  const newStatus: Record<number, PhaseStatus> = {
+    0: oldStatus[0] ?? "not-started", // General (unchanged)
+    1: "not-started", //                Hazard (new)
+  };
+  for (let oldId = 1; oldId <= 8; oldId++) {
+    newStatus[oldId + 1] = oldStatus[oldId] ?? "not-started";
+  }
+
+  const oldCurrent = data.currentPhase ?? 0;
+  const newCurrent = oldCurrent >= 1 ? oldCurrent + 1 : 0; // General stays 0
+
+  return {
+    ...data,
+    currentPhase: newCurrent,
+    phaseStatus: newStatus,
+    hazards: data.hazards ?? null,
+    schemaVersion: 2,
+  };
+}
+
 // ── Add future migrations here following the same pattern ──────────────────
 // function migrate_1_to_2(data: any): any { ... }
 
@@ -252,6 +284,11 @@ export function applyMigrations(raw: any): {
 
   if (fromVersion < 1) {
     data = migrate_0_to_1(data);
+    migrated = true;
+  }
+
+  if ((data.schemaVersion ?? 0) < 2) {
+    data = migrate_1_to_2(data);
     migrated = true;
   }
 

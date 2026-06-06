@@ -3,7 +3,8 @@ import { Project } from "../../models/project-types";
 import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
 import { PhaseTab } from "./phase-tab";
 import { LanguageSwitcher } from "i18n";
-import { getWorkflowMode, sortPhasesByWorkflow } from "features/overview";
+import { sortPhasesByWorkflow } from "../../services/phase-navigation";
+import { PhaseId } from "../../models/phase-types";
 
 // ==================== DEFAULT PHASE STATUS ====================
 
@@ -35,7 +36,9 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
 
   // Determine workflow mode based on isHighImpact
   const workflowMode = project?.info
-    ? getWorkflowMode(project.info)
+    ? project.info.isHighImpact
+      ? "critical"
+      : "standard"
     : "standard";
 
   // Sort phases based on workflow mode and create display labels
@@ -57,7 +60,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           ...phase,
           displayLabel: `${index} - ${phase.shortLabel}`,
         };
-      }
+      },
     );
   }, [workflowMode]);
 
@@ -65,7 +68,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   const getPhaseValidationCounts = useMemo(() => {
     return (phaseId: number) => {
       switch (phaseId) {
-        case 1: {
+        case PhaseId.DFD: {
           // DFD Phase
           const validation = project?.dfd?.validation;
           return {
@@ -73,22 +76,22 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
             warnings: validation?.warnings?.length ?? 0,
           };
         }
-        case 2:
+        case PhaseId.Assets:
           // Assets Phase
           return { errors: 0, warnings: 0 };
-        case 3:
+        case PhaseId.Threats:
           // Threats Phase
           return { errors: 0, warnings: 0 };
-        case 4:
+        case PhaseId.Risk:
           // Risk Phase
           return { errors: 0, warnings: 0 };
-        case 5:
+        case PhaseId.AttackTree:
           // Attack Tree Phase
           return { errors: 0, warnings: 0 };
-        case 6:
+        case PhaseId.Documentation:
           // Documentation Phase
           return { errors: 0, warnings: 0 };
-        case 7:
+        case PhaseId.Audit:
           // Audit Phase
           return { errors: 0, warnings: 0 };
         default:
@@ -126,9 +129,9 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
         {/* Right Side: Integration + Language Switcher */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => onPhaseChange(8)}
+            onClick={() => onPhaseChange(PhaseId.Integration)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activePhase === 8
+              activePhase === PhaseId.Integration
                 ? "bg-blue-50 text-blue-600 border border-blue-200"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             }`}

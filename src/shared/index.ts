@@ -12,6 +12,7 @@ export type {
   PhaseStatusMap,
   PhaseDefinition,
   ValidationResult,
+  WorkflowMode,
 } from "./models/common-types";
 
 export {
