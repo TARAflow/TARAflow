@@ -191,3 +191,5 @@ export {
   DotLegacyStorageXmlSource,
   createXmlSourceManager,
 } from "./services/xml-source-manager";
+
+export { addCreatedAssets } from "./services/dfd-asset-creation";

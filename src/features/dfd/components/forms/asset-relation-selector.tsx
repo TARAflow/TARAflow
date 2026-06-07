@@ -99,6 +99,7 @@ const GROUP_LABEL: Record<AssetGroup, string> = {
   physical: "Physical Asset",
   service: "Service Asset",
   human: "Human Asset",
+  environment: "Environment Asset",
 };
 
 const RELATIONS_BY_GROUP: Record<AssetGroup, AnyAssetRelationType[]> = {
@@ -110,12 +111,14 @@ const RELATIONS_BY_GROUP: Record<AssetGroup, AnyAssetRelationType[]> = {
   physical: ["accesses", "damages", "secures", "monitors"],
   service: ["uses", "configures", "monitors", "depends_on"],
   human: [
+    "endangers",
     "affects_safety",
     "affects_privacy",
     "identifies",
     "tracks",
     "exposes",
   ],
+  environment: ["endangers"],
 };
 
 const DATAFLOW_ALLOWED = new Set<AnyAssetRelationType>(["transports", "is_an"]);

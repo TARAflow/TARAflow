@@ -23,7 +23,8 @@ export type AssetGroup =
   | "process"
   | "physical"
   | "service"
-  | "human";
+  | "human"
+  | "environment";
 
 // ==================== ASSET-TO-ASSET RELATION TYPE ====================
 // Cross-feature type — used by both dfd and assets features.
@@ -33,41 +34,67 @@ export type AssetGroup =
 
 export type A2ARelationType =
   // Data → Data
-  | "derives_from" | "aggregates" | "supersedes"
+  | "derives_from"
+  | "aggregates"
+  | "supersedes"
   // Function → Function
   | "calls"
   // Process → Process
-  | "triggers" | "suspends"
+  | "triggers"
+  | "suspends"
   // System → System
   | "integrates"
   // Infrastructure → Infrastructure
-  | "powers" | "houses"
+  | "powers"
+  | "houses"
   // Physical → Physical
   | "mechanically_linked"
   // Service → Service
   | "delegates_to"
   // Human → Human
-  | "manages" | "reports_to"
+  | "manages"
+  | "reports_to"
   // Data → Process / Function / System / Human
-  | "required_by" | "consumed_by" | "configures" | "exposes"
+  | "required_by"
+  | "consumed_by"
+  | "configures"
+  | "exposes"
   // Function → Data
-  | "creates" | "reads" | "modifies" | "deletes"
+  | "creates"
+  | "reads"
+  | "modifies"
+  | "deletes"
   // Function / System → Process / System
   | "implemented_by"
   // Process / System → Function
-  | "implements" | "invokes"
+  | "implements"
+  | "invokes"
   // Process / System / Service → Infrastructure
-  | "hosted_on" | "powered_by"
+  | "hosted_on"
+  | "powered_by"
   // Process → Human / System
-  | "operated_by" | "runs_on"
+  | "operated_by"
+  | "runs_on"
   // Physical → Function / System / Infrastructure / Human
-  | "enables" | "hosts" | "controlled_by"
-  | "connected_to" | "located_in"
+  | "enables"
+  | "hosts"
+  | "controlled_by"
+  | "connected_to"
+  | "located_in"
   | "endangers"
   // Service → Function / Data / System / Human
-  | "provides" | "consumes" | "integrates_with" | "monitors"
+  | "provides"
+  | "consumes"
+  | "integrates_with"
+  | "monitors"
   // Human → Physical / Process / Function
-  | "owns" | "accesses"
-  | "responsible_for" | "authorized_for"
+  | "owns"
+  | "accesses"
+  | "responsible_for"
+  | "authorized_for"
   // Shared / multi-category
-  | "depends_on" | "affects_safety" | "affects_privacy";
+  | "depends_on"
+  | "affects_safety"
+  | "affects_privacy"
+  // Environment
+  | "contaminates";

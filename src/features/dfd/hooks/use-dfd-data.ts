@@ -22,6 +22,8 @@ import { DefaultDFDGraphBuilder } from "../services/dfd-graph-builder";
 import { calculateStats } from "../services/parsers/stats-calculator";
 import type { DFDGraph } from "../models/dfd-graph-types";
 import type { AvailableAsset } from "../components/forms/asset-relation-selector";
+// Asset creation now lives in shared so DFD and Hazard mint identical ids/seeds.
+import { createAsset as createAssetSeed, generateAssetId } from "shared";
 
 // ==================== TYPES ====================
 
@@ -67,46 +69,6 @@ export interface UseDFDDataReturn {
 
   // Low-level update (for advanced use cases)
   updateDFD: (updater: (dfd: DFDData) => DFDData) => DFDData;
-}
-
-// ==================== ID GENERATION ====================
-
-/**
- * Group prefixes for generated asset IDs.
- * DA-001, SY-001, PR-001, IF-001, HU-001
- */
-const GROUP_PREFIX: Record<AssetGroup, string> = {
-  data: "DA",
-  function: "FU",
-  system: "SY",
-  infrastructure: "IF",
-  process: "PR",
-  physical: "PH",
-  service: "SV",
-  human: "HU",
-};
-
-/**
- * Generate the next sequential asset ID for a given group.
- * Counts only existing IDs in the same group to avoid gaps from
- * mixed-prefix deletions.
- *
- * Examples:
- *   []                          → "DA-001"
- *   ["DA-001", "DA-002"]        → "DA-003"
- *   ["DA-001", "SY-001"]  (DA)  → "DA-002"
- */
-function generateAssetId(assets: DFDAsset[], assetGroup: AssetGroup): string {
-  const prefix = GROUP_PREFIX[assetGroup];
-
-  const existingNums = assets
-    .map((a) => a.id)
-    .filter((id) => id.startsWith(`${prefix}-`))
-    .map((id) => parseInt(id.slice(prefix.length + 1), 10))
-    .filter((n) => !isNaN(n));
-
-  const next = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
-  return `${prefix}-${next.toString().padStart(3, "0")}`;
 }
 
 // ==================== HELPER: SYNC LINKED ELEMENTS ====================
@@ -274,7 +236,7 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    * ✅ CLEANUP: If assetGroup changes, all existing asset relations
    * in elements/connections are automatically removed (incompatible relations).
    * ✅ ID REGENERATION: If assetGroup changes, a new ID with the correct
-   * prefix is generated (DA-001 → SY-001).
+   * prefix is generated (DA-001 → SY-001) via the shared generateAssetId.
    */
   const updateAsset = useCallback(
     (assetId: string, updates: Partial<DFDAsset>): DFDData => {
@@ -292,8 +254,11 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
 
         // ✅ Cleanup asset relations if category changed
         if (categoryChanged) {
-          // Generate new ID with correct prefix
-          const newId = generateAssetId(current.assets, updates.assetGroup!);
+          // Generate new ID with correct prefix (shared primitive — takes ids).
+          const newId = generateAssetId(
+            current.assets.map((a) => a.id),
+            updates.assetGroup!,
+          );
           finalUpdates = {
             ...updates,
             id: newId,
@@ -364,6 +329,10 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
   /**
    * Create a new DFDAsset in dfd.assets[] atomically.
    *
+   * The asset id + seed come from the shared createAsset primitive (same code
+   * the Hazard Bowtie uses); this hook only widens the seed to a DFDAsset
+   * (linkedElements []) and runs the atomic updateDFD (graph + stats + sync).
+   *
    * Returns { newDfd, asset } so the caller can:
    *   - pass newDfd to scheduleSave()
    *   - return asset to AssetRelationSelector as AvailableAsset
@@ -380,14 +349,15 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
     ): { newDfd: DFDData; asset: DFDAsset } => {
       if (!dfd) throw new Error("Cannot create asset: project.dfd is null");
 
-      const id = generateAssetId(dfd.assets, assetGroup);
-
-      const newAsset: DFDAsset = {
-        id,
-        displayId: id,
+      const seed = createAssetSeed(
+        dfd.assets.map((a) => a.id),
         name,
         assetGroup,
-        ...(protectionNeed ? { protectionNeed } : {}),
+        protectionNeed,
+      );
+
+      const newAsset: DFDAsset = {
+        ...seed,
         linkedElements: [], // will be populated by syncAssetLinkedElements
       };
 

@@ -111,7 +111,8 @@
     "nameExists": "Ein Projekt mit diesem Namen existiert bereits",
     "nameInvalidChars": "Name enthält ungültige Zeichen: < > : \" / \\ | ? *",
     "descriptionRequired": "Beschreibung ist erforderlich",
-    "responsibleRequired": "Verantwortlicher ist erforderlich"
+    "responsibleRequired": "Verantwortlicher ist erforderlich",
+    "noMessages": "Keine Validierungsmeldungen"
   },
   "dialogs": {
     "newProject": {

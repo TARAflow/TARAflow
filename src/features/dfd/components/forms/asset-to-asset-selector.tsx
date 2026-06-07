@@ -67,6 +67,7 @@ const GROUP_LABEL: Record<AssetGroup, string> = {
   physical: "Physical",
   service: "Service",
   human: "People",
+  environment: "Environment",
 };
 
 // Relation matrix imported from asset-constants — single source of truth

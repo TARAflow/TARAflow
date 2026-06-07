@@ -35,10 +35,17 @@ import { GeneralTab } from "features/overview";
 import type { GeneralTabData } from "features/overview";
 
 import {
+  HazardsTab,
+  type HazardUpdateResult,
+  hazardService,
+} from "features/hazards";
+
+import {
   DFDTab,
   DFDUpdateResult,
   DFDGraphAnalysisContext,
 } from "features/dfd";
+import { addCreatedAssets } from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 
@@ -279,6 +286,26 @@ export const WorkspaceLayout: React.FC = () => {
     },
     // Stable — reads current project via ref, never via closure
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    [updateProject],
+  );
+
+  // ── Hazard tab ────────────────────────────────────────────────────────────
+
+  const handleHazardsUpdate = useCallback(
+    async (updates: HazardUpdateResult) => {
+      const current = activeProjectRef.current;
+      if (!current) return;
+      const status = hazardService.deriveHazardPhaseStatus(updates.hazards);
+      const dfd = updates.createdAssets?.length
+        ? addCreatedAssets(current.dfd, updates.createdAssets)
+        : current.dfd;
+      await updateProject({
+        ...current,
+        hazards: updates.hazards,
+        dfd,
+        phaseStatus: { ...current.phaseStatus, [PhaseId.Hazard]: status },
+      });
+    },
     [updateProject],
   );
 
@@ -652,10 +679,17 @@ export const WorkspaceLayout: React.FC = () => {
         )}
 
         {activePhase === PhaseId.Hazard && (
-          <div className="p-6 text-sm text-gray-500">
-            {/* HazardsTab placeholder — implemented in the next step */}
-            Hazard analysis — coming soon.
-          </div>
+          <HazardsTab
+            project={{
+              id: activeProject.id,
+              name: activeProject.info?.name || "",
+              hazards: activeProject.hazards ?? null,
+              phaseStatus: activeProject.phaseStatus,
+              assetDataRef: memoizedAssetDataRef,
+              lastModified: activeProject.info?.lastModified || "",
+            }}
+            onUpdate={handleHazardsUpdate}
+          />
         )}
 
         {/* DFDTab: always mounted within a project to prevent iframe reload
@@ -834,4 +868,4 @@ export const WorkspaceLayout: React.FC = () => {
       </div>
     </>
   );
-};;
+}

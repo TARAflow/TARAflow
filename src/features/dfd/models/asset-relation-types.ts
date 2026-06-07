@@ -17,6 +17,7 @@ import type {
   PhysicalAssetRelationType,
   ServiceAssetRelationType,
   HumanAssetRelationType,
+  EnvironmentAssetRelationType,
 } from "shared";
 import type { SafetyAnnotation } from "shared";
 
@@ -30,7 +31,8 @@ export type AssetGroup =
   | "process"
   | "physical"
   | "service"
-  | "human";
+  | "human"
+  | "environment";
 
 /**
  * Qualifier for "uses" on System Assets.
@@ -246,6 +248,18 @@ export interface HumanAssetInteractionRelation {
 }
 export type HumanAssetRelation = IsAnRelation | HumanAssetInteractionRelation;
 
+// ---- Environment ----
+export interface EnvironmentAssetInteractionRelation {
+  readonly relationType: Exclude<EnvironmentAssetRelationType, "is_an">;
+  assetId: string;
+  assetGroup: "environment";
+  notes?: string;
+  safety?: SafetyAnnotation;
+}
+export type EnvironmentAssetRelation =
+  | IsAnRelation
+  | EnvironmentAssetInteractionRelation;
+
 // ==================== UNIFIED ASSET RELATION ====================
 
 export type AssetRelation =
@@ -256,7 +270,8 @@ export type AssetRelation =
   | InfraAssetRelation
   | PhysicalAssetRelation
   | ServiceAssetRelation
-  | HumanAssetRelation;
+  | HumanAssetRelation
+  | EnvironmentAssetRelation;
 
 // ==================== TYPE GUARDS ====================
 
@@ -386,7 +401,9 @@ export type A2ARelationType =
   // Shared / multi-category
   | "depends_on"
   | "affects_safety"
-  | "affects_privacy";
+  | "affects_privacy"
+  // Environment
+  | "contaminates";
 
 /**
  * Asset-to-Asset relation (Layer 2)

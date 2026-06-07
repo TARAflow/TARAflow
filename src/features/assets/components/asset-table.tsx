@@ -43,6 +43,7 @@ import {
   Inventory2 as PhysicalIcon,
   Cloud as ServiceIcon,
   Person as HumanIcon,
+  Nature as EnvironmentIcon,
 } from "@mui/icons-material";
 
 import type { Asset, AssetConfiguration, AssetToAssetRelationReference } from "../models/asset-types";
@@ -91,6 +92,7 @@ const ASSET_GROUP_ICONS: Record<AssetGroup, React.ReactElement> = {
   physical: <PhysicalIcon sx={{ fontSize: 14 }} />,
   service: <ServiceIcon sx={{ fontSize: 14 }} />,
   human: <HumanIcon sx={{ fontSize: 14 }} />,
+  environment: <EnvironmentIcon sx={{ fontSize: 14 }} />,
 };
 
 // ==================== CATEGORY LOOKUP ====================
@@ -108,6 +110,7 @@ const ID_PREFIX_TO_CATEGORY: Record<string, AssetGroup> = {
   PH: "physical",
   SE: "service",
   HU: "human",
+  EN: "environment",
 };
 
 function getCategoryFromAsset(asset: Asset): AssetGroup | undefined {

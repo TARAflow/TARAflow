@@ -82,4 +82,10 @@ export const ASSET_GROUP_CONFIG: Record<AssetGroup, AssetGroupConfig> = {
     color: "#2E7D32", // Green
     colorLight: "#E8F5E9",
   },
+  environment: {
+    label: "Environment",
+    labelDE: "Umwelt",
+    color: "#00695C",
+    colorLight: "#E0F2F1",
+  },
 };

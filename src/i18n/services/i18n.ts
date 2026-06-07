@@ -30,6 +30,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 // EN namespace imports
 import enCommon from "../locales/en/common.json";
+import enHazards from "../locales/en/hazards.json";
 import enDfd from "../locales/en/dfd.json";
 import enAssets from "../locales/en/assets.json";
 import enThreats from "../locales/en/threats.json";
@@ -62,6 +63,7 @@ import enVerificationsPhysicalboundary from "../locales/en/verifications/verific
 
 // DE namespace imports
 import deCommon from "../locales/de/common.json";
+import deHazards from "../locales/de/hazards.json";
 import deDfd from "../locales/de/dfd.json";
 import deAssets from "../locales/de/assets.json";
 import deThreats from "../locales/de/threats.json";
@@ -114,6 +116,7 @@ export type AppNamespace = (typeof NAMESPACES)[number];
 const resources = {
   en: {
     common: enCommon,
+    hazards: enHazards,
     dfd: enDfd,
     assets: enAssets,
     threats: enThreats,
@@ -148,6 +151,7 @@ const resources = {
   },
   de: {
     common: deCommon,
+    hazards: deHazards,
     dfd: deDfd,
     assets: deAssets,
     threats: deThreats,
@@ -191,6 +195,7 @@ i18n
     defaultNS: "common",
     ns: NAMESPACES,
     fallbackNS: [
+      "hazards",
       "dfd",
       "assets",
       "threats",

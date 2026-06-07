@@ -116,12 +116,19 @@ export type ServiceAssetRelationType =
  * Not threat actors — threat actors are External Entities in the DFD.
  */
 export type HumanAssetRelationType =
+  | "endangers" // Element influences physical safety of this person
   | "affects_safety" // Element influences physical safety of this person
   | "affects_privacy" // Element affects privacy / GDPR
   | "identifies" // Element identifies / de-anonymises a person
   | "tracks" // Element tracks / monitors a person
   | "exposes" // Element exposes a person to risk
   | "is_an"; // Element represents this person / role
+
+  export type EnvironmentAssetRelationType =
+    | "endangers" // Element gefährdet die Umwelt direkt
+    | "monitors" // Element überwacht Umweltparameter (Sensoren)
+    | "contaminates" // Element kann Umwelt kontaminieren (Chemie, OT)
+    | "is_an";
 
   // ==================== UNION TYPES ====================
   
@@ -133,4 +140,5 @@ export type HumanAssetRelationType =
     | InfraAssetRelationType
     | PhysicalAssetRelationType
     | ServiceAssetRelationType
-    | HumanAssetRelationType;
+    | HumanAssetRelationType
+    | EnvironmentAssetRelationType;

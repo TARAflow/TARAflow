@@ -91,11 +91,13 @@ export type {
   PhysicalAssetRelationType,
   ServiceAssetRelationType,
   HumanAssetRelationType,
+  EnvironmentAssetRelationType,
   AnyAssetRelationType,
 } from "./models/asset-relation-union-types";
 
 // ==================== SAFETY TYPES ====================
 export type {
+  PhysicalHazardPotential,
   SafetyRelevance,
   SafetyImpact,
   SafetyAnnotation,
@@ -115,11 +117,16 @@ export {
   isEndangers,
   type ContributesToRelation,
   type EndangersRelation,
+  type HazardCategory,
+  type HazardCombinationType,
   type HazardItem,
   type HazardItemId,
   type HazardRelation,
+  type HazardSource,
 } from "./models/hazard-types";
 export {
+  type HazardImpact,
+  type HazardTargetKind,
   HUMAN_HARM_SEVERITY,
   SEVERITY_SCALE_BY_TARGET,
   isHumanImpact,
@@ -188,6 +195,12 @@ export { computeAllMitigationCoverage } from "./utils/mitigation-coverage";
 
 export { type DFDAnalysisContext } from "./ports/dfd-analysis-context";
 
+export {
+  type CreatedAsset,
+  createAsset,
+  generateAssetId,
+} from "./services/asset-creation";
+ 
 // ==================== ASSET GROUP TYPES ====================
 // Single source of truth for AssetGroup and A2ARelationType.
 // Used by both dfd and assets features without cross-feature dependency.

@@ -1,0 +1,87 @@
+{
+  "tabs": {
+    "hazards": {
+      "hazards": "Gefährdungen",
+      "addHazard": "Gefährdung hinzufügen",
+      "configuration": "Gefährdungs-Einstellungen",
+      "proceed": "Weiter",
+      "unnamed": "(unbenannt)",
+      "deleteConfirm": "Diese Gefährdung hat {{count}} verknüpfte Kante(n). Trotzdem löschen?",
+      "quickAddPlaceholder": "Schnell erfassen: Bezeichnung, dann Enter…",
+
+      "columns": {
+        "id": "ID",
+        "label": "Gefährdung",
+        "type": "Typ",
+        "php": "Phys. Potenzial",
+        "combination": "Logik",
+        "causes": "Ursachen",
+        "targets": "Ziele",
+        "maxSeverity": "Max. Schweregrad",
+        "source": "Quelle"
+      },
+
+      "category": {
+        "mechanical": "Mechanisch",
+        "electrical": "Elektrisch",
+        "thermal": "Thermisch",
+        "noise": "Lärm",
+        "vibration": "Vibration",
+        "radiation": "Strahlung",
+        "material_substance": "Material / Substanz",
+        "ergonomic": "Ergonomisch",
+        "environment": "Umwelt",
+        "combined": "Kombiniert",
+        "other": "Sonstiges"
+      },
+
+      "combination": {
+        "any": "ANY (unabhängige Ursachen)",
+        "all": "ALL (kombinatorisch)"
+      },
+
+      "severity": {
+        "reversible_injury": "Reversible Verletzung",
+        "irreversible_injury": "Irreversible Verletzung",
+        "fatality": "Tod",
+        "low": "Niedrig",
+        "medium": "Mittel",
+        "high": "Hoch",
+        "critical": "Kritisch"
+      },
+
+      "source": {
+        "manual": "Manuell",
+        "derived": "Abgeleitet",
+        "imported": "Importiert"
+      },
+
+      "config": {
+        "title": "Gefährdungs-Einstellungen",
+        "defaultCombination": "Standard-Verknüpfung für neue Gefährdungen",
+        "combinationHint": "ANY: jede Ursache löst die Gefährdung allein aus. ALL: erst alle Beiträge zusammen schärfen sie.",
+        "requireType": "ISO-12100-Gefährdungstyp verlangen",
+        "requireTypeHint": "Wenn aktiv, blockiert das Bowtie das Speichern einer Gefährdung ohne Typ.",
+        "maxHops": "Ausbreitungs-Hop-Limit",
+        "maxHopsHint": "Reserviert für die kommende Safety-Ableitung über Asset-zu-Asset-Hops. Noch ohne Wirkung."
+      },
+
+      "dialog": {
+        "newTitle": "Neue Gefährdung",
+        "editTitle": "Gefährdung bearbeiten",
+        "label": "Bezeichnung der Gefährdung",
+        "type": "ISO-12100-Typ",
+        "php": "Physikalisches Gefährdungspotenzial",
+        "combination": "Verknüpfung",
+        "rationale": "Begründung",
+        "causes": "Ursachen — contributes_to",
+        "targets": "Schutzziele — endangers",
+        "addCause": "Ursache hinzufügen / anlegen…",
+        "addTarget": "Ziel hinzufügen / anlegen…",
+        "noCauses": "Mindestens ein beitragendes Asset ist erforderlich.",
+        "noTargets": "Mindestens ein Schutzziel ist erforderlich.",
+        "distance": "Dist."
+      }
+    }
+  }
+}

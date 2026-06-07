@@ -113,7 +113,8 @@
     "nameExists": "A project with this name already exists",
     "nameInvalidChars": "Name contains invalid characters: < > : \" / \\ | ? *",
     "descriptionRequired": "Description is required",
-    "responsibleRequired": "Responsible person is required"
+    "responsibleRequired": "Responsible person is required",
+    "noMessages": "No validation messages"
   },
   "dialogs": {
     "newProject": {

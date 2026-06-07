@@ -10,7 +10,7 @@ import type {
   PhysicalContactQualifier,
   A2ARelationType,
 } from "./asset-relation-types";
-import {
+import type {
   DataAssetRelationType,
   FunctionAssetRelationType,
   ProcessAssetRelationType,
@@ -19,6 +19,7 @@ import {
   PhysicalAssetRelationType,
   ServiceAssetRelationType,
   HumanAssetRelationType,
+  EnvironmentAssetRelationType,
 } from "shared";
 
 // ==================== UI DISPLAY CONFIGURATION ====================
@@ -76,6 +77,12 @@ export const ASSET_GROUP_CONFIG: Record<
     labelDE: "Personen",
     color: "#2E7D32",
     colorLight: "#E8F5E9", // Green
+  },
+  environment: {
+    label: "Environment",
+    labelDE: "Umwelt",
+    color: "#558B2F",
+    colorLight: "#F1F8E9", // Leaf green
   },
 };
 
@@ -155,13 +162,27 @@ export const SERVICE_RELATION_LABELS: Record<
   is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
 };
 
-export const HUMAN_RELATION_LABELS: Record<HumanAssetRelationType, { en: string; de: string }> = {
-  affects_safety:  { en: "Affects safety",  de: "Gefährdet physisch" },
+export const HUMAN_RELATION_LABELS: Record<
+  HumanAssetRelationType,
+  { en: string; de: string }
+> = {
+  endangers: { en: "Endangers", de: "Gefährdet" },
+  affects_safety: { en: "Affects safety", de: "Gefährdet physisch" },
   affects_privacy: { en: "Affects privacy", de: "Beeinträchtigt Privatsphäre" },
-  identifies:      { en: "Identifies",      de: "Identifiziert" },
-  tracks:          { en: "Tracks",          de: "Verfolgt" },
-  exposes:         { en: "Exposes",         de: "Exponiert" },
-  is_an:           { en: "Is an instance of", de: "Ist eine Instanz von" },
+  identifies: { en: "Identifies", de: "Identifiziert" },
+  tracks: { en: "Tracks", de: "Verfolgt" },
+  exposes: { en: "Exposes", de: "Exponiert" },
+  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
+};
+
+export const ENVIRONMENT_RELATION_LABELS: Record<
+  EnvironmentAssetRelationType,
+  { en: string; de: string }
+> = {
+  endangers: { en: "Endangers", de: "Gefährdet" },
+  monitors: { en: "Monitors", de: "Überwacht" },
+  contaminates: { en: "Contaminates", de: "Kontaminiert" },
+  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
 };
 
 // ==================== QUALIFIER LABELS ====================
@@ -421,6 +442,9 @@ export function getAllowedRelations(
       return ALLOWED_SERVICE_RELATIONS[elementType] ?? [];
     case "human":
       return ALLOWED_HUMAN_RELATIONS[elementType] ?? [];
+    case "environment":
+      // Environment is a hazard protection target, not acted on by DFD elements.
+      return [];
   }
 }
 
@@ -468,6 +492,7 @@ export const ASSET_GROUP_TAB_ORDER: AssetGroup[] = [
   "physical",
   "service",
   "human",
+  "environment",
 ];
 
 // ==================== TRANSITIVE DERIVATION ALLOW-LIST ====================
@@ -493,14 +518,21 @@ export const ASSET_GROUP_TAB_ORDER: AssetGroup[] = [
  * @see taraflow-asset-beziehungen.md §"Graph-Algorithmus"
  */
 export const DERIVABLE_RELATIONS: Record<AssetGroup, ReadonlySet<string>> = {
-  data:           new Set(["creates", "reads", "modifies", "deletes", "stores"]),
-  function:       new Set(["executes", "invokes", "implements", "depends_on"]),
-  process:        new Set(["executes", "invokes", "monitors"]),
-  system:         new Set(["uses", "depends_on", "configures"]),
+  data: new Set(["creates", "reads", "modifies", "deletes", "stores"]),
+  function: new Set(["executes", "invokes", "implements", "depends_on"]),
+  process: new Set(["executes", "invokes", "monitors"]),
+  system: new Set(["uses", "depends_on", "configures"]),
   infrastructure: new Set(["accesses", "powers"]),
-  physical:       new Set(["accesses", "damages"]),
-  service:        new Set(["uses", "depends_on"]),
-  human:          new Set(["affects_safety", "affects_privacy", "identifies", "tracks", "exposes"]),
+  physical: new Set(["accesses", "damages"]),
+  service: new Set(["uses", "depends_on"]),
+  human: new Set([
+    "affects_safety",
+    "affects_privacy",
+    "identifies",
+    "tracks",
+    "exposes",
+  ]),
+  environment: new Set(["endangers", "monitors"]),
 };
 // ==================== ASSET-TO-ASSET ALLOWED RELATIONS ====================
 // Core Rules matrix: sourceGroup × targetGroup → allowed A2ARelationType[]
@@ -517,56 +549,62 @@ type A2ARelMatrix = Partial<Record<AssetGroup, A2ARelationType[]>>;
 
 export const ALLOWED_A2A_RELATIONS: Record<AssetGroup, A2ARelMatrix> = {
   data: {
-    data:           ["derives_from", "aggregates", "supersedes"],
-    process:        ["required_by", "consumed_by", "configures"],
-    function:       ["required_by", "configures"],
-    system:         ["configures"],
-    human:          ["affects_privacy", "exposes"],
+    data: ["derives_from", "aggregates", "supersedes"],
+    process: ["required_by", "consumed_by", "configures"],
+    function: ["required_by", "configures"],
+    system: ["configures"],
+    human: ["affects_privacy", "exposes"],
   },
   function: {
-    function:       ["depends_on", "supersedes", "calls"],
-    data:           ["creates", "reads", "modifies", "deletes"],
-    process:        ["implemented_by", "triggers"],
-    system:         ["implemented_by", "depends_on"],
-    human:          ["affects_safety", "operated_by"],
+    function: ["depends_on", "supersedes", "calls"],
+    data: ["creates", "reads", "modifies", "deletes"],
+    process: ["implemented_by", "triggers"],
+    system: ["implemented_by", "depends_on"],
+    human: ["affects_safety", "operated_by"],
   },
   process: {
-    process:        ["triggers", "depends_on", "suspends"],
-    function:       ["implements", "invokes"],
-    system:         ["runs_on", "depends_on"],
-    human:          ["affects_safety", "affects_privacy", "operated_by"],
+    process: ["triggers", "depends_on", "suspends"],
+    function: ["implements", "invokes"],
+    system: ["runs_on", "depends_on"],
+    human: ["affects_safety", "affects_privacy", "operated_by"],
     infrastructure: ["hosted_on"],
+    environment: ["endangers", "contaminates"],
   },
   system: {
-    system:         ["depends_on", "integrates"],
-    function:       ["implements", "depends_on"],
+    system: ["depends_on", "integrates"],
+    function: ["implements", "depends_on"],
     infrastructure: ["hosted_on", "powered_by"],
   },
   infrastructure: {
     infrastructure: ["powers", "houses"],
-    physical:       ["houses"],
+    physical: ["houses"],
+    environment: ["endangers"],
   },
   physical: {
-    physical:       ["mechanically_linked", "powered_by"],
-    function:       ["enables", "triggers"],
-    system:         ["hosts", "controlled_by"],
+    physical: ["mechanically_linked", "powered_by"],
+    function: ["enables", "triggers"],
+    system: ["hosts", "controlled_by"],
     infrastructure: ["connected_to", "powered_by", "located_in"],
-    human:          ["endangers", "exposes"],
+    human: ["endangers", "exposes"],
+    environment: ["endangers"],
   },
   service: {
-    service:        ["depends_on", "delegates_to"],
-    function:       ["provides", "depends_on"],
-    data:           ["exposes", "consumes"],
-    system:         ["integrates_with", "monitors"],
-    human:          ["affects_privacy", "endangers"],
+    service: ["depends_on", "delegates_to"],
+    function: ["provides", "depends_on"],
+    data: ["exposes", "consumes"],
+    system: ["integrates_with", "monitors"],
+    human: ["affects_privacy", "endangers"],
+    environment: ["endangers"],
     infrastructure: ["hosted_on", "depends_on"],
   },
   human: {
-    human:          ["manages", "reports_to"],
-    process:        ["responsible_for", "authorized_for"],
-    function:       ["authorized_for", "responsible_for"],
-    physical:       ["owns", "responsible_for", "accesses"],
+    human: ["manages", "reports_to"],
+    process: ["responsible_for", "authorized_for"],
+    function: ["authorized_for", "responsible_for"],
+    physical: ["owns", "responsible_for", "accesses"],
   },
+  // Environment is a protection target only — no outgoing A2A relations.
+  environment: {},
 };
 
 /**

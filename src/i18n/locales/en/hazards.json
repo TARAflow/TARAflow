@@ -1,0 +1,87 @@
+{
+  "tabs": {
+    "hazards": {
+      "hazards": "Hazards",
+      "addHazard": "Add Hazard",
+      "configuration": "Hazard Settings",
+      "proceed": "Continue",
+      "unnamed": "(unnamed)",
+      "deleteConfirm": "This hazard has {{count}} linked edge(s). Delete anyway?",
+      "quickAddPlaceholder": "Quick add: hazard label, then Enter…",
+
+      "columns": {
+        "id": "ID",
+        "label": "Hazard",
+        "type": "Type",
+        "php": "Phys. Potential",
+        "combination": "Logic",
+        "causes": "Causes",
+        "targets": "Targets",
+        "maxSeverity": "Max Severity",
+        "source": "Source"
+      },
+
+      "category": {
+        "mechanical": "Mechanical",
+        "electrical": "Electrical",
+        "thermal": "Thermal",
+        "noise": "Noise",
+        "vibration": "Vibration",
+        "radiation": "Radiation",
+        "material_substance": "Material / Substance",
+        "ergonomic": "Ergonomic",
+        "environment": "Environment",
+        "combined": "Combined",
+        "other": "Other"
+      },
+
+      "combination": {
+        "any": "ANY (independent causes)",
+        "all": "ALL (combinatorial)"
+      },
+
+      "severity": {
+        "reversible_injury": "Reversible Injury",
+        "irreversible_injury": "Irreversible Injury",
+        "fatality": "Fatality",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+
+      "source": {
+        "manual": "Manual",
+        "derived": "Derived",
+        "imported": "Imported"
+      },
+
+      "config": {
+        "title": "Hazard Settings",
+        "defaultCombination": "Default combination for new hazards",
+        "combinationHint": "ANY: each cause alone triggers the hazard. ALL: only all contributions together arm it.",
+        "requireType": "Require an ISO 12100 hazard type",
+        "requireTypeHint": "When on, the Bowtie blocks saving a hazard without a type.",
+        "maxHops": "Propagation hop limit",
+        "maxHopsHint": "Reserved for the upcoming safety derivation across asset-to-asset hops. No effect yet."
+      },
+
+      "dialog": {
+        "newTitle": "New Hazard",
+        "editTitle": "Edit Hazard",
+        "label": "Hazard label",
+        "type": "ISO 12100 type",
+        "php": "Physical hazard potential",
+        "combination": "Combination",
+        "rationale": "Rationale",
+        "causes": "Causes — contributes_to",
+        "targets": "Protection targets — endangers",
+        "addCause": "Add / create cause…",
+        "addTarget": "Add / create target…",
+        "noCauses": "At least one contributing asset is required.",
+        "noTargets": "At least one protection target is required.",
+        "distance": "Dist."
+      }
+    }
+  }
+}
