@@ -42,6 +42,7 @@ import {
   Inventory2 as PhysicalIcon,
   Visibility as VisibilityOnIcon,
   VisibilityOff as VisibilityOffIcon,
+  Nature as EnvironmentIcon,
 } from "@mui/icons-material";
 import type {
   AssetGroup,
@@ -63,6 +64,7 @@ const ASSET_GROUPS: AssetGroup[] = [
   "physical",
   "service",
   "human",
+  "environment",
 ];
 
 const GROUP_ICON: Record<AssetGroup, React.ReactNode> = {
@@ -74,6 +76,7 @@ const GROUP_ICON: Record<AssetGroup, React.ReactNode> = {
   physical: <PhysicalIcon fontSize="small" />,
   service: <ServiceIcon fontSize="small" />,
   human: <PersonIcon fontSize="small" />,
+  environment: <EnvironmentIcon fontSize="small" />,
 };
 
 // ==================== PROPS ====================

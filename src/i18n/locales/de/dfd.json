@@ -435,7 +435,8 @@
                 "state_machine": "State Machine (Safety FSM)",
                 "bootloader": "Bootloader",
                 "driver": "Hardware Driver",
-                "protocol_stack": "Protokoll-Stack (CAN, Modbus usw.)"
+                "protocol_stack": "Protokoll-Stack (CAN, Modbus usw.)",
+                "functional_block": "Funktionsblock"
               }
             },
             "owner": {
@@ -1423,7 +1424,8 @@
                 "armored_cable": "Panzerung / Mechanischer Schutz",
                 "tamper_seal": "Manipulationsschutzsiegel an Steckern",
                 "locked_cabinet": "In abschliessbaren Schränken geführt",
-                "buried": "Erdverlegt"
+                "buried": "Erdverlegt",
+                "inside_enclosure": "Im Gehäuse"
               }
             },
             "cryptoStandard": {
@@ -1571,7 +1573,8 @@
               "label": "Beschreibung"
             },
             "containsSafetyRelevantData": {
-              "label": "Enthält Safety-relevante Konfigurationsdaten (EN 50742)"
+              "label": "Enthält Safety-relevante Konfigurationsdaten (EN 50742)",
+              "options": { "yes": "Ja", "no": "Nein" }
             },
             "safetyRationale": {
               "label": "Safety-Begründung",
@@ -1663,7 +1666,8 @@
               "helper": "Anbieter- oder domänenspezifische Controls nicht in der obigen Liste"
             },
             "monitoringEnabled": {
-              "label": "Monitoring / Protokollierung aktiviert"
+              "label": "Monitoring / Protokollierung aktiviert",
+              "options": { "yes": "Ja", "no": "Nein" }
             },
             "securityAssumptions": {
               "label": "Sicherheitsannahmen",
@@ -1841,7 +1845,14 @@
               }
             },
             "physicalExposureLevel": {
-              "label": "Physisches Expositionsniveau (PEL)"
+              "label": "Physisches Expositionsniveau (PEL)",
+              "options": {
+                "PEL0": "PEL0",
+                "PEL1": "PEL1",
+                "PEL2": "PEL2",
+                "PEL3": "PEL3",
+                "PEL4": "PEL4"
+              }
             },
             "accessibility": {
               "label": "Zugänglichkeit",
@@ -1916,10 +1927,12 @@
               }
             },
             "requiresToolAccess": {
-              "label": "Werkzeugzugang zum Öffnen erforderlich (Schraubenzieher, Inbusschlüssel)"
+              "label": "Werkzeugzugang zum Öffnen erforderlich (Schraubenzieher, Inbusschlüssel)",
+              "options": { "ja": "Ja", "no": "Nein" }
             },
             "safetyRelevant": {
-              "label": "Schützt Safety-relevante Hardware oder Funktionen"
+              "label": "Schützt Safety-relevante Hardware oder Funktionen",
+              "options": { "ja": "Ja", "no": "Nein" }
             },
             "safetyRationale": {
               "label": "Safety-Begründung",
@@ -1950,10 +1963,12 @@
               }
             },
             "debugInterfaceAccessible": {
-              "label": "Debug-/Programmierport physisch zugänglich (JTAG, SWD, UART)"
+              "label": "Debug-/Programmierport physisch zugänglich (JTAG, SWD, UART)",
+              "options": { "ja": "Ja", "no": "Nein" }
             },
             "removableMediaAccessible": {
-              "label": "Wechselmedien physisch zugänglich (USB, SD-Karte)"
+              "label": "Wechselmedien physisch zugänglich (USB, SD-Karte)",
+              "options": { "ja": "Ja", "no": "Nein" }
             }
           }
         },

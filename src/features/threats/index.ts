@@ -81,4 +81,9 @@ export {
   isInterfaceThreat,
 } from "./models/threat-types";
 
+export {
+  resolveMitigationDrafts,
+  resolveVerificationDrafts,
+} from "./services/threat-catalog-service";
+
 export { formatDataFlowDisplay } from "./models/per-interaction-types";

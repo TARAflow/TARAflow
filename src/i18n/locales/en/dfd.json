@@ -430,7 +430,8 @@
                 "state_machine": "State Machine (Safety FSM)",
                 "bootloader": "Bootloader",
                 "driver": "Hardware Driver",
-                "protocol_stack": "Protocol Stack (CAN, Modbus, etc.)"
+                "protocol_stack": "Protocol Stack (CAN, Modbus, etc.)",
+                "functional_block": "Functional Block"
               }
             },
             "owner": {
@@ -1418,7 +1419,8 @@
                 "armored_cable": "Armored Cable",
                 "tamper_seal": "Tamper-Evident Seal on Connectors",
                 "locked_cabinet": "Routed through Locked Cabinet",
-                "buried": "Buried (underground)"
+                "buried": "Buried (underground)",
+                "inside_enclosure": "Inside Enclosure"
               }
             },
             "cryptoStandard": {
@@ -1566,7 +1568,8 @@
               "label": "Description"
             },
             "containsSafetyRelevantData": {
-              "label": "Contains safety-relevant configuration data (EN 50742)"
+              "label": "Contains safety-relevant configuration data (EN 50742)",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "safetyRationale": {
               "label": "Safety Rationale",
@@ -1658,7 +1661,8 @@
               "helper": "Vendor-specific or domain-specific controls not in the list above"
             },
             "monitoringEnabled": {
-              "label": "Monitoring / Logging Enabled"
+              "label": "Monitoring / Logging Enabled",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "securityAssumptions": {
               "label": "Security Assumptions",
@@ -1836,7 +1840,14 @@
               }
             },
             "physicalExposureLevel": {
-              "label": "Physical Exposure Level (PEL)"
+              "label": "Physical Exposure Level (PEL)",
+              "options": {
+                "PEL0": "PEL0",
+                "PEL1": "PEL1",
+                "PEL2": "PEL2",
+                "PEL3": "PEL3",
+                "PEL4": "PEL4"
+              }
             },
             "accessibility": {
               "label": "Accessibility",
@@ -1911,10 +1922,12 @@
               }
             },
             "requiresToolAccess": {
-              "label": "Requires tool access to open (screwdriver, hex key)"
+              "label": "Requires tool access to open (screwdriver, hex key)",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "safetyRelevant": {
-              "label": "Protects safety-relevant hardware or functions"
+              "label": "Protects safety-relevant hardware or functions",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "safetyRationale": {
               "label": "Safety Rationale",
@@ -1945,10 +1958,12 @@
               }
             },
             "debugInterfaceAccessible": {
-              "label": "Debug / programming port physically accessible (JTAG, SWD, UART)"
+              "label": "Debug / programming port physically accessible (JTAG, SWD, UART)",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "removableMediaAccessible": {
-              "label": "Removable media physically accessible (USB, SD card)"
+              "label": "Removable media physically accessible (USB, SD card)",
+              "options": { "yes": "Yes", "no": "No" }
             }
           }
         },

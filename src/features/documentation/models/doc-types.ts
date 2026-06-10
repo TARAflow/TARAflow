@@ -16,7 +16,7 @@ import type { AttackTreeData } from "features/attacktree";
 
 // ==================== DOCUMENT FORMAT ====================
 
-export type DocFormat = "markdown" | "asciidoc" | "html" | "pdf";
+export type DocFormat = "markdown" | "asciidoc" | "html" | "pdf" | "strictdoc";
 export type DocLanguage = "en" | "de";
 
 // ==================== CHAPTER CONFIGURATION ====================
@@ -332,6 +332,7 @@ export function getFormatDisplayName(format: DocFormat): string {
     asciidoc: "AsciiDoc",
     html: "HTML",
     pdf: "PDF",
+    strictdoc: "StrictDoc",
   };
   return names[format] ?? format;
 }

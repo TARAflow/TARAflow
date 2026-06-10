@@ -12,6 +12,7 @@ import {
   AsciidocGenerator,
   HtmlGenerator,
   PdfGenerator,
+  StrictdocGenerator,
   type TranslationFn,
   type DocumentGeneratorResult,
   type PdfOptions,
@@ -40,6 +41,8 @@ export function createDocumentGenerator(
       return new HtmlGenerator(project, config, t);
     case "pdf":
       return new PdfGenerator(project, config, t, options?.pdfOptions);
+    case "strictdoc":
+      return new StrictdocGenerator(project, config, t);
     default:
       throw new Error(`Unsupported document format: ${config.format}`);
   }
@@ -163,6 +166,8 @@ export function getFileExtension(format: DocFormat): string {
       return "html";
     case "pdf":
       return "pdf";
+    case "strictdoc":
+      return "sdoc";
     default:
       return "txt";
   }
@@ -181,6 +186,8 @@ export function getMimeType(format: DocFormat): string {
       return "text/html";
     case "pdf":
       return "application/pdf";
+    case "strictdoc":
+      return "text/plain";
     default:
       return "text/plain";
   }

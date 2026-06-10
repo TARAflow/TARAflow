@@ -57,7 +57,6 @@ export const DocTab: React.FC<DocTabProps> = ({
     // State
     config,
     generatedContent,
-    isDirty,
     sidebarOpen,
     showConfigDialog,
     viewMode,
@@ -74,7 +73,6 @@ export const DocTab: React.FC<DocTabProps> = ({
     handleChapterToggle,
     handleConfigSave,
     handleDownload,
-    handleSave,
     setSidebarOpen,
     setShowConfigDialog,
     setViewMode,
@@ -109,7 +107,6 @@ export const DocTab: React.FC<DocTabProps> = ({
       <DocToolbar
         sidebarOpen={sidebarOpen}
         viewMode={viewMode}
-        isDirty={isDirty}
         config={config}
         generatedContent={generatedContent}
         warnings={validation.warnings}
@@ -118,7 +115,6 @@ export const DocTab: React.FC<DocTabProps> = ({
         onRegenerate={handleGenerate}
         onDownload={handleDownload}
         onOpenSettings={handleOpenSettings}
-        onSave={handleSave}
       />
 
       {/* Main Content */}
@@ -177,6 +173,7 @@ export const DocTab: React.FC<DocTabProps> = ({
                   >
                     <MenuItem value="markdown">Markdown</MenuItem>
                     <MenuItem value="asciidoc">AsciiDoc</MenuItem>
+                    <MenuItem value="strictdoc">StrictDoc</MenuItem>
                     <MenuItem value="html">HTML</MenuItem>
                     <MenuItem value="pdf">PDF</MenuItem>
                   </Select>

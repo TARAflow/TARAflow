@@ -11,6 +11,7 @@ import {
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
+import type { PropertyGroup } from "./property-doc-mappers";
 
 export class AsciidocGenerator extends BaseDocumentGenerator {
   constructor(
@@ -54,6 +55,41 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
   protected generateTocContent(_chapters: ChapterContent[]): string {
     // AsciiDoc handles TOC via :toc: attribute in header
     return "";
+  }
+
+  // ==================== PROPERTY GROUPS (3-column table) ====================
+
+  protected override formatPropertyGroups(groups: PropertyGroup[]): string {
+    if (groups.length === 0) return "";
+
+    const context = [groups[0]];
+    const meta = groups.length > 1 ? groups[groups.length - 1] : undefined;
+    const security = groups.slice(1, Math.max(1, groups.length - 1));
+
+    const cell = (gs: PropertyGroup[]): string =>
+      gs
+        .flatMap((g) => this.getVisibleProperties(g))
+        .map(
+          (p) =>
+            `*${this.escapeTableText(p.label)}*: ${this.escapeTableText(p.value)}`,
+        )
+        .join("<br>") || "—";
+
+    let out =
+      '[cols="1,1", options="header"]\n|===\n| Context | Security Controls\n\n' +
+      `| ${cell(context)} | ${cell(security)}\n|===\n`;
+
+    if (meta) {
+      const metaProps = this.getVisibleProperties(meta)
+        .map(
+          (p) =>
+            `*${this.escapeTableText(p.label)}*: ${this.escapeTableText(p.value)}`,
+        )
+        .join("<br>");
+      if (metaProps) out += `\n*Meta*<br>${metaProps}\n`;
+    }
+
+    return out;
   }
 
   // ==================== TEMPLATE GETTERS ====================

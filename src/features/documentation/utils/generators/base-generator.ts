@@ -54,7 +54,13 @@ import {
   getAssetIdList,
   getRelationTypeLabel,
   type PropertyGroup,
+  type PropertyEntry,
 } from "./property-doc-mappers";
+
+import {
+  resolveMitigationDrafts,
+  resolveVerificationDrafts,
+} from "features/threats";
 
 // ==================== TYPES ====================
 
@@ -644,29 +650,38 @@ export abstract class BaseDocumentGenerator {
     return replacePlaceholders(content, values);
   }
 
+  /** Properties worth showing — drops empty / "N/A" entries. */
+  protected getVisibleProperties(group: PropertyGroup): PropertyEntry[] {
+    return group.properties.filter(
+      (p) => p.value && p.value.trim() !== "" && p.value !== "N/A",
+    );
+  }
+
   /**
    * Format property groups into template string
    */
   protected formatPropertyGroups(groups: PropertyGroup[]): string {
     return groups
       .map((group) => {
-        const propertiesText = group.properties
-          .map((prop) => {
-            const values = {
+        const visible = this.getVisibleProperties(group);
+        if (visible.length === 0) return ""; // skip empty group entirely
+
+        const propertiesText = visible
+          .map((prop) =>
+            replacePlaceholders(this.getPropertyEntryTemplate(), {
               label: prop.label,
               value: this.escapeTableText(prop.value),
-            };
-            return replacePlaceholders(this.getPropertyEntryTemplate(), values);
-          })
+            }),
+          )
           .join("");
 
-        const values = {
+        return replacePlaceholders(this.getPropertyGroupTemplate(), {
           groupName: group.groupName,
           properties: propertiesText,
-        };
-        return replacePlaceholders(this.getPropertyGroupTemplate(), values);
+        });
       })
-      .join("\n");
+      .filter(Boolean)
+      .join("");
   }
 
   /**
@@ -944,34 +959,29 @@ export abstract class BaseDocumentGenerator {
           id: threat.id,
           strideCategory: threat.strideCategory,
           strideName,
-          elementOrFlow: this.escapeTableText(truncateText(elementOrFlow, 40)),
+          elementOrFlow: this.escapeTableText(elementOrFlow),
           trustBoundary: this.escapeTableText(threat.trustBoundaryName || "-"),
+          // Full text — no truncation
           threatDescription: this.escapeTableText(
-            truncateText(threat.threatDescription, 80),
+            threat.threatDescription || "-",
           ),
           attackDescription: this.escapeTableText(
-            truncateText(threat.attackDescription, 80),
+            threat.attackDescription || "-",
           ),
-          mitigation:
-            this.escapeTableText(
-              truncateText(
-                (threat.proposedMitigations ?? [])
-                  .map((m) => m.id ?? m.notes ?? "")
-                  .filter(Boolean)
-                  .join(", "),
-                80,
-              ),
-            ) || "-",
-          verification:
-            this.escapeTableText(
-              truncateText(
-                (threat.proposedVerifications ?? [])
-                  .map((v) => v.id ?? v.notes ?? "")
-                  .filter(Boolean)
-                  .join(", "),
-                60,
-              ),
-            ) || "-",
+          // Full resolved text, one entry per line. Escape each entry individually
+          // so the <br> separators survive (escapeTableText must not touch them).
+          mitigation: resolveMitigationDrafts(threat.proposedMitigations ?? [])
+            .map((m) => (m.isCustom ? `[custom] ${m.notes ?? ""}` : m.text))
+            .filter(Boolean)
+            .map((s) => `• ${this.escapeTableText(s)}`)
+            .join("<br>"),
+          verification: resolveVerificationDrafts(
+            threat.proposedVerifications ?? [],
+          )
+            .map((v) => (v.isCustom ? `[custom] ${v.notes ?? ""}` : v.text))
+            .filter(Boolean)
+            .map((s) => `• ${this.escapeTableText(s)}`)
+            .join("<br>"),
         };
         return replacePlaceholders(this.getThreatRowTemplate(), values);
       })
@@ -1038,18 +1048,15 @@ export abstract class BaseDocumentGenerator {
           threatId: risk.threatId,
           strideCategory: risk.strideCategory,
           threatDescription: this.escapeTableText(
-            truncateText(risk.threatDescription, 60),
+            risk.threatDescription || "-",
           ),
           riskBeforeLabel,
           mitigations: this.escapeTableText(
-            truncateText(
-              formatMitigations(
-                risk.selectedMitigations
-                  .filter((m) => m.status !== "rejected")
-                  .map((m) => m.id ?? m.notes ?? "")
-                  .filter(Boolean),
-              ),
-              60,
+            formatMitigations(
+              risk.selectedMitigations
+                .filter((m) => m.status !== "rejected")
+                .map((m) => m.notes?.trim() || m.id || "")
+                .filter(Boolean),
             ),
           ),
           riskAfterLabel,
@@ -1101,7 +1108,7 @@ export abstract class BaseDocumentGenerator {
           threatId: risk.threatId,
           strideCategory: risk.strideCategory,
           threatDescription: this.escapeTableText(
-            truncateText(risk.threatDescription, 60),
+            risk.threatDescription || "-",
           ),
           riskBeforeLabel,
           justification: this.escapeTableText(risk.wontJustification || "-"),

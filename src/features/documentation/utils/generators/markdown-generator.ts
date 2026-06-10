@@ -15,6 +15,7 @@ import {
   replacePlaceholders,
 } from "../templates";
 import { MD_EXTENDED_TEMPLATES } from "../templates/markdown-templates-extended";
+import type { PropertyGroup } from "./property-doc-mappers";
 
 export class MarkdownGenerator extends BaseDocumentGenerator {
   constructor(
@@ -75,6 +76,43 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return replacePlaceholders(this.getTocTemplate(), {
       tocContent: tocLines.join("\n"),
     });
+  }
+
+  // ==================== PROPERTY GROUPS (3-column table) ====================
+
+  protected override formatPropertyGroups(groups: PropertyGroup[]): string {
+    if (groups.length === 0) return "";
+
+    // Positional buckets: first = Context, last = Meta, the rest = Security Controls.
+    // (Branches always emit basic → security → [technical] → additional.)
+    const context = [groups[0]];
+    const meta = groups.length > 1 ? groups[groups.length - 1] : undefined;
+    const security = groups.slice(1, Math.max(1, groups.length - 1));
+
+    const cell = (gs: PropertyGroup[]): string =>
+      gs
+        .flatMap((g) => this.getVisibleProperties(g))
+        .map(
+          (p) =>
+            `**${this.escapeTableText(p.label)}**: ${this.escapeTableText(p.value)}`,
+        )
+        .join("<br>") || "—";
+
+    let out =
+      "| Context | Security Controls |\n|---|---|\n" +
+      `| ${cell(context)} | ${cell(security)} |\n`;
+
+    if (meta) {
+      const metaProps = this.getVisibleProperties(meta)
+        .map(
+          (p) =>
+            `**${this.escapeTableText(p.label)}**: ${this.escapeTableText(p.value)}`,
+        )
+        .join("<br>");
+      if (metaProps) out += `\n**Meta**<br>${metaProps}\n`;
+    }
+
+    return out;
   }
 
   // ==================== TEMPLATE GETTERS ====================

@@ -9,7 +9,6 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  Button,
   Divider,
   Chip,
 } from "@mui/material";
@@ -32,22 +31,20 @@ export interface DocToolbarProps {
   // View state
   sidebarOpen: boolean;
   viewMode: "preview" | "source";
-  isDirty: boolean;
-  
+
   // Document state
   config: DocConfiguration;
   generatedContent: string;
-  
+
   // Validation
   warnings: string[];
-  
+
   // Actions
   onSidebarToggle: () => void;
   onViewModeToggle: () => void;
   onRegenerate: () => void;
   onDownload: () => void;
   onOpenSettings: () => void;
-  onSave: () => void;
 }
 
 // ==================== COMPONENT ====================
@@ -55,7 +52,6 @@ export interface DocToolbarProps {
 export const DocToolbar: React.FC<DocToolbarProps> = ({
   sidebarOpen,
   viewMode,
-  isDirty,
   config,
   generatedContent,
   warnings,
@@ -64,7 +60,6 @@ export const DocToolbar: React.FC<DocToolbarProps> = ({
   onRegenerate,
   onDownload,
   onOpenSettings,
-  onSave,
 }) => {
   const { t } = useTranslation();
 
@@ -96,7 +91,9 @@ export const DocToolbar: React.FC<DocToolbarProps> = ({
       <Divider orientation="vertical" flexItem />
 
       {/* View Mode Toggle */}
-      <Tooltip title={t("tabs.doc.toggleView", { defaultValue: "Toggle View" })}>
+      <Tooltip
+        title={t("tabs.doc.toggleView", { defaultValue: "Toggle View" })}
+      >
         <IconButton size="small" onClick={onViewModeToggle}>
           {viewMode === "preview" ? <CodeIcon /> : <PreviewIcon />}
         </IconButton>
@@ -173,19 +170,6 @@ export const DocToolbar: React.FC<DocToolbarProps> = ({
         color="secondary"
         variant="outlined"
       />
-
-      <Divider orientation="vertical" flexItem />
-
-      {/* Save Button */}
-      <Button
-        variant="contained"
-        size="small"
-        onClick={onSave}
-        disabled={!isDirty}
-      >
-        {t("common.save", { defaultValue: "Save" })}
-        {isDirty && " *"}
-      </Button>
     </Box>
   );
 };

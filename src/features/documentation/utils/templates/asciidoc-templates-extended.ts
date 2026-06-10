@@ -6,10 +6,11 @@ import type { DocLanguage } from "../../models/doc-types";
 
 export const ADOC_EXTENDED_TEMPLATES = {
   // ==================== DFD ELEMENT DETAILED ENTRY ====================
-  
+
   dfdElementDetailedEntry: (lang: DocLanguage) =>
     lang === "de"
-      ? `==== {{displayId}}: {{name}}
+      ? `[[element-{{displayId}}]]
+==== {{displayId}}: {{name}}
 
 {{propertyGroups}}
 
@@ -18,7 +19,8 @@ export const ADOC_EXTENDED_TEMPLATES = {
 '''
 
 `
-      : `==== {{displayId}}: {{name}}
+      : `[[element-{{displayId}}]]
+==== {{displayId}}: {{name}}
 
 {{propertyGroups}}
 
@@ -30,7 +32,6 @@ export const ADOC_EXTENDED_TEMPLATES = {
 
   // Property Group Section
   propertyGroup: (lang: DocLanguage) =>
-
     `*{{groupName}}*
 
 {{properties}}
@@ -42,7 +43,7 @@ export const ADOC_EXTENDED_TEMPLATES = {
 `,
 
   // ==================== DFD CONNECTION DETAILED ENTRY ====================
-  
+
   dfdConnectionDetailedEntry: (lang: DocLanguage) =>
     lang === "de"
       ? `==== {{displayId}}: {{fromElement}} → {{toElement}}
@@ -71,7 +72,7 @@ export const ADOC_EXTENDED_TEMPLATES = {
 `,
 
   // ==================== ELEMENT OVERVIEW TABLE ====================
-  
+
   dfdElementOverviewTable: (lang: DocLanguage) =>
     lang === "de"
       ? `=== Elementübersicht
@@ -99,11 +100,11 @@ The following table provides a quick overview of all DFD elements.
 
 `,
 
-  elementOverviewRow: `| {{displayId}} | {{name}} | {{type}} | {{description}} | {{assets}}
+  elementOverviewRow: `| <<element-{{displayId}},{{displayId}}>> | {{name}} | {{type}} | {{description}} | {{assets}}
 `,
 
   // ==================== ASSET-ELEMENT RELATIONS ====================
-  
+
   assetElementRelations: (lang: DocLanguage) =>
     lang === "de"
       ? `== Asset-Element-Beziehungen

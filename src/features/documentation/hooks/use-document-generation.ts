@@ -285,7 +285,9 @@ export const useDocumentGeneration = ({
           ? "md"
           : config.format === "asciidoc"
             ? "adoc"
-            : config.format
+            : config.format === "strictdoc"
+              ? "sdoc"
+              : config.format
       }`;
 
     let blob: Blob;

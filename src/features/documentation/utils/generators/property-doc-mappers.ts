@@ -22,6 +22,8 @@ import type {
   TrustBoundaryProperties,
 } from "../../../dfd/models/element-properties";
 import type { DocLanguage } from "../../models/doc-types";
+// Configured i18next singleton — adjust path/alias to your project.
+import {i18n} from "i18n"
 
 // ==================== TYPES ====================
 
@@ -102,11 +104,11 @@ const PROPERTY_LABELS: Record<string, { en: string; de: string }> = {
 };
 
 const GROUP_NAMES: Record<string, { en: string; de: string }> = {
-  basic: { en: "Basic Information", de: "Grundinformationen" },
-  security: { en: "Security Properties", de: "Sicherheitseigenschaften" },
+  basic: { en: "Context", de: "Kontext" },
+  security: { en: "Security Controls", de: "Security Controls" },
   technical: { en: "Technical Properties", de: "Technische Eigenschaften" },
   assetRelations: { en: "Asset Relations", de: "Asset-Beziehungen" },
-  additional: { en: "Additional Information", de: "Zusätzliche Informationen" },
+  additional: { en: "Meta", de: "Meta" },
 };
 
 const RELATION_TYPE_LABELS: Record<string, { en: string; de: string }> = {
@@ -132,11 +134,67 @@ export function getRelationTypeLabel(relationType: string, lang: DocLanguage): s
   return RELATION_TYPE_LABELS[relationType]?.[lang] ?? relationType;
 }
 
-function formatValue(value: any): string {
-  if (value === undefined || value === null || value === "") return "N/A";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "N/A";
-  return String(value);
+/** snake_case / camelCase → "Title Case" — fallback when an i18n key is missing. */
+function humanizeValue(raw: string): string {
+  return raw
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/**
+ * Format a property value, resolving enum values via the DFD i18n namespace:
+ *   tabs.dfd.element_description.{fieldPath}.options.{value}
+ * fieldPath = "<elementType>.fields.<field>", e.g. "process.fields.privilegeLevel".
+ * Uses getFixedT(lang) so the DOCUMENT language wins, not the UI language.
+ * Free-text values (custom controls, names, notes) are left untouched.
+ */
+function formatValue(
+  value: unknown,
+  lang: DocLanguage,
+  fieldPath?: string,
+): string {
+  if (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "not_specified"
+  )
+    return "N/A";
+
+  // Skip nested objects (e.g. sessionControl, internalComponents).
+  if (typeof value === "object" && !Array.isArray(value)) return "N/A";
+
+  const t = i18n.getFixedT(lang, "dfd");
+  const toLabel = (raw: string): string => {
+    const token = raw.trim();
+    if (token === "not_specified") return "N/A";
+    // Only resolve enum-like tokens; leave free text alone.
+    if (!fieldPath || !/^[a-z0-9]+(_[a-z0-9]+)*$/i.test(token)) return raw;
+    return t(`tabs.dfd.element_description.${fieldPath}.options.${token}`, {
+      defaultValue: humanizeValue(token),
+    });
+  };
+
+  if (typeof value === "boolean") return toLabel(value ? "yes" : "no");
+  if (Array.isArray(value))
+    return value.length > 0
+      ? value.map((v) => toLabel(String(v))).join(", ")
+      : "N/A";
+  return toLabel(String(value));
+}
+
+/** Builds a { label, value } entry; value resolved via i18n options for the element type. */
+function makePropFactory(elementType: string, lang: DocLanguage) {
+  const t = i18n.getFixedT(lang, "dfd");
+  return (field: string, raw: unknown) => ({
+    label: t(
+      `tabs.dfd.element_description.${elementType}.fields.${field}.label`,
+      { defaultValue: getPropertyLabel(field, lang) },
+    ),
+    value: formatValue(raw, lang, `${elementType}.fields.${field}`),
+  });
 }
 
 // ==================== GROUPED PROPERTY EXTRACTION ====================
@@ -148,426 +206,216 @@ export function getElementPropertiesGrouped(
   element: DFDElement,
   lang: DocLanguage,
 ): PropertyGroup[] {
-  switch (element.type) {
-    case "Process":
-      return getProcessPropertiesGrouped(element, lang);
-    case "Multiprocess":
-      return getProcessPropertiesGrouped(element, lang); // Same as Process
-    case "ExternalEntity":
-      return getExternalEntityPropertiesGrouped(element, lang);
-    case "DataStore":
-      return getDataStorePropertiesGrouped(element, lang);
-    case "Interface":
-      return getInterfacePropertiesGrouped(element, lang);
-    case "TrustBoundary":
-      return getTrustBoundaryPropertiesGrouped(element, lang);
-    default:
-      return [];
-  }
+  const props = (element.properties ?? {}) as Record<string, unknown>;
+  const read = (field: string): unknown =>
+    field === "description" ? element.description : props[field];
+  return buildGroupsFromLayout(element.type, lang, read);
 }
 
-/**
- * Get Process-specific properties grouped
- */
-function getProcessPropertiesGrouped(
-  element: DFDElement,
-  lang: DocLanguage,
-): PropertyGroup[] {
-  const props = element.properties as ProcessProperties;
-  const groups: PropertyGroup[] = [];
-
-  // Basic Information
-  groups.push({
-    groupName: getGroupName("basic", lang),
-    properties: [
-      {
-        label: getPropertyLabel("description", lang),
-        value: formatValue(element.description),
-      },
-      {
-        label: getPropertyLabel("technology", lang),
-        value: formatValue(props.technology),
-      },
-      {
-        label: getPropertyLabel("owner", lang),
-        value: formatValue(props.owner),
-      },
-    ],
-  });
-
-  // Security Properties
-  groups.push({
-    groupName: getGroupName("security", lang),
-    properties: [
-      { label: getPropertyLabel("runsAs", lang), value: formatValue(props.runsAs) },
-      { label: getPropertyLabel("privilegeLevel", lang), value: formatValue(props.privilegeLevel) },
-      { label: getPropertyLabel("authenticationRequired", lang), value: formatValue(props.authenticationRequired) },
-      { label: getPropertyLabel("authorizationModel", lang), value: formatValue(props.authorizationModel) },
-      { label: getPropertyLabel("inputValidation", lang), value: formatValue(props.inputValidation) },
-      { label: getPropertyLabel("errorHandling", lang), value: formatValue(props.errorHandling) },
-      { label: getPropertyLabel("securityControls", lang), value: formatValue(props.securityControls) },
-      { label: getPropertyLabel("exposedToInternet", lang), value: formatValue(props.exposedToInternet) },
-    ],
-  });
-
-  // Additional Information
-  groups.push({
-    groupName: getGroupName("additional", lang),
-    properties: [
-      { label: getPropertyLabel("notes", lang), value: formatValue(props.notes) },
-    ],
-  });
-
-  return groups;
-}
-
-/**
- * Get ExternalEntity-specific properties grouped
- */
-function getExternalEntityPropertiesGrouped(
-  element: DFDElement,
-  lang: DocLanguage,
-): PropertyGroup[] {
-  const props = element.properties as ExternalEntityProperties;
-  const groups: PropertyGroup[] = [];
-
-  // Basic Information
-  groups.push({
-    groupName: getGroupName("basic", lang),
-    properties: [
-      {
-        label: getPropertyLabel("description", lang),
-        value: formatValue(element.description),
-      },
-      {
-        label: getPropertyLabel("entityType", lang),
-        value: formatValue(props.entityType),
-      },
-      {
-        label: getPropertyLabel("ownership", lang),
-        value: formatValue(props.ownership),
-      },
-      {
-        label: getPropertyLabel("owner", lang),
-        value: formatValue(props.owner),
-      },
-    ],
-  });
-
-  // Security Properties
-  groups.push({
-    groupName: getGroupName("security", lang),
-    properties: [
-      { label: getPropertyLabel("trustLevel", lang), value: formatValue(props.trustLevel) },
-      { label: getPropertyLabel("threatActor", lang), value: formatValue(props.threatActor) },
-      { label: getPropertyLabel("authenticationMethod", lang), value: formatValue(props.authenticationMethod) },
-      { label: getPropertyLabel("authorizationScope", lang), value: formatValue(props.authorizationScope) },
-      { label: getPropertyLabel("contractExists", lang), value: formatValue(props.contractExists) },
-      { label: getPropertyLabel("rateLimited", lang), value: formatValue(props.rateLimited) },
-    ],
-  });
-
-  // Additional Information
-  groups.push({
-    groupName: getGroupName("additional", lang),
-    properties: [
-      { label: getPropertyLabel("notes", lang), value: formatValue(props.notes) },
-    ],
-  });
-
-  return groups;
-}
-
-/**
- * Get DataStore-specific properties grouped
- */
-function getDataStorePropertiesGrouped(
-  element: DFDElement,
-  lang: DocLanguage,
-): PropertyGroup[] {
-  const props = element.properties as DataStoreProperties;
-  const groups: PropertyGroup[] = [];
-
-  // Basic Information
-  groups.push({
-    groupName: getGroupName("basic", lang),
-    properties: [
-      {
-        label: getPropertyLabel("description", lang),
-        value: formatValue(element.description),
-      },
-      {
-        label: getPropertyLabel("technology", lang),
-        value: formatValue(props.technology),
-      },
-      {
-        label: getPropertyLabel("storedDataTypes", lang),
-        value: formatValue(props.storedDataTypes),
-      },
-      {
-        label: getPropertyLabel("owner", lang),
-        value: formatValue(props.owner),
-      },
-    ],
-  });
-
-  // Security Properties
-  groups.push({
-    groupName: getGroupName("security", lang),
-    properties: [
-      { label: getPropertyLabel("dataClassification", lang), value: formatValue(props.dataClassification) },
-      { label: getPropertyLabel("encryptionAtRest", lang), value: formatValue(props.encryptionAtRest) },
-      { label: getPropertyLabel("accessControl", lang), value: formatValue(props.accessControl) },
-      { label: getPropertyLabel("integrityProtection", lang), value: formatValue(props.integrityProtection) },
-    ],
-  });
-
-  // Technical Properties
-  groups.push({
-    groupName: getGroupName("technical", lang),
-    properties: [
-      { label: getPropertyLabel("multiTenant", lang), value: formatValue(props.multiTenant) },
-      { label: getPropertyLabel("backupEnabled", lang), value: formatValue(props.backupEnabled) },
-      { label: getPropertyLabel("deletionPolicy", lang), value: formatValue(props.deletionPolicy) },
-    ],
-  });
-
-  // Additional Information
-  groups.push({
-    groupName: getGroupName("additional", lang),
-    properties: [
-      { label: getPropertyLabel("notes", lang), value: formatValue(props.notes) },
-    ],
-  });
-
-  return groups;
-}
-
-/**
- * Get Interface-specific properties grouped
- */
-function getInterfacePropertiesGrouped(
-  element: DFDElement,
-  lang: DocLanguage,
-): PropertyGroup[] {
-  const props = element.properties as InterfaceProperties;
-  const groups: PropertyGroup[] = [];
-
-  // Basic Information
-  groups.push({
-    groupName: getGroupName("basic", lang),
-    properties: [
-      {
-        label: getPropertyLabel("description", lang),
-        value: formatValue(element.description),
-      },
-      { label: getPropertyLabel("type", lang), value: formatValue(props.type) },
-      {
-        label: getPropertyLabel("location", lang),
-        value: formatValue(props.location),
-      },
-    ],
-  });
-
-  // Security Properties
-  groups.push({
-    groupName: getGroupName("security", lang),
-    properties: [
-      {
-        label: getPropertyLabel("logicalAccessControl", lang),
-        value: formatValue(props.implementedControls?.logicalAccessControl),
-      },
-    ],
-  });
-
-  // Technical Properties
-  groups.push({
-    groupName: getGroupName("technical", lang),
-    properties: [
-      {
-        label: getPropertyLabel("connectionSpeed", lang),
-        value: formatValue(props.connectionSpeed),
-      },
-      {
-        label: getPropertyLabel("signalProtection", lang),
-        value: formatValue(props.implementedControls?.signalProtection),
-      },
-    ],
-  });
-
-  // Additional Information
-  groups.push({
-    groupName: getGroupName("additional", lang),
-    properties: [
-      { label: getPropertyLabel("notes", lang), value: formatValue(props.notes) },
-    ],
-  });
-
-  return groups;
-}
-
-/**
- * Get TrustBoundary-specific properties grouped
- */
-function getTrustBoundaryPropertiesGrouped(
-  element: DFDElement,
-  lang: DocLanguage,
-): PropertyGroup[] {
-  const props = element.properties as TrustBoundaryProperties;
-  const groups: PropertyGroup[] = [];
-
-  // Basic Information
-  groups.push({
-    groupName: getGroupName("basic", lang),
-    properties: [
-      {
-        label: getPropertyLabel("description", lang),
-        value: formatValue(element.description),
-      },
-      {
-        label: getPropertyLabel("boundaryId", lang),
-        value: formatValue(props.boundaryId),
-      },
-      {
-        label: getPropertyLabel("boundaryType", lang),
-        value: formatValue(props.boundaryType),
-      },
-      {
-        label: getPropertyLabel("owner", lang),
-        value: formatValue(props.owner),
-      },
-    ],
-  });
-
-  // Security Properties
-  groups.push({
-    groupName: getGroupName("security", lang),
-    properties: [
-      { label: getPropertyLabel("securityAssumptions", lang), value: formatValue(props.securityAssumptions) },
-      { label: getPropertyLabel("boundaryControls", lang), value: formatValue(props.boundaryControls) },
-      { label: getPropertyLabel("monitoringEnabled", lang), value: formatValue(props.monitoringEnabled) },
-    ],
-  });
-
-  // Additional Information
-  groups.push({
-    groupName: getGroupName("additional", lang),
-    properties: [
-      { label: getPropertyLabel("complianceRelevance", lang), value: formatValue(props.complianceRelevance) },
-      { label: getPropertyLabel("notes", lang), value: formatValue(props.notes) },
-    ],
-  });
-
-  return groups;
-}
-
-// TODO(security-docs):
-// DataFlowProperties became semantic/context-aware.
-// Current export is only a compatibility build-fix.
-// Future refactor should:
-// - align report groups with UI sections
-// - support applicability-aware rendering
-// - support semantic coverage states
-// - suppress non-applicable transport-security fields
-// - integrate computeDataFlowCoverage()
-
-/**
- * Get DataFlow-specific properties grouped
- */
 export function getConnectionPropertiesGrouped(
   connection: DFDConnection,
   lang: DocLanguage,
 ): PropertyGroup[] {
-  const props = connection.properties as DataFlowProperties | undefined;
-  if (!props) return [];
-
-  const groups: PropertyGroup[] = [];
-
-  // Basic Information
-  // Basic Information
-  groups.push({
-    groupName: getGroupName("basic", lang),
-    properties: [
-      {
-        label: getPropertyLabel("description", lang),
-        value: formatValue(connection.description),
-      },
-      {
-        label: getPropertyLabel("messageType", lang),
-        value: formatValue(props.messageType),
-      },
-      {
-        label: getPropertyLabel("dataClassification", lang),
-        value: formatValue(props.dataClassification),
-      },
-      {
-        label: getPropertyLabel("dataTypeNotes", lang),
-        value: formatValue(props.dataTypeNotes),
-      },
-      {
-        label: getPropertyLabel("protocol", lang),
-        value: formatValue(props.protocol),
-      },
-    ],
-  });
-
-  // Security Properties
-  groups.push({
-    groupName: getGroupName("security", lang),
-    properties: [
-      {
-        label: getPropertyLabel("encryptionInTransit", lang),
-        value: formatValue(props.encryptionInTransit),
-      },
-      {
-        label: getPropertyLabel("endpointAuthentication", lang),
-        value: formatValue(props.endpointAuthentication),
-      },
-      {
-        label: getPropertyLabel("integrityProtection", lang),
-        value: formatValue(props.integrityProtection),
-      },
-    ],
-  });
-
-  // Technical Properties
-  groups.push({
-    groupName: getGroupName("technical", lang),
-    properties: [
-      {
-        label: getPropertyLabel("direction", lang),
-        value: formatValue(props.direction),
-      },
-      {
-        label: getPropertyLabel("frequency", lang),
-        value: formatValue(props.frequency),
-      },
-      {
-        label: getPropertyLabel("volume", lang),
-        value: formatValue(props.volume),
-      },
-    ],
-  });
-
-  // Additional Information
-  groups.push({
-    groupName: getGroupName("additional", lang),
-    properties: [
-      {
-        label: getPropertyLabel("notes", lang),
-        value: formatValue(props.notes),
-      },
-    ],
-  });
-
-  return groups;
+  const props = (connection.properties ?? {}) as Record<string, unknown>;
+  const read = (field: string): unknown =>
+    field === "description"
+      ? (connection as { description?: string }).description
+      : props[field];
+  return buildGroupsFromLayout("DataFlow", lang, read);
 }
 
-// ==================== ASSET RELATION FORMATTERS ====================
+// ==================== FIELD LAYOUT (mirrors the editor forms) ====================
+// Section -> field assignment taken 1:1 from the *-description-form.tsx files.
+// context -> Context column; security/physical/safety -> Security Controls column;
+// documentation -> Meta block. Keep in sync with the forms.
 
-/**
- * Format asset relations for an element
- */
+interface FieldLayout {
+  segment: string; // i18n: tabs.dfd.element_description.<segment>.fields.*
+  context: string[];
+  security: string[];
+  meta: string[];
+}
+
+const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
+  Process: {
+    segment: "process",
+    context: ["technology", "processSemantic", "runsAs", "privilegeLevel"],
+    security: [
+      "authenticationRequired",
+      "authorizationModel",
+      "inputValidation",
+      "errorHandling",
+      "malwareProtection",
+      "accountManagement",
+      "authenticatorStorage",
+      "nonRepudiation",
+      "failSafeOutputState",
+      "exposedToInternet",
+    ],
+    meta: ["owner", "notes", "description"],
+  },
+  Multiprocess: {
+    segment: "multiprocess",
+    context: [
+      "systemClass",
+      "operatingSystem",
+      "certificationLevel",
+      "updateMechanism",
+      "exposedToInternet",
+      "remoteAccessEnabled",
+      "airGapped",
+      "multiTenant",
+    ],
+    security: [
+      "boundaryAuthentication",
+      "authorizationModel",
+      "safetyRelevant",
+      "safetyRationale",
+      "malwareProtection",
+      "accountManagement",
+      "authenticatorStorage",
+      "backupMechanism",
+      "nonRepudiation",
+    ],
+    meta: [
+      "internalComponents",
+      "securitySummary",
+      "owner",
+      "notes",
+      "description",
+    ],
+  },
+  ExternalEntity: {
+    segment: "external_entity",
+    context: ["entityType", "trustLevel", "ownership"],
+    security: [
+      "threatActor",
+      "authenticationMethod",
+      "rateLimited",
+      "contractExists",
+      "authorizationScope",
+    ],
+    meta: ["owner", "notes", "description"],
+  },
+  DataStore: {
+    segment: "datastore",
+    context: ["technology", "dataClassification", "storedDataTypes"],
+    security: [
+      "encryptionAtRest",
+      "accessControlMechanism",
+      "accessControl",
+      "integrityProtection",
+      "multiTenant",
+      "backupEnabled",
+      "containsSafetyRelevantData",
+      "safetyRationale",
+    ],
+    meta: [
+      "deletionMechanism",
+      "deletionPolicy",
+      "owner",
+      "notes",
+      "description",
+    ],
+  },
+  Interface: {
+    segment: "interface",
+    context: ["type", "location", "operationalState", "connectorType"],
+    security: [
+      "physicalAccessProtection",
+      "signalProtection",
+      "logicalAccessControl",
+      "serviceAccessPolicy",
+      "debugProtection",
+      "abuseProtection",
+      "monitoringControl",
+      "safetyRelevant",
+      "safetyRationale",
+    ],
+    meta: ["notes", "description"],
+  },
+  TrustBoundary: {
+    segment: "trustboundary",
+    context: ["boundaryType"],
+    security: [
+      "boundaryControlTypes",
+      "customBoundaryControls",
+      "monitoringEnabled",
+      "defaultDenyPolicy",
+      "securityAssumptions",
+    ],
+    meta: ["complianceRelevance", "owner", "notes", "description"],
+  },
+  PhysicalBoundary: {
+    segment: "physicalboundary",
+    context: [
+      "boundaryType",
+      "physicalExposureLevel",
+      "physicalMobility",
+      "accessibility",
+    ],
+    security: [
+      "physicalAccessControl",
+      "tamperProtection",
+      "monitoringType",
+      "requiresToolAccess",
+      "debugInterfaceAccessible",
+      "removableMediaAccessible",
+      "safetyRelevant",
+      "safetyRationale",
+    ],
+    meta: ["owner", "notes", "description"],
+  },
+  DataFlow: {
+    segment: "dataflow",
+    context: [
+      "protocol",
+      "direction",
+      "messageType",
+      "dataClassification",
+      "dataTypeNotes",
+      "frequency",
+      "location",
+      "locationRationale",
+      "redundancy",
+    ],
+    security: [
+      "encryptionInTransit",
+      "endpointAuthentication",
+      "integrityProtection",
+      "physicalPathProtection",
+      "safetyFunction",
+      "safetyRationale",
+      "excludeFromThreatGen",
+      "excludeFromThreatGenRationale",
+    ],
+    meta: ["notes", "description"],
+  },
+};
+
+function buildGroupsFromLayout(
+  elementType: string,
+  lang: DocLanguage,
+  read: (field: string) => unknown,
+): PropertyGroup[] {
+  const layout = ELEMENT_FIELD_LAYOUT[elementType];
+  if (!layout) return [];
+  const prop = makePropFactory(layout.segment, lang);
+  const grp = (key: string, fields: string[]): PropertyGroup => ({
+    groupName: getGroupName(key, lang),
+    properties: fields.map((f) => prop(f, read(f))),
+  });
+  // Order matters: the generator overrides bucket positionally
+  // (first = Context, middle = Security Controls, last = Meta).
+  return [
+    grp("basic", layout.context),
+    grp("security", layout.security),
+    grp("additional", layout.meta),
+  ];
+}
+
+// ==================== ASSET RELATION FORMATTING ====================
+
 export function formatElementAssetRelations(
   element: DFDElement,
   lang: DocLanguage,
@@ -610,6 +458,7 @@ export function formatConnectionAssetRelations(
 /**
  * Get asset IDs as comma-separated list for overview table
  */
+
 export function getAssetIdList(element: DFDElement | DFDConnection): string {
   const relations = element.assetRelations;
   if (!relations || relations.length === 0) return "N/A";

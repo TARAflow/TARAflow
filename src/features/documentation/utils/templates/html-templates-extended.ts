@@ -6,10 +6,10 @@ import type { DocLanguage } from "../../models/doc-types";
 
 export const HTML_EXTENDED_TEMPLATES = {
   // ==================== DFD ELEMENT DETAILED ENTRY ====================
-  
+
   dfdElementDetailedEntry: (lang: DocLanguage) =>
     lang === "de"
-      ? `<div class="element-detail">
+      ? `<div class="element-detail" id="element-{{displayId}}">
   <h4>{{displayId}}: {{name}}</h4>
   
   {{propertyGroups}}
@@ -18,7 +18,7 @@ export const HTML_EXTENDED_TEMPLATES = {
 </div>
 
 `
-      : `<div class="element-detail">
+      : `<div class="element-detail" id="element-{{displayId}}">
   <h4>{{displayId}}: {{name}}</h4>
   
   {{propertyGroups}}
@@ -44,7 +44,7 @@ export const HTML_EXTENDED_TEMPLATES = {
 `,
 
   // ==================== DFD CONNECTION DETAILED ENTRY ====================
-  
+
   dfdConnectionDetailedEntry: (lang: DocLanguage) =>
     lang === "de"
       ? `<div class="connection-detail">
@@ -71,7 +71,7 @@ export const HTML_EXTENDED_TEMPLATES = {
 `,
 
   // ==================== ELEMENT OVERVIEW TABLE ====================
-  
+
   dfdElementOverviewTable: (lang: DocLanguage) =>
     lang === "de"
       ? `<h3>Elementübersicht</h3>
@@ -116,7 +116,7 @@ export const HTML_EXTENDED_TEMPLATES = {
 `,
 
   elementOverviewRow: `    <tr>
-      <td>{{displayId}}</td>
+      <td><a href="#element-{{displayId}}">{{displayId}}</a></td>
       <td>{{name}}</td>
       <td>{{type}}</td>
       <td>{{description}}</td>
@@ -125,7 +125,7 @@ export const HTML_EXTENDED_TEMPLATES = {
 `,
 
   // ==================== ASSET-ELEMENT RELATIONS ====================
-  
+
   assetElementRelations: (lang: DocLanguage) =>
     lang === "de"
       ? `<section class="chapter">
