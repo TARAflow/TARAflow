@@ -433,6 +433,125 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
           )}
         </div>
 
+        {/* Safety + Slide Switch (1/1) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t("settings.safety", { defaultValue: "Safety Analysis" })}
+          </label>
+          {isEditing ? (
+            <label className="flex items-center justify-between border border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                {/* Slide Switch */}
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={editData.safetyRelevant ?? false}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        safetyRelevant: e.target.checked,
+                      })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div
+                    className={`w-11 h-6 rounded-full transition-colors ${
+                      editData.safetyRelevant ? "bg-emerald-500" : "bg-gray-200"
+                    }`}
+                  />
+                  <div
+                    className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${
+                      editData.safetyRelevant ? "translate-x-5" : ""
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-sm font-medium transition-colors ${
+                        editData.safetyRelevant
+                          ? "text-emerald-600"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {editData.safetyRelevant
+                        ? t("settings.safetyOn", {
+                            defaultValue: "Hazard Analysis",
+                          })
+                        : t("settings.safetyOff", {
+                            defaultValue: "Security Only",
+                          })}
+                    </span>
+
+                    {editData.safetyRelevant && (
+                      <AlertTriangle className="w-4 h-4 text-emerald-600" />
+                    )}
+
+                    <Tooltip
+                      title={
+                        <div className="p-1">
+                          <p className="mb-2">
+                            {t("settings.safetyTooltip", {
+                              defaultValue:
+                                "Enables the Hazard tab for safety/hazard analysis, independent of the Standard/Critical workflow.",
+                            })}
+                          </p>
+                          <p className="text-xs opacity-80 mb-1">
+                            <strong>Off:</strong> Overview → DFD → …
+                          </p>
+                          <p className="text-xs opacity-80">
+                            <strong>On:</strong> Overview → Hazard → DFD → …
+                          </p>
+                        </div>
+                      }
+                      arrow
+                      placement="right"
+                    >
+                      <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                    </Tooltip>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {editData.safetyRelevant
+                      ? t("settings.safetyOnDescription", {
+                          defaultValue:
+                            "Hazard tab shown after Overview, before DFD",
+                        })
+                      : t("settings.safetyOffDescription", {
+                          defaultValue:
+                            "No Hazard tab — security analysis only",
+                        })}
+                  </p>
+                </div>
+              </div>
+            </label>
+          ) : (
+            <div className="flex items-center gap-2 py-2">
+              {info.safetyRelevant ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+                  <AlertTriangle className="w-4 h-4" />
+                  {t("settings.safetyOn", { defaultValue: "Hazard Analysis" })}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                  {t("settings.safetyOff", { defaultValue: "Security Only" })}
+                </span>
+              )}
+              <Tooltip
+                title={
+                  info.safetyRelevant
+                    ? "Overview → Hazard → DFD → …"
+                    : "Overview → DFD → …"
+                }
+                arrow
+                placement="right"
+              >
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </Tooltip>
+            </div>
+          )}
+        </div>
         {/* Description (1/1) */}
         <div>
           <label

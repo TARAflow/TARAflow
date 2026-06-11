@@ -26,6 +26,11 @@ export interface ProjectInfoData {
   tags: ProjectTags;
   team: string[];
   isHighImpact: boolean; // Required field
+  /**
+   * Safety relevance. When true, the Hazard tab is shown directly after
+   * Overview and before DFD (independent of Standard/Critical). Default: false.
+   */
+  safetyRelevant?: boolean;
 }
 export interface PhaseValidationInfo {
   errors: number;

@@ -505,7 +505,11 @@ export const ProjectShell: React.FC = () => {
 
               const projectWithTags: Project = {
                 ...result.data,
-                info: { ...result.data.info, tags: data.tags },
+                info: {
+                  ...result.data.info,
+                  tags: data.tags,
+                  safetyRelevant: data.safetyRelevant ?? false,
+                },
               };
 
               const saveResult =

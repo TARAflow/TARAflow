@@ -102,7 +102,13 @@
     "standardSystemDescription": "Standard STRIDE-first threat analysis workflow",
     "criticalSystemTooltip": "For safety-critical or high-impact systems, Attack Trees are analyzed before STRIDE threats to better understand attack paths.",
     "standardWorkflow": "Standard:",
-    "criticalWorkflow": "Critical:"
+    "criticalWorkflow": "Critical:",
+    "safety": "Safety Analysis",
+    "safetyOn": "Hazard analysis enabled",
+    "safetyOff": "Security only",
+    "safetyOnDescription": "Hazard tab shown after Overview, before DFD",
+    "safetyOffDescription": "No Hazard tab — security analysis only",
+    "safetyTooltip": "Enables the Hazard tab for safety/hazard analysis, independent of the Standard/Critical workflow."
   },
   "validation": {
     "nameRequired": "Project name is required",

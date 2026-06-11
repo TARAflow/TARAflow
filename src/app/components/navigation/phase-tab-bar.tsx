@@ -33,6 +33,8 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   onPhaseChange,
 }) => {
   const phaseStatus = project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
+  // Safety gating: the Hazard phase only appears when safety relevance is on
+  const safetyRelevant = project?.info?.safetyRelevant ?? false;
 
   // Determine workflow mode based on isHighImpact
   const workflowMode = project?.info
@@ -43,26 +45,21 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
 
   // Sort phases based on workflow mode and create display labels
   const sortedPhases = useMemo(() => {
-    const sorted = sortPhasesByWorkflow(PHASES, workflowMode);
+    const sorted = sortPhasesByWorkflow(PHASES, workflowMode).filter(
+      // Hide the Hazard phase unless safety analysis is enabled.
+      // Filtering before the index-based map keeps labels contiguous.
+      (phase) => safetyRelevant || phase.id !== PhaseId.Hazard,
+    );
 
     return sorted.map(
       (phase, index): PhaseDefinition & { displayLabel: string } => {
-        // Phase 0 (General) keeps its original label
         if (phase.id === 0) {
-          return {
-            ...phase,
-            displayLabel: phase.label,
-          };
+          return { ...phase, displayLabel: phase.label };
         }
-
-        // Other phases get numbered labels based on their position in the workflow
-        return {
-          ...phase,
-          displayLabel: `${index} - ${phase.shortLabel}`,
-        };
+        return { ...phase, displayLabel: `${index} - ${phase.shortLabel}` };
       },
     );
-  }, [workflowMode]);
+  }, [workflowMode, safetyRelevant]);
 
   // Extract validation counts for each phase
   const getPhaseValidationCounts = useMemo(() => {
@@ -144,4 +141,4 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
       </div>
     </div>
   );
-};
+};;;

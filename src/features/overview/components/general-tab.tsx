@@ -60,6 +60,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     tags: data.info.tags,
     team: data.info.team,
     isHighImpact: data.info.isHighImpact,
+    safetyRelevant: data.info.safetyRelevant,
   };
 
   // Map data to ProjectProgressData interface

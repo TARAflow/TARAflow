@@ -41,6 +41,7 @@ export interface NewProjectData {
   responsible: string;
   tags: ProjectTags;
   isHighImpact?: boolean;
+  safetyRelevant?: boolean;
   filePath?: string; // Electron mode only
 }
 
@@ -57,6 +58,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     responsible: "",
     tags: { ...EMPTY_PROJECT_TAGS },
     isHighImpact: false,
+    safetyRelevant: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -398,6 +400,102 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
                         : t("settings.standardSystemDescription", {
                             defaultValue:
                               "Standard STRIDE-first threat analysis workflow",
+                          })}
+                    </p>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Safety + Slide Switch (1/1) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("settings.safety", { defaultValue: "Safety Analysis" })}
+              </label>
+              <label className="flex items-center justify-between border border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-3">
+                  {/* Slide Switch */}
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.safetyRelevant ?? false}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          safetyRelevant: e.target.checked,
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div
+                      className={`w-11 h-6 rounded-full transition-colors ${
+                        formData.safetyRelevant
+                          ? "bg-emerald-500"
+                          : "bg-gray-200"
+                      }`}
+                    />
+                    <div
+                      className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${
+                        formData.safetyRelevant ? "translate-x-5" : ""
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-sm font-medium transition-colors ${
+                          formData.safetyRelevant
+                            ? "text-emerald-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {formData.safetyRelevant
+                          ? t("settings.safetyOn", {
+                              defaultValue: "Hazard Analysis",
+                            })
+                          : t("settings.safetyOff", {
+                              defaultValue: "Security Only",
+                            })}
+                      </span>
+
+                      {formData.safetyRelevant && (
+                        <AlertTriangle className="w-4 h-4 text-emerald-500" />
+                      )}
+
+                      <Tooltip
+                        title={
+                          <div className="p-1">
+                            <p className="mb-2">
+                              {t("settings.safetyTooltip", {
+                                defaultValue:
+                                  "Enables the Hazard tab for safety/hazard analysis, independent of the Standard/Critical workflow.",
+                              })}
+                            </p>
+                            <p className="text-xs opacity-80 mb-1">
+                              <strong>Off:</strong> Overview → DFD → …
+                            </p>
+                            <p className="text-xs opacity-80">
+                              <strong>On:</strong> Overview → Hazard → DFD → …
+                            </p>
+                          </div>
+                        }
+                        arrow
+                        placement="right"
+                      >
+                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                      </Tooltip>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formData.safetyRelevant
+                        ? t("settings.safetyOnDescription", {
+                            defaultValue:
+                              "Hazard tab shown after Overview, before DFD",
+                          })
+                        : t("settings.safetyOffDescription", {
+                            defaultValue:
+                              "No Hazard tab — security analysis only",
                           })}
                     </p>
                   </div>

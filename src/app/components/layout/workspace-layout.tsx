@@ -17,7 +17,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
 import { PhaseId } from "../../models/phase-types";
@@ -169,6 +169,17 @@ export const WorkspaceLayout: React.FC = () => {
     },
     [setActivePhase, toast, updateProject],
   );
+
+  // ── Safety gating ─────────────────────────────────────────────────────────
+  // If safety relevance is turned off while the Hazard tab is active,
+  // fall back to Overview so we never render a hidden/empty phase.
+  useEffect(() => {
+    if (!activeProject) return;
+    const safetyRelevant = activeProject.info?.safetyRelevant ?? false;
+    if (!safetyRelevant && activePhase === PhaseId.Hazard) {
+      setActivePhase(PhaseId.General);
+    }
+  }, [activeProject, activePhase, setActivePhase]);
 
   // ── General tab ───────────────────────────────────────────────────────────
 
@@ -678,19 +689,20 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
 
-        {activePhase === PhaseId.Hazard && (
-          <HazardsTab
-            project={{
-              id: activeProject.id,
-              name: activeProject.info?.name || "",
-              hazards: activeProject.hazards ?? null,
-              phaseStatus: activeProject.phaseStatus,
-              assetDataRef: memoizedAssetDataRef,
-              lastModified: activeProject.info?.lastModified || "",
-            }}
-            onUpdate={handleHazardsUpdate}
-          />
-        )}
+        {activePhase === PhaseId.Hazard &&
+          (activeProject.info?.safetyRelevant ?? false) && (
+            <HazardsTab
+              project={{
+                id: activeProject.id,
+                name: activeProject.info?.name || "",
+                hazards: activeProject.hazards ?? null,
+                phaseStatus: activeProject.phaseStatus,
+                assetDataRef: memoizedAssetDataRef,
+                lastModified: activeProject.info?.lastModified || "",
+              }}
+              onUpdate={handleHazardsUpdate}
+            />
+          )}
 
         {/* DFDTab: always mounted within a project to prevent iframe reload
             on tab switch. The key={dfdTabProject.id} forces a full remount
