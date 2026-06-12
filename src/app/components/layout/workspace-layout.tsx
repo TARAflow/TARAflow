@@ -20,7 +20,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
-import { PhaseId } from "../../models/phase-types";
+import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import type {
   AssetDataReference,
   DFDReference,
@@ -683,6 +683,9 @@ export const WorkspaceLayout: React.FC = () => {
           <GeneralTab
             data={generalTabData}
             phases={PHASES}
+            progressPhaseIds={getProgressPhaseIds(
+              activeProject.info?.safetyRelevant ?? false,
+            )}
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
             onUpdate={handleGeneralTabUpdate}

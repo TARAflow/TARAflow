@@ -28,10 +28,15 @@ export const ProjectProgress: React.FC<ProjectProgressProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // Completion across the phases shown here (already scoped to progress phases
+  // by the app layer). Numerator and denominator share the same set, so the bar
+  // matches the grid and reaches 100% when all work phases are complete.
   const getPhaseProgress = () => {
-    const statuses = Object.values(data.phaseStatus);
-    const complete = statuses.filter((s) => s === "complete").length;
-    return Math.round((complete / statuses.length) * 100);
+    if (phases.length === 0) return 0;
+    const complete = phases.filter(
+      (p) => data.phaseStatus[p.id as keyof PhaseStatusMap] === "complete",
+    ).length;
+    return Math.round((complete / phases.length) * 100);
   };
 
   const getStatusTranslation = (status: PhaseStatus) => {
@@ -111,7 +116,11 @@ export const ProjectProgress: React.FC<ProjectProgressProps> = ({
       </div>
 
       {/* Phase Grid */}
-      <div className="grid grid-cols-6 gap-3">
+      <div
+        className={`grid gap-3 ${
+          phases.length >= 7 ? "grid-cols-7" : "grid-cols-6"
+        }`}
+      >
         {phases.map((phase) => {
           const status = data.phaseStatus[phase.id as keyof PhaseStatusMap];
           const icon = getStatusIcon(status);

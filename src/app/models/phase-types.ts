@@ -58,3 +58,27 @@ export const CRITICAL_PHASE_ORDER: number[] = [
   PhaseId.Documentation,
   PhaseId.Audit,
 ];
+
+/**
+ * Phases that count toward project progress (the "work" phases).
+ * Documentation, Audit, and Integration are excluded: they never reach a
+ * normal "complete" state and would otherwise cap progress below 100%.
+ * Hazard is listed here but only surfaced when a project is safety-relevant —
+ * use getProgressPhaseIds(safetyRelevant) instead of this array directly.
+ */
+export const PROGRESS_PHASE_IDS: number[] = [
+  PhaseId.General,
+  PhaseId.Hazard,
+  PhaseId.DFD,
+  PhaseId.Assets,
+  PhaseId.Threats,
+  PhaseId.Risk,
+  PhaseId.AttackTree,
+];
+
+/** Progress phases, with Hazard included only when safety analysis is on. */
+export function getProgressPhaseIds(safetyRelevant: boolean): number[] {
+  return safetyRelevant
+    ? PROGRESS_PHASE_IDS
+    : PROGRESS_PHASE_IDS.filter((id) => id !== PhaseId.Hazard);
+}

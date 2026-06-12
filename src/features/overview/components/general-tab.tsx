@@ -26,6 +26,9 @@ interface GeneralTabProps {
   /** Phase definitions (injected from app config) */
   phases: PhaseDefinition[];
 
+  /** Phase ids that count toward progress (injected from app config). */
+  progressPhaseIds: number[];
+
   /** Status icon getter (injected from app config) */
   getStatusIcon: (status: PhaseStatus) => string;
 
@@ -39,15 +42,14 @@ interface GeneralTabProps {
 export const GeneralTab: React.FC<GeneralTabProps> = ({
   data,
   phases,
+  progressPhaseIds,
   getStatusIcon,
   getStatusColor,
   onUpdate,
 }) => {
-
-  const OVERVIEW_PHASE_IDS = [0, 1, 2, 3, 4, 5];
-  const overviewPhases = phases.filter((p) =>
-    OVERVIEW_PHASE_IDS.includes(p.id),
-  );
+  // Progress grid: only the phases that count, scoped by the app layer
+  // (Hazard already filtered out there when safety analysis is off).
+  const overviewPhases = phases.filter((p) => progressPhaseIds.includes(p.id));
 
   // Map data to ProjectInfoData interface
   const projectInfoData: ProjectInfoData = {
@@ -108,15 +110,15 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 
   // Handle settings updates (only strictMode, autoSave, autoSaveInterval)
   const handleSettingsUpdate = (settings: ProjectSettingsData) => {
-  onUpdate({
-    ...data,
-    info: {
-      ...data.info,
-    },
-    settings: {
-      ...settings,
-    },
-  });
+    onUpdate({
+      ...data,
+      info: {
+        ...data.info,
+      },
+      settings: {
+        ...settings,
+      },
+    });
   };
 
   return (
@@ -136,4 +138,4 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       />
     </div>
   );
-};
+};;

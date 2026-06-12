@@ -72,12 +72,17 @@ export const isPhaseAccessible = (
   return { accessible: true };
 };
 
-/** Overall completion percentage across all known phases. */
+/**
+ * Overall completion percentage. When `progressPhaseIds` is given, only those
+ * "work" phases form numerator and denominator (SSOT-aligned). Without it,
+ * falls back to counting every phase present in the status map.
+ */
 export const calculatePhaseProgress = (
   phaseStatus: Record<number, PhaseStatus>,
+  progressPhaseIds?: number[],
 ): number => {
-  const statuses = Object.values(phaseStatus);
-  if (statuses.length === 0) return 0;
-  const complete = statuses.filter((s) => s === "complete").length;
-  return Math.round((complete / statuses.length) * 100);
+  const ids = progressPhaseIds ?? Object.keys(phaseStatus).map(Number);
+  if (ids.length === 0) return 0;
+  const complete = ids.filter((id) => phaseStatus[id] === "complete").length;
+  return Math.round((complete / ids.length) * 100);
 };
