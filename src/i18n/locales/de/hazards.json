@@ -7,7 +7,9 @@
       "proceed": "Weiter",
       "unnamed": "(unbenannt)",
       "deleteConfirm": "Diese Gefährdung hat {{count}} verknüpfte Kante(n). Trotzdem löschen?",
-      "quickAddPlaceholder": "Schnell erfassen: Bezeichnung, dann Enter…",
+      "noHazards": "Noch keine Gefährdungen",
+      "noHazardsHint": "Nutze Schnell-Hinzufügen oben oder „Gefährdung hinzufügen“, um das Bowtie zu starten.",
+      "quickAddPlaceholder": "Schnell hinzufügen: Bezeichnung eingeben, dann Enter …",
 
       "columns": {
         "id": "ID",
@@ -17,8 +19,8 @@
         "combination": "Logik",
         "causes": "Ursachen",
         "targets": "Ziele",
-        "maxSeverity": "Max. Schweregrad",
-        "source": "Quelle"
+        "maxSeverity": "Max. Schwere",
+        "source": "Herkunft"
       },
 
       "category": {
@@ -65,7 +67,30 @@
         "maxHops": "Ausbreitungs-Hop-Limit",
         "maxHopsHint": "Reserviert für die kommende Safety-Ableitung über Asset-zu-Asset-Hops. Noch ohne Wirkung."
       },
-
+      "viewFilter": {
+        "active": "Aktiv (Out-of-Scope ausblenden)",
+        "all": "Alle (inkl. Out-of-Scope)",
+        "out": "Nur Out-of-Scope"
+      },
+      "tip": {
+        "id": "Externe Referenz (oder interne ID). Zelle überfahren zeigt die interne ID.",
+        "externalRef": "Externe Ref",
+        "label": "Kurzbezeichnung der Gefährdung. Zelle überfahren zeigt die vollständige Beschreibung.",
+        "type": "Gefährdungskategorie (ISO-12100-Typ).",
+        "php": "Physisches Gefährdungspotenzial (niedrig / mittel / hoch).",
+        "combination": "Verknüpfung der Ursachen: ANY = eine genügt, ALL = alle erforderlich.",
+        "causes": "Beitragende Assets (Ursachen). Chip überfahren zeigt den vollständigen Namen.",
+        "targets": "Gefährdete Assets/Personen (Ziele). Chip überfahren zeigt den vollständigen Namen.",
+        "maxSeverity": "Höchste Schadensschwere über alle Ziele.",
+        "source": "Herkunft der Gefährdung: manuell, importiert oder abgeleitet.",
+        "noCausesLinked": "Noch keine Ursachen verknüpft",
+        "noTargetsLinked": "Noch keine Ziele verknüpft",
+        "assetUnresolved": "Asset nicht gefunden — nur ID angezeigt",
+        "logic": {
+          "ANY": "Eine einzelne Ursache kann die Gefährdung auslösen (ANY).",
+          "ALL": "Alle Ursachen müssen zusammentreffen, um die Gefährdung auszulösen (ALL)."
+        }
+      },
       "dialog": {
         "newTitle": "Neue Gefährdung",
         "editTitle": "Gefährdung bearbeiten",
@@ -73,6 +98,7 @@
         "type": "ISO-12100-Typ",
         "php": "Physikalisches Gefährdungspotenzial",
         "combination": "Verknüpfung",
+        "description": "Beschreibung",
         "rationale": "Begründung",
         "causes": "Ursachen — contributes_to",
         "targets": "Schutzziele — endangers",
@@ -81,6 +107,126 @@
         "noCauses": "Mindestens ein beitragendes Asset ist erforderlich.",
         "noTargets": "Mindestens ein Schutzziel ist erforderlich.",
         "distance": "Dist."
+      },
+      "import": {
+        "title": "Import-Zuordnung",
+        "sheet": "Tabellenblatt",
+        "headerRow": "Kopfzeile",
+        "dataStartRow": "Daten ab Zeile",
+        "idFilter": "ID-Zeilenfilter (Regex)",
+        "rows": "Zeilen",
+        "bannerIdle": "Wähle links ein Feld (oder eine Zusatzspalte), dann klicke im Gitter auf einen Spaltenkopf.",
+        "bannerSingle": "Klicke auf einen Spaltenkopf, um ihn „{{field}}“ zuzuordnen.",
+        "bannerMatrix": "Matrix-Modus: klicke die Stufen-Spalten für „{{field}}“ und setze je Spalte den Wert.",
+        "bannerMeta": "Klicke auf einen Spaltenkopf, um ihn als Provenance unter „{{key}}“ zu speichern.",
+        "assignTo": "Zuordnen zu {{target}}",
+        "extraTitle": "Zusatzspalten (als Provenance gespeichert)",
+        "extraKeyPlaceholder": "Schlüssel (z. B. Schutzziel)",
+        "addExtra": "Zusatzspalte hinzufügen",
+        "pickColumn": "Spalte wählen",
+        "columnMap": "Spaltenzuordnung",
+        "nothingMapped": "noch nichts zugeordnet",
+        "previewSummary": "Vorschau — {{hazards}} Gefährdungen, {{warnings}} Warnungen",
+        "profileName": "Profilname",
+        "saveProfile": "Profil speichern",
+        "loadProfile": "Profil laden…",
+        "cancel": "Abbrechen",
+        "confirm": "{{count}} importieren",
+        "requiredHint": "Zuerst ID und Beschreibung zuordnen",
+        "single": "1 Sp.",
+        "matrix": "Matrix",
+        "unnamed": "(unbenannt)",
+        "unmappedCategory": "Nicht zugewiesene Kategorie",
+        "affectedPersons": "Betroffene Personen",
+        "physicalHazardPotential": "Physisches Gefährdungspotenzial",
+        "fields": {
+          "id": "ID",
+          "description": "Beschreibung",
+          "hazardCategory": "Kategorie",
+          "severity": "Schweregrad",
+          "probability": "Wahrscheinlichkeit",
+          "rpn": "RPN",
+          "sourceNorm": "Norm",
+          "notes": "Notizen / Restrisiko",
+          "affectedPersons": "Betroffene Personen",
+          "physicalHazardPotential": "Physisches Gefahrenpotential"
+        },
+        "tooltips": {
+          "field": "Anklicken, um dieses Feld als aktives Ziel zu wählen, dann einen Spaltenkopf anklicken.",
+          "mode": "1 Spalte = eine Spalte. Matrix = mehrere „x“-Spalten, eine je Stufe.",
+          "clearField": "Zuordnung entfernen",
+          "addExtra": "Eine zusätzliche Quellspalte als Provenance behalten (importMeta)",
+          "headerRow": "Zeile mit den Spaltentiteln (nur Hinweis).",
+          "dataStartRow": "Erste Zeile mit Gefährdungsdaten.",
+          "idFilter": "Optionaler Regex auf die ID-Spalte; nicht passende Zeilen werden übersprungen."
+        },
+
+        "preview": {
+          "id": "id",
+          "description": "Beschreibung",
+          "severity": "Schweregrad",
+          "probability": "Wahrsch.",
+          "persons": "Personen"
+        }
+      },
+      "aliases": {
+        "id": ["nr", "nr.", "gefährdung nr.", "gefährdung nr", "sich.fkt.nr."],
+        "description": [
+          "beschreibung",
+          "gefahrenquelle",
+          "art des fehlers",
+          "ereignis"
+        ],
+        "hazardCategory": ["kategorie", "art"],
+        "severity": ["schwere", "schadenumfang", "schaden"],
+        "probability": [
+          "wahrscheinlichkeit",
+          "eintrittswahrscheinlichkeit",
+          "eintritt"
+        ],
+        "rpn": ["risikobewertung", "risiko"],
+        "sourceNorm": ["norm", "plr", "kategorie / plr"],
+        "affectedPersons": [
+          "betroffene person",
+          "betroffene personen",
+          "person",
+          "personen"
+        ],
+        "notes": ["bemerkung", "bemerkungen", "restrisiken", "auswirkung"],
+        "physicalHazardPotential": [
+          "physikalisches gefährdungspotenzial",
+          "phys. potenzial",
+          "potenzial"
+        ]
+      },
+      "review": {
+        "scopeTitle": "Cyber-System-Scope",
+        "scopeQuestion": "Ist diese Gefährdung durch einen Cyberangriff erreichbar?",
+        "scopeHint": "In Scope → Bowtie modellieren. Out of Scope → bleibt im Safety-Record, wird aber von der Bedrohungsableitung ausgeschlossen.",
+        "inScope": "In Scope",
+        "outScope": "Out of Scope",
+        "unknown": "Unbekannt",
+        "reason": "Begründung (warum out of scope)",
+        "bowtieGated": "System-Scope festlegen, um das Bowtie zu aktivieren.",
+        "bowtieOut": "Out of Scope — keine Cyber-Ursachen/-Ziele zu modellieren.",
+        "empty": "Keine Gefährdungen entsprechen diesem Filter.",
+        "progress": "{{reviewed}}/{{total}} geprüft",
+        "unknownNext": "Unbekannt → weiter",
+        "inStay": "In Scope",
+        "outNext": "Out of Scope → weiter",
+        "idTip": "Externe Ref · {{id}}",
+        "filter": {
+          "all": "Alle",
+          "unreviewed": "Zu prüfen",
+          "in_scope": "In Scope",
+          "out_of_scope": "Out of Scope",
+          "unknown": "Unbekannt"
+        },
+        "scopeTip": {
+          "in_scope": "In Scope — durch Cyberangriff erreichbar",
+          "out_of_scope": "Out of Scope — nicht cyber-verursacht; von der Bedrohungsanalyse ausgeschlossen",
+          "unknown": "Unbekannt — noch zu prüfen"
+        }
       }
     }
   }

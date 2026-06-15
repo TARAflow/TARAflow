@@ -34,6 +34,14 @@ import { HazardToolbar } from "./hazard-toolbar";
 import { HazardTable } from "./hazard-table";
 import { HazardDialog } from "./hazard-dialog";
 import { HazardConfigDialog } from "./hazard-config-dialog";
+import { useHazardImport } from "../hooks/use-hazard-import";
+import { createAsset } from "shared";
+
+import { HazardImportProfileDialog } from "./hazard-import-profile-dialog";
+import type { ImportProfile } from "../models/import-profile-types";
+import type { ImportProfileRequest } from "../hooks/use-hazard-import";
+
+import { registerHazardImportAdapters } from "../services/register-hazard-adapters";
 
 // ==================== PROPS ====================
 
@@ -63,18 +71,52 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  registerHazardImportAdapters();
+
+  // promise-bridged dialog request
+  const [profileRequest, setProfileRequest] = useState<{
+    req: ImportProfileRequest;
+    resolve: (p: ImportProfile | null) => void;
+  } | null>(null);
+
+  const requestImportProfile = useCallback(
+    (req: ImportProfileRequest) =>
+      new Promise<ImportProfile | null>((resolve) =>
+        setProfileRequest({ req, resolve }),
+      ),
+    [],
+  );
+
   // Assets created in the Bowtie but not yet folded back via persist + sync.
   const [pendingCreatedAssets, setPendingCreatedAssets] = useState<
     CreatedAsset[]
   >([]);
 
   const assets = useMemo<AssetReference[]>(
-    () => [
-      ...(project.assetDataRef?.assets ?? []),
-      ...pendingCreatedAssets.map(seedToRef),
-    ],
+    () => [...(project.assetDataRef?.assets ?? []), ...pendingCreatedAssets],
     [project.assetDataRef, pendingCreatedAssets],
   );
+
+  // mint a Human protection-target asset; dedup happens in the bridge
+  const mintHumanAsset = useCallback(
+    (name: string, existingIds: string[]) =>
+      createAsset(existingIds, name, "human", "critical"),
+    [],
+  );
+
+  // ── id factory + Human-target resolver ──────────────────────────────────────
+  // makeHazardItemId: reuse your existing id generator, cast to the branded type.
+  const makeHazardItemId = useCallback(
+    () => crypto.randomUUID() as HazardItemId, // or your hazard-service id helper
+    [],
+  );
+
+  const { importHazards } = useHazardImport({
+    makeHazardItemId,
+    existingAssets: assets, // AssetReference[] hat id/name/assetGroup
+    mintHumanAsset,
+    requestImportProfile,
+  });
 
   // ── State ────────────────────────────────────────────────────────────────
   const [hazardData, setHazardData] = useState<HazardData>(
@@ -248,6 +290,34 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
     onPhaseComplete?.();
   }, [onPhaseComplete]);
 
+  const handleImport = useCallback(async () => {
+    try {
+      const outcome = await importHazards();
+      if (outcome.cancelled) return;
+
+      if (outcome.createdAssets.length > 0) {
+        setPendingCreatedAssets((prev) => [...prev, ...outcome.createdAssets]);
+      }
+
+      if (outcome.items.length > 0) {
+        const merged: HazardData = {
+          ...hazardData,
+          hazards: [...hazardData.hazards, ...outcome.items],
+          relations: [...hazardData.relations, ...outcome.relations],
+        };
+        setHazardData(merged);
+        setValidation(hazardValidator.validate(merged, assets));
+        markDirty();
+      }
+
+      if (outcome.warnings.length > 0) {
+        console.warn("Hazard import warnings:", outcome.warnings);
+      }
+    } catch (err) {
+      console.error("Hazard import failed:", err);
+    }
+  }, [importHazards, hazardData, assets, markDirty]);
+
   // ==================== RENDER ====================
 
   return (
@@ -266,6 +336,7 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
         onAdd={handleAdd}
         onOpenConfig={handleOpenConfig}
         onProceed={handleProceed}
+        onImport={handleImport}
       />
 
       <Box sx={{ flexGrow: 1, overflow: "auto", p: 2, minHeight: 0 }}>
@@ -289,6 +360,24 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
         />
       )}
 
+      {profileRequest && (
+        <HazardImportProfileDialog
+          open
+          workbook={profileRequest.req.workbook}
+          fileName={profileRequest.req.fileName}
+          onConfirm={(p) => {
+            profileRequest.resolve(p);
+            setProfileRequest(null);
+          }}
+          onCancel={() => {
+            profileRequest.resolve(null);
+            setProfileRequest(null);
+          }}
+          // savedProfiles={...}                         // später: Profil-Store
+          // onSaveProfile={(p) => profileStore.save(p)} // später: Persistenz
+        />
+      )}
+
       <HazardConfigDialog
         open={showConfigDialog}
         configuration={
@@ -300,6 +389,6 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
       />
     </Box>
   );
-};
+};;;;;;;;
 
 export default HazardsTab;

@@ -23,7 +23,16 @@ import {
   GridActionsCellItem,
   GridRenderCellParams,
 } from "@mui/x-data-grid";
-import { Box, Button, Chip, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  MenuItem,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -142,47 +151,111 @@ function humanize(value: string): string {
 
 // ==================== ASSET CHIP CELL ====================
 
-const AssetChips: React.FC<{ chips: AssetChip[] }> = ({ chips }) => {
+const AssetChips: React.FC<{
+  chips: AssetChip[];
+  kind: "cause" | "target";
+}> = ({ chips, kind }) => {
+  const { t } = useTranslation();
+
   if (chips.length === 0) {
     return (
-      <Chip
-        label="0"
-        size="small"
-        color="error"
-        variant="filled"
-        sx={{ height: 20, minWidth: 30, fontWeight: 600 }}
-      />
+      <Tooltip
+        title={t(
+          kind === "cause"
+            ? "tabs.hazards.tip.noCausesLinked"
+            : "tabs.hazards.tip.noTargetsLinked",
+          {
+            defaultValue:
+              kind === "cause"
+                ? "No causes linked yet"
+                : "No targets linked yet",
+          },
+        )}
+      >
+        <Chip
+          label="0"
+          size="small"
+          color="error"
+          variant="filled"
+          sx={{ height: 20, minWidth: 30, fontWeight: 600 }}
+        />
+      </Tooltip>
     );
   }
   return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, py: 0.5, width: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 0.5,
+        py: 0.5,
+        width: "100%",
+      }}
+    >
       {chips.map((c) => {
         const col = groupColor(c.group);
+        // An asset is "unresolved" when it could not be matched against the
+        // current asset list (e.g. a freshly minted human target that has not
+        // been merged back yet) — then name falls back to the raw id.
+        const resolved = c.name !== c.id && c.group !== "";
+        const tip = (
+          <Box sx={{ lineHeight: 1.4 }}>
+            <Box sx={{ fontWeight: 700 }}>{c.name}</Box>
+            <Box
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.7rem",
+                opacity: 0.85,
+              }}
+            >
+              {c.id}
+              {c.group ? ` · ${c.group}` : ""}
+            </Box>
+            {!resolved && (
+              <Box sx={{ fontSize: "0.7rem", mt: 0.25, color: "#fca5a5" }}>
+                {t("tabs.hazards.tip.assetUnresolved", {
+                  defaultValue: "Asset not found — showing ID only",
+                })}
+              </Box>
+            )}
+          </Box>
+        );
         return (
-          <Chip
-            key={c.id}
-            size="small"
-            title={`${c.id} · ${c.group}`}
-            label={
-              <Box component="span" sx={{ display: "inline-flex", alignItems: "baseline", gap: 0.5 }}>
+          <Tooltip key={c.id} title={tip} placement="top">
+            <Chip
+              size="small"
+              label={
                 <Box
                   component="span"
-                  sx={{ fontFamily: "monospace", fontSize: "0.62rem", opacity: 0.7 }}
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "baseline",
+                    gap: 0.5,
+                  }}
                 >
-                  {c.id}
+                  <Box
+                    component="span"
+                    sx={{
+                      fontFamily: "monospace",
+                      fontSize: "0.62rem",
+                      opacity: 0.7,
+                    }}
+                  >
+                    {c.id}
+                  </Box>
+                  <Box component="span">{c.name}</Box>
                 </Box>
-                <Box component="span">{c.name}</Box>
-              </Box>
-            }
-            sx={{
-              height: 20,
-              fontSize: "0.7rem",
-              backgroundColor: col.bg,
-              color: col.fg,
-              border: `1px solid ${col.fg}33`,
-              "& .MuiChip-label": { px: 0.75 },
-            }}
-          />
+              }
+              sx={{
+                height: 20,
+                fontSize: "0.7rem",
+                backgroundColor: col.bg,
+                color: col.fg,
+                border: `1px solid ${col.fg}33`,
+                "& .MuiChip-label": { px: 0.75 },
+              }}
+            />
+          </Tooltip>
         );
       })}
     </Box>
@@ -195,13 +268,28 @@ export const HazardTable = React.memo<HazardTableProps>(
   ({ data, assets, onEdit, onDelete, onQuickAdd }) => {
     const { t } = useTranslation();
     const [quickLabel, setQuickLabel] = useState("");
+    // Row visibility filter. Out-of-scope hazards are hidden by default (they
+    // stay in the safety record but are excluded from threat work); the filter
+    // top-right brings them back into view.
+    const [view, setView] = useState<"active" | "all" | "out">("active");
 
     // ── Build rows with derived aggregates projected as real fields ─────────
     const rows = useMemo<HazardRow[]>(() => {
       const assetById = new Map(assets.map((a) => [a.id, a]));
       const toChip = (id: string): AssetChip => {
-        const a = assetById.get(id);
-        return { id, name: a?.name ?? id, group: a?.assetGroup ?? "" };
+        // Resolve against the asset list. Be tolerant about the field names so
+        // this keeps working whatever the shared AssetReference shape exposes
+        // (name/label, assetGroup/group). If the id is not in the list at all
+        // (e.g. a freshly created asset not yet merged back), name falls back
+        // to the raw id and the chip tooltip flags it as unresolved.
+        const a = assetById.get(id) as
+          | (AssetReference & { label?: string; group?: string })
+          | undefined;
+        return {
+          id,
+          name: a?.name ?? a?.label ?? id,
+          group: a?.assetGroup ?? a?.group ?? "",
+        };
       };
 
       const causeAssets: Record<string, AssetChip[]> = {};
@@ -238,6 +326,18 @@ export const HazardTable = React.memo<HazardTableProps>(
       }));
     }, [data.hazards, data.relations, assets]);
 
+    // ── Apply the visibility filter ─────────────────────────────────────────
+    const visibleRows = useMemo<HazardRow[]>(
+      () =>
+        rows.filter((r) => {
+          const out = r.systemRelevance === "out_of_scope";
+          if (view === "active") return !out;
+          if (view === "out") return out;
+          return true;
+        }),
+      [rows, view],
+    );
+
     // ── Quick add ──────────────────────────────────────────────────────────
     const submitQuickAdd = () => {
       const label = quickLabel.trim();
@@ -251,54 +351,86 @@ export const HazardTable = React.memo<HazardTableProps>(
       const idColumn: GridColDef<HazardRow> = {
         field: "id",
         headerName: t("tabs.hazards.columns.id", { defaultValue: "ID" }),
-        width: 80,
-        renderCell: (p: GridRenderCellParams<HazardRow>) => (
-          <Chip
-            label={p.value}
-            size="small"
-            variant="outlined"
-            sx={{
-              fontFamily: "monospace",
-              fontSize: "0.72rem",
-              height: 20,
-              borderColor: "#dc2626",
-              color: "#dc2626",
-              "& .MuiChip-label": { px: 0.75 },
-            }}
-          />
-        ),
+        description: t("tabs.hazards.tip.id", {
+          defaultValue:
+            "External reference (or internal ID). Hover a cell for the internal ID.",
+        }),
+        width: 90,
+        renderCell: (p: GridRenderCellParams<HazardRow>) => {
+          // Prefer the human-readable external reference (e.g. imported "00.01");
+          // fall back to the internal id. The internal id stays available on hover.
+          const display = p.row.externalRef ?? String(p.value);
+          return (
+            <Tooltip
+              title={
+                p.row.externalRef
+                  ? `${t("tabs.hazards.tip.externalRef", { defaultValue: "External ref" })}: ${p.row.externalRef} · id: ${p.row.id}`
+                  : `id: ${p.row.id}`
+              }
+            >
+              <Chip
+                label={display}
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontFamily: "monospace",
+                  fontSize: "0.72rem",
+                  height: 20,
+                  borderColor: "#dc2626",
+                  color: "#dc2626",
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
+              />
+            </Tooltip>
+          );
+        },
       };
 
       const labelColumn: GridColDef<HazardRow> = {
         field: "label",
         headerName: t("tabs.hazards.columns.label", { defaultValue: "Hazard" }),
+        description: t("tabs.hazards.tip.label", {
+          defaultValue:
+            "Short hazard label. Hover a cell for the full description.",
+        }),
         flex: 1,
-        minWidth: 150,
+        minWidth: 260,
         renderCell: (p) => (
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {p.value || (
-              <em style={{ color: "#94a3b8" }}>
-                {t("tabs.hazards.unnamed", { defaultValue: "(unnamed)" })}
-              </em>
-            )}
-          </Typography>
+          <Tooltip title={p.row.description ?? ""} placement="top-start">
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {p.value || (
+                <em style={{ color: "#94a3b8" }}>
+                  {t("tabs.hazards.unnamed", { defaultValue: "(unnamed)" })}
+                </em>
+              )}
+            </Typography>
+          </Tooltip>
         ),
       };
 
       const typeColumn: GridColDef<HazardRow> = {
         field: "hazardType",
         headerName: t("tabs.hazards.columns.type", { defaultValue: "Type" }),
-        width: 130,
+        description: t("tabs.hazards.tip.type", {
+          defaultValue: "Hazard category (ISO 12100 type).",
+        }),
+        width: 90,
         renderCell: (p) =>
           p.value ? (
-            <Chip
-              label={t(`tabs.hazards.category.${p.value}`, {
-                defaultValue: humanize(String(p.value)),
+            <Tooltip
+              title={t("tabs.hazards.tip.type", {
+                defaultValue: "Hazard category (ISO 12100 type).",
               })}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: "0.72rem", height: 20 }}
-            />
+            >
+              <Chip
+                label={t(`tabs.hazards.category.${p.value}`, {
+                  defaultValue: humanize(String(p.value)),
+                })}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: "0.72rem", height: 20 }}
+              />
+            </Tooltip>
           ) : (
             <Typography variant="caption" color="text.secondary">
               –
@@ -310,6 +442,9 @@ export const HazardTable = React.memo<HazardTableProps>(
         field: "physicalHazardPotential",
         headerName: t("tabs.hazards.columns.php", {
           defaultValue: "Phys. Potential",
+        }),
+        description: t("tabs.hazards.tip.php", {
+          defaultValue: "Physical hazard potential (low / medium / high).",
         }),
         width: 130,
         renderCell: (p) => {
@@ -323,17 +458,24 @@ export const HazardTable = React.memo<HazardTableProps>(
           }
           const col = PHP_COLOR[v] ?? GROUP_FALLBACK;
           return (
-            <Chip
-              label={humanize(v)}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: "0.7rem",
-                fontWeight: 600,
-                backgroundColor: col.bg,
-                color: col.fg,
-              }}
-            />
+            <Tooltip
+              title={t("tabs.hazards.tip.php", {
+                defaultValue:
+                  "Physical hazard potential (low / medium / high).",
+              })}
+            >
+              <Chip
+                label={humanize(v)}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  backgroundColor: col.bg,
+                  color: col.fg,
+                }}
+              />
+            </Tooltip>
           );
         },
       };
@@ -343,15 +485,28 @@ export const HazardTable = React.memo<HazardTableProps>(
         headerName: t("tabs.hazards.columns.combination", {
           defaultValue: "Logic",
         }),
+        description: t("tabs.hazards.tip.combination", {
+          defaultValue:
+            "How causes combine: ANY = one suffices, ALL = all required.",
+        }),
         width: 80,
         renderCell: (p) => (
-          <Chip
-            label={p.value}
-            size="small"
-            color={p.value === "ALL" ? "secondary" : "default"}
-            variant={p.value === "ALL" ? "filled" : "outlined"}
-            sx={{ fontSize: "0.68rem", height: 20, fontFamily: "monospace" }}
-          />
+          <Tooltip
+            title={t(`tabs.hazards.tip.logic.${p.value}`, {
+              defaultValue:
+                p.value === "ALL"
+                  ? "ALL causes must coincide to realise the hazard."
+                  : "ANY single cause can realise the hazard.",
+            })}
+          >
+            <Chip
+              label={p.value}
+              size="small"
+              color={p.value === "ALL" ? "secondary" : "default"}
+              variant={p.value === "ALL" ? "filled" : "outlined"}
+              sx={{ fontSize: "0.68rem", height: 20, fontFamily: "monospace" }}
+            />
+          </Tooltip>
         ),
       };
 
@@ -360,10 +515,16 @@ export const HazardTable = React.memo<HazardTableProps>(
         headerName: t("tabs.hazards.columns.causes", {
           defaultValue: "Causes",
         }),
+        description: t("tabs.hazards.tip.causes", {
+          defaultValue:
+            "Contributing assets (causes). Hover a chip for the full name.",
+        }),
         flex: 1.4,
         minWidth: 170,
         sortable: false,
-        renderCell: (p) => <AssetChips chips={p.row._causeAssets} />,
+        renderCell: (p) => (
+          <AssetChips chips={p.row._causeAssets} kind="cause" />
+        ),
       };
 
       const targetsColumn: GridColDef<HazardRow> = {
@@ -371,16 +532,25 @@ export const HazardTable = React.memo<HazardTableProps>(
         headerName: t("tabs.hazards.columns.targets", {
           defaultValue: "Targets",
         }),
+        description: t("tabs.hazards.tip.targets", {
+          defaultValue:
+            "Endangered assets/persons (targets). Hover a chip for the full name.",
+        }),
         flex: 1.4,
         minWidth: 170,
         sortable: false,
-        renderCell: (p) => <AssetChips chips={p.row._targetAssets} />,
+        renderCell: (p) => (
+          <AssetChips chips={p.row._targetAssets} kind="target" />
+        ),
       };
 
       const severityColumn: GridColDef<HazardRow> = {
         field: "_worstRank",
         headerName: t("tabs.hazards.columns.maxSeverity", {
           defaultValue: "Max Severity",
+        }),
+        description: t("tabs.hazards.tip.maxSeverity", {
+          defaultValue: "Worst endangers-severity across all targets.",
         }),
         width: 130,
         type: "number",
@@ -393,19 +563,25 @@ export const HazardTable = React.memo<HazardTableProps>(
             );
           }
           return (
-            <Chip
-              label={t(`tabs.hazards.severity.${p.row._worstSeverity}`, {
-                defaultValue: humanize(p.row._worstSeverity),
+            <Tooltip
+              title={t("tabs.hazards.tip.maxSeverity", {
+                defaultValue: "Worst endangers-severity across all targets.",
               })}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: "0.7rem",
-                fontWeight: 600,
-                backgroundColor: RANK_COLOR[p.row._worstRank],
-                color: p.row._worstRank >= 2 ? "#fff" : "#1e293b",
-              }}
-            />
+            >
+              <Chip
+                label={t(`tabs.hazards.severity.${p.row._worstSeverity}`, {
+                  defaultValue: humanize(p.row._worstSeverity),
+                })}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  backgroundColor: RANK_COLOR[p.row._worstRank],
+                  color: p.row._worstRank >= 2 ? "#fff" : "#1e293b",
+                }}
+              />
+            </Tooltip>
           );
         },
       };
@@ -415,17 +591,28 @@ export const HazardTable = React.memo<HazardTableProps>(
         headerName: t("tabs.hazards.columns.source", {
           defaultValue: "Source",
         }),
+        description: t("tabs.hazards.tip.source", {
+          defaultValue:
+            "How the hazard entered the model: manual, imported or derived.",
+        }),
         width: 110,
         renderCell: (p) => {
           const meta = SOURCE_META[String(p.value)] ?? SOURCE_META.manual;
           return (
-            <Chip
-              icon={meta.icon}
-              label={t(meta.labelKey, { defaultValue: meta.fallback })}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: "0.68rem", height: 22 }}
-            />
+            <Tooltip
+              title={t("tabs.hazards.tip.source", {
+                defaultValue:
+                  "How the hazard entered the model: manual, imported or derived.",
+              })}
+            >
+              <Chip
+                icon={meta.icon}
+                label={t(meta.labelKey, { defaultValue: meta.fallback })}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: "0.68rem", height: 22 }}
+              />
+            </Tooltip>
           );
         },
       };
@@ -520,6 +707,37 @@ export const HazardTable = React.memo<HazardTableProps>(
           >
             {t("common.add", { defaultValue: "Add" })}
           </Button>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Select
+            size="small"
+            value={view}
+            onChange={(e) =>
+              setView(e.target.value as "active" | "all" | "out")
+            }
+            sx={{
+              fontSize: "0.8rem",
+              minWidth: 190,
+              backgroundColor: "background.paper",
+            }}
+          >
+            <MenuItem value="active">
+              {t("tabs.hazards.viewFilter.active", {
+                defaultValue: "Active (hide out-of-scope)",
+              })}
+            </MenuItem>
+            <MenuItem value="all">
+              {t("tabs.hazards.viewFilter.all", {
+                defaultValue: "All (incl. out-of-scope)",
+              })}
+            </MenuItem>
+            <MenuItem value="out">
+              {t("tabs.hazards.viewFilter.out", {
+                defaultValue: "Out-of-scope only",
+              })}
+            </MenuItem>
+          </Select>
         </Box>
 
         {/* Empty state */}
@@ -548,19 +766,53 @@ export const HazardTable = React.memo<HazardTableProps>(
         ) : (
           <Box sx={{ flexGrow: 1, minHeight: 0 }}>
             <DataGrid
-              rows={rows}
+              rows={visibleRows}
               columns={columns}
               getRowHeight={() => "auto"}
-              pageSizeOptions={[10, 25, 50]}
+              pageSizeOptions={[10, 25, 50, 100]}
               initialState={{
                 pagination: { paginationModel: { pageSize: 25 } },
                 sorting: { sortModel: [{ field: "_worstRank", sort: "desc" }] },
               }}
               onRowClick={(params) => onEdit(params.row)}
+              getRowClassName={(params) => {
+                const sr = params.row.systemRelevance;
+                // Out of scope → red. In scope → completeness cue (green/orange).
+                // Not yet reviewed (unknown / unset) → neutral, no colour.
+                if (sr === "out_of_scope") return "haz-row-out";
+                if (sr === "in_scope") {
+                  return params.row._targetAssets.length > 0 &&
+                    params.row._causeAssets.length > 0
+                    ? "haz-row-complete"
+                    : "haz-row-incomplete";
+                }
+                return "haz-row-neutral";
+              }}
               disableRowSelectionOnClick
               density="compact"
               sx={{
                 border: "none",
+                // Row colouring is driven by review status, not completeness
+                // alone: out-of-scope = red, in-scope incomplete = orange,
+                // in-scope complete = green, not-yet-reviewed = neutral.
+                "& .haz-row-out": {
+                  backgroundColor: "rgba(239,68,68,0.12)",
+                },
+                "& .haz-row-out:hover": {
+                  backgroundColor: "rgba(239,68,68,0.20) !important",
+                },
+                "& .haz-row-incomplete": {
+                  backgroundColor: "rgba(251,146,60,0.12)",
+                },
+                "& .haz-row-incomplete:hover": {
+                  backgroundColor: "rgba(251,146,60,0.20) !important",
+                },
+                "& .haz-row-complete": {
+                  backgroundColor: "rgba(34,197,94,0.10)",
+                },
+                "& .haz-row-complete:hover": {
+                  backgroundColor: "rgba(34,197,94,0.16) !important",
+                },
                 "& .MuiDataGrid-cell": {
                   borderBottom: "1px solid",
                   borderColor: "divider",

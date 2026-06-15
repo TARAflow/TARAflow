@@ -36,7 +36,7 @@ export interface AssetReference {
   aggregatedImpact?: "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
   physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
   isHighValueAsset?: "low" | "medium" | "high" | "critical";
-  hasSafetyAnnotation: boolean;
+  hasSafetyAnnotation?: boolean;
   linkedElementIds?: string[];
   /** Active security goals (level !== "none") — populated by app layer. */
   securityGoals?: SecurityGoalReference[];

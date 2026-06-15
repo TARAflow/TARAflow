@@ -127,6 +127,7 @@ export {
 export {
   type HazardImpact,
   type HazardTargetKind,
+  type HumanHarmSeverity,
   HUMAN_HARM_SEVERITY,
   SEVERITY_SCALE_BY_TARGET,
   isHumanImpact,

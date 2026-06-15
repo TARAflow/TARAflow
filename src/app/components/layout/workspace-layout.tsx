@@ -91,6 +91,7 @@ import {
 import { toReferenceGraph } from "../../utils/to-reference-graph";
 
 import type { Project } from "../../models/project-types";
+import { syncFromDFD } from "features/assets/services/asset-sync-service";
 
 // ==================== COMPONENT ====================
 
@@ -301,19 +302,35 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // ── Hazard tab ────────────────────────────────────────────────────────────
-
   const handleHazardsUpdate = useCallback(
     async (updates: HazardUpdateResult) => {
       const current = activeProjectRef.current;
       if (!current) return;
       const status = hazardService.deriveHazardPhaseStatus(updates.hazards);
+
       const dfd = updates.createdAssets?.length
         ? addCreatedAssets(current.dfd, updates.createdAssets)
         : current.dfd;
+
+      // Keep both stores consistent: the hazard-minted humans were just folded into dfd.assets,
+      // but assetDataRef is built from project.assets.assets.
+      // Run the canonical DFD→Assets sync so they surface there too (and stay resolvable in Hazard/Threat/Risk).
+      let assets = current.assets;
+      if (updates.createdAssets?.length && dfd?.assets && current.assets) {
+        const { assetData } = syncFromDFD(
+          current.assets,
+          mapDFDAssetsToAssetFeature(dfd.assets),
+          mapDFDElementsToAssetFeature(dfd.elements ?? []),
+          mapDFDConnectionsToAssetFeature(dfd.connections ?? []),
+        );
+        assets = assetData;
+      }
+
       await updateProject({
         ...current,
         hazards: updates.hazards,
         dfd,
+        assets, // ← neu: synchronisierter Assets-Store
         phaseStatus: { ...current.phaseStatus, [PhaseId.Hazard]: status },
       });
     },
@@ -883,4 +900,4 @@ export const WorkspaceLayout: React.FC = () => {
       </div>
     </>
   );
-}
+};

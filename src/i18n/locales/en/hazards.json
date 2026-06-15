@@ -7,6 +7,8 @@
       "proceed": "Continue",
       "unnamed": "(unnamed)",
       "deleteConfirm": "This hazard has {{count}} linked edge(s). Delete anyway?",
+      "noHazards": "No hazards yet",
+      "noHazardsHint": "Use Quick add above or “Add Hazard” to start the Bowtie.",
       "quickAddPlaceholder": "Quick add: hazard label, then Enter…",
 
       "columns": {
@@ -55,6 +57,30 @@
         "derived": "Derived",
         "imported": "Imported"
       },
+      "viewFilter": {
+        "active": "Active (hide out-of-scope)",
+        "all": "All (incl. out-of-scope)",
+        "out": "Out-of-scope only"
+      },
+      "tip": {
+        "id": "External reference (or internal ID). Hover a cell for the internal ID.",
+        "externalRef": "External ref",
+        "label": "Short hazard label. Hover a cell for the full description.",
+        "type": "Hazard category (ISO 12100 type).",
+        "php": "Physical hazard potential (low / medium / high).",
+        "combination": "How causes combine: ANY = one suffices, ALL = all required.",
+        "causes": "Contributing assets (causes). Hover a chip for the full name.",
+        "targets": "Endangered assets/persons (targets). Hover a chip for the full name.",
+        "maxSeverity": "Worst endangers-severity across all targets.",
+        "source": "How the hazard entered the model: manual, imported or derived.",
+        "noCausesLinked": "No causes linked yet",
+        "noTargetsLinked": "No targets linked yet",
+        "assetUnresolved": "Asset not found — showing ID only",
+        "logic": {
+          "ANY": "ANY single cause can realise the hazard.",
+          "ALL": "ALL causes must coincide to realise the hazard."
+        }
+      },
 
       "config": {
         "title": "Hazard Settings",
@@ -73,6 +99,7 @@
         "type": "ISO 12100 type",
         "php": "Physical hazard potential",
         "combination": "Combination",
+        "description": "Description",
         "rationale": "Rationale",
         "causes": "Causes — contributes_to",
         "targets": "Protection targets — endangers",
@@ -81,6 +108,115 @@
         "noCauses": "At least one contributing asset is required.",
         "noTargets": "At least one protection target is required.",
         "distance": "Dist."
+      },
+      "import": {
+        "title": "Import mapping",
+        "sheet": "Sheet",
+        "headerRow": "Header row",
+        "dataStartRow": "Data starts row",
+        "idFilter": "Id row filter (regex)",
+        "rows": "rows",
+        "bannerIdle": "Select a field (or an extra column) on the left, then click a column header in the grid.",
+        "bannerSingle": "Click a column header to map it to “{{field}}”.",
+        "bannerMatrix": "Matrix mode: click the level columns for “{{field}}”, then set each column’s value.",
+        "bannerMeta": "Click a column header to store it as provenance under “{{key}}”.",
+        "assignTo": "Assign to {{target}}",
+        "extraTitle": "Extra columns (kept as provenance)",
+        "extraKeyPlaceholder": "key (e.g. Schutzziel)",
+        "addExtra": "Add extra column",
+        "pickColumn": "Pick column",
+        "columnMap": "Column map",
+        "nothingMapped": "nothing mapped yet",
+        "previewSummary": "Preview — {{hazards}} hazards, {{warnings}} warnings",
+        "profileName": "Profile name",
+        "saveProfile": "Save profile",
+        "loadProfile": "Load profile…",
+        "cancel": "Cancel",
+        "confirm": "Import {{count}}",
+        "requiredHint": "Map id and description first",
+        "single": "1 col",
+        "matrix": "matrix",
+        "unnamed": "(unnamed)",
+        "unmappedCategory": "Unmapped Category",
+        "fields": {
+          "id": "ID",
+          "description": "Description",
+          "hazardCategory": "Category",
+          "severity": "Severity",
+          "probability": "Probability",
+          "rpn": "RPN",
+          "sourceNorm": "Standard",
+          "notes": "Notes / residual risk",
+          "physicalHazardPotential": "Physical Hazard Potential",
+          "affectedPersons": "Affected persons"
+        },
+        "tooltips": {
+          "field": "Click to make this the active mapping target, then click a column header.",
+          "mode": "Single = one column. Matrix = several “x”-marked columns, one per level.",
+          "clearField": "Remove this mapping",
+          "addExtra": "Keep an extra source column as provenance (importMeta)",
+          "headerRow": "Row that holds the column titles (hint only).",
+          "dataStartRow": "First row that contains hazard data.",
+          "idFilter": "Optional regex on the id column; non-matching rows are skipped."
+        },
+        "preview": {
+          "id": "id",
+          "description": "description",
+          "severity": "severity",
+          "probability": "probability",
+          "persons": "persons"
+        }
+      },
+      "aliases": {
+        "id": ["id", "no", "no.", "hazard id"],
+        "description": ["description", "hazard", "event"],
+        "hazardCategory": ["hazardcategory", "category", "type"],
+        "severity": ["severity"],
+        "probability": ["probability", "likelihood"],
+        "rpn": ["rpn", "risk"],
+        "sourceNorm": ["sourcenorm", "norm", "standard", "plr"],
+        "affectedPersons": [
+          "affectedpersons",
+          "affected persons",
+          "person",
+          "persons"
+        ],
+        "notes": ["notes", "remark", "remarks", "residual risk"],
+        "physicalHazardPotential": [
+          "physicalhazardpotential",
+          "physical hazard potential",
+          "phys potential",
+          "php"
+        ]
+      },
+      "review": {
+        "scopeTitle": "Cyber-system scope",
+        "scopeQuestion": "Is this hazard reachable by a cyberattack?",
+        "scopeHint": "In scope → model the bowtie. Out of scope → kept in the safety record but excluded from threat generation.",
+        "inScope": "In scope",
+        "outScope": "Out of scope",
+        "unknown": "Unknown",
+        "reason": "Reason (why out of scope)",
+        "bowtieGated": "Decide system scope to enable the bowtie.",
+        "bowtieOut": "Out of scope — no cyber cause/target modeling needed.",
+        "empty": "No hazards match this filter.",
+        "progress": "{{reviewed}}/{{total}} reviewed",
+        "unknownNext": "Unknown → next",
+        "inStay": "In scope",
+        "outNext": "Out of scope → next",
+        "idTip": "External ref · {{id}}",
+        "filter": {
+          "all": "All",
+          "unreviewed": "Needs review",
+          "in_scope": "In scope",
+          "out_of_scope": "Out of scope",
+          "unknown": "Unknown"
+        },
+        "scopeTip": {
+          "in_scope": "In scope — reachable by a cyberattack",
+          "out_of_scope": "Out of scope — not cyber-caused; excluded from threat analysis",
+          "unknown": "Unknown — needs review"
+        }
       }
     }
   }

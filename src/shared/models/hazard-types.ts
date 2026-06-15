@@ -55,12 +55,16 @@ export type HazardSource = "manual" | "imported" | "graph";
 // embedded here. This preserves the single source of truth and the m:n:m structure.
 export interface HazardItem {
   id: HazardItemId;
-  label: string;
+  label: string; // short name (tables/lists)
+  description?: string; // full hazard text (free-form)
   hazardType?: HazardCategory; // ISO 12100 classification
   physicalHazardPotential?: PhysicalHazardPotential;
   combinationType: HazardCombinationType; // default DEFAULT_HAZARD_COMBINATION_TYPE
   externalRef?: string; // e.g. id in an external FMEA / hazard register
-  rationale?: string;
+  rationale?: string; // standards-language justification / notes
+  importMeta?: Record<string, string>;
+  systemRelevance?: "in_scope" | "out_of_scope" | "unknown";
+  systemRelevanceNote?: string;
   source: HazardSource;
 }
 
