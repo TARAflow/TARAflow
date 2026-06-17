@@ -16,7 +16,11 @@
       "exportAssets": "Export Assets",
       "importAssets": "Import Assets",
       "impactLabels": {
-        "highPlus": "HOCH+"
+        "low": "LOW",
+        "medium": "MEDIUM",
+        "high": "HIGH",
+        "highPlus": "HIGH+",
+        "critical": "CRITICAL"
       },
       "securityGoals": {
         "C": {
@@ -214,14 +218,20 @@
         "downstream": "Downstream",
         "securityGoals": "Schutzziele",
         "linkedElements": "DFD Links",
-        "securityGoalsText": "Sicherheitsanforderungen"
+        "securityGoalsText": "Sicherheitsanforderungen",
+        "hazards": "Gefährdungen"
       },
       "tooltips": {
+        "hazards": {
+          "endangeredBy": "Gefährdet durch",
+          "contributesTo": "Trägt bei zu"
+        },
         "safetyImpact": {
           "title": "Safety / Physischer Impact",
           "derived": "Abgeleitet (Graph)",
           "manual": "Manuell (Override)",
-          "description": "Abgeleitet aus DFD SafetyAnnotation via Graph-Traversierung. Manueller Override erfordert Rationale."
+          "description": "Abgeleitet aus DFD SafetyAnnotation via Graph-Traversierung. Manueller Override erfordert Rationale.",
+          "hazard": "Aus Gefährdung abgeleitet"
         },
         "overallImpact": {
           "title": "Business Impact",

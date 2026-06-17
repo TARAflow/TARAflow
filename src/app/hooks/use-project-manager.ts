@@ -24,6 +24,19 @@ import { useAutoSave } from "./use-auto-save";
 import { useProjectFileDownload } from "./use-project-file-download";
 import { DefaultDFDGraphBuilder } from "features/dfd";
 import { useToast } from "shared";
+import { commitAssetSync } from "../utils/commit-asset-sync";
+import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
+import { commitHazardSafety } from "../utils/commit-hazard-safety";
+
+// HazardItem safety chokepoint — runs right after commitAssetSync. Re-rates
+// CAUSE assets (physicalImpact / aggregatedImpact) from the bowtie via the
+// Safety Override. Reference-guarded: returns the same Project when no cause
+// asset changes, so it is a cheap no-op on DFD-only edits.
+function commitProjectSafety(project: Project): Project {
+  const summaries = buildAssetHazardLinks(project.hazards);
+  const assets = commitHazardSafety(project.assets, summaries) ?? null;
+  return assets === project.assets ? project : { ...project, assets };
+}
 
 // ==================== TYPES ====================
 
@@ -140,9 +153,19 @@ export function useProjectManager(): UseProjectManagerReturn {
     async (updatedProject: Project): Promise<void> => {
       const now = new Date().toISOString();
 
+      // Phase 2 — single sync chokepoint. Every feature tab writes through
+      // updateProject, so re-syncing AssetData from DFD here means no write path
+      // can strand or drift assets. Reference-guarded + idempotent → cheap no-op
+      // when DFD assets are unchanged.
+      const previous = projectsRef.current.find(
+        (p) => p.id === updatedProject.id,
+      );
+      const synced = commitAssetSync(previous, updatedProject);
+      const safe = commitProjectSafety(synced);
+
       const projectWithChanges: Project = {
-        ...updatedProject,
-        info: { ...updatedProject.info, lastModified: now },
+        ...safe,
+        info: { ...safe.info, lastModified: now },
         hasUnsavedChanges: true,
       };
 
@@ -211,7 +234,14 @@ export function useProjectManager(): UseProjectManagerReturn {
           return isValid;
         });
 
-        const projectsWithGraph = validProjects.map(ensureProjectGraph);
+        // Phase 2 — backfill: repair pre-existing store drift (stale
+        // linkedDFDElements, stranded hazard targets) on load. Idempotent: a
+        // no-op for already-consistent projects. In-memory only; persists on the
+        // next write.
+        const projectsWithGraph = validProjects
+          .map(ensureProjectGraph)
+          .map((p) => commitAssetSync(undefined, p))
+          .map(commitProjectSafety);
         setProjects(projectsWithGraph);
 
         const firstOpen = projectsWithGraph.find((p) => p.isOpen);
@@ -284,12 +314,17 @@ export function useProjectManager(): UseProjectManagerReturn {
       }
 
       const { _migrated, _fromVersion, ...rawProject } = result.data as any;
-      const project = ensureProjectGraph({
-        ...rawProject,
-        isOpen: true,
-        lastOpened: new Date().toISOString(),
-        hasUnsavedChanges: false,
-      });
+      const project = commitProjectSafety(
+        commitAssetSync(
+          undefined,
+          ensureProjectGraph({
+            ...rawProject,
+            isOpen: true,
+            lastOpened: new Date().toISOString(),
+            hasUnsavedChanges: false,
+          }),
+        ),
+      );
 
       await projectRegistry.upsert(project);
 
@@ -322,11 +357,16 @@ export function useProjectManager(): UseProjectManagerReturn {
           throw new Error("Invalid project structure");
         }
 
-        const project = ensureProjectGraph({
-          ...rawProject,
-          isOpen: true,
-          lastOpened: new Date().toISOString(),
-        });
+        const project = commitProjectSafety(
+          commitAssetSync(
+            undefined,
+            ensureProjectGraph({
+              ...rawProject,
+              isOpen: true,
+              lastOpened: new Date().toISOString(),
+            }),
+          ),
+        );
 
         await persistence.saveExistingProject(project);
         await projectRegistry.upsert(project);

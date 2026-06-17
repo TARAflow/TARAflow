@@ -45,6 +45,13 @@ export type {
   ImpactRoundingMethod,
 } from "./models/asset-impact-types";
 
+export {
+  deriveAllImpacts,
+  deriveAggregatedImpact,
+  overallImpactToBusinessLevel,
+  type PhysicalImpactLevel,
+} from "./services/asset-physical-impact-deriver";
+
 export type {
   SecurityGoal,
   SecurityGoalType,

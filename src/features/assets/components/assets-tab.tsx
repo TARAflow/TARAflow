@@ -53,6 +53,8 @@ const DEFAULT_DFD_HEIGHT = 250; // Fixed pixel height instead of ratio
 
 // ==================== ASSET TAB PROPS ====================
 
+import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
+
 export interface AssetTabProps {
   project: AssetProjectData;
   onUpdate: (updates: AssetUpdateResult) => void;
@@ -62,6 +64,8 @@ export interface AssetTabProps {
   ) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
+  /** Per-asset hazard links, projected by the app layer (workspace-layout). */
+  hazardLinks?: Record<string, AssetHazardSummary>;
 }
 
 // ==================== COMPONENT ====================
@@ -72,6 +76,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   onDFDAssetUpdate,
   onDirtyChange,
   onPhaseComplete,
+  hazardLinks,
 }) => {
   const { t } = useTranslation();
 
@@ -672,6 +677,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           <AssetTable
             assets={assetData.assets}
             configuration={assetData.configuration}
+            hazardLinks={hazardLinks}
             onEdit={handleEditAsset}
           />
         </Box>

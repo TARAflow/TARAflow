@@ -37,6 +37,47 @@ export interface DFDAssetSyncResult {
 
 // ==================== IMPACT DERIVATION HELPER ====================
 
+// ==================== LINKED-ELEMENT COMPARISON ====================
+// Structural equality for DFDElementLink lists. Array order is significant
+// (it mirrors source ordering); object key order is NOT. An absent field and an
+// explicit `undefined` compare equal, so links freshly built by the mapper
+// (which sets qualifier/notes/safety to undefined) match persisted links that
+// simply omit those keys.
+
+function safetyEqual(
+  a: DFDElementLink["safety"],
+  b: DFDElementLink["safety"],
+): boolean {
+  if (a === b) return true; // both undefined, or same reference
+  if (!a || !b) return false; // exactly one set
+  return (
+    a.relevance === b.relevance &&
+    a.impact === b.impact &&
+    a.protectionTarget === b.protectionTarget
+  );
+}
+
+function linkEqual(a: DFDElementLink, b: DFDElementLink): boolean {
+  return (
+    a.elementId === b.elementId &&
+    a.elementName === b.elementName &&
+    a.elementType === b.elementType &&
+    a.displayId === b.displayId &&
+    a.relationType === b.relationType &&
+    a.qualifier === b.qualifier &&
+    a.notes === b.notes &&
+    safetyEqual(a.safety, b.safety)
+  );
+}
+
+function linkedElementsEqual(
+  a: DFDElementLink[],
+  b: DFDElementLink[],
+): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((link, i) => linkEqual(link, b[i]));
+}
+
 /**
  * Derive physicalImpact and aggregatedImpact for an asset after sync.
  * Uses fresh linkedDFDElements for physicalImpact derivation.
@@ -140,23 +181,21 @@ export function syncFromDFD(
       // Check if anything actually changed before updating
       const newName = dfdAsset.name ?? existing.name;
       const newGroup = dfdAsset.assetGroup ?? existing.assetGroup;
-      const linkedElementsJson = JSON.stringify(linkedDFDElements);
-      const existingLinkedJson = JSON.stringify(existing.linkedDFDElements);
-
       const nameChanged = newName !== existing.name;
       const groupChanged = newGroup !== existing.assetGroup;
-      const linkedChanged = linkedElementsJson !== existingLinkedJson;
+      // Structural compare — order-insensitive on object keys (array order stays
+      // significant). Replaces a JSON.stringify diff that flagged unchanged links
+      // as changed whenever the persisted key order differed from the mapper's,
+      // producing spurious updates (and hasChanges) on every re-sync.
+      const linkedChanged = !linkedElementsEqual(
+        linkedDFDElements,
+        existing.linkedDFDElements,
+      );
 
       if (!nameChanged && !groupChanged && !linkedChanged) {
         // Nothing changed — keep existing asset reference unchanged
         continue;
       }
-
-      console.log(
-        "[ASSET-SYNC-SERVICE] updating existing",
-        dfdAsset.id,
-        dfdAsset.assetGroup,
-      );
 
       const updated: Asset = {
         ...existing,

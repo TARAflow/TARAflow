@@ -146,9 +146,12 @@ export function derivePhysicalImpact(linkedElements: DFDElementLink[]): {
 export function effectivePhysicalImpact(
   asset: Asset,
 ): PhysicalImpactLevel | undefined {
-  if (asset.physicalImpactSource === "manual" && asset.physicalImpact) {
-    // Manual override — map CRITICAL to HIGH for internal use
-    // (CRITICAL only exists on aggregatedImpact, not physicalImpact)
+  if (
+    (asset.physicalImpactSource === "manual" ||
+      asset.physicalImpactSource === "hazard") &&
+    asset.physicalImpact
+  ) {
+    // Manual or hazard-derived value is authoritative.
     return asset.physicalImpact as PhysicalImpactLevel;
   }
   return derivePhysicalImpact(asset.linkedDFDElements).level; // may be undefined
@@ -243,6 +246,26 @@ export interface PhysicalImpactDerivationResult {
  * Always recomputes aggregatedImpact (never stored manually).
  */
 export function deriveAllImpacts(asset: Asset): PhysicalImpactDerivationResult {
+  // Hazard-sourced assets are owned by commit-hazard-safety: the bowtie carries
+  // the contributes_to relevance needed for the Safety Override Rule, which is
+  // not available here. Preserve the stored values instead of re-deriving from
+  // the (legacy) SafetyAnnotation.
+  if (asset.physicalImpactSource === "hazard") {
+    const physicalLevel = asset.physicalImpact as PhysicalImpactLevel | undefined;
+    const high =
+      physicalLevel === "fatality" || physicalLevel === "irreversible_injury";
+    return {
+      physicalImpact: physicalLevel,
+      physicalImpactDerivedFrom: [
+        `[hazard] ${asset.physicalImpactRationale ?? ""}`,
+      ],
+      physicalImpactDirect: high,
+      aggregatedImpact: asset.aggregatedImpact ?? "LOW",
+      safetyOverrideActive: high,
+      highValueOverrideActive: false,
+    };
+  }
+
   // Step 1 — physical impact (undefined = no safety annotations)
   let physicalLevel: PhysicalImpactLevel | undefined;
   let derivedFrom: string[];

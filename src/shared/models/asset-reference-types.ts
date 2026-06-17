@@ -37,6 +37,14 @@ export interface AssetReference {
   physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
   isHighValueAsset?: "low" | "medium" | "high" | "critical";
   hasSafetyAnnotation?: boolean;
+  /**
+   * HazardItem chain (current safety model): true if any hazard endangers this
+   * asset (asset is a protection target). Populated by the app layer.
+   * SafetyAnnotation/hasSafetyAnnotation is the legacy/override path.
+   */
+  isHazardTarget?: boolean;
+  /** Worst endangers severity across hazards targeting this asset. */
+  hazardSeverity?: "reversible_injury" | "irreversible_injury" | "fatality";
   linkedElementIds?: string[];
   /** Active security goals (level !== "none") — populated by app layer. */
   securityGoals?: SecurityGoalReference[];
@@ -65,19 +73,26 @@ export interface AssetDataReference {
 // ==================== HELPERS ====================
 
 /**
- * Returns true if any asset has safety-relevant data:
- * physicalImpact set, hasSafetyAnnotation, or safety impactRating > 0.
+ * Returns true if any asset has safety-relevant data.
+ *
+ * Safety relevance now derives primarily from the HazardItem chain
+ * (isHazardTarget — a hazard endangers this asset). physicalImpact and the
+ * legacy hasSafetyAnnotation remain as override/legacy signals, and a rated
+ * safety impactRating still counts.
  */
 export function hasSafetyData(assets: AssetReference[]): boolean {
   return assets.some(
     (a) =>
+      a.isHazardTarget ||
       a.physicalImpact !== undefined ||
       a.hasSafetyAnnotation ||
       (a.impactRatings?.some(
-        (r) => r.criterionId === "safety" &&
-               typeof r.value === "number" &&
-               r.value > 0,
-      ) ?? false),
+        (r) =>
+          r.criterionId === "safety" &&
+          typeof r.value === "number" &&
+          r.value > 0,
+      ) ??
+        false),
   );
 }
 

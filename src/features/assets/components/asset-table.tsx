@@ -27,6 +27,8 @@ import {
   GridRenderCellParams,
 } from "@mui/x-data-grid";
 import { Box, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
+import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
+import { resolveAssetPhysicalImpact } from "app/utils/resolve-asset-physical-impact";
 import {
   Edit as EditIcon,
   Star as StarIcon,
@@ -77,6 +79,8 @@ export interface AssetTableProps {
   assets: Asset[];
   configuration: AssetConfiguration;
   a2aRelations?: AssetToAssetRelationReference[];
+  /** Per-asset hazard links (endangeredBy / contributesTo), projected by the app layer. */
+  hazardLinks?: Record<string, AssetHazardSummary>;
   onEdit: (asset: Asset) => void;
 }
 
@@ -162,7 +166,7 @@ function getBusinessImpactBg(level: number, maxLevels: number): string {
 // ==================== COMPONENT ====================
 
 export const AssetTable = React.memo<AssetTableProps>(
-  ({ assets, configuration, a2aRelations = [], onEdit }) => {
+  ({ assets, configuration, a2aRelations = [], hazardLinks, onEdit }) => {
     const { t, i18n } = useTranslation();
     const isGerman = i18n.language === "de";
 
@@ -428,11 +432,19 @@ export const AssetTable = React.memo<AssetTableProps>(
         ),
         renderCell: (params: GridRenderCellParams<Asset>) => {
           const row = params.row;
-          const impact = row.physicalImpact as string | undefined;
-          const source = row.physicalImpactSource as
-            | "derived"
-            | "manual"
-            | undefined;
+          // Resolve effective physical impact: manual > HazardItem chain > legacy annotation.
+          const resolved = resolveAssetPhysicalImpact(
+            row,
+            hazardLinks?.[row.id],
+          );
+          const impact = resolved.level as string | undefined;
+          const fromHazard = resolved.source === "hazard";
+          const source: "derived" | "manual" | undefined =
+            resolved.source === "manual"
+              ? "manual"
+              : resolved.source
+                ? "derived"
+                : undefined;
           if (!impact) return <Typography color="text.disabled">–</Typography>;
 
           const style = PHYSICAL_IMPACT_STYLES[impact] ?? {
@@ -466,11 +478,15 @@ export const AssetTable = React.memo<AssetTableProps>(
                       <DerivedIcon sx={{ fontSize: 12, color: "#60a5fa" }} />
                     )}
                     <Typography variant="caption" color="rgba(255,255,255,0.8)">
-                      {t(
-                        isManual
-                          ? "tabs.assets.tooltips.safetyImpact.manual"
-                          : "tabs.assets.tooltips.safetyImpact.derived",
-                      )}
+                      {fromHazard
+                        ? t("tabs.assets.tooltips.safetyImpact.hazard", {
+                            defaultValue: "Derived from hazard",
+                          })
+                        : t(
+                            isManual
+                              ? "tabs.assets.tooltips.safetyImpact.manual"
+                              : "tabs.assets.tooltips.safetyImpact.derived",
+                          )}
                     </Typography>
                   </Stack>
                   {row.physicalImpactRationale && (
@@ -1259,6 +1275,140 @@ export const AssetTable = React.memo<AssetTableProps>(
       // Aggregated: visible when safety or HVA is visible
       const showAggregatedColumn = showSafetyColumn || showHVAColumn;
 
+      // ── Hazards (HazardItem links — §6) ─────────────────────────────────
+      const showHazardColumn =
+        !!hazardLinks && Object.keys(hazardLinks).length > 0;
+
+      const hazardColumn: GridColDef<Asset> = {
+        field: "hazardLinks",
+        headerName: t("tabs.assets.columns.hazards", {
+          defaultValue: "Hazards",
+        }),
+        width: 120,
+        sortable: false,
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const summary = hazardLinks?.[params.row.id];
+          if (
+            !summary ||
+            (summary.endangeredBy.length === 0 &&
+              summary.contributesTo.length === 0)
+          ) {
+            return <Typography color="text.disabled">–</Typography>;
+          }
+
+          const worst = summary.worstSeverity;
+          const style = (worst ? PHYSICAL_IMPACT_STYLES[worst] : undefined) ?? {
+            bg: "#94a3b8",
+            color: "#1e293b",
+            severityKey: "",
+          };
+
+          const renderLink = (
+            l: AssetHazardSummary["endangeredBy"][number],
+          ) => (
+            <Typography
+              key={l.hazardId}
+              variant="caption"
+              display="block"
+              color="rgba(255,255,255,0.85)"
+              sx={{ whiteSpace: "normal" }}
+            >
+              {l.externalRef ? `${l.externalRef} · ` : ""}
+              {l.label}
+              {l.severity
+                ? ` — ${t(PHYSICAL_IMPACT_STYLES[l.severity]?.severityKey ?? "", { defaultValue: l.severity })}`
+                : ""}
+              {l.relevance ? ` [${l.relevance}]` : ""}
+            </Typography>
+          );
+
+          return (
+            <Tooltip
+              arrow
+              placement="top"
+              title={
+                <Box sx={{ p: 0.5, maxWidth: 280 }}>
+                  {summary.endangeredBy.length > 0 && (
+                    <>
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        display="block"
+                      >
+                        {t("tabs.assets.tooltips.hazards.endangeredBy", {
+                          defaultValue: "Endangered by",
+                        })}
+                      </Typography>
+                      {summary.endangeredBy.slice(0, 8).map(renderLink)}
+                      {summary.endangeredBy.length > 8 && (
+                        <Typography
+                          variant="caption"
+                          color="rgba(255,255,255,0.6)"
+                        >
+                          +{summary.endangeredBy.length - 8} …
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                  {summary.contributesTo.length > 0 && (
+                    <>
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        display="block"
+                        sx={{ mt: summary.endangeredBy.length ? 0.75 : 0 }}
+                      >
+                        {t("tabs.assets.tooltips.hazards.contributesTo", {
+                          defaultValue: "Contributes to",
+                        })}
+                      </Typography>
+                      {summary.contributesTo.slice(0, 8).map(renderLink)}
+                    </>
+                  )}
+                </Box>
+              }
+            >
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                {summary.endangeredBy.length > 0 && (
+                  <Chip
+                    label={summary.endangeredBy.length}
+                    size="small"
+                    sx={{
+                      backgroundColor: style.bg,
+                      color: style.color,
+                      fontWeight: 700,
+                      fontSize: "0.8rem",
+                      height: 20,
+                      cursor: "help",
+                      "& .MuiChip-label": { px: 0.6 },
+                    }}
+                  />
+                )}
+                {summary.contributesTo.length > 0 && (
+                  <Chip
+                    label={
+                      summary.contributesTo.length === 1 &&
+                      summary.contributesTo[0].relevance
+                        ? `→ ${summary.contributesTo[0].relevance}`
+                        : `→ ${summary.contributesTo.length}`
+                    }
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: "0.75rem",
+                      height: 20,
+                      cursor: "help",
+                      "& .MuiChip-label": { px: 0.6 },
+                    }}
+                  />
+                )}
+              </Stack>
+            </Tooltip>
+          );
+        },
+      };
+
       // ── Column order ───────────────────────────────────────────────────
       // ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Actions
       return [
@@ -1272,10 +1422,11 @@ export const AssetTable = React.memo<AssetTableProps>(
         ...(showHVAColumn ? [hvaColumn] : []),
         securityGoalsColumn,
         downstreamColumn,
+        ...(showHazardColumn ? [hazardColumn] : []),
         linkedElementsColumn,
         actionsColumn,
       ];
-    }, [configuration, t, isGerman, onEdit, downstreamCounts]);
+    }, [configuration, t, isGerman, onEdit, downstreamCounts, hazardLinks]);
 
     // ==================== EMPTY STATE ====================
 

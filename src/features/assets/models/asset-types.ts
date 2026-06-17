@@ -121,7 +121,15 @@ export interface Asset {
   // Severity levels from ISO 12100 / EN 50742
   // undefined = no safety annotation → "–" in table
   physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
-  physicalImpactSource?: "derived" | "manual";
+  /**
+   * Provenance of physicalImpact:
+   *   derived — from DFD SafetyAnnotation (legacy path)
+   *   manual  — analyst override (rationale required)
+   *   hazard  — from the HazardItem bowtie (endangers / inherited cause).
+   *             Owned by commit-hazard-safety; the annotation deriver must not
+   *             clobber it (see deriveAllImpacts guard).
+   */
+  physicalImpactSource?: "derived" | "manual" | "hazard";
   physicalImpactRationale?: string;
 
   /**

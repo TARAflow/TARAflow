@@ -48,6 +48,8 @@ import {
 import { addCreatedAssets } from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
+import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
+import { resolveAssetPhysicalImpact } from "app/utils/resolve-asset-physical-impact";
 
 import {
   StrideMethod,
@@ -516,6 +518,13 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Memoized asset data ───────────────────────────────────────────────────
 
+  // Hazard → asset projection (§6): endangeredBy / contributesTo per asset.
+  // Read-only; the assets feature never imports features/hazards.
+  const memoizedHazardRef = useMemo(
+    () => buildAssetHazardLinks(activeProject?.hazards ?? null),
+    [activeProject?.hazards],
+  );
+
   const memoizedAssetDataRef = useMemo((): AssetDataReference | undefined => {
     const assets = activeProject?.assets?.assets;
     if (!assets || assets.length === 0) return undefined;
@@ -525,12 +534,25 @@ export const WorkspaceLayout: React.FC = () => {
       name: a.name,
       assetGroup: a.assetGroup,
       aggregatedImpact: a.aggregatedImpact,
-      physicalImpact: a.physicalImpact,
+      // Effective physical impact: manual > HazardItem chain > legacy annotation.
+      // Resolver returns SafetyImpact ("none" guarded out); narrow to the ref type.
+      physicalImpact: resolveAssetPhysicalImpact(a, memoizedHazardRef[a.id])
+        .level as typeof a.physicalImpact,
       isHighValueAsset: a.properties?.isHighValueAsset,
       hasSafetyAnnotation:
         a.linkedDFDElements?.some(
           (el) => (el as any).safety && (el as any).safety.relevance !== "none",
         ) ?? false,
+      // HazardItem chain — the current safety model. A physical asset
+      // contributes_to a hazard that endangers a human/environment target;
+      // the target's worst endangers severity is its safety signal.
+      // SafetyAnnotation (above) is legacy / override.
+      isHazardTarget: memoizedHazardRef[a.id]?.isHazardTarget ?? false,
+      hazardSeverity: memoizedHazardRef[a.id]?.worstSeverity as
+        | "reversible_injury"
+        | "irreversible_injury"
+        | "fatality"
+        | undefined,
       linkedElementIds: a.linkedDFDElements?.map((el) => el.elementId) ?? [],
       securityGoals:
         a.securityGoals
@@ -544,7 +566,10 @@ export const WorkspaceLayout: React.FC = () => {
     }));
 
     const hasSafetyAssets = assetRefs.some(
-      (a) => a.physicalImpact !== undefined || a.hasSafetyAnnotation,
+      (a) =>
+        a.physicalImpact !== undefined ||
+        a.hasSafetyAnnotation ||
+        a.isHazardTarget,
     );
 
     return {
@@ -556,6 +581,7 @@ export const WorkspaceLayout: React.FC = () => {
   }, [
     activeProject?.assets?.assets,
     activeProject?.assets?.configuration?.impactScale,
+    memoizedHazardRef,
   ]);
 
   // ── Control instances + security drift ───────────────────────────────────
@@ -761,6 +787,7 @@ export const WorkspaceLayout: React.FC = () => {
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAssetsUpdate}
+            hazardLinks={memoizedHazardRef}
           />
         )}
 
@@ -900,4 +927,4 @@ export const WorkspaceLayout: React.FC = () => {
       </div>
     </>
   );
-};
+};;
