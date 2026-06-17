@@ -22,9 +22,8 @@ import type {
   DFDConnectionReference,
   DFDElementLink,
   SafetyAnnotationSummary,
-  A2ARelationType,
   AssetToAssetRelationReference,
-} from "../models/dfd-reference-types";
+} from "../models/dfd-asset-link-types";
 
 import type {
   DFDData,
@@ -32,11 +31,8 @@ import type {
   DFDConnection,
 } from "../../dfd/models/dfd-types";
 
-import type {
-  AssetRelation,
-  AssetToAssetRelation,
-} from "../../dfd/models/asset-relation-types";
-import type { SafetyAnnotation } from "shared";
+import type { AssetRelation } from "../../dfd/models/asset-relation-types";
+import type { A2ARelationType, SafetyAnnotation } from "shared";
 
 import {
   isSystemUsesRelation,

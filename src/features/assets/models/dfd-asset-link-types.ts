@@ -13,8 +13,6 @@
 
 import type { AssetGroup, A2ARelationType } from "shared";
 
-export type { AssetGroup, A2ARelationType };
-
 // ==================== SAFETY ANNOTATION SUMMARY ====================
 
 /**

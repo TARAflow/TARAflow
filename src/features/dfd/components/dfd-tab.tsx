@@ -8,26 +8,17 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  RefObject,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Typography, CircularProgress } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import { IconButton } from "@mui/material";
-
-import type {
-  AssetGroup,
-  DFDViewMode,
-  AssetRelation,
-} from "../models/dfd-types";
+import { AssetGroup } from "shared";
+import type { DFDViewMode, AssetRelation } from "../models/dfd-types";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ControlInstance } from "shared/models/control-instance";
 import type { SecurityDrift } from "app/hooks/use-security-drift";
 
-import type { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
-import type { ValidationResult } from "../services/dfd-validator";
 
 // Hooks
 import { useDFDEditor } from "../hooks/use-dfd-editor";

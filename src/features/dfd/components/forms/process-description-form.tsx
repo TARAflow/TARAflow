@@ -20,7 +20,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { AssetGroup, DFDElement } from "../../models/dfd-types";
+import type { AssetGroup } from "shared";
+import type { DFDElement } from "../../models/dfd-types";
 import type { ProcessProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";

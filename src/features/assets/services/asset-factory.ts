@@ -75,6 +75,8 @@ export function createEmptyAsset(
   };
 }
 
+
+
 export function createDefaultAssetData(): AssetData {
   return {
     configuration: { ...DEFAULT_ASSET_CONFIGURATION },

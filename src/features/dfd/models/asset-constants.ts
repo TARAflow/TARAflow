@@ -3,14 +3,14 @@
 
 import type { DFDElementType } from "./dfd-types";
 import type {
-  AssetGroup,
   SystemUsesQualifier,
   ServiceUsesQualifier,
   InfraAccessesQualifier,
   PhysicalContactQualifier,
-  A2ARelationType,
 } from "./asset-relation-types";
 import type {
+  AssetGroup,
+  A2ARelationType,
   DataAssetRelationType,
   FunctionAssetRelationType,
   ProcessAssetRelationType,
@@ -21,70 +21,6 @@ import type {
   HumanAssetRelationType,
   EnvironmentAssetRelationType,
 } from "shared";
-
-// ==================== UI DISPLAY CONFIGURATION ====================
-
-export const ASSET_GROUP_CONFIG: Record<
-  AssetGroup,
-  { label: string; labelDE: string; color: string; colorLight: string }
-> = {
-  // ---- Vertical hierarchy ----
-  data: {
-    label: "Data",
-    labelDE: "Daten",
-    color: "#1976D2",
-    colorLight: "#E3F2FD", // Blue
-  },
-  function: {
-    label: "Function",
-    labelDE: "Funktion",
-    color: "#00796B",
-    colorLight: "#E0F2F1", // Teal
-  },
-  system: {
-    label: "Systems",
-    labelDE: "Systeme",
-    color: "#7B1FA2",
-    colorLight: "#F3E5F5", // Purple
-  },
-  infrastructure: {
-    label: "Infra",
-    labelDE: "Infrastruktur",
-    color: "#4E342E",
-    colorLight: "#EFEBE9", // Brown
-  },
-  // ---- Orthogonal categories ----
-  process: {
-    label: "Process",
-    labelDE: "Prozesse",
-    color: "#E65100",
-    colorLight: "#FFF3E0", // Orange
-  },
-  physical: {
-    label: "Physical",
-    labelDE: "Physische Assets",
-    color: "#F57F17",
-    colorLight: "#FFF8E1", // Amber
-  },
-  service: {
-    label: "Service",
-    labelDE: "Services",
-    color: "#283593",
-    colorLight: "#E8EAF6", // Deep Indigo
-  },
-  human: {
-    label: "People",
-    labelDE: "Personen",
-    color: "#2E7D32",
-    colorLight: "#E8F5E9", // Green
-  },
-  environment: {
-    label: "Environment",
-    labelDE: "Umwelt",
-    color: "#558B2F",
-    colorLight: "#F1F8E9", // Leaf green
-  },
-};
 
 // ==================== RELATION TYPE LABELS ====================
 

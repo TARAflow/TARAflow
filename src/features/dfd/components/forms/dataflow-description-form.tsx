@@ -24,7 +24,8 @@ import {
   Typography,
 } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
-import type { AssetGroup, DFDConnection } from "../../models/dfd-types";
+import type { AssetGroup } from "shared";
+import type { DFDConnection } from "../../models/dfd-types";
 import type {
   DataFlowProperties,
   ExposureLevel,

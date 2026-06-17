@@ -13,7 +13,6 @@ import type {
   DFDStats,
 } from "../models/dfd-types";
 import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
-import type { AssetGroup, AssetRelation } from "../models/asset-relation-types";
 import {
   isSystemUsesRelation,
   isInfraAccessesRelation,
@@ -23,7 +22,11 @@ import { calculateStats } from "../services/parsers/stats-calculator";
 import type { DFDGraph } from "../models/dfd-graph-types";
 import type { AvailableAsset } from "../components/forms/asset-relation-selector";
 // Asset creation now lives in shared so DFD and Hazard mint identical ids/seeds.
-import { createAsset as createAssetSeed, generateAssetId } from "shared";
+import {
+  createAsset as createAssetSeed,
+  generateAssetId,
+  type AssetGroup,
+} from "shared";
 
 // ==================== TYPES ====================
 

@@ -9,7 +9,6 @@
 
 import type { ValueSource } from "shared";
 import type {
-  AssetGroup,
   AssetToAssetRelation,
   SystemUsesQualifier,
   InfraAccessesQualifier,
@@ -17,7 +16,7 @@ import type {
   ServiceUsesQualifier,
 } from "./asset-relation-types";
 import type { DFDElementType } from "./dfd-element-types";
-import { AnyAssetRelationType } from "shared";
+import { AssetGroup, AnyAssetRelationType } from "shared";
 
 // ==================== ASSET ENUM TYPES ====================
 

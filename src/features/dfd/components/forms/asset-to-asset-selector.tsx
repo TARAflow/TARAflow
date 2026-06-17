@@ -45,11 +45,11 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-import type { AssetGroup } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
-import type { A2ARelationType, AssetToAssetRelation } from "../../models/asset-relation-types";
+import type { AssetToAssetRelation } from "../../models/asset-relation-types";
 import { getAllowedA2ARelations } from "../../models/asset-constants";
 import { getAssetGroupColor } from "../../models/dfd-formatters";
+import { AssetGroup, A2ARelationType } from "shared";
 
 // ==================== CONSTANTS ====================
 

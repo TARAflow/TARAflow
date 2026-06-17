@@ -4,7 +4,7 @@
 // Pure graph traversal functions on Asset-to-Asset relations.
 // No state, no side effects — safe to call in useMemo.
 
-import type { AssetToAssetRelationReference } from "../models/dfd-reference-types";
+import type { AssetToAssetRelationReference } from "../models/dfd-asset-link-types";
 
 /**
  * BFS traversal: counts all downstream assets reachable from assetId.

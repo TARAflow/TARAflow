@@ -49,7 +49,7 @@ import {
 } from "@mui/icons-material";
 
 import type { Asset, AssetConfiguration, AssetToAssetRelationReference } from "../models/asset-types";
-import type { DFDElementLink } from "../models/dfd-reference-types";
+import type { DFDElementLink } from "../models/dfd-asset-link-types";
 import { getDownstreamCount } from "../utils/asset-graph-utils";
 import {
   PREDEFINED_IMPACT_CRITERIA,

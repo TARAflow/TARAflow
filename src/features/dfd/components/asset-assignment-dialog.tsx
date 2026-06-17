@@ -32,7 +32,6 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import type { AssetRelation, DFDElementType } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
-import type { AssetGroup } from "../models/asset-relation-types";
 import {
   getAllowedRelations,
   ASSET_GROUP_TAB_ORDER,
@@ -41,7 +40,7 @@ import {
   getAssetGroupText,
   getRelationTypeText,
 } from "../models/dfd-formatters";
-import { AnyAssetRelationType } from "shared";
+import { AnyAssetRelationType, AssetGroup } from "shared";
 
 // ==================== TYPES ====================
 

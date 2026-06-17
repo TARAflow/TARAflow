@@ -11,9 +11,6 @@
 //   - DrawIO label color generation (future)
 
 import type { AssetGroup } from "./asset-group-types";
-
-export type { AssetGroup };
-
 export interface AssetGroupConfig {
   label: string;
   labelDE: string;
@@ -85,7 +82,7 @@ export const ASSET_GROUP_CONFIG: Record<AssetGroup, AssetGroupConfig> = {
   environment: {
     label: "Environment",
     labelDE: "Umwelt",
-    color: "#00695C",
-    colorLight: "#E0F2F1",
+    color: "#558B2F",
+    colorLight: "#F1F8E9", // Leaf green
   },
 };

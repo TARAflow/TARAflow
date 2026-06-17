@@ -14,11 +14,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
-import type {
-  AssetGroup,
-  DFDConnection,
-  DFDElement,
-} from "../models/dfd-types";
+import { AssetGroup } from "shared";
+import type { DFDConnection, DFDElement } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";

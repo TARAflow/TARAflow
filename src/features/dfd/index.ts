@@ -41,7 +41,6 @@ export type {
 // ==================== ASSET RELATION TYPES ====================
 export type {
   // Asset group
-  AssetGroup,
   AssetRelation,
   // Data asset
   DataAssetRelation,
@@ -67,7 +66,6 @@ export type {
   IsAnRelation,
 
   // Asset-to-Asset relations (Layer 2)
-  A2ARelationType,
   AssetToAssetRelation,
 } from "./models/asset-relation-types";
 
@@ -83,7 +81,6 @@ export {
 
 // ==================== ASSET CONSTANTS ====================
 export {
-  ASSET_GROUP_CONFIG,
   ASSET_GROUP_TAB_ORDER,
   ALLOWED_DATA_RELATIONS,
   ALLOWED_PROCESS_RELATIONS,

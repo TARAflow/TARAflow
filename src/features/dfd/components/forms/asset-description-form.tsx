@@ -68,7 +68,6 @@ import {
 } from "@mui/icons-material";
 
 import type {
-  AssetGroup,
   DFDConnection,
   DFDElement,
   DFDElementType,
@@ -86,7 +85,7 @@ import {
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { ConfirmDialog } from "../shared/confirm-dialog";
 import { AssetToAssetSelector } from "./asset-to-asset-selector";
-import { AnyAssetRelationType } from "shared";
+import { AssetGroup, AnyAssetRelationType } from "shared";
 
 // ==================== TYPES ====================
 

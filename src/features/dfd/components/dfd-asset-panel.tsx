@@ -44,14 +44,11 @@ import {
   VisibilityOff as VisibilityOffIcon,
   Nature as EnvironmentIcon,
 } from "@mui/icons-material";
-import type {
-  AssetGroup,
-  DFDConnection,
-  DFDElement,
-} from "../models/dfd-types";
+import type { DFDConnection, DFDElement } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
+import { AssetGroup } from "shared";
 
 // ==================== CONSTANTS ====================
 

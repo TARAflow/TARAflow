@@ -28,12 +28,10 @@ import {
   AssetExportOptions,
   AssetImportOptions,
   AssetUpdateResult,
-  createDefaultAssetData,
-  renumberAssets,
 } from "../models/asset-types";
 import { migrateAssetConfiguration } from "../services/asset-migration";
 import { calculateOverallImpact } from "../services/asset-impact-calculator";
-
+import { createDefaultAssetData } from "../services/asset-factory";
 import { assetService } from "../services/asset-service";
 import { AssetsToolbar } from "./asset-toolbar";
 import { AssetTable } from "./asset-table";

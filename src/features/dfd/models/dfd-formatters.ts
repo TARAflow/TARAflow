@@ -4,11 +4,9 @@
 
 import type { TFunction } from "i18next";
 import type { DFDElementType, SecurityLevel, TrustLevel } from "./dfd-types";
-import type { AssetGroup } from "./asset-relation-types";
-import type { A2ARelationType } from "shared";
+import type { AssetGroup, A2ARelationType } from "shared";
 import { DFD_ELEMENT_CONFIG } from "./dfd-constants";
-import { ASSET_GROUP_CONFIG } from "./asset-constants";
-import { AnyAssetRelationType } from "shared";
+import { ASSET_GROUP_CONFIG, AnyAssetRelationType } from "shared";
 
 export type DocLanguage = "en" | "de";
 

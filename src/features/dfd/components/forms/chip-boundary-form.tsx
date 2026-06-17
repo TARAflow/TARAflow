@@ -27,7 +27,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { AssetGroup, DFDElement } from "../../models/dfd-types";
+import type { AssetGroup } from "shared";
+import type { DFDElement } from "../../models/dfd-types";
 import type {
   ChipBoundaryProperties,
   ExposureLevel,

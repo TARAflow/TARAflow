@@ -4,11 +4,8 @@
 
 import React from "react";
 import { Box, Alert, Typography } from "@mui/material";
-import type {
-  AssetGroup,
-  DFDElement,
-  DFDConnection,
-} from "../models/dfd-types";
+import type { AssetGroup } from "shared";
+import type { DFDElement, DFDConnection } from "../models/dfd-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 

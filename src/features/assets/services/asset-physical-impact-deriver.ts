@@ -13,7 +13,7 @@
 //   source:"manual"  → analyst override, rationale mandatory (IEC 62443-4-1)
 
 import type { Asset } from "../models/asset-types";
-import type { DFDElementLink } from "../models/dfd-reference-types";
+import type { DFDElementLink } from "../models/dfd-asset-link-types";
 import {
   SAFETY_IMPACT_SCALE,
   SAFETY_CRITERION_ID,

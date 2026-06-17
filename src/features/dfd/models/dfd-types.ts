@@ -22,6 +22,8 @@ import type { DFDGraph } from "./dfd-graph-types";
 import type { DFDElementType } from "./dfd-element-types";
 import type { DFDAsset } from "./dfd-asset-types";
 import {
+  AssetGroup,
+  A2ARelationType,
   AnyAssetRelationType,
   DataAssetRelationType,
   FunctionAssetRelationType,
@@ -48,7 +50,6 @@ export type {
 
 export type {
   // Core
-  AssetGroup,
   AssetRelation,
   IsAnRelation,
 
@@ -93,7 +94,6 @@ export type {
   HumanAssetInteractionRelation,
 
   // Asset-to-Asset relations (Layer 2)
-  A2ARelationType,
   AssetToAssetRelation,
 } from "./asset-relation-types";
 

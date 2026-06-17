@@ -35,8 +35,8 @@ import {
   LockOutlined as PhysicalBoundaryIcon,
 } from "@mui/icons-material";
 
+import { AssetGroup } from "shared";
 import type {
-  AssetGroup,
   DFDElement,
   DFDConnection,
   DFDElementType,

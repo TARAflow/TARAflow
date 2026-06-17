@@ -10,19 +10,14 @@ import type {
   ImpactCalculationMethod,
   ImpactRoundingMethod,
 } from "./asset-impact-types";
-import type {
-  CIANAAALevel,
-  SecurityGoal,
-  SecurityGoalType,
-} from "./asset-security-goals-types";
-import { SECURITY_GOALS } from "./asset-security-goals-types";
+import type { SecurityGoal } from "./asset-security-goals-types";
 import type {
   DFDAssetReference as AssetDFDAsset,
   DFDElementReference as AssetDFDElement,
   DFDConnectionReference as AssetDFDConnection,
   DFDElementLink,
   AssetToAssetRelationReference,
-} from "./dfd-reference-types";
+} from "./dfd-asset-link-types";
 
 // ==================== DFD INTERFACE TYPES (Asset's View) ====================
 // What Assets needs to know about DFD elements - NO direct dependency on dfd-types
@@ -334,97 +329,3 @@ export interface AssetUpdateResult {
   lastModified: string;
 }
 
-// ==================== HELPER FUNCTIONS ====================
-
-/**
- * Generate next asset ID based on existing assets
- */
-export function generateNextAssetId(existingAssets: Asset[]): string {
-  if (existingAssets.length === 0) {
-    return "A-01";
-  }
-  
-  const maxNumeric = Math.max(...existingAssets.map(a => a.numericId));
-  const nextNumeric = maxNumeric + 1;
-  
-  // Determine padding based on existing format
-  const existingId = existingAssets[0]?.id || "A-01";
-  const match = existingId.match(/A-(\d+)/);
-  const padding = match ? match[1].length : 2;
-  
-  return `A-${String(nextNumeric).padStart(padding, "0")}`;
-}
-
-/**
- * Parse asset ID to extract numeric part
- */
-export function parseAssetId(id: string): number {
-  const match = id.match(/A-(\d+)/);
-  return match ? parseInt(match[1], 10) : 0;
-}
-
-/**
- * Renumber assets sequentially
- */
-export function renumberAssets(assets: Asset[]): Asset[] {
-  return assets
-    .sort((a, b) => a.numericId - b.numericId)
-    .map((asset, index) => {
-      const newNumericId = index + 1;
-      const padding = String(assets.length).length;
-      const newId = `A-${String(newNumericId).padStart(Math.max(padding, 2), "0")}`;
-      
-      return {
-        ...asset,
-        id: newId,
-        numericId: newNumericId,
-      };
-    });
-}
-
-/**
- * Create empty asset with defaults
- */
-export function createEmptyAsset(
-  id: string,
-  configuration: AssetConfiguration,
-  assetGroup: AssetGroup = "data",
-): Asset {
-  const numericId = parseAssetId(id);
-
-  return {
-    id,
-    numericId,
-    name: "",
-    assetGroup,
-    impactRatings: configuration.impactCriteria.map((criterion) => ({
-      criterionId: criterion.id,
-      value: null,
-    })),
-    overallImpact: 0,
-    securityGoals: SECURITY_GOALS.map((sg) => ({
-      type: sg.type,
-      level: "none" as CIANAAALevel,
-      formalDescription: "",
-    })),
-    linkedDFDElements: [],
-    source: "manual",
-    syncedWithDFD: false,
-    created: new Date().toISOString(),
-    lastModified: new Date().toISOString(),
-  };
-}
-
-/**
- * Create default AssetData for new projects
- */
-export function createDefaultAssetData(): AssetData {
-  return {
-    configuration: { ...DEFAULT_ASSET_CONFIGURATION },
-    assets: [],
-    lastModified: new Date().toISOString(),
-  };
-}
-
-// NOTE: migrateAssetConfiguration → services/asset-migration.ts
-// NOTE: impactValueToLevel        → services/asset-impact-calculator.ts (getImpactLevel)

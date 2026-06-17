@@ -35,7 +35,7 @@ export type {
   DFDAssetReference,
   DFDElementReference,
   DFDConnectionReference,
-} from "./models/dfd-reference-types";
+} from "./models/dfd-asset-link-types";
 
 export type {
   ImpactRating,
@@ -73,7 +73,7 @@ export {
   generateNextAssetId,
   parseAssetId,
   renumberAssets,
-} from "./models/asset-types";
+} from "./services/asset-factory";
 
 export { createEmptyAsset } from "./services/asset-factory";
 

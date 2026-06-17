@@ -17,7 +17,8 @@ import React, { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Tab, Tabs, Typography, Tooltip } from "@mui/material";
 import { WarningAmber as WarningAmberIcon } from "@mui/icons-material";
-import type { AssetGroup, DFDConnection } from "../../models/dfd-types";
+import type { AssetGroup } from "shared";
+import type { DFDConnection } from "../../models/dfd-types";
 import { isIsAnRelation } from "../../models/asset-relation-types";
 import {
   AssetRelationSelector,

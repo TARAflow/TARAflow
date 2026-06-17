@@ -10,10 +10,9 @@
 // eager init exists). So this helper accepts null and materialises a minimal
 // empty DFD when needed — dfd.assets is the only place a created asset can live.
 
-import type { CreatedAsset } from "shared";
+import type { AssetGroup, CreatedAsset } from "shared";
 import type { DFDData } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
-import type { AssetGroup } from "../models/asset-relation-types";
 
 /**
  * Minimal valid empty DFD for the "no DFD yet" case. graph/stats/xml are

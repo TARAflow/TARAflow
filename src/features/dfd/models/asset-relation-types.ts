@@ -9,6 +9,8 @@
 //   Orthogonal:         process | physical | service | human
 
 import type {
+  AssetGroup,
+  A2ARelationType,
   DataAssetRelationType,
   FunctionAssetRelationType,
   ProcessAssetRelationType,
@@ -21,18 +23,6 @@ import type {
 } from "shared";
 import type { SafetyAnnotation } from "shared";
 
-// ==================== ASSET GROUP ====================
-
-export type AssetGroup =
-  | "data"
-  | "function"
-  | "system"
-  | "infrastructure"
-  | "process"
-  | "physical"
-  | "service"
-  | "human"
-  | "environment";
 
 /**
  * Qualifier for "uses" on System Assets.
@@ -338,72 +328,7 @@ export function hasIsAnConflict(
 
 // ==================== ASSET-TO-ASSET RELATION TYPES ====================
 
-export type A2ARelationType =
-  // Data → Data
-  | "derives_from"
-  | "aggregates"
-  | "supersedes"
-  // Function → Function
-  | "calls"
-  // Process → Process
-  | "triggers"
-  | "suspends"
-  // System → System
-  | "integrates"
-  // Infrastructure → Infrastructure
-  | "powers"
-  | "houses"
-  // Physical → Physical
-  | "mechanically_linked"
-  // Service → Service
-  | "delegates_to"
-  // Human → Human
-  | "manages"
-  | "reports_to"
-  // Data → Process / Function / System / Human
-  | "required_by"
-  | "consumed_by"
-  | "configures"
-  | "exposes"
-  // Function → Data
-  | "creates"
-  | "reads"
-  | "modifies"
-  | "deletes"
-  // Function/System → Process/System
-  | "implemented_by"
-  // Process/System → Function
-  | "implements"
-  | "invokes"
-  // Process/System/Service → Infrastructure
-  | "hosted_on"
-  | "powered_by"
-  // Process → Human / System
-  | "operated_by"
-  | "runs_on"
-  // Physical → Function / System / Infrastructure / Human
-  | "enables"
-  | "hosts"
-  | "controlled_by"
-  | "connected_to"
-  | "located_in"
-  | "endangers"
-  // Service → Function / Data / System / Human
-  | "provides"
-  | "consumes"
-  | "integrates_with"
-  | "monitors"
-  // Human → Physical / Process / Function
-  | "owns"
-  | "accesses"
-  | "responsible_for"
-  | "authorized_for"
-  // Shared / multi-category
-  | "depends_on"
-  | "affects_safety"
-  | "affects_privacy"
-  // Environment
-  | "contaminates";
+// A2ARelationType moved to shared/models/asset-group-types.ts (re-exported above).
 
 /**
  * Asset-to-Asset relation (Layer 2)
