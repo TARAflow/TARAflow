@@ -66,6 +66,12 @@ export const ValidationMessages = {
   INVALID_DATAFLOW_SOURCE: "dfdValidation.invalidDataflowSource",
   INVALID_DATAFLOW_TARGET: "dfdValidation.invalidDataflowTarget",
 
+  // ── DataStore property consistency ──────────────────────────────────────
+  DS_ACCESSMODEL_OVERRIDE_NO_RATIONALE:
+    "dfdValidation.accessModelOverrideNoRationale",
+  DS_ACCESSMODEL_MPU_COMMUNICATION_CONFLICT:
+    "dfdValidation.accessModelMpuCommunicationConflict",
+
   // Chip Boundary
   CHIPBOUNDARY_INVALID_CONNECTION:
     "dfdValidation.chipBoundaryInvalidConnection",
@@ -138,6 +144,9 @@ export const ValidationMessages = {
   DF_WRITE_REDUNDANT_FLOW_TYPE:
     "tabs.dfd.validation.df.write.redundantFlowType",
 
+  // ── Read ────────────────────────────────────────────────────────────────
+  DF_READ_REDUNDANT_FLOW_TYPE: "tabs.dfd.validation.df.read.redundantFlowType",
+
   // ── Stream ──────────────────────────────────────────────────────────────
   DF_STREAM_INVALID_FLOW_TYPE: "tabs.dfd.validation.df.stream.invalidFlowType",
   DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN:
@@ -161,6 +170,7 @@ export const ValidationMessages = {
     "tabs.dfd.validation.df.prop.pushWrongDirection",
   DF_PROP_WRITE_IS_REQRESP: "tabs.dfd.validation.df.prop.writeIsReqResp",
   DF_PROP_WRITE_NOT_DATASTORE: "tabs.dfd.validation.df.prop.writeNotDatastore",
+  DF_PROP_READ_IS_REQRESP: "tabs.dfd.validation.df.prop.readIsReqResp",
   DF_PROP_STREAM_NOT_CONTINUOUS:
     "tabs.dfd.validation.df.prop.streamNotContinuous",
   DF_PROP_STREAM_IS_REQRESP: "tabs.dfd.validation.df.prop.streamIsReqResp",
@@ -187,6 +197,14 @@ export const ValidationMessages = {
     "tabs.dfd.validation.df.label_property.electrical_pull_verb",
   DF_LP_WRITE_TARGET_NOT_DATASTORE:
     "tabs.dfd.validation.df.label_property.write_target_not_datastore",
+  DF_LP_READ_SOURCE_NOT_DATASTORE:
+    "tabs.dfd.validation.df.label_property.read_source_not_datastore",
+  DF_LP_READ_ON_COMMUNICATION_STORE:
+    "tabs.dfd.validation.df.label_property.read_on_communication_store",
+  DF_LP_READ_STORE_UNCLASSIFIED:
+    "tabs.dfd.validation.df.label_property.read_store_unclassified",
+  DF_LP_PULL_ON_DIRECT_ACCESS_STORE:
+    "tabs.dfd.validation.df.label_property.pull_on_direct_access_store",
 } as const;
 
 /**

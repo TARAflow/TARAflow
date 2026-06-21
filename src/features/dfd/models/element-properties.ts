@@ -737,7 +737,47 @@ export interface DataStoreProperties {
     // Embedded storage
     | "flash" // NOR/NAND Flash (firmware, config)
     | "eeprom" // EEPROM (calibration data, device identity)
-    | "nvram"; // Non-volatile RAM (safety parameters, last-state);
+    | "nvram" // Non-volatile RAM (safety parameters, last-state);
+    // Volatile / direct-access memory (no request/response actor)
+    | "shared_memory" // Inter-core / inter-process memory (DPRAM, mailbox, SRAM region)
+    | "mmio_register"; // Memory-mapped I/O registers
+
+  /**
+   * Access semantics of this store — does access go through a responding actor,
+   * or is it direct passive-storage access?
+   *
+   * Determines the legal dataflow verb on edges touching this store
+   * (see dataflow labeling convention):
+   *
+   * direct_access → Passive memory/storage (load/store, syscall, memory-mapped).
+   *                 No responding actor. Read uses `read`, write uses `write`.
+   * communication → Active service that answers requests (DB server, broker, cloud).
+   *                 Read uses `pull [req]/[resp]`; `read` is NOT permitted.
+   *
+   * technology is the cause / default driver (via DATASTORE_TECH_DEFAULTS);
+   * accessModel is the effect. technology is a heuristic only — it does NOT
+   * determine the verb. The analyst may override (accessModelSource = "manual")
+   * with a rationale, e.g. an in-process SQLite file tagged "database" →
+   * direct_access, or an NFS-mounted filesystem → communication.
+   *
+   * `write` is NOT gated by accessModel (persistence mutation always uses `write`);
+   * only `read` is gated, because it names an access pattern whose semantics depend
+   * on whether a responding actor exists.
+   *
+   * Threat implication:
+   *   direct_access → Memory/Storage threat family (TOCTOU, race, residual data,
+   *                   MPU bypass, readout via debug)
+   *   communication → Channel threat family (request spoofing, response tampering,
+   *                   MITM, injection)
+   *
+   * Plausibility check with accessControlMechanism:
+   *   mpu_protected + communication → accessModelRationale required
+   *     (an MPU-isolated region is direct memory, not a request/response service)
+   */
+  accessModel?: "direct_access" | "communication";
+  accessModelSource?: "derived" | "manual";
+  accessModelRationale?: string;
+
   multiTenant?: boolean;
 
   // ---- Safety annotation (convenience flags — full traceability via linked Asset) ----

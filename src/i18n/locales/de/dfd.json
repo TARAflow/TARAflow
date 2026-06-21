@@ -64,10 +64,10 @@
           "label": {
             "empty": "{{detail}} — leeres oder nicht interpretierbares Label",
             "deprecatedVerb": "{{detail}} — veraltetes Verb \"{{verb}}\", \"send\"/\"recv\" durch \"push\" oder \"pull\" ersetzen",
-            "unknownVerb": "{{detail}} — unbekanntes Verb \"{{verb}}\" (gültig: pull, push, write, stream)",
+            "unknownVerb": "{{detail}} — unbekanntes Verb \"{{verb}}\" (gültig: pull, push, write, read, stream)",
+            "synonymVerb": "{{detail}} — \"{{verb}}\" nicht erlaubt; 'pull' statt fetch/query, 'push' statt emit/notify/publish/receive verwenden",
             "missingObject": "{{detail}} — fehlendes Objekt, erwartetes Format '<verb> <objekt> [<flow-typ>]'",
             "multipleTags": "{{detail}} — pro Datenfluss ist nur ein [Flow-Type]-Tag erlaubt (gefunden: {{tags}})",
-            "synonymVerb": "{{detail}} — \"{{verb}}\" ist nicht zulässig; \"pull\" statt read/fetch/query, \"push\" statt emit/notify/publish/receive verwenden",
             "objectEmbeddedVerb": "{{detail}} — Objekt darf nicht mit einem Verb beginnen (gefunden: \"{{verb}}\"); stattdessen ein fachliches Substantiv verwenden"
           },
           "label_property": {
@@ -75,7 +75,11 @@
             "tag_frequency_mismatch": "Frequenz-Konflikt — [{{combo}}] erwartet {{expectedFrequency}}, erhalten {{gotFrequency}}",
             "tag_message_type_mismatch": "Nachrichtentyp-Konflikt — {{combo}} erwartet {{expectedMessageType}}, erhalten {{gotMessageType}}",
             "electrical_pull_verb": "Protokollkonflikt — '{{protocol}}' ist unidirektional, pull nicht anwendbar",
-            "write_target_not_datastore": "Ungültiges Schreibziel — '{{targetName}}' ist ein {{targetType}}, DataStore erwartet"
+            "write_target_not_datastore": "Ungültiges Schreibziel — '{{targetName}}' ist ein {{targetType}}, DataStore erwartet",
+            "read_source_not_datastore": "Ungültige read-Quelle — '{{sourceName}}' ist ein {{sourceType}}, erwartet wird ein DataStore",
+            "read_on_communication_store": "Ungültiges read — '{{storeName}}' ist ein aktiver Service (accessModel: communication); pull [req]/[resp] verwenden",
+            "read_store_unclassified": "'{{storeName}}' hat kein accessModel/technology — Store vor read klassifizieren",
+            "pull_on_direct_access_store": "'{{storeName}}' ist passiver Speicher (accessModel: direct_access) — read statt pull erwägen"
           },
           "pull": {
             "missingFlowType": "{{detail}} — pull erfordert einen Flow-Typ: [req], [resp] oder [req_resp]",
@@ -91,6 +95,9 @@
           },
           "write": {
             "redundantFlowType": "{{detail}} — write darf keinen Flow-Type oder keine Annotation tragen (gefunden: [{{flowType}}])"
+          },
+          "read": {
+            "redundantFlowType": "{{detail}} — read darf keinen Flow-Type und keine Annotation tragen (gefunden: [{{flowType}}])"
           },
           "stream": {
             "invalidFlowType": "{{detail}} — ungültiger Flow-Type \"{{flowType}}\" für stream (nur [stream] erlaubt, oder ganz weglassen)",
@@ -116,7 +123,8 @@
             "streamIsReqResp": "{{detail}} — stream ist unidirektional, 'Request-Response'-Richtung unerwartet für stream",
             "continuousUseStream": "{{detail}} — kontinuierlicher push/pull erkannt, 'stream' in Betracht ziehen",
             "excludeMissingRationale": "DataFlow {{detail}} — von der Bedrohungsgenerierung ausgeschlossen ohne Begründung — Ausschlussbegründung für IEC 62443-4-1-Auditpfad hinzufügen",
-            "protocolMissing": "{{detail}} — Transportprotokoll nicht angegeben; als unbekannt/höchstes Risiko für Bedrohungsanalyse behandeln"
+            "protocolMissing": "{{detail}} — Transportprotokoll nicht angegeben; als unbekannt/höchstes Risiko für Bedrohungsanalyse behandeln",
+            "readIsReqResp": "{{detail}} — read ist direkter Speicherzugriff, Richtung 'Request-Response' widerspricht der read-Semantik"
           },
           "physical": {
             "missingCoupling": "Physische Kopplung {{detail}}: couplingMode/stimulusDomain fehlt"
@@ -1626,8 +1634,32 @@
                 "blockchain": "Blockchain",
                 "flash": "Flash-Speicher",
                 "eeprom": "EEPROM",
-                "nvram": "NVRAM"
+                "nvram": "NVRAM",
+                "shared_memory": "Shared Memory (DPRAM, Mailbox, SRAM)",
+                "mmio_register": "Memory-Mapped Register (MMIO)"
               }
+            },
+            "accessModel": {
+              "label": "Zugriffsmodell",
+              "resetToDerived": "Auf abgeleitete Werte zurücksetzen",
+              "options": {
+                "direct_access": "Direkter Zugriff (passiver Speicher)",
+                "communication": "Kommunikation (aktiver Service)"
+              },
+              "tooltip": "Wie wird dieser Store zugegriffen? Direkter Zugriff = passiver Speicher ohne antwortenden Akteur (read/write). Kommunikation = aktiver Service, der auf Requests antwortet (pull). Standardmässig aus der Technologie abgeleitet; mit Begründung überschreibbar."
+            },
+            "accessModelSource": {
+              "label": "Quelle Zugriffsmodell",
+              "options": {
+                "derived": "Aus Technologie abgeleitet",
+                "manual": "Manuell gesetzt"
+              }
+            },
+            "accessModelRationale": {
+              "label": "Begründung Zugriffsmodell",
+              "required": "Begründung erforderlich (IEC-62443-4-1-Audit-Trail)",
+              "placeholder": "Warum das Zugriffsmodell vom Technologie-Default abweicht",
+              "tooltip": "Erforderlich, wenn accessModel vom Technologie-Default abweicht (IEC-62443-4-1-Audit-Trail). Beispiel: In-Process-SQLite-Datei als database getaggt → direct_access."
             },
             "multiTenant": {
               "label": "Mandantenfähig (von mehreren Kunden geteilt)"
@@ -2484,6 +2516,8 @@
     "transducerEeNotPhysical": "{{type}} an einer externen Entität muss medium=physical sein ({{name}})",
     "transducerPhysicalMediumInvalidEndpoint": "Physische Kopplung (medium=physical) ist nur zu einer externen Entität gültig, nicht zu {{targetType}} ({{name}})",
     "transducerNoPhysicalCoupling": "{{type}} «{{name}}» hat keine physische Kopplung (medium=physical zu einer externen Entität) modelliert",
+    "accessModelOverrideNoRationale": "DataStore \"{{name}}\" — accessModel '{{accessModel}}' weicht vom {{technology}}-Default ab; accessModelRationale für IEC-62443-4-1-Audit-Trail ergänzen",
+    "accessModelMpuCommunicationConflict": "DataStore \"{{name}}\" — mpu_protected ist direkter Speicher, accessModel aber 'communication'; Rationale ergänzen oder direct_access setzen",
     "elementTypes": {
       "Process": "Prozess",
       "Multiprocess": "Multiprozess",

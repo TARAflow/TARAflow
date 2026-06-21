@@ -12,10 +12,12 @@
 //              Physical:  [event]         — notification
 //              Compact:   [event_ack]     — event with expected acknowledgement (metadata only)
 //   write  → Persistence into datastore — MUST NOT carry any tag (error if present)
+//   read   → Direct read from a passive (direct_access) datastore —
+//              MUST NOT carry any tag (error if present). store → actor.
 //   stream → Continuous data flow — [stream] optional; logical annotations forbidden (error)
 //
 // Deprecated verbs → ERROR: send, recv
-// Synonym verbs    → ERROR: read, fetch, query, emit, notify, publish, receive
+// Synonym verbs    → ERROR: fetch, query, emit, notify, publish, receive
 //
 // Duplication checks (Option B — compact notations are valid standalone):
 //   D1: pull [req_resp] + pull [req]    same direction same object → WARNING
@@ -67,7 +69,7 @@ interface ParsedConnection {
 // Constants
 // ---------------------------------------------------------------------------
 
-const VALID_VERBS = ["pull", "push", "write", "stream"] as const;
+const VALID_VERBS = ["pull", "push", "write", "read", "stream"] as const;
 type ValidVerb = (typeof VALID_VERBS)[number];
 
 /** Formerly used verbs — replaced by pull/push */
@@ -78,7 +80,6 @@ const DEPRECATED_VERBS = ["send", "recv"] as const;
  * Provide a targeted hint toward the correct verb.
  */
 const SYNONYM_VERBS = [
-  "read",
   "fetch",
   "query",
   "emit",
@@ -99,8 +100,6 @@ const FORBIDDEN_OBJECT_TERMS = [
   "payload",
   "message",
   "packet",
-  "frame",
-  "buffer",
 ] as const;
 
 /**
@@ -110,13 +109,24 @@ const FORBIDDEN_OBJECT_TERMS = [
  */
 const OBJECT_FORBIDDEN_START_VERBS = [
   // valid verbs
-  "pull", "push", "write", "stream",
+  "pull",
+  "push",
+  "write",
+  "read",
+  "stream",
   // deprecated
-  "send", "recv",
+  "send",
+  "recv",
   // synonyms
-  "read", "fetch", "query", "emit", "notify", "publish", "receive",
+  "fetch",
+  "query",
+  "emit",
+  "notify",
+  "publish",
+  "receive",
   // other common embedded verbs from the convention doc
-  "get", "set",
+  "get",
+  "set",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -308,6 +318,17 @@ export function validateDataflowLabels(
         ) {
           errors.push({
             key: ValidationMessages.DF_PUSH_INVALID_FLOW_TYPE,
+            displayId,
+            elementId,
+            params: { detail, flowType: p.flowType },
+          });
+        }
+        break;
+
+      case "read":
+        if (p.flowType !== null) {
+          errors.push({
+            key: ValidationMessages.DF_READ_REDUNDANT_FLOW_TYPE,
             displayId,
             elementId,
             params: { detail, flowType: p.flowType },

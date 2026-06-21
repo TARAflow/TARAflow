@@ -646,46 +646,86 @@ export const DATASTORE_TECH_DEFAULTS: Record<
     encryptionAtRest: "tde",
     integrityProtection: "hmac",
     storedDataTypes: ["config"] as StoredDataType[],
+    accessModel: "communication", // DB server answers requests → active service
   },
   cloud: {
     encryptionAtRest: "kms",
     integrityProtection: "hmac",
     multiTenant: true,
     storedDataTypes: ["telemetry"] as StoredDataType[],
+    accessModel: "communication",
   },
   filesystem: {
     encryptionAtRest: "none",
     integrityProtection: "none",
     multiTenant: false,
+    accessModel: "direct_access", // in-process file I/O; NFS/SMB → manual override
   },
-  cache: { encryptionAtRest: "none", integrityProtection: "none" },
+  cache: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    accessModel: "direct_access", // in-process cache; Redis-over-TCP → manual override
+  },
   queue: {
     encryptionAtRest: "none",
     integrityProtection: "none",
     storedDataTypes: ["telemetry"] as StoredDataType[],
+    accessModel: "communication", // broker answers requests → active service
   },
   blockchain: {
     encryptionAtRest: "custom",
     integrityProtection: "signature",
     multiTenant: false,
+    accessModel: "communication",
   },
   // Embedded storage: defaults surface threats — insecure by default
   flash: {
     encryptionAtRest: "none",
     integrityProtection: "none",
     storedDataTypes: ["firmware"] as StoredDataType[],
+    accessModel: "direct_access",
   },
   eeprom: {
     encryptionAtRest: "none",
     integrityProtection: "none",
     storedDataTypes: ["calibration"] as StoredDataType[],
+    accessModel: "direct_access",
   },
   nvram: {
     encryptionAtRest: "none",
     integrityProtection: "none",
     storedDataTypes: ["safety_params"] as StoredDataType[],
+    accessModel: "direct_access",
+  },
+  // Volatile / direct-access memory — no responding actor → read/write, not pull.
+  // storedDataTypes intentionally unset: content is buffer-/context-specific,
+  // so the property validator's "missing property" finding should fire.
+  shared_memory: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    accessModel: "direct_access",
+  },
+  mmio_register: {
+    encryptionAtRest: "none",
+    integrityProtection: "none",
+    accessModel: "direct_access",
   },
 };
+
+/**
+ * Effective accessModel for a DataStore: explicit value wins, otherwise the
+ * technology default from DATASTORE_TECH_DEFAULTS (single source of truth — no
+ * duplicated switch). undefined = neither known → analyst must classify before
+ * read/pull gating applies.
+ */
+export function resolveDataStoreAccessModel(
+  props: Pick<DataStoreProperties, "accessModel" | "technology"> | undefined,
+): "direct_access" | "communication" | undefined {
+  if (!props) return undefined;
+  if (props.accessModel) return props.accessModel;
+  if (props.technology) return DATASTORE_TECH_DEFAULTS[props.technology]?.accessModel;
+  return undefined;
+}
 
 /** Fields driven by DataStore.technology — used for clearing on driver reset */
 export const DATASTORE_TECH_DRIVEN_FIELDS: (keyof DataStoreProperties)[] = [
@@ -693,6 +733,7 @@ export const DATASTORE_TECH_DRIVEN_FIELDS: (keyof DataStoreProperties)[] = [
   "integrityProtection",
   "multiTenant",
   "storedDataTypes",
+  "accessModel",
 ];
 
 // ==================== DATA FLOW DEFAULTS ====================

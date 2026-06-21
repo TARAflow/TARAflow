@@ -108,7 +108,7 @@ export function validateDataflowProperties(
     // C10: protocol not specified — fires regardless of whether props exist.
     // write is exempt: local datastores legitimately have no network protocol,
     // and C4 already covers the wrong-protocol case for write.
-    if (verb !== "write") {
+    if (verb !== "write" && verb !== "read") {
       const protocol =
         props && typeof props === "object" ? props.protocol : undefined;
       if (protocol === undefined) {
@@ -157,6 +157,9 @@ export function validateDataflowProperties(
         break;
       case "write":
         checkWrite(displayId, detail, conn.id, props, errors, warnings);
+        break;
+      case "read":
+        checkRead(displayId, detail, conn.id, props, errors, warnings);
         break;
       case "stream":
         checkStream(displayId, detail, conn.id, props, errors, warnings);
@@ -271,6 +274,25 @@ function checkWrite(
   if (props.direction === "requestresponse") {
     errors.push({
       key: ValidationMessages.DF_PROP_WRITE_IS_REQRESP,
+      displayId,
+      elementId,
+      params: { detail },
+    });
+  }
+}
+
+function checkRead(
+  displayId: string,
+  detail: string,
+  elementId: string,
+  props: DataFlowProperties,
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
+): void {
+  // C6r: read is store → actor (direct passive-storage access), never req/resp.
+  if (props.direction === "requestresponse") {
+    errors.push({
+      key: ValidationMessages.DF_PROP_READ_IS_REQRESP,
       displayId,
       elementId,
       params: { detail },

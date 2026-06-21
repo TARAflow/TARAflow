@@ -44,61 +44,93 @@ const PROPERTY_LABELS: Record<string, { en: string; de: string }> = {
   description: { en: "Description", de: "Beschreibung" },
   owner: { en: "Owner", de: "Verantwortlicher" },
   notes: { en: "Notes", de: "Hinweise" },
-  
+
   // Process Properties
   runsAs: { en: "Runs As", de: "Läuft als" },
   privilegeLevel: { en: "Privilege Level", de: "Privilegienstufe" },
-  authenticationRequired: { en: "Authentication Required", de: "Authentifizierung erforderlich" },
+  authenticationRequired: {
+    en: "Authentication Required",
+    de: "Authentifizierung erforderlich",
+  },
   authorizationModel: { en: "Authorization Model", de: "Autorisierungsmodell" },
   inputValidation: { en: "Input Validation", de: "Eingabevalidierung" },
   errorHandling: { en: "Error Handling", de: "Fehlerbehandlung" },
   securityControls: { en: "Security Controls", de: "Sicherheitskontrollen" },
-  exposedToInternet: { en: "Exposed to Internet", de: "Im Internet erreichbar" },
+  exposedToInternet: {
+    en: "Exposed to Internet",
+    de: "Im Internet erreichbar",
+  },
   technology: { en: "Technology", de: "Technologie" },
-  
+
   // External Entity Properties
   entityType: { en: "Entity Type", de: "Entitätstyp" },
   trustLevel: { en: "Trust Level", de: "Vertrauensstufe" },
-  authenticationMethod: { en: "Authentication Method", de: "Authentifizierungsmethode" },
-  authorizationScope: { en: "Authorization Scope", de: "Autorisierungsbereich" },
+  authenticationMethod: {
+    en: "Authentication Method",
+    de: "Authentifizierungsmethode",
+  },
+  authorizationScope: {
+    en: "Authorization Scope",
+    de: "Autorisierungsbereich",
+  },
   ownership: { en: "Ownership", de: "Eigentümerschaft" },
   threatActor: { en: "Threat Actor", de: "Bedrohungsakteur" },
   contractExists: { en: "Contract Exists", de: "Vertrag vorhanden" },
   rateLimited: { en: "Rate Limited", de: "Rate Limiting" },
-  
+
   // Data Store Properties
   storedDataTypes: { en: "Stored Data Types", de: "Gespeicherte Datentypen" },
   dataClassification: { en: "Data Classification", de: "Datenklassifizierung" },
-  encryptionAtRest: { en: "Encryption at Rest", de: "Verschlüsselung im Ruhezustand" },
+  encryptionAtRest: {
+    en: "Encryption at Rest",
+    de: "Verschlüsselung im Ruhezustand",
+  },
   accessControl: { en: "Access Control", de: "Zugriffskontrolle" },
   integrityProtection: { en: "Integrity Protection", de: "Integritätsschutz" },
   backupEnabled: { en: "Backup Enabled", de: "Backup aktiviert" },
   deletionPolicy: { en: "Deletion Policy", de: "Löschrichtlinie" },
   multiTenant: { en: "Multi-Tenant", de: "Mandantenfähig" },
-  
+  accessModel: { en: "Access Model", de: "Zugriffsmodell" },
+  accessModelRationale: {
+    en: "Access Model Rationale",
+    de: "Begründung Zugriffsmodell",
+  },
+
   // Data Flow Properties
   dataTypes: { en: "Data Types", de: "Datentypen" },
   protocol: { en: "Protocol", de: "Protokoll" },
   direction: { en: "Direction", de: "Richtung" },
   frequency: { en: "Frequency", de: "Häufigkeit" },
   volume: { en: "Volume", de: "Volumen" },
-  encryptionInTransit: { en: "Encryption in Transit", de: "Verschlüsselung bei Übertragung" },
-  endpointAuthentication: { en: "Endpoint Authentication", de: "Endpunkt-Authentifizierung" },
-  
+  encryptionInTransit: {
+    en: "Encryption in Transit",
+    de: "Verschlüsselung bei Übertragung",
+  },
+  endpointAuthentication: {
+    en: "Endpoint Authentication",
+    de: "Endpunkt-Authentifizierung",
+  },
+
   // Interface Properties
   type: { en: "Interface Type", de: "Schnittstellentyp" },
   connectionSpeed: { en: "Connection Speed", de: "Verbindungsgeschwindigkeit" },
   isShieldedCable: { en: "Shielded Cable", de: "Abgeschirmtes Kabel" },
   location: { en: "Location", de: "Standort" },
-  
+
   // Trust Boundary Properties
   boundaryId: { en: "Boundary ID", de: "Grenz-ID" },
   boundaryType: { en: "Boundary Type", de: "Grenztyp" },
-  securityAssumptions: { en: "Security Assumptions", de: "Sicherheitsannahmen" },
+  securityAssumptions: {
+    en: "Security Assumptions",
+    de: "Sicherheitsannahmen",
+  },
   boundaryControls: { en: "Boundary Controls", de: "Grenzkontrollen" },
   monitoringEnabled: { en: "Monitoring Enabled", de: "Überwachung aktiviert" },
-  complianceRelevance: { en: "Compliance Relevance", de: "Compliance-Relevanz" },
-  
+  complianceRelevance: {
+    en: "Compliance Relevance",
+    de: "Compliance-Relevanz",
+  },
+
   // Asset Relations
   linkedAssets: { en: "Linked Assets", de: "Verknüpfte Assets" },
 };
@@ -299,7 +331,13 @@ const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
   },
   DataStore: {
     segment: "datastore",
-    context: ["technology", "dataClassification", "storedDataTypes"],
+    context: [
+      "technology",
+      "accessModel",
+      "accessModelRationale",
+      "dataClassification",
+      "storedDataTypes",
+    ],
     security: [
       "encryptionAtRest",
       "accessControlMechanism",

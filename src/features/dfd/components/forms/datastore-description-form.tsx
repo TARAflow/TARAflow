@@ -37,6 +37,7 @@ import {
   DATASTORE_TECH_DRIVEN_FIELDS,
   applyCascadeDefaults,
   buildClearPatch,
+  resolveDataStoreAccessModel,
 } from "../../models/element-property-defaults";
 
 interface DataStoreFormProps {
@@ -96,6 +97,23 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
     });
   };
 
+  // ── accessModel: derived-from-technology with manual override ─────────────
+  const handleAccessModelChange = (value: string) => {
+    const techDefault = props.technology
+      ? DATASTORE_TECH_DEFAULTS[props.technology]?.accessModel
+      : undefined;
+    const isOverride = !!value && value !== techDefault;
+    onChange({
+      properties: {
+        ...props,
+        accessModel: (value || undefined) as DataStoreProperties["accessModel"],
+        accessModelSource: isOverride ? "manual" : "derived",
+        // clear stale rationale when reverting to the technology default
+        ...(isOverride ? {} : { accessModelRationale: undefined }),
+      } as DataStoreProperties,
+    });
+  };
+
   // ── Derived warning states ───────────────────────────────────────────────
 
   // dataClassification SECRET/RESTRICTED without encryption → Information Disclosure risk
@@ -122,6 +140,21 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
     (props.containsSafetyRelevantData === true &&
       props.integrityProtection == null) ||
     props.integrityProtection === "none";
+
+  const accessModelTechDefault = props.technology
+    ? DATASTORE_TECH_DEFAULTS[props.technology]?.accessModel
+    : undefined;
+  const effectiveAccessModel = resolveDataStoreAccessModel(props);
+  const accessModelIsManual = props.accessModelSource === "manual";
+  const accessModelDeviates =
+    !!props.accessModel &&
+    !!accessModelTechDefault &&
+    props.accessModel !== accessModelTechDefault;
+  const accessModelMpuConflict =
+    props.accessControlMechanism === "mpu_protected" &&
+    effectiveAccessModel === "communication";
+  const showAccessModelRationale =
+    accessModelDeviates || accessModelMpuConflict;
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -184,9 +217,129 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
                   )}
                 </MenuItem>
               ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — Direct-access memory —
+              </MenuItem>
+              {(["shared_memory", "mmio_register"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.datastore.fields.technology.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
+
+        {/* Access Model (cause: technology → effect: access semantics) */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.datastore.fields.accessModel.label",
+                { defaultValue: "Access Model" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.accessModel ?? ""}
+              onChange={(e) => handleAccessModelChange(e.target.value)}
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.accessModel.label",
+                { defaultValue: "Access Model" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(["direct_access", "communication"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.datastore.fields.accessModel.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+            {props.accessModel && (
+              <Typography
+                variant="caption"
+                sx={{ mt: 0.5, color: "text.secondary" }}
+              >
+                {accessModelIsManual
+                  ? t(
+                      "tabs.dfd.element_description.datastore.fields.accessModelSource.options.manual",
+                      { defaultValue: "Manually set" },
+                    )
+                  : t(
+                      "tabs.dfd.element_description.datastore.fields.accessModelSource.options.derived",
+                      { defaultValue: "Derived from technology" },
+                    )}
+                {accessModelIsManual && accessModelTechDefault && (
+                  <>
+                    {" · "}
+                    <Box
+                      component="span"
+                      onClick={() =>
+                        handleAccessModelChange(accessModelTechDefault)
+                      }
+                      sx={{ cursor: "pointer", textDecoration: "underline" }}
+                    >
+                      {t(
+                        "tabs.dfd.element_description.datastore.fields.accessModel.resetToDerived",
+                        { defaultValue: "reset to derived" },
+                      )}
+                    </Box>
+                  </>
+                )}
+              </Typography>
+            )}
+          </FormControl>
+        </Grid>
+
+        {/* Access Model Rationale — required on override or mpu/communication conflict */}
+        {showAccessModelRationale && (
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              minRows={2}
+              value={props.accessModelRationale ?? ""}
+              onChange={(e) =>
+                form.handlePropertyChange(
+                  "accessModelRationale",
+                  e.target.value,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.datastore.fields.accessModelRationale.label",
+                { defaultValue: "Access Model Rationale" },
+              )}
+              placeholder={t(
+                "tabs.dfd.element_description.datastore.fields.accessModelRationale.placeholder",
+                {
+                  defaultValue:
+                    "Why the access model deviates from the technology default",
+                },
+              )}
+              error={!props.accessModelRationale?.trim()}
+              helperText={
+                !props.accessModelRationale?.trim()
+                  ? t(
+                      "tabs.dfd.element_description.datastore.fields.accessModelRationale.required",
+                      {
+                        defaultValue:
+                          "Rationale required (IEC 62443-4-1 audit trail)",
+                      },
+                    )
+                  : undefined
+              }
+            />
+          </Grid>
+        )}
 
         {/* Data Classification */}
         <Grid item xs={12} sm={6}>
@@ -738,7 +891,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};
+};;;;;
 
 export const DataStoreDescriptionForm = React.memo<DataStoreFormProps>(
   ({ element, onChange, availableAssets = [], onCreateAsset }) => (

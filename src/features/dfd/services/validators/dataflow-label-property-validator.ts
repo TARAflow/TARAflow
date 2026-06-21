@@ -25,7 +25,11 @@ import type {
   DFDElement,
   ValidationFinding,
 } from "../../models/dfd-types";
-import type { DataFlowProperties } from "../../models/element-properties";
+import type {
+  DataFlowProperties,
+  DataStoreProperties,
+} from "../../models/element-properties";
+import { resolveDataStoreAccessModel } from "../../models/element-property-defaults";
 import { PROTOCOL_META } from "../../models/protocol-registry";
 import { ValidationMessages } from "./validator-utils";
 
@@ -45,14 +49,15 @@ interface ParsedLabel {
 // Constants
 // ---------------------------------------------------------------------------
 
-const VALID_VERBS = ["pull", "push", "write", "stream"] as const;
+const VALID_VERBS = ["pull", "push", "write", "read", "stream"] as const;
 type ValidVerb = (typeof VALID_VERBS)[number];
 
 /** LP-1: verb → required direction value */
 const VERB_DIRECTION_REQUIRED: Partial<Record<ValidVerb, string>> = {
-  pull:   "requestresponse",
-  push:   "unidirectional",
-  write:  "unidirectional",
+  pull: "requestresponse",
+  push: "unidirectional",
+  write: "unidirectional",
+  read: "unidirectional",
   stream: "unidirectional",
 };
 
@@ -176,6 +181,9 @@ export function validateDataflowLabelProperties(
     runLP3(verb, tag, props, displayId, elementId, warnings);
     runLP4(verb, props, displayId, elementId, warnings);
     runLP5(verb, conn, elementById, displayId, elementId, errors);
+    runLP6(verb, conn, elementById, displayId, elementId, errors);
+    runLP7(verb, conn, elementById, displayId, elementId, errors, warnings);
+    runLP8(verb, conn, elementById, displayId, elementId, warnings);
   }
 }
 
@@ -327,5 +335,103 @@ function runLP5(
       // targetType resolved via dfdValidation.elementTypes.* by the panel.
       params: { targetName: target.name || target.id, targetType: target.type },
     });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// LP-6: read verb → source must be DataStore
+// ---------------------------------------------------------------------------
+// read is store → actor (direct passive-storage access). Mirror of LP-5.
+// Severity: ERROR.
+
+function runLP6(
+  verb: ValidVerb,
+  conn: DFDConnection,
+  elementById: Map<string, DFDElement>,
+  displayId: string,
+  elementId: string,
+  errors: ValidationFinding[],
+): void {
+  if (verb !== "read") return;
+  const source = elementById.get(conn.from);
+  if (!source) return;
+  if (source.type !== "DataStore") {
+    errors.push({
+      key: ValidationMessages.DF_LP_READ_SOURCE_NOT_DATASTORE,
+      displayId,
+      elementId,
+      params: { sourceName: source.name || source.id, sourceType: source.type },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// LP-7: read verb → store accessModel must be direct_access
+// ---------------------------------------------------------------------------
+// communication store → read is wrong (use pull). Unclassified store → refine.
+// Severity: ERROR (communication) / WARNING (unclassified).
+
+function runLP7(
+  verb: ValidVerb,
+  conn: DFDConnection,
+  elementById: Map<string, DFDElement>,
+  displayId: string,
+  elementId: string,
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
+): void {
+  if (verb !== "read") return;
+  const source = elementById.get(conn.from);
+  if (!source || source.type !== "DataStore") return; // LP-6 handles non-store
+  const model = resolveDataStoreAccessModel(
+    source.properties as DataStoreProperties,
+  );
+  if (model === "communication") {
+    errors.push({
+      key: ValidationMessages.DF_LP_READ_ON_COMMUNICATION_STORE,
+      displayId,
+      elementId,
+      params: { storeName: source.name || source.id },
+    });
+  } else if (model === undefined) {
+    warnings.push({
+      key: ValidationMessages.DF_LP_READ_STORE_UNCLASSIFIED,
+      displayId,
+      elementId,
+      params: { storeName: source.name || source.id },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// LP-8: pull verb on a passive (direct_access) store → suggest read
+// ---------------------------------------------------------------------------
+// Checks both endpoints (store side of a pull is direction-dependent).
+// Severity: WARNING (nudge).
+
+function runLP8(
+  verb: ValidVerb,
+  conn: DFDConnection,
+  elementById: Map<string, DFDElement>,
+  displayId: string,
+  elementId: string,
+  warnings: ValidationFinding[],
+): void {
+  if (verb !== "pull") return;
+  for (const endpointId of [conn.from, conn.to]) {
+    const el = elementById.get(endpointId);
+    if (!el || el.type !== "DataStore") continue;
+    const model = resolveDataStoreAccessModel(
+      el.properties as DataStoreProperties,
+    );
+    if (model === "direct_access") {
+      warnings.push({
+        key: ValidationMessages.DF_LP_PULL_ON_DIRECT_ACCESS_STORE,
+        displayId,
+        elementId,
+        params: { storeName: el.name || el.id },
+      });
+      return; // one finding per flow
+    }
   }
 }

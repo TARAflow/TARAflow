@@ -64,10 +64,10 @@
           "label": {
             "empty": "{{detail}} — empty or unparseable label",
             "deprecatedVerb": "{{detail}} — deprecated verb \"{{verb}}\", replace 'send'/'recv' with 'push' or 'pull'",
-            "unknownVerb": "{{detail}} — unknown verb \"{{verb}}\" (valid: pull, push, write, stream)",
+            "unknownVerb": "{{detail}} — unknown verb \"{{verb}}\" (valid: pull, push, write, read, stream)",
+            "synonymVerb": "{{detail}} — \"{{verb}}\" not permitted; use 'pull' instead of fetch/query, 'push' instead of emit/notify/publish/receive",
             "missingObject": "{{detail}} — missing object, expected format '<verb> <object> [<flow-type>]'",
             "multipleTags": "{{detail}} — only one [flow-type] tag allowed per flow (found: {{tags}})",
-            "synonymVerb": "{{detail}} — \"{{verb}}\" not permitted; use 'pull' instead of read/fetch/query, 'push' instead of emit/notify/publish/receive",
             "objectEmbeddedVerb": "{{detail}} — object must not start with a verb (found: \"{{verb}}\"); use a domain-oriented noun instead"
           },
           "label_property": {
@@ -75,7 +75,11 @@
             "tag_frequency_mismatch": "Frequency mismatch — [{{combo}}] expects {{expectedFrequency}}, got {{gotFrequency}}",
             "tag_message_type_mismatch": "Message type mismatch — {{combo}} expects {{expectedMessageType}}, got {{gotMessageType}}",
             "electrical_pull_verb": "Protocol conflict — '{{protocol}}' is unidirectional, pull is not applicable",
-            "write_target_not_datastore": "Invalid write target — '{{targetName}}' is a {{targetType}}, expected DataStore"
+            "write_target_not_datastore": "Invalid write target — '{{targetName}}' is a {{targetType}}, expected DataStore",
+            "read_source_not_datastore": "Invalid read source — '{{sourceName}}' is a {{sourceType}}, expected DataStore",
+            "read_on_communication_store": "Invalid read — '{{storeName}}' is an active service (accessModel: communication); use pull [req]/[resp]",
+            "read_store_unclassified": "'{{storeName}}' has no accessModel/technology — classify the store before using read",
+            "pull_on_direct_access_store": "'{{storeName}}' is passive storage (accessModel: direct_access) — consider read instead of pull"
           },
           "pull": {
             "missingFlowType": "{{detail}} — pull requires a flow-type: [req], [resp], or [req_resp]",
@@ -91,6 +95,9 @@
           },
           "write": {
             "redundantFlowType": "{{detail}} — write must not carry a flow-type or annotation (found: [{{flowType}}])"
+          },
+          "read": {
+            "redundantFlowType": "{{detail}} — read must not carry a flow-type or annotation (found: [{{flowType}}])"
           },
           "stream": {
             "invalidFlowType": "{{detail}} — invalid flow-type \"{{flowType}}\" for stream (only [stream] is allowed, or omit entirely)",
@@ -116,7 +123,8 @@
             "streamIsReqResp": "{{detail}} — stream is unidirectional, 'Request-Response' direction is unexpected for stream",
             "continuousUseStream": "{{detail}} — continuous push/pull detected, consider using 'stream' instead",
             "excludeMissingRationale": "DataFlow {{detail}} — excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
-            "protocolMissing": "{{detail}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
+            "protocolMissing": "{{detail}} — transport protocol not specified; treat as unknown/highest risk for threat analysis",
+            "readIsReqResp": "{{detail}} — read is direct storage access, 'Request-Response' direction contradicts read semantics"
           },
           "physical": {
             "missingCoupling": "physical coupling {{detail}}: couplingMode/stimulusDomain missing"
@@ -1621,8 +1629,32 @@
                 "blockchain": "Blockchain",
                 "flash": "Flash Memory",
                 "eeprom": "EEPROM",
-                "nvram": "NVRAM"
+                "nvram": "NVRAM",
+                "shared_memory": "Shared Memory (DPRAM, mailbox, SRAM)",
+                "mmio_register": "Memory-Mapped Registers (MMIO)"
               }
+            },
+            "accessModel": {
+              "label": "Access Model",
+              "resetToDerived": "Reset to derived value",
+              "options": {
+                "direct_access": "Direct Access (passive memory/storage)",
+                "communication": "Communication (active service)"
+              },
+              "tooltip": "How is this store accessed? Direct Access = passive memory/storage with no responding actor (read/write). Communication = an active service that answers requests (pull). Derived from Technology by default; override with a rationale."
+            },
+            "accessModelSource": {
+              "label": "Access Model Source",
+              "options": {
+                "derived": "Derived from technology",
+                "manual": "Manually set"
+              }
+            },
+            "accessModelRationale": {
+              "label": "Access Model Rationale",
+              "required": "Rationale required (IEC 62443-4-1 audit trail)",
+              "placeholder": "Why the access model deviates from the technology default",
+              "tooltip": "Required when accessModel deviates from the technology default (IEC 62443-4-1 audit trail). Example: in-process SQLite file tagged as database → direct_access."
             },
             "multiTenant": {
               "label": "Multi-tenant (Shared by multiple customers)"
@@ -2497,6 +2529,8 @@
     "transducerEeNotPhysical": "{{type}} at an ExternalEntity must use medium=physical ({{name}})",
     "transducerPhysicalMediumInvalidEndpoint": "physical coupling (medium=physical) is only valid towards an ExternalEntity, not {{targetType}} ({{name}})",
     "transducerNoPhysicalCoupling": "{{type}} '{{name}}' has no physical coupling (medium=physical to an ExternalEntity) modelled",
+    "accessModelOverrideNoRationale": "DataStore \"{{name}}\" — accessModel '{{accessModel}}' deviates from the {{technology}} default; add an accessModelRationale for IEC 62443-4-1 audit trail",
+    "accessModelMpuCommunicationConflict": "DataStore \"{{name}}\" — mpu_protected is direct memory but accessModel is 'communication'; add a rationale or set direct_access",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",

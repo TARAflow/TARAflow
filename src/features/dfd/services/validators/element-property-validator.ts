@@ -27,7 +27,11 @@ import type {
   SensorProperties,
   ActuatorProperties,
 } from "../../models/transducer-properties";
-import { isRunsAsApplicable } from "../../models/element-property-defaults";
+import {
+  isRunsAsApplicable,
+  resolveDataStoreAccessModel,
+  DATASTORE_TECH_DEFAULTS,
+} from "../../models/element-property-defaults";
 import { ValidationMessages, type ValidationFinding } from "./validator-utils";
 
 // ---------------------------------------------------------------------------
@@ -183,6 +187,46 @@ function validateDataStoreProperties(
   }
   if (!props.storedDataTypes || props.storedDataTypes.length === 0) {
     warnings.push(missingProp(element, "storedDataTypes"));
+  }
+
+  // accessModel deviating from the technology default needs a rationale
+  // (IEC 62443-4-1 traceability — mirrors locationRationale for exposureLevel).
+  // Fires on the effective contradiction regardless of how Source got set, so
+  // it is robust even if a form omits accessModelSource.
+  if (props.technology && props.accessModel) {
+    const techDefault = DATASTORE_TECH_DEFAULTS[props.technology]?.accessModel;
+    if (
+      techDefault &&
+      props.accessModel !== techDefault &&
+      !props.accessModelRationale?.trim()
+    ) {
+      warnings.push({
+        key: ValidationMessages.DS_ACCESSMODEL_OVERRIDE_NO_RATIONALE,
+        displayId: element.displayId ?? element.name,
+        elementId: element.id,
+        params: {
+          name: element.name,
+          accessModel: props.accessModel,
+          technology: props.technology,
+        },
+      });
+    }
+  }
+
+  // mpu_protected is direct memory by nature — declaring it "communication" is
+  // contradictory unless explicitly justified. Catches the hardware-signal
+  // conflict even when technology is unset (resolve falls back to the default).
+  if (
+    props.accessControlMechanism === "mpu_protected" &&
+    resolveDataStoreAccessModel(props) === "communication" &&
+    !props.accessModelRationale?.trim()
+  ) {
+    warnings.push({
+      key: ValidationMessages.DS_ACCESSMODEL_MPU_COMMUNICATION_CONFLICT,
+      displayId: element.displayId ?? element.name,
+      elementId: element.id,
+      params: { name: element.name },
+    });
   }
 }
 

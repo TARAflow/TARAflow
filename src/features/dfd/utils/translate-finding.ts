@@ -86,6 +86,7 @@ const PARAM_RESOLVERS: Record<string, (t: TFn, value: string) => string> = {
   type: elementTypeLabel,
   elementType: elementTypeLabel,
   targetType: elementTypeLabel,
+  sourceType: elementTypeLabel,
   interfaceType: elementTypeLabel,
   connectorType: elementTypeLabel,
   expectedFrequency: frequencyOptionLabel,
