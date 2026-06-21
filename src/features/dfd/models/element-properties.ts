@@ -7,205 +7,25 @@
 //
 // NO dependencies on dfd-types to avoid circular imports.
 //
-// Exposure Levels for crossing dataflows and interfaces:
-// ------------------------------------------------------
-// EL0 (Internal): Fully trusted, isolated environment with no external access
-// EL1 (Physical): Access only through direct physical interaction with interfaces (e.g., USB, RJ45, buttons)
-// EL2 (Local): Access via local OT/production network (e.g., fieldbus, SCADA systems)
-// EL3 (Adjacent): Access through extended factory/enterprise network (OT–IT boundary)
-// EL4 (Public): Access via untrusted external networks (e.g., Internet, remote connections
-export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
 
-// ==================== PHYSICAL EXPOSURE LEVELS ====================
-//
-// PEL — Physical Exposure Level.
-// Describes how physically reachable an interface or boundary is.
-// Direction is aligned with network ExposureLevel: higher = more exposed.
-// Designed to be combined with PhysicalBoundary.accessibility which captures
-// the environmental context (public / controlled / guarded / sealed).
-//
-// PEL0 (Inaccessible): No access without physical destruction — potted, welded,
-//                       chip-decap required. No practical attack surface.
-// PEL1 (Deep Internal): Multiple physical barriers to overcome — e.g. JTAG behind
-//                       two nested enclosures, or inside a sealed sub-module.
-// PEL2 (Internal):      One physical barrier to bypass — open enclosure, unlock
-//                       cabinet, remove screws. Tool or key access required.
-// PEL3 (Externally Protected): Accessible from outside but with a barrier —
-//                       locked panel, service door, badge-controlled port.
-// PEL4 (Directly Exposed): No barrier — touchscreen, outdoor port, public USB.
-//                       Highest physical attack surface. Combine with
-//                       PB.accessibility="public" for full threat context.
-//
-// Example — Ticket machine:
-//   Touchscreen: PEL4, PB.accessibility="public"  → maximum exposure
-//   USB-Service: PEL2, PB.accessibility="public"  → one barrier, public context
-//   JTAG/SWD:    PEL1, PB.accessibility="public"  → deep internal, public context
-//
-export type PhysicalExposureLevel = "PEL0" | "PEL1" | "PEL2" | "PEL3" | "PEL4";
+import type {
+  ExposureLevel,
+  PhysicalExposureLevel,
+  PhysicalMobility,
+  PhysicalMonitoringType,
+  StoredDataType,
+  InterfaceLocation,
+  BoundaryControlType,
+  SecurityControlRecord,
+} from "./element-shared-types";
 
-// PhysicalMobility — can the device be removed from its security environment?
-// This is a qualitatively different threat dimension from PEL or accessibility.
-// Mobility determines whether an attacker can control the attack environment:
-//
-// fixed         → Attack must happen on-site, under time pressure, limited tools.
-//                 Offline lab attacks, device substitution: not applicable.
-// removable     → Device can be extracted (DIN-Rail module, plug-in card) with some
-//                 effort. Enables Depot Attack, Maintenance Abuse, Hardware Swap.
-// portable      → Device can be taken home by attacker. Enables full Lab analysis:
-//                 Evil-Maid, Firmware Implant, Side-Channel, Chip-Off, Fault Injection,
-//                 Device Substitution. Especially critical if safetyRelevant=true
-//                 (e.g. calibration device → rogue calibration data injection).
-// vehicle_mounted → Device moves with a vehicle. Mobile but not easily hand-carried.
-//                 Enables: vehicle theft scenario, depot attack during maintenance.
-//
-// Key insight: a fixed PLC and a portable calibration device may share identical
-// PEL/accessibility/tamper values but have completely different threat landscapes.
-export type PhysicalMobility = "fixed" | "removable" | "portable" | "vehicle_mounted";
-
-// ==================== PHYSICAL MONITORING TYPE ====================
-//
-// Structured vocabulary for physical monitoring mechanisms on PhysicalBoundary.
-//
-// Threat-reduction mapping (attack feasibility scoring):
-//   none             -> No detection — attacker operates unobserved
-//   camera           -> Post-hoc evidence only — does not prevent access
-//   alarm            -> Real-time alert on breach — reduces dwell time
-//   soc              -> Alarm routed to SOC — active response capability
-//   guard_patrol     -> Periodic human presence — detection window varies
-//   tamper_monitoring -> Electronic tamper detection (mesh, switch, sensor)
-//                        often paired with zeroize response on ChipBoundary
-export type PhysicalMonitoringType =
-  | "none"
-  | "camera"            // CCTV / IP camera — evidence, not prevention
-  | "alarm"             // Motion / door alarm — real-time alert, no active response
-  | "soc"               // Alarm routed to Security Operations Centre — active response
-  | "guard_patrol"      // Periodic manned patrol — detection gap depends on interval
-  | "tamper_monitoring"; // Electronic tamper detection (switch, mesh, voltage sensor)
-
-// ==================== STORED DATA TYPES ====================
-//
-// Controlled vocabulary for DataStore.storedDataTypes[].
-// Represents threat classes, not storage technologies — kept deliberately
-// stable so new domains (automotive, medical, rail) extend via custom
-// entries rather than breaking existing threat templates.
-//
-// Threat implications:
-//   credentials / keys_certificates → Spoofing, Elevation of Privilege
-//   firmware                        → Tampering (Secure Boot bypass)
-//   pii                             → Information Disclosure (GDPR)
-//   safety_params                   → Tampering + DoS (SIL-relevant)
-//   calibration                     → Tampering (process accuracy)
-//   config                          → Tampering (system behaviour)
-//   audit_logs                      → Repudiation (log deletion/manipulation)
-//   telemetry                       → Information Disclosure
-//   custom                          → Analyst must describe in notes
-
-export type StoredDataType =
-  | "credentials"       // Passwords, tokens, session keys, API keys
-  | "keys_certificates" // Cryptographic keys, X.509 certificates, PKI material
-  | "firmware"          // Firmware images, bootloader, software update packages
-  | "pii"               // Personal Identifiable Information (GDPR-relevant)
-  | "safety_params"     // Safety-relevant parameters (SIL, emergency stop config)
-  | "calibration"       // Sensor calibration data, process parameters
-  | "config"            // System or application configuration
-  | "audit_logs"        // Audit trail, event logs, diagnostic data
-  | "telemetry"         // Operational metrics, aggregated sensor data
-  | "custom";           // Domain-specific — describe in notes
-
-// ==================== INTERFACE LOCATION ====================
-//
-// Physical location of a connector/port on a device boundary.
-// Mirrors DataFlow.location (the path) — Interface.location is the point.
-// Used for ExposureLevel derivation and physical attack surface assessment.
-//
-// Semantically distinct from:
-//   DataFlow.location   — the medium/path the flow traverses
-//   exposureLevel       — the resulting attack surface (consequence)
-//
-// location is the cause; exposureLevel is the effect.
-
-export type InterfaceLocation =
-  | "on_chip"          // Internal chip pad / register — EL0 (debug interface only)
-  | "on_board"         // PCB-mounted connector, same board — EL0/EL1
-  | "in_enclosure"     // Port inside sealed enclosure — EL1 (requires disassembly)
-  | "external_panel"   // Panel-mounted port on device exterior — EL1
-  | "field_accessible" // Field-accessible connector (M12, DIN, terminal) — EL1/EL2
-  | "network_port"     // Standard network port (RJ45, SFP) — EL2/EL3
-  | "wireless"         // Wireless interface (antenna, built-in radio) — EL3
-  | "internet_facing"  // Internet-exposed interface — EL4
-  | "custom";          // Non-standard location — describe in notes
-
-// ==================== BOUNDARY CONTROL TYPES ====================
-//
-// Structured vocabulary for TrustBoundary security controls.
-// Intentionally kept at a stable semantic core — OT-specific or
-// vendor-specific controls go in customBoundaryControls?: string.
-//
-// Mitigation mapping:
-//   firewall / ids_ips          → Network-level threat reduction
-//   data_diode                  → Unidirectional enforcement (IEC 62443 SL3+)
-//   vpn_gateway                 → Encrypted tunnel across boundary
-//   dmz                         → Demilitarised zone separation
-//   authentication_gateway      → Identity enforcement at boundary
-//   unidirectional_gateway      → Hardware-enforced one-way data flow
-//   network_segmentation        → VLAN / logical separation
-//   jump_host                   → Bastion host for remote access control
-//   custom                      → Describe in customBoundaryControls
-
-export type BoundaryControlType =
-  | "firewall"               // Stateful packet inspection firewall
-  | "ids_ips"                // Intrusion Detection / Prevention System
-  | "data_diode"             // Hardware data diode — unidirectional enforcement
-  | "vpn_gateway"            // VPN concentrator / encrypted tunnel endpoint
-  | "dmz"                    // Demilitarised zone (dual-firewall architecture)
-  | "authentication_gateway" // Identity / auth enforcement at boundary
-  | "unidirectional_gateway" // Software-enforced one-way gateway (e.g. Waterfall)
-  | "network_segmentation"   // VLAN, microsegmentation, ACL-based separation
-  | "jump_host"              // Bastion / jump server for admin access
-  | "custom";                // Vendor/domain-specific — use customBoundaryControls
-
-// ==================== SECURITY CONTROL RECORD ====================
- 
-/**
- * Audit record for a security control intentionally set on a DFD element.
- *
- * Populated when:
- *   - Analyst clicks "Apply" in DFDNotificationsPanel (setBy: "apply_suggestion")
- *   - Analyst documents an existing control manually (setBy: "analyst")
- *
- * Persisted on the element — survives project reload.
- * Basis for SecurityDrift calculation: compares SHOULD (ControlInstance)
- * vs WAS (SecurityControlRecord) vs IS (actual property value).
- */
-export interface SecurityControlRecord {
-  /** Property key on this element, e.g. "encryptionInTransit" */
-  property: string;
- 
-  /** The value that was intentionally set, e.g. "tls" */
-  value: unknown;
- 
-  /**
-   * How was this control set?
-   *   analyst          → manually in form, no mitigation reference
-   *   apply_suggestion → via Apply button in DFDNotificationsPanel
-   */
-  setBy: "analyst" | "apply_suggestion";
- 
-  /** ISO timestamp when the control was set */
-  setAt: string;
- 
-  /**
-   * Mitigation ID that drove this control.
-   * Only present when setBy = "apply_suggestion". e.g. "M-T-005"
-   */
-  mitigationId?: string;
- 
-  /**
-   * Risk ID that drove this control.
-   * Only present when setBy = "apply_suggestion". e.g. "R-CNA-DF1-T-IN-1"
-   */
-  riskId?: string;
-}
+import type {
+  SensorProperties,
+  ActuatorProperties,
+  CouplingMode,
+  Injectability,
+  Controllability,
+} from "./transducer-properties";
 
 // ==================== PROCESS PROPERTIES ====================
 
@@ -1054,6 +874,22 @@ type EndpointAuthentication =
   | "oauth" // OAuth 2.0 / delegated authorization
   | "mutual_tls"; // Mutual TLS — client + server certificate
 
+/**
+ * Nature of a DataFlow edge — ORTHOGONAL to `location` (which is the cyber
+ * routing PATH of a logical flow: on_chip … internet).
+ *
+ *   logical   → carries data/signals. Default. All classic cyber templates apply.
+ *   physical  → a transduction COUPLING between a transducer (Sensor/Actuator)
+ *               and the physical environment (modelled as an ExternalEntity).
+ *               No data semantics — the "payload" is the measurand/effect itself
+ *               (road→radar, sound→mic, motor→shaft). Cyber controls (encryption,
+ *               endpoint auth, TB crossing, routing-medium DoS) do NOT apply;
+ *               the physical-coupling group below gates transduction threats.
+ *
+ * undefined is treated as "logical".
+ */
+export type DataFlowMedium = "logical" | "physical";
+
 export interface DataFlowProperties {
   protocol?: Protocol;
   direction?: "unidirectional" | "bidirectional" | "requestresponse";
@@ -1242,6 +1078,40 @@ export interface DataFlowProperties {
    * @example "WLAN AP is internet-connected in this installation → EL4."
    */
   locationRationale?: string;
+
+  // ── Physical coupling (transduction) ───────────────────────────────────────
+  // Only meaningful when medium === "physical". Describes the physical channel
+  // that replaced the struck PhysicalChannel element. Value types are shared with
+  // Sensor/Actuator (transducer-properties.ts): a coupling and the transducer it
+  // feeds reason over the same domain/exposure vocabulary.
+
+  /**
+   * Edge nature. "physical" marks a transduction coupling; see DataFlowMedium.
+   * Flips the threat templates from cyber to physical and gates the fields below.
+   * The graph-builder reads exactly this: `dfProps?.medium === "physical"`.
+   */
+  medium?: DataFlowMedium;
+
+  /**
+   * Channel role — gates which channel threats apply (passive_stimulus vs
+   * active_reflection vs emission vs actuation). For an active sensor
+   * (radar/LiDAR) the inbound coupling is "active_reflection" → false-echo /
+   * ghost-target. @see CouplingMode
+   */
+  couplingMode?: CouplingMode;
+
+  /**
+   * How feasible it is to inject a crafted physical stimulus on this channel.
+   * Mitigated by plausibility / diverse redundancy on the Sensor side.
+   * @see Injectability
+   */
+  injectability?: Injectability;
+
+  /**
+   * How freely an attacker can shape the environment behind this coupling.
+   * @see Controllability
+   */
+  controllability?: Controllability;
 
   /**
    * System behaviour when this data flow is interrupted.
@@ -2137,4 +2007,6 @@ export type ElementProperties =
   | InterfaceProperties
   | TrustBoundaryProperties
   | PhysicalBoundaryProperties
-  | ChipBoundaryProperties;
+  | ChipBoundaryProperties
+  | SensorProperties
+  | ActuatorProperties;

@@ -4,6 +4,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { DFDProjectData } from "../models/dfd-types";
 import type { ValidationResult } from "../services/dfd-validator";
+import { ValidationMessages } from "../services/validators/validator-utils";
 import dfdService from "../services/dfd-service";
 
 // ==================== TYPES ====================
@@ -70,7 +71,12 @@ export function useDFDValidation(
       const emptyResult: ValidationResult = {
         isValid: false,
         isComplete: false,
-        errors: ["Validation error: " + (error as Error).message],
+        errors: [
+          {
+            key: ValidationMessages.INTERNAL_VALIDATION_ERROR,
+            params: { message: (error as Error).message },
+          },
+        ],
         warnings: [],
         scenario: null,
       };
@@ -117,6 +123,22 @@ export function useDFDValidation(
   const clearValidation = useCallback(() => {
     setValidation(null);
   }, []);
+
+  // ==================== AUTO-VALIDATION ====================
+
+  // Re-validate whenever the project changes, so a fix made anywhere (e.g. in
+  // the description panel) clears its finding without a manual "revalidate".
+  // Debounced via scheduleValidation; validate() reads the latest data from
+  // projectRef. This is the single trigger — consumers no longer need to wire
+  // scheduleValidation into individual edit paths (those calls are now
+  // redundant but harmless, since scheduleValidation resets its own timeout).
+  //
+  // Relies on the single-write-channel updateProject producing a NEW `project`
+  // reference on every edit (immutable update). Honors autoValidateDelay === 0
+  // (scheduleValidation early-returns when auto-validation is disabled).
+  useEffect(() => {
+    scheduleValidation();
+  }, [project, scheduleValidation]);
 
   // ==================== CLEANUP ====================
 

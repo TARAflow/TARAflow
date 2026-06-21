@@ -33,6 +33,8 @@ import {
   MonetizationOnOutlined as AssetIcon,
   Memory as ChipBoundaryIcon,
   LockOutlined as PhysicalBoundaryIcon,
+  Sensors as SensorIcon,
+  PrecisionManufacturing as ActuatorIcon,
 } from "@mui/icons-material";
 
 import { AssetGroup } from "shared";
@@ -55,6 +57,8 @@ import { InterfaceDescriptionForm } from "./forms/interface-description-form";
 import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
 import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
 import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form";
+import { SensorDescriptionForm } from "./forms/sensor-description-form";
+import { ActuatorDescriptionForm } from "./forms/actuator-description-form";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
@@ -183,6 +187,10 @@ const getElementTypeIcon = (type: DFDElementType): React.ReactNode => {
       return <ChipBoundaryIcon {...iconProps} />;
     case "PhysicalBoundary":
       return <PhysicalBoundaryIcon {...iconProps} />;
+    case "Sensor":
+      return <SensorIcon {...iconProps} />;
+    case "Actuator":
+      return <ActuatorIcon {...iconProps} />;
     default:
       return null;
   }
@@ -288,6 +296,8 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
     "TrustBoundary",
     "ChipBoundary",
     "PhysicalBoundary",
+    "Sensor",
+    "Actuator",
   ];
 
   /**
@@ -400,7 +410,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
               >
                 <Stack direction="row" spacing={2} alignItems="center">
                   {getElementTypeIcon(type)}
-                  <Typography variant="subtitle1">{config.name}</Typography>
+                  <Typography variant="subtitle1">{t(config.name)}</Typography>
                   <Chip
                     label={`${describedCount}/${typeElements.length}`}
                     size="small"
@@ -450,7 +460,11 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
             >
               <Stack direction="row" spacing={2} alignItems="center">
                 <AssetIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="subtitle1">Assets</Typography>
+                <Typography variant="subtitle1">
+                  {t("tabs.dfd.element_description.assets", {
+                    defaultValue: "Assets",
+                  })}
+                </Typography>
                 <Chip
                   label={`${stats.describedAssets}/${stats.totalAssets}`}
                   size="small"
@@ -497,7 +511,11 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
             >
               <Stack direction="row" spacing={2} alignItems="center">
                 <DataFlowIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="subtitle1">Data Flows</Typography>
+                <Typography variant="subtitle1">
+                  {t("tabs.dfd.elementTypes.DataFlow.plural", {
+                    defaultValue: "Dataflows",
+                  })}
+                </Typography>
                 <Chip
                   label={`${stats.describedConnections}/${stats.totalConnections}`}
                   size="small"
@@ -631,6 +649,24 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
             <PhysicalBoundaryDescriptionForm
               element={element}
               onChange={onUpdate}
+            />
+          );
+        case "Sensor":
+          return (
+            <SensorDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+              onCreateAsset={onCreateAsset}
+            />
+          );
+        case "Actuator":
+          return (
+            <ActuatorDescriptionForm
+              element={element}
+              onChange={onUpdate}
+              availableAssets={availableAssets}
+              onCreateAsset={onCreateAsset}
             />
           );
         default:

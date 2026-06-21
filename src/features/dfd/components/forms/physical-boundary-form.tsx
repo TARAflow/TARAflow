@@ -34,7 +34,7 @@ import {
 import type { DFDElement } from "../../models/dfd-types";
 import type { PhysicalBoundaryProperties } from "../../models/element-properties";
 import {
-  PHYSICAL_EXPOSURE_LEVEL_LABELS,
+  PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS,
   PHYSICAL_EXPOSURE_LEVEL_DESCRIPTION_KEYS,
 } from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
@@ -46,7 +46,7 @@ import {
   applyCascadeDefaults,
   buildClearPatch,
 } from "../../models/element-property-defaults";
-import type { PhysicalExposureLevel } from "../../models/element-properties";
+import type { PhysicalExposureLevel } from "../../models/element-shared-types";
 
 // ==================== PROPS ====================
 
@@ -125,7 +125,6 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
     return (
       <Box p={1}>
         <Stack spacing={2} sx={{ pt: 1 }}>
-
           {/* Warning */}
           <Alert severity="warning">
             <Typography variant="body2" fontWeight="bold">
@@ -137,13 +136,10 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               )}
             </Typography>
             <Typography variant="caption">
-              {t(
-                "tabs.dfd.element_description.physicalboundary.warning.hint",
-                {
-                  defaultValue:
-                    "Interfaces that cross or lie inside this boundary inherit its physical access preconditions. Verify tamper protection and access control before deployment.",
-                },
-              )}
+              {t("tabs.dfd.element_description.physicalboundary.warning.hint", {
+                defaultValue:
+                  "Interfaces that cross or lie inside this boundary inherit its physical access preconditions. Verify tamper protection and access control before deployment.",
+              })}
             </Typography>
           </Alert>
 
@@ -233,7 +229,9 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               )}
               renderValue={(value) =>
                 value
-                  ? PHYSICAL_EXPOSURE_LEVEL_LABELS[value as PhysicalExposureLevel]
+                  ? PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS[
+                      value as PhysicalExposureLevel
+                    ]
                   : ""
               }
             >
@@ -245,15 +243,14 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               {PEL_LEVELS.map((pel) => (
                 <MenuItem key={pel} value={pel}>
                   <Tooltip
-                    title={t(
-                      PHYSICAL_EXPOSURE_LEVEL_DESCRIPTION_KEYS[pel],
-                      { defaultValue: "" },
-                    )}
+                    title={t(PHYSICAL_EXPOSURE_LEVEL_DESCRIPTION_KEYS[pel], {
+                      defaultValue: "",
+                    })}
                     placement="right"
                     arrow
                   >
                     <span style={{ width: "100%", display: "block" }}>
-                      {PHYSICAL_EXPOSURE_LEVEL_LABELS[pel]}
+                      {PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS[pel]}
                     </span>
                   </Tooltip>
                 </MenuItem>
@@ -263,7 +260,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
 
           {/* physicalMobility — only shown for device_enclosure and vehicle */}
           {MOBILITY_BOUNDARY_TYPES.includes(
-            props.boundaryType as (typeof MOBILITY_BOUNDARY_TYPES)[number]
+            props.boundaryType as (typeof MOBILITY_BOUNDARY_TYPES)[number],
           ) && (
             <FormControl fullWidth size="small">
               <InputLabel>
@@ -287,7 +284,9 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               >
                 <MenuItem value="">
                   <em>
-                    {t("common.not_specified", { defaultValue: "Not specified" })}
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
                   </em>
                 </MenuItem>
                 {MOBILITY_OPTIONS.map((opt) => (
@@ -342,30 +341,28 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
                   {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
-              {(["public", "controlled", "guarded"] as const).map(
-                (opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    <Tooltip
-                      title={t(
-                        `tabs.dfd.element_description.physicalboundary.fields.accessibility.tooltips.${opt}`,
-                        { defaultValue: "" },
+              {(["public", "controlled", "guarded"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  <Tooltip
+                    title={t(
+                      `tabs.dfd.element_description.physicalboundary.fields.accessibility.tooltips.${opt}`,
+                      { defaultValue: "" },
+                    )}
+                    placement="right"
+                    arrow
+                  >
+                    <span style={{ width: "100%", display: "block" }}>
+                      {t(
+                        `tabs.dfd.element_description.physicalboundary.fields.accessibility.options.${opt}`,
+                        {
+                          defaultValue:
+                            opt.charAt(0).toUpperCase() + opt.slice(1),
+                        },
                       )}
-                      placement="right"
-                      arrow
-                    >
-                      <span style={{ width: "100%", display: "block" }}>
-                        {t(
-                          `tabs.dfd.element_description.physicalboundary.fields.accessibility.options.${opt}`,
-                          {
-                            defaultValue:
-                              opt.charAt(0).toUpperCase() + opt.slice(1),
-                          },
-                        )}
-                      </span>
-                    </Tooltip>
-                  </MenuItem>
-                ),
-              )}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -564,7 +561,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
 
           {/* requiresToolAccess: device_enclosure, vehicle, cabinet */}
           {(["device_enclosure", "vehicle", "cabinet"] as const).includes(
-            props.boundaryType as "device_enclosure" | "vehicle" | "cabinet"
+            props.boundaryType as "device_enclosure" | "vehicle" | "cabinet",
           ) && (
             <FormControlLabel
               control={
@@ -590,7 +587,10 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
 
           {/* debugInterfaceAccessible: device_enclosure, vehicle, tamper_zone */}
           {(["device_enclosure", "vehicle", "tamper_zone"] as const).includes(
-            props.boundaryType as "device_enclosure" | "vehicle" | "tamper_zone"
+            props.boundaryType as
+              | "device_enclosure"
+              | "vehicle"
+              | "tamper_zone",
           ) && (
             <FormControlLabel
               control={
@@ -616,7 +616,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
 
           {/* removableMediaAccessible: device_enclosure, vehicle */}
           {(["device_enclosure", "vehicle"] as const).includes(
-            props.boundaryType as "device_enclosure" | "vehicle"
+            props.boundaryType as "device_enclosure" | "vehicle",
           ) && (
             <FormControlLabel
               control={
@@ -651,7 +651,9 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
             }
             label={t(
               "tabs.dfd.element_description.physicalboundary.fields.safetyRelevant.label",
-              { defaultValue: "Protects safety-relevant hardware or functions" },
+              {
+                defaultValue: "Protects safety-relevant hardware or functions",
+              },
             )}
           />
 
@@ -672,7 +674,10 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               placeholder="e.g. Schaltschrank houses SIL-2 certified Safety PLC — physical access restricted to authorised personnel only"
               helperText={t(
                 "tabs.dfd.element_description.physicalboundary.fields.safetyRationale.helper",
-                { defaultValue: "Required for EN 50742 / MVO 2027 documentation" },
+                {
+                  defaultValue:
+                    "Required for EN 50742 / MVO 2027 documentation",
+                },
               )}
             />
           )}

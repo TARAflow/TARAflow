@@ -45,7 +45,12 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import type { ValidationResult } from "../services/dfd-validator";
 import type { ControlInstance } from "shared/models/control-instance";
 import type { SecurityDrift } from "app/hooks/use-security-drift";
-import type { DFDElement, DFDConnection } from "../models/dfd-types";
+import type {
+  DFDElement,
+  DFDConnection,
+  ValidationFinding,
+} from "../models/dfd-types";
+import { translateFinding } from "../utils/translate-finding";
 import { getLocalizedMitigation } from "features/threats/services/threat-catalog-service";
 
 
@@ -66,7 +71,7 @@ interface BaseNotification {
 
 interface ValidationNotification extends BaseNotification {
   type: "error" | "warning";
-  message: string;
+  finding: ValidationFinding;
   displayId?: string;
   elementId?: string;
 }
@@ -127,141 +132,17 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-// ==================== VALIDATION MESSAGE PARSER ====================
-// Matches format from DFDValidator:
-//   "dfdValidation.noElements"
-//   "dfdValidation.emptyTrustBoundary:TB Name"
-//   "dfdValidation.unconnectedElement:Process:MyProcess"
+// ==================== VALIDATION MESSAGE TRANSLATION ====================
+// Resolution logic lives in utils/translate-finding.ts — shared with any
+// other consumer of ValidationFinding[] (e.g. the General/Overview tab
+// summary in workspace-layout.tsx). This hook just wires it to the
+// component-local `t` from react-i18next.
 
 function useValidationTranslation() {
   const { t } = useTranslation();
 
-  const translateMessage = (message: string): string => {
-    // ── Neues Format: KEY|displayId|...  (LP-Validator) ─────────────────────
-    if (message.includes("|")) {
-      const parts = message.split("|");
-      const key = parts[0];
-      // parts[1] = displayId — wird als Chip gerendert, nicht in t()
-      const detail = parts[2] ?? "";
-
-      // LP-2: KEY|displayId|tag|expected,csv|got
-      // LP-3: KEY|displayId|verbTag|expected,csv|got
-      if (parts.length === 5) {
-        const combo = parts[2];
-        const expected = parts[3]
-          .split(",")
-          .map((v) =>
-            t(
-              `tabs.dfd.element_description.dataflow.fields.messageType.options.${v}`,
-              { defaultValue: v },
-            ),
-          )
-          .join(", ");
-        const got = t(
-          `tabs.dfd.element_description.dataflow.fields.messageType.options.${parts[4]}`,
-          { defaultValue: parts[4] },
-        );
-        return t(key, {
-          combo,
-          expected,
-          got,
-          detail,
-          defaultValue: `${combo}: expected ${expected}, got ${got}`,
-        });
-      }
-
-      // LP-4: KEY|displayId|protocol
-      // Label-Validator simple messages: KEY|displayId|detail
-      if (parts.length === 3) {
-        const displayId = parts[1];
-        return t(key, {
-          protocol: detail,
-          name: displayId, // {{name}} interpolation uses displayId, not elementType
-          detail,
-          defaultValue: displayId,
-        });
-      }
-
-      // LP-5: KEY|displayId|targetName|targetType
-      if (
-        parts.length === 4 &&
-        key !== "tabs.dfd.validation.element.missingProperty"
-      ) {
-        const targetName = parts[2];
-        const targetType = t(`dfdValidation.elementTypes.${parts[3]}`, {
-          defaultValue: parts[3],
-        });
-        return t(key, {
-          targetName,
-          targetType,
-          name: detail,
-          detail,
-          defaultValue: `${targetName} (${targetType})`,
-        });
-      }
-
-      // Element missing property: KEY|displayId|elementType|field
-      if (
-        parts.length === 4 &&
-        key === "tabs.dfd.validation.element.missingProperty"
-      ) {
-        // DFD element type -> i18n namespace key under element_description
-        const ELEMENT_TYPE_NS: Record<string, string> = {
-          Process: "process",
-          Multiprocess: "multiprocess",
-          DataStore: "datastore",
-          ExternalEntity: "external_entity",
-          TrustBoundary: "trustboundary",
-          ChipBoundary: "chipboundary",
-          Interface: "interface",
-        };
-        // Shared field label keys — same as fieldTranslationKeys in
-        // dataflow-description-form.tsx. Checked first; per-type lookup is fallback.
-        const FIELD_SHARED_LABEL: Record<string, string> = {
-          exposureLevel: "tabs.dfd.element_description.exposure_level.label",
-          defaultExposureLevel:
-            "tabs.dfd.element_description.exposure_level.label",
-        };
-        const ns = ELEMENT_TYPE_NS[parts[2]] ?? parts[2].toLowerCase();
-        const rawField = parts[3];
-        const sharedPath = FIELD_SHARED_LABEL[rawField];
-        const elementType = t(`dfdValidation.elementTypes.${parts[2]}`, {
-          defaultValue: parts[2],
-        });
-        const field = sharedPath
-          ? t(sharedPath, { defaultValue: rawField })
-          : t(`tabs.dfd.element_description.${ns}.fields.${rawField}.label`, {
-              defaultValue: rawField,
-            });
-        return t(key, {
-          elementType,
-          displayId: parts[1],
-          field,
-          defaultValue: `${elementType} ${parts[1]}: field '${rawField}' must be set`,
-        });
-      }
-
-      // Fallback: unbekanntes Format
-      return t(key, { detail, defaultValue: parts.slice(2).join(" — ") });
-    }
-
-    // ── Bestehendes Format: KEY  oder  KEY:name  oder  KEY:type:name ─────────
-    const parts = message.split(":");
-    const key = parts[0];
-
-    if (parts.length === 1) return t(key);
-
-    if (parts.length === 2) return t(key, { name: parts[1] });
-
-    if (parts.length === 3) {
-      const translatedType = t(`dfdValidation.elementTypes.${parts[1]}`, {
-        defaultValue: parts[1],
-      });
-      return t(key, { type: translatedType, name: parts[2] });
-    }
-
-    return message;
-  };
+  const translateMessage = (finding: ValidationFinding): string =>
+    translateFinding(t, finding);
 
   return { translateMessage };
 }
@@ -277,33 +158,25 @@ function buildNotifications(
 ): Notification[] {
   const notifications: Notification[] = [];
 
-  // displayId → interne XML-id
-  const elementByDisplayId = new Map<string, string>([
-    ...elements.map((e): [string, string] => [e.displayId, e.id]),
-    ...connections.map((c): [string, string] => [c.displayId, c.id]),
-  ]);
-
-  (validation?.errors ?? []).forEach((msg, idx) => {
-    const displayId = msg.includes("|") ? msg.split("|")[1] : undefined;
-    const elementId = displayId ? elementByDisplayId.get(displayId) : undefined;
+  // errors/warnings are ValidationFinding[] — displayId and elementId come
+  // straight from the validator, no displayId→id lookup needed anymore.
+  (validation?.errors ?? []).forEach((f, idx) => {
     notifications.push({
-      key: `error:${idx}:${msg}`,
+      key: `error:${idx}:${f.key}:${f.displayId ?? ""}`,
       type: "error",
-      message: msg,
-      displayId,
-      elementId,
+      finding: f,
+      displayId: f.displayId,
+      elementId: f.elementId,
     });
   });
 
-  (validation?.warnings ?? []).forEach((msg, idx) => {
-    const displayId = msg.includes("|") ? msg.split("|")[1] : undefined;
-    const elementId = displayId ? elementByDisplayId.get(displayId) : undefined;
+  (validation?.warnings ?? []).forEach((f, idx) => {
     notifications.push({
-      key: `warning:${idx}:${msg}`,
+      key: `warning:${idx}:${f.key}:${f.displayId ?? ""}`,
       type: "warning",
-      message: msg,
-      displayId,
-      elementId,
+      finding: f,
+      displayId: f.displayId,
+      elementId: f.elementId,
     });
   });
 
@@ -737,7 +610,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
 
 interface ValidationRowProps {
   notification: ValidationNotification;
-  translateMessage: (msg: string) => string;
+  translateMessage: (finding: ValidationFinding) => string;
   onSelectCell?: (cellId: string) => void;
 }
 
@@ -792,7 +665,7 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
       sx={{ color: "text.primary", minWidth: 0 }}
       noWrap
     >
-      {translateMessage(notification.message)}
+      {translateMessage(notification.finding)}
     </Typography>
   </Box>
 );

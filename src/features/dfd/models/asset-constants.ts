@@ -22,140 +22,161 @@ import type {
   EnvironmentAssetRelationType,
 } from "shared";
 
-// ==================== RELATION TYPE LABELS ====================
+/** Minimal translate signature — satisfied by i18next TFunction and the doc
+ *  generator's TranslationFn. Resolve i18n keys without binding a language. */
+type TranslateFn = (key: string, defaultValue?: string) => string;
 
-export const DATA_RELATION_LABELS: Record<
-  DataAssetRelationType,
-  { en: string; de: string }
-> = {
-  creates: { en: "Creates", de: "Erzeugt" },
-  reads: { en: "Reads", de: "Liest" },
-  modifies: { en: "Modifies", de: "Verändert" },
-  deletes: { en: "Deletes", de: "Löscht" },
-  stores: { en: "Stores", de: "Speichert" },
-  transports: { en: "Transports", de: "Transportiert" },
-  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
+// ==================== RELATION TYPE LABEL KEYS ====================
+// Language-free. Each map holds the i18n key for the relation type; the text
+// lives under assets.relations.element.<group>.<type> — the same keys resolved
+// by getRelationTypeText() in dfd-formatters. Resolve with a translate fn.
+
+export const DATA_RELATION_LABEL_KEYS: Record<DataAssetRelationType, string> = {
+  creates: "assets.relations.element.data.creates",
+  reads: "assets.relations.element.data.reads",
+  modifies: "assets.relations.element.data.modifies",
+  deletes: "assets.relations.element.data.deletes",
+  stores: "assets.relations.element.data.stores",
+  transports: "assets.relations.element.data.transports",
+  is_an: "assets.relations.element.data.is_an",
 };
 
-export const FUNCTION_RELATION_LABELS: Record<
+export const FUNCTION_RELATION_LABEL_KEYS: Record<
   FunctionAssetRelationType,
-  { en: string; de: string }
+  string
 > = {
-  executes: { en: "Executes", de: "Führt aus" },
-  invokes: { en: "Invokes", de: "Ruft auf" },
-  implements: { en: "Implements", de: "Implementiert" },
-  monitors: { en: "Monitors", de: "Überwacht" },
-  depends_on: { en: "Depends on", de: "Abhängig von" },
-  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
+  executes: "assets.relations.element.function.executes",
+  invokes: "assets.relations.element.function.invokes",
+  implements: "assets.relations.element.function.implements",
+  monitors: "assets.relations.element.function.monitors",
+  depends_on: "assets.relations.element.function.depends_on",
+  is_an: "assets.relations.element.function.is_an",
 };
 
-export const PROCESS_RELATION_LABELS: Record<ProcessAssetRelationType, { en: string; de: string }> = {
-  executes:   { en: "Executes",   de: "Führt aus" },
-  invokes:    { en: "Invokes",    de: "Ruft auf" },
-  terminates: { en: "Terminates", de: "Beendet" },
-  suspends:   { en: "Suspends",   de: "Pausiert" },
-  monitors:   { en: "Monitors",   de: "Überwacht" },
-  is_an:      { en: "Is an instance of", de: "Ist eine Instanz von" },
+export const PROCESS_RELATION_LABEL_KEYS: Record<
+  ProcessAssetRelationType,
+  string
+> = {
+  executes: "assets.relations.element.process.executes",
+  invokes: "assets.relations.element.process.invokes",
+  terminates: "assets.relations.element.process.terminates",
+  suspends: "assets.relations.element.process.suspends",
+  monitors: "assets.relations.element.process.monitors",
+  is_an: "assets.relations.element.process.is_an",
 };
 
-export const SYSTEM_RELATION_LABELS: Record<SystemAssetRelationType, { en: string; de: string }> = {
-  controls:   { en: "Controls",   de: "Kontrolliert" },
-  configures: { en: "Configures", de: "Konfiguriert" },
-  monitors:   { en: "Monitors",   de: "Überwacht" },
-  uses:       { en: "Uses",       de: "Nutzt" },
-  depends_on: { en: "Depends on", de: "Abhängig von" },
-  is_an:      { en: "Is an instance of", de: "Ist eine Instanz von" },
+export const SYSTEM_RELATION_LABEL_KEYS: Record<
+  SystemAssetRelationType,
+  string
+> = {
+  controls: "assets.relations.element.system.controls",
+  configures: "assets.relations.element.system.configures",
+  monitors: "assets.relations.element.system.monitors",
+  uses: "assets.relations.element.system.uses",
+  depends_on: "assets.relations.element.system.depends_on",
+  is_an: "assets.relations.element.system.is_an",
 };
 
-export const INFRA_RELATION_LABELS: Record<InfraAssetRelationType, { en: string; de: string }> = {
-  accesses: { en: "Accesses", de: "Greift zu auf" },
-  secures:  { en: "Secures",  de: "Schützt" },
-  damages:  { en: "Damages",  de: "Beschädigt" },
-  powers:   { en: "Powers",   de: "Versorgt" },
-  monitors: { en: "Monitors", de: "Überwacht" },
-  is_an:    { en: "Is an instance of", de: "Ist eine Instanz von" },
-};
+export const INFRA_RELATION_LABEL_KEYS: Record<InfraAssetRelationType, string> =
+  {
+    accesses: "assets.relations.element.infrastructure.accesses",
+    secures: "assets.relations.element.infrastructure.secures",
+    damages: "assets.relations.element.infrastructure.damages",
+    powers: "assets.relations.element.infrastructure.powers",
+    monitors: "assets.relations.element.infrastructure.monitors",
+    is_an: "assets.relations.element.infrastructure.is_an",
+  };
 
-export const PHYSICAL_RELATION_LABELS: Record<
+export const PHYSICAL_RELATION_LABEL_KEYS: Record<
   PhysicalAssetRelationType,
-  { en: string; de: string }
+  string
 > = {
-  accesses: { en: "Accesses", de: "Greift physisch zu auf" },
-  damages: { en: "Damages", de: "Beschädigt" },
-  secures: { en: "Secures", de: "Sichert/Schützt" },
-  monitors: { en: "Monitors", de: "Überwacht" },
-  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
+  accesses: "assets.relations.element.physical.accesses",
+  damages: "assets.relations.element.physical.damages",
+  secures: "assets.relations.element.physical.secures",
+  monitors: "assets.relations.element.physical.monitors",
+  is_an: "assets.relations.element.physical.is_an",
 };
 
-export const SERVICE_RELATION_LABELS: Record<
+export const SERVICE_RELATION_LABEL_KEYS: Record<
   ServiceAssetRelationType,
-  { en: string; de: string }
+  string
 > = {
-  uses: { en: "Uses", de: "Nutzt" },
-  configures: { en: "Configures", de: "Konfiguriert" },
-  monitors: { en: "Monitors", de: "Überwacht" },
-  depends_on: { en: "Depends on", de: "Abhängig von" },
-  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
+  uses: "assets.relations.element.service.uses",
+  configures: "assets.relations.element.service.configures",
+  monitors: "assets.relations.element.service.monitors",
+  depends_on: "assets.relations.element.service.depends_on",
+  is_an: "assets.relations.element.service.is_an",
 };
 
-export const HUMAN_RELATION_LABELS: Record<
-  HumanAssetRelationType,
-  { en: string; de: string }
-> = {
-  endangers: { en: "Endangers", de: "Gefährdet" },
-  affects_safety: { en: "Affects safety", de: "Gefährdet physisch" },
-  affects_privacy: { en: "Affects privacy", de: "Beeinträchtigt Privatsphäre" },
-  identifies: { en: "Identifies", de: "Identifiziert" },
-  tracks: { en: "Tracks", de: "Verfolgt" },
-  exposes: { en: "Exposes", de: "Exponiert" },
-  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
-};
+export const HUMAN_RELATION_LABEL_KEYS: Record<HumanAssetRelationType, string> =
+  {
+    endangers: "assets.relations.element.human.endangers",
+    affects_safety: "assets.relations.element.human.affects_safety",
+    affects_privacy: "assets.relations.element.human.affects_privacy",
+    identifies: "assets.relations.element.human.identifies",
+    tracks: "assets.relations.element.human.tracks",
+    exposes: "assets.relations.element.human.exposes",
+    is_an: "assets.relations.element.human.is_an",
+  };
 
-export const ENVIRONMENT_RELATION_LABELS: Record<
+export const ENVIRONMENT_RELATION_LABEL_KEYS: Record<
   EnvironmentAssetRelationType,
-  { en: string; de: string }
+  string
 > = {
-  endangers: { en: "Endangers", de: "Gefährdet" },
-  monitors: { en: "Monitors", de: "Überwacht" },
-  contaminates: { en: "Contaminates", de: "Kontaminiert" },
-  is_an: { en: "Is an instance of", de: "Ist eine Instanz von" },
+  endangers: "assets.relations.element.environment.endangers",
+  monitors: "assets.relations.element.environment.monitors",
+  contaminates: "assets.relations.element.environment.contaminates",
+  is_an: "assets.relations.element.environment.is_an",
 };
 
-// ==================== QUALIFIER LABELS ====================
+// ==================== QUALIFIER LABEL KEYS ====================
 
-export const SYSTEM_USES_QUALIFIER_LABELS: Record<SystemUsesQualifier, { en: string; de: string }> = {
-  hardware:       { en: "Hardware access",  de: "Hardware-Zugriff" },
-  library:        { en: "Library/SDK",      de: "Bibliothek/SDK" },
-  network:        { en: "Network access",   de: "Netzwerkzugriff" },
-  local:          { en: "Local access",     de: "Lokaler Zugriff" },
-  authentication: { en: "Authentication",   de: "Authentifizierung" },
-  authorization:  { en: "Authorization",    de: "Autorisierung" },
-  api:            { en: "API",              de: "API" },
-  storage:        { en: "Storage",          de: "Speicher" },
-  computation:    { en: "Computation",      de: "Berechnung" },
-  messaging:      { en: "Messaging",        de: "Messaging" },
-  configuration:  { en: "Configuration",    de: "Konfiguration" },
-  monitoring:     { en: "Monitoring",       de: "Monitoring" },
-  networking:     { en: "Networking",       de: "Netzwerk" },
+export const SYSTEM_USES_QUALIFIER_LABEL_KEYS: Record<
+  SystemUsesQualifier,
+  string
+> = {
+  hardware: "assets.relations.qualifiers.system.hardware",
+  library: "assets.relations.qualifiers.system.library",
+  network: "assets.relations.qualifiers.system.network",
+  local: "assets.relations.qualifiers.system.local",
+  authentication: "assets.relations.qualifiers.system.authentication",
+  authorization: "assets.relations.qualifiers.system.authorization",
+  api: "assets.relations.qualifiers.system.api",
+  storage: "assets.relations.qualifiers.system.storage",
+  computation: "assets.relations.qualifiers.system.computation",
+  messaging: "assets.relations.qualifiers.system.messaging",
+  configuration: "assets.relations.qualifiers.system.configuration",
+  monitoring: "assets.relations.qualifiers.system.monitoring",
+  networking: "assets.relations.qualifiers.system.networking",
 };
 
-export const SERVICE_USES_QUALIFIER_LABELS: Record<ServiceUsesQualifier, { en: string; de: string }> = {
-  api:     { en: "API (REST/SOAP/gRPC)",         de: "API (REST/SOAP/gRPC)" },
-  sdk:     { en: "SDK / Library",                de: "SDK / Bibliothek" },
-  webhook: { en: "Webhook (event-based)",         de: "Webhook (ereignisbasiert)" },
-  managed: { en: "Managed (no API access)",       de: "Managed (kein API-Zugriff)" },
+export const SERVICE_USES_QUALIFIER_LABEL_KEYS: Record<
+  ServiceUsesQualifier,
+  string
+> = {
+  api: "assets.relations.qualifiers.service.api",
+  sdk: "assets.relations.qualifiers.service.sdk",
+  webhook: "assets.relations.qualifiers.service.webhook",
+  managed: "assets.relations.qualifiers.service.managed",
 };
 
-export const INFRA_ACCESSES_QUALIFIER_LABELS: Record<InfraAccessesQualifier, { en: string; de: string }> = {
-  "on-site":  { en: "On-site (premises/facility)", de: "Vor Ort (Gelände/Anlage)" },
-  proximity:  { en: "Proximity (RFID/WiFi range)", de: "Nähe (RFID-/WLAN-Reichweite)" },
-  internal:   { en: "Internal (enclosure interior)", de: "Intern (Gehäuse-Inneres)" },
+export const INFRA_ACCESSES_QUALIFIER_LABEL_KEYS: Record<
+  InfraAccessesQualifier,
+  string
+> = {
+  "on-site": "assets.relations.qualifiers.infrastructure.on-site",
+  proximity: "assets.relations.qualifiers.infrastructure.proximity",
+  internal: "assets.relations.qualifiers.infrastructure.internal",
 };
 
-export const PHYSICAL_CONTACT_QUALIFIER_LABELS: Record<PhysicalContactQualifier, { en: string; de: string }> = {
-  direct:   { en: "Direct contact (hands-on)",   de: "Direkter Kontakt (physisch)" },
-  indirect: { en: "Proximity / sensor",           de: "Nähe / Sensor" },
-  remote:   { en: "Remote (networked component)", de: "Remote (vernetztes Bauteil)" },
+export const PHYSICAL_CONTACT_QUALIFIER_LABEL_KEYS: Record<
+  PhysicalContactQualifier,
+  string
+> = {
+  direct: "assets.relations.qualifiers.physical.direct",
+  indirect: "assets.relations.qualifiers.physical.indirect",
+  remote: "assets.relations.qualifiers.physical.remote",
 };
 
 // ==================== ALLOWED RELATIONS MATRIX ====================
@@ -172,6 +193,8 @@ export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationTyp
     TrustBoundary: [],
     ChipBoundary: ["reads", "stores", "modifies"],
     PhysicalBoundary: [],
+    Sensor: ["creates"],
+    Actuator: ["reads"],
   };
 
 export const ALLOWED_FUNCTION_RELATIONS: Record<
@@ -201,6 +224,8 @@ export const ALLOWED_FUNCTION_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: ["implements", "depends_on"],
   PhysicalBoundary: [],
+  Sensor: ["implements", "monitors"],
+  Actuator: ["implements"],
 };
 
 export const ALLOWED_PROCESS_RELATIONS: Record<
@@ -230,6 +255,8 @@ export const ALLOWED_PROCESS_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: [],
   PhysicalBoundary: [],
+  Sensor: [],
+  Actuator: [],
 };
 
 export const ALLOWED_SYSTEM_RELATIONS: Record<
@@ -266,6 +293,8 @@ export const ALLOWED_SYSTEM_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: ["is_an", "uses", "depends_on"],
   PhysicalBoundary: ["is_an", "depends_on"],
+  Sensor: ["is_an", "depends_on"],
+  Actuator: ["is_an", "depends_on"],
 };
 
 export const ALLOWED_INFRA_RELATIONS: Record<
@@ -288,6 +317,8 @@ export const ALLOWED_INFRA_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: [],
   PhysicalBoundary: ["is_an", "secures", "powers"],
+  Sensor: ["monitors"],
+  Actuator: ["damages"],
 };
 
 export const ALLOWED_PHYSICAL_RELATIONS: Record<
@@ -304,6 +335,8 @@ export const ALLOWED_PHYSICAL_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: [],
   PhysicalBoundary: ["is_an", "secures", "accesses", "damages"],
+  Sensor: ["accesses", "monitors"],
+  Actuator: ["accesses", "damages", "secures"],
 };
 
 export const ALLOWED_SERVICE_RELATIONS: Record<
@@ -319,21 +352,17 @@ export const ALLOWED_SERVICE_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: [],
   PhysicalBoundary: [],
+  Sensor: [],
+  Actuator: [],
 };
 
 export const ALLOWED_HUMAN_RELATIONS: Record<
   DFDElementType,
   HumanAssetRelationType[]
 > = {
-  Process: [
-    "affects_safety",
-    "affects_privacy",
-    "identifies",
-    "tracks",
-    "exposes",
-  ],
+  Process: ["endangers", "affects_privacy", "identifies", "tracks", "exposes"],
   Multiprocess: [
-    "affects_safety",
+    "endangers",
     "affects_privacy",
     "identifies",
     "tracks",
@@ -342,17 +371,42 @@ export const ALLOWED_HUMAN_RELATIONS: Record<
   DataStore: ["affects_privacy", "identifies", "tracks"],
   DataFlow: ["affects_privacy", "identifies", "tracks", "exposes"],
   ExternalEntity: [
-    "affects_safety",
+    "endangers",
     "affects_privacy",
     "identifies",
     "tracks",
     "exposes",
     "is_an",
   ],
-  Interface: ["affects_safety", "affects_privacy", "exposes"],
+  Interface: ["endangers", "affects_privacy", "exposes"],
   TrustBoundary: [],
   ChipBoundary: [],
   PhysicalBoundary: [],
+  // Camera-as-Sensor etc.: privacy only — a sensor observes, it does not endanger.
+  Sensor: ["affects_privacy", "identifies", "tracks", "exposes"],
+  // Actuator drives the hazard (bowtie top event) — canonical safety relation.
+  Actuator: ["endangers"],
+};
+
+// Environment relations are exposed ONLY for transducers (Sensor/Actuator) — the
+// deliberate exception to "environment is a hazard protection target". For all
+// other element types environment stays a Schutzziel reached via the Hazard Item
+// chain (see taraflow-asset-beziehungen.md §Transducer-Ausnahme).
+export const ALLOWED_ENVIRONMENT_RELATIONS: Record<
+  DFDElementType,
+  EnvironmentAssetRelationType[]
+> = {
+  Process: [],
+  Multiprocess: [],
+  DataStore: [],
+  DataFlow: [],
+  ExternalEntity: [],
+  Interface: [],
+  TrustBoundary: [],
+  ChipBoundary: [],
+  PhysicalBoundary: [],
+  Sensor: ["monitors"],
+  Actuator: ["endangers", "contaminates"],
 };
 
 // ==================== LOOKUP HELPERS ====================
@@ -379,8 +433,9 @@ export function getAllowedRelations(
     case "human":
       return ALLOWED_HUMAN_RELATIONS[elementType] ?? [];
     case "environment":
-      // Environment is a hazard protection target, not acted on by DFD elements.
-      return [];
+      // Acted on directly only by transducers; all other types reach Environment
+      // as a Schutzziel via the Hazard Item chain (see ALLOWED_ENVIRONMENT_RELATIONS).
+      return ALLOWED_ENVIRONMENT_RELATIONS[elementType] ?? [];
   }
 }
 
@@ -397,25 +452,18 @@ export function getQualifierLabel(
     | ServiceUsesQualifier
     | InfraAccessesQualifier
     | PhysicalContactQualifier,
-  language: "en" | "de" = "en",
+  t: TranslateFn,
 ): string {
-  if (qualifier in SYSTEM_USES_QUALIFIER_LABELS)
-    return SYSTEM_USES_QUALIFIER_LABELS[qualifier as SystemUsesQualifier][
-      language
-    ];
-  if (qualifier in SERVICE_USES_QUALIFIER_LABELS)
-    return SERVICE_USES_QUALIFIER_LABELS[qualifier as ServiceUsesQualifier][
-      language
-    ];
-  if (qualifier in INFRA_ACCESSES_QUALIFIER_LABELS)
-    return INFRA_ACCESSES_QUALIFIER_LABELS[qualifier as InfraAccessesQualifier][
-      language
-    ];
-  if (qualifier in PHYSICAL_CONTACT_QUALIFIER_LABELS)
-    return PHYSICAL_CONTACT_QUALIFIER_LABELS[
+  // "api" exists in both system and service qualifier maps — system wins first,
+  // preserving the previous lookup order.
+  const key =
+    SYSTEM_USES_QUALIFIER_LABEL_KEYS[qualifier as SystemUsesQualifier] ??
+    SERVICE_USES_QUALIFIER_LABEL_KEYS[qualifier as ServiceUsesQualifier] ??
+    INFRA_ACCESSES_QUALIFIER_LABEL_KEYS[qualifier as InfraAccessesQualifier] ??
+    PHYSICAL_CONTACT_QUALIFIER_LABEL_KEYS[
       qualifier as PhysicalContactQualifier
-    ][language];
-  return qualifier;
+    ];
+  return key ? t(key, qualifier) : qualifier;
 }
 
 /** Tab order: vertical hierarchy first, then orthogonal categories */
@@ -462,7 +510,7 @@ export const DERIVABLE_RELATIONS: Record<AssetGroup, ReadonlySet<string>> = {
   physical: new Set(["accesses", "damages"]),
   service: new Set(["uses", "depends_on"]),
   human: new Set([
-    "affects_safety",
+    "endangers",
     "affects_privacy",
     "identifies",
     "tracks",
@@ -496,13 +544,13 @@ export const ALLOWED_A2A_RELATIONS: Record<AssetGroup, A2ARelMatrix> = {
     data: ["creates", "reads", "modifies", "deletes"],
     process: ["implemented_by", "triggers"],
     system: ["implemented_by", "depends_on"],
-    human: ["affects_safety", "operated_by"],
+    human: ["endangers", "operated_by"],
   },
   process: {
     process: ["triggers", "depends_on", "suspends"],
     function: ["implements", "invokes"],
     system: ["runs_on", "depends_on"],
-    human: ["affects_safety", "affects_privacy", "operated_by"],
+    human: ["endangers", "affects_privacy", "operated_by"],
     infrastructure: ["hosted_on"],
     environment: ["endangers", "contaminates"],
   },

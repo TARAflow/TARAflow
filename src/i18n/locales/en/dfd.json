@@ -58,28 +58,28 @@
         "required": "Required",
         "atLeastOneSecurityGoal": "At least one security goal required",
         "element": {
-          "missingProperty": "{{elementType}} {{displayId}} — field '{{field}}' must be set"
+          "missingProperty": "{{elementType}} \"{{name}}\": field '{{field}}' must be set"
         },
         "df": {
           "label": {
             "empty": "{{detail}} — empty or unparseable label",
-            "deprecatedVerb": "{{detail}} — deprecated verb, replace 'send'/'recv' with 'push' or 'pull'",
-            "unknownVerb": "{{detail}} — unknown verb (valid: pull, push, write, stream)",
+            "deprecatedVerb": "{{detail}} — deprecated verb \"{{verb}}\", replace 'send'/'recv' with 'push' or 'pull'",
+            "unknownVerb": "{{detail}} — unknown verb \"{{verb}}\" (valid: pull, push, write, stream)",
             "missingObject": "{{detail}} — missing object, expected format '<verb> <object> [<flow-type>]'",
-            "multipleTags": "{{detail}} — only one [flow-type] tag allowed per flow",
-            "synonymVerb": "{{detail}} — not permitted; use 'pull' instead of read/fetch/query, 'push' instead of emit/notify/publish/receive",
-            "objectEmbeddedVerb": "{{detail}} — object must not start with a verb; use a domain-oriented noun instead"
+            "multipleTags": "{{detail}} — only one [flow-type] tag allowed per flow (found: {{tags}})",
+            "synonymVerb": "{{detail}} — \"{{verb}}\" not permitted; use 'pull' instead of read/fetch/query, 'push' instead of emit/notify/publish/receive",
+            "objectEmbeddedVerb": "{{detail}} — object must not start with a verb (found: \"{{verb}}\"); use a domain-oriented noun instead"
           },
           "label_property": {
-            "verb_direction_conflict": "Verb conflicts with flow direction",
-            "tag_frequency_mismatch": "Frequency mismatch — [{{combo}}] expects {{expected}}, got {{got}}",
-            "tag_message_type_mismatch": "Message type mismatch — {{combo}} expects {{expected}}, got {{got}}",
+            "verb_direction_conflict": "Verb \"{{verb}}\" expects direction \"{{expectedDirection}}\", got \"{{gotDirection}}\"",
+            "tag_frequency_mismatch": "Frequency mismatch — [{{combo}}] expects {{expectedFrequency}}, got {{gotFrequency}}",
+            "tag_message_type_mismatch": "Message type mismatch — {{combo}} expects {{expectedMessageType}}, got {{gotMessageType}}",
             "electrical_pull_verb": "Protocol conflict — '{{protocol}}' is unidirectional, pull is not applicable",
             "write_target_not_datastore": "Invalid write target — '{{targetName}}' is a {{targetType}}, expected DataStore"
           },
           "pull": {
             "missingFlowType": "{{detail}} — pull requires a flow-type: [req], [resp], or [req_resp]",
-            "invalidFlowType": "{{detail}} — invalid flow-type for pull (valid: [req], [resp], [req_resp])",
+            "invalidFlowType": "{{detail}} — invalid flow-type \"{{flowType}}\" for pull (valid: [req], [resp], [req_resp])",
             "missingResponse": "{{detail}} — no matching pull [resp] found for this pull [req]",
             "multipleResponses": "{{detail}} — multiple pull [resp] found, expected exactly one",
             "orphanedResponse": "{{detail}} — orphaned pull [resp], no matching pull [req] found"
@@ -87,20 +87,20 @@
           "push": {
             "missingCmd": "{{detail}} — push requires a flow-type: [cmd], [event], or [event_ack]",
             "missingFlowType": "{{detail}} — push requires a flow-type: [cmd], [event], or [event_ack]",
-            "invalidFlowType": "{{detail}} — invalid flow-type for push (valid: [cmd], [event], [event_ack])"
+            "invalidFlowType": "{{detail}} — invalid flow-type \"{{flowType}}\" for push (valid: [cmd], [event], [event_ack])"
           },
           "write": {
-            "redundantFlowType": "{{detail}} — write must not carry a flow-type or annotation"
+            "redundantFlowType": "{{detail}} — write must not carry a flow-type or annotation (found: [{{flowType}}])"
           },
           "stream": {
-            "invalidFlowType": "{{detail}} — invalid flow-type for stream (only [stream] is allowed, or omit entirely)",
-            "logicalAnnotationForbidden": "{{detail}} — stream flows may not use logical annotations ([req_resp], [event_ack] are semantically incompatible with stream)"
+            "invalidFlowType": "{{detail}} — invalid flow-type \"{{flowType}}\" for stream (only [stream] is allowed, or omit entirely)",
+            "logicalAnnotationForbidden": "{{detail}} — stream flows may not use logical annotations ([{{flowType}}] is semantically incompatible with stream)"
           },
           "reqResp": {
-            "duplicateCoverage": "{{detail}} — [req_resp] coexists with an explicit [req] or [resp] on the same interaction; remove one to avoid duplicate threat coverage"
+            "duplicateCoverage": "{{detail}} — [req_resp] coexists with {{conflictDisplayId}} \"{{conflictDetail}}\" on the same interaction; remove one to avoid duplicate threat coverage"
           },
           "eventAck": {
-            "duplicateCoverage": "{{detail}} — [event_ack] coexists with an explicit [event] on the same flow; remove one to avoid duplicate threat coverage"
+            "duplicateCoverage": "{{detail}} — [event_ack] coexists with {{conflictDisplayId}} \"{{conflictDetail}}\" on the same flow; remove one to avoid duplicate threat coverage"
           },
           "object": {
             "forbiddenTerm": "{{detail}} — object contains a transport or encoding term ({{terms}}); use a domain-oriented name instead"
@@ -117,6 +117,9 @@
             "continuousUseStream": "{{detail}} — continuous push/pull detected, consider using 'stream' instead",
             "excludeMissingRationale": "DataFlow {{detail}} — excluded from threat generation without rationale — add an exclusion rationale for IEC 62443-4-1 audit trail",
             "protocolMissing": "{{detail}} — transport protocol not specified; treat as unknown/highest risk for threat analysis"
+          },
+          "physical": {
+            "missingCoupling": "physical coupling {{detail}}: couplingMode/stimulusDomain missing"
           }
         },
         "label_property": {}
@@ -152,6 +155,63 @@
         "process": "Process",
         "infrastructure": "Infrastructure",
         "human": "Human"
+      },
+      "elementTypes": {
+        "ExternalEntity": {
+          "name": "External Entity",
+          "plural": "External Entities",
+          "description": "User, external system or device"
+        },
+        "Process": {
+          "name": "Process",
+          "plural": "Processes",
+          "description": "Processes or transforms data"
+        },
+        "Multiprocess": {
+          "name": "Multiprocess",
+          "plural": "Multiprocesses",
+          "description": "Multiple instances of a process"
+        },
+        "DataStore": {
+          "name": "Data Store",
+          "plural": "Data Stores",
+          "description": "Database, file or registry"
+        },
+        "DataFlow": {
+          "name": "Data Flow",
+          "plural": "Data Flows",
+          "description": "Data transfer between elements"
+        },
+        "TrustBoundary": {
+          "name": "Trust Boundary",
+          "plural": "Trust Boundaries",
+          "description": "Boundary between trust zones"
+        },
+        "Interface": {
+          "name": "Interface",
+          "plural": "Interfaces",
+          "description": "Physical/logical interface (USB, UART, Ethernet, etc.)"
+        },
+        "ChipBoundary": {
+          "name": "Chip Boundary",
+          "plural": "Chip Boundaries",
+          "description": "Hardware chip boundary — MCU, SOM, FPGA, SE, HSM, DSP"
+        },
+        "PhysicalBoundary": {
+          "name": "Physical Boundary",
+          "plural": "Physical Boundaries",
+          "description": "Spatial physical access barrier — enclosure, cabinet, room, building"
+        },
+        "Sensor": {
+          "name": "Sensor",
+          "plural": "Sensors",
+          "description": "Transducer — converts a physical quantity into a signal"
+        },
+        "Actuator": {
+          "name": "Actuator",
+          "plural": "Actuators",
+          "description": "Transducer — converts a command into a physical effect"
+        }
       },
       "element_description": {
         "title": "Element Descriptions",
@@ -211,6 +271,11 @@
           "below_tb_hint": "Below Trust Boundary EL — override requires rationale",
           "rationale_label": "Override Rationale",
           "rationale_placeholder": "Why does this differ from the Trust Boundary EL?",
+          "el0_label": "EL0 – Internal",
+          "el1_label": "EL1 – Physical",
+          "el2_label": "EL2 – Local",
+          "el3_label": "EL3 – Adjacent",
+          "el4_label": "EL4 – Public",
           "el0_description": "Inside the machine enclosure, no external access possible",
           "el1_description": "Physical access required (USB, serial port, locked cabinet)",
           "el2_description": "Local network segment (fieldbus, Ethernet, LAN)",
@@ -218,6 +283,11 @@
           "el4_description": "Internet-exposed, untrusted public network"
         },
         "physical_exposure_level": {
+          "pel0_label": "PEL0 – Inaccessible",
+          "pel1_label": "PEL1 – Deep Internal",
+          "pel2_label": "PEL2 – Internal",
+          "pel3_label": "PEL3 – Surface Accessible",
+          "pel4_label": "PEL4 – Exposed",
           "pel0_description": "PEL0 – Inaccessible: No practical physical access without destruction — potted, welded, or chip-decap required. No meaningful attack surface from physical side.",
           "pel1_description": "PEL1 – Deep Internal: Multiple physical barriers must be overcome — e.g. JTAG behind two nested enclosures, or inside a locked sub-module inside a locked cabinet.",
           "pel2_description": "PEL2 – Internal: One physical barrier to bypass — open enclosure, unlock cabinet, remove screws. Tool or key access required. e.g. LAN port inside device housing.",
@@ -1569,7 +1639,10 @@
             },
             "containsSafetyRelevantData": {
               "label": "Contains safety-relevant configuration data (EN 50742)",
-              "options": { "yes": "Yes", "no": "No" }
+              "options": {
+                "yes": "Yes",
+                "no": "No"
+              }
             },
             "safetyRationale": {
               "label": "Safety Rationale",
@@ -1662,7 +1735,10 @@
             },
             "monitoringEnabled": {
               "label": "Monitoring / Logging Enabled",
-              "options": { "yes": "Yes", "no": "No" }
+              "options": {
+                "yes": "Yes",
+                "no": "No"
+              }
             },
             "securityAssumptions": {
               "label": "Security Assumptions",
@@ -1923,11 +1999,17 @@
             },
             "requiresToolAccess": {
               "label": "Requires tool access to open (screwdriver, hex key)",
-              "options": { "yes": "Yes", "no": "No" }
+              "options": {
+                "yes": "Yes",
+                "no": "No"
+              }
             },
             "safetyRelevant": {
               "label": "Protects safety-relevant hardware or functions",
-              "options": { "yes": "Yes", "no": "No" }
+              "options": {
+                "yes": "Yes",
+                "no": "No"
+              }
             },
             "safetyRationale": {
               "label": "Safety Rationale",
@@ -1959,11 +2041,301 @@
             },
             "debugInterfaceAccessible": {
               "label": "Debug / programming port physically accessible (JTAG, SWD, UART)",
-              "options": { "yes": "Yes", "no": "No" }
+              "options": {
+                "yes": "Yes",
+                "no": "No"
+              }
             },
             "removableMediaAccessible": {
               "label": "Removable media physically accessible (USB, SD card)",
-              "options": { "yes": "Yes", "no": "No" }
+              "options": {
+                "yes": "Yes",
+                "no": "No"
+              }
+            }
+          }
+        },
+        "sensor": {
+          "fields": {
+            "type": {
+              "label": "Device kind",
+              "placeholder": "e.g. PT100, MEMS accelerometer"
+            },
+            "measurand": {
+              "label": "Measurand",
+              "options": {
+                "temperature": "Temperature",
+                "pressure": "Pressure",
+                "position": "Position",
+                "velocity": "Velocity",
+                "flow": "Flow",
+                "optical": "Optical",
+                "acoustic": "Acoustic",
+                "chemical": "Chemical",
+                "electrical": "Electrical",
+                "other": "Other",
+                "unspecified": "Unspecified"
+              }
+            },
+            "transductionPrinciple": {
+              "label": "Transduction principle",
+              "options": {
+                "capacitive": "Capacitive",
+                "resistive": "Resistive",
+                "piezoelectric": "Piezoelectric",
+                "magnetic": "Magnetic",
+                "optical": "Optical",
+                "mems_inertial": "MEMS inertial",
+                "ultrasonic": "Ultrasonic",
+                "electrochemical": "Electrochemical",
+                "thermal": "Thermal",
+                "other": "Other",
+                "unspecified": "Unspecified"
+              }
+            },
+            "stimulusDomain": {
+              "label": "Stimulus domain",
+              "options": {
+                "rf": "RF",
+                "optical": "Optical",
+                "acoustic": "Acoustic",
+                "magnetic": "Magnetic",
+                "electric_field": "Electric field",
+                "chemical": "Chemical",
+                "mechanical": "Mechanical",
+                "thermal": "Thermal",
+                "other": "Other"
+              }
+            },
+            "sensingExposure": {
+              "label": "Sensing exposure",
+              "options": {
+                "shielded": "Shielded",
+                "partially_exposed": "Partially exposed",
+                "exposed": "Exposed"
+              }
+            },
+            "location": {
+              "label": "Location",
+              "options": {
+                "internal": "Internal",
+                "external": "External",
+                "boundary_spanning": "Boundary-spanning"
+              },
+              "auto": "Auto (derived)",
+              "derivedHint": "Derived from PhysicalBoundary containment",
+              "overridden": "Overridden — clear to return to auto"
+            },
+            "physicalExposureLevel": {
+              "label": "Physical exposure (tamper)"
+            },
+            "secondaryChannelCapabilities": {
+              "label": "Secondary channels",
+              "options": {
+                "calibration": "Calibration",
+                "config": "Config",
+                "diagnostics": "Diagnostics",
+                "firmware_update": "Firmware update",
+                "health_status": "Health status"
+              }
+            },
+            "signalAuthentication": {
+              "label": "Signal authentication",
+              "options": {
+                "none": "None",
+                "plausibility_only": "Plausibility only",
+                "source_authenticated": "Source-authenticated",
+                "cryptographic": "Cryptographic"
+              }
+            },
+            "plausibilityCheck": {
+              "label": "Plausibility check",
+              "options": {
+                "none": "None",
+                "range": "Range",
+                "range_rate": "Range + rate",
+                "model_based": "Model-based"
+              }
+            },
+            "redundancy": {
+              "label": "Redundancy",
+              "options": {
+                "none": "None",
+                "homogeneous": "Homogeneous",
+                "diverse": "Diverse"
+              }
+            },
+            "lossDetection": {
+              "label": "Loss detection",
+              "options": {
+                "none": "None",
+                "detected_degraded": "Detected (degraded)",
+                "detected_failsafe": "Detected (fail-safe)"
+              }
+            },
+            "safetyRelevant": {
+              "label": "Safety relevant"
+            },
+            "safetyClassification": {
+              "label": "Safety classification",
+              "options": {
+                "unassessed": "Unassessed",
+                "minor": "Minor",
+                "major": "Major",
+                "severe": "Severe",
+                "catastrophic": "Catastrophic"
+              }
+            },
+            "safetyRationale": {
+              "label": "Safety rationale"
+            },
+            "owner": {
+              "label": "Owner",
+              "placeholder": "Team or person responsible"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
+            }
+          }
+        },
+        "actuator": {
+          "fields": {
+            "type": {
+              "label": "Device kind",
+              "placeholder": "e.g. ball valve, BLDC servo, contactor"
+            },
+            "actuatorClass": {
+              "label": "Actuator class",
+              "options": {
+                "motion": "Motion",
+                "flow": "Flow",
+                "power_switching": "Power switching",
+                "thermal": "Thermal",
+                "emission": "Emission",
+                "dispensing": "Dispensing",
+                "signaling": "Signaling",
+                "other": "Other",
+                "unspecified": "Unspecified"
+              }
+            },
+            "energyDomain": {
+              "label": "Energy domain",
+              "options": {
+                "electrical": "Electrical",
+                "hydraulic": "Hydraulic",
+                "pneumatic": "Pneumatic",
+                "thermal": "Thermal",
+                "mechanical": "Mechanical",
+                "other": "Other",
+                "unspecified": "Unspecified"
+              }
+            },
+            "location": {
+              "label": "Location",
+              "options": {
+                "internal": "Internal",
+                "external": "External",
+                "boundary_spanning": "Boundary-spanning"
+              },
+              "auto": "Auto (derived)",
+              "derivedHint": "Derived from PhysicalBoundary containment",
+              "overridden": "Overridden — clear to return to auto"
+            },
+            "physicalExposureLevel": {
+              "label": "Physical exposure (tamper)"
+            },
+            "secondaryChannelCapabilities": {
+              "label": "Secondary channels",
+              "options": {
+                "calibration": "Calibration",
+                "config": "Config",
+                "diagnostics": "Diagnostics",
+                "firmware_update": "Firmware update",
+                "health_status": "Health status"
+              }
+            },
+            "commandAuthentication": {
+              "label": "Command authentication",
+              "options": {
+                "none": "None",
+                "integrity_checked": "Integrity-checked",
+                "source_authenticated": "Source-authenticated",
+                "cryptographic": "Cryptographic"
+              }
+            },
+            "hardwareInterlock": {
+              "label": "Hardware interlock",
+              "options": {
+                "none": "None",
+                "sw_bypassable": "SW-bypassable",
+                "independent": "Independent"
+              }
+            },
+            "hazardPotential": {
+              "label": "Hazard potential",
+              "options": {
+                "unassessed": "Unassessed",
+                "informational": "Informational",
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High",
+                "catastrophic": "Catastrophic"
+              }
+            },
+            "safeState": {
+              "label": "Safe state",
+              "options": {
+                "none_defined": "None defined",
+                "de_energize_to_safe": "De-energize to safe",
+                "energize_to_safe": "Energize to safe",
+                "hold_last": "Hold last value"
+              }
+            },
+            "failBehavior": {
+              "label": "Fail behavior",
+              "options": {
+                "unassessed": "Unassessed",
+                "fail_dangerous": "Fail-dangerous",
+                "fail_safe": "Fail-safe",
+                "fail_operational": "Fail-operational"
+              }
+            },
+            "feedbackVerification": {
+              "label": "Feedback verification",
+              "options": {
+                "none": "None",
+                "closed_loop_shared": "Closed-loop (shared)",
+                "closed_loop_independent": "Closed-loop (independent)"
+              }
+            },
+            "safetyRelevant": {
+              "label": "Safety relevant"
+            },
+            "safetyClassification": {
+              "label": "Safety classification",
+              "options": {
+                "unassessed": "Unassessed",
+                "minor": "Minor",
+                "major": "Major",
+                "severe": "Severe",
+                "catastrophic": "Catastrophic"
+              }
+            },
+            "safetyRationale": {
+              "label": "Safety rationale"
+            },
+            "owner": {
+              "label": "Owner",
+              "placeholder": "Team or person responsible"
+            },
+            "notes": {
+              "label": "Notes"
+            },
+            "description": {
+              "label": "Description"
             }
           }
         },
@@ -2119,7 +2491,12 @@
     "physicalBoundaryInvalidConnection": "Physical Boundary is non-connectable — use an Interface element on the boundary edge instead",
     "interfaceNoPhysicalBoundary": "Interface has no physical context — it must overlap or lie inside a Physical Boundary",
     "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" declares a {{detail}} debug interface but no matching Interface element overlaps it — the debug port is not modelled as an attack surface",
-    "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": connector type \"{{targetType}}\" is not valid for a {{targetName}} interface",
+    "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": connector type \"{{connectorType}}\" is not valid for a {{interfaceType}} interface",
+    "sensorInvalidConnection": "Sensor cannot connect to {{targetType}} ({{name}})",
+    "actuatorInvalidConnection": "Actuator cannot connect to {{targetType}} ({{name}})",
+    "transducerEeNotPhysical": "{{type}} at an ExternalEntity must use medium=physical ({{name}})",
+    "transducerPhysicalMediumInvalidEndpoint": "physical coupling (medium=physical) is only valid towards an ExternalEntity, not {{targetType}} ({{name}})",
+    "transducerNoPhysicalCoupling": "{{type}} '{{name}}' has no physical coupling (medium=physical to an ExternalEntity) modelled",
     "elementTypes": {
       "Process": "Process",
       "Multiprocess": "Multiprocess",
@@ -2132,6 +2509,8 @@
       "PhysicalBoundary": "Physical Boundary",
       "Flash": "Data Store",
       "DataFlow": "Data Flow",
+      "Sensor": "Sensor",
+      "Actuator": "Actuator",
       "rj45": "RJ45",
       "sfp": "SFP/SFP+",
       "m12": "M12",
@@ -2146,6 +2525,130 @@
       "gpio_header": "GPIO Header",
       "pcie": "PCIe",
       "custom": "Custom"
+    },
+    "internalError": "Validation error: {{message}}"
+  },
+  "levels": {
+    "security": {
+      "none": "None",
+      "public": "Public",
+      "internal": "Internal",
+      "confidential": "Confidential",
+      "secret": "Secret"
+    },
+    "trust": {
+      "trusted": "Trusted",
+      "untrusted": "Untrusted",
+      "unknown": "Unknown"
+    }
+  },
+  "assets": {
+    "relations": {
+      "element": {
+        "data": {
+          "creates": "Creates",
+          "reads": "Reads",
+          "modifies": "Modifies",
+          "deletes": "Deletes",
+          "stores": "Stores",
+          "transports": "Transports",
+          "is_an": "Is an instance of"
+        },
+        "function": {
+          "executes": "Executes",
+          "invokes": "Invokes",
+          "implements": "Implements",
+          "monitors": "Monitors",
+          "depends_on": "Depends on",
+          "is_an": "Is an instance of"
+        },
+        "process": {
+          "executes": "Executes",
+          "invokes": "Invokes",
+          "terminates": "Terminates",
+          "suspends": "Suspends",
+          "monitors": "Monitors",
+          "is_an": "Is an instance of"
+        },
+        "system": {
+          "controls": "Controls",
+          "configures": "Configures",
+          "monitors": "Monitors",
+          "uses": "Uses",
+          "depends_on": "Depends on",
+          "is_an": "Is an instance of"
+        },
+        "infrastructure": {
+          "accesses": "Accesses",
+          "secures": "Secures",
+          "damages": "Damages",
+          "powers": "Powers",
+          "monitors": "Monitors",
+          "is_an": "Is an instance of"
+        },
+        "physical": {
+          "accesses": "Accesses",
+          "damages": "Damages",
+          "secures": "Secures",
+          "monitors": "Monitors",
+          "is_an": "Is an instance of"
+        },
+        "service": {
+          "uses": "Uses",
+          "configures": "Configures",
+          "monitors": "Monitors",
+          "depends_on": "Depends on",
+          "is_an": "Is an instance of"
+        },
+        "human": {
+          "endangers": "Endangers",
+          "affects_safety": "Affects safety",
+          "affects_privacy": "Affects privacy",
+          "identifies": "Identifies",
+          "tracks": "Tracks",
+          "exposes": "Exposes",
+          "is_an": "Is an instance of"
+        },
+        "environment": {
+          "endangers": "Endangers",
+          "monitors": "Monitors",
+          "contaminates": "Contaminates",
+          "is_an": "Is an instance of"
+        }
+      },
+      "qualifiers": {
+        "system": {
+          "hardware": "Hardware access",
+          "library": "Library/SDK",
+          "network": "Network access",
+          "local": "Local access",
+          "authentication": "Authentication",
+          "authorization": "Authorization",
+          "api": "API",
+          "storage": "Storage",
+          "computation": "Computation",
+          "messaging": "Messaging",
+          "configuration": "Configuration",
+          "monitoring": "Monitoring",
+          "networking": "Networking"
+        },
+        "service": {
+          "api": "API (REST/SOAP/gRPC)",
+          "sdk": "SDK / Library",
+          "webhook": "Webhook (event-based)",
+          "managed": "Managed (no API access)"
+        },
+        "infrastructure": {
+          "on-site": "On-site (premises/facility)",
+          "proximity": "Proximity (RFID/WiFi range)",
+          "internal": "Internal (enclosure interior)"
+        },
+        "physical": {
+          "direct": "Direct contact (hands-on)",
+          "indirect": "Proximity / sensor",
+          "remote": "Remote (networked component)"
+        }
+      }
     }
   }
 }

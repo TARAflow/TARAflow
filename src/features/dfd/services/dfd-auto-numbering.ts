@@ -7,14 +7,16 @@
  *       Multiple A-001 labels can reference the same asset
  */
 export const ELEMENT_PREFIXES: Record<string, string> = {
-  process: 'P-',
-  multiprocess: 'MP-',
-  dataflow: 'DF-',
-  datastorage: 'DS-',
-  datastore: 'DS-',
-  externalentity: 'EE-',
+  process: "P-",
+  multiprocess: "MP-",
+  dataflow: "DF-",
+  datastorage: "DS-",
+  datastore: "DS-",
+  externalentity: "EE-",
   // asset: excluded - Assets are references, multiple can have same ID
-  interface: 'IF-',
+  interface: "IF-",
+  sensor: "SE-",
+  actuator: "AC-",
 };
 
 /**
@@ -333,6 +335,8 @@ export class DFDAutoNumbering {
       "externalentity",
       // 'asset' excluded - Assets are references
       "interface",
+      "sensor",
+      "actuator",
     ];
     return validTypes.includes(type.toLowerCase());
   }

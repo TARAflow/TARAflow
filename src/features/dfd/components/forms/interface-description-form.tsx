@@ -30,13 +30,13 @@ import {
 } from "@mui/material";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
+import type { InterfaceProperties } from "../../models/element-properties";
 import type {
-  InterfaceProperties,
   ExposureLevel,
   InterfaceLocation,
-} from "../../models/element-properties";
+} from "../../models/element-shared-types";
 import {
-  EXPOSURE_LEVEL_LABELS,
+  EXPOSURE_LEVEL_LABEL_KEYS,
   EXPOSURE_LEVEL_DESCRIPTION_KEYS,
 } from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
@@ -461,7 +461,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                       <span
                         style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
                       >
-                        {EXPOSURE_LEVEL_LABELS[value as ExposureLevel]}
+                        {EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel]}
                       </span>
                       {isDefault && (
                         <Chip
@@ -507,7 +507,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                             alignItems="center"
                             spacing={0.5}
                           >
-                            <span>{EXPOSURE_LEVEL_LABELS[el]}</span>
+                            <span>{EXPOSURE_LEVEL_LABEL_KEYS[el]}</span>
                             {defaultExposureLevel &&
                               el === defaultExposureLevel && (
                                 <Chip

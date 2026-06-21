@@ -19,7 +19,7 @@
 import { useMemo } from "react";
 import type { ControlInstance } from "shared/models/control-instance";
 import type { DFDData } from "features/dfd/models/dfd-types";
-import type { SecurityControlRecord } from "features/dfd/models/element-properties";
+import type { SecurityControlRecord } from "features/dfd/models/element-shared-types";
 
 // ==================== TYPES ====================
 

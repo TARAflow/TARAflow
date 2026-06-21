@@ -41,7 +41,8 @@
     "collapse": "Collapse",
     "notApplicable": "N/A – Not applicable",
     "not_specified": "Not specified",
-    "incomplete_fields": "Incomplete fields"
+    "incomplete_fields": "Incomplete fields",
+    "unassessed": "Unassessed"
   },
   "project": {
     "title": "Project",
@@ -390,7 +391,8 @@
       "process": "Process",
       "physical": "Physical",
       "service": "Service",
-      "human": "People"
+      "human": "People",
+      "environment": "Environment"
     },
     "relations": {
       "element": {

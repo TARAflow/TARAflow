@@ -29,12 +29,10 @@ import {
 } from "@mui/material";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
-import type {
-  ChipBoundaryProperties,
-  ExposureLevel,
-} from "../../models/element-properties";
+import type { ChipBoundaryProperties } from "../../models/element-properties";
+import type { ExposureLevel } from "../../models/element-shared-types";
 import {
-  EXPOSURE_LEVEL_LABELS,
+  EXPOSURE_LEVEL_LABEL_KEYS,
   EXPOSURE_LEVEL_DESCRIPTION_KEYS,
 } from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
@@ -230,7 +228,7 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                 defaultValue: "Exposure Level",
               })}
               renderValue={(value) =>
-                value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
+                value ? EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel] : ""
               }
             >
               <MenuItem value="">
@@ -248,7 +246,7 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                     arrow
                   >
                     <span style={{ width: "100%", display: "block" }}>
-                      {EXPOSURE_LEVEL_LABELS[el]}
+                      {EXPOSURE_LEVEL_LABEL_KEYS[el]}
                     </span>
                   </Tooltip>
                 </MenuItem>
@@ -291,7 +289,14 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                 </em>
               </MenuItem>
               {(
-                ["none", "jtag", "swd", "swd_swo", "jtag_trace", "custom"] as const
+                [
+                  "none",
+                  "jtag",
+                  "swd",
+                  "swd_swo",
+                  "jtag_trace",
+                  "custom",
+                ] as const
               ).map((opt) => (
                 <MenuItem key={opt} value={opt}>
                   <Tooltip
@@ -525,8 +530,7 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                   {t(
                     `tabs.dfd.element_description.chipboundary.fields.supplyChainTrust.options.${opt}`,
                     {
-                      defaultValue:
-                        opt.charAt(0).toUpperCase() + opt.slice(1),
+                      defaultValue: opt.charAt(0).toUpperCase() + opt.slice(1),
                     },
                   )}
                 </MenuItem>
@@ -544,20 +548,34 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                 }
               />
             }
-            label={t("tabs.dfd.element_description.chipboundary.fields.safetyRelevant.label",
-              { defaultValue: "Safety-relevant hardware" })}
+            label={t(
+              "tabs.dfd.element_description.chipboundary.fields.safetyRelevant.label",
+              { defaultValue: "Safety-relevant hardware" },
+            )}
           />
 
           {props.safetyRelevant && (
             <TextField
-              fullWidth size="small" multiline rows={2}
-              label={t("tabs.dfd.element_description.chipboundary.fields.safetyRationale.label",
-                { defaultValue: "Safety Rationale" })}
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              label={t(
+                "tabs.dfd.element_description.chipboundary.fields.safetyRationale.label",
+                { defaultValue: "Safety Rationale" },
+              )}
               value={props.safetyRationale ?? ""}
-              onChange={(e) => form.handlePropertyChange("safetyRationale", e.target.value)}
+              onChange={(e) =>
+                form.handlePropertyChange("safetyRationale", e.target.value)
+              }
               placeholder="e.g. SIL-2 certified MCU controlling emergency stop function"
-              helperText={t("tabs.dfd.element_description.chipboundary.fields.safetyRationale.helper",
-                { defaultValue: "Required for EN 50742 / MVO 2027 documentation" })}
+              helperText={t(
+                "tabs.dfd.element_description.chipboundary.fields.safetyRationale.helper",
+                {
+                  defaultValue:
+                    "Required for EN 50742 / MVO 2027 documentation",
+                },
+              )}
             />
           )}
 

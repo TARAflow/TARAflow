@@ -109,7 +109,6 @@ export interface UseDFDEditorReturn {
   flushDebouncedSave: () => void;
 
   // Completion
-  canProceed: boolean;
   graphContext: DFDGraph | null;
 
   /** Send XML to draw.io without persisting — for transient overlay only. */
@@ -495,7 +494,6 @@ export function useDFDEditor(
     flushDebouncedSave: persistence.flush,
 
     // Completion
-    canProceed: completion.canProceed,
     elements: data.dfd?.elements ?? [],
     connections: data.dfd?.connections ?? [],
 

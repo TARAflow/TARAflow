@@ -71,6 +71,7 @@ interface DFDDetailsPanelProps {
   onClearAllVisibility?: () => void;
 
   graphContext?: DFDGraphAnalysisContext | null;
+  selectedAssetId?: string | null;
 }
 
 // ==================== COMPONENT ====================
@@ -96,6 +97,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onAssetVisibilityChange,
   onClearAllVisibility,
   graphContext,
+  selectedAssetId,
 }) => {
   const { t } = useTranslation();
 
@@ -113,6 +115,12 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
       setActiveTab("assets");
     }
   }, [hasSelection]);
+
+  useEffect(() => {
+    if (selectedAssetId) {
+      setActiveTab("assets");
+    }
+  }, [selectedAssetId]);
 
   const displayId = element?.displayId ?? connection?.displayId;
   const name = element?.name ?? connection?.name;
@@ -312,6 +320,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   elements={elements}
                   connections={connections}
                   visibility={assetVisibility}
+                  selectedAssetId={selectedAssetId}
                   onVisibilityChange={onAssetVisibilityChange ?? (() => {})}
                   onAssetChange={onAssetChange ?? (() => {})}
                   onCreateAsset={onCreateAssetForGroup}

@@ -45,7 +45,7 @@ import {
   DFDUpdateResult,
   DFDGraphAnalysisContext,
 } from "features/dfd";
-import { addCreatedAssets } from "features/dfd";
+import { addCreatedAssets, translateFinding } from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
@@ -186,20 +186,28 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── General tab ───────────────────────────────────────────────────────────
 
-  const generalTabData: GeneralTabData | undefined = activeProject?.info
-    ? {
-        info: activeProject.info,
-        settings: activeProject.settings,
-        phaseStatus: activeProject.phaseStatus,
-        dfdValidation: activeProject.dfd?.validation
-          ? {
-              valid: activeProject.dfd.validation.errors.length === 0,
-              errors: activeProject.dfd.validation.errors,
-              warnings: activeProject.dfd.validation.warnings,
-            }
-          : undefined,
-      }
-    : undefined;
+    const generalTabData: GeneralTabData | undefined = activeProject?.info
+      ? {
+          info: activeProject.info,
+          settings: activeProject.settings,
+          phaseStatus: activeProject.phaseStatus,
+          dfdValidation: activeProject.dfd?.validation
+            ? {
+                valid: activeProject.dfd.validation.errors.length === 0,
+                // GeneralTabData.dfdValidation uses the generic, string-based
+                // ValidationResult (common-types.ts) — it's a plain summary
+                // widget, not the interactive DFD notification panel, so it
+                // doesn't need displayId/elementId, just translated text.
+                errors: activeProject.dfd.validation.errors.map((f) =>
+                  translateFinding(t, f),
+                ),
+                warnings: activeProject.dfd.validation.warnings.map((f) =>
+                  translateFinding(t, f),
+                ),
+              }
+            : undefined,
+        }
+      : undefined;
 
   const handleGeneralTabUpdate = useCallback(
     (data: GeneralTabData) => {

@@ -5,6 +5,7 @@ import type {
   DFDElement,
   DFDConnection,
   DFDStats,
+  ValidationFinding,
 } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import { ValidationMessages } from "./validator-utils";
@@ -18,8 +19,8 @@ export function isComplete(
   connections: DFDConnection[],
   assets: DFDAsset[],
   stats: DFDStats,
-  errors: string[],
-  warnings: string[]
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): boolean {
   // Complete if no errors and all elements/connections/assets are described
   return (
@@ -65,8 +66,8 @@ export function validateScenario(
   elements: DFDElement[],
   connections: DFDConnection[],
   stats: DFDStats,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
   graph?: DFDGraph,
 ): "A" | "B" | "C" | null {
   const hasExternalEntities = stats.externalEntities > 0;
@@ -99,7 +100,7 @@ export function validateScenario(
   // Without at least one boundary (TB or PB), STRIDE/TARA cannot work meaningfully:
   // there is no modelled attack surface, no physical access context, and no
   // trust change to analyze. Scenario D is intentionally not supported.
-  errors.push(ValidationMessages.NO_TRUST_BOUNDARY);
+  errors.push({ key: ValidationMessages.NO_TRUST_BOUNDARY });
   return null;
 }
 
@@ -110,13 +111,13 @@ function validateScenarioA(
   elements: DFDElement[],
   connections: DFDConnection[],
   stats: DFDStats,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
   graph?: DFDGraph,
 ): void {
   // 1. ≥ 1 Trust Boundary
   if (stats.trustBoundaries === 0) {
-    errors.push(ValidationMessages.NO_TRUST_BOUNDARY);
+    errors.push({ key: ValidationMessages.NO_TRUST_BOUNDARY });
     return;
   }
 
@@ -126,7 +127,7 @@ function validateScenarioA(
   const internalElementCount =
     stats.processes + stats.multiprocesses + stats.dataStores;
   if (internalElementCount === 0) {
-    errors.push(ValidationMessages.NO_PROCESS_OR_DATASTORE);
+    errors.push({ key: ValidationMessages.NO_PROCESS_OR_DATASTORE });
     return;
   }
 
@@ -144,7 +145,7 @@ function validateScenarioA(
   });
 
   if (!hasElementInsideTB) {
-    errors.push(ValidationMessages.NO_ELEMENT_INSIDE_TB);
+    errors.push({ key: ValidationMessages.NO_ELEMENT_INSIDE_TB });
   }
 
   // 4. External Entity should be OUTSIDE all Trust Boundaries
@@ -156,9 +157,12 @@ function validateScenarioA(
 
   if (externalInsideTB.length > 0) {
     externalInsideTB.forEach((ext) => {
-      warnings.push(
-        `${ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB}:${ext.name || ext.id}`,
-      );
+      warnings.push({
+        key: ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB,
+        displayId: ext.displayId,
+        elementId: ext.id,
+        params: { name: ext.name || ext.id },
+      });
     });
   }
 
@@ -169,12 +173,12 @@ function validateScenarioA(
   );
 
   if (!hasInternalExternalFlow) {
-    errors.push(ValidationMessages.NO_INTERNAL_EXTERNAL_FLOW);
+    errors.push({ key: ValidationMessages.NO_INTERNAL_EXTERNAL_FLOW });
   }
 
   // Optional warnings
   if (stats.dataFlows === 0) {
-    warnings.push(ValidationMessages.NO_DATAFLOWS);
+    warnings.push({ key: ValidationMessages.NO_DATAFLOWS });
   }
 }
 
@@ -189,8 +193,8 @@ function validateScenarioB(
   elements: DFDElement[],
   connections: DFDConnection[],
   stats: DFDStats,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
   graph?: DFDGraph,
 ): void {
   const trustBoundaries = elements.filter((e) => e.type === "TrustBoundary");
@@ -212,7 +216,12 @@ function validateScenarioB(
 
   if (emptyBoundaries.length > 0) {
     emptyBoundaries.forEach((tb) => {
-      errors.push(`${ValidationMessages.EMPTY_TRUST_BOUNDARY}:${tb.name}`);
+      errors.push({
+        key: ValidationMessages.EMPTY_TRUST_BOUNDARY,
+        displayId: tb.displayId,
+        elementId: tb.id,
+        params: { name: tb.name },
+      });
     });
   }
 
@@ -225,7 +234,7 @@ function validateScenarioB(
   });
 
   if (!hasCrossBoundaryFlow) {
-    errors.push(ValidationMessages.NO_CROSS_BOUNDARY_FLOW);
+    errors.push({ key: ValidationMessages.NO_CROSS_BOUNDARY_FLOW });
   }
 
   // Advisory: elements outside all TBs (not an error — partial models are valid)
@@ -243,9 +252,12 @@ function validateScenarioB(
 
   if (elementsOutside.length > 0) {
     elementsOutside.forEach((element) => {
-      warnings.push(
-        `${ValidationMessages.ELEMENT_OUTSIDE_ALL_TB}:${element.name}`,
-      );
+      warnings.push({
+        key: ValidationMessages.ELEMENT_OUTSIDE_ALL_TB,
+        displayId: element.displayId,
+        elementId: element.id,
+        params: { type: element.type, name: element.name },
+      });
     });
   }
 }
@@ -268,23 +280,23 @@ function validateScenarioC(
   elements: DFDElement[],
   connections: DFDConnection[],
   stats: DFDStats,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   const hasProcess = stats.processes > 0 || stats.multiprocesses > 0;
   if (!hasProcess) {
-    errors.push(ValidationMessages.NO_PROCESS_OR_DATASTORE);
+    errors.push({ key: ValidationMessages.NO_PROCESS_OR_DATASTORE });
     return;
   }
 
   if (stats.dataFlows === 0) {
-    warnings.push(ValidationMessages.NO_DATAFLOWS);
+    warnings.push({ key: ValidationMessages.NO_DATAFLOWS });
   }
 
   // Advisory: no Interface means no modelled attacker entry point via the PB
   const hasInterface = elements.some((e) => e.type === "Interface");
   if (!hasInterface) {
-    warnings.push(ValidationMessages.INTERFACE_UNUSED);
+    warnings.push({ key: ValidationMessages.INTERFACE_UNUSED });
   }
 }
 

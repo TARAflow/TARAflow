@@ -31,6 +31,7 @@ import { useElementForm } from "../../hooks/use-element-form";
 import {
   updateProcessProperties,
   getProcessDefaults,
+  isEmbeddedTechnology,
 } from "../../models/element-property-defaults";
 
 interface ProcessFormProps {
@@ -56,16 +57,6 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
     <Divider sx={{ mt: 0.5, mb: 2 }} />
   </Box>
 );
-
-const EMBEDDED_TECHNOLOGIES = new Set([
-  "rtos_task",
-  "bare_metal",
-  "isr",
-  "state_machine",
-  "bootloader",
-  "driver",
-  "protocol_stack",
-]);
 
 const EMBEDDED_RUNSAS_TOOLTIP =
   "Not applicable — embedded/bare-metal processes have no OS user context";
@@ -112,7 +103,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
   const form = useElementForm<ProcessProperties>(element, onChange);
   const { props } = form;
 
-  const isEmbedded = EMBEDDED_TECHNOLOGIES.has(props.technology ?? "");
+  const isEmbedded = isEmbeddedTechnology(props.technology);
 
   const handlePropertyChange = useCallback(
     (field: keyof ProcessProperties, value: unknown) => {

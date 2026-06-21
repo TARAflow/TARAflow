@@ -1,75 +1,74 @@
 // ==================== DFD FORMATTERS ====================
 // Formatting and text display functions for DFD elements.
-// Single Responsibility: convert enum/type values to human-readable text.
+// Single Responsibility: resolve enum/type values to human-readable text via i18n.
+// No hardcoded language strings — every label comes from a translate function.
 
 import type { TFunction } from "i18next";
 import type { DFDElementType, SecurityLevel, TrustLevel } from "./dfd-types";
 import type { AssetGroup, A2ARelationType } from "shared";
-import { DFD_ELEMENT_CONFIG } from "./dfd-constants";
 import { ASSET_GROUP_CONFIG, AnyAssetRelationType } from "shared";
 
+/**
+ * Minimal translate signature: `(key, defaultValue?) => string`.
+ * Deliberately narrower than i18next's `TFunction` so that BOTH worlds satisfy it:
+ *  - the UI passes the real i18next `t` (a `TFunction`, assignable to this);
+ *  - the document generator passes its own `TranslationFn` (structurally identical).
+ * Call as `t(key, "default")` — the string default works for both.
+ */
+export type TranslateFn = (key: string, defaultValue?: string) => string;
+
+// Kept for fixed-language document generation (callers may resolve their
+// TranslateFn from i18n.getFixedT(lang)). Display strings never live in code.
 export type DocLanguage = "en" | "de";
 
 // ==================== SECURITY LEVEL FORMATTERS ====================
 
 export function getSecurityLevelText(
   level: SecurityLevel | undefined,
-  language: DocLanguage = "en"
+  t: TranslateFn,
 ): string {
-  if (!level) return language === "de" ? "Keine" : "None";
-  const labels: Record<SecurityLevel, { en: string; de: string }> = {
-    public:       { en: "Public",       de: "Öffentlich" },
-    internal:     { en: "Internal",     de: "Intern" },
-    confidential: { en: "Confidential", de: "Vertraulich" },
-    secret:       { en: "Secret",       de: "Geheim" },
-  };
-  return labels[level]?.[language] ?? level;
+  if (!level) return t("tabs.dfd.levels.security.none", "—");
+  return t(`tabs.dfd.levels.security.${level}`, level);
 }
 
 // ==================== TRUST LEVEL FORMATTERS ====================
 
 export function getTrustLevelText(
   level: TrustLevel | undefined,
-  language: DocLanguage = "en"
+  t: TranslateFn,
 ): string {
-  if (!level) return language === "de" ? "Unbekannt" : "Unknown";
-  const labels: Record<TrustLevel, { en: string; de: string }> = {
-    trusted:   { en: "Trusted",   de: "Vertrauenswürdig" },
-    untrusted: { en: "Untrusted", de: "Nicht vertrauenswürdig" },
-    unknown:   { en: "Unknown",   de: "Unbekannt" },
-  };
-  return labels[level]?.[language] ?? level;
+  if (!level) return t("tabs.dfd.levels.trust.unknown", "unknown");
+  return t(`tabs.dfd.levels.trust.${level}`, level);
 }
 
 // ==================== DFD ELEMENT TYPE FORMATTERS ====================
 
 export function getDFDElementTypeText(
   type: DFDElementType,
-  language: DocLanguage = "en"
+  t: TranslateFn,
 ): string {
-  const config = DFD_ELEMENT_CONFIG[type];
-  return language === "de" ? config.nameDE : config.name;
+  return t(`tabs.dfd.elementTypes.${type}.name`, type);
 }
 
 export function getDFDElementTypePluralText(
   type: DFDElementType,
-  language: DocLanguage = "en"
+  t: TranslateFn,
 ): string {
-  const plurals: Record<DFDElementType, { en: string; de: string }> = {
-    ExternalEntity: { en: "External Entities", de: "Externe Entitäten" },
-    Process: { en: "Processes", de: "Prozesse" },
-    Multiprocess: { en: "Multiprocesses", de: "Multiprozesse" },
-    DataStore: { en: "Data Stores", de: "Datenspeicher" },
-    DataFlow: { en: "Data Flows", de: "Datenflüsse" },
-    TrustBoundary: { en: "Trust Boundaries", de: "Vertrauensgrenzen" },
-    Interface: { en: "Interfaces", de: "Schnittstellen" },
-    ChipBoundary: { en: "Chip Boundaries", de: "Chip Boundaries" },
-    PhysicalBoundary: { en: "Physical Boundaries", de: "Physische Grenzen" },
-  };
-  return plurals[type]?.[language] ?? getDFDElementTypeText(type, language);
+  return t(
+    `tabs.dfd.elementTypes.${type}.plural`,
+    getDFDElementTypeText(type, t),
+  );
+}
+
+export function getDFDElementTypeDescriptionText(
+  type: DFDElementType,
+  t: TranslateFn,
+): string {
+  return t(`tabs.dfd.elementTypes.${type}.description`, "");
 }
 
 // ==================== ASSET GROUP FORMATTERS ====================
+// UI-only callers — keep the full i18next TFunction (object-form options).
 
 /**
  * Display text for an asset group — reads from i18n.

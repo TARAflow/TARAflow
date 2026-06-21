@@ -44,6 +44,9 @@ export function mapTARAflowType(type: string): DFDElementType | "Asset" | null {
     physicalinterface: "Interface", // MIGRATION
     interface: "Interface",
 
+    sensor: "Sensor",
+    actuator: "Actuator",
+
     // Asset
     asset: "Asset",
 
@@ -120,6 +123,8 @@ export function createEmptyStats(): DFDStats {
     trustBoundaries: 0,
     chipBoundaries: 0,
     physicalBoundaries: 0,
+    sensors: 0,
+    actuators: 0,
     interfaces: 0, // Includes migrated PhysicalInterface
     assets: 0,
     describedElements: 0,
@@ -158,6 +163,12 @@ export function updateStats(stats: DFDStats, type: DFDElementType): void {
       break;
     case "Interface":
       stats.interfaces++;
+      break;
+    case "Sensor":
+      stats.sensors++;
+      break;
+    case "Actuator":
+      stats.actuators++;
       break;
   }
 }

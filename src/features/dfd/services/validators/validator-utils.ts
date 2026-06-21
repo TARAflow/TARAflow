@@ -1,6 +1,40 @@
 // ==================== VALIDATOR UTILS ====================
 // Shared utilities for DFD validation
 
+// ==================== VALIDATION FINDING ====================
+//
+// ValidationFinding now lives in models/dfd-types.ts — it's part of the
+// persisted DFDValidation shape (errors/warnings), not just a validator
+// implementation detail. Re-exported here so existing
+// `import { ValidationFinding } from "./validator-utils"` in the validator
+// files keeps working unchanged.
+//
+// Every validator pushes a ValidationFinding instead of an ad-hoc encoded
+// string. `params` is passed 1:1 as i18next interpolation values for `key` —
+// no positional parsing, no parts.length branching in the notification panel.
+//
+// Two param keys carry identifiers that need a *second* i18n lookup, because
+// they're names of things (an element type, a field) rather than plain text:
+//   - params.type / params.elementType / params.targetType
+//       → resolved against `dfdValidation.elementTypes.*`
+//   - params.field (always paired with params.elementType in the same finding)
+//       → resolved against `tabs.dfd.element_description.<ns>.fields.<field>.label`
+// This resolution happens generically in the notification panel (two small
+// helper functions), based on the param *name*, not on message shape.
+// All other params are interpolated as plain values.
+export type { ValidationFinding } from "../../models/dfd-types";
+import type { ValidationFinding } from "../../models/dfd-types";
+
+/** Small convenience constructor — purely for terser call sites. */
+export function finding(
+  key: string,
+  opts: { displayId?: string; elementId?: string; params?: ValidationFinding["params"] } = {},
+): ValidationFinding {
+  return { key, displayId: opts.displayId, elementId: opts.elementId, params: opts.params };
+}
+
+// ==================== VALIDATION MESSAGE KEYS ====================
+
 // ==================== VALIDATION MESSAGE KEYS ====================
 // These keys are used for i18n translation in the UI layer
 
@@ -10,6 +44,8 @@ export const ValidationMessages = {
   NO_PROCESS_OR_DATASTORE: "dfdValidation.noProcessOrDatastore",
   NO_DATAFLOWS: "dfdValidation.noDataflows",
   ELEMENT_MISSING_PROPERTY: "tabs.dfd.validation.element.missingProperty",
+  /** Unexpected exception during validation (caught in useDFDValidation) — not a structural finding. */
+  INTERNAL_VALIDATION_ERROR: "dfdValidation.internalError",
 
   // Trust Boundary
   NO_TRUST_BOUNDARY: "dfdValidation.noTrustBoundary",
@@ -38,6 +74,13 @@ export const ValidationMessages = {
   PHYSICALBOUNDARY_INVALID_CONNECTION:
     "dfdValidation.physicalBoundaryInvalidConnection",
   INTERFACE_NO_PHYSICAL_BOUNDARY: "dfdValidation.interfaceNoPhysicalBoundary",
+
+  // Transducer (Sensor / Actuator)
+  SENSOR_INVALID_CONNECTION: "dfdValidation.sensorInvalidConnection",
+  ACTUATOR_INVALID_CONNECTION: "dfdValidation.actuatorInvalidConnection",
+  TRANSDUCER_EE_NOT_PHYSICAL: "dfdValidation.transducerEeNotPhysical",
+  TRANSDUCER_PHYSICAL_MEDIUM_INVALID_ENDPOINT:
+    "dfdValidation.transducerPhysicalMediumInvalidEndpoint",
 
   // Asset & Interface
   INTERFACE_UNUSED: "dfdValidation.interfaceUnused",
@@ -124,6 +167,10 @@ export const ValidationMessages = {
   DF_PROP_CONTINUOUS_USE_STREAM:
     "tabs.dfd.validation.df.prop.continuousUseStream",
   DF_PROP_PROTOCOL_MISSING: "tabs.dfd.validation.df.prop.protocolMissing",
+
+  // ── Physical coupling (medium="physical") ───────────────────────────────
+  DF_PHYSICAL_MISSING_COUPLING:
+    "tabs.dfd.validation.df.physical.missingCoupling",
 
   // ── Threat Analysis ─────────────────────────────────────────────────────
   DF_PROP_EXCLUDE_MISSING_RATIONALE:

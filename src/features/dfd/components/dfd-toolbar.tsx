@@ -56,8 +56,6 @@ interface DFDToolbarProps {
   onExport: () => void;
   onImport: () => void;
   onSave: () => void;
-  onProceed: () => void;
-  canProceed: boolean;
 }
 
 // Disables Popper's window resize listener for all Tooltips in this toolbar.
@@ -85,8 +83,6 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
     onExport,
     onImport,
     onSave,
-    onProceed,
-    canProceed,
   }) => {
     const { t } = useTranslation();
     React.useEffect(() => {
@@ -264,16 +260,6 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
         >
           {t("common.save", { defaultValue: "Save" })}
           {isDirty && " *"}
-        </Button>
-
-        <Button
-          variant="contained"
-          size="small"
-          endIcon={<NextIcon />}
-          onClick={onProceed}
-          disabled={!canProceed}
-        >
-          {t("tabs.dfd.proceed", { defaultValue: "Continue" })}
         </Button>
       </Box>
     );

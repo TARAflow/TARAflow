@@ -1,6 +1,6 @@
 import { DFDAnalysisContext } from "shared";
 import { DFDGraph } from "../models/dfd-graph-types";
-import { ExposureLevel } from "../models/element-properties";
+import { ExposureLevel } from "../models/element-shared-types";
 
 export class DFDGraphAnalysisContext implements DFDAnalysisContext {
   constructor(private graph: DFDGraph) {}

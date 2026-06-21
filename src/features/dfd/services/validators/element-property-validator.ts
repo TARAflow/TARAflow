@@ -23,7 +23,12 @@ import type {
   PhysicalBoundaryProperties,
   InterfaceProperties,
 } from "../../models/element-properties";
-import { ValidationMessages } from "./validator-utils";
+import type {
+  SensorProperties,
+  ActuatorProperties,
+} from "../../models/transducer-properties";
+import { isRunsAsApplicable } from "../../models/element-property-defaults";
+import { ValidationMessages, type ValidationFinding } from "./validator-utils";
 
 // ---------------------------------------------------------------------------
 // Public entry point
@@ -35,7 +40,7 @@ import { ValidationMessages } from "./validator-utils";
  */
 export function validateElementProperties(
   elements: DFDElement[],
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   for (const element of elements) {
     switch (element.type) {
@@ -63,6 +68,12 @@ export function validateElementProperties(
       case "Interface":
         validateInterfaceProperties(element, warnings);
         break;
+      case "Sensor":
+        validateSensorProperties(element, warnings);
+        break;
+      case "Actuator":
+        validateActuatorProperties(element, warnings);
+        break;
     }
   }
 }
@@ -72,17 +83,22 @@ export function validateElementProperties(
 // ---------------------------------------------------------------------------
 
 /**
- * Build a warning string in the format expected by translateMessage:
- *   KEY|displayId|elementType|field
+ * Build a finding for a missing Context-section property.
+ * elementType + field are passed as separate named params — the panel
+ * resolves both via i18n generically (elementType → elementTypes.*,
+ * field → element_description.<ns>.fields.<field>.label), no positional
+ * decoding needed.
  *
  * displayId falls back to element name so the UI chip always has a label.
  */
-function missingProp(element: DFDElement, field: string): string {
+function missingProp(element: DFDElement, field: string): ValidationFinding {
   const displayId = element.displayId ?? element.name;
-  return (
-    `${ValidationMessages.ELEMENT_MISSING_PROPERTY}` +
-    `|${displayId}|${element.type}|${field}`
-  );
+  return {
+    key: ValidationMessages.ELEMENT_MISSING_PROPERTY,
+    displayId,
+    elementId: element.id,
+    params: { elementType: element.type, field, name: element.name },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +119,7 @@ function missingProp(element: DFDElement, field: string): string {
  */
 function validateProcessProperties(
   element: DFDElement,
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as ProcessProperties;
 
@@ -114,14 +130,13 @@ function validateProcessProperties(
     warnings.push(missingProp(element, "processSemantic"));
   }
 
-  // runsAs only applies when an OS process context exists.
-  // functional_block = bare-metal / ISR / state machine — no OS, no runsAs.
-  // security_boundary = HSM / OP-TEE TA — isolated execution, runsAs N/A.
-  const semanticRequiresRunsAs =
-    !props.processSemantic || props.processSemantic === "execution_unit";
-
+  // runsAs only applies to OS-hosted processes. Embedded / no-OS technologies
+  // (RTOS, bare-metal, ISR, driver, bootloader, ...) and non-execution_unit
+  // semantics have no OS user model — the form disables the field for exactly
+  // these cases, so the validator must not require it. isRunsAsApplicable is the
+  // shared predicate (same one the form uses to disable), keeping them in sync.
   if (
-    semanticRequiresRunsAs &&
+    isRunsAsApplicable(props) &&
     (!props.runsAs || props.runsAs === "not_specified")
   ) {
     warnings.push(missingProp(element, "runsAs"));
@@ -134,7 +149,7 @@ function validateProcessProperties(
  */
 function validateMultiprocessProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as MultiprocessProperties;
 
@@ -156,7 +171,7 @@ function validateMultiprocessProperties(
  */
 function validateDataStoreProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as DataStoreProperties;
 
@@ -176,7 +191,7 @@ function validateDataStoreProperties(
  */
 function validateExternalEntityProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as ExternalEntityProperties;
 
@@ -204,7 +219,7 @@ function validateExternalEntityProperties(
  */
 function validateTrustBoundaryProperties(
   element: DFDElement,
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as TrustBoundaryProperties;
 
@@ -251,7 +266,7 @@ function validateTrustBoundaryProperties(
  */
 function validatePhysicalBoundaryProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as PhysicalBoundaryProperties;
 
@@ -286,7 +301,7 @@ function validatePhysicalBoundaryProperties(
 
 function validateChipBoundaryProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as ChipBoundaryProperties;
 
@@ -310,7 +325,7 @@ function validateChipBoundaryProperties(
  */
 function validateInterfaceProperties(
   element: DFDElement,
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const props = (element.properties ?? {}) as InterfaceProperties;
 
@@ -327,5 +342,75 @@ function validateInterfaceProperties(
   }
   if (!props.exposureLevel) {
     warnings.push(missingProp(element, "exposureLevel"));
+  }
+}
+/**
+ * Sensor: measurand, transductionPrinciple (unspecified ⇒ finding),
+ * signalAuthentication, plausibilityCheck, safetyRelevant (undefined ⇒ unassessed).
+ *
+ * Input side of the bowtie: a forged or suppressed reading can defeat a safety
+ * function, so an unassessed safetyRelevant is surfaced rather than silently
+ * assumed false (reduction must be earned).
+ */
+function validateSensorProperties(
+  element: DFDElement,
+  warnings: ValidationFinding[],
+): void {
+  const props = (element.properties ?? {}) as SensorProperties;
+
+  if (!props.measurand) {
+    warnings.push(missingProp(element, "measurand"));
+  }
+  if (
+    !props.transductionPrinciple ||
+    props.transductionPrinciple === "unspecified"
+  ) {
+    warnings.push(missingProp(element, "transductionPrinciple"));
+  }
+  // stimulusDomain is the attack-catalog key (optical→blinding, acoustic→injection,
+  // …) — needed for physical threat generation even in Variant B (no coupling edge).
+  if (!props.stimulusDomain) {
+    warnings.push(missingProp(element, "stimulusDomain"));
+  }
+  if (!props.signalAuthentication) {
+    warnings.push(missingProp(element, "signalAuthentication"));
+  }
+  if (!props.plausibilityCheck) {
+    warnings.push(missingProp(element, "plausibilityCheck"));
+  }
+  if (props.safetyRelevant === undefined) {
+    warnings.push(missingProp(element, "safetyRelevant"));
+  }
+}
+
+/**
+ * Actuator: actuatorClass (unspecified ⇒ finding), hazardPotential (unassessed),
+ * safeState (none_defined ⇒ finding), commandAuthentication,
+ * safetyRelevant (undefined ⇒ unassessed).
+ *
+ * Output side / typical bowtie top event: forced, blocked or absent actuation
+ * IS the hazard. De-energize is not automatically safe — safeState must be set
+ * explicitly, so none_defined is reported.
+ */
+function validateActuatorProperties(
+  element: DFDElement,
+  warnings: ValidationFinding[],
+): void {
+  const props = (element.properties ?? {}) as ActuatorProperties;
+
+  if (!props.actuatorClass || props.actuatorClass === "unspecified") {
+    warnings.push(missingProp(element, "actuatorClass"));
+  }
+  if (!props.hazardPotential || props.hazardPotential === "unassessed") {
+    warnings.push(missingProp(element, "hazardPotential"));
+  }
+  if (!props.safeState || props.safeState === "none_defined") {
+    warnings.push(missingProp(element, "safeState"));
+  }
+  if (!props.commandAuthentication) {
+    warnings.push(missingProp(element, "commandAuthentication"));
+  }
+  if (props.safetyRelevant === undefined) {
+    warnings.push(missingProp(element, "safetyRelevant"));
   }
 }

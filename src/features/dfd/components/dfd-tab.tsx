@@ -94,6 +94,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       () => project.dfd?.autoNumberingConfig ?? DEFAULT_AUTONUMBERING_CONFIG,
     );
 
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+
   // ==================== UI STATE HOOK ====================
 
   const {
@@ -436,13 +438,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [setViewMode],
   );
 
-  const handleProceed = useCallback(() => {
-    if (!editor.canProceed) {
-      return;
-    }
-    onPhaseComplete?.();
-  }, [editor.canProceed, onPhaseComplete]);
-
   const handleAutoNumber = useCallback(async () => {
     await editor.autoNumberLabels();
   }, [editor]);
@@ -503,7 +498,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       riskId?: string,
     ) => {
       // Build audit record
-      const record: import("features/dfd/models/element-properties").SecurityControlRecord =
+      const record: import("features/dfd/models/element-shared-types").SecurityControlRecord =
         {
           property,
           value,
@@ -567,6 +562,22 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         ?.crossesTrustBoundary ?? false)
     : false;
   const { t } = useTranslation();
+
+  const handleNotificationNavigation = useCallback(
+    (id: string) => {
+      const asset = dfd?.assets?.find((a) => a.id === id || a.displayId === id);
+
+      if (asset) {
+        setSelectedAssetId(asset.id);
+        setDetailsPanelOpen(true);
+        return;
+      }
+
+      setSelectedAssetId(null);
+      editor.selectCell(id);
+    },
+    [editor, dfd],
+  );
   // ==================== RENDER ====================
 
   return (
@@ -594,8 +605,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onExport={exportImport.downloadExport}
         onImport={exportImport.promptImport}
         onSave={handleSave}
-        onProceed={handleProceed}
-        canProceed={editor.canProceed}
       />
 
       {/* Main Content Container with Drawer */}
@@ -700,6 +709,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onClearAllVisibility={handleClearAllVisibility}
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
+            selectedAssetId={selectedAssetId}
           />
         </Box>
       </Box>
@@ -712,7 +722,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         elements={project.dfd?.elements ?? []}
         connections={project.dfd?.connections ?? []}
         onApply={handleApplyControlSuggestion}
-        onSelectCell={editor.selectCell}
+        onSelectCell={handleNotificationNavigation}
       />
 
       {/* Preview Dialog */}

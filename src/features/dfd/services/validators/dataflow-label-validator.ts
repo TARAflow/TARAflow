@@ -39,7 +39,7 @@
 //   and allows the panel to extract displayId without regex.
 
 import type { DFDElement } from "../../models/dfd-types";
-import type { DFDConnection } from "../../models/dfd-types";
+import type { DFDConnection, ValidationFinding } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
 import { validateDataflowLabelProperties } from "./dataflow-label-property-validator";
 
@@ -191,8 +191,8 @@ function normalizeObject(obj: string): string {
 export function validateDataflowLabels(
   connections: DFDConnection[],
   elements: DFDElement[],
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   const dataflows = connections.filter(
     (c) =>
@@ -207,100 +207,141 @@ export function validateDataflowLabels(
     parsed: parseLabel(conn.name || ""),
   }));
 
-  for (const { displayId, detail, parsed: p } of parsed) {
+  for (const { conn, displayId, detail, parsed: p } of parsed) {
+    const elementId = conn.id;
+
     if (!p.parseable || !p.verb) {
-      warnings.push(
-        `${ValidationMessages.DF_EMPTY_LABEL}|${displayId}|${detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_EMPTY_LABEL,
+        displayId,
+        elementId,
+        params: { detail },
+      });
       continue;
     }
 
     // Hard Invariant 2: only one [...] tag allowed
     if (p.extraTags.length > 0) {
-      errors.push(
-        `${ValidationMessages.DF_MULTIPLE_TAGS}|${displayId}|${detail} \u2014 [${p.extraTags.join("], [")}]`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_MULTIPLE_TAGS,
+        displayId,
+        elementId,
+        params: { detail, tags: p.extraTags },
+      });
       continue;
     }
 
     // Deprecated: send / recv
     if ((DEPRECATED_VERBS as readonly string[]).includes(p.verb)) {
-      errors.push(
-        `${ValidationMessages.DF_DEPRECATED_VERB}|${displayId}|${detail} \u2014 "${p.verb}"`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_DEPRECATED_VERB,
+        displayId,
+        elementId,
+        params: { detail, verb: p.verb },
+      });
       continue;
     }
 
     // Synonym: read, fetch, query, emit, notify, publish, receive
     if ((SYNONYM_VERBS as readonly string[]).includes(p.verb)) {
-      errors.push(
-        `${ValidationMessages.DF_SYNONYM_VERB}|${displayId}|${detail} \u2014 "${p.verb}"`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_SYNONYM_VERB,
+        displayId,
+        elementId,
+        params: { detail, verb: p.verb },
+      });
       continue;
     }
 
     // Fully unknown verb
     if (!(VALID_VERBS as readonly string[]).includes(p.verb)) {
-      errors.push(
-        `${ValidationMessages.DF_UNKNOWN_VERB}|${displayId}|${detail} \u2014 "${p.verb}"`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_UNKNOWN_VERB,
+        displayId,
+        elementId,
+        params: { detail, verb: p.verb },
+      });
       continue;
     }
 
     if (!p.object) {
-      errors.push(
-        `${ValidationMessages.DF_MISSING_OBJECT}|${displayId}|${detail}`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_MISSING_OBJECT,
+        displayId,
+        elementId,
+        params: { detail },
+      });
       continue;
     }
 
     switch (p.verb as ValidVerb) {
       case "pull":
         if (p.flowType === null) {
-          errors.push(
-            `${ValidationMessages.DF_PULL_MISSING_FLOW_TYPE}|${displayId}|${detail}`,
-          );
+          errors.push({
+            key: ValidationMessages.DF_PULL_MISSING_FLOW_TYPE,
+            displayId,
+            elementId,
+            params: { detail },
+          });
         } else if (
           !(VALID_FLOW_TYPES_PULL as readonly string[]).includes(p.flowType)
         ) {
-          errors.push(
-            `${ValidationMessages.DF_PULL_INVALID_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
-          );
+          errors.push({
+            key: ValidationMessages.DF_PULL_INVALID_FLOW_TYPE,
+            displayId,
+            elementId,
+            params: { detail, flowType: p.flowType },
+          });
         }
         break;
 
       case "push":
         if (p.flowType === null) {
-          errors.push(
-            `${ValidationMessages.DF_PUSH_MISSING_FLOW_TYPE}|${displayId}|${detail}`,
-          );
+          errors.push({
+            key: ValidationMessages.DF_PUSH_MISSING_FLOW_TYPE,
+            displayId,
+            elementId,
+            params: { detail },
+          });
         } else if (
           !(VALID_FLOW_TYPES_PUSH as readonly string[]).includes(p.flowType)
         ) {
-          errors.push(
-            `${ValidationMessages.DF_PUSH_INVALID_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
-          );
+          errors.push({
+            key: ValidationMessages.DF_PUSH_INVALID_FLOW_TYPE,
+            displayId,
+            elementId,
+            params: { detail, flowType: p.flowType },
+          });
         }
         break;
 
       case "write":
         if (p.flowType !== null) {
-          errors.push(
-            `${ValidationMessages.DF_WRITE_REDUNDANT_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
-          );
+          errors.push({
+            key: ValidationMessages.DF_WRITE_REDUNDANT_FLOW_TYPE,
+            displayId,
+            elementId,
+            params: { detail, flowType: p.flowType },
+          });
         }
         break;
 
       case "stream":
         if (p.flowType !== null && p.flowType !== "stream") {
           if (p.flowType === "req_resp" || p.flowType === "event_ack") {
-            errors.push(
-              `${ValidationMessages.DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN}|${displayId}|${detail} [${p.flowType}]`,
-            );
+            errors.push({
+              key: ValidationMessages.DF_STREAM_LOGICAL_ANNOTATION_FORBIDDEN,
+              displayId,
+              elementId,
+              params: { detail, flowType: p.flowType },
+            });
           } else {
-            errors.push(
-              `${ValidationMessages.DF_STREAM_INVALID_FLOW_TYPE}|${displayId}|${detail} [${p.flowType}]`,
-            );
+            errors.push({
+              key: ValidationMessages.DF_STREAM_INVALID_FLOW_TYPE,
+              displayId,
+              elementId,
+              params: { detail, flowType: p.flowType },
+            });
           }
         }
         break;
@@ -322,8 +363,8 @@ export function validateDataflowLabels(
 
 function validatePullPairs(
   parsed: ParsedConnection[],
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   const reqs = parsed.filter(
     (p) => p.parsed.verb === "pull" && p.parsed.flowType === "req",
@@ -341,13 +382,19 @@ function validatePullPairs(
         r.conn.to === req.conn.from,
     );
     if (matches.length === 0) {
-      warnings.push(
-        `${ValidationMessages.DF_PULL_MISSING_RESPONSE}|${req.displayId}|${req.detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_PULL_MISSING_RESPONSE,
+        displayId: req.displayId,
+        elementId: req.conn.id,
+        params: { detail: req.detail },
+      });
     } else if (matches.length > 1) {
-      warnings.push(
-        `${ValidationMessages.DF_PULL_MULTIPLE_RESPONSES}|${req.displayId}|${req.detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_PULL_MULTIPLE_RESPONSES,
+        displayId: req.displayId,
+        elementId: req.conn.id,
+        params: { detail: req.detail },
+      });
     }
   }
 
@@ -360,9 +407,12 @@ function validatePullPairs(
         r.conn.to === resp.conn.from,
     );
     if (matches.length === 0) {
-      errors.push(
-        `${ValidationMessages.DF_PULL_ORPHANED_RESPONSE}|${resp.displayId}|${resp.detail}`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_PULL_ORPHANED_RESPONSE,
+        displayId: resp.displayId,
+        elementId: resp.conn.id,
+        params: { detail: resp.detail },
+      });
     }
   }
 }
@@ -373,7 +423,7 @@ function validatePullPairs(
 
 function validateReqRespDuplication(
   parsed: ParsedConnection[],
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   const reqResps = parsed.filter(
     (p) => p.parsed.verb === "pull" && p.parsed.flowType === "req_resp",
@@ -405,14 +455,28 @@ function validateReqRespDuplication(
     );
 
     if (conflictingReq) {
-      warnings.push(
-        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}|${rr.displayId}|${rr.detail} \u2014 conflicts with ${conflictingReq.displayId} ${conflictingReq.detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE,
+        displayId: rr.displayId,
+        elementId: rr.conn.id,
+        params: {
+          detail: rr.detail,
+          conflictDisplayId: conflictingReq.displayId,
+          conflictDetail: conflictingReq.detail,
+        },
+      });
     }
     if (conflictingResp) {
-      warnings.push(
-        `${ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE}|${rr.displayId}|${rr.detail} \u2014 conflicts with ${conflictingResp.displayId} ${conflictingResp.detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_REQ_RESP_DUPLICATE_COVERAGE,
+        displayId: rr.displayId,
+        elementId: rr.conn.id,
+        params: {
+          detail: rr.detail,
+          conflictDisplayId: conflictingResp.displayId,
+          conflictDetail: conflictingResp.detail,
+        },
+      });
     }
   }
 }
@@ -423,7 +487,7 @@ function validateReqRespDuplication(
 
 function validateEventAckDuplication(
   parsed: ParsedConnection[],
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   const eventAcks = parsed.filter(
     (p) => p.parsed.verb === "push" && p.parsed.flowType === "event_ack",
@@ -446,9 +510,16 @@ function validateEventAckDuplication(
     );
 
     if (conflictingEvent) {
-      warnings.push(
-        `${ValidationMessages.DF_EVENT_ACK_DUPLICATE_COVERAGE}|${ea.displayId}|${ea.detail} \u2014 conflicts with ${conflictingEvent.displayId} ${conflictingEvent.detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_EVENT_ACK_DUPLICATE_COVERAGE,
+        displayId: ea.displayId,
+        elementId: ea.conn.id,
+        params: {
+          detail: ea.detail,
+          conflictDisplayId: conflictingEvent.displayId,
+          conflictDetail: conflictingEvent.detail,
+        },
+      });
     }
   }
 }
@@ -460,9 +531,9 @@ function validateEventAckDuplication(
 
 function validateObjectForbiddenTerms(
   parsed: ParsedConnection[],
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
-  for (const { displayId, detail, parsed: p } of parsed) {
+  for (const { conn, displayId, detail, parsed: p } of parsed) {
     if (!p.parseable || !p.object) continue;
 
     const tokens = normalizeObject(p.object).split(/\s+/);
@@ -471,9 +542,12 @@ function validateObjectForbiddenTerms(
     );
 
     if (found.length > 0) {
-      warnings.push(
-        `${ValidationMessages.DF_OBJECT_FORBIDDEN_TERM}|${displayId}|${detail} \u2014 terms: ${found.join(", ")}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_OBJECT_FORBIDDEN_TERM,
+        displayId,
+        elementId: conn.id,
+        params: { detail, terms: [...found] },
+      });
     }
   }
 }
@@ -486,9 +560,9 @@ function validateObjectForbiddenTerms(
 
 function validateObjectEmbeddedVerb(
   parsed: ParsedConnection[],
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
-  for (const { displayId, detail, parsed: p } of parsed) {
+  for (const { conn, displayId, detail, parsed: p } of parsed) {
     if (!p.parseable || !p.object) continue;
 
     const firstToken = normalizeObject(p.object).split(/\s+/)[0];
@@ -496,9 +570,12 @@ function validateObjectEmbeddedVerb(
     if (
       (OBJECT_FORBIDDEN_START_VERBS as readonly string[]).includes(firstToken)
     ) {
-      warnings.push(
-        `${ValidationMessages.DF_OBJECT_EMBEDDED_VERB}|${displayId}|${detail} \u2014 "${firstToken}"`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_OBJECT_EMBEDDED_VERB,
+        displayId,
+        elementId: conn.id,
+        params: { detail, verb: firstToken },
+      });
     }
   }
 }

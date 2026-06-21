@@ -11,7 +11,7 @@
 //   const coverage = computeDataFlowCoverage(props, { crossesTrustBoundary });
 //   // Replace incompleteFields.length > 0 with coverage.overall !== "complete"
 
-import type { DataFlowProperties, ExposureLevel } from "./element-properties";
+import type { DataFlowProperties } from "./element-properties";
 import { PROTOCOL_META } from "./protocol-registry";
 
 // ── Types ────────────────────────────────────────────────────────────────────

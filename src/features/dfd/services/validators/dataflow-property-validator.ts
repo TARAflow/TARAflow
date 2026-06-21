@@ -25,7 +25,7 @@
 //   The | separator avoids conflict with the i18next namespace separator (:)
 //   and allows the panel to extract displayId without regex.
 
-import type { DFDConnection } from "../../models/dfd-types";
+import type { DFDConnection, ValidationFinding } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
 import type {
   DataFlowProperties,
@@ -69,8 +69,8 @@ function extractVerb(label: string): string | null {
 
 export function validateDataflowProperties(
   connections: DFDConnection[],
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   const dataflows = connections.filter(
     (c) =>
@@ -84,6 +84,27 @@ export function validateDataflowProperties(
     const verb = extractVerb(conn.name || "");
     const props = conn.properties;
 
+    // Physical coupling short-circuit: a medium="physical" edge (Sensor/Actuator
+    // ↔ environment) carries no protocol/verb — the cyber checks C1–C10 do not
+    // apply and would otherwise raise false positives (e.g. C10 "protocol
+    // missing"). Validate the physical group instead, then skip the rest.
+    if (
+      props &&
+      typeof props === "object" &&
+      (props as DataFlowProperties).medium === "physical"
+    ) {
+      const p = props as DataFlowProperties;
+      if (!p.couplingMode) {
+        warnings.push({
+          key: ValidationMessages.DF_PHYSICAL_MISSING_COUPLING,
+          displayId,
+          elementId: conn.id,
+          params: { detail },
+        });
+      }
+      continue;
+    }
+
     // C10: protocol not specified — fires regardless of whether props exist.
     // write is exempt: local datastores legitimately have no network protocol,
     // and C4 already covers the wrong-protocol case for write.
@@ -91,9 +112,12 @@ export function validateDataflowProperties(
       const protocol =
         props && typeof props === "object" ? props.protocol : undefined;
       if (protocol === undefined) {
-        warnings.push(
-          `${ValidationMessages.DF_PROP_PROTOCOL_MISSING}|${displayId}|${detail}`,
-        );
+        warnings.push({
+          key: ValidationMessages.DF_PROP_PROTOCOL_MISSING,
+          displayId,
+          elementId: conn.id,
+          params: { detail },
+        });
       }
     }
 
@@ -104,32 +128,38 @@ export function validateDataflowProperties(
       props.excludeFromThreatGen &&
       !props.excludeFromThreatGenRationale?.trim()
     ) {
-      warnings.push(
-        `${ValidationMessages.DF_PROP_EXCLUDE_MISSING_RATIONALE}|${displayId}|${detail}`,
-      );
+      warnings.push({
+        key: ValidationMessages.DF_PROP_EXCLUDE_MISSING_RATIONALE,
+        displayId,
+        elementId: conn.id,
+        params: { detail },
+      });
     }
 
     if (!verb) continue;
 
     // C7: bidirectional forbidden — check first, always fires regardless of verb
     if (props.direction === "bidirectional") {
-      errors.push(
-        `${ValidationMessages.DF_PROP_BIDIRECTIONAL_FORBIDDEN}|${displayId}|${detail}`,
-      );
+      errors.push({
+        key: ValidationMessages.DF_PROP_BIDIRECTIONAL_FORBIDDEN,
+        displayId,
+        elementId: conn.id,
+        params: { detail },
+      });
     }
 
     switch (verb) {
       case "pull":
-        checkPull(displayId, detail, props, errors, warnings);
+        checkPull(displayId, detail, conn.id, props, errors, warnings);
         break;
       case "push":
-        checkPush(displayId, detail, props, errors, warnings);
+        checkPush(displayId, detail, conn.id, props, errors, warnings);
         break;
       case "write":
-        checkWrite(displayId, detail, props, errors, warnings);
+        checkWrite(displayId, detail, conn.id, props, errors, warnings);
         break;
       case "stream":
-        checkStream(displayId, detail, props, errors, warnings);
+        checkStream(displayId, detail, conn.id, props, errors, warnings);
         break;
       default:
         break;
@@ -144,9 +174,10 @@ export function validateDataflowProperties(
 function checkPull(
   displayId: string,
   detail: string,
+  elementId: string,
   props: DataFlowProperties,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   // C1
   if (
@@ -154,56 +185,73 @@ function checkPull(
     props.direction !== "requestresponse" &&
     props.direction !== "bidirectional" // already reported via C7
   ) {
-    errors.push(
-      `${ValidationMessages.DF_PROP_PULL_NOT_REQRESP}|${displayId}|${detail} [${props.direction}]`,
-    );
+    errors.push({
+      key: ValidationMessages.DF_PROP_PULL_NOT_REQRESP,
+      displayId,
+      elementId,
+      params: { detail: `${detail} [${props.direction}]` },
+    });
   }
 
   // C5
   if (props.frequency === "continuous") {
-    warnings.push(
-      `${ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM}|${displayId}|${detail}`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM,
+      displayId,
+      elementId,
+      params: { detail },
+    });
   }
 }
 
 function checkPush(
   displayId: string,
   detail: string,
+  elementId: string,
   props: DataFlowProperties,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   // C2a
   if (props.direction === "requestresponse") {
-    errors.push(
-      `${ValidationMessages.DF_PROP_PUSH_IS_REQRESP}|${displayId}|${detail}`,
-    );
+    errors.push({
+      key: ValidationMessages.DF_PROP_PUSH_IS_REQRESP,
+      displayId,
+      elementId,
+      params: { detail },
+    });
   } else if (
     props.direction !== undefined &&
     props.direction !== "unidirectional" &&
     props.direction !== "bidirectional" // already reported via C7
   ) {
     // C2b: unexpected direction value
-    warnings.push(
-      `${ValidationMessages.DF_PROP_PUSH_WRONG_DIRECTION}|${displayId}|${detail} [${props.direction}]`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_PROP_PUSH_WRONG_DIRECTION,
+      displayId,
+      elementId,
+      params: { detail: `${detail} [${props.direction}]` },
+    });
   }
 
   // C5
   if (props.frequency === "continuous") {
-    warnings.push(
-      `${ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM}|${displayId}|${detail}`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_PROP_CONTINUOUS_USE_STREAM,
+      displayId,
+      elementId,
+      params: { detail },
+    });
   }
 }
 
 function checkWrite(
   displayId: string,
   detail: string,
+  elementId: string,
   props: DataFlowProperties,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   // C4
   const dataStoreProtocols: Protocol[] = ["database", "file"];
@@ -211,37 +259,50 @@ function checkWrite(
     props.protocol !== undefined &&
     !dataStoreProtocols.includes(props.protocol)
   ) {
-    warnings.push(
-      `${ValidationMessages.DF_PROP_WRITE_NOT_DATASTORE}|${displayId}|${detail} [${props.protocol}]`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_PROP_WRITE_NOT_DATASTORE,
+      displayId,
+      elementId,
+      params: { detail: `${detail} [${props.protocol}]` },
+    });
   }
 
   // C6
   if (props.direction === "requestresponse") {
-    errors.push(
-      `${ValidationMessages.DF_PROP_WRITE_IS_REQRESP}|${displayId}|${detail}`,
-    );
+    errors.push({
+      key: ValidationMessages.DF_PROP_WRITE_IS_REQRESP,
+      displayId,
+      elementId,
+      params: { detail },
+    });
   }
 }
 
 function checkStream(
   displayId: string,
   detail: string,
+  elementId: string,
   props: DataFlowProperties,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   // C3
   if (props.frequency !== undefined && props.frequency !== "continuous") {
-    warnings.push(
-      `${ValidationMessages.DF_PROP_STREAM_NOT_CONTINUOUS}|${displayId}|${detail} [${props.frequency}]`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_PROP_STREAM_NOT_CONTINUOUS,
+      displayId,
+      elementId,
+      params: { detail: `${detail} [${props.frequency}]` },
+    });
   }
 
   // C8
   if (props.direction === "requestresponse") {
-    warnings.push(
-      `${ValidationMessages.DF_PROP_STREAM_IS_REQRESP}|${displayId}|${detail}`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_PROP_STREAM_IS_REQRESP,
+      displayId,
+      elementId,
+      params: { detail },
+    });
   }
 }

@@ -14,7 +14,6 @@ import type {
   InterfaceProperties,
   TrustBoundaryProperties,
   PhysicalBoundaryProperties,
-  ExposureLevel,
   ChipBoundaryProperties,
 } from "./element-properties";
 
@@ -34,6 +33,13 @@ import {
   ServiceAssetRelationType,
   HumanAssetRelationType,
 } from "shared";
+
+import type { ExposureLevel } from "./element-shared-types";
+
+import type {
+  SensorProperties,
+  ActuatorProperties,
+} from "./transducer-properties";
 
 // ==================== DFD ELEMENT TYPES ====================
 // Re-exported from dfd-element-types.ts for backwards compatibility
@@ -151,7 +157,9 @@ export interface DFDElement extends DFDBaseEntity {
     | InterfaceProperties
     | TrustBoundaryProperties
     | PhysicalBoundaryProperties
-    | ChipBoundaryProperties;
+    | ChipBoundaryProperties
+    | SensorProperties
+    | ActuatorProperties;
 }
 
 // ==================== DFD CONNECTION ====================
@@ -173,21 +181,50 @@ export interface DFDConnection extends DFDBaseEntity {
   };
 
   /**
+   * Connector kind. Absent or "DataFlow" = information flow.
+   * "PhysicalChannel" = physical coupling (stimulus / actuation).
+   */
+  connectionType?: "DataFlow";
+
+  /**
    * Asset relations (DataFlow → Assets)
    * DataFlow allows: transports (Data), invokes (Process/Function), uses (System/Service)
    */
   assetRelations?: import("./asset-relation-types").AssetRelation[];
 
-  /** DataFlow-specific properties */
+  /** Connection-specific properties (shape depends on connectionType). */
   properties?: DataFlowProperties;
 }
 
 // ==================== DFD VALIDATION ====================
-
+//
+// Every validator pushes a ValidationFinding instead of an ad-hoc encoded
+// string. `params` is passed 1:1 as i18next interpolation values for `key` —
+// no positional parsing, no parts.length branching in the notification panel.
+//
+// Two param keys carry identifiers that need a *second* i18n lookup, because
+// they're names of things (an element type, a field) rather than plain text:
+//   - params.type / params.elementType / params.targetType
+//       → resolved against `dfdValidation.elementTypes.*`
+//   - params.field (always paired with params.elementType in the same finding)
+//       → resolved against `tabs.dfd.element_description.<ns>.fields.<field>.label`
+// This resolution happens generically in the notification panel (two small
+// helper functions), based on the param *name*, not on message shape.
+// All other params are interpolated as plain values.
+export interface ValidationFinding {
+  /** i18next key, e.g. ValidationMessages.DF_DEPRECATED_VERB */
+  key: string;
+  /** Rendered as a clickable Chip in the notification panel. Purely cosmetic — NOT used for selection. */
+  displayId?: string;
+  /** Internal DFDElement/DFDConnection/DFDAsset id — used for cell selection on click. */
+  elementId?: string;
+  /** Passed 1:1 as i18next interpolation params for `key`. */
+  params?: Record<string, string | number | string[]>;
+}
 export interface DFDValidation {
   isComplete: boolean;
-  errors: string[];
-  warnings: string[];
+  errors: ValidationFinding[];
+  warnings: ValidationFinding[];
   lastValidated: string;
 }
 
@@ -204,6 +241,8 @@ export interface DFDStats {
   chipBoundaries: number;
   physicalBoundaries: number;
   interfaces: number;
+  sensors: number;
+  actuators: number;
 
   /** Number of unique assets in the project */
   assets: number;

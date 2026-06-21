@@ -7,8 +7,8 @@ import type {
   DataFlowProperties,
   TrustBoundaryProperties,
   ChipBoundaryProperties,
-  ExposureLevel,
 } from "../models/element-properties";
+import type { ExposureLevel } from "../models/element-shared-types";
 // PhysicalBoundaryProperties imported for type guard in membership building
 import type { PhysicalBoundaryProperties } from "../models/element-properties";
 import type { DFDAsset } from "../models/dfd-asset-types";
@@ -18,6 +18,11 @@ import type {
   BoundingBox,
   TrustBoundaryAnalysis,
 } from "../models/dfd-graph-types";
+import type {
+  SensorProperties,
+  ActuatorProperties,
+  TransducerLocation,
+} from "../models/transducer-properties";
 import { dfdAnalyzer } from "../utils/dfd-analyzer";
 import { geometryAnalyzer } from "../utils/geometry-analyzer";
 
@@ -154,6 +159,9 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       elementTrustBoundaries,
       elementChipBoundaries,
     );
+
+    // 8. Derive transducer location (Sensor/Actuator) from PhysicalBoundary containment
+    this.deriveTransducerLocations(elements, elementPhysicalBoundaries);
 
     return {
       elementsById,
@@ -630,6 +638,26 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         fromElement.type === "PhysicalBoundary" ||
         toElement.type === "PhysicalBoundary";
 
+      // Physical coupling: a DataFlow modelled with medium="physical" between a
+      // transducer (Sensor/Actuator) and the physical environment (modelled as an
+      // ExternalEntity). The explicit medium flag — not the endpoint types — is the
+      // authoritative discriminator, so a Sensor↔EE *cyber* flow is not misread as
+      // physical. Cyber controls do not apply to this edge.
+      const dfProps = conn.properties as DataFlowProperties | undefined;
+      const isPhysicalCoupling = dfProps?.medium === "physical";
+
+      let physicalCouplingRole: "sensor_input" | "actuator_output" | undefined;
+      if (isPhysicalCoupling) {
+        if (fromElement.type === "Sensor" || toElement.type === "Sensor") {
+          physicalCouplingRole = "sensor_input";
+        } else if (
+          fromElement.type === "Actuator" ||
+          toElement.type === "Actuator"
+        ) {
+          physicalCouplingRole = "actuator_output";
+        }
+      }
+
       analysis.set(conn.id, {
         connectionId: conn.id,
         fromElementId: conn.from,
@@ -649,6 +677,8 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         terminatesAtChipBoundary,
         crossesPhysicalBoundary,
         terminatesAtPhysicalBoundary,
+        isPhysicalCoupling,
+        physicalCouplingRole,
       });
     }
 
@@ -789,6 +819,65 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
         (conn.properties as DataFlowProperties).exposureLevel = undefined;
         (conn.properties as DataFlowProperties).exposureLevelSource = undefined;
       }
+    }
+  }
+
+  /**
+   * Derive TransducerLocation (internal / external / boundary_spanning) for every
+   * Sensor and Actuator from PhysicalBoundary containment — the SSOT for a
+   * transducer's topological position (@see transducer-properties.ts).
+   *
+   * Geometry → location:
+   *   - touches no PhysicalBoundary            → "external"
+   *       (sensing surface faces the environment directly)
+   *   - crosses ≥1 PhysicalBoundary edge       → "boundary_spanning"
+   *       (the typical mount: body inside, sensing/acting side outside — and the
+   *        security-relevant case, since the transducer bridges a physical barrier;
+   *        this wins even when the element also sits inside a larger enclosure)
+   *   - fully inside every overlapping PB      → "internal"
+   *
+   * Respects a manual override: when locationProvenance === "override" the analyst
+   * value is left untouched (e.g. probe body internal, sensing tip protruding,
+   * where geometry alone cannot tell). Derived values are stamped "derived".
+   */
+  private deriveTransducerLocations(
+    elements: DFDElement[],
+    elementPhysicalBoundaries: Map<string, string[]>,
+  ): void {
+    const pbById = new Map(
+      elements
+        .filter((e) => e.type === "PhysicalBoundary")
+        .map((pb) => [pb.id, pb] as const),
+    );
+
+    for (const element of elements) {
+      if (element.type !== "Sensor" && element.type !== "Actuator") continue;
+
+      const props = element.properties as SensorProperties | ActuatorProperties;
+
+      // Never overwrite an analyst override.
+      if (props.locationProvenance === "override") continue;
+
+      const overlappingPbIds = elementPhysicalBoundaries.get(element.id) ?? [];
+
+      let location: TransducerLocation;
+      if (overlappingPbIds.length === 0) {
+        location = "external";
+      } else {
+        const elementBox = getBoundingBox(element);
+        // Membership is overlap-based, so each overlapping PB is either
+        // fully-containing or edge-spanning relative to this element.
+        const spansABoundary = overlappingPbIds.some((pbId) => {
+          const pb = pbById.get(pbId);
+          return pb
+            ? !isCompletelyContained(elementBox, getBoundingBox(pb))
+            : false;
+        });
+        location = spansABoundary ? "boundary_spanning" : "internal";
+      }
+
+      props.location = location;
+      props.locationProvenance = "derived";
     }
   }
 }

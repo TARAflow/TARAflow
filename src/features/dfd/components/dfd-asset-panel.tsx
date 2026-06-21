@@ -103,6 +103,7 @@ interface AssetPanelProps {
   ) => void;
   /** Called when user clicks the global "clear all overlays" button */
   onClearAllVisibility?: () => void;
+  selectedAssetId?: string | null;
 }
 
 // ==================== ASSET TREE ====================
@@ -430,10 +431,10 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   onDeleteAsset,
   onAssetFeatureUpdate,
   onClearAllVisibility,
+  selectedAssetId: externalSelectedAssetId,
 }) => {
   const { t } = useTranslation();
 
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [treeCollapsed, setTreeCollapsed] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<AssetGroup | null>(null);
   const [shouldFocusName, setShouldFocusName] = useState(false);
@@ -444,6 +445,12 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   const dragStartY = useRef<number>(0);
   const dragStartHeight = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [internalSelectedAssetId, setInternalSelectedAssetId] = useState<
+    string | null
+  >(null);
+
+  const selectedAssetId = externalSelectedAssetId ?? internalSelectedAssetId;
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId) ?? null;
 
@@ -468,7 +475,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
     // New asset found — select the last one in the group
     const groupAssets = assets.filter((a) => a.assetGroup === pendingGroup);
     const newest = groupAssets[groupAssets.length - 1];
-    if (newest) setSelectedAssetId(newest.id);
+    if (newest) setInternalSelectedAssetId(newest.id);
     prevAssetsLengthRef.current = assets.length;
     setPendingGroup(null);
     setExpandedGroup(null);
@@ -521,7 +528,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
             assets={assets}
             visibility={visibility}
             selectedAssetId={selectedAssetId}
-            onSelect={setSelectedAssetId}
+            onSelect={setInternalSelectedAssetId}
             onVisibilityChange={onVisibilityChange}
             onCreateAsset={handleCreateAsset}
             onDeleteAsset={onDeleteAsset}

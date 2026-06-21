@@ -1,5 +1,9 @@
 // ==================== ASSET RELATION VALIDATOR ====================
-import type { DFDElement, DFDConnection } from "../../models/dfd-types";
+import type {
+  DFDElement,
+  DFDConnection,
+  ValidationFinding,
+} from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import { getAllowedRelations } from "../../models/asset-constants";
 import { ValidationMessages } from "./validator-utils";
@@ -8,8 +12,8 @@ export function validateAssetRelations(
   assets: DFDAsset[],
   elements: DFDElement[],
   connections: DFDConnection[],
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   const assetMap = new Map<string, DFDAsset>();
   assets.forEach((a) => assetMap.set(a.id, a));
@@ -27,8 +31,8 @@ function validateElementAssetRelations(
   elements: DFDElement[],
   connections: DFDConnection[],
   assetMap: Map<string, DFDAsset>,
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   // Check elements
   elements.forEach((element) => {
@@ -42,9 +46,14 @@ function validateElementAssetRelations(
       const asset = assetMap.get(relation.assetId);
 
       if (!asset) {
-        errors.push(
-          `${ValidationMessages.ASSET_RELATION_INCONSISTENT}|${elementLabel}|${relation.assetId} (via "${relation.relationType}")`,
-        );
+        errors.push({
+          key: ValidationMessages.ASSET_RELATION_INCONSISTENT,
+          displayId: element.displayId,
+          elementId: element.id,
+          params: {
+            detail: `${elementLabel} — ${relation.assetId} (via "${relation.relationType}")`,
+          },
+        });
         return;
       }
 
@@ -57,9 +66,16 @@ function validateElementAssetRelations(
         relation.relationType &&
         !allowedTypes.includes(relation.relationType)
       ) {
-        errors.push(
-          `${ValidationMessages.ASSET_RELATION_TYPE_INVALID}|${elementLabel}|${relation.relationType}|${asset.name}|${element.type}`,
-        );
+        errors.push({
+          key: ValidationMessages.ASSET_RELATION_TYPE_INVALID,
+          displayId: element.displayId,
+          elementId: element.id,
+          params: {
+            relationType: relation.relationType,
+            assetName: asset.name,
+            elementType: element.type,
+          },
+        });
       }
     });
   });
@@ -77,16 +93,28 @@ function validateElementAssetRelations(
       const asset = assetMap.get(relation.assetId);
 
       if (!asset) {
-        errors.push(
-          `${ValidationMessages.ASSET_RELATION_INCONSISTENT}|${connectionLabel}|${relation.assetId} (via "${relation.relationType}")`,
-        );
+        errors.push({
+          key: ValidationMessages.ASSET_RELATION_INCONSISTENT,
+          displayId: connection.displayId,
+          elementId: connection.id,
+          params: {
+            detail: `${connectionLabel} — ${relation.assetId} (via "${relation.relationType}")`,
+          },
+        });
         return;
       }
 
       if (relation.relationType && relation.relationType !== "transports") {
-        errors.push(
-          `${ValidationMessages.ASSET_RELATION_TYPE_INVALID}|${connectionLabel}|${relation.relationType}|${asset.name}|DataFlow`,
-        );
+        errors.push({
+          key: ValidationMessages.ASSET_RELATION_TYPE_INVALID,
+          displayId: connection.displayId,
+          elementId: connection.id,
+          params: {
+            relationType: relation.relationType,
+            assetName: asset.name,
+            elementType: "DataFlow",
+          },
+        });
       }
     });
   });

@@ -25,13 +25,13 @@ import {
 } from "@mui/material";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
+import type { TrustBoundaryProperties } from "../../models/element-properties";
 import type {
-  TrustBoundaryProperties,
   ExposureLevel,
   BoundaryControlType,
-} from "../../models/element-properties";
+} from "../../models/element-shared-types";
 import {
-  EXPOSURE_LEVEL_LABELS,
+  EXPOSURE_LEVEL_LABEL_KEYS,
   EXPOSURE_LEVEL_DESCRIPTION_KEYS,
 } from "../../models/dfd-constants";
 import { RichTextEditor } from "../shared/rich-text-editor";
@@ -256,7 +256,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                 defaultValue: "Exposure Level",
               })}
               renderValue={(value) =>
-                value ? EXPOSURE_LEVEL_LABELS[value as ExposureLevel] : ""
+                value ? EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel] : ""
               }
             >
               <MenuItem value="">
@@ -274,7 +274,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                     arrow
                   >
                     <span style={{ width: "100%", display: "block" }}>
-                      {EXPOSURE_LEVEL_LABELS[el]}
+                      {EXPOSURE_LEVEL_LABEL_KEYS[el]}
                     </span>
                   </Tooltip>
                 </MenuItem>

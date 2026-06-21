@@ -20,7 +20,11 @@
 //   dataflow-label-parser.ts module and import here.
 //   Currently duplicated to avoid circular dependency.
 
-import type { DFDConnection, DFDElement } from "../../models/dfd-types";
+import type {
+  DFDConnection,
+  DFDElement,
+  ValidationFinding,
+} from "../../models/dfd-types";
 import type { DataFlowProperties } from "../../models/element-properties";
 import { PROTOCOL_META } from "../../models/protocol-registry";
 import { ValidationMessages } from "./validator-utils";
@@ -140,8 +144,8 @@ function parseLabel(raw: string): ParsedLabel {
 export function validateDataflowLabelProperties(
   connections: DFDConnection[],
   elements: DFDElement[],
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
 ): void {
   const dataflows = connections.filter(
     (c) =>
@@ -165,12 +169,13 @@ export function validateDataflowLabelProperties(
     const tag = parsed.flowType;
     const props = (conn as { properties?: DataFlowProperties }).properties;
     const displayId = conn.displayId ?? conn.id;
+    const elementId = conn.id;
 
-    // runLP1(verb, props, displayId, errors);
-    runLP2(tag, props, displayId, warnings);
-    runLP3(verb, tag, props, displayId, warnings);
-    runLP4(verb, props, displayId, warnings);
-    runLP5(verb, conn, elementById, displayId, errors);
+    // runLP1(verb, props, displayId, elementId, errors);
+    runLP2(tag, props, displayId, elementId, warnings);
+    runLP3(verb, tag, props, displayId, elementId, warnings);
+    runLP4(verb, props, displayId, elementId, warnings);
+    runLP5(verb, conn, elementById, displayId, elementId, errors);
   }
 }
 
@@ -184,17 +189,23 @@ function runLP1(
   verb: ValidVerb,
   props: DataFlowProperties | undefined,
   displayId: string,
-  errors: string[],
+  elementId: string,
+  errors: ValidationFinding[],
 ): void {
   if (!props?.direction) return;
   const requiredDirection = VERB_DIRECTION_REQUIRED[verb];
   if (!requiredDirection) return;
   if (props.direction !== requiredDirection) {
-    errors.push(
-      `${ValidationMessages.DF_LP_VERB_DIRECTION_CONFLICT}|${displayId}|` +
-        `verb "${verb}" expects direction="${requiredDirection}", ` +
-        `got "${props.direction}"`,
-    );
+    errors.push({
+      key: ValidationMessages.DF_LP_VERB_DIRECTION_CONFLICT,
+      displayId,
+      elementId,
+      params: {
+        verb,
+        expectedDirection: requiredDirection,
+        gotDirection: props.direction,
+      },
+    });
   }
 }
 
@@ -208,15 +219,25 @@ function runLP2(
   tag: string | null,
   props: DataFlowProperties | undefined,
   displayId: string,
-  warnings: string[],
+  elementId: string,
+  warnings: ValidationFinding[],
 ): void {
   if (!props?.frequency || tag === null) return;
   const expected = TAG_FREQUENCY_EXPECTED[tag];
   if (!expected || expected.length === 0) return;
   if (!expected.includes(props.frequency)) {
-    warnings.push(
-      `${ValidationMessages.DF_LP_TAG_FREQUENCY_MISMATCH}|${displayId}|${tag}|${expected.join(",")}|${props.frequency}`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_LP_TAG_FREQUENCY_MISMATCH,
+      displayId,
+      elementId,
+      // combo/expected/got resolved via element_description.dataflow.fields.*.options.*
+      // by the panel (same enum-option resolver used for messageType).
+      params: {
+        combo: tag,
+        expectedFrequency: expected,
+        gotFrequency: props.frequency,
+      },
+    });
   }
 }
 
@@ -231,16 +252,26 @@ function runLP3(
   tag: string | null,
   props: DataFlowProperties | undefined,
   displayId: string,
-  warnings: string[],
+  elementId: string,
+  warnings: ValidationFinding[],
 ): void {
   if (!props?.messageType) return;
-  const key = tag ? `${verb}:${tag}` : verb;
-  const acceptable = VERB_TAG_MESSAGETYPE_ACCEPTABLE[key];
+  const comboKey = tag ? `${verb}:${tag}` : verb;
+  const acceptable = VERB_TAG_MESSAGETYPE_ACCEPTABLE[comboKey];
   if (!acceptable) return;
   if (!acceptable.includes(props.messageType)) {
-    warnings.push(
-      `${ValidationMessages.DF_LP_TAG_MESSAGETYPE_MISMATCH}|${displayId}|${key}|${acceptable.join(",")}|${props.messageType}`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_LP_TAG_MESSAGETYPE_MISMATCH,
+      displayId,
+      elementId,
+      // expected/got are messageType enum values — resolved by the panel via
+      // element_description.dataflow.fields.messageType.options.* (enumOption resolver).
+      params: {
+        combo: comboKey,
+        expectedMessageType: acceptable,
+        gotMessageType: props.messageType,
+      },
+    });
   }
 }
 
@@ -254,15 +285,19 @@ function runLP4(
   verb: ValidVerb,
   props: DataFlowProperties | undefined,
   displayId: string,
-  warnings: string[],
+  elementId: string,
+  warnings: ValidationFinding[],
 ): void {
   if (!props?.protocol) return;
   const meta = PROTOCOL_META[props.protocol];
   if (!meta) return;
   if (meta.group === "electrical" && verb === "pull") {
-    warnings.push(
-      `${ValidationMessages.DF_LP_ELECTRICAL_PULL_VERB}|${displayId}|${props.protocol}`,
-    );
+    warnings.push({
+      key: ValidationMessages.DF_LP_ELECTRICAL_PULL_VERB,
+      displayId,
+      elementId,
+      params: { protocol: props.protocol },
+    });
   }
 }
 
@@ -278,14 +313,19 @@ function runLP5(
   conn: DFDConnection,
   elementById: Map<string, DFDElement>,
   displayId: string,
-  errors: string[],
+  elementId: string,
+  errors: ValidationFinding[],
 ): void {
   if (verb !== "write") return;
   const target = elementById.get(conn.to);
   if (!target) return;
   if (target.type !== "DataStore") {
-    errors.push(
-      `${ValidationMessages.DF_LP_WRITE_TARGET_NOT_DATASTORE}|${displayId}|${target.name || target.id}|${target.type}`,
-    );
+    errors.push({
+      key: ValidationMessages.DF_LP_WRITE_TARGET_NOT_DATASTORE,
+      displayId,
+      elementId,
+      // targetType resolved via dfdValidation.elementTypes.* by the panel.
+      params: { targetName: target.name || target.id, targetType: target.type },
+    });
   }
 }

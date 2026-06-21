@@ -22,7 +22,9 @@ export type DFDElementType =
   | "TrustBoundary"
   | "Interface"
   | "ChipBoundary"
-  | "PhysicalBoundary";
+  | "PhysicalBoundary"
+  | "Sensor"              // cyber-physical: transducer (physical → cyber)
+  | "Actuator";            // cyber-physical: transducer (cyber → physical)
 
 // ==================== SECURITY / TRUST LEVEL ====================
 

@@ -7,6 +7,7 @@ import type {
   DFDConnection,
   DFDStats,
   DFDValidation,
+  ValidationFinding,
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 
@@ -21,6 +22,7 @@ import {
   validateUnconnectedElements,
   validateChipBoundaryConnections,
   validatePhysicalBoundaryConnections,
+  validateTransducerConnections,
 } from "./validators/connection-validator";
 import { validateDataflowLabels } from "./validators/dataflow-label-validator";
 import { validateDataflowProperties } from "./validators/dataflow-property-validator";
@@ -30,15 +32,14 @@ import {
   isComplete,
   validateScenario,
 } from "./validators/completeness-validator";
-import { dfdAnalyzer } from "../utils/dfd-analyzer";
 import { ValidationMessages } from "./validators/validator-utils";
 import type { DFDGraph } from "../models/dfd-graph-types";
 
 export interface ValidationResult {
   isValid: boolean;
   isComplete: boolean;
-  errors: string[];
-  warnings: string[];
+  errors: ValidationFinding[];
+  warnings: ValidationFinding[];
   /** Which scenario was detected:
    *  'A' (external entity → TB required),
    *  'B' (no EE, TB present → cross-boundary flow required),
@@ -74,12 +75,12 @@ export class DFDValidator {
     graph: DFDGraph,
     options?: ValidateOptions,
   ): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+    const errors: ValidationFinding[] = [];
+    const warnings: ValidationFinding[] = [];
 
     // Early return if no elements
     if (stats.totalElements === 0) {
-      errors.push(ValidationMessages.NO_ELEMENTS);
+      errors.push({ key: ValidationMessages.NO_ELEMENTS });
       return {
         isValid: false,
         isComplete: false,
@@ -100,6 +101,7 @@ export class DFDValidator {
     validateUnconnectedElements(elements, connections, warnings);
     validateChipBoundaryConnections(connections, elements, errors);
     validatePhysicalBoundaryConnections(connections, elements, errors);
+    validateTransducerConnections(connections, elements, errors);
     validateDataflowLabels(connections, elements, errors, warnings);
     validateDataflowProperties(connections, errors, warnings);
 

@@ -1,6 +1,7 @@
 // ==================== ASSET VALIDATOR ====================
 // Single Responsibility: Validate DFD asset properties
 
+import type { ValidationFinding } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import { ValidationMessages } from "./validator-utils";
 
@@ -10,7 +11,7 @@ import { ValidationMessages } from "./validator-utils";
  */
 export function validateAssetProperties(
   assets: DFDAsset[],
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   for (const asset of assets) {
     validateAssetBase(asset, warnings);
@@ -22,19 +23,28 @@ export function validateAssetProperties(
 // Base validation — applies to all asset groups
 // ---------------------------------------------------------------------------
 
-function validateAssetBase(asset: DFDAsset, warnings: string[]): void {
+function validateAssetBase(
+  asset: DFDAsset,
+  warnings: ValidationFinding[],
+): void {
   const displayId = asset.displayId ?? asset.name;
 
   if (!asset.name || asset.name.trim() === "") {
-    warnings.push(
-      `${ValidationMessages.ASSET_MISSING_NAME}|${displayId}|${asset.assetGroup}`,
-    );
+    warnings.push({
+      key: ValidationMessages.ASSET_MISSING_NAME,
+      displayId,
+      elementId: asset.id,
+      params: { name: displayId },
+    });
   }
 
   if (!asset.protectionNeed) {
-    warnings.push(
-      `${ValidationMessages.ASSET_MISSING_PROTECTION_NEED}|${displayId}|${asset.assetGroup}`,
-    );
+    warnings.push({
+      key: ValidationMessages.ASSET_MISSING_PROTECTION_NEED,
+      displayId,
+      elementId: asset.id,
+      params: { name: displayId },
+    });
   }
 }
 
@@ -44,13 +54,18 @@ function validateAssetBase(asset: DFDAsset, warnings: string[]): void {
 
 function validateAssetGroupProperties(
   asset: DFDAsset,
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   const props = asset.properties;
   const displayId = asset.displayId ?? asset.name;
 
   function warn(key: string): void {
-    warnings.push(`${key}|${displayId}|${asset.assetGroup}`);
+    warnings.push({
+      key,
+      displayId,
+      elementId: asset.id,
+      params: { name: displayId },
+    });
   }
 
   switch (asset.assetGroup) {

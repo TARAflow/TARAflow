@@ -19,6 +19,8 @@ import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
 import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
 import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
 import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form";
+import { SensorDescriptionForm } from "./forms/sensor-description-form";
+import { ActuatorDescriptionForm } from "./forms/actuator-description-form";
 
 // ==================== PROPS ====================
 
@@ -149,6 +151,26 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
         <PhysicalBoundaryDescriptionForm
           element={element}
           onChange={onChange as (updates: Partial<DFDElement>) => void}
+        />
+      );
+
+    case "Sensor":
+      return (
+        <SensorDescriptionForm
+          element={element}
+          onChange={onChange as (updates: Partial<DFDElement>) => void}
+          availableAssets={availableAssets}
+          onCreateAsset={onCreateAsset}
+        />
+      );
+
+    case "Actuator":
+      return (
+        <ActuatorDescriptionForm
+          element={element}
+          onChange={onChange as (updates: Partial<DFDElement>) => void}
+          availableAssets={availableAssets}
+          onCreateAsset={onCreateAsset}
         />
       );
 

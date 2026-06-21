@@ -12,13 +12,19 @@ import type {
   TrustBoundaryProperties,
   PhysicalBoundaryProperties,
   ChipBoundaryProperties,
+} from "./element-properties";
+import type {
   StoredDataType,
   InterfaceLocation,
   BoundaryControlType,
   PhysicalExposureLevel,
   PhysicalMonitoringType,
-} from "./element-properties";
+} from "./element-shared-types";
 import type { ExternalEntityType } from "./external-entity-type-registry";
+import type {
+  SensorProperties,
+  ActuatorProperties,
+} from "./transducer-properties";
 
 // ==================== PROCESS DEFAULTS ====================
 
@@ -168,6 +174,49 @@ export const PROCESS_TECH_DEFAULTS: Record<
     malwareProtection: "none", // Surfaces CR 3.2 gap
   },
 };
+
+/**
+ * Process technologies that run WITHOUT an OS user/account model
+ * (bare-metal, RTOS task, kernel/ISR/driver, bootloader, protocol stack).
+ *
+ * Single source of truth for "is this an embedded/no-OS process". The Process
+ * form gates its embedded UI section on this (and disables `runsAs`); the
+ * validator skips the `runsAs` requirement via isRunsAsApplicable. Import from
+ * here in BOTH so the form's disabled-state and the validator can never drift.
+ */
+export const EMBEDDED_TECHNOLOGIES: ReadonlySet<
+  NonNullable<ProcessProperties["technology"]>
+> = new Set([
+  "rtos_task",
+  "bare_metal",
+  "isr",
+  "state_machine",
+  "bootloader",
+  "driver",
+  "protocol_stack",
+]);
+
+/** Embedded / no-OS technology? (undefined technology → false). */
+export function isEmbeddedTechnology(
+  technology: ProcessProperties["technology"] | undefined,
+): boolean {
+  return technology != null && EMBEDDED_TECHNOLOGIES.has(technology);
+}
+
+/**
+ * Whether the `runsAs` field applies to a Process. False for:
+ *   - embedded / no-OS technologies (see EMBEDDED_TECHNOLOGIES), and
+ *   - non-OS process semantics: functional_block (bare-metal logic / ISR /
+ *     state machine) and security_boundary (HSM / OP-TEE TA isolated execution).
+ * The form disables the field exactly when this returns false; the validator
+ * must not require runsAs in that case.
+ */
+export function isRunsAsApplicable(
+  props: Pick<ProcessProperties, "technology" | "processSemantic">,
+): boolean {
+  if (isEmbeddedTechnology(props.technology)) return false;
+  return !props.processSemantic || props.processSemantic === "execution_unit";
+}
 
 // ==================== MULTIPROCESS DEFAULTS ====================
  
@@ -1692,3 +1741,46 @@ export function buildClearPatch<T extends object>(
 ): Partial<T> {
   return Object.fromEntries(keys.map((k) => [k, undefined])) as Partial<T>;
 }
+// ==================== TRANSDUCER (SENSOR / ACTUATOR) DEFAULTS ====================
+//
+// Pessimistic-by-default baseline applied when a Sensor/Actuator is created:
+//   - mitigations at their weakest value ("none") — a set value, so the
+//     property validator does NOT flag them as missing; instead the threat
+//     generator surfaces the corresponding spoofing/tampering/availability
+//     threats from the "none" posture.
+//   - classifiers at their non-decision sentinel ("unspecified" / "unassessed" /
+//     "none_defined") — the property validator surfaces a refinement finding.
+//   - measurand and safetyRelevant are intentionally LEFT UNSET so the
+//     validator's "missing property" findings fire for them.
+//
+// Reduction must be earned: the analyst lowers risk by assessing/mitigating,
+// never by an optimistic default. No actuatorClass→field cascade is provided on
+// purpose — energyDomain / hazardPotential / safeState are context-dependent and
+// must be assessed, not guessed (a brake releases on de-energize; "motion" alone
+// does not imply a safe direction).
+//
+// Apply at element creation, e.g. `{ ...SENSOR_DEFAULTS }`, and (only-if-unset)
+// when seeding the Sensor/Actuator description forms.
+
+export const SENSOR_DEFAULTS: Partial<SensorProperties> = {
+  transductionPrinciple: "unspecified", // refinement finding
+  sensingExposure: "exposed", // pessimistic worst case → threat-gen assumes attackable
+  signalAuthentication: "none", // weakest posture → threat-gen surfaces spoofing
+  plausibilityCheck: "none",
+  redundancy: "none",
+  lossDetection: "none",
+  // measurand + stimulusDomain: left unset → validator "missing property" findings
+  // safetyRelevant: left undefined (= unassessed) → validator finding
+};
+
+export const ACTUATOR_DEFAULTS: Partial<ActuatorProperties> = {
+  actuatorClass: "unspecified", // refinement finding
+  energyDomain: "unspecified",
+  hazardPotential: "unassessed", // validator finding
+  safeState: "none_defined", // validator finding — de-energize is NOT auto-safe
+  commandAuthentication: "none", // weakest posture → threat-gen surfaces tampering
+  failBehavior: "unassessed",
+  feedbackVerification: "none",
+  hardwareInterlock: "none",
+  // safetyRelevant: left undefined (= unassessed) → validator finding
+};

@@ -498,7 +498,7 @@ export abstract class BaseDocumentGenerator {
   // ==================== DFD DESCRIPTIONS ====================
 
   protected generateDfdDescriptions(title: string): ChapterContent {
-    const { project, lang } = this.ctx;
+    const { project, t } = this.ctx;
 
     if (
       !project.dfd ||
@@ -522,7 +522,7 @@ export abstract class BaseDocumentGenerator {
         const values = {
           displayId: element.displayId || element.id,
           name: this.escapeTableText(element.name),
-          type: getDFDElementTypeText(element.type, lang),
+          type: getDFDElementTypeText(element.type, this.ctx.t),
           description: this.escapeTableText(
             truncateText(element.description ?? "-", 60),
           ),
@@ -559,7 +559,7 @@ export abstract class BaseDocumentGenerator {
       const typeHeader = replacePlaceholders(
         this.getDfdElementTypeHeaderTemplate(),
         {
-          elementTypeName: getDFDElementTypePluralText(elementType, lang),
+          elementTypeName: getDFDElementTypePluralText(elementType, t),
         },
       );
       content += typeHeader;
@@ -688,7 +688,7 @@ export abstract class BaseDocumentGenerator {
    * Generate Asset-Element Relations chapter
    */
   protected generateAssetElementRelations(title: string): ChapterContent {
-    const { project, lang } = this.ctx;
+    const { project, t } = this.ctx;
 
     const assets = project.assets?.assets ?? [];
 
@@ -747,7 +747,7 @@ export abstract class BaseDocumentGenerator {
    * Generate section for one asset's element relations
    */
   protected generateAssetRelationSection(asset: Asset): string {
-    const { lang } = this.ctx;
+    const { t, lang } = this.ctx;
 
     const elementRelations = (asset.linkedDFDElements ?? [])
       .map((elemRel) => {
@@ -759,7 +759,7 @@ export abstract class BaseDocumentGenerator {
           elementDisplayId: elemRel.displayId,
           elementType: getDFDElementTypeText(
             elemRel.elementType as DFDElementType,
-            lang,
+            t,
           ),
           elementName: this.escapeTableText(elemRel.elementName),
           relationTypes: this.escapeTableText(relationTypes),
@@ -789,17 +789,14 @@ export abstract class BaseDocumentGenerator {
   }
 
   protected generateDfdElementEntry(element: DFDElement): string {
-    const { lang } = this.ctx;
+    const { t, lang } = this.ctx;
 
     const values = {
       displayId: element.displayId || element.id,
       name: this.escapeTableText(element.name),
       description: this.escapeTableText(element.description ?? "-"),
-      securityLevel: getSecurityLevelText(
-        getElementSecurityLevel(element),
-        lang,
-      ),
-      trustLevel: getTrustLevelText(getElementTrustLevel(element), lang),
+      securityLevel: getSecurityLevelText(getElementSecurityLevel(element), t),
+      trustLevel: getTrustLevelText(getElementTrustLevel(element), t),
       authRequired: getYesNoText(
         isElementAuthenticationRequired(element),
         lang,
@@ -819,7 +816,7 @@ export abstract class BaseDocumentGenerator {
   }
 
   protected generateDfdConnectionEntry(connection: DFDConnection): string {
-    const { lang, project } = this.ctx;
+    const { lang, project, t } = this.ctx;
 
     // Lookup element names from IDs
     const fromElement =
@@ -839,7 +836,7 @@ export abstract class BaseDocumentGenerator {
       description: this.escapeTableText(connection.description ?? "-"),
       securityLevel: getSecurityLevelText(
         getConnectionSecurityLevel(connection),
-        lang,
+        t,
       ),
       authRequired: getYesNoText(
         isConnectionAuthenticationRequired(connection),

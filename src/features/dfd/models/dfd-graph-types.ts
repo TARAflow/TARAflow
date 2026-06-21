@@ -85,6 +85,21 @@ export interface DataFlowAnalysis {
 
   /** Whether this flow terminates at a PhysicalBoundary (via Interface on boundary edge) */
   terminatesAtPhysicalBoundary: boolean;
+
+  /**
+   * Whether this flow is a physical-medium coupling (DataFlowProperties.medium === "physical").
+   * Transduction/injection threats gate on this; cyber-dataflow templates
+   * (encryption, endpoint auth, TB crossing) do NOT apply to a physical edge.
+   */
+  isPhysicalCoupling: boolean;
+
+  /**
+   * Role of the coupling relative to the transducer it touches, when isPhysicalCoupling:
+   *  - "sensor_input"     → stimulus INTO a Sensor  (threat: spoof / inject the measurand)
+   *  - "actuator_output"  → effect OUT of an Actuator (threat: forced / blocked actuation)
+   * Undefined for a physical edge that touches no Sensor/Actuator (e.g. EE↔EE cable).
+   */
+  physicalCouplingRole?: "sensor_input" | "actuator_output";
 }
 
 // ==================== INTERNAL HELPERS ====================

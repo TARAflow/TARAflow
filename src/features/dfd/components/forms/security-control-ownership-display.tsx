@@ -16,7 +16,7 @@ import {
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import type { SecurityControlRecord } from "../../models/element-properties";
+import type { SecurityControlRecord } from "../../models/element-shared-types";
 
 interface SecurityControlOwnershipDisplayProps {
   records: SecurityControlRecord[];

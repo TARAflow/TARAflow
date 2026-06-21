@@ -1,8 +1,12 @@
 // ==================== ELEMENT VALIDATOR ====================
 // Single Responsibility: Validate DFD elements
 
-import type { DFDElement } from "../../models/dfd-types";
-import { ValidationMessages, isDefaultName, validateTrustBoundaryId } from "./validator-utils";
+import type { DFDElement, ValidationFinding } from "../../models/dfd-types";
+import {
+  ValidationMessages,
+  isDefaultName,
+  validateTrustBoundaryId,
+} from "./validator-utils";
 import { validateElementProperties } from "./element-property-validator";
 import type { DFDGraph } from "../../models/dfd-graph-types";
 import { INTERFACE_TYPE_META } from "../../models/interface-type-registry";
@@ -12,8 +16,8 @@ import { INTERFACE_TYPE_META } from "../../models/interface-type-registry";
  */
 export function validateElements(
   elements: DFDElement[],
-  errors: string[],
-  warnings: string[],
+  errors: ValidationFinding[],
+  warnings: ValidationFinding[],
   graph: DFDGraph,
 ): void {
   validateElementNames(elements, warnings);
@@ -46,7 +50,7 @@ export function validateElements(
  */
 function validateInterfaceUsage(
   elements: DFDElement[],
-  warnings: string[],
+  warnings: ValidationFinding[],
   graph?: DFDGraph,
 ): void {
   const interfaces = elements.filter((e) => e.type === "Interface");
@@ -72,9 +76,12 @@ function validateInterfaceUsage(
 
     if (!hasDataflow) {
       const displayId = iface.displayId ?? iface.name;
-      warnings.push(
-        `${ValidationMessages.INTERFACE_UNUSED}|${displayId}|Interface`,
-      );
+      warnings.push({
+        key: ValidationMessages.INTERFACE_UNUSED,
+        displayId,
+        elementId: iface.id,
+        params: { name: displayId },
+      });
     }
   }
 }
@@ -84,7 +91,7 @@ function validateInterfaceUsage(
  */
 function validateElementNames(
   elements: DFDElement[],
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const connectableTypes = [
     "Process",
@@ -100,9 +107,12 @@ function validateElementNames(
     if (!connectableTypes.includes(element.type)) continue;
 
     if (isDefaultName(element.name)) {
-      warnings.push(
-        `${ValidationMessages.ELEMENT_DEFAULT_NAME}:${element.name}`
-      );
+      warnings.push({
+        key: ValidationMessages.ELEMENT_DEFAULT_NAME,
+        displayId: element.displayId,
+        elementId: element.id,
+        params: { name: element.name },
+      });
     }
   }
 }
@@ -112,7 +122,7 @@ function validateElementNames(
  */
 function validateIdLabels(
   elements: DFDElement[],
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const typesNeedingIds = [
     "Process",
@@ -128,9 +138,11 @@ function validateIdLabels(
     const hasIdInName = /\[[A-Z]+-?\d+\]/i.test(element.name);
 
     if (!hasDisplayId && !hasIdInName) {
-      warnings.push(
-        `${ValidationMessages.ELEMENT_MISSING_IDLABEL}:${element.name}`
-      );
+      warnings.push({
+        key: ValidationMessages.ELEMENT_MISSING_IDLABEL,
+        elementId: element.id,
+        params: { name: element.name },
+      });
     }
   }
 }
@@ -141,7 +153,7 @@ function validateIdLabels(
  */
 function validateTrustBoundaryIds(
   elements: DFDElement[],
-  errors: string[],
+  errors: ValidationFinding[],
 ): void {
   // Validate both TrustBoundary and ChipBoundary — same [ID] convention
   const boundaryElements = elements.filter(
@@ -154,9 +166,12 @@ function validateTrustBoundaryIds(
   for (const boundary of boundaryElements) {
     const validation = validateTrustBoundaryId(boundary.name);
     if (!validation.isValid) {
-      errors.push(
-        `${ValidationMessages.TRUST_BOUNDARY_MISSING_ID}:${boundary.name}`,
-      );
+      errors.push({
+        key: ValidationMessages.TRUST_BOUNDARY_MISSING_ID,
+        displayId: boundary.displayId,
+        elementId: boundary.id,
+        params: { name: boundary.name },
+      });
     }
   }
 }
@@ -178,7 +193,7 @@ function validateTrustBoundaryIds(
  */
 function validateInterfacePhysicalBoundary(
   elements: DFDElement[],
-  warnings: string[],
+  warnings: ValidationFinding[],
   graph?: DFDGraph,
 ): void {
   // Only enforce when at least one PB exists — otherwise rule has no context
@@ -212,9 +227,11 @@ function validateInterfacePhysicalBoundary(
 
     if (memberPBs.length === 0) {
       const displayId = iface.displayId ?? iface.name;
-      warnings.push(
-        `${ValidationMessages.INTERFACE_NO_PHYSICAL_BOUNDARY}|${displayId}|Interface`,
-      );
+      warnings.push({
+        key: ValidationMessages.INTERFACE_NO_PHYSICAL_BOUNDARY,
+        displayId,
+        elementId: iface.id,
+      });
     }
   }
 }
@@ -237,7 +254,7 @@ function validateInterfacePhysicalBoundary(
  */
 function validateChipBoundaryDebugInterfaces(
   elements: DFDElement[],
-  warnings: string[],
+  warnings: ValidationFinding[],
   graph: DFDGraph,
 ): void {
   const chipBoundaries = elements.filter((e) => e.type === "ChipBoundary");
@@ -246,11 +263,11 @@ function validateChipBoundaryDebugInterfaces(
   // Map of debug interface type aliases (ChipBoundary → Interface type)
   // jtag_trace and swd_swo are supersets of jtag/swd respectively
   const DEBUG_TO_INTERFACE_TYPES: Record<string, string[]> = {
-    jtag:       ["jtag", "jtag_trace"],
+    jtag: ["jtag", "jtag_trace"],
     jtag_trace: ["jtag_trace", "jtag"],
-    swd:        ["swd", "swd_swo"],
-    swd_swo:    ["swd_swo", "swd"],
-    custom:     ["custom"],
+    swd: ["swd", "swd_swo"],
+    swd_swo: ["swd_swo", "swd"],
+    custom: ["custom"],
   };
 
   for (const chip of chipBoundaries) {
@@ -275,9 +292,12 @@ function validateChipBoundaryDebugInterfaces(
 
     if (!hasMatchingInterface) {
       const displayId = chip.displayId ?? chip.name;
-      warnings.push(
-        `${ValidationMessages.CHIPBOUNDARY_MISSING_DEBUG_INTERFACE}|${displayId}|${debugType}`,
-      );
+      warnings.push({
+        key: ValidationMessages.CHIPBOUNDARY_MISSING_DEBUG_INTERFACE,
+        displayId,
+        elementId: chip.id,
+        params: { name: displayId, detail: debugType },
+      });
     }
   }
 }
@@ -291,7 +311,7 @@ function validateChipBoundaryDebugInterfaces(
  */
 function validateInterfaceConnectorTypes(
   elements: DFDElement[],
-  warnings: string[],
+  warnings: ValidationFinding[],
 ): void {
   const interfaces = elements.filter((e) => e.type === "Interface");
 
@@ -302,7 +322,8 @@ function validateInterfaceConnectorTypes(
 
     if (!ifaceType || !connectorType) continue;
 
-    const meta = INTERFACE_TYPE_META[ifaceType as keyof typeof INTERFACE_TYPE_META];
+    const meta =
+      INTERFACE_TYPE_META[ifaceType as keyof typeof INTERFACE_TYPE_META];
     if (!meta) continue;
 
     const { validConnectors } = meta;
@@ -313,9 +334,16 @@ function validateInterfaceConnectorTypes(
 
     if (isInvalid) {
       const displayId = iface.displayId ?? iface.name;
-      warnings.push(
-        `${ValidationMessages.INTERFACE_CONNECTOR_TYPE_INVALID}|${displayId}|${ifaceType}|${connectorType}`,
-      );
+      warnings.push({
+        key: ValidationMessages.INTERFACE_CONNECTOR_TYPE_INVALID,
+        displayId,
+        elementId: iface.id,
+        // interfaceType + connectorType are both type-like codes resolved via
+        // dfdValidation.elementTypes.* by the panel (same resolver as
+        // `type`/`elementType` — just distinctly named to avoid clashing with
+        // the plain-text `targetName` used in DF_LP_WRITE_TARGET_NOT_DATASTORE).
+        params: { name: displayId, interfaceType: ifaceType, connectorType },
+      });
     }
   }
 }
@@ -325,7 +353,7 @@ function validateInterfaceConnectorTypes(
  */
 export function validateDuplicateIdLabels(
   elements: DFDElement[],
-  warnings: string[]
+  warnings: ValidationFinding[],
 ): void {
   const idLabels = new Map<string, string[]>(); // id -> [element names]
 
@@ -355,7 +383,10 @@ export function validateDuplicateIdLabels(
   // Report duplicates
   idLabels.forEach((names, id) => {
     if (names.length > 1) {
-      warnings.push(`${ValidationMessages.DUPLICATE_IDLABEL}:${id}`);
+      warnings.push({
+        key: ValidationMessages.DUPLICATE_IDLABEL,
+        params: { id },
+      });
     }
   });
 }

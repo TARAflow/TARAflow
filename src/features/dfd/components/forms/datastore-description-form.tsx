@@ -25,10 +25,8 @@ import {
 } from "@mui/material";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
-import type {
-  DataStoreProperties,
-  StoredDataType,
-} from "../../models/element-properties";
+import type { DataStoreProperties } from "../../models/element-properties";
+import type { StoredDataType } from "../../models/element-shared-types";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
