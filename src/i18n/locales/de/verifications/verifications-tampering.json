@@ -22,5 +22,8 @@
   },
   "V-T-FSAFE-001": {
     "verification": "Fail-Safe-Ausgangszustand unter simuliertem Angriff oder Kommunikationsausfall testen — definierten sicheren Zustand verifizieren"
+  },
+  "V-T-008": {
+    "verification": "Concurrency- und Race-Testing des Shared-Memory-Zugriffs — Atomarität und TOCTOU-Sicherheit unter gleichzeitigem Multi-Master-Zugriff verifizieren (Stress und Interleaving)"
   }
 }

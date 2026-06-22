@@ -22,5 +22,8 @@
   },
   "V-T-FSAFE-001": {
     "verification": "Test fail-safe output state under simulated attack or communication loss — verify defined safe state is reached"
+  },
+  "V-T-008": {
+    "verification": "Concurrency and race testing of shared-memory access — verify atomicity and TOCTOU safety under simultaneous multi-master access (stress and interleaving)"
   }
 }

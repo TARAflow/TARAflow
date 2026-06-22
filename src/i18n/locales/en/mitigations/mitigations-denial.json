@@ -25,5 +25,8 @@
   },
   "M-D-009": {
     "mitigation": "Enable island mode capability — trust boundary can isolate the zone completely on incident detection (NDR 5.2 RE2)"
+  },
+  "M-D-010": {
+    "mitigation": "Implement a timeout/watchdog on inter-core mailbox handshakes — detect a stalled or corrupted flag and recover to a defined state"
   }
 }

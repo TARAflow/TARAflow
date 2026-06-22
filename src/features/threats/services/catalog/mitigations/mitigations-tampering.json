@@ -22,9 +22,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-001"
-      ]
+      "verifications": ["V-T-001"]
     },
     {
       "id": "M-T-002",
@@ -40,10 +38,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-001",
-        "V-T-002"
-      ]
+      "verifications": ["V-T-001", "V-T-002"]
     },
     {
       "id": "M-T-003",
@@ -64,9 +59,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-003"
-      ]
+      "verifications": ["V-T-003"]
     },
     {
       "id": "M-T-004",
@@ -81,10 +74,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-002",
-        "V-T-004"
-      ]
+      "verifications": ["V-T-002", "V-T-004"]
     },
     {
       "id": "M-T-005",
@@ -114,10 +104,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-001",
-        "V-T-002"
-      ]
+      "verifications": ["V-T-001", "V-T-002"]
     },
     {
       "id": "M-T-006",
@@ -138,9 +125,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-001"
-      ]
+      "verifications": ["V-T-001"]
     },
     {
       "id": "M-T-007",
@@ -155,9 +140,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-IF-E-002"
-      ]
+      "verifications": ["V-IF-E-002"]
     },
     {
       "id": "M-T-008",
@@ -172,9 +155,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-001"
-      ]
+      "verifications": ["V-T-001"]
     },
     {
       "id": "M-T-010",
@@ -189,9 +170,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-003"
-      ]
+      "verifications": ["V-T-003"]
     },
     {
       "id": "M-T-FSAFE-001",
@@ -206,9 +185,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-FSAFE-001"
-      ]
+      "verifications": ["V-T-FSAFE-001"]
     },
     {
       "id": "M-T-009",
@@ -223,9 +200,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-T-006"
-      ]
+      "verifications": ["V-T-006"]
     },
     {
       "id": "M-T-011",
@@ -240,9 +215,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-007"
-      ]
+      "verifications": ["V-T-007"]
     },
     {
       "id": "M-T-012",
@@ -257,9 +230,15 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-T-001"
-      ]
+      "verifications": ["V-T-001"]
+    },
+    {
+      "id": "M-T-013",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-T-008"]
     }
   ]
 }

@@ -14,16 +14,8 @@
           "gateway"
         ]
       },
-      "mitigations": [
-        "M-D-001",
-        "M-D-003",
-        "M-D-005",
-        "M-IF-D-003"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-003"
-      ],
+      "mitigations": ["M-D-001", "M-D-003", "M-D-005", "M-IF-D-003"],
+      "verifications": ["V-D-001", "V-D-003"],
       "isCustom": false,
       "domain": "embedded"
     },
@@ -42,16 +34,8 @@
           "iec61850"
         ]
       },
-      "mitigations": [
-        "M-D-001",
-        "M-D-003",
-        "M-IF-D-001",
-        "M-IF-D-003"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-IF-D-001"
-      ],
+      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001", "M-IF-D-003"],
+      "verifications": ["V-D-001", "V-IF-D-001"],
       "isCustom": false,
       "domain": "embedded"
     },
@@ -60,22 +44,11 @@
       "strideCategory": "D",
       "perspective": "receiver",
       "context": {
-        "location": [
-          "field_cable"
-        ],
-        "redundancy": [
-          "none"
-        ]
+        "location": ["field_cable"],
+        "redundancy": ["none"]
       },
-      "mitigations": [
-        "M-D-007",
-        "M-D-008",
-        "M-D-001"
-      ],
-      "verifications": [
-        "V-D-006",
-        "V-D-001"
-      ],
+      "mitigations": ["M-D-007", "M-D-008", "M-D-001"],
+      "verifications": ["V-D-006", "V-D-001"],
       "isCustom": false,
       "domain": "physical"
     },
@@ -84,22 +57,25 @@
       "strideCategory": "D",
       "perspective": "receiver",
       "context": {
-        "safetyFunction": [
-          "emergency_stop",
-          "safety_gate"
-        ]
+        "safetyFunction": ["emergency_stop", "safety_gate"]
       },
-      "mitigations": [
-        "M-D-008",
-        "M-D-001",
-        "M-D-007"
-      ],
-      "verifications": [
-        "V-D-007",
-        "V-D-006"
-      ],
+      "mitigations": ["M-D-008", "M-D-001", "M-D-007"],
+      "verifications": ["V-D-007", "V-D-006"],
       "isCustom": false,
       "domain": "physical"
+    },
+    {
+      "id": "D-005",
+      "strideCategory": "D",
+      "perspective": "sender",
+      "context": {
+        "technology": ["shared_memory"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-D-010", "M-D-002"],
+      "verifications": ["V-D-008", "V-D-004"],
+      "isCustom": false,
+      "domain": "embedded"
     }
   ]
 }

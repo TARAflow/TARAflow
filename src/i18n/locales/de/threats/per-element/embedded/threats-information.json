@@ -14,6 +14,16 @@
       "threat": "Extraktion sensibler Daten aus Embedded-Speicher",
       "cause": "Flash oder EEPROM enthält unverschlüsselte sensible Daten und ist via Debug-Schnittstelle oder physischer Sonde auslesbar",
       "attack": "Angreifer liest Flash-Speicher via JTAG oder physischer Sonde aus, um API-Keys, Gerätezertifikate oder Benutzerdaten ohne Verschlüsselung zu extrahieren"
+    },
+    "I-004": {
+      "threat": "Restdaten-Offenlegung im Shared Memory — Geheimnisse bleiben nach Gebrauch im flüchtigen Speicher lesbar",
+      "cause": "Shared-Memory-Region wird nach Gebrauch nicht gelöscht — sensible Daten bleiben zwischen Tasks oder Cores erhalten",
+      "attack": "Ein zweiter Core oder ein späterer Task liest zurückgelassene Pufferinhalte (Schlüssel, Klartext) aus der geteilten Region"
+    },
+    "I-005": {
+      "threat": "Speicher-Isolationsbypass (Lesen) — geschützte Region domänenübergreifend lesbar",
+      "cause": "Die MPU/MMU-Region für Shared Memory oder MMIO-Block ist fehlkonfiguriert — Isolation zwischen Domänen wird nicht durchgesetzt",
+      "attack": "Ein niedrig privilegierter Task oder Peripheriebaustein liest eine Region, auf die er keinen Zugriff haben dürfte, und extrahiert Geheimnisse oder Sensordaten"
     }
   }
 }

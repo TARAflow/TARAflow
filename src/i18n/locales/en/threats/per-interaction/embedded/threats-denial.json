@@ -19,6 +19,11 @@
       "threat": "Disruption of safety-critical data flow — safety function unavailable on demand",
       "cause": "Safety-critical data flow has no redundant path — disruption directly prevents the safety function from operating",
       "attack": "Attacker floods or physically disrupts the safety-critical data flow, preventing emergency stop commands from reaching their destination"
+    },
+    "D-005": {
+      "threat": "Inter-core mailbox stall on {{dataFlowName}} — shared-memory exchange between {{sourceName}} and {{targetName}} halts",
+      "cause": "The shared-memory mailbox handshake has no timeout or watchdog — a stuck or corrupted flag blocks the exchange",
+      "attack": "An attacker or fault holds or corrupts the mailbox flag, so the exchange deadlocks and inter-core communication is denied"
     }
   }
 }

@@ -14,6 +14,16 @@
       "threat": "Embedded storage information disclosure — attacker reads sensitive data from non-volatile memory",
       "cause": "Flash/EEPROM/NVRAM lacks readback protection — stored keys and credentials are readable",
       "attack": "Attacker reads non-volatile memory to extract firmware, cryptographic keys, or sensitive configuration"
+    },
+    "I-004": {
+      "threat": "Shared-memory residual data exposure — secrets remain readable in volatile shared memory after use",
+      "cause": "Shared-memory region is not cleared after use — sensitive data persists between tasks or cores",
+      "attack": "A second core or a later task reads stale buffer contents (keys, plaintext) left in the shared region"
+    },
+    "I-005": {
+      "threat": "Memory isolation bypass (read) — protected region readable across privilege domains",
+      "cause": "The MPU/MMU region for the shared memory or MMIO block is misconfigured — isolation between domains is not enforced",
+      "attack": "A low-privilege task or peripheral reads a memory region it should not reach, extracting secrets or sensor data"
     }
   }
 }

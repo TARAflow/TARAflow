@@ -54,6 +54,16 @@
       "threat": "Unberechtigter Schreibzugriff via OT-Protokoll — Angreifer modifiziert Prozesswerte oder Konfiguration",
       "cause": "OT-Protokoll-Datenfluss ist mit Lese-Schreib-Zugriff konfiguriert — jeder Knoten kann Schreibbefehle ohne Autorisierung senden",
       "attack": "Angreifer platziert einen Rogue-Node im OT-Netzwerk und sendet Schreibbefehle um Sollwerte oder Reglerkonfiguration zu ändern"
+    },
+    "T-012": {
+      "threat": "Shared-Memory-Race / TOCTOU — nebenläufiger Zugriff korrumpiert oder umgeht validierte Daten",
+      "cause": "Zugriff auf Shared Memory oder MMIO-Register zwischen Cores/Tasks ist nicht synchronisiert (kein Lock, Atomic oder Memory-Barrier)",
+      "attack": "Ein Angreifer oder Fehler auf einem Master verändert die Region zwischen Prüfung und Nutzung eines anderen Masters und korrumpiert den Zustand oder umgeht eine Validierung"
+    },
+    "T-013": {
+      "threat": "Speicher-Isolationsbypass (Schreiben) — geschützte Region domänenübergreifend beschreibbar",
+      "cause": "Die MPU/MMU-Region für Shared Memory oder MMIO-Block ist fehlkonfiguriert — Schreib-Isolation zwischen Domänen wird nicht durchgesetzt",
+      "attack": "Ein niedrig privilegierter Task beschreibt eine geschützte Region, injiziert Kommandos oder korrumpiert Daten einer anderen Domäne"
     }
   }
 }

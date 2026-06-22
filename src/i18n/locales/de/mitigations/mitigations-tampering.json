@@ -37,5 +37,8 @@
   },
   "M-T-FSAFE-001": {
     "mitigation": "Deterministischen Fail-Safe-Ausgangszustand für alle Prozessausgänge definieren und implementieren (CR 3.6)"
+  },
+  "M-T-013": {
+    "mitigation": "Zugriff auf Shared Memory und MMIO zwischen Mastern mit Locks, atomaren Operationen oder Memory-Barriers synchronisieren; Daten am Verwendungspunkt erneut validieren, um TOCTOU-Fenster zu schliessen"
   }
 }

@@ -19,5 +19,8 @@
   },
   "V-D-007": {
     "verification": "Safety-Function-Verfügbarkeit unter Netzwerk-Angriffssimulation verifizieren (Flooding, Jamming, Injection)"
+  },
+  "V-D-008": {
+    "verification": "Mailbox-Stall-/Deadlock-Recovery-Test — hängendes oder korruptes Handshake-Flag injizieren und Watchdog-Timeout und Recovery verifizieren"
   }
 }

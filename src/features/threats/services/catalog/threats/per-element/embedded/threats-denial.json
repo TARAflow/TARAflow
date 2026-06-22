@@ -5,128 +5,76 @@
     {
       "id": "D-001",
       "strideCategory": "D",
-      "elementTypes": [
-        "Multiprocess"
-      ],
+      "elementTypes": ["Multiprocess"],
       "context": {
-        "systemClass": [
-          "embedded_controller",
-          "scada_hmi",
-          "gateway"
-        ]
+        "systemClass": ["embedded_controller", "scada_hmi", "gateway"]
       },
-      "mitigations": [
-        "M-D-001",
-        "M-D-003",
-        "M-D-005",
-        "M-D-006"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-003"
-      ],
+      "mitigations": ["M-D-001", "M-D-003", "M-D-005", "M-D-006"],
+      "verifications": ["V-D-001", "V-D-003"],
       "isCustom": false,
       "domain": "embedded"
     },
     {
       "id": "D-002",
       "strideCategory": "D",
-      "elementTypes": [
-        "Multiprocess"
-      ],
+      "elementTypes": ["Multiprocess"],
       "context": {
-        "systemClass": [
-          "safety_system"
-        ]
+        "systemClass": ["safety_system"]
       },
-      "mitigations": [
-        "M-D-001",
-        "M-D-002",
-        "M-D-004",
-        "M-D-008"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-D-004"
-      ],
+      "mitigations": ["M-D-001", "M-D-002", "M-D-004", "M-D-008"],
+      "verifications": ["V-D-001", "V-D-004"],
       "isCustom": false,
       "domain": "embedded"
     },
     {
       "id": "D-003",
       "strideCategory": "D",
-      "elementTypes": [
-        "Process",
-        "Multiprocess"
-      ],
+      "elementTypes": ["Process", "Multiprocess"],
       "context": {
-        "technology": [
-          "protocol_stack",
-          "driver"
-        ]
+        "technology": ["protocol_stack", "driver"]
       },
-      "mitigations": [
-        "M-D-001",
-        "M-D-003",
-        "M-IF-D-001",
-        "M-IF-D-003"
-      ],
-      "verifications": [
-        "V-D-001",
-        "V-IF-D-001"
-      ],
+      "mitigations": ["M-D-001", "M-D-003", "M-IF-D-001", "M-IF-D-003"],
+      "verifications": ["V-D-001", "V-IF-D-001"],
       "isCustom": false,
       "domain": "embedded"
     },
     {
       "id": "D-004",
       "strideCategory": "D",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {
-        "location": [
-          "field_cable"
-        ],
-        "redundancy": [
-          "none"
-        ]
+        "location": ["field_cable"],
+        "redundancy": ["none"]
       },
-      "mitigations": [
-        "M-D-007",
-        "M-D-008",
-        "M-D-001"
-      ],
-      "verifications": [
-        "V-D-006",
-        "V-D-001"
-      ],
+      "mitigations": ["M-D-007", "M-D-008", "M-D-001"],
+      "verifications": ["V-D-006", "V-D-001"],
       "isCustom": false,
       "domain": "dataflow"
     },
     {
       "id": "D-005",
       "strideCategory": "D",
-      "elementTypes": [
-        "DataFlow"
-      ],
+      "elementTypes": ["DataFlow"],
       "context": {
-        "safetyFunction": [
-          "emergency_stop",
-          "safety_gate"
-        ]
+        "safetyFunction": ["emergency_stop", "safety_gate"]
       },
-      "mitigations": [
-        "M-D-008",
-        "M-D-001",
-        "M-D-007"
-      ],
-      "verifications": [
-        "V-D-007",
-        "V-D-006"
-      ],
+      "mitigations": ["M-D-008", "M-D-001", "M-D-007"],
+      "verifications": ["V-D-007", "V-D-006"],
       "isCustom": false,
       "domain": "dataflow"
+    },
+    {
+      "id": "D-006",
+      "strideCategory": "D",
+      "elementTypes": ["DataStore"],
+      "context": {
+        "technology": ["shared_memory"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-D-010", "M-D-002"],
+      "verifications": ["V-D-008", "V-D-004"],
+      "isCustom": false,
+      "domain": "embedded"
     }
   ]
 }

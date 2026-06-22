@@ -21,10 +21,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-001",
-        "V-D-003"
-      ]
+      "verifications": ["V-D-001", "V-D-003"]
     },
     {
       "id": "M-D-002",
@@ -32,10 +29,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-D-001",
-        "V-D-002"
-      ]
+      "verifications": ["V-D-001", "V-D-002"]
     },
     {
       "id": "M-D-003",
@@ -56,9 +50,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-001"
-      ]
+      "verifications": ["V-D-001"]
     },
     {
       "id": "M-D-004",
@@ -73,9 +65,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-004"
-      ]
+      "verifications": ["V-D-004"]
     },
     {
       "id": "M-D-005",
@@ -83,10 +73,7 @@
       "context": {},
       "isCustom": false,
       "affectsProperties": [],
-      "verifications": [
-        "V-D-001",
-        "V-D-002"
-      ]
+      "verifications": ["V-D-001", "V-D-002"]
     },
     {
       "id": "M-D-006",
@@ -101,9 +88,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-004"
-      ]
+      "verifications": ["V-D-004"]
     },
     {
       "id": "M-D-008",
@@ -118,9 +103,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-004"
-      ]
+      "verifications": ["V-D-004"]
     },
     {
       "id": "M-D-007",
@@ -135,9 +118,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-D-006"
-      ]
+      "verifications": ["V-D-006"]
     },
     {
       "id": "M-D-009",
@@ -152,9 +133,15 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-D-001"
-      ]
+      "verifications": ["V-D-001"]
+    },
+    {
+      "id": "M-D-010",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-D-008"]
     }
   ]
 }

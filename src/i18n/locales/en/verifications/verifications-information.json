@@ -13,5 +13,8 @@
   },
   "V-I-005": {
     "verification": "Verify authenticator storage protection — confirm keys are non-extractable from hardware security component"
+  },
+  "V-I-006": {
+    "verification": "Verify volatile/shared memory is cleared after use — inspect region contents after task completion for residual secrets"
   }
 }
