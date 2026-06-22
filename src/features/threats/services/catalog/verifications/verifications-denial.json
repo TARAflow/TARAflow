@@ -43,6 +43,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false
-    }
+    },
+    { "id": "V-D-008", "strideCategory": "D", "context": {}, "isCustom": false }
   ]
 }

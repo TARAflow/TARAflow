@@ -120,6 +120,7 @@ export function matchesContext(
     redundancy,
     safetyFunction,
     accessMode,
+    storeAccessModel,
   } = templateCtx;
   const tags = project.info?.tags;
 
@@ -145,6 +146,11 @@ export function matchesContext(
   if (technology?.length) {
     const v = elementProps?.["technology"] as string | undefined;
     if (!v || !technology.includes(v)) return false;
+  }
+
+  if (storeAccessModel?.length) {
+    const v = elementProps?.["accessModel"] as string | undefined;
+    if (!v || !storeAccessModel.includes(v)) return false;
   }
 
   if (protocol?.length) {

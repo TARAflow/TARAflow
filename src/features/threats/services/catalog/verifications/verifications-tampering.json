@@ -49,6 +49,7 @@
       "strideCategory": "T",
       "context": {},
       "isCustom": false
-    }
+    },
+    { "id": "V-T-008", "strideCategory": "T", "context": {}, "isCustom": false }
   ]
 }

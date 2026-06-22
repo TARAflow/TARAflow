@@ -9,6 +9,11 @@
       "threat": "Sensitive data extraction via {{dataFlowName}} interface from {{targetName}}",
       "cause": "Debug interface is accessible without readback protection — firmware and cryptographic keys are readable",
       "attack": "Attacker connects to the {{dataFlowName}} interface and reads flash memory to extract firmware, API keys, or cryptographic material"
+    },
+    "I-003": {
+      "threat": "Shared-memory readout via {{dataFlowName}} — secrets or residual data exposed when {{targetName}} reads the region",
+      "cause": "The shared-memory region read over {{dataFlowName}} lacks access control or is not cleared after use",
+      "attack": "An attacker with access to the region (low-privilege task, peripheral, or debug) reads keys, sensor data, or residual buffer contents"
     }
   }
 }

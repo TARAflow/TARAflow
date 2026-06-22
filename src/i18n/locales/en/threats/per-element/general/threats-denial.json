@@ -29,6 +29,11 @@
       "threat": "System denial of service — attacker renders the system unavailable",
       "cause": "No rate limiting at system boundary — the system processes all incoming requests without restriction",
       "attack": "Attacker floods the system with requests preventing legitimate users from accessing services"
+    },
+    "D-007": {
+      "threat": "Multiprocess service exhaustion — attacker drives a multiprocess component to unavailability",
+      "cause": "No resource quotas or rate limiting across the component's processes — aggregate load is unbounded",
+      "attack": "Attacker sustains high request volume until the multiprocess component exhausts CPU, memory, or worker capacity and stops serving"
     }
   }
 }

@@ -39,6 +39,16 @@
       "threat": "Unauthorized write access via OT protocol — attacker modifies process values or configuration",
       "cause": "OT protocol data flow is configured with read-write access — any node can issue write commands without authorization",
       "attack": "Attacker places a rogue node on the OT network and sends write commands to modify setpoints or controller configuration"
+    },
+    "T-009": {
+      "threat": "Stale or torn read from shared memory via {{dataFlowName}} — {{targetName}} acts on inconsistent data",
+      "cause": "Access to the shared region is not synchronized — {{targetName}} may read it mid-update or after a concurrent modification",
+      "attack": "An attacker or fault on another master modifies the region between {{targetName}}'s check and use, so it operates on falsified or torn data"
+    },
+    "T-010": {
+      "threat": "Unsynchronized or isolation-bypassing write to shared memory via {{dataFlowName}}",
+      "cause": "Write access to the region is not synchronized or MPU-isolated — {{sourceName}} or another domain can corrupt it",
+      "attack": "An attacker writes the shared region from a low-privilege context or during a concurrent access, injecting commands or corrupting another domain's data"
     }
   }
 }

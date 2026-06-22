@@ -19,6 +19,11 @@
       "threat": "System privilege escalation — attacker gains system-level privileges",
       "cause": "Insufficient privilege separation — a lower-privileged component can trigger system-level operations",
       "attack": "Attacker exploits a privilege boundary violation to execute operations with system-level authority"
+    },
+    "E-006": {
+      "threat": "Privilege escalation across multiprocess boundaries — attacker gains elevated rights inside a multiprocess component",
+      "cause": "Weak isolation between the component's processes — a compromised low-privilege process can reach higher-privilege ones",
+      "attack": "Attacker compromises one process and pivots across the shared component context to execute operations with elevated privileges"
     }
   }
 }

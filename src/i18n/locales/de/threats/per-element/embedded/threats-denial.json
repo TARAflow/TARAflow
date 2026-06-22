@@ -24,6 +24,11 @@
       "threat": "Unterbrechung des sicherheitskritischen Datenflusses — Sicherheitsfunktion bei Bedarf nicht verfügbar",
       "cause": "Sicherheitskritischer Datenfluss hat keinen redundanten Pfad — Unterbrechung verhindert direkt den Betrieb der Sicherheitsfunktion",
       "attack": "Angreifer flutet oder stört physisch den sicherheitskritischen Datenfluss und verhindert dass Not-Halt-Befehle ihr Ziel erreichen"
+    },
+    "D-006": {
+      "threat": "Inter-Core-Mailbox-Deadlock — Shared-Memory-Handshake blockiert und legt die Kommunikation lahm",
+      "cause": "Der Shared-Memory-Mailbox-Handshake hat kein Timeout/Watchdog — ein hängendes oder korruptes Flag blockiert den Consumer dauerhaft",
+      "attack": "Ein Angreifer oder Fehler hält oder korrumpiert das Mailbox-Flag, sodass der konsumierende Core dauerhaft blockiert und die Inter-Core-Kommunikation verweigert"
     }
   }
 }

@@ -156,6 +156,32 @@
       "verifications": ["V-T-001", "V-IF-T-001"],
       "isCustom": false,
       "domain": "embedded"
+    },
+    {
+      "id": "T-012",
+      "strideCategory": "T",
+      "elementTypes": ["DataStore"],
+      "context": {
+        "technology": ["shared_memory", "mmio_register"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-T-013", "M-T-004", "M-T-001"],
+      "verifications": ["V-T-008", "V-T-004", "V-T-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-013",
+      "strideCategory": "T",
+      "elementTypes": ["DataStore"],
+      "context": {
+        "technology": ["shared_memory", "mmio_register"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-I-008", "M-T-001"],
+      "verifications": ["V-I-003", "V-T-001"],
+      "isCustom": false,
+      "domain": "embedded"
     }
   ]
 }

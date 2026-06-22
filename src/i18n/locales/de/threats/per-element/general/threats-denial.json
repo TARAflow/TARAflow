@@ -29,6 +29,11 @@
       "threat": "Denial of Service auf Systemebene",
       "cause": "Keine Ressourcenschutz- oder Watchdog-Mechanismen an der Systemgrenze — das System kann durch Ressourcenerschöpfung unavailable werden",
       "attack": "Angreifer überflutet das System mit Anfragen oder missgeformten Eingaben und erschöpft CPU-, Speicher- oder Netzwerkressourcen bis das System nicht mehr reagiert"
+    },
+    "D-007": {
+      "threat": "Multiprocess-Diensterschöpfung — Angreifer treibt eine Multiprocess-Komponente in die Nichtverfügbarkeit",
+      "cause": "Keine Ressourcenkontingente oder Rate-Limiting über die Prozesse der Komponente — die aggregierte Last ist unbegrenzt",
+      "attack": "Angreifer hält hohes Anfragevolumen aufrecht, bis die Multiprocess-Komponente CPU, Speicher oder Worker-Kapazität erschöpft und den Dienst einstellt"
     }
   }
 }

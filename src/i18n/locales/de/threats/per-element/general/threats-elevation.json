@@ -19,6 +19,11 @@
       "threat": "Privilege Escalation an der Systemgrenze",
       "cause": "Unzureichende Autorisierungsdurchsetzung an der Systemgrenze — ein Angreifer kann durch Ausnutzung von Boundary-Schwächen erhöhte Zugriffsrechte erlangen",
       "attack": "Angreifer nutzt eine Schwachstelle an der Systemgrenze (unauthentiziertes Management-Interface, schwache Rollentrennung) aus, um administrative oder Operator-Privilegien zu erlangen"
+    },
+    "E-006": {
+      "threat": "Privilegieneskalation über Multiprocess-Grenzen — Angreifer erlangt erhöhte Rechte innerhalb einer Multiprocess-Komponente",
+      "cause": "Schwache Isolation zwischen den Prozessen der Komponente — ein kompromittierter niedrig privilegierter Prozess erreicht höher privilegierte",
+      "attack": "Angreifer kompromittiert einen Prozess und bewegt sich über den geteilten Komponentenkontext, um Operationen mit erhöhten Privilegien auszuführen"
     }
   }
 }

@@ -37,5 +37,8 @@
   },
   "M-T-FSAFE-001": {
     "mitigation": "Define and implement a deterministic fail-safe output state for all process outputs (CR 3.6)"
+  },
+  "M-T-013": {
+    "mitigation": "Synchronize shared-memory and MMIO access between masters using locks, atomic operations, or memory barriers; re-validate data at the point of use to close TOCTOU windows"
   }
 }

@@ -25,5 +25,8 @@
   },
   "M-D-009": {
     "mitigation": "Island-Mode-Fähigkeit aktivieren — Vertrauensgrenze kann Zone bei Zwischenfall vollständig isolieren (NDR 5.2 RE2)"
+  },
+  "M-D-010": {
+    "mitigation": "Timeout/Watchdog auf Inter-Core-Mailbox-Handshakes implementieren — hängendes oder korruptes Flag erkennen und in einen definierten Zustand zurückführen"
   }
 }

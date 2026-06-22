@@ -529,6 +529,18 @@ export interface TemplateContext {
   technology?: string[];
 
   /**
+   * Element-level: matches DataStore.accessModel (the resolved access semantics).
+   * Gates the access-semantics threat family:
+   *   direct_access → Memory/Storage threats (readout, residual, tamper-at-rest;
+   *                   concurrency threats are additionally gated by `technology`)
+   *   communication → Channel threats (owned by the connecting DataFlow)
+   *
+   * NB: distinct from `accessMode` (a DataFlow property). Named storeAccessModel
+   * to avoid the one-letter collision; reads elementProps["accessModel"].
+   */
+  storeAccessModel?: string[];
+
+  /**
    * Element-level: matches DataFlow.protocol.
    * Used for protocol-specific templates (modbus, spi, i2c, mqtt, etc.)
    */

@@ -54,6 +54,16 @@
       "threat": "Unauthorized write access via OT protocol — attacker modifies process values or configuration",
       "cause": "OT protocol data flow is configured with read-write access — any node can issue write commands without authorization",
       "attack": "Attacker places a rogue node on the OT network and sends write commands to modify setpoints or controller configuration"
+    },
+    "T-012": {
+      "threat": "Shared-memory race / TOCTOU — concurrent access corrupts or bypasses validated data",
+      "cause": "Access to shared memory or MMIO registers between cores/tasks is not synchronized (no lock, atomic, or memory barrier)",
+      "attack": "An attacker or fault on one master modifies the region between another master's check and use, corrupting state or bypassing a validation"
+    },
+    "T-013": {
+      "threat": "Memory isolation bypass (write) — protected region writable across privilege domains",
+      "cause": "The MPU/MMU region for the shared memory or MMIO block is misconfigured — write isolation between domains is not enforced",
+      "attack": "A low-privilege task writes a protected region, injecting commands or corrupting another domain's data"
     }
   }
 }

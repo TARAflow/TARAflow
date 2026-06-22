@@ -7,24 +7,10 @@
       "strideCategory": "I",
       "perspective": "receiver",
       "context": {
-        "protocol": [
-          "spi",
-          "i2c",
-          "uart",
-          "can",
-          "lin"
-        ]
+        "protocol": ["spi", "i2c", "uart", "can", "lin"]
       },
-      "mitigations": [
-        "M-I-001",
-        "M-I-002",
-        "M-IF-I-001",
-        "M-IF-I-002"
-      ],
-      "verifications": [
-        "V-I-001",
-        "V-IF-I-001"
-      ],
+      "mitigations": ["M-I-001", "M-I-002", "M-IF-I-001", "M-IF-I-002"],
+      "verifications": ["V-I-001", "V-IF-I-001"],
       "isCustom": false,
       "domain": "embedded"
     },
@@ -33,21 +19,23 @@
       "strideCategory": "I",
       "perspective": "receiver",
       "context": {
-        "interfaceType": [
-          "jtag",
-          "swd",
-          "serial"
-        ]
+        "interfaceType": ["jtag", "swd", "serial"]
       },
-      "mitigations": [
-        "M-CB-I-001",
-        "M-CB-E-001",
-        "M-IF-DBG-002"
-      ],
-      "verifications": [
-        "V-CB-I-001",
-        "V-CB-E-001"
-      ],
+      "mitigations": ["M-CB-I-001", "M-CB-E-001", "M-IF-DBG-002"],
+      "verifications": ["V-CB-I-001", "V-CB-E-001"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "I-003",
+      "strideCategory": "I",
+      "perspective": "sender",
+      "context": {
+        "technology": ["shared_memory", "mmio_register"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-I-009", "M-I-008", "M-I-001"],
+      "verifications": ["V-I-006", "V-I-003"],
       "isCustom": false,
       "domain": "embedded"
     }

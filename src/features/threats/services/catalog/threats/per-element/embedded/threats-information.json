@@ -33,6 +33,32 @@
       "verifications": ["V-CB-I-001", "V-I-001"],
       "isCustom": false,
       "domain": "embedded"
+    },
+    {
+      "id": "I-004",
+      "strideCategory": "I",
+      "elementTypes": ["DataStore"],
+      "context": {
+        "technology": ["shared_memory"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-I-009", "M-I-008", "M-I-001"],
+      "verifications": ["V-I-006", "V-I-003"],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "I-005",
+      "strideCategory": "I",
+      "elementTypes": ["DataStore"],
+      "context": {
+        "technology": ["shared_memory", "mmio_register"],
+        "storeAccessModel": ["direct_access"]
+      },
+      "mitigations": ["M-I-008", "M-I-003", "M-I-006"],
+      "verifications": ["V-I-003"],
+      "isCustom": false,
+      "domain": "embedded"
     }
   ]
 }

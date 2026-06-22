@@ -24,6 +24,11 @@
       "threat": "Repudiation auf Systemebene — Aktionen können nicht zugeordnet werden",
       "cause": "Kein manipulationssicherer Audit-Trail an der Systemgrenze — das System kann abstreiten, Aktionen durchgeführt oder empfangen zu haben",
       "attack": "Angreifer nutzt fehlende oder unzureichende Protokollierung um böswillige Aktionen abzustreiten, was forensische Untersuchungen verunmöglicht"
+    },
+    "R-006": {
+      "threat": "Multiprocess-Handlungsabstreitung — Handlungen innerhalb einer Multiprocess-Komponente sind nicht zuordenbar",
+      "cause": "Kein korrelierter, manipulationssicherer Audit-Trail über die Prozesse der Komponente — Handlungen lassen sich keinem Ursprung zuordnen",
+      "attack": "Angreifer führt Handlungen über die Prozesse der Komponente aus und streitet sie ab, da kein konsolidiertes Log die Aktivität zuordnet"
     }
   }
 }

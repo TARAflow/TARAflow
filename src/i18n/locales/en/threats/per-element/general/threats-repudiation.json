@@ -24,6 +24,11 @@
       "threat": "System action repudiation — system or operator denies having performed a system-level action",
       "cause": "No tamper-proof system-level audit log",
       "attack": "Operator denies having executed a system-level operation that affected other components"
+    },
+    "R-006": {
+      "threat": "Multiprocess action repudiation — actions inside a multiprocess component cannot be attributed",
+      "cause": "No correlated, tamper-proof audit trail across the component's processes — actions cannot be tied to an origin",
+      "attack": "Attacker performs actions across the component's processes and denies them, since no consolidated log attributes the activity"
     }
   }
 }

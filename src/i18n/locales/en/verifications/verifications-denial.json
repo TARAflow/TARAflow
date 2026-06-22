@@ -19,5 +19,8 @@
   },
   "V-D-007": {
     "verification": "Verify safety function availability under network attack simulation (flood, jam, injection)"
+  },
+  "V-D-008": {
+    "verification": "Mailbox stall/deadlock recovery testing — inject a stuck or corrupted handshake flag and verify watchdog timeout and recovery"
   }
 }
