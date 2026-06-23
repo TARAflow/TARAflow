@@ -168,6 +168,18 @@ declare global {
       ) => Promise<{ success: boolean; data?: string; error?: string }>;
     };
   }
+
+  interface ImportMeta {
+    /**
+     * Vite glob import. Compile-time macro — must be called as
+     * `import.meta.glob("literal-pattern", { eager: true })` directly;
+     * assigning it to a variable first disables the transform.
+     */
+    glob: (
+      pattern: string,
+      options?: { eager?: boolean },
+    ) => Record<string, unknown>;
+  }
 }
 
 export {};

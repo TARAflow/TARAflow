@@ -50,72 +50,84 @@ export const PROCESS_TECH_DEFAULTS: Record<
   Partial<ProcessProperties>
 > = {
   api: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "oauth",
     authorizationModel: "rbac",
     inputValidation: "schema",
     errorHandling: "sanitized",
   },
   ui: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "yes",
     authorizationModel: "rbac",
     inputValidation: "basic",
     errorHandling: "sanitized",
   },
   microservice: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "oauth",
     authorizationModel: "rbac",
     inputValidation: "schema",
     errorHandling: "sanitized",
   },
   batch: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "none",
     errorHandling: "silent",
   },
   lambda: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "oauth",
     authorizationModel: "custom",
     inputValidation: "schema",
     errorHandling: "sanitized",
   },
   daemon: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "basic",
     errorHandling: "silent",
   },
   websocket: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "oauth",
     authorizationModel: "rbac",
     inputValidation: "strict",
     errorHandling: "sanitized",
   },
   event: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "oauth",
     authorizationModel: "custom",
     inputValidation: "none",
     errorHandling: "silent",
   },
   cli: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "basic",
     errorHandling: "verbose",
   },
   database: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "certificate",
     authorizationModel: "acl",
     inputValidation: "strict",
     errorHandling: "silent",
   },
   cron: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "none",
     errorHandling: "silent",
   },
   iot: {
+    processSemantic: "execution_unit", // OS-borne process — only sensible semantic
     authenticationRequired: "certificate",
     authorizationModel: "custom",
     inputValidation: "strict",
@@ -216,6 +228,24 @@ export function isRunsAsApplicable(
 ): boolean {
   if (isEmbeddedTechnology(props.technology)) return false;
   return !props.processSemantic || props.processSemantic === "execution_unit";
+}
+
+/**
+ * Whether the analyst must explicitly CHOOSE a processSemantic.
+ *
+ * Only embedded / no-OS technologies expose the meaningful choice between
+ * functional_block (bare-metal logic / ISR / state machine) and
+ * security_boundary (HSM / OP-TEE TA isolated execution). For OS technologies
+ * the semantic is implicitly execution_unit — cascaded via
+ * PROCESS_TECH_DEFAULTS — and the form hides the field.
+ *
+ * Import in BOTH the form (field visibility) and the validator (requirement)
+ * so the "field shown" and "value required" conditions can never drift.
+ */
+export function isProcessSemanticChoiceApplicable(
+  technology: ProcessProperties["technology"] | undefined,
+): boolean {
+  return isEmbeddedTechnology(technology);
 }
 
 // ==================== MULTIPROCESS DEFAULTS ====================
@@ -1098,6 +1128,19 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "command",
   },
 
+  // ── Human-Machine Interaction ─────────────────────────────────────────
+  // Local operator action: one-way (operator → device), on demand, no network
+  // transport. No endpoint auth / encryption applies — protection against
+  // unauthorized local operation lives on the target process, not the edge.
+  human_input: {
+    direction: "unidirectional",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "none",
+    frequency: "ondemand",
+    messageType: "command",
+  },
+
   custom: {},
 };
 
@@ -1245,6 +1288,14 @@ export const INTERFACE_TYPE_DEFAULTS: Record<
     location: "on_board" as InterfaceLocation,
     operationalState: "enabled",
     connectorType: "terminal",
+  },
+  // ── Human-Machine Interface ─────────────────────────────────────────────────
+  // Integrated touch surface on the device front — externally operable, no
+  // pluggable connector (like wireless interfaces).
+  touchscreen: {
+    location: "external_panel" as InterfaceLocation,
+    operationalState: "enabled",
+    // no connectorType — integrated surface, no physical connector
   },
   // ── Other ─────────────────────────────────────────────────────────────────
   custom: {

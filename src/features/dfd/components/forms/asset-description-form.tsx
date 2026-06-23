@@ -716,10 +716,26 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
             {t("tabs.dfd.element_description.asset.protectionNeed")}
           </InputLabel>
           <Select
-            value={asset.properties?.protectionNeed || ""}
-            onChange={(e) =>
-              handlePropertyChange("protectionNeed", e.target.value)
+            value={
+              asset.properties?.protectionNeed || asset.protectionNeed || ""
             }
+            onChange={(e) => {
+              const value = e.target.value as DFDAsset["protectionNeed"];
+              const updatedProperties = {
+                ...asset.properties,
+                protectionNeed: value,
+              };
+              // Canonical top-level (read by asset-property-validator) goes via onChange;
+              // onAssetFeatureUpdate only carries properties (its type excludes top-level
+              // fields) — same split as handleCategoryChange.
+              onChange({
+                protectionNeed: value,
+                properties: updatedProperties,
+              });
+              onAssetFeatureUpdate?.(asset.id, {
+                properties: updatedProperties,
+              });
+            }}
             label={t("tabs.dfd.element_description.asset.protectionNeed")}
           >
             <MenuItem value="">

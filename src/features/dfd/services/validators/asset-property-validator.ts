@@ -38,7 +38,7 @@ function validateAssetBase(
     });
   }
 
-  if (!asset.protectionNeed) {
+  if (!asset.protectionNeed && !asset.properties?.protectionNeed) {
     warnings.push({
       key: ValidationMessages.ASSET_MISSING_PROTECTION_NEED,
       displayId,

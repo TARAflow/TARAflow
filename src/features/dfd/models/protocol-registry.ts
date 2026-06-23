@@ -6,7 +6,8 @@ export type ProtocolGroup =
   | "fieldbus"
   | "secure_ot"
   | "wireless"
-  | "electrical";
+  | "electrical"
+  | "hmi";
 
 export const PROTOCOL_META: Record<
   Protocol,
@@ -89,6 +90,12 @@ export const PROTOCOL_META: Record<
   },
   pulse: { group: "electrical", labelKey: "pulse", riskLevel: "medium" },
   pwm: { group: "electrical", labelKey: "pwm", riskLevel: "medium" },
+
+  // ── Human-Machine Interaction ─────────────────────────────────────────────
+  // Local operator action (touch/keypad/buttons). No network transport, so
+  // network-cyber threats do not apply; threat focus is unauthorized local
+  // operation and input spoofing (requires physical presence — low remote risk).
+  human_input: { group: "hmi", labelKey: "human_input", riskLevel: "low" },
 
   // ── Other ────────────────────────────────────────────────────────────────
   custom: { group: "it", labelKey: "custom" },

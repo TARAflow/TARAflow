@@ -748,7 +748,9 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                           <span
                             style={{ color: isBelowTB ? "#d32f2f" : "inherit" }}
                           >
-                            {EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel]}
+                            {t(
+                              EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel],
+                            )}
                           </span>
                           {isDefault && (
                             <Chip
@@ -811,7 +813,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                                 alignItems="center"
                                 spacing={0.5}
                               >
-                                <span>{EXPOSURE_LEVEL_LABEL_KEYS[el]}</span>
+                                <span>{t(EXPOSURE_LEVEL_LABEL_KEYS[el])}</span>
                                 {defaultExposureLevel &&
                                   el === defaultExposureLevel && (
                                     <Chip

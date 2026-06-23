@@ -229,9 +229,11 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               )}
               renderValue={(value) =>
                 value
-                  ? PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS[
-                      value as PhysicalExposureLevel
-                    ]
+                  ? t(
+                      PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS[
+                        value as PhysicalExposureLevel
+                      ],
+                    )
                   : ""
               }
             >
@@ -250,7 +252,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
                     arrow
                   >
                     <span style={{ width: "100%", display: "block" }}>
-                      {PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS[pel]}
+                      {t(PHYSICAL_EXPOSURE_LEVEL_LABEL_KEYS[pel])}
                     </span>
                   </Tooltip>
                 </MenuItem>

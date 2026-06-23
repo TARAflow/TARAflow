@@ -914,6 +914,7 @@
                 "usb": "USB",
                 "debug": "Debug / Programming",
                 "io": "Digital / Analog I/O",
+                "hmi": "Human-Machine Interface",
                 "other": "Other"
               },
               "options": {
@@ -938,6 +939,7 @@
                 "analog_in": "Analog Input",
                 "analog_out": "Analog Output",
                 "pwm": "PWM",
+                "touchscreen": "Touchscreen",
                 "custom": "Custom"
               },
               "tooltips": {
@@ -962,6 +964,7 @@
                 "analog_in": "Analog Input (ADC) — sensor or signal input. Manipulation affects measurements.",
                 "analog_out": "Analog Output (DAC) — actuator or signal output. Safety-critical in many systems.",
                 "pwm": "PWM Output — motor control, dimming. Safety-relevant for actuators.",
+                "touchscreen": "Local touch HMI — operator interaction surface. Requires physical presence; model protection against unauthorized local operation on the target Process.",
                 "custom": "Proprietary or unlisted interface type."
               }
             },
@@ -1259,7 +1262,8 @@
               "fieldbus": "Fieldbus",
               "secure_ot": "Secure OT",
               "wireless": "Wireless",
-              "electrical": "Electrical Signal"
+              "electrical": "Electrical Signal",
+              "hmi": "Human-Machine"
             },
             "protocol": {
               "label": "Protocol",
@@ -1304,6 +1308,7 @@
                 "analog_current": "Analog Current (4–20mA)",
                 "pulse": "Pulse / Frequency Signal",
                 "pwm": "PWM Signal",
+                "human_input": "Human Input",
                 "custom": "Custom / Other"
               },
               "groups": {

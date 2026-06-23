@@ -257,7 +257,21 @@ function checkWrite(
   warnings: ValidationFinding[],
 ): void {
   // C4
-  const dataStoreProtocols: Protocol[] = ["database", "file"];
+  // Direct-access store writes carry a transport that reaches a passive store.
+  // IT/server stores use file/database; embedded flash/EEPROM/NVRAM stores are
+  // reached over a hardware bus (SPI/I2C) or memory-mapped access (custom).
+  // The protocol only names the path — it does not change the store's passive
+  // nature, so all of these are legitimate targets for the `write` verb.
+  // NOTE: this remains a protocol heuristic. The precise check is whether the
+  // edge targets a DataStore with accessModel="direct_access"; that requires the
+  // target node here (not currently passed in) — tracked as a follow-up.
+  const dataStoreProtocols: Protocol[] = [
+    "database",
+    "file",
+    "spi",
+    "i2c",
+    "custom",
+  ];
   if (
     props.protocol !== undefined &&
     !dataStoreProtocols.includes(props.protocol)

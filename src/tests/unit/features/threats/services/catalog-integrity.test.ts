@@ -17,56 +17,56 @@
 
 import { describe, it, expect } from "vitest";
 
-const glob = (import.meta as any).glob;
+//const glob = (import.meta as any).glob;
 
 // ── catalog definitions (source of truth for IDs and references) ────────────
-const elementDefs = glob(
+const elementDefs = import.meta.glob(
   "/src/features/threats/services/catalog/threats/per-element/**/threats-*.json",
   { eager: true },
 );
-const interactionDefs = glob(
+const interactionDefs = import.meta.glob(
   "/src/features/threats/services/catalog/threats/per-interaction/**/threats-*.json",
   { eager: true },
 );
-const mitigationDefs = glob(
+const mitigationDefs = import.meta.glob(
   "/src/features/threats/services/catalog/mitigations/mitigations-*.json",
   { eager: true },
 );
-const verificationDefs = glob(
+const verificationDefs = import.meta.glob(
   "/src/features/threats/services/catalog/verifications/verifications-*.json",
   { eager: true },
 );
 
-// ── i18n text (one set of globs per locale — paths must be literal) ─────────
-const elementTextEn = glob(
+// ── i18n text (one set of import.meta.globs per locale — paths must be literal) ─────────
+const elementTextEn = import.meta.glob(
   "/src/i18n/locales/en/threats/per-element/**/threats-*.json",
   { eager: true },
 );
-const elementTextDe = glob(
+const elementTextDe = import.meta.glob(
   "/src/i18n/locales/de/threats/per-element/**/threats-*.json",
   { eager: true },
 );
-const interactionTextEn = glob(
+const interactionTextEn = import.meta.glob(
   "/src/i18n/locales/en/threats/per-interaction/**/threats-*.json",
   { eager: true },
 );
-const interactionTextDe = glob(
+const interactionTextDe = import.meta.glob(
   "/src/i18n/locales/de/threats/per-interaction/**/threats-*.json",
   { eager: true },
 );
-const mitigationTextEn = glob(
+const mitigationTextEn = import.meta.glob(
   "/src/i18n/locales/en/mitigations/mitigations-*.json",
   { eager: true },
 );
-const mitigationTextDe = glob(
+const mitigationTextDe = import.meta.glob(
   "/src/i18n/locales/de/mitigations/mitigations-*.json",
   { eager: true },
 );
-const verificationTextEn = glob(
+const verificationTextEn = import.meta.glob(
   "/src/i18n/locales/en/verifications/verifications-*.json",
   { eager: true },
 );
-const verificationTextDe = glob(
+const verificationTextDe = import.meta.glob(
   "/src/i18n/locales/de/verifications/verifications-*.json",
   { eager: true },
 );

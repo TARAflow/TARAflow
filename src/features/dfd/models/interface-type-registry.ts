@@ -10,11 +10,12 @@ export type ConnectorType = NonNullable<InterfaceProperties["connectorType"]>;
 // and by validators to access type metadata (riskLevel, isDebug, etc.).
 
 export type InterfaceTypeGroup =
-  | "network"    // Wired/wireless network interfaces
-  | "serial"     // Serial bus interfaces (industrial + embedded)
-  | "usb"        // USB (all classes)
-  | "debug"      // Debug / programming interfaces (JTAG, SWD)
-  | "io"         // Digital and analog I/O
+  | "network" // Wired/wireless network interfaces
+  | "serial" // Serial bus interfaces (industrial + embedded)
+  | "usb" // USB (all classes)
+  | "debug" // Debug / programming interfaces (JTAG, SWD)
+  | "io" // Digital and analog I/O
+  | "hmi" // Human-machine interface (touch, keypad)
   | "other";     // Custom / not listed
 
 export const INTERFACE_TYPE_META: Record<
@@ -202,6 +203,17 @@ export const INTERFACE_TYPE_META: Record<
     requiresPhysicalAccess: true,
     safetyRelevant: true,
     validConnectors: ["terminal", "gpio_header"],
+  },
+
+  // ── Human-Machine Interface ───────────────────────────────────────────────
+  touchscreen: {
+    group: "hmi",
+    labelKey: "touchscreen",
+    riskLevel: "low",
+    // Operating the touch surface requires physical presence at the device.
+    requiresPhysicalAccess: true,
+    // Integrated surface — no pluggable connector (like wifi/nfc).
+    validConnectors: [],
   },
 
   // ── Other ─────────────────────────────────────────────────────────────────

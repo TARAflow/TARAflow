@@ -228,7 +228,9 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                 defaultValue: "Exposure Level",
               })}
               renderValue={(value) =>
-                value ? EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel] : ""
+                value
+                  ? t(EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel])
+                  : ""
               }
             >
               <MenuItem value="">
@@ -246,7 +248,7 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                     arrow
                   >
                     <span style={{ width: "100%", display: "block" }}>
-                      {EXPOSURE_LEVEL_LABEL_KEYS[el]}
+                      {t(EXPOSURE_LEVEL_LABEL_KEYS[el])}
                     </span>
                   </Tooltip>
                 </MenuItem>

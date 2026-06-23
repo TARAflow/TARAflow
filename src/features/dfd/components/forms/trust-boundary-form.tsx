@@ -256,7 +256,9 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                 defaultValue: "Exposure Level",
               })}
               renderValue={(value) =>
-                value ? EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel] : ""
+                value
+                  ? t(EXPOSURE_LEVEL_LABEL_KEYS[value as ExposureLevel])
+                  : ""
               }
             >
               <MenuItem value="">
@@ -274,7 +276,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                     arrow
                   >
                     <span style={{ width: "100%", display: "block" }}>
-                      {EXPOSURE_LEVEL_LABEL_KEYS[el]}
+                      {t(EXPOSURE_LEVEL_LABEL_KEYS[el])}
                     </span>
                   </Tooltip>
                 </MenuItem>
