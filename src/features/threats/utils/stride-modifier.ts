@@ -1,6 +1,6 @@
 // ==================== STRIDE MODIFIER ====================
 // Pure functions: element/dataflow properties → STRIDE category modulation.
-// Used exclusively by HybridStrategy.
+// Consumed by UnifiedStrategy (the sole threat-generation strategy).
 //
 // Design:
 //   - All functions are pure (no side effects)
@@ -247,7 +247,7 @@ export function modifyInterfaceStride(
  * Modulate STRIDE for ChipBoundary elements based on chip properties.
  *
  * Rules:
- *   debugInterfaceLocked = false + interface present → Escalate E, Add I
+ *   debug interface present + not provably locked (locked ≠ true) → Escalate E, Add I
  *   secureBootEnabled = false                        → Add T
  *   firmwareProtection = none                        → Escalate T, Add I
  *   bitstreamEncryption = false (FPGA)               → Add I
@@ -267,11 +267,15 @@ export function modifyChipBoundaryStride(
     result = add(result, "T");
   }
 
-  // Debug interface not locked → key extraction risk
+  // Debug interface present and not provably locked → key extraction /
+  // debug-access risk. `!== true` (not `=== false`) so an UNASSESSED lock state
+  // escalates too: an undefined debugInterfaceLocked must not silently behave
+  // like "locked". Reduction is earned only by an explicit
+  // debugInterfaceLocked === true (mirrored by the SE/HSM rule below).
   if (
     props.debugInterfacePresent &&
     props.debugInterfacePresent !== "none" &&
-    props.debugInterfaceLocked === false
+    props.debugInterfaceLocked !== true
   ) {
     result = add(result, "E", "I");
   }

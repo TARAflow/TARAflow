@@ -343,6 +343,22 @@ function validatePhysicalBoundaryProperties(
   }
 }
 
+/**
+ * ChipBoundary: chipType, defaultExposureLevel, debugInterfacePresent,
+ * debugInterfaceLocked (conditional).
+ *
+ * chipType is critical — without it no threat generation occurs.
+ *
+ * Debug interface assessment ("reduction must be earned"):
+ *   - debugInterfacePresent must be set. Leaving it undefined would let the
+ *     STRIDE modifier silently treat the chip as debug-free, hiding the
+ *     JTAG/SWD vector — most real MCUs ship a debug port.
+ *   - Once a debug interface is present (≠ "none"), the lock decision must be
+ *     explicit. An undefined debugInterfaceLocked is the "forgot to disable
+ *     JTAG in production" gap: the modifier treats undefined like locked, so
+ *     the open-port escalation never fires. false is a conscious residual-risk
+ *     decision; undefined is an omission and is surfaced as such.
+ */
 function validateChipBoundaryProperties(
   element: DFDElement,
   warnings: ValidationFinding[],
@@ -354,6 +370,22 @@ function validateChipBoundaryProperties(
   }
   if (!props.defaultExposureLevel) {
     warnings.push(missingProp(element, "defaultExposureLevel"));
+  }
+
+  // Debug interface presence must be assessed — undefined must not silently
+  // mean "no debug interface" (see modifyChipBoundaryStride).
+  if (!props.debugInterfacePresent) {
+    warnings.push(missingProp(element, "debugInterfacePresent"));
+  }
+
+  // Once a debug interface is present, the lock state must be an explicit
+  // decision. Fires only for non-"none" presence to avoid early-phase noise.
+  if (
+    props.debugInterfacePresent &&
+    props.debugInterfacePresent !== "none" &&
+    props.debugInterfaceLocked === undefined
+  ) {
+    warnings.push(missingProp(element, "debugInterfaceLocked"));
   }
 }
 

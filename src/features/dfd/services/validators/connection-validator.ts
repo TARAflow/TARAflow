@@ -8,6 +8,7 @@ import type {
 } from "../../models/dfd-types";
 import { ValidationMessages } from "./validator-utils";
 import type { DataFlowProperties } from "../../models/element-properties";
+import type { DFDGraph } from "../../models/dfd-graph-types";
 
 /**
  * Validate all connections
@@ -141,12 +142,23 @@ export function validateUnconnectedDataflows(
 }
 
 /**
- * Check for unconnected elements
+ * Check for unconnected elements.
+ *
+ * A ChipBoundary models connectivity in two ways:
+ *   (A) direct DataFlow endpoint        — e.g. Developer -> JTAG -> MCU (R9)
+ *   (B) spatial container whose enclosed elements carry the flows
+ *       — e.g. Application + Firmware inside the chip die.
+ * Mirror validateInterfaceUsage: treat the boundary as connected when an
+ * enclosed element participates in a DataFlow, not only when the boundary
+ * itself is conn.from / conn.to. The `graph` arg supplies the containment map
+ * (elementChipBoundaries); when absent only path (A) applies, so a genuinely
+ * empty chip is still flagged.
  */
 export function validateUnconnectedElements(
   elements: DFDElement[],
   connections: DFDConnection[],
   warnings: ValidationFinding[],
+  graph?: DFDGraph,
 ): void {
   const connectedIds = new Set<string>();
 
@@ -167,17 +179,32 @@ export function validateUnconnectedElements(
     "Actuator",
   ];
 
-  elements.forEach((element) => {
-    if (connectableTypes.includes(element.type)) {
-      if (!connectedIds.has(element.id)) {
-        warnings.push({
-          key: ValidationMessages.UNCONNECTED_ELEMENT,
-          displayId: element.displayId,
-          elementId: element.id,
-          params: { type: element.type, name: element.name || element.id },
-        });
-      }
+  // Path (B): a ChipBoundary counts as connected when any element it encloses
+  // participates in a DataFlow. Uses the geometric membership map already built
+  // for validateChipBoundaryDebugInterfaces / validateInterfacePhysicalBoundary.
+  const chipHasConnectedMember = (chipId: string): boolean => {
+    if (!graph?.elementChipBoundaries) return false;
+    for (const [elementId, chipIds] of graph.elementChipBoundaries) {
+      if (chipIds.includes(chipId) && connectedIds.has(elementId)) return true;
     }
+    return false;
+  };
+
+  elements.forEach((element) => {
+    if (!connectableTypes.includes(element.type)) return;
+    if (connectedIds.has(element.id)) return;
+
+    // Containment fallback — enclosed elements carry the connectivity.
+    if (element.type === "ChipBoundary" && chipHasConnectedMember(element.id)) {
+      return;
+    }
+
+    warnings.push({
+      key: ValidationMessages.UNCONNECTED_ELEMENT,
+      displayId: element.displayId,
+      elementId: element.id,
+      params: { type: element.type, name: element.name || element.id },
+    });
   });
 }
 

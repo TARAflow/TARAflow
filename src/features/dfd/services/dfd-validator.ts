@@ -98,7 +98,7 @@ export class DFDValidator {
     validateConnections(connections, elements, errors, warnings);
     validateDuplicateConnectionIdLabels(connections, warnings);
     validateUnconnectedDataflows(options?.unconnectedDataflows, warnings);
-    validateUnconnectedElements(elements, connections, warnings);
+    validateUnconnectedElements(elements, connections, warnings, graph);
     validateChipBoundaryConnections(connections, elements, errors);
     validatePhysicalBoundaryConnections(connections, elements, errors);
     validateTransducerConnections(connections, elements, errors);
