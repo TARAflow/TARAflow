@@ -47,6 +47,8 @@
       "uncertainWarning": "{{count}} Risiko(en) basieren auf unsicheren Bedrohungen — bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab.",
       "uncertain": "Unsicher",
       "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen.",
+      "rationaleBefore": "Vorher",
+      "rationaleAfter": "Nachher",
       "safetyRemovalDialog": {
         "title": "Safety-Faktor-Quelle entfernt",
         "message": "Die Safety-Annotationen, die den Safety-Auswirkungs-Faktor automatisch aktiviert haben, wurden aus dem DFD und dem Asset-Tab entfernt. Möchten Sie den Safety-Auswirkungs-Faktor aktiv behalten?\n\nBeim Behalten bleiben bestehende Safety-Bewertungen erhalten. Beim Entfernen werden alle Safety-Faktorwerte aus Ihren Risikobewertungen gelöscht.",
@@ -67,7 +69,8 @@
         "originalRisk": "Ursprüngliches Risiko",
         "justification": "Begründung",
         "treatment": "Behandlung",
-        "implementation": "Implementierung"
+        "implementation": "Implementierung",
+        "assessmentRationale": "Begründung"
       },
       "dialog": {
         "title": "Risikobewertung: {{id}}",
@@ -129,7 +132,9 @@
         "factorOverridden": "Überschrieben",
         "factorOverriddenTooltip": "Aus Assets abgeleiteter Wert: {{value}}. ↺ zum Zurücksetzen.",
         "factorReset": "Auf abgeleiteten Wert zurücksetzen",
-        "factorOriginal": "original"
+        "factorOriginal": "original",
+        "riskBeforeRationale": "Begründung der Bewertung — Annahmen und Überlegungen hinter der Risikobewertung",
+        "riskAfterRationale": "Begründung des Restrisikos — weshalb sich Eintrittswahrscheinlichkeit/Auswirkung nach der Mitigation geändert haben"
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",

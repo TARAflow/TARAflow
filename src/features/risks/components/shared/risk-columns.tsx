@@ -721,6 +721,56 @@ export const useRiskColumns = ({
       });
     }
 
+    // ── Assessment Rationale (Before / After chips; tooltip per chip) ───────
+    cols.push({
+      id: "assessmentRationale",
+      header: t("tabs.risks.columns.assessmentRationale", {
+        defaultValue: "Rationale",
+      }),
+      width: 130,
+      align: "center",
+      renderCell: (risk) => {
+        const before = risk.riskBeforeRationale?.trim();
+        const after = risk.riskAfterRationale?.trim();
+        // Empty when neither rationale exists — no placeholder noise.
+        if (!before && !after) return null;
+        return (
+          <Stack
+            direction="row"
+            spacing={0.5}
+            justifyContent="center"
+            flexWrap="wrap"
+            useFlexGap
+          >
+            {before && (
+              <Tooltip title={before} placement="top">
+                <Chip
+                  label={t("tabs.risks.rationaleBefore", {
+                    defaultValue: "Before",
+                  })}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: 10, height: 20 }}
+                />
+              </Tooltip>
+            )}
+            {after && (
+              <Tooltip title={after} placement="top">
+                <Chip
+                  label={t("tabs.risks.rationaleAfter", {
+                    defaultValue: "After",
+                  })}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: 10, height: 20 }}
+                />
+              </Tooltip>
+            )}
+          </Stack>
+        );
+      },
+    });
+
     // ── Actions ─────────────────────────────────────────────────────────────
     cols.push({
       id: "actions",

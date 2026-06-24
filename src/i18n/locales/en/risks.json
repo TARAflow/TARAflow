@@ -47,6 +47,8 @@
       "uncertainWarning": "{{count}} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.",
       "uncertain": "Uncertain",
       "uncertainRiskWarning": "This risk is based on an uncertain threat. Please confirm its relevance in the Threat Eval tab before finalizing the risk assessment.",
+      "rationaleBefore": "Before",
+      "rationaleAfter": "After",
       "safetyRemovalDialog": {
         "title": "Safety Factor Source Removed",
         "message": "The safety annotations that automatically enabled the Safety Impact factor have been removed from the DFD and Asset Tab. Do you want to keep the Safety Impact factor active?\n\nKeeping it preserves existing safety ratings. Removing it will clear all safety factor values from your risk assessments.",
@@ -67,7 +69,8 @@
         "originalRisk": "Original Risk",
         "justification": "Justification",
         "treatment": "Treatment",
-        "implementation": "Implementation"
+        "implementation": "Implementation",
+        "assessmentRationale": "Rationale"
       },
       "dialog": {
         "title": "Risk Assessment: {{id}}",
@@ -128,7 +131,9 @@
         "factorOverridden": "Overridden",
         "factorOverriddenTooltip": "Asset-derived value: {{value}}. Click ↺ to reset.",
         "factorReset": "Reset to derived value",
-        "factorOriginal": "original"
+        "factorOriginal": "original",
+        "riskBeforeRationale": "Assessment Rationale — reasoning behind the risk assessment",
+        "riskAfterRationale": "Residual Risk Rationale — why likelihood/impact changed after mitigation"
       },
       "config": {
         "title": "Risk Assessment Configuration",

@@ -145,6 +145,8 @@ interface LocalRiskState {
   treatmentJustification: string;
   moscowPriority: MoSCoWPriority;
   wontJustification: string;
+  riskBeforeRationale: string;
+  riskAfterRationale: string;
 }
 
 function riskToLocal(risk: Risk): LocalRiskState {
@@ -163,6 +165,8 @@ function riskToLocal(risk: Risk): LocalRiskState {
     treatmentJustification: risk.treatmentJustification ?? "",
     moscowPriority: risk.moscowPriority,
     wontJustification: risk.wontJustification ?? "",
+    riskBeforeRationale: risk.riskBeforeRationale ?? "",
+    riskAfterRationale: risk.riskAfterRationale ?? "",
   };
 }
 
@@ -375,6 +379,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       treatmentJustification: local.treatmentJustification,
       moscowPriority: local.moscowPriority,
       wontJustification: local.wontJustification,
+      riskBeforeRationale: local.riskBeforeRationale,
+      riskAfterRationale: local.riskAfterRationale,
 
       calculatedImpact: beforeValues.impact,
       calculatedLikelihood: beforeValues.likelihood,
@@ -522,6 +528,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       treatmentJustification: local.treatmentJustification,
       moscowPriority: local.moscowPriority,
       wontJustification: local.wontJustification,
+      riskBeforeRationale: local.riskBeforeRationale,
+      riskAfterRationale: local.riskAfterRationale,
 
       calculatedImpact: beforeValues.impact,
       calculatedLikelihood: beforeValues.likelihood,
@@ -1198,8 +1206,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   </Box>
                 )}
 
-                <Divider />
-
                 {/* Linked Assets */}
                 {
                   <Box>
@@ -1261,6 +1267,27 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     configuration={configuration}
                   />
                 </Stack>
+
+                {/* Assessment rationale — why these likelihood/impact factors */}
+                <TextField
+                  size="small"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  sx={{ mt: 1.5 }}
+                  label={t("tabs.risks.dialog.riskBeforeRationale", {
+                    defaultValue:
+                      "Assessment Rationale — reasoning behind the risk assessment",
+                  })}
+                  value={local.riskBeforeRationale}
+                  onChange={(e) =>
+                    setLocal((prev) =>
+                      prev
+                        ? { ...prev, riskBeforeRationale: e.target.value }
+                        : prev,
+                    )
+                  }
+                />
 
                 {/* Factor ratings */}
                 <Box
@@ -1731,6 +1758,48 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   </Box>
                 )}
 
+                {/* Linked Assets — mirrored from Risk Before so the residual
+                    tab is self-contained (same asset; mitigation changes the
+                    risk, not which asset is affected). */}
+                {linkedAssets.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Assets
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      flexWrap="wrap"
+                      useFlexGap
+                    >
+                      {linkedAssets.map((asset) => {
+                        const aImpact = asset.aggregatedImpact;
+                        const hasSafety =
+                          asset.physicalImpact === "fatality" ||
+                          asset.physicalImpact === "irreversible_injury";
+                        const groupCfg =
+                          ASSET_GROUP_CONFIG[
+                            asset.assetGroup as keyof typeof ASSET_GROUP_CONFIG
+                          ];
+                        return (
+                          <Chip
+                            key={asset.id}
+                            label={`${asset.name}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
+                            size="small"
+                            sx={{
+                              fontSize: 11,
+                              height: 22,
+                              bgcolor: groupCfg?.colorLight ?? "grey.100",
+                              color: groupCfg?.color ?? "text.primary",
+                              border: `1px solid ${groupCfg?.color ?? "#ccc"}`,
+                            }}
+                          />
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                )}
+
                 <Divider />
 
                 {/* Selected Mitigations — bullet list */}
@@ -1878,6 +1947,27 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     configuration={configuration}
                   />
                 </Stack>
+
+                {/* Residual risk rationale — why L/I changed after mitigation */}
+                <TextField
+                  size="small"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  sx={{ mt: 1.5 }}
+                  label={t("tabs.risks.dialog.riskAfterRationale", {
+                    defaultValue:
+                      "Residual Risk Rationale — why likelihood/impact changed after mitigation",
+                  })}
+                  value={local.riskAfterRationale}
+                  onChange={(e) =>
+                    setLocal((prev) =>
+                      prev
+                        ? { ...prev, riskAfterRationale: e.target.value }
+                        : prev,
+                    )
+                  }
+                />
 
                 {/* Factor ratings — disabled when accepted/transferred */}
                 <Box

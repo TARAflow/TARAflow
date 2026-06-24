@@ -496,7 +496,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
       PaperProps={{ sx: { height: 600, maxHeight: "90vh" } }}
     >
