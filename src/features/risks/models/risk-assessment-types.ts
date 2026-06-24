@@ -92,6 +92,10 @@ export interface Risk {
   treatmentJustification: string;
   moscowPriority: MoSCoWPriority;
   wontJustification: string;
+  /** Rationale for the before-mitigation assessment (why these L/I factors). */
+  riskBeforeRationale: string;
+  /** Rationale for the residual assessment (why L/I changed after mitigation). */
+  riskAfterRationale: string;
   created: string;
   lastModified: string;
 }
@@ -183,6 +187,8 @@ export function createEmptyRisk(
     treatmentJustification: "",
     moscowPriority: "should",
     wontJustification: "",
+    riskBeforeRationale: "",
+    riskAfterRationale: "",
     created: new Date().toISOString(),
     lastModified: new Date().toISOString(),
   };
@@ -209,8 +215,12 @@ export function migrateRiskData(data: RiskData | null | undefined): RiskData | n
       configuration: { ...DEFAULT_CONFIGURATION },
       risks: risksArray.map((risk) => ({
         ...risk,
-        factorRatings:          migrateFactorRatings(risk.factorRatings ?? []),
-        mitigatedFactorRatings: migrateFactorRatings(risk.mitigatedFactorRatings ?? []),
+        riskBeforeRationale: risk.riskBeforeRationale ?? "",
+        riskAfterRationale: risk.riskAfterRationale ?? "",
+        factorRatings: migrateFactorRatings(risk.factorRatings ?? []),
+        mitigatedFactorRatings: migrateFactorRatings(
+          risk.mitigatedFactorRatings ?? [],
+        ),
       })),
     };
   }
@@ -219,13 +229,19 @@ export function migrateRiskData(data: RiskData | null | undefined): RiskData | n
     ...data,
     configuration: {
       ...data.configuration,
-      activeFactors: migrateActiveFactors(data.configuration.activeFactors ?? []),
+      activeFactors: migrateActiveFactors(
+        data.configuration.activeFactors ?? [],
+      ),
       useAssetImpact: true,
     },
     risks: risksArray.map((risk) => ({
       ...risk,
-      factorRatings:          migrateFactorRatings(risk.factorRatings ?? []),
-      mitigatedFactorRatings: migrateFactorRatings(risk.mitigatedFactorRatings ?? []),
+      riskBeforeRationale: risk.riskBeforeRationale ?? "",
+      riskAfterRationale: risk.riskAfterRationale ?? "",
+      factorRatings: migrateFactorRatings(risk.factorRatings ?? []),
+      mitigatedFactorRatings: migrateFactorRatings(
+        risk.mitigatedFactorRatings ?? [],
+      ),
     })),
   };
 }
