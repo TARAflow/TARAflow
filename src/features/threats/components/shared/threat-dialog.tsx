@@ -248,8 +248,14 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   }, [open, currentIndex]);
 
   useEffect(() => {
-    if (open) setCurrentIndex(initialIndex);
-  }, [open, initialIndex]);
+    if (!open) return;
+    // initialIndex referenziert die unsortierte threats-Liste.
+    // Über die ID in den Index der sortierten Liste übersetzen.
+    const id = threats[initialIndex]?.id;
+    if (!id) return;
+    const sortedIdx = sortedThreats.findIndex((t) => t.id === id);
+    setCurrentIndex(sortedIdx >= 0 ? sortedIdx : initialIndex);
+  }, [open, initialIndex, threats, sortedThreats]);
 
   // ── Derived: reviewed count for progress display ─────────────────────────
   const reviewedCount = useMemo(
