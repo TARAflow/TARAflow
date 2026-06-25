@@ -317,7 +317,12 @@
         "physicalImpactRationaleHint": "Required for manual override (IEC 62443-4-1 audit trail)",
         "derivedFromDFD": "derived from DFD",
         "methodConservative": "MAX",
-        "methodAverage": "AVG"
+        "methodAverage": "AVG",
+        "physicalImpactRationalePlaceholder": "Why does safety impact differ from DFD annotations?",
+        "hvaRationalePlaceholder": "Why is this asset difficult to replace?",
+        "securityGoalRequirements": "Security Goal Requirements",
+        "securityGoalRequirementsDescription": "Define a formal requirement for each active security goal (audit-relevant).",
+        "selectDamageCause": "Select at least one damage cause above."
       },
       "safetyScale": {
         "1": {

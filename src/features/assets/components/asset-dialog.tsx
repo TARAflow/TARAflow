@@ -164,8 +164,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   const scale = IMPACT_SCALES[configuration.impactScale];
   const isNew = asset.name === "";
@@ -399,10 +398,17 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     }));
   };
 
+  const assetDisplayName =
+    editedAsset.name && editedAsset.id
+      ? `${editedAsset.name} [${editedAsset.id}]`
+      : editedAsset.name || editedAsset.id;
+
   const handleUseTemplate = (type: SecurityGoalType) => {
     const goalDef = SECURITY_GOALS.find((g) => g.type === type);
     if (goalDef) {
-      const template = t(`${SECURITY_GOAL_KEY_PREFIX}.${type}.template`);
+      const template = t(`${SECURITY_GOAL_KEY_PREFIX}.${type}.template`, {
+        assetName: assetDisplayName,
+      });
       handleSecurityGoalDescription(type, template);
     }
   };
@@ -514,16 +520,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       label,
       defaultValue: `Overall: ${label}`,
     });
-  }, [currentOverallImpact, scale, isGerman]);
-
-  // Severity label map for physicalImpact display
-  const SEVERITY_LABELS: Record<string, string> = {
-    fatality: isGerman ? "Tödlich" : "Fatality",
-    irreversible_injury: isGerman
-      ? "Irreversible Verletzung"
-      : "Irreversible Injury",
-    reversible_injury: isGerman ? "Reversible Verletzung" : "Reversible Injury",
-  };
+  }, [currentOverallImpact, scale]);
 
   // Physical Impact Override — manual override allowed with rationale
   const physicalImpactDerived = editedAsset.physicalImpact;
@@ -826,11 +823,9 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                         defaultValue: "IEC 62443-4-1 audit trail",
                       })
                     }
-                    placeholder={
-                      isGerman
-                        ? "Warum weicht der Safety Impact vom DFD ab?"
-                        : "Why does safety impact differ from DFD annotations?"
-                    }
+                    placeholder={t(
+                      "tabs.assets.dialog.physicalImpactRationalePlaceholder",
+                    )}
                   />
                 )}
               </Stack>
@@ -1382,11 +1377,9 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                           },
                         }))
                       }
-                      placeholder={
-                        isGerman
-                          ? "Warum ist dieses Asset schwer ersetzbar?"
-                          : "Why is this asset difficult to replace?"
-                      }
+                      placeholder={t(
+                        "tabs.assets.dialog.hvaRationalePlaceholder",
+                      )}
                     />
                   </Grid>
                 </Grid>
@@ -1657,18 +1650,14 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               <Box>
                 <Divider sx={{ mb: 2 }} />
                 <Typography variant="subtitle2" gutterBottom>
-                  {isGerman
-                    ? "Schutzanforderungen"
-                    : "Security Goal Requirements"}
+                  {t("tabs.assets.dialog.securityGoalRequirements")}
                 </Typography>
                 <Typography
                   variant="caption"
                   color="text.secondary"
                   sx={{ display: "block", mb: 1.5 }}
                 >
-                  {isGerman
-                    ? "Formuliere für jedes aktive Schutzziel eine verbindliche Anforderung (Audit-relevant)."
-                    : "Define a formal requirement for each active security goal (audit-relevant)."}
+                  {t("tabs.assets.dialog.securityGoalRequirementsDescription")}
                 </Typography>
 
                 {SECURITY_GOALS.filter(
@@ -1867,6 +1856,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                             size="small"
                             placeholder={t(
                               `${SECURITY_GOAL_KEY_PREFIX}.${goalDef.type}.template`,
+                              { assetName: assetDisplayName },
                             )}
                           />
                           <Tooltip
@@ -1926,9 +1916,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   sx={{ py: 3, textAlign: "center", color: "text.secondary" }}
                 >
                   <Typography variant="body2">
-                    {isGerman
-                      ? "Wähle mindestens eine Schadensursache oben aus."
-                      : "Select at least one damage cause above."}
+                    {t("tabs.assets.dialog.selectDamageCause")}
                   </Typography>
                 </Box>
               )}
@@ -1946,6 +1934,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};;
+}
 
 export default AssetDialog;

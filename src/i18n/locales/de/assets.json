@@ -316,7 +316,12 @@
         "derivedFromDFD": "aus DFD abgeleitet",
         "averageImpact": "Ø {{value}}",
         "methodConservative": "MAX",
-        "methodAverage": "Ø"
+        "methodAverage": "Ø",
+        "physicalImpactRationalePlaceholder": "Warum weicht der Safety Impact von den DFD-Annotationen ab?",
+        "hvaRationalePlaceholder": "Warum ist dieses Asset schwer ersetzbar?",
+        "securityGoalRequirements": "Schutzanforderungen",
+        "securityGoalRequirementsDescription": "Formuliere für jedes aktive Schutzziel eine verbindliche Anforderung (Audit-relevant).",
+        "selectDamageCause": "Wähle mindestens eine Schadensursache oben aus."
       },
       "safetyScale": {
         "1": {
