@@ -312,44 +312,23 @@ export class InteractionThreatSync {
   /**
    * Synchronize threats with DFD changes using DFDGraph
    */
-  synchronizeThreats(
-    project: ThreatProjectData,
-    dfdContext: DFDAnalysisContext,
+  /**
+   * Apply reference drift (rename / renumber / retype of a TB, interface,
+   * data flow or its endpoints) to a set of per-interaction tables.
+   *
+   * Pure and NON-destructive: refreshes the TB name, source/target names, the
+   * linkedElement / dataFlow mirror, and regenerates threat.id via
+   * generateThreatIdPerInteraction. Never adds or removes threats. This is the
+   * silent half of sync (Class A) — the live DFD-change path applies it on
+   * every save without a banner. Adding/removing threats (Class B) stays
+   * behind the sync banner.
+   */
+  applyChangedReferences(
     tables: ThreatTable[],
     syncStatus: ThreatSyncStatus,
-    options: {
-      updateReferences: boolean;
-      removeOrphaned: boolean;
-    },
-  ): ThreatSyncResult {
-    // Early exit if no graph
-    if (!project.dfdGraph) {
-      return {
-        success: false,
-        added: 0,
-        removed: 0,
-        updated: 0,
-        threatData: project.threats || {
-          configuration: {
-            activeMethod: "per-interaction" as const,
-            zeroTrustMode: false,
-            showThreatActor: false,
-            customElementTemplates: [],
-            customInteractionTemplates: [],
-            customMitigations: [],
-            customVerifications: [],
-          },
-          perElementTables: [],
-          perInteractionTables: tables,
-          lastModified: new Date().toISOString(),
-        },
-      };
-    }
-
-    const graph = project.dfdGraph;
+    graph: DFDGraphReference,
+  ): { tables: ThreatTable[]; updated: number } {
     let updatedTables = [...tables];
-    let added = 0;
-    let removed = 0;
     let updated = 0;
 
     // ==================== Update Trust Boundary names ====================
@@ -398,10 +377,7 @@ export class InteractionThreatSync {
     }));
 
     // ==================== Update changed interface displayIds ====================
-    if (
-      options.updateReferences &&
-      syncStatus.changedReferences.elements.length > 0
-    ) {
+    if (syncStatus.changedReferences.elements.length > 0) {
       const elementChangeMap = new Map(
         syncStatus.changedReferences.elements.map((c) => [c.threatId, c]),
       );
@@ -443,10 +419,7 @@ export class InteractionThreatSync {
     }
 
     // ==================== Update changed data flow references ====================
-    if (
-      options.updateReferences &&
-      syncStatus.changedReferences.dataFlows.length > 0
-    ) {
+    if (syncStatus.changedReferences.dataFlows.length > 0) {
       const changeMap = new Map(
         syncStatus.changedReferences.dataFlows.map((c) => [c.threatId, c]),
       );
@@ -501,6 +474,57 @@ export class InteractionThreatSync {
         }),
       }));
     }
+
+    return { tables: updatedTables, updated };
+  }
+
+  synchronizeThreats(
+    project: ThreatProjectData,
+    dfdContext: DFDAnalysisContext,
+    tables: ThreatTable[],
+    syncStatus: ThreatSyncStatus,
+    options: {
+      updateReferences: boolean;
+      removeOrphaned: boolean;
+    },
+  ): ThreatSyncResult {
+    // Early exit if no graph
+    if (!project.dfdGraph) {
+      return {
+        success: false,
+        added: 0,
+        removed: 0,
+        updated: 0,
+        threatData: project.threats || {
+          configuration: {
+            activeMethod: "per-interaction" as const,
+            zeroTrustMode: false,
+            showThreatActor: false,
+            customElementTemplates: [],
+            customInteractionTemplates: [],
+            customMitigations: [],
+            customVerifications: [],
+          },
+          perElementTables: [],
+          perInteractionTables: tables,
+          lastModified: new Date().toISOString(),
+        },
+      };
+    }
+
+    const graph = project.dfdGraph;
+    let updatedTables = [...tables];
+    let added = 0;
+    let removed = 0;
+    let updated = 0;
+
+    const refResult = this.applyChangedReferences(
+      updatedTables,
+      syncStatus,
+      graph,
+    );
+    updatedTables = refResult.tables;
+    updated += refResult.updated;
 
     // ==================== Remove orphaned threats ====================
     if (

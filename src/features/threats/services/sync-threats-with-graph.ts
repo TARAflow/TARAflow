@@ -1,7 +1,11 @@
 // features/threats/services/sync-threats-with-graph.ts
-import type { ThreatBundle, ThreatProjectData } from "../models/threat-types";
+import type { ThreatProjectData } from "../models/threat-types";
 import type { DFDGraphReference } from "shared";
 import { elementThreatSync } from "./per-element/element-sync";
+// NOTE: align path with the per-element import above (per-interaction/ sibling).
+import { interactionThreatSync } from "./per-interaction/interaction-sync";
+
+type ThreatBundle = NonNullable<ThreatProjectData["threats"]>;
 
 /**
  * Single entry point for reconciling threats with a DFD graph.
@@ -23,33 +27,9 @@ export function syncThreatsWithGraph(
 
   let working = threats;
 
-  // ── Per-interaction: refresh the linkedElement display mirror ────────────
+  // ── Per-interaction: silently absorb reference drift (Class A) ───────────
   if ((working.perInteractionTables?.length ?? 0) > 0) {
-    working = {
-      ...working,
-      perInteractionTables: working.perInteractionTables?.map((table) => ({
-        ...table,
-        threats: table.threats.map((threat) => {
-          if (!threat.linkedElement) return threat;
-          const elem = graph.elementsById.get(threat.linkedElement.elementId);
-          if (!elem) return threat;
-          if (
-            elem.displayId === threat.linkedElement.displayId &&
-            elem.name === threat.linkedElement.elementName
-          ) {
-            return threat;
-          }
-          return {
-            ...threat,
-            linkedElement: {
-              ...threat.linkedElement,
-              displayId: elem.displayId,
-              elementName: elem.name,
-            },
-          };
-        }),
-      })),
-    };
+    working = syncPerInteractionThreats(working, graph, assetDataRef);
   }
 
   // ── Per-element: structural re-sync (renumber / new / removed) ───────────
@@ -95,6 +75,45 @@ function syncPerElementThreats(
   return {
     ...threats,
     perElementTables: tables,
+    lastModified: new Date().toISOString(),
+  };
+}
+
+function syncPerInteractionThreats(
+  threats: ThreatBundle,
+  graph: DFDGraphReference,
+  assetDataRef?: ThreatProjectData["assetDataRef"],
+): ThreatBundle {
+  const perInteractionTables = threats.perInteractionTables ?? [];
+
+  const syncProject = {
+    dfdGraph: graph,
+    threats,
+    assetDataRef,
+  } as ThreatProjectData;
+
+  const syncStatus = interactionThreatSync.checkSyncStatus(
+    syncProject,
+    perInteractionTables,
+  );
+
+  // Class A only — silently absorb reference drift: TB / interface / data-flow
+  // rename, renumber, retype, plus endpoint (source/target) name changes. The
+  // helper regenerates threat.id via generateThreatIdPerInteraction and
+  // refreshes every mirror, but never adds or removes a threat. Missing /
+  // orphaned interactions (Class B — the SET of threats changed) are NOT
+  // applied here; they surface via the Threat tab's sync banner so the user
+  // decides whether to generate or remove.
+  const { tables, updated } = interactionThreatSync.applyChangedReferences(
+    perInteractionTables,
+    syncStatus,
+    graph,
+  );
+  if (updated === 0) return threats;
+
+  return {
+    ...threats,
+    perInteractionTables: tables,
     lastModified: new Date().toISOString(),
   };
 }
