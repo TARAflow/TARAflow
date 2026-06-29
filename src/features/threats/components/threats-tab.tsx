@@ -162,6 +162,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const activeHook =
     activeMethod === "per-element" ? elementHook : interactionHook;
 
+  useEffect(() => {
+    if (activeHook.syncStatus && !activeHook.syncStatus.inSync) {
+      setShowSyncWarning(true);
+    }
+  }, [activeHook.syncStatus?.inSync, activeHook.syncStatus?.lastChecked]);
+
   // Validation
   const validation = useThreatValidation(activeHook.tables);
 
@@ -179,6 +185,14 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setActiveMethod(method);
     }
   }, [project.threats?.configuration?.activeMethod]);
+
+  // Reset showSyncWarning whenever the sync status flips back to out-of-sync.
+  // Without this, a dismissed banner never reappears after a new DFD change.
+  useEffect(() => {
+    if (activeHook.syncStatus && !activeHook.syncStatus.inSync) {
+      setShowSyncWarning(true);
+    }
+  }, [activeHook.syncStatus?.inSync, activeHook.syncStatus?.lastChecked]);
 
   // ==================== HANDLERS ====================
 
@@ -651,6 +665,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       )}
     </Box>
   );
-};;
+};;;
 
 export default ThreatsTab;

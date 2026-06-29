@@ -24,6 +24,8 @@ export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
   Interface: ["S", "T", "R", "I", "D", "E"],
   ChipBoundary: ["T", "I", "E"],
   PhysicalBoundary: ["S", "T", "R", "I", "D", "E"],
+  Sensor: ["T", "D"],
+  Actuator: ["T", "D"],
 };
 
 
@@ -36,6 +38,8 @@ export interface ElementChange {
   threatId: string;
   oldRef: LinkedDFDElement;
   newRef: DFDElementReference;
+  /** Regenerated threat id (expectedId from current displayId) — applied on renumber. */
+  newId?: string;
   changes: ("name" | "id" | "type")[];
 }
 

@@ -33,6 +33,31 @@ import {
   mergeMitigationHints,
 } from "../implemented-controls-mapper";
 
+// ==================== ASSET REVERSE INDEX ====================
+
+/**
+ * Build the reverse index elementId → assetIds[] from the asset reference.
+ *
+ * Single source of truth for asset↔element linkage during threat generation.
+ * Used by BOTH the full project generator and the incremental sync add-path
+ * (element-sync.ts), so a newly synced element receives the same
+ * linkedAssetIds a full regeneration would produce — no divergence.
+ */
+export function buildElementToAssetsIndex(
+  assetDataRef: ThreatProjectData["assetDataRef"],
+): Map<string, string[]> {
+  const elementToAssets = new Map<string, string[]>();
+  if (!assetDataRef) return elementToAssets;
+  for (const asset of assetDataRef.assets) {
+    for (const elementId of asset.linkedElementIds ?? []) {
+      const existing = elementToAssets.get(elementId) ?? [];
+      existing.push(asset.id);
+      elementToAssets.set(elementId, existing);
+    }
+  }
+  return elementToAssets;
+}
+
 // ==================== ELEMENT THREAT GENERATOR ====================
 
 export class ElementThreatGenerator {
@@ -49,16 +74,7 @@ export class ElementThreatGenerator {
     const tables: ThreatTable[] = [];
 
     // ── Asset reverse index: elementId → assetIds[] ──────────────────────
-    const elementToAssets = new Map<string, string[]>();
-    if (project.assetDataRef) {
-      for (const asset of project.assetDataRef.assets) {
-        for (const elementId of asset.linkedElementIds ?? []) {
-          const existing = elementToAssets.get(elementId) ?? [];
-          existing.push(asset.id);
-          elementToAssets.set(elementId, existing);
-        }
-      }
-    }
+    const elementToAssets = buildElementToAssetsIndex(project.assetDataRef);
 
     // ── Trust Boundary tables ─────────────────────────────────────────────
     // Build effective TB → elements map from effectiveElementTrustBoundary.
@@ -504,6 +520,54 @@ export class ElementThreatGenerator {
           strategy,
         ),
       );
+  }
+
+  /**
+   * The STRIDE categories this element would receive a generated threat for.
+   *
+   * checkSyncStatus calls this for EVERY element on EVERY DFD change, against a
+   * minimal project stub that lacks the enrichment context (hazards etc.) the
+   * generation strategy expects — and possibly for element types the strategy
+   * doesn't map. It must therefore be total: any failure inside the strategy or
+   * elimination filter falls back to the raw base table rather than throwing,
+   * because a throw here would discard the entire sync status (including
+   * renumber/rename detection) and silently kill sync.
+   *
+   * On the happy path it runs the same base → strategy → elimination pipeline
+   * as generation, so an element whose categories are all eliminated (e.g. an
+   * internal, authenticated ExternalEntity losing both S and R) is correctly
+   * NOT reported as missing.
+   */
+  public getEffectiveStrideCategories(
+    element: DFDElementReference,
+    project: ThreatProjectData,
+  ): StrideCategory[] {
+    const baseCategories = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
+    try {
+      const { categories } = createStrategy().getStrideCategories(
+        element,
+        baseCategories,
+        project,
+        project.threats?.configuration ?? {
+          activeMethod: "per-element",
+          zeroTrustMode: false,
+          showThreatActor: false,
+          forceClassicMode: false,
+          customElementTemplates: [],
+          customInteractionTemplates: [],
+          customMitigations: [],
+          customVerifications: [],
+        },
+      );
+      const elementProps = (element as any).properties ?? {};
+      return categories.filter(
+        (strideCategory) =>
+          !shouldEliminateThreat(element.type, elementProps, strideCategory),
+      );
+    } catch {
+      // Total fallback for the sync stub: treat the base table as the answer.
+      return baseCategories;
+    }
   }
 
   private createThreatForElement(

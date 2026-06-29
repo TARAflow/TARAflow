@@ -27,6 +27,10 @@ import type {
   DFDGraphReference,
 } from "shared/models/dfd-reference-types";
 
+// The threat bundle stored on the project (configuration + tables).
+// Derived from ThreatProjectData so we don't depend on the exact type name.
+export type ThreatBundle = NonNullable<ThreatProjectData["threats"]>;
+
 // ==================== THREAT SOURCE ====================
 
 /**

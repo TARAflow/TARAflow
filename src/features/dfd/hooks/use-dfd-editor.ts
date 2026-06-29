@@ -248,11 +248,14 @@ export function useDFDEditor(
   persistenceSaveRef.current = persistence.save;
 
   // iframe communication layer
-  const handleDiagramChange = useCallback(() => {
-    persistence.markDirty();
-    validation.scheduleValidation(autoValidateInterval);
-    persistence.scheduleDrawioSave();
-  }, [persistence, validation, autoValidateInterval]);
+  const handleDiagramChangeWithXml = useCallback(
+    (xml: string) => {
+      persistence.markDirty();
+      validation.scheduleValidation(autoValidateInterval);
+      persistence.scheduleDrawioSave(xml);
+    },
+    [persistence, validation, autoValidateInterval],
+  );
 
   // Called once after the draw.io plugin is fully injected (~3 s after mount).
   // This is the first moment exportImage() can reliably return data.
@@ -287,7 +290,7 @@ export function useDFDEditor(
 
   const bridge = useDrawioBridge(project, {
     darkMode,
-    onDiagramChange: handleDiagramChange,
+    onDiagramChangeWithXml: handleDiagramChangeWithXml, // ersetzt onDiagramChange
     onSelectionChanged: handleSelectionChanged,
     onPluginReady: handlePluginReady,
   });

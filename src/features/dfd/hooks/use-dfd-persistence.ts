@@ -25,7 +25,7 @@ export interface UseDFDPersistenceReturn {
   // Actions
   save: (thumbnailData?: string) => Promise<DFDUpdateResult | null>;
   scheduleSave: (result: DFDUpdateResult) => void;
-  scheduleDrawioSave: () => void; // Debounced autosave triggered by DrawIO changes
+  scheduleDrawioSave: (xml: string) => void; // Debounced autosave triggered by DrawIO changes
   flush: () => void;
   markDirty: () => void;
   markClean: () => void;
@@ -61,6 +61,8 @@ export function useDFDPersistence(
   // (which arrives via scheduleSave/onUpdate AFTER the drawio save fires).
   const projectRef = useRef<DFDProjectData>(project);
   projectRef.current = project;
+
+  const pendingXmlRef = useRef<string | null>(null);
 
   // ==================== DIRTY STATE ====================
 
@@ -173,66 +175,54 @@ export function useDFDPersistence(
    * via dfdService.saveDFD() directly.
    * Separate timer from scheduleSave to avoid interfering with description edits.
    */
-  const scheduleDrawioSave = useCallback(() => {
-    markDirty();
+  const scheduleDrawioSave = useCallback(
+    (xml: string) => {
+      markDirty();
+      pendingXmlRef.current = xml; // immer neuestes XML merken
 
-    // Clear existing timer
-    if (drawioSaveTimerRef.current) {
-      clearTimeout(drawioSaveTimerRef.current);
-    }
-
-    drawioSaveTimerRef.current = setTimeout(async () => {
-      console.log("[useDFDPersistence] Executing DrawIO autosave...");
-
-      try {
-        // Use projectRef.current — always the latest project state.
-        // This merges any properties set via updateConnectionDescription
-        // (arrived via onUpdate) with the XML from draw.io.
-        const currentProject = projectRef.current;
-        const adapter = createDFDStorageAdapter(currentProject.id);
-        adapter.syncFromLegacy();
-
-        const result = dfdService.saveDFD(currentProject);
-
-        if (!result.success) {
-          console.error(
-            "[useDFDPersistence] DrawIO autosave failed:",
-            result.error,
-          );
-          return;
-        }
-
-        const updateResult: DFDUpdateResult = {
-          dfd: result.dfd,
-          phaseStatus: result.phaseStatus,
-          lastModified: result.lastModified,
-        };
-
-        onUpdate?.(updateResult);
-        markClean();
-
-        // Allow caller (e.g. useDFDEditor) to generate thumbnail after save
-        onAfterDrawioSave?.(updateResult);
-
-        console.log("[useDFDPersistence] DrawIO autosave successful");
-      } catch (error) {
-        console.error("[useDFDPersistence] DrawIO autosave error:", error);
+      if (drawioSaveTimerRef.current) {
+        clearTimeout(drawioSaveTimerRef.current);
       }
 
-      drawioSaveTimerRef.current = null;
-    }, drawioAutosaveDelay);
+      drawioSaveTimerRef.current = setTimeout(async () => {
+        const currentXml = pendingXmlRef.current;
+        if (!currentXml) return;
 
-    console.log(
-      `[useDFDPersistence] DrawIO autosave scheduled in ${drawioAutosaveDelay}ms`,
-    );
-  }, [
-    project,
-    onUpdate,
-    onAfterDrawioSave,
-    markDirty,
-    markClean,
-    drawioAutosaveDelay,
-  ]);
+        try {
+          const currentProject = projectRef.current;
+
+          // XML direkt verarbeiten — kein localStorage-Read mehr
+          const result = dfdService.saveDFDFromXml(currentProject, currentXml);
+
+          if (!result.success) {
+            console.error(
+              "[useDFDPersistence] DrawIO autosave failed:",
+              result.error,
+            );
+            return;
+          }
+
+          const updateResult: DFDUpdateResult = {
+            dfd: result.dfd,
+            phaseStatus: result.phaseStatus,
+            lastModified: result.lastModified,
+          };
+
+          onUpdate?.(updateResult);
+          markClean();
+          onAfterDrawioSave?.(updateResult);
+
+          console.log("[useDFDPersistence] DrawIO autosave successful");
+        } catch (error) {
+          console.error("[useDFDPersistence] DrawIO autosave error:", error);
+        }
+
+        pendingXmlRef.current = null;
+        drawioSaveTimerRef.current = null;
+      }, drawioAutosaveDelay);
+    },
+    [markDirty, markClean, onUpdate, onAfterDrawioSave, drawioAutosaveDelay],
+  );
 
   /**
    * Flush any pending debounced save immediately

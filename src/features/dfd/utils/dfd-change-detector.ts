@@ -13,9 +13,10 @@ import type { DFDElement, DFDConnection } from "../models/dfd-types";
 // ==================== TYPES ====================
 
 export type ChangeLevel =
-  | "none"        // Only property changes — no rebuild needed
-  | "geometry"    // Level 3: position/size changed
-  | "connectivity"// Level 2: connection endpoints changed
+  | "none" // Only property changes — no rebuild needed
+  | "geometry" // Level 3: position/size changed
+  | "connectivity" // Level 2: connection endpoints changed
+  | "identity" // Level 1b: element/connection name, displayId or type changed
   | "structural"; // Level 1: elements/connections added or removed
 
 export interface TopologyChangeResult {
@@ -51,6 +52,48 @@ export class DFDChangeDetector {
         reason: `Element count changed (${prevElements.length}→${nextElements.length}), ` +
                 `connection count changed (${prevConnections.length}→${nextConnections.length})`,
       };
+    }
+
+    // ── Level 1b: Identity (name / displayId / type) ────────────────────────
+    // The threat layer mirrors element identity: threat ids encode the
+    // displayId and linkedElement mirrors the name/type. A rename or renumber
+    // keeps the topology but MUST rebuild the graph so toGraphReference()
+    // exposes the new values — otherwise saveDFDFromXml reuses the old graph,
+    // its elementsById keeps stale names/numbers, and the threat sync (and the
+    // sync banner) never see the change until an unrelated structural edit.
+    const prevElemIdentity = new Map(prevElements.map((e) => [e.id, e]));
+    for (const next of nextElements) {
+      const prev = prevElemIdentity.get(next.id);
+      if (!prev) continue; // add/remove already handled by the count check
+      if (
+        prev.name !== next.name ||
+        prev.displayId !== next.displayId ||
+        prev.type !== next.type
+      ) {
+        return {
+          level: "identity",
+          requiresRebuild: true,
+          reason: `Element ${next.id} identity changed ` +
+                  `(name/displayId/type): "${prev.displayId}/${prev.name}" → ` +
+                  `"${next.displayId}/${next.name}"`,
+        };
+      }
+    }
+
+    const prevConnIdentity = new Map(prevConnections.map((c) => [c.id, c]));
+    for (const next of nextConnections) {
+      const prev = prevConnIdentity.get(next.id);
+      if (!prev) continue;
+      if (
+        (prev.name ?? "") !== (next.name ?? "") ||
+        prev.displayId !== next.displayId
+      ) {
+        return {
+          level: "identity",
+          requiresRebuild: true,
+          reason: `Connection ${next.id} identity changed (label/name/displayId)`,
+        };
+      }
     }
 
     // ── Level 2: Connectivity ───────────────────────────────────────────────

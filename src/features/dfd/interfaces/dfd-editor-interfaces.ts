@@ -87,6 +87,9 @@ export interface IDrawioBridge {
   /** Set callback for diagram changes */
   onDiagramChange(callback: () => void): void;
 
+  /** Set callback for diagram changes — delivers the raw XML from the autosave event */
+  onDiagramChangeWithXml(callback: (xml: string) => void): void;
+
   /** Set callback for selection changes */
   onSelectionChanged(callback: (cells: any[]) => void): void;
 

@@ -49,7 +49,10 @@ export type {
   TrustBoundaryAnalysisReference,
   DFDGraphReference,
 } from "./models/dfd-reference-types";
-export { hasDFDSafetyAnnotations } from "./models/dfd-reference-types";
+export {
+  hasDFDSafetyAnnotations,
+  toGraphReference,
+} from "./models/dfd-reference-types";
 
 // CIANAAA
 export type {

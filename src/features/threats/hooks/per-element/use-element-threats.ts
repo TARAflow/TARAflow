@@ -72,6 +72,23 @@ export function useElementThreats({
 
   // ==================== SYNC STATUS CHECK ====================
 
+  const graphFingerprint = useMemo(() => {
+    const elements = project.dfdElements ?? [];
+    const connections = project.dfdConnections ?? [];
+    return (
+      elements
+        .map((e) => `${e.id}:${(e as any).displayId ?? ""}:${e.name ?? ""}`)
+        .join("|") +
+      "||" +
+      connections
+        .map(
+          (c) =>
+            `${c.id}:${(c as any).displayId ?? ""}:${(c as any).label ?? ""}:${(c as any).name ?? ""}`,
+        )
+        .join("|")
+    );
+  }, [project.dfdElements, project.dfdConnections]);
+
   useEffect(() => {
     if (project.dfdElements && project.dfdElements.length > 0) {
       const status = elementThreatService.checkSyncStatus(project, tables);
@@ -79,7 +96,7 @@ export function useElementThreats({
     } else {
       setSyncStatus(null);
     }
-  }, [project.dfdElements, project.dfdConnections, tables]);
+  }, [graphFingerprint, tables]);
 
   // ==================== STATISTICS ====================
 

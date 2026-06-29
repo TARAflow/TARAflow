@@ -96,8 +96,17 @@ export function useDFDAutoNumbering(
       // Load numbered XML back into editor
       await bridge.loadXML(numberedXml);
 
-      // Mark as dirty
-      persistence.markDirty();
+      // Route the numbered XML through the save pipeline explicitly.
+      // Post-refactor the save only fires on draw.io's own 'autosave' event
+      // (onDiagramChangeWithXml). A programmatic loadXML does NOT emit that
+      // event, and the old localStorage-observer path (onDiagramChange) is no
+      // longer wired — so without this the renumber never reaches
+      // saveDFDFromXml / the threat sync.
+      persistence.scheduleDrawioSave(numberedXml);
+
+      if (validateAfter) {
+        validation.scheduleValidation(validationDelay);
+      }
 
       // Schedule validation
       if (validateAfter) {

@@ -26,6 +26,7 @@ export class DrawioBridge implements IDrawioBridge {
   private diagramChangeCallback: (() => void) | null = null;
   private selectionCallback: ((cells: any[]) => void) | null = null;
   private disposed = false;
+  private diagramChangeWithXmlCallback: ((xml: string) => void) | null = null;
 
   constructor(
     iframe: HTMLIFrameElement,
@@ -64,6 +65,12 @@ export class DrawioBridge implements IDrawioBridge {
       this.controller.onSelectionChanged((cells: any[]) => {
         if (!this.disposed && this.selectionCallback) {
           this.selectionCallback(cells);
+        }
+      });
+
+      this.controller.onDiagramChangeWithXml((xml: string) => {
+        if (!this.disposed && this.diagramChangeWithXmlCallback) {
+          this.diagramChangeWithXmlCallback(xml);
         }
       });
     }
@@ -240,6 +247,10 @@ export class DrawioBridge implements IDrawioBridge {
 
   onDiagramChange(callback: () => void): void {
     this.diagramChangeCallback = callback;
+  }
+
+  onDiagramChangeWithXml(callback: (xml: string) => void): void {
+    this.diagramChangeWithXmlCallback = callback;
   }
 
   getCurrentXml(): string | null {

@@ -1,0 +1,2119 @@
+{
+ "elements": [
+  {
+   "id": "212",
+   "type": "TrustBoundary",
+   "name": "Logic Boundary [LB]",
+   "displayId": "LB",
+   "properties": {
+    "boundaryId": "TB",
+    "boundaryType": "device",
+    "defaultExposureLevel": "EL2",
+    "monitoringEnabled": false
+   }
+  },
+  {
+   "id": "2",
+   "type": "PhysicalBoundary",
+   "name": "Device Boundary [PB]",
+   "displayId": "PB",
+   "properties": {
+    "boundaryType": "device_enclosure",
+    "physicalExposureLevel": "PEL2",
+    "physicalMobility": "fixed",
+    "accessibility": "controlled",
+    "requiresToolAccess": true,
+    "debugInterfaceAccessible": false,
+    "removableMediaAccessible": false,
+    "tamperProtection": "none",
+    "physicalAccessControl": "none",
+    "monitoringType": "none"
+   }
+  },
+  {
+   "id": "11",
+   "type": "TrustBoundary",
+   "name": "Backend API APP [TB]",
+   "displayId": "TB",
+   "properties": {
+    "boundaryId": "TB",
+    "boundaryType": "network",
+    "defaultExposureLevel": "EL3",
+    "monitoringEnabled": true,
+    "boundaryControlTypes": [
+     "firewall"
+    ],
+    "defaultDenyPolicy": "allow_all"
+   }
+  },
+  {
+   "id": "14",
+   "type": "Process",
+   "name": "Application",
+   "displayId": "P-3",
+   "properties": {
+    "technology": "rtos_task",
+    "authenticationRequired": "yes",
+    "authorizationModel": "custom",
+    "inputValidation": "none",
+    "errorHandling": "silent",
+    "runsAs": "root",
+    "privilegeLevel": "high",
+    "accountManagement": "local_only",
+    "malwareProtection": "none",
+    "authenticatorStorage": "software_only",
+    "exposedToInternet": true,
+    "nonRepudiation": "none",
+    "processSemantic": "execution_unit"
+   }
+  },
+  {
+   "id": "16",
+   "type": "ChipBoundary",
+   "name": "ESP32 [CB]",
+   "displayId": "CB",
+   "properties": {
+    "chipType": "mcu",
+    "defaultExposureLevel": "EL1",
+    "debugInterfaceLocked": false,
+    "secureBootEnabled": false,
+    "firmwareProtection": "none",
+    "tamperProtection": "none",
+    "supplyChainTrust": "unknown",
+    "debugInterfacePresent": "none"
+   }
+  },
+  {
+   "id": "129",
+   "type": "DataStore",
+   "name": "Firmware",
+   "displayId": "DS-2",
+   "properties": {
+    "technology": "flash",
+    "encryptionAtRest": "none",
+    "integrityProtection": "none",
+    "storedDataTypes": [
+     "firmware",
+     "keys_certificates",
+     "credentials",
+     "audit_logs",
+     "calibration",
+     "config",
+     "telemetry"
+    ],
+    "dataClassification": "internal",
+    "accessControlMechanism": "none"
+   }
+  },
+  {
+   "id": "167",
+   "type": "DataStore",
+   "name": "Firmware Store",
+   "displayId": "DS-1",
+   "properties": {
+    "technology": "cloud",
+    "encryptionAtRest": "tde",
+    "integrityProtection": "hmac",
+    "storedDataTypes": [
+     "firmware"
+    ],
+    "multiTenant": false,
+    "dataClassification": "internal",
+    "accessModel": "communication",
+    "accessModelSource": "manual"
+   }
+  },
+  {
+   "id": "169",
+   "type": "Process",
+   "name": "SW-Update API",
+   "displayId": "P-1",
+   "properties": {
+    "technology": "api",
+    "authenticationRequired": "yes",
+    "authorizationModel": "rbac",
+    "inputValidation": "schema",
+    "errorHandling": "sanitized",
+    "runsAs": "service",
+    "privilegeLevel": "medium",
+    "malwareProtection": "none",
+    "exposedToInternet": true,
+    "processSemantic": "execution_unit"
+   }
+  },
+  {
+   "id": "174",
+   "type": "ExternalEntity",
+   "name": "Mobile/Browser",
+   "displayId": "EE-1",
+   "properties": {
+    "entityType": "contractor",
+    "trustLevel": "low",
+    "authenticationMethod": "password",
+    "threatActor": "curious",
+    "ownership": "external",
+    "authorizationScope": ""
+   }
+  },
+  {
+   "id": "101",
+   "type": "Interface",
+   "name": "WLAN - Access Point - Station",
+   "displayId": "IF-1",
+   "properties": {
+    "type": "wifi",
+    "location": "wireless",
+    "operationalState": "enabled",
+    "exposureLevel": "EL3",
+    "implementedControls": {
+     "physicalAccessProtection": "inside_enclosure",
+     "logicalAccessControl": "password",
+     "serviceAccessPolicy": "maintenance_only"
+    }
+   }
+  },
+  {
+   "id": "187",
+   "type": "DataStore",
+   "name": "SD Card",
+   "displayId": "DS-3",
+   "properties": {
+    "technology": "filesystem",
+    "encryptionAtRest": "none",
+    "integrityProtection": "none",
+    "storedDataTypes": [
+     "firmware",
+     "audit_logs",
+     "config"
+    ],
+    "accessModel": "direct_access",
+    "dataClassification": "public",
+    "multiTenant": false
+   }
+  },
+  {
+   "id": "189",
+   "type": "ExternalEntity",
+   "name": "Operator",
+   "displayId": "EE-2",
+   "properties": {
+    "entityType": "operator",
+    "trustLevel": "medium",
+    "authenticationMethod": "password",
+    "threatActor": "curious",
+    "ownership": "internal"
+   }
+  },
+  {
+   "id": "191",
+   "type": "Interface",
+   "name": "Display/Touch",
+   "displayId": "IF-2",
+   "properties": {
+    "exposureLevel": "EL1",
+    "type": "custom",
+    "operationalState": "enabled",
+    "location": "external_panel"
+   }
+  },
+  {
+   "id": "206",
+   "type": "Sensor",
+   "name": "Photometer",
+   "displayId": "SE-1",
+   "properties": {
+    "location": "internal",
+    "locationProvenance": "derived",
+    "measurand": "optical",
+    "transductionPrinciple": "optical",
+    "stimulusDomain": "optical",
+    "physicalExposureLevel": "PEL1",
+    "sensingExposure": "shielded",
+    "signalAuthentication": "none",
+    "plausibilityCheck": "range",
+    "redundancy": "none",
+    "lossDetection": "detected_degraded",
+    "safetyRelevant": true,
+    "safetyClassification": "catastrophic"
+   }
+  },
+  {
+   "id": "217",
+   "type": "Process",
+   "name": "Web-Server/Auth",
+   "displayId": "P-2",
+   "properties": {
+    "technology": "rtos_task",
+    "authenticationRequired": "yes",
+    "authorizationModel": "none",
+    "inputValidation": "basic",
+    "errorHandling": "silent",
+    "malwareProtection": "none",
+    "processSemantic": "functional_block"
+   }
+  }
+ ],
+ "connections": [
+  {
+   "id": "224",
+   "type": "DataFlow",
+   "displayId": "DF-2",
+   "label": null,
+   "name": "pull authenticate [req_resp]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "131",
+   "type": "DataFlow",
+   "displayId": "DF-8",
+   "label": null,
+   "name": "write config data",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "140",
+   "type": "DataFlow",
+   "displayId": "DF-9",
+   "label": null,
+   "name": "read config data",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "171",
+   "type": "DataFlow",
+   "displayId": "DF-5",
+   "label": null,
+   "name": "pull firmware [req_resp]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "180",
+   "type": "DataFlow",
+   "displayId": "DF-6",
+   "label": null,
+   "name": "pull update image [req_resp]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "183",
+   "type": "DataFlow",
+   "displayId": "DF-3",
+   "label": null,
+   "name": "pull measurements data [req_resp]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "185",
+   "type": "DataFlow",
+   "displayId": "DF-4",
+   "label": null,
+   "name": "pull config data [req_resp]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "196",
+   "type": "DataFlow",
+   "displayId": "DF-12",
+   "label": null,
+   "name": "push measurement data [cmd]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "202",
+   "type": "DataFlow",
+   "displayId": "DF-11",
+   "label": null,
+   "name": "read recovery config",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "208",
+   "type": "DataFlow",
+   "displayId": "DF-1",
+   "label": null,
+   "name": "pull measurement data [req_resp]",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "210",
+   "type": "DataFlow",
+   "displayId": "DF-10",
+   "label": null,
+   "name": "write log/history",
+   "excludeFromThreatGen": false
+  },
+  {
+   "id": "228",
+   "type": "DataFlow",
+   "displayId": "DF-7",
+   "label": null,
+   "name": "pull config data [req_resp]",
+   "excludeFromThreatGen": false
+  }
+ ],
+ "perElementTables": [
+  {
+   "trustBoundaryId": "212",
+   "trustBoundaryName": "Logic Boundary [LB]",
+   "displayIdentifier": "[LB]",
+   "threats": [
+    {
+     "id": "PB-S-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "S",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "2",
+      "elementName": "Device Boundary [PB]",
+      "elementType": "PhysicalBoundary",
+      "displayId": "PB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "2",
+      "elementName": "Device Boundary [PB]",
+      "elementType": "PhysicalBoundary",
+      "displayId": "PB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-R-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "R",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "2",
+      "elementName": "Device Boundary [PB]",
+      "elementType": "PhysicalBoundary",
+      "displayId": "PB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "2",
+      "elementName": "Device Boundary [PB]",
+      "elementType": "PhysicalBoundary",
+      "displayId": "PB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "2",
+      "elementName": "Device Boundary [PB]",
+      "elementType": "PhysicalBoundary",
+      "displayId": "PB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-E-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "E",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "2",
+      "elementName": "Device Boundary [PB]",
+      "elementType": "PhysicalBoundary",
+      "displayId": "PB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "P3-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "14",
+      "elementName": "Application",
+      "elementType": "Process",
+      "displayId": "P-3"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-001",
+      "DA-002",
+      "DA-002",
+      "DA-003",
+      "DA-003",
+      "DA-004",
+      "DA-005",
+      "DA-005",
+      "FU-001",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P3-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "14",
+      "elementName": "Application",
+      "elementType": "Process",
+      "displayId": "P-3"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-001",
+      "DA-002",
+      "DA-002",
+      "DA-003",
+      "DA-003",
+      "DA-004",
+      "DA-005",
+      "DA-005",
+      "FU-001",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P3-R-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "R",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "14",
+      "elementName": "Application",
+      "elementType": "Process",
+      "displayId": "P-3"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-001",
+      "DA-002",
+      "DA-002",
+      "DA-003",
+      "DA-003",
+      "DA-004",
+      "DA-005",
+      "DA-005",
+      "FU-001",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P3-E-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "E",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "14",
+      "elementName": "Application",
+      "elementType": "Process",
+      "displayId": "P-3"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-001",
+      "DA-002",
+      "DA-002",
+      "DA-003",
+      "DA-003",
+      "DA-004",
+      "DA-005",
+      "DA-005",
+      "FU-001",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P3-S-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "S",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "14",
+      "elementName": "Application",
+      "elementType": "Process",
+      "displayId": "P-3"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-001",
+      "DA-002",
+      "DA-002",
+      "DA-003",
+      "DA-003",
+      "DA-004",
+      "DA-005",
+      "DA-005",
+      "FU-001",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P3-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "14",
+      "elementName": "Application",
+      "elementType": "Process",
+      "displayId": "P-3"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-001",
+      "DA-002",
+      "DA-002",
+      "DA-003",
+      "DA-003",
+      "DA-004",
+      "DA-005",
+      "DA-005",
+      "FU-001",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DS2-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "129",
+      "elementName": "Firmware",
+      "elementType": "DataStore",
+      "displayId": "DS-2"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-002",
+      "DA-003",
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DS2-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "129",
+      "elementName": "Firmware",
+      "elementType": "DataStore",
+      "displayId": "DS-2"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-002",
+      "DA-003",
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DS2-R-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "R",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "129",
+      "elementName": "Firmware",
+      "elementType": "DataStore",
+      "displayId": "DS-2"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-002",
+      "DA-003",
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DS2-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "129",
+      "elementName": "Firmware",
+      "elementType": "DataStore",
+      "displayId": "DS-2"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-002",
+      "DA-003",
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DS3-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "187",
+      "elementName": "SD Card",
+      "elementType": "DataStore",
+      "displayId": "DS-3"
+     },
+     "linkedAssetIds": [
+      "DA-010",
+      "DA-011",
+      "DA-012"
+     ]
+    },
+    {
+     "id": "DS3-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "187",
+      "elementName": "SD Card",
+      "elementType": "DataStore",
+      "displayId": "DS-3"
+     },
+     "linkedAssetIds": [
+      "DA-010",
+      "DA-011",
+      "DA-012"
+     ]
+    },
+    {
+     "id": "DS3-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "187",
+      "elementName": "SD Card",
+      "elementType": "DataStore",
+      "displayId": "DS-3"
+     },
+     "linkedAssetIds": [
+      "DA-010",
+      "DA-011",
+      "DA-012"
+     ]
+    },
+    {
+     "id": "P2-S-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "S",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "217",
+      "elementName": "Web-Server/Auth",
+      "elementType": "Process",
+      "displayId": "P-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P2-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "217",
+      "elementName": "Web-Server/Auth",
+      "elementType": "Process",
+      "displayId": "P-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P2-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "217",
+      "elementName": "Web-Server/Auth",
+      "elementType": "Process",
+      "displayId": "P-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P2-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "217",
+      "elementName": "Web-Server/Auth",
+      "elementType": "Process",
+      "displayId": "P-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "P2-E-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "E",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "217",
+      "elementName": "Web-Server/Auth",
+      "elementType": "Process",
+      "displayId": "P-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DF8-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "131",
+      "elementName": "write config data",
+      "elementType": "DataFlow",
+      "displayId": "DF-8"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF8-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "131",
+      "elementName": "write config data",
+      "elementType": "DataFlow",
+      "displayId": "DF-8"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF8-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "131",
+      "elementName": "write config data",
+      "elementType": "DataFlow",
+      "displayId": "DF-8"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF9-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "140",
+      "elementName": "read config data",
+      "elementType": "DataFlow",
+      "displayId": "DF-9"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF9-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "140",
+      "elementName": "read config data",
+      "elementType": "DataFlow",
+      "displayId": "DF-9"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF9-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "140",
+      "elementName": "read config data",
+      "elementType": "DataFlow",
+      "displayId": "DF-9"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF11-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "202",
+      "elementName": "read recovery config",
+      "elementType": "DataFlow",
+      "displayId": "DF-11"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF11-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "202",
+      "elementName": "read recovery config",
+      "elementType": "DataFlow",
+      "displayId": "DF-11"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF11-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "202",
+      "elementName": "read recovery config",
+      "elementType": "DataFlow",
+      "displayId": "DF-11"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "DF1-T-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "208",
+      "elementName": "pull measurement data [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-1"
+     },
+     "linkedAssetIds": [
+      "DA-004"
+     ]
+    },
+    {
+     "id": "DF10-I-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "210",
+      "elementName": "write log/history",
+      "elementType": "DataFlow",
+      "displayId": "DF-10"
+     },
+     "linkedAssetIds": [
+      "DA-010"
+     ]
+    },
+    {
+     "id": "DF10-D-1",
+     "trustBoundaryId": "212",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "210",
+      "elementName": "write log/history",
+      "elementType": "DataFlow",
+      "displayId": "DF-10"
+     },
+     "linkedAssetIds": [
+      "DA-010"
+     ]
+    }
+   ]
+  },
+  {
+   "trustBoundaryId": "11",
+   "trustBoundaryName": "Backend API APP [TB]",
+   "displayIdentifier": "[TB]",
+   "threats": [
+    {
+     "id": "DS1-I-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "167",
+      "elementName": "Firmware Store",
+      "elementType": "DataStore",
+      "displayId": "DS-1"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DS1-T-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "167",
+      "elementName": "Firmware Store",
+      "elementType": "DataStore",
+      "displayId": "DS-1"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DS1-D-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "167",
+      "elementName": "Firmware Store",
+      "elementType": "DataStore",
+      "displayId": "DS-1"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "P1-I-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "169",
+      "elementName": "SW-Update API",
+      "elementType": "Process",
+      "displayId": "P-1"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "P1-T-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "169",
+      "elementName": "SW-Update API",
+      "elementType": "Process",
+      "displayId": "P-1"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "P1-D-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "169",
+      "elementName": "SW-Update API",
+      "elementType": "Process",
+      "displayId": "P-1"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DF5-I-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "171",
+      "elementName": "pull firmware [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-5"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DF5-T-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "171",
+      "elementName": "pull firmware [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-5"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DF5-D-1",
+     "trustBoundaryId": "11",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "171",
+      "elementName": "pull firmware [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-5"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    }
+   ]
+  },
+  {
+   "trustBoundaryId": null,
+   "trustBoundaryName": "Data Flows",
+   "displayIdentifier": "[DF]",
+   "threats": [
+    {
+     "id": "DF6-I-1",
+     "trustBoundaryId": null,
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "180",
+      "elementName": "pull update image [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-6"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DF6-T-1",
+     "trustBoundaryId": null,
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "180",
+      "elementName": "pull update image [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-6"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DF6-D-1",
+     "trustBoundaryId": null,
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "180",
+      "elementName": "pull update image [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-6"
+     },
+     "linkedAssetIds": [
+      "DA-008"
+     ]
+    },
+    {
+     "id": "DF3-T-1",
+     "trustBoundaryId": null,
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "183",
+      "elementName": "pull measurements data [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-3"
+     },
+     "linkedAssetIds": [
+      "DA-004"
+     ]
+    },
+    {
+     "id": "DF4-T-1",
+     "trustBoundaryId": null,
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "185",
+      "elementName": "pull config data [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-4"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    },
+    {
+     "id": "DF4-D-1",
+     "trustBoundaryId": null,
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "185",
+      "elementName": "pull config data [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-4"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    },
+    {
+     "id": "DF12-T-1",
+     "trustBoundaryId": null,
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "196",
+      "elementName": "push measurement data [cmd]",
+      "elementType": "DataFlow",
+      "displayId": "DF-12"
+     },
+     "linkedAssetIds": [
+      "DA-004"
+     ]
+    },
+    {
+     "id": "DF2-I-1",
+     "trustBoundaryId": null,
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "224",
+      "elementName": "pull authenticate [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DF2-T-1",
+     "trustBoundaryId": null,
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "224",
+      "elementName": "pull authenticate [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DF2-D-1",
+     "trustBoundaryId": null,
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "224",
+      "elementName": "pull authenticate [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-2"
+     },
+     "linkedAssetIds": [
+      "DA-005",
+      "DA-006",
+      "DA-007"
+     ]
+    },
+    {
+     "id": "DF7-T-1",
+     "trustBoundaryId": null,
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "228",
+      "elementName": "pull config data [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-7"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-002",
+      "DA-003"
+     ]
+    },
+    {
+     "id": "DF7-D-1",
+     "trustBoundaryId": null,
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "228",
+      "elementName": "pull config data [req_resp]",
+      "elementType": "DataFlow",
+      "displayId": "DF-7"
+     },
+     "linkedAssetIds": [
+      "DA-001",
+      "DA-002",
+      "DA-003"
+     ]
+    }
+   ]
+  },
+  {
+   "trustBoundaryId": null,
+   "trustBoundaryName": "External Entities",
+   "displayIdentifier": "[EE]",
+   "threats": [
+    {
+     "id": "EE1-R-1",
+     "trustBoundaryId": null,
+     "strideCategory": "R",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "174",
+      "elementName": "Mobile/Browser",
+      "elementType": "ExternalEntity",
+      "displayId": "EE-1"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    }
+   ]
+  },
+  {
+   "trustBoundaryId": "2",
+   "trustBoundaryName": "Device Boundary [PB]",
+   "displayIdentifier": "[PB]",
+   "threats": [
+    {
+     "id": "PB-IF1-T-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "101",
+      "elementName": "WLAN - Access Point - Station",
+      "elementType": "Interface",
+      "displayId": "IF-1"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    },
+    {
+     "id": "PB-IF1-D-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "101",
+      "elementName": "WLAN - Access Point - Station",
+      "elementType": "Interface",
+      "displayId": "IF-1"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    },
+    {
+     "id": "PB-IF1-R-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "R",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "101",
+      "elementName": "WLAN - Access Point - Station",
+      "elementType": "Interface",
+      "displayId": "IF-1"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    },
+    {
+     "id": "PB-IF1-E-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "E",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "101",
+      "elementName": "WLAN - Access Point - Station",
+      "elementType": "Interface",
+      "displayId": "IF-1"
+     },
+     "linkedAssetIds": [
+      "DA-001"
+     ]
+    },
+    {
+     "id": "PB-IF2-S-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "S",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "191",
+      "elementName": "Display/Touch",
+      "elementType": "Interface",
+      "displayId": "IF-2"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-IF2-T-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "191",
+      "elementName": "Display/Touch",
+      "elementType": "Interface",
+      "displayId": "IF-2"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-IF2-R-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "R",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "191",
+      "elementName": "Display/Touch",
+      "elementType": "Interface",
+      "displayId": "IF-2"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-IF2-I-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "191",
+      "elementName": "Display/Touch",
+      "elementType": "Interface",
+      "displayId": "IF-2"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-IF2-D-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "D",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "191",
+      "elementName": "Display/Touch",
+      "elementType": "Interface",
+      "displayId": "IF-2"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "PB-IF2-E-1",
+     "trustBoundaryId": "2",
+     "strideCategory": "E",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "191",
+      "elementName": "Display/Touch",
+      "elementType": "Interface",
+      "displayId": "IF-2"
+     },
+     "linkedAssetIds": []
+    }
+   ]
+  },
+  {
+   "trustBoundaryId": "16",
+   "trustBoundaryName": "ESP32 [CB]",
+   "displayIdentifier": "[CB]",
+   "threats": [
+    {
+     "id": "CB-T-1",
+     "trustBoundaryId": "16",
+     "strideCategory": "T",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "16",
+      "elementName": "ESP32 [CB]",
+      "elementType": "ChipBoundary",
+      "displayId": "CB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "CB-I-1",
+     "trustBoundaryId": "16",
+     "strideCategory": "I",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "16",
+      "elementName": "ESP32 [CB]",
+      "elementType": "ChipBoundary",
+      "displayId": "CB"
+     },
+     "linkedAssetIds": []
+    },
+    {
+     "id": "CB-E-1",
+     "trustBoundaryId": "16",
+     "strideCategory": "E",
+     "sequenceNumber": 1,
+     "linkedElement": {
+      "elementId": "16",
+      "elementName": "ESP32 [CB]",
+      "elementType": "ChipBoundary",
+      "displayId": "CB"
+     },
+     "linkedAssetIds": []
+    }
+   ]
+  }
+ ],
+ "expected": {
+  "totalThreats": 71,
+  "orphanedThreats": 0,
+  "changedReferences": 0,
+  "trustBoundaryChanges": 0,
+  "missingDataFlows": 0,
+  "threatenedElementIds": [
+   "2",
+   "14",
+   "16",
+   "101",
+   "129",
+   "167",
+   "169",
+   "174",
+   "187",
+   "191",
+   "217"
+  ],
+  "unthreatenedNonTB": [
+   "189",
+   "206"
+  ],
+  "realStrategyMissing": [
+   "206"
+  ]
+ },
+ "assetDataRef": {
+  "assets": [
+   {
+    "id": "DA-001",
+    "linkedElementIds": [
+     "14",
+     "129",
+     "174",
+     "101",
+     "185",
+     "228"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "high"
+     },
+     {
+      "type": "A",
+      "level": "high"
+     },
+     {
+      "type": "N",
+      "level": "medium"
+     },
+     {
+      "type": "AuthZ",
+      "level": "high"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-002",
+    "linkedElementIds": [
+     "14",
+     "129",
+     "228"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "none"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "low"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-003",
+    "linkedElementIds": [
+     "14",
+     "129",
+     "228"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "none"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "high"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-004",
+    "linkedElementIds": [
+     "14",
+     "189",
+     "206",
+     "183",
+     "196",
+     "208"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "high"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "high"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-005",
+    "linkedElementIds": [
+     "14",
+     "129",
+     "217",
+     "224"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "none"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "none"
+     },
+     {
+      "type": "AuthN",
+      "level": "high"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "FU-001",
+    "linkedElementIds": [
+     "14"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "high"
+     },
+     {
+      "type": "I",
+      "level": "high"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "none"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-006",
+    "linkedElementIds": [
+     "14",
+     "129",
+     "217",
+     "224"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "low"
+     },
+     {
+      "type": "I",
+      "level": "low"
+     },
+     {
+      "type": "A",
+      "level": "critical"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "none"
+     },
+     {
+      "type": "AuthN",
+      "level": "low"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-007",
+    "linkedElementIds": [
+     "14",
+     "129",
+     "217",
+     "224"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "none"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "none"
+     },
+     {
+      "type": "AuthN",
+      "level": "high"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-008",
+    "linkedElementIds": [
+     "167",
+     "169",
+     "171",
+     "180"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "critical"
+     },
+     {
+      "type": "I",
+      "level": "critical"
+     },
+     {
+      "type": "A",
+      "level": "critical"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "none"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-009",
+    "linkedElementIds": [],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "critical"
+     },
+     {
+      "type": "I",
+      "level": "critical"
+     },
+     {
+      "type": "A",
+      "level": "critical"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "critical"
+     },
+     {
+      "type": "AuthN",
+      "level": "critical"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-010",
+    "linkedElementIds": [
+     "187",
+     "210"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "low"
+     },
+     {
+      "type": "I",
+      "level": "none"
+     },
+     {
+      "type": "A",
+      "level": "low"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "none"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-011",
+    "linkedElementIds": [
+     "187"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "low"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "low"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-012",
+    "linkedElementIds": [
+     "187"
+    ],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "low"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "low"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-013",
+    "linkedElementIds": [],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "high"
+     },
+     {
+      "type": "I",
+      "level": "high"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "high"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   },
+   {
+    "id": "DA-014",
+    "linkedElementIds": [],
+    "securityGoals": [
+     {
+      "type": "C",
+      "level": "none"
+     },
+     {
+      "type": "I",
+      "level": "high"
+     },
+     {
+      "type": "A",
+      "level": "none"
+     },
+     {
+      "type": "N",
+      "level": "none"
+     },
+     {
+      "type": "AuthZ",
+      "level": "high"
+     },
+     {
+      "type": "AuthN",
+      "level": "none"
+     },
+     {
+      "type": "Acc",
+      "level": "none"
+     }
+    ]
+   }
+  ]
+ }
+}

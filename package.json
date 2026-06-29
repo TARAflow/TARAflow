@@ -16,7 +16,7 @@
     "compile:electron": "tsc -p tsconfig.electron.json",
     "fix:electron": "node scripts/fix-electron-imports.cjs",
     "build:electron-dev": "npm run clean:electron && npm run compile:electron && npm run fix:electron",
-    "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron . --inspect=5858\"",
     "build:electron": "npm run build && npm run build:electron-dev && electron-builder",
     "build:electron:clean": "rm -rf dist dist-electron release && npm run build:electron",
     "inline:shapes": "node scripts/inline-shapes.cjs"

@@ -107,7 +107,9 @@ export function getWorstCriterionValue(
   let worst = 0;
   for (const asset of assets) {
     if (!asset.impactRatings) continue;
-    const rating = asset.impactRatings.find((r) => r.criterionId === criterionId);
+    const rating = asset.impactRatings.find(
+      (r) => r.criterionId === criterionId,
+    );
     if (rating && typeof rating.value === "number" && rating.value > worst) {
       worst = rating.value;
     }

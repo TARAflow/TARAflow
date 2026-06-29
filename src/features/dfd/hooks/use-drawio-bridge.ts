@@ -17,8 +17,8 @@ import dfdService from "../services/dfd-service";
 export interface UseDrawioBridgeOptions {
   darkMode?: boolean;
   onDiagramChange?: () => void;
+  onDiagramChangeWithXml?: (xml: string) => void; // NEU
   onSelectionChanged?: (cells: any[]) => void;
-  /** Called once after draw.io plugin is fully injected and ready for export */
   onPluginReady?: () => void;
 }
 
@@ -59,6 +59,7 @@ export function useDrawioBridge(
     onDiagramChange,
     onSelectionChanged,
     onPluginReady,
+    onDiagramChangeWithXml,
   } = options;
 
   // ==================== STATE ====================
@@ -98,6 +99,11 @@ export function useDrawioBridge(
     onPluginReadyRef.current = onPluginReady;
   }, [onPluginReady]);
 
+  const onDiagramChangeWithXmlRef = useRef(onDiagramChangeWithXml);
+  useEffect(() => {
+    onDiagramChangeWithXmlRef.current = onDiagramChangeWithXml;
+  }, [onDiagramChangeWithXml]);
+
   // ==================== BRIDGE INITIALIZATION ====================
 
   const doInitialize = useCallback(
@@ -135,6 +141,10 @@ export function useDrawioBridge(
       bridge.onSelectionChanged((cells) => {
         setSelectedCells(cells);
         onSelectionChangedRef.current?.(cells);
+      });
+
+      bridge.onDiagramChangeWithXml((xml: string) => {
+        onDiagramChangeWithXmlRef.current?.(xml);
       });
 
       bridge.onDiagramChange(() => {

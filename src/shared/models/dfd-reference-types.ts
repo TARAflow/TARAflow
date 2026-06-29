@@ -226,3 +226,19 @@ export interface DFDGraphReference {
   // undefined = element has no TB membership.
   effectiveElementTrustBoundary: Map<string, string | undefined>;
 }
+
+import type { DFDGraph } from "features/dfd";
+
+/**
+ * Widen the concrete builder graph to its analysis-only reference view.
+ *
+ * DFDGraph and DFDGraphReference are structurally identical except that the
+ * reference view types `properties` as Record<string, unknown> while the
+ * concrete graph uses the property unions. TS won't structurally relate the
+ * two (interfaces lack an index signature), but at runtime they are the same
+ * object. This is the single sanctioned boundary cast; the analysis path
+ * never reads properties type-specifically.
+ */
+export function toGraphReference(graph: DFDGraph): DFDGraphReference {
+  return graph as unknown as DFDGraphReference;
+}

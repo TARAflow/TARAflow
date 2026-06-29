@@ -68,6 +68,7 @@ export type {
 
 // Per-Element Service
 export { elementThreatService } from "./services/per-element/element-threat-service";
+export { syncPerElementThreatsForGraph } from "./services/per-element/apply-dfd-change-sync";
 
 // Per-Interaction Service
 export { interactionThreatService } from "./services/per-interaction/interaction-threat-service";
@@ -84,6 +85,9 @@ export {
 export {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
+  getAllMitigations,
 } from "./services/threat-catalog-service";
+
+export { syncThreatsWithGraph } from "./services/sync-threats-with-graph";
 
 export { formatDataFlowDisplay } from "./models/per-interaction-types";

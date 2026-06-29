@@ -3,16 +3,17 @@
 // Now using DFDGraph for efficient element analysis
 
 import type {
+  Threat,
   ThreatTable,
   ThreatProjectData,
   ThreatSyncStatus,
   ThreatSyncResult,
 } from "../../models/threat-types";
+import { ElementChange } from "../../models/per-element-types";
 import {
-  ElementChange,
-  STRIDE_PER_ELEMENT_TYPE,
-} from "../../models/per-element-types";
-import { elementThreatGenerator } from "./element-generator";
+  elementThreatGenerator,
+  buildElementToAssetsIndex,
+} from "./element-generator";
 import {
   DFDAnalysisContext,
   DFDElementReference,
@@ -123,6 +124,7 @@ export class ElementThreatSync {
                   position: { x: 0, y: 0 },
                   size: { width: 0, height: 0 },
                 } as DFDElementReference,
+                newId: expectedId,
                 changes,
               });
             }
@@ -184,6 +186,7 @@ export class ElementThreatSync {
               type: element.type,
               displayId: element.displayId,
             } as DFDElementReference,
+            newId: expectedId,
             changes: elemChanges,
           });
         }
@@ -191,13 +194,21 @@ export class ElementThreatSync {
     }
 
     // ── Missing elements ──────────────────────────────────────────────────
+    // An element is only "missing" if the generator WOULD produce at least one
+    // threat for it. Using the raw STRIDE_PER_ELEMENT_TYPE table here would
+    // flag elements whose categories are all eliminated (e.g. an internal,
+    // authenticated ExternalEntity) as missing forever, since sync then adds
+    // zero threats. getEffectiveStrideCategories is the shared source of truth.
     const missingElements: DFDElementReference[] = [];
     for (const element of graph.elementsById.values()) {
       if (element.type === "TrustBoundary") continue;
       if (element.type === "ExternalEntity") continue;
 
-      const applicableStride = STRIDE_PER_ELEMENT_TYPE[element.type];
-      if (!applicableStride || applicableStride.length === 0) continue;
+      const effective = elementThreatGenerator.getEffectiveStrideCategories(
+        element,
+        project,
+      );
+      if (effective.length === 0) continue;
 
       if (!threatenedElements.has(element.id)) {
         missingElements.push(element);
@@ -208,8 +219,11 @@ export class ElementThreatSync {
     for (const element of graph.elementsById.values()) {
       if (element.type !== "ExternalEntity") continue;
 
-      const applicableStride = STRIDE_PER_ELEMENT_TYPE[element.type];
-      if (!applicableStride || applicableStride.length === 0) continue;
+      const effective = elementThreatGenerator.getEffectiveStrideCategories(
+        element,
+        project,
+      );
+      if (effective.length === 0) continue;
 
       if (!threatenedElements.has(element.id)) {
         missingElements.push(element);
@@ -264,6 +278,48 @@ export class ElementThreatSync {
   }
 
   /**
+   * Apply reference drift (rename / renumber / retype) to a set of tables.
+   *
+   * Pure and NON-destructive: refreshes each threat's linkedElement mirror and
+   * regenerates threat.id from the precomputed newId. Never adds or removes
+   * threats. This is the "silent" half of sync (Class A) — the live DFD-change
+   * path applies it on every save without a banner, because a rename/renumber
+   * has exactly one correct outcome and needs no user decision. Adding or
+   * removing threats (Class B) stays behind the sync banner.
+   */
+  applyChangedReferences(
+    tables: ThreatTable[],
+    changedReferences: ElementChange[],
+  ): { tables: ThreatTable[]; updated: number } {
+    if (changedReferences.length === 0) return { tables, updated: 0 };
+
+    const changeMap = new Map(changedReferences.map((c) => [c.threatId, c]));
+    let updated = 0;
+
+    const next = tables.map((table) => ({
+      ...table,
+      threats: table.threats.map((threat) => {
+        const change = changeMap.get(threat.id);
+        if (!change || !threat.linkedElement) return threat;
+        updated++;
+        return {
+          ...threat,
+          id: change.newId ?? threat.id,
+          linkedElement: {
+            elementId: change.newRef.id,
+            elementName: change.newRef.name,
+            elementType: change.newRef.type,
+            displayId: change.newRef.displayId,
+          } as LinkedDFDElement,
+          lastModified: new Date().toISOString(),
+        };
+      }),
+    }));
+
+    return { tables: next, updated };
+  }
+
+  /**
    * Synchronize threats with DFD changes using DFDGraph.
    * Note: catalog parameter removed — generator uses threat-catalog-service directly.
    */
@@ -305,6 +361,10 @@ export class ElementThreatSync {
     let added = 0;
     let removed = 0;
     let updated = 0;
+
+    // Reverse index element/dataFlow id -> linked asset ids, so threats added
+    // for newly synced elements carry their linkedAssetIds (not an empty list).
+    const elementToAssets = buildElementToAssetsIndex(project.assetDataRef);
 
     // ── Update Trust Boundary names ───────────────────────────────────────
     const trustBoundaryChanges = this.findTrustBoundaryChanges(tables, graph);
@@ -402,35 +462,12 @@ export class ElementThreatSync {
       options.updateReferences &&
       syncStatus.changedReferences.elements.length > 0
     ) {
-      const changeMap = new Map(
-        syncStatus.changedReferences.elements.map((c) => [c.threatId, c]),
+      const applied = this.applyChangedReferences(
+        updatedTables,
+        syncStatus.changedReferences.elements,
       );
-
-      updatedTables = updatedTables.map((table) => ({
-        ...table,
-        threats: table.threats.map((threat) => {
-          const change = changeMap.get(threat.id);
-          if (change && threat.linkedElement) {
-            if (
-              change.changes.includes("name") ||
-              change.changes.includes("type")
-            ) {
-              updated++;
-              return {
-                ...threat,
-                linkedElement: {
-                  elementId: change.newRef.id,
-                  elementName: change.newRef.name,
-                  elementType: change.newRef.type,
-                  displayId: change.newRef.displayId,
-                } as LinkedDFDElement,
-                lastModified: new Date().toISOString(),
-              };
-            }
-          }
-          return threat;
-        }),
-      }));
+      updatedTables = applied.tables;
+      updated += applied.updated;
     }
 
     // ── Remove orphaned threats ───────────────────────────────────────────
@@ -496,18 +533,27 @@ export class ElementThreatSync {
           },
         } as ThreatProjectData;
 
-        const newThreats =
-          elementThreatGenerator.generateThreatsForSingleElement(
+        // Generation is guarded per element: a type the strategy/templates
+        // don't fully support yet (e.g. a freshly added Sensor/Actuator) must
+        // not abort the whole sync. On failure we skip it — it stays flagged in
+        // the banner rather than silently killing renumber/rename sync.
+        let newThreats: Threat[] = [];
+        try {
+          newThreats = elementThreatGenerator.generateThreatsForSingleElement(
             missingElement,
             missingElement.type === "ExternalEntity" || isInterfaceWithoutTB
               ? null
               : trustBoundaryId,
             trustBoundaryName,
             trustBoundaryDisplayId,
-            new Map(), // elementToAssets
+            elementToAssets, // populated reverse index
             projectStub, // project
           );
+        } catch {
+          newThreats = [];
+        }
 
+        if (newThreats.length === 0) continue;
         let table = updatedTables.find((t) => {
           if (missingElement.type === "ExternalEntity") {
             return t.trustBoundaryName === "External Entities";
@@ -561,14 +607,18 @@ export class ElementThreatSync {
             displayId: conn.displayId,
           };
 
-          return elementThreatGenerator.generateThreatsForSingleElement(
-            dfElem,
-            null,
-            "Data Flows",
-            "",
-            new Map(), // elementToAssets
-            projectStub, // project
-          );
+          try {
+            return elementThreatGenerator.generateThreatsForSingleElement(
+              dfElem,
+              null,
+              "Data Flows",
+              "",
+              elementToAssets, // populated reverse index
+              projectStub, // project
+            );
+          } catch {
+            return [];
+          }
         },
       );
 

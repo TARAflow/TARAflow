@@ -21,10 +21,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
-import type {
-  AssetDataReference,
-  DFDReference,
-} from "shared";
+import { AssetDataReference, DFDReference, toGraphReference } from "shared";
 
 import { useProjectContext } from "../../contexts/project-context";
 import { useBidirectionalAssetSync } from "../../hooks/use-bidirectional-asset-sync";
@@ -49,19 +46,18 @@ import { addCreatedAssets, translateFinding } from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
-import { resolveAssetPhysicalImpact } from "app/utils/resolve-asset-physical-impact";
+import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 
 import {
   StrideMethod,
   ThreatData,
   ThreatsTab,
   type ThreatUpdateResult,
-} from "features/threats";
-import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
   getAllMitigations,
-} from "features/threats/services/threat-catalog-service";
+  syncThreatsWithGraph,
+} from "features/threats";
 
 import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
 
@@ -273,39 +269,49 @@ export const WorkspaceLayout: React.FC = () => {
         );
       }
 
-      const syncedThreats = current.threats
-        ? {
-            ...current.threats,
-            perInteractionTables: current.threats.perInteractionTables?.map(
-              (table) => ({
-                ...table,
-                threats: table.threats.map((threat) => {
-                  if (!threat.linkedElement) return threat;
-                  const elem = updates.dfd?.elements?.find(
-                    (e) => e.id === threat.linkedElement!.elementId,
-                  );
-                  if (!elem) return threat;
-                  return {
-                    ...threat,
-                    linkedElement: {
-                      ...threat.linkedElement,
-                      displayId: elem.displayId,
-                      elementName: elem.name,
-                    },
-                  };
-                }),
-              }),
-            ),
-          }
-        : null;
+      // Merge the incoming DFD changes — the new single source of truth.
+      const dfd = { ...current.dfd, ...updates.dfd, graph };
+
+      // 1) Asset-sync FIRST. Reconcile the asset store against the new DFD so
+      //    newly drawn elements exist as linked assets BEFORE threats sync —
+      //    otherwise new-element threats would resolve empty linkedAssetIds.
+      //    Mirrors the canonical DFD→Assets sync in handleHazardsUpdate.
+      let assets = current.assets;
+      if (dfd.assets && current.assets) {
+        const { assetData } = syncFromDFD(
+          current.assets,
+          mapDFDAssetsToAssetFeature(dfd.assets),
+          mapDFDElementsToAssetFeature(dfd.elements ?? []),
+          mapDFDConnectionsToAssetFeature(dfd.connections ?? []),
+        );
+        assets = assetData;
+      }
+
+      // 2) Build the enriched asset reference from the freshly-synced store.
+      const assetDataRef = assets
+        ? buildAssetDataReference(
+            assets.assets,
+            buildAssetHazardLinks(current.hazards ?? null),
+            assets.configuration?.impactScale ?? "4-level",
+          )
+        : undefined;
+
+      // 3) Threat-sync SECOND, against the fresh graph and asset reference.
+      const threats = syncThreatsWithGraph(
+        current.threats ?? null,
+        toGraphReference(graph),
+        assetDataRef,
+      );
 
       await updateProject({
         ...current,
-        dfd: { ...current.dfd, ...updates.dfd, graph },
+        dfd,
+        assets, // persist the reconciled asset store too
         phaseStatus: updates.phaseStatus,
-        threats: syncedThreats,
+        threats,
       });
     },
+
     // Stable — reads current project via ref, never via closure
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [updateProject],
@@ -489,6 +495,14 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.dfd?.connections],
   );
 
+  const memoizedDFDGraphRef = useMemo(
+    () =>
+      activeProject?.dfd?.graph
+        ? toReferenceGraph(activeProject.dfd.graph)
+        : undefined,
+    [activeProject?.dfd?.graph],
+  );
+
   const memoizedDFDContext = useMemo(
     () =>
       activeProject?.dfd?.graph
@@ -536,56 +550,11 @@ export const WorkspaceLayout: React.FC = () => {
   const memoizedAssetDataRef = useMemo((): AssetDataReference | undefined => {
     const assets = activeProject?.assets?.assets;
     if (!assets || assets.length === 0) return undefined;
-
-    const assetRefs = assets.map((a) => ({
-      id: a.id,
-      name: a.name,
-      assetGroup: a.assetGroup,
-      aggregatedImpact: a.aggregatedImpact,
-      // Effective physical impact: manual > HazardItem chain > legacy annotation.
-      // Resolver returns SafetyImpact ("none" guarded out); narrow to the ref type.
-      physicalImpact: resolveAssetPhysicalImpact(a, memoizedHazardRef[a.id])
-        .level as typeof a.physicalImpact,
-      isHighValueAsset: a.properties?.isHighValueAsset,
-      hasSafetyAnnotation:
-        a.linkedDFDElements?.some(
-          (el) => (el as any).safety && (el as any).safety.relevance !== "none",
-        ) ?? false,
-      // HazardItem chain — the current safety model. A physical asset
-      // contributes_to a hazard that endangers a human/environment target;
-      // the target's worst endangers severity is its safety signal.
-      // SafetyAnnotation (above) is legacy / override.
-      isHazardTarget: memoizedHazardRef[a.id]?.isHazardTarget ?? false,
-      hazardSeverity: memoizedHazardRef[a.id]?.worstSeverity as
-        | "reversible_injury"
-        | "irreversible_injury"
-        | "fatality"
-        | undefined,
-      linkedElementIds: a.linkedDFDElements?.map((el) => el.elementId) ?? [],
-      securityGoals:
-        a.securityGoals
-          ?.filter((g) => g.level !== "none")
-          .map((g) => ({ type: g.type, level: g.level })) ?? [],
-      impactRatings:
-        a.impactRatings?.map((r) => ({
-          criterionId: r.criterionId,
-          value: r.value,
-        })) ?? [],
-    }));
-
-    const hasSafetyAssets = assetRefs.some(
-      (a) =>
-        a.physicalImpact !== undefined ||
-        a.hasSafetyAnnotation ||
-        a.isHazardTarget,
+    return buildAssetDataReference(
+      assets,
+      memoizedHazardRef,
+      activeProject?.assets?.configuration?.impactScale ?? "4-level",
     );
-
-    return {
-      assets: assetRefs,
-      hasSafetyAssets,
-      impactScale:
-        activeProject?.assets?.configuration?.impactScale ?? "4-level",
-    };
   }, [
     activeProject?.assets?.assets,
     activeProject?.assets?.configuration?.impactScale,
@@ -814,9 +783,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               assetIds: activeProject.assets?.assets?.map((a) => a.id),
               lastModified: activeProject.info?.lastModified || "",
-              dfdGraph: activeProject.dfd?.graph
-                ? toReferenceGraph(activeProject.dfd.graph)
-                : undefined,
+              dfdGraph: memoizedDFDGraphRef,
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
             }}

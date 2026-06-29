@@ -239,15 +239,20 @@ class DFDService {
       };
     });
 
-        // ✅ CRITICAL: Add existing assets that are NOT in parsed XML
+    // ✅ CRITICAL: Add existing assets that are NOT in parsed XML
     // This preserves assets created via AssetRelationSelector
-    const parsedIds = new Set(parsedAssets.map(a => a.id));
-    const assetsOnlyInProject = existingAssets.filter(a => !parsedIds.has(a.id));
-    
-    return [...merged, ...assetsOnlyInProject.map(a => ({
-      ...a,
-      linkedElements: [], // Will be recomputed
-    }))];
+    const parsedIds = new Set(parsedAssets.map((a) => a.id));
+    const assetsOnlyInProject = existingAssets.filter(
+      (a) => !parsedIds.has(a.id),
+    );
+
+    return [
+      ...merged,
+      ...assetsOnlyInProject.map((a) => ({
+        ...a,
+        linkedElements: [], // Will be recomputed
+      })),
+    ];
   }
 
   /**
@@ -509,6 +514,120 @@ class DFDService {
     }
   }
 
+  /**
+   * Save DFD from XML passed directly — no localStorage read.
+   * Called by scheduleDrawioSave() after draw.io autosave event.
+   * The autosave event already carries the XML; reading it back from
+   * localStorage is unnecessary and adds a race condition.
+   */
+  saveDFDFromXml(project: DFDProjectData, xml: string): DFDSaveResult {
+    const emptyResult: DFDSaveResult = {
+      success: false,
+      dfd: { elements: [], connections: [], assets: [] },
+      graphContext: DFDGraphAnalysisContext.createDummyGraph(),
+      phaseStatus: { ...project.phaseStatus },
+      lastModified: new Date().toISOString(),
+      validation: {
+        isValid: false,
+        isComplete: false,
+        errors: [],
+        warnings: [],
+        scenario: null,
+      },
+    };
+
+    try {
+      const { elements, connections, assets, stats, unconnectedDataflows } =
+        this.parser.parse(xml);
+
+      const mergedElements = this.mergeElementProperties(
+        elements,
+        project.dfd?.elements || [],
+      );
+      const mergedConnections = this.mergeConnectionProperties(
+        connections,
+        project.dfd?.connections || [],
+      );
+      const mergedAssets = this.mergeAssetProperties(
+        assets,
+        project.dfd?.assets || [],
+      );
+      const syncedAssets = this.syncAssetLinkedElements(
+        mergedElements,
+        mergedConnections,
+        mergedAssets,
+      );
+
+      const graphBuilder = new DefaultDFDGraphBuilder();
+      const changeResult = dfdChangeDetector.detect(
+        project.dfd?.elements ?? [],
+        project.dfd?.connections ?? [],
+        mergedElements,
+        mergedConnections,
+      );
+
+      let dfdGraph;
+      if (changeResult.requiresRebuild || !project.dfd?.graph) {
+        dfdGraph = graphBuilder.build({
+          elements: mergedElements,
+          connections: mergedConnections,
+          assets: syncedAssets,
+        });
+      } else {
+        dfdGraph = project.dfd.graph;
+        graphBuilder.deriveExposureLevels(
+          mergedElements,
+          mergedConnections,
+          dfdGraph.dataFlowAnalysis,
+          dfdGraph.elementTrustBoundaries,
+          dfdGraph.elementChipBoundaries,
+          dfdGraph.elementPhysicalBoundaries,
+        );
+      }
+
+      const graphContext = new DFDGraphAnalysisContext(dfdGraph);
+      const validation = this.validator.validate(
+        mergedElements,
+        mergedConnections,
+        syncedAssets,
+        stats,
+        dfdGraph,
+        { unconnectedDataflows },
+      );
+
+      const dfdData: DFDData = {
+        xml, // ← direkt, kein localStorage
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+        stats,
+        validation: this.validator.createValidationData(validation),
+        lastModified: new Date().toISOString(),
+        graph: dfdGraph,
+      };
+
+      const phaseStatus = this.determinePhaseStatus(validation);
+      const updatedPhaseStatus: PhaseStatusMap = {
+        ...project.phaseStatus,
+        1: phaseStatus,
+      };
+
+      return {
+        success: true,
+        dfd: dfdData,
+        graphContext,
+        phaseStatus: updatedPhaseStatus,
+        lastModified: new Date().toISOString(),
+        validation,
+      };
+    } catch (error) {
+      return {
+        ...emptyResult,
+        error: error instanceof Error ? error.message : "Failed to save DFD",
+      };
+    }
+  }
+
   // ==================== VALIDATION ====================
 
   /**
@@ -557,7 +676,6 @@ class DFDService {
       { unconnectedDataflows },
     );
   }
-
 
   /**
    * Get current DFD stats

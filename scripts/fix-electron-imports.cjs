@@ -12,11 +12,28 @@ function renameJsFiles(dir) {
     const fullPath = path.join(dir, item.name);
     
     if (item.isDirectory()) {
-      renameJsFiles(fullPath); // Recurse into subdirectories
+      renameJsFiles(fullPath);
     } else if (item.name.endsWith('.js')) {
+      // 1. JS Datei umbenennen
       const newPath = fullPath.replace('.js', '.cjs');
       fs.renameSync(fullPath, newPath);
       console.log(`Renamed: ${item.name} → ${item.name.replace('.js', '.cjs')}`);
+
+      // 2. Passende .map Datei umbenennen
+      const mapPath = fullPath + '.map';
+      if (fs.existsSync(mapPath)) {
+        const newMapPath = newPath + '.map';
+        fs.renameSync(mapPath, newMapPath);
+
+        // 3. WICHTIG: Den Verweis innerhalb der .cjs Datei korrigieren
+        let content = fs.readFileSync(newPath, 'utf-8');
+        content = content.replace(
+          new RegExp(`${item.name}\\.map`, 'g'),
+          `${item.name.replace('.js', '.cjs')}.map`
+        );
+        fs.writeFileSync(newPath, content);
+        console.log(`  -> Updated sourcemap reference in ${path.basename(newPath)}`);
+      }
     }
   });
 }

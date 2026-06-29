@@ -20,6 +20,8 @@ export default class DrawioController {
 
   private selectionCallback: ((cells: any[]) => void) | null = null;
 
+  private diagramChangeWithXmlCallback: ((xml: string) => void) | null = null;
+
   constructor(
     drawio: CORSCommunicator,
     storage: LocalStorageModel,
@@ -417,17 +419,22 @@ export default class DrawioController {
     }
   }
 
-  private autoSaveDiagram(msg: object) {
+  public onDiagramChangeWithXml(callback: (xml: string) => void): void {
+    this.diagramChangeWithXmlCallback = callback;
+  }
+
+  private autoSaveDiagram(msg: any) {
     const data = JSON.stringify(msg);
-
-    // Speichere in projekt-spezifischen Key
     this.storage.write(data);
-
-    // Auch in legacy Key für Kompatibilität mit anderen Komponenten
     localStorage.setItem("DrawioMsg", data);
 
     if (this.loadedFromLocalStorage) {
       this.changedAfterImported = true;
+    }
+
+    // NEU: XML direkt weitergeben, kein zweiter localStorage-Read
+    if (msg.xml && this.diagramChangeWithXmlCallback) {
+      this.diagramChangeWithXmlCallback(msg.xml);
     }
   }
 
