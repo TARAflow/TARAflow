@@ -165,15 +165,6 @@ export const CIANAAA_APPLICABLE: Record<string, CIANAAAApplicability> = {
     AuthZ: true,
     Acc: true,
   },
-  process: {
-    C: false,
-    I: true,
-    A: true,
-    N: true,
-    AuthN: true,
-    AuthZ: true,
-    Acc: true,
-  },
   system: {
     C: true,
     I: true,
@@ -201,6 +192,15 @@ export const CIANAAA_APPLICABLE: Record<string, CIANAAAApplicability> = {
     AuthZ: false,
     Acc: true,
   },
+  process: {
+    C: false,
+    I: true,
+    A: true,
+    N: true,
+    AuthN: true,
+    AuthZ: true,
+    Acc: true,
+  },
   service: {
     C: true,
     I: true,
@@ -219,25 +219,6 @@ export const CIANAAA_APPLICABLE: Record<string, CIANAAAApplicability> = {
     AuthZ: true,
     Acc: true,
   },
-};
-
-// ==================== CIANAAA → STRIDE MAPPING ====================
-
-/**
- * Deterministic mapping: SecurityGoalType → STRIDE category.
- * Used by the threat generator to determine which STRIDE threats to produce.
- *
- * Note: Both N (Non-Repudiation) and Acc (Accountability) map to Repudiation (R).
- * They represent different audit concerns but the same STRIDE threat category.
- */
-export const CIANAAA_TO_STRIDE: Record<SecurityGoalType, string> = {
-  C: "I", // Information Disclosure
-  I: "T", // Tampering
-  A: "D", // Denial of Service
-  N: "R", // Repudiation
-  AuthN: "S", // Spoofing
-  AuthZ: "E", // Elevation of Privilege
-  Acc: "R", // Repudiation
 };
 
 // ==================== SECURITY GOAL DEFINITIONS ====================

@@ -46,15 +46,18 @@ export interface SecurityGoalReference {
 // ==================== STRIDE MAPPING ====================
 
 /**
- * Deterministic mapping: SecurityGoalType → StrideCategory.
- * N and Acc both map to R — different audit concerns, same STRIDE category.
+ * Deterministic mapping: SecurityGoalType → STRIDE category.
+ * Used by the threat generator to determine which STRIDE threats to produce.
+ *
+ * Note: Both N (Non-Repudiation) and Acc (Accountability) map to Repudiation (R).
+ * They represent different audit concerns but the same STRIDE threat category.
  */
 export const CIANAAA_TO_STRIDE: Record<SecurityGoalType, StrideCategory> = {
-  C:     "I",
-  I:     "T",
-  A:     "D",
-  N:     "R",
-  AuthN: "S",
-  AuthZ: "E",
-  Acc:   "R",
+  C: "I", // Information Disclosure
+  I: "T", // Tampering
+  A: "D", // Denial of Service
+  N: "R", // Repudiation
+  AuthN: "S", // Spoofing
+  AuthZ: "E", // Elevation of Privilege
+  Acc: "R", // Repudiation
 };

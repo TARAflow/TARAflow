@@ -346,3 +346,90 @@ export function modifyMultiprocessStride(
 
   return result;
 }
+
+export interface SensorModifierProps {
+  safetyRelevant?: boolean;
+  safetyClassification?: string; // e.g. "catastrophic" | "hazardous" | "negligible" | "none"
+  physicalImpact?: string;
+  isHazardTarget?: boolean;
+  plausibilityCheck?: string; // "none" | "range" | "model" ...
+  redundancy?: string; // "none" | "dual" | "triple" ...
+  signalAuthentication?: string; // "none" | "mac" | "signature" ...
+}
+
+export interface ActuatorModifierProps {
+  safetyRelevant?: boolean;
+  safetyClassification?: string;
+  physicalImpact?: string;
+  isHazardTarget?: boolean;
+  commandAuthentication?: string; // "none" | "mac" | "signature" ...
+  failSafeState?: string; // "none" | "defined" ...
+  redundancy?: string;
+}
+
+/** True when the element carries a physical/safety consequence. */
+function hasSafetySignal(p: {
+  safetyRelevant?: boolean;
+  isHazardTarget?: boolean;
+  physicalImpact?: string;
+  safetyClassification?: string;
+}): boolean {
+  if (p.safetyRelevant === true || p.isHazardTarget === true) return true;
+  if (p.physicalImpact !== undefined && p.physicalImpact !== "none")
+    return true;
+  if (
+    p.safetyClassification !== undefined &&
+    p.safetyClassification !== "none" &&
+    p.safetyClassification !== "negligible"
+  )
+    return true;
+  return false;
+}
+
+/**
+ * Modulate STRIDE for a Sensor element.
+ *
+ * Base is [T, D]: a sensor reading can always be tampered (T) and its
+ * availability denied (D). Set-level output therefore stays within [T, D] —
+ * the safety signal escalates priority / initialImpact, it does not expand the
+ * category set. Missing integrity/availability mitigations keep the respective
+ * category firmly in scope.
+ *
+ * Rules:
+ *   safetyRelevant / physicalImpact / safetyClassification → keep T + D (physical impact)
+ *   plausibilityCheck = none  → keep T (forged reading not detectable)
+ *   redundancy = none         → keep D (single point of availability failure)
+ */
+export function modifySensorStride(
+  base: StrideCategory[],
+  props: SensorModifierProps,
+): StrideCategory[] {
+  let result = [...base];
+  if (hasSafetySignal(props)) result = add(result, "T", "D");
+  if (props.plausibilityCheck === "none") result = add(result, "T");
+  if (props.redundancy === "none") result = add(result, "D");
+  return result;
+}
+
+/**
+ * Modulate STRIDE for an Actuator element.
+ *
+ * Symmetric to Sensor — base [T, D]: an actuator command can be tampered (T)
+ * and its execution denied (D), both with physical consequence when safety-
+ * relevant. Set-level output stays within [T, D].
+ *
+ * Rules:
+ *   safetyRelevant / physicalImpact / safetyClassification → keep T + D
+ *   commandAuthentication = none → keep T (forged command accepted)
+ *   failSafeState = none         → keep D (no safe state on loss)
+ */
+export function modifyActuatorStride(
+  base: StrideCategory[],
+  props: ActuatorModifierProps,
+): StrideCategory[] {
+  let result = [...base];
+  if (hasSafetySignal(props)) result = add(result, "T", "D");
+  if (props.commandAuthentication === "none") result = add(result, "T");
+  if (props.failSafeState === "none") result = add(result, "D");
+  return result;
+}

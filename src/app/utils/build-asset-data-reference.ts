@@ -60,7 +60,9 @@ export function buildAssetDataReference(
       | "irreversible_injury"
       | "fatality"
       | undefined,
-    linkedElementIds: a.linkedDFDElements?.map((el) => el.elementId) ?? [],
+    linkedElementIds: [
+      ...new Set(a.linkedDFDElements?.map((el) => el.elementId) ?? []),
+    ],
     securityGoals:
       a.securityGoals
         ?.filter((g) => g.level !== "none")

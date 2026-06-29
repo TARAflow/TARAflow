@@ -35,6 +35,8 @@ import {
   modifyInterfaceStride,
   modifyChipBoundaryStride,
   modifyMultiprocessStride,
+  modifySensorStride,
+  modifyActuatorStride,
 } from "../../utils/stride-modifier";
 import type {
   ProcessModifierProps,
@@ -44,6 +46,8 @@ import type {
   TrustBoundaryModifierProps,
   InterfaceModifierProps,
   ChipBoundaryModifierProps,
+  SensorModifierProps,
+  ActuatorModifierProps,
 } from "../../utils/stride-modifier";
 import {
   findElementTemplate,
@@ -76,27 +80,61 @@ function applyElementProperties(
   let modified: StrideCategory[];
   switch (element.type) {
     case "Process":
-      modified = modifyProcessStride(baseCategories, props as ProcessModifierProps);
+      modified = modifyProcessStride(
+        baseCategories,
+        props as ProcessModifierProps,
+      );
       break;
     case "Multiprocess":
-      modified = modifyMultiprocessStride(baseCategories, props as MultiprocessModifierProps);
+      modified = modifyMultiprocessStride(
+        baseCategories,
+        props as MultiprocessModifierProps,
+      );
       break;
     case "DataFlow":
-      modified = modifyDataFlowStride(baseCategories, props as DataFlowModifierProps);
+      modified = modifyDataFlowStride(
+        baseCategories,
+        props as DataFlowModifierProps,
+      );
       break;
     case "DataStore":
-      modified = modifyDataStoreStride(baseCategories, props as DataStoreModifierProps);
+      modified = modifyDataStoreStride(
+        baseCategories,
+        props as DataStoreModifierProps,
+      );
       break;
     case "TrustBoundary":
-      modified = modifyTrustBoundaryStride(baseCategories, props as TrustBoundaryModifierProps);
+      modified = modifyTrustBoundaryStride(
+        baseCategories,
+        props as TrustBoundaryModifierProps,
+      );
       break;
     case "Interface":
     case "PhysicalInterface":
-      modified = modifyInterfaceStride(baseCategories, props as InterfaceModifierProps);
+      modified = modifyInterfaceStride(
+        baseCategories,
+        props as InterfaceModifierProps,
+      );
       break;
     case "ChipBoundary":
-      modified = modifyChipBoundaryStride(baseCategories, props as ChipBoundaryModifierProps);
+      modified = modifyChipBoundaryStride(
+        baseCategories,
+        props as ChipBoundaryModifierProps,
+      );
       break;
+    case "Sensor":
+      modified = modifySensorStride(
+        baseCategories,
+        props as SensorModifierProps,
+      );
+      break;
+    case "Actuator":
+      modified = modifyActuatorStride(
+        baseCategories,
+        props as ActuatorModifierProps,
+      );
+      break;
+
     default:
       return { categories: baseCategories, applied: false };
   }

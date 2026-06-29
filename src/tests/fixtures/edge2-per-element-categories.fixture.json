@@ -1,0 +1,270 @@
+{
+ "_comment": "Per-node expected STRIDE after UnifiedStrategy.getStrideCategories (no elimination). (cianaaa \u222a props) \u2229 base; props empty for these nodes.",
+ "elements": {
+  "2": {
+   "displayId": "PB",
+   "type": "PhysicalBoundary",
+   "base": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "cianaaa": [],
+   "expected": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ]
+  },
+  "14": {
+   "displayId": "P-3",
+   "type": "Process",
+   "base": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "cianaaa": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "expected": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ]
+  },
+  "16": {
+   "displayId": "CB",
+   "type": "ChipBoundary",
+   "base": [
+    "T",
+    "I",
+    "E"
+   ],
+   "cianaaa": [],
+   "expected": [
+    "T",
+    "I",
+    "E"
+   ]
+  },
+  "129": {
+   "displayId": "DS-2",
+   "type": "DataStore",
+   "base": [
+    "T",
+    "R",
+    "I",
+    "D"
+   ],
+   "cianaaa": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "expected": [
+    "T",
+    "R",
+    "I",
+    "D"
+   ]
+  },
+  "167": {
+   "displayId": "DS-1",
+   "type": "DataStore",
+   "base": [
+    "T",
+    "R",
+    "I",
+    "D"
+   ],
+   "cianaaa": [
+    "T",
+    "I",
+    "D"
+   ],
+   "expected": [
+    "T",
+    "I",
+    "D"
+   ]
+  },
+  "169": {
+   "displayId": "P-1",
+   "type": "Process",
+   "base": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "cianaaa": [
+    "T",
+    "I",
+    "D"
+   ],
+   "expected": [
+    "T",
+    "I",
+    "D"
+   ]
+  },
+  "174": {
+   "displayId": "EE-1",
+   "type": "ExternalEntity",
+   "base": [
+    "S",
+    "R"
+   ],
+   "cianaaa": [
+    "T",
+    "R",
+    "D",
+    "E"
+   ],
+   "expected": [
+    "R"
+   ]
+  },
+  "101": {
+   "displayId": "IF-1",
+   "type": "Interface",
+   "base": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "cianaaa": [
+    "T",
+    "R",
+    "D",
+    "E"
+   ],
+   "expected": [
+    "T",
+    "R",
+    "D",
+    "E"
+   ]
+  },
+  "187": {
+   "displayId": "DS-3",
+   "type": "DataStore",
+   "base": [
+    "T",
+    "R",
+    "I",
+    "D"
+   ],
+   "cianaaa": [
+    "T",
+    "I",
+    "D",
+    "E"
+   ],
+   "expected": [
+    "T",
+    "I",
+    "D"
+   ]
+  },
+  "189": {
+   "displayId": "EE-2",
+   "type": "ExternalEntity",
+   "base": [
+    "S",
+    "R"
+   ],
+   "cianaaa": [
+    "T",
+    "E"
+   ],
+   "expected": []
+  },
+  "191": {
+   "displayId": "IF-2",
+   "type": "Interface",
+   "base": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "cianaaa": [],
+   "expected": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ]
+  },
+  "206": {
+   "displayId": "SE-1",
+   "type": "Sensor",
+   "base": [
+    "T",
+    "D"
+   ],
+   "cianaaa": [
+    "T",
+    "E"
+   ],
+   "expected": [
+    "T"
+   ]
+  },
+  "217": {
+   "displayId": "P-2",
+   "type": "Process",
+   "base": [
+    "S",
+    "T",
+    "R",
+    "I",
+    "D",
+    "E"
+   ],
+   "cianaaa": [
+    "S",
+    "T",
+    "I",
+    "D"
+   ],
+   "expected": [
+    "S",
+    "T",
+    "I",
+    "D"
+   ]
+  }
+ }
+}

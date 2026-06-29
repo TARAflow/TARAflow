@@ -80,6 +80,7 @@ export function sortThreatsByPriority(
 ): Threat[] {
   if (!assetDataRef) return threats;
   return [...threats].sort(
-    (a, b) => getThreatPriority(a, assetDataRef) - getThreatPriority(b, assetDataRef),
+    (a, b) =>
+      getThreatPriority(a, assetDataRef) - getThreatPriority(b, assetDataRef),
   );
 }

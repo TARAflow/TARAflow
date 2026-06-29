@@ -1,0 +1,146 @@
+{
+ "_comment": "Anchor fixture for UnifiedStrategy.getStrideCategories. assets use linkedElementIds (AssetReference contract, app-layer populated). Pins Module-2 CIANAAA + base intersection.",
+ "assets": [
+  {
+   "id": "DA-001",
+   "securityGoals": [
+    {
+     "type": "C",
+     "level": "none"
+    },
+    {
+     "type": "I",
+     "level": "high"
+    },
+    {
+     "type": "A",
+     "level": "high"
+    },
+    {
+     "type": "N",
+     "level": "medium"
+    },
+    {
+     "type": "AuthZ",
+     "level": "high"
+    },
+    {
+     "type": "AuthN",
+     "level": "none"
+    },
+    {
+     "type": "Acc",
+     "level": "none"
+    }
+   ],
+   "linkedElementIds": [
+    "14",
+    "129",
+    "174",
+    "101",
+    "185",
+    "228"
+   ]
+  },
+  {
+   "id": "DA-004",
+   "securityGoals": [
+    {
+     "type": "C",
+     "level": "none"
+    },
+    {
+     "type": "I",
+     "level": "high"
+    },
+    {
+     "type": "A",
+     "level": "none"
+    },
+    {
+     "type": "N",
+     "level": "none"
+    },
+    {
+     "type": "AuthZ",
+     "level": "high"
+    },
+    {
+     "type": "AuthN",
+     "level": "none"
+    },
+    {
+     "type": "Acc",
+     "level": "none"
+    }
+   ],
+   "linkedElementIds": [
+    "14",
+    "189",
+    "206",
+    "183",
+    "196",
+    "208"
+   ]
+  }
+ ],
+ "elements": {
+  "EE-1": {
+   "id": "174",
+   "type": "ExternalEntity",
+   "name": "Mobile/Browser",
+   "displayId": "EE-1",
+   "properties": {
+    "entityType": "contractor",
+    "trustLevel": "low",
+    "authenticationMethod": "password",
+    "threatActor": "curious",
+    "ownership": "external",
+    "authorizationScope": ""
+   }
+  },
+  "EE-2": {
+   "id": "189",
+   "type": "ExternalEntity",
+   "name": "Operator",
+   "displayId": "EE-2",
+   "properties": {
+    "entityType": "operator",
+    "trustLevel": "medium",
+    "authenticationMethod": "password",
+    "threatActor": "curious",
+    "ownership": "internal"
+   }
+  },
+  "SE-1": {
+   "id": "206",
+   "type": "Sensor",
+   "name": "Photometer",
+   "displayId": "SE-1",
+   "properties": {
+    "location": "internal",
+    "locationProvenance": "derived",
+    "measurand": "optical",
+    "transductionPrinciple": "optical",
+    "stimulusDomain": "optical",
+    "physicalExposureLevel": "PEL1",
+    "sensingExposure": "shielded",
+    "signalAuthentication": "none",
+    "plausibilityCheck": "range",
+    "redundancy": "none",
+    "lossDetection": "detected_degraded",
+    "safetyRelevant": true,
+    "safetyClassification": "catastrophic"
+   }
+  }
+ },
+ "expected": {
+  "EE-1": [
+   "R"
+  ],
+  "EE-2": [],
+  "SE-1": [
+   "T"
+  ]
+ }
+}

@@ -241,6 +241,46 @@ export class ElementThreatGenerator {
       });
     }
 
+    // ── Coverage fallback: boundary-less TB-only element types ────────────
+    // Process / DataStore / Multiprocess / Sensor / Actuator are otherwise
+    // reached ONLY through the trust-boundary pass. An instance outside every
+    // TrustBoundary (common for Sensors/Actuators in OT models) would silently
+    // produce no threats. The effectiveElementTrustBoundary guard ensures we
+    // only pick up what the TB pass skipped — no double emission.
+    const TB_ONLY_TYPES = new Set([
+      "Process",
+      "Multiprocess",
+      "DataStore",
+      "Sensor",
+      "Actuator",
+    ]);
+    const unboundedThreats: Threat[] = [];
+    for (const element of graph.elementsById.values()) {
+      if (!TB_ONLY_TYPES.has(element.type)) continue;
+      if (graph.effectiveElementTrustBoundary.get(element.id)) continue;
+      const stride = STRIDE_PER_ELEMENT_TYPE[element.type];
+      if (!stride || stride.length === 0) continue;
+      unboundedThreats.push(
+        ...this.generateThreatsForElement(
+          element,
+          null,
+          "Unbounded Elements",
+          "",
+          elementToAssets,
+          project,
+          strategy,
+        ),
+      );
+    }
+    if (unboundedThreats.length > 0) {
+      tables.push({
+        trustBoundaryId: null,
+        trustBoundaryName: "Unbounded Elements",
+        displayIdentifier: "[UB]",
+        threats: unboundedThreats,
+      });
+    }
+
     // Safety net: deduplicate threat IDs across all tables.
     // Handles edge cases not covered by effectiveTBElements logic
     // (e.g. DataFlow threats that could theoretically appear twice).

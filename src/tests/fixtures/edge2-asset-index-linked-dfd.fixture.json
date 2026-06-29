@@ -1,0 +1,416 @@
+{
+ "_comment": "Derived from EdGe2_tara.json. Pins buildElementToAssetsIndex NEW-field path (linkedDFDElements).",
+ "assetDataRef": {
+  "assets": [
+   {
+    "id": "DA-001",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "modifies"
+     },
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "129",
+      "elementType": "DataStore",
+      "displayId": "DS-2",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "174",
+      "elementType": "ExternalEntity",
+      "displayId": "EE-1",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "101",
+      "elementType": "Interface",
+      "displayId": "IF-1",
+      "relationType": "transports"
+     },
+     {
+      "elementId": "185",
+      "elementType": "DataFlow",
+      "displayId": "DF-4",
+      "relationType": "transports"
+     },
+     {
+      "elementId": "228",
+      "elementType": "DataFlow",
+      "displayId": "DF-7",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-002",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "modifies"
+     },
+     {
+      "elementId": "129",
+      "elementType": "DataStore",
+      "displayId": "DS-2",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "228",
+      "elementType": "DataFlow",
+      "displayId": "DF-7",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-003",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "modifies"
+     },
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "129",
+      "elementType": "DataStore",
+      "displayId": "DS-2",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "228",
+      "elementType": "DataFlow",
+      "displayId": "DF-7",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-004",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "189",
+      "elementType": "ExternalEntity",
+      "displayId": "EE-2",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "206",
+      "elementType": "Sensor",
+      "displayId": "SE-1",
+      "relationType": "creates"
+     },
+     {
+      "elementId": "183",
+      "elementType": "DataFlow",
+      "displayId": "DF-3",
+      "relationType": "transports"
+     },
+     {
+      "elementId": "196",
+      "elementType": "DataFlow",
+      "displayId": "DF-12",
+      "relationType": "transports"
+     },
+     {
+      "elementId": "208",
+      "elementType": "DataFlow",
+      "displayId": "DF-6",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-005",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "modifies"
+     },
+     {
+      "elementId": "129",
+      "elementType": "DataStore",
+      "displayId": "DS-2",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "217",
+      "elementType": "Process",
+      "displayId": "P-2",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "224",
+      "elementType": "DataFlow",
+      "displayId": "DF-2",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "FU-001",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "executes"
+     }
+    ]
+   },
+   {
+    "id": "DA-006",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "129",
+      "elementType": "DataStore",
+      "displayId": "DS-2",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "217",
+      "elementType": "Process",
+      "displayId": "P-2",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "224",
+      "elementType": "DataFlow",
+      "displayId": "DF-2",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-007",
+    "linkedDFDElements": [
+     {
+      "elementId": "14",
+      "elementType": "Process",
+      "displayId": "P-3",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "129",
+      "elementType": "DataStore",
+      "displayId": "DS-2",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "217",
+      "elementType": "Process",
+      "displayId": "P-2",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "224",
+      "elementType": "DataFlow",
+      "displayId": "DF-2",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-008",
+    "linkedDFDElements": [
+     {
+      "elementId": "167",
+      "elementType": "DataStore",
+      "displayId": "DS-1",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "169",
+      "elementType": "Process",
+      "displayId": "P-1",
+      "relationType": "reads"
+     },
+     {
+      "elementId": "171",
+      "elementType": "DataFlow",
+      "displayId": "DF-1",
+      "relationType": "transports"
+     },
+     {
+      "elementId": "180",
+      "elementType": "DataFlow",
+      "displayId": "DF-5",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-009",
+    "linkedDFDElements": []
+   },
+   {
+    "id": "DA-010",
+    "linkedDFDElements": [
+     {
+      "elementId": "187",
+      "elementType": "DataStore",
+      "displayId": "DS-3",
+      "relationType": "stores"
+     },
+     {
+      "elementId": "210",
+      "elementType": "DataFlow",
+      "displayId": "DF-10",
+      "relationType": "transports"
+     }
+    ]
+   },
+   {
+    "id": "DA-011",
+    "linkedDFDElements": [
+     {
+      "elementId": "187",
+      "elementType": "DataStore",
+      "displayId": "DS-3",
+      "relationType": "stores"
+     }
+    ]
+   },
+   {
+    "id": "DA-012",
+    "linkedDFDElements": [
+     {
+      "elementId": "187",
+      "elementType": "DataStore",
+      "displayId": "DS-3",
+      "relationType": "stores"
+     }
+    ]
+   },
+   {
+    "id": "DA-013",
+    "linkedDFDElements": []
+   },
+   {
+    "id": "DA-014",
+    "linkedDFDElements": []
+   }
+  ]
+ },
+ "expected": {
+  "14": [
+   "DA-001",
+   "DA-002",
+   "DA-003",
+   "DA-004",
+   "DA-005",
+   "FU-001",
+   "DA-006",
+   "DA-007"
+  ],
+  "129": [
+   "DA-001",
+   "DA-002",
+   "DA-003",
+   "DA-005",
+   "DA-006",
+   "DA-007"
+  ],
+  "174": [
+   "DA-001"
+  ],
+  "101": [
+   "DA-001"
+  ],
+  "185": [
+   "DA-001"
+  ],
+  "228": [
+   "DA-001",
+   "DA-002",
+   "DA-003"
+  ],
+  "189": [
+   "DA-004"
+  ],
+  "206": [
+   "DA-004"
+  ],
+  "183": [
+   "DA-004"
+  ],
+  "196": [
+   "DA-004"
+  ],
+  "208": [
+   "DA-004"
+  ],
+  "217": [
+   "DA-005",
+   "DA-006",
+   "DA-007"
+  ],
+  "224": [
+   "DA-005",
+   "DA-006",
+   "DA-007"
+  ],
+  "167": [
+   "DA-008"
+  ],
+  "169": [
+   "DA-008"
+  ],
+  "171": [
+   "DA-008"
+  ],
+  "180": [
+   "DA-008"
+  ],
+  "187": [
+   "DA-010",
+   "DA-011",
+   "DA-012"
+  ],
+  "210": [
+   "DA-010"
+  ]
+ }
+}
