@@ -305,7 +305,19 @@ export function getApplicableElementTemplates(
     if (project && !matchesContext(t.context, project, elementProps))
       return false;
     return true;
-  });
+  }).sort(
+    // Specificity-first: a template that matched on more context constraints is
+    // more specific than a context-free one. general (context:{}) scores 0 and
+    // therefore acts as the fallback. Stable sort preserves catalog order on ties.
+    (a, b) => contextSpecificity(b.context) - contextSpecificity(a.context),
+  );
+}
+
+/** Number of non-empty context constraints on a template. */
+function contextSpecificity(ctx: TemplateContext): number {
+  return Object.values(ctx ?? {}).filter((v) =>
+    Array.isArray(v) ? v.length > 0 : v === true,
+  ).length;
 }
 
 export function findElementTemplate(

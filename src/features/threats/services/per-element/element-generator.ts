@@ -695,6 +695,7 @@ export class ElementThreatGenerator {
     // Set them here so the dialog/table has immediate content without
     // requiring a separate i18n lookup call at each render.
     if (template) {
+      threat.templateId = template.id; // ← traceability: which catalog entry produced this
       threat.threatDescription = getLocalizedElementThreat(
         template.id,
         template.domain ?? "general",

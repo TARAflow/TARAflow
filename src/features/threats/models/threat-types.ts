@@ -372,6 +372,13 @@ export interface Threat {
   /** Timestamps */
   created: string;
   lastModified: string;
+
+  /**
+   * Catalog template that produced this threat (e.g. "T-004").
+   * Traceability only — text is resolved via domain + i18n, not via this field.
+   * undefined for manually added threats and for elements with no template match.
+   */
+  templateId?: string;
 }
 
 // ==================== THREAT TABLE ====================
