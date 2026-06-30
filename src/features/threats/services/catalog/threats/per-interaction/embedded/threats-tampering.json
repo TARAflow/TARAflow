@@ -7,15 +7,7 @@
       "strideCategory": "T",
       "perspective": "receiver",
       "context": {
-        "protocol": [
-          "modbus",
-          "profibus",
-          "profinet",
-          "canopen",
-          "s7comm",
-          "dnp3",
-          "iec61850"
-        ]
+        "protocol": ["modbus_rtu", "modbus_tcp", "profibus", "profinet", "dnp3"]
       },
       "mitigations": ["M-T-001", "M-T-002", "M-T-008"],
       "verifications": ["V-T-001", "V-IF-T-001"],
@@ -116,13 +108,11 @@
       "perspective": "receiver",
       "context": {
         "protocol": [
-          "modbus",
+          "modbus_rtu",
+          "modbus_tcp",
           "profibus",
           "profinet",
-          "canopen",
-          "s7comm",
-          "dnp3",
-          "iec61850"
+          "dnp3"
         ],
         "accessMode": ["read_write"]
       },
