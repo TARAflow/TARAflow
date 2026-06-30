@@ -30,6 +30,7 @@ export const PROTOCOL_META: Record<
 
   // ── Embedded bus ─────────────────────────────────────────────────────────
   can: { group: "embedded", labelKey: "can", riskLevel: "high" },
+  lin: { group: "embedded", labelKey: "lin", riskLevel: "high" },
   modbus_rtu: { group: "embedded", labelKey: "modbus_rtu", riskLevel: "high" },
   modbus_tcp: { group: "embedded", labelKey: "modbus_tcp", riskLevel: "high" },
   modbus_sec: { group: "embedded", labelKey: "modbus_sec", riskLevel: "low" },
@@ -51,6 +52,9 @@ export const PROTOCOL_META: Record<
   bacnet_ip: { group: "fieldbus", labelKey: "bacnet_ip" },
   hart_ip: { group: "fieldbus", labelKey: "hart_ip" },
   opc_da: { group: "fieldbus", labelKey: "opc_da", riskLevel: "high" },
+  canopen: { group: "fieldbus", labelKey: "canopen", riskLevel: "high" },
+  s7comm: { group: "fieldbus", labelKey: "s7comm", riskLevel: "high" },
+  iec61850: { group: "fieldbus", labelKey: "iec61850", riskLevel: "high" },
 
   // ── Secure OT ────────────────────────────────────────────────────────────
   opc_ua: { group: "secure_ot", labelKey: "opc_ua", riskLevel: "low" },

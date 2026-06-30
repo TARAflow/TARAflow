@@ -64,6 +64,11 @@
       "threat": "Memory isolation bypass (write) — protected region writable across privilege domains",
       "cause": "The MPU/MMU region for the shared memory or MMIO block is misconfigured — write isolation between domains is not enforced",
       "attack": "A low-privilege task writes a protected region, injecting commands or corrupting another domain's data"
+    },
+    "T-014": {
+      "threat": "Embedded bus data tampering — attacker modifies communication on internal bus",
+      "cause": "Embedded bus communication carries no integrity protection or authentication",
+      "attack": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data"
     }
   }
 }

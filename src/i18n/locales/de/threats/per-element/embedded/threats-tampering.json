@@ -64,6 +64,11 @@
       "threat": "Speicher-Isolationsbypass (Schreiben) — geschützte Region domänenübergreifend beschreibbar",
       "cause": "Die MPU/MMU-Region für Shared Memory oder MMIO-Block ist fehlkonfiguriert — Schreib-Isolation zwischen Domänen wird nicht durchgesetzt",
       "attack": "Ein niedrig privilegierter Task beschreibt eine geschützte Region, injiziert Kommandos oder korrumpiert Daten einer anderen Domäne"
+    },
+    "T-014": {
+      "threat": "Manipulation von Daten auf einem Embedded-Bus – Angreifer verändert die Kommunikation auf einem internen Bus",
+      "cause": "Die Kommunikation über den Embedded-Bus verfügt weder über Integritätsschutz noch über Authentisierung",
+      "attack": "Der Angreifer schließt eine Hardware-Sonde an den Embedded-Bus an und injiziert oder verändert übertragene Daten"
     }
   }
 }

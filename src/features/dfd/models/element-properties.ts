@@ -850,6 +850,7 @@ export type Protocol =
   | "database"
   // ── Embedded bus ─────────────────────────────────────────────────────────
   | "can" // CAN bus — no auth, no encryption
+  | "lin" // LIN bus — no auth, no encryption
   | "modbus_rtu" // Modbus RTU/ASCII (RS-232/RS-485) — no auth, no encryption
   | "modbus_tcp" // Modbus/TCP (port 502) — no auth, no encryption
   | "modbus_sec" // Modbus/TCP Security (port 802, TLS) — IEC 62443 SL2+
@@ -870,6 +871,9 @@ export type Protocol =
   | "bacnet_ip" // BACnet/IP (ASHRAE 135) — no auth by default
   | "hart_ip" // HART-IP — no auth by default
   | "opc_da" // OPC DA / AE / HDA (DCOM-based) — no auth
+  | "canopen" // CANopen (CiA 301) — no auth, no encryption
+  | "s7comm" // Siemens S7 (S7comm / ISO-on-TCP) — no auth by default
+  | "iec61850" // IEC 61850 MMS/GOOSE/SV — no auth by default
   // ── Secure OT ────────────────────────────────────────────────────────────
   | "opc_ua" // OPC UA — sign + encrypt via security profiles
   // ── Wireless ─────────────────────────────────────────────────────────────

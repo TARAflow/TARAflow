@@ -907,6 +907,14 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     encryptionInTransit: "none",
     integrityProtection: "none",
   },
+  lin: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "none",
+    frequency: "periodic",
+    messageType: "measurement",
+  },
 
   // ── Fieldbus (no auth, no encryption — IEC 62443 baseline gap) ───────────
   profibus: {
@@ -1010,6 +1018,31 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
     accessMode: "read_write",
     dataMinimization: "none",
+  },
+  canopen: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "crc",
+    frequency: "periodic",
+    messageType: "measurement",
+  },
+  s7comm: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "none",
+    frequency: "ondemand",
+    messageType: "measurement",
+    accessMode: "read_write",
+  },
+  iec61850: {
+    direction: "requestresponse",
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "none",
+    frequency: "event_based",
+    messageType: "measurement",
   },
 
   // ── Secure OT ─────────────────────────────────────────────────────────────

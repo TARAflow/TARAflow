@@ -31,7 +31,16 @@
       "strideCategory": "E",
       "perspective": "receiver",
       "context": {
-        "protocol": ["modbus_rtu", "modbus_tcp", "profibus", "profinet", "dnp3"]
+        "protocol": [
+          "modbus_rtu",
+          "modbus_tcp",
+          "profibus",
+          "profinet",
+          "dnp3",
+          "canopen",
+          "s7comm",
+          "iec61850"
+        ]
       },
       "mitigations": [
         "M-E-001",
