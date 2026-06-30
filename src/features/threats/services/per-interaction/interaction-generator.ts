@@ -508,6 +508,7 @@ export class InteractionThreatGenerator {
     );
 
     if (template) {
+      threat.templateId = template.id; // ← traceability: originating catalog entry
       const placeholders = {
         sourceName: source.name,
         targetName: target.name,
@@ -628,6 +629,7 @@ export class InteractionThreatGenerator {
     );
 
     if (template) {
+      threat.templateId = template.id; // ← traceability: originating catalog entry
       const placeholders = {
         sourceName: element.name,
         targetName: element.name,

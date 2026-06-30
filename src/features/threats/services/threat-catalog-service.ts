@@ -354,13 +354,17 @@ export function getApplicableInteractionTemplates(
   threatData?: ThreatProjectData,
   elementProps: Record<string, unknown> | null = null,
 ): InteractionTemplate[] {
-  return ALL_INTERACTION_TEMPLATES.filter((t) => {
-    if (t.strideCategory !== strideCategory) return false;
-    if (t.perspective !== perspective) return false;
-    if (threatData && !matchesContext(t.context, threatData, elementProps))
-      return false;
-    return true;
-  });
+    return ALL_INTERACTION_TEMPLATES.filter((t) => {
+      if (t.strideCategory !== strideCategory) return false;
+      if (t.perspective !== perspective) return false;
+      if (threatData && !matchesContext(t.context, threatData, elementProps))
+        return false;
+      return true;
+    }).sort(
+      // Specificity-first (same rule as element templates): a template matching
+      // more context constraints wins; general (context:{}) scores 0 → fallback.
+      (a, b) => contextSpecificity(b.context) - contextSpecificity(a.context),
+    );
 }
 
 export function findInteractionTemplate(
