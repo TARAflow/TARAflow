@@ -1486,6 +1486,41 @@ export interface InterfaceProperties {
       | "mfa"; // CR 1.1 RE(2) — Multi-factor authentication; SL-3/SL-4
 
     /**
+     * Link-layer authentication of the interface medium itself.
+     * Applies ONLY to interface types with hasLinkAuth=true (wifi, bluetooth,
+     * nfc) — the link authenticates association/pairing before any process
+     * sees data. For all other types authentication lives on the endpoint
+     * (Process.authenticationRequired / DataFlow.endpointAuthentication), NOT
+     * here. Abstract mechanism, not a concrete technology (WPA2/WPA3, BLE LE
+     * Secure Connections go in mechanismDetail).
+     *
+     * Threat-gen implication:
+     *   none            → link-layer Spoofing threat active (open association)
+     *   pre_shared_key  → shared secret; key disclosure / offline-crack residual
+     *   certificate_based → PKI (e.g. EAP-TLS); requires key management
+     *   pairing         → one-sided pairing; MITM risk during pairing window
+     *   mutual_pairing  → both sides authenticated; strongest link-layer option
+     *
+     * Note: link authentication ("who may associate") is independent of app
+     * authorization on the terminating process ("who may do what"). WPA3 on the
+     * link does NOT authorize a Modbus write on the process behind it.
+     */
+    linkAuthentication?:
+      | "none"
+      | "pre_shared_key"
+      | "certificate_based"
+      | "pairing"
+      | "mutual_pairing";
+
+    /**
+     * Optional free-text detail of the concrete link-auth technology, e.g.
+     * "WPA3-SAE", "BLE LE Secure Connections", "EAP-TLS". Keeps
+     * linkAuthentication abstract while preserving the real-world mechanism for
+     * documentation. Analyst-owned; never cascaded.
+     */
+    mechanismDetail?: string;
+
+    /**
      * Physical access restriction preventing direct connector interaction.
      * Relevant for all interface types — raises attacker effort (IEC 62443 attack feasibility).
      *
