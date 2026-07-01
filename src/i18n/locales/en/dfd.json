@@ -128,6 +128,11 @@
           },
           "physical": {
             "missingCoupling": "physical coupling {{detail}}: couplingMode/stimulusDomain missing"
+          },
+          "tls": {
+            "noTerminator": "{{detail}}: flow uses TLS but neither endpoint terminates it. Set tlsTermination (server or mutual) on the terminating process.",
+            "mtlsRequiresBothMutual": "{{detail}}: mutual TLS requires both endpoints to be mutual-capable. Set tlsTermination=mutual on both processes.",
+            "handshakeMismatch": "{{detail}}: one endpoint requires mutual TLS while the other cannot present a client certificate. Align tlsTermination on both endpoints."
           }
         },
         "label_property": {}
@@ -455,6 +460,14 @@
                 "apikey": "API Key",
                 "jwt": "JWT (JSON Web Token)",
                 "mtls": "Mutual TLS (mTLS)"
+              }
+            },
+            "tlsTermination": {
+              "label": "TLS termination",
+              "options": {
+                "none": "None",
+                "server": "Server-side (TLS)",
+                "mutual": "Mutual (mTLS)"
               }
             },
             "authorizationModel": {
@@ -795,6 +808,14 @@
                 "oauth": "OAuth 2.0",
                 "apikey": "API Key",
                 "hardware_token": "Hardware Token"
+              }
+            },
+            "tlsTermination": {
+              "label": "TLS termination",
+              "options": {
+                "none": "None",
+                "server": "Server-side (TLS)",
+                "mutual": "Mutual (mTLS)"
               }
             },
             "authorizationModel": {

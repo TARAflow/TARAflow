@@ -481,6 +481,40 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
+        {/* TLS Termination — capability, decoupled from auth */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.process.fields.tlsTermination.label",
+              )}
+            </InputLabel>
+            <Select
+              value={props.tlsTermination ?? ""}
+              onChange={(e) =>
+                handlePropertyChange(
+                  "tlsTermination",
+                  e.target.value === "" ? undefined : e.target.value,
+                )
+              }
+              label={t(
+                "tabs.dfd.element_description.process.fields.tlsTermination.label",
+              )}
+            >
+              <MenuItem value="">
+                <em>{t("common.not_specified")}</em>
+              </MenuItem>
+              {(["none", "server", "mutual"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.process.fields.tlsTermination.options.${opt}`,
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
         {/* Authorization Model */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth size="small">

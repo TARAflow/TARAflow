@@ -40,7 +40,9 @@ export interface ProcessProperties {
     | "guest"
     | "anonymous"
     | "contractor";
+
   privilegeLevel?: "not_specified" | "low" | "medium" | "high" | "root";
+
   authenticationRequired?:
     | "not_specified"
     | "no"
@@ -52,6 +54,17 @@ export interface ProcessProperties {
     | "apikey"
     | "jwt"
     | "mtls";
+  /**
+   * TLS termination capability of this endpoint — DECOUPLED from auth.
+   * Encryption capability ≠ auth mechanism (an HTTPS server with a password
+   * login is tlsTermination="server" + authenticationRequired="password").
+   * Usage side: DataFlow.encryptionInTransit. Validated pair-level in A5b.
+   *   none   → does not terminate TLS
+   *   server → server-side TLS (presents server cert)
+   *   mutual → mutual TLS (presents + verifies client cert)  [mutual ⊃ server]
+   */
+  tlsTermination?: "none" | "server" | "mutual";
+
   authorizationModel?:
     | "not_specified"
     | "none"
@@ -318,6 +331,17 @@ export interface MultiprocessProperties {
     | "oauth"
     | "apikey"
     | "hardware_token";
+
+  /**
+   * TLS termination capability of this endpoint — DECOUPLED from auth.
+   * Encryption capability ≠ auth mechanism (an HTTPS server with a password
+   * login is tlsTermination="server" + authenticationRequired="password").
+   * Usage side: DataFlow.encryptionInTransit. Validated pair-level in A5b.
+   *   none   → does not terminate TLS
+   *   server → server-side TLS (presents server cert)
+   *   mutual → mutual TLS (presents + verifies client cert)  [mutual ⊃ server]
+   */
+  tlsTermination?: "none" | "server" | "mutual";
 
   /**
    * Authorization model enforced at the system boundary.

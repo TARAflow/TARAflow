@@ -371,7 +371,11 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
   let data = applyLegacyMigrations(raw);
 
   // Step 2: schema migrations
-  const { data: migrated, migrated: wasMigrated, fromVersion } = applyMigrations(data);
+  const {
+    data: migrated,
+    migrated: wasMigrated,
+    fromVersion,
+  } = applyMigrations(data);
   data = migrated;
 
   // Step 3: validate + repair

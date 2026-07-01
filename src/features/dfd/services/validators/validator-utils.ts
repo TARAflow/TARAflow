@@ -205,6 +205,12 @@ export const ValidationMessages = {
     "tabs.dfd.validation.df.label_property.read_store_unclassified",
   DF_LP_PULL_ON_DIRECT_ACCESS_STORE:
     "tabs.dfd.validation.df.label_property.pull_on_direct_access_store",
+
+  // ── Transport security (encryptionInTransit capability/usage) ──────────
+  DF_TLS_NO_TERMINATOR: "tabs.dfd.validation.df.tls.noTerminator",
+  DF_MTLS_REQUIRES_BOTH_MUTUAL:
+    "tabs.dfd.validation.df.tls.mtlsRequiresBothMutual",
+  DF_TLS_HANDSHAKE_MISMATCH: "tabs.dfd.validation.df.tls.handshakeMismatch",
 } as const;
 
 /**

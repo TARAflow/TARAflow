@@ -28,6 +28,7 @@ import { validateDataflowLabels } from "./validators/dataflow-label-validator";
 import { validateDataflowProperties } from "./validators/dataflow-property-validator";
 import { validateAssetProperties } from "./validators/asset-property-validator";
 import { validateAssetRelations } from "./validators/asset-relation-validator";
+import { validateEndpointProtection } from "./validators/endpoint-protection-validator";
 import {
   isComplete,
   validateScenario,
@@ -104,6 +105,7 @@ export class DFDValidator {
     validateTransducerConnections(connections, elements, errors);
     validateDataflowLabels(connections, elements, errors, warnings);
     validateDataflowProperties(connections, errors, warnings);
+    validateEndpointProtection(connections, elements, errors);
 
     // 3. Validate Asset Properties
     validateAssetProperties(assets, warnings);

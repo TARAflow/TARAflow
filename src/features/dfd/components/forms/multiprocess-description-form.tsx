@@ -652,6 +652,42 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
+        {/* TLS Termination — capability, decoupled from boundary auth */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel>
+              {t(
+                "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
+                { defaultValue: "TLS Termination" },
+              )}
+            </InputLabel>
+            <Select
+              value={props.tlsTermination ?? ""}
+              onChange={(e) =>
+                handlePropertyChange("tlsTermination", e.target.value)
+              }
+              label={t(
+                "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
+                { defaultValue: "TLS Termination" },
+              )}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("common.not_specified", { defaultValue: "Not specified" })}
+                </em>
+              </MenuItem>
+              {(["none", "server", "mutual"] as const).map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {t(
+                    `tabs.dfd.element_description.multiprocess.fields.tlsTermination.options.${opt}`,
+                    { defaultValue: opt },
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
         {/* Authorization Model — all except mobile_device, safety_system */}
         {isVisible(sc, SHOW_AUTHORIZATION_MODEL) && (
           <Grid item xs={12} sm={6}>
