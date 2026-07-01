@@ -5,7 +5,8 @@
 // one piece of the refactor that must be exactly right.
 
 import { describe, it, expect } from "vitest";
-import { applyMigrations, CURRENT_SCHEMA_VERSION } from "app/services/migration-service";
+import { applyMigrations } from "app/services/migration-service";
+import { CURRENT_SCHEMA_VERSION } from "app/services/schema-version";
 
 describe("migrate 1 -> 2 (Hazard phase insertion)", () => {
   it("inserts Hazard at 1 and shifts every phase >= 1 up by one", () => {

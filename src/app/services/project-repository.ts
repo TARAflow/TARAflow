@@ -20,16 +20,14 @@
 
 import type { Project } from "../models/project-types";
 import type { StorageResult } from "./storage-service";
-import {
-  parseAndRepairWithMetadata,
-  CURRENT_SCHEMA_VERSION,
-} from "./migration-service";
+import { parseAndRepairWithMetadata } from "./migration-service";
 import { projectRegistry } from "./project-registry";
 import {
   DEFAULT_PHASE_STATUS,
   DEFAULT_SETTINGS,
 } from "./migration-service";
 import { EMPTY_PROJECT_TAGS } from "shared";
+import { CURRENT_SCHEMA_VERSION } from "./schema-version";
 
 // ==================== HELPERS ====================
 

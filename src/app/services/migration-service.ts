@@ -8,19 +8,9 @@ import type { PhaseStatus, PhaseStatusMap } from "shared";
 import type { ProjectSettingsData } from "features/overview";
 import type { Project } from "../models/project-types";
 import { migrateRiskData } from "features/risks";
+import { CURRENT_SCHEMA_VERSION } from "./schema-version";
+import { migrate_0_to_1, migrate_1_to_2 } from "./versions";
 
-
-// ==================== SCHEMA VERSION ====================
-
-/**
- * Current schema version. Increment for every breaking or additive
- * change to the persisted Project structure.
- *
- * Version history:
- *   0 = pre-release (no schemaVersion field present)
- *   1 = Release 1 — first official version
- */
-export const CURRENT_SCHEMA_VERSION = 2;
 
 // ==================== DEFAULTS ====================
 // Single source of truth — previously duplicated across StorageService,
@@ -155,113 +145,6 @@ export interface MigrationResult {
   migrated: boolean;
   fromVersion: number;
 }
-
-/**
- * Migrate schema version 0 → 1.
- *
- * Version 0 = all projects saved before Release 1 (no schemaVersion field).
- * Changes introduced in v1:
- *   - riskMitigationMappings: new field, default []
- *   - platformContext per DFD element: default { runtime: 'unknown', deployment: 'unknown' }
- *   - rejectionRecord on rejected mitigations: scaffolded with migration notice
- *   - schemaVersion field itself added
- */
-function migrate_0_to_1(data: any): any {
-  // riskMitigationMappings — new in v1
-  if (!data.riskMitigationMappings) {
-    data = { ...data, riskMitigationMappings: [] };
-  }
-
-  // platformContext per DFD element — new in v1
-  if (data.dfd?.elements?.length) {
-    data = {
-      ...data,
-      dfd: {
-        ...data.dfd,
-        elements: data.dfd.elements.map((el: any) =>
-          el.platformContext
-            ? el
-            : {
-                ...el,
-                platformContext: {
-                  runtime: "unknown",
-                  deployment: "unknown",
-                },
-              },
-        ),
-      },
-    };
-  }
-
-  // rejectionRecord on rejected mitigations — new in v1
-  // Scaffolded with a migration notice so the analyst can complete it later.
-  const migrateRejection = (m: any) => {
-    if (m.status === "rejected" && !m.rejectionRecord) {
-      return {
-        ...m,
-        rejectionRecord: {
-          mitigationId: m.id,
-          rejectedAt: null,
-          rejectedBy: "unknown",
-          reason:
-            "(migrated from pre-release project — reason unknown, please complete)",
-          decisionType: "risk_accepted",
-        },
-      };
-    }
-    return m;
-  };
-
-  if (data.threats?.perElementTables) {
-    data = {
-      ...data,
-      threats: {
-        ...data.threats,
-        perElementTables: data.threats.perElementTables.map((t: any) => ({
-          ...t,
-          threats: t.threats?.map((th: any) => ({
-            ...th,
-            mitigations: th.mitigations?.map(migrateRejection) ?? [],
-          })),
-        })),
-      },
-    };
-  }
-
-  data = { ...data, schemaVersion: 1 };
-  return data;
-}
-
-/**
- * Migrate schema version 1 -> 2.
- * Inserts the Hazard phase at position 1: every existing phase id >= 1 shifts up
- * by one (DFD 1->2 ... Integration 8->9), a new Hazard phase (id 1) is added as
- * "not-started", and the Project.hazards slot is introduced (default null).
- */
-function migrate_1_to_2(data: any): any {
-  const oldStatus = data.phaseStatus ?? {};
-  const newStatus: Record<number, PhaseStatus> = {
-    0: oldStatus[0] ?? "not-started", // General (unchanged)
-    1: "not-started", //                Hazard (new)
-  };
-  for (let oldId = 1; oldId <= 8; oldId++) {
-    newStatus[oldId + 1] = oldStatus[oldId] ?? "not-started";
-  }
-
-  const oldCurrent = data.currentPhase ?? 0;
-  const newCurrent = oldCurrent >= 1 ? oldCurrent + 1 : 0; // General stays 0
-
-  return {
-    ...data,
-    currentPhase: newCurrent,
-    phaseStatus: newStatus,
-    hazards: data.hazards ?? null,
-    schemaVersion: 2,
-  };
-}
-
-// ── Add future migrations here following the same pattern ──────────────────
-// function migrate_1_to_2(data: any): any { ... }
 
 // ==================== MIGRATION PIPELINE ====================
 
