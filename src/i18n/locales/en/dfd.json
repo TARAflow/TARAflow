@@ -1082,16 +1082,14 @@
                 "conduit_protected": "Conduit Protected"
               }
             },
-            "logicalAccessControl": {
-              "label": "Logical Access Control",
+            "linkAuthentication": {
+              "label": "Link Authentication",
               "options": {
                 "none": "None",
-                "password": "Password",
-                "certificate": "Certificate (PKI)",
-                "challenge_response": "Challenge / Response",
-                "secure_pairing": "Secure Pairing",
-                "hardware_token": "Hardware Token",
-                "mfa": "Multi-Factor Authentication (MFA)"
+                "pre_shared_key": "Pre-shared key",
+                "certificate_based": "Certificate-based",
+                "pairing": "Pairing",
+                "mutual_pairing": "Mutual pairing"
               }
             },
             "serviceAccessPolicy": {

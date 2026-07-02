@@ -1,7 +1,4 @@
 {
-  "M-IF-S-001": {
-    "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
-  },
   "M-IF-T-001": {
     "mitigation": "Physical tamper detection and secure boot mechanisms"
   },
@@ -51,10 +48,7 @@
     "mitigation": "Enforce maintenance-window access policy — interface must be automatically disabled outside declared windows"
   },
   "M-IF-S-002": {
-    "mitigation": "Require password authentication before granting interface access"
-  },
-  "M-IF-S-003": {
-    "mitigation": "Require multi-factor authentication for interface access (CR 1.1 RE2)"
+    "mitigation": "Enforce link-layer authentication with a pre-shared key (e.g. WPA2/WPA3-PSK for WiFi, pairing code for Bluetooth/NFC)"
   },
   "M-IF-DBG-001": {
     "mitigation": "Require authentication before granting debug access — restrict available commands to minimum required set"

@@ -110,7 +110,7 @@ export interface MitigationDraft {
   /**
    * The element property path that drives the implemented state.
    * Used for drift detection on threat sync.
-   * @example "implementedControls.logicalAccessControl"
+   * @example "implementedControls.linkAuthentication"
    */
   implementedByProperty?: string;
   /**

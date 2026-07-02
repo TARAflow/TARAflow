@@ -1204,8 +1204,8 @@ export const DATAFLOW_PROTOCOL_DRIVEN_FIELDS: (keyof DataFlowProperties)[] = [
  *   the full attack surface. Analysts must explicitly apply controls.
  * - Debug interfaces (jtag, swd*) default to "hw_disabled" — the expected secure baseline.
  *   If a project has these enabled, a threat is surfaced immediately.
- * - "accessControl" is gone — replaced by implementedControls.logicalAccessControl.
- *   The cascade table no longer touches security controls.
+ * - "accessControl" is gone — replaced by implementedControls.linkAuthentication
+ *   (link-layer) and endpoint auth on Process/Flow (application layer).
  */
 export const INTERFACE_TYPE_DEFAULTS: Record<
   NonNullable<InterfaceProperties["type"]>,

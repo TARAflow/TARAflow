@@ -590,7 +590,7 @@ export function isElementAuthenticationRequired(
     case "Interface": {
       const props = element.properties as InterfaceProperties;
       // logicalAccessControl replaces the former accessControl field
-      const lac = props.implementedControls?.logicalAccessControl;
+      const lac = props.implementedControls?.linkAuthentication;
       return lac !== undefined && lac !== "none";
     }
     default:

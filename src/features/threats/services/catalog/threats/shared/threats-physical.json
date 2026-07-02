@@ -109,7 +109,7 @@
       "context": {
         "accessibility": ["public"]
       },
-      "mitigations": ["M-S-001", "M-IF-S-001", "M-PB-S-001", "M-PB-S-002"],
+      "mitigations": ["M-S-001", "M-S-008", "M-PB-S-001", "M-PB-S-002"],
       "verifications": ["V-S-001", "V-IF-S-001", "V-PB-S-001"],
       "isCustom": false,
       "domain": "physical"

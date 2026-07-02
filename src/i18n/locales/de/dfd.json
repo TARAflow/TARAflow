@@ -1087,16 +1087,14 @@
                 "conduit_protected": "Kabelschutzrohr"
               }
             },
-            "logicalAccessControl": {
-              "label": "Logische Zugangskontrolle",
+            "linkAuthentication": {
+              "label": "Link-Authentisierung",
               "options": {
                 "none": "Keine",
-                "password": "Passwort",
-                "certificate": "Zertifikat (PKI)",
-                "challenge_response": "Challenge / Response",
-                "secure_pairing": "Secure Pairing",
-                "hardware_token": "Hardware-Token",
-                "mfa": "Multi-Faktor-Authentifizierung (MFA)"
+                "pre_shared_key": "Pre-Shared Key",
+                "certificate_based": "Zertifikatsbasiert",
+                "pairing": "Pairing",
+                "mutual_pairing": "Gegenseitiges Pairing"
               }
             },
             "serviceAccessPolicy": {

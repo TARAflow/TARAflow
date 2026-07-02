@@ -19,7 +19,7 @@
         "M-S-001",
         "M-S-002",
         "M-S-003",
-        "M-IF-S-001",
+        "M-S-008",
         "M-S-006"
       ],
       "verifications": [
@@ -48,7 +48,7 @@
       "mitigations": [
         "M-S-001",
         "M-S-002",
-        "M-IF-S-001"
+        "M-S-008"
       ],
       "verifications": [
         "V-S-001",

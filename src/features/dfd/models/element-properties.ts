@@ -1464,28 +1464,6 @@ export interface InterfaceProperties {
 
   implementedControls?: {
     /**
-     * Logical/software access restriction at this interface.
-     * Relevant for: uart, usb, ethernet, wifi, bluetooth, rs232, rs485, can, modbus.
-     * NOT meaningful for: gpio, analog_in, analog_out, pwm, spi, i2c (no auth capability).
-     *
-     * Threat-gen implication:
-     *   none       → Spoofing / Elevation of Privilege threats active
-     *   password   → Spoofing threat reduced; credential theft residual threat
-     *   certificate → Spoofing threat mitigated (PKI-based); requires key mgmt
-     *   challenge_response → Spoofing mitigated; relay attack residual
-     *   secure_pairing     → BLE/NFC specific; MITM risk during pairing window
-     *   hardware_token     → Strongest single-factor; physical token loss residual
-     */
-    logicalAccessControl?:
-      | "none"
-      | "password"
-      | "certificate"
-      | "challenge_response"
-      | "secure_pairing"
-      | "hardware_token"
-      | "mfa"; // CR 1.1 RE(2) — Multi-factor authentication; SL-3/SL-4
-
-    /**
      * Link-layer authentication of the interface medium itself.
      * Applies ONLY to interface types with hasLinkAuth=true (wifi, bluetooth,
      * nfc) — the link authenticates association/pairing before any process

@@ -3,21 +3,6 @@
   "description": "Interface mitigations (M-IF-*). Physical and logical interface controls: tamper detection, debug protection, access policy, monitoring.",
   "mitigations": [
     {
-      "id": "M-IF-S-001",
-      "strideCategory": "S",
-      "context": {},
-      "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "Interface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "certificate",
-          "confidence": "deterministic"
-        }
-      ],
-      "verifications": ["V-IF-S-001"]
-    },
-    {
       "id": "M-IF-S-002",
       "strideCategory": "S",
       "context": {},
@@ -25,35 +10,8 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "password",
-          "confidence": "deterministic"
-        },
-        {
-          "targetType": "PhysicalInterface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "password",
-          "confidence": "deterministic"
-        }
-      ],
-      "verifications": ["V-IF-S-001"]
-    },
-    {
-      "id": "M-IF-S-003",
-      "strideCategory": "S",
-      "context": {},
-      "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "Interface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "mfa",
-          "confidence": "deterministic"
-        },
-        {
-          "targetType": "PhysicalInterface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "mfa",
+          "property": "implementedControls.linkAuthentication",
+          "expectedValue": "pre_shared_key",
           "confidence": "deterministic"
         }
       ],
@@ -186,12 +144,6 @@
           "property": "implementedControls.abuseProtection",
           "expectedValue": "lockout",
           "confidence": "deterministic"
-        },
-        {
-          "targetType": "PhysicalInterface",
-          "property": "implementedControls.abuseProtection",
-          "expectedValue": "lockout",
-          "confidence": "deterministic"
         }
       ],
       "verifications": ["V-D-003"]
@@ -267,12 +219,6 @@
           "property": "implementedControls.debugProtection",
           "expectedValue": "auth_required",
           "confidence": "heuristic"
-        },
-        {
-          "targetType": "PhysicalInterface",
-          "property": "implementedControls.debugProtection",
-          "expectedValue": "auth_required",
-          "confidence": "heuristic"
         }
       ],
       "verifications": ["V-IF-DBG-001"]
@@ -285,12 +231,6 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "implementedControls.debugProtection",
-          "expectedValue": "fused_off",
-          "confidence": "deterministic"
-        },
-        {
-          "targetType": "PhysicalInterface",
           "property": "implementedControls.debugProtection",
           "expectedValue": "fused_off",
           "confidence": "deterministic"
@@ -336,12 +276,6 @@
       "affectsProperties": [
         {
           "targetType": "Interface",
-          "property": "implementedControls.monitoringControl",
-          "expectedValue": "alerted",
-          "confidence": "heuristic"
-        },
-        {
-          "targetType": "PhysicalInterface",
           "property": "implementedControls.monitoringControl",
           "expectedValue": "alerted",
           "confidence": "heuristic"

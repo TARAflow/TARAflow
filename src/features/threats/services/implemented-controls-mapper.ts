@@ -56,13 +56,21 @@ export function getImplementedMitigationHints(
       | undefined;
 
     if (controls) {
-      const lac = controls["logicalAccessControl"] as string | undefined;
-      if (lac && lac !== "none") {
+      const linkAuth = controls["linkAuthentication"] as string | undefined;
+      if (linkAuth && linkAuth !== "none") {
         if (strideCategory === "S") {
-          hints.push(mark("M-S-001", "implementedControls.logicalAccessControl", lac));
-          // Certificate, hardware_token, mfa → also marks stronger auth mitigation
-          if (["certificate", "hardware_token", "mfa"].includes(lac)) {
-            hints.push(mark("M-S-002", "implementedControls.logicalAccessControl", lac));
+          hints.push(
+            mark("M-S-001", "implementedControls.linkAuthentication", linkAuth),
+          );
+          // certificate_based, mutual_pairing → also marks stronger auth mitigation
+          if (["certificate_based", "mutual_pairing"].includes(linkAuth)) {
+            hints.push(
+              mark(
+                "M-S-002",
+                "implementedControls.linkAuthentication",
+                linkAuth,
+              ),
+            );
           }
         }
       }

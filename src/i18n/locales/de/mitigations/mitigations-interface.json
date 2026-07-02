@@ -1,7 +1,4 @@
 {
-  "M-IF-S-001": {
-    "mitigation": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)"
-  },
   "M-IF-T-001": {
     "mitigation": "Physische Manipulationserkennung und Secure Boot-Mechanismen"
   },
@@ -51,10 +48,7 @@
     "mitigation": "Wartungsfenster-Zugriffsrichtlinie durchsetzen — Schnittstelle ausserhalb Wartungsfenster automatisch deaktivieren"
   },
   "M-IF-S-002": {
-    "mitigation": "Passwort-Authentifizierung vor Schnittstellenzugriff vorschreiben"
-  },
-  "M-IF-S-003": {
-    "mitigation": "Multi-Faktor-Authentifizierung für Schnittstellenzugriff vorschreiben (CR 1.1 RE2)"
+    "mitigation": "Link-Layer-Authentisierung mit Pre-Shared Key erzwingen (z.B. WPA2/WPA3-PSK bei WiFi, Pairing-Code bei Bluetooth/NFC)"
   },
   "M-IF-DBG-001": {
     "mitigation": "Authentifizierung vor Debug-Zugang vorschreiben — verfügbare Befehle auf das erforderliche Minimum beschränken"

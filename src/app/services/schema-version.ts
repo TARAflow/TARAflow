@@ -8,4 +8,4 @@
  *   1 = Release 1 — first official version
  *   2 = Hazard phase inserted at position 1
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;

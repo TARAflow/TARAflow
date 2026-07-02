@@ -19,5 +19,8 @@
   },
   "M-S-007": {
     "mitigation": "Enforce default-deny policy at trust boundary — only explicitly permitted traffic is allowed (NDR 5.2 RE1)"
+  },
+  "M-S-008": {
+    "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
   }
 }

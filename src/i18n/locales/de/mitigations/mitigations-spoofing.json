@@ -19,5 +19,8 @@
   },
   "M-S-007": {
     "mitigation": "Default-Deny-Policy an Vertrauensgrenze durchsetzen — nur explizit erlaubter Datenverkehr ist zulässig (NDR 5.2 RE1)"
+  },
+  "M-S-008": {
+    "mitigation": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)"
   }
 }

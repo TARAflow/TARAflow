@@ -9,7 +9,7 @@ import type { ProjectSettingsData } from "features/overview";
 import type { Project } from "../models/project-types";
 import { migrateRiskData } from "features/risks";
 import { CURRENT_SCHEMA_VERSION } from "./schema-version";
-import { migrate_0_to_1, migrate_1_to_2 } from "./versions";
+import { migrate_0_to_1, migrate_1_to_2, migrate_2_to_3 } from "./versions";
 
 
 // ==================== DEFAULTS ====================
@@ -172,6 +172,11 @@ export function applyMigrations(raw: any): {
 
   if ((data.schemaVersion ?? 0) < 2) {
     data = migrate_1_to_2(data);
+    migrated = true;
+  }
+
+  if ((data.schemaVersion ?? 0) < 3) {
+    data = migrate_2_to_3(data);
     migrated = true;
   }
 

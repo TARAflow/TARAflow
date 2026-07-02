@@ -76,7 +76,7 @@ interface InterfaceGeneralTabProps {
 }
 
 // Interfaces without auth capability — no logical protocol, no authentication possible.
-// Showing logicalAccessControl or serviceAccessPolicy for these would be misleading.
+// Showing linkAuthentication or serviceAccessPolicy for non-applicable types would be misleading.
 const NO_AUTH_INTERFACES = new Set<NonNullable<InterfaceProperties["type"]>>([
   "gpio", "analog_in", "analog_out", "pwm", "spi", "i2c",
 ]);
@@ -714,56 +714,56 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
           </Typography>
 
           <Grid container rowSpacing={2} columnSpacing={2}>
-            {/* Logical Access Control */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>
-                  {t(
-                    "tabs.dfd.element_description.interface.fields.logicalAccessControl.label",
-                    { defaultValue: "Logical Access Control" },
-                  )}
-                </InputLabel>
-                <Select
-                  value={props.implementedControls?.logicalAccessControl ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange("implementedControls", {
-                      ...props.implementedControls,
-                      logicalAccessControl:
-                        (e.target.value as NonNullable<
-                          NonNullable<
-                            InterfaceProperties["implementedControls"]
-                          >["logicalAccessControl"]
-                        >) || undefined,
-                    })
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.interface.fields.logicalAccessControl.label",
-                    { defaultValue: "Logical Access Control" },
-                  )}
-                >
-                  <MenuItem value="">
-                    <em>{t("common.not_specified")}</em>
-                  </MenuItem>
-                  {(
-                    [
-                      "none",
-                      "password",
-                      "certificate",
-                      "challenge_response",
-                      "secure_pairing",
-                      "hardware_token",
-                    ] as const
-                  ).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.interface.fields.logicalAccessControl.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
+            {INTERFACE_TYPE_META[props.type ?? "custom"]?.hasLinkAuth && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.linkAuthentication.label",
+                      { defaultValue: "Link Authentication" },
+                    )}
+                  </InputLabel>
+                  <Select
+                    value={props.implementedControls?.linkAuthentication ?? ""}
+                    onChange={(e) =>
+                      form.handlePropertyChange("implementedControls", {
+                        ...props.implementedControls,
+                        linkAuthentication:
+                          (e.target.value as NonNullable<
+                            NonNullable<
+                              InterfaceProperties["implementedControls"]
+                            >["linkAuthentication"]
+                          >) || undefined,
+                      })
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.interface.fields.linkAuthentication.label",
+                      { defaultValue: "Link Authentication" },
+                    )}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified")}</em>
                     </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                    {(
+                      [
+                        "none",
+                        "pre_shared_key",
+                        "certificate_based",
+                        "pairing",
+                        "mutual_pairing",
+                      ] as const
+                    ).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.interface.fields.linkAuthentication.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
 
             {/* Service Access Policy */}
             <Grid item xs={12} sm={6}>

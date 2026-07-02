@@ -22,15 +22,12 @@
         },
         {
           "targetType": "Interface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "mfa",
+          "property": "implementedControls.linkAuthentication",
+          "expectedValue": "mutual_pairing",
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-002"
-      ]
+      "verifications": ["V-S-001", "V-S-002"]
     },
     {
       "id": "M-S-002",
@@ -53,15 +50,12 @@
         },
         {
           "targetType": "Interface",
-          "property": "implementedControls.logicalAccessControl",
-          "expectedValue": "certificate",
+          "property": "implementedControls.linkAuthentication",
+          "expectedValue": "certificate_based",
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-003"
-      ]
+      "verifications": ["V-S-001", "V-S-003"]
     },
     {
       "id": "M-S-003",
@@ -76,9 +70,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-004"
-      ]
+      "verifications": ["V-S-004"]
     },
     {
       "id": "M-S-004",
@@ -101,10 +93,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-003"
-      ]
+      "verifications": ["V-S-001", "V-S-003"]
     },
     {
       "id": "M-S-005",
@@ -127,10 +116,7 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-S-001",
-        "V-S-003"
-      ]
+      "verifications": ["V-S-001", "V-S-003"]
     },
     {
       "id": "M-S-006",
@@ -151,9 +137,7 @@
           "confidence": "heuristic"
         }
       ],
-      "verifications": [
-        "V-S-001"
-      ]
+      "verifications": ["V-S-001"]
     },
     {
       "id": "M-S-007",
@@ -168,9 +152,40 @@
           "confidence": "deterministic"
         }
       ],
-      "verifications": [
-        "V-S-001"
-      ]
+      "verifications": ["V-S-001"]
+    },
+    {
+      "id": "M-S-008",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "Process",
+          "property": "authenticatorStorage",
+          "expectedValue": "secure_element",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Process",
+          "property": "authenticatorStorage",
+          "expectedValue": "hsm",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "authenticatorStorage",
+          "expectedValue": "secure_element",
+          "confidence": "deterministic"
+        },
+        {
+          "targetType": "Multiprocess",
+          "property": "authenticatorStorage",
+          "expectedValue": "hsm",
+          "confidence": "deterministic"
+        }
+      ],
+      "verifications": ["V-IF-S-001"]
     }
   ]
 }
