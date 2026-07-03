@@ -61,10 +61,16 @@ export interface InterfaceCapability {
 export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = {
   ethernet: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
   wifi: { requiresPhysicalAccess: false, cabled: false, hasLinkAuth: true },
-  bluetooth: { requiresPhysicalAccess: false, cabled: false, hasLinkAuth: true },
-  // Proximity (~10cm) treated as non-physical-access for now — OQ1 open,
-  // see TARAflow-Interface-Refactor-Plan.md. Revisit if OQ1 resolves differently.
-  nfc: { requiresPhysicalAccess: false, cabled: false, hasLinkAuth: true },
+  bluetooth: {
+    requiresPhysicalAccess: false,
+    cabled: false,
+    hasLinkAuth: true,
+  },
+  // OQ1 resolved: NFC's ~10cm range means an attacker must be physically
+  // present at the device, so physicalAccessProtection IS applicable (physical
+  // tamper threats stand). Still not `cabled` — no conductor to shield/tap, so
+  // signalProtection stays n/a.
+  nfc: { requiresPhysicalAccess: true, cabled: false, hasLinkAuth: true },
   fiber: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
   uart: {
     requiresPhysicalAccess: true,
@@ -114,7 +120,11 @@ export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = 
   },
   gpio: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
   analog_in: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
-  analog_out: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
+  analog_out: {
+    requiresPhysicalAccess: true,
+    cabled: true,
+    hasLinkAuth: false,
+  },
   pwm: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
   touchscreen: {
     // Operating the touch surface requires physical presence at the device.

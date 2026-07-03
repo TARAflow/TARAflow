@@ -18,9 +18,9 @@ import { describe, it, expect } from "vitest";
 import {
   INTERFACE_CAPABILITY,
   isControlApplicable,
-  type InterfaceType,
   type InterfaceControlKey,
 } from "shared/models/interface-capability-registry";
+import type { InterfaceType } from "features/dfd/models/element-properties";
 import { INTERFACE_TYPE_META } from "features/dfd/models/interface-type-registry";
 
 const ALL_TYPES = Object.keys(INTERFACE_CAPABILITY) as InterfaceType[];

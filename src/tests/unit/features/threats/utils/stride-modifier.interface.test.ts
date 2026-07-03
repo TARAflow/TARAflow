@@ -27,14 +27,14 @@ function run(type?: string, extra: Partial<InterfaceModifierProps> = {}) {
 }
 
 describe("modifyInterfaceStride — T suppression (physicalAccessProtection)", () => {
-  it.each(["wifi", "bluetooth", "nfc"])(
+  it.each(["wifi", "bluetooth"])(
     "removes T for %s (requiresPhysicalAccess=false)",
     (type) => {
       expect(run(type)).not.toContain("T");
     },
   );
 
-  it.each(["uart", "ethernet", "usb", "jtag", "touchscreen", "custom"])(
+  it.each(["uart", "ethernet", "usb", "jtag", "touchscreen", "nfc", "custom"])(
     "keeps T for %s (requiresPhysicalAccess=true)",
     (type) => {
       expect(run(type)).toContain("T");

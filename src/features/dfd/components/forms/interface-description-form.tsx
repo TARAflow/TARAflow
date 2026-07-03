@@ -52,6 +52,7 @@ import {
   applyCascadeDefaults,
   buildClearPatch,
 } from "../../models/element-property-defaults";
+import { buildInterfaceControlClearPatch } from "../../models/interface-control-applicability";
 
 interface InterfaceFormProps {
   element: DFDElement;
@@ -124,11 +125,24 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
     const typeKey = value as NonNullable<InterfaceProperties["type"]>;
     const defaults = INTERFACE_TYPE_DEFAULTS[typeKey] ?? {};
     const cascaded = applyCascadeDefaults<InterfaceProperties>(props, defaults);
+    // A3 clear-rule: any implementedControls value that is no longer applicable
+    // under the new type is cleared to undefined (never "n/a" — n/a is derived,
+    // not stored). Applicability is a function of (type × control), so a value
+    // left over from the previous type would otherwise silently drive threats.
+    const controlsClearPatch = buildInterfaceControlClearPatch(
+      typeKey,
+      props.implementedControls,
+    );
+    const nextImplementedControls =
+      Object.keys(controlsClearPatch).length > 0
+        ? { ...props.implementedControls, ...controlsClearPatch }
+        : props.implementedControls;
     onChange({
       properties: {
         ...props,
         type: typeKey,
         ...cascaded,
+        implementedControls: nextImplementedControls,
       } as InterfaceProperties,
     });
   };
@@ -1099,7 +1113,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};;;
+}
 
 function groupBy<T, K extends string | number | symbol>(
   arr: T[],
