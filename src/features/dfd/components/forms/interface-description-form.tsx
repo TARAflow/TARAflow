@@ -1,5 +1,6 @@
 import {
   INTERFACE_TYPE_META,
+  isControlApplicable,
   type InterfaceTypeGroup,
 } from "../../models/interface-type-registry";
 // ==================== INTERFACE DESCRIPTION FORM ====================
@@ -75,17 +76,11 @@ interface InterfaceGeneralTabProps {
   defaultExposureLevel?: ExposureLevel;
 }
 
-// Interfaces without auth capability — no logical protocol, no authentication possible.
-// Showing linkAuthentication or serviceAccessPolicy for non-applicable types would be misleading.
-const NO_AUTH_INTERFACES = new Set<NonNullable<InterfaceProperties["type"]>>([
-  "gpio", "analog_in", "analog_out", "pwm", "spi", "i2c",
-]);
-
-// Wireless interfaces have no physical cable medium.
-// signalProtection (shielding, conduit, etc.) is not applicable.
-const WIRELESS_INTERFACES = new Set<NonNullable<InterfaceProperties["type"]>>([
-  "wifi", "bluetooth", "nfc",
-]);
+// Protocol-capable interfaces — abuseProtection (rate limiting, lockout) applies.
+// Not yet registry-driven (OQ3, Phase A2) — kept local until then.
+const ABUSE_PROTECTION_INTERFACES = new Set<
+  NonNullable<InterfaceProperties["type"]>
+>(["uart", "bluetooth", "can", "rs485", "ethernet", "wifi", "usb", "nfc"]);
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <Box sx={{ pt: 1 }}>
@@ -152,10 +147,24 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
 
   // Derived visibility flags based on interface type
   // When type is not yet set (undefined): show all fields so user can explore
+  // "Logical" section — visible if type is unset, or at least one contained
+  // field is applicable for the chosen type. Prevents an empty section header
+  // (e.g. touchscreen: none of these apply once each field is gated properly).
   const showLogicalControls =
-    props.type == null || !NO_AUTH_INTERFACES.has(props.type);
+    props.type == null ||
+    isControlApplicable(props.type, "linkAuthentication") ||
+    isControlApplicable(props.type, "serviceAccessPolicy") ||
+    isControlApplicable(props.type, "debugProtection") ||
+    isControlApplicable(props.type, "monitoringControl") ||
+    ABUSE_PROTECTION_INTERFACES.has(props.type);
+  // Physical section — driven by the registry (SSoT), not a hardcoded list.
+  const showPhysicalAccessProtection =
+    props.type == null ||
+    isControlApplicable(props.type, "physicalAccessProtection");
   const showSignalProtection =
-    props.type == null || !WIRELESS_INTERFACES.has(props.type);
+    props.type == null || isControlApplicable(props.type, "signalProtection");
+  const showPhysicalSection =
+    showPhysicalAccessProtection || showSignalProtection;
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -578,122 +587,134 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
         })}
       />
 
-      {/* ── Physical Controls ── */}
-      <Typography
-        variant="caption"
-        sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: 0.5 }}
-      >
-        {t(
-          "tabs.dfd.element_description.interface.sections.physical_controls",
-          { defaultValue: "Physical" },
-        )}
-      </Typography>
+      {showPhysicalSection && (
+        <>
+          {/* ── Physical Controls ── */}
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontWeight: 600,
+              letterSpacing: 0.5,
+            }}
+          >
+            {t(
+              "tabs.dfd.element_description.interface.sections.physical_controls",
+              { defaultValue: "Physical" },
+            )}
+          </Typography>
 
-      <Grid container rowSpacing={2} columnSpacing={2}>
-        {/* Physical Access Protection */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.interface.fields.physicalAccessProtection.label",
-                { defaultValue: "Physical Access Protection" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.implementedControls?.physicalAccessProtection ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("implementedControls", {
-                  ...props.implementedControls,
-                  physicalAccessProtection:
-                    (e.target.value as NonNullable<
-                      NonNullable<
-                        InterfaceProperties["implementedControls"]
-                      >["physicalAccessProtection"]
-                    >) || undefined,
-                })
-              }
-              label={t(
-                "tabs.dfd.element_description.interface.fields.physicalAccessProtection.label",
-                { defaultValue: "Physical Access Protection" },
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(
-                [
-                  "none",
-                  "inside_enclosure",
-                  "locked_panel",
-                  "sealed",
-                  "requires_tool",
-                  "tamper_evident",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.interface.fields.physicalAccessProtection.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Signal Protection — not applicable for wireless (no physical cable medium) */}
-        {showSignalProtection && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.interface.fields.signalProtection.label",
-                  { defaultValue: "Signal / Medium Protection" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.implementedControls?.signalProtection ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange("implementedControls", {
-                    ...props.implementedControls,
-                    signalProtection:
-                      (e.target.value as NonNullable<
-                        NonNullable<
-                          InterfaceProperties["implementedControls"]
-                        >["signalProtection"]
-                      >) || undefined,
-                  })
-                }
-                label={t(
-                  "tabs.dfd.element_description.interface.fields.signalProtection.label",
-                  { defaultValue: "Signal / Medium Protection" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>{t("common.not_specified")}</em>
-                </MenuItem>
-                {(
-                  [
-                    "none",
-                    "shielded",
-                    "twisted_pair",
-                    "fiber_optic",
-                    "isolated",
-                    "conduit_protected",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
+          <Grid container rowSpacing={2} columnSpacing={2}>
+            {/* Physical Access Protection — n/a when requiresPhysicalAccess=false (e.g. wifi) */}
+            {showPhysicalAccessProtection && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
                     {t(
-                      `tabs.dfd.element_description.interface.fields.signalProtection.options.${opt}`,
-                      { defaultValue: opt },
+                      "tabs.dfd.element_description.interface.fields.physicalAccessProtection.label",
+                      { defaultValue: "Physical Access Protection" },
                     )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  </InputLabel>
+                  <Select
+                    value={
+                      props.implementedControls?.physicalAccessProtection ?? ""
+                    }
+                    onChange={(e) =>
+                      form.handlePropertyChange("implementedControls", {
+                        ...props.implementedControls,
+                        physicalAccessProtection:
+                          (e.target.value as NonNullable<
+                            NonNullable<
+                              InterfaceProperties["implementedControls"]
+                            >["physicalAccessProtection"]
+                          >) || undefined,
+                      })
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.interface.fields.physicalAccessProtection.label",
+                      { defaultValue: "Physical Access Protection" },
+                    )}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified")}</em>
+                    </MenuItem>
+                    {(
+                      [
+                        "none",
+                        "inside_enclosure",
+                        "locked_panel",
+                        "sealed",
+                        "requires_tool",
+                        "tamper_evident",
+                      ] as const
+                    ).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.interface.fields.physicalAccessProtection.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+
+            {/* Signal Protection — n/a when cabled=false (wireless + touchscreen) */}
+            {showSignalProtection && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.signalProtection.label",
+                      { defaultValue: "Signal / Medium Protection" },
+                    )}
+                  </InputLabel>
+                  <Select
+                    value={props.implementedControls?.signalProtection ?? ""}
+                    onChange={(e) =>
+                      form.handlePropertyChange("implementedControls", {
+                        ...props.implementedControls,
+                        signalProtection:
+                          (e.target.value as NonNullable<
+                            NonNullable<
+                              InterfaceProperties["implementedControls"]
+                            >["signalProtection"]
+                          >) || undefined,
+                      })
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.interface.fields.signalProtection.label",
+                      { defaultValue: "Signal / Medium Protection" },
+                    )}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified")}</em>
+                    </MenuItem>
+                    {(
+                      [
+                        "none",
+                        "shielded",
+                        "twisted_pair",
+                        "fiber_optic",
+                        "isolated",
+                        "conduit_protected",
+                      ] as const
+                    ).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.interface.fields.signalProtection.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
           </Grid>
-        )}
-      </Grid>
+        </>
+      )}
 
       {/* ── Logical Controls — hidden for analog/GPIO/SPI/I2C (no auth capability) ── */}
       {showLogicalControls && (
@@ -765,131 +786,115 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               </Grid>
             )}
 
-            {/* Service Access Policy */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>
-                  {t(
-                    "tabs.dfd.element_description.interface.fields.serviceAccessPolicy.label",
-                    { defaultValue: "Service Access Policy" },
-                  )}
-                </InputLabel>
-                <Select
-                  value={props.implementedControls?.serviceAccessPolicy ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange("implementedControls", {
-                      ...props.implementedControls,
-                      serviceAccessPolicy:
-                        (e.target.value as NonNullable<
-                          NonNullable<
-                            InterfaceProperties["implementedControls"]
-                          >["serviceAccessPolicy"]
-                        >) || undefined,
-                    })
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.interface.fields.serviceAccessPolicy.label",
-                    { defaultValue: "Service Access Policy" },
-                  )}
-                >
-                  <MenuItem value="">
-                    <em>{t("common.not_specified")}</em>
-                  </MenuItem>
-                  {(
-                    [
-                      "always_enabled",
-                      "maintenance_only",
-                      "factory_only",
-                      "temporary_enable",
-                    ] as const
-                  ).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.interface.fields.serviceAccessPolicy.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
+            {/* Service Access Policy — n/a for integrated HMI surfaces (no gateable service state) */}
+            {isControlApplicable(
+              props.type ?? "custom",
+              "serviceAccessPolicy",
+            ) && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.serviceAccessPolicy.label",
+                      { defaultValue: "Service Access Policy" },
+                    )}
+                  </InputLabel>
+                  <Select
+                    value={props.implementedControls?.serviceAccessPolicy ?? ""}
+                    onChange={(e) =>
+                      form.handlePropertyChange("implementedControls", {
+                        ...props.implementedControls,
+                        serviceAccessPolicy:
+                          (e.target.value as NonNullable<
+                            NonNullable<
+                              InterfaceProperties["implementedControls"]
+                            >["serviceAccessPolicy"]
+                          >) || undefined,
+                      })
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.interface.fields.serviceAccessPolicy.label",
+                      { defaultValue: "Service Access Policy" },
+                    )}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified")}</em>
                     </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Debug Protection — shown only for relevant interface types */}
-            {props.type != null &&
-              (
-                [
-                  "jtag",
-                  "swd",
-                  "swd_swo",
-                  "jtag_trace",
-                  "uart",
-                  "usb",
-                ] as NonNullable<InterfaceProperties["type"]>[]
-              ).includes(props.type) && (
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>
-                      {t(
-                        "tabs.dfd.element_description.interface.fields.debugProtection.label",
-                        { defaultValue: "Debug Protection" },
-                      )}
-                    </InputLabel>
-                    <Select
-                      value={props.implementedControls?.debugProtection ?? ""}
-                      onChange={(e) =>
-                        form.handlePropertyChange("implementedControls", {
-                          ...props.implementedControls,
-                          debugProtection:
-                            (e.target.value as NonNullable<
-                              NonNullable<
-                                InterfaceProperties["implementedControls"]
-                              >["debugProtection"]
-                            >) || undefined,
-                        })
-                      }
-                      label={t(
-                        "tabs.dfd.element_description.interface.fields.debugProtection.label",
-                        { defaultValue: "Debug Protection" },
-                      )}
-                    >
-                      <MenuItem value="">
-                        <em>{t("common.not_specified")}</em>
+                    {(
+                      [
+                        "always_enabled",
+                        "maintenance_only",
+                        "factory_only",
+                        "temporary_enable",
+                      ] as const
+                    ).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.interface.fields.serviceAccessPolicy.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
                       </MenuItem>
-                      {(
-                        [
-                          "none",
-                          "auth_required",
-                          "limited_commands",
-                          "readout_protection",
-                          "fused_off",
-                        ] as const
-                      ).map((opt) => (
-                        <MenuItem key={opt} value={opt}>
-                          {t(
-                            `tabs.dfd.element_description.interface.fields.debugProtection.options.${opt}`,
-                            { defaultValue: opt },
-                          )}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              )}
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+
+            {/* Debug Protection — n/a unless debugCapable (registry SSoT) */}
+            {isControlApplicable(props.type ?? "custom", "debugProtection") && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.debugProtection.label",
+                      { defaultValue: "Debug Protection" },
+                    )}
+                  </InputLabel>
+                  <Select
+                    value={props.implementedControls?.debugProtection ?? ""}
+                    onChange={(e) =>
+                      form.handlePropertyChange("implementedControls", {
+                        ...props.implementedControls,
+                        debugProtection:
+                          (e.target.value as NonNullable<
+                            NonNullable<
+                              InterfaceProperties["implementedControls"]
+                            >["debugProtection"]
+                          >) || undefined,
+                      })
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.interface.fields.debugProtection.label",
+                      { defaultValue: "Debug Protection" },
+                    )}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified")}</em>
+                    </MenuItem>
+                    {(
+                      [
+                        "none",
+                        "auth_required",
+                        "limited_commands",
+                        "readout_protection",
+                        "fused_off",
+                      ] as const
+                    ).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.interface.fields.debugProtection.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
 
             {/* Abuse Protection — shown for protocol-capable interface types */}
             {props.type != null &&
-              (
-                [
-                  "uart",
-                  "bluetooth",
-                  "can",
-                  "rs485",
-                  "ethernet",
-                  "wifi",
-                  "usb",
-                  "nfc",
-                ] as NonNullable<InterfaceProperties["type"]>[]
-              ).includes(props.type) && (
+              ABUSE_PROTECTION_INTERFACES.has(props.type) && (
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth size="small">
                     <InputLabel>
@@ -939,55 +944,60 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                 </Grid>
               )}
 
-            {/* Monitoring Control */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>
-                  {t(
-                    "tabs.dfd.element_description.interface.fields.monitoringControl.label",
-                    { defaultValue: "Monitoring Control" },
-                  )}
-                </InputLabel>
-                <Select
-                  value={props.implementedControls?.monitoringControl ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange("implementedControls", {
-                      ...props.implementedControls,
-                      monitoringControl:
-                        (e.target.value as NonNullable<
-                          NonNullable<
-                            InterfaceProperties["implementedControls"]
-                          >["monitoringControl"]
-                        >) || undefined,
-                    })
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.interface.fields.monitoringControl.label",
-                    { defaultValue: "Monitoring Control" },
-                  )}
-                >
-                  <MenuItem value="">
-                    <em>{t("common.not_specified")}</em>
-                  </MenuItem>
-                  {(
-                    [
-                      "none",
-                      "usage_logged",
-                      "tamper_logged",
-                      "alerted",
-                      "active_response",
-                    ] as const
-                  ).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.interface.fields.monitoringControl.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
+            {/* Monitoring Control — n/a for integrated HMI surfaces (overlaps physicalAccessProtection) */}
+            {isControlApplicable(
+              props.type ?? "custom",
+              "monitoringControl",
+            ) && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>
+                    {t(
+                      "tabs.dfd.element_description.interface.fields.monitoringControl.label",
+                      { defaultValue: "Monitoring Control" },
+                    )}
+                  </InputLabel>
+                  <Select
+                    value={props.implementedControls?.monitoringControl ?? ""}
+                    onChange={(e) =>
+                      form.handlePropertyChange("implementedControls", {
+                        ...props.implementedControls,
+                        monitoringControl:
+                          (e.target.value as NonNullable<
+                            NonNullable<
+                              InterfaceProperties["implementedControls"]
+                            >["monitoringControl"]
+                          >) || undefined,
+                      })
+                    }
+                    label={t(
+                      "tabs.dfd.element_description.interface.fields.monitoringControl.label",
+                      { defaultValue: "Monitoring Control" },
+                    )}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified")}</em>
                     </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                    {(
+                      [
+                        "none",
+                        "usage_logged",
+                        "tamper_logged",
+                        "alerted",
+                        "active_response",
+                      ] as const
+                    ).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.interface.fields.monitoringControl.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
           </Grid>
         </>
       )}
@@ -1089,7 +1099,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};;
+};;;
 
 function groupBy<T, K extends string | number | symbol>(
   arr: T[],

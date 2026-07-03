@@ -19,6 +19,10 @@ import {
   TrustBoundaryProperties,
 } from "features/dfd/models/element-properties";
 import type { StrideCategory } from "shared";
+import {
+  isControlApplicable,
+  type InterfaceType,
+} from "shared/models/interface-capability-registry";
 
 export interface ProcessModifierProps {
   technology?: string;
@@ -54,7 +58,6 @@ export interface TrustBoundaryModifierProps {
 
 export interface InterfaceModifierProps {
   type?: string;
-  accessControl?: string;
   safetyRelevant?: boolean;
 }
 
@@ -208,7 +211,6 @@ export function modifyDataStoreStride(
  *   boundaryType = debug      → Add E, Add I
  *   boundaryType = boot       → Add T, Add E
  *   boundaryType = peripheral → Add T, Add S
- *   Interface type = usb + accessControl = none → Add T, Add E
  *   Interface safetyRelevant = true → Escalate T + D
  */
 export function modifyTrustBoundaryStride(
@@ -228,14 +230,39 @@ export function modifyTrustBoundaryStride(
   return result;
 }
 
+/**
+ * Modulate STRIDE for Interface / PhysicalInterface elements based on
+ * per-type control applicability (Phase A4 — see
+ * TARAflow-Interface-Refactor-Plan.md). Suppresses physically-impossible
+ * threats rather than relying on the mitigation layer to paper over them
+ * after the fact.
+ *
+ * Rules:
+ *   physicalAccessProtection n/a for this type (e.g. wifi/bluetooth/nfc)
+ *     → Skip T (no physical-tamper threat on a medium with nothing to tamper)
+ *   signalProtection n/a for this type (wireless + touchscreen)
+ *     → Skip I (no wiretap/signal-interception threat — M-IF-I-001/002)
+ *
+ * Deliberately NOT suppressed here (scope decision, see conversation):
+ *   D — M-IF-D-001/002 have no `affectsProperties`; RF jamming is a real DoS
+ *       for wireless, so blanket-skipping D would be wrong, not just narrow.
+ *   E — E-004/E-005 also carry M-E-006, unrelated to debugProtection; category-
+ *       level skip would incorrectly drop a non-debug elevation path too.
+ */
 export function modifyInterfaceStride(
   base: StrideCategory[],
   props: InterfaceModifierProps,
 ): StrideCategory[] {
   let result = [...base];
+  const type = props.type as InterfaceType | undefined;
 
-  if (props.type === "usb" && props.accessControl === "none") {
-    result = add(result, "T", "E");
+  if (type) {
+    if (!isControlApplicable(type, "physicalAccessProtection")) {
+      result = skip(result, "T");
+    }
+    if (!isControlApplicable(type, "signalProtection")) {
+      result = skip(result, "I");
+    }
   }
 
   return result;

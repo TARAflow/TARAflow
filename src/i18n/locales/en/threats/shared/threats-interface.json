@@ -26,14 +26,9 @@
       "attack": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail"
     },
     "E-004": {
-      "threat": "Interface privilege escalation — attacker uses interface to gain elevated system access",
-      "cause": "Interface provides access to privileged functions without sufficient authentication or authorization",
-      "attack": "Attacker exploits the interface to access privileged commands or bypass software-level access controls"
-    },
-    "E-005": {
-      "threat": "Interface firmware injection — attacker installs unauthorized firmware via interface",
-      "cause": "Interface accepts firmware updates without signature verification — any firmware image is accepted",
-      "attack": "Attacker uses the interface to upload malicious firmware that disables security controls or introduces a persistent backdoor"
+      "threat": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+      "cause": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+      "attack": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor"
     }
   }
 }

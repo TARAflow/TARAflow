@@ -26,14 +26,9 @@
       "attack": "Angreifer legt übermässige elektrische Eingaben oder Flutungssignale an die Schnittstelle an"
     },
     "E-004": {
-      "threat": "Schnittstellen-Rechteausweitung — Angreifer nutzt Schnittstelle um erhöhten Systemzugriff zu erlangen",
-      "cause": "Schnittstelle bietet Zugang zu privilegierten Funktionen ohne ausreichende Authentifizierung",
-      "attack": "Angreifer nutzt die Schnittstelle um privilegierte Befehle auszuführen oder Software-Zugriffskontrolle zu umgehen"
-    },
-    "E-005": {
-      "threat": "Schnittstellen-Firmware-Injektion — Angreifer installiert nicht autorisierte Firmware via Schnittstelle",
-      "cause": "Schnittstelle akzeptiert Firmware-Updates ohne Signaturprüfung",
-      "attack": "Angreifer lädt über die Schnittstelle bösartige Firmware hoch die Sicherheitskontrollen deaktiviert"
+      "threat": "Schnittstellen-Rechteausweitung — Angreifer nutzt die Schnittstelle für erhöhten Systemzugriff oder zum Einschleusen nicht autorisierter Firmware",
+      "cause": "Schnittstelle bietet Zugang zu privilegierten Funktionen ohne ausreichende Authentifizierung und akzeptiert Firmware-Updates ohne Signaturprüfung",
+      "attack": "Angreifer nutzt die Schnittstelle um privilegierte Befehle auszuführen und Zugriffskontrollen zu umgehen, oder lädt unsignierte bösartige Firmware hoch die Sicherheitskontrollen deaktiviert oder eine dauerhafte Hintertür installiert"
     }
   }
 }
