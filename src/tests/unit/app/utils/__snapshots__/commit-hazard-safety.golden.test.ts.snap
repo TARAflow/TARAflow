@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`commit-hazard-safety — SmokeDetector golden > audit snapshot of hazard-derived asset safety 1`] = `
+[
+  {
+    "aggregatedImpact": "HIGH+",
+    "id": "SY-001",
+    "physicalImpact": "irreversible_injury",
+    "physicalImpactSource": "hazard",
+  },
+]
+`;

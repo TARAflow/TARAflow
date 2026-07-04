@@ -1,0 +1,2117 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Phase 0 — AssetReference projection snapshot > SmokeDetector: id → derived impact fields 1`] = `
+[
+  {
+    "aggregatedImpact": "CRITICAL",
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-001",
+    "physicalImpact": "fatality",
+  },
+  {
+    "aggregatedImpact": "HIGH+",
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-002",
+    "physicalImpact": "fatality",
+  },
+  {
+    "aggregatedImpact": "HIGH+",
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-003",
+    "physicalImpact": "fatality",
+  },
+  {
+    "aggregatedImpact": "HIGH+",
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-004",
+    "physicalImpact": "fatality",
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-005",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-006",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-007",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "function",
+    "hasSafetyAnnotation": false,
+    "id": "FU-001",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "function",
+    "hasSafetyAnnotation": false,
+    "id": "FU-002",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "process",
+    "hasSafetyAnnotation": false,
+    "id": "PR-001",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "service",
+    "hasSafetyAnnotation": false,
+    "id": "SV-001",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "human",
+    "hasSafetyAnnotation": false,
+    "id": "HU-001",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "data",
+    "hasSafetyAnnotation": false,
+    "id": "DA-008",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "human",
+    "hasSafetyAnnotation": false,
+    "id": "HU-002",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "human",
+    "hasSafetyAnnotation": false,
+    "id": "HU-003",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "human",
+    "hasSafetyAnnotation": false,
+    "id": "HU-004",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "human",
+    "hasSafetyAnnotation": false,
+    "id": "HU-005",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "human",
+    "hasSafetyAnnotation": false,
+    "id": "HU-006",
+    "physicalImpact": undefined,
+  },
+  {
+    "aggregatedImpact": undefined,
+    "assetGroup": "system",
+    "hasSafetyAnnotation": false,
+    "id": "SY-001",
+    "physicalImpact": undefined,
+  },
+]
+`;
+
+exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an in-sync project 1`] = `
+{
+  "assetData": {
+    "assets": [
+      {
+        "aggregatedImpact": "CRITICAL",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": 3,
+          },
+          {
+            "criterionId": "operational",
+            "value": 4,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": 4,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": 1,
+          },
+          {
+            "criterionId": "safety",
+            "value": 4,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [
+          {
+            "displayId": "P-1",
+            "elementId": "P-1",
+            "elementName": "Optical Detection Controller",
+            "elementType": "Process",
+            "relationType": "creates",
+          },
+          {
+            "displayId": "DF-1",
+            "elementId": "DF-1a",
+            "elementName": "stream sensor data [stream]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+        ],
+        "name": "smoke meas data",
+        "numericId": 1,
+        "overallImpact": 4,
+        "physicalImpact": "fatality",
+        "physicalImpactRationale": "Because relations are insufficient",
+        "physicalImpactSource": "manual",
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "manual",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "rationale": "Because when it is not available it is critical.",
+            "source": "manual",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "suggested",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "aggregatedImpact": "CRITICAL",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-002",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": 3,
+          },
+          {
+            "criterionId": "operational",
+            "value": 4,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": 4,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": 3,
+          },
+          {
+            "criterionId": "safety",
+            "value": 4,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [
+          {
+            "displayId": "DS-1",
+            "elementId": "DS-1",
+            "elementName": "Flash Kalibrierparameter",
+            "elementType": "DataStore",
+            "relationType": "stores",
+          },
+          {
+            "displayId": "DF-9",
+            "elementId": "DF-2a",
+            "elementName": "pull calibration command [req_resp]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+          {
+            "displayId": "DF-2",
+            "elementId": "DF-2a2",
+            "elementName": "push calibration commands [cmd]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+          {
+            "displayId": "DF-3",
+            "elementId": "DF-10",
+            "elementName": "write calibration data",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+          {
+            "displayId": "DF-4",
+            "elementId": "DF-9",
+            "elementName": "pull calibration data [req_resp]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+        ],
+        "name": "calibration data",
+        "numericId": 2,
+        "overallImpact": 4,
+        "physicalImpact": "fatality",
+        "physicalImpactRationale": "Because relations are insufficient",
+        "physicalImpactSource": "manual",
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "low",
+            "rationale": "Data are not important",
+            "source": "manual",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "suggested",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "aggregatedImpact": "HIGH+",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-003",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": 3,
+          },
+          {
+            "criterionId": "operational",
+            "value": 4,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": 4,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": 2,
+          },
+          {
+            "criterionId": "safety",
+            "value": 4,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [
+          {
+            "displayId": "DS-3",
+            "elementId": "DS-3",
+            "elementName": "Flash: Alarm-Konfiguration",
+            "elementType": "DataStore",
+            "relationType": "stores",
+          },
+          {
+            "displayId": "DF-15",
+            "elementId": "DF-int1",
+            "elementName": "write alarm config",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+          {
+            "displayId": "DF-16",
+            "elementId": "DF-int1b",
+            "elementName": "push alarm config [cmd]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+        ],
+        "name": "alarm configuration",
+        "numericId": 3,
+        "overallImpact": 4,
+        "physicalImpact": "fatality",
+        "physicalImpactRationale": "Because relations are insufficient",
+        "physicalImpactSource": "manual",
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "low",
+            "rationale": "No important data",
+            "source": "manual",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "suggested",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "aggregatedImpact": "HIGH+",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-004",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": 3,
+          },
+          {
+            "criterionId": "operational",
+            "value": 4,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": 3,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": 4,
+          },
+          {
+            "criterionId": "safety",
+            "value": 4,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "controller firmware",
+        "numericId": 4,
+        "overallImpact": 4,
+        "physicalImpact": "fatality",
+        "physicalImpactRationale": "Because relations are insufficient",
+        "physicalImpactSource": "manual",
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "manual",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "critical",
+            "source": "manual",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-005",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "sensor firmware",
+        "numericId": 5,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "aggregatedImpact": "LOW",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-006",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [
+          {
+            "displayId": "DS-4",
+            "elementId": "DS-5",
+            "elementName": "Flash Device Config / Credentials",
+            "elementType": "DataStore",
+            "relationType": "stores",
+          },
+          {
+            "displayId": "DF-24",
+            "elementId": "DF-7",
+            "elementName": "write device config",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+        ],
+        "name": "controller credentials",
+        "numericId": 6,
+        "overallImpact": 0,
+        "physicalImpactSource": "derived",
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "aggregatedImpact": "LOW",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-007",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [
+          {
+            "displayId": "DS-4",
+            "elementId": "DS-5",
+            "elementName": "Flash Device Config / Credentials",
+            "elementType": "DataStore",
+            "relationType": "stores",
+          },
+          {
+            "displayId": "DF-34",
+            "elementId": "DF-5a",
+            "elementName": "push config [cmd]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+          {
+            "displayId": "DF-24",
+            "elementId": "DF-7",
+            "elementName": "write device config",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+          {
+            "displayId": "DF-23",
+            "elementId": "DF-7b",
+            "elementName": "pull device config [req_resp]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+        ],
+        "name": "device config",
+        "numericId": 7,
+        "overallImpact": 0,
+        "physicalImpactSource": "derived",
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "function",
+        "created": "<volatile>",
+        "id": "FU-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "smoke detection",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "function",
+        "created": "<volatile>",
+        "id": "FU-002",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "alarm trigger",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "process",
+        "created": "<volatile>",
+        "id": "PR-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "firmware update",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "service",
+        "created": "<volatile>",
+        "id": "SV-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Update Server",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Building occupants",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-008",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": 0,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [
+          {
+            "displayId": "DF-27",
+            "elementId": "DF-3",
+            "elementName": "push alarm [event]",
+            "elementType": "DataFlow",
+            "relationType": "transports",
+          },
+        ],
+        "name": "alarm event",
+        "numericId": 8,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-002",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Bediener",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+          "protectionNeed": "critical",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-003",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Service-personal",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+          "protectionNeed": "critical",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-004",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Betreiber",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+          "protectionNeed": "critical",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-005",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Unbefugte",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+          "protectionNeed": "critical",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-006",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Montage-personal",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+          "protectionNeed": "critical",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "system",
+        "created": "<volatile>",
+        "id": "SY-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "safety",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Test",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+    ],
+    "configuration": {
+      "calculationMethod": "conservative",
+      "impactCriteria": [
+        {
+          "id": "financial_damage",
+          "weight": 0.25,
+        },
+        {
+          "id": "operational",
+          "weight": 0.25,
+        },
+        {
+          "id": "regulatory_compliance",
+          "weight": 0.2,
+        },
+        {
+          "id": "recoverability",
+          "weight": 0.15,
+        },
+        {
+          "id": "safety",
+          "weight": 1,
+        },
+      ],
+      "impactScale": "4-level",
+      "roundingMethod": "round",
+    },
+    "lastModified": "<volatile>",
+  },
+  "hasChanges": true,
+  "newAssets": [],
+  "warnings": [],
+}
+`;
+
+exports[`Phase 0 — syncFromDFD characterization > cnc-ref (migrated): re-sync of an in-sync project 1`] = `
+{
+  "assetData": {
+    "assets": [
+      {
+        "aggregatedImpact": "MED",
+        "assetGroup": "data",
+        "created": "<volatile>",
+        "id": "DA-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": 1,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": 1,
+          },
+          {
+            "criterionId": "operational",
+            "value": 1,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": 1,
+          },
+          {
+            "criterionId": "physical_damage",
+            "value": 2,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Test",
+        "numericId": 1,
+        "overallImpact": 2,
+        "physicalImpactSource": "derived",
+        "properties": {
+          "description": "Test Text for asset-tab4444444",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "high",
+            "source": "manual",
+            "type": "C",
+          },
+          {
+            "enabled": false,
+            "formalDescription": "",
+            "level": "low",
+            "source": "suggested",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "high",
+            "source": "manual",
+            "type": "A",
+          },
+          {
+            "enabled": true,
+            "formalDescription": "",
+            "level": "low",
+            "source": "manual",
+            "type": "N",
+          },
+          {
+            "enabled": false,
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "enabled": false,
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "enabled": false,
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "physical",
+        "created": "<volatile>",
+        "id": "PH-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "physical_damage",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "dd",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "physical",
+        "created": "<volatile>",
+        "id": "PH-002",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "physical_damage",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "zz",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+      {
+        "assetGroup": "human",
+        "created": "<volatile>",
+        "id": "HU-001",
+        "impactRatings": [
+          {
+            "criterionId": "financial_damage",
+            "value": null,
+          },
+          {
+            "criterionId": "regulatory_compliance",
+            "value": null,
+          },
+          {
+            "criterionId": "operational",
+            "value": null,
+          },
+          {
+            "criterionId": "recoverability",
+            "value": null,
+          },
+          {
+            "criterionId": "physical_damage",
+            "value": null,
+          },
+        ],
+        "lastModified": "<volatile>",
+        "linkedDFDElements": [],
+        "name": "Einrichter",
+        "numericId": 0,
+        "overallImpact": 0,
+        "properties": {
+          "description": "",
+        },
+        "securityGoals": [
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "C",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "I",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "A",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "N",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthZ",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "AuthN",
+          },
+          {
+            "formalDescription": "",
+            "level": "none",
+            "type": "Acc",
+          },
+        ],
+        "source": "dfd",
+        "syncedWithDFD": true,
+      },
+    ],
+    "configuration": {
+      "calculationMethod": "conservative",
+      "impactCriteria": [
+        {
+          "id": "financial_damage",
+          "weight": 0.6,
+        },
+        {
+          "id": "regulatory_compliance",
+          "weight": 0.6,
+        },
+        {
+          "id": "operational",
+          "weight": 0.8,
+        },
+        {
+          "id": "recoverability",
+          "weight": 0.8,
+        },
+        {
+          "id": "physical_damage",
+          "weight": 0.3,
+        },
+      ],
+      "impactScale": "4-level",
+      "roundingMethod": "round",
+    },
+    "lastModified": "<volatile>",
+    "validation": {
+      "errors": [
+        "tabs.assets.validation.noSecurityGoal:SY-001",
+        "tabs.assets.validation.noSecurityGoal:DA-002",
+      ],
+      "isComplete": false,
+      "lastValidated": "2026-03-20T19:38:36.703Z",
+      "warnings": [
+        "tabs.assets.validation.unratedImpact:SY-001",
+        "tabs.assets.validation.unratedImpact:DA-002",
+      ],
+    },
+  },
+  "hasChanges": false,
+  "newAssets": [],
+  "warnings": [],
+}
+`;
