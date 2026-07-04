@@ -34,6 +34,18 @@
       ],
       "category": "Utility"
     },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
     "files": [
       "dist/**",
       "dist-electron/**",

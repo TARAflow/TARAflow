@@ -1,0 +1,121 @@
+# .github/workflows/release.yml
+#
+# Release build: on a version tag (v*), build the Electron installers on each
+# platform and attach them to a GitHub Release.
+#   - Linux  → .deb + .AppImage
+#   - Windows → NSIS .exe installer
+#
+# No code signing (alpha). Windows SmartScreen will show "unknown publisher";
+# expected for an unsigned alpha. A signing step can be inserted later before
+# `build:electron` without restructuring this workflow.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*" # v0.5.0-alpha, v0.5.0, v1.0.0-beta.1, ...
+
+# Needed so the last job can create the GitHub Release and upload assets.
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Build installers on each OS. Artifacts are uploaded per-OS, then the
+  #    release job collects them. electron-builder runs on the NATIVE OS for
+  #    each target (no cross-compilation) — this is why keytar's native module
+  #    builds correctly for each platform.
+  # ---------------------------------------------------------------------------
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Sanity gate: never cut a release from a red tree. Runs the same checks
+      # as CI before spending time on the (slow) installer build.
+      - name: Type-check + web build
+        run: npm run build
+
+      - name: Run tests
+        run: npm test -- --run
+
+      # electron-builder reads the "build" block in package.json. On Linux it
+      # emits deb + AppImage; on Windows, the nsis installer. GH_TOKEN lets
+      # electron-builder skip its own publish step — we upload manually below
+      # so we control the release in one place.
+      - name: Build installers
+        run: npm run build:electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Force electron-builder to NOT auto-publish; we do it in the release job.
+          EP_PRE_RELEASE: "true"
+
+      # Collect only the distributable installer files, not the unpacked build
+      # tree. Globs are matched per-OS; missing patterns on the "wrong" OS are
+      # simply skipped by upload-artifact.
+      - name: Upload installers (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-linux
+          path: |
+            release/*.deb
+            release/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload installers (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-windows
+          path: |
+            release/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 2) Collect all installers and publish a single GitHub Release.
+  # ---------------------------------------------------------------------------
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          # No `name:` → downloads every artifact from this run into subdirs.
+
+      - name: List collected files
+        run: find artifacts -type f | sort
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Tag name (e.g. v0.5.0-alpha) is taken from the pushed ref.
+          # Mark as prerelease automatically for -alpha / -beta / -rc tags.
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/**/*.deb
+            artifacts/**/*.AppImage
+            artifacts/**/*.exe
