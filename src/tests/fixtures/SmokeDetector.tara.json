@@ -32122,10 +32122,10 @@
         "authMethod": "pat",
         "baseUrl": "https://example-team.atlassian.net",
         "email": "test.user@example.com",
-        "accountId": "70121:4fc01a1a-71da-42b3-b958-a6a243a1451c",
+        "accountId": "70121:00000000-0000-0000-0000-000000000000",
         "projectKey": "SCRUM"
       },
-      "lastTested": "2026-06-01T12:12:33.466Z",
+      "lastTested": "2026-01-01T00:00:00.000Z",
       "projectName": "SCRUM"
     },
     "mapping": {
@@ -32142,5 +32142,5 @@
   },
   "isOpen": true,
   "hasUnsavedChanges": false,
-  "filePath": "/home/user/tmp/SmokeDetector.tara.json"
+  "filePath": null
 }
