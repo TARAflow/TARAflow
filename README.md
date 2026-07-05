@@ -1,4 +1,4 @@
-# TARAflow 1.0
+# TARAflow 0.5.1
 ### A Semi-automated Threat Modeling Tool for threat analysis and risk assesment
 
 ## Description

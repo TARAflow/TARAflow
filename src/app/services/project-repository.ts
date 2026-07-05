@@ -43,10 +43,12 @@ function isElectron(): boolean {
  * - DFD graph: large computed object, rebuilt on load
  * - hasUnsavedChanges: UI-only flag, meaningless on disk
  */
-function prepareForDisk(project: Project): Omit<Project, "hasUnsavedChanges"> {
-  // Destructure out UI-only fields so they are not written to disk.
+function prepareForDisk(
+  project: Project,
+): Omit<Project, "hasUnsavedChanges" | "filePath"> {
+  // Destructure out UI-only / runtime-only fields so they are not written to disk.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { hasUnsavedChanges, ...rest } = project;
+  const { hasUnsavedChanges, filePath, ...rest } = project;
   return {
     ...rest,
     dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,

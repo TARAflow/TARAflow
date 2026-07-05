@@ -94,7 +94,7 @@ export interface Project {
   audit: AuditData | null; // Git/Version Control
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
-  filePath?: string; // Path to .tara.json file (Electron mode)
+  filePath?: string; // Runtime-only (Electron). Stripped by prepareForDisk() before write — never persisted.
 }
 
 // ==================== INPUT TYPES ====================
