@@ -6,8 +6,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: ["./tests/setup-tests.ts"],
-    include: ["src/tests/unit/**/*.test.ts", "src/tests/unit/**/*.test.tsx"],
+    setupFiles: ["src/tests/setup-tests.ts"],
+    include: [
+      "src/tests/unit/**/*.test.ts",
+      "src/tests/unit/**/*.test.tsx",
+      "taraflow-reporter/tests/**/*.test.ts",
+    ],
     exclude: ["src/app/app.test.tsx", "node_modules/**"],
     alias: {
       app: "/src/app",

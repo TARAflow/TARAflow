@@ -1,0 +1,16 @@
+FROM debian:13-slim
+
+# apt-Quellen für Debians eigenes nodejs-Paket sind hier schon Standard —
+# keine NodeSource-Fremdquelle nötig, siehe unsere Recherche vorhin.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY release/tara-report_0.5.1-alpha_amd64.deb /tmp/
+
+# apt löst "Depends: nodejs" aus dem .deb automatisch auf, solange
+# die Paketquellen (apt-get update oben) verfügbar sind.
+RUN apt-get update && apt-get install -y /tmp/tara-report_0.5.1-alpha_amd64.deb \
+    && rm -rf /var/lib/apt/lists/* /tmp/*.deb
+
+ENTRYPOINT ["taraflow-report"]

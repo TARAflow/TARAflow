@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2021"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["bin", "cli", "src"],
+  "exclude": ["node_modules", "dist", "dist-electron", "electron"]
+}

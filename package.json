@@ -1,12 +1,15 @@
 {
   "name": "taraflow",
-  "version": "0.5.1-alpha",
+  "version": "0.6.0-alpha",
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
   "description": "TARAflow App – Threat Analysis and Risk Assessment app build",
   "author": "Juergen M. <1004272+messi1@users.noreply.github.com>",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -19,7 +22,10 @@
     "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron . --inspect=5858\"",
     "build:electron": "npm run build && npm run build:electron-dev && electron-builder",
     "build:electron:clean": "rm -rf dist dist-electron release && npm run build:electron",
-    "inline:shapes": "node scripts/inline-shapes.cjs"
+    "inline:shapes": "node scripts/inline-shapes.cjs",
+    "report:cli": "tsx --tsconfig tsconfig.cli.json taraflow-reporter/taraflow-report.ts",
+    "build:cli": "esbuild taraflow-reporter/taraflow-report.ts --bundle --platform=node --format=esm --external:@resvg/resvg-js --external:pdfmake --alias:app=./src/app --alias:features=./src/features --alias:shared=./src/shared --alias:i18n=./src/i18n --outfile=dist-cli/taraflow-report.js && chmod +x dist-cli/taraflow-report.js && cp taraflow-reporter/packaging/runtime-package.json dist-cli/package.json && npm install --omit=dev --prefix dist-cli",
+    "package:cli:deb": "npm run build:cli && nfpm package --config taraflow-reporter/packaging/nfpm.yaml --packager deb --target ./release/"
   },
   "build": {
     "appId": "com.taraflow.app",
@@ -70,6 +76,7 @@
     "@mui/icons-material": "5.16.6",
     "@mui/material": "5.16.0",
     "@mui/x-data-grid": "6.20.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/pdfmake": "^0.2.12",
     "@uiw/react-codemirror": "^4.25.4",
     "ajv": "8.17.1",
@@ -100,13 +107,17 @@
     "@testing-library/react": "14.1.2",
     "@types/d3": "^7.4.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.11.10",
+    "@types/node": "^24.0.0",
     "@types/papaparse": "^5.5.2",
     "@vitejs/plugin-react": "4.2.1",
     "concurrently": "^9.2.1",
+    "dependency-cruiser": "^18.0.0",
     "electron": "^39.2.7",
     "electron-builder": "^26.4.0",
+    "esbuild": "^0.28.1",
     "i18next-parser": "^9.3.0",
+    "jsdom": "^29.1.1",
+    "tsx": "^4.23.0",
     "typescript": "5.3.3",
     "vite": "5.0.10",
     "vitest": "1.2.2",

@@ -32,7 +32,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
       # npm ci = clean, lockfile-exact install. Fails if package-lock.json is
@@ -45,5 +45,22 @@ jobs:
 
       - name: Run tests
         run: npm test -- --run
-        # `vitest` defaults to watch mode; --run forces a single pass and a
-        # proper exit code for CI.
+
+      # Phase 7 guardrail: fails the build if anything in the generation
+      # path imports a feature barrel, react, @mui, or a window-coupled
+      # module. Severity is already "error" in the config (see Phase 1).
+      - name: Purity boundary check (dependency-cruiser)
+        run: npx depcruise --config utils/depcruise-doc.cjs --output-type err-long src/features/documentation/utils
+
+      # Phase 7 smoke test: build the CLI bundle and run it against the
+      # fixture project exactly as a real user would. Linux-only because
+      # the shell check below (test -s) isn't portable to Windows runners;
+      # the underlying esbuild/node pipeline itself is cross-platform.
+      - name: CLI smoke test (build + run against fixture)
+        if: runner.os == 'Linux'
+        run: |
+          npm run build:cli
+          node dist-cli/taraflow-report.js src/tests/fixtures/Simple_Test_Project.tara.json --format markdown --out /tmp/ci-report.md
+          test -s /tmp/ci-report.md
+       # `vitest` defaults to watch mode; --run forces a single pass and a
+       # proper exit code for CI.

@@ -3,11 +3,14 @@
 // No I/O, no storage — pure data transformation.
 // Imported by ProjectRepository; never by UI components directly.
 
-import { migrateProjectTags, EMPTY_PROJECT_TAGS } from "shared";
+import {
+  migrateProjectTags,
+  EMPTY_PROJECT_TAGS,
+} from "../../shared/models/project-tags";
 import type { PhaseStatus, PhaseStatusMap } from "shared";
 import type { ProjectSettingsData } from "features/overview";
 import type { Project } from "../models/project-types";
-import { migrateRiskData } from "features/risks";
+import { migrateRiskData } from "../../features/risks/models/risk-assessment-types";
 import { CURRENT_SCHEMA_VERSION } from "./schema-version";
 import { migrate_0_to_1, migrate_1_to_2, migrate_2_to_3 } from "./versions";
 

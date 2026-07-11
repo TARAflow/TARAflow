@@ -1,0 +1,44 @@
+# nfpm.yaml
+# Baut ein schlankes .deb für die TARAflow-Report-CLI — kein Electron,
+# keine GUI, nur node + das esbuild-Bundle aus `npm run build:cli`.
+#
+# Installation von nfpm selbst (einmalig, Host-Tool, keine Projekt-Dependency):
+#   npm install -g @goreleaser/nfpm
+#
+# Verwendung (vom Repo-Root aus):
+#   npm run build:cli
+#   nfpm package --config taraflow-reporter/packaging/nfpm.yaml --packager deb --target ./release/
+
+name: "tara-report"
+arch: "amd64"
+platform: "linux"
+version: "0.6.0-alpha"
+maintainer: "Juergen M. <1004272+messi1@users.noreply.github.com>"
+description: |
+  TARAflow headless report generator (CLI). Generates threat/risk
+  documentation from .tara.json project files without the TARAflow
+  desktop app.
+homepage: "https://github.com/messi1/TARAflow"
+license: "GPL-3.0-or-later"
+
+depends:
+  - nodejs
+
+contents:
+  - src: ./dist-cli/taraflow-report.js
+    dst: /usr/lib/tara-report/taraflow-report.js
+    file_info:
+      mode: 0644
+
+  # @resvg/resvg-js ist eine native Bibliothek (kompilierte .node-Datei) —
+  # esbuild kann sie nicht ins Bundle einbetten (siehe build:cli-Script:
+  # --external:@resvg/resvg-js + Kopier-Schritt nach dist-cli/node_modules).
+  # Node löst require("@resvg/resvg-js") automatisch auf, weil dieser
+  # Ordner direkt neben taraflow-report.js liegt — kein NODE_PATH nötig.
+  - src: ./dist-cli/node_modules
+    dst: /usr/lib/tara-report/node_modules
+
+  - src: ./taraflow-reporter/packaging/tara-report-wrapper.sh
+    dst: /usr/bin/taraflow-report
+    file_info:
+      mode: 0755

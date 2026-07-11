@@ -15,15 +15,19 @@ import {
   getClassificationText,
   getCriticalityText,
 } from "../../models/doc-types";
-import type { DFDElement, DFDConnection, DFDElementType } from "features/dfd";
+import type {
+  DFDElement,
+  DFDConnection,
+  DFDElementType,
+} from "../../../dfd/models/dfd-types";
 import type { Asset } from "features/assets";
-import { deriveImplementationProgress } from "features/risks";
+import { deriveImplementationProgress } from "../../../risks/models/risk-mitigation-types";
 import {
   getSecurityLevelText,
   getTrustLevelText,
   getDFDElementTypeText,
   getDFDElementTypePluralText,
-} from "features/dfd";
+} from "../../../dfd/models/dfd-formatters";
 import {
   replacePlaceholders,
   processConditionals,
@@ -36,7 +40,11 @@ import {
 // - Relative: "../../../../shared/utils/tag-categories"
 // - Alias: "@/shared/utils/tag-categories" or "@shared/utils/tag-categories"
 // - Barrel: "shared" (if shared/index.ts exports it)
-import { TAG_CATEGORIES, flattenProjectTags, getRegulationTags } from "shared";
+import {
+  TAG_CATEGORIES,
+  getRegulationTags,
+} from "../../../../shared/utils/tag-categories";
+import { flattenProjectTags } from "../../../../shared/models/project-tags";
 import {
   getElementSecurityLevel,
   getElementTrustLevel,
@@ -60,7 +68,7 @@ import {
 import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
-} from "features/threats";
+} from "../../../threats/services/threat-catalog-service";
 
 // ==================== TYPES ====================
 

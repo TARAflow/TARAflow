@@ -1,0 +1,9 @@
+{
+  "name": "tara-report-runtime-deps",
+  "private": true,
+  "description": "Runtime-only dependencies esbuild cannot bundle (native modules, or modules loaded via createRequire instead of static import — see pdf-generator-node.ts for why). Installed into dist-cli/node_modules by build:cli via `npm install --prefix dist-cli`, so npm resolves the full transitive dependency tree correctly instead of us manually guessing/copying individual folders.\n\nMAINTENANCE: keep these version ranges in sync with the matching entries in the root package.json when bumping either.",
+  "dependencies": {
+    "pdfmake": "^0.3.2",
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}
