@@ -78,10 +78,31 @@ export function batchParseAndValidate(
 }
 
 /**
- * Check if tree needs parsing (no AST present)
+ * Check whether a tree must be (re-)parsed before it can be used.
+ *
+ * Two cases:
+ *
+ * 1. No AST — the tree was never parsed (freshly loaded from DSL).
+ *
+ * 2. Legacy pathAnalysis — the tree was persisted BEFORE AttackPath carried a
+ *    stable `pathKey` (see attacktree-path-identity.ts). Its AST is present, so
+ *    case 1 would not fire and the stale pathAnalysis would be served as-is,
+ *    with `pathKey: undefined` on every path despite the type saying otherwise
+ *    (TypeScript cannot see across the JSON boundary). Anything keying off
+ *    pathKey — the threat generator, Class A/B diffing — would then collapse
+ *    every path onto the same undefined key.
+ *
+ *    Re-parsing recomputes pathAnalysis and fills the keys in. This makes the
+ *    migration self-healing: no schema version bump, no migration script, and
+ *    a project saved once by the new version is clean from then on.
  */
 export function needsParsing(tree: AttackTree): boolean {
-  return !tree.ast;
+  if (!tree.ast) return true;
+
+  const paths = tree.pathAnalysis?.paths;
+  if (paths && paths.length > 0 && !paths[0].pathKey) return true;
+
+  return false;
 }
 
 /**

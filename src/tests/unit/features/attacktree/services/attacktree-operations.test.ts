@@ -230,3 +230,71 @@ describe("tree collection operations", () => {
     expect(attackTreeOperations.countValidTrees([good, bad])).toBe(1);
   });
 });
+
+describe("needsParsing — legacy pathAnalysis migration", () => {
+  it("REGRESSION: a tree persisted before pathKey existed is re-parsed", () => {
+    // Projects saved by v0.5 have an AST *and* a pathAnalysis, so the old
+    // `!tree.ast` check would say "no parsing needed" and hand back paths whose
+    // pathKey is undefined — despite the type promising a string. Everything
+    // keyed off pathKey (threat ids, Class A/B diff) would then collapse onto
+    // one undefined key.
+    const project = makeProjectData();
+    const tree = attackTreeOperations.createTreeFromTemplate(
+      "template-confidentiality",
+      ASSET_ANCHOR,
+      project,
+    )!;
+
+    // Simulate a project loaded from a pre-Phase-1 .tara.json: AST present,
+    // pathAnalysis present, but the paths carry no pathKey.
+    const legacy: AttackTree = {
+      ...tree,
+      pathAnalysis: {
+        ...tree.pathAnalysis!,
+        paths: tree.pathAnalysis!.paths.map((p) => {
+          const { pathKey: _dropped, ...withoutKey } = p;
+          return withoutKey as typeof p;
+        }),
+      },
+    };
+
+    expect(attackTreeOperations.needsParsing(legacy)).toBe(true);
+
+    // ...and re-parsing heals it.
+    const healed = attackTreeOperations.parseAndValidateTree(
+      legacy,
+      legacy.dsl,
+      project,
+    );
+    expect(healed.pathAnalysis!.paths.every((p) => !!p.pathKey)).toBe(true);
+  });
+
+  it("a tree already carrying pathKeys is not re-parsed", () => {
+    const tree = attackTreeOperations.createTreeFromTemplate(
+      "template-confidentiality",
+      ASSET_ANCHOR,
+      makeProjectData(),
+    )!;
+
+    expect(tree.pathAnalysis!.paths.every((p) => !!p.pathKey)).toBe(true);
+    expect(attackTreeOperations.needsParsing(tree)).toBe(false);
+  });
+
+  it("a tree with no paths at all is not re-parsed on that account", () => {
+    // An empty-but-valid tree must not be forced into a re-parse loop.
+    const tree = attackTreeOperations.createParsedTree(
+      ASSET_ANCHOR,
+      {},
+      makeProjectData(),
+    );
+    const noPaths: AttackTree = {
+      ...tree,
+      pathAnalysis: { ...tree.pathAnalysis!, paths: [] },
+    };
+
+    expect(attackTreeOperations.needsParsing(noPaths)).toBe(false);
+  });
+});
+
+
+

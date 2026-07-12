@@ -423,7 +423,26 @@ export interface AttackTreeValidation {
 // ==================== PATH ANALYSIS ====================
 
 export interface AttackPath {
+  /**
+   * Enumeration label ("path-1", "path-2", ...). DISPLAY ONLY.
+   *
+   * NOT an identity: it is assigned in traversal order, so inserting one DSL
+   * line renumbers every subsequent path. Never persist it, never key an
+   * assessment off it. Use `pathKey`.
+   */
   id: string;
+
+  /**
+   * Stable identity, derived from the ROOT→leaf node-name chain
+   * (see services/attacktree-path-identity.ts).
+   *
+   * Survives sibling insertion, branch reordering and reformatting; changes
+   * when a node on the path is renamed (which is a different scenario and must
+   * be re-assessed). This is the key an analyst's confirm/dismiss decision,
+   * risk rating and Jira link hang on.
+   */
+  pathKey: string;
+
   path: string[];
   nodeIds: string[];
   riskScore: number;

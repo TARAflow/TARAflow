@@ -13,6 +13,7 @@ import {
   LikelihoodExport,
   ATTACK_GOAL_TO_STRIDE,
 } from "../models/attacktree-types";
+import { computePathKey } from "./attacktree-path-identity";
 
 // ==================== RISK SCORE CALCULATION ====================
 
@@ -206,7 +207,10 @@ export function extractAllPaths(
       }
 
       paths.push({
-        id: "path-" + (++pathIdCounter),
+        // Display label only — renumbers on any structural edit.
+        id: "path-" + ++pathIdCounter,
+        // Stable identity — this is what assessments key off.
+        pathKey: computePathKey(path),
         path: path,
         nodeIds: nodeIds,
         riskScore: node.riskScore || 0,
