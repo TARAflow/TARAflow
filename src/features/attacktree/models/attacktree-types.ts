@@ -68,10 +68,82 @@ export interface DFDElementReference {
   name: string;
 }
 
+/**
+ * Mitigation lifecycle status.
+ *
+ * Mirrors MitigationStatus from features/risks/models/risk-mitigation-types.ts.
+ * Duplicated locally (not imported) to preserve the attack-tree module's weak
+ * coupling: cross-feature data only ever arrives pre-extracted via the adapter
+ * layer (extractMitigationReferences), never through direct type imports.
+ * Keep this union in sync with the Risk feature.
+ */
+export type MitigationVerificationStatus =
+  | "open"
+  | "in_progress"
+  | "in_review"
+  | "implemented"
+  | "verified"
+  | "rejected";
+
 export interface MitigationReference {
   id: string;
   description?: string;
+
+  /**
+   * Verification/implementation status, mirrored read-only from the Risk tab
+   * (Risk.selectedMitigations[].status). Undefined = the mitigation is
+   * referenced in the DSL but not tracked in any risk yet.
+   */
+  status?: MitigationVerificationStatus;
+
+  /** Linked Jira/ADO ticket key (e.g. "SCRUM-42"), mirrored from the Risk tab. */
+  ticketId?: string;
+
+  /** Direct URL to the linked ticket, mirrored from the Risk tab. */
+  ticketUrl?: string;
 }
+
+/**
+ * UI display config for a verification status (label/color/icon).
+ * Mirrors MITIGATION_STATUS_CONFIGS from the Risk feature so the attack-tree
+ * table renders identical chips without importing from features/risks.
+ */
+export const MITIGATION_VERIFICATION_DISPLAY: Record<
+  MitigationVerificationStatus,
+  { label: string; labelDE: string; color: string; icon: string }
+> = {
+  open: { label: "Open", labelDE: "Offen", color: "#9ca3af", icon: "⚪" },
+  in_progress: {
+    label: "In Progress",
+    labelDE: "In Arbeit",
+    color: "#3b82f6",
+    icon: "🔵",
+  },
+  in_review: {
+    label: "In Review",
+    labelDE: "In Prüfung",
+    color: "#8b5cf6",
+    icon: "🟣",
+  },
+  implemented: {
+    label: "Implemented",
+    labelDE: "Umgesetzt",
+    color: "#22c55e",
+    icon: "🟢",
+  },
+  verified: {
+    label: "Verified",
+    labelDE: "Verifiziert",
+    color: "#16a34a",
+    icon: "✅",
+  },
+  rejected: {
+    label: "Rejected",
+    labelDE: "Abgelehnt",
+    color: "#ef4444",
+    icon: "🔴",
+  },
+};
 
 // ==================== ANCHOR SYSTEM ====================
 

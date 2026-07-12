@@ -50,8 +50,15 @@ export function parseAttackTree(
         continue;
       }
 
-      // Get indentation level (tabs)
-      const level = line.match(/^\t*/)?.[0].length || 0;
+      // Get indentation level. Tabs are the primary unit (see
+      // attacktree-editor.tsx, which now inserts literal tabs). As a
+      // fallback for pasted content that lost its tabs, treat every 2
+      // leading spaces as one level so a stray paste doesn't collapse
+      // the whole subtree onto ROOT's level.
+      const leadingWhitespace = line.match(/^[\t ]*/)?.[0] || "";
+      const level = leadingWhitespace.includes("\t")
+        ? (leadingWhitespace.match(/\t/g) || []).length
+        : Math.floor(leadingWhitespace.length / 2);
 
       // Parse line
       const parseResult = parseLine(line, lineNumber, method);

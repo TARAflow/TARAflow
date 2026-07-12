@@ -29,6 +29,7 @@ import {
   AttackTreeNode,
   PathAnalysis,
   EvaluationMethod,
+  MitigationReference,
   calculateRiskLevel,
   getNodeTypeColor,
   getRiskScoreEmoji,
@@ -44,6 +45,8 @@ interface AttackTreePreviewProps {
   pathAnalysis: PathAnalysis | undefined;
   evaluationMethod: EvaluationMethod;
   highlightCriticalPath: boolean;
+  /** Mitigation id → reference (status/ticket), mirrored from the Risk tab. */
+  mitigationLookup?: Map<string, MitigationReference>;
   onNodeSelect?: (node: AttackTreeNode) => void;
 }
 
@@ -60,6 +63,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
   pathAnalysis,
   evaluationMethod,
   highlightCriticalPath,
+  mitigationLookup,
   onNodeSelect,
 }) => {
   const { t, i18n } = useTranslation();
@@ -587,6 +591,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
             <AttackTreeTableView
               pathAnalysis={pathAnalysis}
               evaluationMethod={evaluationMethod}
+              mitigationLookup={mitigationLookup}
             />
           )
         )}

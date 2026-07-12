@@ -39,6 +39,7 @@ import {
 import {
   AttackTree,
   AttackTreeProjectData,
+  MitigationReference,
   AttackTreeUpdateResult,
   AttackTreeTabProps,
   SecurityGoalType,
@@ -175,6 +176,7 @@ interface AttackTreeEditorViewProps {
   editorWidthPercent: number;
   handleDslChange: (dsl: string) => void;
   toggleEditorCollapsed: () => void;
+  mitigationLookup: Map<string, MitigationReference>;
 }
 
 const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
@@ -185,6 +187,7 @@ const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
     editorWidthPercent,
     handleDslChange,
     toggleEditorCollapsed,
+    mitigationLookup,
   }) => {
     // Memoize validation errors to prevent new array on every render
     const validationErrors = React.useMemo(
@@ -224,6 +227,7 @@ const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
             highlightCriticalPath={
               selectedTree.configuration.highlightCriticalPath
             }
+            mitigationLookup={mitigationLookup}
             onNodeSelect={() => {}}
           />
         </Box>
@@ -255,6 +259,21 @@ const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
     const prevValidation = prevProps.selectedTree.validation?.errors || [];
     const nextValidation = nextProps.selectedTree.validation?.errors || [];
     if (JSON.stringify(prevValidation) !== JSON.stringify(nextValidation)) {
+      return false;
+    }
+
+    // Re-render if the mirrored mitigation lookup changed (memoized upstream,
+    // so a new reference means the underlying risk data changed).
+    if (prevProps.mitigationLookup !== nextProps.mitigationLookup) {
+      return false;
+    }
+
+    // Re-render if path analysis identity changed (e.g. after re-parse), so
+    // the table picks up new/removed mitigation ids.
+    if (
+      prevProps.selectedTree.pathAnalysis !==
+      nextProps.selectedTree.pathAnalysis
+    ) {
       return false;
     }
 
@@ -343,6 +362,17 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   const treeGroups = useMemo(() => {
     return groupTrees(attackTreeData.trees, project.assets, project.threats);
   }, [attackTreeData.trees, project.assets, project.threats]);
+
+  // Case-insensitive lookup of mitigation id → reference (status/ticket/text),
+  // mirrored from the Risk tab. Passed down to the table so it can show
+  // verification per M-xxx. Built once here rather than per-row.
+  const mitigationLookup = useMemo(() => {
+    const map = new Map<string, (typeof project.mitigations)[number]>();
+    project.mitigations.forEach((m) => {
+      map.set(m.id.toUpperCase(), m);
+    });
+    return map;
+  }, [project.mitigations]);
 
   const isCriticalWorkflow = project.isHighImpact;
 
@@ -793,6 +823,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             editorWidthPercent={editorWidthPercent}
             handleDslChange={handleDslChange}
             toggleEditorCollapsed={toggleEditorCollapsed}
+            mitigationLookup={mitigationLookup}
           />
         )}
       </Box>
@@ -874,6 +905,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       )}
     </Box>
   );
-};;
+};;;
 
 export default AttackTreeTab;

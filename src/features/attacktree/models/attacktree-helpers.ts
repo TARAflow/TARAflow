@@ -135,99 +135,124 @@ export function extractDFDElementReferences(project: Project): DFDElementReferen
 }
 
 /**
- * Extract mitigation references from project
+ * Extract mitigation references from project.
+ *
+ * The Risk tab is the single source of truth for verification: each
+ * Risk.selectedMitigations[] entry carries the lifecycle status (open …
+ * verified) and any linked Jira/ADO ticket. We mirror that here (read-only)
+ * so the attack-tree table can show verification per M-xxx without owning or
+ * duplicating the state.
+ *
+ * Discovery order per mitigation id:
+ *   1. Risk.selectedMitigations → status + ticket + resolved text (SSoT)
+ *   2. Threat.proposedMitigations → text only, status stays undefined
+ *      (referenced in a threat but not yet tracked in any risk)
+ *
+ * Undefined status = "referenced but not tracked" and the table renders it
+ * as such, rather than implying it's open/unverified.
  */
-export function extractMitigationReferences(project: Project): MitigationReference[] {
-  const mitigationSet: { [key: string]: boolean } = {};
-  const mitigations: MitigationReference[] = [];
+export function extractMitigationReferences(
+  project: Project,
+): MitigationReference[] {
+  // Keyed by UPPERCASE id so lookups are case-insensitive, but we keep the
+  // first-seen original id casing for display.
+  const byId: { [key: string]: MitigationReference } = {};
+  const order: string[] = [];
 
-  function extractFromMitigation(mitigation: string | undefined): void {
-    if (!mitigation) return;
-
-    // Mitigations may be comma-separated
-    var parts = mitigation.split(/[,;]/).map(function(m) { return m.trim(); });
-    parts.forEach(function(mid) {
-      if (mid && !mitigationSet[mid.toUpperCase()]) {
-        mitigationSet[mid.toUpperCase()] = true;
-        mitigations.push({
-          id: mid,
-          description: undefined,
-        });
+  function upsert(
+    rawId: string | undefined,
+    patch: Partial<MitigationReference>,
+  ): void {
+    if (!rawId) return;
+    // Ids may still arrive comma/semicolon-separated from free-text fields.
+    const parts = rawId.split(/[,;]/).map(function (m) {
+      return m.trim();
+    });
+    parts.forEach(function (mid) {
+      if (!mid) return;
+      const key = mid.toUpperCase();
+      if (!byId[key]) {
+        byId[key] = { id: mid };
+        order.push(key);
+      }
+      const existing = byId[key];
+      // Only fill fields that aren't already set — the SSoT (risks) is
+      // processed first, so it wins over the threat-based fallback.
+      if (
+        existing.description === undefined &&
+        patch.description !== undefined
+      ) {
+        existing.description = patch.description;
+      }
+      if (existing.status === undefined && patch.status !== undefined) {
+        existing.status = patch.status;
+      }
+      if (existing.ticketId === undefined && patch.ticketId !== undefined) {
+        existing.ticketId = patch.ticketId;
+      }
+      if (existing.ticketUrl === undefined && patch.ticketUrl !== undefined) {
+        existing.ticketUrl = patch.ticketUrl;
       }
     });
   }
 
-  // Extract from threats
-  if (project.threats) {
-    if (project.threats.perElementTables) {
-      project.threats.perElementTables.forEach(function(table) {
-        table.threats.forEach(function(threat) {
-          (threat.proposedMitigations ?? []).forEach((m) =>
-            extractFromMitigation(m.id ?? m.notes),
-          );
+  // ── 1. SSoT: Risk.selectedMitigations (status + ticket + text) ────────────
+  if (project.risks && project.risks.risks) {
+    project.risks.risks.forEach(function (risk) {
+      (risk.selectedMitigations ?? []).forEach(function (sm) {
+        // Resolve display text from the risk's proposedMitigations drafts,
+        // which are already populated from the threat catalog at sync time.
+        const draft = (risk.proposedMitigations ?? []).find(function (d) {
+          return d.id === sm.id;
         });
-      });
-    }
+        const text = draft
+          ? draft.isCustom
+            ? draft.notes
+            : draft.text
+          : sm.notes;
 
-    if (project.threats.perInteractionTables) {
-      project.threats.perInteractionTables.forEach(function(table) {
-        table.threats.forEach(function(threat) {
-          (threat.proposedMitigations ?? []).forEach((m) =>
-            extractFromMitigation(m.id ?? m.notes),
-          );
+        upsert(sm.id ?? sm.notes, {
+          description: text,
+          status: sm.status,
+          ticketId: sm.ticketId,
+          ticketUrl: sm.ticketUrl,
         });
       });
-    }
+    });
   }
 
-  return mitigations;
-}
+  // ── 2. Fallback: Threat.proposedMitigations (text only, no status) ────────
+  function fromThreatTables(
+    tables:
+      | {
+          threats: Array<{
+            proposedMitigations?: Array<{
+              id?: string;
+              text?: string;
+              notes?: string;
+              isCustom?: boolean;
+            }>;
+          }>;
+        }[]
+      | undefined,
+  ): void {
+    if (!tables) return;
+    tables.forEach(function (table) {
+      table.threats.forEach(function (threat) {
+        (threat.proposedMitigations ?? []).forEach(function (m) {
+          const text = m.isCustom ? m.notes : m.text;
+          upsert(m.id ?? m.notes, { description: text });
+        });
+      });
+    });
+  }
 
-// ==================== USAGE EXAMPLE FOR main-layout.tsx ====================
-/*
+  if (project.threats) {
+    fromThreatTables(project.threats.perElementTables);
+    fromThreatTables(project.threats.perInteractionTables);
+  }
 
-import {
-  extractAssetReferences,
-  extractThreatReferencesForAttackTree,
-  extractRiskReferences,
-  extractDFDElementReferences,
-  extractMitigationReferences,
-} from "features/attacktree/models/attacktree-helpers";
-
-// In the render section:
-{activePhase === 5 && activeProject && (
-  <AttackTreeTab
-    project={{
-      id: activeProject.id,
-      name: activeProject.info?.name || "",
-      phaseStatus: activeProject.phaseStatus,
-      isHighImpact: activeProject.info?.isHighImpact || false,
-      attackTrees: activeProject.attackTrees ?? null,
-      assets: extractAssetReferences(activeProject),
-      threats: extractThreatReferencesForAttackTree(activeProject),
-      risks: extractRiskReferences(activeProject),
-      dfdElements: extractDFDElementReferences(activeProject),
-      mitigations: extractMitigationReferences(activeProject),
-      dfdPreviewImage: activeProject.dfd?.thumbnail,
-      lastModified: activeProject.info?.lastModified || "",
-    }}
-    onUpdate={handleAttackTreeUpdate}
-    onPhaseComplete={() => setActivePhase(6)}
-  />
-)}
-
-// Handler function:
-const handleAttackTreeUpdate = useCallback((updates: AttackTreeUpdateResult) => {
-  if (!activeProject) return;
-  
-  updateProject(activeProject.id, {
-    attackTrees: updates.attackTrees,
-    phaseStatus: updates.phaseStatus,
-    info: {
-      ...activeProject.info,
-      lastModified: updates.lastModified,
-    },
+  return order.map(function (key) {
+    return byId[key];
   });
-}, [activeProject, updateProject]);
-
-*/
+}

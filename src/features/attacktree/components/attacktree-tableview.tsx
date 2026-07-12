@@ -20,12 +20,16 @@ import {
   FormControl,
   InputLabel,
   TableSortLabel,
+  Tooltip,
+  Link,
 } from "@mui/material";
 
 import {
   PathAnalysis,
   AttackPath,
   EvaluationMethod,
+  MitigationReference,
+  MITIGATION_VERIFICATION_DISPLAY,
   calculateRiskLevel,
   getRiskScoreEmoji,
 } from "../models/attacktree-types";
@@ -35,6 +39,12 @@ import {
 interface AttackTreeTableViewProps {
   pathAnalysis: PathAnalysis;
   evaluationMethod: EvaluationMethod;
+  /**
+   * Lookup of mitigation id → reference (status/ticket/text), mirrored from
+   * the Risk tab. Optional: when absent, mitigations render as plain id chips
+   * exactly as before. Keyed by UPPERCASE id for case-insensitive matching.
+   */
+  mitigationLookup?: Map<string, MitigationReference>;
 }
 
 type SortField = "path" | "risk" | "mitigations";
@@ -45,9 +55,88 @@ type SortOrder = "asc" | "desc";
 export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   pathAnalysis,
   evaluationMethod,
+  mitigationLookup,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
+
+  // Render a single mitigation as a chip, enriched with verification status
+  // (icon/color) and ticket link when the Risk tab provides them.
+  const renderMitigationChip = (mid: string): React.ReactNode => {
+    const ref = mitigationLookup?.get(mid.toUpperCase());
+    const display = ref?.status
+      ? MITIGATION_VERIFICATION_DISPLAY[ref.status]
+      : undefined;
+
+    const statusLabel = display
+      ? isGerman
+        ? display.labelDE
+        : display.label
+      : isGerman
+        ? "Nicht erfasst"
+        : "Not tracked";
+
+    const tooltip = (
+      <Box sx={{ whiteSpace: "pre-line" }}>
+        {ref?.description ? `${mid}: ${ref.description}\n` : `${mid}\n`}
+        {isGerman ? "Verifikation: " : "Verification: "}
+        {statusLabel}
+        {ref?.ticketId ? `\nTicket: ${ref.ticketId}` : ""}
+      </Box>
+    );
+
+    return (
+      <Tooltip key={mid} title={tooltip} placement="top">
+        <Chip
+          label={
+            <Box
+              component="span"
+              sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}
+            >
+              {display && <span>{display.icon}</span>}
+              <span>{mid}</span>
+              {ref?.ticketId && ref?.ticketUrl && (
+                <Link
+                  href={ref.ticketUrl}
+                  target="_blank"
+                  rel="noopener"
+                  underline="hover"
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    fontFamily: "monospace",
+                    fontSize: "0.65rem",
+                    ml: 0.25,
+                  }}
+                >
+                  {ref.ticketId}
+                </Link>
+              )}
+              {ref?.ticketId && !ref?.ticketUrl && (
+                <Box
+                  component="span"
+                  sx={{
+                    fontFamily: "monospace",
+                    fontSize: "0.65rem",
+                    ml: 0.25,
+                    color: "text.secondary",
+                  }}
+                >
+                  {ref.ticketId}
+                </Box>
+              )}
+            </Box>
+          }
+          size="small"
+          variant="outlined"
+          sx={
+            display
+              ? { borderColor: display.color, color: display.color }
+              : undefined
+          }
+        />
+      </Tooltip>
+    );
+  };
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("all");
@@ -62,15 +151,18 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
     if (searchTerm) {
       filtered = filtered.filter((path) =>
         path.path.some((node) =>
-          node.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+          node.toLowerCase().includes(searchTerm.toLowerCase()),
+        ),
       );
     }
 
     // Level filter
     if (filterLevel !== "all") {
       filtered = filtered.filter((path) => {
-        const level = calculateRiskLevel(path.riskScore, evaluationMethod).level;
+        const level = calculateRiskLevel(
+          path.riskScore,
+          evaluationMethod,
+        ).level;
         return level === filterLevel;
       });
     }
@@ -95,7 +187,14 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
     });
 
     return filtered;
-  }, [pathAnalysis.paths, searchTerm, filterLevel, sortField, sortOrder, evaluationMethod]);
+  }, [
+    pathAnalysis.paths,
+    searchTerm,
+    filterLevel,
+    sortField,
+    sortOrder,
+    evaluationMethod,
+  ]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -133,9 +232,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
         }}
       >
         <Typography color="text.secondary">
-          {isGerman
-            ? "Keine Angriffspfade gefunden"
-            : "No attack paths found"}
+          {isGerman ? "Keine Angriffspfade gefunden" : "No attack paths found"}
         </Typography>
       </Box>
     );
@@ -163,29 +260,19 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
         />
 
         <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>
-            {isGerman ? "Risiko-Niveau" : "Risk Level"}
-          </InputLabel>
+          <InputLabel>{isGerman ? "Risiko-Niveau" : "Risk Level"}</InputLabel>
           <Select
             value={filterLevel}
             label={isGerman ? "Risiko-Niveau" : "Risk Level"}
             onChange={(e) => setFilterLevel(e.target.value)}
           >
-            <MenuItem value="all">
-              {isGerman ? "Alle" : "All"}
-            </MenuItem>
+            <MenuItem value="all">{isGerman ? "Alle" : "All"}</MenuItem>
             <MenuItem value="critical">
               {isGerman ? "Kritisch" : "Critical"}
             </MenuItem>
-            <MenuItem value="high">
-              {isGerman ? "Hoch" : "High"}
-            </MenuItem>
-            <MenuItem value="medium">
-              {isGerman ? "Mittel" : "Medium"}
-            </MenuItem>
-            <MenuItem value="low">
-              {isGerman ? "Niedrig" : "Low"}
-            </MenuItem>
+            <MenuItem value="high">{isGerman ? "Hoch" : "High"}</MenuItem>
+            <MenuItem value="medium">{isGerman ? "Mittel" : "Medium"}</MenuItem>
+            <MenuItem value="low">{isGerman ? "Niedrig" : "Low"}</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -273,7 +360,9 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                 }}
               >
                 <TableCell>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+                  >
                     {path.path.map((node, idx) => (
                       <Box
                         key={idx}
@@ -296,14 +385,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                 <TableCell>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                     {path.mitigations.length > 0 ? (
-                      path.mitigations.map((mid) => (
-                        <Chip
-                          key={mid}
-                          label={mid}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))
+                      path.mitigations.map((mid) => renderMitigationChip(mid))
                     ) : (
                       <Typography variant="body2" color="text.secondary">
                         {isGerman ? "Keine" : "None"}
@@ -337,9 +419,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
           }}
         >
           <Typography color="text.secondary">
-            {isGerman
-              ? "Keine Pfade gefunden"
-              : "No paths match your filters"}
+            {isGerman ? "Keine Pfade gefunden" : "No paths match your filters"}
           </Typography>
         </Box>
       )}

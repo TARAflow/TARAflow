@@ -33,7 +33,7 @@ export interface AttackTreeDataActions {
   selectTree: (treeId: string, switchToEditor?: boolean) => void;
 
   // CRUD Operations
-  createTree: (anchor: AttackTreeAnchor) => void;
+  createTree: (anchor: AttackTreeAnchor, templateId?: string) => void;
   updateTree: (tree: AttackTree) => void;
   deleteTree: (treeId: string) => void;
 
@@ -171,16 +171,26 @@ export function useAttackTreeData(
    * Create new attack tree
    */
   const createTree = useCallback(
-    (anchor: AttackTreeAnchor) => {
+    (anchor: AttackTreeAnchor, templateId?: string) => {
       const defaultEvalMethod =
         attackTreeData.configuration?.defaultEvaluationMethod || "simple";
 
-      // Create and parse tree
-      const newTree = attackTreeOperations.createParsedTree(
-        anchor,
-        { evaluationMethod: defaultEvalMethod },
-        project
-      );
+      // If a template was selected in the create dialog, build the tree
+      // from it (this was previously ignored - templateId never reached
+      // this hook, so every tree was created empty regardless of the
+      // dialog selection).
+      const newTree =
+        (templateId &&
+          attackTreeOperations.createTreeFromTemplate(
+            templateId,
+            anchor,
+            project,
+          )) ||
+        attackTreeOperations.createParsedTree(
+          anchor,
+          { evaluationMethod: defaultEvalMethod },
+          project,
+        );
 
       // Add to collection
       setAttackTreeData((prev) => ({
@@ -193,7 +203,7 @@ export function useAttackTreeData(
       setSelectedTreeId(newTree.id);
       setIsDirty(true);
     },
-    [attackTreeData.configuration, project]
+    [attackTreeData.configuration, project],
   );
 
   /**

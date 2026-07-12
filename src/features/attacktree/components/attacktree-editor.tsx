@@ -13,9 +13,11 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material";
 import CodeMirror from "@uiw/react-codemirror";
-import { StreamLanguage } from "@codemirror/language";
+import { StreamLanguage, indentUnit } from "@codemirror/language";
 import { linter, Diagnostic } from "@codemirror/lint";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
+import { EditorSelection, Prec } from "@codemirror/state";
+import { indentWithTab } from "@codemirror/commands";
 
 import {
   AttackTreeConfiguration,
@@ -91,6 +93,37 @@ const attackTreeLanguage = StreamLanguage.define({
     return null;
   },
 });
+
+// ==================== SMART ENTER (keep tab-indentation) ====================
+
+/**
+ * The Attack Tree DSL uses leading tab characters to encode tree depth
+ * (see level detection in attacktree-parser.ts, regex: ^\t star-slash).
+ *
+ * CodeMirror 6 does not insert tabs on Tab by default (Tab moves focus for
+ * accessibility) and has no auto-indent for this custom StreamLanguage, so
+ * without this command every new line lands at indent level 0 - colliding
+ * with ROOT - and gets rejected by the parser as "Node has no parent".
+ *
+ * This keeps Enter simple and predictable: the new line gets the same
+ * number of leading tabs as the line the cursor was on. Users can then
+ * press Tab to go one level deeper, or Shift+Tab to go shallower.
+ */
+function insertNewlineKeepIndent(view: EditorView): boolean {
+  const { state } = view;
+  const tr = state.changeByRange((range) => {
+    const line = state.doc.lineAt(range.from);
+    const indent = /^\t*/.exec(line.text)?.[0] ?? "";
+    const insert = "\n" + indent;
+    const newPos = range.from + insert.length;
+    return {
+      changes: { from: range.from, to: range.to, insert },
+      range: EditorSelection.cursor(newPos),
+    };
+  });
+  view.dispatch(state.update(tr, { scrollIntoView: true, userEvent: "input" }));
+  return true;
+}
 
 // ==================== LINTER (Error Markers) ====================
 
@@ -235,6 +268,20 @@ const AttackTreeEditorComponent: React.FC<AttackTreeEditorProps> = ({
       attackTreeTheme,
       syntaxHighlighting,
       // linterExtension, // DISABLED FOR TESTING
+      // The DSL's tree hierarchy is defined by leading TAB characters
+      // (see attacktree-parser.ts). Without these three extensions, Tab
+      // moves focus out of the editor instead of inserting a tab, and
+      // Enter doesn't preserve indentation - so every new line lands at
+      // level 0 and the parser rejects it as "Node has no parent".
+      indentUnit.of("\t"),
+      // Prec.highest ensures this wins over the default keymap that
+      // @uiw/react-codemirror's basicSetup already binds Enter/Tab to.
+      Prec.highest(
+        keymap.of([
+          { key: "Enter", run: insertNewlineKeepIndent },
+          indentWithTab,
+        ]),
+      ),
     ];
 
     // Tab size
