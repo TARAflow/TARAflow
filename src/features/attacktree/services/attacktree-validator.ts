@@ -366,6 +366,108 @@ export function validateSecurityGoalCoverage(
 /**
  * Complete validation: syntax + logic + TARA + goals
  */
+/**
+ * A gate whose children mix rating methods cannot be aggregated.
+ *
+ * Carried over from Phase 2: an AND gate composes its children by SUMMING attack
+ * potential (effort accumulates) or MULTIPLYING probabilities. There is no honest
+ * way to combine "four weeks of expert work" with "p=0.8" — they are different
+ * kinds of quantity.
+ *
+ * The calculator therefore returns undefined for such a gate. Without this check
+ * the path would silently carry NO feasibility and drop out of the analysis
+ * entirely — an attack path that quietly stops being assessed. Hence: error, not
+ * warning.
+ */
+export function validateRatingMethodConsistency(
+  ast: AttackTreeNode,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  function ratingKindOf(node: AttackTreeNode): "potential" | "probability" | undefined {
+    if (node.children.length === 0) {
+      if (node.evaluation?.attackPotential) return "potential";
+      if (node.evaluation?.simple || node.evaluation?.extended) return "probability";
+      return undefined;
+    }
+    // A gate inherits the kind of its (consistent) children.
+    const kinds = new Set(
+      node.children
+        .map(ratingKindOf)
+        .filter((k): k is "potential" | "probability" => !!k),
+    );
+    return kinds.size === 1 ? [...kinds][0] : undefined;
+  }
+
+  function walk(node: AttackTreeNode): void {
+    if (node.children.length > 0) {
+      const kinds = new Set(
+        node.children
+          .map(ratingKindOf)
+          .filter((k): k is "potential" | "probability" => !!k),
+      );
+
+      if (kinds.size > 1) {
+        errors.push({
+          line: node.lineNumber ?? 0,
+          type: "syntax",
+          severity: "error",
+          message: `Node "${node.name}" mixes rating methods: attack potential cannot be combined with probability. Rate all children the same way.`,
+          messageDE: `Knoten "${node.name}" mischt Bewertungsmethoden: Attack Potential kann nicht mit Wahrscheinlichkeit kombiniert werden. Alle Kinder einheitlich bewerten.`,
+        });
+      }
+    }
+
+    node.children.forEach(walk);
+  }
+
+  walk(ast);
+  return errors;
+}
+
+/**
+ * The DSL's per-leaf impact (`i=`) is deprecated (Phase 3).
+ *
+ * Impact belongs to the damage scenario — asset × security goal (ISO 3.1.22 /
+ * 3.1.24) — not to an attack step. Leaving `i` on leaves lets a tree claim two
+ * different impacts for one damage scenario, which the tool used to accept
+ * silently.
+ *
+ * Informational, not an error: existing trees must keep working. The value is
+ * simply ignored in the risk computation.
+ */
+export function validateDeprecatedImpact(
+  ast: AttackTreeNode,
+  assetId: string | undefined,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  function walk(node: AttackTreeNode): void {
+    const hasLeafImpact =
+      node.evaluation?.simple?.impact !== undefined ||
+      node.evaluation?.extended?.impact !== undefined;
+
+    if (hasLeafImpact) {
+      errors.push({
+        line: node.lineNumber ?? 0,
+        type: "tara",
+        severity: "info",
+        message: assetId
+          ? `Impact on "${node.name}" is ignored — it is derived from asset ${assetId} and the tree's security goal.`
+          : `Impact on "${node.name}" is ignored — impact belongs to the damage scenario (asset × security goal), not to an attack step.`,
+        messageDE: assetId
+          ? `Impact auf "${node.name}" wird ignoriert — er wird aus Asset ${assetId} und dem Schutzziel des Baums abgeleitet.`
+          : `Impact auf "${node.name}" wird ignoriert — Impact gehört zum Damage Scenario (Asset × Schutzziel), nicht zu einem Angriffsschritt.`,
+      });
+    }
+
+    node.children.forEach(walk);
+  }
+
+  walk(ast);
+  return errors;
+}
+
 export function validateAttackTree(
   ast: AttackTreeNode | undefined,
   projectData: AttackTreeProjectData,
@@ -408,6 +510,21 @@ export function validateAttackTree(
     } else {
       infos.push(e);
     }
+  });
+
+  // Rating method consistency (Phase 2/3): a gate mixing attack potential and
+  // probability cannot be aggregated, and the calculator returns undefined for
+  // it. Without this error the path would silently carry no feasibility and drop
+  // out of the analysis.
+  validateRatingMethodConsistency(ast).forEach((e) => {
+    errors.push(e);
+  });
+
+  // Deprecated per-leaf impact (Phase 3): impact belongs to the damage scenario
+  // (asset × security goal), not to an attack step. Informational — existing
+  // trees keep working, the value is simply ignored.
+  validateDeprecatedImpact(ast, anchorAssetId).forEach((e) => {
+    infos.push(e);
   });
 
   // Attack goal validation
@@ -478,6 +595,8 @@ export const attackTreeValidator = {
   validateAttackGoals,
   validateCompleteness,
   validateSecurityGoalCoverage,
+  validateRatingMethodConsistency,
+  validateDeprecatedImpact,
   validateAttackTree,
   hasAttackGoals,
   getUniqueAttackGoals,

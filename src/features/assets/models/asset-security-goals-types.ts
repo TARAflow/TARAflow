@@ -1,5 +1,7 @@
 // ==================== SECURITY GOALS (CIANAAA) ====================
 
+import type { ImpactRating } from "./asset-impact-types";
+
 // ==================== CIANAAA LEVEL ====================
 
 /**
@@ -39,6 +41,27 @@ export type SecurityGoalType =
  */
 export interface SecurityGoal {
   type: SecurityGoalType;
+
+  /**
+   * Per-goal impact override (Phase 3).
+   *
+   * A damage scenario is the compromise of a *cybersecurity property* of an
+   * asset (ISO 21434 3.1.22) — i.e. asset × security goal. So this is where the
+   * impact of that damage scenario actually belongs: a confidentiality loss on a
+   * config database causes different damage than an availability loss on the
+   * same database.
+   *
+   * OPTIONAL. When absent (or empty), Asset.impactRatings applies — today's
+   * behaviour, so every existing project keeps working untouched. Analysts opt
+   * in per goal, only where the distinction matters.
+   *
+   * Holds in BOTH rating methods: only the likelihood axis forks between ISO and
+   * IEC 62443, never the impact axis.
+   *
+   * Resolution order lives in services/asset-impact-resolver.ts — do not
+   * re-implement it at call sites.
+   */
+  impactRatings?: ImpactRating[];
 
   /**
    * Protection-need level — derived from Cause Mechanism × Impact.
