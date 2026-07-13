@@ -10,6 +10,12 @@
 // SQL Injection;OR @manipulation
 // Find Endpoint;p=0.7,i=3 [M-001]
 // Craft Payload;0.8,0.9,4 @manipulation [M-001,M-002]
+//
+// Evaluation forms:
+//   quick (legacy):  p=0.7,i=3
+//   extended (legacy): f=0.8,b=0.9,i=3   or   0.8,0.9,4
+//   audit (Phase 2): et=1w,se=expert,kn=restricted,wo=easy,eq=standard
+//   benefit (any):   ,b=high
 
 import {
   AttackTreeNode,
@@ -17,12 +23,15 @@ import {
   ValidationError,
   EvaluationMethod,
   NodeType,
-  SimpleEvaluation,
-  ExtendedEvaluation,
   AttackGoalCategory,
   ATTACK_GOAL_TO_STRIDE,
   ATTACK_GOAL_DEFINITIONS,
 } from "../models/attacktree-types";
+import {
+  looksLikeAttackPotential,
+  parseAttackPotential,
+  parseBenefit,
+} from "./attacktree-feasibility-parser";
 import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
 
 // ==================== PARSER ====================
@@ -51,10 +60,10 @@ export function parseAttackTree(
       }
 
       // Get indentation level. Tabs are the primary unit (see
-      // attacktree-editor.tsx, which now inserts literal tabs). As a
-      // fallback for pasted content that lost its tabs, treat every 2
-      // leading spaces as one level so a stray paste doesn't collapse
-      // the whole subtree onto ROOT's level.
+      // attacktree-editor.tsx, which inserts literal tabs). As a fallback for
+      // pasted content that lost its tabs, treat every 2 leading spaces as one
+      // level, so a stray paste doesn't collapse the whole subtree onto ROOT's
+      // level and get rejected as "Node has no parent".
       const leadingWhitespace = line.match(/^[\t ]*/)?.[0] || "";
       const level = leadingWhitespace.includes("\t")
         ? (leadingWhitespace.match(/\t/g) || []).length
@@ -397,10 +406,15 @@ function parseReference(ref: string, node: AttackTreeNode) {
 // ==================== EVALUATION PARSER ====================
 
 interface EvalParseResult {
-  evaluation?: {
-    simple?: SimpleEvaluation;
-    extended?: ExtendedEvaluation;
-  };
+  /**
+   * Derived from AttackTreeNode rather than re-declared.
+   *
+   * This used to be a hand-written duplicate of the node's evaluation shape,
+   * which meant every new evaluation variant had to be added in two places —
+   * and adding attackPotential/benefit to the node only (Phase 2) broke the
+   * build here. Deriving it makes that class of drift impossible.
+   */
+  evaluation?: NonNullable<AttackTreeNode["evaluation"]>;
   error?: ValidationError;
 }
 
@@ -414,6 +428,29 @@ function parseEvaluation(
   lineNumber: number,
   method: EvaluationMethod,
 ): EvalParseResult {
+  // ── Audit mode (Phase 2): attack potential per ISO 21434 Annex G.2 ────────
+  // Checked FIRST because it is the preferred, audit-grade form. The legacy
+  // formats below are untouched, so existing trees keep parsing byte-identically.
+  if (looksLikeAttackPotential(evalStr)) {
+    const result = parseAttackPotential(evalStr, lineNumber);
+    if (result.error) {
+      return { error: result.error };
+    }
+    return {
+      evaluation: {
+        attackPotential: result.factors,
+        benefit: result.benefit,
+      },
+    };
+  }
+
+  // Benefit may also accompany the legacy formats (b=high alongside p=/f,b,i).
+  const benefitResult = parseBenefit(evalStr, lineNumber);
+  if (benefitResult.error) {
+    return { error: benefitResult.error };
+  }
+  const benefit = benefitResult.benefit;
+
   // Try simple format first: p=0.5,i=3
   const simpleMatch = evalStr.match(/p\s*=\s*([\d.]+)\s*,\s*i\s*=\s*(\d+)/i);
   if (simpleMatch) {
@@ -447,6 +484,7 @@ function parseEvaluation(
     return {
       evaluation: {
         simple: { probability, impact },
+        benefit,
       },
     };
   }

@@ -7,6 +7,14 @@
 // - AttackTreeProjectData = props interface for AttackTreeTab
 
 import type { PhaseStatusMap, StrideCategory } from "shared";
+import type {
+  AttackPotentialFactors,
+  BenefitLevel,
+  FeasibilityLevel,
+} from "./attacktree-feasibility-types";
+
+// Re-exported so consumers have a single import site for the attack tree model.
+export * from "./attacktree-feasibility-types";
 
 // ==================== EVALUATION METHODS ====================
 
@@ -289,6 +297,20 @@ export interface AttackTreeNode {
   evaluation?: {
     simple?: SimpleEvaluation;
     extended?: ExtendedEvaluation;
+    /**
+     * Audit mode (Phase 2): the five attack-potential factors of ISO 21434
+     * Annex G.2 / ISO/IEC 18045. Preferred over `simple`/`extended`, because
+     * the feasibility→risk-scale mapping is then derived from the standard
+     * rather than from a house convention.
+     */
+    attackPotential?: AttackPotentialFactors;
+    /**
+     * Attacker benefit. Parsed in BOTH likelihood models, but only folded into
+     * the risk number in "feasibility-x-motivation" (IEC 62443 / classic).
+     * In ISO mode it drives path plausibility, ordering and emission policy —
+     * never the risk value (Cl. 3.1.29).
+     */
+    benefit?: BenefitLevel;
   };
 
   // Mitigations
@@ -445,6 +467,29 @@ export interface AttackPath {
 
   path: string[];
   nodeIds: string[];
+
+  /**
+   * Attack feasibility of this path (ISO 21434 Cl. 15.7).
+   *
+   * Derived from the leaf's attack-potential factors (audit mode) or from its
+   * probability (quick mode). Undefined when the leaf carries no evaluation at
+   * all — an unrated path must NOT silently become "very-low", which would
+   * understate it.
+   */
+  feasibilityLevel?: FeasibilityLevel;
+
+  /** Attack potential sum behind `feasibilityLevel`, when audit mode was used. */
+  attackPotential?: number;
+
+  /**
+   * Likelihood: feasibility, plus benefit iff the project's LikelihoodModel is
+   * "feasibility-x-motivation" (IEC 62443 / classic). In ISO mode this always
+   * equals `feasibilityLevel` — benefit never enters the risk number (3.1.29).
+   */
+  likelihoodLevel?: FeasibilityLevel;
+
+  /** Attacker benefit stated on the leaf, if any. Analysis-only in ISO mode. */
+  benefit?: BenefitLevel;
   riskScore: number;
   probability?: number;
   impact?: number;
@@ -464,6 +509,23 @@ export interface PathAnalysis {
   totalPaths: number;
   aggregatedLikelihood: number;
   likelihoodMethod: "max" | "weighted-avg";
+
+  /**
+   * Feasibility of the threat scenario as a whole = the MAXIMUM across its
+   * attack paths (ISO 21434 15.8 NOTE 2, which gives the maximum as its
+   * example). The attacker takes the easiest route, so the scenario is as
+   * feasible as its most feasible path. Averaging would let a pile of hard
+   * paths mask one trivial one.
+   *
+   * Undefined when no path carries an evaluation.
+   */
+  aggregatedFeasibility?: FeasibilityLevel;
+
+  /** Same aggregation on the likelihood axis (differs from the above only in 62443 mode). */
+  aggregatedLikelihoodLevel?: FeasibilityLevel;
+
+  /** The single most feasible path — what `cheapest-per-goal` emission uses (Phase 4). */
+  cheapestPath?: AttackPath;
   goalSummary: Record<AttackGoalCategory, number>;
   analysisDate: string;
 }

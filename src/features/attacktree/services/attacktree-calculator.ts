@@ -10,9 +10,23 @@ import {
   RiskCalculationResult,
   calculateRiskLevel,
   AttackGoalCategory,
+  NodeType,
   LikelihoodExport,
   ATTACK_GOAL_TO_STRIDE,
 } from "../models/attacktree-types";
+import {
+  type FeasibilityConfiguration,
+  type FeasibilityLevel,
+  DEFAULT_FEASIBILITY_CONFIGURATION,
+  FEASIBILITY_RANK,
+} from "../models/attacktree-feasibility-types";
+import {
+  aggregateFeasibility,
+  bandAttackPotential,
+  bandProbability,
+  computeAttackPotential,
+  computeLikelihood,
+} from "./attacktree-feasibility";
 import { computePathKey } from "./attacktree-path-identity";
 
 // ==================== RISK SCORE CALCULATION ====================
@@ -137,14 +151,211 @@ export function calculateTreeRiskScores(
   calculate(root);
 }
 
-// ==================== PATH EXTRACTION ====================
+// ==================== FEASIBILITY PER NODE ====================
+
+/**
+ * What a node contributes to its parent on the feasibility axis.
+ *
+ * The AGGREGATION FOLLOWS THE QUANTITY, not a config switch — because the
+ * quantities compose differently and mixing them up is a maths error, not a
+ * "conservative choice":
+ *
+ *   attack potential (effort: time, expertise, equipment)
+ *       AND -> SUM      two weeks of work plus two weeks of work is four weeks
+ *       OR  -> MIN      the attacker picks the cheapest branch
+ *
+ *   probability
+ *       AND -> PRODUCT  P(A and B) = P(A)*P(B)
+ *       OR  -> UNION    1 - PROD(1 - p_i)
+ *
+ *   ordinal level only (someone graded "high" with no number behind it)
+ *       AND -> MIN      bottleneck heuristic; no arithmetic is possible
+ *       OR  -> MAX
+ *
+ * Applying min() to an attack potential would claim that two weeks of work plus
+ * two weeks of work equals two weeks of work. An auditor who knows Annex G spots
+ * that immediately. So it is not offered as an option.
+ *
+ * Banding happens ONCE, at the end, on the aggregated raw value — never on
+ * already-banded children (that would round twice and lose the composition).
+ */
+type FeasibilityQuantity =
+  | { kind: "potential"; value: number }
+  | { kind: "probability"; value: number }
+  | { kind: "ordinal"; value: FeasibilityLevel };
+
+/** Aggregate children of the same kind. Mixed kinds are rejected by the caller. */
+function aggregateChildren(
+  children: FeasibilityQuantity[],
+  gate: NodeType,
+): FeasibilityQuantity | undefined {
+  if (children.length === 0) return undefined;
+  if (children.length === 1) return children[0];
+
+  const kind = children[0].kind;
+  const isAnd = gate === "AND";
+
+  if (kind === "potential") {
+    const values = children.map((c) => c.value as number);
+    return {
+      kind: "potential",
+      // AND: effort accumulates. OR: the attacker takes the cheapest branch.
+      value: isAnd
+        ? values.reduce((a, b) => a + b, 0)
+        : Math.min(...values),
+    };
+  }
+
+  if (kind === "probability") {
+    const values = children.map((c) => c.value as number);
+    return {
+      kind: "probability",
+      // AND: independent events multiply. OR: union of independent events.
+      value: isAnd
+        ? values.reduce((a, b) => a * b, 1)
+        : 1 - values.reduce((acc, p) => acc * (1 - p), 1),
+    };
+  }
+
+  // Ordinal: no arithmetic available, fall back to the bottleneck heuristic.
+  const levels = children.map((c) => c.value as FeasibilityLevel);
+  return {
+    kind: "ordinal",
+    value: isAnd
+      ? levels.reduce((worst, l) =>
+          FEASIBILITY_RANK[l] < FEASIBILITY_RANK[worst] ? l : worst,
+        )
+      : levels.reduce((best, l) =>
+          FEASIBILITY_RANK[l] > FEASIBILITY_RANK[best] ? l : best,
+        ),
+  };
+}
+
+/**
+ * The raw feasibility quantity of a node, computed bottom-up.
+ *
+ * Returns undefined when nothing below the node carries an evaluation — an
+ * unrated subtree must NOT masquerade as "very-low", which would make it look
+ * like the safest part of the tree.
+ *
+ * Mixed rating methods under one gate (e.g. an attack-potential child next to a
+ * quick-mode child) yield undefined: effort cannot be combined with probability.
+ * The validator surfaces this as an error rather than inventing a number.
+ */
+export function calculateNodeFeasibilityQuantity(
+  node: AttackTreeNode,
+  feasibilityConfig: FeasibilityConfiguration,
+): FeasibilityQuantity | undefined {
+  // ── Leaf: its own rating ────────────────────────────────────────────────
+  if (node.children.length === 0) {
+    if (node.evaluation?.attackPotential) {
+      return {
+        kind: "potential",
+        value: computeAttackPotential(
+          node.evaluation.attackPotential,
+          feasibilityConfig,
+        ),
+      };
+    }
+    if (node.evaluation?.simple) {
+      return { kind: "probability", value: node.evaluation.simple.probability };
+    }
+    if (node.evaluation?.extended) {
+      return {
+        kind: "probability",
+        value: node.evaluation.extended.feasibility,
+      };
+    }
+    return undefined;
+  }
+
+  // ── Gate: aggregate the children ────────────────────────────────────────
+  const childQuantities = node.children
+    .map((child) => calculateNodeFeasibilityQuantity(child, feasibilityConfig))
+    .filter((q): q is FeasibilityQuantity => !!q);
+
+  if (childQuantities.length === 0) return undefined;
+
+  // Refuse to combine effort with probability — there is no honest way to do it.
+  const kinds = new Set(childQuantities.map((q) => q.kind));
+  if (kinds.size > 1) return undefined;
+
+  return aggregateChildren(childQuantities, node.type);
+}
+
+/** Band a raw quantity into a level. The single place rounding happens. */
+function bandQuantity(
+  quantity: FeasibilityQuantity,
+  feasibilityConfig: FeasibilityConfiguration,
+): FeasibilityLevel {
+  if (quantity.kind === "potential") {
+    return bandAttackPotential(quantity.value as number, feasibilityConfig);
+  }
+  if (quantity.kind === "probability") {
+    return bandProbability(quantity.value as number, feasibilityConfig);
+  }
+  return quantity.value as FeasibilityLevel;
+}
+
+/**
+ * Feasibility LEVEL of a node. Convenience wrapper over the quantity above.
+ */
+export function calculateNodeFeasibility(
+  node: AttackTreeNode,
+  feasibilityConfig: FeasibilityConfiguration,
+): FeasibilityLevel | undefined {
+  const quantity = calculateNodeFeasibilityQuantity(node, feasibilityConfig);
+  return quantity ? bandQuantity(quantity, feasibilityConfig) : undefined;
+}
+
+/**
+ * Feasibility of a complete ROOT->leaf path.
+ *
+ * The path inherits the aggregated quantity of the deepest GATE it passes
+ * through, because that gate already composed its children correctly (an AND
+ * summed the effort / multiplied the probabilities of every step the attacker
+ * must take, including this leaf's siblings).
+ *
+ * That is what makes a leaf under an AND correctly less feasible than the same
+ * leaf under an OR: the attacker cannot reach it without also clearing the
+ * siblings, and the AND gate has already priced that in.
+ *
+ * Rating the leaf in isolation (an earlier version of this code) reported such a
+ * leaf as easy as if it stood alone: optimistic, i.e. the dangerous direction.
+ */
+function calculatePathFeasibility(
+  pathNodes: AttackTreeNode[],
+  feasibilityConfig: FeasibilityConfiguration,
+): FeasibilityLevel | undefined {
+  // Walk from the leaf upward and take the first gate that constrains the path.
+  // ROOT and OR gates do not constrain (the attacker chose this branch freely);
+  // an AND gate does, because its siblings are mandatory.
+  for (let i = pathNodes.length - 1; i >= 0; i--) {
+    const node = pathNodes[i];
+
+    if (node.type === "AND") {
+      const quantity = calculateNodeFeasibilityQuantity(node, feasibilityConfig);
+      if (quantity) return bandQuantity(quantity, feasibilityConfig);
+    }
+  }
+
+  // No AND gate on the path: it is a free choice all the way down, so the leaf's
+  // own rating stands.
+  const leaf = pathNodes[pathNodes.length - 1];
+  return calculateNodeFeasibility(leaf, feasibilityConfig);
+}
 
 /**
  * Extract all paths from root to leaves
  */
+// ==================== FEASIBILITY PER NODE ====================
+
+// ==================== PATH EXTRACTION ====================
+
 export function extractAllPaths(
   root: AttackTreeNode,
-  method: EvaluationMethod
+  method: EvaluationMethod,
+  feasibilityConfig: FeasibilityConfiguration = DEFAULT_FEASIBILITY_CONFIGURATION,
 ): AttackPath[] {
   const paths: AttackPath[] = [];
   let pathIdCounter = 0;
@@ -155,10 +366,14 @@ export function extractAllPaths(
     currentNodeIds: string[],
     currentMitigations: string[],
     currentGoals: AttackGoalCategory[],
-    pathProbability: number
+    pathProbability: number,
+    currentNodes: AttackTreeNode[] = [],
   ): void {
     const path = currentPath.concat([node.name]);
     const nodeIds = currentNodeIds.concat([node.id]);
+    // The node objects themselves — needed so the path's feasibility can account
+    // for the AND gates it passes through, not just its leaf.
+    const nodesOnPath = currentNodes.concat([node]);
 
     // Merge mitigations (avoid duplicates)
     const mitigationSet: { [key: string]: boolean } = {};
@@ -206,6 +421,37 @@ export function extractAllPaths(
         }
       }
 
+      // ── Feasibility axis (Phase 2) ────────────────────────────────────────
+      // Independent of the legacy riskScore above, which stays put until
+      // Phase 6 switches the Risks tab over.
+      //
+      // Derived from every node ON the path, not from the leaf alone. The AND
+      // gates on the path carry the MIN of their children (weakest link), so a
+      // leaf sitting under an AND is correctly rated less feasible than the same
+      // leaf under an OR: the attacker cannot reach it without also clearing its
+      // siblings.
+      const feasibilityLevel = calculatePathFeasibility(
+        nodesOnPath,
+        feasibilityConfig,
+      );
+
+      // The leaf's own attack potential, when it was rated in audit mode.
+      // Reported for traceability; the path's LEVEL is the min above.
+      const attackPotential = node.evaluation?.attackPotential
+        ? computeAttackPotential(
+            node.evaluation.attackPotential,
+            feasibilityConfig,
+          )
+        : undefined;
+
+      const benefit = node.evaluation?.benefit;
+
+      // Benefit folds in only when the project's LikelihoodModel says so
+      // (IEC 62443 / classic). In ISO mode this returns feasibility unchanged.
+      const likelihoodLevel = feasibilityLevel
+        ? computeLikelihood(feasibilityLevel, benefit, feasibilityConfig)
+        : undefined;
+
       paths.push({
         // Display label only — renumbers on any structural edit.
         id: "path-" + ++pathIdCounter,
@@ -218,6 +464,10 @@ export function extractAllPaths(
         impact: impact,
         feasibility: feasibility,
         benefits: benefits,
+        feasibilityLevel: feasibilityLevel,
+        attackPotential: attackPotential,
+        likelihoodLevel: likelihoodLevel,
+        benefit: benefit,
         attackGoals: goals,
         mitigations: mitigations,
         isCritical: false, // Will be set later
@@ -228,11 +478,19 @@ export function extractAllPaths(
 
     // Continue down tree
     for (const child of node.children) {
-      extractPath(child, path, nodeIds, mitigations, goals, newProbability);
+      extractPath(
+        child,
+        path,
+        nodeIds,
+        mitigations,
+        goals,
+        newProbability,
+        nodesOnPath,
+      );
     }
   }
 
-  extractPath(root, [], [], [], [], 1.0);
+  extractPath(root, [], [], [], [], 1.0, []);
   return paths;
 }
 
@@ -243,13 +501,14 @@ export function extractAllPaths(
  */
 export function analyzeAttackPaths(
   root: AttackTreeNode,
-  method: EvaluationMethod
+  method: EvaluationMethod,
+  feasibilityConfig: FeasibilityConfiguration = DEFAULT_FEASIBILITY_CONFIGURATION,
 ): PathAnalysis {
   // First calculate all risk scores
   calculateTreeRiskScores(root, method);
 
   // Extract all paths
-  const paths = extractAllPaths(root, method);
+  const paths = extractAllPaths(root, method, feasibilityConfig);
 
   if (paths.length === 0) {
     return {
@@ -307,6 +566,33 @@ export function analyzeAttackPaths(
     });
   });
 
+  // ── Aggregate the feasibility axis (ISO 21434 15.8 NOTE 2) ────────────────
+  // The maximum, not an average: an attacker takes the easiest route, so the
+  // threat scenario is as feasible as its most feasible path. Averaging would
+  // let nine hard paths mask one trivial one and understate the risk.
+  const feasibilityLevels = paths
+    .map((p) => p.feasibilityLevel)
+    .filter((l): l is FeasibilityLevel => !!l);
+  const likelihoodLevels = paths
+    .map((p) => p.likelihoodLevel)
+    .filter((l): l is FeasibilityLevel => !!l);
+
+  const aggregatedFeasibility = aggregateFeasibility(feasibilityLevels);
+  const aggregatedLikelihoodLevel = aggregateFeasibility(likelihoodLevels);
+
+  // The single most feasible path — what "cheapest-per-goal" emission uses.
+  // Ties are broken by the higher riskScore, then by pathKey so the choice is
+  // deterministic across runs (a wobbling "cheapest path" would make the
+  // emitted threat set unstable and defeat Phase 1's stable identity).
+  const cheapestPath = aggregatedFeasibility
+    ? paths
+        .filter((p) => p.feasibilityLevel === aggregatedFeasibility)
+        .sort(
+          (a, b) =>
+            b.riskScore - a.riskScore || a.pathKey.localeCompare(b.pathKey),
+        )[0]
+    : undefined;
+
   return {
     paths: paths.sort((a, b) => b.riskScore - a.riskScore),
     criticalPaths: criticalPaths,
@@ -315,6 +601,9 @@ export function analyzeAttackPaths(
     totalPaths: paths.length,
     aggregatedLikelihood: maxProbability,
     likelihoodMethod: "max",
+    aggregatedFeasibility: aggregatedFeasibility,
+    aggregatedLikelihoodLevel: aggregatedLikelihoodLevel,
+    cheapestPath: cheapestPath,
     goalSummary: goalSummary,
     analysisDate: new Date().toISOString(),
   };
@@ -675,6 +964,7 @@ export function calculateTreeStatistics(
 export const attackTreeCalculator = {
   calculateNodeRiskScore,
   calculateNodeProbability,
+  calculateNodeFeasibility,
   calculateTreeRiskScores,
   extractAllPaths,
   analyzeAttackPaths,
