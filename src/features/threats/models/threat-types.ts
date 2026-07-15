@@ -11,6 +11,7 @@ import type {
   PhaseStatusMap,
   ProjectTags,
   StrideCategory,
+  StrideMethod,
 } from "shared";
 
 import type { StrategyType } from "./strategy-types";
@@ -51,7 +52,16 @@ export type ThreatSource =
 
 // ==================== STRIDE METHOD ====================
 
-export type StrideMethod = "per-element" | "per-interaction";
+/**
+ * Re-exported from shared, NOT redefined.
+ *
+ * This used to be a second, independent declaration. Phase 4 added "attack-path"
+ * to one copy and not the other, and they drifted — the same class of bug as a
+ * hand-copied type falling out of sync. shared is the single source of truth (it
+ * sits beside StrideCategory, which was always shared); threats just surfaces it
+ * for local imports.
+ */
+export type { StrideMethod } from "shared";
 
 // ==================== THREAT RELEVANCE ====================
 

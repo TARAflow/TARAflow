@@ -9,7 +9,17 @@ export type PhaseStatusVariant = typeof PHASE_STATUS_CONFIG[PhaseStatus]['varian
 
 export type ProjectStatus = "draft" | "in-progress" | "review" | "complete";
 
-export type StrideMethod = "per-element" | "per-interaction";
+/**
+ * How threats are generated. The canonical definition — feature modules
+ * re-export this, they do not redefine it.
+ *
+ * "attack-path" (Phase 4): an attack tree emits one threat per (attack path ×
+ * STRIDE category), alongside the per-element and per-interaction STRIDE
+ * generators. Every exhaustive switch on this type must handle all three; a
+ * silent fallthrough would drop attack-path threats from a view with no compile
+ * error.
+ */
+export type StrideMethod = "per-element" | "per-interaction" | "attack-path";
 
 export type StrideCategory = "S" | "T" | "R" | "I" | "D" | "E";
 

@@ -3,6 +3,7 @@
 
 import { useCallback } from "react";
 import type { ThreatData, ThreatTable } from "../../models/threat-types";
+import type { StrideMethod } from "shared";
 
 // ==================== TYPES ====================
 
@@ -11,7 +12,7 @@ export interface ExportData {
   exportedAt: string;
   projectId: string;
   projectName: string;
-  activeMethod: "per-element" | "per-interaction";
+  activeMethod: StrideMethod;
   perElementTables: ThreatTable[];
   perInteractionTables: ThreatTable[];
 }
@@ -36,7 +37,7 @@ export interface ImportValidationResult {
 export interface UseThreatsExportImportOptions {
   projectId: string;
   projectName: string;
-  activeMethod: "per-element" | "per-interaction";
+  activeMethod: StrideMethod;
   threatData: ThreatData;
 }
 
