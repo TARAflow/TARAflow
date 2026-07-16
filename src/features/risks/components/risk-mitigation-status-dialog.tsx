@@ -45,7 +45,7 @@ import {
   Check as CheckIcon,
 } from "@mui/icons-material";
 
-import type { Risk, MitigationDraftRef } from "../models/risk-assessment-types";
+import type { Risk } from "../models/risk-assessment-types";
 import type {
   SelectedMitigation,
   MitigationStatus,
@@ -71,6 +71,8 @@ import {
   buildTicketDescription,
   buildTicketSummary,
 } from "../services/jira-mitigation-service";
+
+import { MitigationDraftRef } from "shared";
 
 // ==================== STATUS CONFIG ====================
 

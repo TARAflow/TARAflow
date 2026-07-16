@@ -18,8 +18,8 @@ import {
   migrateRiskData,
   type Risk,
   type RiskData,
-  type ThreatReference,
 } from "features/risks/models/risk-assessment-types";
+import type { ThreatReference } from "shared";
 import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
 
 // ──────────────────────────────────────────────────────────────────────────

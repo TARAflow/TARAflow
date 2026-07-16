@@ -87,9 +87,6 @@ export { DEFAULT_CONFIGURATION } from "./models/risk-config-types";
 
 // Assessment — Risk entity, data container, project interface
 export type {
-  ThreatRelevanceRef,
-  MitigationDraftRef,
-  ThreatReference,
   Risk,
   RiskData,
   RiskProjectData,

@@ -21,7 +21,12 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
-import { AssetDataReference, DFDReference, toGraphReference } from "shared";
+import {
+  AssetDataReference,
+  DFDReference,
+  ThreatReference,
+  toGraphReference,
+} from "shared";
 
 import { useProjectContext } from "../../contexts/project-context";
 import { useBidirectionalAssetSync } from "../../hooks/use-bidirectional-asset-sync";
@@ -59,7 +64,7 @@ import {
   syncThreatsWithGraph,
 } from "features/threats";
 
-import { RisksTab, RiskUpdateResult, ThreatReference } from "features/risks";
+import { RisksTab, RiskUpdateResult } from "features/risks";
 
 import {
   AttackTreeTab,

@@ -14,14 +14,13 @@
 import type {
   StrideCategory,
   StrideMethod,
-  LinkedDFDElement,
-  DataFlowReference,
   AssetDataReference,
   DFDReference,
-  MitigationPropertyRole,
+  MitigationDraftRef,
   PhaseStatusMap,
+  ThreatReference,
+  ThreatRelevanceRef,
 } from "shared";
-import type { RiskScaleType } from "./risk-scale-types";
 import { RISK_SCALES } from "./risk-scale-types";
 import type { FactorRating, RiskFactorDefinition } from "./risk-factor-types";
 import {
@@ -34,37 +33,6 @@ import { DEFAULT_CONFIGURATION } from "./risk-config-types";
 import type { SelectedMitigation } from "./risk-mitigation-types";
 import type { MoSCoWPriority, RiskTreatment } from "./risk-scale-types";
 import type { RiskIntegrationConnection } from "./risk-integration-types";
-
-// ==================== THREAT REFERENCE ====================
-
-export type ThreatRelevanceRef = "unrated" | "relevant" | "not_relevant" | "uncertain";
-
-export interface MitigationDraftRef {
-  id?: string;
-  /** Resolved display text — populated at sync time from threat catalog */
-  text?: string;
-  notes?: string;
-  isCustom?: boolean;
-}
-
-export interface ThreatReference {
-  id: string;
-  strideCategory: StrideCategory;
-  threatDescription: string;
-  attackDescription: string;
-  sourceStrideMethod: StrideMethod;
-  relevance: ThreatRelevanceRef;
-  proposedMitigations: MitigationDraftRef[];
-  proposedVerifications: MitigationDraftRef[];
-  causeDescription?: string;
-  linkedAssetIds?: string[];
-  elementName?: string;
-  dataFlowName?: string;
-  trustBoundaryId: string | null;
-  trustBoundaryName: string | null;
-  linkedElement?: LinkedDFDElement | null;
-  dataFlow?: DataFlowReference | null;
-}
 
 // ==================== RISK ====================
 

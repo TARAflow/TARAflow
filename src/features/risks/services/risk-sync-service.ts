@@ -13,15 +13,16 @@
 //   not_relevant + unrated        → removed / not added
 //   uncertain threats             → kept but flagged with threatRelevance = "uncertain"
 
-import type {
-  Risk,
-  RiskData,
-  ThreatReference,
-} from "../models/risk-assessment-types";
+import type { Risk, RiskData } from "../models/risk-assessment-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import type { ActiveFactor, FactorRating } from "../models/risk-factor-types";
 import { createEmptyRisk } from "../models/risk-assessment-types";
-import type { AssetReference, AssetDataReference, DFDReference } from "shared";
+import type {
+  AssetReference,
+  AssetDataReference,
+  DFDReference,
+  ThreatReference,
+} from "shared";
 import {
   hasSafetyData,
   hasDFDSafetyAnnotations,

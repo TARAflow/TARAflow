@@ -4,19 +4,18 @@ import { Box, Typography, Stack, Chip, Tooltip } from "@mui/material";
 import {
   Security as TrustBoundaryIcon,
 } from "@mui/icons-material";
-import { Risk, ThreatReference } from "../models/risk-assessment-types";
+import { Risk } from "../models/risk-assessment-types";
 import { RiskConfiguration } from "../models/risk-config-types";
 import { MoSCoWPriority } from "../models/risk-scale-types";
 import { RiskFilters } from "./risk-filters";
 import { useAccordionState } from "../hooks/shared/use-accordion-state";
 import { useRiskGrouping } from "../hooks/use-risk-grouping";
 import { useRiskColumns } from "./shared/risk-columns";
-import { GenericAccordion } from "shared";
-import { OuterHeader } from "shared";
-import { InnerHeader } from "shared";
+import { GenericAccordion, InnerHeader, OuterHeader } from "shared";
 import { RiskTable } from "./shared/risk-table";
 import { ProgressChip } from "./shared/progress-chip";
 import { RISK_SCALES } from "../models/risk-scale-types";
+import type { ThreatReference } from "shared";
 import {
   formatElementId,
   getElementIconComponent,

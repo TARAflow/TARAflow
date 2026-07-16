@@ -4,12 +4,11 @@
 // Sync logic  → risk-sync-service.ts
 // Calculation → risk-calculation-service.ts
 
-import type { PhaseStatusMap } from "shared";
+import type { PhaseStatusMap, ThreatReference } from "shared";
 import type {
   Risk,
   RiskData,
   RiskProjectData,
-  ThreatReference,
 } from "../models/risk-assessment-types";
 import {
   getActiveRisks,
@@ -20,14 +19,9 @@ import type {
   RiskConfiguration,
   RiskValidation,
 } from "../models/risk-config-types";
-import { DEFAULT_CONFIGURATION } from "../models/risk-config-types";
 import type { FactorRating } from "../models/risk-factor-types";
 import { ALL_PREDEFINED_FACTORS } from "../models/risk-factor-types";
-import type {
-  MoSCoWPriority,
-  RiskTreatment,
-  RiskMethodType,
-} from "../models/risk-scale-types";
+import type { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
 import type { SelectedMitigation } from "../models/risk-mitigation-types";
 import { calculateRiskValues } from "./risk-calculation-service";
 

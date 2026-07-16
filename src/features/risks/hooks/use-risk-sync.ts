@@ -8,13 +8,12 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { RiskData } from "../models/risk-assessment-types";
-import type { ThreatReference } from "../models/risk-assessment-types";
 import {
   checkRiskSyncStatus,
   syncRisksFromThreats,
   RiskSyncStatus,
 } from "../services/risk-sync-service";
-import type { AssetDataReference, DFDReference } from "shared";
+import type { AssetDataReference, DFDReference, ThreatReference } from "shared";
 
 interface UseRiskSyncOptions {
   allThreats: ThreatReference[];

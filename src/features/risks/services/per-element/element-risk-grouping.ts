@@ -2,7 +2,8 @@
 // Pure grouping logic for per-element risks
 // Groups by Trust Boundary -> Elements
 
-import type { Risk, ThreatReference } from "../../models/risk-assessment-types";
+import type { Risk } from "../../models/risk-assessment-types";
+import type { ThreatReference } from "shared";
 
 // ==================== TYPES ====================
 

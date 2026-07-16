@@ -59,11 +59,7 @@ import {
 } from "../models/risk-mitigation-types";
 import { FactorRating } from "../models/risk-factor-types";
 import { RiskConfiguration } from "../models/risk-config-types";
-import {
-  Risk,
-  ThreatReference,
-  getFactorDefinition,
-} from "../models/risk-assessment-types";
+import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
   MoSCoWPriority,
   RiskTreatment,
@@ -75,8 +71,6 @@ import {
   calculateRiskValues,
   getRiskColor,
   getRiskLabel,
-  getFactorColor,
-  getFactorLabel,
 } from "../services/risk-calculation-service";
 import {
   resolveMitigationDrafts,
@@ -90,6 +84,7 @@ import type {
   AssetDataReference,
   AssetReference,
   DFDReference,
+  ThreatReference,
 } from "shared";
 import {
   ASSET_GROUP_CONFIG,

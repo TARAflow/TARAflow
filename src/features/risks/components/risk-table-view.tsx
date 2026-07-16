@@ -4,9 +4,9 @@
 
 import React from "react";
 import { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
-import { Risk, ThreatReference } from "../models/risk-assessment-types";
+import { Risk } from "../models/risk-assessment-types";
 import { RiskConfiguration } from "../models/risk-config-types";
-import type { StrideMethod } from "shared";
+import type { StrideMethod, ThreatReference } from "shared";
 import { ElementRiskView } from "./element-risk-view";
 import { InteractionRiskView } from "./interaction-risk-view";
 

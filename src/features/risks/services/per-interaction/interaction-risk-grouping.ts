@@ -3,8 +3,9 @@
 // Groups by Trust Boundary -> DataFlows
 // Separates Interface risks into their own groups
 
-import type { Risk, ThreatReference } from "../../models/risk-assessment-types";
+import type { Risk } from "../../models/risk-assessment-types";
 import { isInterfaceThreat } from "../../utils/risk-formatting";
+import type { ThreatReference } from "shared";
 
 // ==================== TYPES ====================
 
