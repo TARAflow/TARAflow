@@ -13,7 +13,11 @@
 //   not_relevant + unrated        → removed / not added
 //   uncertain threats             → kept but flagged with threatRelevance = "uncertain"
 
-import type { Risk, RiskData } from "../models/risk-assessment-types";
+import type {
+  Risk,
+  RiskData,
+  RiskProjectData,
+} from "../models/risk-assessment-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import type { ActiveFactor, FactorRating } from "../models/risk-factor-types";
 import { createEmptyRisk } from "../models/risk-assessment-types";
@@ -66,6 +70,44 @@ export function getEligibleThreats(threats: ThreatReference[]): ThreatReference[
   return threats.filter(
     (t) => t.relevance === "relevant" || t.relevance === "uncertain",
   );
+}
+
+/**
+ * The three threat sources a project contributes to the risk register, folded
+ * into the eligible set the sync consumes.
+ *
+ * This existed inline in RisksTab's `allThreats` memo. Extracted here so the
+ * concatenation is testable without rendering the tab — and so the memo body
+ * and its test share ONE definition. A prior bug had the memo's dependency
+ * list include perAttackPathThreats while its body forgot to spread it, so
+ * attack-path threats silently never became risks. Colocating body and test
+ * makes that class of drift impossible.
+ */
+export function collectAllThreats(
+  project: Pick<
+    RiskProjectData,
+    "perElementThreats" | "perInteractionThreats" | "perAttackPathThreats"
+  >,
+): ThreatReference[] {
+  return getEligibleThreats(collectAllThreatsUnfiltered(project));
+}
+
+/**
+ * All threats across the three sources, WITHOUT the relevance filter — the
+ * union RisksTab uses for its unfiltered view. perAttackPathThreats is
+ * optional (absent on projects without attack trees) → defaulted to [].
+ */
+export function collectAllThreatsUnfiltered(
+  project: Pick<
+    RiskProjectData,
+    "perElementThreats" | "perInteractionThreats" | "perAttackPathThreats"
+  >,
+): ThreatReference[] {
+  return [
+    ...project.perElementThreats,
+    ...project.perInteractionThreats,
+    ...(project.perAttackPathThreats ?? []),
+  ];
 }
 
 // ==================== SAFETY DETECTION ====================

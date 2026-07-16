@@ -45,6 +45,8 @@ import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import {
   getEligibleThreats,
+  collectAllThreats,
+  collectAllThreatsUnfiltered,
   applySafetyRemovalDecision,
 } from "../services/risk-sync-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
@@ -169,12 +171,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   }, [resizedHeight]);
 
   const allThreats = useMemo(
-    () =>
-      getEligibleThreats([
-        ...project.perElementThreats,
-        ...project.perInteractionThreats,
-        ...(project.perAttackPathThreats ?? []),
-      ]),
+    () => collectAllThreats(project),
     [
       project.perElementThreats,
       project.perInteractionThreats,
@@ -183,11 +180,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   );
 
   const allThreatsUnfiltered = useMemo(
-    () => [
-      ...project.perElementThreats,
-      ...project.perInteractionThreats,
-      ...(project.perAttackPathThreats ?? []),
-    ],
+    () => collectAllThreatsUnfiltered(project),
     [
       project.perElementThreats,
       project.perInteractionThreats,
