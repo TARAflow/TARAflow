@@ -113,3 +113,28 @@ export { attackTreeParser } from "./services/attacktree-parser";
 export { attackTreeCalculator } from "./services/attacktree-calculator";
 export { attackTreeValidator } from "./services/attacktree-validator";
 export { attackTreeService } from "./services/attacktree-service";
+
+// Phase 4 — threat generator (attack tree → ThreatReference)
+export {
+  generateThreatsFromAttackTree,
+  generateThreatsFromAttackTrees,
+  buildThreatId,
+  attackTreeThreatGenerator,
+} from "./services/attacktree-threat-generator";
+export type {
+  EmissionOptions,
+  PathEmissionPolicy,
+  AttackTreeThreatGenerationResult,
+} from "./services/attacktree-threat-generator";
+export { DEFAULT_EMISSION_OPTIONS } from "./services/attacktree-threat-generator";
+
+// Phase 5a — attack-path threat sync (overlay + Class A/B reconcile)
+export {
+  reconcileAttackPathThreats,
+  applyAssessmentsToThreats,
+  deriveAssessedKeys,
+  setPathAssessment,
+  tupleForThreatId,
+  attackTreeThreatSync,
+} from "./services/attacktree-threat-sync";
+export type { AttackPathSyncResult } from "./services/attacktree-threat-sync";

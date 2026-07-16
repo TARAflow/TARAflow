@@ -86,6 +86,13 @@ export interface RiskProjectData {
   phaseStatus: PhaseStatusMap;
   perElementThreats: ThreatReference[];
   perInteractionThreats: ThreatReference[];
+  /**
+   * Attack-path threats emitted by asset-anchored attack trees (Phase 5a).
+   * A third source alongside the two STRIDE methods; the Risk tab treats them
+   * identically (sourceStrideMethod: "attack-path"). Optional: absent on
+   * projects without attack trees, and the tab defaults it to [].
+   */
+  perAttackPathThreats?: ThreatReference[];
   assetDataRef?: AssetDataReference;
   dfdPreviewImage?: string;
   dfd?: DFDReference | null;

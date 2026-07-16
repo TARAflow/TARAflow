@@ -9,6 +9,8 @@ import {
   AttackTreeProjectData,
 } from "../models/attacktree-types";
 import { attackTreeOperations } from "../services/attacktree-operations";
+import { reconcileAttackPathThreats } from "../services/attacktree-threat-sync";
+import type { PathDiff } from "../services/attacktree-path-identity";
 
 // ==================== TYPES ====================
 
@@ -17,6 +19,12 @@ export interface AttackTreeEditorState {
   localDsl: string;
   /** Is parsing currently in progress */
   isParsing: boolean;
+  /**
+   * Result of the last Class A/B path diff after a re-parse. requiresBanner
+   * true → an assessed path vanished/changed identity; the tab shows a banner.
+   * null before the first parse.
+   */
+  pathDiff: PathDiff | null;
 }
 
 export interface AttackTreeEditorActions {
@@ -71,6 +79,8 @@ export function useAttackTreeEditor(
    * Could be used to show a loading indicator
    */
   const [isParsing, setIsParsing] = useState(false);
+
+  const [pathDiff, setPathDiff] = useState<PathDiff | null>(null);
 
   /**
    * Timeout reference for debouncing
@@ -129,14 +139,21 @@ export function useAttackTreeEditor(
 
     // Parse immediately
     setIsParsing(true);
+    const previousAnalysis = currentTree.pathAnalysis;
     const updatedTree = attackTreeOperations.parseAndValidateTree(
       currentTree,
       localDsl,
-      project
+      project,
     );
+    // Class A/B diff on the fresh analysis vs. the one before this edit.
+    // pathAssessments survive parseAndValidateTree's {...tree} spread, so the
+    // reconcile sees the analyst's decisions.
+    const { diff } = reconcileAttackPathThreats(updatedTree, previousAnalysis);
+    setPathDiff(diff);
     onTreeUpdateRef.current(updatedTree);
     setIsParsing(false);
   }, [selectedTree?.id, localDsl, project]);
+   
 
   /**
    * Handle DSL change with debounced parsing
@@ -164,6 +181,7 @@ export function useAttackTreeEditor(
     // Step 3: Debounced parsing
     parseTimeoutRef.current = setTimeout(() => {
       setIsParsing(true);
+      const previousAnalysis = currentTree.pathAnalysis;
 
       // Parse and validate
       const updatedTree = attackTreeOperations.parseAndValidateTree(
@@ -171,6 +189,11 @@ export function useAttackTreeEditor(
         newDsl,
         project
       );
+      const { diff } = reconcileAttackPathThreats(
+        updatedTree,
+        previousAnalysis,
+      );
+      setPathDiff(diff);
 
       // Notify parent
       onTreeUpdateRef.current(updatedTree);
@@ -187,7 +210,7 @@ export function useAttackTreeEditor(
     // State
     localDsl,
     isParsing,
-
+    pathDiff,
     // Actions
     handleDslChange,
     parseImmediately,

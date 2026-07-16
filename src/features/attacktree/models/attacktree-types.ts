@@ -6,7 +6,11 @@
 // - AttackTreeData = persisted data in Project (like ThreatData, RiskData)
 // - AttackTreeProjectData = props interface for AttackTreeTab
 
-import type { PhaseStatusMap, StrideCategory } from "shared";
+import type {
+  PhaseStatusMap,
+  StrideCategory,
+  ThreatRelevanceRef,
+} from "shared";
 import type {
   AttackPotentialFactors,
   BenefitLevel,
@@ -187,7 +191,10 @@ export type AttackGoalCategory =
   | "accountability-evasion"
   | "destruction";
 
-export const ATTACK_GOAL_TO_STRIDE: Record<AttackGoalCategory, StrideCategory[]> = {
+export const ATTACK_GOAL_TO_STRIDE: Record<
+  AttackGoalCategory,
+  StrideCategory[]
+> = {
   disclosure: ["I"],
   manipulation: ["T"],
   "service-disruption": ["D"],
@@ -330,6 +337,38 @@ export interface AttackTreeNode {
   selected?: boolean;
 }
 
+// ==================== ATTACK PATH ASSESSMENT (Phase 5a) ====================
+
+/**
+ * The analyst's confirm/dismiss decision on ONE emitted attack-path threat.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * generateThreatsFromAttackTree() is pure and always emits `relevance:
+ * "unrated"` — it cannot know what the analyst decided. The decision has to be
+ * persisted somewhere, and the tree is the only owner of the paths. This is
+ * that store: the minimal state that turns a re-derivable threat set into a
+ * workflow with memory.
+ *
+ * KEYED BY (pathKey, strideCategory), NOT pathKey ALONE
+ * -----------------------------------------------------
+ * A `destruction` path emits TWO threats (T and D — integrity and
+ * availability). They are separately confirmable, so the assessment key must
+ * carry the STRIDE suffix, matching the threat id AT-<treeId>-<pathKey>-<STRIDE>.
+ *
+ * The pathKey (Phase 1) is what makes the decision survive DSL edits: an
+ * unrelated sibling insertion does not touch it, so the assessment stays
+ * attached. Renaming a node ON this path changes the key — correct, that is a
+ * different scenario that must be re-assessed.
+ */
+export interface AttackPathAssessment {
+  pathKey: string;
+  strideCategory: StrideCategory;
+  relevance: ThreatRelevanceRef;
+  evalNote?: string;
+  lastModified: string;
+}
+
 // ==================== ATTACK TREE (Single Tree) ====================
 
 /**
@@ -345,6 +384,14 @@ export interface AttackTree {
   configuration: AttackTreeConfiguration;
   validation: AttackTreeValidation;
   pathAnalysis?: PathAnalysis;
+  /**
+   * Analyst confirm/dismiss decisions on this tree's emitted attack-path
+   * threats (Phase 5a). Absent on every pre-5a tree → all paths read as
+   * "unrated", which is exactly the pre-5a behaviour. Never written by the
+   * pure generator; written only through the relevance workflow and carried
+   * on the tree so it persists via the existing updateTree → auto-save path.
+   */
+  pathAssessments?: AttackPathAssessment[];
   likelihoodExport?: LikelihoodExport;
   created: string;
   lastModified: string;
@@ -388,11 +435,12 @@ export interface AttackTreeProjectConfiguration {
   showLikelihoodExport: boolean;
 }
 
-export const DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION: AttackTreeProjectConfiguration = {
-  defaultEvaluationMethod: "simple",
-  autoCreateForSecurityGoals: false,
-  showLikelihoodExport: true,
-};
+export const DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION: AttackTreeProjectConfiguration =
+  {
+    defaultEvaluationMethod: "simple",
+    autoCreateForSecurityGoals: false,
+    showLikelihoodExport: true,
+  };
 
 /**
  * Validation for the entire AttackTreeData
@@ -615,7 +663,7 @@ export interface RiskCalculationResult {
 
 export function calculateRiskLevel(
   score: number,
-  method: EvaluationMethod
+  method: EvaluationMethod,
 ): RiskCalculationResult {
   const maxScore = method === "simple" ? 25 : 125;
   const percentage = (score / maxScore) * 100;
@@ -651,7 +699,8 @@ export const ATTACK_TREE_TEMPLATES: AttackTreeTemplate[] = [
     name: "Confidentiality Breach",
     nameDE: "Vertraulichkeitsverletzung",
     description: "Attack tree for unauthorized data access (Critical Workflow)",
-    descriptionDE: "Angriffsbaum für unbefugten Datenzugriff (Kritischer Workflow)",
+    descriptionDE:
+      "Angriffsbaum für unbefugten Datenzugriff (Kritischer Workflow)",
     category: "critical",
     suitableFor: ["asset"],
     securityGoals: ["C"],
@@ -790,7 +839,7 @@ Compromise IoT Device [ASSET_ID];ROOT
  */
 export function createEmptyAttackTree(
   anchor: AttackTreeAnchor,
-  configuration?: Partial<AttackTreeConfiguration>
+  configuration?: Partial<AttackTreeConfiguration>,
 ): AttackTree {
   const anchorName = getAnchorDisplayName(anchor);
 
@@ -943,14 +992,17 @@ export function createDefaultAttackTreeData(): AttackTreeData {
 
 export function getTreesByAnchorType(
   data: AttackTreeData,
-  type: AttackTreeAnchorType
+  type: AttackTreeAnchorType,
 ): AttackTree[] {
   return data.trees.filter(function (t) {
     return t.anchor.type === type;
   });
 }
 
-export function getTreesForAsset(data: AttackTreeData, assetId: string): AttackTree[] {
+export function getTreesForAsset(
+  data: AttackTreeData,
+  assetId: string,
+): AttackTree[] {
   return data.trees.filter(function (t) {
     return t.anchor.type === "asset" && t.anchor.assetId === assetId;
   });
@@ -959,7 +1011,7 @@ export function getTreesForAsset(data: AttackTreeData, assetId: string): AttackT
 export function getTreesForSecurityGoal(
   data: AttackTreeData,
   assetId: string,
-  securityGoal: SecurityGoalType
+  securityGoal: SecurityGoalType,
 ): AttackTree[] {
   return data.trees.filter(function (t) {
     return (
@@ -973,7 +1025,7 @@ export function getTreesForSecurityGoal(
 export function checkAssetAttackTreeCoverage(
   data: AttackTreeData,
   assetId: string,
-  enabledSecurityGoals: SecurityGoalType[]
+  enabledSecurityGoals: SecurityGoalType[],
 ): {
   covered: SecurityGoalType[];
   missing: SecurityGoalType[];
@@ -1004,43 +1056,67 @@ export function checkAssetAttackTreeCoverage(
 
 export function getNodeTypeColor(type: NodeType): string {
   switch (type) {
-    case "ROOT": return "#1976d2";
-    case "OR": return "#ed6c02";
-    case "AND": return "#9c27b0";
-    case "LEAF": return "#2e7d32";
-    default: return "#757575";
+    case "ROOT":
+      return "#1976d2";
+    case "OR":
+      return "#ed6c02";
+    case "AND":
+      return "#9c27b0";
+    case "LEAF":
+      return "#2e7d32";
+    default:
+      return "#757575";
   }
 }
 
-export function getRiskScoreEmoji(level: "low" | "medium" | "high" | "critical"): string {
+export function getRiskScoreEmoji(
+  level: "low" | "medium" | "high" | "critical",
+): string {
   switch (level) {
-    case "critical": return "🔴";
-    case "high": return "🟠";
-    case "medium": return "🟡";
-    case "low": return "🟢";
+    case "critical":
+      return "🔴";
+    case "high":
+      return "🟠";
+    case "medium":
+      return "🟡";
+    case "low":
+      return "🟢";
   }
 }
 
 export function getAttackGoalColor(goal: AttackGoalCategory): string {
   switch (goal) {
-    case "disclosure": return "#2196f3";
-    case "manipulation": return "#ff9800";
-    case "service-disruption": return "#f44336";
-    case "privilege-abuse": return "#9c27b0";
-    case "identity-misuse": return "#00bcd4";
-    case "accountability-evasion": return "#795548";
-    case "destruction": return "#d32f2f";
-    default: return "#757575";
+    case "disclosure":
+      return "#2196f3";
+    case "manipulation":
+      return "#ff9800";
+    case "service-disruption":
+      return "#f44336";
+    case "privilege-abuse":
+      return "#9c27b0";
+    case "identity-misuse":
+      return "#00bcd4";
+    case "accountability-evasion":
+      return "#795548";
+    case "destruction":
+      return "#d32f2f";
+    default:
+      return "#757575";
   }
 }
 
 export function getAnchorTypeIcon(type: AttackTreeAnchorType): string {
   switch (type) {
-    case "asset": return "📦";
-    case "threat": return "⚠️";
-    case "risk": return "📊";
-    case "standalone": return "🔍";
-    default: return "📄";
+    case "asset":
+      return "📦";
+    case "threat":
+      return "⚠️";
+    case "risk":
+      return "📊";
+    case "standalone":
+      return "🔍";
+    default:
+      return "📄";
   }
 }
 

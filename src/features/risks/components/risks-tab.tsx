@@ -173,13 +173,26 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       getEligibleThreats([
         ...project.perElementThreats,
         ...project.perInteractionThreats,
+        ...(project.perAttackPathThreats ?? []),
       ]),
-    [project.perElementThreats, project.perInteractionThreats],
+    [
+      project.perElementThreats,
+      project.perInteractionThreats,
+      project.perAttackPathThreats,
+    ],
   );
 
   const allThreatsUnfiltered = useMemo(
-    () => [...project.perElementThreats, ...project.perInteractionThreats],
-    [project.perElementThreats, project.perInteractionThreats],
+    () => [
+      ...project.perElementThreats,
+      ...project.perInteractionThreats,
+      ...(project.perAttackPathThreats ?? []),
+    ],
+    [
+      project.perElementThreats,
+      project.perInteractionThreats,
+      project.perAttackPathThreats,
+    ],
   );
 
   const {

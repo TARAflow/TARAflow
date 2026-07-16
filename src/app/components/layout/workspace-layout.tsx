@@ -52,6 +52,7 @@ import { addCreatedAssets, translateFinding } from "features/dfd";
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
+import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 
 import {
   StrideMethod,
@@ -811,6 +812,9 @@ export const WorkspaceLayout: React.FC = () => {
               perInteractionThreats: extractThreatReferences(
                 activeProject.threats,
                 "per-interaction",
+              ),
+              perAttackPathThreats: buildAttackPathThreatReferences(
+                activeProject.attackTrees,
               ),
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
