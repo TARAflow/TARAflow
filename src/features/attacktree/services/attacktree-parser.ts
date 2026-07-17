@@ -97,8 +97,7 @@ export function parseAttackTree(
             line: lineNumber,
             type: "syntax",
             severity: "error",
-            message: "Multiple ROOT nodes found. Only one ROOT allowed.",
-            messageDE: "Mehrere ROOT-Knoten gefunden. Nur ein ROOT erlaubt.",
+            messageKey: "tabs.attacktree.validation.parser.multipleRoots",
           });
           continue;
         }
@@ -115,9 +114,7 @@ export function parseAttackTree(
             line: lineNumber,
             type: "syntax",
             severity: "error",
-            message: "Node has no parent. All nodes must be children of ROOT.",
-            messageDE:
-              "Knoten hat keinen Elternknoten. Alle Knoten müssen Kinder von ROOT sein.",
+            messageKey: "tabs.attacktree.validation.parser.noParent",
           });
           continue;
         }
@@ -136,10 +133,7 @@ export function parseAttackTree(
         line: 1,
         type: "syntax",
         severity: "error",
-        message:
-          "No ROOT node found. Attack tree must start with a ROOT node.",
-        messageDE:
-          "Kein ROOT-Knoten gefunden. Angriffsbaum muss mit einem ROOT-Knoten beginnen.",
+        messageKey: "tabs.attacktree.validation.parser.noRoot",
       });
     }
 
@@ -165,7 +159,10 @@ export function parseAttackTree(
       line: 0,
       type: "syntax",
       severity: "error",
-      message: `Parse error: ${error instanceof Error ? error.message : String(error)}`,
+      messageKey: "tabs.attacktree.validation.syntax.parseError",
+      params: {
+        detail: error instanceof Error ? error.message : String(error),
+      },
     });
 
     return {
@@ -218,8 +215,7 @@ function parseLine(
         line: lineNumber,
         type: "syntax",
         severity: "error",
-        message: `Invalid syntax. Expected: "Node Name [Refs];TYPE evaluation @goal [Mitigations]"`,
-        messageDE: `Ungültige Syntax. Erwartet: "Knotenname [Refs];TYPE Bewertung @goal [Mitigations]"`,
+        messageKey: "tabs.attacktree.validation.parser.invalidSyntax",
         context: trimmed,
       },
     };
@@ -313,8 +309,8 @@ function parseRemainder(
         line: lineNumber,
         type: "goal",
         severity: "warning",
-        message: `Unknown attack goal "@${goalStr}". Valid goals: disclosure, manipulation, service-disruption, privilege-abuse, identity-misuse, accountability-evasion, destruction`,
-        messageDE: `Unbekanntes Angriffsziel "@${goalStr}". Gültige Ziele: disclosure, manipulation, service-disruption, privilege-abuse, identity-misuse, accountability-evasion, destruction`,
+        messageKey: "tabs.attacktree.validation.parser.unknownGoal",
+        params: { goal: goalStr },
       });
     }
     workingStr = workingStr.replace(/@\w+(?:-\w+)?/, "").trim();
@@ -335,8 +331,7 @@ function parseRemainder(
         line: lineNumber,
         type: "syntax",
         severity: "error",
-        message: "Missing node type or evaluation after semicolon",
-        messageDE: "Fehlender Knotentyp oder Bewertung nach Semikolon",
+        messageKey: "tabs.attacktree.validation.parser.missingTypeOrEval",
       },
     };
   }
@@ -354,8 +349,8 @@ function parseRemainder(
           line: lineNumber,
           type: "logic",
           severity: "warning",
-          message: `Gate nodes (${node.type}) should not have evaluations. Evaluation ignored.`,
-          messageDE: `Gate-Knoten (${node.type}) sollten keine Bewertungen haben. Bewertung ignoriert.`,
+          messageKey: "tabs.attacktree.validation.parser.gateHasEvaluation",
+          params: { type: node.type },
         });
       }
     }
@@ -463,8 +458,8 @@ function parseEvaluation(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Probability must be between 0.0 and 1.0, got ${probability}`,
-          messageDE: `Wahrscheinlichkeit muss zwischen 0.0 und 1.0 liegen, erhalten: ${probability}`,
+          messageKey: "tabs.attacktree.validation.parser.probabilityRange",
+          params: { value: probability },
         },
       };
     }
@@ -475,8 +470,8 @@ function parseEvaluation(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Impact must be between 1 and 5, got ${impact}`,
-          messageDE: `Auswirkung muss zwischen 1 und 5 liegen, erhalten: ${impact}`,
+          messageKey: "tabs.attacktree.validation.parser.impactRange",
+          params: { value: impact },
         },
       };
     }
@@ -507,8 +502,8 @@ function parseEvaluation(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Feasibility must be between 0.0 and 1.0, got ${feasibility}`,
-          messageDE: `Machbarkeit muss zwischen 0.0 und 1.0 liegen, erhalten: ${feasibility}`,
+          messageKey: "tabs.attacktree.validation.parser.feasibilityRange",
+          params: { value: feasibility },
         },
       };
     }
@@ -519,8 +514,8 @@ function parseEvaluation(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Benefits must be between 0.0 and 1.0, got ${benefits}`,
-          messageDE: `Nutzen muss zwischen 0.0 und 1.0 liegen, erhalten: ${benefits}`,
+          messageKey: "tabs.attacktree.validation.parser.benefitsRange",
+          params: { value: benefits },
         },
       };
     }
@@ -531,8 +526,8 @@ function parseEvaluation(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Impact must be between 1 and 5, got ${impact}`,
-          messageDE: `Auswirkung muss zwischen 1 und 5 liegen, erhalten: ${impact}`,
+          messageKey: "tabs.attacktree.validation.parser.impactRange",
+          params: { value: impact },
         },
       };
     }
@@ -550,14 +545,10 @@ function parseEvaluation(
       line: lineNumber,
       type: "syntax",
       severity: "error",
-      message:
+      messageKey:
         method === "simple"
-          ? `Invalid evaluation format. Expected: p=0.0-1.0,i=1-5`
-          : `Invalid evaluation format. Expected: f=0.0-1.0,b=0.0-1.0,i=1-5 or 0.0-1.0,0.0-1.0,1-5`,
-      messageDE:
-        method === "simple"
-          ? `Ungültiges Bewertungsformat. Erwartet: p=0.0-1.0,i=1-5`
-          : `Ungültiges Bewertungsformat. Erwartet: f=0.0-1.0,b=0.0-1.0,i=1-5 oder 0.0-1.0,0.0-1.0,1-5`,
+          ? "tabs.attacktree.validation.parser.invalidEvalSimple"
+          : "tabs.attacktree.validation.parser.invalidEvalExtended",
       context: evalStr,
     },
   };
@@ -599,8 +590,12 @@ function validateTreeStructure(
         line: node.lineNumber || node.level,
         type: "logic",
         severity: "error",
-        message: `${node.type} gate "${node.name}" must have at least 2 children, has ${node.children.length}`,
-        messageDE: `${node.type}-Gate "${node.name}" muss mindestens 2 Kinder haben, hat ${node.children.length}`,
+        messageKey: "tabs.attacktree.validation.parser.gateMinChildren",
+        params: {
+          type: node.type,
+          name: node.name,
+          count: node.children.length,
+        },
         context: currentPath.join(" > "),
       });
     }
@@ -611,8 +606,7 @@ function validateTreeStructure(
         line: node.lineNumber || node.level,
         type: "logic",
         severity: "error",
-        message: `ROOT node must have at least one child`,
-        messageDE: `ROOT-Knoten muss mindestens ein Kind haben`,
+        messageKey: "tabs.attacktree.validation.parser.rootNoChildren",
       });
     }
 
@@ -622,8 +616,8 @@ function validateTreeStructure(
         line: node.lineNumber || node.level,
         type: "logic",
         severity: "warning",
-        message: `Leaf node "${node.name}" has no evaluation`,
-        messageDE: `Blattknoten "${node.name}" hat keine Bewertung`,
+        messageKey: "tabs.attacktree.validation.parser.leafNoEvaluation",
+        params: { name: node.name },
         context: currentPath.join(" > "),
       });
     }
@@ -635,8 +629,8 @@ function validateTreeStructure(
           line: node.lineNumber || node.level,
           type: "logic",
           severity: "warning",
-          message: `Node "${node.name}" has extended evaluation but simple method is selected`,
-          messageDE: `Knoten "${node.name}" hat erweiterte Bewertung, aber einfache Methode ist ausgewählt`,
+          messageKey: "tabs.attacktree.validation.parser.extendedButSimple",
+          params: { name: node.name },
         });
       }
       if (method === "extended" && !node.evaluation.extended) {
@@ -644,8 +638,8 @@ function validateTreeStructure(
           line: node.lineNumber || node.level,
           type: "logic",
           severity: "warning",
-          message: `Node "${node.name}" has simple evaluation but extended method is selected`,
-          messageDE: `Knoten "${node.name}" hat einfache Bewertung, aber erweiterte Methode ist ausgewählt`,
+          messageKey: "tabs.attacktree.validation.parser.simpleButExtended",
+          params: { name: node.name },
         });
       }
     }

@@ -25,7 +25,7 @@ function astOf(dsl: string) {
   const result = attackTreeParser.parse(dsl, "simple");
   if (!result.ast) {
     throw new Error(
-      `fixture failed to parse: ${result.errors.map((e) => e.message).join("; ")}`,
+      `fixture failed to parse: ${result.errors.map((e) => e.messageKey).join("; ")}`,
     );
   }
   return result.ast;
@@ -59,11 +59,14 @@ describe("validateTARAConsistency", () => {
       makeProjectData(),
     );
 
-    const assetError = errors.find((e) => e.message.includes("A-999"));
+    const assetError = errors.find(
+      (e) =>
+        e.messageKey === "tabs.attacktree.validation.tara.assetNotFound" &&
+        e.params?.ref === "A-999",
+    );
     expect(assetError).toBeDefined();
     expect(assetError!.severity).toBe("warning");
     expect(assetError!.type).toBe("tara");
-    expect(assetError!.messageDE).toBeTruthy(); // the i18n path must stay populated
   });
 
   it("warns on an unknown DFD element reference", () => {
@@ -72,7 +75,7 @@ describe("validateTARAConsistency", () => {
     expect(
       attackTreeValidator
         .validateTARAConsistency(ast, makeProjectData())
-        .some((e) => e.message.includes("DS-99") && e.severity === "warning"),
+        .some((e) => e.params?.ref === "DS-99" && e.severity === "warning"),
     ).toBe(true);
   });
 
@@ -82,7 +85,7 @@ describe("validateTARAConsistency", () => {
     expect(
       attackTreeValidator
         .validateTARAConsistency(ast, makeProjectData())
-        .some((e) => e.message.includes("T-999") && e.severity === "warning"),
+        .some((e) => e.params?.ref === "T-999" && e.severity === "warning"),
     ).toBe(true);
   });
 
@@ -93,7 +96,7 @@ describe("validateTARAConsistency", () => {
 
     const mitigationError = attackTreeValidator
       .validateTARAConsistency(ast, makeProjectData())
-      .find((e) => e.message.includes("M-999"));
+      .find((e) => e.params?.ref === "M-999");
 
     expect(mitigationError).toBeDefined();
     expect(mitigationError!.severity).toBe("info");
@@ -121,7 +124,7 @@ describe("validateTARAConsistency", () => {
     expect(
       attackTreeValidator
         .validateTARAConsistency(ast, makeProjectData())
-        .some((e) => e.message.includes("A-999")),
+        .some((e) => e.params?.ref === "A-999"),
     ).toBe(true);
   });
 });
@@ -152,7 +155,9 @@ describe("validateAttackGoals", () => {
 
     expect(result.ast!.attackGoal).toBeUndefined();
     expect(
-      result.warnings.some((w) => /goal|ziel/i.test(w.message + w.messageDE)),
+      result.warnings.some(
+        (w) => w.messageKey === "tabs.attacktree.validation.parser.unknownGoal",
+      ),
     ).toBe(true);
   });
 
@@ -166,11 +171,10 @@ describe("validateAttackGoals", () => {
 
     const goalError = attackTreeValidator
       .validateAttackGoals(ast, makeProjectData(), "A-001")
-      .find((e) => /unknown attack goal/i.test(e.message));
+      .find((e) => e.messageKey === "tabs.attacktree.validation.goal.unknown");
 
     expect(goalError).toBeDefined();
     expect(goalError!.severity).toBe("warning");
-    expect(goalError!.messageDE).toBeTruthy();
   });
 });
 
@@ -187,7 +191,7 @@ describe("validateCompleteness", () => {
 
     const nameError = attackTreeValidator
       .validateCompleteness(ast)
-      .find((e) => /empty name/i.test(e.message));
+      .find((e) => e.messageKey === "tabs.attacktree.validation.completeness.emptyName");
 
     expect(nameError).toBeDefined();
     expect(nameError!.severity).toBe("error");
@@ -203,7 +207,8 @@ describe("validateCompleteness", () => {
         .validateCompleteness(ast)
         .some(
           (e) =>
-            /no risk evaluation/i.test(e.message) && e.severity === "warning",
+            e.messageKey === "tabs.attacktree.validation.completeness.leafNoEvaluation" &&
+            e.severity === "warning",
         ),
     ).toBe(true);
   });
@@ -221,7 +226,9 @@ describe("validateCompleteness", () => {
     expect(
       attackTreeValidator
         .validateCompleteness(ast)
-        .some((e) => /no risk evaluation/i.test(e.message)),
+        .some(
+          (e) => e.messageKey === "tabs.attacktree.validation.completeness.leafNoEvaluation",
+        ),
     ).toBe(false);
   });
 
@@ -233,7 +240,11 @@ describe("validateCompleteness", () => {
     expect(
       attackTreeValidator
         .validateCompleteness(ast)
-        .some((e) => /no mitigations/i.test(e.message) && e.severity === "info"),
+        .some(
+          (e) =>
+            e.messageKey === "tabs.attacktree.validation.completeness.pathNoMitigations" &&
+            e.severity === "info",
+        ),
     ).toBe(true);
   });
 });
@@ -256,7 +267,7 @@ describe("validateSecurityGoalCoverage", () => {
 
     expect(errors).toHaveLength(1);
     expect(errors[0].severity).toBe("warning");
-    expect(errors[0].message).toContain("I");
+    expect(errors[0].messageKey).toBe("tabs.attacktree.validation.coverage.missingGoals");
   });
 
   it("passes when every enabled goal is covered", () => {
@@ -309,8 +320,7 @@ describe("validateRatingMethodConsistency", () => {
 
     expect(errors).toHaveLength(1);
     expect(errors[0].severity).toBe("error");
-    expect(errors[0].message).toContain("Gate");
-    expect(errors[0].messageDE).toBeTruthy();
+    expect(errors[0].messageKey).toBe("tabs.attacktree.validation.rating.mixedMethods");
   });
 
   it("a gate rated consistently in audit mode is fine", () => {
@@ -348,7 +358,7 @@ describe("validateRatingMethodConsistency", () => {
     const errors = attackTreeValidator.validateRatingMethodConsistency(ast);
 
     expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain("Inner");
+    expect(errors[0].params?.name).toBe("Inner");
   });
 
   it("an unrated child does not trigger a false positive", () => {
@@ -382,8 +392,8 @@ describe("validateDeprecatedImpact", () => {
 
     expect(infos).toHaveLength(1);
     expect(infos[0].severity).toBe("info");
-    expect(infos[0].message).toContain("A-001"); // names where impact really comes from
-    expect(infos[0].messageDE).toBeTruthy();
+    expect(infos[0].messageKey).toBe("tabs.attacktree.validation.impact.ignoredWithAsset");
+    expect(infos[0].params?.asset).toBe("A-001");
   });
 
   it("explains the damage-scenario rule when the tree is not asset-anchored", () => {
@@ -391,7 +401,7 @@ describe("validateDeprecatedImpact", () => {
 
     const infos = attackTreeValidator.validateDeprecatedImpact(ast, undefined);
 
-    expect(infos[0].message).toContain("damage scenario");
+    expect(infos[0].messageKey).toBe("tabs.attacktree.validation.impact.ignoredGeneric");
   });
 
   it("says nothing about a tree rated in audit mode (no i= anywhere)", () => {
@@ -421,8 +431,7 @@ describe("validateAttackTree", () => {
           line: 1,
           type: "syntax",
           severity: "error",
-          message: "boom",
-          messageDE: "boom",
+          messageKey: "tabs.attacktree.validation.test.boom",
         },
       ],
     );
@@ -481,7 +490,9 @@ describe("validateAttackTree", () => {
 
     expect(result.isValid).toBe(false);
     expect(
-      result.errors.some((e) => /mixes rating methods/i.test(e.message)),
+      result.errors.some(
+        (e) => e.messageKey === "tabs.attacktree.validation.rating.mixedMethods",
+      ),
     ).toBe(true);
   });
 

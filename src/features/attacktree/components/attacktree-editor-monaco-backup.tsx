@@ -133,13 +133,13 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
             error.severity === "error"
               ? monacoRef.current.MarkerSeverity.Error
               : error.severity === "warning"
-              ? monacoRef.current.MarkerSeverity.Warning
-              : monacoRef.current.MarkerSeverity.Info,
+                ? monacoRef.current.MarkerSeverity.Warning
+                : monacoRef.current.MarkerSeverity.Info,
           startLineNumber: error.line,
           startColumn: error.column || 1,
           endLineNumber: error.line,
           endColumn: error.column ? error.column + 10 : 100,
-          message: error.message,
+          message: t(`attacktree:${error.messageKey}`, error.params),
         }));
 
         monacoRef.current.editor.setModelMarkers(model, "attacktree", markers);
@@ -298,12 +298,14 @@ export const AttackTreeEditor: React.FC<AttackTreeEditorProps> = ({
                             error.severity === "error"
                               ? "error.main"
                               : error.severity === "warning"
-                              ? "warning.main"
-                              : "info.main",
+                                ? "warning.main"
+                                : "info.main",
                         }}
                       >
                         <span>[Line {error.line}]</span>
-                        <span>{error.message}</span>
+                        <span>
+                          {t(`attacktree:${error.messageKey}`, error.params)}
+                        </span>
                       </Box>
                     ))}
                   </Box>

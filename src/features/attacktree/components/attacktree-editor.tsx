@@ -134,6 +134,7 @@ function createLinter(validationErrors: ValidationError[]) {
   return linter((view) => {
     const diagnostics: Diagnostic[] = [];
     const doc = view.state.doc;
+    const { t } = useTranslation();
 
     validationErrors.forEach((error) => {
       // Get line position
@@ -148,7 +149,7 @@ function createLinter(validationErrors: ValidationError[]) {
         from,
         to,
         severity: error.severity,
-        message: error.message,
+        message: t(error.messageKey, { ns: "attacktree", ...error.params }),
       });
     });
 
@@ -469,7 +470,9 @@ const AttackTreeEditorComponent: React.FC<AttackTreeEditorProps> = ({
                         }}
                       >
                         <span>[Line {error.line}]</span>
-                        <span>{error.message}</span>
+                        <span>
+                          {t(error.messageKey, { ns: "attacktree", ...error.params })}
+                        </span>
                       </Box>
                     ))}
                   </Box>

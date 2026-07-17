@@ -11,6 +11,7 @@ import {
   AttackTreeConfiguration,
   SecurityGoalType,
   createEmptyAttackTree,
+  resolveFeasibilityConfiguration,
 } from "../models/attacktree-types";
 import { attackTreeParser } from "./attacktree-parser";
 import { attackTreeValidator } from "./attacktree-validator";
@@ -26,24 +27,43 @@ import { attackTreeService } from "./attacktree-service";
 export function parseAndValidateTree(
   tree: AttackTree,
   dsl: string,
-  projectData: AttackTreeProjectData
+  projectData: AttackTreeProjectData,
 ): AttackTree {
   // Parse DSL
   const parseResult = attackTreeParser.parse(
     dsl,
-    tree.configuration.evaluationMethod
+    tree.configuration.evaluationMethod,
   );
 
   // Get anchor asset ID for validation
   const anchorAssetId =
     tree.anchor.type === "asset" ? tree.anchor.assetId : undefined;
 
+  // 5b-1a: two distinct needs from the feasibility config.
+  //
+  // VALIDATION must enforce the ISO leaf format ONLY when the project has
+  // EXPLICITLY chosen a model. A project that never configured one must not be
+  // dragged into ISO enforcement — DEFAULT_FEASIBILITY_CONFIGURATION.likelihoodModel
+  // is "feasibility-only" (ISO is the conservative methodological default), and
+  // passing that to the validator would reject every Standard template
+  // (p,i / f,b,i leaves) and suppress pathAnalysis. So the validator gets the
+  // EXPLICIT config or undefined (-> its Standard default parameter).
+  const explicitFeasibilityConfig =
+    projectData.attackTrees?.configuration?.feasibilityConfiguration;
+
+  // CALCULATION always needs a complete config for banding/weights, so it falls
+  // back to DEFAULT. The banding default is independent of the validation gate.
+  const feasibilityConfig = resolveFeasibilityConfiguration(
+    projectData.attackTrees?.configuration,
+  );
+
   // Validate
   const validation = attackTreeValidator.validateAttackTree(
     parseResult.ast,
     projectData,
     parseResult.errors,
-    anchorAssetId
+    anchorAssetId,
+    explicitFeasibilityConfig, // undefined unless the project explicitly chose a model
   );
 
   // Calculate path analysis if valid
@@ -51,7 +71,8 @@ export function parseAndValidateTree(
   if (parseResult.ast && validation.isValid) {
     pathAnalysis = attackTreeCalculator.analyzeAttackPaths(
       parseResult.ast,
-      tree.configuration.evaluationMethod
+      tree.configuration.evaluationMethod,
+      feasibilityConfig, // full config for banding; 5b-1a closed the always-DEFAULT gap
     );
   }
 

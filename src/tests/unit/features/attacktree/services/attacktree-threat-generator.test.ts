@@ -47,7 +47,7 @@ function makeTree(
   const parsed = attackTreeParser.parse(dsl, "simple");
   if (!parsed.ast) {
     throw new Error(
-      `fixture failed to parse: ${parsed.errors.map((e) => e.message).join("; ")}`,
+      `fixture failed to parse: ${parsed.errors.map((e) => e.messageKey).join("; ")}`,
     );
   }
 

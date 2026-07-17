@@ -67,8 +67,10 @@ describe("attack-potential (audit mode) syntax", () => {
     expect(result.factors).toBeUndefined();
     expect(result.error).toBeDefined();
     expect(result.error!.severity).toBe("error");
-    expect(result.error!.message).toContain("eq");
-    expect(result.error!.messageDE).toBeTruthy();
+    expect(result.error!.messageKey).toBe(
+      "tabs.attacktree.validation.feasParser.missingFactor",
+    );
+    expect(result.error!.params?.key).toBe("eq");
     expect(result.error!.line).toBe(7);
   });
 
@@ -79,8 +81,9 @@ describe("attack-potential (audit mode) syntax", () => {
     );
 
     expect(result.error).toBeDefined();
-    expect(result.error!.message).toContain("wizard");
-    expect(result.error!.message).toContain("expert"); // suggests valid values
+    expect(result.error!.messageKey).toBe("tabs.attacktree.validation.feasParser.unknownValue");
+    expect(result.error!.params?.value).toBe("wizard");
+    expect(String(result.error!.params?.expected)).toContain("expert");
   });
 
   it("surfaces the parse error on the tree, not just as a silent drop", () => {

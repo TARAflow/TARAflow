@@ -10,6 +10,78 @@
         "autoSave": "Auto-Save",
         "lineNumbers": "Show Line Numbers",
         "fontSize": "Font Size"
+      },
+      "validation": {
+        "tara": {
+          "assetNotFound": "Asset \"{{ref}}\" nicht in Asset-Tabelle gefunden",
+          "threatNotFound": "Threat \"{{ref}}\" nicht in Threat-Tabelle gefunden",
+          "dfdNotFound": "DFD-Element \"{{ref}}\" nicht im DFD gefunden",
+          "mitigationNotFound": "Maßnahme \"{{ref}}\" nicht in bestehenden Maßnahmen gefunden"
+        },
+        "goal": {
+          "unknown": "Unbekanntes Angriffsziel \"{{goal}}\"",
+          "notEnabledForAsset": "Angriffsziel \"{{goal}}\" zielt auf Schutzziele ({{goals}}), die für Asset {{asset}} nicht aktiviert sind"
+        },
+        "completeness": {
+          "emptyName": "Knoten hat keinen Namen",
+          "leafNoEvaluation": "Blattknoten \"{{name}}\" hat keine Risiko-Bewertung",
+          "pathNoMitigations": "Pfad zu \"{{name}}\" hat keine Maßnahmen zugewiesen"
+        },
+        "coverage": {
+          "missingGoals": "Attack Tree deckt Schutzziele nicht ab: {{goals}}"
+        },
+        "rating": {
+          "mixedMethods": "Knoten \"{{name}}\" mischt Bewertungsmethoden: Attack Potential kann nicht mit Wahrscheinlichkeit kombiniert werden. Alle Kinder einheitlich bewerten."
+        },
+        "impact": {
+          "ignoredWithAsset": "Impact auf \"{{name}}\" wird ignoriert — er wird aus Asset {{asset}} und dem Schutzziel des Baums abgeleitet.",
+          "ignoredGeneric": "Impact auf \"{{name}}\" wird ignoriert — Impact gehört zum Damage Scenario (Asset × Schutzziel), nicht zu einem Angriffsschritt."
+        },
+        "syntax": {
+          "parseError": "Parse-Fehler: {{detail}}"
+        },
+        "iso": {
+          "methodNotImplemented": "ISO-Modus erfordert eine implementierte, audit-taugliche Feasibility-Methode (RC-15-11). \"{{method}}\" ist noch nicht implementiert. Verwende Attack Potential.",
+          "methodQuick": "ISO-Modus erfordert eine implementierte, audit-taugliche Feasibility-Methode (RC-15-11). Quick-Modus ist ein Entwurfsmodus, nicht audit-tauglich. Verwende Attack Potential.",
+          "probabilityLeaf": "ISO-Modus: Blatt \"{{name}}\" nutzt einen Wahrscheinlichkeitswert (p,i), der keine RC-15-11-Feasibility-Methode ist. Bewerte es mit der Projektmethode {{method}}.",
+          "extendedLeaf": "ISO-Modus: Blatt \"{{name}}\" nutzt f,b,i, was keine RC-15-11-Feasibility-Methode ist. Bewerte es mit der Projektmethode {{method}}.",
+          "leafMethodMismatch": "ISO-Modus: Blatt \"{{name}}\" ist nicht mit der Projekt-Feasibility-Methode ({{method}}) bewertet.",
+          "benefitAnalysisOnly": "ISO-Modus: Benefit auf \"{{name}}\" ist nur analytisch und fließt nie in die Risikozahl ein (Cl. 3.1.29)."
+        },
+        "parser": {
+          "multipleRoots": "Mehrere ROOT-Knoten gefunden. Nur ein ROOT erlaubt.",
+          "noParent": "Knoten hat keinen Elternknoten. Alle Knoten müssen Kinder von ROOT sein.",
+          "noRoot": "Kein ROOT-Knoten gefunden. Angriffsbaum muss mit einem ROOT-Knoten beginnen.",
+          "invalidSyntax": "Ungültige Syntax. Erwartet: \"Knotenname [Refs];TYPE Bewertung @goal [Mitigations]\"",
+          "unknownGoal": "Unbekanntes Angriffsziel \"@{{goal}}\". Gültige Ziele: disclosure, manipulation, service-disruption, privilege-abuse, identity-misuse, accountability-evasion, destruction",
+          "missingTypeOrEval": "Fehlender Knotentyp oder Bewertung nach Semikolon",
+          "gateHasEvaluation": "Gate-Knoten ({{type}}) sollten keine Bewertungen haben. Bewertung ignoriert.",
+          "probabilityRange": "Wahrscheinlichkeit muss zwischen 0.0 und 1.0 liegen, erhalten: {{value}}",
+          "impactRange": "Auswirkung muss zwischen 1 und 5 liegen, erhalten: {{value}}",
+          "feasibilityRange": "Machbarkeit muss zwischen 0.0 und 1.0 liegen, erhalten: {{value}}",
+          "benefitsRange": "Nutzen muss zwischen 0.0 und 1.0 liegen, erhalten: {{value}}",
+          "invalidEvalSimple": "Ungültiges Bewertungsformat. Erwartet: p=0.0-1.0,i=1-5",
+          "invalidEvalExtended": "Ungültiges Bewertungsformat. Erwartet: f=0.0-1.0,b=0.0-1.0,i=1-5 oder 0.0-1.0,0.0-1.0,1-5",
+          "gateMinChildren": "{{type}}-Gate \"{{name}}\" muss mindestens 2 Kinder haben, hat {{count}}",
+          "rootNoChildren": "ROOT-Knoten muss mindestens ein Kind haben",
+          "leafNoEvaluation": "Blattknoten \"{{name}}\" hat keine Bewertung",
+          "extendedButSimple": "Knoten \"{{name}}\" hat erweiterte Bewertung, aber einfache Methode ist ausgewählt",
+          "simpleButExtended": "Knoten \"{{name}}\" hat einfache Bewertung, aber erweiterte Methode ist ausgewählt"
+        },
+        "feasParser": {
+          "unknownBenefit": "Unbekannter Benefit \"{{value}}\". Erwartet: negligible, low, medium, high.",
+          "missingFactor": "Attack-Potential-Faktor \"{{key}}\" ({{factor}}) fehlt. Im Audit-Modus sind alle fünf Faktoren erforderlich.",
+          "unknownValue": "Unbekannter Wert \"{{value}}\" für {{key}} ({{factor}}). Erwartet: {{expected}}."
+        }
+      },
+      "feasibility": {
+        "factor": {
+          "et": "Benötigte Zeit",
+          "se": "Fachwissen",
+          "kn": "Kenntnis des Objekts",
+          "wo": "Gelegenheitsfenster",
+          "eq": "Ausrüstung"
+        }
       }
     }
   }

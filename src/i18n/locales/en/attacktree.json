@@ -10,6 +10,78 @@
         "autoSave": "Auto-Save",
         "lineNumbers": "Show Line Numbers",
         "fontSize": "Font Size"
+      },
+      "validation": {
+        "tara": {
+          "assetNotFound": "Asset \"{{ref}}\" not found in asset table",
+          "threatNotFound": "Threat \"{{ref}}\" not found in threat table",
+          "dfdNotFound": "DFD element \"{{ref}}\" not found in DFD",
+          "mitigationNotFound": "Mitigation \"{{ref}}\" not found in existing mitigations"
+        },
+        "goal": {
+          "unknown": "Unknown attack goal \"{{goal}}\"",
+          "notEnabledForAsset": "Attack goal \"{{goal}}\" targets security goals ({{goals}}) not enabled for asset {{asset}}"
+        },
+        "completeness": {
+          "emptyName": "Node has empty name",
+          "leafNoEvaluation": "Leaf node \"{{name}}\" has no risk evaluation",
+          "pathNoMitigations": "Path to \"{{name}}\" has no mitigations assigned"
+        },
+        "coverage": {
+          "missingGoals": "Attack tree does not cover security goals: {{goals}}"
+        },
+        "rating": {
+          "mixedMethods": "Node \"{{name}}\" mixes rating methods: attack potential cannot be combined with probability. Rate all children the same way."
+        },
+        "impact": {
+          "ignoredWithAsset": "Impact on \"{{name}}\" is ignored — it is derived from asset {{asset}} and the tree's security goal.",
+          "ignoredGeneric": "Impact on \"{{name}}\" is ignored — impact belongs to the damage scenario (asset × security goal), not to an attack step."
+        },
+        "syntax": {
+          "parseError": "Parse error: {{detail}}"
+        },
+        "iso": {
+          "methodNotImplemented": "ISO mode requires an implemented, audit-grade feasibility method (RC-15-11). \"{{method}}\" is not implemented yet. Use attack-potential.",
+          "methodQuick": "ISO mode requires an implemented, audit-grade feasibility method (RC-15-11). Quick mode is a drafting mode, not audit-grade. Use attack-potential.",
+          "probabilityLeaf": "ISO mode: leaf \"{{name}}\" uses a probability (p,i), which is not an RC-15-11 feasibility method. Rate it with the project's {{method}} method.",
+          "extendedLeaf": "ISO mode: leaf \"{{name}}\" uses f,b,i, which is not an RC-15-11 feasibility method. Rate it with the project's {{method}} method.",
+          "leafMethodMismatch": "ISO mode: leaf \"{{name}}\" is not rated with the project's feasibility method ({{method}}).",
+          "benefitAnalysisOnly": "ISO mode: benefit on \"{{name}}\" is analysis-only and never enters the risk number (Cl. 3.1.29)."
+        },
+        "parser": {
+          "multipleRoots": "Multiple ROOT nodes found. Only one ROOT allowed.",
+          "noParent": "Node has no parent. All nodes must be children of ROOT.",
+          "noRoot": "No ROOT node found. Attack tree must start with a ROOT node.",
+          "invalidSyntax": "Invalid syntax. Expected: \"Node Name [Refs];TYPE evaluation @goal [Mitigations]\"",
+          "unknownGoal": "Unknown attack goal \"@{{goal}}\". Valid goals: disclosure, manipulation, service-disruption, privilege-abuse, identity-misuse, accountability-evasion, destruction",
+          "missingTypeOrEval": "Missing node type or evaluation after semicolon",
+          "gateHasEvaluation": "Gate nodes ({{type}}) should not have evaluations. Evaluation ignored.",
+          "probabilityRange": "Probability must be between 0.0 and 1.0, got {{value}}",
+          "impactRange": "Impact must be between 1 and 5, got {{value}}",
+          "feasibilityRange": "Feasibility must be between 0.0 and 1.0, got {{value}}",
+          "benefitsRange": "Benefits must be between 0.0 and 1.0, got {{value}}",
+          "invalidEvalSimple": "Invalid evaluation format. Expected: p=0.0-1.0,i=1-5",
+          "invalidEvalExtended": "Invalid evaluation format. Expected: f=0.0-1.0,b=0.0-1.0,i=1-5 or 0.0-1.0,0.0-1.0,1-5",
+          "gateMinChildren": "{{type}} gate \"{{name}}\" must have at least 2 children, has {{count}}",
+          "rootNoChildren": "ROOT node must have at least one child",
+          "leafNoEvaluation": "Leaf node \"{{name}}\" has no evaluation",
+          "extendedButSimple": "Node \"{{name}}\" has extended evaluation but simple method is selected",
+          "simpleButExtended": "Node \"{{name}}\" has simple evaluation but extended method is selected"
+        },
+        "feasParser": {
+          "unknownBenefit": "Unknown benefit \"{{value}}\". Expected: negligible, low, medium, high.",
+          "missingFactor": "Missing attack-potential factor \"{{key}}\" ({{factor}}). All five factors are required in audit mode.",
+          "unknownValue": "Unknown value \"{{value}}\" for {{key}} ({{factor}}). Expected one of: {{expected}}."
+        }
+      },
+      "feasibility": {
+        "factor": {
+          "et": "elapsed time",
+          "se": "specialist expertise",
+          "kn": "knowledge of the item",
+          "wo": "window of opportunity",
+          "eq": "equipment"
+        }
       }
     }
   }

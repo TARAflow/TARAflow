@@ -59,7 +59,7 @@ describe("parseAttackTree — indentation defines hierarchy", () => {
 
     expect(result.success).toBe(false);
     expect(
-      result.errors.some((e) => /parent/i.test(e.message)),
+      result.errors.some((e) => e.messageKey === "tabs.attacktree.validation.parser.noParent"),
     ).toBe(true);
   });
 
@@ -109,7 +109,9 @@ describe("parseAttackTree — structural validation", () => {
     const result = attackTreeParser.parse("Some Node;OR", "simple");
 
     expect(result.success).toBe(false);
-    expect(result.errors.some((e) => /ROOT/i.test(e.message))).toBe(true);
+    expect(
+      result.errors.some((e) => e.messageKey === "tabs.attacktree.validation.parser.noRoot"),
+    ).toBe(true);
   });
 
   it("errors on multiple ROOT nodes", () => {
@@ -119,7 +121,9 @@ describe("parseAttackTree — structural validation", () => {
 
     expect(result.success).toBe(false);
     expect(
-      result.errors.some((e) => /multiple root/i.test(e.message)),
+      result.errors.some(
+        (e) => e.messageKey === "tabs.attacktree.validation.parser.multipleRoots",
+      ),
     ).toBe(true);
   });
 

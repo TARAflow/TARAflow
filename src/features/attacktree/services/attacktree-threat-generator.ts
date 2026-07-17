@@ -50,13 +50,13 @@
 import type {
   AttackPath,
   AttackTree,
-  FeasibilityLevel,
   PathAnalysis,
 } from "../models/attacktree-types";
+import { ATTACK_GOAL_TO_STRIDE } from "../models/attacktree-types";
 import {
-  ATTACK_GOAL_TO_STRIDE,
+  FeasibilityLevel,
   FEASIBILITY_RANK,
-} from "../models/attacktree-types";
+} from "../models/attacktree-feasibility-types";
 import { buildAttackPathThreatId } from "./attacktree-path-identity";
 import type {
   MitigationDraftRef,

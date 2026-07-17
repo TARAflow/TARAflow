@@ -54,8 +54,8 @@ export function parseBenefit(
         line: lineNumber,
         type: "syntax",
         severity: "error",
-        message: `Unknown benefit "${raw}". Expected: negligible, low, medium, high.`,
-        messageDE: `Unbekannter Benefit "${raw}". Erwartet: negligible, low, medium, high.`,
+        messageKey: "tabs.attacktree.validation.feasParser.unknownBenefit",
+        params: { value: raw },
       },
     };
   }
@@ -74,7 +74,6 @@ export function parseAttackPotential(
   const readFactor = <T>(
     key: string,
     aliases: Record<string, T>,
-    humanName: string,
   ): { value?: T; error?: ValidationError } => {
     const match = evalStr.match(
       new RegExp(`\\b${key}\\s*=\\s*([a-z0-9>.-]+)`, "i"),
@@ -86,8 +85,8 @@ export function parseAttackPotential(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Missing attack-potential factor "${key}" (${humanName}). All five factors are required in audit mode.`,
-          messageDE: `Attack-Potential-Faktor "${key}" (${humanName}) fehlt. Im Audit-Modus sind alle fünf Faktoren erforderlich.`,
+          messageKey: "tabs.attacktree.validation.feasParser.missingFactor",
+          params: { key, factor: `$t(attacktree:tabs.attacktree.feasibility.factor.${key})` },
         },
       };
     }
@@ -101,8 +100,13 @@ export function parseAttackPotential(
           line: lineNumber,
           type: "syntax",
           severity: "error",
-          message: `Unknown value "${raw}" for ${key} (${humanName}). Expected one of: ${Object.keys(aliases).join(", ")}.`,
-          messageDE: `Unbekannter Wert "${raw}" für ${key} (${humanName}). Erwartet: ${Object.keys(aliases).join(", ")}.`,
+          messageKey: "tabs.attacktree.validation.feasParser.unknownValue",
+          params: {
+            value: raw,
+            key,
+            factor: `$t(attacktree:tabs.attacktree.feasibility.factor.${key})`,
+            expected: Object.keys(aliases).join(", "),
+          },
         },
       };
     }
@@ -110,19 +114,19 @@ export function parseAttackPotential(
     return { value };
   };
 
-  const et = readFactor("et", ELAPSED_TIME_ALIASES, "elapsed time");
+  const et = readFactor("et", ELAPSED_TIME_ALIASES);
   if (et.error) return { error: et.error };
 
-  const se = readFactor("se", EXPERTISE_ALIASES, "specialist expertise");
+  const se = readFactor("se", EXPERTISE_ALIASES);
   if (se.error) return { error: se.error };
 
-  const kn = readFactor("kn", KNOWLEDGE_ALIASES, "knowledge of the item");
+  const kn = readFactor("kn", KNOWLEDGE_ALIASES);
   if (kn.error) return { error: kn.error };
 
-  const wo = readFactor("wo", WINDOW_ALIASES, "window of opportunity");
+  const wo = readFactor("wo", WINDOW_ALIASES);
   if (wo.error) return { error: wo.error };
 
-  const eq = readFactor("eq", EQUIPMENT_ALIASES, "equipment");
+  const eq = readFactor("eq", EQUIPMENT_ALIASES);
   if (eq.error) return { error: eq.error };
 
   const benefitResult = parseBenefit(evalStr, lineNumber);

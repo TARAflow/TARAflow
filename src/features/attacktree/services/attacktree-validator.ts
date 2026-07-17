@@ -18,6 +18,12 @@ import {
   SecurityGoalType,
 } from "../models/attacktree-types";
 
+import type {
+  FeasibilityConfiguration,
+  FeasibilityMethod,
+} from "../models/attacktree-feasibility-types";
+import { IMPLEMENTED_FEASIBILITY_METHODS } from "../models/attacktree-feasibility-types";
+
 // ==================== TARA CONSISTENCY VALIDATION ====================
 
 /**
@@ -61,8 +67,8 @@ export function validateTARAConsistency(
           line: node.lineNumber || node.level,
           type: "tara",
           severity: "warning",
-          message: 'Asset "' + node.assetRef + '" not found in asset table',
-          messageDE: 'Asset "' + node.assetRef + '" nicht in Asset-Tabelle gefunden',
+          messageKey: "tabs.attacktree.validation.tara.assetNotFound",
+          params: { ref: node.assetRef },
           context: currentPath.join(" > "),
         });
       }
@@ -76,8 +82,8 @@ export function validateTARAConsistency(
           line: node.lineNumber || node.level,
           type: "tara",
           severity: "warning",
-          message: 'Threat "' + node.threatRef + '" not found in threat table',
-          messageDE: 'Threat "' + node.threatRef + '" nicht in Threat-Tabelle gefunden',
+          messageKey: "tabs.attacktree.validation.tara.threatNotFound",
+          params: { ref: node.threatRef },
           context: currentPath.join(" > "),
         });
       }
@@ -91,8 +97,8 @@ export function validateTARAConsistency(
           line: node.lineNumber || node.level,
           type: "tara",
           severity: "warning",
-          message: 'DFD element "' + node.dfdRef + '" not found in DFD',
-          messageDE: 'DFD-Element "' + node.dfdRef + '" nicht im DFD gefunden',
+          messageKey: "tabs.attacktree.validation.tara.dfdNotFound",
+          params: { ref: node.dfdRef },
           context: currentPath.join(" > "),
         });
       }
@@ -105,8 +111,8 @@ export function validateTARAConsistency(
           line: node.lineNumber || node.level,
           type: "tara",
           severity: "info",
-          message: 'Mitigation "' + mid + '" not found in existing mitigations',
-          messageDE: 'Maßnahme "' + mid + '" nicht in bestehenden Maßnahmen gefunden',
+          messageKey: "tabs.attacktree.validation.tara.mitigationNotFound",
+          params: { ref: mid },
           context: currentPath.join(" > "),
         });
       }
@@ -165,8 +171,8 @@ export function validateAttackGoals(
           line: node.lineNumber || node.level,
           type: "goal",
           severity: "warning",
-          message: 'Unknown attack goal "' + node.attackGoal + '"',
-          messageDE: 'Unbekanntes Angriffsziel "' + node.attackGoal + '"',
+          messageKey: "tabs.attacktree.validation.goal.unknown",
+          params: { goal: node.attackGoal },
           context: currentPath.join(" > "),
         });
       } else if (anchorAsset && hasEnabledGoals) {
@@ -180,22 +186,12 @@ export function validateAttackGoals(
             line: node.lineNumber || node.level,
             type: "goal",
             severity: "info",
-            message:
-              'Attack goal "' +
-              node.attackGoal +
-              '" targets security goals (' +
-              goalDef.securityGoals.join(", ") +
-              ") not enabled for asset " +
-              anchorAssetId,
-            messageDE:
-              'Angriffsziel "' +
-              node.attackGoal +
-              '" zielt auf Schutzziele (' +
-              goalDef.securityGoals.join(", ") +
-              "), die für Asset " +
-              anchorAssetId +
-              " nicht aktiviert sind",
-            context: currentPath.join(" > "),
+            messageKey: "tabs.attacktree.validation.goal.notEnabledForAsset",
+            params: {
+              goal: node.attackGoal,
+              goals: goalDef.securityGoals.join(", "),
+              asset: anchorAssetId ?? "",
+            },
           });
         }
       }
@@ -228,8 +224,7 @@ export function validateCompleteness(
         line: node.lineNumber || node.level,
         type: "logic",
         severity: "error",
-        message: "Node has empty name",
-        messageDE: "Knoten hat keinen Namen",
+        messageKey: "tabs.attacktree.validation.completeness.emptyName",
         context: currentPath.join(" > "),
       });
     }
@@ -240,8 +235,8 @@ export function validateCompleteness(
         line: node.lineNumber || node.level,
         type: "logic",
         severity: "warning",
-        message: 'Leaf node "' + node.name + '" has no risk evaluation',
-        messageDE: 'Blattknoten "' + node.name + '" hat keine Risiko-Bewertung',
+        messageKey: "tabs.attacktree.validation.completeness.leafNoEvaluation",
+        params: { name: node.name },
         context: currentPath.join(" > "),
       });
     }
@@ -254,8 +249,8 @@ export function validateCompleteness(
           line: node.lineNumber || node.level,
           type: "logic",
           severity: "info",
-          message: 'Path to "' + node.name + '" has no mitigations assigned',
-          messageDE: 'Pfad zu "' + node.name + '" hat keine Maßnahmen zugewiesen',
+          messageKey: "tabs.attacktree.validation.completeness.pathNoMitigations",
+          params: { name: node.name },
           context: currentPath.join(" > "),
         });
       }
@@ -352,8 +347,8 @@ export function validateSecurityGoalCoverage(
       line: 0,
       type: "goal",
       severity: "warning",
-      message: "Attack tree does not cover security goals: " + missingGoals.join(", "),
-      messageDE: "Attack Tree deckt Schutzziele nicht ab: " + missingGoals.join(", "),
+      messageKey: "tabs.attacktree.validation.coverage.missingGoals",
+      params: { goals: missingGoals.join(", ") },
       context: "Asset: " + asset.id,
     });
   }
@@ -412,13 +407,13 @@ export function validateRatingMethodConsistency(
           line: node.lineNumber ?? 0,
           type: "syntax",
           severity: "error",
-          message: `Node "${node.name}" mixes rating methods: attack potential cannot be combined with probability. Rate all children the same way.`,
-          messageDE: `Knoten "${node.name}" mischt Bewertungsmethoden: Attack Potential kann nicht mit Wahrscheinlichkeit kombiniert werden. Alle Kinder einheitlich bewerten.`,
+          messageKey: "tabs.attacktree.validation.rating.mixedMethods",
+          params: { name: node.name },
         });
       }
-    }
 
-    node.children.forEach(walk);
+      node.children.forEach(walk);
+    }
   }
 
   walk(ast);
@@ -452,12 +447,12 @@ export function validateDeprecatedImpact(
         line: node.lineNumber ?? 0,
         type: "tara",
         severity: "info",
-        message: assetId
-          ? `Impact on "${node.name}" is ignored — it is derived from asset ${assetId} and the tree's security goal.`
-          : `Impact on "${node.name}" is ignored — impact belongs to the damage scenario (asset × security goal), not to an attack step.`,
-        messageDE: assetId
-          ? `Impact auf "${node.name}" wird ignoriert — er wird aus Asset ${assetId} und dem Schutzziel des Baums abgeleitet.`
-          : `Impact auf "${node.name}" wird ignoriert — Impact gehört zum Damage Scenario (Asset × Schutzziel), nicht zu einem Angriffsschritt.`,
+        messageKey: assetId
+          ? "tabs.attacktree.validation.impact.ignoredWithAsset"
+          : "tabs.attacktree.validation.impact.ignoredGeneric",
+        params: assetId
+          ? { name: node.name, asset: assetId }
+          : { name: node.name },
       });
     }
 
@@ -472,18 +467,19 @@ export function validateAttackTree(
   ast: AttackTreeNode | undefined,
   projectData: AttackTreeProjectData,
   syntaxErrors: ValidationError[],
-  anchorAssetId?: string
+  anchorAssetId?: string,
+  feasibilityConfig?: FeasibilityConfiguration, // NEW
 ): AttackTreeValidation {
-  const errors: ValidationError[] = syntaxErrors.filter((e) => e.severity === "error");
-  const warnings: ValidationError[] = syntaxErrors.filter((e) => e.severity === "warning");
-  const infos: ValidationError[] = syntaxErrors.filter((e) => e.severity === "info");
+  const errors = syntaxErrors.filter((e) => e.severity === "error");
+  const warnings = syntaxErrors.filter((e) => e.severity === "warning");
+  const infos = syntaxErrors.filter((e) => e.severity === "info");
 
   if (!ast) {
     return {
       isValid: false,
-      errors: errors,
-      warnings: warnings,
-      infos: infos,
+      errors,
+      warnings,
+      infos,
       lastValidated: new Date().toISOString(),
     };
   }
@@ -520,11 +516,23 @@ export function validateAttackTree(
     errors.push(e);
   });
 
+  const isISO = feasibilityConfig?.likelihoodModel === "feasibility-only";
+
+  // ── 5b-1a: ISO feasibility-method enforcement ─────────────────────────────
+  if (feasibilityConfig) {
+    validateISOFeasibilityMethod(ast, feasibilityConfig).forEach((e) => {
+      if (e.severity === "error") errors.push(e);
+      else if (e.severity === "warning") warnings.push(e);
+      else infos.push(e);
+    });
+  }
+
   // Deprecated per-leaf impact (Phase 3): impact belongs to the damage scenario
   // (asset × security goal), not to an attack step. Informational — existing
   // trees keep working, the value is simply ignored.
   validateDeprecatedImpact(ast, anchorAssetId).forEach((e) => {
-    infos.push(e);
+    if (isISO) errors.push({ ...e, severity: "error" });
+    else infos.push(e);
   });
 
   // Attack goal validation
@@ -542,7 +550,7 @@ export function validateAttackTree(
   // Security goal coverage (if asset-anchored)
   if (anchorAssetId) {
     const asset = projectData.assets.find(
-      (a) => a.id.toUpperCase() === anchorAssetId.toUpperCase()
+      (a) => a.id.toUpperCase() === anchorAssetId.toUpperCase(),
     );
     if (asset) {
       const coverageErrors = validateSecurityGoalCoverage(ast, asset);
@@ -552,9 +560,9 @@ export function validateAttackTree(
 
   return {
     isValid: errors.length === 0,
-    errors: errors,
-    warnings: warnings,
-    infos: infos,
+    errors,
+    warnings,
+    infos,
     lastValidated: new Date().toISOString(),
   };
 }
@@ -586,6 +594,113 @@ export function getUniqueAttackGoals(
 
   collect(ast);
   return Object.keys(goals) as AttackGoalCategory[];
+}
+
+// ==================== ISO FEASIBILITY-METHOD ENFORCEMENT (5b-1a) ============
+ 
+type LeafEvaluation = NonNullable<AttackTreeNode["evaluation"]>;
+ 
+/**
+ * Which leaf evaluation shape each audit-grade RC-15-11 method expects.
+ *
+ * ISO 21434 15.7 [RC-15-11] permits three feasibility approaches:
+ *   a) attack-potential (RC-15-12): elapsed time, expertise, knowledge,
+ *      window, equipment          → ev.attackPotential
+ *   b) CVSS (RC-15-13): attack vector, complexity, privileges, user interaction
+ *      → ev.cvss          (NOT YET IMPLEMENTED — 5b-1b)
+ *   c) attack-vector               → ev.attackVector  (NOT YET IMPLEMENTED — 5b-1c)
+ *
+ * `simple` (p,i) and `extended` (f,b,i) are NOT RC-15-11 methods — they are the
+ * "quick" drafting form, which 15.7 does not sanction as audit-grade, and are
+ * rejected in ISO mode regardless of the configured method.
+ *
+ * Keyed on FeasibilityMethod so 5b-1b/c extend enforcement by adding a row —
+ * the walker below does not change.
+ */
+const METHOD_EXPECTS_EVALUATION: Record<
+  Exclude<FeasibilityMethod, "quick">,
+  (ev: LeafEvaluation) => boolean
+> = {
+  "attack-potential": (ev) => !!ev.attackPotential,
+  // Declared for totality; their evaluation branches arrive with 5b-1b/c. Until
+  // then IMPLEMENTED_FEASIBILITY_METHODS gates the config UI, so a project
+  // cannot select them and these predicates are unreachable in practice.
+  cvss: () => false,
+  "attack-vector": () => false,
+};
+ 
+/**
+ * ISO mode: every rated leaf must use the project's configured feasibility
+ * method, and that method must be one TARAflow has implemented. Standard mode
+ * (feasibility-x-motivation) is a no-op.
+ */
+export function validateISOFeasibilityMethod(
+  ast: AttackTreeNode,
+  config: FeasibilityConfiguration,
+): ValidationError[] {
+  if (config.likelihoodModel !== "feasibility-only") return [];
+ 
+  const errors: ValidationError[] = [];
+  const method = config.method;
+ 
+  // Class 1 — the configured method must be implemented and audit-grade.
+  if (method === "quick" || !IMPLEMENTED_FEASIBILITY_METHODS.includes(method)) {
+    errors.push({
+      line: 0,
+      type: "tara",
+      severity: "error",
+      messageKey:
+        method === "quick"
+          ? "tabs.attacktree.validation.iso.methodQuick"
+          : "tabs.attacktree.validation.iso.methodNotImplemented",
+      params: { method },
+    });
+  }
+ 
+  const expects =
+    method !== "quick" ? METHOD_EXPECTS_EVALUATION[method] : undefined;
+ 
+  function walk(node: AttackTreeNode): void {
+    if (node.children.length === 0 && node.evaluation) {
+      const ev = node.evaluation;
+      const line = node.lineNumber ?? 0;
+ 
+      if (ev.simple || ev.extended) {
+        errors.push({
+          line,
+          type: "syntax",
+          severity: "error",
+          messageKey: ev.simple
+            ? "tabs.attacktree.validation.iso.probabilityLeaf"
+            : "tabs.attacktree.validation.iso.extendedLeaf",
+          params: { name: node.name, method },
+        });
+      } else if (expects && !expects(ev)) {
+        errors.push({
+          line,
+          type: "syntax",
+          severity: "error",
+          messageKey: "tabs.attacktree.validation.iso.leafMethodMismatch",
+          params: { name: node.name, method },
+        });
+      }
+ 
+      // Benefit is analysis-only in ISO (Cl. 3.1.29) — info, not error.
+      if (ev.benefit && !ev.simple && !ev.extended) {
+        errors.push({
+          line,
+          type: "tara",
+          severity: "info",
+          messageKey: "tabs.attacktree.validation.iso.benefitAnalysisOnly",
+          params: { name: node.name },
+        });
+      }
+    }
+    node.children.forEach(walk);
+  }
+ 
+  walk(ast);
+  return errors;
 }
 
 // ==================== EXPORT ====================

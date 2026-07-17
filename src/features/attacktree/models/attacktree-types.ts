@@ -17,8 +17,8 @@ import type {
   FeasibilityLevel,
 } from "./attacktree-feasibility-types";
 
-// Re-exported so consumers have a single import site for the attack tree model.
-export * from "./attacktree-feasibility-types";
+import type { FeasibilityConfiguration } from "./attacktree-feasibility-types";
+import { DEFAULT_FEASIBILITY_CONFIGURATION } from "./attacktree-feasibility-types";
 
 // ==================== EVALUATION METHODS ====================
 
@@ -433,6 +433,15 @@ export interface AttackTreeProjectConfiguration {
   defaultEvaluationMethod: EvaluationMethod;
   autoCreateForSecurityGoals: boolean;
   showLikelihoodExport: boolean;
+
+  /**
+   * Project-wide feasibility methodology (5b-1a): likelihood model
+   * (ISO feasibility-only vs. Standard) + RC-15-11 method + bands/weights.
+   * The single source of truth for how every tree in the project is rated, so
+   * results stay comparable across the TARA (a mixed-method TARA is an audit
+   * finding). Absent on pre-5b-1a projects → DEFAULT_FEASIBILITY_CONFIGURATION.
+   */
+  feasibilityConfiguration?: FeasibilityConfiguration;
 }
 
 export const DEFAULT_ATTACKTREE_PROJECT_CONFIGURATION: AttackTreeProjectConfiguration =
@@ -477,8 +486,10 @@ export interface ValidationError {
   column?: number;
   type: "syntax" | "logic" | "tara" | "goal";
   severity: "error" | "warning" | "info";
-  message: string;
-  messageDE?: string;
+  /** i18n key into the "attacktree" namespace, e.g. "tabs.attacktree.validation.tara.assetNotFound". */
+  messageKey: string;
+  /** Interpolation values for the key (node names, refs, methods, …). */
+  params?: Record<string, string | number>;
   context?: string;
 }
 
@@ -1122,4 +1133,10 @@ export function getAnchorTypeIcon(type: AttackTreeAnchorType): string {
 
 export function generateAttackTreeId(): string {
   return "at-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+}
+
+export function resolveFeasibilityConfiguration(
+  cfg: AttackTreeProjectConfiguration | undefined,
+): FeasibilityConfiguration {
+  return cfg?.feasibilityConfiguration ?? DEFAULT_FEASIBILITY_CONFIGURATION;
 }
