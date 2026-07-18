@@ -46,8 +46,7 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   const [evaluationMethod, setEvaluationMethod] = useState<EvaluationMethod>(
     configuration.evaluationMethod
@@ -97,9 +96,9 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
 
               {hasExistingTree && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  {isGerman
-                    ? "Änderung der Bewertungsmethode erfordert Neuberechnung aller Risiko-Scores."
-                    : "Changing evaluation method requires recalculation of all risk scores."}
+                  {t(
+                    "attacktree:tabs.attacktree.configDialog.changingEvaluationMethodRequires",
+                  )}
                 </Alert>
               )}
 
@@ -115,17 +114,19 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
                   label={
                     <Box>
                       <Typography fontWeight="medium">
-                        {isGerman ? "Einfach (2 Faktoren)" : "Simple (2 Factors)"}
+                        {t(
+                          "attacktree:tabs.attacktree.configDialog.simple2Factors",
+                        )}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {isGerman
-                          ? "Wahrscheinlichkeit × Auswirkung (0-25 Skala)"
-                          : "Probability × Impact (0-25 scale)"}
+                        {t(
+                          "attacktree:tabs.attacktree.configDialog.probabilityImpact025Scale",
+                        )}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {isGerman
-                          ? "Syntax: p=0.5,i=3"
-                          : "Syntax: p=0.5,i=3"}
+                        {t(
+                          "attacktree:tabs.attacktree.configDialog.syntaxP05I3",
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -138,17 +139,19 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
                   label={
                     <Box>
                       <Typography fontWeight="medium">
-                        {isGerman ? "Erweitert (3 Faktoren)" : "Extended (3 Factors)"}
+                        {t(
+                          "attacktree:tabs.attacktree.configDialog.extended3Factors",
+                        )}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {isGerman
-                          ? "Machbarkeit × Nutzen × Auswirkung (0-125 Skala)"
-                          : "Feasibility × Benefits × Impact (0-125 scale)"}
+                        {t(
+                          "attacktree:tabs.attacktree.configDialog.feasibilityBenefitsImpact0125Sca",
+                        )}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {isGerman
-                          ? "Syntax: 0.8,0.9,3 (f,b,i)"
-                          : "Syntax: 0.8,0.9,3 (f,b,i)"}
+                        {t(
+                          "attacktree:tabs.attacktree.configDialog.syntax08093FBI",
+                        )}
                       </Typography>
                     </Box>
                   }
@@ -184,9 +187,9 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
                   })}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {isGerman
-                    ? "Änderungen automatisch speichern"
-                    : "Automatically save changes"}
+                  {t(
+                    "attacktree:tabs.attacktree.configDialog.automaticallySaveChanges",
+                  )}
                 </Typography>
               </Box>
               <Switch
@@ -211,9 +214,9 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
                   })}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {isGerman
-                    ? "Zeilennummern anzeigen"
-                    : "Display line numbers in editor"}
+                  {t(
+                    "attacktree:tabs.attacktree.configDialog.displayLineNumbersInEditor",
+                  )}
                 </Typography>
               </Box>
               <Switch
@@ -251,12 +254,12 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
           {/* Help Text */}
           <Box>
             <Typography variant="subtitle2" color="text.secondary">
-              {isGerman ? "Hinweis:" : "Note:"}
+              {t("attacktree:tabs.attacktree.configDialog.note")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {isGerman
-                ? "Änderungen werden sofort wirksam. Die Bewertungsmethode beeinflusst die Risiko-Berechnung aller Pfade."
-                : "Changes take effect immediately. Evaluation method affects risk calculation for all paths."}
+              {t(
+                "attacktree:tabs.attacktree.configDialog.changesTakeEffectImmediatelyEval",
+              )}
             </Typography>
           </Box>
         </Box>

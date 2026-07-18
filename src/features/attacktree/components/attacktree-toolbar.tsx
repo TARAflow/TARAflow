@@ -114,8 +114,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
   canProceed,
   fileInputRef,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   return (
     <Box
@@ -152,7 +151,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
         size="small"
       >
         <ToggleButton value="overview">
-          <Tooltip title={isGerman ? "Übersicht" : "Overview"}>
+          <Tooltip title={t("attacktree:tabs.attacktree.toolbar.overview")}>
             <OverviewIcon fontSize="small" />
           </Tooltip>
         </ToggleButton>
@@ -194,7 +193,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
       <Divider orientation="vertical" flexItem />
 
       {/* Add New Tree */}
-      <Tooltip title={isGerman ? "Neuer Attack Tree" : "New Attack Tree"}>
+      <Tooltip title={t("attacktree:tabs.attacktree.toolbar.newAttackTree")}>
         <IconButton onClick={onCreateTree} size="small">
           <AddIcon />
         </IconButton>
@@ -202,9 +201,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
 
       {/* Sync from Assets (Critical Workflow only) */}
       {isCriticalWorkflow && onSyncFromAssets && (
-        <Tooltip
-          title={isGerman ? "Von Assets synchronisieren" : "Sync from Assets"}
-        >
+        <Tooltip title={t("attacktree:tabs.attacktree.toolbar.syncFromAssets")}>
           <span>
             <IconButton
               onClick={onSyncFromAssets}
@@ -219,14 +216,14 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
       )}
 
       {/* Configuration */}
-      <Tooltip title={isGerman ? "Konfiguration" : "Configuration"}>
+      <Tooltip title={t("attacktree:tabs.attacktree.toolbar.configuration")}>
         <IconButton onClick={onOpenConfig} size="small">
           <SettingsIcon />
         </IconButton>
       </Tooltip>
 
       {/* Export */}
-      <Tooltip title={isGerman ? "Exportieren" : "Export"}>
+      <Tooltip title={t("attacktree:tabs.attacktree.toolbar.export")}>
         <span>
           <IconButton onClick={onExport} size="small" disabled={!hasTrees}>
             <ExportIcon />
@@ -235,7 +232,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
       </Tooltip>
 
       {/* Import */}
-      <Tooltip title={isGerman ? "Importieren" : "Import"}>
+      <Tooltip title={t("attacktree:tabs.attacktree.toolbar.import")}>
         <IconButton onClick={onImport} size="small">
           <ImportIcon />
         </IconButton>
@@ -247,7 +244,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
       {needsSync && (
         <Chip
           icon={<WarningIcon />}
-          label={isGerman ? "Sync erforderlich" : "Sync required"}
+          label={t("attacktree:tabs.attacktree.toolbar.syncRequired")}
           size="small"
           color="warning"
           variant="outlined"
@@ -256,26 +253,28 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
 
       {/* Validation Stats */}
       <Chip
-        label={`${validTreeCount}/${totalTreeCount} ${
-          isGerman ? "valide" : "valid"
-        }`}
+        label={`${validTreeCount}/${totalTreeCount} ${t(
+          "attacktree:tabs.attacktree.toolbar.valid",
+        )}`}
         size="small"
         variant="outlined"
       />
 
       {/* Critical Workflow Coverage */}
-      {isCriticalWorkflow && completeAssets !== undefined && totalAssets !== undefined && (
-        <Chip
-          label={`${completeAssets}/${totalAssets} Assets`}
-          size="small"
-          color={completeAssets === totalAssets ? "success" : "warning"}
-        />
-      )}
+      {isCriticalWorkflow &&
+        completeAssets !== undefined &&
+        totalAssets !== undefined && (
+          <Chip
+            label={`${completeAssets}/${totalAssets} Assets`}
+            size="small"
+            color={completeAssets === totalAssets ? "success" : "warning"}
+          />
+        )}
 
       {/* Dirty State */}
       {isDirty && (
         <Chip
-          label={isGerman ? "Ungespeichert" : "Unsaved"}
+          label={t("attacktree:tabs.attacktree.toolbar.unsaved")}
           size="small"
           color="warning"
           variant="outlined"
@@ -293,7 +292,7 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
         variant="outlined"
         color="success"
       >
-        {isGerman ? "Weiter" : "Continue"}
+        {t("attacktree:tabs.attacktree.toolbar.continue")}
       </Button>
     </Box>
   );

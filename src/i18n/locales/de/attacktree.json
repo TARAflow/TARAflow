@@ -3,6 +3,129 @@
     "attacktree": {
       "title": "Attack Tree",
       "description": "Bewerten Sie die Wahrscheinlichkeit einer Bedrohung anhand des Attack Trees",
+      "tab": {
+        "syncConfirmMessage": "Es werden Attack Trees für {{count}} fehlende Schutzziele erstellt.",
+        "noAttackTreesYet": "Keine Attack Trees vorhanden",
+        "clickSyncToCreateTreesForAllAsse": "Klicken Sie auf 'Sync', um Trees für alle Assets zu erstellen",
+        "clickToCreateANewTree": "Klicken Sie auf '+', um einen neuen Tree zu erstellen",
+        "syncFromAssets": "Synchronisieren",
+        "sync": "Sync",
+        "coverage": "Abdeckung",
+        "someAssetsHaveMissingSecurityGoa": "Einige Assets haben fehlende Schutzziele. Klicken Sie auf Sync um Trees zu erstellen.",
+        "complete": "Vollständig",
+        "incomplete": "Unvollständig",
+        "edit": "Bearbeiten",
+        "delete": "Löschen",
+        "noPathAnalysisAvailable": "Keine Pfadanalyse verfügbar",
+        "noTreeSelected": "Kein Tree ausgewählt",
+        "deleteTree": "Tree löschen",
+        "areYouSureYouWantToDeleteThisAtt": "Sind Sie sicher, dass Sie diesen Attack Tree löschen möchten?",
+        "cancel": "Abbrechen",
+        "syncFromAssets2": "Von Assets synchronisieren",
+        "sync2": "Synchronisieren"
+      },
+      "preview": {
+        "noValidAttackTreeAvailable": "Kein gültiger Attack Tree vorhanden",
+        "defineTheAttackTreeInTheEditor": "Definieren Sie den Attack Tree im Editor",
+        "treeView": "Baumansicht",
+        "tableView": "Tabellenansicht",
+        "zoomIn": "Vergrößern",
+        "zoomOut": "Verkleinern",
+        "fitToView": "Einpassen",
+        "exportAsSvg": "Als SVG exportieren",
+        "paths": "Pfade",
+        "critical": "Kritisch",
+        "max": "Max",
+        "legend": "Legende:",
+        "withMitigations": "Mit Maßnahmen",
+        "criticalPath": "Kritischer Pfad"
+      },
+      "threatTable": {
+        "unrated": "Offen",
+        "confirmed": "Bestätigt",
+        "dismissed": "Verworfen",
+        "uncertain": "Unklar",
+        "thisTreeEmitsNoThreatsOnlyAssetA": "Dieser Baum erzeugt keine Bedrohungen (nur asset-verankerte Bäume tun das).",
+        "threat": "Bedrohung",
+        "attackPath": "Angriffspfad",
+        "relevance": "Relevanz"
+      },
+      "toolbar": {
+        "overview": "Übersicht",
+        "newAttackTree": "Neuer Attack Tree",
+        "syncFromAssets": "Von Assets synchronisieren",
+        "configuration": "Konfiguration",
+        "export": "Exportieren",
+        "import": "Importieren",
+        "syncRequired": "Sync erforderlich",
+        "valid": "valide",
+        "unsaved": "Ungespeichert",
+        "continue": "Weiter"
+      },
+      "createDialog": {
+        "createNewAttackTree": "Neuen Attack Tree erstellen",
+        "anchorType": "Verknüpfungstyp",
+        "assetBased": "Asset-basiert",
+        "attackTreeForASpecificAssetCriti": "Attack Tree für ein spezifisches Asset (Critical Workflow)",
+        "threatBased": "Threat-basiert",
+        "detailedAnalysisOfAnExistingThre": "Detailanalyse eines bestehenden Threats",
+        "riskBased": "Risk-basiert",
+        "deepDiveForHighRiskOrUncertainAs": "Deep Dive für High-Risk oder unsichere Bewertungen",
+        "standalone": "Standalone",
+        "exploratoryAnalysisWithoutAnchor": "Explorative Analyse ohne Verknüpfung",
+        "asset": "Asset",
+        "securityGoal": "Schutzziel",
+        "assetGoal": "Asset-Ziel",
+        "threat": "Threat",
+        "risk": "Risk",
+        "templateOptional": "Template (optional)",
+        "template": "Template",
+        "startEmpty": "Leer starten",
+        "cancel": "Abbrechen",
+        "create": "Erstellen"
+      },
+      "templates": {
+        "template-confidentiality": "Vertraulichkeitsverletzung",
+        "template-integrity": "Integritätsverletzung",
+        "template-availability": "Verfügbarkeitsangriff",
+        "template-db-access": "Datenbankzugriff",
+        "template-api-access": "API-Zugriff",
+        "template-iot-device": "IoT-Gerätekompromittierung"
+      },
+      "configDialog": {
+        "changingEvaluationMethodRequires": "Änderung der Bewertungsmethode erfordert Neuberechnung aller Risiko-Scores.",
+        "simple2Factors": "Einfach (2 Faktoren)",
+        "probabilityImpact025Scale": "Wahrscheinlichkeit × Auswirkung (0-25 Skala)",
+        "syntaxP05I3": "Syntax: p=0.5,i=3",
+        "extended3Factors": "Erweitert (3 Faktoren)",
+        "feasibilityBenefitsImpact0125Sca": "Machbarkeit × Nutzen × Auswirkung (0-125 Skala)",
+        "syntax08093FBI": "Syntax: 0.8,0.9,3 (f,b,i)",
+        "automaticallySaveChanges": "Änderungen automatisch speichern",
+        "displayLineNumbersInEditor": "Zeilennummern anzeigen",
+        "note": "Hinweis:",
+        "changesTakeEffectImmediatelyEval": "Änderungen werden sofort wirksam. Die Bewertungsmethode beeinflusst die Risiko-Berechnung aller Pfade."
+      },
+      "tableview": {
+        "verificationLabel": "Verifikation: ",
+        "noAttackPathsFound": "Keine Angriffspfade gefunden",
+        "search": "Suchen...",
+        "riskLevel": "Risiko-Niveau",
+        "all": "Alle",
+        "critical": "Kritisch",
+        "high": "Hoch",
+        "medium": "Mittel",
+        "low": "Niedrig",
+        "paths": "Pfade",
+        "average": "Durchschnitt",
+        "max": "Maximum",
+        "attackPath": "Angriffspfad",
+        "riskScore": "Risiko-Score",
+        "mitigations": "Maßnahmen",
+        "status": "Status",
+        "none": "Keine",
+        "critical3": "Kritisch",
+        "noPathsMatchYourFilters": "Keine Pfade gefunden"
+      },
       "config": {
         "title": "Attack Tree Configuration",
         "evaluationMethod Risk": "Evaluation Method",
@@ -10,6 +133,30 @@
         "autoSave": "Auto-Save",
         "lineNumbers": "Show Line Numbers",
         "fontSize": "Font Size"
+      },
+      "feasibility": {
+        "factor": {
+          "et": "Benötigte Zeit",
+          "se": "Fachwissen",
+          "kn": "Kenntnis des Objekts",
+          "wo": "Gelegenheitsfenster",
+          "eq": "Ausrüstung"
+        },
+        "level": {
+          "very-low": "Sehr tief",
+          "low": "Tief",
+          "medium": "Mittel",
+          "high": "Hoch"
+        }
+      },
+      "mitigationStatus": {
+        "open": "Offen",
+        "in_progress": "In Arbeit",
+        "in_review": "In Prüfung",
+        "implemented": "Umgesetzt",
+        "verified": "Verifiziert",
+        "rejected": "Abgelehnt",
+        "notTracked": "Nicht erfasst"
       },
       "validation": {
         "tara": {
@@ -72,15 +219,6 @@
           "unknownBenefit": "Unbekannter Benefit \"{{value}}\". Erwartet: negligible, low, medium, high.",
           "missingFactor": "Attack-Potential-Faktor \"{{key}}\" ({{factor}}) fehlt. Im Audit-Modus sind alle fünf Faktoren erforderlich.",
           "unknownValue": "Unbekannter Wert \"{{value}}\" für {{key}} ({{factor}}). Erwartet: {{expected}}."
-        }
-      },
-      "feasibility": {
-        "factor": {
-          "et": "Benötigte Zeit",
-          "se": "Fachwissen",
-          "kn": "Kenntnis des Objekts",
-          "wo": "Gelegenheitsfenster",
-          "eq": "Ausrüstung"
         }
       }
     }

@@ -61,17 +61,16 @@ export const AttackTreeThreatTable: React.FC<AttackTreeThreatTableProps> = ({
   assessments,
   onAssessmentsChange,
 }) => {
-  const { i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t, i18n } = useTranslation();
 
   const label: Record<ThreatRelevanceRef, string> = useMemo(
     () => ({
-      unrated: isGerman ? "Offen" : "Unrated",
-      relevant: isGerman ? "Bestätigt" : "Confirmed",
-      not_relevant: isGerman ? "Verworfen" : "Dismissed",
-      uncertain: isGerman ? "Unklar" : "Uncertain",
+      unrated: t("attacktree:tabs.attacktree.threatTable.unrated"),
+      relevant: t("attacktree:tabs.attacktree.threatTable.confirmed"),
+      not_relevant: t("attacktree:tabs.attacktree.threatTable.dismissed"),
+      uncertain: t("attacktree:tabs.attacktree.threatTable.uncertain"),
     }),
-    [isGerman],
+    [i18n.language, t],
   );
 
   const handleChange = (
@@ -96,9 +95,9 @@ export const AttackTreeThreatTable: React.FC<AttackTreeThreatTableProps> = ({
     return (
       <Box sx={{ p: 2 }}>
         <Typography color="text.secondary" variant="body2">
-          {isGerman
-            ? "Dieser Baum erzeugt keine Bedrohungen (nur asset-verankerte Bäume tun das)."
-            : "This tree emits no threats (only asset-anchored trees do)."}
+          {t(
+            "attacktree:tabs.attacktree.threatTable.thisTreeEmitsNoThreatsOnlyAssetA",
+          )}
         </Typography>
       </Box>
     );
@@ -109,11 +108,15 @@ export const AttackTreeThreatTable: React.FC<AttackTreeThreatTableProps> = ({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>{isGerman ? "Bedrohung" : "Threat"}</TableCell>
-            <TableCell>{isGerman ? "Angriffspfad" : "Attack Path"}</TableCell>
+            <TableCell>
+              {t("attacktree:tabs.attacktree.threatTable.threat")}
+            </TableCell>
+            <TableCell>
+              {t("attacktree:tabs.attacktree.threatTable.attackPath")}
+            </TableCell>
             <TableCell align="center">STRIDE</TableCell>
             <TableCell align="center">
-              {isGerman ? "Relevanz" : "Relevance"}
+              {t("attacktree:tabs.attacktree.threatTable.relevance")}
             </TableCell>
           </TableRow>
         </TableHead>
@@ -141,7 +144,9 @@ export const AttackTreeThreatTable: React.FC<AttackTreeThreatTableProps> = ({
                   onChange={(_e, next) =>
                     handleChange(threat, next as ThreatRelevanceRef | null)
                   }
-                  aria-label={isGerman ? "Relevanz" : "Relevance"}
+                  aria-label={t(
+                    "attacktree:tabs.attacktree.threatTable.relevance",
+                  )}
                 >
                   {RELEVANCE_OPTIONS.map((opt) => (
                     <ToggleButton key={opt} value={opt} aria-label={label[opt]}>

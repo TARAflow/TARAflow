@@ -57,8 +57,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   evaluationMethod,
   mitigationLookup,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   // Render a single mitigation as a chip, enriched with verification status
   // (icon/color) and ticket link when the Risk tab provides them.
@@ -68,18 +67,14 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
       ? MITIGATION_VERIFICATION_DISPLAY[ref.status]
       : undefined;
 
-    const statusLabel = display
-      ? isGerman
-        ? display.labelDE
-        : display.label
-      : isGerman
-        ? "Nicht erfasst"
-        : "Not tracked";
+    const statusLabel = ref?.status
+      ? t(`attacktree:tabs.attacktree.mitigationStatus.${ref.status}`)
+      : t("attacktree:tabs.attacktree.mitigationStatus.notTracked");
 
     const tooltip = (
       <Box sx={{ whiteSpace: "pre-line" }}>
         {ref?.description ? `${mid}: ${ref.description}\n` : `${mid}\n`}
-        {isGerman ? "Verifikation: " : "Verification: "}
+        {t("attacktree:tabs.attacktree.tableview.verificationLabel")}
         {statusLabel}
         {ref?.ticketId ? `\nTicket: ${ref.ticketId}` : ""}
       </Box>
@@ -232,7 +227,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
         }}
       >
         <Typography color="text.secondary">
-          {isGerman ? "Keine Angriffspfade gefunden" : "No attack paths found"}
+          {t("attacktree:tabs.attacktree.tableview.noAttackPathsFound")}
         </Typography>
       </Box>
     );
@@ -253,26 +248,36 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
       >
         <TextField
           size="small"
-          placeholder={isGerman ? "Suchen..." : "Search..."}
+          placeholder={t("attacktree:tabs.attacktree.tableview.search")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{ flexGrow: 1 }}
         />
 
         <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>{isGerman ? "Risiko-Niveau" : "Risk Level"}</InputLabel>
+          <InputLabel>
+            {t("attacktree:tabs.attacktree.tableview.riskLevel")}
+          </InputLabel>
           <Select
             value={filterLevel}
-            label={isGerman ? "Risiko-Niveau" : "Risk Level"}
+            label={t("attacktree:tabs.attacktree.tableview.riskLevel")}
             onChange={(e) => setFilterLevel(e.target.value)}
           >
-            <MenuItem value="all">{isGerman ? "Alle" : "All"}</MenuItem>
-            <MenuItem value="critical">
-              {isGerman ? "Kritisch" : "Critical"}
+            <MenuItem value="all">
+              {t("attacktree:tabs.attacktree.tableview.all")}
             </MenuItem>
-            <MenuItem value="high">{isGerman ? "Hoch" : "High"}</MenuItem>
-            <MenuItem value="medium">{isGerman ? "Mittel" : "Medium"}</MenuItem>
-            <MenuItem value="low">{isGerman ? "Niedrig" : "Low"}</MenuItem>
+            <MenuItem value="critical">
+              {t("attacktree:tabs.attacktree.tableview.critical3")}
+            </MenuItem>
+            <MenuItem value="high">
+              {t("attacktree:tabs.attacktree.tableview.high")}
+            </MenuItem>
+            <MenuItem value="medium">
+              {t("attacktree:tabs.attacktree.tableview.medium")}
+            </MenuItem>
+            <MenuItem value="low">
+              {t("attacktree:tabs.attacktree.tableview.low")}
+            </MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -288,22 +293,22 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
         }}
       >
         <Chip
-          label={`${pathAnalysis.totalPaths} ${isGerman ? "Pfade" : "Paths"}`}
+          label={`${pathAnalysis.totalPaths} ${t("attacktree:tabs.attacktree.tableview.paths")}`}
           size="small"
           variant="outlined"
         />
         <Chip
-          label={`${pathAnalysis.criticalPaths.length} ${isGerman ? "Kritisch" : "Critical"}`}
+          label={`${pathAnalysis.criticalPaths.length} ${t("attacktree:tabs.attacktree.tableview.critical3")}`}
           size="small"
           color="error"
         />
         <Chip
-          label={`${isGerman ? "Durchschnitt" : "Average"}: ${pathAnalysis.averageRiskScore.toFixed(1)}`}
+          label={`${t("attacktree:tabs.attacktree.tableview.average")}: ${pathAnalysis.averageRiskScore.toFixed(1)}`}
           size="small"
           variant="outlined"
         />
         <Chip
-          label={`${isGerman ? "Maximum" : "Max"}: ${pathAnalysis.maxRiskScore.toFixed(1)}`}
+          label={`${t("attacktree:tabs.attacktree.tableview.max")}: ${pathAnalysis.maxRiskScore.toFixed(1)}`}
           size="small"
           color="warning"
         />
@@ -320,7 +325,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                   direction={sortField === "path" ? sortOrder : "asc"}
                   onClick={() => handleSort("path")}
                 >
-                  {isGerman ? "Angriffspfad" : "Attack Path"}
+                  {t("attacktree:tabs.attacktree.tableview.attackPath")}
                 </TableSortLabel>
               </TableCell>
               <TableCell align="center">
@@ -329,7 +334,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                   direction={sortField === "risk" ? sortOrder : "asc"}
                   onClick={() => handleSort("risk")}
                 >
-                  {isGerman ? "Risiko-Score" : "Risk Score"}
+                  {t("attacktree:tabs.attacktree.tableview.riskScore")}
                 </TableSortLabel>
               </TableCell>
               <TableCell>
@@ -338,11 +343,11 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                   direction={sortField === "mitigations" ? sortOrder : "asc"}
                   onClick={() => handleSort("mitigations")}
                 >
-                  {isGerman ? "Maßnahmen" : "Mitigations"}
+                  {t("attacktree:tabs.attacktree.tableview.mitigations")}
                 </TableSortLabel>
               </TableCell>
               <TableCell align="center">
-                {isGerman ? "Status" : "Status"}
+                {t("attacktree:tabs.attacktree.tableview.status")}
               </TableCell>
             </TableRow>
           </TableHead>
@@ -388,7 +393,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                       path.mitigations.map((mid) => renderMitigationChip(mid))
                     ) : (
                       <Typography variant="body2" color="text.secondary">
-                        {isGerman ? "Keine" : "None"}
+                        {t("attacktree:tabs.attacktree.tableview.none")}
                       </Typography>
                     )}
                   </Box>
@@ -396,7 +401,9 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
                 <TableCell align="center">
                   {path.isCritical && (
                     <Chip
-                      label={isGerman ? "Kritisch" : "Critical"}
+                      label={t(
+                        "attacktree:tabs.attacktree.tableview.critical3",
+                      )}
                       size="small"
                       color="error"
                     />
@@ -419,7 +426,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
           }}
         >
           <Typography color="text.secondary">
-            {isGerman ? "Keine Pfade gefunden" : "No paths match your filters"}
+            {t("attacktree:tabs.attacktree.tableview.noPathsMatchYourFilters")}
           </Typography>
         </Box>
       )}

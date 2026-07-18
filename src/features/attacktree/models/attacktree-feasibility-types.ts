@@ -64,14 +64,16 @@ export const FEASIBILITY_RANK: Record<FeasibilityLevel, number> = {
   high: 3,
 };
 
-export const FEASIBILITY_DISPLAY: Record<
-  FeasibilityLevel,
-  { label: string; labelDE: string; color: string }
-> = {
-  "very-low": { label: "Very Low", labelDE: "Sehr tief", color: "#22c55e" },
-  low: { label: "Low", labelDE: "Tief", color: "#84cc16" },
-  medium: { label: "Medium", labelDE: "Mittel", color: "#f59e0b" },
-  high: { label: "High", labelDE: "Hoch", color: "#ef4444" },
+/**
+ * Display COLOUR per feasibility level. The human label is i18n — resolve it
+ * with t("attacktree:tabs.attacktree.feasibility.level.<level>"). Colour is not
+ * translatable and stays here.
+ */
+export const FEASIBILITY_COLOR: Record<FeasibilityLevel, string> = {
+  "very-low": "#22c55e",
+  low: "#84cc16",
+  medium: "#f59e0b",
+  high: "#ef4444",
 };
 
 // ==================== FEASIBILITY METHOD ====================

@@ -683,20 +683,6 @@ export function probabilityToRiskLevel(probability: number): number {
   return 1; // Very Low
 }
 
-/**
- * Get likelihood label
- */
-export function getLikelihoodLabel(
-  probability: number,
-  isGerman: boolean
-): string {
-  const level = probabilityToRiskLevel(probability);
-  const labels = isGerman
-    ? ["Sehr Niedrig", "Niedrig", "Mittel", "Hoch", "Sehr Hoch"]
-    : ["Very Low", "Low", "Medium", "High", "Very High"];
-  return labels[level - 1];
-}
-
 // ==================== PATH COMPARISON ====================
 
 /**
@@ -970,7 +956,6 @@ export const attackTreeCalculator = {
   analyzeAttackPaths,
   generateLikelihoodExport,
   probabilityToRiskLevel,
-  getLikelihoodLabel,
   comparePaths,
   analyzeMitigationEffectiveness,
   analyzeAttackGoals,

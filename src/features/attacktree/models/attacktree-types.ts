@@ -116,45 +116,19 @@ export interface MitigationReference {
 }
 
 /**
- * UI display config for a verification status (label/color/icon).
- * Mirrors MITIGATION_STATUS_CONFIGS from the Risk feature so the attack-tree
- * table renders identical chips without importing from features/risks.
+ * Display colour + icon per verification status. Label is i18n — resolve with
+ * t("attacktree:tabs.attacktree.mitigationStatus.<status>").
  */
 export const MITIGATION_VERIFICATION_DISPLAY: Record<
   MitigationVerificationStatus,
-  { label: string; labelDE: string; color: string; icon: string }
+  { color: string; icon: string }
 > = {
-  open: { label: "Open", labelDE: "Offen", color: "#9ca3af", icon: "⚪" },
-  in_progress: {
-    label: "In Progress",
-    labelDE: "In Arbeit",
-    color: "#3b82f6",
-    icon: "🔵",
-  },
-  in_review: {
-    label: "In Review",
-    labelDE: "In Prüfung",
-    color: "#8b5cf6",
-    icon: "🟣",
-  },
-  implemented: {
-    label: "Implemented",
-    labelDE: "Umgesetzt",
-    color: "#22c55e",
-    icon: "🟢",
-  },
-  verified: {
-    label: "Verified",
-    labelDE: "Verifiziert",
-    color: "#16a34a",
-    icon: "✅",
-  },
-  rejected: {
-    label: "Rejected",
-    labelDE: "Abgelehnt",
-    color: "#ef4444",
-    icon: "🔴",
-  },
+  open: { color: "#9ca3af", icon: "⚪" },
+  in_progress: { color: "#3b82f6", icon: "🔵" },
+  in_review: { color: "#8b5cf6", icon: "🟣" },
+  implemented: { color: "#22c55e", icon: "🟢" },
+  verified: { color: "#16a34a", icon: "✅" },
+  rejected: { color: "#ef4444", icon: "🔴" },
 };
 
 // ==================== ANCHOR SYSTEM ====================

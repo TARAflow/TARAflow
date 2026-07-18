@@ -291,8 +291,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   onDirtyChange,
   onPhaseComplete,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   // ==================== CUSTOM HOOKS ====================
 
@@ -564,16 +563,14 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
           }}
         >
           <Typography variant="h6" color="text.secondary">
-            {isGerman ? "Keine Attack Trees vorhanden" : "No Attack Trees yet"}
+            {t("attacktree:tabs.attacktree.tab.noAttackTreesYet")}
           </Typography>
           <Typography color="text.secondary">
             {isCriticalWorkflow
-              ? isGerman
-                ? "Klicken Sie auf 'Sync', um Trees für alle Assets zu erstellen"
-                : "Click 'Sync' to create trees for all assets"
-              : isGerman
-                ? "Klicken Sie auf '+', um einen neuen Tree zu erstellen"
-                : "Click '+' to create a new tree"}
+              ? t(
+                  "attacktree:tabs.attacktree.tab.clickSyncToCreateTreesForAllAsse",
+                )
+              : t("attacktree:tabs.attacktree.tab.clickToCreateANewTree")}
           </Typography>
           {isCriticalWorkflow && (
             <Button
@@ -581,7 +578,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
               startIcon={<SyncIcon />}
               onClick={() => setShowSyncConfirm(true)}
             >
-              {isGerman ? "Synchronisieren" : "Sync from Assets"}
+              {t("attacktree:tabs.attacktree.tab.syncFromAssets2")}
             </Button>
           )}
         </Box>
@@ -599,21 +596,21 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                     startIcon={<SyncIcon />}
                     onClick={() => setShowSyncConfirm(true)}
                   >
-                    {isGerman ? "Sync" : "Sync"}
+                    {t("attacktree:tabs.attacktree.tab.sync2")}
                   </Button>
                 ) : undefined
               }
             >
               <AlertTitle>
-                {isGerman ? "Abdeckung" : "Coverage"}:{" "}
+                {t("attacktree:tabs.attacktree.tab.coverage")}:{" "}
                 {criticalCoverage.completeAssets} /{" "}
                 {criticalCoverage.totalAssets}
               </AlertTitle>
               {!criticalCoverage.isAllComplete && (
                 <Typography variant="body2">
-                  {isGerman
-                    ? "Einige Assets haben fehlende Schutzziele. Klicken Sie auf Sync um Trees zu erstellen."
-                    : "Some assets have missing security goals. Click Sync to create trees."}
+                  {t(
+                    "attacktree:tabs.attacktree.tab.someAssetsHaveMissingSecurityGoa",
+                  )}
                 </Typography>
               )}
             </Alert>
@@ -643,12 +640,8 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                       icon={group.isComplete ? <ValidIcon /> : <InvalidIcon />}
                       label={
                         group.isComplete
-                          ? isGerman
-                            ? "Vollständig"
-                            : "Complete"
-                          : isGerman
-                            ? "Unvollständig"
-                            : "Incomplete"
+                          ? t("attacktree:tabs.attacktree.tab.complete")
+                          : t("attacktree:tabs.attacktree.tab.incomplete")
                       }
                       color={group.isComplete ? "success" : "warning"}
                       size="small"
@@ -694,7 +687,9 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                               size="small"
                             />
                           )}
-                          <Tooltip title={isGerman ? "Bearbeiten" : "Edit"}>
+                          <Tooltip
+                            title={t("attacktree:tabs.attacktree.tab.edit")}
+                          >
                             <IconButton
                               size="small"
                               onClick={() => handleTreeSelect(tree.id)}
@@ -702,7 +697,9 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                               <EditIcon />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title={isGerman ? "Löschen" : "Delete"}>
+                          <Tooltip
+                            title={t("attacktree:tabs.attacktree.tab.delete")}
+                          >
                             <IconButton
                               size="small"
                               color="error"
@@ -722,9 +719,9 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                         />
                       ) : (
                         <Typography color="text.secondary" sx={{ py: 2 }}>
-                          {isGerman
-                            ? "Keine Pfadanalyse verfügbar"
-                            : "No path analysis available"}
+                          {t(
+                            "attacktree:tabs.attacktree.tab.noPathAnalysisAvailable",
+                          )}
                         </Typography>
                       )}
                     </Paper>
@@ -812,7 +809,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             }}
           >
             <Typography color="text.secondary">
-              {isGerman ? "Kein Tree ausgewählt" : "No tree selected"}
+              {t("attacktree:tabs.attacktree.tab.noTreeSelected")}
             </Typography>
           </Box>
         ) : (
@@ -866,14 +863,12 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          title={isGerman ? "Tree löschen" : "Delete Tree"}
-          message={
-            isGerman
-              ? "Sind Sie sicher, dass Sie diesen Attack Tree löschen möchten?"
-              : "Are you sure you want to delete this attack tree?"
-          }
-          confirmLabel={isGerman ? "Löschen" : "Delete"}
-          cancelLabel={isGerman ? "Abbrechen" : "Cancel"}
+          title={t("attacktree:tabs.attacktree.tab.deleteTree")}
+          message={t(
+            "attacktree:tabs.attacktree.tab.areYouSureYouWantToDeleteThisAtt",
+          )}
+          confirmLabel={t("attacktree:tabs.attacktree.tab.delete")}
+          cancelLabel={t("attacktree:tabs.attacktree.tab.cancel")}
           onConfirm={handleDeleteConfirmed}
           onCancel={cancelDelete}
         />
@@ -881,30 +876,22 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
 
       {showSyncConfirm && (
         <ConfirmDialog
-          title={isGerman ? "Von Assets synchronisieren" : "Sync from Assets"}
-          message={
-            isGerman
-              ? `Es werden Attack Trees für ${
-                  criticalCoverage?.assets.reduce(
-                    (acc, a) => acc + a.missingGoals.length,
-                    0,
-                  ) || 0
-                } fehlende Schutzziele erstellt.`
-              : `Attack trees will be created for ${
-                  criticalCoverage?.assets.reduce(
-                    (acc, a) => acc + a.missingGoals.length,
-                    0,
-                  ) || 0
-                } missing security goals.`
-          }
-          confirmLabel={isGerman ? "Synchronisieren" : "Sync"}
-          cancelLabel={isGerman ? "Abbrechen" : "Cancel"}
+          title={t("attacktree:tabs.attacktree.tab.syncFromAssets2")}
+          message={t("attacktree:tabs.attacktree.tab.syncConfirmMessage", {
+            count:
+              criticalCoverage?.assets.reduce(
+                (acc, a) => acc + a.missingGoals.length,
+                0,
+              ) || 0,
+          })}
+          confirmLabel={t("attacktree:tabs.attacktree.tab.sync2")}
+          cancelLabel={t("attacktree:tabs.attacktree.tab.cancel")}
           onConfirm={handleSyncConfirmed}
           onCancel={() => setShowSyncConfirm(false)}
         />
       )}
     </Box>
   );
-};;;
+}
 
 export default AttackTreeTab;

@@ -66,8 +66,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
   mitigationLookup,
   onNodeSelect,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -455,14 +454,12 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       >
         <WarningIcon sx={{ fontSize: 48 }} />
         <Typography>
-          {isGerman
-            ? "Kein gültiger Attack Tree vorhanden"
-            : "No valid attack tree available"}
+          {t("attacktree:tabs.attacktree.preview.noValidAttackTreeAvailable")}
         </Typography>
         <Typography variant="body2">
-          {isGerman
-            ? "Definieren Sie den Attack Tree im Editor"
-            : "Define the attack tree in the editor"}
+          {t(
+            "attacktree:tabs.attacktree.preview.defineTheAttackTreeInTheEditor",
+          )}
         </Typography>
       </Box>
     );
@@ -491,12 +488,12 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
           size="small"
         >
           <ToggleButton value="tree">
-            <Tooltip title={isGerman ? "Baumansicht" : "Tree View"}>
+            <Tooltip title={t("attacktree:tabs.attacktree.preview.treeView")}>
               <TreeIcon fontSize="small" />
             </Tooltip>
           </ToggleButton>
           <ToggleButton value="table">
-            <Tooltip title={isGerman ? "Tabellenansicht" : "Table View"}>
+            <Tooltip title={t("attacktree:tabs.attacktree.preview.tableView")}>
               <TableIcon fontSize="small" />
             </Tooltip>
           </ToggleButton>
@@ -507,17 +504,17 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
         {/* Zoom Controls (only for tree view) */}
         {viewMode === "tree" && (
           <>
-            <Tooltip title={isGerman ? "Vergrößern" : "Zoom In"}>
+            <Tooltip title={t("attacktree:tabs.attacktree.preview.zoomIn")}>
               <IconButton size="small" onClick={handleZoomIn}>
                 <ZoomInIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title={isGerman ? "Verkleinern" : "Zoom Out"}>
+            <Tooltip title={t("attacktree:tabs.attacktree.preview.zoomOut")}>
               <IconButton size="small" onClick={handleZoomOut}>
                 <ZoomOutIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title={isGerman ? "Einpassen" : "Fit to View"}>
+            <Tooltip title={t("attacktree:tabs.attacktree.preview.fitToView")}>
               <IconButton size="small" onClick={handleFit}>
                 <FitIcon fontSize="small" />
               </IconButton>
@@ -526,7 +523,9 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
             <Divider orientation="vertical" flexItem />
 
             {/* Export */}
-            <Tooltip title={isGerman ? "Als SVG exportieren" : "Export as SVG"}>
+            <Tooltip
+              title={t("attacktree:tabs.attacktree.preview.exportAsSvg")}
+            >
               <IconButton size="small" onClick={handleExportSVG}>
                 <ExportIcon fontSize="small" />
               </IconButton>
@@ -540,16 +539,16 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
         {pathAnalysis && (
           <Box sx={{ display: "flex", gap: 1 }}>
             <Chip
-              label={`${pathAnalysis.totalPaths} ${
-                isGerman ? "Pfade" : "Paths"
-              }`}
+              label={`${pathAnalysis.totalPaths} ${t(
+                "attacktree:tabs.attacktree.preview.paths",
+              )}`}
               size="small"
               variant="outlined"
             />
             <Chip
-              label={`${pathAnalysis.criticalPaths.length} ${
-                isGerman ? "Kritisch" : "Critical"
-              }`}
+              label={`${pathAnalysis.criticalPaths.length} ${t(
+                "attacktree:tabs.attacktree.preview.critical",
+              )}`}
               size="small"
               color="error"
               variant={
@@ -557,9 +556,9 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
               }
             />
             <Chip
-              label={`${
-                isGerman ? "Max" : "Max"
-              }: ${pathAnalysis.maxRiskScore.toFixed(1)}`}
+              label={`${t(
+                "attacktree:tabs.attacktree.preview.max",
+              )}: ${pathAnalysis.maxRiskScore.toFixed(1)}`}
               size="small"
               color="warning"
               variant="outlined"
@@ -613,7 +612,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
           }}
         >
           <Typography variant="caption" color="text.secondary">
-            {isGerman ? "Legende:" : "Legend:"}
+            {t("attacktree:tabs.attacktree.preview.legend")}
           </Typography>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -676,7 +675,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
               }}
             />
             <Typography variant="caption">
-              {isGerman ? "Mit Maßnahmen" : "With Mitigations"}
+              {t("attacktree:tabs.attacktree.preview.withMitigations")}
             </Typography>
           </Box>
 
@@ -691,7 +690,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
                 }}
               />
               <Typography variant="caption">
-                {isGerman ? "Kritischer Pfad" : "Critical Path"}
+                {t("attacktree:tabs.attacktree.preview.criticalPath")}
               </Typography>
             </Box>
           )}

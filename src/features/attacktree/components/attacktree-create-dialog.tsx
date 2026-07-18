@@ -51,11 +51,10 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
   onClose,
   onCreate,
 }) => {
-  const { i18n } = useTranslation();
-  const isGerman = i18n.language === "de";
+  const { t } = useTranslation();
 
   const [anchorType, setAnchorType] = useState<AttackTreeAnchorType>(
-    isCriticalWorkflow ? "asset" : "standalone"
+    isCriticalWorkflow ? "asset" : "standalone",
   );
   const [selectedAssetId, setSelectedAssetId] = useState<string>("");
   const [selectedSecurityGoal, setSelectedSecurityGoal] = useState<string>("");
@@ -120,13 +119,13 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {isGerman ? "Neuen Attack Tree erstellen" : "Create New Attack Tree"}
+        {t("attacktree:tabs.attacktree.createDialog.createNewAttackTree")}
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
           {/* Anchor Type Selection */}
           <Typography variant="subtitle2">
-            {isGerman ? "Verknüpfungstyp" : "Anchor Type"}
+            {t("attacktree:tabs.attacktree.createDialog.anchorType")}
           </Typography>
 
           <List dense>
@@ -141,12 +140,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                   />
                 </ListItemIcon>
                 <ListItemText
-                  primary={isGerman ? "Asset-basiert" : "Asset-Based"}
-                  secondary={
-                    isGerman
-                      ? "Attack Tree für ein spezifisches Asset (Critical Workflow)"
-                      : "Attack tree for a specific asset (Critical Workflow)"
-                  }
+                  primary={t(
+                    "attacktree:tabs.attacktree.createDialog.assetBased",
+                  )}
+                  secondary={t(
+                    "attacktree:tabs.attacktree.createDialog.attackTreeForASpecificAssetCriti",
+                  )}
                 />
               </ListItemButton>
             </ListItem>
@@ -162,12 +161,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                   />
                 </ListItemIcon>
                 <ListItemText
-                  primary={isGerman ? "Threat-basiert" : "Threat-Based"}
-                  secondary={
-                    isGerman
-                      ? "Detailanalyse eines bestehenden Threats"
-                      : "Detailed analysis of an existing threat"
-                  }
+                  primary={t(
+                    "attacktree:tabs.attacktree.createDialog.threatBased",
+                  )}
+                  secondary={t(
+                    "attacktree:tabs.attacktree.createDialog.detailedAnalysisOfAnExistingThre",
+                  )}
                 />
               </ListItemButton>
             </ListItem>
@@ -183,12 +182,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                   />
                 </ListItemIcon>
                 <ListItemText
-                  primary={isGerman ? "Risk-basiert" : "Risk-Based"}
-                  secondary={
-                    isGerman
-                      ? "Deep Dive für High-Risk oder unsichere Bewertungen"
-                      : "Deep dive for high-risk or uncertain assessments"
-                  }
+                  primary={t(
+                    "attacktree:tabs.attacktree.createDialog.riskBased",
+                  )}
+                  secondary={t(
+                    "attacktree:tabs.attacktree.createDialog.deepDiveForHighRiskOrUncertainAs",
+                  )}
                 />
               </ListItemButton>
             </ListItem>
@@ -204,12 +203,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                   />
                 </ListItemIcon>
                 <ListItemText
-                  primary={isGerman ? "Standalone" : "Standalone"}
-                  secondary={
-                    isGerman
-                      ? "Explorative Analyse ohne Verknüpfung"
-                      : "Exploratory analysis without anchor"
-                  }
+                  primary={t(
+                    "attacktree:tabs.attacktree.createDialog.standalone",
+                  )}
+                  secondary={t(
+                    "attacktree:tabs.attacktree.createDialog.exploratoryAnalysisWithoutAnchor",
+                  )}
                 />
               </ListItemButton>
             </ListItem>
@@ -219,10 +218,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
           {anchorType === "asset" && (
             <>
               <FormControl fullWidth size="small">
-                <InputLabel>{isGerman ? "Asset" : "Asset"}</InputLabel>
+                <InputLabel>
+                  {t("attacktree:tabs.attacktree.createDialog.asset")}
+                </InputLabel>
                 <Select
                   value={selectedAssetId}
-                  label={isGerman ? "Asset" : "Asset"}
+                  label={t("attacktree:tabs.attacktree.createDialog.asset")}
                   onChange={(e) => setSelectedAssetId(e.target.value)}
                 >
                   {assets.map((asset) => (
@@ -235,13 +236,17 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
 
               {selectedAssetId && (
                 <FormControl fullWidth size="small">
-                  <InputLabel>{isGerman ? "Schutzziel" : "Security Goal"}</InputLabel>
+                  <InputLabel>
+                    {t("attacktree:tabs.attacktree.createDialog.securityGoal")}
+                  </InputLabel>
                   <Select
                     value={selectedSecurityGoal}
-                    label={isGerman ? "Schutzziel" : "Security Goal"}
+                    label={t(
+                      "attacktree:tabs.attacktree.createDialog.securityGoal",
+                    )}
                     onChange={(e) =>
                       setSelectedSecurityGoal(
-                        e.target.value as SecurityGoalType
+                        e.target.value as SecurityGoalType,
                       )
                     }
                   >
@@ -257,7 +262,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                       ] as SecurityGoalType[]
                     ).map((goal) => {
                       const isEnabled = enabledSecurityGoals.some(
-                        (sg) => sg.type === goal
+                        (sg) => sg.type === goal,
                       );
                       return (
                         <MenuItem
@@ -280,7 +285,9 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                             <span>{goal}</span>
                             {isEnabled && (
                               <Chip
-                                label={isGerman ? "Asset-Ziel" : "Asset Goal"}
+                                label={t(
+                                  "attacktree:tabs.attacktree.createDialog.assetGoal",
+                                )}
                                 size="small"
                                 color="primary"
                                 variant="outlined"
@@ -299,10 +306,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
           {/* Threat Selection */}
           {anchorType === "threat" && (
             <FormControl fullWidth size="small">
-              <InputLabel>{isGerman ? "Threat" : "Threat"}</InputLabel>
+              <InputLabel>
+                {t("attacktree:tabs.attacktree.createDialog.threat")}
+              </InputLabel>
               <Select
                 value={selectedThreatId}
-                label={isGerman ? "Threat" : "Threat"}
+                label={t("attacktree:tabs.attacktree.createDialog.threat")}
                 onChange={(e) => setSelectedThreatId(e.target.value)}
               >
                 {threats.map((threat) => (
@@ -317,10 +326,12 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
           {/* Risk Selection */}
           {anchorType === "risk" && (
             <FormControl fullWidth size="small">
-              <InputLabel>{isGerman ? "Risk" : "Risk"}</InputLabel>
+              <InputLabel>
+                {t("attacktree:tabs.attacktree.createDialog.risk")}
+              </InputLabel>
               <Select
                 value={selectedRiskId}
-                label={isGerman ? "Risk" : "Risk"}
+                label={t("attacktree:tabs.attacktree.createDialog.risk")}
                 onChange={(e) => setSelectedRiskId(e.target.value)}
               >
                 {risks.map((risk) => (
@@ -336,22 +347,26 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
           {/* Template Selection */}
           <Divider />
           <Typography variant="subtitle2">
-            {isGerman ? "Template (optional)" : "Template (optional)"}
+            {t("attacktree:tabs.attacktree.createDialog.templateOptional")}
           </Typography>
 
           <FormControl fullWidth size="small">
-            <InputLabel>{isGerman ? "Template" : "Template"}</InputLabel>
+            <InputLabel>
+              {t("attacktree:tabs.attacktree.createDialog.template")}
+            </InputLabel>
             <Select
               value={selectedTemplateId}
-              label={isGerman ? "Template" : "Template"}
+              label={t("attacktree:tabs.attacktree.createDialog.template")}
               onChange={(e) => setSelectedTemplateId(e.target.value)}
             >
-              <MenuItem value="">{isGerman ? "Leer starten" : "Start Empty"}</MenuItem>
+              <MenuItem value="">
+                {t("attacktree:tabs.attacktree.createDialog.startEmpty")}
+              </MenuItem>
               {ATTACK_TREE_TEMPLATES.filter(
-                (t) => t.suitableFor.indexOf(anchorType) >= 0
+                (t) => t.suitableFor.indexOf(anchorType) >= 0,
               ).map((template) => (
                 <MenuItem key={template.id} value={template.id}>
-                  {isGerman ? template.nameDE : template.name}
+                  {t(`attacktree:tabs.attacktree.templates.${template.id}`)}
                 </MenuItem>
               ))}
             </Select>
@@ -359,13 +374,15 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{isGerman ? "Abbrechen" : "Cancel"}</Button>
+        <Button onClick={onClose}>
+          {t("attacktree:tabs.attacktree.createDialog.cancel")}
+        </Button>
         <Button
           variant="contained"
           onClick={handleCreate}
           disabled={anchorType === "asset" && !selectedAssetId}
         >
-          {isGerman ? "Erstellen" : "Create"}
+          {t("attacktree:tabs.attacktree.createDialog.create")}
         </Button>
       </DialogActions>
     </Dialog>
