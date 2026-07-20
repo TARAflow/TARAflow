@@ -33,9 +33,10 @@ import {
 } from "@mui/icons-material";
 
 import {
-  Risk,
-  RiskData,
-  RiskTabProps,
+  type Risk,
+  type RiskData,
+  type RiskProjectData,
+  type RiskUpdateResult,
   getActiveRisksByStrideMethod,
   getWontRisksByStrideMethod,
 } from "../models/risk-assessment-types";
@@ -76,6 +77,14 @@ import {
 } from "../utils/risks-tab-helpers";
 
 // ==================== COMPONENT ====================
+
+
+export interface RiskTabProps {
+  project: RiskProjectData;
+  onUpdate: (updates: RiskUpdateResult) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onPhaseComplete?: () => void;
+}
 
 export const RisksTab: React.FC<RiskTabProps> = ({
   project,

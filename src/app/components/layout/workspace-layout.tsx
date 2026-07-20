@@ -53,6 +53,7 @@ import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
+import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import {
   StrideMethod,
@@ -814,6 +815,9 @@ export const WorkspaceLayout: React.FC = () => {
                 "per-interaction",
               ),
               perAttackPathThreats: buildAttackPathThreatReferences(
+                activeProject.attackTrees,
+              ),
+              attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
               ),
               assetDataRef: memoizedAssetDataRef,

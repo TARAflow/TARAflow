@@ -22,8 +22,13 @@ import { RISK_SCALES } from "../models/risk-scale-types";
 import {
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
+  ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
 } from "../models/risk-factor-types";
-import type { AssetReference, AssetDataReference } from "shared";
+import type {
+  AssetReference,
+  AssetDataReference,
+  AttackTreeLikelihoodReference,
+} from "shared";
 import { getWorstCriterionValue, normaliseImpactValue } from "shared";
 
 // ==================== CALCULATION RESULTS ====================
@@ -382,4 +387,58 @@ export function extractEN50742Factors(ratings: FactorRating[]): {
   const woo = get("window_of_opportunity");
   const ac  = get("attacker_capability");
   return { el, woo, ac, ap: calculateAttackerPotential(el, woo, ac) };
+}
+
+// ==================== ATTACK-TREE LIKELIHOOD (5b-2) ====================
+
+/**
+ * Project-wide policy for how a threat-anchored tree contributes its likelihood
+ * (5b design, Fall 1): "factor" writes an active attack_tree_likelihood rating
+ * that averages in; "advisory" records provenance only and writes NO factor, so
+ * calculateRiskValues never sees it. Default "factor".
+ */
+export type TreeLikelihoodContribution = "factor" | "advisory";
+
+/**
+ * Set (or clear) the attack_tree_likelihood factor rating on a risk's ratings.
+ *
+ * - contribution "factor":   upserts an attack_tree_likelihood rating with
+ *   value = input.mappedValue, weight = the factor's default (1) unless already
+ *   present (keeps an analyst-adjusted weight), source = "attack-tree".
+ * - contribution "advisory": REMOVES any attack_tree_likelihood rating, so the
+ *   value is not averaged in. Provenance lives on the Risk (attackTreeAssessment),
+ *   handled by the caller — not here.
+ *
+ * Pure and stateless; returns a new array. No attack-tree import — the mapped
+ * value is supplied by the caller.
+ */
+export function setAttackTreeLikelihoodFactor(
+  ratings: FactorRating[],
+  input: AttackTreeLikelihoodReference | null,
+  contribution: TreeLikelihoodContribution = "factor",
+): FactorRating[] {
+  const withoutTree = ratings.filter(
+    (r) => r.factorId !== ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+  );
+
+  // Advisory, or nothing to set → the factor simply does not exist.
+  if (!input || contribution === "advisory") {
+    return withoutTree;
+  }
+
+  // Preserve an existing analyst-adjusted weight if the factor was already there.
+  const existing = ratings.find(
+    (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+  );
+  const weight = existing?.weight ?? 1;
+
+  return [
+    ...withoutTree,
+    {
+      factorId: ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+      value: input.mappedValue,
+      weight,
+      source: "attack-tree",
+    },
+  ];
 }

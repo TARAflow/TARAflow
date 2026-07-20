@@ -12,6 +12,7 @@
 //   risk-mitigation-types (SelectedMitigation, MitigationStatus)
 
 import type {
+  AttackTreeLikelihoodReference,
   StrideCategory,
   StrideMethod,
   AssetDataReference,
@@ -21,7 +22,6 @@ import type {
   ThreatReference,
   ThreatRelevanceRef,
 } from "shared";
-import { RISK_SCALES } from "./risk-scale-types";
 import type { FactorRating, RiskFactorDefinition } from "./risk-factor-types";
 import {
   ALL_PREDEFINED_FACTORS,
@@ -35,6 +35,11 @@ import type { MoSCoWPriority, RiskTreatment } from "./risk-scale-types";
 import type { RiskIntegrationConnection } from "./risk-integration-types";
 
 // ==================== RISK ====================
+export interface RiskUpdateResult {
+  risks: RiskData;
+  phaseStatus: PhaseStatusMap;
+  lastModified: string;
+}
 
 export interface Risk {
   id: string;
@@ -93,6 +98,12 @@ export interface RiskProjectData {
    * projects without attack trees, and the tab defaults it to [].
    */
   perAttackPathThreats?: ThreatReference[];
+  /**
+   * Attack-tree likelihood contributions (5b-2). One entry per risk an attack
+   * tree feeds (asset-anchored: per emitted path; threat-anchored: aggregated).
+   * mappedValue is already on the risk scale. Optional: absent without trees.
+   */
+  attackTreeLikelihoods?: AttackTreeLikelihoodReference[];
   assetDataRef?: AssetDataReference;
   dfdPreviewImage?: string;
   dfd?: DFDReference | null;
@@ -101,21 +112,6 @@ export interface RiskProjectData {
     connection: RiskIntegrationConnection | null;
   } | null;
   lastModified: string;
-}
-
-// ==================== RESULT / PROPS ====================
-
-export interface RiskUpdateResult {
-  risks: RiskData;
-  phaseStatus: PhaseStatusMap;
-  lastModified: string;
-}
-
-export interface RiskTabProps {
-  project: RiskProjectData;
-  onUpdate: (updates: RiskUpdateResult) => void;
-  onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== FACTORY FUNCTIONS ====================
@@ -269,44 +265,6 @@ export function getRiskStatistics(risks: Risk[]): {
   }
 
   return { total: risks.length, byPriority, byTreatment, highRiskCount, unratedCount };
-}
-
-/**
- * @deprecated Use risk-calculation-service.calculateRiskValues() instead.
- */
-export function calculateRiskValues(
-  ratings: FactorRating[],
-  configuration: RiskConfiguration,
-): { impact: number; likelihood: number; risk: number } {
-  const scale = RISK_SCALES[configuration.scale];
-  const maxValue = scale.levels.length;
-  const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
-
-  const impactRatings = ratings.filter((r) => {
-    const factor = allFactors.find((f) => f.id === r.factorId);
-    return factor?.category === "impact" && r.value > 0;
-  });
-  const likelihoodRatings = ratings.filter((r) => {
-    const factor = allFactors.find((f) => f.id === r.factorId);
-    return factor?.category === "likelihood" && r.value > 0;
-  });
-
-  const weightedAvg = (items: FactorRating[]): number => {
-    if (items.length === 0) return 0;
-    const weightedSum = items.reduce((sum, r) => sum + r.value * r.weight, 0);
-    const totalWeight = items.reduce((sum, r) => sum + r.weight, 0);
-    return totalWeight > 0 ? weightedSum / totalWeight : 0;
-  };
-
-  const impact = weightedAvg(impactRatings);
-  const likelihood = weightedAvg(likelihoodRatings);
-  const risk = (impact * likelihood) / maxValue;
-
-  return {
-    impact: Math.round(impact * 10) / 10,
-    likelihood: Math.round(likelihood * 10) / 10,
-    risk: Math.round(risk * 10) / 10,
-  };
 }
 
 export function getFactorDefinition(

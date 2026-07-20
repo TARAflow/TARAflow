@@ -83,6 +83,8 @@ export type {
 
 export type { ControlInstance } from "./models/control-instance";
 
+export type { AttackTreeLikelihoodReference } from "./models/attacktree-reference-types";
+
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
 export type {

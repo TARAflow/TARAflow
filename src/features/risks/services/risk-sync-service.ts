@@ -24,6 +24,7 @@ import { createEmptyRisk } from "../models/risk-assessment-types";
 import type {
   AssetReference,
   AssetDataReference,
+  AttackTreeLikelihoodReference,
   DFDReference,
   ThreatReference,
 } from "shared";
@@ -32,10 +33,12 @@ import {
   hasDFDSafetyAnnotations,
   getWorstCriterionValue,
 } from "shared";
-import {
-  applyAssetCriteriaToFactorRatings,
-  calculateRiskValues,
-} from "./risk-calculation-service";
+ import {
+   applyAssetCriteriaToFactorRatings,
+   calculateRiskValues,
+   setAttackTreeLikelihoodFactor,
+   type TreeLikelihoodContribution,
+ } from "../services/risk-calculation-service";
 
 // ==================== RESULT TYPES ====================
 
@@ -208,15 +211,14 @@ const IMPACT_FACTOR_IDS = [
  */
 export function updateImpactFactorsAutoEnable(
   activeFactors: ActiveFactor[],
-  assetDataRef: AssetDataReference | undefined,
+  // Kept in the signature for call-site compatibility and possible future
+  // asset-driven behaviour; impact factors now enable unconditionally, so the
+  // asset data is not read here.
+  _assetDataRef?: AssetDataReference,
 ): {
   activeFactors: ActiveFactor[];
   autoEnabledCount: number;
 } {
-  if (!assetDataRef?.assets.length) {
-    return { activeFactors, autoEnabledCount: 0 };
-  }
-
   let autoEnabledCount = 0;
   const updated = activeFactors.map((factor) => {
     // Only process known impact factors (not safety, not likelihood factors)
@@ -231,16 +233,14 @@ export function updateImpactFactorsAutoEnable(
     if (factor.enabled) {
       return factor;
     }
-    // Check whether any asset has a rated value > 0 for this criterion
-    const worstValue = getWorstCriterionValue(
-      assetDataRef.assets,
-      factor.factorId,
-    );
-    if (worstValue > 0) {
-      autoEnabledCount++;
-      return { ...factor, enabled: true, autoEnabled: true };
-    }
-    return factor;
+    // Impact factors are ALWAYS enabled — impact is an intrinsic property of a
+    // risk, not something that exists only when an asset is linked. A threat
+    // with no asset link still has impact factors; they simply stay unrated
+    // (value 0) until the analyst fills them in. (Previously these were enabled
+    // only when a linked asset carried a rated criterion > 0, which hid the
+    // impact factors entirely in the risk dialog for asset-less threats.)
+    autoEnabledCount++;
+    return { ...factor, enabled: true, autoEnabled: true };
   });
 
   return { activeFactors: updated, autoEnabledCount };
@@ -391,13 +391,23 @@ function reconcileFactorRatings(
 ): FactorRating[] {
   const enabledFactors = configuration.activeFactors.filter((f) => f.enabled);
   const ratingMap = new Map(ratings.map((r) => [r.factorId, r]));
-
-  return enabledFactors.map((af) => {
+ 
+  const reconciled = enabledFactors.map((af) => {
     const existing = ratingMap.get(af.factorId);
     if (existing) return existing;
     // New factor — inject empty placeholder so applyAssetCriteria can fill it
     return { factorId: af.factorId, value: 0, weight: af.weight };
   });
+
+  // Attack-tree-sourced ratings are data-driven, not activeFactor-driven: they
+  // exist because an attack tree feeds this risk, not because a factor is
+  // enabled in the config. They must survive the threat sync untouched —
+  // syncRisksFromAttackTrees is the sole owner that sets/clears them. Pass them
+  // through here so reconcile (which only rebuilds from enabledFactors) never
+  // discards them.
+  const treeSourced = ratings.filter((r) => r.source === "attack-tree");
+
+  return [...reconciled, ...treeSourced];
 }
 
 
@@ -550,6 +560,10 @@ export function syncRisksFromThreats(
       threat.linkedAssetIds,
       assetDataRef,
     );
+    // No assets → return the empty risk (impact factors are present via
+    // createEmptyRisk with value 0; asset prefill is simply skipped). The
+    // attack-tree factor is NOT set here — syncRisksFromAttackTrees does that
+    // in a separate pass.
     if (!assetDataRef || linkedAssets.length === 0) return emptyRisk;
 
     const prefilled = applyAssetCriteriaToFactorRatings(
@@ -591,5 +605,71 @@ export function syncRisksFromThreats(
     removed,
     updated,
     warnings,
+  };
+}
+
+// ==================== ATTACK-TREE SYNC (5b-2) ====================
+//
+// Runs AFTER syncRisksFromThreats, additively, on the resulting RiskData. This
+// is the SOLE owner of the attack_tree_likelihood factor: it sets it when a tree
+// feeds a risk and clears it when none does (or in advisory mode). The threat
+// sync never touches it (reconcileFactorRatings passes source==="attack-tree"
+// ratings through untouched), so the two syncs stay independent — threats change
+// the STRIDE factors, trees change the tree factor.
+//
+// The tree contributes to BEFORE-mitigation likelihood only; mitigatedFactorRatings
+// and the after value stay the analyst's (5b design).
+
+export function syncRisksFromAttackTrees(
+  riskData: RiskData,
+  attackTreeLikelihoods: AttackTreeLikelihoodReference[],
+  contribution: TreeLikelihoodContribution = "factor",
+): RiskData {
+  const byRiskId = new Map(
+    attackTreeLikelihoods.map((ref) => [ref.riskId, ref]),
+  );
+
+  let changed = false;
+
+  const risks = riskData.risks.map((risk) => {
+    const ref = byRiskId.get(risk.threatId) ?? null;
+
+    const newRatings = setAttackTreeLikelihoodFactor(
+      risk.factorRatings,
+      ref,
+      contribution,
+    );
+
+    // No change to this risk's ratings → leave it exactly as is (keeps object
+    // identity stable, so the register doesn't churn on unrelated syncs).
+    if (
+      JSON.stringify(newRatings) === JSON.stringify(risk.factorRatings)
+    ) {
+      return risk;
+    }
+
+    changed = true;
+
+    // Recompute the before-mitigation values — the tree factor is a likelihood
+    // factor, so likelihood and risk-before change; impact does not (the tree
+    // never contributes impact), and the after value is analyst-owned.
+    const before = calculateRiskValues(newRatings, riskData.configuration);
+
+    return {
+      ...risk,
+      factorRatings: newRatings,
+      calculatedImpact: before.impact,
+      calculatedLikelihood: before.likelihood,
+      calculatedRiskBeforeMitigation: before.risk,
+      lastModified: new Date().toISOString(),
+    };
+  });
+
+  if (!changed) return riskData;
+
+  return {
+    ...riskData,
+    risks,
+    lastModified: new Date().toISOString(),
   };
 }

@@ -87,8 +87,36 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
  * Distinct from affected_users (how many are harmed) — measures attack amplification.
  */
 export const TARAFLOW_FACTORS: RiskFactorDefinition[] = [
-  { id: "deployment_scope", category: "likelihood", name: "Deployment Scope", description: "", defaultWeight: 1.0, source: "custom" },
+  {
+    id: "deployment_scope",
+    category: "likelihood",
+    name: "Deployment Scope",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
+  // 5b-2: the likelihood contributed by a threat-anchored attack tree. It is an
+  // ordinary likelihood factor (default weight 1) that averages into the same
+  // weighted mean as the OWASP factors — no special case in calculateRiskValues.
+  // The VALUE arrives pre-computed from the attack-tree side (already mapped to
+  // the risk scale); features/risks never imports FeasibilityLevel or anything
+  // from features/attacktree. See ATTACK_TREE_LIKELIHOOD_FACTOR_ID.
+  {
+    id: "attack_tree_likelihood",
+    category: "likelihood",
+    name: "Attack Tree Likelihood",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
 ];
+
+/**
+ * Shared id constant so callers reference the attack-tree likelihood factor
+ * without a magic string. Kept in features/risks (this is a risks concept — a
+ * likelihood factor — that attack-tree data happens to feed).
+ */
+export const ATTACK_TREE_LIKELIHOOD_FACTOR_ID = "attack_tree_likelihood";
 
 export const ALL_PREDEFINED_FACTORS: RiskFactorDefinition[] = [
   ...OWASP_LIKELIHOOD_FACTORS,
@@ -111,11 +139,13 @@ export interface FactorRating {
    */
   derivedValue?: number;
   /**
-   * "derived"  → set from Asset Tab, not manually changed
-   * "manual"   → analyst explicitly overrode the derived value
-   * undefined  → no derivation available
+   * "derived"    → set from Asset Tab, not manually changed
+   * "manual"     → analyst explicitly overrode the derived value
+   * "attack-tree" → set from an attack tree's likelihood (5b-2); protected
+   *                 from the Asset-Tab prefill just like "manual"
+   * undefined    → no derivation available
    */
-  source?: "derived" | "manual";
+  source?: "derived" | "manual" | "attack-tree";
 }
 
 // ==================== ACTIVE FACTOR ====================

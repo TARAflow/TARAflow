@@ -91,7 +91,6 @@ export type {
   RiskData,
   RiskProjectData,
   RiskUpdateResult,
-  RiskTabProps,
 } from "./models/risk-assessment-types";
 export {
   generateRiskId,
@@ -104,7 +103,6 @@ export {
   getActiveRisksByStrideMethod,
   getWontRisksByStrideMethod,
   getRiskStatistics,
-  calculateRiskValues,
 } from "./models/risk-assessment-types";
 
 // ==================== SERVICES ====================
