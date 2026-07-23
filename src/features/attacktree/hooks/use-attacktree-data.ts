@@ -214,7 +214,7 @@ export function useAttackTreeData(
       ...prev,
       trees: attackTreeOperations.updateTreeInCollection(
         prev.trees,
-        updatedTree
+        updatedTree,
       ),
       lastModified: new Date().toISOString(),
     }));

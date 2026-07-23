@@ -49,6 +49,7 @@
       "uncertainRiskWarning": "This risk is based on an uncertain threat. Please confirm its relevance in the Threat Eval tab before finalizing the risk assessment.",
       "rationaleBefore": "Before",
       "rationaleAfter": "After",
+      "attackPathRisksTitle": "Attack Tree Risks",
       "safetyRemovalDialog": {
         "title": "Safety Factor Source Removed",
         "message": "The safety annotations that automatically enabled the Safety Impact factor have been removed from the DFD and Asset Tab. Do you want to keep the Safety Impact factor active?\n\nKeeping it preserves existing safety ratings. Removing it will clear all safety factor values from your risk assessments.",
@@ -133,7 +134,12 @@
         "factorReset": "Reset to derived value",
         "factorOriginal": "original",
         "riskBeforeRationale": "Assessment Rationale — reasoning behind the risk assessment",
-        "riskAfterRationale": "Residual Risk Rationale — why likelihood/impact changed after mitigation"
+        "riskAfterRationale": "Residual Risk Rationale — why likelihood/impact changed after mitigation",
+        "treeFactorProvenanceTooltip": "From Attack Tree {{treeId}}, path {{pathKey}} (raw likelihood component {{raw}}). Edited at the source (Attack Tree tab), not here.",
+        "treeFactorBadge": "Attack Tree",
+        "treeFactorReadOnly": "read-only, edit at source",
+        "treeAdvisoryLabel": "Attack Tree (advisory)",
+        "treeAdvisoryHint": "Not included in the calculation — shown for reference only."
       },
       "config": {
         "title": "Risk Assessment Configuration",
@@ -180,7 +186,13 @@
         "severityThresholdsHint": "Scores above the highest threshold always map to the last level.",
         "severityMatrix": "Severity Matrix",
         "autoEnabled": "Auto",
-        "safetyAutoEnabledTooltip": "Automatically enabled — safety annotations detected in DFD or Asset Tab. Disable manually to exclude safety impact from risk scoring."
+        "safetyAutoEnabledTooltip": "Automatically enabled — safety annotations detected in DFD or Asset Tab. Disable manually to exclude safety impact from risk scoring.",
+        "treeLikelihoodContribution": "Attack Tree Likelihood Contribution",
+        "treeContributionFactor": "Factor — averages in with other likelihood factors",
+        "treeContributionFactorDesc": "The tree's likelihood is written as the Attack Tree Likelihood factor and averages in like any other likelihood factor. It supplements the OWASP factors, never overrides them.",
+        "treeContributionAdvisory": "Advisory — shown as a hint only",
+        "treeContributionAdvisoryDesc": "The tree's likelihood is shown for reference but not written as an active factor; the analyst adjusts the OWASP factors themselves.",
+        "treeContributionHint": "Applies only when a threat-anchored tree refines a risk that also has other likelihood factors. Asset-anchored and ISO feasibility-only risks are unaffected — the tree drives the number regardless."
       },
       "matrix": {
         "title": "Risk Matrix",
@@ -382,6 +394,11 @@
       }
     },
     "factors": {
+      "attack_tree_likelihood": {
+        "name": "Attack Tree Likelihood",
+        "shortName": "Attack Tree",
+        "description": "Likelihood contributed by an attack tree, already mapped to the risk scale. Derived from the tree's rated paths — edit it at the source in the Attack Tree tab, not here."
+      },
       "damage_potential": {
         "name": "Damage Potential",
         "description": "How much damage could result from the threat?",

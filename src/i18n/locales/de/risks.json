@@ -49,6 +49,7 @@
       "uncertainRiskWarning": "Dieses Risiko basiert auf einer unsicheren Bedrohung. Bitte bestätigen Sie deren Relevanz im Threat-Eval-Tab bevor Sie die Risikobewertung abschliessen.",
       "rationaleBefore": "Vorher",
       "rationaleAfter": "Nachher",
+      "attackPathRisksTitle": "Angriffsbaum-Risiken",
       "safetyRemovalDialog": {
         "title": "Safety-Faktor-Quelle entfernt",
         "message": "Die Safety-Annotationen, die den Safety-Auswirkungs-Faktor automatisch aktiviert haben, wurden aus dem DFD und dem Asset-Tab entfernt. Möchten Sie den Safety-Auswirkungs-Faktor aktiv behalten?\n\nBeim Behalten bleiben bestehende Safety-Bewertungen erhalten. Beim Entfernen werden alle Safety-Faktorwerte aus Ihren Risikobewertungen gelöscht.",
@@ -134,7 +135,12 @@
         "factorReset": "Auf abgeleiteten Wert zurücksetzen",
         "factorOriginal": "original",
         "riskBeforeRationale": "Begründung der Bewertung — Annahmen und Überlegungen hinter der Risikobewertung",
-        "riskAfterRationale": "Begründung des Restrisikos — weshalb sich Eintrittswahrscheinlichkeit/Auswirkung nach der Mitigation geändert haben"
+        "riskAfterRationale": "Begründung des Restrisikos — weshalb sich Eintrittswahrscheinlichkeit/Auswirkung nach der Mitigation geändert haben",
+        "treeFactorProvenanceTooltip": "Aus Angriffsbaum {{treeId}}, Pfad {{pathKey}} (roher Wahrscheinlichkeitsanteil {{raw}}). Wird an der Quelle bearbeitet (Attack-Tree-Tab), nicht hier.",
+        "treeFactorBadge": "Angriffsbaum",
+        "treeFactorReadOnly": "nur lesbar, Bearbeitung an der Quelle",
+        "treeAdvisoryLabel": "Angriffsbaum (Hinweis)",
+        "treeAdvisoryHint": "Nicht in die Berechnung einbezogen — nur zur Information angezeigt."
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",
@@ -181,7 +187,13 @@
         "severityThresholdsHint": "Werte über dem höchsten Schwellenwert werden immer dem letzten Level zugeordnet.",
         "severityMatrix": "Severity-Matrix",
         "autoEnabled": "Auto",
-        "safetyAutoEnabledTooltip": "Automatisch aktiviert — Safety-Annotationen in DFD oder Asset-Tab erkannt. Manuell deaktivieren, um Safety-Auswirkungen aus der Risikobewertung auszuschliessen."
+        "safetyAutoEnabledTooltip": "Automatisch aktiviert — Safety-Annotationen in DFD oder Asset-Tab erkannt. Manuell deaktivieren, um Safety-Auswirkungen aus der Risikobewertung auszuschliessen.",
+        "treeLikelihoodContribution": "Beitrag der Angriffsbaum-Eintrittswahrscheinlichkeit",
+        "treeContributionFactor": "Faktor — fließt mit den anderen Eintrittswahrscheinlichkeits-Faktoren in den Mittelwert ein",
+        "treeContributionFactorDesc": "Die Eintrittswahrscheinlichkeit aus dem Angriffsbaum wird als Faktor \"Angriffsbaum-Eintrittswahrscheinlichkeit\" geschrieben und fließt wie jeder andere Eintrittswahrscheinlichkeits-Faktor in den Mittelwert ein. Sie ergänzt die OWASP-Faktoren, überschreibt sie nie.",
+        "treeContributionAdvisory": "Hinweis — wird nur als Information angezeigt",
+        "treeContributionAdvisoryDesc": "Die Eintrittswahrscheinlichkeit aus dem Angriffsbaum wird zur Information angezeigt, aber nicht als aktiver Faktor geschrieben; der Analyst passt die OWASP-Faktoren selbst an.",
+        "treeContributionHint": "Gilt nur, wenn ein bedrohungsverankerter Angriffsbaum ein Risiko verfeinert, das bereits andere Eintrittswahrscheinlichkeits-Faktoren hat. Asset-verankerte und rein ISO-basierte (Feasibility) Risiken sind davon nicht betroffen — der Baum bestimmt den Wert in jedem Fall."
       },
       "matrix": {
         "title": "Risikomatrix",
@@ -377,6 +389,11 @@
       }
     },
     "factors": {
+      "attack_tree_likelihood": {
+        "name": "Angriffsbaum-Eintrittswahrscheinlichkeit",
+        "shortName": "Angriffsbaum",
+        "description": "Eintrittswahrscheinlichkeit aus einem Angriffsbaum, bereits auf die Risikoskala abgebildet. Abgeleitet aus den bewerteten Pfaden des Baums — Bearbeitung an der Quelle im Attack-Tree-Tab, nicht hier."
+      },
       "damage_potential": {
         "name": "Schadenspotenzial",
         "description": "Wie viel Schaden könnte durch die Bedrohung entstehen?",

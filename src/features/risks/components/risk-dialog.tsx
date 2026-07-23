@@ -58,6 +58,7 @@ import {
   SelectedMitigation,
 } from "../models/risk-mitigation-types";
 import { FactorRating } from "../models/risk-factor-types";
+import { ATTACK_TREE_LIKELIHOOD_FACTOR_ID } from "../models/risk-factor-types";
 import { RiskConfiguration } from "../models/risk-config-types";
 import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
@@ -800,6 +801,128 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     );
   };
 
+  // ── Attack-tree likelihood contribution (Phase 6) ─────────────────────────
+  // attack_tree_likelihood is deliberately NOT in configuration.activeFactors
+  // (design doc 5b: data-driven, not analyst-configured), so it never shows up
+  // via the normal likelihoodFactors iteration above. It has to be rendered
+  // separately, driven by whether a rating/provenance is actually present —
+  // not by a discriminator. Before-mitigation only; the tree never feeds the
+  // residual, so this never renders in the "after" pass.
+  const treeFactorRating = local.factorRatings.find(
+    (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+  );
+  const treeFactorDef = getFactorDefinition(
+    ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+    configuration.customFactors,
+  );
+  const treeAssessment = currentRisk.attackTreeAssessment;
+
+  const renderTreeFactorRow = (mitigated: boolean) => {
+    if (mitigated || !treeAssessment) return null;
+
+    const provenanceTooltip = t(
+      "tabs.risks.dialog.treeFactorProvenanceTooltip",
+      {
+        treeId: treeAssessment.treeId,
+        pathKey: treeAssessment.pathKey,
+        raw: treeAssessment.likelihoodComponent,
+        defaultValue:
+          `From Attack Tree ${treeAssessment.treeId}, path ${treeAssessment.pathKey} ` +
+          `(raw likelihood component ${treeAssessment.likelihoodComponent}). ` +
+          `Edited at the source (Attack Tree tab), not here.`,
+      },
+    );
+
+    // "factor" mode — an active rating exists, averages in with the OWASP
+    // factors like any other likelihood factor. Read-only: no Select, no
+    // reset — the value lives at the source.
+    if (treeFactorRating && treeFactorDef) {
+      return (
+        <Paper
+          key="attack-tree-likelihood"
+          variant="outlined"
+          sx={{ p: 1.5, borderColor: "info.main", borderStyle: "dashed" }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+            <Typography
+              variant="body2"
+              fontWeight="medium"
+              sx={{ flexGrow: 1 }}
+            >
+              {t(`risks.factors.${treeFactorDef.id}.shortName`, {
+                defaultValue: t(`risks.factors.${treeFactorDef.id}.name`, {
+                  defaultValue: treeFactorDef.name,
+                }),
+              })}
+            </Typography>
+            <Tooltip title={provenanceTooltip}>
+              <Chip
+                label={t("tabs.risks.dialog.treeFactorBadge", {
+                  defaultValue: "Attack Tree",
+                })}
+                size="small"
+                sx={{
+                  height: 18,
+                  fontSize: 10,
+                  bgcolor: "info.50",
+                  color: "info.main",
+                  border: "1px solid",
+                  borderColor: "info.200",
+                }}
+              />
+            </Tooltip>
+          </Stack>
+          <Chip
+            label={`${treeFactorRating.value} — ${t(
+              "tabs.risks.dialog.treeFactorReadOnly",
+              { defaultValue: "read-only, edit at source" },
+            )}`}
+            size="small"
+            variant="outlined"
+            sx={{ width: "100%", justifyContent: "flex-start" }}
+          />
+        </Paper>
+      );
+    }
+
+    // "advisory" mode — no active factor was written; shown for reference
+    // only, never enters calculateRiskValues.
+    return (
+      <Paper
+        key="attack-tree-likelihood-advisory"
+        variant="outlined"
+        sx={{ p: 1.5, borderStyle: "dotted", borderColor: "text.disabled" }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ flexGrow: 1 }}
+          >
+            {t("tabs.risks.dialog.treeAdvisoryLabel", {
+              defaultValue: "Attack Tree (advisory)",
+            })}
+          </Typography>
+          <Tooltip title={provenanceTooltip}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ cursor: "help" }}
+            >
+              ⓘ
+            </Typography>
+          </Tooltip>
+        </Stack>
+        <Typography variant="caption" color="text.secondary">
+          {t("tabs.risks.dialog.treeAdvisoryHint", {
+            defaultValue:
+              "Not included in the calculation — shown for reference only.",
+          })}
+        </Typography>
+      </Paper>
+    );
+  };
+
   // ── Risk score chip ───────────────────────────────────────────────────────
   const RiskScoreChip = ({
     value,
@@ -1308,6 +1431,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         gap: 1,
                       }}
                     >
+                      {renderTreeFactorRow(false)}
                       {likelihoodFactors.map((f) => renderFactorRow(f, false))}
                     </Box>
                   </Box>
@@ -2055,6 +2179,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};;
+};
 
 export default RiskDialog;

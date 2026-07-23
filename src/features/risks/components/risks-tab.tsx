@@ -259,8 +259,28 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [riskData.risks, activeStrideMethod],
   );
 
+  // Phase 6: attack-path risks (asset-anchored attack trees, 5a) are a THIRD
+  // threat source alongside the two STRIDE methods — never per-element, never
+  // per-interaction, so they never matched activeStrideMethod above and were
+  // silently invisible in the Risk tab regardless of which STRIDE method the
+  // project uses. Pulled in unconditionally here; RiskTableView renders them
+  // in their own section (design doc: "All trees feed risk, both anchors,
+  // both methods").
+  const attackPathActiveRisks = useMemo(
+    () => getActiveRisksByStrideMethod(riskData.risks, "attack-path"),
+    [riskData.risks],
+  );
+  const attackPathWontRisks = useMemo(
+    () => getWontRisksByStrideMethod(riskData.risks, "attack-path"),
+    [riskData.risks],
+  );
+
   const hasRisks = riskData.risks.length > 0;
-  const hasRisksForMethod = activeRisks.length > 0 || wontRisks.length > 0;
+  const hasRisksForMethod =
+    activeRisks.length > 0 ||
+    wontRisks.length > 0 ||
+    attackPathActiveRisks.length > 0 ||
+    attackPathWontRisks.length > 0;
 
   const assessedRiskCount = useMemo(
     () =>
@@ -289,7 +309,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     ],
   );
 
-  const hasThreatsForMethod = currentThreats.length > 0;
+  const hasThreatsForMethod =
+    currentThreats.length > 0 ||
+    (project.perAttackPathThreats?.length ?? 0) > 0;
   const hasAnyThreats = allThreats.length > 0;
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
@@ -475,9 +497,24 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const handleEditRisk = useCallback(
     (risk: Risk, _groupRisks?: Risk[]) => {
+      const isWontRisk = risk.moscowPriority === "wont";
+
+      // Attack-path risks have no trust boundary to group by — page through
+      // the other attack-path risks instead (mirrors the dedicated section
+      // RiskTableView renders them in).
+      if (risk.sourceStrideMethod === "attack-path") {
+        const pool = isWontRisk ? attackPathWontRisks : attackPathActiveRisks;
+        const index = pool.findIndex((r) => r.id === risk.id);
+        setSelectedRiskInfo({
+          risks: pool.length > 0 ? pool : [risk],
+          index: Math.max(0, index),
+        });
+        setShowRiskDialog(true);
+        return;
+      }
+
       const threat = allThreats.find((t) => t.id === risk.threatId);
       const tbId = threat?.trustBoundaryId ?? null;
-      const isWontRisk = risk.moscowPriority === "wont";
       const pool = isWontRisk ? wontRisks : activeRisks;
       const group = pool.filter((r) => {
         const th = allThreats.find((t) => t.id === r.threatId);
@@ -488,7 +525,13 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       setSelectedRiskInfo({ risks: effectiveGroup, index: Math.max(0, index) });
       setShowRiskDialog(true);
     },
-    [activeRisks, wontRisks, allThreats],
+    [
+      activeRisks,
+      wontRisks,
+      attackPathActiveRisks,
+      attackPathWontRisks,
+      allThreats,
+    ],
   );
 
   const handleSaveRisk = useCallback(
@@ -790,7 +833,12 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto", px: 2, pt: 1 }}>
           {mainView === "matrix" ? (
             <RiskMatrix
-              risks={[...activeRisks, ...wontRisks]}
+              risks={[
+                ...activeRisks,
+                ...wontRisks,
+                ...attackPathActiveRisks,
+                ...attackPathWontRisks,
+              ]}
               configuration={riskData.configuration}
               onRiskClick={handleEditRisk}
             />
@@ -896,17 +944,23 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onPriorityChange={handlePriorityChange}
                 onTreatmentChange={handleTreatmentChange}
                 onImplementationClick={handleImplementationClick}
+                attackPathRisks={attackPathActiveRisks}
+                attackPathThreats={project.perAttackPathThreats ?? []}
               />
-              {wontRisks.length > 0 && showWontTable && (
-                <Box sx={{ mt: 2 }}>
-                  <WontRiskTable
-                    risks={wontRisks}
-                    threats={currentThreats}
-                    configuration={riskData.configuration}
-                    onEdit={handleEditRisk}
-                  />
-                </Box>
-              )}
+              {(wontRisks.length > 0 || attackPathWontRisks.length > 0) &&
+                showWontTable && (
+                  <Box sx={{ mt: 2 }}>
+                    <WontRiskTable
+                      risks={[...wontRisks, ...attackPathWontRisks]}
+                      threats={[
+                        ...currentThreats,
+                        ...(project.perAttackPathThreats ?? []),
+                      ]}
+                      configuration={riskData.configuration}
+                      onEdit={handleEditRisk}
+                    />
+                  </Box>
+                )}
             </>
           )}
         </Box>
@@ -1015,6 +1069,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Dialog>
     </Box>
   );
-}
+};
 
 export default RisksTab;

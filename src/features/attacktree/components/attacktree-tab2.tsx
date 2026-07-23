@@ -62,6 +62,10 @@ import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeCreateDialog } from "./attacktree-create-dialog";
 import { AttackTreeConfigDialog } from "./attacktree-config-dialog";
 import { AttackTreeTableView } from "./attacktree-tableview";
+import { AttackTreeThreatTable } from "./attacktree-threat-table";
+import { generateThreatsFromAttackTree } from "../services/attacktree-threat-generator";
+import { applyAssessmentsToThreats } from "../services/attacktree-threat-sync";
+import type { AttackPathAssessment } from "../models/attacktree-types";
 import { DFDPreviewPanel, ConfirmDialog } from "shared";
 import { useSplitViewResize, MIN_PANEL_HEIGHT } from "shared";
 
@@ -177,6 +181,12 @@ interface AttackTreeEditorViewProps {
   handleDslChange: (dsl: string) => void;
   toggleEditorCollapsed: () => void;
   mitigationLookup: Map<string, MitigationReference>;
+  /**
+   * 5a workflow: persist the analyst's confirm/dismiss/uncertain decisions on
+   * the emitted attack-path threats. The parent writes them onto the tree via
+   * updateTree, which reaches disk through the existing auto-save path.
+   */
+  onAssessmentsChange: (next: AttackPathAssessment[]) => void;
 }
 
 const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
@@ -188,6 +198,7 @@ const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
     handleDslChange,
     toggleEditorCollapsed,
     mitigationLookup,
+    onAssessmentsChange,
   }) => {
     // Memoize validation errors to prevent new array on every render
     const validationErrors = React.useMemo(
@@ -195,45 +206,105 @@ const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
       [selectedTree.validation?.errors],
     );
 
+    // Emitted threats are DERIVED, never persisted: the generator is
+    // deterministic (same tree → same threats, same ids), so we regenerate and
+    // lay the stored decisions over them. Only the decision is state.
+    const emittedThreats = React.useMemo(() => {
+      if (selectedTree.anchor.type !== "asset") return [];
+      const { threats } = generateThreatsFromAttackTree(selectedTree);
+      return applyAssessmentsToThreats(
+        selectedTree,
+        threats,
+        selectedTree.pathAssessments ?? [],
+      );
+    }, [
+      selectedTree.id,
+      selectedTree.anchor.type,
+      selectedTree.pathAnalysis,
+      selectedTree.pathAssessments,
+    ]);
+
+    const showThreatTable = selectedTree.anchor.type === "asset";
+
     return (
-      <Box sx={{ display: "flex", height: "100%", overflow: "hidden" }}>
-        {/* Editor Pane */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
         <Box
           sx={{
-            width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
-            minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
-            height: "100%",
-            transition: "width 0.2s",
-            borderRight: "1px solid",
-            borderColor: "divider",
+            display: "flex",
+            flexGrow: 1,
+            minHeight: 0,
+            overflow: "hidden",
           }}
         >
-          <AttackTreeEditor
-            dsl={localDsl}
-            configuration={selectedTree.configuration}
-            validation={validationErrors}
-            collapsed={editorCollapsed}
-            onDslChange={handleDslChange}
-            onToggleCollapse={toggleEditorCollapsed}
-          />
+          {/* Editor Pane */}
+          <Box
+            sx={{
+              width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
+              minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
+              height: "100%",
+              transition: "width 0.2s",
+              borderRight: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <AttackTreeEditor
+              dsl={localDsl}
+              configuration={selectedTree.configuration}
+              validation={validationErrors}
+              collapsed={editorCollapsed}
+              onDslChange={handleDslChange}
+              onToggleCollapse={toggleEditorCollapsed}
+            />
+          </Box>
+
+          {/* Preview Pane */}
+          <Box sx={{ flexGrow: 1, height: "100%", overflow: "hidden" }}>
+            <AttackTreePreview
+              ast={selectedTree.ast}
+              pathAnalysis={selectedTree.pathAnalysis}
+              evaluationMethod={selectedTree.configuration.evaluationMethod}
+              highlightCriticalPath={
+                selectedTree.configuration.highlightCriticalPath
+              }
+              mitigationLookup={mitigationLookup}
+              onNodeSelect={() => {}}
+            />
+          </Box>
         </Box>
 
-        {/* Preview Pane */}
-        <Box sx={{ flexGrow: 1, height: "100%", overflow: "hidden" }}>
-          <AttackTreePreview
-            ast={selectedTree.ast}
-            pathAnalysis={selectedTree.pathAnalysis}
-            evaluationMethod={selectedTree.configuration.evaluationMethod}
-            highlightCriticalPath={
-              selectedTree.configuration.highlightCriticalPath
-            }
-            mitigationLookup={mitigationLookup}
-            onNodeSelect={() => {}}
-          />
-        </Box>
+        {/* Attack-path threat relevance (5a) — asset-anchored trees only.
+            This is the gate between a rated path and a risk: collectAllThreats
+            filters out unrated / not_relevant, so without a decision here the
+            path never reaches the Risk tab. */}
+        {showThreatTable && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              maxHeight: "40%",
+              overflow: "auto",
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <AttackTreeThreatTable
+              treeId={selectedTree.id}
+              threats={emittedThreats}
+              assessments={selectedTree.pathAssessments ?? []}
+              onAssessmentsChange={onAssessmentsChange}
+            />
+          </Box>
+        )}
       </Box>
     );
   },
+
   // Custom comparison: only re-render if critical props change
   (prevProps, nextProps) => {
     // Re-render if tree ID changes (different tree selected)
@@ -273,6 +344,16 @@ const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
     if (
       prevProps.selectedTree.pathAnalysis !==
       nextProps.selectedTree.pathAnalysis
+    ) {
+      return false;
+    }
+
+    // Re-render when a relevance decision was recorded. Without this the click
+    // would persist but the toggle group would stay on its old value — the
+    // same stale-render trap the validation panel fell into.
+    if (
+      prevProps.selectedTree.pathAssessments !==
+      nextProps.selectedTree.pathAssessments
     ) {
       return false;
     }
@@ -491,6 +572,21 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   const handleImport = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+  /**
+   * Persist a relevance decision from the attack-path threat table.
+   *
+   * The decision itself is the only state — the threats are re-derived from the
+   * tree (see applyAssessmentsToThreats). Writing through updateTree keeps this
+   * on the same auto-save path as every other tree edit.
+   */
+  const handleAssessmentsChange = useCallback(
+    (next: AttackPathAssessment[]) => {
+      if (!selectedTree) return;
+      updateTree({ ...selectedTree, pathAssessments: next });
+    },
+    [selectedTree, updateTree],
+  );
 
   const handleFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -821,6 +917,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             handleDslChange={handleDslChange}
             toggleEditorCollapsed={toggleEditorCollapsed}
             mitigationLookup={mitigationLookup}
+            onAssessmentsChange={handleAssessmentsChange}
           />
         )}
       </Box>
@@ -892,6 +989,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       )}
     </Box>
   );
-}
+};;;;;
 
 export default AttackTreeTab;

@@ -199,51 +199,99 @@ const IMPACT_FACTOR_IDS = [
 ] as const;
 
 /**
- * Auto-enables impact factors whose matching Asset Tab criterion has a rated
- * value > 0 on at least one linked asset across the whole project.
+ * The impact criteria the project actually uses, derived from the Asset Tab.
  *
- * Rules (mirror safety behaviour):
- *   - Only enables, never disables — analyst controls disabling manually.
- *   - Only touches factors with autoEnabled !== false (i.e. not manually disabled).
- *   - Sets autoEnabled: true so the factor is recognisable as auto-enabled.
+ * A criterion counts as configured when an impactRatings ENTRY for it exists on
+ * any asset — regardless of its value. `null` (not yet rated) and `"na"` count
+ * too: the analyst configured the dimension, they just haven't filled it in for
+ * that asset. Requiring value > 0 here was the original bug (it hid every impact
+ * factor until someone had rated an asset).
+ */
+function collectConfiguredImpactCriteria(
+  assetDataRef?: AssetDataReference,
+): Set<string> {
+  const configured = new Set<string>();
+  for (const asset of assetDataRef?.assets ?? []) {
+    for (const rating of asset.impactRatings ?? []) {
+      configured.add(rating.criterionId);
+    }
+  }
+  return configured;
+}
+
+/**
+ * Aligns the enabled impact factors with the criteria configured in the Asset
+ * Tab, so every risk in the project is assessed over the SAME impact dimensions.
  *
- * Returns the updated activeFactors array and a count of newly enabled factors.
+ * Why project-wide rather than per risk: calculatedImpact is a weighted mean
+ * over the rated factors. If one risk averaged five dimensions and another two,
+ * their impact values would no longer be comparable in the register, and the
+ * factor set would silently change under an existing assessment whenever an
+ * asset link was added or removed. So the SET comes from the project; only the
+ * VALUES differ — prefilled from the asset where a link exists (see
+ * applyAssetCriteriaToFactorRatings), left empty for the analyst otherwise.
+ *
+ * Rules:
+ *   - Configured criterion  → enable (autoEnabled: true).
+ *   - Unconfigured criterion → disable again IF it was auto-enabled. A factor
+ *     the analyst enabled by hand (autoEnabled: false) is left alone.
+ *   - A factor the analyst explicitly disabled stays disabled.
+ *   - No configured criteria at all (no assets yet) → leave activeFactors
+ *     untouched. A TARA without assets is an unfinished project, not a
+ *     supported mode: impact belongs to a damage scenario (asset × security
+ *     goal), so there is nothing to derive from and nothing worth inventing.
+ *
+ * Safety is intentionally not handled here — see updateSafetyFactorAutoEnable.
  */
 export function updateImpactFactorsAutoEnable(
   activeFactors: ActiveFactor[],
-  // Kept in the signature for call-site compatibility and possible future
-  // asset-driven behaviour; impact factors now enable unconditionally, so the
-  // asset data is not read here.
-  _assetDataRef?: AssetDataReference,
+  assetDataRef?: AssetDataReference,
 ): {
   activeFactors: ActiveFactor[];
   autoEnabledCount: number;
+  autoDisabledCount: number;
 } {
+  const configured = collectConfiguredImpactCriteria(assetDataRef);
+
+  // Nothing configured yet → don't touch anything. Enabling a default set here
+  // would put dimensions in front of the analyst that nobody chose.
+  if (configured.size === 0) {
+    return { activeFactors, autoEnabledCount: 0, autoDisabledCount: 0 };
+  }
+
   let autoEnabledCount = 0;
+  let autoDisabledCount = 0;
+
   const updated = activeFactors.map((factor) => {
     // Only process known impact factors (not safety, not likelihood factors)
     if (!(IMPACT_FACTOR_IDS as readonly string[]).includes(factor.factorId)) {
       return factor;
     }
-    // Never re-enable a factor the analyst explicitly disabled
-    if (factor.enabled === false && factor.autoEnabled === false) {
-      return factor;
+
+    const isConfigured = configured.has(factor.factorId);
+
+    if (isConfigured) {
+      // Never re-enable a factor the analyst explicitly disabled
+      if (factor.enabled === false && factor.autoEnabled === false) {
+        return factor;
+      }
+      if (factor.enabled) {
+        return factor;
+      }
+      autoEnabledCount++;
+      return { ...factor, enabled: true, autoEnabled: true };
     }
-    // Already enabled — nothing to do
-    if (factor.enabled) {
-      return factor;
+
+    // Not configured in the Asset Tab (any more). Withdraw only what WE
+    // enabled; a factor the analyst turned on by hand is theirs to keep.
+    if (factor.enabled && factor.autoEnabled === true) {
+      autoDisabledCount++;
+      return { ...factor, enabled: false, autoEnabled: false };
     }
-    // Impact factors are ALWAYS enabled — impact is an intrinsic property of a
-    // risk, not something that exists only when an asset is linked. A threat
-    // with no asset link still has impact factors; they simply stay unrated
-    // (value 0) until the analyst fills them in. (Previously these were enabled
-    // only when a linked asset carried a rated criterion > 0, which hid the
-    // impact factors entirely in the risk dialog for asset-less threats.)
-    autoEnabledCount++;
-    return { ...factor, enabled: true, autoEnabled: true };
+    return factor;
   });
 
-  return { activeFactors: updated, autoEnabledCount };
+  return { activeFactors: updated, autoEnabledCount, autoDisabledCount };
 }
 
 /**
@@ -335,11 +383,13 @@ export function checkRiskSyncStatus(
 
   // Impact factor auto-enable check — used only for needsSync signal here,
   // actual mutation happens in syncRisksFromThreats.
-  const { autoEnabledCount: impactAutoEnabledCount } =
-    updateImpactFactorsAutoEnable(
-      riskData.configuration.activeFactors,
-      assetDataRef,
-    );
+  const {
+    autoEnabledCount: impactAutoEnabledCount,
+    autoDisabledCount: impactAutoDisabledCount,
+  } = updateImpactFactorsAutoEnable(
+    riskData.configuration.activeFactors,
+    assetDataRef,
+  );
 
   return {
     newThreats,
@@ -351,7 +401,8 @@ export function checkRiskSyncStatus(
       newThreats > 0 ||
       orphanedRisks > 0 ||
       changedDescriptions > 0 ||
-      impactAutoEnabledCount > 0,
+      impactAutoEnabledCount > 0 ||
+      impactAutoDisabledCount > 0,
     safetyAutoEnabled,
     safetySourceRemoved,
   };
@@ -441,12 +492,21 @@ export function syncRisksFromThreats(
   // ── Impact factors auto-enable ────────────────────────────────────────────
   // Enables any impact factor whose criterion has a rated value > 0 in the
   // Asset Tab. Runs after safety so safety is already resolved in the array.
-  const { activeFactors: updatedActiveFactors, autoEnabledCount } =
-    updateImpactFactorsAutoEnable(afterSafetyFactors, assetDataRef);
+  const {
+    activeFactors: updatedActiveFactors,
+    autoEnabledCount,
+    autoDisabledCount,
+  } = updateImpactFactorsAutoEnable(afterSafetyFactors, assetDataRef);
 
   if (autoEnabledCount > 0) {
     warnings.push(
-      `${autoEnabledCount} impact factor(s) auto-enabled — rated asset impact criteria detected.`,
+      `${autoEnabledCount} impact factor(s) enabled — configured in the Asset Tab.`,
+    );
+  }
+
+  if (autoDisabledCount > 0) {
+    warnings.push(
+      `${autoDisabledCount} impact factor(s) disabled — no longer configured in the Asset Tab.`,
     );
   }
 
