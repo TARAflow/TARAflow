@@ -611,11 +611,13 @@ export function syncRisksFromThreats(
 // ==================== ATTACK-TREE SYNC (5b-2) ====================
 //
 // Runs AFTER syncRisksFromThreats, additively, on the resulting RiskData. This
-// is the SOLE owner of the attack_tree_likelihood factor: it sets it when a tree
-// feeds a risk and clears it when none does (or in advisory mode). The threat
-// sync never touches it (reconcileFactorRatings passes source==="attack-tree"
-// ratings through untouched), so the two syncs stay independent — threats change
-// the STRIDE factors, trees change the tree factor.
+// is the SOLE owner of the attack_tree_likelihood factor AND of the
+// attackTreeAssessment provenance field: it sets/clears both when a tree
+// feeds a risk (or stops feeding it), regardless of contribution mode — the
+// factor only in "factor" mode, the provenance in both. The threat sync never
+// touches either (reconcileFactorRatings passes source==="attack-tree"
+// ratings through untouched), so the two syncs stay independent — threats
+// change the STRIDE factors, trees change the tree factor + provenance.
 //
 // The tree contributes to BEFORE-mitigation likelihood only; mitigatedFactorRatings
 // and the after value stay the analyst's (5b design).
@@ -640,11 +642,26 @@ export function syncRisksFromAttackTrees(
       contribution,
     );
 
-    // No change to this risk's ratings → leave it exactly as is (keeps object
+    // Provenance is persisted in BOTH modes — even "advisory", where the
+    // factor itself is never written. This is the only place that sets it.
+    const newAssessment = ref
+      ? {
+          treeId: ref.treeId,
+          pathKey: ref.pathKey,
+          likelihoodComponent: ref.likelihoodComponent,
+          strideCategory: ref.strideCategory,
+        }
+      : undefined;
+
+    const ratingsChanged =
+      JSON.stringify(newRatings) !== JSON.stringify(risk.factorRatings);
+    const assessmentChanged =
+      JSON.stringify(newAssessment) !==
+      JSON.stringify(risk.attackTreeAssessment);
+
+    // No change to this risk at all → leave it exactly as is (keeps object
     // identity stable, so the register doesn't churn on unrelated syncs).
-    if (
-      JSON.stringify(newRatings) === JSON.stringify(risk.factorRatings)
-    ) {
+    if (!ratingsChanged && !assessmentChanged) {
       return risk;
     }
 
@@ -653,11 +670,14 @@ export function syncRisksFromAttackTrees(
     // Recompute the before-mitigation values — the tree factor is a likelihood
     // factor, so likelihood and risk-before change; impact does not (the tree
     // never contributes impact), and the after value is analyst-owned.
+    // (Recomputing even when only the assessment changed, i.e. ratings are
+    // identical, is a harmless no-op — same ratings in, same values out.)
     const before = calculateRiskValues(newRatings, riskData.configuration);
 
     return {
       ...risk,
       factorRatings: newRatings,
+      attackTreeAssessment: newAssessment,
       calculatedImpact: before.impact,
       calculatedLikelihood: before.likelihood,
       calculatedRiskBeforeMitigation: before.risk,

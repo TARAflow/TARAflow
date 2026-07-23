@@ -5,15 +5,32 @@
 // Phase 3: dfd + assetDataRef passed through to sync service for
 //   - Safety factor auto-enable / pendingSafetySourceRemoval
 //   - Asset criteria prefill on new and updated risks
+//
+// Phase 5b (end-to-end wiring): after syncRisksFromThreats, additively runs
+// syncRisksFromAttackTrees on the result. Two independent passes by design —
+// see risk-sync-service.ts "ATTACK-TREE SYNC (5b-2)": threats change the
+// STRIDE/OWASP factors, trees change only the attack_tree_likelihood factor.
+// Chaining them here (rather than inside syncRisksFromThreats) is what keeps
+// reconcileFactorRatings' source==="attack-tree" exemption meaningful.
+//
+// treeLikelihoodContribution (5b Punkt 3) is read from riskData.configuration —
+// a real project-wide setting now (RiskConfigDialog), defaulting to "factor"
+// for older projects that predate the setting.
 
 import { useState, useCallback, useMemo } from "react";
 import { RiskData } from "../models/risk-assessment-types";
 import {
   checkRiskSyncStatus,
   syncRisksFromThreats,
+  syncRisksFromAttackTrees,
   RiskSyncStatus,
 } from "../services/risk-sync-service";
-import type { AssetDataReference, DFDReference, ThreatReference } from "shared";
+import type {
+  AssetDataReference,
+  AttackTreeLikelihoodReference,
+  DFDReference,
+  ThreatReference,
+} from "shared";
 
 interface UseRiskSyncOptions {
   allThreats: ThreatReference[];
@@ -22,6 +39,12 @@ interface UseRiskSyncOptions {
   dfd?: DFDReference | null;
   /** Asset data — used for Safety detection + per-criterion impact prefill */
   assetDataRef?: AssetDataReference;
+  /**
+   * Attack-tree likelihood contributions (5b-2). Optional: absent on projects
+   * without attack trees, defaulted to [] so syncRisksFromAttackTrees is a
+   * pure no-op in that case (clears any stale attack-tree ratings, adds none).
+   */
+  attackTreeLikelihoods?: AttackTreeLikelihoodReference[];
   onUpdate: (data: RiskData) => void;
 }
 
@@ -38,6 +61,7 @@ export function useRiskSync({
   riskData,
   dfd,
   assetDataRef,
+  attackTreeLikelihoods,
   onUpdate,
 }: UseRiskSyncOptions): UseRiskSyncResult {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -58,18 +82,37 @@ export function useRiskSync({
 
     setIsSyncing(true);
     try {
-      const result = syncRisksFromThreats(
+      const threatSyncResult = syncRisksFromThreats(
         riskData,
         allThreats,
         dfd,
         assetDataRef,
       );
-      onUpdate(result.riskData);
-      setSyncWarnings(result.warnings);
+
+      // Additive second pass: sets/clears the attack_tree_likelihood factor
+      // on the result of the threat sync. No-op when no trees feed any risk.
+      // contribution now comes from the project-wide setting (5b Punkt 3);
+      // undefined (older projects, no explicit choice yet) falls back to the
+      // design-doc default "factor".
+      const finalRiskData = syncRisksFromAttackTrees(
+        threatSyncResult.riskData,
+        attackTreeLikelihoods ?? [],
+        riskData.configuration.treeLikelihoodContribution ?? "factor",
+      );
+
+      onUpdate(finalRiskData);
+      setSyncWarnings(threatSyncResult.warnings);
     } finally {
       setIsSyncing(false);
     }
-  }, [allThreats, riskData, dfd, assetDataRef, onUpdate]);
+  }, [
+    allThreats,
+    riskData,
+    dfd,
+    assetDataRef,
+    attackTreeLikelihoods,
+    onUpdate,
+  ]);
 
   return {
     isSyncing,

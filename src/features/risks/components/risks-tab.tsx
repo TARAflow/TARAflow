@@ -209,6 +209,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     // Pass DFD + asset data so sync service can apply safety auto-enable + prefill
     dfd: project.dfd ?? null,
     assetDataRef: project.assetDataRef,
+    // 5b: attack-tree likelihood contributions, built in workspace-layout via
+    // buildAttackTreeLikelihoodReferences — feeds the chained
+    // syncRisksFromAttackTrees pass inside useRiskSync.
+    attackTreeLikelihoods: project.attackTreeLikelihoods,
     onUpdate: (updatedData) => {
       setRiskData(updatedData);
       setValidation(riskService.validate(updatedData));

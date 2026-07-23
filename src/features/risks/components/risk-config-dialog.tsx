@@ -135,6 +135,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   const [useAssetImpact, setUseAssetImpact] = useState(
     configuration.useAssetImpact ?? true,
   );
+  const [treeLikelihoodContribution, setTreeLikelihoodContribution] = useState<
+    "factor" | "advisory"
+  >(configuration.treeLikelihoodContribution ?? "factor");
   const [assetImpactMapping, setAssetImpactMapping] =
     useState<AssetImpactMapping>(
       configuration.assetImpactMapping ??
@@ -250,6 +253,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       useAssetImpact,
       assetImpactMapping,
       severityThresholds,
+      treeLikelihoodContribution,
     });
   };
 
@@ -961,6 +965,80 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   </Box>
                 }
               />
+            </FormControl>
+
+            <Divider />
+
+            {/* Attack Tree Likelihood Contribution (5b) */}
+            <FormControl component="fieldset">
+              <FormLabel sx={{ mb: 1 }}>
+                {t("tabs.risks.config.treeLikelihoodContribution", {
+                  defaultValue: "Attack Tree Likelihood Contribution",
+                })}
+              </FormLabel>
+              <RadioGroup
+                value={treeLikelihoodContribution}
+                onChange={(e) =>
+                  setTreeLikelihoodContribution(
+                    e.target.value as "factor" | "advisory",
+                  )
+                }
+              >
+                <FormControlLabel
+                  value="factor"
+                  control={<Radio />}
+                  label={
+                    <Box>
+                      <Typography>
+                        {t("tabs.risks.config.treeContributionFactor", {
+                          defaultValue:
+                            "Factor — averages in with other likelihood factors",
+                        })}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {t("tabs.risks.config.treeContributionFactorDesc", {
+                          defaultValue:
+                            "The tree's likelihood is written as the Attack Tree Likelihood " +
+                            "factor and averages in like any other likelihood factor. It " +
+                            "supplements the OWASP factors, never overrides them.",
+                        })}
+                      </Typography>
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="advisory"
+                  control={<Radio />}
+                  label={
+                    <Box>
+                      <Typography>
+                        {t("tabs.risks.config.treeContributionAdvisory", {
+                          defaultValue: "Advisory — shown as a hint only",
+                        })}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {t("tabs.risks.config.treeContributionAdvisoryDesc", {
+                          defaultValue:
+                            "The tree's likelihood is shown for reference but not written as " +
+                            "an active factor; the analyst adjusts the OWASP factors themselves.",
+                        })}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </RadioGroup>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 1, display: "block" }}
+              >
+                {t("tabs.risks.config.treeContributionHint", {
+                  defaultValue:
+                    "Applies only when a threat-anchored tree refines a risk that also has " +
+                    "other likelihood factors. Asset-anchored and ISO feasibility-only risks " +
+                    "are unaffected — the tree drives the number regardless.",
+                })}
+              </Typography>
             </FormControl>
 
             <Divider />

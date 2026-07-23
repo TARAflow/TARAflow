@@ -69,6 +69,22 @@ export interface Risk {
   riskBeforeRationale: string;
   /** Rationale for the residual assessment (why L/I changed after mitigation). */
   riskAfterRationale: string;
+  /**
+   * Provenance — records WHICH attack-tree branch informed this risk's
+   * before-mitigation likelihood, for the audit trail and AT-Branch
+   * traceability. Persisted in BOTH treeLikelihoodContribution modes: in
+   * "factor" mode the active attack_tree_likelihood entry in factorRatings[]
+   * does the actual work; in "advisory" mode THIS is all there is — shown to
+   * the analyst, not applied. Never itself a discriminator — behaviour comes
+   * from whether the factor was written, which the project setting decides.
+   * Sole owner: syncRisksFromAttackTrees (risk-sync-service.ts).
+   */
+  attackTreeAssessment?: {
+    treeId: string;
+    pathKey: string;
+    likelihoodComponent: number;
+    strideCategory: StrideCategory;
+  };
   created: string;
   lastModified: string;
 }

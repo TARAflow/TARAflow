@@ -125,3 +125,101 @@ describe("syncRisksFromAttackTrees", () => {
     expect(result).toBe(data);
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// attackTreeAssessment provenance (Punkt 4)
+//
+// syncRisksFromAttackTrees is the SOLE owner of BOTH the tree factor AND the
+// attackTreeAssessment provenance field. Provenance is persisted in BOTH
+// contribution modes — including "advisory", where the factor itself is
+// never written. This is what makes advisory mode useful at all: without the
+// provenance, "advisory" would show the analyst nothing.
+// ──────────────────────────────────────────────────────────────────────────
+
+describe("syncRisksFromAttackTrees — attackTreeAssessment provenance", () => {
+  it("records attackTreeAssessment when a reference matches (factor mode)", () => {
+    const result = syncRisksFromAttackTrees(
+      riskDataWithRisk("T-1"),
+      [treeLik("T-1", 4)],
+      "factor",
+    );
+    const risk = result.risks.find((r) => r.threatId === "T-1")!;
+    expect(risk.attackTreeAssessment).toEqual({
+      treeId: "at-1",
+      pathKey: "ROOT>leaf",
+      likelihoodComponent: 0.6,
+      strideCategory: "T",
+    });
+  });
+
+  it("records attackTreeAssessment in advisory mode too, despite writing no factor", () => {
+    const result = syncRisksFromAttackTrees(
+      riskDataWithRisk("T-1"),
+      [treeLik("T-1")],
+      "advisory",
+    );
+    const risk = result.risks[0];
+    expect(treeFactor(risk)).toBeUndefined();
+    expect(risk.attackTreeAssessment).toEqual({
+      treeId: "at-1",
+      pathKey: "ROOT>leaf",
+      likelihoodComponent: 0.6,
+      strideCategory: "T",
+    });
+  });
+
+  it("clears attackTreeAssessment when the reference no longer matches", () => {
+    const withAssessment = syncRisksFromAttackTrees(
+      riskDataWithRisk("T-1"),
+      [treeLik("T-1")],
+      "factor",
+    );
+    expect(withAssessment.risks[0].attackTreeAssessment).toBeDefined();
+
+    const cleared = syncRisksFromAttackTrees(withAssessment, [], "factor");
+    expect(cleared.risks[0].attackTreeAssessment).toBeUndefined();
+  });
+
+  it("stable identity when re-run with the same matching reference (factor mode)", () => {
+    const first = syncRisksFromAttackTrees(
+      riskDataWithRisk("T-1"),
+      [treeLik("T-1", 4)],
+      "factor",
+    );
+    const second = syncRisksFromAttackTrees(
+      first,
+      [treeLik("T-1", 4)],
+      "factor",
+    );
+    // Same ratings AND same assessment on the second pass → no change at all.
+    expect(second).toBe(first);
+    expect(second.risks[0]).toBe(first.risks[0]);
+  });
+
+  it("an assessment-only change (advisory, no rating change) still counts as changed", () => {
+    const first = syncRisksFromAttackTrees(
+      riskDataWithRisk("T-1"),
+      [treeLik("T-1")],
+      "advisory",
+    );
+    // A different tree now feeds the same risk; advisory never writes a
+    // factor either time, so factorRatings is identical before and after —
+    // only attackTreeAssessment differs. That alone must still trigger a
+    // new risk object, or the provenance update would be silently lost.
+    const second = syncRisksFromAttackTrees(
+      first,
+      [{ ...treeLik("T-1"), treeId: "at-2", pathKey: "ROOT>other" }],
+      "advisory",
+    );
+
+    expect(treeFactor(second.risks[0])).toBeUndefined(); // ratings unaffected
+    expect(second).not.toBe(first);
+    expect(second.risks[0]).not.toBe(first.risks[0]);
+    expect(second.risks[0].attackTreeAssessment).toEqual({
+      treeId: "at-2",
+      pathKey: "ROOT>other",
+      likelihoodComponent: 0.6,
+      strideCategory: "T",
+    });
+  });
+});
