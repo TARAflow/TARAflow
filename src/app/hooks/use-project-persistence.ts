@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useFileSystemAccess } from './use-file-system-access';
 import type { Project } from '../models/project-types';
+import { serialiseProject } from "../services/prepare-for-disk";
 
 /**
  * Unified Project Persistence Hook
@@ -85,7 +86,7 @@ export const useProjectPersistence = () => {
           const filePath = result.data;
           const writeResult = await (window as any).electron.file.writeProject(
             filePath,
-            JSON.stringify(project, null, 2),
+            serialiseProject(project),
           );
 
           if (writeResult.success) {
@@ -108,7 +109,7 @@ export const useProjectPersistence = () => {
         const handle = pickResult.data;
         const writeResult = await fileSystemAccess.writeFile(
           handle,
-          JSON.stringify(project, null, 2),
+          serialiseProject(project),
         );
 
         if (writeResult.success) {
@@ -144,17 +145,13 @@ export const useProjectPersistence = () => {
           return { success: true };
         }
 
-        // Strip the computed DFD graph before writing — it is derived data
-        // and would inflate the file size unnecessarily.
-        const projectToWrite = {
-          ...project,
-          dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,
-        };
-
+        // serialiseProject strips the derived DFD graph AND the runtime-only
+        // fields (filePath, hasUnsavedChanges). This used to strip only the
+        // graph, which is how the author's absolute filePath reached disk.
         try {
           const result = await (window as any).electron.file.writeProject(
             targetPath,
-            JSON.stringify(projectToWrite, null, 2),
+            serialiseProject(project),
           );
           return result;
         } catch (error: any) {
@@ -170,7 +167,7 @@ export const useProjectPersistence = () => {
 
         const result = await fileSystemAccess.writeFile(
           currentFileHandle,
-          JSON.stringify(project, null, 2),
+          serialiseProject(project),
         );
         return result;
       }
@@ -229,7 +226,7 @@ export const useProjectPersistence = () => {
   const downloadProject = useCallback(
     (project: Project, filename?: string): PersistenceResult => {
       const defaultFilename = `${project.info.name.replace(/\s+/g, "_")}.tara.json`;
-      const blob = new Blob([JSON.stringify(project, null, 2)], {
+      const blob = new Blob([serialiseProject(project)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);

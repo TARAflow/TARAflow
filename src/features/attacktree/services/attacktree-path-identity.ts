@@ -98,6 +98,33 @@ export function computePathKeyFromPath(path: AttackPath): string {
   return computePathKey(path.path);
 }
 
+// ==================== NODE ID ====================
+
+/**
+ * Stable identity for a NODE, derived exactly like a path key: from the
+ * ROOT→node name chain.
+ *
+ * Node ids used to be `node-<Date.now()>-<random>`, minted at parse time. The
+ * parser rebuilds the whole AST on every keystroke, so every node got a fresh
+ * id on every edit — and since parentId, PathAnalysis.nodeIds and criticalPath
+ * all reference them, changing a single leaf value rewrote the entire AST and
+ * path block. A one-character DSL edit produced a several-hundred-line diff,
+ * which makes a project file unreviewable under version control — poor for a
+ * tool whose output is meant to be auditable.
+ *
+ * Deriving them from content instead makes parsing deterministic: the same DSL
+ * yields byte-identical output, in the renderer and in the Node CLI reporter
+ * alike.
+ *
+ * @param occurrence Disambiguates identically-named siblings under the same
+ *                   parent (same name chain → same hash). Nothing else can
+ *                   collide, since the chain already encodes the full path.
+ */
+export function computeNodeId(nameChain: string[], occurrence = 0): string {
+  const key = computePathKey(nameChain);
+  return occurrence === 0 ? `node-${key}` : `node-${key}-${occurrence + 1}`;
+}
+
 /**
  * Threat id for a path emitted into the risk register (Phase 4 consumes this).
  * Format: AT-<treeId>-<pathKey>
@@ -236,6 +263,7 @@ export function diffPathAnalysis(
 export const attackTreePathIdentity = {
   computePathKey,
   computePathKeyFromPath,
+  computeNodeId,
   buildAttackPathThreatId,
   findPathKeyCollisions,
   diffPathAnalysis,

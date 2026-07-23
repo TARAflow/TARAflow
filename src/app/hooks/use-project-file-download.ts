@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { Project } from '../models/project-types';
+import { serialiseProject } from "../services/prepare-for-disk";
 
 /**
  * Hook for downloading project files as .tara.json
@@ -17,10 +18,9 @@ export const useProjectFileDownload = () => {
 
     // Browser mode: Trigger download
     const defaultFilename = `${project.info.name.replace(/\s+/g, '_')}.tara.json`;
-    const blob = new Blob(
-      [JSON.stringify(project, null, 2)], 
-      { type: 'application/json' }
-    );
+    const blob = new Blob([serialiseProject(project)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

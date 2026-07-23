@@ -5,7 +5,7 @@
 //   - Load a project from disk (Electron IPC or File System Access API)
 //   - Save a project to disk
 //   - Create an empty project object (factory, no I/O)
-//   - Strip derived data before writing (DFD graph)
+//   - Strip derived data before writing (delegated to prepare-for-disk)
 //
 // What does NOT belong here:
 //   - Which files exist (that is ProjectRegistry's job)
@@ -20,6 +20,7 @@
 
 import type { Project } from "../models/project-types";
 import type { StorageResult } from "./storage-service";
+import { prepareForDisk } from "./prepare-for-disk";
 import { parseAndRepairWithMetadata } from "./migration-service";
 import { projectRegistry } from "./project-registry";
 import {
@@ -36,23 +37,6 @@ function isElectron(): boolean {
     typeof window !== "undefined" &&
     typeof (window as any).electron?.file !== "undefined"
   );
-}
-
-/**
- * Strip derived/computed fields before writing to disk.
- * - DFD graph: large computed object, rebuilt on load
- * - hasUnsavedChanges: UI-only flag, meaningless on disk
- */
-function prepareForDisk(
-  project: Project,
-): Omit<Project, "hasUnsavedChanges" | "filePath"> {
-  // Destructure out UI-only / runtime-only fields so they are not written to disk.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { hasUnsavedChanges, filePath, ...rest } = project;
-  return {
-    ...rest,
-    dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,
-  };
 }
 
 // ==================== REPOSITORY CLASS ====================

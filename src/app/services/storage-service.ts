@@ -26,6 +26,7 @@ import { migrateProjectTags } from "shared";
 import type { ProjectSettingsData } from "features/overview";
 import type { Project } from "../models/project-types";
 import { parseAndRepair } from "./migration-service";
+import { prepareForDisk, serialiseProject } from "./prepare-for-disk";
 import { migrateRiskData } from "features/risks";
 
 export interface StorageResult<T> {
@@ -128,11 +129,9 @@ class StorageService {
    * In Electron mode callers should use ProjectRepository.save() instead.
    */
   async saveProject(project: Project): Promise<StorageResult<Project>> {
-    const toStore: Project = {
-      ...project,
-      dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,
-      hasUnsavedChanges: undefined as any,
-    };
+    // Same on-disk rules as the file backend — a project in localStorage is
+    // still a project someone may export or hand on.
+    const toStore = prepareForDisk(project) as Project;
     return this.set<Project>(`${PROJECT_PREFIX}${project.id}`, toStore);
   }
 
@@ -232,8 +231,9 @@ class StorageService {
    * Export a project as a downloadable JSON file (browser mode).
    */
   exportProjectAsJSON(project: Project): void {
-    const json = JSON.stringify(project, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
+    const blob = new Blob([serialiseProject(project)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const filename = `${project.info.name.replace(/[^a-z0-9]/gi, "_")}_TARA_${
       new Date().toISOString().split("T")[0]

@@ -33,6 +33,7 @@ import {
   parseBenefit,
 } from "./attacktree-feasibility-parser";
 import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
+import { computeNodeId } from "./attacktree-path-identity";
 
 // ==================== PARSER ====================
 
@@ -127,6 +128,14 @@ export function parseAttackTree(
       }
     }
 
+    // Assign content-derived ids now that the structure is known. Must run
+    // before validation and before the caller computes the path analysis, so
+    // everything downstream (parentId, PathAnalysis.nodeIds, criticalPath)
+    // references the stable ids.
+    if (rootNode) {
+      assignStableNodeIds(rootNode);
+    }
+
     // Check if we have a root
     if (!rootNode) {
       errors.push({
@@ -140,12 +149,8 @@ export function parseAttackTree(
     // Validate tree structure
     if (rootNode && errors.length === 0) {
       const structureErrors = validateTreeStructure(rootNode, method);
-      errors.push(
-        ...structureErrors.filter((e) => e.severity === "error")
-      );
-      warnings.push(
-        ...structureErrors.filter((e) => e.severity === "warning")
-      );
+      errors.push(...structureErrors.filter((e) => e.severity === "error"));
+      warnings.push(...structureErrors.filter((e) => e.severity === "warning"));
     }
 
     return {
@@ -192,6 +197,42 @@ interface LineParseResult {
  * Find Endpoint;p=0.7,i=3 [M-001]
  * Craft Payload;0.8,0.9,4 @manipulation [M-001,M-002]
  */
+/**
+ * Replace the placeholder ids with ids derived from each node's ROOT→node name
+ * chain, and re-link parentId accordingly.
+ *
+ * Runs as a post-pass because an id needs the node's ancestry, which is only
+ * known once the indentation stack has assembled the tree.
+ *
+ * Identically-named siblings under the same parent share a name chain and so
+ * would share a hash; the occurrence counter disambiguates them in document
+ * order. That is stable as long as the duplicates keep their relative order —
+ * the best available answer, since by name alone they are indistinguishable.
+ */
+function assignStableNodeIds(root: AttackTreeNode): void {
+  const occurrences = new Map<string, number>();
+
+  const walk = (
+    node: AttackTreeNode,
+    ancestorNames: string[],
+    parentId: string | undefined,
+  ): void => {
+    const chain = [...ancestorNames, node.name];
+    const base = computeNodeId(chain);
+    const seen = occurrences.get(base) ?? 0;
+    occurrences.set(base, seen + 1);
+
+    node.id = computeNodeId(chain, seen);
+    node.parentId = parentId;
+
+    for (const child of node.children) {
+      walk(child, chain, node.id);
+    }
+  };
+
+  walk(root, [], undefined);
+}
+
 function parseLine(
   line: string,
   lineNumber: number,
@@ -224,7 +265,10 @@ function parseLine(
   const [, name, ref1, ref2, remainder] = mainMatch;
 
   const node: AttackTreeNode = {
-    id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // Placeholder — replaced by assignStableNodeIds() once the tree structure
+    // is known. The final id is derived from the ROOT→node name chain, so the
+    // node's own line cannot compute it yet (it has no parent at this point).
+    id: "",
     name: name.trim(),
     type: "LEAF",
     level: 0,

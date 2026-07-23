@@ -20,6 +20,7 @@ import {
 import type { ProjectSettingsData } from "features/overview";
 import { PhaseStatus, formatExportFilename, migrateProjectTags } from "shared";
 import { parseAndRepair } from "./migration-service";
+import { serialiseProject } from "./prepare-for-disk";
 
 // ==================== HELPERS ====================
 
@@ -202,7 +203,7 @@ class ProjectService {
     }
 
     const project = result.data;
-    const blob = new Blob([JSON.stringify(project, null, 2)], {
+    const blob = new Blob([serialiseProject(project)], {
       type: "application/json",
     });
     const filename = formatExportFilename(project.info.name);
