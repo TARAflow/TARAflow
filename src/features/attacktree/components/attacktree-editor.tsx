@@ -524,7 +524,18 @@ function arePropsEqual(
     return false;
   }
 
-  // Don't re-render for validation changes (handled by linter)
+  // Re-render if validation changes — the notification panel below and the
+  // linter extension (a useMemo keyed on `validation`) both only update
+  // during a render, and validation arrives on a LATER render than the dsl
+  // change that triggered it (500ms debounced re-parse in
+  // use-attacktree-editor). Skipping it froze the panel: the dsl-driven
+  // render fired with the OLD validation, then the NEW validation arrived
+  // with dsl unchanged and was treated as "equal" — so the panel only
+  // caught up on the next keystroke.
+  if (prev.validation !== next.validation) {
+    return false;
+  }
+
   // Don't re-render for callback changes
 
   return true;
