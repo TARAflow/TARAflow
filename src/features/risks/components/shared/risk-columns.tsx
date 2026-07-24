@@ -33,7 +33,7 @@ import {
   getRiskLabel,
 } from "../../services/risk-calculation-service";
 import { resolveMitigationDrafts } from "../../../threats/services/threat-catalog-service";
-import type { StrideCategory } from "shared";
+import type { StrideCategory, DataColumn } from "shared";
 
 // ==================== COLUMN TYPE ====================
 
@@ -52,19 +52,14 @@ const IMPLEMENTATION_DISPLAY: Record<
   rejected: { label: "Rejected", color: "#ef4444", icon: "🔴" },
 };
 
-export interface RiskColumn {
-  id: string;
-  header: string;
-  width?: number;
-  minWidth?: number;
-  flex?: number;
-  align?: "left" | "center" | "right";
-  renderCell: (risk: Risk) => React.ReactNode;
-  /** When true: stops row click propagation on this cell */
-  stopRowClick?: boolean;
-  /** When set: called on cell click instead of row click handler */
-  onCellClick?: (risk: Risk) => void;
-}
+/**
+ * A risk table column.
+ *
+ * The contract itself is generic and lives in shared (DataColumn<T>) so the
+ * Attack Tree tab can define its own columns against the same table. This alias
+ * keeps every existing reference to RiskColumn working.
+ */
+export type RiskColumn = DataColumn<Risk>;
 
 // ==================== CONSTANTS ====================
 

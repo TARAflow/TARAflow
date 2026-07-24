@@ -1,17 +1,21 @@
 // ==================== ATTACK TREE TABLE VIEW ====================
-// Tabular view of attack paths with risk scores
+// Tabular view of attack paths — now on the shared DataTable, so it looks and
+// behaves like the Risk and Threat tables instead of merely resembling them.
+//
+// The bespoke <Table> that used to live here is gone; what remains is what is
+// genuinely this view's own: the filter bar, the summary chips, and the
+// filtering/sorting of paths. Column definitions live in
+// attacktree-path-columns.tsx, the table itself in shared.
+//
+// This is the deciding surface of the tab (see attacktree-ui-rework-design.md):
+// where relevance props are supplied, each path can be confirmed or dismissed
+// here. Structure and leaf ratings stay in the DSL — a leaf lies on several
+// paths, so editing a rating "on a path" has no single meaning.
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   Typography,
   TextField,
@@ -19,20 +23,21 @@ import {
   Select,
   FormControl,
   InputLabel,
-  TableSortLabel,
-  Tooltip,
-  Link,
 } from "@mui/material";
-
+import { DataTable } from "shared";
 import {
   PathAnalysis,
   AttackPath,
   EvaluationMethod,
   MitigationReference,
-  MITIGATION_VERIFICATION_DISPLAY,
+  AttackPathAssessment,
   calculateRiskLevel,
-  getRiskScoreEmoji,
 } from "../models/attacktree-types";
+import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
+import {
+  useAttackTreePathColumns,
+  getPathRowBackground,
+} from "./attacktree-path-columns";
 
 // ==================== TYPES ====================
 
@@ -41,10 +46,23 @@ interface AttackTreeTableViewProps {
   evaluationMethod: EvaluationMethod;
   /**
    * Lookup of mitigation id → reference (status/ticket/text), mirrored from
-   * the Risk tab. Optional: when absent, mitigations render as plain id chips
-   * exactly as before. Keyed by UPPERCASE id for case-insensitive matching.
+   * the Risk tab. Optional: when absent, mitigations render as plain id chips.
+   * Keyed by UPPERCASE id for case-insensitive matching.
    */
   mitigationLookup?: Map<string, MitigationReference>;
+  /**
+   * Project likelihood model. "feasibility-only" (ISO) hides the path risk
+   * score — there the number belongs to the risk, not the path.
+   */
+  likelihoodModel?: LikelihoodModel;
+
+  /**
+   * Relevance editing. Supplied together or not at all; without them the table
+   * is read-only and the relevance column does not appear.
+   */
+  treeId?: string;
+  assessments?: AttackPathAssessment[];
+  onAssessmentsChange?: (next: AttackPathAssessment[]) => void;
 }
 
 type SortField = "path" | "risk" | "mitigations";
@@ -56,93 +74,30 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   pathAnalysis,
   evaluationMethod,
   mitigationLookup,
+  likelihoodModel,
+  treeId,
+  assessments,
+  onAssessmentsChange,
 }) => {
   const { t } = useTranslation();
-
-  // Render a single mitigation as a chip, enriched with verification status
-  // (icon/color) and ticket link when the Risk tab provides them.
-  const renderMitigationChip = (mid: string): React.ReactNode => {
-    const ref = mitigationLookup?.get(mid.toUpperCase());
-    const display = ref?.status
-      ? MITIGATION_VERIFICATION_DISPLAY[ref.status]
-      : undefined;
-
-    const statusLabel = ref?.status
-      ? t(`attacktree:tabs.attacktree.mitigationStatus.${ref.status}`)
-      : t("attacktree:tabs.attacktree.mitigationStatus.notTracked");
-
-    const tooltip = (
-      <Box sx={{ whiteSpace: "pre-line" }}>
-        {ref?.description ? `${mid}: ${ref.description}\n` : `${mid}\n`}
-        {t("attacktree:tabs.attacktree.tableview.verificationLabel")}
-        {statusLabel}
-        {ref?.ticketId ? `\nTicket: ${ref.ticketId}` : ""}
-      </Box>
-    );
-
-    return (
-      <Tooltip key={mid} title={tooltip} placement="top">
-        <Chip
-          label={
-            <Box
-              component="span"
-              sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}
-            >
-              {display && <span>{display.icon}</span>}
-              <span>{mid}</span>
-              {ref?.ticketId && ref?.ticketUrl && (
-                <Link
-                  href={ref.ticketUrl}
-                  target="_blank"
-                  rel="noopener"
-                  underline="hover"
-                  onClick={(e) => e.stopPropagation()}
-                  sx={{
-                    fontFamily: "monospace",
-                    fontSize: "0.65rem",
-                    ml: 0.25,
-                  }}
-                >
-                  {ref.ticketId}
-                </Link>
-              )}
-              {ref?.ticketId && !ref?.ticketUrl && (
-                <Box
-                  component="span"
-                  sx={{
-                    fontFamily: "monospace",
-                    fontSize: "0.65rem",
-                    ml: 0.25,
-                    color: "text.secondary",
-                  }}
-                >
-                  {ref.ticketId}
-                </Box>
-              )}
-            </Box>
-          }
-          size="small"
-          variant="outlined"
-          sx={
-            display
-              ? { borderColor: display.color, color: display.color }
-              : undefined
-          }
-        />
-      </Tooltip>
-    );
-  };
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("risk");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
-  // Filter and sort paths
+  const columns = useAttackTreePathColumns({
+    evaluationMethod,
+    mitigationLookup,
+    likelihoodModel,
+    treeId,
+    assessments,
+    onAssessmentsChange,
+  });
+
   const filteredPaths = useMemo(() => {
     let filtered = [...pathAnalysis.paths];
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter((path) =>
         path.path.some((node) =>
@@ -151,21 +106,16 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
       );
     }
 
-    // Level filter
     if (filterLevel !== "all") {
-      filtered = filtered.filter((path) => {
-        const level = calculateRiskLevel(
-          path.riskScore,
-          evaluationMethod,
-        ).level;
-        return level === filterLevel;
-      });
+      filtered = filtered.filter(
+        (path) =>
+          calculateRiskLevel(path.riskScore, evaluationMethod).level ===
+          filterLevel,
+      );
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let comparison = 0;
-
       switch (sortField) {
         case "path":
           comparison = a.path.join(" > ").localeCompare(b.path.join(" > "));
@@ -177,7 +127,6 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
           comparison = a.mitigations.length - b.mitigations.length;
           break;
       }
-
       return sortOrder === "asc" ? comparison : -comparison;
     });
 
@@ -190,30 +139,6 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
     sortOrder,
     evaluationMethod,
   ]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder("desc");
-    }
-  };
-
-  const getRiskChip = (score: number) => {
-    const result = calculateRiskLevel(score, evaluationMethod);
-    return (
-      <Chip
-        label={`${result.score.toFixed(1)} ${getRiskScoreEmoji(result.level)}`}
-        size="small"
-        sx={{
-          backgroundColor: result.color,
-          color: "white",
-          fontWeight: "bold",
-        }}
-      />
-    );
-  };
 
   if (pathAnalysis.paths.length === 0) {
     return (
@@ -280,6 +205,38 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
             </MenuItem>
           </Select>
         </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>
+            {t("attacktree:tabs.attacktree.tableview.sortBy", {
+              defaultValue: "Sort by",
+            })}
+          </InputLabel>
+          <Select
+            value={`${sortField}:${sortOrder}`}
+            label={t("attacktree:tabs.attacktree.tableview.sortBy", {
+              defaultValue: "Sort by",
+            })}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split(":");
+              setSortField(field as SortField);
+              setSortOrder(order as SortOrder);
+            }}
+          >
+            <MenuItem value="risk:desc">
+              {t("attacktree:tabs.attacktree.tableview.riskScore")} ↓
+            </MenuItem>
+            <MenuItem value="risk:asc">
+              {t("attacktree:tabs.attacktree.tableview.riskScore")} ↑
+            </MenuItem>
+            <MenuItem value="path:asc">
+              {t("attacktree:tabs.attacktree.tableview.attackPath")} A–Z
+            </MenuItem>
+            <MenuItem value="mitigations:desc">
+              {t("attacktree:tabs.attacktree.tableview.mitigations")} ↓
+            </MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
       {/* Statistics */}
@@ -315,105 +272,14 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
       </Box>
 
       {/* Table */}
-      <TableContainer component={Paper} sx={{ flexGrow: 1, overflow: "auto" }}>
-        <Table stickyHeader size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <TableSortLabel
-                  active={sortField === "path"}
-                  direction={sortField === "path" ? sortOrder : "asc"}
-                  onClick={() => handleSort("path")}
-                >
-                  {t("attacktree:tabs.attacktree.tableview.attackPath")}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="center">
-                <TableSortLabel
-                  active={sortField === "risk"}
-                  direction={sortField === "risk" ? sortOrder : "asc"}
-                  onClick={() => handleSort("risk")}
-                >
-                  {t("attacktree:tabs.attacktree.tableview.riskScore")}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={sortField === "mitigations"}
-                  direction={sortField === "mitigations" ? sortOrder : "asc"}
-                  onClick={() => handleSort("mitigations")}
-                >
-                  {t("attacktree:tabs.attacktree.tableview.mitigations")}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="center">
-                {t("attacktree:tabs.attacktree.tableview.status")}
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredPaths.map((path) => (
-              <TableRow
-                key={path.id}
-                sx={{
-                  backgroundColor: path.isCritical ? "error.light" : "inherit",
-                  "&:hover": {
-                    backgroundColor: path.isCritical
-                      ? "error.main"
-                      : "action.hover",
-                  },
-                }}
-              >
-                <TableCell>
-                  <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
-                  >
-                    {path.path.map((node, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          pl: idx * 2,
-                          fontSize: "0.875rem",
-                          color: idx === 0 ? "primary.main" : "text.primary",
-                          fontWeight: idx === 0 ? "bold" : "normal",
-                        }}
-                      >
-                        {idx > 0 && "└─ "}
-                        {node}
-                      </Box>
-                    ))}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  {getRiskChip(path.riskScore)}
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {path.mitigations.length > 0 ? (
-                      path.mitigations.map((mid) => renderMitigationChip(mid))
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        {t("attacktree:tabs.attacktree.tableview.none")}
-                      </Typography>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell align="center">
-                  {path.isCritical && (
-                    <Chip
-                      label={t(
-                        "attacktree:tabs.attacktree.tableview.critical3",
-                      )}
-                      size="small"
-                      color="error"
-                    />
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+        <DataTable<AttackPath>
+          rows={filteredPaths}
+          columns={columns}
+          getRowId={(path) => path.pathKey}
+          rowBackground={getPathRowBackground}
+        />
+      </Box>
 
       {/* No Results */}
       {filteredPaths.length === 0 && (

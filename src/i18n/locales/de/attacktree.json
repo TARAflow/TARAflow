@@ -22,7 +22,19 @@
         "areYouSureYouWantToDeleteThisAtt": "Sind Sie sicher, dass Sie diesen Attack Tree löschen möchten?",
         "cancel": "Abbrechen",
         "syncFromAssets2": "Von Assets synchronisieren",
-        "sync2": "Synchronisieren"
+        "sync2": "Synchronisieren",
+        "assetTreeTitle": "{{stride}} von \"{{asset}}\"",
+        "pathCount_one": "{{count}} Angriffspfad",
+        "pathCount_other": "{{count}} Angriffspfade",
+        "assessedCount_one": "{{count}} bewertet",
+        "assessedCount_other": "{{count}} bewertet",
+        "completeTooltip": "Für jedes aktivierte Security Goal dieses Assets existiert ein Angriffsbaum.",
+        "incompleteTooltip": "Noch kein Angriffsbaum für: {{goals}}. Lege einen über „＋\" an — verankert an diesem Asset, mit diesem Security Goal.",
+        "incompleteTooltipSync": "Noch kein Angriffsbaum für: {{goals}}. Nutze „Sync from Assets\", um die fehlenden zu erzeugen, oder lege einen über „＋\" an."
+      },
+      "detail": {
+        "editorView": "Editor",
+        "tableView": "Tabelle"
       },
       "preview": {
         "noValidAttackTreeAvailable": "Kein gültiger Attack Tree vorhanden",
@@ -124,7 +136,11 @@
         "status": "Status",
         "none": "Keine",
         "critical3": "Kritisch",
-        "noPathsMatchYourFilters": "Keine Pfade gefunden"
+        "noPathsMatchYourFilters": "Keine Pfade gefunden",
+        "feasibility": "Machbarkeit",
+        "sortBy": "Sortieren nach",
+        "noGoalHint": "Kein Angriffsziel deklariert — aus diesem Pfad kann keine Bedrohung entstehen.",
+        "mitigationUnknown": "„{{id}}\" steht nicht im Mitigation-Katalog. Entweder ist die ID im DSL falsch, oder die Maßnahme wurde noch nicht angelegt."
       },
       "config": {
         "title": "Attack Tree Configuration",

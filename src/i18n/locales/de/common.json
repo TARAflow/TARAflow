@@ -286,6 +286,36 @@
       "description": "Ausführen von Operationen ohne entsprechende Berechtigung"
     }
   },
+  "securityGoal": {
+    "C": {
+      "name": "Vertraulichkeit",
+      "description": "Informationen bleiben denen verborgen, die sie nicht sehen dürfen"
+    },
+    "I": {
+      "name": "Integrität",
+      "description": "Daten und Funktionen werden nicht von Unbefugten verändert"
+    },
+    "A": {
+      "name": "Verfügbarkeit",
+      "description": "Das System erfüllt seine Aufgabe dann, wenn es gebraucht wird"
+    },
+    "N": {
+      "name": "Nichtabstreitbarkeit",
+      "description": "Eine Handlung ist nachweisbar und lässt sich nicht glaubhaft leugnen"
+    },
+    "AuthZ": {
+      "name": "Autorisierung",
+      "description": "Jeder kann nur das tun, wozu er berechtigt ist"
+    },
+    "AuthN": {
+      "name": "Authentifizierung",
+      "description": "Jemand ist tatsächlich der, für den er sich ausgibt"
+    },
+    "Acc": {
+      "name": "Zurechenbarkeit",
+      "description": "Eine Handlung lässt sich demjenigen zuordnen, der dafür einstehen muss"
+    }
+  },
   "tags": {
     "tooltips": {
       "cra": "EU Cyber Resilience Act - Sicherheitsanforderungen für Produkte mit digitalen Elementen",

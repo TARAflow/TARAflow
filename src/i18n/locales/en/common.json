@@ -288,6 +288,36 @@
       "description": "Being able to perform operations you aren't supposed to be able to do"
     }
   },
+  "securityGoal": {
+    "C": {
+      "name": "Confidentiality",
+      "description": "Keeping information away from people who aren't authorized to see it"
+    },
+    "I": {
+      "name": "Integrity",
+      "description": "Making sure data and functions aren't changed by anyone who shouldn't"
+    },
+    "A": {
+      "name": "Availability",
+      "description": "Making sure the system does its job when it's needed"
+    },
+    "N": {
+      "name": "Non-repudiation",
+      "description": "Being able to prove an action happened, so nobody can credibly deny it"
+    },
+    "AuthZ": {
+      "name": "Authorization",
+      "description": "Making sure everyone can do only what they're permitted to do"
+    },
+    "AuthN": {
+      "name": "Authentication",
+      "description": "Making sure someone really is who they claim to be"
+    },
+    "Acc": {
+      "name": "Accountability",
+      "description": "Being able to trace an action back to whoever is answerable for it"
+    }
+  },
   "tags": {
     "tooltips": {
       "cra": "EU Cyber Resilience Act - Security requirements for products with digital elements",

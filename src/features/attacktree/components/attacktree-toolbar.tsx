@@ -3,10 +3,12 @@
 // Features:
 // - DFD Preview toggle
 // - Main view toggle (Overview/Editor)
-// - Tree selector dropdown
 // - Action buttons (Create, Sync, Config, Export, Import)
 // - Status chips (Sync, Validation, Coverage, Dirty state)
-// - Proceed button
+//
+// The tree selector moved to the detail header (attacktree-detail-view.tsx):
+// it has to be reachable in the table view too, and a toolbar control that
+// only applies to one of two views belongs to that view, not to the tab.
 
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,20 +17,15 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  Button,
   Divider,
   Chip,
   ToggleButtonGroup,
   ToggleButton,
   CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
 } from "@mui/material";
 import {
   Settings as SettingsIcon,
   Sync as SyncIcon,
-  SkipNext as NextIcon,
   Warning as WarningIcon,
   Download as ExportIcon,
   Upload as ImportIcon,
@@ -37,14 +34,7 @@ import {
   Add as AddIcon,
   ViewList as OverviewIcon,
   AccountTree as TreeIcon,
-  CheckCircle as ValidIcon,
-  Error as InvalidIcon,
 } from "@mui/icons-material";
-
-import {
-  AttackTree,
-  getAnchorTypeIcon,
-} from "../models/attacktree-types";
 
 // ==================== TYPES ====================
 
@@ -57,10 +47,7 @@ export interface AttackTreeToolbarProps {
   showDfdPreview: boolean;
   onToggleDfdPreview: () => void;
 
-  // Tree selection
-  selectedTreeId: string | null;
-  onTreeSelect: (treeId: string) => void;
-  trees: AttackTree[];
+  /** Only gates the Editor toggle — the selector itself lives in the detail view. */
   hasTrees: boolean;
 
   // Actions
@@ -69,7 +56,6 @@ export interface AttackTreeToolbarProps {
   onOpenConfig: () => void;
   onExport: () => void;
   onImport: () => void;
-  onProceed: () => void;
 
   // Status
   isCriticalWorkflow: boolean;
@@ -80,7 +66,6 @@ export interface AttackTreeToolbarProps {
   completeAssets?: number;
   totalAssets?: number;
   isDirty: boolean;
-  canProceed: boolean;
 
   // File input ref (for import)
   fileInputRef?: React.RefObject<HTMLInputElement>;
@@ -93,16 +78,12 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
   onMainViewChange,
   showDfdPreview,
   onToggleDfdPreview,
-  selectedTreeId,
-  onTreeSelect,
-  trees,
   hasTrees,
   onCreateTree,
   onSyncFromAssets,
   onOpenConfig,
   onExport,
   onImport,
-  onProceed,
   isCriticalWorkflow,
   isSyncing,
   needsSync,
@@ -111,7 +92,6 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
   completeAssets,
   totalAssets,
   isDirty,
-  canProceed,
   fileInputRef,
 }) => {
   const { t } = useTranslation();
@@ -161,34 +141,6 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
           </Tooltip>
         </ToggleButton>
       </ToggleButtonGroup>
-
-      {/* Tree Selector (only in Editor view) */}
-      {mainView === "editor" && hasTrees && (
-        <>
-          <Divider orientation="vertical" flexItem />
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <Select
-              value={selectedTreeId || ""}
-              onChange={(e) => onTreeSelect(e.target.value)}
-              displayEmpty
-            >
-              {trees.map((tree) => (
-                <MenuItem key={tree.id} value={tree.id}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <span>{getAnchorTypeIcon(tree.anchor.type)}</span>
-                    <span>{tree.name}</span>
-                    {tree.validation?.isValid ? (
-                      <ValidIcon fontSize="small" color="success" />
-                    ) : (
-                      <InvalidIcon fontSize="small" color="error" />
-                    )}
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </>
-      )}
 
       <Divider orientation="vertical" flexItem />
 
@@ -280,20 +232,6 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
           variant="outlined"
         />
       )}
-
-      <Divider orientation="vertical" flexItem />
-
-      {/* Proceed Button */}
-      <Button
-        endIcon={<NextIcon />}
-        onClick={onProceed}
-        disabled={!canProceed}
-        size="small"
-        variant="outlined"
-        color="success"
-      >
-        {t("attacktree:tabs.attacktree.toolbar.continue")}
-      </Button>
     </Box>
   );
 };

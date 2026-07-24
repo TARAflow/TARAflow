@@ -22,7 +22,19 @@
         "areYouSureYouWantToDeleteThisAtt": "Are you sure you want to delete this attack tree?",
         "cancel": "Cancel",
         "syncFromAssets2": "Sync from Assets",
-        "sync2": "Sync"
+        "sync2": "Sync",
+        "assetTreeTitle": "{{stride}} of \"{{asset}}\"",
+        "pathCount_one": "{{count}} attack path",
+        "pathCount_other": "{{count}} attack paths",
+        "assessedCount_one": "{{count}} assessed",
+        "assessedCount_other": "{{count}} assessed",
+        "completeTooltip": "Every enabled security goal of this asset has an attack tree.",
+        "incompleteTooltip": "No attack tree yet for: {{goals}}. Add one with \"＋\" — anchor it to this asset and pick that security goal.",
+        "incompleteTooltipSync": "No attack tree yet for: {{goals}}. Use \"Sync from Assets\" to create the missing ones, or add one with \"＋\"."
+      },
+      "detail": {
+        "editorView": "Editor",
+        "tableView": "Table"
       },
       "preview": {
         "noValidAttackTreeAvailable": "No valid attack tree available",
@@ -156,7 +168,11 @@
         "status": "Status",
         "none": "None",
         "critical3": "Critical",
-        "noPathsMatchYourFilters": "No paths match your filters"
+        "noPathsMatchYourFilters": "No paths match your filters",
+        "feasibility": "Feasibility",
+        "sortBy": "Sort by",
+        "noGoalHint": "No attack goal declared — this path cannot become a threat.",
+        "mitigationUnknown": "\"{{id}}\" is not in the mitigation catalogue. Either the id in the DSL is wrong, or the measure has not been created yet."
       },
       "validation": {
         "tara": {

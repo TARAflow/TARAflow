@@ -19,8 +19,6 @@ import {
   ZoomOut as ZoomOutIcon,
   CenterFocusStrong as FitIcon,
   Download as ExportIcon,
-  TableChart as TableIcon,
-  AccountTree as TreeIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
 import * as d3 from "d3";
@@ -36,7 +34,6 @@ import {
   getAttackGoalColor,
   AttackGoalCategory,
 } from "../models/attacktree-types";
-import { AttackTreeTableView } from "./attacktree-tableview";
 
 // ==================== TYPES ====================
 
@@ -50,7 +47,6 @@ interface AttackTreePreviewProps {
   onNodeSelect?: (node: AttackTreeNode) => void;
 }
 
-type ViewMode = "tree" | "table";
 
 interface D3Node extends d3.HierarchyPointNode<AttackTreeNode> {
   _children?: D3Node[];
@@ -72,7 +68,6 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const renderTreeRef = useRef<(() => void) | null>(null);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("tree");
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [currentTransform, setCurrentTransform] = useState<d3.ZoomTransform>(
     d3.zoomIdentity,
@@ -332,10 +327,8 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
 
   // Re-render on changes
   useEffect(() => {
-    if (viewMode === "tree") {
-      renderTree();
-    }
-  }, [renderTree, viewMode]);
+    renderTree();
+  }, [renderTree]);
 
   // Handle resize — registered exactly once (on mount), never re-runs.
   // Reads renderTreeRef.current so it always has the latest renderTree.
@@ -480,58 +473,31 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
           backgroundColor: "grey.50",
         }}
       >
-        {/* View Mode Toggle */}
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={(_, v) => v && setViewMode(v)}
-          size="small"
-        >
-          <ToggleButton value="tree">
-            <Tooltip title={t("attacktree:tabs.attacktree.preview.treeView")}>
-              <TreeIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="table">
-            <Tooltip title={t("attacktree:tabs.attacktree.preview.tableView")}>
-              <TableIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
+        {/* Zoom Controls */}
+        <Tooltip title={t("attacktree:tabs.attacktree.preview.zoomIn")}>
+          <IconButton size="small" onClick={handleZoomIn}>
+            <ZoomInIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t("attacktree:tabs.attacktree.preview.zoomOut")}>
+          <IconButton size="small" onClick={handleZoomOut}>
+            <ZoomOutIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t("attacktree:tabs.attacktree.preview.fitToView")}>
+          <IconButton size="small" onClick={handleFit}>
+            <FitIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
 
         <Divider orientation="vertical" flexItem />
 
-        {/* Zoom Controls (only for tree view) */}
-        {viewMode === "tree" && (
-          <>
-            <Tooltip title={t("attacktree:tabs.attacktree.preview.zoomIn")}>
-              <IconButton size="small" onClick={handleZoomIn}>
-                <ZoomInIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={t("attacktree:tabs.attacktree.preview.zoomOut")}>
-              <IconButton size="small" onClick={handleZoomOut}>
-                <ZoomOutIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={t("attacktree:tabs.attacktree.preview.fitToView")}>
-              <IconButton size="small" onClick={handleFit}>
-                <FitIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-            <Divider orientation="vertical" flexItem />
-
-            {/* Export */}
-            <Tooltip
-              title={t("attacktree:tabs.attacktree.preview.exportAsSvg")}
-            >
-              <IconButton size="small" onClick={handleExportSVG}>
-                <ExportIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </>
-        )}
+        {/* Export */}
+        <Tooltip title={t("attacktree:tabs.attacktree.preview.exportAsSvg")}>
+          <IconButton size="small" onClick={handleExportSVG}>
+            <ExportIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
 
         {/* Statistics */}
         <Box sx={{ flexGrow: 1 }} />
@@ -576,126 +542,114 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
           position: "relative",
         }}
       >
-        {viewMode === "tree" ? (
-          <svg
-            ref={svgRef}
-            style={{
-              width: "100%",
-              height: "100%",
-              backgroundColor: "#fafafa",
-            }}
-          />
-        ) : (
-          pathAnalysis && (
-            <AttackTreeTableView
-              pathAnalysis={pathAnalysis}
-              evaluationMethod={evaluationMethod}
-              mitigationLookup={mitigationLookup}
-            />
-          )
-        )}
+        <svg
+          ref={svgRef}
+          style={{
+            width: "100%",
+            height: "100%",
+            backgroundColor: "#fafafa",
+          }}
+        />
       </Box>
 
-      {/* Legend (for tree view) */}
-      {viewMode === "tree" && (
-        <Paper
-          elevation={0}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            p: 1,
-            borderTop: "1px solid",
-            borderColor: "divider",
-            backgroundColor: "grey.50",
-            flexWrap: "wrap",
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
-            {t("attacktree:tabs.attacktree.preview.legend")}
+      {/* Legend */}
+      <Paper
+        elevation={0}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          p: 1,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "grey.50",
+          flexWrap: "wrap",
+        }}
+      >
+        <Typography variant="caption" color="text.secondary">
+          {t("attacktree:tabs.attacktree.preview.legend")}
+        </Typography>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: 1,
+              bgcolor: "#1976d2",
+            }}
+          />
+          <Typography variant="caption">ROOT</Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: 1,
+              bgcolor: "#ed6c02",
+            }}
+          />
+          <Typography variant="caption">OR</Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: 1,
+              bgcolor: "#9c27b0",
+            }}
+          />
+          <Typography variant="caption">AND</Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: 1,
+              bgcolor: "#2e7d32",
+            }}
+          />
+          <Typography variant="caption">LEAF</Typography>
+        </Box>
+
+        <Divider orientation="vertical" flexItem />
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              bgcolor: "#4caf50",
+            }}
+          />
+          <Typography variant="caption">
+            {t("attacktree:tabs.attacktree.preview.withMitigations")}
           </Typography>
+        </Box>
 
+        {highlightCriticalPath && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Box
               sx={{
-                width: 12,
-                height: 12,
+                width: 20,
+                height: 3,
+                bgcolor: "#d32f2f",
                 borderRadius: 1,
-                bgcolor: "#1976d2",
-              }}
-            />
-            <Typography variant="caption">ROOT</Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 12,
-                height: 12,
-                borderRadius: 1,
-                bgcolor: "#ed6c02",
-              }}
-            />
-            <Typography variant="caption">OR</Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 12,
-                height: 12,
-                borderRadius: 1,
-                bgcolor: "#9c27b0",
-              }}
-            />
-            <Typography variant="caption">AND</Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 12,
-                height: 12,
-                borderRadius: 1,
-                bgcolor: "#2e7d32",
-              }}
-            />
-            <Typography variant="caption">LEAF</Typography>
-          </Box>
-
-          <Divider orientation="vertical" flexItem />
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                bgcolor: "#4caf50",
               }}
             />
             <Typography variant="caption">
-              {t("attacktree:tabs.attacktree.preview.withMitigations")}
+              {t("attacktree:tabs.attacktree.preview.criticalPath")}
             </Typography>
           </Box>
-
-          {highlightCriticalPath && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Box
-                sx={{
-                  width: 20,
-                  height: 3,
-                  bgcolor: "#d32f2f",
-                  borderRadius: 1,
-                }}
-              />
-              <Typography variant="caption">
-                {t("attacktree:tabs.attacktree.preview.criticalPath")}
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      )}
+        )}
+      </Paper>
     </Box>
   );
 };

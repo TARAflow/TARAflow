@@ -39,7 +39,6 @@ import {
 import {
   AttackTree,
   AttackTreeProjectData,
-  MitigationReference,
   AttackTreeUpdateResult,
   AttackTreeTabProps,
   SecurityGoalType,
@@ -48,6 +47,7 @@ import {
   checkAssetAttackTreeCoverage,
   getAnchorDisplayName,
   getRiskScoreEmoji,
+  resolveFeasibilityConfiguration,
 } from "../models/attacktree-types";
 
 // Custom Hooks
@@ -57,21 +57,21 @@ import { useAttackTreeUI, MainView } from "../hooks/use-attacktree-ui";
 
 // Components
 import { AttackTreeToolbar } from "./attacktree-toolbar";
-import { AttackTreeEditor } from "./attacktree-editor";
-import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeCreateDialog } from "./attacktree-create-dialog";
 import { AttackTreeConfigDialog } from "./attacktree-config-dialog";
 import { AttackTreeTableView } from "./attacktree-tableview";
-import { AttackTreeThreatTable } from "./attacktree-threat-table";
-import { generateThreatsFromAttackTree } from "../services/attacktree-threat-generator";
-import { applyAssessmentsToThreats } from "../services/attacktree-threat-sync";
+import { AttackTreeDetailView } from "./attacktree-detail-view";
+import {
+  securityGoalList,
+  treeDisplaySubtitle,
+  treeDisplayTitle,
+} from "../utils/attacktree-labels";
 import type { AttackPathAssessment } from "../models/attacktree-types";
 import { DFDPreviewPanel, ConfirmDialog } from "shared";
 import { useSplitViewResize, MIN_PANEL_HEIGHT } from "shared";
 
 // ==================== CONSTANTS ====================
 
-const MIN_PANEL_WIDTH = 300;
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -173,196 +173,6 @@ function groupTrees(
 
 // ==================== MEMOIZED EDITOR VIEW ====================
 
-interface AttackTreeEditorViewProps {
-  selectedTree: AttackTree;
-  localDsl: string;
-  editorCollapsed: boolean;
-  editorWidthPercent: number;
-  handleDslChange: (dsl: string) => void;
-  toggleEditorCollapsed: () => void;
-  mitigationLookup: Map<string, MitigationReference>;
-  /**
-   * 5a workflow: persist the analyst's confirm/dismiss/uncertain decisions on
-   * the emitted attack-path threats. The parent writes them onto the tree via
-   * updateTree, which reaches disk through the existing auto-save path.
-   */
-  onAssessmentsChange: (next: AttackPathAssessment[]) => void;
-}
-
-const AttackTreeEditorView = React.memo<AttackTreeEditorViewProps>(
-  ({
-    selectedTree,
-    localDsl,
-    editorCollapsed,
-    editorWidthPercent,
-    handleDslChange,
-    toggleEditorCollapsed,
-    mitigationLookup,
-    onAssessmentsChange,
-  }) => {
-    // Memoize validation errors to prevent new array on every render
-    const validationErrors = React.useMemo(
-      () => selectedTree.validation?.errors || [],
-      [selectedTree.validation?.errors],
-    );
-
-    // Emitted threats are DERIVED, never persisted: the generator is
-    // deterministic (same tree → same threats, same ids), so we regenerate and
-    // lay the stored decisions over them. Only the decision is state.
-    const emittedThreats = React.useMemo(() => {
-      if (selectedTree.anchor.type !== "asset") return [];
-      const { threats } = generateThreatsFromAttackTree(selectedTree);
-      return applyAssessmentsToThreats(
-        selectedTree,
-        threats,
-        selectedTree.pathAssessments ?? [],
-      );
-    }, [
-      selectedTree.id,
-      selectedTree.anchor.type,
-      selectedTree.pathAnalysis,
-      selectedTree.pathAssessments,
-    ]);
-
-    const showThreatTable = selectedTree.anchor.type === "asset";
-
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexGrow: 1,
-            minHeight: 0,
-            overflow: "hidden",
-          }}
-        >
-          {/* Editor Pane */}
-          <Box
-            sx={{
-              width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
-              minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
-              height: "100%",
-              transition: "width 0.2s",
-              borderRight: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <AttackTreeEditor
-              dsl={localDsl}
-              configuration={selectedTree.configuration}
-              validation={validationErrors}
-              collapsed={editorCollapsed}
-              onDslChange={handleDslChange}
-              onToggleCollapse={toggleEditorCollapsed}
-            />
-          </Box>
-
-          {/* Preview Pane */}
-          <Box sx={{ flexGrow: 1, height: "100%", overflow: "hidden" }}>
-            <AttackTreePreview
-              ast={selectedTree.ast}
-              pathAnalysis={selectedTree.pathAnalysis}
-              evaluationMethod={selectedTree.configuration.evaluationMethod}
-              highlightCriticalPath={
-                selectedTree.configuration.highlightCriticalPath
-              }
-              mitigationLookup={mitigationLookup}
-              onNodeSelect={() => {}}
-            />
-          </Box>
-        </Box>
-
-        {/* Attack-path threat relevance (5a) — asset-anchored trees only.
-            This is the gate between a rated path and a risk: collectAllThreats
-            filters out unrated / not_relevant, so without a decision here the
-            path never reaches the Risk tab. */}
-        {showThreatTable && (
-          <Box
-            sx={{
-              flexShrink: 0,
-              maxHeight: "40%",
-              overflow: "auto",
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <AttackTreeThreatTable
-              treeId={selectedTree.id}
-              threats={emittedThreats}
-              assessments={selectedTree.pathAssessments ?? []}
-              onAssessmentsChange={onAssessmentsChange}
-            />
-          </Box>
-        )}
-      </Box>
-    );
-  },
-
-  // Custom comparison: only re-render if critical props change
-  (prevProps, nextProps) => {
-    // Re-render if tree ID changes (different tree selected)
-    if (prevProps.selectedTree.id !== nextProps.selectedTree.id) {
-      return false;
-    }
-
-    // Re-render if DSL changes
-    if (prevProps.localDsl !== nextProps.localDsl) {
-      return false;
-    }
-
-    // Re-render if collapsed state changes
-    if (prevProps.editorCollapsed !== nextProps.editorCollapsed) {
-      return false;
-    }
-
-    // Re-render if width changes
-    if (prevProps.editorWidthPercent !== nextProps.editorWidthPercent) {
-      return false;
-    }
-
-    const prevValidation = prevProps.selectedTree.validation?.errors || [];
-    const nextValidation = nextProps.selectedTree.validation?.errors || [];
-    if (JSON.stringify(prevValidation) !== JSON.stringify(nextValidation)) {
-      return false;
-    }
-
-    // Re-render if the mirrored mitigation lookup changed (memoized upstream,
-    // so a new reference means the underlying risk data changed).
-    if (prevProps.mitigationLookup !== nextProps.mitigationLookup) {
-      return false;
-    }
-
-    // Re-render if path analysis identity changed (e.g. after re-parse), so
-    // the table picks up new/removed mitigation ids.
-    if (
-      prevProps.selectedTree.pathAnalysis !==
-      nextProps.selectedTree.pathAnalysis
-    ) {
-      return false;
-    }
-
-    // Re-render when a relevance decision was recorded. Without this the click
-    // would persist but the toggle group would stay on its old value — the
-    // same stale-render trap the validation panel fell into.
-    if (
-      prevProps.selectedTree.pathAssessments !==
-      nextProps.selectedTree.pathAssessments
-    ) {
-      return false;
-    }
-
-    return true;
-  },
-);
-
-AttackTreeEditorView.displayName = "AttackTreeEditorView";
 
 // ==================== COMPONENT ====================
 
@@ -370,7 +180,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
 }) => {
   const { t } = useTranslation();
 
@@ -380,7 +189,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   const {
     attackTreeData,
     selectedTree,
-    selectedTreeId,
     isDirty,
     hasTrees,
     validTreeCount,
@@ -394,7 +202,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   } = useAttackTreeData(project, onUpdate, onDirtyChange);
 
   // Editor Logic (with debounced parsing)
-  const { localDsl, handleDslChange } = useAttackTreeEditor(
+  const { localDsl, handleDslChange, parseImmediately } = useAttackTreeEditor(
     selectedTree,
     project,
     updateTree,
@@ -406,6 +214,8 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     mainView,
     editorCollapsed,
     editorWidthPercent,
+    threatPanelPercent,
+    detailView,
     topPanelHeight,
     showConfigDialog,
     showCreateDialog,
@@ -417,6 +227,8 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     setMainView,
     setEditorCollapsed,
     setEditorWidthPercent,
+    setThreatPanelPercent,
+    setDetailView,
     setTopPanelHeight,
     setShowConfigDialog,
     setShowCreateDialog,
@@ -453,6 +265,11 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     });
     return map;
   }, [project.mitigations]);
+
+  const feasibilityConfig = useMemo(
+    () => resolveFeasibilityConfiguration(project.attackTrees?.configuration),
+    [project.attackTrees?.configuration],
+  );
 
   const isCriticalWorkflow = project.isHighImpact;
 
@@ -508,13 +325,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     return (
       criticalCoverage?.assets.some((a) => a.missingGoals.length > 0) || false
     );
-  }, [isCriticalWorkflow, criticalCoverage]);
-
-  const canProceed = useMemo(() => {
-    if (isCriticalWorkflow) {
-      return criticalCoverage?.isAllComplete || false;
-    }
-    return true; // Standard workflow
   }, [isCriticalWorkflow, criticalCoverage]);
 
   // ==================== SPLIT VIEW RESIZE ====================
@@ -630,16 +440,11 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       onCreateTree={() => setShowCreateDialog(true)}
       onExport={handleExport}
       onImport={handleImport}
-      onProceed={() => onPhaseComplete?.()}
       hasTrees={hasTrees}
       isDirty={isDirty}
-      selectedTreeId={selectedTreeId}
-      onTreeSelect={handleTreeSelect}
-      trees={attackTreeData.trees}
       isCriticalWorkflow={isCriticalWorkflow}
       isSyncing={false}
       needsSync={needsSync}
-      canProceed={canProceed}
       validTreeCount={validTreeCount}
       totalTreeCount={attackTreeData.trees.length}
     />
@@ -732,16 +537,52 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                   <Typography sx={{ flexGrow: 1 }}>{group.name}</Typography>
                   <Chip label={`${group.trees.length} Trees`} size="small" />
                   {group.isComplete !== undefined && (
-                    <Chip
-                      icon={group.isComplete ? <ValidIcon /> : <InvalidIcon />}
-                      label={
+                    // "Incomplete" on its own says nothing actionable — the
+                    // group already knows WHICH enabled security goals have no
+                    // tree yet, so name them instead of making the analyst
+                    // compare the asset's goals against the trees by hand.
+                    <Tooltip
+                      title={
                         group.isComplete
-                          ? t("attacktree:tabs.attacktree.tab.complete")
-                          : t("attacktree:tabs.attacktree.tab.incomplete")
+                          ? t(
+                              "attacktree:tabs.attacktree.tab.completeTooltip",
+                              {
+                                defaultValue:
+                                  "Every enabled security goal of this asset has an attack tree.",
+                              },
+                            )
+                          : t(
+                              // "Sync from Assets" only exists in the critical
+                              // workflow, so pointing at it elsewhere sends the
+                              // analyst looking for a button that isn't there.
+                              isCriticalWorkflow
+                                ? "attacktree:tabs.attacktree.tab.incompleteTooltipSync"
+                                : "attacktree:tabs.attacktree.tab.incompleteTooltip",
+                              {
+                                goals: securityGoalList(
+                                  group.missingGoals ?? [],
+                                  t,
+                                ),
+                                defaultValue: isCriticalWorkflow
+                                  ? 'No attack tree yet for: {{goals}}. Use "Sync from Assets" to create the missing ones, or add one with "＋".'
+                                  : 'No attack tree yet for: {{goals}}. Add one with "＋" — anchor it to this asset and pick that security goal.',
+                              },
+                            )
                       }
-                      color={group.isComplete ? "success" : "warning"}
-                      size="small"
-                    />
+                    >
+                      <Chip
+                        icon={
+                          group.isComplete ? <ValidIcon /> : <InvalidIcon />
+                        }
+                        label={
+                          group.isComplete
+                            ? t("attacktree:tabs.attacktree.tab.complete")
+                            : t("attacktree:tabs.attacktree.tab.incomplete")
+                        }
+                        color={group.isComplete ? "success" : "warning"}
+                        size="small"
+                      />
+                    </Tooltip>
                   )}
                 </Box>
               </AccordionSummary>
@@ -758,14 +599,14 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                         }}
                       >
                         <Box>
+                          {/* Derived from the anchor, not from tree.name —
+                              see utils/attacktree-labels.ts for why. */}
                           <Typography variant="subtitle1">
-                            {tree.name}
+                            {treeDisplayTitle(tree, t)}
                           </Typography>
-                          {tree.description && (
-                            <Typography variant="body2" color="text.secondary">
-                              {tree.description}
-                            </Typography>
-                          )}
+                          <Typography variant="body2" color="text.secondary">
+                            {treeDisplaySubtitle(tree, t)}
+                          </Typography>
                         </Box>
                         <Box sx={{ display: "flex", gap: 1 }}>
                           {tree.validation?.isValid ? (
@@ -812,6 +653,13 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                         <AttackTreeTableView
                           pathAnalysis={tree.pathAnalysis}
                           evaluationMethod={tree.configuration.evaluationMethod}
+                          mitigationLookup={mitigationLookup}
+                          likelihoodModel={feasibilityConfig.likelihoodModel}
+                          treeId={tree.id}
+                          assessments={tree.pathAssessments ?? []}
+                          // No onAssessmentsChange on purpose: the overview
+                          // shows which paths were confirmed or dismissed, but
+                          // deciding belongs in the detail view.
                         />
                       ) : (
                         <Typography color="text.secondary" sx={{ py: 2 }}>
@@ -909,14 +757,23 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             </Typography>
           </Box>
         ) : (
-          <AttackTreeEditorView
+          <AttackTreeDetailView
             selectedTree={selectedTree}
+            trees={attackTreeData.trees}
+            onSelectTree={setSelectedTreeId}
             localDsl={localDsl}
-            editorCollapsed={editorCollapsed}
-            editorWidthPercent={editorWidthPercent}
             handleDslChange={handleDslChange}
+            parseImmediately={parseImmediately}
+            detailView={detailView}
+            onDetailViewChange={setDetailView}
+            editorCollapsed={editorCollapsed}
             toggleEditorCollapsed={toggleEditorCollapsed}
+            editorWidthPercent={editorWidthPercent}
+            onEditorWidthPercentChange={setEditorWidthPercent}
+            threatPanelPercent={threatPanelPercent}
+            onThreatPanelPercentChange={setThreatPanelPercent}
             mitigationLookup={mitigationLookup}
+            likelihoodModel={feasibilityConfig.likelihoodModel}
             onAssessmentsChange={handleAssessmentsChange}
           />
         )}
@@ -989,6 +846,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       )}
     </Box>
   );
-};;;;;
+}
 
 export default AttackTreeTab;

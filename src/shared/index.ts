@@ -147,6 +147,11 @@ export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
 export { MitigationCoverageBadge } from "./components/mitigation-coverage-badge";
+export {
+  type DataColumn,
+  DataTable,
+  type DataTableProps,
+} from "./components/data-table";
 
 // ==================== DIALOGS ====================
 export { ConfirmDialog } from "./components/dialogs/confirm-dialog";
@@ -169,6 +174,7 @@ export {
 // ==================== UTILS ====================
 export { useToast } from "./components/toast";
 export { useSplitViewResize } from "./hooks/use-split-view-resize";
+export { useSplitPercentResize } from "./hooks/use-split-percent-resize";
 export { formatExportFilename } from "./utils/formatters";
 export {
   getPhaseStatusBgColor,
