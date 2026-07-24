@@ -7,7 +7,8 @@ export type ProtocolGroup =
   | "secure_ot"
   | "wireless"
   | "electrical"
-  | "hmi";
+  | "hmi"
+  | "in_process";
 
 export const PROTOCOL_META: Record<
   Protocol,
@@ -27,6 +28,15 @@ export const PROTOCOL_META: Record<
   websocket: { group: "it", labelKey: "websocket" },
   file: { group: "it", labelKey: "file", riskLevel: "medium" },
   database: { group: "it", labelKey: "database", riskLevel: "medium" },
+
+  // ── In-Process ───────────────────────────────────────────────────────────
+  // No network transport (like human_input) — low remote risk, no
+  // encryption-in-transit relevance.
+  in_process_call: {
+    group: "in_process",
+    labelKey: "in_process_call",
+    riskLevel: "low",
+  },
 
   // ── Embedded bus ─────────────────────────────────────────────────────────
   can: { group: "embedded", labelKey: "can", riskLevel: "high" },

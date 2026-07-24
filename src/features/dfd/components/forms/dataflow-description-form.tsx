@@ -170,6 +170,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
     ? PROTOCOL_META[props.protocol]
     : undefined;
   const isElectrical = selectedMeta?.group === "electrical";
+  const isInProcess = selectedMeta?.group === "in_process";
 
   // Physical locations that require physical access to the medium
   const PHYSICAL_ACCESS_LOCATIONS = new Set([
@@ -180,11 +181,12 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   ]);
   const requiresPhysicalAccess = props.location
     ? PHYSICAL_ACCESS_LOCATIONS.has(props.location)
-    : isElectrical; // Fallback: electrical without location set → assume true
+    : isElectrical && !isInProcess; // in-process has no physical medium at all
 
   // Standard EL mapping per location — rationale only needed when deviating
   const LOCATION_EL_STANDARD: Partial<Record<string, ExposureLevel[]>> = {
     on_chip: ["EL0"],
+    in_process: ["EL0"],
     on_board: ["EL0", "EL1"],
     in_enclosure: ["EL1"],
     field_cable: ["EL1", "EL2"],
@@ -205,6 +207,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   // Unencrypted network/fieldbus flow crossing a trust boundary
   const showEncryptionWarning =
     !isElectrical &&
+    !isInProcess &&
     crossesTrustBoundary &&
     (encryptionInTransit === "" || encryptionInTransit === "none");
 
@@ -306,44 +309,6 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   </MenuItem>
                 )),
               ])}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Direction */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.direction.label",
-                { defaultValue: "Direction" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.direction ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("direction", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.direction.label",
-                { defaultValue: "Direction" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(
-                ["unidirectional", "bidirectional", "requestresponse"] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.direction.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
             </Select>
           </FormControl>
         </Grid>
@@ -560,6 +525,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
               {(
                 [
                   "on_chip",
+                  "in_process",
                   "on_board",
                   "in_enclosure",
                   "field_cable",

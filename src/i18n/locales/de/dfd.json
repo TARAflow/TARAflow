@@ -1288,7 +1288,8 @@
               "secure_ot": "Sicheres OT",
               "wireless": "Drahtlos",
               "electrical": "Elektrisches Signal",
-              "hmi": "Mensch-Maschine"
+              "hmi": "Mensch-Maschine",
+              "in_process": "In-Process"
             },
             "protocol": {
               "label": "Protokoll",
@@ -1302,6 +1303,7 @@
                 "websocket": "WebSocket",
                 "file": "File",
                 "database": "Database",
+                "in_process_call": "In-Process-Aufruf",
                 "can": "CAN Bus",
                 "uart": "UART",
                 "spi": "SPI",
@@ -1402,6 +1404,7 @@
             "location": {
               "label": "Physisches Medium / Routing",
               "options": {
+                "in_process": "In-Process",
                 "on_chip": "Auf dem Chip (interner Bus / Register)",
                 "on_board": "Leiterplatten-Leiterbahn (gleiche Platine)",
                 "in_enclosure": "Kabel im Gehäuse (versiegeltes Gehäuse)",

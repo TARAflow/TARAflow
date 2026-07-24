@@ -25,20 +25,6 @@ function run(name: string, properties: Record<string, unknown>) {
 }
 
 describe("dataflow-property-validator — read", () => {
-  it("errors when read has a requestresponse direction", () => {
-    const { errorKeys } = run("read fft result", {
-      direction: "requestresponse",
-    });
-    expect(errorKeys).toContain(ValidationMessages.DF_PROP_READ_IS_REQRESP);
-  });
-
-  it("accepts read with a unidirectional direction", () => {
-    const { errorKeys } = run("read fft result", {
-      direction: "unidirectional",
-    });
-    expect(errorKeys).not.toContain(ValidationMessages.DF_PROP_READ_IS_REQRESP);
-  });
-
   it("does not require a protocol for read (exempt, like write)", () => {
     const { warningKeys } = run("read fft result", {});
     expect(warningKeys).not.toContain(

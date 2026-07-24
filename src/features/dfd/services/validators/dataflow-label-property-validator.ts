@@ -8,7 +8,7 @@
 //   - Structured props (direction, frequency, messageType, protocol group)
 //
 // Rules:
-//   LP-1  Verb ↔ Direction conflict          → ERROR
+//   LP-1  (removed in schema v4 — was Verb ↔ Direction conflict)
 //   LP-2  Tag  ↔ Frequency inconsistency     → WARNING
 //   LP-3  Verb+Tag ↔ MessageType mismatch    → WARNING
 //   LP-4  Protocol group ↔ Verb              → WARNING
@@ -52,14 +52,13 @@ interface ParsedLabel {
 const VALID_VERBS = ["pull", "push", "write", "read", "stream"] as const;
 type ValidVerb = (typeof VALID_VERBS)[number];
 
-/** LP-1: verb → required direction value */
-const VERB_DIRECTION_REQUIRED: Partial<Record<ValidVerb, string>> = {
-  pull: "requestresponse",
-  push: "unidirectional",
-  write: "unidirectional",
-  read: "unidirectional",
-  stream: "unidirectional",
-};
+/**
+ * LP-1 (removed in schema v4): used to check verb ↔ direction conflicts.
+ * Dropped along with DataFlowProperties.direction — see migrate_3_to_4.
+ * The mapping was verb-only (not verb+tag), which was itself inconsistent
+ * with the tag-scoped rules below (LP-2, LP-3) — see conversation history
+ * for the pull[req]/[resp]/[req_resp] granularity gap this masked.
+ */
 
 /**
  * LP-2: tag → expected frequency values.
@@ -176,7 +175,7 @@ export function validateDataflowLabelProperties(
     const displayId = conn.displayId ?? conn.id;
     const elementId = conn.id;
 
-    // runLP1(verb, props, displayId, elementId, errors);
+    // LP-1 removed in schema v4 — direction field no longer exists.
     runLP2(tag, props, displayId, elementId, warnings);
     runLP3(verb, tag, props, displayId, elementId, warnings);
     runLP4(verb, props, displayId, elementId, warnings);
@@ -184,36 +183,6 @@ export function validateDataflowLabelProperties(
     runLP6(verb, conn, elementById, displayId, elementId, errors);
     runLP7(verb, conn, elementById, displayId, elementId, errors, warnings);
     runLP8(verb, conn, elementById, displayId, elementId, warnings);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// LP-1: Verb ↔ Direction conflict
-// ---------------------------------------------------------------------------
-// Fires only when direction is explicitly set — skips undefined (not yet modeled).
-// Severity: ERROR — a pull label on a unidirectional flow is a clear contradiction.
-
-function runLP1(
-  verb: ValidVerb,
-  props: DataFlowProperties | undefined,
-  displayId: string,
-  elementId: string,
-  errors: ValidationFinding[],
-): void {
-  if (!props?.direction) return;
-  const requiredDirection = VERB_DIRECTION_REQUIRED[verb];
-  if (!requiredDirection) return;
-  if (props.direction !== requiredDirection) {
-    errors.push({
-      key: ValidationMessages.DF_LP_VERB_DIRECTION_CONFLICT,
-      displayId,
-      elementId,
-      params: {
-        verb,
-        expectedDirection: requiredDirection,
-        gotDirection: props.direction,
-      },
-    });
   }
 }
 

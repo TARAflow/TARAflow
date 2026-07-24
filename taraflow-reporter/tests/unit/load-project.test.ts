@@ -33,7 +33,7 @@ afterEach(async () => {
 describe("loadProject", () => {
   it("loads a valid, already-current-schema project without migrating", async () => {
     const minimalProject = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       id: "test-id",
       info: {
         name: "Test Project",
@@ -52,7 +52,7 @@ describe("loadProject", () => {
 
     expect(result.project.id).toBe("test-id");
     expect(result.migrated).toBe(false);
-    expect(result.fromVersion).toBe(3);
+    expect(result.fromVersion).toBe(4);
   });
 
   it("throws a clear error when the file cannot be read", async () => {

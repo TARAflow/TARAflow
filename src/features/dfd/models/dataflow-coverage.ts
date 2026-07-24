@@ -19,7 +19,7 @@ import { PROTOCOL_META } from "./protocol-registry";
 export type CoverageStatus = "complete" | "partial" | "missing";
 
 export interface DataFlowCoverage {
-  /** Protocol, direction, messageType, frequency, location */
+  /** Protocol, messageType, frequency, location */
   context: CoverageStatus;
   /** Encryption, auth, integrity — N/A for electrical/physical signals */
   transportSecurity: CoverageStatus;
@@ -72,8 +72,7 @@ export function computeDataFlowCoverage(
   // ── Context coverage ──────────────────────────────────────────────────────
   const missingContext: (keyof DataFlowProperties)[] = [];
   if (!props.protocol)     missingContext.push("protocol");
-  if (!props.messageType)  missingContext.push("messageType");
-  if (!props.direction)    missingContext.push("direction");
+  if (!props.messageType) missingContext.push("messageType");
   if (!props.frequency)    missingContext.push("frequency");
   if (!props.location)     missingContext.push("location");
 
@@ -107,7 +106,7 @@ export function computeDataFlowCoverage(
   }
 
   // ── Aggregate ─────────────────────────────────────────────────────────────
-  const context      = toStatus(missingContext.length,  5);
+  const context = toStatus(missingContext.length, 4);
   const transport    = toStatus(missingTransport.length, 4);
   const safety       = toStatus(missingSafety.length,   1);
   const documentation = toStatus(missingDoc.length,    1);

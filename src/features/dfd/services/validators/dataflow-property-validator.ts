@@ -3,14 +3,9 @@
 // and DataFlowProperties.
 //
 // Rules:
-//   C1  pull  → direction must be "requestresponse"
-//   C2  push  → direction must be "unidirectional"
 //   C3  stream→ frequency should be "continuous"
 //   C4  write → protocol should be "database" or "file"
 //   C5  push or pull + frequency "continuous" → suggest stream
-//   C6  write + direction "requestresponse" → ERROR
-//   C7  direction "bidirectional" (any verb) → ERROR (forbidden globally)
-//   C8  stream + direction "requestresponse" → WARNING
 //   C9  excludeFromThreatGen=true + empty rationale → WARNING
 //   C10 protocol not specified (any verb) → WARNING
 //       Fires even when no properties are set at all.
@@ -18,6 +13,14 @@
 //       write is exempt when protocol is intentionally omitted (C4 covers the
 //       wrong-protocol case; a write to a local store may legitimately have no
 //       network protocol).
+//
+//   Removed in schema v4 (direction field dropped — see migrate_3_to_4):
+//   C1 (pull→direction), C2 (push→direction), C6/C6r (write/read→direction),
+//   C7 (bidirectional forbidden), C8 (stream→direction). All five existed only
+//   to catch DataFlowProperties.direction drifting from the label verb — with
+//   the field gone, the drift is structurally impossible, and read verb now
+//   has no property-consistency rule left at all (label syntax itself
+//   already forbids any tag on read — see dataflow-label-validator.ts).
 //
 // Message format: `${ValidationMessages.KEY}|${displayId}|${detail}`
 //   displayId = "DF-3"                        — rendered as Chip in notification panel
@@ -85,7 +88,7 @@ export function validateDataflowProperties(
     const props = conn.properties;
 
     // Physical coupling short-circuit: a medium="physical" edge (Sensor/Actuator
-    // ↔ environment) carries no protocol/verb — the cyber checks C1–C10 do not
+    // ↔ environment) carries no protocol/verb — the cyber checks do not
     // apply and would otherwise raise false positives (e.g. C10 "protocol
     // missing"). Validate the physical group instead, then skip the rest.
     if (
@@ -138,31 +141,20 @@ export function validateDataflowProperties(
 
     if (!verb) continue;
 
-    // C7: bidirectional forbidden — check first, always fires regardless of verb
-    if (props.direction === "bidirectional") {
-      errors.push({
-        key: ValidationMessages.DF_PROP_BIDIRECTIONAL_FORBIDDEN,
-        displayId,
-        elementId: conn.id,
-        params: { detail },
-      });
-    }
-
     switch (verb) {
       case "pull":
-        checkPull(displayId, detail, conn.id, props, errors, warnings);
+        checkPull(displayId, detail, conn.id, props, warnings);
         break;
       case "push":
-        checkPush(displayId, detail, conn.id, props, errors, warnings);
+        checkPush(displayId, detail, conn.id, props, warnings);
         break;
       case "write":
-        checkWrite(displayId, detail, conn.id, props, errors, warnings);
+        checkWrite(displayId, detail, conn.id, props, warnings);
         break;
-      case "read":
-        checkRead(displayId, detail, conn.id, props, errors, warnings);
-        break;
+      // read: no property-consistency rule remains — dataflow-label-validator.ts
+      // already forbids any tag on a read-labelled flow at the syntax level.
       case "stream":
-        checkStream(displayId, detail, conn.id, props, errors, warnings);
+        checkStream(displayId, detail, conn.id, props, warnings);
         break;
       default:
         break;
@@ -179,23 +171,8 @@ function checkPull(
   detail: string,
   elementId: string,
   props: DataFlowProperties,
-  errors: ValidationFinding[],
   warnings: ValidationFinding[],
 ): void {
-  // C1
-  if (
-    props.direction !== undefined &&
-    props.direction !== "requestresponse" &&
-    props.direction !== "bidirectional" // already reported via C7
-  ) {
-    errors.push({
-      key: ValidationMessages.DF_PROP_PULL_NOT_REQRESP,
-      displayId,
-      elementId,
-      params: { detail: `${detail} [${props.direction}]` },
-    });
-  }
-
   // C5
   if (props.frequency === "continuous") {
     warnings.push({
@@ -212,31 +189,8 @@ function checkPush(
   detail: string,
   elementId: string,
   props: DataFlowProperties,
-  errors: ValidationFinding[],
   warnings: ValidationFinding[],
 ): void {
-  // C2a
-  if (props.direction === "requestresponse") {
-    errors.push({
-      key: ValidationMessages.DF_PROP_PUSH_IS_REQRESP,
-      displayId,
-      elementId,
-      params: { detail },
-    });
-  } else if (
-    props.direction !== undefined &&
-    props.direction !== "unidirectional" &&
-    props.direction !== "bidirectional" // already reported via C7
-  ) {
-    // C2b: unexpected direction value
-    warnings.push({
-      key: ValidationMessages.DF_PROP_PUSH_WRONG_DIRECTION,
-      displayId,
-      elementId,
-      params: { detail: `${detail} [${props.direction}]` },
-    });
-  }
-
   // C5
   if (props.frequency === "continuous") {
     warnings.push({
@@ -253,7 +207,6 @@ function checkWrite(
   detail: string,
   elementId: string,
   props: DataFlowProperties,
-  errors: ValidationFinding[],
   warnings: ValidationFinding[],
 ): void {
   // C4
@@ -283,35 +236,6 @@ function checkWrite(
       params: { detail: `${detail} [${props.protocol}]` },
     });
   }
-
-  // C6
-  if (props.direction === "requestresponse") {
-    errors.push({
-      key: ValidationMessages.DF_PROP_WRITE_IS_REQRESP,
-      displayId,
-      elementId,
-      params: { detail },
-    });
-  }
-}
-
-function checkRead(
-  displayId: string,
-  detail: string,
-  elementId: string,
-  props: DataFlowProperties,
-  errors: ValidationFinding[],
-  warnings: ValidationFinding[],
-): void {
-  // C6r: read is store → actor (direct passive-storage access), never req/resp.
-  if (props.direction === "requestresponse") {
-    errors.push({
-      key: ValidationMessages.DF_PROP_READ_IS_REQRESP,
-      displayId,
-      elementId,
-      params: { detail },
-    });
-  }
 }
 
 function checkStream(
@@ -319,7 +243,6 @@ function checkStream(
   detail: string,
   elementId: string,
   props: DataFlowProperties,
-  errors: ValidationFinding[],
   warnings: ValidationFinding[],
 ): void {
   // C3
@@ -329,16 +252,6 @@ function checkStream(
       displayId,
       elementId,
       params: { detail: `${detail} [${props.frequency}]` },
-    });
-  }
-
-  // C8
-  if (props.direction === "requestresponse") {
-    warnings.push({
-      key: ValidationMessages.DF_PROP_STREAM_IS_REQRESP,
-      displayId,
-      elementId,
-      params: { detail },
     });
   }
 }

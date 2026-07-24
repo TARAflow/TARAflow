@@ -133,12 +133,13 @@ export const PROCESS_TECH_DEFAULTS: Record<
     inputValidation: "strict",
     errorHandling: "sanitized",
   },
-  logic_module: {
-    authenticationRequired: "not_specified",
-    authorizationModel: "not_specified",
-    inputValidation: "not_specified",
-    errorHandling: "not_specified",
-  },
+  // No fields cascaded: unlike embedded technologies (worst-case defaults)
+  // and OS technologies (concrete cascaded values), a logic_module can be
+  // security-critical (e.g. an auth handler) or not — the analyst must
+  // choose explicitly. "not_specified" was tried here but isn't a real
+  // MenuItem value in any of these four Selects (they use "" for unset),
+  // so leaving the object empty is the correct way to leave fields undefined.
+  logic_module: {},
   // Embedded / RTOS / Bare-metal defaults
   rtos_task: {
     authenticationRequired: "no",
@@ -238,7 +239,12 @@ export function isNoOsTechnology(
 export function isRunsAsApplicable(
   props: Pick<ProcessProperties, "technology" | "processSemantic">,
 ): boolean {
-  if (isNoOsTechnology(props.technology)) return false;
+  // processSemantic is only meaningful for no-OS technologies (the form only
+  // shows the field then, via isProcessSemanticChoiceApplicable — same
+  // predicate). A stored processSemantic on an OS technology is stale data
+  // (e.g. left over from switching technology away from a no-OS value) and
+  // must not gate runsAs.
+  if (!isNoOsTechnology(props.technology)) return true;
   return !props.processSemantic || props.processSemantic === "execution_unit";
 }
 
@@ -798,7 +804,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
 > = {
   // ── IT / Cloud ────────────────────────────────────────────────────────────
   https: {
-    direction: "requestresponse",
     endpointAuthentication: "token",
     encryptionInTransit: "tls",
     integrityProtection: "hmac",
@@ -806,7 +811,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataClassification: "internal",
   },
   grpc: {
-    direction: "requestresponse",
     endpointAuthentication: "certificate",
     encryptionInTransit: "tls",
     integrityProtection: "hmac",
@@ -814,7 +818,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataClassification: "internal",
   },
   http: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -822,7 +825,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataClassification: "internal",
   },
   mqtt: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -830,23 +832,19 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "telemetry",
   },
   amqp: {
-    direction: "unidirectional",
     endpointAuthentication: "token",
     encryptionInTransit: "none",
     integrityProtection: "none",
     frequency: "event_based",
     messageType: "telemetry",
   },
-  // websocket uses "unidirectional" to avoid triggering validator C7
   websocket: {
-    direction: "unidirectional",
     endpointAuthentication: "token",
     encryptionInTransit: "tls",
     integrityProtection: "hmac",
     frequency: "continuous",
   },
   file: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -854,17 +852,22 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "log_audit",
   },
   database: {
-    direction: "requestresponse",
     endpointAuthentication: "certificate",
     encryptionInTransit: "none",
     integrityProtection: "none",
     frequency: "ondemand",
     dataClassification: "confidential",
   },
-
+  in_process_call: {
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "none",
+    frequency: "ondemand",
+    messageType: "command",
+    location: "in_process", // cascade the matching location automatically
+  },
   // ── Embedded bus (no auth, no encryption — IEC 62443 baseline risk) ────
   can: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // CAN frame CRC — not cryptographic
@@ -872,7 +875,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   modbus_rtu: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // Modbus RTU frame CRC — not cryptographic
@@ -882,7 +884,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataMinimization: "none",
   },
   modbus_tcp: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none", // No CRC in Modbus/TCP — relies on TCP checksum only
@@ -892,7 +893,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataMinimization: "none",
   },
   modbus_sec: {
-    direction: "requestresponse",
     endpointAuthentication: "certificate",
     encryptionInTransit: "tls",
     integrityProtection: "hmac",
@@ -902,25 +902,21 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataMinimization: "none",
   },
   uart: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
   },
   spi: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
   },
   i2c: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
   },
   lin: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -930,7 +926,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
 
   // ── Fieldbus (no auth, no encryption — IEC 62443 baseline gap) ───────────
   profibus: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // PROFIBUS frame CRC-16 — not cryptographic
@@ -938,7 +933,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   foundation_fieldbus: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -946,7 +940,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   dnp3: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // DNP3 CRC-16 per block — not cryptographic
@@ -954,28 +947,24 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "status",
   },
   controlnet: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
     frequency: "periodic",
   },
   devicenet: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // DeviceNet CRC-16 — not cryptographic
     frequency: "periodic",
   },
   ethernet_ip: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // Ethernet FCS CRC-32 — not cryptographic
     frequency: "periodic",
   },
   profinet: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // Ethernet FCS CRC-32 — not cryptographic
@@ -983,7 +972,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   hart: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -991,14 +979,12 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   lontalk: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
     frequency: "periodic",
   },
   bacnet: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // BACnet MS/TP CRC-8/CRC-16 — not cryptographic
@@ -1006,7 +992,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   bacnet_ip: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc", // Ethernet FCS CRC-32 — not cryptographic
@@ -1014,7 +999,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   hart_ip: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1022,7 +1006,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   opc_da: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1032,7 +1015,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     dataMinimization: "none",
   },
   canopen: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "crc",
@@ -1040,7 +1022,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   s7comm: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1049,7 +1030,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     accessMode: "read_write",
   },
   iec61850: {
-    direction: "requestresponse",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1059,7 +1039,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
 
   // ── Secure OT ─────────────────────────────────────────────────────────────
   opc_ua: {
-    direction: "requestresponse",
     endpointAuthentication: "certificate",
     encryptionInTransit: "tls",
     integrityProtection: "hmac",
@@ -1072,7 +1051,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   // ── Wireless ──────────────────────────────────────────────────────────────
   // WirelessHART (IEC 62591): AES-128 CBC mandatory, network-layer joining keys
   wireless_hart: {
-    direction: "unidirectional",
     endpointAuthentication: "symmetric_key",
     encryptionInTransit: "custom",
     integrityProtection: "hmac",
@@ -1081,7 +1059,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   },
   // ISA 100.11a: AES-128 CCM mandatory, device certificates optional
   isa100: {
-    direction: "unidirectional",
     endpointAuthentication: "symmetric_key",
     encryptionInTransit: "custom",
     integrityProtection: "hmac",
@@ -1090,7 +1067,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   },
   // ZigBee (IEEE 802.15.4): optional AES-128 — defaults to none to surface risk
   zigbee: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1101,7 +1077,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   // No auth, no encryption — physical access is the primary attack vector.
   // safetyFunction cascaded only where semantically unambiguous.
   digital_io: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1111,7 +1086,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "status",
   },
   dry_contact: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1122,7 +1096,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     safetyFunction: "safety_gate",
   },
   relay_output: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1133,7 +1106,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     safetyFunction: "emergency_stop",
   },
   analog_voltage: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1143,7 +1115,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   analog_current: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1153,7 +1124,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   pulse: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1163,7 +1133,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     messageType: "measurement",
   },
   pwm: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1178,7 +1147,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   // transport. No endpoint auth / encryption applies — protection against
   // unauthorized local operation lives on the target process, not the edge.
   human_input: {
-    direction: "unidirectional",
     endpointAuthentication: "none",
     encryptionInTransit: "none",
     integrityProtection: "none",
@@ -1191,7 +1159,6 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
 
 /** Fields driven by DataFlow.protocol — cleared on driver reset, then new defaults applied. */
 export const DATAFLOW_PROTOCOL_DRIVEN_FIELDS: (keyof DataFlowProperties)[] = [
-  "direction",
   "endpointAuthentication",
   "encryptionInTransit",
   "integrityProtection",
@@ -1921,4 +1888,3 @@ export const ACTUATOR_DEFAULTS: Partial<ActuatorProperties> = {
   hardwareInterlock: "none",
   // safetyRelevant: left undefined (= unassessed) → validator finding
 };
-

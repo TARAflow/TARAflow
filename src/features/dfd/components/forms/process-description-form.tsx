@@ -142,10 +142,22 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
           onChange({ properties: newProps });
           return;
         }
+        
+        const newTech = value as ProcessProperties["technology"];
+        const wasNoOs = isNoOsTechnology(currentProps.technology);
+        const willBeNoOs = isNoOsTechnology(newTech);
+
+        const baseProps =
+          wasNoOs && !willBeNoOs
+            ? {
+                ...currentProps,
+                processSemantic: undefined,
+                failSafeOutputState: undefined,
+              }
+            : currentProps;
+
         onChange({
-          properties: getProcessDefaults(currentProps, {
-            technology: value as ProcessProperties["technology"],
-          }),
+          properties: getProcessDefaults(baseProps, { technology: newTech }),
         });
         return;
       }

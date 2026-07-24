@@ -876,6 +876,12 @@ export type Protocol =
   | "websocket"
   | "file"
   | "database"
+  // ── In-Process ───────────────────────────────────────────────────────────
+  // Direct function/method call or callback between logic_modules in the same
+  // OS process/isolate. No network transport, so network-cyber threats
+  // (encryption-in-transit, MITM) do not apply — same reasoning as human_input.
+  // Threat focus: parameter/input validation, shared-state tampering.
+  | "in_process_call"
   // ── Embedded bus ─────────────────────────────────────────────────────────
   | "can" // CAN bus — no auth, no encryption
   | "lin" // LIN bus — no auth, no encryption
@@ -968,7 +974,6 @@ export type DataFlowMedium = "logical" | "physical";
 
 export interface DataFlowProperties {
   protocol?: Protocol;
-  direction?: "unidirectional" | "bidirectional" | "requestresponse";
 
   /**
    * Transmission frequency pattern.
@@ -1145,6 +1150,9 @@ export interface DataFlowProperties {
     | "enterprise_network"
     | "wireless_local"
     | "internet"
+    | "in_process" // Within the same OS process/isolate address space —
+    // distinct from on_chip (physical bus between separate
+    // chips on the same board). No physical medium at all.
     | "custom";
 
   /**
