@@ -31,7 +31,7 @@ import { useElementForm } from "../../hooks/use-element-form";
 import {
   updateProcessProperties,
   getProcessDefaults,
-  isEmbeddedTechnology,
+  isNoOsTechnology,
 } from "../../models/element-property-defaults";
 
 interface ProcessFormProps {
@@ -103,7 +103,7 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
   const form = useElementForm<ProcessProperties>(element, onChange);
   const { props } = form;
 
-  const isEmbedded = isEmbeddedTechnology(props.technology);
+  const isEmbedded = isNoOsTechnology(props.technology);
 
   const handlePropertyChange = useCallback(
     (field: keyof ProcessProperties, value: unknown) => {
@@ -214,6 +214,15 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
                   )}
                 </MenuItem>
               ))}
+              <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                — In-Process Module —
+              </MenuItem>
+              <MenuItem value="logic_module">
+                {t(
+                  "tabs.dfd.element_description.process.fields.technology.options.logic_module",
+                  { defaultValue: "Logic Module" },
+                )}
+              </MenuItem>
               <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
                 — Embedded / RTOS —
               </MenuItem>

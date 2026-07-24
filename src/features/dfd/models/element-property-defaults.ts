@@ -133,6 +133,12 @@ export const PROCESS_TECH_DEFAULTS: Record<
     inputValidation: "strict",
     errorHandling: "sanitized",
   },
+  logic_module: {
+    authenticationRequired: "not_specified",
+    authorizationModel: "not_specified",
+    inputValidation: "not_specified",
+    errorHandling: "not_specified",
+  },
   // Embedded / RTOS / Bare-metal defaults
   rtos_task: {
     authenticationRequired: "no",
@@ -189,14 +195,18 @@ export const PROCESS_TECH_DEFAULTS: Record<
 
 /**
  * Process technologies that run WITHOUT an OS user/account model
- * (bare-metal, RTOS task, kernel/ISR/driver, bootloader, protocol stack).
+ * (bare-metal, RTOS task, kernel/ISR/driver, bootloader, protocol stack,
+ * in-process logic modules of a monolithic application).
  *
- * Single source of truth for "is this an embedded/no-OS process". The Process
- * form gates its embedded UI section on this (and disables `runsAs`); the
- * validator skips the `runsAs` requirement via isRunsAsApplicable. Import from
- * here in BOTH so the form's disabled-state and the validator can never drift.
+ * Single source of truth for "is this a no-OS-isolation process" — NOT
+ * restricted to embedded hardware; "logic_module" (e.g. an in-app auth
+ * handler) belongs here for the same reason: no OS-enforced isolation.
+ * The Process form gates its no-OS UI section on this (and disables
+ * `runsAs`); the validator skips the `runsAs` requirement via
+ * isRunsAsApplicable. Import from here in BOTH so the form's
+ * disabled-state and the validator can never drift.
  */
-export const EMBEDDED_TECHNOLOGIES: ReadonlySet<
+export const NO_OS_TECHNOLOGIES: ReadonlySet<
   NonNullable<ProcessProperties["technology"]>
 > = new Set([
   "rtos_task",
@@ -206,37 +216,39 @@ export const EMBEDDED_TECHNOLOGIES: ReadonlySet<
   "bootloader",
   "driver",
   "protocol_stack",
+  "logic_module",
 ]);
 
-/** Embedded / no-OS technology? (undefined technology → false). */
-export function isEmbeddedTechnology(
+/** No-OS-isolation technology? (undefined technology → false). */
+export function isNoOsTechnology(
   technology: ProcessProperties["technology"] | undefined,
 ): boolean {
-  return technology != null && EMBEDDED_TECHNOLOGIES.has(technology);
+  return technology != null && NO_OS_TECHNOLOGIES.has(technology);
 }
 
 /**
  * Whether the `runsAs` field applies to a Process. False for:
- *   - embedded / no-OS technologies (see EMBEDDED_TECHNOLOGIES), and
+ *   - no-OS-isolation technologies (see NO_OS_TECHNOLOGIES), and
  *   - non-OS process semantics: functional_block (bare-metal logic / ISR /
- *     state machine) and security_boundary (HSM / OP-TEE TA isolated execution).
+ *     state machine / in-process module) and security_boundary
+ *     (HSM / OP-TEE TA isolated execution).
  * The form disables the field exactly when this returns false; the validator
  * must not require runsAs in that case.
  */
 export function isRunsAsApplicable(
   props: Pick<ProcessProperties, "technology" | "processSemantic">,
 ): boolean {
-  if (isEmbeddedTechnology(props.technology)) return false;
+  if (isNoOsTechnology(props.technology)) return false;
   return !props.processSemantic || props.processSemantic === "execution_unit";
 }
 
 /**
  * Whether the analyst must explicitly CHOOSE a processSemantic.
  *
- * Only embedded / no-OS technologies expose the meaningful choice between
- * functional_block (bare-metal logic / ISR / state machine) and
- * security_boundary (HSM / OP-TEE TA isolated execution). For OS technologies
- * the semantic is implicitly execution_unit — cascaded via
+ * Only no-OS-isolation technologies expose the meaningful choice between
+ * functional_block (bare-metal logic / ISR / state machine / in-process
+ * module) and security_boundary (HSM / OP-TEE TA isolated execution). For
+ * OS technologies the semantic is implicitly execution_unit — cascaded via
  * PROCESS_TECH_DEFAULTS — and the form hides the field.
  *
  * Import in BOTH the form (field visibility) and the validator (requirement)
@@ -245,7 +257,7 @@ export function isRunsAsApplicable(
 export function isProcessSemanticChoiceApplicable(
   technology: ProcessProperties["technology"] | undefined,
 ): boolean {
-  return isEmbeddedTechnology(technology);
+  return isNoOsTechnology(technology);
 }
 
 // ==================== MULTIPROCESS DEFAULTS ====================
@@ -1909,3 +1921,4 @@ export const ACTUATOR_DEFAULTS: Partial<ActuatorProperties> = {
   hardwareInterlock: "none",
   // safetyRelevant: left undefined (= unassessed) → validator finding
 };
+

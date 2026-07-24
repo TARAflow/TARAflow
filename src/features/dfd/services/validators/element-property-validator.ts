@@ -114,7 +114,8 @@ function missingProp(element: DFDElement, field: string): ValidationFinding {
  *
  * runsAs is only meaningful when an OS process context exists.
  * When processSemantic === "functional_block", the element represents a
- * bare-metal logic block, ISR, or state machine — there is no OS, no
+ * bare-metal logic block, ISR, state machine, or in-process app/cloud
+ * module (logic_module) — there is no OS, no
  * privilege separation, and no applicable runsAs value. The field is
  * disabled in the UI for this semantic; do not warn about it.
  *

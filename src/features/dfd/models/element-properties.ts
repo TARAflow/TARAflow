@@ -89,6 +89,9 @@ export interface ProcessProperties {
     | "database"
     | "cron"
     | "iot"
+    // Platform-agnostic: mobile app internal module, desktop/PC single-application
+    // module, embedded-Linux internal module, etc.
+    | "logic_module"
     // Embedded / RTOS / Bare-metal
     | "rtos_task" // RTOS task (FreeRTOS, Zephyr, ThreadX)
     | "bare_metal" // Bare-metal logic block / main loop
@@ -103,7 +106,8 @@ export interface ProcessProperties {
    * Separates implementation type (technology) from modelling intent.
    *
    * execution_unit:   OS process, RTOS task, thread — OS-enforced isolation
-   * functional_block: Logical responsibility unit — no OS isolation (bare-metal, ISR)
+   * functional_block: Logical responsibility unit — no OS isolation
+   *                    (bare-metal, ISR, in-process app/cloud module)
    * security_boundary: Explicit security enforcement point (HSM, OP-TEE TA, Crypto Engine)
    */
   processSemantic?: "execution_unit" | "functional_block" | "security_boundary";

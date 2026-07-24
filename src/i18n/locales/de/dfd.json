@@ -520,6 +520,7 @@
                 "database": "Database Service",
                 "cron": "Scheduled Task (Cron)",
                 "iot": "IoT System",
+                "logic_module": "Logik-Modul",
                 "rtos_task": "RTOS Task (FreeRTOS, Zephyr, ThreadX)",
                 "bare_metal": "Bare-metal Logic Block",
                 "isr": "Interrupt Service Routine (ISR)",
