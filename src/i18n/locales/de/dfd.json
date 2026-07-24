@@ -1332,6 +1332,7 @@
                 "wireless_hart": "WirelessHART (IEC 62591)",
                 "isa100": "ISA 100.11a",
                 "zigbee": "ZigBee (IEEE 802.15.4)",
+                "bluetooth": "Bluetooth (Classic/BLE)",
                 "digital_io": "Digital I/O",
                 "dry_contact": "Dry Contact / Relay",
                 "relay_output": "Relay Output",

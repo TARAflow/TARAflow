@@ -914,6 +914,9 @@ export type Protocol =
   | "wireless_hart" // WirelessHART (IEC 62591) — AES-128 mandatory
   | "isa100" // ISA 100.11a — AES-128 mandatory
   | "zigbee" // ZigBee (IEEE 802.15.4) — optional AES-128
+  | "bluetooth" // Bluetooth Classic / BLE — pairing/encryption strength varies
+  // by mode (Just Works vs. LE Secure Connections); defaults
+  // to worst case, same reasoning as zigbee
   // ── Electrical / Hardwired IO ─────────────────────────────────────────────
   | "digital_io" // Generic discrete I/O — no auth, physical access required
   | "dry_contact" // Potential-free contact / relay — safety-relevant

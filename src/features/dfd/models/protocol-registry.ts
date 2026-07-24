@@ -73,6 +73,7 @@ export const PROTOCOL_META: Record<
   wireless_hart: { group: "wireless", labelKey: "wireless_hart" },
   isa100: { group: "wireless", labelKey: "isa100" },
   zigbee: { group: "wireless", labelKey: "zigbee" },
+  bluetooth: { group: "wireless", labelKey: "bluetooth", riskLevel: "medium" },
 
   // ── Electrical / Hardwired IO ─────────────────────────────────────────────
   digital_io: {

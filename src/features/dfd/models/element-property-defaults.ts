@@ -1072,6 +1072,15 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
     integrityProtection: "none",
     frequency: "event_based",
   },
+  // Bluetooth Classic / BLE: pairing strength varies by mode — defaults to
+  // none to surface risk, same reasoning as zigbee.
+  bluetooth: {
+    endpointAuthentication: "none",
+    encryptionInTransit: "none",
+    integrityProtection: "none",
+    frequency: "periodic",
+    messageType: "measurement",
+  },
 
   // ── Electrical / Hardwired IO ─────────────────────────────────────────────
   // No auth, no encryption — physical access is the primary attack vector.
