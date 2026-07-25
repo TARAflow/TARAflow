@@ -34,10 +34,8 @@ import {
   calculateRiskLevel,
 } from "../models/attacktree-types";
 import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
-import {
-  useAttackTreePathColumns,
-  getPathRowBackground,
-} from "./attacktree-path-columns";
+import { useAttackTreePathColumns } from "./attacktree-path-columns";
+import { FEASIBILITY_RANK } from "../models/attacktree-feasibility-types";
 
 // ==================== TYPES ====================
 
@@ -65,7 +63,7 @@ interface AttackTreeTableViewProps {
   onAssessmentsChange?: (next: AttackPathAssessment[]) => void;
 }
 
-type SortField = "path" | "risk" | "mitigations";
+type SortField = "feasibility" | "path" | "risk" | "mitigations";
 type SortOrder = "asc" | "desc";
 
 // ==================== COMPONENT ====================
@@ -83,7 +81,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("all");
-  const [sortField, setSortField] = useState<SortField>("risk");
+  const [sortField, setSortField] = useState<SortField>("feasibility");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const columns = useAttackTreePathColumns({
@@ -117,6 +115,20 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
     filtered.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
+        case "feasibility": {
+          // Most feasible first — the row order now carries what the colour
+          // used to. Unrated paths (no level) sort to the bottom.
+          const ra =
+            a.feasibilityLevel !== undefined
+              ? FEASIBILITY_RANK[a.feasibilityLevel]
+              : -1;
+          const rb =
+            b.feasibilityLevel !== undefined
+              ? FEASIBILITY_RANK[b.feasibilityLevel]
+              : -1;
+          comparison = ra - rb;
+          break;
+        }
         case "path":
           comparison = a.path.join(" > ").localeCompare(b.path.join(" > "));
           break;
@@ -223,6 +235,18 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
               setSortOrder(order as SortOrder);
             }}
           >
+            <MenuItem value="feasibility:desc">
+              {t("attacktree:tabs.attacktree.tableview.feasibility", {
+                defaultValue: "Feasibility",
+              })}{" "}
+              ↓
+            </MenuItem>
+            <MenuItem value="feasibility:asc">
+              {t("attacktree:tabs.attacktree.tableview.feasibility", {
+                defaultValue: "Feasibility",
+              })}{" "}
+              ↑
+            </MenuItem>
             <MenuItem value="risk:desc">
               {t("attacktree:tabs.attacktree.tableview.riskScore")} ↓
             </MenuItem>
@@ -277,7 +301,6 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
           rows={filteredPaths}
           columns={columns}
           getRowId={(path) => path.pathKey}
-          rowBackground={getPathRowBackground}
         />
       </Box>
 

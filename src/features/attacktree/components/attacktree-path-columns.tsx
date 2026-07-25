@@ -27,6 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { DataColumn, ThreatRelevanceRef } from "shared";
+import { RELEVANCE_COLORS } from "shared";
 import {
   AttackPath,
   EvaluationMethod,
@@ -35,32 +36,10 @@ import {
   calculateRiskLevel,
   getRiskScoreEmoji,
 } from "../models/attacktree-types";
-import type {
-  FeasibilityLevel,
-  LikelihoodModel,
-} from "../models/attacktree-feasibility-types";
+import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
 import type { AttackPathAssessment } from "../models/attacktree-types";
 import { setPathAssessment } from "../services/attacktree-threat-sync";
 import { strideCategoriesForPath } from "../services/attacktree-threat-generator";
-
-// ==================== ROW BACKGROUND ====================
-
-/**
- * Row tint by feasibility, mirroring the Risk table's tint by risk score:
- * same visual language, driven by the quantity this table is about.
- * An unrated path stays neutral — it must not read as "safe".
- */
-const FEASIBILITY_ROW_BG: Record<FeasibilityLevel, string> = {
-  "very-low": "#f0fdf4", // green
-  low: "#fefce8", // yellow
-  medium: "#fff7ed", // orange
-  high: "#fef2f2", // red
-};
-
-export function getPathRowBackground(path: AttackPath): string {
-  if (!path.feasibilityLevel) return "transparent";
-  return FEASIBILITY_ROW_BG[path.feasibilityLevel] ?? "transparent";
-}
 
 // ==================== OPTIONS ====================
 
@@ -96,17 +75,6 @@ const RELEVANCE_OPTIONS: ThreatRelevanceRef[] = [
   "not_relevant",
   "uncertain",
 ];
-
-/** Read-only rendering — confirmed stands out, unrated stays quiet. */
-const RELEVANCE_COLOR: Record<
-  ThreatRelevanceRef,
-  "default" | "success" | "warning"
-> = {
-  unrated: "default",
-  relevant: "success",
-  not_relevant: "default",
-  uncertain: "warning",
-};
 
 // ==================== HOOK ====================
 
@@ -214,7 +182,6 @@ export function useAttackTreePathColumns({
         </Tooltip>
       );
     },
-
     [mitigationLookup, t],
   );
 
@@ -388,6 +355,12 @@ export function useAttackTreePathColumns({
                         size="small"
                         exclusive
                         value={current}
+                        sx={{
+                          "& .Mui-selected": {
+                            color: "#fff !important",
+                            bgcolor: `${RELEVANCE_COLORS[current]} !important`,
+                          },
+                        }}
                         onChange={(_e, next) =>
                           onAssessmentsChange!(
                             setPathAssessment(
@@ -415,7 +388,14 @@ export function useAttackTreePathColumns({
                         label={relevanceLabel[current]}
                         size="small"
                         variant={current === "unrated" ? "outlined" : "filled"}
-                        color={RELEVANCE_COLOR[current]}
+                        sx={
+                          current === "unrated"
+                            ? undefined
+                            : {
+                                bgcolor: RELEVANCE_COLORS[current],
+                                color: "#fff",
+                              }
+                        }
                       />
                     )}
                   </Stack>

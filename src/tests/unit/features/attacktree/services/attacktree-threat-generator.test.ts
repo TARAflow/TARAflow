@@ -12,7 +12,7 @@
 //   - a `destruction` path emitting one threat that claims to be both T and D,
 //     which cannot be treated cleanly
 //   - a standalone tree contributing an asset-less entry nobody can attribute
-//   - the "cheapest path" wobbling between runs, so confirm decisions drift off
+//   - the emitted candidate set wobbling between runs, so confirm decisions drift off
 //     the paths they were made about
 
 import { describe, it, expect } from "vitest";
@@ -81,7 +81,7 @@ describe("generateThreatsFromAttackTree — the emitted threat", () => {
   it("emits a threat reference, not a Risk — that is the whole design", () => {
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(SIMPLE_TREE),
-      opts({ policy: "all" }),
+      opts(),
     );
 
     const threat = threats[0];
@@ -96,7 +96,7 @@ describe("generateThreatsFromAttackTree — the emitted threat", () => {
     // ATTACK_GOAL_TO_STRIDE: disclosure → I (information disclosure)
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(SIMPLE_TREE),
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats.every((t) => t.strideCategory === "I")).toBe(true);
@@ -105,7 +105,7 @@ describe("generateThreatsFromAttackTree — the emitted threat", () => {
   it("the attack chain becomes the attackDescription", () => {
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(SIMPLE_TREE),
-      opts({ policy: "all" }),
+      opts(),
     );
 
     const exploit = threats.find((t) => t.attackDescription.includes("Exploit API"))!;
@@ -116,7 +116,7 @@ describe("generateThreatsFromAttackTree — the emitted threat", () => {
   it("carries the path's mitigations as drafts", () => {
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(SIMPLE_TREE),
-      opts({ policy: "all" }),
+      opts(),
     );
 
     const exploit = threats.find((t) => t.attackDescription.includes("Exploit API"))!;
@@ -126,7 +126,7 @@ describe("generateThreatsFromAttackTree — the emitted threat", () => {
   it("links the anchor's asset", () => {
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(SIMPLE_TREE),
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats[0].linkedAssetIds).toEqual(["A-001"]);
@@ -142,7 +142,7 @@ describe("generateThreatsFromAttackTree — the emitted threat", () => {
 
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       tree,
-      opts({ policy: "all" }),
+      opts(),
     );
 
     const exploit = threats.find((t) => t.attackDescription.includes("Exploit API"))!;
@@ -169,7 +169,7 @@ describe("one path × one STRIDE category = one threat", () => {
 
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       tree,
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats).toHaveLength(2);
@@ -186,7 +186,7 @@ describe("one path × one STRIDE category = one threat", () => {
 
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       tree,
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats.map((t) => t.id).sort()).toEqual(
@@ -203,7 +203,7 @@ describe("one path × one STRIDE category = one threat", () => {
 
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       tree,
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats).toHaveLength(1);
@@ -216,10 +216,7 @@ describe("one path × one STRIDE category = one threat", () => {
     const tree = makeTree(["Root [A-001];ROOT", "\tLeaf;p=0.8,i=3"].join("\n"));
 
     const { threats, suppressedPaths } =
-      attackTreeThreatGenerator.generateThreatsFromAttackTree(
-        tree,
-        opts({ policy: "all" }),
-      );
+      attackTreeThreatGenerator.generateThreatsFromAttackTree(tree, opts());
 
     expect(threats).toEqual([]);
     expect(suppressedPaths).toHaveLength(1);
@@ -241,7 +238,7 @@ describe("asset anchoring is required (ISO 3.1.33)", () => {
 
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       tree,
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats).toEqual([]);
@@ -255,7 +252,7 @@ describe("asset anchoring is required (ISO 3.1.33)", () => {
 
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       tree,
-      opts({ policy: "all" }),
+      opts(),
     );
 
     expect(threats).toEqual([]);
@@ -265,19 +262,16 @@ describe("asset anchoring is required (ISO 3.1.33)", () => {
     const tree = makeTree(SIMPLE_TREE, { type: "threat", threatId: "T-001" });
 
     expect(
-      attackTreeThreatGenerator.generateThreatsFromAttackTree(
-        tree,
-        opts({ policy: "all" }),
-      ).threats,
+      attackTreeThreatGenerator.generateThreatsFromAttackTree(tree, opts())
+        .threats,
     ).toEqual([]);
   });
 });
 
-// ──────────────────────────────────────────────────────────────────────────
-// Emission policy
+// Emission: every rated path is a candidate
 // ──────────────────────────────────────────────────────────────────────────
 
-describe("emission policy", () => {
+describe("emission — every rated path is a candidate", () => {
   const TWO_GOALS = [
     "Attack Config [A-001];ROOT @disclosure",
     "\tRead Path;OR",
@@ -288,59 +282,46 @@ describe("emission policy", () => {
     "\t\tHard Write;p=0.1,i=4",
   ].join("\n");
 
-  it("'all' emits every rated path", () => {
+  it("emits every rated path — easy AND hard, both goals", () => {
+    // The tool no longer picks a route per goal. All four leaves are rated, so
+    // all four are candidates; the analyst dismisses the ones that are not
+    // real, rather than the generator hiding them (attacktree-ui-rework §6).
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(TWO_GOALS),
-      opts({ policy: "all" }),
+      opts(),
     );
 
+    expect(threats.some((t) => /Easy/.test(t.attackDescription))).toBe(true);
+    expect(threats.some((t) => /Hard/.test(t.attackDescription))).toBe(true);
+    // Nothing is suppressed for "not being the cheapest" any more; the only
+    // suppressions left are unrated / no-goal / negligible-benefit.
     expect(threats.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("REGRESSION: 'cheapest-per-goal' keeps the count bounded — one route per goal", () => {
-    // A realistic tree has 20–50 leaves. Emitting all of them would bury the
-    // analyst without adding scenarios. 15.8 NOTE 2 gives the MAXIMUM as the
-    // aggregation example: the attacker takes the easiest route.
+  it("REGRESSION: an equally-feasible sibling is never dropped", () => {
+    // This is the bug that retired the policy: cheapest-per-goal broke a tie by
+    // comparing pathKey strings, so one of two genuinely equivalent paths fell
+    // out of the register on nothing but alphabetical order. Both must survive.
+    const tied = [
+      "Steal [A-001];ROOT @disclosure",
+      "\tA;p=0.9,i=3",
+      "\tB;p=0.9,i=3",
+    ].join("\n");
+
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
-      makeTree(TWO_GOALS),
-      opts({ policy: "cheapest-per-goal" }),
+      makeTree(tied),
+      opts(),
     );
 
-    // The easy paths win; the hard ones are documented but not emitted.
-    expect(
-      threats.every((t) => /Easy/.test(t.attackDescription)),
-    ).toBe(true);
-    expect(threats.some((t) => /Hard/.test(t.attackDescription))).toBe(false);
+    const described = threats.map((t) => t.attackDescription).join(" | ");
+    expect(described).toMatch(/\bA\b/);
+    expect(described).toMatch(/\bB\b/);
   });
 
-  it("'above-threshold' respects the feasibility floor", () => {
-    const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
-      makeTree(TWO_GOALS),
-      opts({ policy: "above-threshold", threshold: "high" }),
-    );
-
-    expect(threats.every((t) => /Easy/.test(t.attackDescription))).toBe(true);
-  });
-
-  it("non-emitted paths are REPORTED, not silently dropped", () => {
-    // Silence looks like absence. The report lists them as documented-but-not-
-    // risk-bearing, so an auditor sees the analysis was done.
-    const { suppressedPaths } =
-      attackTreeThreatGenerator.generateThreatsFromAttackTree(
-        makeTree(TWO_GOALS),
-        opts({ policy: "cheapest-per-goal" }),
-      );
-
-    expect(suppressedPaths.length).toBeGreaterThan(0);
-    expect(
-      suppressedPaths.some((s) => s.path.path.some((n) => /Hard/.test(n))),
-    ).toBe(true);
-  });
-
-  it("REGRESSION: the cheapest path is deterministic when several tie", () => {
-    // A wobbling "cheapest path" would change the emitted threat set between
-    // runs, and the analyst's confirm decisions would drift off the paths they
-    // were made about — defeating Phase 1's stable identity.
+  it("is deterministic — the candidate set is identical across runs", () => {
+    // Stable output still matters: the analyst's confirm decisions key on
+    // pathKey, so a wobbling candidate set would strand them. Determinism now
+    // comes from the deterministic parse, not from a tie-break.
     const tied = [
       "Steal [A-001];ROOT @disclosure",
       "\tA;p=0.9,i=3",
@@ -366,24 +347,21 @@ describe("emission policy", () => {
 // ──────────────────────────────────────────────────────────────────────────
 
 describe("unrated paths", () => {
-  it("REGRESSION: a path with no feasibility is NEVER emitted, under any policy", () => {
+  it("REGRESSION: a path with no feasibility is NEVER emitted", () => {
     // It would enter the register with no likelihood and sit there looking like
     // the safest thing in the project. The validator already warns about the
     // unrated leaf; the register must not paper over it by inventing a threat.
     const tree = makeTree(
-      ["Steal [A-001];ROOT @disclosure", "\tGate;OR", "\t\tUnrated;OR"].join("\n"),
+      ["Steal [A-001];ROOT @disclosure", "\tGate;OR", "\t\tUnrated;OR"].join(
+        "\n",
+      ),
     );
 
-    for (const policy of ["all", "cheapest-per-goal", "above-threshold"] as const) {
-      const { threats, suppressedPaths } =
-        attackTreeThreatGenerator.generateThreatsFromAttackTree(
-          tree,
-          opts({ policy, threshold: "very-low" }),
-        );
+    const { threats, suppressedPaths } =
+      attackTreeThreatGenerator.generateThreatsFromAttackTree(tree, opts());
 
-      expect(threats).toEqual([]);
-      expect(suppressedPaths[0].reason).toContain("not rated");
-    }
+    expect(threats).toEqual([]);
+    expect(suppressedPaths[0].reason).toContain("not rated");
   });
 });
 
@@ -402,7 +380,7 @@ describe("negligible benefit suppression (IEC 62443 mode only)", () => {
     // An attack nobody profits from is not a reasonably foreseeable scenario.
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(POINTLESS),
-      opts({ policy: "all", suppressNegligibleBenefit: true }),
+      opts({ suppressNegligibleBenefit: true }),
     );
 
     expect(threats.some((t) => /Pointless/.test(t.attackDescription))).toBe(false);
@@ -415,7 +393,7 @@ describe("negligible benefit suppression (IEC 62443 mode only)", () => {
     // "nobody would bother" reasoning the standard forecloses.
     const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(
       makeTree(POINTLESS),
-      opts({ policy: "all" }), // suppressNegligibleBenefit defaults to false
+      opts(), // suppressNegligibleBenefit defaults to false
     );
 
     expect(threats.some((t) => /Pointless/.test(t.attackDescription))).toBe(true);

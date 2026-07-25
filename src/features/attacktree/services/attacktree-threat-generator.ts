@@ -53,10 +53,6 @@ import type {
   PathAnalysis,
 } from "../models/attacktree-types";
 import { ATTACK_GOAL_TO_STRIDE } from "../models/attacktree-types";
-import {
-  FeasibilityLevel,
-  FEASIBILITY_RANK,
-} from "../models/attacktree-feasibility-types";
 import { buildAttackPathThreatId } from "./attacktree-path-identity";
 import type {
   MitigationDraftRef,
@@ -67,25 +63,26 @@ import type {
 // ==================== EMISSION POLICY ====================
 
 /**
- * Which attack paths become threat scenarios.
+ * Options controlling which paths become threat candidates.
  *
- * Lives in the ATTACK TREE config, not the Risk config: this decides what counts
- * as a threat scenario, which is a property of the path analysis. In the Risk
- * config a user could silently change the threat population without ever opening
- * the Attack Tree tab.
+ * There is no longer a selection POLICY: every rated path is a candidate, and
+ * the analyst confirms or dismisses each one in the path table. The tool used
+ * to pick one path per goal ("cheapest-per-goal"), but that made two mistakes —
+ * it decided which paths were threat scenarios, an analyst judgement; and its
+ * tie-break between equally-feasible paths fell back to comparing pathKey
+ * strings, silently dropping a genuinely equivalent path from the register.
+ * `collectAllThreats` already filters unrated and dismissed threats, so the
+ * gate exists downstream and does not need duplicating here. See
+ * attacktree-ui-rework-design.md §6.
+ *
+ * Kept in the ATTACK TREE config, not the Risk config: what may become a threat
+ * is a property of the path analysis; a Risk-config user must not be able to
+ * change the threat population without opening the Attack Tree tab.
  */
-export type PathEmissionPolicy =
-  | "cheapest-per-goal"
-  | "above-threshold"
-  | "all";
-
 export interface EmissionOptions {
-  policy: PathEmissionPolicy;
-  /** Only for "above-threshold". */
-  threshold?: FeasibilityLevel;
   /**
    * IEC 62443 / classic mode only. When set, paths whose attacker benefit is
-   * negligible are not emitted: an attack nobody profits from is not a
+   * negligible are not candidates: an attack nobody profits from is not a
    * reasonably foreseeable scenario. Never applied in ISO mode, where benefit
    * has no bearing on anything in the register (Cl. 3.1.29).
    */
@@ -93,11 +90,6 @@ export interface EmissionOptions {
 }
 
 export const DEFAULT_EMISSION_OPTIONS: EmissionOptions = {
-  // Backed by 15.8 NOTE 2, which gives the MAXIMUM as the example for
-  // aggregating the feasibility of several attack paths: the attacker takes the
-  // easiest route, so the cheapest path is the threat scenario.
-  policy: "cheapest-per-goal",
-  threshold: "medium",
   suppressNegligibleBenefit: false,
 };
 
@@ -124,73 +116,16 @@ function isEmittable(path: AttackPath, options: EmissionOptions): boolean {
   return true;
 }
 
-/** Select the paths that become threats, per the configured policy. */
+/**
+ * The paths eligible to become threat candidates: every rated path (minus
+ * negligible-benefit ones in 62443 mode). No ranking, no per-goal selection —
+ * the analyst decides which candidates are real in the path table.
+ */
 export function selectEmittablePaths(
   analysis: PathAnalysis,
   options: EmissionOptions = DEFAULT_EMISSION_OPTIONS,
 ): AttackPath[] {
-  const candidates = analysis.paths.filter((p) => isEmittable(p, options));
-
-  if (candidates.length === 0) return [];
-
-  switch (options.policy) {
-    case "all":
-      return candidates;
-
-    case "above-threshold": {
-      const floor = FEASIBILITY_RANK[options.threshold ?? "medium"];
-      return candidates.filter(
-        (p) => FEASIBILITY_RANK[p.feasibilityLevel!] >= floor,
-      );
-    }
-
-    case "cheapest-per-goal":
-    default: {
-      // One threat per (tree × attack goal): the most feasible route to that
-      // goal. Bounded threat count — a realistic tree has 20–50 leaves, and
-      // emitting all of them would bury the analyst without adding scenarios.
-      // The non-emitted paths stay documented in the tree and in the report.
-      const bestByGoal = new Map<string, AttackPath>();
-
-      for (const path of candidates) {
-        // A path may carry several goals along its chain; key on each, so a path
-        // that is the cheapest route to TWO goals is emitted for both.
-        const goals = path.attackGoals.length > 0 ? path.attackGoals : ["__none__"];
-
-        for (const goal of goals) {
-          const incumbent = bestByGoal.get(goal);
-
-          if (!incumbent) {
-            bestByGoal.set(goal, path);
-            continue;
-          }
-
-          const challengerRank = FEASIBILITY_RANK[path.feasibilityLevel!];
-          const incumbentRank = FEASIBILITY_RANK[incumbent.feasibilityLevel!];
-
-          if (challengerRank > incumbentRank) {
-            bestByGoal.set(goal, path);
-          } else if (challengerRank === incumbentRank) {
-            // Deterministic tie-break. A wobbling "cheapest path" would make the
-            // emitted threat set change between runs and defeat Phase 1's stable
-            // identity: the analyst's confirm decisions would drift.
-            if (
-              path.riskScore > incumbent.riskScore ||
-              (path.riskScore === incumbent.riskScore &&
-                path.pathKey.localeCompare(incumbent.pathKey) < 0)
-            ) {
-              bestByGoal.set(goal, path);
-            }
-          }
-        }
-      }
-
-      // De-duplicate: one path can win several goals.
-      const unique = new Map<string, AttackPath>();
-      bestByGoal.forEach((p) => unique.set(p.pathKey, p));
-      return [...unique.values()];
-    }
-  }
+  return analysis.paths.filter((p) => isEmittable(p, options));
 }
 
 // ==================== STRIDE MAPPING ====================
@@ -325,13 +260,17 @@ export function generateThreatsFromAttackTree(
   for (const path of tree.pathAnalysis.paths) {
     if (emittedKeys.has(path.pathKey)) continue;
 
+    // A path is non-emitted for exactly two reasons now that there is no
+    // selection policy: it is unrated, or (62443 mode) its attacker benefit is
+    // negligible. The final branch is unreachable but kept honest rather than
+    // asserting — a future emittability rule would surface here, not silently.
     suppressedPaths.push({
       path,
       reason: !path.feasibilityLevel
         ? "not rated"
         : options.suppressNegligibleBenefit && path.benefit === "negligible"
           ? "negligible attacker benefit"
-          : `not selected by policy "${options.policy}"`,
+          : "not emitted",
     });
   }
 

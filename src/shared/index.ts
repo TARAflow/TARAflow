@@ -80,6 +80,7 @@ export type {
   MitigationDraftRef,
   ThreatReference,
 } from "./models/threat-reference-types";
+export { RELEVANCE_COLORS } from "./models/threat-reference-types";
 
 export type { ControlInstance } from "./models/control-instance";
 

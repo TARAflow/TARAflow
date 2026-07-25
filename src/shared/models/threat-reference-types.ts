@@ -20,6 +20,20 @@ export type ThreatRelevanceRef =
   | "not_relevant"
   | "uncertain";
 
+/**
+ * The colour each relevance state is drawn in — green / red / orange for
+ * confirmed / dismissed / uncertain, grey for undecided. Lives beside the type
+ * (as STRIDE_COLORS lives beside StrideCategory) so every tab renders relevance
+ * identically. The Threat tab's own copy in features/threats/models is being
+ * replaced by an import of this.
+ */
+export const RELEVANCE_COLORS: Record<ThreatRelevanceRef, string> = {
+  unrated: "#9ca3af", // grey
+  relevant: "#16a34a", // green
+  not_relevant: "#dc2626", // red
+  uncertain: "#d97706", // orange
+};
+
 // ==================== MITIGATION DRAFT REF ====================
 
 /**

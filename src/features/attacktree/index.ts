@@ -123,7 +123,6 @@ export {
 } from "./services/attacktree-threat-generator";
 export type {
   EmissionOptions,
-  PathEmissionPolicy,
   AttackTreeThreatGenerationResult,
 } from "./services/attacktree-threat-generator";
 export { DEFAULT_EMISSION_OPTIONS } from "./services/attacktree-threat-generator";
