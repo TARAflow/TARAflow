@@ -102,7 +102,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     // Calculate tree layout
     const treeLayout = d3
       .tree<AttackTreeNode>()
-      .nodeSize([120, 180])
+      .nodeSize([180, 180])
       .separation((a, b) => (a.parent === b.parent ? 1 : 1.5));
 
     treeLayout(root);
@@ -182,12 +182,47 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
         }
       });
 
+    // Native browser tooltip on hover — no extra state/positioning needed,
+    // works for every node without a custom overlay component. <title> as
+    // the first child is standard SVG/accessibility practice.
+    nodeGroups.append("title").text((d) => {
+      const lines = [
+        d.data.name,
+        `${t("attacktree:tabs.attacktree.preview.type", {
+          defaultValue: "Type",
+        })}: ${d.data.type}`,
+      ];
+      if (d.data.attackGoal) {
+        lines.push(
+          `${t("attacktree:tabs.attacktree.preview.goal", {
+            defaultValue: "Goal",
+          })}: ${d.data.attackGoal}`,
+        );
+      }
+      if (d.data.riskScore !== undefined && d.data.riskScore > 0) {
+        const result = calculateRiskLevel(d.data.riskScore, evaluationMethod);
+        lines.push(
+          `${t("attacktree:tabs.attacktree.preview.score", {
+            defaultValue: "Score",
+          })}: ${d.data.riskScore.toFixed(1)} (${result.level})`,
+        );
+      }
+      if (d.data.mitigations.length > 0) {
+        lines.push(
+          `${t("attacktree:tabs.attacktree.preview.mitigations", {
+            defaultValue: "Mitigations",
+          })}: ${d.data.mitigations.join(", ")}`,
+        );
+      }
+      return lines.join("\n");
+    });
+
     // Node background
     nodeGroups
       .append("rect")
-      .attr("x", -55)
+      .attr("x", -85)
       .attr("y", -25)
-      .attr("width", 110)
+      .attr("width", 170)
       .attr("height", 50)
       .attr("rx", 8)
       .attr("ry", 8)
@@ -209,7 +244,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     // Node type badge
     nodeGroups
       .append("rect")
-      .attr("x", -55)
+      .attr("x", -85)
       .attr("y", -25)
       .attr("width", 35)
       .attr("height", 16)
@@ -218,7 +253,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
 
     nodeGroups
       .append("text")
-      .attr("x", -37)
+      .attr("x", -67)
       .attr("y", -13)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
@@ -230,7 +265,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     nodeGroups
       .filter((d) => Boolean(d.data.attackGoal))
       .append("rect")
-      .attr("x", 20)
+      .attr("x", 50)
       .attr("y", -25)
       .attr("width", 35)
       .attr("height", 16)
@@ -240,7 +275,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     nodeGroups
       .filter((d) => Boolean(d.data.attackGoal))
       .append("text")
-      .attr("x", 37)
+      .attr("x", 67)
       .attr("y", -13)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
@@ -256,7 +291,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
       .attr("text-anchor", "middle")
       .attr("font-size", "11px")
       .attr("font-weight", "500")
-      .text((d) => truncateText(d.data.name, 14));
+      .text((d) => truncateText(d.data.name, 24));
 
     // Risk score (for leaf nodes)
     nodeGroups
@@ -281,7 +316,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     nodeGroups
       .filter((d) => d.data.mitigations.length > 0)
       .append("circle")
-      .attr("cx", 50)
+      .attr("cx", 77)
       .attr("cy", -20)
       .attr("r", 8)
       .attr("fill", "#4caf50");
@@ -289,7 +324,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
     nodeGroups
       .filter((d) => d.data.mitigations.length > 0)
       .append("text")
-      .attr("x", 50)
+      .attr("x", 77)
       .attr("y", -16)
       .attr("text-anchor", "middle")
       .attr("font-size", "10px")
@@ -317,7 +352,7 @@ export const AttackTreePreview: React.FC<AttackTreePreviewProps> = ({
 
     svg.call(zoomBehavior);
     zoomRef.current = zoomBehavior;
-  }, [ast, evaluationMethod, highlightCriticalPath, onNodeSelect]);
+  }, [ast, evaluationMethod, highlightCriticalPath, onNodeSelect, t]);
 
   // Keep ref in sync with latest renderTree — allows resize handler to always
   // call the current version without re-registering the listener.

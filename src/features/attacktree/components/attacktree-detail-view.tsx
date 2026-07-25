@@ -45,11 +45,15 @@ import {
   getAnchorTypeIcon,
 } from "../models/attacktree-types";
 import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
+import { FEASIBILITY_RANK } from "../models/attacktree-feasibility-types";
 import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeTableView } from "./attacktree-tableview";
 import { AttackTreeThreatTable } from "./attacktree-threat-table";
-import { generateThreatsFromAttackTree } from "../services/attacktree-threat-generator";
+import {
+  generateThreatsFromAttackTree,
+  strideCategoriesForPath,
+} from "../services/attacktree-threat-generator";
 import { applyAssessmentsToThreats } from "../services/attacktree-threat-sync";
 
 export type DetailView = "editor" | "table";
@@ -91,6 +95,14 @@ export interface AttackTreeDetailViewProps {
    * updateTree, which reaches disk through the existing auto-save path.
    */
   onAssessmentsChange: (next: AttackPathAssessment[]) => void;
+
+  /**
+   * Threat-anchored trees only — persists AttackTree.primaryPathKey (see its
+   * doc comment). Same auto-save path as onAssessmentsChange. Undefined
+   * anchor.strideCategory (asset-anchored trees) means the Table view never
+   * shows the Primary column at all, so this is never called for them.
+   */
+  onSetPrimaryPath: (pathKey: string) => void;
 }
 
 // ==================== SELECTOR ====================
@@ -129,6 +141,7 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
     mitigationLookup,
     likelihoodModel,
     onAssessmentsChange,
+    onSetPrimaryPath,
   }) => {
     const { t } = useTranslation();
 
@@ -157,6 +170,32 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
     ]);
 
     const showThreatPanel = selectedTree.anchor.type === "asset";
+
+    // Threat-anchored only. Suggestion, never persisted: the most feasible
+    // path that actually reaches the anchor's own STRIDE effect, shown as a
+    // hint (outlined, "suggested" tooltip) until the analyst clicks it — see
+    // Juergen's ask to pre-highlight rather than auto-pick, so an existing
+    // project never silently gains a primaryPathKey it never had.
+    const suggestedPrimaryPathKey = React.useMemo(() => {
+      if (selectedTree.primaryPathKey) return undefined; // already decided
+      const stride = selectedTree.anchor.strideCategory;
+      if (!stride || !selectedTree.pathAnalysis) return undefined;
+
+      let best: { pathKey: string; rank: number } | undefined;
+      for (const path of selectedTree.pathAnalysis.paths) {
+        if (!path.feasibilityLevel) continue;
+        if (!strideCategoriesForPath(path).includes(stride)) continue;
+        const rank = FEASIBILITY_RANK[path.feasibilityLevel];
+        if (!best || rank > best.rank) {
+          best = { pathKey: path.pathKey, rank };
+        }
+      }
+      return best?.pathKey;
+    }, [
+      selectedTree.primaryPathKey,
+      selectedTree.anchor.strideCategory,
+      selectedTree.pathAnalysis,
+    ]);
 
     // ── Dividers ──────────────────────────────────────────────────────────
     const editorSplit = useSplitPercentResize({
@@ -228,9 +267,7 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
                 <ListSubheader key={`h-${label}`}>{label}</ListSubheader>,
                 ...groupTrees.map((tree) => (
                   <MenuItem key={tree.id} value={tree.id}>
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                    >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <span>{getAnchorTypeIcon(tree.anchor.type)}</span>
                       <span>{tree.name}</span>
                       {tree.validation?.isValid ? (
@@ -293,145 +330,155 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
             overflow: "hidden",
           }}
         >
-        {/* ── Content ─────────────────────────────────────────────────── */}
-        <Box
-          sx={{
-            flexBasis: showThreatPanel ? `${100 - threatPanelPercent}%` : "100%",
-            flexGrow: showThreatPanel ? 0 : 1,
-            flexShrink: 1,
-            minHeight: 0,
-            display: "flex",
-            overflow: "hidden",
-          }}
-        >
-          {detailView === "editor" ? (
-            <Box
-              ref={editorSplit.containerRef}
-              sx={{ display: "flex", width: "100%", minHeight: 0 }}
-            >
-              {/* Editor pane */}
+          {/* ── Content ─────────────────────────────────────────────────── */}
+          <Box
+            sx={{
+              flexBasis: showThreatPanel
+                ? `${100 - threatPanelPercent}%`
+                : "100%",
+              flexGrow: showThreatPanel ? 0 : 1,
+              flexShrink: 1,
+              minHeight: 0,
+              display: "flex",
+              overflow: "hidden",
+            }}
+          >
+            {detailView === "editor" ? (
               <Box
-                sx={{
-                  width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
-                  minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
-                  height: "100%",
-                  transition: editorSplit.isResizing ? "none" : "width 0.2s",
-                  borderRight: "1px solid",
-                  borderColor: "divider",
-                }}
+                ref={editorSplit.containerRef}
+                sx={{ display: "flex", width: "100%", minHeight: 0 }}
               >
-                <AttackTreeEditor
-                  dsl={localDsl}
-                  configuration={selectedTree.configuration}
-                  validation={validationErrors}
-                  collapsed={editorCollapsed}
-                  onDslChange={handleDslChange}
-                  onToggleCollapse={toggleEditorCollapsed}
-                />
-              </Box>
-
-              {/* Vertical drag handle — hidden while collapsed, since there is
-                  nothing to resize then. */}
-              {!editorCollapsed && (
+                {/* Editor pane */}
                 <Box
-                  onMouseDown={editorSplit.handleMouseDown}
                   sx={{
-                    width: "6px",
-                    flexShrink: 0,
-                    cursor: "col-resize",
-                    bgcolor: editorSplit.isResizing ? "primary.main" : "divider",
-                    "&:hover": { bgcolor: "primary.light" },
+                    width: editorCollapsed ? "40px" : `${editorWidthPercent}%`,
+                    minWidth: editorCollapsed ? "40px" : MIN_PANEL_WIDTH,
+                    height: "100%",
+                    transition: editorSplit.isResizing ? "none" : "width 0.2s",
+                    borderRight: "1px solid",
+                    borderColor: "divider",
                   }}
-                />
-              )}
+                >
+                  <AttackTreeEditor
+                    dsl={localDsl}
+                    configuration={selectedTree.configuration}
+                    validation={validationErrors}
+                    collapsed={editorCollapsed}
+                    onDslChange={handleDslChange}
+                    onToggleCollapse={toggleEditorCollapsed}
+                  />
+                </Box>
 
-              {/* Preview pane.
+                {/* Vertical drag handle — hidden while collapsed, since there is
+                  nothing to resize then. */}
+                {!editorCollapsed && (
+                  <Box
+                    onMouseDown={editorSplit.handleMouseDown}
+                    sx={{
+                      width: "6px",
+                      flexShrink: 0,
+                      cursor: "col-resize",
+                      bgcolor: editorSplit.isResizing
+                        ? "primary.main"
+                        : "divider",
+                      "&:hover": { bgcolor: "primary.light" },
+                    }}
+                  />
+                )}
+
+                {/* Preview pane.
                   minWidth: 0 is load-bearing, not tidiness: a flex item
                   defaults to min-width:auto and then refuses to shrink below
                   its content. The preview's own Table View contains the
                   DataTable, which carries a minWidth of ~700px — so without
                   this the pane could not be narrowed and the divider looked
                   dead in that mode while working fine in Tree View. */}
-              <Box
-                sx={{
-                  flexGrow: 1,
-                  minWidth: 0,
-                  height: "100%",
-                  overflow: "hidden",
-                }}
-              >
-                <AttackTreePreview
-                  ast={selectedTree.ast}
+                <Box
+                  sx={{
+                    flexGrow: 1,
+                    minWidth: 0,
+                    height: "100%",
+                    overflow: "hidden",
+                  }}
+                >
+                  <AttackTreePreview
+                    ast={selectedTree.ast}
+                    pathAnalysis={selectedTree.pathAnalysis}
+                    evaluationMethod={
+                      selectedTree.configuration.evaluationMethod
+                    }
+                    highlightCriticalPath={
+                      selectedTree.configuration.highlightCriticalPath
+                    }
+                    mitigationLookup={mitigationLookup}
+                    onNodeSelect={() => {}}
+                  />
+                </Box>
+              </Box>
+            ) : selectedTree.pathAnalysis &&
+              selectedTree.pathAnalysis.paths.length > 0 ? (
+              <Box sx={{ flexGrow: 1, minWidth: 0, minHeight: 0 }}>
+                <AttackTreeTableView
                   pathAnalysis={selectedTree.pathAnalysis}
                   evaluationMethod={selectedTree.configuration.evaluationMethod}
-                  highlightCriticalPath={
-                    selectedTree.configuration.highlightCriticalPath
-                  }
                   mitigationLookup={mitigationLookup}
-                  onNodeSelect={() => {}}
+                  likelihoodModel={likelihoodModel}
+                  treeId={selectedTree.id}
+                  assessments={selectedTree.pathAssessments ?? []}
+                  onAssessmentsChange={onAssessmentsChange}
+                  anchorStrideCategory={selectedTree.anchor.strideCategory}
+                  primaryPathKey={selectedTree.primaryPathKey}
+                  onSetPrimaryPath={onSetPrimaryPath}
+                  suggestedPrimaryPathKey={suggestedPrimaryPathKey}
                 />
               </Box>
-            </Box>
-          ) : selectedTree.pathAnalysis &&
-            selectedTree.pathAnalysis.paths.length > 0 ? (
-            <Box sx={{ flexGrow: 1, minWidth: 0, minHeight: 0 }}>
-              <AttackTreeTableView
-                pathAnalysis={selectedTree.pathAnalysis}
-                evaluationMethod={selectedTree.configuration.evaluationMethod}
-                mitigationLookup={mitigationLookup}
-                likelihoodModel={likelihoodModel}
-                treeId={selectedTree.id}
-                assessments={selectedTree.pathAssessments ?? []}
-                onAssessmentsChange={onAssessmentsChange}
-              />
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "100%",
-              }}
-            >
-              <Typography color="text.secondary">
-                {t("attacktree:tabs.attacktree.tab.noPathAnalysisAvailable")}
-              </Typography>
-            </Box>
-          )}
-        </Box>
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
+                }}
+              >
+                <Typography color="text.secondary">
+                  {t("attacktree:tabs.attacktree.tab.noPathAnalysisAvailable")}
+                </Typography>
+              </Box>
+            )}
+          </Box>
 
-        {/* ── Threat list — asset-anchored trees only ──────────────────── */}
-        {showThreatPanel && (
-          <>
-            <Box
-              onMouseDown={threatSplit.handleMouseDown}
-              sx={{
-                height: "6px",
-                flexShrink: 0,
-                cursor: "row-resize",
-                bgcolor: threatSplit.isResizing ? "primary.main" : "divider",
-                "&:hover": { bgcolor: "primary.light" },
-              }}
-            />
-            <Box
-              sx={{
-                flexBasis: `${threatPanelPercent}%`,
-                flexGrow: 0,
-                flexShrink: 1,
-                minHeight: 0,
-                overflow: "auto",
-              }}
-            >
-              <AttackTreeThreatTable
-                treeId={selectedTree.id}
-                threats={emittedThreats}
-                assessments={selectedTree.pathAssessments ?? []}
-                onAssessmentsChange={onAssessmentsChange}
+          {/* ── Threat list — asset-anchored trees only ──────────────────── */}
+          {showThreatPanel && (
+            <>
+              <Box
+                onMouseDown={threatSplit.handleMouseDown}
+                sx={{
+                  height: "6px",
+                  flexShrink: 0,
+                  cursor: "row-resize",
+                  bgcolor: threatSplit.isResizing ? "primary.main" : "divider",
+                  "&:hover": { bgcolor: "primary.light" },
+                }}
               />
-            </Box>
-          </>
-        )}
+              <Box
+                sx={{
+                  flexBasis: `${threatPanelPercent}%`,
+                  flexGrow: 0,
+                  flexShrink: 1,
+                  minHeight: 0,
+                  overflow: "auto",
+                }}
+              >
+                <AttackTreeThreatTable
+                  treeId={selectedTree.id}
+                  threats={emittedThreats}
+                  assessments={selectedTree.pathAssessments ?? []}
+                  onAssessmentsChange={onAssessmentsChange}
+                />
+              </Box>
+            </>
+          )}
         </Box>
       </Box>
     );
@@ -467,6 +514,12 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
     if (
       prev.selectedTree.pathAssessments !== next.selectedTree.pathAssessments
     ) {
+      return false;
+    }
+
+    // Same reasoning for the primary-path star — a click must show up
+    // immediately, not just after some unrelated prop happens to change.
+    if (prev.selectedTree.primaryPathKey !== next.selectedTree.primaryPathKey) {
       return false;
     }
 

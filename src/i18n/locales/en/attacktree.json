@@ -30,7 +30,9 @@
         "assessedCount_other": "{{count}} assessed",
         "completeTooltip": "Every enabled security goal of this asset has an attack tree.",
         "incompleteTooltip": "No attack tree yet for: {{goals}}. Add one with \"＋\" — anchor it to this asset and pick that security goal.",
-        "incompleteTooltipSync": "No attack tree yet for: {{goals}}. Use \"Sync from Assets\" to create the missing ones, or add one with \"＋\"."
+        "incompleteTooltipSync": "No attack tree yet for: {{goals}}. Use \"Sync from Assets\" to create the missing ones, or add one with \"＋\".",
+        "clickToRename": "Click to rename",
+        "deleteTreeGuardedMessage": "This tree has {{pathCount}} assessed path(s), which produced {{riskCount}} risk(s) in the Risk tab. Deleting the tree removes those decisions and risks. This cannot be undone."
       },
       "detail": {
         "editorView": "Editor",
@@ -50,7 +52,11 @@
         "max": "Max",
         "legend": "Legend:",
         "withMitigations": "With Mitigations",
-        "criticalPath": "Critical Path"
+        "criticalPath": "Critical Path",
+        "type": "Type",
+        "goal": "Goal",
+        "score": "Score",
+        "mitigations": "Mitigations"
       },
       "threatTable": {
         "unrated": "Unrated",
@@ -172,7 +178,13 @@
         "feasibility": "Feasibility",
         "sortBy": "Sort by",
         "noGoalHint": "No attack goal declared — this path cannot become a threat.",
-        "mitigationUnknown": "\"{{id}}\" is not in the mitigation catalogue. Either the id in the DSL is wrong, or the measure has not been created yet."
+        "mitigationUnknown": "\"{{id}}\" is not in the mitigation catalogue. Either the id in the DSL is wrong, or the measure has not been created yet.",
+        "showFilters": "Show filters",
+        "hideFilters": "Hide filters",
+        "primary": "Primary",
+        "primaryPathHint": "This path feeds the anchor threat's likelihood.",
+        "setPrimaryPathHint": "Make this the path that feeds the anchor threat's likelihood. Every other path to the same effect can then become its own threat once confirmed.",
+        "suggestedPrimaryPathHint": "Suggested: the most feasible path to this effect. Click to make it primary."
       },
       "validation": {
         "tara": {

@@ -42,6 +42,17 @@ export function calculateNodeRiskScore(
 ): number {
   // Leaf node with evaluation
   if (node.children.length === 0 && node.evaluation) {
+    // Read whichever evaluation the leaf ACTUALLY carries, rather than only
+    // the one `method` nominally expects. The parser accepts either syntax
+    // regardless of the tree's configured method (attacktree-parser.ts does
+    // not enforce it — only a validator warning flags the mismatch), so a
+    // leaf can legitimately carry `.extended` while the tree is configured
+    // "simple" (this is exactly what happens for every tree created via
+    // generateFromThreat, which defaults to "simple" while the analyst
+    // writes f,b,i leaves). Trusting `method` alone silently scored every
+    // such leaf as 0 — indistinguishable from "not rated". Preferring the
+    // nominal method when BOTH are somehow present keeps existing behaviour
+    // byte-identical for every correctly-configured tree.
     if (method === "simple" && node.evaluation.simple) {
       const { probability, impact } = node.evaluation.simple;
       return probability * impact * 5; // 0-25
@@ -50,6 +61,18 @@ export function calculateNodeRiskScore(
     if (method === "extended" && node.evaluation.extended) {
       const { feasibility, benefits, impact } = node.evaluation.extended;
       return feasibility * benefits * impact * 5; // 0-125
+    }
+
+    // Fallback: method/format mismatch — use what is actually there instead
+    // of silently returning 0.
+    if (node.evaluation.simple) {
+      const { probability, impact } = node.evaluation.simple;
+      return probability * impact * 5;
+    }
+
+    if (node.evaluation.extended) {
+      const { feasibility, benefits, impact } = node.evaluation.extended;
+      return feasibility * benefits * impact * 5;
     }
 
     return 0;
@@ -94,6 +117,17 @@ export function calculateNodeProbability(
 
     if (method === "extended" && node.evaluation.extended) {
       // For extended: probability = feasibility × benefits
+      const { feasibility, benefits } = node.evaluation.extended;
+      return feasibility * benefits;
+    }
+
+    // Same method/format-mismatch fallback as calculateNodeRiskScore above —
+    // use whichever evaluation is actually present.
+    if (node.evaluation.simple) {
+      return node.evaluation.simple.probability;
+    }
+
+    if (node.evaluation.extended) {
       const { feasibility, benefits } = node.evaluation.extended;
       return feasibility * benefits;
     }

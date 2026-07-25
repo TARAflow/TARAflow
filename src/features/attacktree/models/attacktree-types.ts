@@ -351,6 +351,14 @@ export interface AttackPathAssessment {
 export interface AttackTree {
   id: string;
   name: string;
+  /**
+   * Analyst-chosen override for the card/detail title (Phase 8 step 4).
+   * When set, treeDisplayTitle shows this verbatim instead of the derived
+   * title. The derived title (and `name`) are left untouched — this is a
+   * pure overlay, never written by anything but the rename action, so
+   * nothing (asset sync included) needs to guard against overwriting it.
+   */
+  customTitle?: string;
   description?: string;
   anchor: AttackTreeAnchor;
   dsl: string;
@@ -366,6 +374,17 @@ export interface AttackTree {
    * on the tree so it persists via the existing updateTree → auto-save path.
    */
   pathAssessments?: AttackPathAssessment[];
+  /**
+   * Threat-anchored trees ONLY. Opt-in split of "other routes to the same
+   * effect" (see attacktree-threat-generator.ts). Unset (default): every path
+   * feeds the anchor threat's likelihood via MAX aggregation, exactly as
+   * before this feature existed — no behaviour change for existing projects.
+   * Set: this path stays the one that feeds the anchor threat; every OTHER
+   * path that also realises anchor.strideCategory becomes its own threat
+   * candidate once confirmed, because a structurally different route usually
+   * needs a different mitigation and deserves its own register entry.
+   */
+  primaryPathKey?: string;
   likelihoodExport?: LikelihoodExport;
   created: string;
   lastModified: string;

@@ -30,7 +30,9 @@
         "assessedCount_other": "{{count}} bewertet",
         "completeTooltip": "Für jedes aktivierte Security Goal dieses Assets existiert ein Angriffsbaum.",
         "incompleteTooltip": "Noch kein Angriffsbaum für: {{goals}}. Lege einen über „＋\" an — verankert an diesem Asset, mit diesem Security Goal.",
-        "incompleteTooltipSync": "Noch kein Angriffsbaum für: {{goals}}. Nutze „Sync from Assets\", um die fehlenden zu erzeugen, oder lege einen über „＋\" an."
+        "incompleteTooltipSync": "Noch kein Angriffsbaum für: {{goals}}. Nutze „Sync from Assets\", um die fehlenden zu erzeugen, oder lege einen über „＋\" an.",
+        "clickToRename": "Klicken zum Umbenennen",
+        "deleteTreeGuardedMessage": "Dieser Tree hat {{pathCount}} bewertete(n) Pfad(e), aus denen {{riskCount}} Risk(s) im Risk-Tab entstanden sind. Beim Löschen des Trees verschwinden diese Entscheidungen und Risks. Das kann nicht rückgängig gemacht werden."
       },
       "detail": {
         "editorView": "Editor",
@@ -50,7 +52,11 @@
         "max": "Max",
         "legend": "Legende:",
         "withMitigations": "Mit Maßnahmen",
-        "criticalPath": "Kritischer Pfad"
+        "criticalPath": "Kritischer Pfad",
+        "type": "Typ",
+        "goal": "Ziel",
+        "score": "Score",
+        "mitigations": "Mitigationen"
       },
       "threatTable": {
         "unrated": "Offen",
@@ -140,7 +146,12 @@
         "feasibility": "Machbarkeit",
         "sortBy": "Sortieren nach",
         "noGoalHint": "Kein Angriffsziel deklariert — aus diesem Pfad kann keine Bedrohung entstehen.",
-        "mitigationUnknown": "„{{id}}\" steht nicht im Mitigation-Katalog. Entweder ist die ID im DSL falsch, oder die Maßnahme wurde noch nicht angelegt."
+        "mitigationUnknown": "„{{id}}\" steht nicht im Mitigation-Katalog. Entweder ist die ID im DSL falsch, oder die Maßnahme wurde noch nicht angelegt.",
+        "showFilters": "Filter einblenden",
+        "hideFilters": "Filter ausblenden",
+        "primary": "Primär",
+        "primaryPathHint": "Dieser Pfad speist die Likelihood des Anker-Threats.",
+        "setPrimaryPathHint": "Diesen Pfad zum Primär-Pfad machen, der die Likelihood des Anker-Threats speist. Jeder andere Pfad zum selben Effekt kann dann, sobald bestätigt, zu einem eigenen Threat werden."
       },
       "config": {
         "title": "Attack Tree Configuration",

@@ -153,8 +153,25 @@ function refForThreatTree(
   tree: AttackTree,
   levelToRiskScale: Record<FeasibilityLevel, number>,
 ): AttackTreeLikelihoodReference | null {
-  const agg = tree.pathAnalysis!.aggregatedLikelihoodLevel;
-  const mappedValue = mapLevel(agg, levelToRiskScale);
+  // Once a primary path is chosen (attacktree-threat-generator.ts), it alone
+  // drives the anchor threat's likelihood — every OTHER path that reaches the
+  // same effect became its own threat/risk (refsForAssetTree-style, via the
+  // secondary-threat branch) and must not ALSO count here, or the same
+  // evidence would be double-counted across two risks. Without a primary
+  // path (default, unset), fall back to the original MAX-over-all-paths
+  // behaviour — unchanged for every project that doesn't use this feature.
+  const primaryPath = tree.primaryPathKey
+    ? tree.pathAnalysis!.paths.find((p) => p.pathKey === tree.primaryPathKey)
+    : undefined;
+
+  const level = primaryPath
+    ? primaryPath.feasibilityLevel
+    : tree.pathAnalysis!.aggregatedLikelihoodLevel;
+  const component = primaryPath
+    ? (primaryPath.feasibility ?? primaryPath.probability ?? 0)
+    : (tree.pathAnalysis!.aggregatedLikelihood ?? 0);
+
+  const mappedValue = mapLevel(level, levelToRiskScale);
   if (mappedValue === undefined) return null; // no rated path → no contribution
 
   const threatId = tree.anchor.threatId!;
@@ -168,9 +185,11 @@ function refForThreatTree(
   return {
     riskId: threatId, // risk.threatId === anchor.threatId
     treeId: tree.id,
-    pathKey: "*aggregated*", // provenance: whole-tree max, not a single path
+    // provenance: which path drove the number — the primary path once one is
+    // chosen, otherwise the whole-tree max as before.
+    pathKey: primaryPath ? primaryPath.pathKey : "*aggregated*",
     strideCategory: stride,
-    likelihoodComponent: tree.pathAnalysis!.aggregatedLikelihood ?? 0,
+    likelihoodComponent: component,
     mappedValue,
   };
 }

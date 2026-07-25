@@ -25,8 +25,13 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
+  IconButton,
 } from "@mui/material";
-import type { DataColumn, ThreatRelevanceRef } from "shared";
+import {
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
+} from "@mui/icons-material";
+import type { DataColumn, StrideCategory, ThreatRelevanceRef } from "shared";
 import { RELEVANCE_COLORS } from "shared";
 import {
   AttackPath,
@@ -68,6 +73,25 @@ export interface AttackTreePathColumnsOptions {
   treeId?: string;
   assessments?: AttackPathAssessment[];
   onAssessmentsChange?: (next: AttackPathAssessment[]) => void;
+
+  /**
+   * Threat-anchored trees only — lets the analyst pick which path keeps
+   * feeding the anchor threat's likelihood, so every OTHER path reaching
+   * the same effect (anchorStrideCategory) can become its own threat once
+   * confirmed. See AttackTree.primaryPathKey's doc comment. All three must
+   * be present for the column to appear; without anchorStrideCategory there
+   * is nothing to compare a path's STRIDE categories against.
+   */
+  anchorStrideCategory?: StrideCategory;
+  primaryPathKey?: string;
+  onSetPrimaryPath?: (pathKey: string) => void;
+  /**
+   * Suggestion only, never persisted — the most feasible unassigned path
+   * reaching anchorStrideCategory, shown as an outlined "suggested" star
+   * until the analyst actually clicks one. Ignored once primaryPathKey is
+   * set (it wins outright — see the renderCell below).
+   */
+  suggestedPrimaryPathKey?: string;
 }
 
 const RELEVANCE_OPTIONS: ThreatRelevanceRef[] = [
@@ -85,6 +109,10 @@ export function useAttackTreePathColumns({
   treeId,
   assessments,
   onAssessmentsChange,
+  anchorStrideCategory,
+  primaryPathKey,
+  onSetPrimaryPath,
+  suggestedPrimaryPathKey,
 }: AttackTreePathColumnsOptions): DataColumn<AttackPath>[] {
   const { t, i18n } = useTranslation();
 
@@ -190,6 +218,13 @@ export function useAttackTreePathColumns({
   // The overview wants the status without turning a card into an editor.
   const showRelevance = Boolean(treeId && assessments);
   const canRate = Boolean(showRelevance && onAssessmentsChange);
+
+  // Threat-anchored trees only — see AttackTree.primaryPathKey. Shown as
+  // soon as the tree has a STRIDE category to compare against (so the
+  // overview can display which path is primary); interactive only when
+  // there is somewhere to write the choice back to.
+  const showPrimary = Boolean(anchorStrideCategory);
+  const canSetPrimary = Boolean(showPrimary && onSetPrimaryPath);
 
   return React.useMemo(() => {
     const columns: DataColumn<AttackPath>[] = [];
@@ -305,6 +340,92 @@ export function useAttackTreePathColumns({
         ) : null,
     });
 
+    // ── Primary path (threat-anchored trees only) ──────────────────────────
+    // See AttackTree.primaryPathKey. Only meaningful for paths that reach the
+    // anchor's own STRIDE effect — a path that doesn't (e.g. the D side of a
+    // `destruction` path under a Tampering anchor) gets no control at all,
+    // since it was never a candidate for this tree's threat in the first
+    // place (attacktree-threat-generator.ts).
+    if (showPrimary) {
+      columns.push({
+        id: "primary",
+        header: t("attacktree:tabs.attacktree.tableview.primary", {
+          defaultValue: "Primary",
+        }),
+        width: 90,
+        align: "center",
+        stopRowClick: true,
+        renderCell: (path) => {
+          if (!strideCategoriesForPath(path).includes(anchorStrideCategory!)) {
+            return null;
+          }
+
+          const isPrimary = path.pathKey === primaryPathKey;
+          const isSuggested =
+            !isPrimary && path.pathKey === suggestedPrimaryPathKey;
+
+          const label = isPrimary
+            ? t("attacktree:tabs.attacktree.tableview.primaryPathHint", {
+                defaultValue: "This path feeds the anchor threat's likelihood.",
+              })
+            : isSuggested
+              ? t(
+                  "attacktree:tabs.attacktree.tableview.suggestedPrimaryPathHint",
+                  {
+                    defaultValue:
+                      "Suggested: the most feasible path to this effect. Click to make it primary.",
+                  },
+                )
+              : t("attacktree:tabs.attacktree.tableview.setPrimaryPathHint", {
+                  defaultValue:
+                    "Make this the path that feeds the anchor threat's likelihood. Every other path to the same effect can then become its own threat once confirmed.",
+                });
+
+          const goldColor = "#FFD700";
+          const goldDimmed = "rgba(255, 215, 0, 0.6)"; // suggestion, not decision
+
+          return (
+            <Tooltip title={label}>
+              <span>
+                <IconButton
+                  size="small"
+                  // No `disabled` here on purpose: MUI's disabled state
+                  // overrides any sx color with its own grey (.Mui-disabled
+                  // has higher specificity), which is why the star always
+                  // showed grey — in the Overview EVERY star was disabled
+                  // (no onSetPrimaryPath there), and even the primary star in
+                  // the Table view lost its gold the same way. A no-op click
+                  // achieves the same "nothing happens" without that CSS.
+                  onClick={() => {
+                    if (canSetPrimary && !isPrimary) {
+                      onSetPrimaryPath!(path.pathKey);
+                    }
+                  }}
+                  sx={{
+                    cursor: canSetPrimary && !isPrimary ? "pointer" : "default",
+                  }}
+                >
+                  {isPrimary ? (
+                    // htmlColor sets a real inline style={{color}}, which
+                    // beats any stylesheet rule (including MUI's own
+                    // .Mui-disabled / theme overrides) — sx with !important
+                    // still wasn't winning, so this is the mechanism MUI
+                    // provides specifically for "must always be this colour".
+                    <StarIcon fontSize="small" htmlColor={goldColor} />
+                  ) : (
+                    <StarBorderIcon
+                      fontSize="small"
+                      htmlColor={isSuggested ? goldDimmed : undefined}
+                    />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
+          );
+        },
+      });
+    }
+
     // ── Relevance — one control per STRIDE category ───────────────────────
     if (showRelevance) {
       columns.push({
@@ -418,5 +539,11 @@ export function useAttackTreePathColumns({
     assessments,
     onAssessmentsChange,
     relevanceLabel,
+    showPrimary,
+    canSetPrimary,
+    anchorStrideCategory,
+    primaryPathKey,
+    onSetPrimaryPath,
+    suggestedPrimaryPathKey,
   ]);
 }

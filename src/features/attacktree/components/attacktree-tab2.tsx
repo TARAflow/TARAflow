@@ -8,7 +8,7 @@
 // - useAttackTreeUI: UI state and dialogs
 // - attackTreeOperations: Pure helper functions
 
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -20,6 +20,7 @@ import {
   AccordionDetails,
   Chip,
   IconButton,
+  TextField,
   Tooltip,
   Badge,
   Alert,
@@ -59,7 +60,10 @@ import { useAttackTreeUI, MainView } from "../hooks/use-attacktree-ui";
 import { AttackTreeToolbar } from "./attacktree-toolbar";
 import { AttackTreeCreateDialog } from "./attacktree-create-dialog";
 import { AttackTreeConfigDialog } from "./attacktree-config-dialog";
-import { AttackTreeTableView } from "./attacktree-tableview";
+import {
+  AttackTreeTableView,
+  AttackTreeFilterToggle,
+} from "./attacktree-tableview";
 import { AttackTreeDetailView } from "./attacktree-detail-view";
 import {
   securityGoalList,
@@ -67,6 +71,7 @@ import {
   treeDisplayTitle,
 } from "../utils/attacktree-labels";
 import type { AttackPathAssessment } from "../models/attacktree-types";
+import { computeDeletionImpact } from "../services/attacktree-threat-sync";
 import { DFDPreviewPanel, ConfirmDialog } from "shared";
 import { useSplitViewResize, MIN_PANEL_HEIGHT } from "shared";
 
@@ -223,6 +228,8 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     showSyncConfirm,
     expandedGroups,
     treeToDelete,
+    renamingTreeId,
+    renameDraft,
     setShowDfdPreview,
     setMainView,
     setEditorCollapsed,
@@ -237,6 +244,9 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     toggleGroupExpanded,
     startDeleteTree,
     cancelDelete,
+    startRename,
+    setRenameDraft,
+    cancelRename,
   } = useAttackTreeUI();
 
   // Toggle editor collapsed
@@ -254,6 +264,25 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   const treeGroups = useMemo(() => {
     return groupTrees(attackTreeData.trees, project.assets, project.threats);
   }, [attackTreeData.trees, project.assets, project.threats]);
+
+  // Overview cards: the path-table filter row is collapsible, and the
+  // toggle lives in the card's icon row (next to Delete) rather than inside
+  // AttackTreeTableView itself — several cards are open at once, each needs
+  // its own visibility. Defaults to shown; not persisted (session UI state,
+  // like the other overview toggles).
+  const [tableFiltersVisible, setTableFiltersVisible] = useState<
+    Record<string, boolean>
+  >({});
+  const isTreeFiltersVisible = useCallback(
+    (treeId: string) => tableFiltersVisible[treeId] ?? true,
+    [tableFiltersVisible],
+  );
+  const toggleTreeFilters = useCallback((treeId: string) => {
+    setTableFiltersVisible((prev) => ({
+      ...prev,
+      [treeId]: !(prev[treeId] ?? true),
+    }));
+  }, []);
 
   // Case-insensitive lookup of mitigation id → reference (status/ticket/text),
   // mirrored from the Risk tab. Passed down to the table so it can show
@@ -368,6 +397,33 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     cancelDelete();
   }, [treeToDelete, deleteTree, cancelDelete]);
 
+  /**
+   * What deleting the tree currently pending confirmation would cost — feeds
+   * the guarded-delete dialog's message. null while no delete is pending.
+   */
+  const treeToDeleteImpact = useMemo(() => {
+    if (!treeToDelete) return null;
+    const tree = attackTreeData.trees.find((t) => t.id === treeToDelete);
+    return tree ? computeDeletionImpact(tree, project.risks) : null;
+  }, [treeToDelete, attackTreeData.trees, project.risks]);
+
+  /**
+   * Save an in-progress rename as the tree's customTitle. An empty draft
+   * clears the override, falling back to the derived title (or `name`) —
+   * see utils/attacktree-labels.ts.
+   */
+  const handleRenameSave = useCallback(
+    (tree: AttackTree) => {
+      const trimmed = renameDraft.trim();
+      const nextCustomTitle = trimmed.length > 0 ? trimmed : undefined;
+      if (nextCustomTitle !== tree.customTitle) {
+        updateTree({ ...tree, customTitle: nextCustomTitle });
+      }
+      cancelRename();
+    },
+    [renameDraft, updateTree, cancelRename],
+  );
+
   const handleExport = useCallback(() => {
     const exportData = JSON.stringify(attackTreeData, null, 2);
     const blob = new Blob([exportData], { type: "application/json" });
@@ -394,6 +450,19 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     (next: AttackPathAssessment[]) => {
       if (!selectedTree) return;
       updateTree({ ...selectedTree, pathAssessments: next });
+    },
+    [selectedTree, updateTree],
+  );
+
+  /**
+   * Persist which path feeds the anchor threat's likelihood on a
+   * threat-anchored tree — see AttackTree.primaryPathKey. Same auto-save
+   * path as every other tree edit.
+   */
+  const handleSetPrimaryPath = useCallback(
+    (pathKey: string) => {
+      if (!selectedTree) return;
+      updateTree({ ...selectedTree, primaryPathKey: pathKey });
     },
     [selectedTree, updateTree],
   );
@@ -598,12 +667,49 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                           mb: 2,
                         }}
                       >
-                        <Box>
-                          {/* Derived from the anchor, not from tree.name —
-                              see utils/attacktree-labels.ts for why. */}
-                          <Typography variant="subtitle1">
-                            {treeDisplayTitle(tree, t)}
-                          </Typography>
+                        <Box sx={{ flexGrow: 1, mr: 2 }}>
+                          {renamingTreeId === tree.id ? (
+                            <TextField
+                              autoFocus
+                              size="small"
+                              variant="standard"
+                              fullWidth
+                              placeholder={treeDisplayTitle(tree, t)}
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onBlur={() => handleRenameSave(tree)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameSave(tree);
+                                if (e.key === "Escape") cancelRename();
+                              }}
+                            />
+                          ) : (
+                            /* Derived from the anchor, not from tree.name —
+                                see utils/attacktree-labels.ts — unless
+                                customTitle overrides it. Click-to-rename
+                                (Confluence-style) instead of a separate icon —
+                                two pens next to Edit read as redundant. */
+                            <Tooltip
+                              title={t(
+                                "attacktree:tabs.attacktree.tab.clickToRename",
+                                { defaultValue: "Click to rename" },
+                              )}
+                            >
+                              <Typography
+                                variant="subtitle1"
+                                onClick={() =>
+                                  startRename(tree.id, tree.customTitle ?? "")
+                                }
+                                sx={{
+                                  cursor: "text",
+                                  display: "inline-block",
+                                  "&:hover": { textDecoration: "underline" },
+                                }}
+                              >
+                                {treeDisplayTitle(tree, t)}
+                              </Typography>
+                            </Tooltip>
+                          )}
                           <Typography variant="body2" color="text.secondary">
                             {treeDisplaySubtitle(tree, t)}
                           </Typography>
@@ -645,6 +751,13 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                               <DeleteIcon />
                             </IconButton>
                           </Tooltip>
+                          {tree.pathAnalysis &&
+                            tree.pathAnalysis.paths.length > 0 && (
+                              <AttackTreeFilterToggle
+                                showFilters={isTreeFiltersVisible(tree.id)}
+                                onToggle={() => toggleTreeFilters(tree.id)}
+                              />
+                            )}
                         </Box>
                       </Box>
 
@@ -657,9 +770,15 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                           likelihoodModel={feasibilityConfig.likelihoodModel}
                           treeId={tree.id}
                           assessments={tree.pathAssessments ?? []}
-                          // No onAssessmentsChange on purpose: the overview
-                          // shows which paths were confirmed or dismissed, but
-                          // deciding belongs in the detail view.
+                          // No onAssessmentsChange / onSetPrimaryPath on
+                          // purpose: the overview shows decisions (relevance,
+                          // primary path), but deciding belongs in the
+                          // detail view.
+                          anchorStrideCategory={tree.anchor.strideCategory}
+                          primaryPathKey={tree.primaryPathKey}
+                          showFilters={isTreeFiltersVisible(tree.id)}
+                          onToggleFilters={() => toggleTreeFilters(tree.id)}
+                          filterTogglePlacement="external"
                         />
                       ) : (
                         <Typography color="text.secondary" sx={{ py: 2 }}>
@@ -775,6 +894,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             mitigationLookup={mitigationLookup}
             likelihoodModel={feasibilityConfig.likelihoodModel}
             onAssessmentsChange={handleAssessmentsChange}
+            onSetPrimaryPath={handleSetPrimaryPath}
           />
         )}
       </Box>
@@ -818,9 +938,23 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       {showDeleteConfirm && (
         <ConfirmDialog
           title={t("attacktree:tabs.attacktree.tab.deleteTree")}
-          message={t(
-            "attacktree:tabs.attacktree.tab.areYouSureYouWantToDeleteThisAtt",
-          )}
+          message={
+            treeToDeleteImpact && treeToDeleteImpact.assessedPathCount > 0
+              ? t("attacktree:tabs.attacktree.tab.deleteTreeGuardedMessage", {
+                  pathCount: treeToDeleteImpact.assessedPathCount,
+                  riskCount: treeToDeleteImpact.riskCount,
+                  defaultValue:
+                    "This tree has {{pathCount}} assessed path(s), which produced {{riskCount}} risk(s) in the Risk tab. Deleting the tree removes those decisions and risks. This cannot be undone.",
+                })
+              : t(
+                  "attacktree:tabs.attacktree.tab.areYouSureYouWantToDeleteThisAtt",
+                )
+          }
+          variant={
+            treeToDeleteImpact && treeToDeleteImpact.assessedPathCount > 0
+              ? "danger"
+              : "warning"
+          }
           confirmLabel={t("attacktree:tabs.attacktree.tab.delete")}
           cancelLabel={t("attacktree:tabs.attacktree.tab.cancel")}
           onConfirm={handleDeleteConfirmed}
@@ -846,6 +980,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       )}
     </Box>
   );
-}
+};
 
 export default AttackTreeTab;

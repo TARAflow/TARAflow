@@ -32,6 +32,10 @@ export interface AttackTreeUIState {
 
   // Delete confirmation
   treeToDelete: string | null;
+
+  // Rename (Phase 8 step 4) — inline edit of AttackTree.customTitle
+  renamingTreeId: string | null;
+  renameDraft: string;
 }
 
 export interface AttackTreeUIActions {
@@ -59,6 +63,11 @@ export interface AttackTreeUIActions {
   setTreeToDelete: (treeId: string | null) => void;
   startDeleteTree: (treeId: string) => void;
   cancelDelete: () => void;
+
+  // Rename Actions
+  startRename: (treeId: string, currentCustomTitle: string) => void;
+  setRenameDraft: (value: string) => void;
+  cancelRename: () => void;
 }
 
 export type AttackTreeUI = AttackTreeUIState & AttackTreeUIActions;
@@ -73,19 +82,19 @@ export function useAttackTreeUI(): AttackTreeUI {
   // DFD Preview Panel
   const [showDfdPreview, setShowDfdPreview] = useLocalStorage(
     "attacktree-tab-showDfdPreview",
-    false
+    false,
   );
 
   // Main View Mode (overview vs editor)
   const [mainView, setMainView] = useLocalStorage<MainView>(
     "attacktree-tab-mainView",
-    "overview"
+    "overview",
   );
 
   // Editor Width (split view)
   const [editorWidthPercent, setEditorWidthPercent] = useLocalStorage(
     "attacktree-tab-editorWidth",
-    50
+    50,
   );
 
   // Threat list height in the detail view (percent of the detail area).
@@ -104,7 +113,7 @@ export function useAttackTreeUI(): AttackTreeUI {
   // Top Panel Height (DFD preview)
   const [topPanelHeight, setTopPanelHeight] = useLocalStorage(
     "attacktree-tab-topPanelHeight",
-    200
+    200,
   );
 
   // ==================== SESSION STATE (not persisted) ====================
@@ -124,6 +133,10 @@ export function useAttackTreeUI(): AttackTreeUI {
   // Delete confirmation
   const [treeToDelete, setTreeToDelete] = useState<string | null>(null);
 
+  // Rename (Phase 8 step 4)
+  const [renamingTreeId, setRenamingTreeId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+
   // ==================== ACTIONS ====================
 
   /**
@@ -140,7 +153,7 @@ export function useAttackTreeUI(): AttackTreeUI {
     setExpandedGroups((prev) =>
       prev.includes(groupId)
         ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        : [...prev, groupId],
     );
   };
 
@@ -160,6 +173,24 @@ export function useAttackTreeUI(): AttackTreeUI {
     setShowDeleteConfirm(false);
   };
 
+  /**
+   * Start renaming a tree. Seeds the draft with its current customTitle
+   * (empty if none) — the derived title is shown as a placeholder in the
+   * field, not prefilled as if it were being edited.
+   */
+  const startRename = (treeId: string, currentCustomTitle: string) => {
+    setRenamingTreeId(treeId);
+    setRenameDraft(currentCustomTitle);
+  };
+
+  /**
+   * Cancel rename (also called after a successful save)
+   */
+  const cancelRename = () => {
+    setRenamingTreeId(null);
+    setRenameDraft("");
+  };
+
   // ==================== RETURN ====================
 
   return {
@@ -177,6 +208,8 @@ export function useAttackTreeUI(): AttackTreeUI {
     showSyncConfirm,
     expandedGroups,
     treeToDelete,
+    renamingTreeId,
+    renameDraft,
 
     // Actions
     setShowDfdPreview,
@@ -196,6 +229,9 @@ export function useAttackTreeUI(): AttackTreeUI {
     setTreeToDelete,
     startDeleteTree,
     cancelDelete,
+    startRename,
+    setRenameDraft,
+    cancelRename,
   };
 }
 

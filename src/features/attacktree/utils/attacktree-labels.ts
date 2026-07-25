@@ -11,9 +11,9 @@
 // ("Integrity Violation"). It names the template, not the analysis — it says
 // nothing about which asset is attacked, and it freezes: improving the wording
 // later would leave every existing tree on the old text. Deriving it from the
-// anchor keeps the two in step and makes the rename rule fall out by itself —
-// once renaming exists (UI rework §5), a stored name means "the analyst chose
-// this" and wins; absent it, the derived title is used.
+// anchor keeps the two in step. Renaming (UI rework §5, step 4) does NOT
+// write `name` — it sets a separate `customTitle` overlay, which wins over
+// the derived title when present; absent it, the derived title is used.
 //
 // LABEL SOURCES
 // -------------
@@ -90,6 +90,9 @@ export function securityGoalList(
  * anchor to derive from.
  */
 export function treeDisplayTitle(tree: AttackTree, t: TFunction): string {
+  // A custom title always wins — see AttackTree.customTitle doc comment.
+  if (tree.customTitle) return tree.customTitle;
+
   if (
     tree.anchor.type === "asset" &&
     tree.anchor.securityGoal &&

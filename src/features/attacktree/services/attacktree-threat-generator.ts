@@ -236,24 +236,43 @@ export function generateThreatsFromAttackTree(
   tree: AttackTree,
   options: EmissionOptions = DEFAULT_EMISSION_OPTIONS,
 ): AttackTreeThreatGenerationResult {
-  const suppressedPaths: Array<{ path: AttackPath; reason: string }> = [];
-
-  // Not asset-anchored → analysis only, no register contribution (ISO 3.1.33: a
-  // threat scenario is by definition the compromise of a property OF AN ASSET).
-  //
   // AttackTreeAnchor is a flat interface, not a discriminated union, so
   // `type === "asset"` does NOT guarantee assetId is set. A tree claiming an
-  // asset anchor without an asset is broken — emitting an asset-less threat from
-  // it would put an unattributable entry in the register.
-  if (tree.anchor.type !== "asset" || !tree.anchor.assetId) {
-    return { threats: [], suppressedPaths };
+  // asset anchor without an asset is broken — emitting an asset-less threat
+  // from it would put an unattributable entry in the register.
+  if (tree.anchor.type === "asset" && tree.anchor.assetId) {
+    return generateAssetAnchoredThreats(tree, options);
   }
+
+  // Threat-anchored, opt-in secondary-path split — see primaryPathKey's doc
+  // comment on AttackTree. Without a primaryPathKey this returns nothing,
+  // same as before the feature existed: every path still only feeds the
+  // anchor threat's likelihood (build-attack-tree-likelihood-references.ts),
+  // never a threat of its own.
+  if (
+    tree.anchor.type === "threat" &&
+    tree.anchor.threatId &&
+    tree.anchor.strideCategory &&
+    tree.primaryPathKey
+  ) {
+    return generateThreatAnchoredSecondaryThreats(tree, options);
+  }
+
+  return { threats: [], suppressedPaths: [] };
+}
+
+/** Asset-anchored trees: every rated path × every STRIDE goal it maps to. */
+function generateAssetAnchoredThreats(
+  tree: AttackTree,
+  options: EmissionOptions,
+): AttackTreeThreatGenerationResult {
+  const suppressedPaths: Array<{ path: AttackPath; reason: string }> = [];
 
   if (!tree.pathAnalysis || tree.pathAnalysis.paths.length === 0) {
     return { threats: [], suppressedPaths };
   }
 
-  const assetId = tree.anchor.assetId;
+  const assetId = (tree.anchor as { assetId: string }).assetId;
   const emittable = selectEmittablePaths(tree.pathAnalysis, options);
   const emittedKeys = new Set(emittable.map((p) => p.pathKey));
 
@@ -291,6 +310,81 @@ export function generateThreatsFromAttackTree(
   }
 
   return { threats, suppressedPaths };
+}
+
+/**
+ * Threat-anchored trees: OPT-IN split of "other routes to the same effect".
+ *
+ * Scoped to exactly ONE STRIDE category — the anchor's. A `destruction` path
+ * maps to both T and D, but this tree is anchored to (say) a Tampering
+ * threat; a path's Availability side is out of scope for THIS tree. Emitting
+ * it here would misfile a Denial-of-Service concern under a Tampering
+ * threat — if that side matters too, it belongs on its own, separately
+ * asset- or threat-anchored tree, not folded into this one.
+ */
+function generateThreatAnchoredSecondaryThreats(
+  tree: AttackTree,
+  options: EmissionOptions,
+): AttackTreeThreatGenerationResult {
+  const suppressedPaths: Array<{ path: AttackPath; reason: string }> = [];
+
+  if (!tree.pathAnalysis || tree.pathAnalysis.paths.length === 0) {
+    return { threats: [], suppressedPaths };
+  }
+
+  const anchorStride = tree.anchor.strideCategory!;
+  const primaryPathKey = tree.primaryPathKey!;
+  const threats: ThreatReference[] = [];
+
+  for (const path of tree.pathAnalysis.paths) {
+    // Stays folded into the anchor threat's own likelihood — never a
+    // candidate for a threat of its own.
+    if (path.pathKey === primaryPathKey) continue;
+
+    // Doesn't realise the effect this tree is anchored to — out of scope for
+    // THIS threat, not a suppression the analyst needs surfaced (it was
+    // never a candidate here in the first place).
+    if (!strideCategoriesForPath(path).includes(anchorStride)) continue;
+
+    if (!isEmittable(path, options)) {
+      suppressedPaths.push({
+        path,
+        reason: !path.feasibilityLevel
+          ? "not rated"
+          : "negligible attacker benefit",
+      });
+      continue;
+    }
+
+    threats.push(createSecondaryThreatForPath(tree, path, anchorStride));
+  }
+
+  return { threats, suppressedPaths };
+}
+
+function createSecondaryThreatForPath(
+  tree: AttackTree,
+  path: AttackPath,
+  strideCategory: StrideCategory,
+): ThreatReference {
+  return {
+    id: buildThreatId(tree.id, path.pathKey, strideCategory),
+    strideCategory,
+    threatDescription: tree.ast?.name ?? tree.name,
+    attackDescription: describeAttackChain(path),
+    causeDescription: `Attack path analysis (${tree.name}) — alternate route to the same effect as ${tree.anchor.threatId}`,
+    sourceStrideMethod: "attack-path",
+    relevance: "unrated",
+    // No assetId on a threat anchor — attacktree may not import
+    // features/threats to look up the original threat's linkedAssetIds here.
+    // The app layer can enrich this at sync time if that turns out to matter
+    // for the register's per-asset views (mirrors how proposedVerifications
+    // are resolved from the catalog at sync time, not here).
+    proposedMitigations: toMitigationDrafts(path.mitigations),
+    proposedVerifications: [],
+    trustBoundaryId: null,
+    trustBoundaryName: null,
+  };
 }
 
 /** All trees in a project. */

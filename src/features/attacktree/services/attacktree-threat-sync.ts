@@ -39,6 +39,7 @@ import type {
   AttackPathAssessment,
   AttackTree,
   PathAnalysis,
+  RiskReference,
 } from "../models/attacktree-types";
 import {
   generateThreatsFromAttackTree,
@@ -278,6 +279,42 @@ export function applyRelevanceDecision(
   );
 }
 
+// ==================== DELETION IMPACT (guarded delete) ====================
+
+export interface AttackTreeDeletionImpact {
+  /** Rated paths (relevance !== "unrated") — the analyst decisions at stake. */
+  assessedPathCount: number;
+  /** Risks in the register derived from those decisions. */
+  riskCount: number;
+}
+
+/**
+ * What deleting this tree concretely costs (Phase 8 step 4, Class B: never
+ * ask for a delete confirmation without naming what's at stake).
+ *
+ * Threat-anchored trees contribute their aggregated likelihood to an
+ * EXISTING risk (anchor.threatId) rather than emitting one of their own —
+ * that risk survives the tree's deletion, so it is deliberately not counted
+ * here.
+ */
+export function computeDeletionImpact(
+  tree: AttackTree,
+  risks: readonly RiskReference[],
+): AttackTreeDeletionImpact {
+  const assessments = tree.pathAssessments ?? [];
+  const assessedPathCount = deriveAssessedKeys(assessments).size;
+
+  const threatIds = new Set(
+    assessments
+      .filter((a) => a.relevance !== "unrated")
+      .map((a) => buildThreatId(tree.id, a.pathKey, a.strideCategory)),
+  );
+
+  const riskCount = risks.filter((r) => threatIds.has(r.threatId)).length;
+
+  return { assessedPathCount, riskCount };
+}
+
 // ==================== EXPORT ====================
 
 export const attackTreeThreatSync = {
@@ -287,4 +324,5 @@ export const attackTreeThreatSync = {
   setPathAssessment,
   applyRelevanceDecision,
   tupleForThreatId,
+  computeDeletionImpact,
 };
