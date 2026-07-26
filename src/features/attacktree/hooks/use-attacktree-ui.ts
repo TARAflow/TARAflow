@@ -7,18 +7,14 @@ import { useLocalStorage } from "./use-local-storage";
 
 export type MainView = "overview" | "editor";
 
-/** Which representation of the selected tree the detail view shows. */
-export type DetailView = "editor" | "table";
-
 export interface AttackTreeUIState {
   // View State
   showDfdPreview: boolean;
   mainView: MainView;
   editorCollapsed: boolean;
   editorWidthPercent: number;
-  /** Height of the threat list in the detail view, in percent. */
+  /** Height of the path table in the detail view, in percent. */
   threatPanelPercent: number;
-  detailView: DetailView;
   topPanelHeight: number;
 
   // Dialog State
@@ -45,7 +41,6 @@ export interface AttackTreeUIActions {
   setEditorCollapsed: (collapsed: boolean) => void;
   setEditorWidthPercent: (percent: number) => void;
   setThreatPanelPercent: (percent: number) => void;
-  setDetailView: (view: DetailView) => void;
   setTopPanelHeight: (height: number) => void;
   toggleDfdPreview: () => void;
 
@@ -102,12 +97,6 @@ export function useAttackTreeUI(): AttackTreeUI {
   const [threatPanelPercent, setThreatPanelPercent] = useLocalStorage(
     "attacktree-tab-threatPanelPercent",
     30,
-  );
-
-  // Editor vs. table in the detail view
-  const [detailView, setDetailView] = useLocalStorage<DetailView>(
-    "attacktree-tab-detailView",
-    "editor",
   );
 
   // Top Panel Height (DFD preview)
@@ -200,7 +189,6 @@ export function useAttackTreeUI(): AttackTreeUI {
     editorCollapsed,
     editorWidthPercent,
     threatPanelPercent,
-    detailView,
     topPanelHeight,
     showConfigDialog,
     showCreateDialog,
@@ -217,7 +205,6 @@ export function useAttackTreeUI(): AttackTreeUI {
     setEditorCollapsed,
     setEditorWidthPercent,
     setThreatPanelPercent,
-    setDetailView,
     setTopPanelHeight,
     toggleDfdPreview,
     setShowConfigDialog,

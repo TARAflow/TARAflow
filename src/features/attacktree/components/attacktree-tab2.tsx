@@ -207,7 +207,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   } = useAttackTreeData(project, onUpdate, onDirtyChange);
 
   // Editor Logic (with debounced parsing)
-  const { localDsl, handleDslChange, parseImmediately } = useAttackTreeEditor(
+  const { localDsl, handleDslChange } = useAttackTreeEditor(
     selectedTree,
     project,
     updateTree,
@@ -220,7 +220,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     editorCollapsed,
     editorWidthPercent,
     threatPanelPercent,
-    detailView,
     topPanelHeight,
     showConfigDialog,
     showCreateDialog,
@@ -235,7 +234,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     setEditorCollapsed,
     setEditorWidthPercent,
     setThreatPanelPercent,
-    setDetailView,
     setTopPanelHeight,
     setShowConfigDialog,
     setShowCreateDialog,
@@ -882,9 +880,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             onSelectTree={setSelectedTreeId}
             localDsl={localDsl}
             handleDslChange={handleDslChange}
-            parseImmediately={parseImmediately}
-            detailView={detailView}
-            onDetailViewChange={setDetailView}
             editorCollapsed={editorCollapsed}
             toggleEditorCollapsed={toggleEditorCollapsed}
             editorWidthPercent={editorWidthPercent}
@@ -929,7 +924,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             fontSize: 14,
             highlightCriticalPath: true,
           }}
-          hasExistingTree={hasTrees}
           onSave={handleSaveConfig}
           onClose={() => setShowConfigDialog(false)}
         />
@@ -980,6 +974,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       )}
     </Box>
   );
-};
+}
 
 export default AttackTreeTab;

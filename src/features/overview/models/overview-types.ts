@@ -2,12 +2,7 @@
 // Data structures for the Overview/General feature
 // These define the shape of data this feature works with
 
-import type {
-  PhaseStatusMap,
-  ProjectTags,
-  ValidationResult,
-  WorkflowMode,
-} from "shared";
+import type { PhaseStatusMap, ProjectTags, ValidationResult } from "shared";
 
 // ==================== OVERVIEW-SPECIFIC TYPES ====================
 /**

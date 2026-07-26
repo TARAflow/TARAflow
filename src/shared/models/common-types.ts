@@ -37,6 +37,11 @@ export type StrideCategory = "S" | "T" | "R" | "I" | "D" | "E";
  */
 export type MitigationPropertyRole = "source" | "target" | "channel";
 
+// The order below IS the display/navigation order — kept in sync by hand
+// with PhaseId (app/models/phase-types.ts). There used to be a PHASE_ORDER
+// array over there deriving/checking this; it had no other caller and was
+// removed (2026-07-25) once Attack Tree's position stopped depending on
+// workflow mode, so this array is now the only place the order is defined.
 export const PHASES: PhaseDefinition[] = [
   {
     id: 0,
@@ -75,17 +80,17 @@ export const PHASES: PhaseDefinition[] = [
   },
   {
     id: 5,
-    label: "Risk",
-    shortLabel: "Risk",
-    description: "Risk assessment and prioritization",
-    icon: "📈",
-  },
-  {
-    id: 6,
     label: "Attack Tree",
     shortLabel: "Attack Tree",
     description: "Attack tree modeling and analysis of threat paths",
     icon: "🌳",
+  },
+  {
+    id: 6,
+    label: "Risk",
+    shortLabel: "Risk",
+    description: "Risk assessment and prioritization",
+    icon: "📈",
   },
   {
     id: 7,
@@ -105,8 +110,6 @@ export const PHASES: PhaseDefinition[] = [
 
 // ==================== COMMON INTERFACES ====================
 
-export type WorkflowMode = "standard" | "critical";
-
 export interface PhaseDefinition {
   id: number;
   label: string;
@@ -121,8 +124,8 @@ export interface PhaseStatusMap {
   2: PhaseStatus; // DFD
   3: PhaseStatus; // Assets
   4: PhaseStatus; // Threats
-  5: PhaseStatus; // Risk
-  6: PhaseStatus; // Attack Tree
+  5: PhaseStatus; // Attack Tree
+  6: PhaseStatus; // Risk
   7: PhaseStatus; // Documentation
   8: PhaseStatus; // Audit
   9: PhaseStatus; // Integration

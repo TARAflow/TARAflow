@@ -3,7 +3,6 @@ import { Project } from "../../models/project-types";
 import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
 import { PhaseTab } from "./phase-tab";
 import { LanguageSwitcher } from "i18n";
-import { sortPhasesByWorkflow } from "../../services/phase-navigation";
 import { PhaseId } from "../../models/phase-types";
 
 // ==================== DEFAULT PHASE STATUS ====================
@@ -36,19 +35,17 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   // Safety gating: the Hazard phase only appears when safety relevance is on
   const safetyRelevant = project?.info?.safetyRelevant ?? false;
 
-  // Determine workflow mode based on isHighImpact
-  const workflowMode = project?.info
-    ? project.info.isHighImpact
-      ? "critical"
-      : "standard"
-    : "standard";
-
-  // Sort phases based on workflow mode and create display labels
+  // Phase labels, in PHASES' own order (already canonical — see
+  // phase-types.ts PHASE_ORDER; sorting by workflow mode used to matter here
+  // when Attack Tree's position depended on isHighImpact, it no longer does).
+  // Audit is excluded here — it renders on the right, next to Integration,
+  // unnumbered, same as Integration always has.
   const sortedPhases = useMemo(() => {
-    const sorted = sortPhasesByWorkflow(PHASES, workflowMode).filter(
-      // Hide the Hazard phase unless safety analysis is enabled.
-      // Filtering before the index-based map keeps labels contiguous.
-      (phase) => safetyRelevant || phase.id !== PhaseId.Hazard,
+    const sorted = PHASES.filter(
+      (phase) =>
+        // Hide the Hazard phase unless safety analysis is enabled.
+        (safetyRelevant || phase.id !== PhaseId.Hazard) &&
+        phase.id !== PhaseId.Audit,
     );
 
     return sorted.map(
@@ -59,7 +56,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
         return { ...phase, displayLabel: `${index} - ${phase.shortLabel}` };
       },
     );
-  }, [workflowMode, safetyRelevant]);
+  }, [safetyRelevant]);
 
   // Extract validation counts for each phase
   const getPhaseValidationCounts = useMemo(() => {
@@ -123,8 +120,19 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           })}
         </div>
 
-        {/* Right Side: Integration + Language Switcher */}
+        {/* Right Side: Audit + Integration + Language Switcher */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => onPhaseChange(PhaseId.Audit)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              activePhase === PhaseId.Audit
+                ? "bg-blue-50 text-blue-600 border border-blue-200"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            🔍 Audit
+          </button>
+
           <button
             onClick={() => onPhaseChange(PhaseId.Integration)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -141,4 +149,4 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
       </div>
     </div>
   );
-};;;
+}

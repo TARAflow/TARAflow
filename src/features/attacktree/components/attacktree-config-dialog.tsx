@@ -1,5 +1,20 @@
 // ==================== ATTACK TREE CONFIG DIALOG ====================
-// Configuration dialog for evaluation method and editor settings
+// Configuration dialog for editor settings.
+//
+// Used to also hold the Risk Evaluation Method (simple/extended) radio group
+// and an Auto-Save switch — both removed (2026-07-25, Juergen's call): the
+// evaluation method is effectively fixed per tree by how it was created
+// (asset/risk-anchored → extended, threat-anchored → simple; see
+// attacktree-service.ts's generateFrom* functions) and calculateNodeRiskScore
+// now falls back gracefully on a format/method mismatch anyway, so letting
+// the analyst flip it after the fact added a confusing "requires
+// recalculation" warning for a switch that rarely needs touching. Auto-Save
+// likewise — the tree feature always auto-saves through the same debounced
+// path as every other tab; the switch controlled nothing else.
+//
+// highlightCriticalPath was briefly added as a third setting here, then
+// dropped again (2026-07-25): the preview already highlights the critical
+// path unconditionally, so a toggle for it would have nothing to control.
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,28 +26,17 @@ import {
   Button,
   Box,
   Typography,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Slider,
   Switch,
-  Alert,
-  Divider,
 } from "@mui/material";
 
-import {
-  AttackTreeConfiguration,
-  EvaluationMethod,
-} from "../models/attacktree-types";
+import { AttackTreeConfiguration } from "../models/attacktree-types";
 
 // ==================== TYPES ====================
 
 interface AttackTreeConfigDialogProps {
   open: boolean;
   configuration: AttackTreeConfiguration;
-  hasExistingTree: boolean;
   onSave: (config: AttackTreeConfiguration) => void;
   onClose: () => void;
 }
@@ -42,35 +46,31 @@ interface AttackTreeConfigDialogProps {
 export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
   open,
   configuration,
-  hasExistingTree,
   onSave,
   onClose,
 }) => {
   const { t } = useTranslation();
 
-  const [evaluationMethod, setEvaluationMethod] = useState<EvaluationMethod>(
-    configuration.evaluationMethod
-  );
-  const [autoSave, setAutoSave] = useState(configuration.autoSave);
   const [showLineNumbers, setShowLineNumbers] = useState(
-    configuration.showLineNumbers
+    configuration.showLineNumbers,
   );
   const [fontSize, setFontSize] = useState(configuration.fontSize);
-  const [highlightCriticalPath] = useState(configuration.highlightCriticalPath);
 
   const handleSave = () => {
     onSave({
-      evaluationMethod,
-      autoSave,
+      // Not editable here — carried through unchanged. See the file header
+      // for evaluationMethod/autoSave; highlightCriticalPath is left out of
+      // this dialog too (2026-07-25, Juergen's call) — it's applied
+      // unconditionally already, so a toggle for it would have nothing to do.
+      evaluationMethod: configuration.evaluationMethod,
+      autoSave: configuration.autoSave,
       showLineNumbers,
       fontSize,
-      highlightCriticalPath,
+      highlightCriticalPath: configuration.highlightCriticalPath,
     });
   };
 
   const handleReset = () => {
-    setEvaluationMethod(configuration.evaluationMethod);
-    setAutoSave(configuration.autoSave);
     setShowLineNumbers(configuration.showLineNumbers);
     setFontSize(configuration.fontSize);
   };
@@ -78,125 +78,20 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {t("tabs.attacktree.config.title", {
+        {t("attacktree:tabs.attacktree.config.title", {
           defaultValue: "Attack Tree Configuration",
         })}
       </DialogTitle>
 
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Evaluation Method */}
-          <Box>
-            <FormControl component="fieldset" fullWidth>
-              <FormLabel sx={{ mb: 2, fontWeight: "bold" }}>
-                {t("tabs.attacktree.config.evaluationMethod", {
-                  defaultValue: "Risk Evaluation Method",
-                })}
-              </FormLabel>
-
-              {hasExistingTree && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {t(
-                    "attacktree:tabs.attacktree.configDialog.changingEvaluationMethodRequires",
-                  )}
-                </Alert>
-              )}
-
-              <RadioGroup
-                value={evaluationMethod}
-                onChange={(e) =>
-                  setEvaluationMethod(e.target.value as EvaluationMethod)
-                }
-              >
-                <FormControlLabel
-                  value="simple"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Typography fontWeight="medium">
-                        {t(
-                          "attacktree:tabs.attacktree.configDialog.simple2Factors",
-                        )}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {t(
-                          "attacktree:tabs.attacktree.configDialog.probabilityImpact025Scale",
-                        )}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {t(
-                          "attacktree:tabs.attacktree.configDialog.syntaxP05I3",
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: "flex-start", mb: 2 }}
-                />
-
-                <FormControlLabel
-                  value="extended"
-                  control={<Radio />}
-                  label={
-                    <Box>
-                      <Typography fontWeight="medium">
-                        {t(
-                          "attacktree:tabs.attacktree.configDialog.extended3Factors",
-                        )}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {t(
-                          "attacktree:tabs.attacktree.configDialog.feasibilityBenefitsImpact0125Sca",
-                        )}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {t(
-                          "attacktree:tabs.attacktree.configDialog.syntax08093FBI",
-                        )}
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: "flex-start" }}
-                />
-              </RadioGroup>
-            </FormControl>
-          </Box>
-
-          <Divider />
-
           {/* Editor Settings */}
           <Box>
             <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-              {t("tabs.attacktree.config.editorSettings", {
+              {t("attacktree:tabs.attacktree.config.editorSettings", {
                 defaultValue: "Editor Settings",
               })}
             </Typography>
-
-            {/* Auto-Save */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Box>
-                <Typography>
-                  {t("tabs.attacktree.config.autoSave", {
-                    defaultValue: "Auto-Save",
-                  })}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {t(
-                    "attacktree:tabs.attacktree.configDialog.automaticallySaveChanges",
-                  )}
-                </Typography>
-              </Box>
-              <Switch
-                checked={autoSave}
-                onChange={(e) => setAutoSave(e.target.checked)}
-              />
-            </Box>
 
             {/* Line Numbers */}
             <Box
@@ -209,7 +104,7 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
             >
               <Box>
                 <Typography>
-                  {t("tabs.attacktree.config.lineNumbers", {
+                  {t("attacktree:tabs.attacktree.config.lineNumbers", {
                     defaultValue: "Show Line Numbers",
                   })}
                 </Typography>
@@ -228,7 +123,7 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
             {/* Font Size */}
             <Box>
               <Typography gutterBottom>
-                {t("tabs.attacktree.config.fontSize", {
+                {t("attacktree:tabs.attacktree.config.fontSize", {
                   defaultValue: "Font Size",
                 })}{" "}
                 ({fontSize}px)
@@ -247,20 +142,6 @@ export const AttackTreeConfigDialog: React.FC<AttackTreeConfigDialogProps> = ({
                 valueLabelDisplay="auto"
               />
             </Box>
-          </Box>
-
-          <Divider />
-
-          {/* Help Text */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              {t("attacktree:tabs.attacktree.configDialog.note")}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t(
-                "attacktree:tabs.attacktree.configDialog.changesTakeEffectImmediatelyEval",
-              )}
-            </Typography>
           </Box>
         </Box>
       </DialogContent>
