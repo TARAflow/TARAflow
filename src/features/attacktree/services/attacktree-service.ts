@@ -219,22 +219,37 @@ export function generateFromThreat(
 
   const dsl =
     "# Attack Tree: " +
-    (threat.threatDescription ? threat.threatDescription.substring(0, 50) : threatId) +
+    (threat.threatDescription
+      ? threat.threatDescription.substring(0, 50)
+      : threatId) +
     "\n" +
-    "# Threat ID: " + threatId + "\n" +
-    "# STRIDE: " + threat.strideCategory + "\n" +
-    "# Asset: " + (asset ? asset.name : "N/A") + "\n" +
-    "# Generated: " + new Date().toISOString().split("T")[0] + "\n" +
-    "# Method: Simple (p,i)\n\n" +
-    (threat.threatDescription || "Threat Goal") + " [" + threatId + "];ROOT\n" +
+    "# Threat ID: " +
+    threatId +
+    "\n" +
+    "# STRIDE: " +
+    threat.strideCategory +
+    "\n" +
+    "# Asset: " +
+    (asset ? asset.name : "N/A") +
+    "\n" +
+    "# Generated: " +
+    new Date().toISOString().split("T")[0] +
+    "\n" +
+    "# Method: Extended (f,b,i)\n\n" +
+    (threat.threatDescription || "Threat Goal") +
+    " [" +
+    threatId +
+    "];ROOT\n" +
     "\t# TODO: Define detailed attack paths\n" +
     "\tAttack Vector 1;OR\n" +
-    "\t\tStep 1;p=0.5,i=3 " + mitigations + "\n" +
-    "\t\tStep 2;p=0.5,i=3\n" +
-    "\tAttack Vector 2;p=0.4,i=3\n";
+    "\t\tStep 1;0.5,0.5,3 " +
+    mitigations +
+    "\n" +
+    "\t\tStep 2;0.5,0.5,3\n" +
+    "\tAttack Vector 2;0.4,0.5,3\n";
 
   const newTree = createEmptyAttackTree(anchor, {
-    evaluationMethod: "simple",
+    evaluationMethod: "extended",
   });
   newTree.dsl = dsl;
 
