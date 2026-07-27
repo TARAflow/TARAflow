@@ -111,7 +111,7 @@ ipcMain.handle("shell:openExternal", async (_, url: string) => {
 
 let cachedDrawioFrame: any = null;
 
-ipcMain.handle('drawio:injectPlugin', async (event) => {
+ipcMain.handle("drawio:injectPlugin", async (event) => {
   try {
     const webContents = event.sender;
 
@@ -274,27 +274,38 @@ ipcMain.handle('drawio:injectPlugin', async (event) => {
 
     return result || { success: true };
   } catch (error: any) {
-    console.error('[Main] Plugin injection error:', error);
-    return { 
-      success: false, 
+    console.error("[Main] Plugin injection error:", error);
+    return {
+      success: false,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     };
   }
 });
 
 // ==================== DRAWIO SET VIEWPORT ====================
 
-ipcMain.handle('drawio:setViewport', async (_, viewport: { translate: { x: number; y: number }; scale: number; scrollLeft?: number; scrollTop?: number }) => {
-  if (!cachedDrawioFrame) return { success: false, error: 'No drawio frame cached' };
-  try {
-    const scale = viewport.scale;
-    const tx = viewport.translate.x;
-    const ty = viewport.translate.y;
-    const sl = viewport.scrollLeft ?? 0;
-    const st = viewport.scrollTop ?? 0;
+ipcMain.handle(
+  "drawio:setViewport",
+  async (
+    _,
+    viewport: {
+      translate: { x: number; y: number };
+      scale: number;
+      scrollLeft?: number;
+      scrollTop?: number;
+    },
+  ) => {
+    if (!cachedDrawioFrame)
+      return { success: false, error: "No drawio frame cached" };
+    try {
+      const scale = viewport.scale;
+      const tx = viewport.translate.x;
+      const ty = viewport.translate.y;
+      const sl = viewport.scrollLeft ?? 0;
+      const st = viewport.scrollTop ?? 0;
 
-    await cachedDrawioFrame.executeJavaScript(`
+      await cachedDrawioFrame.executeJavaScript(`
       (function() {
         var ui = Draw._taraflowUi;
         if (!ui) { console.warn('[Main:setViewport] No taraflowUi'); return false; }
@@ -310,16 +321,18 @@ ipcMain.handle('drawio:setViewport', async (_, viewport: { translate: { x: numbe
         return true;
       })()
     `);
-    return { success: true };
-  } catch(e: any) {
-    return { success: false, error: e.message };
-  }
-});
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  },
+);
 
 // ==================== DRAWIO SELECT CELL ====================
 
-ipcMain.handle('drawio:selectCell', async (_, cellId: string) => {
-  if (!cachedDrawioFrame) return { success: false, error: 'No drawio frame cached' };
+ipcMain.handle("drawio:selectCell", async (_, cellId: string) => {
+  if (!cachedDrawioFrame)
+    return { success: false, error: "No drawio frame cached" };
   try {
     await cachedDrawioFrame.executeJavaScript(`
       (function() {
@@ -334,14 +347,14 @@ ipcMain.handle('drawio:selectCell', async (_, cellId: string) => {
       })()
     `);
     return { success: true };
-  } catch(e: any) {
+  } catch (e: any) {
     return { success: false, error: e.message };
   }
 });
 
 // ==================== DRAWIO GET SCROLL ====================
 
-ipcMain.handle('drawio:getScroll', async () => {
+ipcMain.handle("drawio:getScroll", async () => {
   if (!cachedDrawioFrame) return { scrollLeft: 0, scrollTop: 0 };
   try {
     const result = await cachedDrawioFrame.executeJavaScript(`
@@ -356,7 +369,7 @@ ipcMain.handle('drawio:getScroll', async () => {
       })()
     `);
     return result || { scrollLeft: 0, scrollTop: 0 };
-  } catch(e) {
+  } catch (e) {
     return { scrollLeft: 0, scrollTop: 0 };
   }
 });
@@ -549,7 +562,7 @@ ipcMain.handle(
     } catch (error: any) {
       return { success: false, error: error.message };
     }
-  }
+  },
 );
 
 // Read Project
@@ -597,7 +610,7 @@ ipcMain.handle("metadata:saveRecentProjects", async (_, metadata: any[]) => {
     await fs.writeFile(
       metadataPath,
       JSON.stringify(metadata, null, 2),
-      "utf-8"
+      "utf-8",
     );
     return { success: true };
   } catch (error: any) {
@@ -661,6 +674,12 @@ function createWindow() {
   // Set initial zoom
   win.webContents.setZoomLevel(0);
   win.webContents.setZoomFactor(1.0);
+
+  // ==================== FIX: beforeunload aus draw.io überspringen ====================
+  win.webContents.on("will-prevent-unload", (event) => {
+    console.log("[Main] beforeunload blockiert Close – wird übersprungen");
+    event.preventDefault();
+  });
 
   // Load app: filesystem in production, Vite dev server in development
   if (app.isPackaged) {
