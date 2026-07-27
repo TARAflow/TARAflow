@@ -32,6 +32,8 @@ import type { AttackTreeData } from "features/attacktree";
 import {
   generateThreatsFromAttackTree,
   applyAssessmentsToThreats,
+  buildThreatId,
+  isReadyForRisk,
 } from "features/attacktree";
 
 /**
@@ -58,8 +60,25 @@ export function buildAttackPathThreatReferences(
     const { threats } = generateThreatsFromAttackTree(tree);
     if (threats.length === 0) continue;
 
+        const overlaid = applyAssessmentsToThreats(
+          tree,
+          threats,
+          tree.pathAssessments ?? [],
+        );
+        const assessments = tree.pathAssessments ?? [];
+
     references.push(
-      ...applyAssessmentsToThreats(tree, threats, tree.pathAssessments ?? []),
+      ...overlaid.filter((threat) => {
+        const a = assessments.find(
+          (x) =>
+            buildThreatId(tree.id, x.pathKey, x.strideCategory) === threat.id,
+        );
+        // Two-stage gate: an attack-path threat reaches the Risk tab only when the
+        // path is RELEVANT and has ≥1 mitigation. unrated / uncertain /
+        // relevant-without-mitigation / not_relevant stay in the attack-tree tab.
+        // (Verification is NOT required here — it gates "fully closed", not entry.)
+        return a ? isReadyForRisk(a) && a.relevance === "relevant" : false;
+      }),
     );
   }
 

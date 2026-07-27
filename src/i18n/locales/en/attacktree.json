@@ -131,6 +131,19 @@
         "lineNumbers": "Show Line Numbers",
         "fontSize": "Font Size"
       },
+      "pathDialog": {
+        "attackPath": "Attack path",
+        "progress": "{{complete}} / {{total}} complete",
+        "position": "Path {{current}} of {{total}}",
+        "prev": "Back",
+        "next": "Next",
+        "mitigation": "Mitigation",
+        "verification": "Verification",
+        "note": "Note (whole path)",
+        "filter": "filter…",
+        "noCatalog": "No catalogue entries for this category.",
+        "noMeasureNeeded": "Not relevant — no measure required."
+      },
       "feasibility": {
         "factor": {
           "et": "elapsed time",

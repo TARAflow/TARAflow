@@ -135,6 +135,7 @@ export {
   setPathAssessment,
   tupleForThreatId,
   attackTreeThreatSync,
+  isReadyForRisk,
 } from "./services/attacktree-threat-sync";
 export type { AttackPathSyncResult } from "./services/attacktree-threat-sync";
 export { resolveFeasibilityConfiguration } from "./models/attacktree-types";

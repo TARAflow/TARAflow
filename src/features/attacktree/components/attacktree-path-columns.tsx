@@ -38,8 +38,6 @@ import {
   EvaluationMethod,
   MitigationReference,
   MITIGATION_VERIFICATION_DISPLAY,
-  calculateRiskLevel,
-  getRiskScoreEmoji,
 } from "../models/attacktree-types";
 import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
 import type { AttackPathAssessment } from "../models/attacktree-types";
@@ -55,6 +53,8 @@ export interface AttackTreePathColumnsOptions {
    * means mitigations render as plain id chips.
    */
   mitigationLookup?: Map<string, MitigationReference>;
+  mitigationCatalog?: readonly { id: string; text: string }[];
+  verificationCatalog?: readonly { id: string; text: string }[];
   /**
    * The project's likelihood model — the actual mode switch (it is what the ISO
    * chip in the Overview tab binds to), not an invented boolean.
@@ -103,9 +103,9 @@ const RELEVANCE_OPTIONS: ThreatRelevanceRef[] = [
 // ==================== HOOK ====================
 
 export function useAttackTreePathColumns({
-  evaluationMethod,
   mitigationLookup,
-  likelihoodModel = "feasibility-only",
+  mitigationCatalog,
+  verificationCatalog,
   treeId,
   assessments,
   onAssessmentsChange,
@@ -125,6 +125,13 @@ export function useAttackTreePathColumns({
     }),
     [i18n.language, t],
   );
+
+  const catalogText = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of mitigationCatalog ?? []) m.set(c.id, c.text);
+    for (const c of verificationCatalog ?? []) m.set(c.id, c.text);
+    return m;
+  }, [mitigationCatalog, verificationCatalog]);
 
   const renderMitigationChip = React.useCallback(
     (mid: string): React.ReactNode => {
@@ -234,7 +241,7 @@ export function useAttackTreePathColumns({
       id: "path",
       header: t("attacktree:tabs.attacktree.tableview.attackPath"),
       flex: 1,
-      minWidth: 260,
+      minWidth: 180,
       renderCell: (path) => (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
           {path.path.map((node, idx) => (
@@ -268,13 +275,27 @@ export function useAttackTreePathColumns({
       align: "center",
       renderCell: (path) =>
         path.feasibilityLevel ? (
-          <Chip
-            label={t(
-              `attacktree:tabs.attacktree.feasibility.level.${path.feasibilityLevel}`,
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Chip
+              label={t(
+                `attacktree:tabs.attacktree.feasibility.level.${path.feasibilityLevel}`,
+              )}
+              size="small"
+              variant="outlined"
+            />
+            {path.feasibility != null && (
+              <Typography variant="caption" color="text.secondary">
+                {path.feasibility.toFixed(2)}
+              </Typography>
             )}
-            size="small"
-            variant="outlined"
-          />
+          </Box>
         ) : (
           <Typography variant="caption" color="text.secondary">
             {t("attacktree:tabs.attacktree.threatTable.unrated")}
@@ -282,46 +303,74 @@ export function useAttackTreePathColumns({
         ),
     });
 
-    // ── Risk score — 62443 / classic only ─────────────────────────────────
-    if (likelihoodModel === "feasibility-x-motivation") {
-      columns.push({
-        id: "riskScore",
-        header: t("attacktree:tabs.attacktree.tableview.riskScore"),
-        width: 110,
-        align: "center",
-        renderCell: (path) => {
-          const result = calculateRiskLevel(path.riskScore, evaluationMethod);
-          return (
-            <Chip
-              label={`${result.score.toFixed(1)} ${getRiskScoreEmoji(result.level)}`}
-              size="small"
-              sx={{
-                backgroundColor: result.color,
-                color: "white",
-                fontWeight: "bold",
-              }}
-            />
-          );
-        },
-      });
-    }
+    // ── Risk score — the path's own score, read straight off the path (same
+    //    value the dialog shows). Populated by the tree's likelihood pass; shown
+    //    in BOTH modes. Empty (—) when 0 / unrated. NOTE: this is the tree's own
+    //    score, NOT the impact-inclusive register value — if the latter is ever
+    //    wanted here, thread `risks` (RiskReference[]) and look it up by
+    //    buildThreatId; kept out for now to avoid the extra plumbing.
+    columns.push({
+      id: "riskScore",
+      header: t("attacktree:tabs.attacktree.tableview.riskScore"),
+      width: 110,
+      align: "center",
+      renderCell: (path) =>
+        path.riskScore > 0 ? (
+          <Chip
+            label={path.riskScore.toFixed(1)}
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        ) : (
+          <Typography variant="caption" color="text.secondary">
+            —
+          </Typography>
+        ),
+    });
 
     // ── Mitigations ───────────────────────────────────────────────────────
     columns.push({
       id: "mitigations",
       header: t("attacktree:tabs.attacktree.tableview.mitigations"),
-      width: 200,
-      renderCell: (path) => (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-          {path.mitigations.length > 0 ? (
-            path.mitigations.map((mid) => renderMitigationChip(mid))
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              {t("attacktree:tabs.attacktree.tableview.none")}
-            </Typography>
-          )}
-        </Box>
-      ),
+      minWidth: 400,
+      renderCell: (path) => {
+        const forPath =
+          assessments?.filter((a) => a.pathKey === path.pathKey) ?? [];
+        const mitIds = [
+          ...new Set(forPath.flatMap((a) => a.mitigationIds ?? [])),
+        ];
+        const verIds = [
+          ...new Set(forPath.flatMap((a) => a.verificationIds ?? [])),
+        ];
+        const hasAny =
+          path.mitigations.length > 0 || mitIds.length > 0 || verIds.length > 0;
+        return (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+            {path.mitigations.map((mid) => renderMitigationChip(mid))}
+            {mitIds.map((id) => (
+              <Chip
+                key={`m-${id}`}
+                size="small"
+                label={catalogText.get(id) ?? id}
+              />
+            ))}
+            {verIds.map((id) => (
+              <Chip
+                key={`v-${id}`}
+                size="small"
+                variant="outlined"
+                color="info"
+                label={catalogText.get(id) ?? id}
+              />
+            ))}
+            {!hasAny && (
+              <Typography variant="body2" color="text.secondary">
+                {t("attacktree:tabs.attacktree.tableview.none")}
+              </Typography>
+            )}
+          </Box>
+        );
+      },
     });
 
     // ── Critical marker ───────────────────────────────────────────────────
@@ -433,7 +482,6 @@ export function useAttackTreePathColumns({
         header: t("attacktree:tabs.attacktree.threatTable.relevance"),
         width: 260,
         align: "center",
-        stopRowClick: true,
         renderCell: (path) => {
           const categories = strideCategoriesForPath(path);
 
@@ -531,8 +579,7 @@ export function useAttackTreePathColumns({
     return columns;
   }, [
     t,
-    likelihoodModel,
-    evaluationMethod,
+    catalogText,
     renderMitigationChip,
     showRelevance,
     canRate,

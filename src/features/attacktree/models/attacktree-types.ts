@@ -340,6 +340,23 @@ export interface AttackPathAssessment {
   strideCategory: StrideCategory;
   relevance: ThreatRelevanceRef;
   evalNote?: string;
+  /**
+   * Catalogue mitigation ids attached to this path THROUGH THE DIALOG
+   * (path-scoped, not a DSL edit). A leaf can appear in several paths under
+   * shared AND/OR subtrees, so a path-level decision cannot be written back
+   * into "the" leaf's DSL line unambiguously — it lives here instead. Stores
+   * catalogue ids (e.g. "M-T-001"), never localized text. Legacy DSL
+   * `[M-xxx]` refs on leaves stay separate and read-only (AttackPath.mitigations).
+   */
+  mitigationIds?: string[];
+  /**
+   * Catalogue verification ids attached to this path (e.g. "V-T-001") — the
+   * tests/evidence that check the attached mitigations work. Flat and parallel
+   * to mitigationIds, NOT linked per-mitigation: the existing threat model keeps
+   * mitigations ∥ verifications independent and the catalogue carries no
+   * mitigation→verification link, so a stored link would be hand-maintained.
+   */
+  verificationIds?: string[];
   lastModified: string;
 }
 

@@ -75,6 +75,14 @@ import { computeDeletionImpact } from "../services/attacktree-threat-sync";
 import { DFDPreviewPanel, ConfirmDialog } from "shared";
 import { useSplitViewResize, MIN_PANEL_HEIGHT } from "shared";
 
+import {
+  getAllMitigations,
+  getAllVerifications,
+  getLocalizedMitigation,
+  getLocalizedVerification,
+} from "../../threats/services/threat-catalog-service";
+import type { CatalogItem } from "./attacktree-path-dialog";
+
 // ==================== CONSTANTS ====================
 
 
@@ -186,7 +194,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   onUpdate,
   onDirtyChange,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // ==================== CUSTOM HOOKS ====================
 
@@ -292,6 +300,35 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     });
     return map;
   }, [project.mitigations]);
+
+  // SINGLE contained features/threats boundary crossing (see design doc): the
+  // full STRIDE mitigation/verification catalogue for the path dialog's pickers.
+  // Resolved to plain CatalogItem[] here and passed down as data — no
+  // features/threats import appears anywhere else in features/attacktree.
+  const mitigationCatalog = useMemo<CatalogItem[]>(
+    () =>
+      getAllMitigations()
+        .map((m) => ({
+          id: m.id,
+          strideCategory: m.strideCategory,
+          text: getLocalizedMitigation(m.id),
+        }))
+        .filter((m) => !!m.text),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [i18n.language], // re-resolve localized text on language change
+  );
+  const verificationCatalog = useMemo<CatalogItem[]>(
+    () =>
+      getAllVerifications()
+        .map((v) => ({
+          id: v.id,
+          strideCategory: v.strideCategory,
+          text: getLocalizedVerification(v.id),
+        }))
+        .filter((v) => !!v.text),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [i18n.language],
+  );
 
   const feasibilityConfig = useMemo(
     () => resolveFeasibilityConfiguration(project.attackTrees?.configuration),
@@ -887,6 +924,8 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
             threatPanelPercent={threatPanelPercent}
             onThreatPanelPercentChange={setThreatPanelPercent}
             mitigationLookup={mitigationLookup}
+            mitigationCatalog={mitigationCatalog}
+            verificationCatalog={verificationCatalog}
             likelihoodModel={feasibilityConfig.likelihoodModel}
             onAssessmentsChange={handleAssessmentsChange}
             onSetPrimaryPath={handleSetPrimaryPath}
@@ -974,6 +1013,6 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       )}
     </Box>
   );
-}
+};;;
 
 export default AttackTreeTab;

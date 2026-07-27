@@ -267,13 +267,23 @@
     }
   },
   "risks": {
-    "scale": {
-      "unrated": "-",
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "very_high": "Very High",
-      "critical": "Critical"
+    "scales": {
+      "impact": {
+        "unrated": "-",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "very_high": "Very High",
+        "critical": "Critical"
+      },
+      "likelihood": {
+        "unrated": "-",
+        "very_low": "Very Low",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "very_high": "Very High"
+      }
     },
     "treatment": {
       "eliminate": {

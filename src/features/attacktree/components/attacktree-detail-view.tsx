@@ -53,6 +53,11 @@ import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeTableView } from "./attacktree-tableview";
 import { strideCategoriesForPath } from "../services/attacktree-threat-generator";
+import { useAttackPathDialog } from "../hooks/use-attack-path-dialog";
+import {
+  AttackPathAssessmentDialog,
+  type CatalogItem,
+} from "./attacktree-path-dialog";
 
 const MIN_PANEL_WIDTH = 220;
 
@@ -79,6 +84,8 @@ export interface AttackTreeDetailViewProps {
 
   mitigationLookup: Map<string, MitigationReference>;
   likelihoodModel: LikelihoodModel;
+  mitigationCatalog: CatalogItem[];
+  verificationCatalog: CatalogItem[];
 
   /**
    * 5a workflow: persist the analyst's confirm/dismiss/uncertain decisions on
@@ -128,10 +135,18 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
     onThreatPanelPercentChange,
     mitigationLookup,
     likelihoodModel,
+    mitigationCatalog,
+    verificationCatalog,
     onAssessmentsChange,
     onSetPrimaryPath,
   }) => {
     const { t } = useTranslation();
+
+    const pathDialog = useAttackPathDialog({
+      paths: selectedTree.pathAnalysis?.paths ?? [],
+      assessments: selectedTree.pathAssessments ?? [],
+      onAssessmentsChange,
+    });
 
     // Memoize validation errors to prevent a new array on every render
     const validationErrors = React.useMemo(
@@ -369,19 +384,31 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
           >
             {selectedTree.pathAnalysis &&
             selectedTree.pathAnalysis.paths.length > 0 ? (
-              <AttackTreeTableView
-                pathAnalysis={selectedTree.pathAnalysis}
-                evaluationMethod={selectedTree.configuration.evaluationMethod}
-                mitigationLookup={mitigationLookup}
-                likelihoodModel={likelihoodModel}
-                treeId={selectedTree.id}
-                assessments={selectedTree.pathAssessments ?? []}
-                onAssessmentsChange={onAssessmentsChange}
-                anchorStrideCategory={selectedTree.anchor.strideCategory}
-                primaryPathKey={selectedTree.primaryPathKey}
-                onSetPrimaryPath={onSetPrimaryPath}
-                suggestedPrimaryPathKey={suggestedPrimaryPathKey}
-              />
+              <>
+                <AttackTreeTableView
+                  pathAnalysis={selectedTree.pathAnalysis}
+                  evaluationMethod={selectedTree.configuration.evaluationMethod}
+                  mitigationLookup={mitigationLookup}
+                  likelihoodModel={likelihoodModel}
+                  treeId={selectedTree.id}
+                  assessments={selectedTree.pathAssessments ?? []}
+                  onOpenPath={pathDialog.open}
+                  mitigationCatalog={mitigationCatalog}
+                  verificationCatalog={verificationCatalog}
+                  anchorStrideCategory={selectedTree.anchor.strideCategory}
+                  primaryPathKey={selectedTree.primaryPathKey}
+                  onSetPrimaryPath={onSetPrimaryPath}
+                  suggestedPrimaryPathKey={suggestedPrimaryPathKey}
+                />
+                <AttackPathAssessmentDialog
+                  dialog={pathDialog}
+                  paths={selectedTree.pathAnalysis.paths}
+                  assessments={selectedTree.pathAssessments ?? []}
+                  mitigationCatalog={mitigationCatalog}
+                  verificationCatalog={verificationCatalog}
+                  title={selectedTree.name}
+                />
+              </>
             ) : (
               <Box
                 sx={{

@@ -123,6 +123,19 @@
         "note": "Hinweis:",
         "changesTakeEffectImmediatelyEval": "Änderungen werden sofort wirksam. Die Bewertungsmethode beeinflusst die Risiko-Berechnung aller Pfade."
       },
+      "pathDialog": {
+        "attackPath": "Angriffspfad",
+        "progress": "{{complete}} / {{total}} abgeschlossen",
+        "position": "Pfad {{current}} von {{total}}",
+        "prev": "Zurück",
+        "next": "Weiter",
+        "mitigation": "Maßnahme",
+        "verification": "Verifikation",
+        "note": "Notiz (ganzer Pfad)",
+        "filter": "filtern…",
+        "noCatalog": "Keine Katalogeinträge für diese Kategorie.",
+        "noMeasureNeeded": "Nicht relevant — keine Maßnahme nötig."
+      },
       "tableview": {
         "verificationLabel": "Verifikation: ",
         "noAttackPathsFound": "Keine Angriffspfade gefunden",

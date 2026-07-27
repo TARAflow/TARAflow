@@ -574,7 +574,9 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   <Chip
                     key={level.value}
                     label={`${level.value}: ${t(
-                      `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                      `risks.scales.impact.${level.label
+                        .toLowerCase()
+                        .replace(/ /g, "_")}`,
                       { defaultValue: level.label },
                     )}`}
                     size="small"
@@ -625,7 +627,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                       >
                         <Chip
                           label={t(
-                            `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                            `risks.scales.impact.${level.label.toLowerCase().replace(/ /g, "_")}`,
                             { defaultValue: level.label },
                           )}
                           size="small"
@@ -1141,7 +1143,12 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                           {RISK_SCALES[scale].levels.map((lvl) => (
                             <MenuItem key={lvl.value} value={lvl.value}>
                               <Chip
-                                label={lvl.label}
+                                label={t(
+                                  `risks.scales.impact.${lvl.label
+                                    .toLowerCase()
+                                    .replace(/ /g, "_")}`,
+                                  { defaultValue: lvl.label },
+                                )}
                                 size="small"
                                 sx={{
                                   bgcolor: lvl.color,

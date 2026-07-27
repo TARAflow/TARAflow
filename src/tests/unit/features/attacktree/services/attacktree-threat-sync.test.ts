@@ -33,7 +33,11 @@ import {
   setPathAssessment,
   tupleForThreatId,
   applyRelevanceDecision,
+  isPathAssessmentComplete,
+  isReadyForRisk,
 } from "features/attacktree/services/attacktree-threat-sync";
+
+import { ThreatRelevanceRef } from "shared";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Fixtures — file-driven, minimal. Only the fields the sync touches are set.
@@ -263,7 +267,10 @@ describe("destruction path splits into two independently assessable threats", ()
       lastModified: new Date().toISOString(),
     };
 
-    const tree = makeAssetTree([makePath(chain, ["destruction"])], [assessment]);
+    const tree = makeAssetTree(
+      [makePath(chain, ["destruction"])],
+      [assessment],
+    );
     const { threats } = reconcileAttackPathThreats(tree, undefined);
 
     const t = threats.find((x) => x.id === buildThreatId(tree.id, key, "T"));
@@ -297,9 +304,10 @@ describe("applyAssessmentsToThreats", () => {
       evalNote: "mitigated by tamper-evident seal",
       lastModified: new Date().toISOString(),
     };
-    const tree = makeAssetTree([makePath(MANIP_CHAIN, ["manipulation"])], [
-      assessment,
-    ]);
+    const tree = makeAssetTree(
+      [makePath(MANIP_CHAIN, ["manipulation"])],
+      [assessment],
+    );
     const { threats } = reconcileAttackPathThreats(tree, undefined);
     expect(threats[0].relevance).toBe("not_relevant");
     expect("evalNote" in threats[0]).toBe(false);
@@ -309,9 +317,24 @@ describe("applyAssessmentsToThreats", () => {
 describe("deriveAssessedKeys", () => {
   it("includes only keys with a decision other than unrated", () => {
     const keys = deriveAssessedKeys([
-      { pathKey: "k1", strideCategory: "T", relevance: "relevant", lastModified: "" },
-      { pathKey: "k2", strideCategory: "D", relevance: "unrated", lastModified: "" },
-      { pathKey: "k3", strideCategory: "S", relevance: "uncertain", lastModified: "" },
+      {
+        pathKey: "k1",
+        strideCategory: "T",
+        relevance: "relevant",
+        lastModified: "",
+      },
+      {
+        pathKey: "k2",
+        strideCategory: "D",
+        relevance: "unrated",
+        lastModified: "",
+      },
+      {
+        pathKey: "k3",
+        strideCategory: "S",
+        relevance: "uncertain",
+        lastModified: "",
+      },
     ]);
     expect(keys).toEqual(new Set(["k1", "k3"]));
   });
@@ -439,7 +462,13 @@ describe("applyRelevanceDecision (confirm/dismiss table logic)", () => {
   });
 
   it("clearing to unrated removes the entry", () => {
-    const confirmed = applyRelevanceDecision(treeId, [], threatId, "T", "relevant");
+    const confirmed = applyRelevanceDecision(
+      treeId,
+      [],
+      threatId,
+      "T",
+      "relevant",
+    );
     const cleared = applyRelevanceDecision(
       treeId,
       confirmed,
@@ -471,7 +500,13 @@ describe("applyRelevanceDecision (confirm/dismiss table logic)", () => {
     const dId = buildThreatId(treeId, dKey, "D");
 
     let assessments = applyRelevanceDecision(treeId, [], tId, "T", "relevant");
-    assessments = applyRelevanceDecision(treeId, assessments, dId, "D", "not_relevant");
+    assessments = applyRelevanceDecision(
+      treeId,
+      assessments,
+      dId,
+      "D",
+      "not_relevant",
+    );
 
     expect(assessments).toHaveLength(2);
     expect(assessments.find((a) => a.strideCategory === "T")?.relevance).toBe(
@@ -481,4 +516,126 @@ describe("applyRelevanceDecision (confirm/dismiss table logic)", () => {
       "not_relevant",
     );
   });
+});
+
+describe("setPathAssessment — mitigationIds", () => {
+  it("persists an entry that is unrated but carries mitigations", () => {
+    const out = setPathAssessment([], "pk-1", "T", "unrated", undefined, [
+      "M-T-001",
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      pathKey: "pk-1",
+      relevance: "unrated",
+      mitigationIds: ["M-T-001"],
+    });
+  });
+
+  it("does NOT wipe mitigations on a relevance-only rewrite (merge)", () => {
+    const seed = setPathAssessment([], "pk-1", "T", "unrated", undefined, [
+      "M-T-001",
+    ]);
+    const out = setPathAssessment(seed, "pk-1", "T", "relevant"); // mitigationIds undefined
+    expect(out[0]).toMatchObject({
+      relevance: "relevant",
+      mitigationIds: ["M-T-001"],
+    });
+  });
+
+  it("explicit [] clears mitigations and drops the entry when otherwise inert", () => {
+    const seed = setPathAssessment([], "pk-1", "T", "unrated", undefined, [
+      "M-T-001",
+    ]);
+    const out = setPathAssessment(seed, "pk-1", "T", "unrated", undefined, []);
+    expect(out).toHaveLength(0);
+  });
+
+  it("still drops a truly inert unrated entry (legacy behaviour)", () => {
+    const seed = setPathAssessment([], "pk-1", "T", "relevant", undefined, [
+      "M-T-001",
+    ]);
+    const out = setPathAssessment(seed, "pk-1", "T", "unrated");
+    // relevance cleared, mitigations preserved via merge → entry stays
+    expect(out).toHaveLength(1);
+    expect(out[0].mitigationIds).toEqual(["M-T-001"]);
+  });
+});
+
+describe("applyRelevanceDecision — preserves mitigations", () => {
+  it("confirming a path keeps its attached mitigations", () => {
+    const treeId = "at-1";
+    const pk = "pk-1";
+    const threatId = buildThreatId(treeId, pk, "T");
+    const seed = setPathAssessment([], pk, "T", "unrated", undefined, [
+      "M-T-001",
+    ]);
+    const out = applyRelevanceDecision(treeId, seed, threatId, "T", "relevant");
+    expect(out[0]).toMatchObject({
+      relevance: "relevant",
+      mitigationIds: ["M-T-001"],
+    });
+  });
+});
+
+describe("deriveAssessedKeys — mitigation-only", () => {
+  it("counts an unrated path that carries mitigations", () => {
+    const seed = setPathAssessment([], "pk-1", "T", "unrated", undefined, [
+      "M-T-001",
+    ]);
+    expect(deriveAssessedKeys(seed).has("pk-1")).toBe(true);
+  });
+});
+
+describe("isReadyForRisk", () => {
+  const mk = (
+    relevance: ThreatRelevanceRef,
+    mitigationIds?: string[],
+  ): AttackPathAssessment => ({
+    pathKey: "pk",
+    strideCategory: "T",
+    relevance,
+    mitigationIds,
+    lastModified: "",
+  });
+  it("relevant + mitigation → ready", () =>
+    expect(isReadyForRisk(mk("relevant", ["M-T-001"]))).toBe(true));
+  it("relevant + no mitigation → not ready", () =>
+    expect(isReadyForRisk(mk("relevant"))).toBe(false));
+  it("not_relevant → ready", () =>
+    expect(isReadyForRisk(mk("not_relevant"))).toBe(true));
+  it("uncertain → not ready", () =>
+    expect(isReadyForRisk(mk("uncertain"))).toBe(false));
+  it("unrated → not ready", () =>
+    expect(isReadyForRisk(mk("unrated"))).toBe(false));
+});
+
+describe("isPathAssessmentComplete", () => {
+  const mk = (
+    relevance: ThreatRelevanceRef,
+    mitigationIds?: string[],
+    verificationIds?: string[],
+  ): AttackPathAssessment => ({
+    pathKey: "pk",
+    strideCategory: "T",
+    relevance,
+    mitigationIds,
+    verificationIds,
+    lastModified: "",
+  });
+  it("relevant + mitigation + verification → complete", () =>
+    expect(
+      isPathAssessmentComplete(mk("relevant", ["M-T-001"], ["V-T-001"])),
+    ).toBe(true));
+  it("relevant + mitigation, no verification → incomplete", () =>
+    expect(isPathAssessmentComplete(mk("relevant", ["M-T-001"]))).toBe(false));
+  it("relevant + verification, no mitigation → incomplete", () =>
+    expect(
+      isPathAssessmentComplete(mk("relevant", undefined, ["V-T-001"])),
+    ).toBe(false));
+  it("not_relevant → complete", () =>
+    expect(isPathAssessmentComplete(mk("not_relevant"))).toBe(true));
+  it("uncertain → incomplete", () =>
+    expect(
+      isPathAssessmentComplete(mk("uncertain", ["M-T-001"], ["V-T-001"])),
+    ).toBe(false));
 });

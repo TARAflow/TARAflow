@@ -54,6 +54,63 @@ export const RISK_SCALES: Record<RiskScaleType, RiskScaleConfig> = {
   },
 };
 
+/**
+ * Likelihood-AXIS labels — DECOUPLED from RISK_SCALES (which labels the risk
+ * OUTPUT). Probability tops out, so the likelihood axis has NO "critical"; the
+ * resolution that matters is the very-low floor (the "practically infeasible"
+ * valve, ISO 21434). Uniform across likelihood models. Same numeric values as
+ * RISK_SCALES → matrix/threshold math unchanged; only the labels differ.
+ */
+export const LIKELIHOOD_SCALES: Record<RiskScaleType, RiskScaleConfig> = {
+  "3-level": {
+    type: "3-level",
+    levels: [
+      { value: 1, label: "Low",    color: "#22c55e", threshold: 2 },
+      { value: 2, label: "Medium", color: "#f59e0b", threshold: 6 },
+      { value: 3, label: "High",   color: "#ef4444", threshold: 9 },
+    ],
+  },
+  "4-level": {
+    type: "4-level",
+    levels: [
+      { value: 1, label: "Very Low", color: "#22c55e", threshold: 3  },
+      { value: 2, label: "Low",      color: "#84cc16", threshold: 6  },
+      { value: 3, label: "Medium",   color: "#f59e0b", threshold: 11 },
+      { value: 4, label: "High",     color: "#ef4444", threshold: 16 },
+    ],
+  },
+  "5-level": {
+    type: "5-level",
+    levels: [
+      { value: 1, label: "Very Low",  color: "#22c55e", threshold: 4  },
+      { value: 2, label: "Low",       color: "#84cc16", threshold: 8  },
+      { value: 3, label: "Medium",    color: "#f59e0b", threshold: 14 },
+      { value: 4, label: "High",      color: "#f97316", threshold: 20 },
+      { value: 5, label: "Very High", color: "#ef4444", threshold: 25 },
+    ],
+  },
+};
+
+export function getLikelihoodLabel(
+  value: number,
+  scale: RiskScaleType,
+  roundingMethod: RiskRoundingMethod = "round",
+): string {
+  if (value <= 0) return "-";
+  const cfg = LIKELIHOOD_SCALES[scale];
+  return cfg.levels[calculateLevelIndex(value, cfg.levels.length, roundingMethod)].label;
+}
+
+export function getLikelihoodColor(
+  value: number,
+  scale: RiskScaleType,
+  roundingMethod: RiskRoundingMethod = "round",
+): string {
+  if (value <= 0) return "#6b7280";
+  const cfg = LIKELIHOOD_SCALES[scale];
+  return cfg.levels[calculateLevelIndex(value, cfg.levels.length, roundingMethod)].color;
+}
+
 // ==================== RISK TREATMENT ====================
 
 export type RiskTreatment =

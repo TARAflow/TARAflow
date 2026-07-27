@@ -55,6 +55,9 @@ interface AttackTreeTableViewProps {
    * Keyed by UPPERCASE id for case-insensitive matching.
    */
   mitigationLookup?: Map<string, MitigationReference>;
+  mitigationCatalog?: readonly { id: string; text: string }[];
+  verificationCatalog?: readonly { id: string; text: string }[];
+
   /**
    * Project likelihood model. "feasibility-only" (ISO) hides the path risk
    * score — there the number belongs to the risk, not the path.
@@ -80,6 +83,8 @@ interface AttackTreeTableViewProps {
   primaryPathKey?: string;
   onSetPrimaryPath?: (pathKey: string) => void;
   suggestedPrimaryPathKey?: string;
+  /** Opens the per-path assessment dialog (row click, except the star cell). */
+  onOpenPath?: (pathKey: string) => void;
 
   /**
    * Filter-bar visibility, controlled by the caller. Pass BOTH props to
@@ -138,6 +143,8 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   pathAnalysis,
   evaluationMethod,
   mitigationLookup,
+  mitigationCatalog,
+  verificationCatalog,
   likelihoodModel,
   treeId,
   assessments,
@@ -146,6 +153,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   primaryPathKey,
   onSetPrimaryPath,
   suggestedPrimaryPathKey,
+  onOpenPath,
   showFilters: showFiltersProp,
   onToggleFilters,
   filterTogglePlacement = "inline",
@@ -190,6 +198,8 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   const columns = useAttackTreePathColumns({
     evaluationMethod,
     mitigationLookup,
+    mitigationCatalog,
+    verificationCatalog,
     likelihoodModel,
     treeId,
     assessments,
@@ -456,6 +466,9 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
           rows={filteredPaths}
           columns={columns}
           getRowId={(path) => path.pathKey}
+          onRowClick={
+            onOpenPath ? (path) => onOpenPath(path.pathKey) : undefined
+          }
         />
       </Box>
 

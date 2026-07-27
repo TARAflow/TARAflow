@@ -37,14 +37,12 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   Checkbox,
   FormControlLabel,
   TextField,
   List,
   ListItemButton,
   ListItemText,
-  SelectChangeEvent,
 } from "@mui/material";
 import {
   NavigateBefore as PrevIcon,
@@ -67,6 +65,7 @@ import {
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
   RISK_SCALES,
+  LIKELIHOOD_SCALES,
 } from "../models/risk-scale-types";
 import {
   calculateRiskValues,
@@ -751,7 +750,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
               {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
             </em>
           </MenuItem>
-          {scale.levels.map((level) => {
+          {(def.category === "likelihood" ? LIKELIHOOD_SCALES : RISK_SCALES)[
+            configuration.scale
+          ].levels.map((level) => {
             const isAssetValue =
               (isDerived || isOverridden) &&
               level.value === rating?.derivedValue;
@@ -786,7 +787,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     <span>
                       {level.value} –{" "}
                       {t(
-                        `risks.scale.${level.label.toLowerCase().replace(/ /g, "_")}`,
+                        `risks.scales.${
+                          def.category === "likelihood"
+                            ? "likelihood"
+                            : "impact"
+                        }.${level.label.toLowerCase().replace(/ /g, "_")}`,
                         { defaultValue: level.label },
                       )}
                       {isAssetValue && " *"}

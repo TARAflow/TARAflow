@@ -1,11 +1,12 @@
+import { useTranslation } from "react-i18next";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import {
   getRiskColor,
   getRiskLabel,
-  getFactorColor,
   getFactorLabel,
 } from "../../services/risk-calculation-service";
 import { RiskConfiguration } from "../../models/risk-config-types";
+import { getLikelihoodLabel } from "../../models/risk-scale-types";
 
 interface RiskScorePanelProps {
   impact: number;
@@ -22,6 +23,12 @@ export const RiskScorePanel = ({
   configuration,
   highlightRisk = true,
 }: RiskScorePanelProps) => {
+  const { t } = useTranslation();
+  const scaleLabel = (axis: "likelihood" | "impact", raw: string) =>
+    t(`risks.scales.${axis}.${raw.toLowerCase().replace(/ /g, "_")}`, {
+      defaultValue: raw,
+    });
+
   const riskColor = getRiskColor(
     risk,
     configuration.scale,
@@ -29,24 +36,27 @@ export const RiskScorePanel = ({
   );
 
   const renderBox = (
-  title: string,
-  value: number,
-  label: string,
-  flexValue: number,
-  highlight?: boolean,
-) => (
-  <Paper
-    variant="outlined"
-    sx={{
-      p: 1.5,
-      textAlign: "center",
-      flex: flexValue,
-      bgcolor: highlight ? riskColor : "background.paper",
-      color: highlight ? "white" : "text.primary",
-      borderColor: highlight ? riskColor : "divider",
-    }}
-  >
-      <Typography variant="caption" color={highlight ? "inherit" : "text.secondary"}>
+    title: string,
+    value: number,
+    label: string,
+    flexValue: number,
+    highlight?: boolean,
+  ) => (
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 1.5,
+        textAlign: "center",
+        flex: flexValue,
+        bgcolor: highlight ? riskColor : "background.paper",
+        color: highlight ? "white" : "text.primary",
+        borderColor: highlight ? riskColor : "divider",
+      }}
+    >
+      <Typography
+        variant="caption"
+        color={highlight ? "inherit" : "text.secondary"}
+      >
         {title}
       </Typography>
 
@@ -66,21 +76,24 @@ export const RiskScorePanel = ({
         {renderBox(
           "Likelihood",
           likelihood,
-          getFactorLabel(likelihood, configuration.scale),
+          scaleLabel(
+            "likelihood",
+            getLikelihoodLabel(likelihood, configuration.scale),
+          ),
           3,
         )}
 
         {renderBox(
           "Impact",
           impact,
-          getFactorLabel(impact, configuration.scale),
+          scaleLabel("impact", getFactorLabel(impact, configuration.scale)),
           3,
         )}
 
         {renderBox(
           "Risk Score",
           risk,
-          getRiskLabel(risk, configuration.scale),
+          scaleLabel("impact", getRiskLabel(risk, configuration.scale)),
           4,
           highlightRisk,
         )}

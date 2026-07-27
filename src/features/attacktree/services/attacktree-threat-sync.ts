@@ -125,9 +125,42 @@ export function deriveAssessedKeys(
 ): Set<string> {
   const keys = new Set<string>();
   for (const a of assessments) {
-    if (a.relevance !== "unrated") keys.add(a.pathKey);
+    // "Assessed" = analyst work worth protecting from silent loss: a relevance
+    // decision OR attached mitigations. A mitigation-only (still unrated) path
+    // must raise the Class B banner if it vanishes.
+    if (
+      a.relevance !== "unrated" ||
+      (a.mitigationIds?.length ?? 0) > 0 ||
+      (a.verificationIds?.length ?? 0) > 0
+    ) {
+      keys.add(a.pathKey);
+    }
   }
   return keys;
+}
+
+/**
+ * Whether a path assessment can advance to the Risk tab — i.e. residual risk
+ * can be judged. Needs relevance + at least one mitigation. Verification is NOT
+ * required here: it confirms the mitigation works (assurance / later V&V), which
+ * is downstream of computing residual risk. `not_relevant` is terminal (no risk).
+ */
+export function isReadyForRisk(a: AttackPathAssessment): boolean {
+  if (a.relevance === "not_relevant") return true;
+  if (a.relevance === "relevant") return (a.mitigationIds?.length ?? 0) > 0;
+  return false;
+}
+
+/**
+ * Whether a path assessment is FULLY closed — drives the dialog's done marker
+ * and the "verification pending" indicator. Stricter than isReadyForRisk: a
+ * relevant path also needs at least one verification (every mitigation should
+ * have a test that checks it works). `not_relevant` is terminal.
+ */
+export function isPathAssessmentComplete(a: AttackPathAssessment): boolean {
+  if (!isReadyForRisk(a)) return false;
+  if (a.relevance === "not_relevant") return true;
+  return (a.verificationIds?.length ?? 0) > 0;
 }
 
 // ==================== OVERLAY ====================
@@ -154,14 +187,44 @@ export function applyAssessmentsToThreats(
   return threats.map((threat) => {
     const a = byId.get(threat.id);
     if (!a) return { ...threat };
-    // Only the relevance crosses over. evalNote stays on the assessment — the
-    // ThreatReference has no field for it, and inventing one (e.g. folding it
-    // into causeDescription) would corrupt the generator's cause text. The UI
-    // reads the note from the assessment, not from the threat.
-    return { ...threat, relevance: a.relevance };
+    // relevance + the analyst's catalogue selections cross over. mitigationIds
+    // and verificationIds become proposal drafts, UNIONed with any the generator
+    // already emitted from legacy DSL leaves so neither source is dropped.
+    // evalNote stays on the assessment (no ThreatReference field for it).
+    return {
+      ...threat,
+      relevance: a.relevance,
+      proposedMitigations: mergeIdDrafts(
+        threat.proposedMitigations,
+        a.mitigationIds,
+      ),
+      proposedVerifications: mergeIdDrafts(
+        threat.proposedVerifications,
+        a.verificationIds,
+      ),
+    };
   });
 }
 
+/**
+ * Union a threat's existing proposal drafts (generator's DSL parse) with the
+ * assessment's catalogue ids, de-duped by id, order preserved. Same shape for
+ * mitigations and verifications.
+ */
+function mergeIdDrafts<T extends { id?: string }>(
+  existing: readonly T[] | undefined,
+  ids: readonly string[] | undefined,
+): T[] {
+  const base: T[] = existing ? [...existing] : [];
+  if (!ids || ids.length === 0) return base;
+  const have = new Set(base.map((d) => d.id).filter(Boolean));
+  for (const id of ids)
+    if (!have.has(id)) {
+      base.push({ id } as T);
+      have.add(id);
+    }
+  return base;
+}
 // ==================== RECONCILIATION (Class A / B) ====================
 
 export interface AttackPathSyncResult {
@@ -225,14 +288,32 @@ export function setPathAssessment(
   strideCategory: StrideCategory,
   relevance: ThreatRelevanceRef,
   evalNote?: string,
+  mitigationIds?: string[],
+  verificationIds?: string[],
 ): AttackPathAssessment[] {
   const key = assessmentKey(pathKey, strideCategory);
+  const existing = assessments.find(
+    (a) => assessmentKey(a.pathKey, a.strideCategory) === key,
+  );
   const rest = assessments.filter(
     (a) => assessmentKey(a.pathKey, a.strideCategory) !== key,
   );
 
-  if (relevance === "unrated") {
-    // Clearing back to the default → don't persist an inert entry.
+  // Merge, not full-replace (see mitigationIds note). undefined = keep, [] = clear.
+  const mergedMit = mitigationIds ?? existing?.mitigationIds;
+  const normalizedMitigationIds =
+    mergedMit && mergedMit.length > 0 ? mergedMit : undefined;
+  const mergedVer = verificationIds ?? existing?.verificationIds;
+  const normalizedVerificationIds =
+    mergedVer && mergedVer.length > 0 ? mergedVer : undefined;
+
+  // Drop a truly inert entry: unrated AND nothing attached at all.
+  if (
+    relevance === "unrated" &&
+    !normalizedMitigationIds &&
+    !normalizedVerificationIds &&
+    (evalNote === undefined || evalNote === "")
+  ) {
     return rest;
   }
 
@@ -243,6 +324,8 @@ export function setPathAssessment(
       strideCategory,
       relevance,
       evalNote,
+      mitigationIds: normalizedMitigationIds,
+      verificationIds: normalizedVerificationIds,
       lastModified: new Date().toISOString(),
     },
   ];
