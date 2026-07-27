@@ -1,0 +1,219 @@
+Identität:
+￼
+- id
+- name
+- assetType
+- description
+- Crytical for operation (Supporting,essential, saftey critical)
+
+Recoverability:
+- replacementLeadTime
+- vendorDependency (multi_vendor, limited, single_source)
+- spareAvailability (on_site, supplier, none)
+
+
+Data
+----
+
+Hier geht es hauptsächlich um CIA Impact.
+
+dataClassification
+  public
+  internal
+  confidential
+  secret
+
+containsPII
+
+
+System
+------
+
+(z.B. HMI, SCADA, Application)
+
+Typische Parameter:
+
+authentication
+  none
+  password
+  certificate
+  MFA
+
+externalInput
+  none
+  user
+  API
+
+
+Process
+-------
+
+Das ist eine sehr interessante Kategorie.
+
+Ein Process Asset könnte sein:
+
+Produktionsschritt
+
+Safety Function
+
+Wartungsprozess
+
+Hier würde ich erwarten:
+
+processType
+  operational
+  maintenance
+  safety
+
+und eventuell:
+
+automationLevel
+manual
+semi
+automatic
+
+
+Infrastructure
+--------------
+
+(z.B. PLC, Switch, Server)
+
+Erwartete zusätzliche Parameter:
+
+physicalAccess
+  restricted
+  controlled
+  public
+
+lifecycleState
+  active
+  legacy
+  EOL
+
+Optional: patchable
+
+
+Human
+-----
+
+Diese Kategorie wird oft vergessen, ist aber wichtig für Threat Modeling.
+
+Parameter könnten sein:
+
+role
+  operator
+  engineer
+  maintenance
+  vendor
+
+und
+
+accessLevel
+
+
+Zu ExternalEntities:
+Optional ergänzen
+
+interactionChannel
+accessOrigin?:
+  | "internal_network"
+  | "partner_network"
+  | "internet"
+  | "field"
+
+Optional überdenken
+
+threatActor
+
+Eine alternative Struktur wäre:
+
+TypeScript
+￼
+threatProfile?:
+  | "trusted"
+  | "untrusted"
+  | "privileged"
+  | "external_service"
+ 
+ 
+ Interface
+ ---------
+physicalProtection?: Array<
+  "none | locked_cabinet | secure_area | tamper_evident_seal | rack_enclosure | fenced_area,| biometric_lock"
+>;
+
+Dataflow
+--------
+integrityProtection?: 
+  | "none"
+  | "checksum"
+  | "signature"
+  | "mac";
+  
+dataTypes?: (
+  | "credentials"
+  | "personal_data"
+  | "financial"
+  | "operational"
+  | "telemetry"
+  | "control_commands"
+)[];
+
+
+# PhysicalProtection → Exposure Level (EL) Mapping für EN 50742
+
+## 1. Lookup-Tabelle statt Array
+
+Vorteile:
+- Jede `physicalProtection`-Maßnahme hat direkt einen EL-Wert.
+- Das Tool kann den niedrigsten EL auswählen, wenn mehrere Maßnahmen gleichzeitig aktiv sind (Defense-in-Depth-Prinzip).
+
+```ts
+export type PhysicalProtectionType =
+  | "none"
+  | "tamper_evident_seal"
+  | "locked_cabinet"
+  | "rack_enclosure"
+  | "fenced_area"
+  | "secure_area"
+  | "biometric_lock";
+
+export const PhysicalProtectionMapping: Record<PhysicalProtectionType, number> = {
+  none: 4,                 // Public/Open
+  tamper_evident_seal: 3,  // Nur Entdeckung, kaum Hinderung
+  locked_cabinet: 2,       // Restricted Access
+  rack_enclosure: 2,       // Gleichwertig zum Cabinet
+  fenced_area: 1,          // Controlled Area
+  secure_area: 1,          // Überwachter Bereich
+  biometric_lock: 1        // High Security
+};
+```
+
+
+2. Ableitungs-Logik (Derivation Engine)
+- Physical: Prüfe alle gewählten Maßnahmen → wähle den niedrigsten EL (stärkste Schutzmaßnahme).
+- Logical: Berücksichtige accessControl-Parameter wie MFA, Authentifizierung etc., die EL oder AP ggf. weiter senken.
+- Boundary: Setze Minimum-EL für Interfaces an unsicheren Grenzen (z. B. Internet) → verhindert unrealistische Werte.
+
+```ts
+function deriveExposureLevel(measures: PhysicalProtectionType[]): number {
+  return Math.min(...measures.map(m => PhysicalProtectionMapping[m]));
+}
+
+// Beispiel
+const el = deriveExposureLevel(["locked_cabinet", "tamper_evident_seal"]); // EL = 2
+```
+
+3. EN 50742-konforme Reporting-Logik
+- Dein Tool kann automatisch begründen, warum EL 2 gewählt wurde:
+- >"Dataflow DF_01 hat EL 2, da Interface IF_USB über locked_cabinet verfügt (Mapping gemäß System-Konfiguration)."
+- Auditorenfreundlich: Keine Interpretation nötig, alles reproduzierbar.
+
+4. Defense-in-Depth
+- Mehrere Maßnahmen wirken kumulativ → das Tool wählt automatisch den besten Schutz, der den EL bestimmt.
+- Kein Array mit komplizierter Logik nötig → Lookup-Tabelle + Min-Funktion reicht.
+
+💡 Fazit:
+- Lookup-Tabelle + Min-Logik = sauber, wartbar, EN 50742-konform.
+- Array von Objekten mit EL ist unnötig, würde nur Komplexität bringen.
+- Dein Tool kann damit automatisch Exposure Level → Attack Potential → Risiko ableiten.

@@ -637,6 +637,12 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
+    icon: path.join(
+      __dirname,
+      process.platform === "win32"
+        ? "../build-resources/icon.ico"
+        : "../build-resources/icon.png",
+    ),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -645,6 +651,22 @@ function createWindow() {
   });
 
   mainWindow = win;
+
+  // ==================== Force-close: bypass draw.io's iframe beforeunload ====================
+  // draw.io (embedded as an iframe) installs window.onbeforeunload as soon as a
+  // diagram/project is open. Electron's `will-prevent-unload` does NOT reliably
+  // fire for SUBFRAME beforeunload, so on Windows the native X silently hangs
+  // once a project is open (no project → no iframe guard → closes fine). Force-
+  // destroy on close to skip all unload guards; saving is handled in-app, not via
+  // the browser beforeunload. (This makes the `will-prevent-unload` handler below
+  // redundant — `close` fires first — but it's kept as harmless belt-and-braces.)
+  let allowClose = false;
+  win.on("close", (event) => {
+    if (allowClose) return;
+    event.preventDefault();
+    allowClose = true;
+    win.destroy();
+  });
 
   // ==================== DISABLE BROWSER ZOOM ====================
 

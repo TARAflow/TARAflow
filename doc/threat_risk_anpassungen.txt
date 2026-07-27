@@ -1,0 +1,134 @@
+type VerificationMethod =
+  | 'unit_test'           // funktionale Korrektheit
+  | 'integration_test'    // Zusammenspiel von Komponenten
+  | 'negative_test'       // ungültige Inputs, Boundary Cases
+  | 'fuzz_test'           // randomisierter Input
+  | 'load_test'           // Verhalten unter Normallast
+  | 'stress_test'         // Verhalten über dem Limit / Ressourcenerschöpfung
+  | 'penetration_test'    // freies adversariales Angriffsszenario
+  | 'code_review'         // manuelle Codeanalyse
+  | 'static_analysis'     // automatisierte Codeanalyse (SAST)
+  | 'audit'               // formale Überprüfung durch Dritte
+  | 'formal_analysis'     // mathematischer Beweis
+  | 'field_test';         // Validierung im realen System
+
+
+type VerificationStatus =
+  | 'pending'     // noch nicht durchgeführt
+  | 'passed'      // erfolgreich verifiziert
+  | 'failed'      // Verifikation fehlgeschlagen — Mitigation wirkt nicht
+  | 'waived';     // bewusst nicht verifiziert — Begründung Pflicht
+  
+
+// Threat Tab — bei der Mitigation
+interface MitigationEntry {
+  description: string;
+  method: VerificationMethod;
+}
+
+// Risk Tab — nach dem Treatment Decision
+interface VerificationEntry {
+  status: VerificationStatus;
+  ticketRef?: string;       // z.B. "JIRA-1234" oder "ADO-567"
+  date?: string;
+  owner?: string;
+  rationale?: string;       // Pflicht wenn 'waived' oder 'failed'
+}
+
+T-ID | STRIDE | Source | Severity | Safety | T-Description | Attack Description | Actor* | Mitigation | Verification Method | Actions
+* optional
+Source — derived / manual / relation: Analyst sieht sofort ob der Threat automatisch generiert wurde oder manuell erfasst — wichtig für Audit
+
+Severity — CRITICAL / HIGH / MEDIUM / LOW: 
+MAX-Wert aus CIANAAA der betroffenen Assets Safety Override bereits eingerechnet → Analyst sieht sofort Priorität ohne Risk-Tab zu öffnen
+
+Safety — direct / indirect / none: Schnelles Signal ob Safety Override greift → diese Threats zuerst bearbeiten
+
+Verification Method — aus dem neuen Enum Gehört zur Mitigation — wird hier definiert Status kommt erst im Risk-Tab
+
+type MitigationType =
+  | 'access_control'
+  | 'authentication'
+  | 'authorization'
+  | 'digital_signatures'
+  | 'encryption'
+  | 'data_protection'       // neu: Secure Storage, Data Masking
+  | 'input_validation'
+  | 'rate_limiting'         // neu: Quotas, Throttling
+  | 'monitoring_logging'
+  | 'network_segmentation'
+  | 'redundancy'
+  | 'secure_boot'
+  | 'patch_management'
+  | 'physical_security'
+  | 'other';
+  
+mitigation_type:         digital_signatures  [Dropdown]
+
+mitigation_suggestion:   "Digitally signed packets / Digital Signatures
+                          — Authenticate code or data"
+                         [read-only, aus Matrix abgeleitet]
+
+mitigation_notes:        "Firmware updates signed with vendor certificate,
+                          verified on device before flash"
+                         [Freitext, optional]
+                         
+verification_method:      negative_test  [Dropdown]
+
+verification_suggestion:  "Test with invalid/unsigned firmware,
+                           verify rejection by device"
+                          [read-only]
+
+verification_notes:       "Use test certificate expired 2024-01-01,
+                           confirm error code 0x4A returned"
+                          [Freitext, optional]
+                          
+mitigation_type        → fett / Chip
+mitigation_suggestion  → normal
+mitigation_notes       → kursiv, eingerückt mit ↳
+Dasselbe für Verification:
+Verification
+─────────────────────────────────────────
+negative_test
+Test with invalid/unsigned firmware, verify rejection
+  ↳ Use test certificate expired 2024-01-01,
+    confirm error code 0x4A returned
+    
+Kompakt mit Chips:
+Mitigation
+─────────────────────────────────────────
+[digital_signatures] [access_control]
+Nur die mitigation_type Chips anzeigen — kein Text, kein ↳.
+Bei Hover auf einen Chip erscheint ein Tooltip mit suggestion + notes.
+Bei Klick auf die Zelle öffnet sich der Dialog mit allen Details.
+Vorteile:
+Chips        → platzsparend, auf einen Blick erkennbar
+Tooltip      → Details ohne Dialog zu öffnen
+Dialog       → vollständige Erfassung/Bearbeitung
+
+
+Risk-Tab — Auswahl + Notes:
+Mitigation
+─────────────────────────────────────────
+Selected:  [① digital_signatures ▼]     ← Dropdown aus Threat-Tab Optionen
+
+Suggestion:  "Digitally signed packets
+              — Authenticate code or data"
+             [read-only]
+
+Final Notes: "Implemented in firmware v2.3,
+              vendor cert rotation every 12m"
+             [Freitext]
+
+Rejected:
+  ✗ ② access_control — "Covered by network segmentation"
+Der Vorteil dieser Struktur:
+Dropdown     → nur Optionen aus Threat-Tab wählbar
+               kein Copy-Paste, keine Inkonsistenz
+               Traceability automatisch
+
+Final Notes  → projektspezifische Implementierungsdetails
+               ergänzt die Suggestion, ersetzt sie nicht
+
+Rejected     → Audit-Trail der verworfenen Optionen
+               Begründung Pflicht

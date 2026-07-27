@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +98,16 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload installers (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-macos
+          path: |
+            release/*.dmg
+          if-no-files-found: error
+          retention-days: 7
+
   # ---------------------------------------------------------------------------
   # 2) Collect all installers and publish a single GitHub Release.
   # ---------------------------------------------------------------------------
@@ -118,12 +128,20 @@ jobs:
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # Tag name (e.g. v0.5.0-alpha) is taken from the pushed ref.
-          # Mark as prerelease automatically for -alpha / -beta / -rc tags.
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true
+          append_body: true
+          body: |
+            > **Unsigned alpha build.** TARAflow is open source (GPL-3.0). We don't
+            > code-sign the installers (cost). If you'd rather not run an unsigned
+            > build, build it yourself: `npm run build:electron`.
+            >
+            > - **Windows:** SmartScreen may say "unknown publisher" → *More info → Run anyway*.
+            > - **macOS:** Gatekeeper blocks the first launch → right-click the app → *Open* (or System Settings → Privacy & Security → *Open Anyway*).
+            > - **Linux:** make the AppImage executable (`chmod +x *.AppImage`) or install the `.deb`.
           fail_on_unmatched_files: true
           files: |
             artifacts/**/*.deb
             artifacts/**/*.AppImage
             artifacts/**/*.exe
+            artifacts/**/*.dmg
