@@ -936,28 +936,37 @@ export type Protocol =
 // endpointAuthentication — extended with OT/ICS auth methods
 // ---------------------------------------------------------------------------
 //
-// ISA/IEC 62443 auth categories:
-//   Password-based   — username + password (SCADA HMI, OPC server login)
-//   Biometric        — fingerprint, facial recognition (operator stations)
-//   Token-based      — smart card, hardware token, security key
-//   MFA              — two-factor or multi-factor combination
-//   Symmetric key    — shared secret (WirelessHART, ISA100, legacy OT)
-//   Certificate      — X.509 PKI (OPC UA, HTTPS, mTLS)
-//   API key          — pre-shared key (REST APIs, cloud connectors)
-//   OAuth            — delegated auth (cloud, IIoT platforms)
-//   Mutual TLS       — client + server cert (high-assurance OT gateways)
+// Authentication categories commonly used in IT, OT/ICS and IoT:
+//
+//   none            — no endpoint authentication
+//   password        — username + password (SCADA, HMI login)
+//   pairing         — secure device pairing (e.g. Bluetooth LE, NFC)
+//   symmetric_key   — shared symmetric key (WirelessHART, ISA100, legacy OT)
+//   token           — hardware token, smart card, security key
+//   mfa             — multi-factor authentication (≥2 authentication factors)
+//   biometric       — fingerprint, facial recognition (operator stations)
+//   certificate     — X.509 certificate (PKI)
+//   apikey          — pre-shared API key
+//   oauth           — OAuth 2.0 delegated authorization
+//   mutual_tls      — mutual TLS (client + server certificates)
+// ---------------------------------------------------------------------------
 
-type EndpointAuthentication =
-  | "none"
-  | "password" // Username + password (SCADA, HMI login)
-  | "symmetric_key" // Shared symmetric key (WirelessHART, ISA100, legacy OT)
-  | "token" // Hardware token / smart card / security key
-  | "mfa" // Multi-factor authentication (combination of ≥2 factors)
-  | "biometric" // Biometric (fingerprint, facial recognition — operator stations)
-  | "certificate" // X.509 certificate — PKI-based
-  | "apikey" // Pre-shared API key
-  | "oauth" // OAuth 2.0 / delegated authorization
-  | "mutual_tls"; // Mutual TLS — client + server certificate
+export const ENDPOINT_AUTHENTICATION_OPTIONS = [
+  "none",
+  "password",
+  "pairing",
+  "symmetric_key",
+  "token",
+  "mfa",
+  "biometric",
+  "certificate",
+  "apikey",
+  "oauth",
+  "mutual_tls",
+] as const;
+
+export type EndpointAuthentication =
+  (typeof ENDPOINT_AUTHENTICATION_OPTIONS)[number];
 
 /**
  * Nature of a DataFlow edge — ORTHOGONAL to `location` (which is the cyber
@@ -974,6 +983,44 @@ type EndpointAuthentication =
  * undefined is treated as "logical".
  */
 export type DataFlowMedium = "logical" | "physical";
+
+ /**
+   * Integrity protection mechanism for data in transit.
+   *
+   * Replaces boolean — the mechanism determines actual security guarantees:
+   *   none      → No protection
+   *   crc       → CRC (detects transmission errors, NOT targeted manipulation —
+   *               Modbus RTU frame CRC falls here)
+   *   hash      → Cryptographic hash — detects changes, no key
+   *   hmac      → HMAC — keyed hash, manipulation-resistant if key is secret
+   *   signature → Digital signature — asymmetric, strongest guarantee
+   *               (use for firmware update flows)
+   *   aead      → Authenticated Encryption — combined confidentiality and key-based
+   *               integrity, manipulation-resistant (e.g., AES-GCM / TLS 1.3)
+   *   custom    → Proprietary mechanism
+   *
+   * Threat implication:
+   *   none / crc       → Tampering (MITM data manipulation) threat generated
+   *   hmac / signature / aead → Tampering threat mitigated
+   *
+   * @example DF-1 (Modbus RTU sensor values) → "crc"  — frame CRC present,
+   *          not cryptographic — Tampering threat still active
+   * @example DF-6 (Firmware Update) → "signature" (SHOULD) — critical gap if absent
+   * @example DF-5 (HTTPS Web UI) → "hmac"  — TLS record MAC provides HMAC integrity
+   * @example DF-7 (Secure Telemetry via MQTT) → "aead" — encrypted payload with 
+   *          hardware-backed tag, Tampering threat mitigated
+   */
+  export const INTEGRITY_PROTECTION_OPTIONS =[
+    "none",
+     "crc",
+     "hash",
+     "hmac",
+     "signature",
+     "aead",
+     "custom"];
+
+  export type IntegrityProtection =
+  (typeof INTEGRITY_PROTECTION_OPTIONS)[number];
 
 export interface DataFlowProperties {
   protocol?: Protocol;
@@ -1067,35 +1114,7 @@ export interface DataFlowProperties {
 
   volume?: string;
   encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
-  /**
-   * Integrity protection mechanism for data in transit.
-   *
-   * Replaces boolean — the mechanism determines actual security guarantees:
-   *   none      → No protection
-   *   crc       → CRC (detects transmission errors, NOT targeted manipulation —
-   *               Modbus RTU frame CRC falls here)
-   *   hash      → Cryptographic hash — detects changes, no key
-   *   hmac      → HMAC — keyed hash, manipulation-resistant if key is secret
-   *   signature → Digital signature — asymmetric, strongest guarantee
-   *               (use for firmware update flows)
-   *   custom    → Proprietary mechanism
-   *
-   * Threat implication:
-   *   none / crc  → Tampering (MITM data manipulation) threat generated
-   *   hmac / signature → Tampering threat mitigated
-   *
-   * @example DF-1 (Modbus RTU sensor values) → "crc"  — frame CRC present,
-   *          not cryptographic — Tampering threat still active
-   * @example DF-6 (Firmware Update) → "signature" (SHOULD) — critical gap if absent
-   * @example DF-5 (HTTPS Web UI) → "hmac"  — TLS record MAC provides HMAC integrity
-   */
-  integrityProtection?:
-    | "none"
-    | "crc"
-    | "hash"
-    | "hmac"
-    | "signature"
-    | "custom";
+  integrityProtection?: IntegrityProtection;
   endpointAuthentication?: EndpointAuthentication;
 
   // EN 50742 Annex B — Exposure Level

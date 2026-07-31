@@ -1380,6 +1380,7 @@
               "options": {
                 "none": "Keine",
                 "password": "Passwort (Benutzername + Passwort)",
+                "pairing": "Pairing",
                 "symmetric_key": "Symmetrischer Schlüssel (gemeinsames Geheimnis)",
                 "token": "Token (Chipkarte / Hardware-Token)",
                 "mfa": "Multi-Faktor-Authentifizierung (MFA)",
@@ -1398,6 +1399,7 @@
                 "hash": "Hash (SHA-256) — erkennt Änderungen, kein Schlüssel",
                 "hmac": "HMAC — Schlüssel-Hash, manipulationsresistent",
                 "signature": "Digitale Signatur — asymmetrisch, stärkste Garantie",
+                "aead": "AEAD — authentifizierte Verschlüsselung, manipulationssicher",
                 "custom": "Benutzerdefiniert / proprietär"
               },
               "tooltip": "Wie wird die Integrität der Daten während der Übertragung geschützt? Modbus RTU CRC = 'crc' — vorhanden aber NICHT kryptographisch. Nur HMAC und Signatur schützen vor gezielter MITM-Manipulation."

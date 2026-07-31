@@ -1075,7 +1075,7 @@ export const DATAFLOW_PROTOCOL_DEFAULTS: Record<
   // Bluetooth Classic / BLE: pairing strength varies by mode — defaults to
   // none to surface risk, same reasoning as zigbee.
   bluetooth: {
-    endpointAuthentication: "none",
+    endpointAuthentication: "pairing",
     encryptionInTransit: "none",
     integrityProtection: "none",
     frequency: "periodic",

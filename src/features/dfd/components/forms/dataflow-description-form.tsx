@@ -26,9 +26,11 @@ import {
 import { Warning as WarningIcon } from "@mui/icons-material";
 import type { AssetGroup } from "shared";
 import type { DFDConnection } from "../../models/dfd-types";
-import type {
-  DataFlowProperties,
-  Protocol,
+import {
+  type DataFlowProperties,
+  ENDPOINT_AUTHENTICATION_OPTIONS,
+  INTEGRITY_PROTECTION_OPTIONS,
+  type Protocol,
 } from "../../models/element-properties";
 import type { ExposureLevel } from "../../models/element-shared-types";
 import {
@@ -915,9 +917,8 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                       })}
                     </em>
                   </MenuItem>
-                  {(
-                    ["none", "token", "certificate", "apikey", "oauth"] as const
-                  ).map((opt) => (
+
+                  {ENDPOINT_AUTHENTICATION_OPTIONS.map((opt) => (
                     <MenuItem key={opt} value={opt}>
                       {t(
                         `tabs.dfd.element_description.dataflow.fields.endpointAuthentication.options.${opt}`,
@@ -957,20 +958,11 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                       })}
                     </em>
                   </MenuItem>
-                  {(
-                    [
-                      "none",
-                      "crc",
-                      "hash",
-                      "hmac",
-                      "signature",
-                      "custom",
-                    ] as const
-                  ).map((opt) => (
+                  {INTEGRITY_PROTECTION_OPTIONS.map((opt) => (
                     <MenuItem key={opt} value={opt}>
                       {t(
                         `tabs.dfd.element_description.dataflow.fields.integrityProtection.options.${opt}`,
-                        { defaultValue: opt.toUpperCase() },
+                        { defaultValue: opt },
                       )}
                     </MenuItem>
                   ))}
