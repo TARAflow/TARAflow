@@ -115,22 +115,11 @@ export class GitServiceRenderer {
    */
   async commit(
     message: string,
-    config: AuditConfig
-  ): Promise<GitOperationResult<GitCommitResult>> {
-    try {
-      if (!window.git) {
-        return {
-          success: false,
-          error: "Git API not available",
-        };
-      }
-      return await window.git.commit(message, config);
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to commit: ${error}`,
-      };
-    }
+    config: AuditConfig,
+    signCommit: boolean = true,
+  ) {
+    if (!window.git) return { success: false, error: "Git API not available" };
+    return await window.git.commit(message, config, signCommit);
   }
 
   // ==================== BRANCHES ====================
@@ -175,7 +164,7 @@ export class GitServiceRenderer {
    */
   async createBranch(
     branchName: string,
-    checkout: boolean = true
+    checkout: boolean = true,
   ): Promise<GitOperationResult<void>> {
     try {
       if (!window.git) {
@@ -197,9 +186,7 @@ export class GitServiceRenderer {
    * Switch to existing branch
    * @param branchName - Branch to checkout
    */
-  async checkoutBranch(
-    branchName: string
-  ): Promise<GitOperationResult<void>> {
+  async checkoutBranch(branchName: string): Promise<GitOperationResult<void>> {
     try {
       if (!window.git) {
         return {
@@ -238,7 +225,7 @@ export class GitServiceRenderer {
    */
   async addRemote(
     name: string,
-    url: string
+    url: string,
   ): Promise<GitOperationResult<void>> {
     try {
       if (!window.git) {
@@ -300,7 +287,7 @@ export class GitServiceRenderer {
   async push(
     remote: string = "origin",
     branch?: string,
-    config?: AuditConfig
+    config?: AuditConfig,
   ): Promise<GitOperationResult<GitPushResult>> {
     try {
       if (!window.git) {
@@ -337,7 +324,9 @@ export class GitServiceRenderer {
    * Get commit history
    * @param maxCount - Maximum number of commits (default: 10)
    */
-  async getLog(maxCount: number = 10): Promise<GitOperationResult<GitLogSummary>> {
+  async getLog(
+    maxCount: number = 10,
+  ): Promise<GitOperationResult<GitLogSummary>> {
     try {
       if (!window.git) {
         return {
@@ -399,13 +388,16 @@ export class GitServiceRenderer {
 
   // ==================== UTILITY ====================
 
-  /**
-   * Get repository root path
-   */
-  getRepoPath(): string {
-    // In renderer, we don't have direct access to the path
-    // This is managed by the main process
-    return ".";
+  /** Select the audit repo the main-process GitService operates on. */
+  async setRepoPath(root: string): Promise<GitOperationResult<void>> {
+    try {
+      if (!window.git) {
+        return { success: false, error: "Git API not available" };
+      }
+      return await window.git.setRepoPath(root);
+    } catch (error) {
+      return { success: false, error: `Failed to set repo path: ${error}` };
+    }
   }
 
   /**

@@ -4,3 +4,4 @@ dist-electron/
 dist/
 dist-cli/
 release/
+diff.txt

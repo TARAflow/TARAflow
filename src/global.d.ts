@@ -47,6 +47,15 @@ declare global {
         readProject: (
           filePath: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
+        readText: (filePath: string) => Promise<{
+          success: boolean;
+          data?: string | null;
+          error?: string;
+        }>;
+        writeText: (
+          filePath: string,
+          content: string,
+        ) => Promise<{ success: boolean; data?: string; error?: string }>;
       };
       metadata?: {
         getRecentProjects: () => Promise<{
@@ -94,9 +103,7 @@ declare global {
           account: string,
           token: string,
         ) => Promise<{ success: boolean; error?: string }>;
-        getToken: (
-          account: string,
-        ) => Promise<{
+        getToken: (account: string) => Promise<{
           success: boolean;
           token: string | null;
           error?: string;
@@ -117,6 +124,7 @@ declare global {
       commit: (
         message: string,
         config: AuditConfig,
+        signCommit?: boolean,
       ) => Promise<GitOperationResult<GitCommitResult>>;
       getBranches: () => Promise<GitOperationResult<GitBranchSummary>>;
       getCurrentBranch: () => Promise<string | null>;
@@ -141,6 +149,13 @@ declare global {
       getLatestCommit: () => Promise<GitOperationResult<any>>;
       getDiff: (filePath?: string) => Promise<GitOperationResult<string>>;
       raw: (command: string[]) => Promise<GitOperationResult<string>>;
+      rawInDir: (
+        dir: string,
+        args: string[],
+      ) => Promise<
+        GitOperationResult<{ stdout: string; stderr: string; code: number }>
+      >;
+      setRepoPath: (root: string) => Promise<GitOperationResult<void>>;
     };
 
     // Credentials APIs (für Audit Feature)

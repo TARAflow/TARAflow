@@ -22,5 +22,10 @@
   "include": [
     "electron/**/*",
   ],
-  "exclude": ["node_modules", "dist", "dist-electron"]
+    "exclude": [
+    "electron/tests/**/*",
+    "node_modules",
+    "dist",
+    "dist-electron"
+  ]
 }

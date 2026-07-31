@@ -18,6 +18,7 @@ export default defineConfig({
       features: "/src/features",
       shared: "/src/shared",
       i18n: "/src/i18n",
+      audit: "/src/features/audit",
     },
   },
 });

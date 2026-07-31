@@ -8,7 +8,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Alert } from "@mui/material";
+import { Box, Alert, Button } from "@mui/material";
 import type {
   AuditTabProps,
   AuditConfig,
@@ -29,6 +29,8 @@ import { AuditSummary } from "./audit-summary";
 import { PhaseDiffViewer } from "./phase-diff-viewer";
 import { CommitDialog } from "./commit-dialog";
 import { AuditConfigDialog } from "./audit-config-dialog";
+import { useAuditRepo } from "../hooks/useAuditRepo";
+import { loadPreviousProjectFromGit } from "../services/audit-prev-state";
 import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
@@ -92,6 +94,14 @@ const gitService = useMemo(() => {
   return createGitService();
 }, []);
 
+  // Discover the audit repo from the project file, bind it (setRepoPath), and
+  // check .gitattributes. Until this resolves, the main GitService still points
+  // at its default path — so git init/commit below are gated on it (see effect).
+  const repo = useAuditRepo({
+    id: project.id,
+    filePath: (project as Project).filePath,
+  });
+
   // ==================== EFFECTS ====================
 
   // Sync from project when it changes
@@ -108,12 +118,26 @@ const gitService = useMemo(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty]);
 
-  // Initialize Git and detect changes on mount
+  // Detect changes on mount (no git needed — diffs in-memory project state).
   useEffect(() => {
-    initializeGit();
     detectChanges();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Initialize git state only AFTER the audit repo is discovered and bound
+  // (useAuditRepo calls setRepoPath). Before that, the main GitService still
+  // points at its default path, so committing/init would target the wrong dir.
+  useEffect(() => {
+    if (
+      repo.outcome?.kind === "repo-ok" ||
+      repo.outcome?.kind === "repo-needs-attributes"
+    ) {
+      initializeGit();
+      // Now that the repo is bound, recompute the diff against the real HEAD.
+      detectChanges();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repo.outcome?.kind]);
 
   // Auto-save when dirty (debounced)
   useEffect(() => {
@@ -179,17 +203,29 @@ const gitService = useMemo(() => {
 
   // ==================== CHANGE DETECTION ====================
 
-  const detectChanges = useCallback(() => {
+  const detectChanges = useCallback(async () => {
     try {
-      // Get snapshot from last commit state
-      const previousProject = auditData.lastCommitState
-        ? reconstructProjectFromCommitState()
-        : null;
+      // Previous state = the committed .tara.json at HEAD (null on the first
+      // commit, when not in a repo, or before the repo is bound).
+      let previousProject: Project | null = null;
+      const repoRoot =
+        repo.outcome?.kind === "repo-ok" ||
+        repo.outcome?.kind === "repo-needs-attributes"
+          ? repo.outcome.repoRoot
+          : null;
+      const filePath = (project as Project).filePath;
+      if (repoRoot && filePath) {
+        previousProject = await loadPreviousProjectFromGit(
+          (args) => gitService.raw(args),
+          repoRoot,
+          filePath,
+        );
+      }
 
-      // Detect changes
+      // Detect changes against the real previous state
       const detectedChanges = diffService.detectChanges(
         project as Project,
-        previousProject
+        previousProject,
       );
 
       setChanges(detectedChanges);
@@ -198,8 +234,12 @@ const gitService = useMemo(() => {
       if (detectedChanges.length > 0) {
         const messageData = diffService.generateCommitMessageData(
           detectedChanges,
-          "Detail Review", // Default round name
-          auditData.config.author.name || "Unknown"
+          "Detail Review",
+          auditData.config.author.name || "Unknown",
+          {
+            projectName: project.name ?? project.info?.name,
+            projectId: project.id,
+          },
         );
         setCommitMessageData(messageData);
       } else {
@@ -209,14 +249,7 @@ const gitService = useMemo(() => {
       console.error("Failed to detect changes:", err);
       setError("Failed to detect changes");
     }
-  }, [project, auditData.lastCommitState, auditData.config.author.name]);
-
-  const reconstructProjectFromCommitState = (): Project | null => {
-    // In a real implementation, this would reconstruct the project from the commit state
-    // For now, we return null to compare against nothing (all changes are new)
-    // TODO: Implement proper project snapshot reconstruction
-    return null;
-  };
+  }, [project, repo.outcome, gitService, auditData.config.author.name]);
 
   // ==================== HANDLERS ====================
 
@@ -286,20 +319,18 @@ const gitService = useMemo(() => {
         if (options.createBranch) {
           const createResult = await gitService.createBranch(
             options.branchName,
-            true
+            true,
           );
           if (!createResult.success) {
-            throw new Error(
-              createResult.error || "Failed to create branch"
-            );
+            throw new Error(createResult.error || "Failed to create branch");
           }
         } else if (options.branchName !== currentBranch) {
           const checkoutResult = await gitService.checkoutBranch(
-            options.branchName
+            options.branchName,
           );
           if (!checkoutResult.success) {
             throw new Error(
-              checkoutResult.error || "Failed to checkout branch"
+              checkoutResult.error || "Failed to checkout branch",
             );
           }
         }
@@ -307,8 +338,10 @@ const gitService = useMemo(() => {
         // Commit
         const commitResult = await gitService.commit(
           options.message,
-          auditData.config
+          auditData.config,
+          options.signCommit,
         );
+
         if (!commitResult.success || !commitResult.data) {
           throw new Error(commitResult.error || "Failed to commit");
         }
@@ -318,7 +351,7 @@ const gitService = useMemo(() => {
           const pushResult = await gitService.push(
             "origin",
             options.branchName,
-            auditData.config
+            auditData.config,
           );
           if (!pushResult.success) {
             // Don't fail on push error, just warn
@@ -421,6 +454,63 @@ const gitService = useMemo(() => {
           <Alert severity="error" onClose={() => setError(null)}>
             {error}
           </Alert>
+        </Box>
+      )}
+
+      {/* Audit repo status (discovery) */}
+      {repo.outcome?.kind === "not-a-repo" && (
+        <Box sx={{ px: 2, pt: 2 }}>
+          <Alert
+            severity="warning"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => repo.initRepo()}
+                disabled={repo.loading}
+              >
+                {t("audit.repo.init", {
+                  defaultValue: "Initialize audit repo here",
+                })}
+              </Button>
+            }
+          >
+            {t("audit.repo.notARepo", {
+              defaultValue:
+                "This project file is not inside a Git repository. Initialize one to enable the audit trail.",
+            })}
+          </Alert>
+        </Box>
+      )}
+
+      {repo.outcome?.kind === "repo-needs-attributes" && (
+        <Box sx={{ px: 2, pt: 2 }}>
+          <Alert
+            severity="warning"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => repo.applyAttributes()}
+                disabled={repo.loading}
+              >
+                {t("audit.repo.setAttributes", {
+                  defaultValue: "Set .gitattributes",
+                })}
+              </Button>
+            }
+          >
+            {t("audit.repo.needsAttributes", {
+              defaultValue:
+                "The audit repo does not enforce canonical .tara.json handling (LF/text). Set .gitattributes to avoid diff noise.",
+            })}
+          </Alert>
+        </Box>
+      )}
+
+      {repo.error && (
+        <Box sx={{ px: 2, pt: 2 }}>
+          <Alert severity="error">{repo.error}</Alert>
         </Box>
       )}
 

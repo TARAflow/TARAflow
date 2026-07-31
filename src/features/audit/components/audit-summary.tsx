@@ -18,6 +18,7 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import type { PhaseChanges, CommitMessageData } from "../models/audit-types";
+import { generateCommitMessage } from "../models/audit-types";
 
 // ==================== PROPS ====================
 
@@ -104,7 +105,7 @@ export const AuditSummary: React.FC<AuditSummaryProps> = ({
               icon={<EditIcon />}
               label={`${changeTypeStats.modified} ${t(
                 "audit.summary.modified",
-                { defaultValue: "Modified" }
+                { defaultValue: "Modified" },
               )}`}
               size="small"
               color="warning"
@@ -177,7 +178,7 @@ export const AuditSummary: React.FC<AuditSummaryProps> = ({
             }}
           >
             <Typography component="pre" sx={{ m: 0, fontFamily: "inherit" }}>
-              {generateCommitMessagePreview(commitMessageData)}
+              {generateCommitMessage(commitMessageData)}
             </Typography>
           </Box>
         </Paper>
@@ -193,43 +194,5 @@ export const AuditSummary: React.FC<AuditSummaryProps> = ({
     </Box>
   );
 };
-
-// ==================== HELPERS ====================
-
-function generateCommitMessagePreview(data: CommitMessageData): string {
-  const lines: string[] = [];
-
-  lines.push(`[TARA] ${data.round}`);
-  lines.push("");
-  lines.push(`- Affected Phases: ${data.affectedPhases.join(", ")}`);
-  lines.push(`- Batch Size: ${data.batchSize} items`);
-  lines.push("");
-  lines.push("- Changes:");
-
-  data.changes.forEach((phase) => {
-    lines.push(`  - ${phase.phaseLabel}: ${phase.changeCount} items`);
-    
-    // Show first 3 changes as preview
-    const previewChanges = phase.changes.slice(0, 3);
-    previewChanges.forEach((change) => {
-      const prefix =
-        change.type === "added" ? "+" : change.type === "deleted" ? "-" : "~";
-      lines.push(`    ${prefix} ${change.id}: ${change.name}`);
-    });
-
-    if (phase.changes.length > 3) {
-      lines.push(`    ... and ${phase.changes.length - 3} more`);
-    }
-  });
-
-  lines.push("");
-  lines.push(`- Author: ${data.author}`);
-  if (data.reviewer) {
-    lines.push(`- Reviewer: ${data.reviewer}`);
-  }
-  lines.push(`- Date: ${new Date().toISOString()}`);
-
-  return lines.join("\n");
-}
 
 export default AuditSummary;

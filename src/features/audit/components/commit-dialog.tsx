@@ -72,6 +72,10 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const signingEnabled =
+    config.signing?.enabled ?? config.gpg?.enabled ?? false;
+  const signingFormat = config.signing?.format ?? "gpg";
+
   // ==================== STATE ====================
 
   const [branchMode, setBranchMode] = useState<"current" | "existing" | "auto" | "custom">("current");
@@ -81,9 +85,9 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   const [commitMessage, setCommitMessage] = useState<string>("");
   const [reviewer, setReviewer] = useState<string>("");
   const [pushAfterCommit, setPushAfterCommit] = useState<boolean>(true);
-  const [signCommit, setSignCommit] = useState<boolean>(config.gpg.enabled);
   const [isCommitting, setIsCommitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [signCommit, setSignCommit] = useState<boolean>(signingEnabled);
 
   // ==================== COMPUTED ====================
 
@@ -115,7 +119,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
       setRoundName(commitMessageData.round);
       setReviewer("");
       setPushAfterCommit(!!config.remoteUrl);
-      setSignCommit(config.gpg.enabled);
+      setSignCommit(signingEnabled);
       setError(null);
     }
   }, [open, currentBranch, commitMessageData.round, config]);
@@ -196,7 +200,10 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
                 defaultValue: "Branch Selection",
               })}
             </FormLabel>
-            <RadioGroup value={branchMode} onChange={(e) => setBranchMode(e.target.value as any)}>
+            <RadioGroup
+              value={branchMode}
+              onChange={(e) => setBranchMode(e.target.value as any)}
+            >
               {/* Current Branch */}
               <FormControlLabel
                 value="current"
@@ -382,7 +389,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
             )}
 
             {/* GPG Signing */}
-            {config.gpg.enabled && (
+            {signingEnabled && (
               <FormControlLabel
                 control={
                   <Checkbox
@@ -391,7 +398,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
                   />
                 }
                 label={t("audit.commit.signCommit", {
-                  defaultValue: "Sign commit with GPG",
+                  defaultValue: `Sign commit (${signingFormat.toUpperCase()})`,
                 })}
               />
             )}
@@ -400,7 +407,11 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} disabled={isCommitting} startIcon={<CancelIcon />}>
+        <Button
+          onClick={onClose}
+          disabled={isCommitting}
+          startIcon={<CancelIcon />}
+        >
           {t("common.cancel", { defaultValue: "Cancel" })}
         </Button>
         <Button
@@ -408,15 +419,17 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
           disabled={isCommitting || !commitMessage.trim()}
           variant="contained"
           color="primary"
-          startIcon={isCommitting ? <CircularProgress size={20} /> : <CommitIcon />}
+          startIcon={
+            isCommitting ? <CircularProgress size={20} /> : <CommitIcon />
+          }
         >
           {isCommitting
             ? t("audit.commit.committing", { defaultValue: "Committing..." })
             : pushAfterCommit
-            ? t("audit.commit.commitAndPush", {
-                defaultValue: "Commit & Push",
-              })
-            : t("audit.commit.commit", { defaultValue: "Commit" })}
+              ? t("audit.commit.commitAndPush", {
+                  defaultValue: "Commit & Push",
+                })
+              : t("audit.commit.commit", { defaultValue: "Commit" })}
         </Button>
       </DialogActions>
     </Dialog>

@@ -23,14 +23,14 @@ export class DiffService {
    */
   detectChanges(
     currentProject: Project,
-    previousProject: Project | null
+    previousProject: Project | null,
   ): PhaseChanges[] {
     const changes: PhaseChanges[] = [];
 
     // DFD Changes
     const dfdChanges = this.compareDFD(
       currentProject.dfd,
-      previousProject?.dfd ?? null
+      previousProject?.dfd ?? null,
     );
     if (dfdChanges.length > 0) {
       changes.push({
@@ -44,7 +44,7 @@ export class DiffService {
     // Asset Changes
     const assetChanges = this.compareAssets(
       currentProject.assets,
-      previousProject?.assets ?? null
+      previousProject?.assets ?? null,
     );
     if (assetChanges.length > 0) {
       changes.push({
@@ -58,7 +58,7 @@ export class DiffService {
     // Threat Changes
     const threatChanges = this.compareThreats(
       currentProject.threats,
-      previousProject?.threats ?? null
+      previousProject?.threats ?? null,
     );
     if (threatChanges.length > 0) {
       changes.push({
@@ -72,7 +72,7 @@ export class DiffService {
     // Risk Changes
     const riskChanges = this.compareRisks(
       currentProject.risks,
-      previousProject?.risks ?? null
+      previousProject?.risks ?? null,
     );
     if (riskChanges.length > 0) {
       changes.push({
@@ -86,7 +86,7 @@ export class DiffService {
     // Attack Tree Changes
     const attackTreeChanges = this.compareAttackTrees(
       currentProject.attackTrees,
-      previousProject?.attackTrees ?? null
+      previousProject?.attackTrees ?? null,
     );
     if (attackTreeChanges.length > 0) {
       changes.push({
@@ -107,18 +107,18 @@ export class DiffService {
     changes: PhaseChanges[],
     roundName: string,
     author: string,
-    reviewer?: string
+    opts?: { reviewer?: string; projectName?: string; projectId?: string },
   ): CommitMessageData {
     const totalChanges = changes.reduce((sum, p) => sum + p.changeCount, 0);
-    const affectedPhases = changes.map((p) => p.phaseLabel);
-
     return {
       round: roundName,
+      projectName: opts?.projectName,
+      projectId: opts?.projectId,
       batchSize: totalChanges,
-      affectedPhases,
+      affectedPhases: changes.map((p) => p.phaseLabel),
       changes,
       author,
-      reviewer,
+      reviewer: opts?.reviewer,
     };
   }
 
@@ -126,7 +126,7 @@ export class DiffService {
 
   private compareDFD(
     current: DFDData | null,
-    previous: DFDData | null
+    previous: DFDData | null,
   ): ChangeItem[] {
     const changes: ChangeItem[] = [];
 
@@ -225,7 +225,7 @@ export class DiffService {
 
   private compareAssets(
     current: AssetData | null,
-    previous: AssetData | null
+    previous: AssetData | null,
   ): ChangeItem[] {
     const changes: ChangeItem[] = [];
 
@@ -291,10 +291,7 @@ export class DiffService {
     return changes;
   }
 
-  private compareAssetDetails(
-    current: Asset,
-    previous: Asset
-  ): ChangeDetail[] {
+  private compareAssetDetails(current: Asset, previous: Asset): ChangeDetail[] {
     const details: ChangeDetail[] = [];
 
     // Name
@@ -333,7 +330,7 @@ export class DiffService {
     // Impact Ratings
     const impactChanges = this.compareImpactRatings(
       current.impactRatings,
-      previous.impactRatings
+      previous.impactRatings,
     );
     if (impactChanges.length > 0) {
       details.push({
@@ -348,7 +345,7 @@ export class DiffService {
     // Security Goals
     const securityGoalChanges = this.compareSecurityGoals(
       current.securityGoals,
-      previous.securityGoals
+      previous.securityGoals,
     );
     if (securityGoalChanges > 0) {
       details.push({
@@ -367,13 +364,15 @@ export class DiffService {
 
   private compareImpactRatings(
     current: any[],
-    previous: any[]
+    previous: any[],
   ): ChangeDetail[] {
     const changes: ChangeDetail[] = [];
     const currentMap = new Map(current.map((r) => [r.criterionId, r.value]));
     const previousMap = new Map(previous.map((r) => [r.criterionId, r.value]));
 
-    for (const [criterionId, currentValue] of Array.from(currentMap.entries())) {
+    for (const [criterionId, currentValue] of Array.from(
+      currentMap.entries(),
+    )) {
       const previousValue = previousMap.get(criterionId);
       if (previousValue !== currentValue) {
         changes.push({
@@ -399,7 +398,7 @@ export class DiffService {
 
   private compareThreats(
     current: ThreatData | null,
-    previous: ThreatData | null
+    previous: ThreatData | null,
   ): ChangeItem[] {
     const changes: ChangeItem[] = [];
 
@@ -470,7 +469,7 @@ export class DiffService {
 
   private compareThreatDetails(
     current: Threat,
-    previous: Threat
+    previous: Threat,
   ): ChangeDetail[] {
     const details: ChangeDetail[] = [];
 
@@ -525,7 +524,7 @@ export class DiffService {
 
   private compareRisks(
     current: RiskData | null,
-    previous: RiskData | null
+    previous: RiskData | null,
   ): ChangeItem[] {
     const changes: ChangeItem[] = [];
 
@@ -621,9 +620,12 @@ export class DiffService {
     }
 
     // Implementation status is derived — compare selectedMitigations instead
-    const prevImpl = current.selectedMitigations.length !== previous.selectedMitigations.length
-      || current.selectedMitigations.some((m, i) =>
-          m.status !== (previous.selectedMitigations[i]?.status));
+    const prevImpl =
+      current.selectedMitigations.length !==
+        previous.selectedMitigations.length ||
+      current.selectedMitigations.some(
+        (m, i) => m.status !== previous.selectedMitigations[i]?.status,
+      );
     if (prevImpl) {
       details.push({
         field: "selectedMitigations",
@@ -645,7 +647,7 @@ export class DiffService {
 
   private compareAttackTrees(
     current: AttackTreeData | null,
-    previous: AttackTreeData | null
+    previous: AttackTreeData | null,
   ): ChangeItem[] {
     const changes: ChangeItem[] = [];
 
@@ -686,10 +688,7 @@ export class DiffService {
       const previousTree = previousMap.get(id);
       if (!previousTree) return;
 
-      const details = this.compareAttackTreeDetails(
-        currentTree,
-        previousTree
-      );
+      const details = this.compareAttackTreeDetails(currentTree, previousTree);
       if (details.length > 0) {
         changes.push({
           type: "modified",
@@ -706,7 +705,7 @@ export class DiffService {
 
   private compareAttackTreeDetails(
     current: AttackTree,
-    previous: AttackTree
+    previous: AttackTree,
   ): ChangeDetail[] {
     const details: ChangeDetail[] = [];
 

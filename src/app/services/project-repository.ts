@@ -20,7 +20,7 @@
 
 import type { Project } from "../models/project-types";
 import type { StorageResult } from "./storage-service";
-import { prepareForDisk } from "./prepare-for-disk";
+import { serialiseProject } from "./prepare-for-disk";
 import { parseAndRepairWithMetadata } from "./migration-service";
 import { projectRegistry } from "./project-registry";
 import {
@@ -138,7 +138,7 @@ class ProjectRepository {
       if (migrated) {
         console.info(
           `[ProjectRepository] Migrated project ${project.id} ` +
-          `from schema v${fromVersion} → v${CURRENT_SCHEMA_VERSION}: ${filePath}`,
+            `from schema v${fromVersion} → v${CURRENT_SCHEMA_VERSION}: ${filePath}`,
         );
 
         // Write a backup of the original file before overwriting.
@@ -148,7 +148,10 @@ class ProjectRepository {
           `.tara.v${fromVersion}.backup.json`,
         );
         try {
-          await (window as any).electron.file.writeProject(backupPath, result.data);
+          await (window as any).electron.file.writeProject(
+            backupPath,
+            result.data,
+          );
           console.info(`[ProjectRepository] Backup written to: ${backupPath}`);
         } catch (backupErr) {
           // Backup failure is non-fatal — proceed with migration
@@ -157,7 +160,7 @@ class ProjectRepository {
 
         // Write the migrated file back to disk immediately so the next open
         // does not need to migrate again.
-        const payload = JSON.stringify(prepareForDisk(project), null, 2);
+        const payload = serialiseProject(project); // TCS v1 canonical bytes
         await (window as any).electron.file.writeProject(filePath, payload);
 
         // Return migration metadata so main-layout can show a toast.
@@ -213,7 +216,7 @@ class ProjectRepository {
     }
 
     try {
-      const payload = JSON.stringify(prepareForDisk(project), null, 2);
+      const payload = serialiseProject(project); // TCS v1 canonical bytes
       const result = await (window as any).electron.file.writeProject(
         project.filePath,
         payload,

@@ -8,6 +8,16 @@ import type { PhaseStatusMap } from "shared/models/common-types";
 
 export type GitProvider = "github" | "gitlab" | "bitbucket" | "generic";
 
+export type SigningFormat = "gpg" | "ssh";
+
+export interface SigningSettings {
+  enabled: boolean;
+  format: SigningFormat; // default "ssh" for new configs
+  keyId?: string; // GPG key id
+  sshSigningKeyPath?: string; // path to the SSH signing key
+  hasStoredKey?: boolean;
+}
+
 export interface GitProviderDefinition {
   id: GitProvider;
   name: string;
@@ -139,6 +149,9 @@ export interface AuditConfig {
 
   /** Last Round Number (for auto-increment) */
   lastRoundNumber: number;
+
+  /** Unified signing config (gpg|ssh). Falls back to legacy `gpg` when absent. */
+  signing?: SigningSettings;
 }
 
 export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
@@ -157,6 +170,7 @@ export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
   },
   customRoundNames: [],
   lastRoundNumber: 0,
+  signing: { enabled: false, format: "ssh" },
 };
 
 // ==================== COMMIT STATE ====================
@@ -226,7 +240,11 @@ export interface PhaseChanges {
 // ==================== COMMIT MESSAGE DATA ====================
 
 export interface CommitMessageData {
-  round: string; // Round name (e.g., "Initial Assessment")
+  round: string; // Round name (e.g. "Detail Review")
+  /** Project display name — distinguishes commits when a repo holds several. */
+  projectName?: string;
+  /** Stable project id — the machine-readable half of the distinguisher. */
+  projectId?: string;
   batchSize: number; // Total number of changed items
   affectedPhases: string[]; // Phase names
   changes: PhaseChanges[]; // Detailed changes
@@ -345,39 +363,39 @@ export interface CommitOptions {
 // ==================== HELPER FUNCTIONS ====================
 
 /**
- * Generate commit message from data
+ * Build the audit commit message: `[TARA] <round>` subject, a human-readable
+ * change breakdown (body), and a contiguous git-trailer block at the end.
  */
 export function generateCommitMessage(data: CommitMessageData): string {
-  const lines: string[] = [];
+  const subject = `[TARA] ${data.round}`;
 
-  // Header
-  lines.push(`[TARA] ${data.round}`);
-  lines.push("");
-
-  // Affected Phases
-  lines.push(`- Affected Phases: ${data.affectedPhases.join(", ")}`);
-  lines.push(`- Batch Size: ${data.batchSize} items`);
-  lines.push("");
-
-  // Changes per phase
-  lines.push("- Changes:");
+  // ---- Body: human-readable change breakdown ----
+  const body: string[] = ["- Changes:"];
   data.changes.forEach((phase) => {
-    lines.push(`  - ${phase.phaseLabel}: ${phase.changeCount} items`);
+    body.push(`  - ${phase.phaseLabel}: ${phase.changeCount} items`);
     phase.changes.forEach((change) => {
-      const prefix = change.type === "added" ? "+" : change.type === "deleted" ? "-" : "~";
-      lines.push(`    ${prefix} ${change.id}: ${change.name}`);
+      const prefix =
+        change.type === "added" ? "+" : change.type === "deleted" ? "-" : "~";
+      body.push(`    ${prefix} ${change.id}: ${change.name}`);
     });
   });
-  lines.push("");
 
-  // Metadata
-  lines.push(`- Author: ${data.author}`);
-  if (data.reviewer) {
-    lines.push(`- Reviewer: ${data.reviewer}`);
+  // ---- Trailers: hyphenated keys, contiguous, LAST paragraph ----
+  const trailers: string[] = [];
+  if (data.projectName) {
+    trailers.push(
+      `Project: ${data.projectName}${data.projectId ? ` [${data.projectId}]` : ""}`,
+    );
   }
-  lines.push(`- Date: ${new Date().toISOString()}`);
+  trailers.push(`Affected-Phases: ${data.affectedPhases.join(", ")}`);
+  trailers.push(`Batch-Size: ${data.batchSize}`);
+  trailers.push(`Author: ${data.author}`);
+  if (data.reviewer) {
+    trailers.push(`Reviewed-by: ${data.reviewer}`);
+  }
+  trailers.push(`Date: ${new Date().toISOString()}`);
 
-  return lines.join("\n");
+  return [subject, "", ...body, "", ...trailers].join("\n");
 }
 
 /**

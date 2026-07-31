@@ -12,8 +12,9 @@ import type {
   GitRemote,
   GitOperationResult,
 } from "audit/models/git-types";
-import type { AuditConfig } from "../../src/features/audit/models/audit-types";
+import type { AuditConfig } from "audit/models/audit-types";
 import { credentialService } from "./credential-service-main";
+import { resolveGitSigning, signingFromConfig } from "./git-signing";
 
 // ==================== GIT SERVICE ====================
 
@@ -118,30 +119,26 @@ export class GitService {
    */
   async commit(
     message: string,
-    config: AuditConfig
+    config: AuditConfig,
+    signThisCommit: boolean = true, // NEW — comes from CommitOptions.signCommit
   ): Promise<GitOperationResult<GitCommitResult>> {
     try {
-      // Set author info
       await this.git.addConfig("user.name", config.author.name);
       await this.git.addConfig("user.email", config.author.email);
 
-      // Configure GPG signing if enabled
-      if (config.gpg.enabled && config.gpg.keyId) {
-        await this.git.addConfig("commit.gpgsign", "true");
-        await this.git.addConfig("user.signingkey", config.gpg.keyId);
-      } else {
-        await this.git.addConfig("commit.gpgsign", "false");
+      // Signing: one decision, both formats, per-commit toggle honoured.
+      const decision = resolveGitSigning(
+        signingFromConfig(config),
+        signThisCommit,
+      );
+      for (const [key, value] of decision.config) {
+        await this.git.addConfig(key, value);
       }
 
-      // Commit
       const result = (await this.git.commit(message)) as GitCommitResult;
-
       return { success: true, data: result };
     } catch (error) {
-      return {
-        success: false,
-        error: `Failed to commit: ${error}`,
-      };
+      return { success: false, error: `Failed to commit: ${error}` };
     }
   }
 
@@ -182,7 +179,7 @@ export class GitService {
    */
   async createBranch(
     branchName: string,
-    checkout: boolean = true
+    checkout: boolean = true,
   ): Promise<GitOperationResult<void>> {
     try {
       if (checkout) {
@@ -203,9 +200,7 @@ export class GitService {
    * Switch to existing branch
    * @param branchName - Branch to checkout
    */
-  async checkoutBranch(
-    branchName: string
-  ): Promise<GitOperationResult<void>> {
+  async checkoutBranch(branchName: string): Promise<GitOperationResult<void>> {
     try {
       await this.git.checkout(branchName);
       return { success: true };
@@ -239,7 +234,7 @@ export class GitService {
    */
   async addRemote(
     name: string,
-    url: string
+    url: string,
   ): Promise<GitOperationResult<void>> {
     try {
       await this.git.addRemote(name, url);
@@ -291,7 +286,7 @@ export class GitService {
   async push(
     remote: string = "origin",
     branch?: string,
-    config?: AuditConfig
+    config?: AuditConfig,
   ): Promise<GitOperationResult<GitPushResult>> {
     try {
       // Get current branch if not specified
@@ -309,7 +304,7 @@ export class GitService {
       // Setup authentication if PAT is configured
       if (config?.auth.method === "pat" && config.auth.patAccount) {
         const token = await credentialService.getGitToken(
-          config.auth.patAccount
+          config.auth.patAccount,
         );
         if (token) {
           // Inject token into remote URL temporarily
@@ -318,7 +313,7 @@ export class GitService {
           if (remoteObj) {
             const urlWithAuth = this.injectTokenIntoUrl(
               remoteObj.refs.push,
-              token
+              token,
             );
             await this.git.remote(["set-url", remote, urlWithAuth]);
           }
@@ -326,11 +321,7 @@ export class GitService {
       }
 
       // Push with upstream tracking
-      const result = await this.git.push([
-          remote,
-          branch,
-          "--set-upstream",
-        ]);
+      const result = await this.git.push([remote, branch, "--set-upstream"]);
 
       // Transform simple-git result to our GitPushResult
       const transformedResult: GitPushResult = {
@@ -339,7 +330,7 @@ export class GitService {
         //update: result.update,
         repo: result.repo,
         ref: result.ref,
-};
+      };
 
       return { success: true, data: transformedResult };
     } catch (error) {
@@ -369,12 +360,14 @@ export class GitService {
    * Get commit history
    * @param maxCount - Maximum number of commits (default: 10)
    */
-  async getLog(maxCount: number = 10): Promise<GitOperationResult<GitLogSummary>> {
+  async getLog(
+    maxCount: number = 10,
+  ): Promise<GitOperationResult<GitLogSummary>> {
     try {
       const log = await this.git.log({ maxCount });
       // Transform simple-git LogResult to our GitLogSummary
       const transformedLog: GitLogSummary = {
-        all: [...log.all].map(entry => ({
+        all: [...log.all].map((entry) => ({
           hash: entry.hash,
           date: entry.date,
           message: entry.message,
@@ -384,15 +377,17 @@ export class GitService {
           refs: entry.refs,
         })),
         total: log.total,
-        latest: log.latest ? {
-          hash: log.latest.hash,
-          date: log.latest.date,
-          message: log.latest.message,
-          author_name: log.latest.author_name,
-          author_email: log.latest.author_email,
-          body: log.latest.body,
-          refs: log.latest.refs,
-        } : null,
+        latest: log.latest
+          ? {
+              hash: log.latest.hash,
+              date: log.latest.date,
+              message: log.latest.message,
+              author_name: log.latest.author_name,
+              author_email: log.latest.author_email,
+              body: log.latest.body,
+              refs: log.latest.refs,
+            }
+          : null,
       };
 
       return { success: true, data: transformedLog };

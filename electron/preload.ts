@@ -14,6 +14,12 @@ console.log("Browser zoom disabled, draw.io can handle its own zoom");
 
 // ==================== EXPOSE ELECTRON APIs ====================
 
+// NOTE: window.electron carries only shell / oauth / file / metadata — exactly
+// the shape declared in global.d.ts. Git and credentials moved to their own
+// bridges below (window.git / window.credentials) so they match the renderer
+// services (git-service-renderer.ts, credential-service-renderer.ts). Before
+// this fix they were partly under window.electron and window.credentials was
+// missing entirely, so every renderer git/credential call failed silently.
 contextBridge.exposeInMainWorld("electron", {
   // Shell API (für externe Links)
   shell: {
@@ -40,6 +46,11 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.invoke("file:writeProject", filePath, projectData),
     readProject: (filePath: string) =>
       ipcRenderer.invoke("file:readProject", filePath),
+    // Generic text I/O (audit feature: .gitattributes, allowed_signers, hooks)
+    readText: (filePath: string) =>
+      ipcRenderer.invoke("file:readText", filePath),
+    writeText: (filePath: string, content: string) =>
+      ipcRenderer.invoke("file:writeText", filePath, content),
   },
 
   // Metadata API (Recent Projects)
@@ -50,18 +61,24 @@ contextBridge.exposeInMainWorld("electron", {
     removeProject: (projectId: string) =>
       ipcRenderer.invoke("metadata:removeProject", projectId),
   },
+});
 
+// ==================== GIT API (window.git) ====================
+// Full surface, matching global.d.ts and git-service-renderer.ts, backed 1:1
+// by the git:* ipcMain handlers in main.ts.
+contextBridge.exposeInMainWorld("git", {
   // Repository
   isRepository: () => ipcRenderer.invoke("git:isRepository"),
   initRepository: () => ipcRenderer.invoke("git:initRepository"),
 
   // Status
   getStatus: () => ipcRenderer.invoke("git:getStatus"),
+  isClean: () => ipcRenderer.invoke("git:isClean"),
 
   // Commit
   stageAll: () => ipcRenderer.invoke("git:stageAll"),
-  commit: (message: string, config: any) =>
-    ipcRenderer.invoke("git:commit", message, config),
+  commit: (message: string, config: any, signCommit: boolean) =>
+    ipcRenderer.invoke("git:commit", message, config, signCommit),
 
   // Branches
   getBranches: () => ipcRenderer.invoke("git:getBranches"),
@@ -70,13 +87,53 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("git:createBranch", name, checkout),
   checkoutBranch: (name: string) =>
     ipcRenderer.invoke("git:checkoutBranch", name),
+  branchExists: (name: string) => ipcRenderer.invoke("git:branchExists", name),
 
   // Remote
   addRemote: (name: string, url: string) =>
     ipcRenderer.invoke("git:addRemote", name, url),
+  getRemotes: () => ipcRenderer.invoke("git:getRemotes"),
   remoteExists: (name: string) => ipcRenderer.invoke("git:remoteExists", name),
   push: (remote: string, branch: string, config: any) =>
     ipcRenderer.invoke("git:push", remote, branch, config),
+
+  // Log
+  getLog: (maxCount: number) => ipcRenderer.invoke("git:getLog", maxCount),
+  getLatestCommit: () => ipcRenderer.invoke("git:getLatestCommit"),
+
+  // Diff
+  getDiff: (filePath?: string) => ipcRenderer.invoke("git:getDiff", filePath),
+
+  // Raw
+  raw: (command: string[]) => ipcRenderer.invoke("git:raw", command),
+});
+
+// ==================== CREDENTIALS API (window.credentials) ====================
+// Backed by the credentials:* ipcMain handlers. Was entirely missing before.
+contextBridge.exposeInMainWorld("credentials", {
+  // Git PAT
+  saveGitToken: (account: string, token: string) =>
+    ipcRenderer.invoke("credentials:saveGitToken", account, token),
+  getGitToken: (account: string) =>
+    ipcRenderer.invoke("credentials:getGitToken", account),
+  deleteGitToken: (account: string) =>
+    ipcRenderer.invoke("credentials:deleteGitToken", account),
+
+  // GPG keys
+  saveGPGKey: (keyId: string, privateKey: string) =>
+    ipcRenderer.invoke("credentials:saveGPGKey", keyId, privateKey),
+  getGPGKey: (keyId: string) =>
+    ipcRenderer.invoke("credentials:getGPGKey", keyId),
+  deleteGPGKey: (keyId: string) =>
+    ipcRenderer.invoke("credentials:deleteGPGKey", keyId),
+  hasGPGKey: (keyId: string) =>
+    ipcRenderer.invoke("credentials:hasGPGKey", keyId),
+
+  // SSH key paths
+  saveSSHKeyPath: (identifier: string, keyPath: string) =>
+    ipcRenderer.invoke("credentials:saveSSHKeyPath", identifier, keyPath),
+  getSSHKeyPath: (identifier: string) =>
+    ipcRenderer.invoke("credentials:getSSHKeyPath", identifier),
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -106,4 +163,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 });
 
-console.log("Electron APIs exposed to renderer");
+console.log(
+  "Electron APIs exposed to renderer (electron, git, credentials, electronAPI)",
+);

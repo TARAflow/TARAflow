@@ -42,8 +42,6 @@ import {
   Cancel as CancelIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
-  Key as KeyIcon,
-  Upload as UploadIcon,
 } from "@mui/icons-material";
 import type {
   AuditConfig,
@@ -76,7 +74,6 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   onSave,
   onClose,
   onSaveCredential,
-  onSaveGPGKey,
 }) => {
   const { t } = useTranslation();
 
@@ -94,17 +91,22 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   // PAT input
   const [patToken, setPatToken] = useState("");
 
-  // GPG key input
-  const [gpgPrivateKey, setGpgPrivateKey] = useState("");
-
   // ==================== EFFECTS ====================
 
   useEffect(() => {
     if (open) {
-      setLocalConfig(config);
+      // Seed the unified `signing` block from the legacy `gpg` config when a
+      // project predates it, so older projects surface their settings here.
+      setLocalConfig({
+        ...config,
+        signing: config.signing ?? {
+          enabled: !!config.gpg?.enabled,
+          format: "gpg",
+          keyId: config.gpg?.keyId,
+        },
+      });
       setError(null);
       setPatToken("");
-      setGpgPrivateKey("");
     }
   }, [open, config]);
 
@@ -127,16 +129,12 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
         localConfig.auth.patAccount = account;
       }
 
-      // Save GPG key if provided
-      if (gpgPrivateKey && localConfig.gpg.keyId && onSaveGPGKey) {
-        await onSaveGPGKey(localConfig.gpg.keyId, gpgPrivateKey);
-        localConfig.gpg.hasStoredKey = true;
-      }
-
       await onSave(localConfig);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save configuration");
+      setError(
+        err instanceof Error ? err.message : "Failed to save configuration",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -176,13 +174,34 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
         {t("audit.config.title", { defaultValue: "Git Configuration" })}
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent
+        sx={{
+          height: 520,
+          overflowY: "auto",
+        }}
+      >
         <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
-            <Tab label={t("audit.config.tabs.general", { defaultValue: "General" })} />
-            <Tab label={t("audit.config.tabs.auth", { defaultValue: "Authentication" })} />
-            <Tab label={t("audit.config.tabs.gpg", { defaultValue: "GPG Signing" })} />
-            <Tab label={t("audit.config.tabs.rounds", { defaultValue: "Round Names" })} />
+            <Tab
+              label={t("audit.config.tabs.general", {
+                defaultValue: "General",
+              })}
+            />
+            <Tab
+              label={t("audit.config.tabs.auth", {
+                defaultValue: "Authentication",
+              })}
+            />
+            <Tab
+              label={t("audit.config.tabs.signing", {
+                defaultValue: "Commit Signing",
+              })}
+            />
+            <Tab
+              label={t("audit.config.tabs.rounds", {
+                defaultValue: "Round Names",
+              })}
+            />
           </Tabs>
         </Box>
 
@@ -225,7 +244,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               })}
               value={localConfig.remoteUrl || ""}
               onChange={(e) =>
-                setLocalConfig((prev) => ({ ...prev, remoteUrl: e.target.value }))
+                setLocalConfig((prev) => ({
+                  ...prev,
+                  remoteUrl: e.target.value,
+                }))
               }
               placeholder="https://github.com/user/repo.git"
               size="small"
@@ -239,7 +261,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               })}
               value={localConfig.defaultBranch}
               onChange={(e) =>
-                setLocalConfig((prev) => ({ ...prev, defaultBranch: e.target.value }))
+                setLocalConfig((prev) => ({
+                  ...prev,
+                  defaultBranch: e.target.value,
+                }))
               }
               size="small"
               fullWidth
@@ -259,7 +284,8 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               }
               placeholder="risk-round-"
               helperText={t("audit.config.branchTemplateHelp", {
-                defaultValue: "Template for auto-generated branch names (e.g., 'risk-round-' → 'risk-round-1')",
+                defaultValue:
+                  "Template for auto-generated branch names (e.g., 'risk-round-' → 'risk-round-1')",
               })}
               size="small"
               fullWidth
@@ -318,7 +344,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 onChange={(e) =>
                   setLocalConfig((prev) => ({
                     ...prev,
-                    auth: { ...prev.auth, method: e.target.value as AuthMethod },
+                    auth: {
+                      ...prev.auth,
+                      method: e.target.value as AuthMethod,
+                    },
                   }))
                 }
               >
@@ -366,7 +395,9 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                   InputProps={{
                     endAdornment: localConfig.auth.patAccount && (
                       <Chip
-                        label={t("audit.config.stored", { defaultValue: "Stored" })}
+                        label={t("audit.config.stored", {
+                          defaultValue: "Stored",
+                        })}
                         size="small"
                         color="success"
                       />
@@ -409,91 +440,99 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           </Box>
         )}
 
-        {/* TAB 2: GPG Signing */}
+        {/* TAB 2: Commit Signing */}
         {activeTab === 2 && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <FormControlLabel
               control={
                 <Switch
-                  checked={localConfig.gpg.enabled}
+                  checked={!!localConfig.signing?.enabled}
                   onChange={(e) =>
                     setLocalConfig((prev) => ({
                       ...prev,
-                      gpg: { ...prev.gpg, enabled: e.target.checked },
+                      signing: {
+                        ...(prev.signing ?? { format: "ssh" }),
+                        enabled: e.target.checked,
+                      },
                     }))
                   }
                 />
               }
-              label={t("audit.config.enableGPG", {
-                defaultValue: "Enable GPG Commit Signing",
+              label={t("audit.config.enableSigning", {
+                defaultValue: "Sign commits",
               })}
             />
 
-            {localConfig.gpg.enabled && (
+            {localConfig.signing?.enabled && (
               <>
-                <Alert severity="info">
-                  {t("audit.config.gpgInfo", {
-                    defaultValue:
-                      "GPG signing ensures your commits are cryptographically verified. Your private key will be securely stored.",
-                  })}
-                </Alert>
+                <FormControl size="small">
+                  <FormLabel>
+                    {t("audit.config.signFormat", {
+                      defaultValue: "Signature format",
+                    })}
+                  </FormLabel>
+                  <RadioGroup
+                    row
+                    value={localConfig.signing?.format ?? "ssh"}
+                    onChange={(e) =>
+                      setLocalConfig((prev) => ({
+                        ...prev,
+                        signing: {
+                          ...prev.signing!,
+                          format: e.target.value as "gpg" | "ssh",
+                        },
+                      }))
+                    }
+                  >
+                    <FormControlLabel
+                      value="ssh"
+                      control={<Radio />}
+                      label="SSH (recommended)"
+                    />
+                    <FormControlLabel
+                      value="gpg"
+                      control={<Radio />}
+                      label="GPG"
+                    />
+                  </RadioGroup>
+                </FormControl>
 
-                <TextField
-                  label={t("audit.config.gpgKeyId", {
-                    defaultValue: "GPG Key ID",
-                  })}
-                  value={localConfig.gpg.keyId || ""}
-                  onChange={(e) =>
-                    setLocalConfig((prev) => ({
-                      ...prev,
-                      gpg: { ...prev.gpg, keyId: e.target.value },
-                    }))
-                  }
-                  placeholder="ABCD1234"
-                  helperText={t("audit.config.gpgKeyIdHelp", {
-                    defaultValue: "Enter the last 8 characters of your GPG key ID",
-                  })}
-                  size="small"
-                  fullWidth
-                  InputProps={{
-                    endAdornment: localConfig.gpg.hasStoredKey && (
-                      <Chip
-                        label={t("audit.config.keyStored", {
-                          defaultValue: "Key Stored",
-                        })}
-                        size="small"
-                        color="success"
-                      />
-                    ),
-                  }}
-                />
-
-                <TextField
-                  label={t("audit.config.gpgPrivateKey", {
-                    defaultValue: "GPG Private Key (optional)",
-                  })}
-                  value={gpgPrivateKey}
-                  onChange={(e) => setGpgPrivateKey(e.target.value)}
-                  multiline
-                  rows={4}
-                  placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----..."
-                  helperText={t("audit.config.gpgPrivateKeyHelp", {
-                    defaultValue:
-                      "Paste your armored private key. Leave empty to keep existing key or generate new one.",
-                  })}
-                  fullWidth
-                />
-
-                <Button
-                  variant="outlined"
-                  startIcon={<KeyIcon />}
-                  size="small"
-                  disabled
-                >
-                  {t("audit.config.generateGPGKey", {
-                    defaultValue: "Generate GPG Key (Coming Soon)",
-                  })}
-                </Button>
+                {localConfig.signing?.format === "ssh" ? (
+                  <TextField
+                    label={t("audit.config.sshSigningKey", {
+                      defaultValue: "SSH signing key path",
+                    })}
+                    value={localConfig.signing?.sshSigningKeyPath ?? ""}
+                    onChange={(e) =>
+                      setLocalConfig((prev) => ({
+                        ...prev,
+                        signing: {
+                          ...prev.signing!,
+                          sshSigningKeyPath: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="~/.ssh/id_ed25519"
+                    size="small"
+                    fullWidth
+                  />
+                ) : (
+                  <TextField
+                    label={t("audit.config.gpgKeyId", {
+                      defaultValue: "GPG Key ID",
+                    })}
+                    value={localConfig.signing?.keyId ?? ""}
+                    onChange={(e) =>
+                      setLocalConfig((prev) => ({
+                        ...prev,
+                        signing: { ...prev.signing!, keyId: e.target.value },
+                      }))
+                    }
+                    placeholder="ABCD1234"
+                    size="small"
+                    fullWidth
+                  />
+                )}
               </>
             )}
           </Box>
@@ -565,7 +604,11 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} disabled={isSaving} startIcon={<CancelIcon />}>
+        <Button
+          onClick={onClose}
+          disabled={isSaving}
+          startIcon={<CancelIcon />}
+        >
           {t("common.cancel", { defaultValue: "Cancel" })}
         </Button>
         <Button

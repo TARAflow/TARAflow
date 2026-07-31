@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
 import path from "path";
 import fs from "fs/promises";
 import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
+import simpleGit from "simple-git";
 import { GitService } from "./services/git-service-main";
 import { credentialService } from "./services/credential-service-main";
 import {
@@ -403,8 +404,8 @@ ipcMain.handle("git:stageAll", async () => {
   return await gitService.stageAll();
 });
 
-ipcMain.handle("git:commit", async (_, message, config) => {
-  return await gitService.commit(message, config);
+ipcMain.handle("git:commit", async (_, message, config, signCommit = true) => {
+  return await gitService.commit(message, config, signCommit);
 });
 
 // Branches
@@ -463,6 +464,39 @@ ipcMain.handle("git:getDiff", async (_, filePath) => {
 // Raw
 ipcMain.handle("git:raw", async (_, command) => {
   return await gitService.raw(command);
+});
+
+// Raw git in an ARBITRARY directory — for repo discovery (rev-parse) and the
+// .gitattributes check (check-attr), which must run in a dir that may not be the
+// bound repo (and before any repo is selected). Uses its own simpleGit(dir), but
+// stays in the main process, so the "one git path" rule (no git in the renderer)
+// still holds. Never throws to the renderer: a non-zero exit is returned as { code }.
+ipcMain.handle("git:rawInDir", async (_, dir: string, args: string[]) => {
+  try {
+    const stdout = await simpleGit(dir).raw(args);
+    return { success: true, data: { stdout, stderr: "", code: 0 } };
+  } catch (err: any) {
+    // simple-git throws on non-zero exit (e.g. rev-parse outside a repo)
+    return {
+      success: true,
+      data: {
+        stdout: err?.git?.stdout ?? "",
+        stderr: String(err?.message ?? err),
+        code: typeof err?.exitCode === "number" ? err.exitCode : 128,
+      },
+    };
+  }
+});
+
+// Rebind the bound GitService to the discovered audit repo root. Called on
+// project open (after discovery) before any stateful op (commit/branch/push).
+ipcMain.handle("git:setRepoPath", async (_, root: string) => {
+  try {
+    gitService = new GitService(root);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 });
 
 // ==================== CREDENTIAL SERVICE ====================
@@ -574,6 +608,35 @@ ipcMain.handle("file:readProject", async (_, filePath: string) => {
     return { success: false, error: error.message };
   }
 });
+
+// Generic text read — used by the audit feature for .gitattributes (and later
+// allowed_signers / hook files). A MISSING file is not an error: it returns
+// { success:true, data:null } so callers can distinguish "absent" (→ create it)
+// from a real read failure (→ { success:false }).
+ipcMain.handle("file:readText", async (_, filePath: string) => {
+  try {
+    const data = await fs.readFile(filePath, "utf-8");
+    return { success: true, data };
+  } catch (error: any) {
+    if (error?.code === "ENOENT") {
+      return { success: true, data: null };
+    }
+    return { success: false, error: error.message };
+  }
+});
+
+// Generic text write — counterpart to file:readText.
+ipcMain.handle(
+  "file:writeText",
+  async (_, filePath: string, content: string) => {
+    try {
+      await fs.writeFile(filePath, content, "utf-8");
+      return { success: true, data: filePath };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+);
 
 // ==================== METADATA SERVICE ====================
 
