@@ -91,21 +91,14 @@ export class GitServiceRenderer {
   /**
    * Stage all changes
    */
-  async stageAll(): Promise<GitOperationResult<void>> {
-    try {
-      if (!window.git) {
-        return {
-          success: false,
-          error: "Git API not available",
-        };
-      }
-      return await window.git.stageAll();
-    } catch (error) {
+  async stage(relPaths: string[]) {
+    if (!window.git) {
       return {
         success: false,
-        error: `Failed to stage changes: ${error}`,
+        error: "Git API not available. Running outside Electron?",
       };
     }
+    return window.git.stage(relPaths);
   }
 
   /**
@@ -117,9 +110,15 @@ export class GitServiceRenderer {
     message: string,
     config: AuditConfig,
     signCommit: boolean = true,
+    relPaths: string[],
   ) {
-    if (!window.git) return { success: false, error: "Git API not available" };
-    return await window.git.commit(message, config, signCommit);
+    if (!window.git) {
+      return {
+        success: false,
+        error: "Git API not available. Running outside Electron?",
+      };
+    }
+    return window.git.commit(message, config, signCommit, relPaths);
   }
 
   // ==================== BRANCHES ====================

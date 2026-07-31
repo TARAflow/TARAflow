@@ -2,13 +2,22 @@
   "audit": {
     "summary": {
       "title": "Änderungsübersicht",
-       "noChanges": "Keine Änderungen erkannt",
+      "noChanges": "Keine Änderungen erkannt",
       "totalChanges": "Gesamt",
       "added": "Hinzugefügt",
       "affectedPhases": "Betroffene Phasen:",
       "items": "Einträge",
       "commitMessagePreview": "Commit-Nachricht Vorschau",
-      "info": "Klicke in der Toolbar auf 'Detail', um Änderungen pro Phase zu sehen, oder auf 'Commit', um einen Git-Commit zu erstellen."
+      "info": "Klicke in der Toolbar auf 'Detail', um Änderungen pro Phase zu sehen, oder auf 'Commit', um einen Git-Commit zu erstellen.",
+      "lastCommit": "Letzter Commit:",
+      "modified": "Geändert",
+      "deleted": "Gelöscht"
+    },
+    "repo": {
+      "init": "Audit-Repository hier initialisieren",
+      "setAttributes": ".gitattributes setzen",
+      "needsAttributes": "Das Audit-Repository erzwingt keine kanonische Behandlung von .tara.json-Dateien (LF/Text). Setze die .gitattributes, um unnötige Unterschiede in Diffs zu vermeiden.",
+      "notARepo": "Diese Projektdatei liegt nicht in einem Git-Repository."
     },
     "commit": {
       "title": "Commit erstellen",
@@ -19,16 +28,24 @@
       "roundName": "Rundenname",
       "reviewer": "Reviewer (optional)",
       "message": "Commit-Nachricht",
-      "commitAndPush": "Commit & Push"
+      "commitAndPush": "Commit & Push",
+      "existingBranch": "Vorhandener Branch:",
+      "pushAfterCommit": "Nach dem Commit zum Remote-Repository pushen",
+      "signCommit": "Commit signieren (SSH)",
+      "commit": "Commit",
+      "committing": "Wird committet…"
     },
     "config": {
       "title": "Git-Konfiguration",
+      "enableSigning": "Commits signieren",
       "tabs": {
         "general": "Allgemein",
         "auth": "Authentifizierung",
         "gpg": "GPG-Signierung",
-        "rounds": "Rundennamen"
+        "rounds": "Rundennamen",
+        "signing": "Commit-Signierung"
       },
+      "stored": "Gespeichert",
       "provider": "Git-Anbieter",
       "remoteUrl": "Remote-Repository-URL",
       "defaultBranch": "Standard-Branch",
@@ -53,10 +70,26 @@
       "gpgKeyIdHelp": "Gib die letzten 8 Zeichen deiner GPG-Schlüssel-ID ein",
       "gpgPrivateKey": "GPG-Privater Schlüssel (optional)",
       "gpgPrivateKeyHelp": "Füge deinen gepanzerten privaten Schlüssel ein. Leer lassen, um den bestehenden Schlüssel zu behalten oder einen neuen zu erzeugen.",
-      "generateGPGKey": "GPG-Schlüssel erzeugen (Demnächst)"
+      "generateGPGKey": "GPG-Schlüssel erzeugen (Demnächst)",
+      "signFormat": "Signaturformat",
+      "sshSigningKey": "Pfad zum SSH-Signierschlüssel"
     },
     "diff": {
-      "noChanges": "Keine Änderungen zum Anzeigen"
+      "noChanges": "Keine Änderungen zum Anzeigen",
+      "title": "Detaillierte Änderungen",
+      "changes": "Änderungen",
+      "fieldChanges": "Feldänderungen:",
+      "table": {
+        "id": "ID",
+        "name": "Name",
+        "type": "Typ",
+        "description": "Beschreibung"
+      },
+      "details": {
+        "field": "Feld",
+        "oldValue": "Alter Wert",
+        "newValue": "Neuer Wert"
+      }
     },
     "warnings": {
       "notConfigured": "Git-Konfiguration unvollständig. Bitte Git-Einstellungen vor dem Commit konfigurieren."
@@ -69,7 +102,9 @@
       "hideDetail": "Details ausblenden"
     },
     "status": {
-      "notConfigured": "Nicht konfiguriert"
+      "notConfigured": "Nicht konfiguriert",
+      "hasChanges": "{{count}} Änderung(en)",
+      "noChanges": "Keine Änderungen"
     }
   }
 }

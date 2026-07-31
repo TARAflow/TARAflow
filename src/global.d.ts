@@ -120,11 +120,12 @@ declare global {
       initRepository: () => Promise<GitOperationResult<void>>;
       getStatus: () => Promise<GitOperationResult<GitStatus>>;
       isClean: () => Promise<boolean>;
-      stageAll: () => Promise<GitOperationResult<void>>;
+      stage: (relPaths: string[]) => Promise<GitOperationResult<void>>;
       commit: (
         message: string,
         config: AuditConfig,
-        signCommit?: boolean,
+        signCommit: boolean,
+        relPaths: string[],
       ) => Promise<GitOperationResult<GitCommitResult>>;
       getBranches: () => Promise<GitOperationResult<GitBranchSummary>>;
       getCurrentBranch: () => Promise<string | null>;

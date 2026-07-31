@@ -275,6 +275,9 @@ export type StrideMethod = "per-element" | "per-interaction";
 export interface AuditProjectData {
   id: string;
   name: string;
+  /** Absolute path of the .tara.json on THIS machine — needed for audit-repo
+   *  discovery (setRepoPath / .gitattributes). Runtime-only, never persisted. */
+  filePath?: string;
   audit: AuditData | null;
   phaseStatus: PhaseStatusMap;
 

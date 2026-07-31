@@ -8,7 +8,16 @@
       "affectedPhases": "Affected Phases:",
       "items": "items",
       "commitMessagePreview": "Commit Message Preview",
-      "info": "Click 'Detail' in the toolbar to see detailed changes per phase, or 'Commit' to create a Git commit."
+      "info": "Click 'Detail' in the toolbar to see detailed changes per phase, or 'Commit' to create a Git commit.",
+      "lastCommit": "Last commit:",
+      "modified": "Modified",
+      "deleted": "Deleted"
+    },
+    "repo": {
+      "init": "Initialize Audit Repo Here",
+      "setAttributes": "Set .gitattributes",
+      "needsAttributes": "The audit repository does not enforce canonical .tara.json handling (LF/text). Set .gitattributes to avoid unnecessary diff noise.",
+      "notARepo": "This project file is not inside a Git repository."
     },
     "commit": {
       "title": "Create Commit",
@@ -19,16 +28,24 @@
       "roundName": "Round Name",
       "reviewer": "Reviewer (optional)",
       "message": "Commit Message",
-      "commitAndPush": "Commit & Push"
+      "commitAndPush": "Commit & Push",
+      "existingBranch": "Existing Branch:",
+      "pushAfterCommit": "Push to remote after commit",
+      "signCommit": "Sign commit (SSH)",
+      "commit": "Commit",
+      "committing": "Committing..."
     },
     "config": {
       "title": "Git Configuration",
+      "enableSigning": "Sign commits",
       "tabs": {
         "general": "General",
         "auth": "Authentication",
         "gpg": "GPG Signing",
-        "rounds": "Round Names"
+        "rounds": "Round Names",
+        "signing": "Commit Signing"
       },
+      "stored": "Stored",
       "provider": "Git Provider",
       "remoteUrl": "Remote Repository URL",
       "defaultBranch": "Default Branch",
@@ -53,10 +70,26 @@
       "gpgKeyIdHelp": "Enter the last 8 characters of your GPG key ID",
       "gpgPrivateKey": "GPG Private Key (optional)",
       "gpgPrivateKeyHelp": "Paste your armored private key. Leave empty to keep existing key or generate new one.",
-      "generateGPGKey": "Generate GPG Key (Coming Soon)"
+      "generateGPGKey": "Generate GPG Key (Coming Soon)",
+      "signFormat": "Signature format",
+      "sshSigningKey": "SSH signing key path"
     },
     "diff": {
-      "noChanges": "No changes to display"
+      "noChanges": "No changes to display",
+      "title": "Detailed Changes",
+      "changes": "changes",
+      "fieldChanges": "Field Changes:",
+      "table": {
+        "id": "ID",
+        "name": "Name",
+        "type": "Type",
+        "description": "Description"
+      },
+      "details": {
+        "field": "Field",
+        "oldValue": "Old Value",
+        "newValue": "New Value"
+      }
     },
     "warnings": {
       "notConfigured": "Git configuration incomplete. Please configure Git settings before committing."
@@ -69,7 +102,9 @@
       "hideDetail": "Hide Details"
     },
     "status": {
-      "notConfigured": "Not Configured"
+      "notConfigured": "Not Configured",
+      "hasChanges": "{{count}} Change(s)",
+      "noChanges": "No Changes"
     }
   }
 }

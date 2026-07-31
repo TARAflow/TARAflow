@@ -26,6 +26,11 @@ export function createIpcGitRunner(): GitRunner {
     if (!window.git?.rawInDir) {
       return { stdout: "", stderr: "Git API not available", code: 127 };
     }
+    const result = await window.git.rawInDir(
+      "/home/jpm/Projects/TARAflow_Examples",
+      ["rev-parse", "--show-toplevel"],
+    );
+    console.log("[audit] Result: ", result);
     const res = await window.git.rawInDir(cwd, args);
     if (res.success && res.data) {
       return res.data;

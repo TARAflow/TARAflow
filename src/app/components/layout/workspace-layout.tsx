@@ -889,6 +889,7 @@ export const WorkspaceLayout: React.FC = () => {
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
+              filePath: activeProject.filePath,
               audit: activeProject.audit,
               phaseStatus: activeProject.phaseStatus,
               info: activeProject.info,

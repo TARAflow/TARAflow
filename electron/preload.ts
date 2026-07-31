@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
+import { type AuditConfig } from "audit/models/audit-types";
 
 console.log("=== PRELOAD LOADED ===");
 
@@ -76,9 +77,13 @@ contextBridge.exposeInMainWorld("git", {
   isClean: () => ipcRenderer.invoke("git:isClean"),
 
   // Commit
-  stageAll: () => ipcRenderer.invoke("git:stageAll"),
-  commit: (message: string, config: any, signCommit: boolean) =>
-    ipcRenderer.invoke("git:commit", message, config, signCommit),
+  stage: (relPaths: string[]) => ipcRenderer.invoke("git:stage", relPaths),
+  commit: (
+    message: string,
+    config: AuditConfig,
+    signCommit: boolean,
+    relPaths: string[],
+  ) => ipcRenderer.invoke("git:commit", message, config, signCommit, relPaths),
 
   // Branches
   getBranches: () => ipcRenderer.invoke("git:getBranches"),
@@ -106,6 +111,10 @@ contextBridge.exposeInMainWorld("git", {
 
   // Raw
   raw: (command: string[]) => ipcRenderer.invoke("git:raw", command),
+  rawInDir: (dir: string, args: string[]) =>
+    ipcRenderer.invoke("git:rawInDir", dir, args),
+
+  setRepoPath: (root: string) => ipcRenderer.invoke("git:setRepoPath", root),
 });
 
 // ==================== CREDENTIALS API (window.credentials) ====================

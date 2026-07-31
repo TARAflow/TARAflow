@@ -400,13 +400,11 @@ ipcMain.handle("git:isClean", async () => {
 });
 
 // Commit
-ipcMain.handle("git:stageAll", async () => {
-  return await gitService.stageAll();
-});
+ipcMain.handle("git:stage", (_e, relPaths) => gitService.stage(relPaths));
 
-ipcMain.handle("git:commit", async (_, message, config, signCommit = true) => {
-  return await gitService.commit(message, config, signCommit);
-});
+ipcMain.handle("git:commit", (_e, m, cfg, sign, relPaths) =>
+  gitService.commit(m, cfg, sign, relPaths),
+);
 
 // Branches
 ipcMain.handle("git:getBranches", async () => {

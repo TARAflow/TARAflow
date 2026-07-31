@@ -98,31 +98,47 @@ export class GitService {
   // ==================== COMMIT ====================
 
   /**
-   * Stage all changes
+   * Stage the given paths (relative to the repo root). Never `git add .` —
+   * an audit commit must be scoped to the project file, so a pre-staged
+   * foreign file can't be swept in.
    */
-  async stageAll(): Promise<GitOperationResult<void>> {
+  async stage(relPaths: string[]): Promise<GitOperationResult<void>> {
     try {
-      await this.git.add(".");
+      if (!relPaths.length) {
+        return { success: false, error: "No paths to stage" };
+      }
+      await this.git.add(relPaths);
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        error: `Failed to stage changes: ${error}`,
-      };
+      return { success: false, error: `Failed to stage changes: ${error}` };
     }
   }
 
   /**
-   * Commit staged changes
-   * @param message - Commit message
-   * @param config - Audit configuration (for author info)
+   * Commit — PATH-SCOPED (partial commit). Only `relPaths` are committed;
+   * anything else already in the index is deliberately ignored. Refuses an
+   * empty pathspec, so a whole-index audit commit is structurally impossible.
+   *
+   * @param message      - Commit message
+   * @param config       - Audit configuration (author + signing)
+   * @param signThisCommit - per-commit signing toggle (from CommitOptions.signCommit)
+   * @param relPaths     - repo-relative pathspec (the project file)
    */
   async commit(
     message: string,
     config: AuditConfig,
-    signThisCommit: boolean = true, // NEW — comes from CommitOptions.signCommit
+    signThisCommit: boolean = true,
+    relPaths: string[],
   ): Promise<GitOperationResult<GitCommitResult>> {
     try {
+      if (!relPaths.length) {
+        return {
+          success: false,
+          error:
+            "Refusing to commit without a pathspec — audit commits must be path-scoped",
+        };
+      }
+
       await this.git.addConfig("user.name", config.author.name);
       await this.git.addConfig("user.email", config.author.email);
 
@@ -135,7 +151,13 @@ export class GitService {
         await this.git.addConfig(key, value);
       }
 
-      const result = (await this.git.commit(message)) as GitCommitResult;
+      // Partial commit of exactly relPaths — simple-git emits
+      // `git commit -m <msg> <relPaths…>`, which commits only those paths and
+      // ignores the rest of the index. Config-level gpgsign still applies.
+      const result = (await this.git.commit(
+        message,
+        relPaths,
+      )) as GitCommitResult;
       return { success: true, data: result };
     } catch (error) {
       return { success: false, error: `Failed to commit: ${error}` };

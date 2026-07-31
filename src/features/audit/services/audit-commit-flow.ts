@@ -15,7 +15,7 @@ import type {
 } from "../models/git-types";
 
 export interface CommitFlowDeps {
-  stageAll: () => Promise<GitOperationResult<void>>;
+  stage: (relPaths: string[]) => Promise<GitOperationResult<void>>;
   createBranch: (
     name: string,
     checkout: boolean,
@@ -25,6 +25,7 @@ export interface CommitFlowDeps {
     message: string,
     config: AuditConfig,
     signCommit: boolean,
+    relPaths: string[],
   ) => Promise<GitOperationResult<GitCommitResult>>;
   push: (
     remote: string,
@@ -37,6 +38,7 @@ export interface CommitFlowInput {
   options: CommitOptions;
   config: AuditConfig;
   currentBranch: string;
+  relPaths: string[];
 }
 
 export type CommitFlowResult =
@@ -55,7 +57,7 @@ export async function runCommitFlow(
 ): Promise<CommitFlowResult> {
   const { options, config, currentBranch } = input;
 
-  const stage = await deps.stageAll();
+  const stage = await deps.stage(input.relPaths);
   if (!stage.success) {
     return { ok: false, error: stage.error ?? "Failed to stage changes" };
   }
@@ -77,6 +79,7 @@ export async function runCommitFlow(
     options.message,
     config,
     options.signCommit,
+    input.relPaths,
   );
   if (!commit.success || !commit.data) {
     return { ok: false, error: commit.error ?? "Failed to commit" };

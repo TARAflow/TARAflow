@@ -76,17 +76,20 @@ export function useAuditGit(config: AuditConfig) {
 
   /** Stage → branch → (signed) commit → optional push. */
   const commit = useCallback(
-    async (options: CommitOptions): Promise<CommitFlowResult> => {
+    async (
+      options: CommitOptions,
+      relPaths: string[],
+    ): Promise<CommitFlowResult> => {
       setError(null);
       const result = await runCommitFlow(
         {
-          stageAll: () => gitService.stageAll(),
+          stage: () => gitService.stage(relPaths),
           createBranch: (n, c) => gitService.createBranch(n, c),
           checkoutBranch: (n) => gitService.checkoutBranch(n),
-          commit: (m, cfg, sign) => gitService.commit(m, cfg, sign),
+          commit: (m, cfg, sign) => gitService.commit(m, cfg, sign, relPaths),
           push: (r, b, cfg) => gitService.push(r, b, cfg),
         },
-        { options, config, currentBranch },
+        { options, config, currentBranch, relPaths },
       );
 
       if (!result.ok) {

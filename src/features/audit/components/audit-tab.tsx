@@ -30,11 +30,15 @@ import { PhaseDiffViewer } from "./phase-diff-viewer";
 import { CommitDialog } from "./commit-dialog";
 import { AuditConfigDialog } from "./audit-config-dialog";
 import { useAuditRepo } from "../hooks/useAuditRepo";
-import { loadPreviousProjectFromGit } from "../services/audit-prev-state";
+import {
+  loadPreviousProjectFromGit,
+  repoRelativePath,
+} from "../services/audit-prev-state";
 import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
 import type { Project } from "app/models/project-types";
+
 
 // ==================== COMPONENT ====================
 
@@ -99,10 +103,15 @@ const gitService = useMemo(() => {
   // at its default path — so git init/commit below are gated on it (see effect).
   const repo = useAuditRepo({
     id: project.id,
-    filePath: (project as Project).filePath,
+    filePath: project.filePath,
   });
 
   // ==================== EFFECTS ====================
+
+  useEffect(() => {
+    console.log("[audit] filePath:", project.filePath);
+    console.log("[audit] outcome:", repo.outcome);
+  }, [repo.outcome]);
 
   // Sync from project when it changes
   useEffect(() => {
@@ -213,7 +222,7 @@ const gitService = useMemo(() => {
         repo.outcome?.kind === "repo-needs-attributes"
           ? repo.outcome.repoRoot
           : null;
-      const filePath = (project as Project).filePath;
+      const filePath = project.filePath;
       if (repoRoot && filePath) {
         previousProject = await loadPreviousProjectFromGit(
           (args) => gitService.raw(args),
@@ -309,8 +318,23 @@ const gitService = useMemo(() => {
       try {
         setError(null);
 
-        // Stage all changes
-        const stageResult = await gitService.stageAll();
+        // Resolve the project file relative to the bound audit repo. The
+        // audit commit is scoped to THIS path — never the whole index.
+        const repoRoot =
+          repo.outcome?.kind === "repo-ok" ||
+          repo.outcome?.kind === "repo-needs-attributes"
+            ? repo.outcome.repoRoot
+            : null;
+        const filePath = project.filePath;
+        if (!repoRoot || !filePath) {
+          throw new Error(
+            "Audit repo not bound yet — cannot determine the project file to commit",
+          );
+        }
+        const relPath = repoRelativePath(repoRoot, filePath);
+
+        // Stage only the project file (path-scoped)
+        const stageResult = await gitService.stage([relPath]);
         if (!stageResult.success) {
           throw new Error(stageResult.error || "Failed to stage changes");
         }
@@ -335,11 +359,12 @@ const gitService = useMemo(() => {
           }
         }
 
-        // Commit
+        // Commit — path-scoped
         const commitResult = await gitService.commit(
           options.message,
           auditData.config,
           options.signCommit,
+          [relPath],
         );
 
         if (!commitResult.success || !commitResult.data) {
