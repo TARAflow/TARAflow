@@ -74,20 +74,6 @@ const TAG_FREQUENCY_EXPECTED: Record<string, string[]> = {
   cmd:       [], // commands can be any frequency
 };
 
-/**
- * LP-3: verb+tag composite key → acceptable messageType values.
- * Only fires when messageType is explicitly set on the flow.
- * Keys: "verb" or "verb:tag"
- */
-const VERB_TAG_MESSAGETYPE_ACCEPTABLE: Record<string, string[]> = {
-  "push:cmd":        ["command"],
-  "push:event":      ["alarm_event", "status", "telemetry"],
-  "push:event_ack":  ["alarm_event", "status"],
-  "stream":          ["measurement", "telemetry"],
-  "write":           ["log_audit", "config"],
-  // pull flows carry a wide range — not checked (too many valid combinations)
-};
-
 // ---------------------------------------------------------------------------
 // Helpers  (duplicated from dataflow-label-validator.ts — see TODO above)
 // ---------------------------------------------------------------------------
@@ -223,7 +209,6 @@ function runLP2(
 // ---------------------------------------------------------------------------
 // Fires only when messageType is explicitly set on the connection.
 // Severity: WARNING — analyst may have set a specific type intentionally.
-
 function runLP3(
   verb: ValidVerb,
   tag: string | null,
@@ -232,24 +217,53 @@ function runLP3(
   elementId: string,
   warnings: ValidationFinding[],
 ): void {
-  if (!props?.messageType) return;
-  const comboKey = tag ? `${verb}:${tag}` : verb;
-  const acceptable = VERB_TAG_MESSAGETYPE_ACCEPTABLE[comboKey];
-  if (!acceptable) return;
-  if (!acceptable.includes(props.messageType)) {
-    warnings.push({
-      key: ValidationMessages.DF_LP_TAG_MESSAGETYPE_MISMATCH,
-      displayId,
-      elementId,
-      // expected/got are messageType enum values — resolved by the panel via
-      // element_description.dataflow.fields.messageType.options.* (enumOption resolver).
-      params: {
-        combo: comboKey,
-        expectedMessageType: acceptable,
-        gotMessageType: props.messageType,
-      },
-    });
+  const messageType = props?.messageType;
+  if (!messageType) return;
+
+  let mismatch = false;
+
+  switch (messageType) {
+    case "alarm_event":
+      // Alarm/Event notifications should not be modeled as commands.
+      mismatch = verb === "push" && tag === "cmd";
+      break;
+
+    case "command":
+      // Commands should not be modeled as asynchronous events.
+      mismatch = verb === "push" && (tag === "event" || tag === "event_ack");
+      break;
+
+    case "measurement":
+      // Measurements are typically streamed or returned in responses,
+      // but not sent as commands.
+      mismatch = verb === "push" && tag === "cmd";
+      break;
+
+    case "status":
+      // Status is reported or queried, not commanded.
+      mismatch = verb === "push" && tag === "cmd";
+      break;
+
+    default:
+      // firmware, config, credentials, pii, telemetry,
+      // log_audit, custom -> intentionally unrestricted
+      return;
   }
+
+  if (!mismatch) return;
+
+  const combo = tag ? `${verb}:${tag}` : verb;
+
+  warnings.push({
+    key: ValidationMessages.DF_LP_TAG_MESSAGETYPE_MISMATCH,
+    displayId,
+    elementId,
+    params: {
+      combo,
+      expectedMessageType: messageType,
+      gotMessageType: messageType,
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
