@@ -72,7 +72,8 @@
       "gpgPrivateKeyHelp": "Paste your armored private key. Leave empty to keep existing key or generate new one.",
       "generateGPGKey": "Generate GPG Key (Coming Soon)",
       "signFormat": "Signature format",
-      "sshSigningKey": "SSH signing key path"
+      "sshSigningKey": "SSH signing key path",
+      "browse": "Browse…"
     },
     "diff": {
       "noChanges": "No changes to display",

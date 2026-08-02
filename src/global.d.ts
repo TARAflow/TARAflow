@@ -40,6 +40,12 @@ declare global {
           data?: string;
           error?: string;
         }>;
+        pickFile: (options?: {
+          title?: string;
+          defaultPath?: string;
+          buttonLabel?: string;
+          filters?: { name: string; extensions: string[] }[];
+        }) => Promise<{ success: boolean; data?: string; error?: string }>;
         writeProject: (
           filePath: string,
           projectData: string,

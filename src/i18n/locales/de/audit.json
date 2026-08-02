@@ -72,7 +72,8 @@
       "gpgPrivateKeyHelp": "Füge deinen gepanzerten privaten Schlüssel ein. Leer lassen, um den bestehenden Schlüssel zu behalten oder einen neuen zu erzeugen.",
       "generateGPGKey": "GPG-Schlüssel erzeugen (Demnächst)",
       "signFormat": "Signaturformat",
-      "sshSigningKey": "Pfad zum SSH-Signierschlüssel"
+      "sshSigningKey": "Pfad zum SSH-Signierschlüssel",
+      "browse": "Durchsuchen…"
     },
     "diff": {
       "noChanges": "Keine Änderungen zum Anzeigen",

@@ -43,6 +43,14 @@ contextBridge.exposeInMainWorld("electron", {
     saveDialog: (defaultName: string) =>
       ipcRenderer.invoke("file:saveDialog", defaultName),
     openDialog: () => ipcRenderer.invoke("file:openDialog"),
+    // Generic file picker (SSH keys, allowed_signers pubkeys) — NOT the project
+    // dialog: no tara.json filter, showHiddenFiles for ~/.ssh.
+    pickFile: (options?: {
+      title?: string;
+      defaultPath?: string;
+      buttonLabel?: string;
+      filters?: { name: string; extensions: string[] }[];
+    }) => ipcRenderer.invoke("file:pickFile", options),
     writeProject: (filePath: string, projectData: string) =>
       ipcRenderer.invoke("file:writeProject", filePath, projectData),
     readProject: (filePath: string) =>

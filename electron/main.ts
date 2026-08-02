@@ -562,6 +562,32 @@ ipcMain.handle("file:saveDialog", async (_, defaultName: string) => {
   }
 });
 
+// Generic single-file picker (SSH keys, allowed_signers pubkeys, …). Distinct
+// from file:openDialog on purpose: that one is project-specific (title, tara.json
+// filter, no hidden files). Key files live in ~/.ssh — a DOT-dir you can't enter
+// without showHiddenFiles. `~` is expanded here since the renderer has no homedir.
+ipcMain.handle("file:pickFile", async (_e, options) => {
+  try {
+    const expandHome = (p: string | undefined) =>
+      p && p.startsWith("~") ? require("os").homedir() + p.slice(1) : p;
+
+    const result = await dialog.showOpenDialog({
+      title: options?.title ?? "Select file",
+      defaultPath: expandHome(options?.defaultPath),
+      buttonLabel: options?.buttonLabel,
+      filters: options?.filters,
+      properties: ["openFile", "showHiddenFiles", "dontAddToRecent"],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, error: "canceled" };
+    }
+    return { success: true, data: result.filePaths[0] };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
 // Open Dialog
 ipcMain.handle("file:openDialog", async () => {
   try {

@@ -166,6 +166,31 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
     }));
   };
 
+  // Native file picker for the SSH signing key — avoids typing the full path
+  // by hand. Uses the generic file:pickFile (NOT the project openDialog): no
+  // tara.json filter, showHiddenFiles so ~/.ssh is reachable.
+  const handleBrowseSigningKey = async () => {
+    const api = window.electron?.file;
+    if (!api?.pickFile) return;
+    const res = await api.pickFile({
+      title: "Select SSH signing key",
+      defaultPath: "~/.ssh",
+      buttonLabel: "Select",
+      // .pub first (git-ssh signing points user.signingkey at the public key),
+      // but "All files" lets a private/extension-less key be picked too.
+      filters: [
+        { name: "SSH public keys", extensions: ["pub"] },
+        { name: "All files", extensions: ["*"] },
+      ],
+    });
+    if (res.success && res.data) {
+      setLocalConfig((prev) => ({
+        ...prev,
+        signing: { ...prev.signing!, sshSigningKeyPath: res.data },
+      }));
+    }
+  };
+
   // ==================== RENDER ====================
 
   return (
@@ -498,24 +523,36 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 </FormControl>
 
                 {localConfig.signing?.format === "ssh" ? (
-                  <TextField
-                    label={t("audit.config.sshSigningKey", {
-                      defaultValue: "SSH signing key path",
-                    })}
-                    value={localConfig.signing?.sshSigningKeyPath ?? ""}
-                    onChange={(e) =>
-                      setLocalConfig((prev) => ({
-                        ...prev,
-                        signing: {
-                          ...prev.signing!,
-                          sshSigningKeyPath: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="~/.ssh/id_ed25519"
-                    size="small"
-                    fullWidth
-                  />
+                  <Box
+                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
+                  >
+                    <TextField
+                      label={t("audit.config.sshSigningKey", {
+                        defaultValue: "SSH signing key path",
+                      })}
+                      value={localConfig.signing?.sshSigningKeyPath ?? ""}
+                      onChange={(e) =>
+                        setLocalConfig((prev) => ({
+                          ...prev,
+                          signing: {
+                            ...prev.signing!,
+                            sshSigningKeyPath: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="~/.ssh/taraflow_signing.pub"
+                      size="small"
+                      fullWidth
+                    />
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleBrowseSigningKey}
+                      sx={{ whiteSpace: "nowrap", height: 40 }}
+                    >
+                      {t("audit.config.browse", { defaultValue: "Browse…" })}
+                    </Button>
+                  </Box>
                 ) : (
                   <TextField
                     label={t("audit.config.gpgKeyId", {
@@ -623,6 +660,6 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+}
 
 export default AuditConfigDialog;
