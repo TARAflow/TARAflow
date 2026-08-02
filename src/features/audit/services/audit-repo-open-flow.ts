@@ -11,6 +11,7 @@ import {
   type FileIO,
   type AttrStatus,
 } from "./audit-repo-attributes";
+import { allowedSignersPathOf } from "./audit-signer-manifest";
 
 // ── Path helpers (renderer, cross-platform, no node:path) ────────────────────
 
@@ -76,6 +77,18 @@ export async function runAuditRepoOpenFlow(
   // Bind the bound GitService and cache the path before any audit op.
   await deps.setRepoPath(loc.repoRoot);
   await deps.cacheRepoRoot(project.id, loc.repoRoot);
+
+  // Point local git at the COMMITTED manifest so %G? / --show-signature verify
+  // against .tara/allowed_signers, not a machine-local file. Harmless if the
+  // manifest isn't committed yet (git just can't verify until it exists).
+  await deps.gitRunner(
+    [
+      "config",
+      "gpg.ssh.allowedSignersFile",
+      allowedSignersPathOf(loc.repoRoot),
+    ],
+    loc.repoRoot,
+  );
 
   const status = await inspectAuditRepoAttributes(
     deps.gitRunner,
