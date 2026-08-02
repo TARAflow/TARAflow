@@ -35,32 +35,119 @@
 // serialiseProject() now produces TCS output. Every existing caller therefore
 // gets canonical bytes for free. The first save of a pre-TCS file is a one-time
 // reformat (keys reorder, trailing newline appears) — this is expected.
+//
+// IDEMPOTENCE / CHURN (2026-07-31)
+// --------------------------------
+// TCS promises "same state → same bytes → same commit". That only holds if the
+// on-disk form contains no field that changes without a real content change.
+// These were quietly breaking it and are now stripped or normalized here:
+//   - audit.lastCommitState — the app wrote the commit RESULT (incl. the commit
+//     HASH) back into the very file the commit committed. A commit can never
+//     contain its own hash, so the file was dirty the instant any commit
+//     finished. Audit results live in git; the UI derives "last commit" from
+//     `git log`. (commitHistory + the audit-internal lastModified sentinel go
+//     with it — bookkeeping, not content.)
+//   - dfd.thumbnail — draw.io embeds a random `ge-svg-<rand>` id that
+//     regenerates on every render → a guaranteed diff even for an unchanged
+//     diagram. The id is pinned to a stable value; the preview is kept.
+//   - isOpen / lastOpened / currentPhase — session and navigation state, not
+//     project content. (lastOpened ordering is tracked by the registry, which
+//     falls back to now().)
+// info.lastModified is deliberately KEPT — the recent-projects list displays it.
+// Its remaining "bumped on every save" churn is a separate, narrower fix
+// (bump only on real change), not a strip.
 
 import type { Project } from "../models/project-types";
 
 /** TCS ruleset version. Bumping this is a deliberate, file-reformatting change. */
 export const TCS_VERSION = 1;
 
+/** The audit block as it may appear on disk — results/bookkeeping removed. */
+type AuditDataOnDisk = Omit<
+  NonNullable<Project["audit"]>,
+  "lastCommitState" | "commitHistory" | "lastModified"
+>;
+
 /** A Project as it may appear in a .tara.json — runtime-only fields removed. */
-export type ProjectOnDisk = Omit<Project, "hasUnsavedChanges" | "filePath">;
+export type ProjectOnDisk = Omit<
+  Project,
+  | "hasUnsavedChanges"
+  | "filePath"
+  | "isOpen"
+  | "lastOpened"
+  | "currentPhase"
+  | "audit"
+> & { audit: AuditDataOnDisk | null };
+
+/**
+ * Pin draw.io's random export id so an unchanged diagram serializes identically.
+ * The thumbnail is a `data:image/svg+xml;base64,…` URL; draw.io embeds one
+ * random `ge-svg-<rand>` id (root <svg id> + a matching <style> selector) that
+ * regenerates on every render. atob yields a byte-string (each char ≤ 0xFF), so
+ * btoa round-trips even UTF-8 labels safely. Any hiccup → return input unchanged
+ * (a preview quirk must never break a save).
+ */
+function normalizeThumbnail(thumbnail: string | undefined): string | undefined {
+  if (!thumbnail) return thumbnail;
+  const PREFIX = "data:image/svg+xml;base64,";
+  if (!thumbnail.startsWith(PREFIX)) return thumbnail;
+  try {
+    const svg = atob(thumbnail.slice(PREFIX.length));
+    const pinned = svg.replace(/ge-svg-[A-Za-z0-9_-]+/g, "ge-svg-thumb");
+    return PREFIX + btoa(pinned);
+  } catch {
+    return thumbnail;
+  }
+}
+
+/** Drop audit RESULTS + the internal lastModified sentinel; keep config etc. */
+function auditForDisk(audit: NonNullable<Project["audit"]>): AuditDataOnDisk {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { lastCommitState, commitHistory, lastModified, ...rest } = audit;
+  return rest;
+}
 
 /**
  * Strip runtime-only and derived data from a project before it leaves the app.
  *
- * - `filePath`            where this file happens to live on THIS machine; set
- *                         again on load, and a privacy leak when shared.
+ * Removed entirely (never on disk):
+ * - `filePath`            where this file lives on THIS machine; a privacy leak
+ *                         when shared, and set again on load.
  * - `hasUnsavedChanges`   UI state; meaningless once written.
- * - `dfd.graph`           derived, rebuilt on load, and large.
+ * - `isOpen` / `lastOpened` / `currentPhase`  session + navigation state.
+ * Reduced:
+ * - `dfd.graph`           derived, rebuilt on load, and large → dropped.
+ * - `dfd.thumbnail`       kept but its random id pinned (see normalizeThumbnail).
+ * - `audit`               audit RESULTS (lastCommitState/commitHistory) and the
+ *                         internal lastModified sentinel dropped; config kept.
  *
- * Pure: returns a new object, mutates nothing. The in-memory project keeps its
- * filePath — it is needed for the next save.
+ * Pure: returns a new object, mutates nothing. The in-memory project keeps all
+ * of its fields — filePath is needed for the next save, currentPhase/isOpen for
+ * the running UI.
  */
 export function prepareForDisk(project: Project): ProjectOnDisk {
+  // Runtime-only / session / navigation fields never reach disk.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { hasUnsavedChanges, filePath, ...rest } = project;
+  const {
+    hasUnsavedChanges,
+    filePath,
+    isOpen,
+    lastOpened,
+    currentPhase,
+    audit,
+    ...rest
+  } = project;
+
   return {
     ...rest,
-    dfd: project.dfd ? { ...project.dfd, graph: undefined } : null,
+    dfd: project.dfd
+      ? {
+          ...project.dfd,
+          graph: undefined,
+          thumbnail: normalizeThumbnail(project.dfd.thumbnail),
+        }
+      : null,
+    audit: audit ? auditForDisk(audit) : null,
   };
 }
 

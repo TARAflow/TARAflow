@@ -7,6 +7,17 @@
 // the raw Project and shipped `filePath` — the author's absolute path — into
 // every file they produced, including committed test fixtures.
 //
+// The churn fix (2026-07-31) widened the contract so the on-disk form is
+// idempotent — "same state → same bytes → same commit". Beyond filePath /
+// hasUnsavedChanges it now also strips:
+//   - session + navigation state:  isOpen, lastOpened, currentPhase
+//   - audit RESULTS:               audit.lastCommitState, audit.commitHistory,
+//                                  audit.lastModified  (they live in git; only
+//                                  audit.config is kept)
+// and normalises the non-deterministic draw.io thumbnail id (a random
+// `ge-svg-<rand>` regenerated every render) to a stable value.
+// info.lastModified is deliberately KEPT (the recent-projects list shows it).
+//
 // These tests pin the contract itself. The companion guard is the grep in
 // no-raw-project-serialisation.test.ts: this file says WHAT is correct, that
 // one says every writer actually goes through it.
@@ -69,14 +80,27 @@ describe("prepareForDisk — runtime-only fields never reach disk", () => {
     );
   });
 
+  it("drops session + navigation state (isOpen, lastOpened, currentPhase)", () => {
+    // Not project content: isOpen/lastOpened are session state (the registry
+    // tracks last-opened), currentPhase is UI navigation (phaseStatus carries
+    // the real progress). Persisting them churns the file on every open.
+    const result = prepareForDisk(makeProject());
+    expect(result).not.toHaveProperty("isOpen");
+    expect(result).not.toHaveProperty("lastOpened");
+    expect(result).not.toHaveProperty("currentPhase");
+  });
+
   it("leaves the in-memory project untouched", () => {
-    // filePath is still needed for the NEXT save — stripping must not mutate.
+    // filePath is still needed for the NEXT save; currentPhase/isOpen for the
+    // running UI — stripping must not mutate the in-memory object.
     const project = makeProject();
     prepareForDisk(project);
     expect(project.filePath).toBe(
       "/home/someone/Projects/TARAflow/secret/path.tara.json",
     );
     expect(project.hasUnsavedChanges).toBe(true);
+    expect(project.currentPhase).toBe(5);
+    expect(project.isOpen).toBe(true);
   });
 
   it("keeps everything else", () => {
@@ -85,13 +109,11 @@ describe("prepareForDisk — runtime-only fields never reach disk", () => {
       "id",
       "schemaVersion",
       "info",
-      "currentPhase",
       "phaseStatus",
       "settings",
       "status",
       "attackTrees",
       "risks",
-      "isOpen",
     ]) {
       expect(result, `${key} must survive`).toHaveProperty(key);
     }
@@ -120,6 +142,90 @@ describe("prepareForDisk — derived DFD data", () => {
     const result = prepareForDisk(makeProject({ dfd: undefined } as never));
     expect(result.dfd).toBeNull();
   });
+
+  it("pins the random draw.io thumbnail id so an unchanged diagram is stable", () => {
+    // draw.io embeds a fresh random `ge-svg-<rand>` id on every render (root
+    // <svg id> + a matching <style> selector). Without normalisation the same
+    // diagram serialises to different bytes each save → a guaranteed churn diff.
+    const withRandomId = (rand: string) => {
+      const svg =
+        `<svg id="ge-svg-${rand}" xmlns="http://www.w3.org/2000/svg">` +
+        `<style>#ge-svg-${rand}{--bg:red}</style><rect/></svg>`;
+      const b64 =
+        typeof btoa === "function"
+          ? btoa(svg)
+          : Buffer.from(svg, "binary").toString("base64");
+      return makeProject({
+        dfd: {
+          xml: "<mxfile/>",
+          elements: [],
+          thumbnail: `data:image/svg+xml;base64,${b64}`,
+        },
+      } as unknown as Partial<Project>);
+    };
+
+    const a = (prepareForDisk(withRandomId("QhXAMGxWnFZs")) as any).dfd
+      .thumbnail as string;
+    const b = (prepareForDisk(withRandomId("lvbgYMC9ShjZ")) as any).dfd
+      .thumbnail as string;
+
+    // Same diagram, different render id → identical bytes after normalisation.
+    expect(a).toBe(b);
+    // And the random id is gone, replaced by the stable one.
+    const decoded =
+      typeof atob === "function"
+        ? atob(a.slice("data:image/svg+xml;base64,".length))
+        : Buffer.from(
+            a.slice("data:image/svg+xml;base64,".length),
+            "base64",
+          ).toString("binary");
+    expect(decoded).toContain("ge-svg-thumb");
+    expect(decoded).not.toContain("ge-svg-QhXAMGxWnFZs");
+  });
+
+  it("leaves a non-data-url thumbnail untouched", () => {
+    const project = makeProject({
+      dfd: {
+        xml: "<mxfile/>",
+        elements: [],
+        thumbnail: "https://example/x.png",
+      },
+    } as unknown as Partial<Project>);
+    expect((prepareForDisk(project) as any).dfd.thumbnail).toBe(
+      "https://example/x.png",
+    );
+  });
+});
+
+describe("prepareForDisk — audit block is reduced to config", () => {
+  it("keeps audit.config but drops audit results (lastCommitState/commitHistory/lastModified)", () => {
+    // Audit RESULTS live in git — persisting them (esp. the commit hash) makes
+    // the file dirty the instant a commit finishes (a commit can't contain its
+    // own hash). Only audit.config belongs on disk.
+    const project = makeProject({
+      audit: {
+        config: { defaultBranch: "main", lastRoundNumber: 2 },
+        lastCommitState: {
+          commitHash: "abc",
+          commitDate: "2026-07-31T00:00:00.000Z",
+        },
+        commitHistory: [{ hash: "abc" }],
+        lastModified: "2026-07-31T00:00:00.000Z",
+      },
+    } as unknown as Partial<Project>);
+
+    const audit = (prepareForDisk(project) as any).audit;
+    expect(audit.config).toEqual({ defaultBranch: "main", lastRoundNumber: 2 });
+    expect(audit).not.toHaveProperty("lastCommitState");
+    expect(audit).not.toHaveProperty("commitHistory");
+    expect(audit).not.toHaveProperty("lastModified");
+  });
+
+  it("normalises a missing audit to null", () => {
+    expect(
+      prepareForDisk(makeProject({ audit: null } as never)).audit,
+    ).toBeNull();
+  });
 });
 
 describe("serialiseProject", () => {
@@ -127,6 +233,9 @@ describe("serialiseProject", () => {
     const parsed = JSON.parse(serialiseProject(makeProject()));
     expect(parsed).not.toHaveProperty("filePath");
     expect(parsed).not.toHaveProperty("hasUnsavedChanges");
+    expect(parsed).not.toHaveProperty("isOpen");
+    expect(parsed).not.toHaveProperty("lastOpened");
+    expect(parsed).not.toHaveProperty("currentPhase");
   });
 
   it("contains no absolute home path anywhere in the output", () => {

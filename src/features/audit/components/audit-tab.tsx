@@ -78,25 +78,29 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   // Errors
   const [error, setError] = useState<string | null>(null);
 
+  // "Last committed" label. Since the churn fix strips audit.lastCommitState
+  // from the on-disk file, this is derived from git on open (path-scoped to the
+  // project file) and refreshed in-memory right after a commit.
+  const [lastCommitDate, setLastCommitDate] = useState<string | undefined>(
+    undefined,
+  );
+
   // ==================== COMPUTED ====================
 
   const validation = useMemo(
     () => validateGitConfig(auditData.config),
-    [auditData.config]
+    [auditData.config],
   );
 
   const hasChanges = changes.length > 0;
-  const totalChangeCount = changes.reduce(
-    (sum, p) => sum + p.changeCount,
-    0
-  );
+  const totalChangeCount = changes.reduce((sum, p) => sum + p.changeCount, 0);
 
   // ==================== GIT SERVICE ====================
 
-const gitService = useMemo(() => {
-  // Git operations are handled by Electron main process via IPC
-  return createGitService();
-}, []);
+  const gitService = useMemo(() => {
+    // Git operations are handled by Electron main process via IPC
+    return createGitService();
+  }, []);
 
   // Discover the audit repo from the project file, bind it (setRepoPath), and
   // check .gitattributes. Until this resolves, the main GitService still points
@@ -107,11 +111,6 @@ const gitService = useMemo(() => {
   });
 
   // ==================== EFFECTS ====================
-
-  useEffect(() => {
-    console.log("[audit] filePath:", project.filePath);
-    console.log("[audit] outcome:", repo.outcome);
-  }, [repo.outcome]);
 
   // Sync from project when it changes
   useEffect(() => {
@@ -144,6 +143,8 @@ const gitService = useMemo(() => {
       initializeGit();
       // Now that the repo is bound, recompute the diff against the real HEAD.
       detectChanges();
+      // ...and read the last commit date for this file straight from git.
+      refreshLastCommitDate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo.outcome?.kind]);
@@ -187,7 +188,7 @@ const gitService = useMemo(() => {
       const branchesResult = await gitService.getBranches();
       if (branchesResult.success && branchesResult.data) {
         const branchInfos: BranchInfo[] = Object.entries(
-          branchesResult.data.branches
+          branchesResult.data.branches,
         ).map(([name, detail]) => ({
           name,
           current: detail.current,
@@ -260,6 +261,33 @@ const gitService = useMemo(() => {
     }
   }, [project, repo.outcome, gitService, auditData.config.author.name]);
 
+  // Derive the "last committed" date from git (the on-disk file no longer
+  // carries audit.lastCommitState). Path-scoped to THIS project's file so it is
+  // correct when a repo holds several projects. Runs only once the repo is bound.
+  const refreshLastCommitDate = useCallback(async () => {
+    const repoRoot =
+      repo.outcome?.kind === "repo-ok" ||
+      repo.outcome?.kind === "repo-needs-attributes"
+        ? repo.outcome.repoRoot
+        : null;
+    const filePath = project.filePath;
+    if (!repoRoot || !filePath) {
+      setLastCommitDate(undefined);
+      return;
+    }
+    const relPath = repoRelativePath(repoRoot, filePath);
+    const res = await gitService.raw([
+      "log",
+      "-1",
+      "--format=%cI",
+      "--",
+      relPath,
+    ]);
+    setLastCommitDate(
+      res.success && res.data?.trim() ? res.data.trim() : undefined,
+    );
+  }, [repo.outcome, project.filePath, gitService]);
+
   // ==================== HANDLERS ====================
 
   const handleRefresh = useCallback(() => {
@@ -288,26 +316,28 @@ const gitService = useMemo(() => {
         throw new Error("Failed to save configuration");
       }
     },
-    [auditData]
+    [auditData],
   );
 
   const handleSaveCredential = useCallback(
     async (account: string, token: string) => {
       await credentialService.saveGitToken(account, token);
     },
-    []
+    [],
   );
 
   const handleSaveGPGKey = useCallback(
     async (keyId: string, privateKey: string) => {
       await credentialService.saveGPGKey(keyId, privateKey);
     },
-    []
+    [],
   );
 
   const handleOpenCommit = useCallback(() => {
     if (!validation.canCommit || !hasChanges) {
-      setError("Cannot commit: Configuration incomplete or no changes detected");
+      setError(
+        "Cannot commit: Configuration incomplete or no changes detected",
+      );
       return;
     }
     setShowCommitDialog(true);
@@ -407,6 +437,8 @@ const gitService = useMemo(() => {
         };
 
         setAuditData(updatedAuditData);
+        // Reflect the just-made commit immediately, without a git round-trip.
+        setLastCommitDate(updatedAuditData.lastCommitState?.commitDate);
 
         // Save to project
         onUpdate({
@@ -436,7 +468,7 @@ const gitService = useMemo(() => {
       project.phaseStatus,
       onUpdate,
       detectChanges,
-    ]
+    ],
   );
 
   const saveAuditData = useCallback(() => {
@@ -576,7 +608,7 @@ const gitService = useMemo(() => {
           <AuditSummary
             changes={changes}
             commitMessageData={commitMessageData}
-            lastCommitDate={auditData.lastCommitState?.commitDate}
+            lastCommitDate={lastCommitDate}
           />
         )}
       </Box>
