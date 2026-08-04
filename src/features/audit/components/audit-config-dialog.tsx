@@ -242,7 +242,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
 
   const handleAddSigner = async () => {
     const ok = await signers.addSigner(newPrincipal.trim(), newPubkey.trim());
-    if (ok) setNewPubkey(""); // keep principal for adding several keys
+    if (ok) {
+      setNewPubkey("");
+      setNewPrincipal("");
+    }
   };
 
   // ==================== RENDER ====================
