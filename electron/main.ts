@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
 import path from "path";
 import fs from "fs/promises";
+import { dirname } from "path";
+import { mkdir, writeFile } from "fs/promises";
 import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
 import simpleGit from "simple-git";
 import { GitService } from "./services/git-service-main";
@@ -654,6 +656,7 @@ ipcMain.handle(
   "file:writeText",
   async (_, filePath: string, content: string) => {
     try {
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, content, "utf-8");
       return { success: true, data: filePath };
     } catch (error: any) {
