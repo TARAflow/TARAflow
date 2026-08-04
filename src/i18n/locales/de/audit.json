@@ -43,7 +43,8 @@
         "auth": "Authentifizierung",
         "gpg": "GPG-Signierung",
         "rounds": "Rundennamen",
-        "signing": "Commit-Signierung"
+        "signing": "Commit-Signierung",
+        "signers": "Signierer"
       },
       "stored": "Gespeichert",
       "provider": "Git-Anbieter",
@@ -73,7 +74,19 @@
       "generateGPGKey": "GPG-Schlüssel erzeugen (Demnächst)",
       "signFormat": "Signaturformat",
       "sshSigningKey": "Pfad zum SSH-Signierschlüssel",
-      "browse": "Durchsuchen…"
+      "browse": "Durchsuchen…",
+      "signers": {
+        "title": "Autorisierte Signierer",
+        "help": "Schlüssel, die Audit-Commits signieren dürfen (.tara/allowed_signers). Hinzufügen/Entfernen ist selbst ein signierter audit:-Commit.",
+        "noRepo": "Öffne ein Projekt in seinem Audit-Repo, um Signierer zu verwalten.",
+        "empty": "Noch keine Signierer.",
+        "add": "Signierer hinzufügen",
+        "principal": "Signierer-E-Mail (Commit-Autor)",
+        "pubkey": "Öffentlicher Schlüssel (.pub-Inhalt)",
+        "addButton": "Signierer hinzufügen",
+        "principalHelp": "Die Commit-Autor-E-Mail des Signierers — muss zu seinen Commits passen.",
+        "useMine": "Meine verwenden"
+      }
     },
     "diff": {
       "noChanges": "Keine Änderungen zum Anzeigen",

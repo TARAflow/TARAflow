@@ -43,6 +43,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
+import { useAuditSigners, type SignerGit } from "../hooks/useAuditSigners";
 import type {
   AuditConfig,
   GitProvider,
@@ -64,6 +65,9 @@ interface AuditConfigDialogProps {
   onClose: () => void;
   onSaveCredential?: (account: string, token: string) => Promise<void>;
   onSaveGPGKey?: (keyId: string, privateKey: string) => Promise<void>;
+  /** Bound audit repo root + git service — needed for the Signers tab. */
+  repoRoot?: string;
+  gitService?: SignerGit;
 }
 
 // ==================== COMPONENT ====================
@@ -74,6 +78,8 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   onSave,
   onClose,
   onSaveCredential,
+  repoRoot,
+  gitService,
 }) => {
   const { t } = useTranslation();
 
@@ -90,6 +96,11 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
 
   // PAT input
   const [patToken, setPatToken] = useState("");
+
+  // Signers tab: the committed manifest + the "add signer" form.
+  const signers = useAuditSigners(repoRoot, gitService, localConfig);
+  const [newPrincipal, setNewPrincipal] = useState("");
+  const [newPubkey, setNewPubkey] = useState("");
 
   // ==================== EFFECTS ====================
 
@@ -191,6 +202,49 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
     }
   };
 
+  // Same picker for the SSH auth key (push), different target field.
+  const handleBrowseAuthKey = async () => {
+    const api = window.electron?.file;
+    if (!api?.pickFile) return;
+    const res = await api.pickFile({
+      title: "Select SSH key",
+      defaultPath: "~/.ssh",
+      buttonLabel: "Select",
+      filters: [{ name: "All files", extensions: ["*"] }],
+    });
+    if (res.success && res.data) {
+      setLocalConfig((prev) => ({
+        ...prev,
+        auth: { ...prev.auth, sshKeyPath: res.data },
+      }));
+    }
+  };
+
+  // Add-signer: pick a *.pub, read its CONTENTS (entryFromPubkey needs the key
+  // text, not the path), and drop it into the textarea (which paste also feeds).
+  const handleBrowsePubkey = async () => {
+    const api = window.electron?.file;
+    if (!api?.pickFile || !api?.readText) return;
+    const picked = await api.pickFile({
+      title: "Select signer public key (.pub)",
+      defaultPath: "~/.ssh",
+      buttonLabel: "Select",
+      filters: [
+        { name: "SSH public keys", extensions: ["pub"] },
+        { name: "All files", extensions: ["*"] },
+      ],
+    });
+    if (picked.success && picked.data) {
+      const read = await api.readText(picked.data);
+      if (read.success && read.data) setNewPubkey(read.data.trim());
+    }
+  };
+
+  const handleAddSigner = async () => {
+    const ok = await signers.addSigner(newPrincipal.trim(), newPubkey.trim());
+    if (ok) setNewPubkey(""); // keep principal for adding several keys
+  };
+
   // ==================== RENDER ====================
 
   return (
@@ -225,6 +279,11 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             <Tab
               label={t("audit.config.tabs.rounds", {
                 defaultValue: "Round Names",
+              })}
+            />
+            <Tab
+              label={t("audit.config.tabs.signers", {
+                defaultValue: "Signers",
               })}
             />
           </Tabs>
@@ -442,24 +501,34 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                   })}
                 </Alert>
 
-                <TextField
-                  label={t("audit.config.sshKeyPath", {
-                    defaultValue: "SSH Key Path (optional)",
-                  })}
-                  value={localConfig.auth.sshKeyPath || ""}
-                  onChange={(e) =>
-                    setLocalConfig((prev) => ({
-                      ...prev,
-                      auth: { ...prev.auth, sshKeyPath: e.target.value },
-                    }))
-                  }
-                  placeholder="~/.ssh/id_ed25519"
-                  helperText={t("audit.config.sshKeyPathHelp", {
-                    defaultValue: "Leave empty to use default SSH key",
-                  })}
-                  size="small"
-                  fullWidth
-                />
+                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                  <TextField
+                    label={t("audit.config.sshKeyPath", {
+                      defaultValue: "SSH Key Path (optional)",
+                    })}
+                    value={localConfig.auth.sshKeyPath || ""}
+                    onChange={(e) =>
+                      setLocalConfig((prev) => ({
+                        ...prev,
+                        auth: { ...prev.auth, sshKeyPath: e.target.value },
+                      }))
+                    }
+                    placeholder="~/.ssh/id_ed25519"
+                    helperText={t("audit.config.sshKeyPathHelp", {
+                      defaultValue: "Leave empty to use default SSH key",
+                    })}
+                    size="small"
+                    fullWidth
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleBrowseAuthKey}
+                    sx={{ whiteSpace: "nowrap", height: 40 }}
+                  >
+                    {t("audit.config.browse", { defaultValue: "Browse…" })}
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>
@@ -638,6 +707,144 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             </List>
           </Box>
         )}
+
+        {/* TAB 4: Signers */}
+        {activeTab === 4 && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Typography variant="subtitle2">
+              {t("audit.config.signers.title", {
+                defaultValue: "Authorized signers",
+              })}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t("audit.config.signers.help", {
+                defaultValue:
+                  "Keys allowed to sign audit commits (.tara/allowed_signers). Adding or removing one is itself a signed audit: commit.",
+              })}
+            </Typography>
+
+            {!repoRoot && (
+              <Alert severity="info">
+                {t("audit.config.signers.noRepo", {
+                  defaultValue:
+                    "Open a project inside its audit repo to manage signers.",
+                })}
+              </Alert>
+            )}
+
+            {signers.error && (
+              <Alert severity="error" onClose={() => signers.setError(null)}>
+                {signers.error}
+              </Alert>
+            )}
+
+            <List dense>
+              {signers.entries.map((e) => (
+                <ListItem
+                  key={`${e.keyType} ${e.keyBlob}`}
+                  secondaryAction={
+                    <IconButton
+                      edge="end"
+                      aria-label="remove signer"
+                      disabled={signers.loading || !repoRoot}
+                      onClick={() => signers.removeSigner(e.keyType, e.keyBlob)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  }
+                >
+                  <ListItemText
+                    primary={e.principal}
+                    secondary={`${e.keyType} …${e.keyBlob.slice(-16)}`}
+                  />
+                </ListItem>
+              ))}
+              {repoRoot && signers.entries.length === 0 && (
+                <ListItem>
+                  <ListItemText
+                    secondary={t("audit.config.signers.empty", {
+                      defaultValue: "No signers yet.",
+                    })}
+                  />
+                </ListItem>
+              )}
+            </List>
+
+            <Divider />
+
+            <Typography variant="subtitle2">
+              {t("audit.config.signers.add", { defaultValue: "Add signer" })}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+              <TextField
+                label={t("audit.config.signers.principal", {
+                  defaultValue: "Signer email (commit author)",
+                })}
+                value={newPrincipal}
+                onChange={(e) => setNewPrincipal(e.target.value)}
+                placeholder={config.author.email || "name@example.com"}
+                helperText={t("audit.config.signers.principalHelp", {
+                  defaultValue:
+                    "The commit-author email of the signer — must match how they commit.",
+                })}
+                size="small"
+                fullWidth
+              />
+              {config.author.email && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => setNewPrincipal(config.author.email)}
+                  sx={{ whiteSpace: "nowrap", height: 40 }}
+                >
+                  {t("audit.config.signers.useMine", {
+                    defaultValue: "Use mine",
+                  })}
+                </Button>
+              )}
+            </Box>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+              <TextField
+                label={t("audit.config.signers.pubkey", {
+                  defaultValue: "Public key (.pub contents)",
+                })}
+                value={newPubkey}
+                onChange={(e) => setNewPubkey(e.target.value)}
+                placeholder="ssh-ed25519 AAAA…"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleBrowsePubkey}
+                sx={{ whiteSpace: "nowrap", height: 40 }}
+              >
+                {t("audit.config.browse", { defaultValue: "Browse…" })}
+              </Button>
+            </Box>
+            <Box>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                disabled={
+                  signers.loading ||
+                  !repoRoot ||
+                  !newPrincipal.trim() ||
+                  !newPubkey.trim()
+                }
+                onClick={handleAddSigner}
+              >
+                {t("audit.config.signers.addButton", {
+                  defaultValue: "Add signer",
+                })}
+              </Button>
+            </Box>
+          </Box>
+        )}
       </DialogContent>
 
       <DialogActions>
@@ -660,6 +867,6 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-}
+};
 
 export default AuditConfigDialog;

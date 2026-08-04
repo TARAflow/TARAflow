@@ -621,6 +621,13 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         onClose={() => setShowConfigDialog(false)}
         onSaveCredential={handleSaveCredential}
         onSaveGPGKey={handleSaveGPGKey}
+        gitService={gitService}
+        repoRoot={
+          repo.outcome?.kind === "repo-ok" ||
+          repo.outcome?.kind === "repo-needs-attributes"
+            ? repo.outcome.repoRoot
+            : undefined
+        }
       />
 
       {/* Commit Dialog */}

@@ -43,7 +43,8 @@
         "auth": "Authentication",
         "gpg": "GPG Signing",
         "rounds": "Round Names",
-        "signing": "Commit Signing"
+        "signing": "Commit Signing",
+        "signers": "Signers"
       },
       "stored": "Stored",
       "provider": "Git Provider",
@@ -73,7 +74,19 @@
       "generateGPGKey": "Generate GPG Key (Coming Soon)",
       "signFormat": "Signature format",
       "sshSigningKey": "SSH signing key path",
-      "browse": "Browse…"
+      "browse": "Browse…",
+      "signers": {
+        "title": "Authorized signers",
+        "help": "Keys allowed to sign audit commits (.tara/allowed_signers). Adding or removing one is itself a signed audit: commit.",
+        "noRepo": "Open a project inside its audit repo to manage signers.",
+        "empty": "No signers yet.",
+        "add": "Add signer",
+        "principal": "Signer email (commit author)",
+        "pubkey": "Public key (.pub contents)",
+        "addButton": "Add signer",
+        "principalHelp": "The commit-author email of the signer — must match how they commit.",
+        "useMine": "Use mine"
+      }
     },
     "diff": {
       "noChanges": "No changes to display",
