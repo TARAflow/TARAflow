@@ -46,6 +46,8 @@ import {
   generateCommitMessage,
 } from "../models/audit-types";
 import type { CommitMessageData } from "../models/audit-types";
+import type { AuditProtection } from "../hooks/useAuditProtection";
+import { AuditProtectionPanel } from "./audit-protection-panel";
 
 // ==================== PROPS ====================
 
@@ -57,6 +59,8 @@ interface CommitDialogProps {
   commitMessageData: CommitMessageData;
   onCommit: (options: CommitOptions) => Promise<void>;
   onClose: () => void;
+  /** Local protection status — shows a warning banner when a check fails. */
+  protection?: AuditProtection;
 }
 
 // ==================== COMPONENT ====================
@@ -69,6 +73,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   commitMessageData,
   onCommit,
   onClose,
+  protection,
 }) => {
   const { t } = useTranslation();
 
@@ -78,7 +83,9 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
   // ==================== STATE ====================
 
-  const [branchMode, setBranchMode] = useState<"current" | "existing" | "auto" | "custom">("current");
+  const [branchMode, setBranchMode] = useState<
+    "current" | "existing" | "auto" | "custom"
+  >("current");
   const [selectedBranch, setSelectedBranch] = useState<string>(currentBranch);
   const [customBranchName, setCustomBranchName] = useState<string>("");
   const [roundName, setRoundName] = useState<string>(commitMessageData.round);
@@ -94,7 +101,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   const allRoundNames = getAllRoundNames(config);
   const nextBranchName = generateNextBranchName(
     config.featureBranchTemplate,
-    config.lastRoundNumber
+    config.lastRoundNumber,
   );
 
   // ==================== EFFECTS ====================
@@ -152,7 +159,9 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
       // Validate branch name
       if (createBranch && !isValidBranchName(branchName)) {
-        setError("Invalid branch name. Use only alphanumeric characters, hyphens, and slashes.");
+        setError(
+          "Invalid branch name. Use only alphanumeric characters, hyphens, and slashes.",
+        );
         setIsCommitting(false);
         return;
       }
@@ -186,6 +195,11 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 1 }}>
+          {/* Audit-trail protection warning (only when a local check fails) */}
+          {protection && (
+            <AuditProtectionPanel protection={protection} variant="banner" />
+          )}
+
           {/* Error Alert */}
           {error && (
             <Alert severity="error" onClose={() => setError(null)}>

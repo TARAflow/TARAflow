@@ -44,7 +44,8 @@
         "gpg": "GPG-Signierung",
         "rounds": "Rundennamen",
         "signing": "Commit-Signierung",
-        "signers": "Signierer"
+        "signers": "Signierer",
+        "protection": "Schutz"
       },
       "stored": "Gespeichert",
       "provider": "Git-Anbieter",
@@ -85,7 +86,16 @@
         "pubkey": "Öffentlicher Schlüssel (.pub-Inhalt)",
         "addButton": "Signierer hinzufügen",
         "principalHelp": "Die Commit-Autor-E-Mail des Signierers — muss zu seinen Commits passen.",
-        "useMine": "Meine verwenden"
+        "useMine": "Meine verwenden",
+        "maintainer": "Maintainer",
+        "maintainerLine": "Maintainer:",
+        "none": "keine",
+        "promote": "Zum Maintainer machen",
+        "demote": "Maintainer entziehen",
+        "maintainerAdd": "Maintainer-Rolle vergeben (darf das Manifest ändern)",
+        "maintainerFirst": "Maintainer (für den ersten Signer erforderlich)",
+        "noMaintainer": "Dieses Manifest hat keinen Maintainer — niemand kann es ändern. Befördere einen Signer zum Maintainer.",
+        "fixMaintainer": "Mich zum Maintainer machen"
       }
     },
     "diff": {
@@ -119,6 +129,22 @@
       "notConfigured": "Nicht konfiguriert",
       "hasChanges": "{{count}} Änderung(en)",
       "noChanges": "Keine Änderungen"
+    },
+    "protection": {
+      "noRepo": "Öffne ein Projekt in seinem Audit-Repo, um den Schutzstatus zu sehen.",
+      "noTrail": "Noch kein Audit-Trail — die Checkliste erscheint, sobald das Signer-Manifest committet ist.",
+      "allGood": "Alle lokal prüfbaren Checks bestehen. Ergänze die Host-Einstellungen unten, um History-Rewrites zu verhindern.",
+      "someFail": "Einige lokal prüfbare Checks sind fehlgeschlagen — siehe unten.",
+      "recheck": "Neu prüfen",
+      "copy": "Als Markdown kopieren",
+      "dontAutoShow": "Bei Commits für dieses Repository nicht warnen",
+      "hostNote": "Host-Einstellungen sind lokal nicht prüfbar — dies ist eine Anleitung, keine Live-Statusprüfung.",
+      "bannerTitle": "Audit-Trail-Schutz: {{count}} Problem(e)",
+      "unsignedShort": "{{n}} Commit(s) nicht signiert/autorisiert. ",
+      "mergesShort": "{{n}} Merge-Commit(s) brechen die lineare Historie. ",
+      "anchorShort": "Anchor-Tag {{state}}. ",
+      "details": "Details",
+      "hide": "Ausblenden"
     }
   }
 }

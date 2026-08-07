@@ -34,7 +34,7 @@
 export interface SignerEntry {
   /** Commit-author email git verifies the signature's principal against. */
   principal: string;
-  /** Signer options, e.g. `namespaces="git"`. Empty string if none. */
+  /** Signer options, e.g. `namespaces="git"` or `namespaces="git",role="maintainer"`. */
   options: string;
   /** Key algorithm, e.g. `ssh-ed25519`. */
   keyType: string;
@@ -42,6 +42,19 @@ export interface SignerEntry {
   keyBlob: string;
   /** Optional trailing comment. */
   comment?: string;
+  /**
+   * Parsed from the `role="maintainer"` option. A maintainer may change the
+   * manifest itself; a plain signer may only sign audit rounds. Enforcement of
+   * "only a maintainer may sign a manifest commit" lives in the Phase-4
+   * verification engine; the manifest just records the role. `options` remains
+   * the source of truth for serialization — use `withRole` to change it.
+   */
+  role?: "maintainer";
+}
+
+/** Does an options string carry role="maintainer"? */
+function optionsHaveMaintainer(options: string): boolean {
+  return /\brole="?maintainer"?/i.test(options);
 }
 
 /** OpenSSH key-type tokens we accept as the start of the key field. */
@@ -61,12 +74,14 @@ function parseLine(line: string): SignerEntry | null {
   const ki = tokens.findIndex((t) => KEY_TYPE_RE.test(t));
   if (ki < 1 || ki + 1 >= tokens.length) return null; // no principal or no blob
 
+  const options = tokens.slice(1, ki).join(" ");
   return {
     principal: tokens[0],
-    options: tokens.slice(1, ki).join(" "),
+    options,
     keyType: tokens[ki],
     keyBlob: tokens[ki + 1],
     comment: tokens.slice(ki + 2).join(" ") || undefined,
+    ...(optionsHaveMaintainer(options) ? { role: "maintainer" as const } : {}),
   };
 }
 
@@ -141,23 +156,64 @@ export function removeSigner(
  * Build an entry from the contents of a `*.pub` file plus the commit-author
  * email. A pubkey line is `<keytype> <keyblob> [comment]`; we pin the git
  * namespace (mandatory — without `namespaces="git"` git won't verify a commit
- * signature against the entry).
+ * signature against the entry). Pass `{ maintainer: true }` to grant the
+ * manifest-changing role.
  */
 export function entryFromPubkey(
   principal: string,
   pubkeyFileContents: string,
-  namespaces = "git",
+  opts: { namespaces?: string; maintainer?: boolean } = {},
 ): SignerEntry {
   const [keyType, keyBlob, ...rest] = pubkeyFileContents.trim().split(/\s+/);
   if (!keyType || !keyBlob || !KEY_TYPE_RE.test(keyType)) {
     throw new Error("Not a valid SSH public key line");
   }
+  const namespaces = opts.namespaces ?? "git";
+  const maintainer = opts.maintainer ?? false;
   return {
     principal,
-    options: `namespaces="${namespaces}"`,
+    options: buildOptions(namespaces, maintainer),
     keyType,
     keyBlob,
     comment: rest.join(" ") || undefined,
+    ...(maintainer ? { role: "maintainer" as const } : {}),
+  };
+}
+
+// ── Roles ────────────────────────────────────────────────────────────────────
+
+function namespacesOf(options: string): string {
+  const m = options.match(/namespaces="?([^",\s]+)"?/i);
+  return m ? m[1] : "git";
+}
+
+function buildOptions(namespaces: string, maintainer: boolean): string {
+  return `namespaces="${namespaces}"` + (maintainer ? `,role="maintainer"` : "");
+}
+
+/** Is this entry a maintainer (may change the manifest)? */
+export function isMaintainer(entry: SignerEntry): boolean {
+  return entry.role === "maintainer";
+}
+
+/** All maintainer entries. */
+export function maintainers(entries: SignerEntry[]): SignerEntry[] {
+  return entries.filter(isMaintainer);
+}
+
+/** Return a copy of `entry` with the maintainer role set or cleared. Rebuilds
+ *  the options string (preserving the namespace) so serialization stays in sync. */
+export function withRole(
+  entry: SignerEntry,
+  maintainer: boolean,
+): SignerEntry {
+  const options = buildOptions(namespacesOf(entry.options), maintainer);
+  const { role, ...rest } = entry;
+  void role;
+  return {
+    ...rest,
+    options,
+    ...(maintainer ? { role: "maintainer" as const } : {}),
   };
 }
 

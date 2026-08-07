@@ -13,6 +13,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   runAddSigner,
   runRemoveSigner,
+  runSetRole,
   type SignerFlowDeps,
 } from "features/audit/services/audit-signer-flow";
 import {
@@ -21,6 +22,8 @@ import {
   parseAllowedSigners,
   serializeAllowedSigners,
   entryFromPubkey,
+  isMaintainer,
+  maintainers,
 } from "features/audit/services/audit-signer-manifest";
 import type { AuditConfig } from "features/audit/models/audit-types";
 
@@ -58,6 +61,13 @@ function makeDeps(
 
 const manifestWith = (...pubs: string[]) =>
   serializeAllowedSigners(pubs.map((p) => entryFromPubkey(EMAIL, p)));
+
+/** Manifest where the given pubs are maintainers, rest plain. */
+const manifestWithMaintainers = (maint: string[], plain: string[] = []) =>
+  serializeAllowedSigners([
+    ...maint.map((p) => entryFromPubkey(EMAIL, p, { maintainer: true })),
+    ...plain.map((p) => entryFromPubkey(EMAIL, p)),
+  ]);
 
 describe("runAddSigner", () => {
   it("adds a new signer, writes the manifest, and makes a SIGNED path-scoped audit commit", async () => {
@@ -264,6 +274,125 @@ describe("runRemoveSigner", () => {
       keyBlob: "NOT-PRESENT",
     });
 
+    expect(res.ok).toBe(true);
+    expect(write).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
+  });
+});
+
+describe("roles (maintainer)", () => {
+  it("forces the FIRST signer of an empty manifest to be a maintainer", async () => {
+    const { fileIO, write } = fakeFileIO(); // empty
+    const { deps } = makeDeps(fileIO);
+    const res = await runAddSigner(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      principal: EMAIL,
+      pubkey: PUB1,
+      maintainer: false, // ignored — first signer must be maintainer
+    });
+    expect(res.ok).toBe(true);
+    const entries = parseAllowedSigners(write.mock.calls[0][1]);
+    expect(maintainers(entries)).toHaveLength(1);
+  });
+
+  it("adds a non-maintainer signer once a maintainer exists", async () => {
+    const { fileIO, write } = fakeFileIO(manifestWithMaintainers([PUB1]));
+    const { deps } = makeDeps(fileIO);
+    const res = await runAddSigner(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      principal: "bob@example.com",
+      pubkey: PUB2,
+    });
+    expect(res.ok).toBe(true);
+    const entries = parseAllowedSigners(write.mock.calls[0][1]);
+    expect(entries.find((e) => e.keyBlob === "AAAAKEY2")!.role).toBeUndefined();
+  });
+
+  it("refuses to remove the last maintainer (even if other signers remain)", async () => {
+    const { fileIO, write } = fakeFileIO(
+      manifestWithMaintainers([PUB1], [PUB2]),
+    );
+    const { deps, commit } = makeDeps(fileIO);
+    const res = await runRemoveSigner(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      keyType: "ssh-ed25519",
+      keyBlob: "AAAAKEY1", // the only maintainer
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/last maintainer/i);
+    expect(write).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it("allows removing a maintainer when another remains (handover)", async () => {
+    const { fileIO, write } = fakeFileIO(
+      manifestWithMaintainers([PUB1, PUB2]),
+    );
+    const { deps } = makeDeps(fileIO);
+    const res = await runRemoveSigner(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      keyType: "ssh-ed25519",
+      keyBlob: "AAAAKEY1",
+    });
+    expect(res.ok).toBe(true);
+    const entries = parseAllowedSigners(write.mock.calls[0][1]);
+    expect(maintainers(entries)).toHaveLength(1);
+  });
+
+  it("promotes a plain signer to maintainer via runSetRole", async () => {
+    const { fileIO, write } = fakeFileIO(
+      manifestWithMaintainers([PUB1], [PUB2]),
+    );
+    const { deps, commit } = makeDeps(fileIO);
+    const res = await runSetRole(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      keyType: "ssh-ed25519",
+      keyBlob: "AAAAKEY2",
+      maintainer: true,
+    });
+    expect(res.ok).toBe(true);
+    const entries = parseAllowedSigners(write.mock.calls[0][1]);
+    expect(maintainers(entries)).toHaveLength(2);
+    expect(commit).toHaveBeenCalledWith(
+      expect.stringContaining("audit:"),
+      CONFIG,
+      true,
+      [ALLOWED_SIGNERS_REL_PATH],
+    );
+  });
+
+  it("refuses to demote the last maintainer", async () => {
+    const { fileIO, write } = fakeFileIO(
+      manifestWithMaintainers([PUB1], [PUB2]),
+    );
+    const { deps } = makeDeps(fileIO);
+    const res = await runSetRole(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      keyType: "ssh-ed25519",
+      keyBlob: "AAAAKEY1",
+      maintainer: false,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/last maintainer/i);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("setRole is a no-op when the role already matches", async () => {
+    const { fileIO, write } = fakeFileIO(manifestWithMaintainers([PUB1]));
+    const { deps, commit } = makeDeps(fileIO);
+    const res = await runSetRole(deps, {
+      repoRoot: REPO,
+      config: CONFIG,
+      keyType: "ssh-ed25519",
+      keyBlob: "AAAAKEY1",
+      maintainer: true,
+    });
     expect(res.ok).toBe(true);
     expect(write).not.toHaveBeenCalled();
     expect(commit).not.toHaveBeenCalled();

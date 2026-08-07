@@ -31,6 +31,7 @@ import {
   ListItemText,
   IconButton,
   Chip,
+  Checkbox,
   Alert,
   RadioGroup,
   FormControlLabel,
@@ -44,6 +45,9 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useAuditSigners, type SignerGit } from "../hooks/useAuditSigners";
+import { maintainers } from "../services/audit-signer-manifest";
+import type { AuditProtection } from "../hooks/useAuditProtection";
+import { AuditProtectionPanel } from "./audit-protection-panel";
 import type {
   AuditConfig,
   GitProvider,
@@ -68,6 +72,8 @@ interface AuditConfigDialogProps {
   /** Bound audit repo root + git service — needed for the Signers tab. */
   repoRoot?: string;
   gitService?: SignerGit;
+  /** Local protection status + checklist (rendered in the Protection tab). */
+  protection?: AuditProtection;
 }
 
 // ==================== COMPONENT ====================
@@ -80,6 +86,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   onSaveCredential,
   repoRoot,
   gitService,
+  protection,
 }) => {
   const { t } = useTranslation();
 
@@ -101,6 +108,13 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   const signers = useAuditSigners(repoRoot, gitService, localConfig);
   const [newPrincipal, setNewPrincipal] = useState("");
   const [newPubkey, setNewPubkey] = useState("");
+  const [newMaintainer, setNewMaintainer] = useState(false);
+
+  // Derived signer/maintainer state for the Signers tab.
+  const signerEntries = signers.entries;
+  const maintainerList = maintainers(signerEntries);
+  const manifestEmpty = signerEntries.length === 0;
+  const noMaintainer = !manifestEmpty && maintainerList.length === 0;
 
   // ==================== EFFECTS ====================
 
@@ -241,10 +255,30 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   };
 
   const handleAddSigner = async () => {
-    const ok = await signers.addSigner(newPrincipal.trim(), newPubkey.trim());
+    // Empty manifest → the first signer must be a maintainer (flow enforces it;
+    // we reflect it in the UI so the intent is explicit).
+    const asMaintainer = manifestEmpty ? true : newMaintainer;
+    const ok = await signers.addSigner(
+      newPrincipal.trim(),
+      newPubkey.trim(),
+      asMaintainer,
+    );
     if (ok) {
       setNewPubkey("");
       setNewPrincipal("");
+      setNewMaintainer(false);
+    }
+  }
+
+  // "Fix" for a manifest with no maintainer (e.g. a hand-bootstrapped repo
+  // whose entry predates roles): promote the current author's entry, or the
+  // sole entry, to maintainer via a signed audit: commit.
+  const handleFixMaintainer = async () => {
+    const target =
+      signerEntries.find((e) => e.principal === config.author.email) ??
+      (signerEntries.length === 1 ? signerEntries[0] : undefined);
+    if (target) {
+      await signers.setRole(target.keyType, target.keyBlob, true);
     }
   };
 
@@ -287,6 +321,11 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             <Tab
               label={t("audit.config.tabs.signers", {
                 defaultValue: "Signers",
+              })}
+            />
+            <Tab
+              label={t("audit.config.tabs.protection", {
+                defaultValue: "Protection",
               })}
             />
           </Tabs>
@@ -735,6 +774,46 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               </Alert>
             )}
 
+            {repoRoot && !manifestEmpty && (
+              <Typography variant="body2">
+                {t("audit.config.signers.maintainerLine", {
+                  defaultValue: "Maintainer(s):",
+                })}{" "}
+                <Typography
+                  component="span"
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  {maintainerList.length
+                    ? maintainerList.map((m) => m.principal).join(", ")
+                    : t("audit.config.signers.none", { defaultValue: "none" })}
+                </Typography>
+              </Typography>
+            )}
+
+            {noMaintainer && (
+              <Alert
+                severity="warning"
+                action={
+                  <Button
+                    color="inherit"
+                    size="small"
+                    disabled={signers.loading}
+                    onClick={handleFixMaintainer}
+                  >
+                    {t("audit.config.signers.fixMaintainer", {
+                      defaultValue: "Make me maintainer",
+                    })}
+                  </Button>
+                }
+              >
+                {t("audit.config.signers.noMaintainer", {
+                  defaultValue:
+                    "This manifest has no maintainer — no one can change it. Promote a signer to maintainer.",
+                })}
+              </Alert>
+            )}
+
             {signers.error && (
               <Alert severity="error" onClose={() => signers.setError(null)}>
                 {signers.error}
@@ -742,26 +821,66 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             )}
 
             <List dense>
-              {signers.entries.map((e) => (
-                <ListItem
-                  key={`${e.keyType} ${e.keyBlob}`}
-                  secondaryAction={
-                    <IconButton
-                      edge="end"
-                      aria-label="remove signer"
-                      disabled={signers.loading || !repoRoot}
-                      onClick={() => signers.removeSigner(e.keyType, e.keyBlob)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  }
-                >
-                  <ListItemText
-                    primary={e.principal}
-                    secondary={`${e.keyType} …${e.keyBlob.slice(-16)}`}
-                  />
-                </ListItem>
-              ))}
+              {signers.entries.map((e) => {
+                const isM = e.role === "maintainer";
+                return (
+                  <ListItem
+                    key={`${e.keyType} ${e.keyBlob}`}
+                    secondaryAction={
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
+                        <Button
+                          size="small"
+                          variant="text"
+                          disabled={signers.loading || !repoRoot}
+                          onClick={() =>
+                            signers.setRole(e.keyType, e.keyBlob, !isM)
+                          }
+                        >
+                          {isM
+                            ? t("audit.config.signers.demote", {
+                                defaultValue: "Revoke maintainer",
+                              })
+                            : t("audit.config.signers.promote", {
+                                defaultValue: "Make maintainer",
+                              })}
+                        </Button>
+                        <IconButton
+                          edge="end"
+                          aria-label="remove signer"
+                          disabled={signers.loading || !repoRoot}
+                          onClick={() =>
+                            signers.removeSigner(e.keyType, e.keyBlob)
+                          }
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    }
+                  >
+                    <ListItemText
+                      primary={
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          {e.principal}
+                          {isM && (
+                            <Chip
+                              size="small"
+                              color="primary"
+                              label={t("audit.config.signers.maintainer", {
+                                defaultValue: "Maintainer",
+                              })}
+                            />
+                          )}
+                        </Box>
+                      }
+                      secondary={`${e.keyType} …${e.keyBlob.slice(-16)}`}
+                    />
+                  </ListItem>
+                );
+              })}
               {repoRoot && signers.entries.length === 0 && (
                 <ListItem>
                   <ListItemText
@@ -828,6 +947,26 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 {t("audit.config.browse", { defaultValue: "Browse…" })}
               </Button>
             </Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={manifestEmpty ? true : newMaintainer}
+                  disabled={manifestEmpty}
+                  onChange={(e) => setNewMaintainer(e.target.checked)}
+                />
+              }
+              label={
+                manifestEmpty
+                  ? t("audit.config.signers.maintainerFirst", {
+                      defaultValue:
+                        "Maintainer (required for the first signer)",
+                    })
+                  : t("audit.config.signers.maintainerAdd", {
+                      defaultValue:
+                        "Grant maintainer role (may change the manifest)",
+                    })
+              }
+            />
             <Box>
               <Button
                 variant="contained"
@@ -846,6 +985,22 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 })}
               </Button>
             </Box>
+          </Box>
+        )}
+
+        {/* TAB 5: Protection */}
+        {activeTab === 5 && (
+          <Box sx={{ pt: 1 }}>
+            {protection ? (
+              <AuditProtectionPanel protection={protection} variant="full" />
+            ) : (
+              <Alert severity="info">
+                {t("audit.protection.noRepo", {
+                  defaultValue:
+                    "Open a project inside its audit repo to see protection status.",
+                })}
+              </Alert>
+            )}
           </Box>
         )}
       </DialogContent>

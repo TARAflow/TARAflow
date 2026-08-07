@@ -13,6 +13,9 @@ import {
   addSigner,
   removeSigner,
   entryFromPubkey,
+  isMaintainer,
+  maintainers,
+  withRole,
   allowedSignersPathOf,
   ALLOWED_SIGNERS_REL_PATH,
   type SignerEntry,
@@ -150,6 +153,49 @@ describe("addSigner / removeSigner (pure, immutable)", () => {
     expect(after).toHaveLength(1);
     expect(after[0].keyBlob).toBe("AAAAKEYRSA");
     expect(before).toHaveLength(2); // untouched
+  });
+});
+
+describe("roles (maintainer)", () => {
+  it("entryFromPubkey writes role=\"maintainer\" only when asked", () => {
+    expect(entryFromPubkey(EMAIL, PUB_ED, { maintainer: true }).options).toBe(
+      'namespaces="git",role="maintainer"',
+    );
+    expect(entryFromPubkey(EMAIL, PUB_ED).options).toBe('namespaces="git"');
+    expect(entryFromPubkey(EMAIL, PUB_ED, { maintainer: true }).role).toBe(
+      "maintainer",
+    );
+    expect(entryFromPubkey(EMAIL, PUB_ED).role).toBeUndefined();
+  });
+
+  it("parses the role back and round-trips it", () => {
+    const line =
+      'a@x namespaces="git",role="maintainer" ssh-ed25519 AAAA alice';
+    const [e] = parseAllowedSigners(line);
+    expect(e.role).toBe("maintainer");
+    const round = parseAllowedSigners(serializeAllowedSigners([e]));
+    expect(round[0].role).toBe("maintainer");
+    expect(round[0].options).toContain('role="maintainer"');
+  });
+
+  it("isMaintainer / maintainers filter by role", () => {
+    const entries = [
+      entryFromPubkey("a@x", "ssh-ed25519 AAAA", { maintainer: true }),
+      entryFromPubkey("b@x", "ssh-ed25519 BBBB"),
+    ];
+    expect(isMaintainer(entries[0])).toBe(true);
+    expect(isMaintainer(entries[1])).toBe(false);
+    expect(maintainers(entries).map((e) => e.principal)).toEqual(["a@x"]);
+  });
+
+  it("withRole promotes and demotes, keeping the namespace", () => {
+    const plain = entryFromPubkey("b@x", "ssh-ed25519 BBBB");
+    const promoted = withRole(plain, true);
+    expect(promoted.role).toBe("maintainer");
+    expect(promoted.options).toBe('namespaces="git",role="maintainer"');
+    const demoted = withRole(promoted, false);
+    expect(demoted.role).toBeUndefined();
+    expect(demoted.options).toBe('namespaces="git"');
   });
 });
 

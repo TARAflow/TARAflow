@@ -30,6 +30,7 @@ import { PhaseDiffViewer } from "./phase-diff-viewer";
 import { CommitDialog } from "./commit-dialog";
 import { AuditConfigDialog } from "./audit-config-dialog";
 import { useAuditRepo } from "../hooks/useAuditRepo";
+import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
   loadPreviousProjectFromGit,
   repoRelativePath,
@@ -109,6 +110,22 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     id: project.id,
     filePath: project.filePath,
   });
+
+  // Bound repo root, once discovery has resolved (shared by dialogs + checks).
+  const repoRootValue =
+    repo.outcome?.kind === "repo-ok" ||
+    repo.outcome?.kind === "repo-needs-attributes"
+      ? repo.outcome.repoRoot
+      : undefined;
+
+  // Local, token-free protection status of the audit line (signed / linear /
+  // anchor tag) + the host-guidance checklist. Shared by the config dialog
+  // (full panel) and the commit dialog (warning banner).
+  const protection = useAuditProtection(
+    repoRootValue,
+    gitService,
+    currentBranch,
+  );
 
   // ==================== EFFECTS ====================
 
@@ -622,12 +639,8 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         onSaveCredential={handleSaveCredential}
         onSaveGPGKey={handleSaveGPGKey}
         gitService={gitService}
-        repoRoot={
-          repo.outcome?.kind === "repo-ok" ||
-          repo.outcome?.kind === "repo-needs-attributes"
-            ? repo.outcome.repoRoot
-            : undefined
-        }
+        repoRoot={repoRootValue}
+        protection={protection}
       />
 
       {/* Commit Dialog */}
@@ -640,10 +653,11 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           commitMessageData={commitMessageData}
           onCommit={handleCommit}
           onClose={() => setShowCommitDialog(false)}
+          protection={protection}
         />
       )}
     </Box>
   );
-};
+}
 
 export default AuditTab;

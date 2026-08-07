@@ -23,6 +23,9 @@ import {
   removeSigner,
   entryFromPubkey,
   isAuthorized,
+  isMaintainer,
+  maintainers,
+  withRole,
   allowedSignersPathOf,
   ALLOWED_SIGNERS_REL_PATH,
   type SignerEntry,
@@ -65,6 +68,8 @@ export interface AddSignerInput {
   principal: string;
   /** Raw contents of a `*.pub` file OR pasted pubkey text — same parser. */
   pubkey: string;
+  /** Grant the manifest-changing maintainer role. */
+  maintainer?: boolean;
   /** Optional custom commit subject; defaults to a descriptive audit: line. */
   message?: string;
 }
@@ -73,6 +78,10 @@ export interface AddSignerInput {
  * Add a signer and commit the manifest. Idempotent: if the exact principal+key
  * is already present, nothing is written and no commit is made (returns ok with
  * the unchanged manifest and no commit).
+ *
+ * The FIRST signer of an empty manifest is forced to be a maintainer — a repo
+ * that starts with no maintainer could never have its manifest legitimately
+ * changed again.
  */
 export async function runAddSigner(
   deps: SignerFlowDeps,
@@ -80,9 +89,15 @@ export async function runAddSigner(
 ): Promise<SignerFlowResult> {
   const { repoRoot, config, principal, pubkey, message } = input;
 
+  const absPath = allowedSignersPathOf(repoRoot);
+  const before = await readManifest(deps.fileIO, absPath);
+
+  // Bootstrap invariant: the first signer must be a maintainer.
+  const maintainer = before.length === 0 ? true : (input.maintainer ?? false);
+
   let entry: SignerEntry;
   try {
-    entry = entryFromPubkey(principal, pubkey);
+    entry = entryFromPubkey(principal, pubkey, { maintainer });
   } catch (e) {
     return {
       ok: false,
@@ -90,8 +105,6 @@ export async function runAddSigner(
     };
   }
 
-  const absPath = allowedSignersPathOf(repoRoot);
-  const before = await readManifest(deps.fileIO, absPath);
   const after = addSigner(before, entry);
 
   // No-op: the key was already authorized. Don't create an empty commit.
@@ -143,7 +156,72 @@ export async function runRemoveSigner(
     };
   }
 
+  // Guard: never leave the manifest without a maintainer (no one could ever
+  // change it again). To hand over a sole maintainer's role, add the new
+  // maintainer FIRST, then remove the old one.
+  if (maintainers(before).length > 0 && maintainers(after).length === 0) {
+    return {
+      ok: false,
+      error:
+        "Refusing to remove the last maintainer — no one could change the " +
+        "manifest afterwards. Add another maintainer first, then remove this one.",
+    };
+  }
+
   const subject = message ?? `audit: revoke signer ${keyType} ${keyBlob}`;
+  return writeAndCommit(deps, config, absPath, after, subject);
+}
+
+// ── Set role (promote / demote maintainer) ───────────────────────────────────
+
+export interface SetRoleInput {
+  repoRoot: string;
+  config: AuditConfig;
+  keyType: string;
+  keyBlob: string;
+  maintainer: boolean;
+  message?: string;
+}
+
+/**
+ * Promote a signer to maintainer, or demote one. Demoting the last maintainer
+ * is refused (same invariant as removal). A no-op (role already as requested)
+ * makes no commit.
+ */
+export async function runSetRole(
+  deps: SignerFlowDeps,
+  input: SetRoleInput,
+): Promise<SignerFlowResult> {
+  const { repoRoot, config, keyType, keyBlob, maintainer, message } = input;
+
+  const absPath = allowedSignersPathOf(repoRoot);
+  const before = await readManifest(deps.fileIO, absPath);
+
+  const target = before.find(
+    (e) => e.keyType === keyType && e.keyBlob === keyBlob,
+  );
+  if (!target) {
+    return { ok: false, error: "Signer not found in the manifest" };
+  }
+  if (isMaintainer(target) === maintainer) {
+    return { ok: true, commit: undefined as never, entries: before }; // no-op
+  }
+
+  const after = before.map((e) =>
+    e.keyType === keyType && e.keyBlob === keyBlob ? withRole(e, maintainer) : e,
+  );
+
+  if (maintainers(before).length > 0 && maintainers(after).length === 0) {
+    return {
+      ok: false,
+      error:
+        "Refusing to demote the last maintainer — promote another maintainer first.",
+    };
+  }
+
+  const subject =
+    message ??
+    `audit: ${maintainer ? "grant" : "revoke"} maintainer ${target.principal}`;
   return writeAndCommit(deps, config, absPath, after, subject);
 }
 

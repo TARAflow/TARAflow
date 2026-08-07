@@ -8,7 +8,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createIpcFileIO } from "../services/audit-git-adapters";
-import { runAddSigner, runRemoveSigner } from "../services/audit-signer-flow";
+import {
+  runAddSigner,
+  runRemoveSigner,
+  runSetRole,
+} from "../services/audit-signer-flow";
 import {
   parseAllowedSigners,
   allowedSignersPathOf,
@@ -79,7 +83,11 @@ export function useAuditSigners(
   );
 
   const addSigner = useCallback(
-    async (principal: string, pubkey: string): Promise<boolean> => {
+    async (
+      principal: string,
+      pubkey: string,
+      maintainer = false,
+    ): Promise<boolean> => {
       if (!repoRoot || !deps) {
         setError("Audit repo not bound");
         return false;
@@ -91,6 +99,37 @@ export function useAuditSigners(
         config,
         principal,
         pubkey,
+        maintainer,
+      });
+      setLoading(false);
+      if (!res.ok) {
+        setError(res.error);
+        return false;
+      }
+      await refresh();
+      return true;
+    },
+    [repoRoot, deps, config, refresh],
+  );
+
+  const setRole = useCallback(
+    async (
+      keyType: string,
+      keyBlob: string,
+      maintainer: boolean,
+    ): Promise<boolean> => {
+      if (!repoRoot || !deps) {
+        setError("Audit repo not bound");
+        return false;
+      }
+      setLoading(true);
+      setError(null);
+      const res = await runSetRole(deps, {
+        repoRoot,
+        config,
+        keyType,
+        keyBlob,
+        maintainer,
       });
       setLoading(false);
       if (!res.ok) {
@@ -128,5 +167,14 @@ export function useAuditSigners(
     [repoRoot, deps, config, refresh],
   );
 
-  return { entries, loading, error, setError, refresh, addSigner, removeSigner };
+  return {
+    entries,
+    loading,
+    error,
+    setError,
+    refresh,
+    addSigner,
+    removeSigner,
+    setRole,
+  };
 }

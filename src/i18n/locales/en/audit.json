@@ -44,7 +44,8 @@
         "gpg": "GPG Signing",
         "rounds": "Round Names",
         "signing": "Commit Signing",
-        "signers": "Signers"
+        "signers": "Signers",
+        "protection": "Protection"
       },
       "stored": "Stored",
       "provider": "Git Provider",
@@ -85,7 +86,16 @@
         "pubkey": "Public key (.pub contents)",
         "addButton": "Add signer",
         "principalHelp": "The commit-author email of the signer — must match how they commit.",
-        "useMine": "Use mine"
+        "useMine": "Use mine",
+        "maintainer": "Maintainer",
+        "maintainerLine": "Maintainer(s):",
+        "none": "none",
+        "promote": "Make maintainer",
+        "demote": "Revoke maintainer",
+        "maintainerAdd": "Grant maintainer role (may change the manifest)",
+        "maintainerFirst": "Maintainer (required for the first signer)",
+        "noMaintainer": "This manifest has no maintainer — no one can change it. Promote a signer to maintainer.",
+        "fixMaintainer": "Make me maintainer"
       }
     },
     "diff": {
@@ -119,6 +129,22 @@
       "notConfigured": "Not Configured",
       "hasChanges": "{{count}} Change(s)",
       "noChanges": "No Changes"
+    },
+    "protection": {
+      "noRepo": "Open a project inside its audit repo to see protection status.",
+      "noTrail": "No audit trail yet — the checklist appears once the signer manifest is committed.",
+      "allGood": "All locally verifiable checks pass. Complete the host settings below to prevent history rewrites.",
+      "someFail": "Some locally verifiable checks failed — see below.",
+      "recheck": "Re-check",
+      "copy": "Copy as Markdown",
+      "dontAutoShow": "Don't warn me at commit time for this repository",
+      "hostNote": "Host settings can't be verified locally — this is guidance, not a live status check.",
+      "bannerTitle": "Audit trail protection: {{count}} issue(s)",
+      "unsignedShort": "{{n}} commit(s) not signed/authorized. ",
+      "mergesShort": "{{n}} merge commit(s) break linear history. ",
+      "anchorShort": "Anchor tag {{state}}. ",
+      "details": "Details",
+      "hide": "Hide"
     }
   }
 }
