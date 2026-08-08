@@ -48,6 +48,7 @@ function serverGuidance(host: GitHost, branch: string): string[] {
         "Enable **Require linear history**.",
         "Enable **Do not allow bypassing the above settings** and **Restrict who can push** / disallow force pushes.",
         "Under **Tags**, add a protection rule for `audit-root`.",
+        "Add `/.tara/ @your-maintainer-team` to **`.github/CODEOWNERS`** and enable **Require review from Code Owners** so only maintainers can change the signer manifest.",
       ];
     case "gitlab":
       return [
@@ -55,6 +56,7 @@ function serverGuidance(host: GitHost, branch: string): string[] {
         "Under **Settings → Repository → Push rules**, enable **Reject unsigned commits**.",
         "Keep merges fast-forward only (**Settings → Merge requests → Fast-forward merge**) to preserve linear history.",
         "Under **Settings → Repository → Protected tags**, protect `audit-root`.",
+        "Add `/.tara/ @maintainers` to **`CODEOWNERS`** and require **Code Owner approval** on the protected branch so only maintainers can change the signer manifest.",
       ];
     case "bitbucket":
       return [
@@ -62,6 +64,7 @@ function serverGuidance(host: GitHost, branch: string): string[] {
         "Require commits to be **verified / signed** (Premium: Require signed commits merge check).",
         "Enforce a **fast-forward-only / no-merge-commit** strategy to keep history linear.",
         "Add branch/tag permissions covering `audit-root`.",
+        "Restrict who can modify `.tara/` (Code Owners / default reviewers on that path) so only maintainers can change the signer manifest.",
       ];
     case "azure":
       return [
@@ -70,6 +73,7 @@ function serverGuidance(host: GitHost, branch: string): string[] {
         "Set the merge policy to **Rebase / fast-forward only** (no merge commits) for linear history.",
         "Restrict **Force push / Bypass**; limit who can push.",
         "Protect the `audit-root` tag via tag-level permissions.",
+        "Add a **Required reviewers** policy on the `.tara/` path so only maintainers can change the signer manifest.",
       ];
     default:
       return [
@@ -77,6 +81,7 @@ function serverGuidance(host: GitHost, branch: string): string[] {
         "Require **signed commits** to be enforced server-side.",
         "Keep history **linear** (fast-forward / rebase only, no merge commits).",
         "Protect the `audit-root` **tag** so the anchor can't be moved.",
+        "Restrict changes to the `.tara/` path (path-based review / code-owners) so only maintainers can change the signer manifest.",
       ];
   }
 }

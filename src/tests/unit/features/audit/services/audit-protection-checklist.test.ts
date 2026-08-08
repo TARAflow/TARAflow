@@ -28,6 +28,7 @@ describe("buildProtectionChecklist", () => {
     expect(md).toContain("Require linear history");
     expect(md).toContain("https://github.com/acme/widget/settings/branches");
     expect(md).toContain("audit-root");
+    expect(md).toContain("CODEOWNERS");
   });
 
   it("uses GitLab wording + push-rule for unsigned commits", () => {

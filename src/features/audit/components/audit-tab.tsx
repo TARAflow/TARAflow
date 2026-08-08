@@ -35,6 +35,12 @@ import {
   loadPreviousProjectFromGit,
   repoRelativePath,
 } from "../services/audit-prev-state";
+import { createIpcFileIO } from "../services/audit-git-adapters";
+import {
+  allowedSignersPathOf,
+  parseAllowedSigners,
+} from "../services/audit-signer-manifest";
+import { checkSigningIdentity } from "../services/audit-signing-identity";
 import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
@@ -380,6 +386,28 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         }
         const relPath = repoRelativePath(repoRoot, filePath);
 
+        // Signing-identity guard: if this commit will be signed, the author
+        // email must be authorized in the manifest — otherwise git produces a
+        // signature that fails verification later ("No principal matched").
+        // Block before committing rather than shipping a worthless signature.
+        if (options.signCommit) {
+          const io = createIpcFileIO();
+          const manifestText = await io.read(allowedSignersPathOf(repoRoot));
+          const ident = checkSigningIdentity({
+            authorEmail: auditData.config.author.email,
+            manifestEntries: manifestText
+              ? parseAllowedSigners(manifestText)
+              : [],
+          });
+          if (!ident.ok) {
+            throw new Error(
+              ident.reason === "empty-manifest"
+                ? "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers)."
+                : `Signing is enabled but your author email (${auditData.config.author.email}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).`,
+            );
+          }
+        }
+
         // Stage only the project file (path-scoped)
         const stageResult = await gitService.stage([relPath]);
         if (!stageResult.success) {
@@ -658,6 +686,6 @@ export const AuditTab: React.FC<AuditTabProps> = ({
       )}
     </Box>
   );
-}
+};
 
 export default AuditTab;
