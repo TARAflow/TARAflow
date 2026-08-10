@@ -25,7 +25,8 @@
     "inline:shapes": "node scripts/inline-shapes.cjs",
     "report:cli": "tsx --tsconfig tsconfig.cli.json taraflow-reporter/taraflow-report.ts",
     "build:cli": "esbuild taraflow-reporter/taraflow-report.ts --bundle --platform=node --format=esm --external:@resvg/resvg-js --external:pdfmake --alias:app=./src/app --alias:features=./src/features --alias:shared=./src/shared --alias:i18n=./src/i18n --outfile=dist-cli/taraflow-report.js && chmod +x dist-cli/taraflow-report.js && cp taraflow-reporter/packaging/runtime-package.json dist-cli/package.json && npm install --omit=dev --prefix dist-cli",
-    "package:cli:deb": "npm run build:cli && nfpm package --config taraflow-reporter/packaging/nfpm.yaml --packager deb --target ./release/"
+    "package:cli:deb": "npm run build:cli && nfpm package --config taraflow-reporter/packaging/nfpm.yaml --packager deb --target ./release/",
+    "verify:fixtures": "tsx scripts/verify-fixtures.ts"
   },
   "build": {
     "appId": "com.taraflow.app",
