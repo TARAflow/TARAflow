@@ -17,16 +17,36 @@
 // committed manifest is, so the trail verifies offline, survives a host change,
 // and records every authority change as an auditable signed commit.
 //
+// HOW THE MAINTAINER ROLE IS ENCODED (and why NOT `role="maintainer"`)
+// -------------------------------------------------------------------
+// A maintainer is a signer who may also change the manifest itself. OpenSSH's
+// `allowed_signers` format only permits four options (`cert-authority`,
+// `namespaces`, `valid-after`, `valid-before`); a custom `role="maintainer"`
+// option makes OpenSSH reject the ENTIRE line ("bad options: unknown key
+// option"), which breaks BOTH `git verify-commit`/`%G?` AND the engine — every
+// signature checked against a manifest containing such a line fails to match a
+// principal. So the role is carried as an extra, harmless entry in the
+// `namespaces` list: `namespaces="git,taraflow-maintainer"`. Commit signatures
+// use the `git` namespace, which is still present, so git verifies normally;
+// the `taraflow-maintainer` token is our marker and is never actually signed
+// against. `namespaces` is a valid option, so the whole line stays OpenSSH-legal.
+//
 // Pure and dependency-free (no React, no window, no git) so it is fully
 // unit-testable. Callers (the add-signer flow, the open-flow config wiring,
 // later the verifier) supply I/O.
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
+/** The namespace token that marks a maintainer (see header). */
+export const MAINTAINER_NAMESPACE = "taraflow-maintainer";
+
+/** The signing namespace git uses for commit signatures. Always present. */
+const GIT_NAMESPACE = "git";
+
 /**
  * One line of an OpenSSH `allowed_signers` file:
  *   <principal> [options] <keytype> <keyblob> [comment]
- * e.g. `me@example.com namespaces="git" ssh-ed25519 AAAA…C taraflow audit`
+ * e.g. `me@example.com namespaces="git,taraflow-maintainer" ssh-ed25519 AAAA…C taraflow audit`
  *
  * The public KEY (keyType + keyBlob) is the identity for authorization and
  * de-duplication; the principal is the commit-author email git matches against.
@@ -34,7 +54,7 @@
 export interface SignerEntry {
   /** Commit-author email git verifies the signature's principal against. */
   principal: string;
-  /** Signer options, e.g. `namespaces="git"` or `namespaces="git",role="maintainer"`. */
+  /** Signer options, e.g. `namespaces="git"` or `namespaces="git,taraflow-maintainer"`. */
   options: string;
   /** Key algorithm, e.g. `ssh-ed25519`. */
   keyType: string;
@@ -43,23 +63,56 @@ export interface SignerEntry {
   /** Optional trailing comment. */
   comment?: string;
   /**
-   * Parsed from the `role="maintainer"` option. A maintainer may change the
-   * manifest itself; a plain signer may only sign audit rounds. Enforcement of
-   * "only a maintainer may sign a manifest commit" lives in the Phase-4
-   * verification engine; the manifest just records the role. `options` remains
-   * the source of truth for serialization — use `withRole` to change it.
+   * Derived from the `taraflow-maintainer` namespace token (see header). A
+   * maintainer may change the manifest itself; a plain signer may only sign
+   * audit rounds. Enforcement of "only a maintainer may sign a manifest commit"
+   * lives in the Phase-4 verification engine; the manifest just records the
+   * role. `options` remains the source of truth for serialization — use
+   * `withRole` to change it.
    */
   role?: "maintainer";
-}
-
-/** Does an options string carry role="maintainer"? */
-function optionsHaveMaintainer(options: string): boolean {
-  return /\brole="?maintainer"?/i.test(options);
 }
 
 /** OpenSSH key-type tokens we accept as the start of the key field. */
 const KEY_TYPE_RE =
   /^(?:sk-)?(?:ssh-(?:rsa|ed25519|dss)|ecdsa-sha2-[\w-]+)$/;
+
+// ── Namespaces + role encoding ───────────────────────────────────────────────
+
+/**
+ * The full `namespaces` list from an options string, as tokens. Handles quoted
+ * or unquoted forms; defaults to `["git"]` when the option is absent (an entry
+ * with no namespaces could never verify a commit, so this is a safe fallback).
+ */
+function namespaceList(options: string): string[] {
+  const m = options.match(/namespaces="?([^"\s]+)"?/i);
+  return m ? m[1].split(",").filter(Boolean) : [GIT_NAMESPACE];
+}
+
+/** Does an options string mark a maintainer? (the taraflow-maintainer token). */
+function optionsHaveMaintainer(options: string): boolean {
+  return namespaceList(options).includes(MAINTAINER_NAMESPACE);
+}
+
+/**
+ * The REAL signing namespaces (everything except our maintainer marker), joined
+ * back into a comma list. Used to rebuild options while preserving whatever
+ * signing namespaces an entry already had.
+ */
+function baseNamespaces(options: string): string {
+  const list = namespaceList(options).filter((n) => n !== MAINTAINER_NAMESPACE);
+  return list.length ? list.join(",") : GIT_NAMESPACE;
+}
+
+/**
+ * Build the options string from a base namespaces list and the maintainer flag.
+ * Maintainers get the `taraflow-maintainer` token appended to `namespaces`; the
+ * line stays OpenSSH-legal (no invalid `role=` option).
+ */
+function buildOptions(namespaces: string, maintainer: boolean): string {
+  const list = maintainer ? `${namespaces},${MAINTAINER_NAMESPACE}` : namespaces;
+  return `namespaces="${list}"`;
+}
 
 // ── Parse / serialize ────────────────────────────────────────────────────────
 
@@ -157,7 +210,7 @@ export function removeSigner(
  * email. A pubkey line is `<keytype> <keyblob> [comment]`; we pin the git
  * namespace (mandatory — without `namespaces="git"` git won't verify a commit
  * signature against the entry). Pass `{ maintainer: true }` to grant the
- * manifest-changing role.
+ * manifest-changing role (adds the `taraflow-maintainer` namespace token).
  */
 export function entryFromPubkey(
   principal: string,
@@ -168,7 +221,7 @@ export function entryFromPubkey(
   if (!keyType || !keyBlob || !KEY_TYPE_RE.test(keyType)) {
     throw new Error("Not a valid SSH public key line");
   }
-  const namespaces = opts.namespaces ?? "git";
+  const namespaces = opts.namespaces ?? GIT_NAMESPACE;
   const maintainer = opts.maintainer ?? false;
   return {
     principal,
@@ -182,15 +235,6 @@ export function entryFromPubkey(
 
 // ── Roles ────────────────────────────────────────────────────────────────────
 
-function namespacesOf(options: string): string {
-  const m = options.match(/namespaces="?([^",\s]+)"?/i);
-  return m ? m[1] : "git";
-}
-
-function buildOptions(namespaces: string, maintainer: boolean): string {
-  return `namespaces="${namespaces}"` + (maintainer ? `,role="maintainer"` : "");
-}
-
 /** Is this entry a maintainer (may change the manifest)? */
 export function isMaintainer(entry: SignerEntry): boolean {
   return entry.role === "maintainer";
@@ -202,12 +246,13 @@ export function maintainers(entries: SignerEntry[]): SignerEntry[] {
 }
 
 /** Return a copy of `entry` with the maintainer role set or cleared. Rebuilds
- *  the options string (preserving the namespace) so serialization stays in sync. */
+ *  the options string (preserving the signing namespaces) so serialization
+ *  stays in sync and the line stays OpenSSH-legal. */
 export function withRole(
   entry: SignerEntry,
   maintainer: boolean,
 ): SignerEntry {
-  const options = buildOptions(namespacesOf(entry.options), maintainer);
+  const options = buildOptions(baseNamespaces(entry.options), maintainer);
   const { role, ...rest } = entry;
   void role;
   return {

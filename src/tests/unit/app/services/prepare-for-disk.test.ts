@@ -249,3 +249,74 @@ describe("serialiseProject", () => {
     expect(serialiseProject(makeProject())).toContain('\n  "id": "proj_1"');
   });
 });
+
+describe("prepareForDisk — audit.config credential/path stripping", () => {
+  // Only the audit config matters for this reduction; the rest of the project is
+  // irrelevant here and cast away.
+  const projectWith = (config: unknown) =>
+    ({ dfd: null, audit: { config } }) as any;
+
+  it("strips per-user / credential / path fields, keeps project-level policy", () => {
+    const out = prepareForDisk(
+      projectWith({
+        provider: "github",
+        remoteUrl: "git@github.com:x/y.git",
+        author: { name: "J", email: "j@x" },
+        auth: {
+          method: "ssh",
+          patAccount: "gh-token",
+          sshKeyPath: "/home/jpm/.ssh/id_ed25519",
+        },
+        gpg: { enabled: false, keyId: "ABCD1234", hasStoredKey: true },
+        signing: {
+          enabled: true,
+          format: "ssh",
+          sshSigningKeyPath: "/home/jpm/.ssh/taraflow_signing.pub",
+          keyId: "X",
+          hasStoredKey: true,
+        },
+        lastRoundNumber: 3,
+      }),
+    );
+    const cfg = (out.audit as any).config;
+
+    // Reduced to project-level policy only.
+    expect(cfg.signing).toEqual({ enabled: true, format: "ssh" });
+    expect(cfg.gpg).toEqual({ enabled: false });
+    expect(cfg.auth).toEqual({ method: "ssh" });
+
+    // No per-user / credential / path value survives anywhere in the output.
+    const json = JSON.stringify(out);
+    expect(json).not.toContain("/home/jpm");
+    expect(json).not.toContain("gh-token");
+    expect(json).not.toMatch(
+      /hasStoredKey|sshSigningKeyPath|sshKeyPath|patAccount|keyId/,
+    );
+
+    // Project-level policy is preserved.
+    expect(cfg.provider).toBe("github");
+    expect(cfg.remoteUrl).toBe("git@github.com:x/y.git");
+    expect(cfg.author).toEqual({ name: "J", email: "j@x" });
+    expect(cfg.lastRoundNumber).toBe(3);
+  });
+
+  it("does not throw on a partial config missing auth/gpg/signing", () => {
+    expect(() =>
+      prepareForDisk(projectWith({ provider: "github", lastRoundNumber: 0 })),
+    ).not.toThrow();
+  });
+
+  it("leaves signing absent when the config has no signing block", () => {
+    const out = prepareForDisk(
+      projectWith({
+        provider: "github",
+        auth: { method: "pat" },
+        gpg: { enabled: false },
+      }),
+    );
+    const cfg = (out.audit as any).config;
+    expect(cfg.signing).toBeUndefined();
+    expect(cfg.auth).toEqual({ method: "pat" });
+  });
+});
+ 

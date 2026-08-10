@@ -56,6 +56,25 @@
 // info.lastModified is deliberately KEPT — the recent-projects list displays it.
 // Its remaining "bumped on every save" churn is a separate, narrower fix
 // (bump only on real change), not a strip.
+//
+// LOCAL / CREDENTIAL FIELDS IN audit.config (2026-08-09)
+// ------------------------------------------------------
+// The signing/auth config carried per-user, machine-local values into the
+// shared file — the same class of leak as `filePath`:
+//   - signing.sshSigningKeyPath / auth.sshKeyPath — ABSOLUTE local key paths
+//     (e.g. /home/<user>/.ssh/…). A privacy leak when the file is shared, and
+//     machine-specific churn when a colleague opens the same project.
+//   - signing.keyId / gpg.keyId — a specific signer's key id (per-user).
+//   - auth.patAccount — a credential-store account handle (per-user).
+//   - *.hasStoredKey — a runtime presence flag.
+// These belong in the credential-service, not the project file. They are
+// stripped here (`configForDisk`); only project-level policy stays:
+// signing.{enabled,format}, gpg.{enabled}, auth.{method}, and the rest of the
+// config (provider, remoteUrl, branches, author, rounds).
+//
+// IMPORTANT: this is the WRITE half. The OPEN/LOAD path must HYDRATE the stripped
+// signing fields from the credential-service (credentials.getSSHKeyPath), or
+// signing settings won't survive a reload. Ship both halves together.
 
 import type { Project } from "../models/project-types";
 
@@ -67,6 +86,9 @@ type AuditDataOnDisk = Omit<
   NonNullable<Project["audit"]>,
   "lastCommitState" | "commitHistory" | "lastModified"
 >;
+
+/** The audit config as it appears in memory (derived from Project, no new import). */
+type AuditConfigShape = NonNullable<Project["audit"]>["config"];
 
 /** A Project as it may appear in a .tara.json — runtime-only fields removed. */
 export type ProjectOnDisk = Omit<
@@ -100,11 +122,33 @@ function normalizeThumbnail(thumbnail: string | undefined): string | undefined {
   }
 }
 
-/** Drop audit RESULTS + the internal lastModified sentinel; keep config etc. */
+/**
+ * Strip per-user / machine-local / credential values from the audit config,
+ * keeping only project-level policy. Pure — returns a new config. The stripped
+ * signing fields are re-hydrated from the credential-service on open.
+ */
+function configForDisk(config: AuditConfigShape): AuditConfigShape {
+  const { signing, gpg, auth, ...rest } = config;
+  // Guarded: prepareForDisk must never throw on a partial config (a minimal or
+  // migrated one may lack a sub-object). Reduce each only when present.
+  return {
+    ...rest,
+    // Keep the auth METHOD (project policy); drop the account handle + key path.
+    ...(auth ? { auth: { method: auth.method } } : {}),
+    // Keep whether GPG signing is on; drop the specific key id + runtime flag.
+    ...(gpg ? { gpg: { enabled: gpg.enabled } } : {}),
+    // Keep whether signing is on + the format; drop key id / key path / flag.
+    ...(signing
+      ? { signing: { enabled: signing.enabled, format: signing.format } }
+      : {}),
+  } as AuditConfigShape;
+}
+
+/** Drop audit RESULTS + the internal lastModified sentinel; reduce the config. */
 function auditForDisk(audit: NonNullable<Project["audit"]>): AuditDataOnDisk {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { lastCommitState, commitHistory, lastModified, ...rest } = audit;
-  return rest;
+  return { ...rest, config: configForDisk(rest.config) };
 }
 
 /**
@@ -119,11 +163,12 @@ function auditForDisk(audit: NonNullable<Project["audit"]>): AuditDataOnDisk {
  * - `dfd.graph`           derived, rebuilt on load, and large → dropped.
  * - `dfd.thumbnail`       kept but its random id pinned (see normalizeThumbnail).
  * - `audit`               audit RESULTS (lastCommitState/commitHistory) and the
- *                         internal lastModified sentinel dropped; config kept.
+ *                         internal lastModified sentinel dropped; config reduced
+ *                         to project-level policy (see configForDisk).
  *
  * Pure: returns a new object, mutates nothing. The in-memory project keeps all
  * of its fields — filePath is needed for the next save, currentPhase/isOpen for
- * the running UI.
+ * the running UI, and the full signing config for the current session's commits.
  */
 export function prepareForDisk(project: Project): ProjectOnDisk {
   // Runtime-only / session / navigation fields never reach disk.

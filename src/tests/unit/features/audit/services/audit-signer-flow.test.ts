@@ -86,7 +86,7 @@ describe("runAddSigner", () => {
     // manifest written with the key + mandatory git namespace
     expect(write).toHaveBeenCalledTimes(1);
     const written = write.mock.calls[0][1];
-    expect(written).toContain('namespaces="git"');
+    expect(written).toContain('namespaces="git,taraflow-maintainer"');
     expect(
       parseAllowedSigners(written).some((e) => e.keyBlob === "AAAAKEY1"),
     ).toBe(true);

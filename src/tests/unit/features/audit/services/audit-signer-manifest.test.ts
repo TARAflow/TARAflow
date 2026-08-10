@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  MAINTAINER_NAMESPACE,
   parseAllowedSigners,
   serializeAllowedSigners,
   isAuthorized,
@@ -157,9 +158,12 @@ describe("addSigner / removeSigner (pure, immutable)", () => {
 });
 
 describe("roles (maintainer)", () => {
-  it("entryFromPubkey writes role=\"maintainer\" only when asked", () => {
+  // The maintainer role is carried as the `taraflow-maintainer` token in the
+  // `namespaces` list — NOT as a `role=` option, which OpenSSH rejects (it would
+  // break `git verify-commit`/`%G?` and the verification engine).
+  it("entryFromPubkey adds the taraflow-maintainer namespace only when asked", () => {
     expect(entryFromPubkey(EMAIL, PUB_ED, { maintainer: true }).options).toBe(
-      'namespaces="git",role="maintainer"',
+      'namespaces="git,taraflow-maintainer"',
     );
     expect(entryFromPubkey(EMAIL, PUB_ED).options).toBe('namespaces="git"');
     expect(entryFromPubkey(EMAIL, PUB_ED, { maintainer: true }).role).toBe(
@@ -168,14 +172,14 @@ describe("roles (maintainer)", () => {
     expect(entryFromPubkey(EMAIL, PUB_ED).role).toBeUndefined();
   });
 
-  it("parses the role back and round-trips it", () => {
+  it("parses the role back from the namespace token and round-trips it", () => {
     const line =
-      'a@x namespaces="git",role="maintainer" ssh-ed25519 AAAA alice';
+      'a@x namespaces="git,taraflow-maintainer" ssh-ed25519 AAAA alice';
     const [e] = parseAllowedSigners(line);
     expect(e.role).toBe("maintainer");
     const round = parseAllowedSigners(serializeAllowedSigners([e]));
     expect(round[0].role).toBe("maintainer");
-    expect(round[0].options).toContain('role="maintainer"');
+    expect(round[0].options).toContain(MAINTAINER_NAMESPACE);
   });
 
   it("isMaintainer / maintainers filter by role", () => {
@@ -188,14 +192,43 @@ describe("roles (maintainer)", () => {
     expect(maintainers(entries).map((e) => e.principal)).toEqual(["a@x"]);
   });
 
-  it("withRole promotes and demotes, keeping the namespace", () => {
+  it("withRole promotes and demotes, keeping the base namespace", () => {
     const plain = entryFromPubkey("b@x", "ssh-ed25519 BBBB");
     const promoted = withRole(plain, true);
     expect(promoted.role).toBe("maintainer");
-    expect(promoted.options).toBe('namespaces="git",role="maintainer"');
+    expect(promoted.options).toBe('namespaces="git,taraflow-maintainer"');
     const demoted = withRole(promoted, false);
     expect(demoted.role).toBeUndefined();
     expect(demoted.options).toBe('namespaces="git"');
+  });
+
+  // ── Regression guards for the OpenSSH-illegal `role=` option ──────────────
+
+  it("NEVER emits a role= option (would break git verification)", () => {
+    const text = serializeAllowedSigners([
+      entryFromPubkey("a@x", "ssh-ed25519 AAAA", { maintainer: true }),
+    ]);
+    expect(text).not.toMatch(/role\s*=/);
+  });
+
+  it("does NOT honour a legacy role= line (unverifiable → grants nothing)", () => {
+    // A pre-fix manifest line. Such a line cannot be verified by git at all,
+    // so it must not silently grant the maintainer role.
+    const line = 'a@x namespaces="git",role="maintainer" ssh-ed25519 AAAA x';
+    const [e] = parseAllowedSigners(line);
+    expect(isMaintainer(e)).toBe(false);
+  });
+
+  it("preserves a custom multi-namespace base when toggling the role", () => {
+    const custom: SignerEntry = {
+      principal: "a@x",
+      options: 'namespaces="git,email"',
+      keyType: "ssh-ed25519",
+      keyBlob: "AAAA",
+    };
+    const promoted = withRole(custom, true);
+    expect(promoted.options).toBe('namespaces="git,email,taraflow-maintainer"');
+    expect(withRole(promoted, false).options).toBe('namespaces="git,email"');
   });
 });
 

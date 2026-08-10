@@ -39,10 +39,75 @@ function isElectron(): boolean {
   );
 }
 
+/** POSIX/Windows-safe dirname for a project file path (renderer, no node path). */
+function dirnameOf(filePath: string): string {
+  const cut = filePath.replace(/[/\\][^/\\]*$/, "");
+  return cut.length ? cut : filePath;
+}
+
+// ── Signing-key hydration ───────────────────────────────────────────────────
+// The on-disk .tara.json deliberately does NOT carry the signing key path / id
+// (a per-user, machine-local value stripped by prepare-for-disk). On open we
+// re-hydrate it so signing keeps working across sessions.
+//
+// SOURCE = a resolution chain, extended by PREPENDING a source (never a
+// user-facing toggle). Today: git config `user.signingkey`, which resolveGitSigning
+// already writes on every commit — the machine-local, git-native home for the key.
+//   - format "ssh" → user.signingkey is the key PATH   → signing.sshSigningKeyPath
+//   - format "gpg" → user.signingkey is the key ID     → signing.keyId
+// LATER (2a): prepend a credential-service lookup:
+//   return (await fromCredentialService(id)) ?? (await fromGitConfig(filePath));
+
+/** Read `git config --get user.signingkey` from the file's repo. */
+async function fromGitConfig(filePath: string): Promise<string | undefined> {
+  try {
+    const res = await (window as any).git?.rawInDir(dirnameOf(filePath), [
+      "config",
+      "--get",
+      "user.signingkey",
+    ]);
+    const value =
+      res && res.success ? String(res.data?.stdout ?? "").trim() : "";
+    return value || undefined;
+  } catch {
+    return undefined; // hydration is best-effort — never break a load
+  }
+}
+
+/** Resolve the signing key for a repo. Extend by prepending sources (see above). */
+async function resolveSigningKey(
+  filePath: string,
+): Promise<string | undefined> {
+  return fromGitConfig(filePath);
+}
+
+/**
+ * Re-hydrate the stripped signing key into a freshly loaded project, in place.
+ * No-op unless signing is enabled and the key is currently absent (so an
+ * un-stripped legacy file is left untouched). Best-effort: a failure or a repo
+ * that has never committed simply leaves the key unset (the user re-picks it).
+ */
+async function hydrateSigningKey(
+  project: Project,
+  filePath: string,
+): Promise<void> {
+  const signing = project.audit?.config?.signing;
+  if (!signing || !signing.enabled) return;
+
+  const alreadyHasKey =
+    signing.format === "gpg" ? !!signing.keyId : !!signing.sshSigningKeyPath;
+  if (alreadyHasKey) return;
+
+  const key = await resolveSigningKey(filePath);
+  if (!key) return;
+
+  if (signing.format === "gpg") signing.keyId = key;
+  else signing.sshSigningKeyPath = key;
+}
+
 // ==================== REPOSITORY CLASS ====================
 
 class ProjectRepository {
-
   // ── Factory ─────────────────────────────────────────────────────────────
 
   /**
@@ -99,10 +164,18 @@ class ProjectRepository {
   /**
    * Load a project from a known file path (Electron mode).
    * Applies migration + repair pipeline automatically.
+   *
+   * @param filePath  the .tara.json path
+   * @param options.hydrateSigning  re-hydrate the stripped signing key from the
+   *   repo (one git call). Enabled for a single open (loadById); left OFF for
+   *   the bulk recent-list load (loadAll), which doesn't need signing.
    */
   async loadFromPath(
     filePath: string,
-  ): Promise<StorageResult<Project & { _migrated?: boolean; _fromVersion?: number }>> {
+    options: { hydrateSigning?: boolean } = {},
+  ): Promise<
+    StorageResult<Project & { _migrated?: boolean; _fromVersion?: number }>
+  > {
     if (!isElectron()) {
       return { success: false, error: "loadFromPath requires Electron mode" };
     }
@@ -134,6 +207,14 @@ class ProjectRepository {
 
       const { project, migrated, fromVersion } = migrationResult;
       project.filePath = filePath;
+
+      // Re-hydrate the stripped signing key (only when asked — see options).
+      // Done BEFORE the migrated write-back below so the in-memory project the
+      // caller edits this session has its key; the write-back re-strips it on
+      // disk (prepareForDisk), which is correct and produces no churn.
+      if (options.hydrateSigning) {
+        await hydrateSigningKey(project, filePath);
+      }
 
       if (migrated) {
         console.info(
@@ -179,6 +260,7 @@ class ProjectRepository {
   /**
    * Load a project by ID — resolves the file path from the registry first.
    * Convenience wrapper used by main-layout when opening from the recent list.
+   * This is a SINGLE open, so the signing key is hydrated.
    */
   async loadById(projectId: string): Promise<StorageResult<Project>> {
     const filePath = await projectRegistry.getFilePath(projectId);
@@ -190,7 +272,7 @@ class ProjectRepository {
       };
     }
 
-    return this.loadFromPath(filePath);
+    return this.loadFromPath(filePath, { hydrateSigning: true });
   }
 
   // ── Write ───────────────────────────────────────────────────────────────
@@ -269,6 +351,10 @@ class ProjectRepository {
    * Load all projects from the registry.
    * Failed/missing files are skipped and removed from the registry.
    * Returns only successfully loaded projects.
+   *
+   * Signing keys are NOT hydrated here — the recent list only needs project
+   * data, and hydration would add a git call per entry. The key is hydrated
+   * when a project is actually opened (loadById).
    */
   async loadAll(): Promise<StorageResult<Project[]>> {
     if (!isElectron()) {
