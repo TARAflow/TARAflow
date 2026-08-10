@@ -234,12 +234,8 @@ describe("roles (maintainer)", () => {
 
 describe("path helpers", () => {
   it("builds the manifest path under .tara with the root's separator", () => {
-    expect(allowedSignersPathOf("/home/jpm/repo")).toBe(
-      "/home/jpm/repo/.tara/allowed_signers",
-    );
-    expect(allowedSignersPathOf("/home/jpm/repo/")).toBe(
-      "/home/jpm/repo/.tara/allowed_signers",
-    );
+    expect(allowedSignersPathOf("/repo")).toBe("/repo/.tara/allowed_signers");
+    expect(allowedSignersPathOf("/repo/")).toBe("/repo/.tara/allowed_signers");
     expect(allowedSignersPathOf("C:\\repo")).toBe(
       "C:\\repo\\.tara\\allowed_signers",
     );

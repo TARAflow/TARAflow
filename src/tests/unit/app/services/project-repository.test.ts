@@ -40,7 +40,7 @@ describe("ProjectRepository.save — runtime fields must never reach disk", () =
   it("strips filePath from the written payload", async () => {
     const project: Project = {
       ...projectRepository.createEmpty("Test", "desc"),
-      filePath: "/home/jpm/tmp/leak.tara.json",
+      filePath: "/tmp/leak.tara.json",
     };
 
     await projectRepository.save(project);
@@ -55,7 +55,7 @@ describe("ProjectRepository.save — runtime fields must never reach disk", () =
   it("strips hasUnsavedChanges from the written payload", async () => {
     const project: Project = {
       ...projectRepository.createEmpty("Test", "desc"),
-      filePath: "/home/jpm/tmp/leak.tara.json",
+      filePath: "/tmp/leak.tara.json",
       hasUnsavedChanges: true,
     };
 
@@ -70,7 +70,7 @@ describe("ProjectRepository.save — runtime fields must never reach disk", () =
   it("strips the DFD graph (derived, rebuilt on load)", async () => {
     const project: Project = {
       ...projectRepository.createEmpty("Test", "desc"),
-      filePath: "/home/jpm/tmp/leak.tara.json",
+      filePath: "/tmp/leak.tara.json",
       dfd: { graph: { nodes: [1, 2, 3] } } as any,
     };
 
@@ -99,11 +99,11 @@ describe("ProjectRepository.saveToPath", () => {
     const project = projectRepository.createEmpty("Test", "desc");
     const result = await projectRepository.saveToPath(
       project,
-      "/home/jpm/tmp/newfile.tara.json",
+      "/tmp/newfile.tara.json",
     );
 
     // In-memory object correctly carries filePath for future saves
-    expect(result.data?.filePath).toBe("/home/jpm/tmp/newfile.tara.json");
+    expect(result.data?.filePath).toBe("/tmp/newfile.tara.json");
 
     // But disk payload does not
     const [, payloadStr] = writeProject.mock.calls[0];
@@ -122,11 +122,11 @@ describe("ProjectRepository.loadFromPath", () => {
     });
 
     const result = await projectRepository.loadFromPath(
-      "/home/jpm/tmp/existing.tara.json",
+      "/tmp/existing.tara.json",
     );
 
     expect(result.success).toBe(true);
-    expect(result.data?.filePath).toBe("/home/jpm/tmp/existing.tara.json");
+    expect(result.data?.filePath).toBe("/tmp/existing.tara.json");
   });
 
   it("returns an error when the file is corrupted beyond repair", async () => {

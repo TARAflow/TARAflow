@@ -251,6 +251,12 @@ describe("serialiseProject", () => {
 });
 
 describe("prepareForDisk — audit.config credential/path stripping", () => {
+  // Arbitrary, fixed leak values (see NOTE above) — any consistent string works.
+  const LEAK_SSH_PATH = "/keys/id_ed25519";
+  const LEAK_SIGNING_PATH = "/keys/taraflow_signing.pub";
+  const LEAK_PAT_ACCOUNT = "leak-pat-account";
+  const LEAK_KEY_ID = "LEAKKEYID";
+
   // Only the audit config matters for this reduction; the rest of the project is
   // irrelevant here and cast away.
   const projectWith = (config: unknown) =>
@@ -264,15 +270,15 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
         author: { name: "J", email: "j@x" },
         auth: {
           method: "ssh",
-          patAccount: "gh-token",
-          sshKeyPath: "/home/jpm/.ssh/id_ed25519",
+          patAccount: LEAK_PAT_ACCOUNT,
+          sshKeyPath: LEAK_SSH_PATH,
         },
-        gpg: { enabled: false, keyId: "ABCD1234", hasStoredKey: true },
+        gpg: { enabled: false, keyId: LEAK_KEY_ID, hasStoredKey: true },
         signing: {
           enabled: true,
           format: "ssh",
-          sshSigningKeyPath: "/home/jpm/.ssh/taraflow_signing.pub",
-          keyId: "X",
+          sshSigningKeyPath: LEAK_SIGNING_PATH,
+          keyId: LEAK_KEY_ID,
           hasStoredKey: true,
         },
         lastRoundNumber: 3,
@@ -287,8 +293,11 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
 
     // No per-user / credential / path value survives anywhere in the output.
     const json = JSON.stringify(out);
-    expect(json).not.toContain("/home/jpm");
-    expect(json).not.toContain("gh-token");
+    expect(json).not.toContain(LEAK_SSH_PATH);
+    expect(json).not.toContain(LEAK_SIGNING_PATH);
+    expect(json).not.toContain(LEAK_PAT_ACCOUNT);
+    expect(json).not.toContain(LEAK_KEY_ID);
+    // ...and none of the stripped KEYS remain either.
     expect(json).not.toMatch(
       /hasStoredKey|sshSigningKeyPath|sshKeyPath|patAccount|keyId/,
     );
@@ -319,4 +328,5 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
     expect(cfg.auth).toEqual({ method: "pat" });
   });
 });
+
  
