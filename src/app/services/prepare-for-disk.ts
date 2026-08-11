@@ -78,8 +78,11 @@
 
 import type { Project } from "../models/project-types";
 
-/** TCS ruleset version. Bumping this is a deliberate, file-reformatting change. */
-export const TCS_VERSION = 1;
+// The canonical TCS serializer lives in its own project-types-free module
+// (./tcs-serialize) so the Electron main process and the CLI can import it
+// WITHOUT dragging the Project type graph. Imported for local use below and
+// re-exported so existing callers of prepare-for-disk keep working unchanged.
+import { canonicalStringify } from "./tcs-serialize";
 
 /** The audit block as it may appear on disk — results/bookkeeping removed. */
 type AuditDataOnDisk = Omit<
@@ -197,96 +200,8 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
 }
 
 // ==================== TCS CANONICAL SERIALIZATION ====================
-//
-// We do NOT use JSON.stringify with a pre-sorted object, because V8 enumerates
-// integer-like keys ("0", "1", "42") in numeric order regardless of insertion
-// order — so an object built with sorted keys would still emit those keys in
-// the engine's order, not ours. phaseStatus is exactly such a map. A dedicated
-// stringifier emits keys in our sorted order explicitly and sidesteps the quirk.
-
-/** Compare two strings by Unicode code point (correct for astral-plane chars). */
-function compareCodePoint(a: string, b: string): number {
-  const ca = Array.from(a);
-  const cb = Array.from(b);
-  const n = Math.min(ca.length, cb.length);
-  for (let i = 0; i < n; i++) {
-    const d = ca[i].codePointAt(0)! - cb[i].codePointAt(0)!;
-    if (d !== 0) return d;
-  }
-  return ca.length - cb.length;
-}
-
-/**
- * Canonical JSON per TCS v1:
- *   - object keys recursively sorted by code point
- *   - arrays keep their order (order can be semantic — never blind-sorted)
- *   - `undefined` object members dropped; `undefined` array slots → null
- *   - non-finite numbers (NaN/Infinity) rejected, not silently coerced to null
- *   - -0 normalized to 0
- *   - 2-space indent, LF newlines (JSON.stringify emits \n on every platform)
- *
- * No trailing newline here — callers add exactly one (see canonicalStringify).
- */
-function tcsStringify(value: unknown, indent: string, step: string): string {
-  if (value === null) return "null";
-
-  const t = typeof value;
-
-  if (t === "number") {
-    const n = value as number;
-    if (!Number.isFinite(n)) {
-      throw new Error(
-        `TCS: non-finite number (${n}) cannot be serialized. ` +
-          `Fix the source data before writing.`,
-      );
-    }
-    return Object.is(n, -0) ? "0" : JSON.stringify(n);
-  }
-
-  if (t === "string" || t === "boolean") {
-    // JSON.stringify already does minimal escaping and keeps non-ASCII literal.
-    return JSON.stringify(value);
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "[]";
-    const inner = indent + step;
-    const items = value.map(
-      (v) => inner + tcsStringify(v === undefined ? null : v, inner, step),
-    );
-    return "[\n" + items.join(",\n") + "\n" + indent + "]";
-  }
-
-  if (t === "object") {
-    const obj = value as Record<string, unknown>;
-    const keys = Object.keys(obj)
-      .filter((k) => obj[k] !== undefined)
-      .sort(compareCodePoint);
-    if (keys.length === 0) return "{}";
-    const inner = indent + step;
-    const parts = keys.map(
-      (k) =>
-        inner +
-        JSON.stringify(k) +
-        ": " +
-        tcsStringify(obj[k], inner, step),
-    );
-    return "{\n" + parts.join(",\n") + "\n" + indent + "}";
-  }
-
-  // undefined / function / symbol at a position we can't represent.
-  throw new Error(`TCS: unsupported value of type "${t}".`);
-}
-
-/**
- * Canonically serialize ANY already-plain value to a TCS string (with the single
- * trailing newline). Used by the Verification Engine to re-serialize a project
- * object loaded from a historical commit and compare it byte-for-byte with what
- * is stored there.
- */
-export function canonicalStringify(value: unknown): string {
-  return tcsStringify(value, "", "  ") + "\n";
-}
+// The serializer (canonicalStringify / TCS_VERSION) now lives in ./tcs-serialize
+// (project-types-free) and is imported + re-exported at the top of this file.
 
 /**
  * The canonical on-disk representation of a Project: prepareForDisk + TCS v1.

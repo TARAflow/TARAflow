@@ -26,7 +26,7 @@ import { promisify } from "util";
 import { createGitReaderExec } from "../src/features/audit/services/verify/git-reader-exec";
 import { verifyAudit } from "../src/features/audit/services/verify/engine";
 import type { FindingsResult } from "../src/features/audit/services/verify/findings";
-import { canonicalStringify } from "../src/app/services/prepare-for-disk";
+import { canonicalStringify } from "../src/app/services/tcs-serialize";
 import {
   resolvePolicy,
   type PolicyFlags,

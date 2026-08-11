@@ -145,6 +145,22 @@
       "anchorShort": "Anchor-Tag {{state}}. ",
       "details": "Details",
       "hide": "Ausblenden"
+    },
+    "verify": {
+      "title": "Audit-Trail-Verifikation",
+      "subtitle": "Rekonstruiert die Signaturberechtigung aus der committeten Historie und meldet jeden Commit, der nicht durch das Manifest autorisiert war, wie es vor ihm galt.",
+      "noAnchor": "Noch kein Audit-Anker — zuerst ein Signer-Manifest anlegen (Reiter „Signers“).",
+      "run": "Audit-Trail verifizieren",
+      "running": "Verifiziere…",
+      "strict": "Streng (Warnungen als Fehler behandeln)",
+      "ref": "Ref",
+      "anchor": "Anker",
+      "engineError": "Verifikation konnte nicht ausgeführt werden",
+      "pass": "BESTANDEN",
+      "fail": "FEHLGESCHLAGEN",
+      "summary": "{{error}} Fehler, {{warning}} Warnungen, {{info}} Infos",
+      "strictOn": "streng",
+      "clean": "Keine Befunde."
     }
   }
 }

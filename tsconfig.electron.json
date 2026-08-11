@@ -16,7 +16,9 @@
       "shared/models": ["src/shared/models"],
       "shared/models/*": ["src/shared/models/*"],
       "audit/models": ["src/features/audit/models"],
-      "audit/models/*": ["src/features/audit/models/*"]
+      "audit/models/*": ["src/features/audit/models/*"],
+      "audit/services": ["src/features/audit/services"],
+      "audit/services/*": ["src/features/audit/services/*"]
     }
   },
   "include": [

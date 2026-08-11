@@ -45,6 +45,7 @@ import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
 import type { Project } from "app/models/project-types";
+import { AuditVerifyPanel } from "./audit-verify-panel";
 
 
 // ==================== COMPONENT ====================
@@ -656,6 +657,13 @@ export const AuditTab: React.FC<AuditTabProps> = ({
             lastCommitDate={lastCommitDate}
           />
         )}
+
+        {/* Audit trail verification */}
+        <AuditVerifyPanel
+          repoRoot={repoRootValue}
+          anchor={protection.anchor}
+          branch={currentBranch}
+        />
       </Box>
 
       {/* Config Dialog */}

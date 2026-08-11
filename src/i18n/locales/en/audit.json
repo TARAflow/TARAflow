@@ -145,6 +145,22 @@
       "anchorShort": "Anchor tag {{state}}. ",
       "details": "Details",
       "hide": "Hide"
+    },
+    "verify": {
+      "title": "Audit trail verification",
+      "subtitle": "Reconstructs the signing authority from the committed history and reports any commit that isn't authorized by the manifest as it stood before it.",
+      "noAnchor": "No audit anchor yet — add a signer manifest (Signers tab) first.",
+      "run": "Verify audit trail",
+      "running": "Verifying…",
+      "strict": "Strict (treat warnings as errors)",
+      "ref": "ref",
+      "anchor": "anchor",
+      "engineError": "Could not run verification",
+      "pass": "PASS",
+      "fail": "FAIL",
+      "summary": "{{error}} errors, {{warning}} warnings, {{info}} info",
+      "strictOn": "strict",
+      "clean": "No findings."
     }
   }
 }

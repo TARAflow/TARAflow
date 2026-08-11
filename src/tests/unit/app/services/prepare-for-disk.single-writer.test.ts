@@ -7,6 +7,13 @@
 // runtime-only fields and non-canonical bytes to disk. This test walks the
 // source tree and fails if a second writer is reintroduced.
 //
+// NOTE (2026-08-11): the canonical TCS serializer was extracted into its own
+// project-types-free module (tcs-serialize.ts) so the Electron main process and
+// the CLI can import it without dragging the Project type graph. prepare-for-disk
+// re-exports it, so every existing caller is unchanged. The guard therefore maps
+// each writer symbol to its OWNING module: still exactly one declaration each,
+// just canonicalStringify now lives in tcs-serialize.ts.
+//
 // If you use Jest with globals, delete the next import line.
 import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
@@ -29,16 +36,19 @@ function findSrcRoot(): string {
 
 const SRC = findSrcRoot();
 
-// The one and only module allowed to serialize a project to disk.
+// The module that documents the old leak pattern in a comment and owns the
+// project reduction — skipped by the bypass scans below.
 const WRITER_FILE = "prepare-for-disk.ts";
 
-// Canonical writer symbols — must be declared exactly once, in WRITER_FILE.
-const WRITER_DECLS = [
-  "prepareForDisk",
-  "serialiseProject",
-  "serializeTCS",
-  "canonicalStringify",
-];
+// Canonical writer symbols → the module each must be declared in, exactly once.
+// prepareForDisk / serialiseProject / serializeTCS own the project reduction;
+// canonicalStringify is the pure serializer, extracted to tcs-serialize.ts.
+const WRITER_DECLS: Record<string, string> = {
+  prepareForDisk: "prepare-for-disk.ts",
+  serialiseProject: "prepare-for-disk.ts",
+  serializeTCS: "prepare-for-disk.ts",
+  canonicalStringify: "tcs-serialize.ts",
+};
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -63,8 +73,8 @@ const isTest = (f: string) => /\.(test|spec)\.tsx?$/.test(f);
 const isWriter = (f: string) => path.basename(f) === WRITER_FILE;
 
 describe("single project-to-disk writer", () => {
-  it("declares the canonical writer symbols exactly once, in prepare-for-disk.ts", () => {
-    for (const sym of WRITER_DECLS) {
+  it("declares each canonical writer symbol exactly once, in its owning module", () => {
+    for (const [sym, ownerFile] of Object.entries(WRITER_DECLS)) {
       const decl = new RegExp(`\\bfunction\\s+${sym}\\b`);
       const declaringFiles = ALL_TS.filter((f) =>
         decl.test(fs.readFileSync(f, "utf8")),
@@ -73,7 +83,10 @@ describe("single project-to-disk writer", () => {
         declaringFiles.map((f) => path.relative(SRC, f)),
         `${sym} must be declared exactly once`,
       ).toHaveLength(1);
-      expect(isWriter(declaringFiles[0])).toBe(true);
+      expect(
+        path.basename(declaringFiles[0]),
+        `${sym} must be declared in ${ownerFile}`,
+      ).toBe(ownerFile);
     }
   });
 
@@ -86,7 +99,9 @@ describe("single project-to-disk writer", () => {
         offenders.push(path.relative(SRC, f));
       }
     }
-    expect(offenders, "these files re-serialize a project directly").toEqual([]);
+    expect(offenders, "these files re-serialize a project directly").toEqual(
+      [],
+    );
   });
 
   it("keeps the raw legacy pattern out of the tree entirely", () => {

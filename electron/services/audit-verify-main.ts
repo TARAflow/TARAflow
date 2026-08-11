@@ -8,12 +8,21 @@
 // (pass/fail + the finding list) live INSIDE `data`; `success: false` means the
 // engine could not run at all (no repo, bad policy, git failure) — a different
 // axis from "the audit trail has problems".
+//
+// BUILD: this file is esbuild-bundled (see the `bundle:audit-main` npm script)
+// into a self-contained dist-electron/services/audit-verify-main.cjs, so the
+// engine + its deps are inlined and no TS path aliases survive to runtime.
+// `canonicalStringify` is imported from the project-types-FREE ./tcs-serialize
+// module (relative), so the Electron typecheck does not drag the Project type
+// graph. It is the SAME serializer prepare-for-disk uses to write .tara.json —
+// one source of truth for "canonical", which the TCS reproducibility check
+// depends on.
 
-import { createGitReaderExec } from "../../src/features/audit/services/verify/git-reader-exec";
-import { verifyAudit } from "../../src/features/audit/services/verify/engine";
-import { makePolicy } from "../../src/features/audit/services/verify/policy";
-import type { FindingsResult } from "../../src/features/audit/services/verify/findings";
-import { canonicalStringify } from "../../src/app/services/prepare-for-disk";
+import { createGitReaderExec } from "audit/services/verify/git-reader-exec";
+import { verifyAudit } from "audit/services/verify/engine";
+import { makePolicy } from "audit/services/verify/policy";
+import type { FindingsResult } from "audit/services/verify/findings";
+import { canonicalStringify } from "../../src/app/services/tcs-serialize";
 
 /** Policy as the renderer supplies it (the anchor is pinned out-of-band). */
 export interface AuditVerifyPolicyInput {

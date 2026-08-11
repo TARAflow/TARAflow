@@ -6,8 +6,8 @@ import {
   prepareForDisk,
   serializeTCS,
   serialiseProject,
-  canonicalStringify,
 } from "app/services/prepare-for-disk";
+import { canonicalStringify } from "app/services/tcs-serialize";
 
 // A minimal, deliberately messy project: unsorted keys, an integer-keyed map
 // (phaseStatus), runtime-only fields, a derived dfd.graph, nested arrays.
