@@ -1,0 +1,45 @@
+# nfpm.yaml
+# Baut ein schlankes .deb für die TARAflow-Verify-CLI — kein Electron,
+# keine GUI, nur node + das esbuild-Bundle aus `npm run build:cli:verify`.
+#
+# Installation von nfpm selbst (einmalig, Host-Tool, keine Projekt-Dependency):
+#   npm install -g @goreleaser/nfpm
+#
+# Verwendung (vom Repo-Root aus):
+#   npm run build:cli:verify
+#   nfpm package --config taraflow-verifier/packaging/nfpm.yaml --packager deb --target ./release/
+
+name: "tara-verify"
+arch: "amd64"
+platform: "linux"
+version: "0.1.0-alpha"
+maintainer: "Juergen M. <1004272+messi1@users.noreply.github.com>"
+description: |
+  TARAflow headless audit-trail verifier (CLI). Reconstructs the signing
+  authority from a repository's committed history and reports findings —
+  no TARAflow desktop app required. Exit codes: 0 pass, 1 findings,
+  2 usage, 3 engine.
+homepage: "https://github.com/messi1/TARAflow"
+license: "GPL-3.0-or-later"
+
+# `git` is a HARD runtime dependency: the verifier shells out to it for every
+# read (rev-parse, log, cat-file, verify-commit). `nodejs` runs the bundle.
+depends:
+  - nodejs
+  - git
+
+contents:
+  - src: ./dist-cli/taraflow-verify.js
+    dst: /usr/lib/tara-verify/taraflow-verify.js
+    file_info:
+      mode: 0644
+
+  # NOTE (unlike tara-report): the verifier has NO native/runtime npm deps, so
+  # there is deliberately no `dist-cli/node_modules` entry here. The bundle is
+  # self-contained (Node builtins only); the only external tool is `git`, pulled
+  # in via `depends` above.
+
+  - src: ./taraflow-verifier/packaging/tara-verify-wrapper.sh
+    dst: /usr/bin/taraflow-verify
+    file_info:
+      mode: 0755

@@ -1,0 +1,6 @@
+{
+  "name": "tara-verify-runtime-deps",
+  "private": true,
+  "description": "Runtime-only dependencies for the verify CLI. Unlike tara-report (which needs native pdfmake / @resvg/resvg-js), taraflow-verify has NONE: it uses only Node builtins (child_process, fs, os, path, crypto) plus the external `git` binary at runtime. This file is kept for symmetry with build:cli:verify (which runs `npm install --prefix dist-cli`); the empty dependency set means npm creates an empty node_modules and the .deb ships no bundled modules. If a real runtime dep is ever added, list it here AND keep the version range in sync with the root package.json.",
+  "dependencies": {}
+}

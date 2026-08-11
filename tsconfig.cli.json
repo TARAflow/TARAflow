@@ -1,10 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "lib": ["es2021"],
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["bin", "cli", "src"],
+  "include": ["bin", "cli", "src", "taraflow-verifier"],
   "exclude": ["node_modules", "dist", "dist-electron", "electron"]
 }
