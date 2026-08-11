@@ -11,8 +11,17 @@ export default defineConfig({
       "src/tests/unit/**/*.test.ts",
       "src/tests/unit/**/*.test.tsx",
       "taraflow-reporter/tests/**/*.test.ts",
+      "electron/**/*.{test,spec}.ts",
+      "taraflow-verifier/**/*.{test,spec}.ts",
     ],
-    exclude: ["src/app/app.test.tsx", "node_modules/**"],
+    // *.int.test.ts are INTEGRATION tests (need a real git binary) — they run
+    // via `npm run test:integration` (vitest.integration.config.ts), NOT in the
+    // default/unit suite, so this run stays hermetic and CI-safe without git.
+    exclude: [
+      "src/app/app.test.tsx",
+      "node_modules/**",
+      "**/*.int.test.ts",
+    ],
     alias: {
       app: "/src/app",
       features: "/src/features",

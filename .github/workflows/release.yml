@@ -54,6 +54,12 @@ jobs:
 
       - name: Run tests
         run: npm test -- --run
+      
+      # Integration tests spawn a real git binary (throwaway repos).
+      # Linux-only, wie der CLI-Smoke-Test; ubuntu-Runner haben git vorinstalliert.
+      - name: Run integration tests
+        if: runner.os == 'Linux'
+        run: npm run test:integration
 
       # electron-builder reads the "build" block in package.json. On Linux it
       # emits deb + AppImage; on Windows, the nsis installer. GH_TOKEN lets

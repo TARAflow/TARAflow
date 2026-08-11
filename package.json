@@ -15,6 +15,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "clean:electron": "rimraf dist-electron",
     "compile:electron": "tsc -p tsconfig.electron.json",
     "fix:electron": "node scripts/fix-electron-imports.cjs",

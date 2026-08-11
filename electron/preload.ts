@@ -153,6 +153,11 @@ contextBridge.exposeInMainWorld("credentials", {
     ipcRenderer.invoke("credentials:getSSHKeyPath", identifier),
 });
 
+// ==================== AUDIT API (window.audit) ====================
+contextBridge.exposeInMainWorld("audit", {
+  verify: (params: unknown) => ipcRenderer.invoke("audit:verify", params),
+});
+
 contextBridge.exposeInMainWorld("electronAPI", {
   // DrawIO Plugin Injection
   injectDrawioPlugin: () => {
@@ -181,5 +186,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
 });
 
 console.log(
-  "Electron APIs exposed to renderer (electron, git, credentials, electronAPI)",
+  "Electron APIs exposed to renderer (electron, git, credentials, audit, electronAPI)",
 );

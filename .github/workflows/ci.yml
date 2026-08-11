@@ -45,6 +45,12 @@ jobs:
 
       - name: Run tests
         run: npm test -- --run
+      
+      # Integration tests spawn a real git binary (throwaway repos).
+      # Linux-only, wie der CLI-Smoke-Test; ubuntu-Runner haben git vorinstalliert.
+      - name: Run integration tests
+        if: runner.os == 'Linux'
+        run: npm run test:integration
 
       # Phase 7 guardrail: fails the build if anything in the generation
       # path imports a feature barrel, react, @mui, or a window-coupled

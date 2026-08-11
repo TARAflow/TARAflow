@@ -11,6 +11,7 @@ import {
   generatePdfBuffer,
   generatePdfFile,
 } from "./services/pdf-generator-main";
+import { runAuditVerify } from "./services/audit-verify-main";
 
 // ==================== PDF GENERATION ====================
 
@@ -96,6 +97,13 @@ ipcMain.handle("jira:deleteToken", async (_, { account }) => {
   } catch (error: any) {
     return { success: false, error: error.message };
   }
+});
+
+// ==================== AUDIT VERIFICATION ====================
+// Engine runs here in main (it spawns git); renderer gets only the result.
+// Falls back to the bound audit repo (git:setRepoPath) when no repoPath is passed.
+ipcMain.handle("audit:verify", async (_e, params) => {
+  return runAuditVerify(params, gitService?.getRepoPath());
 });
 
 // ==================== USER DATA PATH ====================

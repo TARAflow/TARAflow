@@ -178,6 +178,25 @@ declare global {
       getSSHKeyPath: (identifier: string) => Promise<string | null>;
     };
 
+    audit: {
+      verify: (params: {
+        repoPath?: string;
+        policy: {
+          bootstrapAnchor: string;
+          ref?: string;
+          strict?: boolean;
+          mandateFourEyes?: boolean;
+          protectedBranches?: string[];
+        };
+      }) => Promise<
+        | {
+            success: true;
+            data: import("features/audit/services/verify/findings").FindingsResult;
+          }
+        | { success: false; error: string }
+      >;
+    };
+
     pdf?: {
       generateBuffer: (
         html: string,
