@@ -5,8 +5,10 @@
 // - Remote URL configuration
 // - Author information
 // - Authentication (PAT/SSH)
-// - GPG signing configuration
+// - Commit signing configuration (SSH/GPG)
+// - Authorized signers / maintainers
 // - Custom round names
+// - Audit protection status
 
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -44,21 +46,26 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
+
 import { useAuditSigners, type SignerGit } from "../hooks/useAuditSigners";
 import { maintainers } from "../services/audit-signer-manifest";
 import type { AuditProtection } from "../hooks/useAuditProtection";
 import { AuditProtectionPanel } from "./audit-protection-panel";
+
 import type {
   AuditConfig,
   GitProvider,
   AuthMethod,
   RoundName,
 } from "../models/audit-types";
+
+import { GIT_PROVIDERS, DEFAULT_ROUND_NAMES } from "../models/audit-types";
+
 import {
-  GIT_PROVIDERS,
-  DEFAULT_AUDIT_CONFIG,
-  DEFAULT_ROUND_NAMES,
-} from "../models/audit-types";
+  readGitDerivedInfo,
+  deriveAuditConfigFromGit,
+  type GitConfigReader,
+} from "../services/derive-audit-config";
 
 // ==================== PROPS ====================
 
@@ -69,10 +76,17 @@ interface AuditConfigDialogProps {
   onClose: () => void;
   onSaveCredential?: (account: string, token: string) => Promise<void>;
   onSaveGPGKey?: (keyId: string, privateKey: string) => Promise<void>;
-  /** Bound audit repo root + git service — needed for the Signers tab. */
+
+  /**
+   * Bound audit repo root + git service.
+   * Needed for managing authorized signers.
+   */
   repoRoot?: string;
-  gitService?: SignerGit;
-  /** Local protection status + checklist (rendered in the Protection tab). */
+  gitService?: SignerGit & Partial<GitConfigReader>;
+
+  /**
+   * Local protection status + checklist.
+   */
   protection?: AuditProtection;
 }
 
@@ -84,6 +98,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   onSave,
   onClose,
   onSaveCredential,
+  onSaveGPGKey,
   repoRoot,
   gitService,
   protection,
@@ -97,43 +112,79 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Custom round name dialog
+  // Custom round names
   const [newRoundName, setNewRoundName] = useState("");
   const [newRoundNameDE, setNewRoundNameDE] = useState("");
 
   // PAT input
   const [patToken, setPatToken] = useState("");
 
-  // Signers tab: the committed manifest + the "add signer" form.
-  const signers = useAuditSigners(repoRoot, gitService, localConfig);
+  // Signer form
   const [newPrincipal, setNewPrincipal] = useState("");
   const [newPubkey, setNewPubkey] = useState("");
   const [newMaintainer, setNewMaintainer] = useState(false);
 
-  // Derived signer/maintainer state for the Signers tab.
+  // ==================== SIGNERS ====================
+
+  const signers = useAuditSigners(repoRoot, gitService, localConfig);
+
   const signerEntries = signers.entries;
   const maintainerList = maintainers(signerEntries);
+
   const manifestEmpty = signerEntries.length === 0;
   const noMaintainer = !manifestEmpty && maintainerList.length === 0;
 
   // ==================== EFFECTS ====================
 
   useEffect(() => {
-    if (open) {
-      // Seed the unified `signing` block from the legacy `gpg` config when a
-      // project predates it, so older projects surface their settings here.
-      setLocalConfig({
-        ...config,
-        signing: config.signing ?? {
-          enabled: !!config.gpg?.enabled,
-          format: "gpg",
-          keyId: config.gpg?.keyId,
-        },
-      });
-      setError(null);
-      setPatToken("");
-    }
-  }, [open, config]);
+    if (!open) return;
+
+    /**
+     * Seed the unified signing block from the legacy gpg config.
+     * This keeps older projects compatible.
+     */
+    setLocalConfig({
+      ...config,
+      signing: config.signing ?? {
+        enabled: !!config.gpg?.enabled,
+        format: "gpg",
+        keyId: config.gpg?.keyId,
+      },
+    });
+
+    setError(null);
+    setPatToken("");
+
+    // Always start on General when opening the dialog.
+    setActiveTab(0);
+
+    // Reset signer form.
+    setNewPrincipal("");
+    setNewPubkey("");
+    setNewMaintainer(false);
+
+    /**
+     * Auto-populate still-empty fields from the bound git repo.
+     * Non-destructive and in-memory only.
+     */
+    const raw = gitService?.raw;
+
+    if (!raw) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      const info = await readGitDerivedInfo({ raw });
+
+      if (!cancelled) {
+        setLocalConfig((prev) => deriveAuditConfigFromGit(prev, info));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, config, gitService]);
 
   // ==================== HANDLERS ====================
 
@@ -150,7 +201,9 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
       // Save PAT if provided
       if (patToken && onSaveCredential) {
         const account = localConfig.remoteUrl || "default";
+
         await onSaveCredential(account, patToken);
+
         localConfig.auth.patAccount = account;
       }
 
@@ -164,6 +217,8 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
       setIsSaving(false);
     }
   };
+
+  // ==================== ROUND NAMES ====================
 
   const handleAddRoundName = () => {
     if (!newRoundName.trim()) return;
@@ -191,92 +246,138 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
     }));
   };
 
-  // Native file picker for the SSH signing key — avoids typing the full path
-  // by hand. Uses the generic file:pickFile (NOT the project openDialog): no
-  // tara.json filter, showHiddenFiles so ~/.ssh is reachable.
+  // ==================== FILE PICKERS ====================
+
+  /**
+   * Browse for SSH signing key.
+   */
   const handleBrowseSigningKey = async () => {
     const api = window.electron?.file;
+
     if (!api?.pickFile) return;
+
     const res = await api.pickFile({
       title: "Select SSH signing key",
       defaultPath: "~/.ssh",
       buttonLabel: "Select",
-      // .pub first (git-ssh signing points user.signingkey at the public key),
-      // but "All files" lets a private/extension-less key be picked too.
       filters: [
-        { name: "SSH public keys", extensions: ["pub"] },
-        { name: "All files", extensions: ["*"] },
+        {
+          name: "SSH public keys",
+          extensions: ["pub"],
+        },
+        {
+          name: "All files",
+          extensions: ["*"],
+        },
       ],
     });
+
     if (res.success && res.data) {
       setLocalConfig((prev) => ({
         ...prev,
-        signing: { ...prev.signing!, sshSigningKeyPath: res.data },
+        signing: {
+          ...prev.signing!,
+          sshSigningKeyPath: res.data,
+        },
       }));
     }
   };
 
-  // Same picker for the SSH auth key (push), different target field.
+  /**
+   * Browse for SSH authentication key.
+   */
   const handleBrowseAuthKey = async () => {
     const api = window.electron?.file;
+
     if (!api?.pickFile) return;
+
     const res = await api.pickFile({
       title: "Select SSH key",
       defaultPath: "~/.ssh",
       buttonLabel: "Select",
-      filters: [{ name: "All files", extensions: ["*"] }],
+      filters: [
+        {
+          name: "All files",
+          extensions: ["*"],
+        },
+      ],
     });
+
     if (res.success && res.data) {
       setLocalConfig((prev) => ({
         ...prev,
-        auth: { ...prev.auth, sshKeyPath: res.data },
+        auth: {
+          ...prev.auth,
+          sshKeyPath: res.data,
+        },
       }));
     }
   };
 
-  // Add-signer: pick a *.pub, read its CONTENTS (entryFromPubkey needs the key
-  // text, not the path), and drop it into the textarea (which paste also feeds).
+  /**
+   * Browse for authorized signer public key.
+   * The actual key contents are inserted into the form.
+   */
   const handleBrowsePubkey = async () => {
     const api = window.electron?.file;
+
     if (!api?.pickFile || !api?.readText) return;
+
     const picked = await api.pickFile({
       title: "Select signer public key (.pub)",
       defaultPath: "~/.ssh",
       buttonLabel: "Select",
       filters: [
-        { name: "SSH public keys", extensions: ["pub"] },
-        { name: "All files", extensions: ["*"] },
+        {
+          name: "SSH public keys",
+          extensions: ["pub"],
+        },
+        {
+          name: "All files",
+          extensions: ["*"],
+        },
       ],
     });
+
     if (picked.success && picked.data) {
       const read = await api.readText(picked.data);
-      if (read.success && read.data) setNewPubkey(read.data.trim());
+
+      if (read.success && read.data) {
+        setNewPubkey(read.data.trim());
+      }
     }
   };
 
+  // ==================== SIGNERS ====================
+
   const handleAddSigner = async () => {
-    // Empty manifest → the first signer must be a maintainer (flow enforces it;
-    // we reflect it in the UI so the intent is explicit).
-    const asMaintainer = manifestEmpty ? true : newMaintainer;
+    /**
+     * Empty manifest:
+     * The first signer must always be a maintainer.
+     */
+    const asMaintainer = manifestEmpty || newMaintainer;
+
     const ok = await signers.addSigner(
       newPrincipal.trim(),
       newPubkey.trim(),
       asMaintainer,
     );
+
     if (ok) {
       setNewPubkey("");
       setNewPrincipal("");
       setNewMaintainer(false);
     }
-  }
+  };
 
-  // "Fix" for a manifest with no maintainer (e.g. a hand-bootstrapped repo
-  // whose entry predates roles): promote the current author's entry, or the
-  // sole entry, to maintainer via a signed audit: commit.
+  /**
+   * Repair a manifest that has no maintainer.
+   */
   const handleFixMaintainer = async () => {
     const target =
       signerEntries.find((e) => e.principal === config.author.email) ??
       (signerEntries.length === 1 ? signerEntries[0] : undefined);
+
     if (target) {
       await signers.setRole(target.keyType, target.keyBlob, true);
     }
@@ -287,7 +388,9 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {t("audit.config.title", { defaultValue: "Git Configuration" })}
+        {t("audit.config.title", {
+          defaultValue: "Git Configuration",
+        })}
       </DialogTitle>
 
       <DialogContent
@@ -296,40 +399,51 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           overflowY: "auto",
         }}
       >
-        <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
+        {/* ==================== TABS ==================== */}
+
+        <Box
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+            mb: 2,
+          }}
+        >
+          <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)}>
             <Tab
               label={t("audit.config.tabs.general", {
                 defaultValue: "General",
               })}
             />
+
             <Tab
               label={t("audit.config.tabs.auth", {
                 defaultValue: "Authentication",
               })}
             />
-            <Tab
-              label={t("audit.config.tabs.signing", {
-                defaultValue: "Commit Signing",
-              })}
-            />
+
             <Tab
               label={t("audit.config.tabs.rounds", {
                 defaultValue: "Round Names",
               })}
             />
+
             <Tab
-              label={t("audit.config.tabs.signers", {
-                defaultValue: "Signers",
+              label={t("audit.config.tabs.signing", {
+                defaultValue: "Signing",
               })}
             />
-            <Tab
-              label={t("audit.config.tabs.protection", {
-                defaultValue: "Protection",
-              })}
-            />
+
+            {localConfig.signing?.enabled && (
+              <Tab
+                label={t("audit.config.tabs.protection", {
+                  defaultValue: "Protection",
+                })}
+              />
+            )}
           </Tabs>
         </Box>
+
+        {/* ==================== ERROR ==================== */}
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -337,14 +451,27 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           </Alert>
         )}
 
-        {/* TAB 0: General */}
+        {/* ========================================================= */}
+        {/* TAB 0: GENERAL                                           */}
+        {/* ========================================================= */}
+
         {activeTab === 0 && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
             {/* Provider */}
+
             <FormControl fullWidth>
               <FormLabel>
-                {t("audit.config.provider", { defaultValue: "Git Provider" })}
+                {t("audit.config.provider", {
+                  defaultValue: "Git Provider",
+                })}
               </FormLabel>
+
               <Select
                 value={localConfig.provider}
                 onChange={(e) =>
@@ -364,6 +491,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             </FormControl>
 
             {/* Remote URL */}
+
             <TextField
               label={t("audit.config.remoteUrl", {
                 defaultValue: "Remote Repository URL",
@@ -381,6 +509,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             />
 
             {/* Default Branch */}
+
             <TextField
               label={t("audit.config.defaultBranch", {
                 defaultValue: "Default Branch",
@@ -397,6 +526,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             />
 
             {/* Feature Branch Template */}
+
             <TextField
               label={t("audit.config.branchTemplate", {
                 defaultValue: "Feature Branch Template",
@@ -420,6 +550,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             <Divider />
 
             {/* Author Name */}
+
             <TextField
               label={t("audit.config.authorName", {
                 defaultValue: "Author Name",
@@ -428,7 +559,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               onChange={(e) =>
                 setLocalConfig((prev) => ({
                   ...prev,
-                  author: { ...prev.author, name: e.target.value },
+                  author: {
+                    ...prev.author,
+                    name: e.target.value,
+                  },
                 }))
               }
               size="small"
@@ -437,6 +571,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             />
 
             {/* Author Email */}
+
             <TextField
               label={t("audit.config.authorEmail", {
                 defaultValue: "Author Email",
@@ -445,7 +580,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               onChange={(e) =>
                 setLocalConfig((prev) => ({
                   ...prev,
-                  author: { ...prev.author, email: e.target.value },
+                  author: {
+                    ...prev.author,
+                    email: e.target.value,
+                  },
                 }))
               }
               type="email"
@@ -456,15 +594,25 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           </Box>
         )}
 
-        {/* TAB 1: Authentication */}
+        {/* ========================================================= */}
+        {/* TAB 1: AUTHENTICATION                                    */}
+        {/* ========================================================= */}
+
         {activeTab === 1 && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
             <FormControl component="fieldset">
               <FormLabel component="legend">
                 {t("audit.config.authMethod", {
                   defaultValue: "Authentication Method",
                 })}
               </FormLabel>
+
               <RadioGroup
                 value={localConfig.auth.method}
                 onChange={(e) =>
@@ -484,6 +632,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                     defaultValue: "Personal Access Token",
                   })}
                 />
+
                 <FormControlLabel
                   value="ssh"
                   control={<Radio />}
@@ -494,9 +643,16 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               </RadioGroup>
             </FormControl>
 
-            {/* PAT Configuration */}
+            {/* PAT */}
+
             {localConfig.auth.method === "pat" && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
                 <Alert severity="info">
                   {t("audit.config.patInfo", {
                     defaultValue:
@@ -533,9 +689,16 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               </Box>
             )}
 
-            {/* SSH Configuration */}
+            {/* SSH Authentication */}
+
             {localConfig.auth.method === "ssh" && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
                 <Alert severity="info">
                   {t("audit.config.sshInfo", {
                     defaultValue:
@@ -543,7 +706,13 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                   })}
                 </Alert>
 
-                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "flex-start",
+                  }}
+                >
                   <TextField
                     label={t("audit.config.sshKeyPath", {
                       defaultValue: "SSH Key Path (optional)",
@@ -552,7 +721,10 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                     onChange={(e) =>
                       setLocalConfig((prev) => ({
                         ...prev,
-                        auth: { ...prev.auth, sshKeyPath: e.target.value },
+                        auth: {
+                          ...prev.auth,
+                          sshKeyPath: e.target.value,
+                        },
                       }))
                     }
                     placeholder="~/.ssh/id_ed25519"
@@ -562,13 +734,19 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                     size="small"
                     fullWidth
                   />
+
                   <Button
                     variant="outlined"
                     size="small"
                     onClick={handleBrowseAuthKey}
-                    sx={{ whiteSpace: "nowrap", height: 40 }}
+                    sx={{
+                      whiteSpace: "nowrap",
+                      height: 40,
+                    }}
                   >
-                    {t("audit.config.browse", { defaultValue: "Browse…" })}
+                    {t("audit.config.browse", {
+                      defaultValue: "Browse…",
+                    })}
                   </Button>
                 </Box>
               </Box>
@@ -576,124 +754,24 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           </Box>
         )}
 
-        {/* TAB 2: Commit Signing */}
+        {/* ========================================================= */}
+        {/* TAB 2: ROUND NAMES                                       */}
+        {/* ========================================================= */}
+
         {activeTab === 2 && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={!!localConfig.signing?.enabled}
-                  onChange={(e) =>
-                    setLocalConfig((prev) => ({
-                      ...prev,
-                      signing: {
-                        ...(prev.signing ?? { format: "ssh" }),
-                        enabled: e.target.checked,
-                      },
-                    }))
-                  }
-                />
-              }
-              label={t("audit.config.enableSigning", {
-                defaultValue: "Sign commits",
-              })}
-            />
-
-            {localConfig.signing?.enabled && (
-              <>
-                <FormControl size="small">
-                  <FormLabel>
-                    {t("audit.config.signFormat", {
-                      defaultValue: "Signature format",
-                    })}
-                  </FormLabel>
-                  <RadioGroup
-                    row
-                    value={localConfig.signing?.format ?? "ssh"}
-                    onChange={(e) =>
-                      setLocalConfig((prev) => ({
-                        ...prev,
-                        signing: {
-                          ...prev.signing!,
-                          format: e.target.value as "gpg" | "ssh",
-                        },
-                      }))
-                    }
-                  >
-                    <FormControlLabel
-                      value="ssh"
-                      control={<Radio />}
-                      label="SSH (recommended)"
-                    />
-                    <FormControlLabel
-                      value="gpg"
-                      control={<Radio />}
-                      label="GPG"
-                    />
-                  </RadioGroup>
-                </FormControl>
-
-                {localConfig.signing?.format === "ssh" ? (
-                  <Box
-                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-                  >
-                    <TextField
-                      label={t("audit.config.sshSigningKey", {
-                        defaultValue: "SSH signing key path",
-                      })}
-                      value={localConfig.signing?.sshSigningKeyPath ?? ""}
-                      onChange={(e) =>
-                        setLocalConfig((prev) => ({
-                          ...prev,
-                          signing: {
-                            ...prev.signing!,
-                            sshSigningKeyPath: e.target.value,
-                          },
-                        }))
-                      }
-                      placeholder="~/.ssh/taraflow_signing.pub"
-                      size="small"
-                      fullWidth
-                    />
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={handleBrowseSigningKey}
-                      sx={{ whiteSpace: "nowrap", height: 40 }}
-                    >
-                      {t("audit.config.browse", { defaultValue: "Browse…" })}
-                    </Button>
-                  </Box>
-                ) : (
-                  <TextField
-                    label={t("audit.config.gpgKeyId", {
-                      defaultValue: "GPG Key ID",
-                    })}
-                    value={localConfig.signing?.keyId ?? ""}
-                    onChange={(e) =>
-                      setLocalConfig((prev) => ({
-                        ...prev,
-                        signing: { ...prev.signing!, keyId: e.target.value },
-                      }))
-                    }
-                    placeholder="ABCD1234"
-                    size="small"
-                    fullWidth
-                  />
-                )}
-              </>
-            )}
-          </Box>
-        )}
-
-        {/* TAB 3: Round Names */}
-        {activeTab === 3 && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
             <Typography variant="subtitle2">
               {t("audit.config.defaultRounds", {
                 defaultValue: "Default Round Names",
               })}
             </Typography>
+
             <List dense>
               {DEFAULT_ROUND_NAMES.map((round) => (
                 <ListItem key={round.id}>
@@ -710,7 +788,12 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               })}
             </Typography>
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+              }}
+            >
               <TextField
                 value={newRoundName}
                 onChange={(e) => setNewRoundName(e.target.value)}
@@ -718,6 +801,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 size="small"
                 fullWidth
               />
+
               <TextField
                 value={newRoundNameDE}
                 onChange={(e) => setNewRoundNameDE(e.target.value)}
@@ -725,6 +809,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 size="small"
                 fullWidth
               />
+
               <IconButton onClick={handleAddRoundName} color="primary">
                 <AddIcon />
               </IconButton>
@@ -750,246 +835,482 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           </Box>
         )}
 
-        {/* TAB 4: Signers */}
-        {activeTab === 4 && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Typography variant="subtitle2">
-              {t("audit.config.signers.title", {
-                defaultValue: "Authorized signers",
+        {/* ========================================================= */}
+        {/* TAB 3: SIGNING + SIGNERS                                */}
+        {/* ========================================================= */}
+
+        {activeTab === 3 && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            {/* ==================== SIGNING ==================== */}
+
+            <Typography variant="subtitle1">
+              {t("audit.config.signing.section", {
+                defaultValue: "Commit Signing",
               })}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {t("audit.config.signers.help", {
+
+            <Typography variant="body2" color="text.secondary">
+              {t("audit.config.signing.help", {
                 defaultValue:
-                  "Keys allowed to sign audit commits (.tara/allowed_signers). Adding or removing one is itself a signed audit: commit.",
+                  "Sign audit commits cryptographically so their authenticity can be verified.",
               })}
             </Typography>
 
-            {!repoRoot && (
-              <Alert severity="info">
-                {t("audit.config.signers.noRepo", {
-                  defaultValue:
-                    "Open a project inside its audit repo to manage signers.",
-                })}
-              </Alert>
-            )}
-
-            {repoRoot && !manifestEmpty && (
-              <Typography variant="body2">
-                {t("audit.config.signers.maintainerLine", {
-                  defaultValue: "Maintainer(s):",
-                })}{" "}
-                <Typography
-                  component="span"
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  {maintainerList.length
-                    ? maintainerList.map((m) => m.principal).join(", ")
-                    : t("audit.config.signers.none", { defaultValue: "none" })}
-                </Typography>
-              </Typography>
-            )}
-
-            {noMaintainer && (
-              <Alert
-                severity="warning"
-                action={
-                  <Button
-                    color="inherit"
-                    size="small"
-                    disabled={signers.loading}
-                    onClick={handleFixMaintainer}
-                  >
-                    {t("audit.config.signers.fixMaintainer", {
-                      defaultValue: "Make me maintainer",
-                    })}
-                  </Button>
-                }
-              >
-                {t("audit.config.signers.noMaintainer", {
-                  defaultValue:
-                    "This manifest has no maintainer — no one can change it. Promote a signer to maintainer.",
-                })}
-              </Alert>
-            )}
-
-            {signers.error && (
-              <Alert severity="error" onClose={() => signers.setError(null)}>
-                {signers.error}
-              </Alert>
-            )}
-
-            <List dense>
-              {signers.entries.map((e) => {
-                const isM = e.role === "maintainer";
-                return (
-                  <ListItem
-                    key={`${e.keyType} ${e.keyBlob}`}
-                    secondaryAction={
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                      >
-                        <Button
-                          size="small"
-                          variant="text"
-                          disabled={signers.loading || !repoRoot}
-                          onClick={() =>
-                            signers.setRole(e.keyType, e.keyBlob, !isM)
-                          }
-                        >
-                          {isM
-                            ? t("audit.config.signers.demote", {
-                                defaultValue: "Revoke maintainer",
-                              })
-                            : t("audit.config.signers.promote", {
-                                defaultValue: "Make maintainer",
-                              })}
-                        </Button>
-                        <IconButton
-                          edge="end"
-                          aria-label="remove signer"
-                          disabled={signers.loading || !repoRoot}
-                          onClick={() =>
-                            signers.removeSigner(e.keyType, e.keyBlob)
-                          }
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    }
-                  >
-                    <ListItemText
-                      primary={
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          {e.principal}
-                          {isM && (
-                            <Chip
-                              size="small"
-                              color="primary"
-                              label={t("audit.config.signers.maintainer", {
-                                defaultValue: "Maintainer",
-                              })}
-                            />
-                          )}
-                        </Box>
-                      }
-                      secondary={`${e.keyType} …${e.keyBlob.slice(-16)}`}
-                    />
-                  </ListItem>
-                );
-              })}
-              {repoRoot && signers.entries.length === 0 && (
-                <ListItem>
-                  <ListItemText
-                    secondary={t("audit.config.signers.empty", {
-                      defaultValue: "No signers yet.",
-                    })}
-                  />
-                </ListItem>
-              )}
-            </List>
-
-            <Divider />
-
-            <Typography variant="subtitle2">
-              {t("audit.config.signers.add", { defaultValue: "Add signer" })}
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
-              <TextField
-                label={t("audit.config.signers.principal", {
-                  defaultValue: "Signer email (commit author)",
-                })}
-                value={newPrincipal}
-                onChange={(e) => setNewPrincipal(e.target.value)}
-                placeholder={config.author.email || "name@example.com"}
-                helperText={t("audit.config.signers.principalHelp", {
-                  defaultValue:
-                    "The commit-author email of the signer — must match how they commit.",
-                })}
-                size="small"
-                fullWidth
-              />
-              {config.author.email && (
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => setNewPrincipal(config.author.email)}
-                  sx={{ whiteSpace: "nowrap", height: 40 }}
-                >
-                  {t("audit.config.signers.useMine", {
-                    defaultValue: "Use mine",
-                  })}
-                </Button>
-              )}
-            </Box>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
-              <TextField
-                label={t("audit.config.signers.pubkey", {
-                  defaultValue: "Public key (.pub contents)",
-                })}
-                value={newPubkey}
-                onChange={(e) => setNewPubkey(e.target.value)}
-                placeholder="ssh-ed25519 AAAA…"
-                size="small"
-                fullWidth
-                multiline
-                minRows={2}
-              />
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleBrowsePubkey}
-                sx={{ whiteSpace: "nowrap", height: 40 }}
-              >
-                {t("audit.config.browse", { defaultValue: "Browse…" })}
-              </Button>
-            </Box>
             <FormControlLabel
               control={
-                <Checkbox
-                  checked={manifestEmpty ? true : newMaintainer}
-                  disabled={manifestEmpty}
-                  onChange={(e) => setNewMaintainer(e.target.checked)}
+                <Switch
+                  checked={!!localConfig.signing?.enabled}
+                  onChange={(e) =>
+                    setLocalConfig((prev) => ({
+                      ...prev,
+                      signing: {
+                        ...(prev.signing ?? {
+                          format: "ssh",
+                        }),
+                        enabled: e.target.checked,
+                      },
+                    }))
+                  }
                 />
               }
-              label={
-                manifestEmpty
-                  ? t("audit.config.signers.maintainerFirst", {
-                      defaultValue:
-                        "Maintainer (required for the first signer)",
-                    })
-                  : t("audit.config.signers.maintainerAdd", {
-                      defaultValue:
-                        "Grant maintainer role (may change the manifest)",
-                    })
-              }
+              label={t("audit.config.enableSigning", {
+                defaultValue: "Sign commits",
+              })}
             />
-            <Box>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AddIcon />}
-                disabled={
-                  signers.loading ||
-                  !repoRoot ||
-                  !newPrincipal.trim() ||
-                  !newPubkey.trim()
-                }
-                onClick={handleAddSigner}
-              >
-                {t("audit.config.signers.addButton", {
-                  defaultValue: "Add signer",
+
+            {!localConfig.signing?.enabled && (
+              <Alert severity="info">
+                {t("audit.config.signing.disabled", {
+                  defaultValue:
+                    "Commit signing is disabled. Enable it to configure a signing key and authorized signers.",
                 })}
-              </Button>
-            </Box>
+              </Alert>
+            )}
+
+            {localConfig.signing?.enabled && (
+              <>
+                <FormControl size="small">
+                  <FormLabel>
+                    {t("audit.config.signFormat", {
+                      defaultValue: "Signature format",
+                    })}
+                  </FormLabel>
+
+                  <RadioGroup
+                    row
+                    value={localConfig.signing?.format ?? "ssh"}
+                    onChange={(e) =>
+                      setLocalConfig((prev) => ({
+                        ...prev,
+                        signing: {
+                          ...prev.signing!,
+                          format: e.target.value as "gpg" | "ssh",
+                        },
+                      }))
+                    }
+                  >
+                    <FormControlLabel
+                      value="ssh"
+                      control={<Radio />}
+                      label="SSH (recommended)"
+                    />
+
+                    <FormControlLabel
+                      value="gpg"
+                      control={<Radio />}
+                      label="GPG"
+                    />
+                  </RadioGroup>
+                </FormControl>
+
+                {/* SSH Signing */}
+
+                {localConfig.signing?.format === "ssh" ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <TextField
+                      label={t("audit.config.sshSigningKey", {
+                        defaultValue: "SSH signing key path",
+                      })}
+                      value={localConfig.signing?.sshSigningKeyPath ?? ""}
+                      onChange={(e) =>
+                        setLocalConfig((prev) => ({
+                          ...prev,
+                          signing: {
+                            ...prev.signing!,
+                            sshSigningKeyPath: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="~/.ssh/taraflow_signing.pub"
+                      size="small"
+                      fullWidth
+                    />
+
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleBrowseSigningKey}
+                      sx={{
+                        whiteSpace: "nowrap",
+                        height: 40,
+                      }}
+                    >
+                      {t("audit.config.browse", {
+                        defaultValue: "Browse…",
+                      })}
+                    </Button>
+                  </Box>
+                ) : (
+                  <TextField
+                    label={t("audit.config.gpgKeyId", {
+                      defaultValue: "GPG Key ID",
+                    })}
+                    value={localConfig.signing?.keyId ?? ""}
+                    onChange={(e) =>
+                      setLocalConfig((prev) => ({
+                        ...prev,
+                        signing: {
+                          ...prev.signing!,
+                          keyId: e.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="ABCD1234"
+                    size="small"
+                    fullWidth
+                  />
+                )}
+
+                {/* ==================== SIGNERS ==================== */}
+
+                <Divider sx={{ my: 1 }} />
+
+                <Typography variant="subtitle1">
+                  {t("audit.config.signers.title", {
+                    defaultValue: "Authorized Signers",
+                  })}
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+                  {t("audit.config.signers.help", {
+                    defaultValue:
+                      "These keys are authorized to sign audit commits. Changes to the signer manifest are themselves recorded as signed audit commits.",
+                  })}
+                </Typography>
+
+                {!repoRoot && (
+                  <Alert severity="info">
+                    {t("audit.config.signers.noRepo", {
+                      defaultValue:
+                        "Open a project inside its audit repo to manage authorized signers.",
+                    })}
+                  </Alert>
+                )}
+
+                {/* Maintainers */}
+
+                {repoRoot && !manifestEmpty && (
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 500,
+                      }}
+                    >
+                      {t("audit.config.signers.maintainerLine", {
+                        defaultValue: "Maintainer(s):",
+                      })}{" "}
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        {maintainerList.length
+                          ? maintainerList.map((m) => m.principal).join(", ")
+                          : t("audit.config.signers.none", {
+                              defaultValue: "none",
+                            })}
+                      </Typography>
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* No maintainer warning */}
+
+                {noMaintainer && (
+                  <Alert
+                    severity="warning"
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        disabled={signers.loading}
+                        onClick={handleFixMaintainer}
+                      >
+                        {t("audit.config.signers.fixMaintainer", {
+                          defaultValue: "Make me maintainer",
+                        })}
+                      </Button>
+                    }
+                  >
+                    {t("audit.config.signers.noMaintainer", {
+                      defaultValue:
+                        "This manifest has no maintainer — no one can change it. Promote a signer to maintainer.",
+                    })}
+                  </Alert>
+                )}
+
+                {/* Signer error */}
+
+                {signers.error && (
+                  <Alert
+                    severity="error"
+                    onClose={() => signers.setError(null)}
+                  >
+                    {signers.error}
+                  </Alert>
+                )}
+
+                {/* Existing signers */}
+
+                <List dense>
+                  {signers.entries.map((entry) => {
+                    const isMaintainer = entry.role === "maintainer";
+
+                    return (
+                      <ListItem
+                        key={`${entry.keyType} ${entry.keyBlob}`}
+                        secondaryAction={
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Button
+                              size="small"
+                              variant="text"
+                              disabled={signers.loading || !repoRoot}
+                              onClick={() =>
+                                signers.setRole(
+                                  entry.keyType,
+                                  entry.keyBlob,
+                                  !isMaintainer,
+                                )
+                              }
+                            >
+                              {isMaintainer
+                                ? t("audit.config.signers.demote", {
+                                    defaultValue: "Revoke maintainer",
+                                  })
+                                : t("audit.config.signers.promote", {
+                                    defaultValue: "Make maintainer",
+                                  })}
+                            </Button>
+
+                            <IconButton
+                              edge="end"
+                              aria-label="remove signer"
+                              disabled={signers.loading || !repoRoot}
+                              onClick={() =>
+                                signers.removeSigner(
+                                  entry.keyType,
+                                  entry.keyBlob,
+                                )
+                              }
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        }
+                      >
+                        <ListItemText
+                          primary={
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Typography variant="body2">
+                                {entry.principal}
+                              </Typography>
+
+                              {isMaintainer && (
+                                <Chip
+                                  size="small"
+                                  color="primary"
+                                  label={t("audit.config.signers.maintainer", {
+                                    defaultValue: "Maintainer",
+                                  })}
+                                />
+                              )}
+                            </Box>
+                          }
+                          secondary={`${entry.keyType} …${entry.keyBlob.slice(-16)}`}
+                        />
+                      </ListItem>
+                    );
+                  })}
+
+                  {repoRoot && signers.entries.length === 0 && (
+                    <ListItem>
+                      <ListItemText
+                        secondary={t("audit.config.signers.empty", {
+                          defaultValue: "No authorized signers yet.",
+                        })}
+                      />
+                    </ListItem>
+                  )}
+                </List>
+
+                {/* Add signer */}
+
+                <Divider />
+
+                <Typography variant="subtitle2">
+                  {t("audit.config.signers.add", {
+                    defaultValue: "Add signer",
+                  })}
+                </Typography>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <TextField
+                    label={t("audit.config.signers.principal", {
+                      defaultValue: "Signer email (commit author)",
+                    })}
+                    value={newPrincipal}
+                    onChange={(e) => setNewPrincipal(e.target.value)}
+                    placeholder={config.author.email || "name@example.com"}
+                    helperText={t("audit.config.signers.principalHelp", {
+                      defaultValue:
+                        "The commit-author email of the signer — must match how they commit.",
+                    })}
+                    size="small"
+                    fullWidth
+                  />
+
+                  {config.author.email && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => setNewPrincipal(config.author.email)}
+                      sx={{
+                        whiteSpace: "nowrap",
+                        height: 40,
+                      }}
+                    >
+                      {t("audit.config.signers.useMine", {
+                        defaultValue: "Use mine",
+                      })}
+                    </Button>
+                  )}
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <TextField
+                    label={t("audit.config.signers.pubkey", {
+                      defaultValue: "Public key (.pub contents)",
+                    })}
+                    value={newPubkey}
+                    onChange={(e) => setNewPubkey(e.target.value)}
+                    placeholder="ssh-ed25519 AAAA…"
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={2}
+                  />
+
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleBrowsePubkey}
+                    sx={{
+                      whiteSpace: "nowrap",
+                      height: 40,
+                    }}
+                  >
+                    {t("audit.config.browse", {
+                      defaultValue: "Browse…",
+                    })}
+                  </Button>
+                </Box>
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={manifestEmpty ? true : newMaintainer}
+                      disabled={manifestEmpty}
+                      onChange={(e) => setNewMaintainer(e.target.checked)}
+                    />
+                  }
+                  label={
+                    manifestEmpty
+                      ? t("audit.config.signers.maintainerFirst", {
+                          defaultValue:
+                            "Maintainer (required for the first signer)",
+                        })
+                      : t("audit.config.signers.maintainerAdd", {
+                          defaultValue:
+                            "Grant maintainer role (may change the manifest)",
+                        })
+                  }
+                />
+
+                <Box>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    disabled={
+                      signers.loading ||
+                      !repoRoot ||
+                      !newPrincipal.trim() ||
+                      !newPubkey.trim()
+                    }
+                    onClick={handleAddSigner}
+                  >
+                    {t("audit.config.signers.addButton", {
+                      defaultValue: "Add signer",
+                    })}
+                  </Button>
+                </Box>
+              </>
+            )}
           </Box>
         )}
 
-        {/* TAB 5: Protection */}
-        {activeTab === 5 && (
+        {/* ========================================================= */}
+        {/* TAB 4: PROTECTION                                        */}
+        {/* ========================================================= */}
+
+        {activeTab === 4 && (
           <Box sx={{ pt: 1 }}>
             {protection ? (
               <AuditProtectionPanel protection={protection} variant="full" />
@@ -1005,14 +1326,19 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
         )}
       </DialogContent>
 
+      {/* ==================== ACTIONS ==================== */}
+
       <DialogActions>
         <Button
           onClick={onClose}
           disabled={isSaving}
           startIcon={<CancelIcon />}
         >
-          {t("common.cancel", { defaultValue: "Cancel" })}
+          {t("common.cancel", {
+            defaultValue: "Cancel",
+          })}
         </Button>
+
         <Button
           onClick={handleSave}
           disabled={isSaving}
@@ -1020,7 +1346,9 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
           color="primary"
           startIcon={<SaveIcon />}
         >
-          {t("common.save", { defaultValue: "Save" })}
+          {t("common.save", {
+            defaultValue: "Save",
+          })}
         </Button>
       </DialogActions>
     </Dialog>

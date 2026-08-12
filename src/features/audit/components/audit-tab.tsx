@@ -659,11 +659,13 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         )}
 
         {/* Audit trail verification */}
-        <AuditVerifyPanel
-          repoRoot={repoRootValue}
-          anchor={protection.anchor}
-          branch={currentBranch}
-        />
+        {auditData.config.signing?.enabled && (
+          <AuditVerifyPanel
+            repoRoot={repoRootValue}
+            anchor={protection.anchor}
+            branch={currentBranch}
+          />
+        )}
       </Box>
 
       {/* Config Dialog */}
