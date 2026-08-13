@@ -12,6 +12,7 @@ import {
 } from "../services/audit-git-adapters";
 import { createGitService } from "../services/git-service-renderer";
 import { applyTaraAttributes } from "../services/audit-repo-attributes";
+import { applyAuditRepoHooks } from "../services/audit-repo-hooks";
 import {
   runAuditRepoOpenFlow,
   gitattributesPathOf,
@@ -33,6 +34,29 @@ function cacheRepoRoot(projectId: string, root: string | null): Promise<void> {
     /* localStorage unavailable — cache is advisory, ignore */
   }
   return Promise.resolve();
+}
+
+/** chmod +x a written hook via the main process (git won't run a non-exec hook;
+ *  harmless no-op on Windows). Injected into applyAuditRepoHooks.
+ *
+ *  Self-typed so this compiles whether or not window.electron.file's global
+ *  type declares makeExecutable yet. (Adding it to that type is nice-to-have —
+ *  see the note in the PR — but not required for this to build.) */
+type FileMakeExecutable = {
+  makeExecutable?: (
+    filePath: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+};
+
+async function makeHookExecutable(path: string): Promise<void> {
+  const api = window.electron?.file as FileMakeExecutable | undefined;
+  if (!api?.makeExecutable) {
+    throw new Error("File API (makeExecutable) not available");
+  }
+  const res = await api.makeExecutable(path);
+  if (!res.success) {
+    throw new Error(res.error ?? "Failed to make hook executable");
+  }
 }
 
 export function useAuditRepo(project: OpenFlowProject) {
@@ -115,6 +139,32 @@ export function useAuditRepo(project: OpenFlowProject) {
     }
   }, [outcome, gitRunner, fileIO, refresh]);
 
+  /** Install/refresh the managed git hooks (core.hooksPath + .tara/hooks), then
+   *  re-check. Same guard as applyAttributes — needs a bound repo root. */
+  const applyHooks = useCallback(async () => {
+    if (
+      !outcome ||
+      (outcome.kind !== "repo-needs-attributes" && outcome.kind !== "repo-ok")
+    ) {
+      return;
+    }
+    const repoRoot = outcome.repoRoot;
+    setLoading(true);
+    setError(null);
+    try {
+      await applyAuditRepoHooks(
+        gitRunner,
+        fileIO,
+        makeHookExecutable,
+        repoRoot,
+      );
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to install git hooks");
+      setLoading(false);
+    }
+  }, [outcome, gitRunner, fileIO, refresh]);
+
   /** `git init` in the project's directory, then re-run the flow. */
   const initRepo = useCallback(async () => {
     if (!project.filePath) return;
@@ -133,5 +183,13 @@ export function useAuditRepo(project: OpenFlowProject) {
     }
   }, [project.filePath, gitRunner, refresh]);
 
-  return { outcome, loading, error, refresh, applyAttributes, initRepo };
+  return {
+    outcome,
+    loading,
+    error,
+    refresh,
+    applyAttributes,
+    applyHooks,
+    initRepo,
+  };
 }

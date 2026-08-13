@@ -481,7 +481,9 @@ ipcMain.handle("git:raw", async (_, command) => {
 // still holds. Never throws to the renderer: a non-zero exit is returned as { code }.
 ipcMain.handle("git:rawInDir", async (_, dir: string, args: string[]) => {
   try {
-    const stdout = await simpleGit(dir).raw(args);
+    const stdout = await simpleGit(dir, {
+      unsafe: { allowUnsafeHooksPath: true },
+    }).raw(args);
     return { success: true, data: { stdout, stderr: "", code: 0 } };
   } catch (err: any) {
     // simple-git throws on non-zero exit (e.g. rev-parse outside a repo)
@@ -672,6 +674,16 @@ ipcMain.handle(
     }
   },
 );
+
+// Make a file executable (git hooks need +x on Unix; harmless on Windows).
+ipcMain.handle("file:makeExecutable", async (_, filePath: string) => {
+  try {
+    await fs.chmod(filePath, 0o755);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
 
 // ==================== METADATA SERVICE ====================
 

@@ -60,6 +60,8 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.invoke("file:readText", filePath),
     writeText: (filePath: string, content: string) =>
       ipcRenderer.invoke("file:writeText", filePath, content),
+    makeExecutable: (filePath: string) =>
+      ipcRenderer.invoke("file:makeExecutable", filePath),
   },
 
   // Metadata API (Recent Projects)

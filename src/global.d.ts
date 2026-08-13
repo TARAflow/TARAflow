@@ -62,6 +62,9 @@ declare global {
           filePath: string,
           content: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
+        makeExecutable: (
+          filePath: string,
+        ) => Promise<{ success: boolean; error?: string }>;
       };
       metadata?: {
         getRecentProjects: () => Promise<{

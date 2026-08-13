@@ -17,7 +17,9 @@
       "init": "Audit-Repository hier initialisieren",
       "setAttributes": ".gitattributes setzen",
       "needsAttributes": "Das Audit-Repository erzwingt keine kanonische Behandlung von .tara.json-Dateien (LF/Text). Setze die .gitattributes, um unnötige Unterschiede in Diffs zu vermeiden.",
-      "notARepo": "Diese Projektdatei liegt nicht in einem Git-Repository."
+      "notARepo": "Diese Projektdatei liegt nicht in einem Git-Repository.",
+      "installHooks": "Git-Hooks installieren",
+      "needsHooks": "Das Audit-Repo hat keinen lokalen Commit-Message-Hook. Installiere ihn, um fehlerhafte Audit-Commits früh abzufangen — auch von der Kommandozeile."
     },
     "commit": {
       "title": "Commit erstellen",

@@ -17,7 +17,9 @@
       "init": "Initialize Audit Repo Here",
       "setAttributes": "Set .gitattributes",
       "needsAttributes": "The audit repository does not enforce canonical .tara.json handling (LF/text). Set .gitattributes to avoid unnecessary diff noise.",
-      "notARepo": "This project file is not inside a Git repository."
+      "notARepo": "This project file is not inside a Git repository.",
+      "installHooks": "Install git hooks",
+      "needsHooks": "The audit repo has no local commit-message hook. Install it to catch malformed audit commits early — including from the command line."
     },
     "commit": {
       "title": "Create Commit",

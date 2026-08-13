@@ -6,49 +6,66 @@
 
 export interface ParsedMessage {
   subject: string;
-  /** Trailer key -> values (a key may repeat, e.g. multiple Reviewed-by). */
   trailers: Record<string, string[]>;
 }
 
 const TRAILER_RE = /^([A-Za-z][A-Za-z0-9-]*):[ \t]+(.*)$/;
 
-/**
- * Parse a commit message. Trailers are taken from the LAST contiguous block of
- * trailer-shaped lines at the end of the message (git-trailer semantics), so a
- * body line that happens to contain a colon is not mistaken for a trailer.
- */
 export function parseCommitMessage(message: string): ParsedMessage {
   const lines = message.split(/\r?\n/);
   const subject = lines[0] ?? "";
-
-  // Collect the trailing trailer block (scan up from the end).
   const block: string[] = [];
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i];
     if (line.trim() === "") {
-      if (block.length) break; // reached the blank line above the trailer block
-      continue; // skip trailing blank lines
+      if (block.length) break;
+      continue;
     }
     if (TRAILER_RE.test(line)) block.unshift(line);
-    else break; // a non-trailer line ends the block
+    else break;
   }
-
   const trailers: Record<string, string[]> = {};
   for (const line of block) {
     const m = TRAILER_RE.exec(line);
     if (m) (trailers[m[1]] ??= []).push(m[2].trim());
   }
-
   return { subject, trailers };
 }
 
-/** Is this an `audit:` infra commit (exempt from the round schema)? */
 export function isAuditSubject(subject: string): boolean {
   return /^audit:\s/.test(subject);
 }
 
-/** The `<round>` from a `[TARA] <round>` subject, or null if not that shape. */
 export function taraRound(subject: string): string | null {
   const m = /^\[TARA\]\s+(.+?)\s*$/.exec(subject);
   return m ? m[1] : null;
+}
+
+// ── Shared audit-message schema predicate (used by the check AND the hook) ────
+
+/** Trailers the commit-flow always emits for a [TARA] round. */
+export const REQUIRED_TARA_TRAILERS = [
+  "Affected-Phases",
+  "Batch-Size",
+  "Author",
+  "Date",
+] as const;
+
+export type AuditMessageProblem =
+  | { kind: "bad-subject"; subject: string }
+  | { kind: "missing-trailers"; missing: string[] };
+
+/**
+ * Validate ONE commit message against the audit schema. Returns [] when the
+ * message is acceptable (an `audit:` infra commit, or a `[TARA] <round>` with
+ * all required trailers). Pure — the engine check maps problems to Findings
+ * (with a commit hash); the commit-msg hook maps them to stderr + exit code.
+ * ONE definition of "valid audit message" for both.
+ */
+export function validateAuditMessage(message: string): AuditMessageProblem[] {
+  const { subject, trailers } = parseCommitMessage(message);
+  if (isAuditSubject(subject)) return [];
+  if (taraRound(subject) === null) return [{ kind: "bad-subject", subject }];
+  const missing = REQUIRED_TARA_TRAILERS.filter((k) => !(k in trailers));
+  return missing.length ? [{ kind: "missing-trailers", missing: [...missing] }] : [];
 }

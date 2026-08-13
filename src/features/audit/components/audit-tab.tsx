@@ -611,6 +611,33 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         </Box>
       )}
 
+      {(repo.outcome?.kind === "repo-ok" ||
+        repo.outcome?.kind === "repo-needs-attributes") &&
+        !repo.outcome.hooks.ok && (
+          <Box sx={{ px: 2, pt: 2 }}>
+            <Alert
+              severity="warning"
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => repo.applyHooks()}
+                  disabled={repo.loading}
+                >
+                  {t("audit.repo.installHooks", {
+                    defaultValue: "Install git hooks",
+                  })}
+                </Button>
+              }
+            >
+              {t("audit.repo.needsHooks", {
+                defaultValue:
+                  "The audit repo has no local commit-message hook. Install it to catch malformed audit commits early — including from the command line.",
+              })}
+            </Alert>
+          </Box>
+        )}
+
       {repo.error && (
         <Box sx={{ px: 2, pt: 2 }}>
           <Alert severity="error">{repo.error}</Alert>

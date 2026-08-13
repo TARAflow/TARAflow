@@ -1,6 +1,7 @@
 // ==================== AUDIT REPO OPEN-FLOW ====================
 // The orchestration that runs when a project is opened:
 //   locate the audit repo → bind it → cache the path → check .gitattributes
+//   AND check the managed git hooks
 // Pure and dependency-injected (no React, no window), so it is fully unit-
 // testable. `useAuditRepo` is a thin React wrapper that supplies real deps.
 
@@ -11,6 +12,7 @@ import {
   type FileIO,
   type AttrStatus,
 } from "./audit-repo-attributes";
+import { inspectAuditRepoHooks, type HooksStatus } from "./audit-repo-hooks";
 import { allowedSignersPathOf } from "./audit-signer-manifest";
 
 // ── Path helpers (renderer, cross-platform, no node:path) ────────────────────
@@ -42,12 +44,16 @@ export interface AuditRepoOpenFlowDeps {
 export type AuditRepoOpenOutcome =
   | { kind: "no-file" } // project not saved yet — nothing to locate
   | { kind: "not-a-repo"; fileDir: string } // → offer to init
-  | { kind: "repo-ok"; repoRoot: string } // repo present, attributes fine
+  | { kind: "repo-ok"; repoRoot: string; hooks: HooksStatus } // attributes fine
   | {
       kind: "repo-needs-attributes";
       repoRoot: string;
       status: AttrStatus;
+      hooks: HooksStatus;
     }; // → offer to set .gitattributes
+// NOTE: `hooks` rides along on BOTH repo-bound outcomes (independent of the
+// attributes state) so the UI can offer "install hooks" without a third kind —
+// keeping every existing `repo-ok || repo-needs-attributes` repoRoot check valid.
 
 export interface OpenFlowProject {
   id: string;
@@ -97,7 +103,15 @@ export async function runAuditRepoOpenFlow(
     gitattributesPathOf(loc.repoRoot),
   );
 
+  // Managed git hooks (core.hooksPath + .tara/hooks). Rides along on the outcome
+  // so the UI can prompt to install/update independently of .gitattributes.
+  const hooks = await inspectAuditRepoHooks(
+    deps.gitRunner,
+    deps.fileIO,
+    loc.repoRoot,
+  );
+
   return status.ok
-    ? { kind: "repo-ok", repoRoot: loc.repoRoot }
-    : { kind: "repo-needs-attributes", repoRoot: loc.repoRoot, status };
+    ? { kind: "repo-ok", repoRoot: loc.repoRoot, hooks }
+    : { kind: "repo-needs-attributes", repoRoot: loc.repoRoot, status, hooks };
 }

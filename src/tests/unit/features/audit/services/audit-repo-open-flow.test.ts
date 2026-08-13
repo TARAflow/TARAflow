@@ -88,7 +88,12 @@ describe("runAuditRepoOpenFlow", () => {
       id: "p2",
       filePath: "/r/sub/foo.tara.json",
     });
-    expect(out).toEqual({ kind: "repo-ok", repoRoot: "/r" });
+    expect(out).toMatchObject({ kind: "repo-ok", repoRoot: "/r" });
+    // hooks status now rides along; the fake has none installed → flagged for install
+    if (out.kind === "repo-ok") {
+      expect(out.hooks.ok).toBe(false);
+      expect(out.hooks.toWrite).toEqual(["commit-msg"]);
+    }
     expect(setRepoPathCalls).toEqual(["/r"]);
     expect(cacheCalls).toContainEqual(["p2", "/r"]);
   });
