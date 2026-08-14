@@ -16,7 +16,7 @@
 import type { GitRunner, FileIO } from "./audit-repo-attributes";
 import { REQUIRED_TARA_TRAILERS } from "./verify/message";
 
-export const HOOKS_VERSION = 1;
+export const HOOKS_VERSION = 2;
 export const MANAGED_HOOKS = ["commit-msg"] as const;
 export type HookName = (typeof MANAGED_HOOKS)[number];
 export const HOOKS_PATH_REL = ".tara/hooks";
@@ -43,7 +43,19 @@ export function hookScript(name: HookName): string {
     "# Local pre-check; the audit CLI/CI with a pinned anchor is authoritative.",
     "# Blocks a commit whose message is neither 'audit: …' nor a",
     "# '[TARA] <round>' carrying the required trailers. Self-contained POSIX sh.",
+    "# SCOPE: core.hooksPath is repo-wide, so this fires for EVERY commit. Only",
+    "# commits touching an audit path (*.tara.json or .tara/) must follow the",
+    "# schema — ordinary source commits in the same repo stay free-form.",
     'msg_file="$1"',
+    "",
+    "# Exempt commits that touch no audit-scoped path (a *.tara.json project",
+    "# file or anything under .tara/). git diff --cached honours the temporary",
+    "# index of a path-scoped commit and works on an unborn HEAD.",
+    "changed=$(git diff --cached --name-only 2>/dev/null)",
+    "if ! printf '%s\\n' \"$changed\" | grep -qE '\\.tara\\.json$|(^|/)\\.tara/'; then",
+    "  exit 0",
+    "fi",
+    "",
     'subject=$(head -n1 "$msg_file")',
     "",
     "# audit: infra commits are exempt from the round schema",

@@ -61,6 +61,10 @@ describe("audit-repo-hooks (pure-sh)", () => {
     expect(parseHookVersion(s)).toBe(HOOKS_VERSION);
     expect(s).toContain("for key in Affected-Phases Batch-Size Author Date;");
     expect(s).not.toContain("taraflow-hook"); // no external helper
+    // Scope gate: schema only enforced on commits touching audit paths, so
+    // ordinary source commits in the same repo stay free-form.
+    expect(s).toContain("git diff --cached --name-only");
+    expect(s).toContain("\\.tara\\.json$|(^|/)\\.tara/");
   });
   it("fresh repo → not ok, toWrite commit-msg", async () => {
     const g = fakeGit(null),
@@ -79,7 +83,7 @@ describe("audit-repo-hooks (pure-sh)", () => {
   it("stale version → toWrite", async () => {
     const seed: Record<string, string> = {};
     seed[hookPathOf(REPO, "commit-msg")] = hookScript("commit-msg").replace(
-      "HOOKS_VERSION=1",
+      `HOOKS_VERSION=${HOOKS_VERSION}`,
       "HOOKS_VERSION=0",
     );
     const g = fakeGit(HOOKS_PATH_REL),

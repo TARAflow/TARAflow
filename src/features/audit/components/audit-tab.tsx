@@ -621,7 +621,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
                 <Button
                   color="inherit"
                   size="small"
-                  onClick={() => repo.applyHooks()}
+                  onClick={() => repo.applyHooks(auditData.config)}
                   disabled={repo.loading}
                 >
                   {t("audit.repo.installHooks", {
