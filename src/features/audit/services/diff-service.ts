@@ -1,6 +1,21 @@
 // ==================== DIFF SERVICE ====================
 // Change detection and diff generation for all TARA phases
 // Compares current project state with last commit state
+//
+// Rework (2026-08): a phase that goes from null -> populated (or the reverse)
+// is now a real, committable change. Previously every entity phase
+// (assets/threats/risks/attack-trees) bailed out with an empty list when one
+// side was null ("Entire phase added or deleted" -> returned nothing), so the
+// very first time a phase was filled in it was invisible to the commit gate.
+// The fix: never early-return on a one-sided null; treat the missing side as an
+// empty collection so the existing added/deleted/modified passes emit one
+// granular ChangeItem per entity — which also makes the commit message concrete
+// (it lists what was added/changed/removed, not just "something changed").
+//
+// Asset detail was also thin: security-goal changes keyed on a non-existent
+// `enabled` flag (goals express activation via `level !== "none"`), and the
+// asset<->DFD relations (`linkedDFDElements`, the asset-side mirror of a flow's
+// `assetRelations`) were not compared at all. Both are covered now.
 
 import type { Project } from "app";
 import type {
@@ -230,31 +245,48 @@ export class DiffService {
     const changes: ChangeItem[] = [];
 
     if (!current && !previous) return changes;
-    if (!current || !previous) {
-      // Entire phase added or deleted
-      return changes;
-    }
 
-    const currentAssets = new Map(current.assets.map((a) => [a.id, a]));
-    const previousAssets = new Map(previous.assets.map((a) => [a.id, a]));
+    // A one-sided null is a real change: the whole phase was added (previous
+    // null) or removed (current null). Treat the missing side as empty so the
+    // added/deleted passes below emit one granular item per asset — instead of
+    // the old silent early-return that made a first population uncommittable.
+    const currentAssets = new Map(
+      (current?.assets ?? []).map((a) => [a.id, a]),
+    );
+    const previousAssets = new Map(
+      (previous?.assets ?? []).map((a) => [a.id, a]),
+    );
 
     // Find added assets
     Array.from(currentAssets.entries()).forEach(([id, asset]) => {
       if (!previousAssets.has(id)) {
+        const linkCount = asset.linkedDFDElements?.length ?? 0;
+        const details: ChangeDetail[] = [
+          {
+            field: "overallImpact",
+            fieldLabel: "Overall Impact",
+            oldValue: 0,
+            newValue: asset.overallImpact,
+            valueType: "number",
+          },
+        ];
+        // Report the asset<->DFD relations the new asset carries, so the commit
+        // message states that relations were added (not just the bare asset).
+        if (linkCount > 0) {
+          details.push({
+            field: "linkedDFDElements",
+            fieldLabel: "Linked DFD Elements",
+            oldValue: 0,
+            newValue: linkCount,
+            valueType: "number",
+          });
+        }
         changes.push({
           type: "added",
           id: asset.id,
           name: asset.name || asset.id,
           description: `Asset added: ${asset.properties?.description || "No description"}`,
-          details: [
-            {
-              field: "overallImpact",
-              fieldLabel: "Overall Impact",
-              oldValue: 0,
-              newValue: asset.overallImpact,
-              valueType: "number",
-            },
-          ],
+          details,
         });
       }
     });
@@ -316,6 +348,17 @@ export class DiffService {
       });
     }
 
+    // Protection need (protection-relevant, distinct from the impact ratings)
+    if (current.properties?.protectionNeed !== previous.properties?.protectionNeed) {
+      details.push({
+        field: "protectionNeed",
+        fieldLabel: "Protection Need",
+        oldValue: previous.properties?.protectionNeed,
+        newValue: current.properties?.protectionNeed,
+        valueType: "string",
+      });
+    }
+
     // Overall Impact
     if (current.overallImpact !== previous.overallImpact) {
       details.push({
@@ -327,34 +370,56 @@ export class DiffService {
       });
     }
 
-    // Impact Ratings
+    // Impact Ratings (per-criterion value changes)
     const impactChanges = this.compareImpactRatings(
-      current.impactRatings,
-      previous.impactRatings,
+      current.impactRatings ?? [],
+      previous.impactRatings ?? [],
     );
     if (impactChanges.length > 0) {
       details.push({
         field: "impactRatings",
         fieldLabel: "Impact Ratings",
-        oldValue: previous.impactRatings,
-        newValue: current.impactRatings,
-        valueType: "array",
+        oldValue: impactChanges
+          .map((c) => `${c.fieldLabel}:${c.oldValue}`)
+          .join(", "),
+        newValue: impactChanges
+          .map((c) => `${c.fieldLabel}:${c.newValue}`)
+          .join(", "),
+        valueType: "string",
       });
     }
 
-    // Security Goals
-    const securityGoalChanges = this.compareSecurityGoals(
-      current.securityGoals,
-      previous.securityGoals,
+    // Security Goals (level and/or formal-description changes per goal type).
+    // NOTE: goals express "active" via `level !== "none"`, NOT an `enabled`
+    // flag — the previous implementation counted a field that never exists, so
+    // security-goal changes were never detected.
+    const goalChanges = this.compareSecurityGoals(
+      current.securityGoals ?? [],
+      previous.securityGoals ?? [],
     );
-    if (securityGoalChanges > 0) {
+    if (goalChanges.length > 0) {
       details.push({
         field: "securityGoals",
         fieldLabel: "Security Goals",
-        oldValue: previous.securityGoals.filter((g) => g.level !== "none")
-          .length,
-        newValue: current.securityGoals.filter((g) => g.level !== "none")
-          .length,
+        oldValue: goalChanges.map((g) => `${g.type}:${g.from}`).join(", "),
+        newValue: goalChanges.map((g) => `${g.type}:${g.to}`).join(", "),
+        valueType: "string",
+      });
+    }
+
+    // Linked DFD elements = the asset side of an asset<->DFD relation (mirror of
+    // a flow's `assetRelations`). Comparing here means adding/removing a link on
+    // an existing asset is a committable change on its own.
+    const link = this.compareLinkedElements(
+      current.linkedDFDElements,
+      previous.linkedDFDElements,
+    );
+    if (link.added > 0 || link.removed > 0) {
+      details.push({
+        field: "linkedDFDElements",
+        fieldLabel: "Linked DFD Elements",
+        oldValue: previous.linkedDFDElements?.length ?? 0,
+        newValue: current.linkedDFDElements?.length ?? 0,
         valueType: "number",
       });
     }
@@ -367,18 +432,29 @@ export class DiffService {
     previous: any[],
   ): ChangeDetail[] {
     const changes: ChangeDetail[] = [];
-    const currentMap = new Map(current.map((r) => [r.criterionId, r.value]));
-    const previousMap = new Map(previous.map((r) => [r.criterionId, r.value]));
+    // Normalise missing/undefined to null so an absent criterion and an
+    // explicit null don't read as a change.
+    const norm = (v: any) => (v === undefined ? null : v);
+    const currentMap = new Map(
+      current.map((r) => [r.criterionId, norm(r.value)]),
+    );
+    const previousMap = new Map(
+      previous.map((r) => [r.criterionId, norm(r.value)]),
+    );
 
-    for (const [criterionId, currentValue] of Array.from(
-      currentMap.entries(),
-    )) {
-      const previousValue = previousMap.get(criterionId);
+    const criterionIds = new Set([
+      ...Array.from(currentMap.keys()),
+      ...Array.from(previousMap.keys()),
+    ]);
+
+    for (const criterionId of Array.from(criterionIds)) {
+      const currentValue = norm(currentMap.get(criterionId));
+      const previousValue = norm(previousMap.get(criterionId));
       if (previousValue !== currentValue) {
         changes.push({
           field: `rating_${criterionId}`,
-          fieldLabel: criterionId,
-          oldValue: previousValue ?? 0,
+          fieldLabel: String(criterionId),
+          oldValue: previousValue,
           newValue: currentValue,
           valueType: "number",
         });
@@ -388,10 +464,52 @@ export class DiffService {
     return changes;
   }
 
-  private compareSecurityGoals(current: any[], previous: any[]): number {
-    const currentEnabled = current.filter((g) => g.enabled).length;
-    const previousEnabled = previous.filter((g) => g.enabled).length;
-    return Math.abs(currentEnabled - previousEnabled);
+  private compareSecurityGoals(
+    current: any[],
+    previous: any[],
+  ): { type: string; from: string; to: string }[] {
+    const changed: { type: string; from: string; to: string }[] = [];
+    const cur = new Map((current ?? []).map((g) => [g.type, g]));
+    const prev = new Map((previous ?? []).map((g) => [g.type, g]));
+
+    const types = new Set([
+      ...Array.from(cur.keys()),
+      ...Array.from(prev.keys()),
+    ]);
+
+    for (const type of Array.from(types)) {
+      const c = cur.get(type);
+      const p = prev.get(type);
+      const cLevel: string = c?.level ?? "none";
+      const pLevel: string = p?.level ?? "none";
+      const cDesc: string = c?.formalDescription ?? "";
+      const pDesc: string = p?.formalDescription ?? "";
+      if (cLevel !== pLevel || cDesc !== pDesc) {
+        changed.push({ type: String(type), from: pLevel, to: cLevel });
+      }
+    }
+
+    return changed;
+  }
+
+  private compareLinkedElements(
+    current: any[] | undefined,
+    previous: any[] | undefined,
+  ): { added: number; removed: number } {
+    // Identity of a link = which DFD element + what relation. elementName /
+    // displayId are display fields and must not drive the diff.
+    const key = (l: any) => `${l.elementId}:${l.relationType}`;
+    const cur = new Set((current ?? []).map(key));
+    const prev = new Set((previous ?? []).map(key));
+    let added = 0;
+    let removed = 0;
+    cur.forEach((k) => {
+      if (!prev.has(k)) added++;
+    });
+    prev.forEach((k) => {
+      if (!cur.has(k)) removed++;
+    });
+    return { added, removed };
   }
 
   // ==================== THREAT COMPARISON ====================
@@ -403,13 +521,11 @@ export class DiffService {
     const changes: ChangeItem[] = [];
 
     if (!current && !previous) return changes;
-    if (!current || !previous) {
-      return changes;
-    }
 
-    // Get active threats based on method
-    const currentThreats = this.getActiveThreats(current);
-    const previousThreats = this.getActiveThreats(previous);
+    // One-sided null = whole phase added/removed; treat the missing side as an
+    // empty threat set so first generation is committable.
+    const currentThreats = current ? this.getActiveThreats(current) : [];
+    const previousThreats = previous ? this.getActiveThreats(previous) : [];
 
     const currentMap = new Map(currentThreats.map((t) => [t.id, t]));
     const previousMap = new Map(previousThreats.map((t) => [t.id, t]));
@@ -529,12 +645,9 @@ export class DiffService {
     const changes: ChangeItem[] = [];
 
     if (!current && !previous) return changes;
-    if (!current || !previous) {
-      return changes;
-    }
 
-    const currentMap = new Map(current.risks.map((r) => [r.id, r]));
-    const previousMap = new Map(previous.risks.map((r) => [r.id, r]));
+    const currentMap = new Map((current?.risks ?? []).map((r) => [r.id, r]));
+    const previousMap = new Map((previous?.risks ?? []).map((r) => [r.id, r]));
 
     // Added risks
     Array.from(currentMap.entries()).forEach(([id, risk]) => {
@@ -652,12 +765,9 @@ export class DiffService {
     const changes: ChangeItem[] = [];
 
     if (!current && !previous) return changes;
-    if (!current || !previous) {
-      return changes;
-    }
 
-    const currentMap = new Map(current.trees.map((t) => [t.id, t]));
-    const previousMap = new Map(previous.trees.map((t) => [t.id, t]));
+    const currentMap = new Map((current?.trees ?? []).map((t) => [t.id, t]));
+    const previousMap = new Map((previous?.trees ?? []).map((t) => [t.id, t]));
 
     // Added trees
     Array.from(currentMap.entries()).forEach(([id, tree]) => {

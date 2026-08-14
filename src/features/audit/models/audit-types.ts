@@ -373,6 +373,9 @@ export function generateCommitMessage(data: CommitMessageData): string {
   const subject = `[TARA] ${data.round}`;
 
   // ---- Body: human-readable change breakdown ----
+  const fmt = (v: any): string =>
+    v === null || v === undefined || v === "" ? "—" : String(v);
+
   const body: string[] = ["- Changes:"];
   data.changes.forEach((phase) => {
     body.push(`  - ${phase.phaseLabel}: ${phase.changeCount} items`);
@@ -380,6 +383,15 @@ export function generateCommitMessage(data: CommitMessageData): string {
       const prefix =
         change.type === "added" ? "+" : change.type === "deleted" ? "-" : "~";
       body.push(`    ${prefix} ${change.id}: ${change.name}`);
+      // Detail deltas (e.g. impact ratings, security goals, and asset<->DFD
+      // relations via "Linked DFD Elements") make the message concrete. Skip
+      // no-op details so the body stays signal, not noise.
+      (change.details ?? []).forEach((d) => {
+        if (d.oldValue === d.newValue) return;
+        body.push(
+          `        ${d.fieldLabel}: ${fmt(d.oldValue)} → ${fmt(d.newValue)}`,
+        );
+      });
     });
   });
 
@@ -426,35 +438,66 @@ export function createDefaultAuditData(): AuditData {
  * Validate Git configuration
  */
 export function validateGitConfig(config: AuditConfig): GitValidation {
-  const errors: string[] = [];
+  // Commit is LOCAL and offline — the audit trail rides on signed history, and
+  // push is a separate step (see the design doc §8). So a remote credential
+  // must never block a commit. We separate the two concerns explicitly:
+  //   commitErrors -> block `canCommit` (and are surfaced in the tab)
+  //   push issues  -> block `canPush` only, and are shown as warnings
+  const commitErrors: string[] = [];
   const warnings: string[] = [];
 
-  // Check author info
+  // ---- Commit-blocking: what a local (optionally signed) commit needs ----
+
+  // Author identity is mandatory for any commit.
   if (!config.author.name || !config.author.email) {
-    errors.push("Git author name and email are required");
+    commitErrors.push("Git author name and email are required");
   }
 
-  // Check remote URL (optional warning)
+  // A signing key must exist for the ACTIVE signing method — and only that one.
+  // The unified `signing` model is the source of truth; fall back to the legacy
+  // `gpg` block for older configs. Previously this checked `config.gpg` even
+  // when SSH signing was selected, which demanded a GPG key id that SSH signing
+  // never uses — an unsatisfiable, silent commit block.
+  const signing = config.signing ?? {
+    enabled: config.gpg.enabled,
+    format: "gpg" as SigningFormat,
+    keyId: config.gpg.keyId,
+  };
+  if (signing.enabled) {
+    if (signing.format === "gpg" && !(signing.keyId ?? config.gpg.keyId)) {
+      commitErrors.push("GPG key ID is required for GPG signing");
+    } else if (signing.format === "ssh" && !signing.sshSigningKeyPath) {
+      // An SSH signing key can also come from git config / the agent, and
+      // git-signing refuses to sign without a key at commit time while
+      // verification catches an unauthorized signer — so warn, don't block.
+      warnings.push(
+        "SSH signing is enabled but no signing key path is set — relying on git config",
+      );
+    }
+  }
+
+  // ---- Push-blocking only (never blocks a local commit) ----
+
   if (!config.remoteUrl) {
-    warnings.push("No remote repository URL configured - push will not be available");
+    warnings.push(
+      "No remote repository URL configured - push will not be available",
+    );
   }
 
-  // Check authentication
-  if (config.remoteUrl && config.auth.method === "pat" && !config.auth.patAccount) {
-    errors.push("Personal Access Token required for remote operations");
-  }
-
-  // Check GPG if enabled
-  if (config.gpg.enabled && !config.gpg.keyId) {
-    errors.push("GPG Key ID required when signing is enabled");
+  const patMissing =
+    !!config.remoteUrl &&
+    config.auth.method === "pat" &&
+    !config.auth.patAccount;
+  if (patMissing) {
+    warnings.push("Personal Access Token required to push to the remote");
   }
 
   return {
     isConfigured: config.author.name !== "" && config.author.email !== "",
-    errors,
+    errors: commitErrors,
     warnings,
-    canCommit: errors.length === 0,
-    canPush: errors.length === 0 && !!config.remoteUrl,
+    canCommit: commitErrors.length === 0,
+    canPush: commitErrors.length === 0 && !!config.remoteUrl && !patMissing,
   };
 }
 

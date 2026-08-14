@@ -656,6 +656,18 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         </Box>
       )}
 
+      {/* Commit-blocking errors — surfaced so a disabled commit button always
+          has a visible reason (these are the reasons canCommit is false). */}
+      {validation.isConfigured && validation.errors.length > 0 && (
+        <Box sx={{ px: 2, pt: 2 }}>
+          {validation.errors.map((err, i) => (
+            <Alert key={i} severity="error" sx={{ mb: 1 }}>
+              {err}
+            </Alert>
+          ))}
+        </Box>
+      )}
+
       {/* Validation Warnings */}
       {validation.warnings.length > 0 && (
         <Box sx={{ px: 2, pt: 2 }}>
