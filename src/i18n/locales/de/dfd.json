@@ -1356,6 +1356,10 @@
               "not_applicable_hint": "Fest verdrahtetes Signal — Verschlüsselung und Endpunkt-Authentifizierung nicht anwendbar. Physischer Zugriff auf die Verkabelung ist der primäre Angriffsvektor.",
               "physical_boundary_warning": "Fest verdrahtetes Signal überquert Trust Boundary — physischer Kabelbezugang ist der Angriffsvektor. Beachten: Kabelführung, Manipulationssiegel, Klemmen-Zugangskontrolle."
             },
+            "noTransportMedium": {
+              "context_hint": "Kein Transportmedium für dieses Protokoll — Routing und Redundanz sind nicht anwendbar.",
+              "not_applicable_hint": "Kein Transportmedium — Exposure Level, Verschlüsselung und Endpunkt-Authentifizierung sind nicht anwendbar. Der Schutz vor unbefugter Nutzung liegt beim Zielprozess."
+            },
             "direction": {
               "label": "Richtung",
               "options": {

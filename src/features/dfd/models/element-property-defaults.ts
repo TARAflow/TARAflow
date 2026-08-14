@@ -787,6 +787,19 @@ export const DATASTORE_TECH_DRIVEN_FIELDS: (keyof DataStoreProperties)[] = [
 // ==================== DATA FLOW DEFAULTS ====================
 
 /**
+ * Protocols that model a flow with NO physical/network transport medium.
+ * See Protocol type doc: in_process_call and human_input explicitly share
+ * this rationale ("no network transport ... same reasoning as human_input").
+ * For these protocols, routing (location), channel redundancy, and network
+ * exposure level are not meaningful — there is no medium to route over,
+ * fail over on, or be exposed on. Encryption/endpoint-auth are likewise
+ * inapplicable (see DATAFLOW_PROTOCOL_DEFAULTS.human_input).
+ */
+export const NO_TRANSPORT_MEDIUM_PROTOCOLS: ReadonlySet<
+  NonNullable<DataFlowProperties["protocol"]>
+> = new Set(["in_process_call", "human_input"]);
+
+/**
  * Design principles:
  * - OT protocols default to insecure state to surface threats.
  * - integrityProtection: CRC where frame-level CRC exists (CAN, Modbus RTU),

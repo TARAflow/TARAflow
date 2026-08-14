@@ -86,6 +86,7 @@ import { RichTextEditor } from "../shared/rich-text-editor";
 import { ConfirmDialog } from "../shared/confirm-dialog";
 import { AssetToAssetSelector } from "./asset-to-asset-selector";
 import { AssetGroup, AnyAssetRelationType } from "shared";
+import { MESSAGE_TYPE_OPTIONS } from "../../models/element-properties";
 
 // ==================== TYPES ====================
 
@@ -795,13 +796,14 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                       (selected as string[]).join(", ")
                     }
                   >
-                    <MenuItem value="pii">PII (Personal Data)</MenuItem>
-                    <MenuItem value="trade_secret">Trade Secret</MenuItem>
-                    <MenuItem value="configuration">Configuration</MenuItem>
-                    <MenuItem value="telemetry">Telemetry</MenuItem>
-                    <MenuItem value="credentials">
-                      Credentials / Secrets
-                    </MenuItem>
+                    {MESSAGE_TYPE_OPTIONS.map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(
+                          `tabs.dfd.element_description.dataflow.fields.messageType.options.${opt}`,
+                          { defaultValue: opt },
+                        )}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
                 <FormControl fullWidth>

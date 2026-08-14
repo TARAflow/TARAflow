@@ -840,6 +840,39 @@ export interface DataStoreProperties {
 
 // ==================== DATA FLOW PROPERTIES ====================
 
+/**
+ * Primary semantic type of data carried by this flow.
+ * Drives threat heuristics — e.g. credentials → Spoofing priority,
+ * firmware → Tampering critical, command → Repudiation + Tampering.
+ *
+ *   measurement  → Sensor value (temperature, pressure, current, flow)
+ *   command      → Control instruction (setpoint, enable, start/stop)
+ *   status       → State report (running, fault, ready, position)
+ *   alarm_event  → Alarm or event notification (E-Stop, limit breach)
+ *   config       → Configuration or parameter data
+ *   credentials  → Auth tokens, certificates, keys, passwords
+ *   firmware     → Firmware or software update package
+ *   log_audit    → Log, audit trail, or diagnostic data
+ *   pii          → Personal data (GDPR-relevant)
+ *   telemetry    → Aggregated operational / diagnostic metrics
+ *   custom       → Other — describe in dataTypeNotes
+ */
+export const MESSAGE_TYPE_OPTIONS = [
+  "measurement",
+  "command",
+  "status",
+  "alarm_event",
+  "config",
+  "credentials",
+  "firmware",
+  "log_audit",
+  "pii",
+  "telemetry",
+  "custom",
+] as const;
+
+export type MessageType = (typeof MESSAGE_TYPE_OPTIONS)[number];
+
 // ---------------------------------------------------------------------------
 // protocol — grouped by ICS/OT category for clarity
 // ---------------------------------------------------------------------------
@@ -1052,18 +1085,7 @@ export interface DataFlowProperties {
    *   telemetry    → Aggregated operational / diagnostic metrics
    *   custom       → Other — describe in dataTypeNotes
    */
-  messageType?:
-    | "measurement"
-    | "command"
-    | "status"
-    | "alarm_event"
-    | "config"
-    | "credentials"
-    | "firmware"
-    | "log_audit"
-    | "pii"
-    | "telemetry"
-    | "custom";
+  messageType?: MessageType;
 
   /**
    * Confidentiality classification of data in this flow.

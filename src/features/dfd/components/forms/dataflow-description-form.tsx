@@ -30,6 +30,7 @@ import {
   type DataFlowProperties,
   ENDPOINT_AUTHENTICATION_OPTIONS,
   INTEGRITY_PROTECTION_OPTIONS,
+  MESSAGE_TYPE_OPTIONS,
   type Protocol,
 } from "../../models/element-properties";
 import type { ExposureLevel } from "../../models/element-shared-types";
@@ -45,6 +46,7 @@ import { useConnectionForm } from "../../hooks/use-connection-form";
 import {
   DATAFLOW_PROTOCOL_DEFAULTS,
   DATAFLOW_PROTOCOL_DRIVEN_FIELDS,
+  NO_TRANSPORT_MEDIUM_PROTOCOLS,
   applyCascadeDefaults,
   buildClearPatch,
 } from "../../models/element-property-defaults";
@@ -139,6 +141,16 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
     const cleared = {
       ...props,
       ...buildClearPatch<DataFlowProperties>(DATAFLOW_PROTOCOL_DRIVEN_FIELDS),
+      // exposureLevel is normally derived from Trust-Boundary/location context,
+      // not the protocol — but the concept stops applying entirely once there
+      // is no transport medium left at all (in_process_call, human_input).
+      ...(NO_TRANSPORT_MEDIUM_PROTOCOLS.has(protocolKey)
+        ? buildClearPatch<DataFlowProperties>([
+            "exposureLevel",
+            "exposureLevelSource",
+            "exposureLevelRationale",
+          ])
+        : {}),
     };
     const cascaded = applyCascadeDefaults<DataFlowProperties>(
       cleared,
@@ -172,7 +184,13 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
     ? PROTOCOL_META[props.protocol]
     : undefined;
   const isElectrical = selectedMeta?.group === "electrical";
-  const isInProcess = selectedMeta?.group === "in_process";
+  // in_process_call + human_input share the "no transport medium" rationale
+  // (see Protocol type doc: "no network transport ... same reasoning as
+  // human_input") — routing, redundancy, exposure level, encryption and
+  // endpoint authentication are all inapplicable for both.
+  const hasNoTransportMedium = props.protocol
+    ? NO_TRANSPORT_MEDIUM_PROTOCOLS.has(props.protocol)
+    : false;
 
   // Physical locations that require physical access to the medium
   const PHYSICAL_ACCESS_LOCATIONS = new Set([
@@ -183,7 +201,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   ]);
   const requiresPhysicalAccess = props.location
     ? PHYSICAL_ACCESS_LOCATIONS.has(props.location)
-    : isElectrical && !isInProcess; // in-process has no physical medium at all
+    : isElectrical && !hasNoTransportMedium; // no-medium protocols have no physical medium at all
 
   // Standard EL mapping per location — rationale only needed when deviating
   const LOCATION_EL_STANDARD: Partial<Record<string, ExposureLevel[]>> = {
@@ -209,7 +227,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   // Unencrypted network/fieldbus flow crossing a trust boundary
   const showEncryptionWarning =
     !isElectrical &&
-    !isInProcess &&
+    !hasNoTransportMedium &&
     crossesTrustBoundary &&
     (encryptionInTransit === "" || encryptionInTransit === "none");
 
@@ -342,21 +360,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
-              {(
-                [
-                  "measurement",
-                  "command",
-                  "status",
-                  "alarm_event",
-                  "config",
-                  "credentials",
-                  "firmware",
-                  "log_audit",
-                  "pii",
-                  "telemetry",
-                  "custom",
-                ] as const
-              ).map((opt) => (
+              {MESSAGE_TYPE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt}>
                   {t(
                     `tabs.dfd.element_description.dataflow.fields.messageType.options.${opt}`,
@@ -500,56 +504,62 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </FormControl>
         </Grid>
 
-        {/* Physical Medium / Routing — location is the cause, EL is the effect */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.location.label",
-                { defaultValue: "Physical Medium / Routing" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.location ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("location", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.location.label",
-                { defaultValue: "Physical Medium / Routing" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(
-                [
-                  "on_chip",
-                  "in_process",
-                  "on_board",
-                  "in_enclosure",
-                  "field_cable",
-                  "local_network",
-                  "enterprise_network",
-                  "wireless_local",
-                  "internet",
-                  "custom",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.dataflow.fields.location.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
+        {/* Physical Medium / Routing — location is the cause, EL is the effect.
+            Not applicable when there is no transport medium at all (in_process_call,
+            human_input) — see hasNoTransportMedium. */}
+        {!hasNoTransportMedium && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.location.label",
+                  { defaultValue: "Physical Medium / Routing" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.location ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("location", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.location.label",
+                  { defaultValue: "Physical Medium / Routing" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+                {(
+                  [
+                    "on_chip",
+                    "in_process",
+                    "on_board",
+                    "in_enclosure",
+                    "field_cable",
+                    "local_network",
+                    "enterprise_network",
+                    "wireless_local",
+                    "internet",
+                    "custom",
+                  ] as const
+                ).map((opt) => (
+                  <MenuItem key={opt} value={opt}>
+                    {t(
+                      `tabs.dfd.element_description.dataflow.fields.location.options.${opt}`,
+                      { defaultValue: opt },
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
 
-        {showLocationRationale && (
+        {!hasNoTransportMedium && showLocationRationale && (
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -580,43 +590,65 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           </Grid>
         )}
 
-        {/* Redundancy — availability context, drives DoS impact assessment */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
-                { defaultValue: "Redundancy / Fallback" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.redundancy ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("redundancy", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.dataflow.fields.redundancy.label",
-                { defaultValue: "Redundancy / Fallback" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(["none", "failover", "degraded", "buffered"] as const).map(
-                (opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.dataflow.fields.redundancy.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ),
-              )}
-            </Select>
-          </FormControl>
-        </Grid>
+        {/* Redundancy — availability context, drives DoS impact assessment.
+            Not applicable when there is no transport medium at all — there is no
+            channel to fail over on (in_process_call, human_input). */}
+        {!hasNoTransportMedium && (
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.redundancy.label",
+                  { defaultValue: "Redundancy / Fallback" },
+                )}
+              </InputLabel>
+              <Select
+                value={props.redundancy ?? ""}
+                onChange={(e) =>
+                  form.handlePropertyChange("redundancy", e.target.value)
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.redundancy.label",
+                  { defaultValue: "Redundancy / Fallback" },
+                )}
+              >
+                <MenuItem value="">
+                  <em>
+                    {t("common.not_specified", {
+                      defaultValue: "Not specified",
+                    })}
+                  </em>
+                </MenuItem>
+                {(["none", "failover", "degraded", "buffered"] as const).map(
+                  (opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(
+                        `tabs.dfd.element_description.dataflow.fields.redundancy.options.${opt}`,
+                        { defaultValue: opt },
+                      )}
+                    </MenuItem>
+                  ),
+                )}
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+
+        {hasNoTransportMedium && (
+          <Grid item xs={12}>
+            <Alert severity="info" sx={{ py: 0.5 }}>
+              <Typography variant="caption">
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.noTransportMedium.context_hint",
+                  {
+                    defaultValue:
+                      "No transport medium for this protocol — routing and redundancy do not apply.",
+                  },
+                )}
+              </Typography>
+            </Alert>
+          </Grid>
+        )}
       </Grid>
 
       {/* ── Security Controls ────────────────────── */}
@@ -626,24 +658,33 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         })}
       />
 
-      {/* Electrical info: logical controls not applicable */}
-      {isElectrical && (
+      {/* Electrical / no-medium info: logical controls not applicable */}
+      {(isElectrical || hasNoTransportMedium) && (
         <Alert severity="info" sx={{ py: 0.5 }}>
           <Typography variant="caption">
-            {t(
-              "tabs.dfd.element_description.dataflow.fields.electrical.not_applicable_hint",
-              {
-                defaultValue:
-                  "Hardwired signal — encryption and endpoint authentication are not applicable. " +
-                  "Physical access to the wiring is the primary attack vector.",
-              },
-            )}
+            {isElectrical
+              ? t(
+                  "tabs.dfd.element_description.dataflow.fields.electrical.not_applicable_hint",
+                  {
+                    defaultValue:
+                      "Hardwired signal — encryption and endpoint authentication are not applicable. " +
+                      "Physical access to the wiring is the primary attack vector.",
+                  },
+                )
+              : t(
+                  "tabs.dfd.element_description.dataflow.fields.noTransportMedium.not_applicable_hint",
+                  {
+                    defaultValue:
+                      "No transport medium — exposure level, encryption and endpoint authentication " +
+                      "do not apply. Protection against unauthorized use lives on the target process.",
+                  },
+                )}
           </Typography>
         </Alert>
       )}
 
       {/* ── Logical Controls ── */}
-      {!isElectrical && (
+      {!isElectrical && !hasNoTransportMedium && (
         <>
           <Typography
             variant="caption"
@@ -1292,7 +1333,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
       </Box>
     </Stack>
   );
-};;
+}
 
 // ==================== MAIN COMPONENT ====================
 

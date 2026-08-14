@@ -1351,6 +1351,10 @@
               "not_applicable_hint": "Hardwired signal — encryption and endpoint authentication are not applicable. Physical access to the wiring is the primary attack vector.",
               "physical_boundary_warning": "Hardwired signal crosses a Trust Boundary — physical wire access is the attack vector. Consider: cable routing, tamper seals, terminal access control."
             },
+            "noTransportMedium": {
+              "context_hint": "No transport medium for this protocol — routing and redundancy do not apply.",
+              "not_applicable_hint": "No transport medium — exposure level, encryption and endpoint authentication do not apply. Protection against unauthorized use lives on the target process."
+            },
             "direction": {
               "label": "Direction",
               "options": {
