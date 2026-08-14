@@ -41,8 +41,8 @@ import type {
   RoundName,
 } from "../models/audit-types";
 import {
-  generateNextBranchName,
   getAllRoundNames,
+  roundDisplayLabel,
   generateCommitMessage,
 } from "../models/audit-types";
 import type { CommitMessageData } from "../models/audit-types";
@@ -84,7 +84,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   // ==================== STATE ====================
 
   const [branchMode, setBranchMode] = useState<
-    "current" | "existing" | "auto" | "custom"
+    "current" | "existing" | "custom"
   >("current");
   const [selectedBranch, setSelectedBranch] = useState<string>(currentBranch);
   const [customBranchName, setCustomBranchName] = useState<string>("");
@@ -99,10 +99,6 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   // ==================== COMPUTED ====================
 
   const allRoundNames = getAllRoundNames(config);
-  const nextBranchName = generateNextBranchName(
-    config.featureBranchTemplate,
-    config.lastRoundNumber,
-  );
 
   // ==================== EFFECTS ====================
 
@@ -144,9 +140,6 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
       if (branchMode === "existing") {
         branchName = selectedBranch;
-      } else if (branchMode === "auto") {
-        branchName = nextBranchName;
-        createBranch = true;
       } else if (branchMode === "custom") {
         if (!customBranchName.trim()) {
           setError("Custom branch name is required");
@@ -270,29 +263,6 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
                 />
               )}
 
-              {/* Auto-Increment Branch */}
-              <FormControlLabel
-                value="auto"
-                control={<Radio />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="body2">
-                      {t("audit.commit.autoIncrement", {
-                        defaultValue: "Auto-Increment:",
-                      })}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      fontFamily="monospace"
-                      fontWeight="medium"
-                      color="primary"
-                    >
-                      {nextBranchName}
-                    </Typography>
-                  </Box>
-                }
-              />
-
               {/* Custom Branch */}
               <FormControlLabel
                 value="custom"
@@ -331,8 +301,10 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
               size="small"
             >
               {allRoundNames.map((round) => (
-                <MenuItem key={round.id} value={round.name}>
-                  {round.name}
+                <MenuItem key={round.id} value={round.label}>
+                  {roundDisplayLabel(round, (k, f) =>
+                    t(k, { defaultValue: f }),
+                  )}
                   {round.isCustom && (
                     <Typography
                       component="span"

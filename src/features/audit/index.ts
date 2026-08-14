@@ -51,11 +51,10 @@ export {
   GIT_PROVIDERS,
   DEFAULT_AUDIT_CONFIG,
   DEFAULT_ROUND_NAMES,
-  
+
   // Helper functions
   createDefaultAuditData,
   generateCommitMessage,
-  generateNextBranchName,
   validateGitConfig,
   getAllRoundNames,
 } from "./models/audit-types";

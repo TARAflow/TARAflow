@@ -81,40 +81,27 @@ export interface GPGConfig {
 // ==================== ROUND NAMES ====================
 
 /**
- * Predefined round/stage names for commit messages
+ * Predefined round/stage names for commit messages.
+ *
+ * `label` is the CANONICAL, language-independent text: it is what lands in the
+ * `[TARA] <round>` commit subject, so the trail stays stable regardless of the
+ * app's UI language. Default rounds carry a fixed English label; custom rounds
+ * carry the single label the user typed (never translated). For DISPLAY, only
+ * default rounds are localized (via i18n key `audit.rounds.<id>`); custom
+ * rounds are shown verbatim — see `roundDisplayLabel`.
  */
 export interface RoundName {
   id: string;
-  name: string;
-  nameDE: string;
+  /** Canonical, language-independent commit label (also the i18n fallback). */
+  label: string;
   isCustom: boolean;
 }
 
 export const DEFAULT_ROUND_NAMES: RoundName[] = [
-  {
-    id: "initial",
-    name: "Initial Assessment",
-    nameDE: "Initiale Bewertung",
-    isCustom: false,
-  },
-  {
-    id: "detail",
-    name: "Detail Review",
-    nameDE: "Detailbewertung",
-    isCustom: false,
-  },
-  {
-    id: "refinement",
-    name: "Refinement",
-    nameDE: "Verfeinerung",
-    isCustom: false,
-  },
-  {
-    id: "final",
-    name: "Final Decision",
-    nameDE: "Finale Entscheidung",
-    isCustom: false,
-  },
+  { id: "initial", label: "Initial Assessment", isCustom: false },
+  { id: "detail", label: "Detail Review", isCustom: false },
+  { id: "refinement", label: "Refinement", isCustom: false },
+  { id: "final", label: "Final Decision", isCustom: false },
 ];
 
 // ==================== AUDIT CONFIGURATION ====================
@@ -128,9 +115,6 @@ export interface AuditConfig {
 
   /** Default Branch (e.g., 'main', 'master') */
   defaultBranch: string;
-
-  /** Feature Branch Template (e.g., 'risk-round-', 'tara/batch-') */
-  featureBranchTemplate: string;
 
   /** Author Info */
   author: {
@@ -147,9 +131,6 @@ export interface AuditConfig {
   /** Custom Round Names */
   customRoundNames: RoundName[];
 
-  /** Last Round Number (for auto-increment) */
-  lastRoundNumber: number;
-
   /** Unified signing config (gpg|ssh). Falls back to legacy `gpg` when absent. */
   signing?: SigningSettings;
 }
@@ -157,7 +138,6 @@ export interface AuditConfig {
 export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
   provider: "github",
   defaultBranch: "main",
-  featureBranchTemplate: "risk-round-",
   author: {
     name: "",
     email: "",
@@ -169,7 +149,6 @@ export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
     enabled: false,
   },
   customRoundNames: [],
-  lastRoundNumber: 0,
   signing: { enabled: false, format: "ssh" },
 };
 
@@ -414,14 +393,47 @@ export function generateCommitMessage(data: CommitMessageData): string {
 }
 
 /**
- * Generate next branch name
+ * Get all round names (default + custom). Custom rounds are read defensively so
+ * a project file written by the older en/de-paired model keeps working.
  */
-export function generateNextBranchName(
-  template: string,
-  lastRoundNumber: number
+export function getAllRoundNames(config: AuditConfig): RoundName[] {
+  return [
+    ...DEFAULT_ROUND_NAMES,
+    ...(config.customRoundNames ?? []).map(normalizeRoundName),
+  ];
+}
+
+/** i18n key for a DEFAULT round's display label. */
+export function roundDisplayKey(id: string): string {
+  return `audit.rounds.${id}`;
+}
+
+/**
+ * The label shown in the UI. Default rounds localize via i18n (fallback = the
+ * canonical English label); custom rounds are shown verbatim in the exact
+ * wording the user chose. The COMMIT side always uses `round.label` directly —
+ * never this — so the trail is language-independent.
+ */
+export function roundDisplayLabel(
+  round: RoundName,
+  translate: (key: string, fallback: string) => string,
 ): string {
-  const nextNumber = lastRoundNumber + 1;
-  return `${template}${nextNumber}`;
+  return round.isCustom
+    ? round.label
+    : translate(roundDisplayKey(round.id), round.label);
+}
+
+/**
+ * Accept a possibly-legacy custom round ({ name, nameDE }) and return the
+ * single-label shape. Defensive: old configs stored the label under `name`.
+ */
+export function normalizeRoundName(raw: RoundName): RoundName {
+  const legacy = raw as Partial<RoundName> & { name?: string };
+  return {
+    id: String(legacy.id ?? ""),
+    label: String(legacy.label ?? legacy.name ?? legacy.id ?? "").trim(),
+    isCustom: legacy.isCustom ?? true,
+  };
 }
 
 /**
@@ -502,8 +514,25 @@ export function validateGitConfig(config: AuditConfig): GitValidation {
 }
 
 /**
- * Get all round names (default + custom)
+ * Normalize a possibly-legacy AuditConfig into the current shape: map legacy
+ * custom round names ({name,nameDE}) to the single-label model and DROP the
+ * retired branch-counter fields (featureBranchTemplate, lastRoundNumber). Run
+ * on load-into-dialog and before save so old project files self-heal without a
+ * hard schema migration (audit.config lives outside the schema versioning).
  */
-export function getAllRoundNames(config: AuditConfig): RoundName[] {
-  return [...DEFAULT_ROUND_NAMES, ...config.customRoundNames];
+export function normalizeAuditConfig(config: AuditConfig): AuditConfig {
+  const c = config as AuditConfig & {
+    featureBranchTemplate?: string;
+    lastRoundNumber?: number;
+  };
+  return {
+    provider: c.provider,
+    remoteUrl: c.remoteUrl,
+    defaultBranch: c.defaultBranch,
+    author: c.author,
+    auth: c.auth,
+    gpg: c.gpg,
+    customRoundNames: (c.customRoundNames ?? []).map(normalizeRoundName),
+    signing: c.signing,
+  };
 }

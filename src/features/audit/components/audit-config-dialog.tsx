@@ -59,7 +59,12 @@ import type {
   RoundName,
 } from "../models/audit-types";
 
-import { GIT_PROVIDERS, DEFAULT_ROUND_NAMES } from "../models/audit-types";
+import {
+  GIT_PROVIDERS,
+  DEFAULT_ROUND_NAMES,
+  roundDisplayLabel,
+  normalizeAuditConfig,
+} from "../models/audit-types";
 
 import {
   readGitDerivedInfo,
@@ -108,13 +113,14 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   // ==================== STATE ====================
 
   const [activeTab, setActiveTab] = useState(0);
-  const [localConfig, setLocalConfig] = useState<AuditConfig>(config);
+  const [localConfig, setLocalConfig] = useState<AuditConfig>(() =>
+    normalizeAuditConfig(config),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Custom round names
   const [newRoundName, setNewRoundName] = useState("");
-  const [newRoundNameDE, setNewRoundNameDE] = useState("");
 
   // PAT input
   const [patToken, setPatToken] = useState("");
@@ -144,7 +150,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
      * This keeps older projects compatible.
      */
     setLocalConfig({
-      ...config,
+      ...normalizeAuditConfig(config),
       signing: config.signing ?? {
         enabled: !!config.gpg?.enabled,
         format: "gpg",
@@ -207,7 +213,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
         localConfig.auth.patAccount = account;
       }
 
-      await onSave(localConfig);
+      await onSave(normalizeAuditConfig(localConfig));
       onClose();
     } catch (err) {
       setError(
@@ -221,12 +227,14 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   // ==================== ROUND NAMES ====================
 
   const handleAddRoundName = () => {
-    if (!newRoundName.trim()) return;
+    const label = newRoundName.trim();
+    if (!label) return;
 
+    // One language-independent label: shown verbatim in the round selector and
+    // committed verbatim, regardless of the app's UI language.
     const customRound: RoundName = {
       id: `custom-${Date.now()}`,
-      name: newRoundName.trim(),
-      nameDE: newRoundNameDE.trim() || newRoundName.trim(),
+      label,
       isCustom: true,
     };
 
@@ -236,7 +244,6 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
     }));
 
     setNewRoundName("");
-    setNewRoundNameDE("");
   };
 
   const handleDeleteRoundName = (id: string) => {
@@ -525,28 +532,6 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               fullWidth
             />
 
-            {/* Feature Branch Template */}
-
-            <TextField
-              label={t("audit.config.branchTemplate", {
-                defaultValue: "Feature Branch Template",
-              })}
-              value={localConfig.featureBranchTemplate}
-              onChange={(e) =>
-                setLocalConfig((prev) => ({
-                  ...prev,
-                  featureBranchTemplate: e.target.value,
-                }))
-              }
-              placeholder="risk-round-"
-              helperText={t("audit.config.branchTemplateHelp", {
-                defaultValue:
-                  "Template for auto-generated branch names (e.g., 'risk-round-' → 'risk-round-1')",
-              })}
-              size="small"
-              fullWidth
-            />
-
             <Divider />
 
             {/* Author Name */}
@@ -772,10 +757,25 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               })}
             </Typography>
 
+            <Typography variant="caption" color="text.secondary">
+              {t("audit.config.defaultRoundsHelp", {
+                defaultValue:
+                  "Shown in your language; always committed in English so the trail stays language-independent.",
+              })}
+            </Typography>
+
             <List dense>
               {DEFAULT_ROUND_NAMES.map((round) => (
                 <ListItem key={round.id}>
-                  <ListItemText primary={round.name} secondary={round.nameDE} />
+                  <ListItemText
+                    primary={roundDisplayLabel(round, (k, f) =>
+                      t(k, { defaultValue: f }),
+                    )}
+                    secondary={t("audit.config.committedAs", {
+                      defaultValue: `committed as "${round.label}"`,
+                      label: round.label,
+                    })}
+                  />
                 </ListItem>
               ))}
             </List>
@@ -788,24 +788,23 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               })}
             </Typography>
 
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-              }}
-            >
+            <Typography variant="caption" color="text.secondary">
+              {t("audit.config.customRoundsHelp", {
+                defaultValue:
+                  "One label in the wording you choose. It is shown and committed exactly as typed — never translated.",
+              })}
+            </Typography>
+
+            <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
                 value={newRoundName}
                 onChange={(e) => setNewRoundName(e.target.value)}
-                placeholder="Round name (EN)"
-                size="small"
-                fullWidth
-              />
-
-              <TextField
-                value={newRoundNameDE}
-                onChange={(e) => setNewRoundNameDE(e.target.value)}
-                placeholder="Rundenname (DE)"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddRoundName();
+                }}
+                placeholder={t("audit.config.customRoundPlaceholder", {
+                  defaultValue: "Round name",
+                })}
                 size="small"
                 fullWidth
               />
@@ -828,7 +827,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                     </IconButton>
                   }
                 >
-                  <ListItemText primary={round.name} secondary={round.nameDE} />
+                  <ListItemText primary={round.label} />
                 </ListItem>
               ))}
             </List>

@@ -473,12 +473,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
             affectedPhases: changes.map((c) => c.phaseLabel),
             batchSize: totalChangeCount,
           },
-          config: {
-            ...auditData.config,
-            lastRoundNumber: options.createBranch
-              ? auditData.config.lastRoundNumber + 1
-              : auditData.config.lastRoundNumber,
-          },
+          config: auditData.config,
           lastModified: new Date().toISOString(),
         };
 

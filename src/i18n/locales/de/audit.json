@@ -38,7 +38,7 @@
       "committing": "Wird committet…"
     },
     "config": {
-      "title": "Git-Konfiguration",
+      "title": "Audit-Konfiguration",
       "enableSigning": "Commits signieren",
       "tabs": {
         "general": "Allgemein",
@@ -163,6 +163,12 @@
       "summary": "{{error}} Fehler, {{warning}} Warnungen, {{info}} Infos",
       "strictOn": "streng",
       "clean": "Keine Befunde."
+    },
+    "rounds": {
+      "initial": "Initiale Bewertung",
+      "detail": "Detailbewertung",
+      "refinement": "Verfeinerung",
+      "final": "Finale Entscheidung"
     }
   }
 }
