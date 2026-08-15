@@ -1,127 +1,610 @@
-# TARAflow 0.6.0 alpha
-### A Semi-automated Threat Modeling Tool for threat analysis and risk assesment
+# TARAflow
 
-## Description
-This project is a web application that allows users to either import existing models or create new ones. Users can upload a .JSON containing a model, which is then parsed and displayed if the parsing is successful. The application also provides functionalities to analyze diagrams and manage threat tables.
+### Threat Analysis and Risk Assessment for Cybersecurity and Safety
 
-## Features
-- Import existing models from JSON files.
-- Create new models.
-- Parse and validate uploaded models.
-- Display diagrams, overview table and threat tables.
-- Analyze diagrams for dataflows crossing trust boundaries.
-- Manage and save threat tables.
-- Export threat tables to JSON files.
-- Headless report generation (Markdown, AsciiDoc, HTML, PDF, StrictDoc) via the `taraflow-report` CLI — no UI, no Electron. See [TARAflow Report (CLI)](#taraflow-report-cli) below.
+TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for structured security and safety analysis of complex systems.
 
+It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-## Technologies
-- **Language**: TypeScript
-- **Frameworks**: React, Material-UI
+> **Current version:** `v0.8.0-alpha`
 
-## Installation
-1. **Clone the repository**:
-    ```bash
-    git https://github.com/mirovv/CoReTM-2.0.git
-    cd CoReTM-2.0
-    ```
-
-2. **Install dependencies**:
-    ```bash
-    npm install
-    ```
-
-3. **Start the development server**:
-    ```bash
-    npm start / npm dev start
-    ```
-   **Note**: The application should now be running on [http://localhost:3000](http://localhost:3000).
-
-4. **Build the project**:
-    ```bash
-    npm run build
-    ```
-
-5. **Eject the project**:
-    ```bash
-    npm run eject
-    ```
-    **Note**: This is a one-way operation. Once you eject, you can't go back!
-   
-6. **Build electron**:
-	 npx tsc -p tsconfig.electron.json
- 	 node scripts/rename-to-cjs.js
-	 npm run dev:electron
-
-
-## Usage
-1. **Importing a Model**:
-    - Navigate to the Import page.
-    - Upload a JSON file containing the model.
-    - If the parsing is successful, you will be redirected to the Model page where the model is displayed.
-    - Continue with the analysis or change the model.
-    - Export the threat model to a JSON.
-
-2. **Creating a New Model**:
-    - Navigate to the Create page.
-    - Provide the necessary details to create a new model.
-    - Save the model and proceed with the analysis.
-    - Export the threat model to a JSON.
+TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
 ---
 
-## TARAflow Report (CLI)
+## Overview
 
-`taraflow-report` generates the same documentation the Documentation tab produces in the desktop app — Markdown, AsciiDoc, HTML, PDF, or StrictDoc — directly from a `.tara.json` file, with no UI and no Electron. Built for CI/CD pipelines (Jenkins, GitHub Actions) and Docker/Podman containers where launching the desktop app isn't practical.
+TARAflow's core concept is a **model-driven, relationship-based TARA workflow**: DFD elements, assets, threats, risks, and attack paths are not isolated artifacts but explicitly linked parts of one evolving analysis model. The DFD is specifically extended for **embedded and automotive systems**, enabling the analysis of threats based on system elements, communication protocols, interfaces, and their context.
 
-All CLI source lives under `taraflow-reporter/` (application code in `taraflow-reporter/cli/` + `taraflow-reporter/taraflow-report.ts`, packaging in `taraflow-reporter/packaging/`, deployment scripts in `taraflow-reporter/scripts/`, tests in `taraflow-reporter/tests/`).
+TARAflow also follows a **closed-loop approach** that connects the security analysis with the actual engineering process. Mitigations can be tracked through Jira, and when a mitigation ticket is closed, TARAflow can notify the affected risk and DFD context, allowing engineers to review and update the system model and propagate the resulting changes through the analysis. This creates a traceable feedback loop between **system modeling, security analysis, mitigation, and implementation**.
 
-### Usage
+The application supports both **security-oriented TARA workflows** and **safety-related analysis**, making it particularly suitable for **automotive and embedded systems** where cybersecurity and safety considerations need to be analyzed together.
 
-```bash
-taraflow-report <project.tara.json> --format <markdown|asciidoc|html|pdf|strictdoc> [--lang en|de] [--out <path>] [--chapters <id1,id2,...>]
-```
+---
 
-- `--format` (required): output format. All five formats are supported, including PDF (via `pdfmake`'s Node API — no headless browser, no Puppeteer).
-- `--lang`: overrides the document language stored in the project (`documentation.configuration.language`).
-- `--out`: output file path. Defaults to `<input-basename>.<extension>` next to the input file.
-- `--chapters`: comma-separated chapter IDs to include; all others are disabled. Defaults to the project's saved chapter configuration.
+## Key Features
+
+### Data Flow Diagrams
+
+TARAflow provides an interactive DFD modeling environment based on draw.io.
+
+Supported modeling concepts include:
+
+* Processes
+* Data Stores
+* Data Flows
+* Interfaces
+* External Entities
+* Trust Boundaries
+* Multiprocess elements
+* Chip Boundaries
+* Physical Boundaries
+* Structured element properties
+* Protocol and communication metadata
+* Security and contextual properties
+* Validation and consistency checks
+* Asset relationships
+
+The DFD model acts as the foundation for subsequent security analysis.
+
+---
+
+### Asset Analysis
+
+Assets can be modeled and associated with DFD elements.
+
+TARAflow supports:
+
+* Security goals
+* CIANAAA-based protection requirements
+* Confidentiality, Integrity, Availability, Authenticity and related properties
+* Impact assessment
+* Safety impact
+* Asset categorization
+* Asset-to-DFD synchronization
+* Automatic derivation of security-relevant properties
+* Asset relationship management
+
+Changes to the underlying DFD can be reflected in the corresponding asset model.
+
+---
+
+### Threat Analysis
+
+TARAflow provides automated and semi-automated threat generation based on the system model.
+
+The threat analysis includes:
+
+* STRIDE-based threat analysis
+* STRIDE per element
+* STRIDE per interaction
+* Context-aware threat generation
+* Protocol-specific threat matching
+* Element-specific threat generation
+* Threat catalogs and templates
+* Threat categorization
+* Threat-to-asset relationships
+* Threat synchronization with the DFD
+* Manual threat creation
+* Threat mitigation information
+
+Threat generation uses contextual information from the modeled system instead of relying exclusively on a flat list of generic threats.
+
+---
+
+### Risk Assessment
+
+TARAflow provides integrated risk assessment based on identified threats and their potential impact.
+
+Features include:
+
+* Likelihood assessment
+* Impact assessment
+* Risk matrices
+* Risk scoring
+* Severity evaluation
+* Assessment rationale
+* Mitigation tracking
+* Risk treatment
+* Risk synchronization with threats and attack paths
+* Before/after mitigation assessment
+
+Risk information remains connected to the underlying threat and asset models.
+
+---
+
+### Attack Trees
+
+TARAflow supports attack-tree-based analysis for modeling how an attacker can achieve a specific goal.
+
+Features include:
+
+* Attack tree creation and editing
+* Threat-anchored attack trees
+* Attack paths
+* Attack-potential evaluation
+* Feasibility assessment
+* Attack-path synchronization
+* Integration of attack paths with threats and risks
+* Visualization and structured editing
+
+Attack-tree information can be used as an additional input to the risk analysis.
+
+---
+
+### Safety and Hazard Analysis
+
+TARAflow also contains functionality for safety-oriented analysis.
+
+The safety workflow includes:
+
+* Hazard identification
+* BowTie-based hazard analysis
+* Safety-related assets and impacts
+* Hazard management
+* Safety-related project configuration
+* Integration of safety information into the broader project model
+
+Safety analysis can be enabled as part of a project's workflow.
+
+---
+
+## Audit Trail and Git Integration
+
+One of the major features introduced in the recent development versions is the integration of TARAflow with Git.
+
+TARAflow can associate project changes with a Git repository and maintain an auditable history of analysis changes.
+
+The audit functionality includes:
+
+* Git repository discovery
+* Canonical project serialization
+* Signed commits
+* Authorized signer management
+* Signer manifests
+* Protected-branch configuration
+* Commit signing
+* Managed Git hooks
+* Commit author verification
+* Offline/local commit handling
+* Audit trail verification
+
+This makes it possible to use Git not only for source-code versioning but also as part of the **traceability and integrity model of the security analysis itself**.
+
+---
+
+## Audit Verification Engine
+
+TARAflow includes the **Audit Verification Engine (AVE)** for verifying the integrity of the audit trail.
+
+The verification system provides:
+
+* Verification of the audit history
+* Signed-commit verification
+* Signer authorization checks
+* Commit-chain validation
+* Detection of unauthorized authors
+* Verification of audit metadata
+* Machine-readable verification functionality
+* In-application verification results
+* Integration tests and verification fixtures
+
+The verification functionality is available both inside the application and through the standalone `taraflow-verify` command-line tool.
+
+---
+
+## Command-Line Tools
+
+TARAflow contains standalone command-line functionality in addition to the desktop application.
+
+### TARAflow Report
+
+`taraflow-report` generates project documentation directly from a `.tara.json` project file.
+
+It can be used without starting the UI or Electron application and is therefore suitable for automation and CI/CD pipelines.
+
+Supported output formats include:
+
+* Markdown
+* AsciiDoc
+* HTML
+* PDF
+* StrictDoc
 
 Example:
-```bash
-taraflow-report project.tara.json --format pdf --lang de --out report.pdf
-```
-
-### Development
 
 ```bash
-npm run report:cli -- <project.tara.json> --format markdown --out test.md
+taraflow-report project.tara.json \
+  --format pdf \
+  --lang de \
+  --out report.pdf
 ```
-Runs the CLI directly via `tsx` (no build step) against `tsconfig.cli.json`.
 
-### Building the standalone bundle
+Available options include:
+
+```text
+--format     Output format
+--lang       Output language (en/de)
+--out        Output file
+--chapters   Select specific documentation chapters
+```
+
+The report generator can also be built as a standalone bundle.
 
 ```bash
 npm run build:cli
 ```
-Bundles `taraflow-reporter/taraflow-report.ts` (and everything it imports, including `pdfmake`, `i18next`, `asciidoctor`) into a single `dist-cli/taraflow-report.js` via esbuild.
 
-### Packaging as a Debian package
+A Debian package can be generated with:
 
 ```bash
 npm run package:cli:deb
-sudo apt install ./release/tara-report_<version>_amd64.deb
 ```
-Produces `tara-report_<version>_amd64.deb`, installing `taraflow-report` to `/usr/bin`. Depends on `nodejs` (installed automatically by `apt` if missing). Requires [`nfpm`](https://nfpm.goreleaser.com/) (`npm install -g @goreleaser/nfpm`) — a `dpkg-deb`-only alternative is available at `taraflow-reporter/packaging/build-deb.sh` if you'd rather not install `nfpm`.
 
-### Tests
+---
+
+### TARAflow Verify
+
+`taraflow-verify` is the command-line verification tool for the TARAflow audit trail.
+
+It provides a way to verify audit information independently of the graphical application.
+
+During development it can be executed with:
+
+```bash
+npm run verify:cli
+```
+
+The standalone verifier can be built with:
+
+```bash
+npm run build:cli:verify
+```
+
+A Debian package can be generated with:
+
+```bash
+npm run package:cli:verify:deb
+```
+
+---
+
+## Documentation
+
+TARAflow contains an integrated documentation generator.
+
+Documentation can be generated from the project model and configured according to the project's documentation settings.
+
+The documentation workflow supports:
+
+* Configurable chapters
+* Multiple output formats
+* English and German output
+* Project information
+* DFD information
+* Assets
+* Threats
+* Risks
+* Analysis results
+* Other project-specific analysis information
+
+The same reporting functionality can be used through the graphical application and the `taraflow-report` CLI.
+
+---
+
+## Internationalization
+
+TARAflow supports multiple languages.
+
+The application currently provides English and German localization for the user interface and generated documentation.
+
+Internationalized content includes, among other things:
+
+* Application UI
+* Dialogs
+* Validation messages
+* Threat and mitigation information
+* Documentation
+* Configuration
+* Audit-related UI
+
+---
+
+## Architecture
+
+TARAflow is implemented as a TypeScript application using React and Electron.
+
+The main technologies include:
+
+* **TypeScript**
+* **React**
+* **Electron**
+* **Vite**
+* **Material UI**
+* **draw.io**
+* **Vitest**
+* **i18next**
+* **CodeMirror / Monaco Editor**
+* **D3**
+* **esbuild**
+* **Electron Builder**
+
+The application separates the browser/UI part from Electron-specific functionality and provides dedicated command-line entry points for reporting and audit verification.
+
+The repository currently contains, among others:
+
+```text
+src/
+├── app/
+├── features/
+├── shared/
+└── i18n/
+
+electron/
+
+taraflow-reporter/
+└── ...
+
+taraflow-verifier/
+└── ...
+
+scripts/
+build-resources/
+doc/
+.github/workflows/
+```
+
+---
+
+## Requirements
+
+The current project configuration requires:
+
+* **Node.js 24.x**
+* npm
+* Git
+
+The required Node.js version is currently defined in `package.json` as:
+
+```text
+>=24 <25
+```
+
+A working Git installation is required for the Git-integrated audit functionality.
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/TARAflow/TARAflow.git
+cd TARAflow
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+---
+
+## Development
+
+### Web development server
+
+Start the Vite development server with:
+
+```bash
+npm run dev
+```
+
+The development server is provided by Vite.
+
+### Electron development
+
+To start the desktop application in development mode:
+
+```bash
+npm run dev:electron
+```
+
+This builds the Electron-side code and starts the Vite development server together with Electron.
+
+---
+
+## Building
+
+### Web application
+
+```bash
+npm run build
+```
+
+### Electron application
+
+```bash
+npm run build:electron
+```
+
+The Electron build is configured for the following platforms:
+
+* Linux
+
+  * AppImage
+  * Debian package
+* Windows
+
+  * NSIS installer
+* macOS
+
+  * DMG
+
+For a clean Electron build:
+
+```bash
+npm run build:electron:clean
+```
+
+Build artifacts are written to the configured release/output directories.
+
+---
+
+## Testing
+
+TARAflow uses **Vitest** for automated testing.
+
+Run the test suite with:
 
 ```bash
 npm test -- --run
 ```
-Runs the full suite, including `taraflow-reporter/tests/{unit,component,integration}`.
 
-## Known Issues
-1. **Browser**:
-    - This tool was developed using Google Chrome browser.
-    - Functionality and compatibility with other browsers is not guaranteed.
+Integration tests use a dedicated Vitest configuration:
+
+```bash
+npm run test:integration
+```
+
+The repository contains unit, component, and integration tests covering application functionality as well as CLI and audit-related functionality.
+
+---
+
+## Project Files
+
+TARAflow projects are stored using the `.tara.json` format.
+
+The project format contains the information required to reconstruct and analyze a TARAflow project, including relevant:
+
+* Project metadata
+* DFD information
+* Assets
+* Threats
+* Risks
+* Attack-tree information
+* Safety information
+* Documentation configuration
+* Audit-related configuration
+
+Project serialization is designed to provide stable, reproducible project data suitable for version control.
+
+---
+
+## Git-Based Workflow
+
+A typical workflow can look like this:
+
+```text
+Create / Import Project
+        │
+        ▼
+Data Flow Diagram
+        │
+        ├──► Assets
+        │
+        ├──► Threat Analysis
+        │        │
+        │        ▼
+        │      Risks
+        │
+        ├──► Attack Trees
+        │
+        └──► Safety / Hazards
+                 │
+                 ▼
+          Documentation
+                 │
+                 ▼
+            Git / Audit
+                 │
+                 ▼
+       Signed Commit History
+                 │
+                 ▼
+        Audit Verification
+```
+
+The purpose of this workflow is to keep the different analysis artifacts connected rather than treating the DFD, threat model, risk assessment, and documentation as independent documents.
+
+---
+
+## Releases
+
+TARAflow is currently in the alpha development phase.
+
+Recent development versions include:
+
+* `v0.6.0-alpha`
+* `v0.7.0-alpha`
+* `v0.7.1-alpha`
+* `v0.8.0-alpha`
+
+The current development state is represented by:
+
+```text
+v0.8.0-alpha
+```
+
+Because the project is still in the `0.x` series, interfaces, project formats, and internal APIs may change between releases.
+
+---
+
+## Known Limitations
+
+TARAflow is still under active development.
+
+In particular:
+
+* The application is an alpha release.
+* Some functionality may still change substantially.
+* Project formats may evolve between versions.
+* Not all workflows have reached a final stable state.
+* Cross-platform behavior may differ depending on the operating system and environment.
+* The Git/audit functionality assumes a correctly configured Git repository and signing setup.
+
+---
+
+## Contributing
+
+Contributions, bug reports, and feature suggestions are welcome.
+
+Before making larger changes, please consider opening an issue or discussing the proposed change with the project maintainers.
+
+When contributing code, please ensure that:
+
+1. The project builds successfully.
+2. Relevant tests pass.
+3. New functionality is covered by appropriate tests where practical.
+4. Changes to the project format are handled with care.
+5. User-facing strings are properly internationalized.
+6. Security- and audit-related changes receive particular attention.
+
+---
+
+## License
+
+TARAflow is licensed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)**.
+
+See [`LICENSE`](LICENSE) for the full license text.
+
+---
+
+## Repository
+
+Source code and development history are available on GitHub:
+
+https://github.com/TARAflow/TARAflow
+
+---
+
+## Status
+
+**TARAflow 0.8.0-alpha**
+
+TARAflow is an actively developed threat analysis and risk assessment platform combining:
+
+**System Modeling → Asset Analysis → Threat Analysis → Risk Assessment → Attack Trees → Safety Analysis → Documentation → Auditable Git History**
+
+The project is currently focused on extending the analysis capabilities while improving traceability, reproducibility, verification, and integration with engineering workflows.
