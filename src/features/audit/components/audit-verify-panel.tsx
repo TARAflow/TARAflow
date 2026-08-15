@@ -1,43 +1,49 @@
 // ==================== AuditVerifyPanel ====================
 // Self-contained "Verify audit trail" panel. Runs the full Audit Verification
-// Engine (via the audit:verify IPC) and renders the findings. Drop it into the
-// Audit tab:
+// Engine (via the audit:verify IPC) and renders the findings in plain language.
 //
-//   <AuditVerifyPanel
-//     repoRoot={repoRootValue}
-//     anchor={protection.anchor}
-//     branch={currentBranch}
-//   />
+//   <AuditVerifyPanel repoRoot={…} anchor={protection.anchor} branch={…} />
 //
-// The anchor is the DERIVED one from useAuditProtection today (see
-// docs/decisions/audit-anchor-source.md); a pinned anchor can replace it later
-// without touching this component.
+// UX: lead with a one-line purpose + a Verify button; the engine's technical
+// description lives behind an info tooltip, and the advanced knobs (Strict, ref,
+// anchor, engine version) live in a collapsed "Details" section. After a run,
+// a big plain-language verdict is shown, and each finding is rendered as a
+// human title + an actionable hint (the stable rule code is kept, but secondary,
+// for auditors and the CLI). Plain-language text comes from finding-explanations.
 //
 // Lives at: src/features/audit/components/audit-verify-panel.tsx
 
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   AlertTitle,
+  Box,
   Button,
   Checkbox,
   Chip,
   CircularProgress,
-  Divider,
   FormControlLabel,
+  IconButton,
   List,
   ListItem,
   ListItemText,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import {
+  CheckCircleOutline as PassIcon,
+  ErrorOutline as FailIcon,
+  ExpandMore as ExpandMoreIcon,
+  InfoOutlined as InfoIcon,
+} from "@mui/icons-material";
 import { useAuditVerify } from "../hooks/useAuditVerify";
-import type {
-  Finding,
-  Severity,
-} from "../services/verify/findings";
+import type { Finding, Severity } from "../services/verify/findings";
+import { explainFinding } from "../services/verify/finding-explanations";
 
 interface AuditVerifyPanelProps {
   repoRoot: string | undefined;
@@ -53,8 +59,11 @@ const CHIP_COLOR: Record<Severity, "error" | "warning" | "info"> = {
 };
 
 function FindingRow({ f }: { f: Finding }) {
+  const { t } = useTranslation();
+  const { title, hint } = explainFinding(f.id, (k, d) => t(k, d));
+
   return (
-    <ListItem disableGutters alignItems="flex-start" sx={{ py: 0.5 }}>
+    <ListItem disableGutters alignItems="flex-start" sx={{ py: 0.75 }}>
       <Chip
         size="small"
         color={CHIP_COLOR[f.severity]}
@@ -63,24 +72,32 @@ function FindingRow({ f }: { f: Finding }) {
       />
       <ListItemText
         primary={
-          <Box component="span" sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Typography
-              component="span"
-              sx={{ fontFamily: "monospace", fontWeight: 600 }}
-            >
-              {f.id}
-            </Typography>
-            {f.commit && (
+          <Typography variant="body2" fontWeight={600}>
+            {title}
+          </Typography>
+        }
+        secondary={
+          <>
+            {hint && (
               <Typography
                 component="span"
-                sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                variant="body2"
+                color="text.secondary"
               >
-                @{f.commit.slice(0, 10)}
+                {hint}
               </Typography>
             )}
-          </Box>
+            <Typography
+              component="span"
+              variant="caption"
+              color="text.disabled"
+              sx={{ display: "block", fontFamily: "monospace", mt: 0.25 }}
+            >
+              {f.id}
+              {f.commit ? ` · ${f.commit.slice(0, 10)}` : ""}
+            </Typography>
+          </>
         }
-        secondary={f.message}
       />
     </ListItem>
   );
@@ -102,13 +119,26 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        {t("audit.verify.title", "Audit trail verification")}
-      </Typography>
+      {/* Header: plain title + an info tooltip carrying the technical detail. */}
+      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 1 }}>
+        <Typography variant="h6">
+          {t("audit.verify.title", "Audit trail verification")}
+        </Typography>
+        <Tooltip
+          title={t(
+            "audit.verify.subtitle",
+            "Reconstructs the signing authority from the committed history and reports any commit that isn't authorized by the manifest as it stood before it.",
+          )}
+        >
+          <IconButton size="small" sx={{ color: "text.secondary" }}>
+            <InfoIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         {t(
-          "audit.verify.subtitle",
-          "Reconstructs the signing authority from the committed history and reports any commit that isn't authorized by the manifest as it stood before it.",
+          "audit.verify.lead",
+          "Check that every change in the trail is signed and in order.",
         )}
       </Typography>
 
@@ -133,28 +163,20 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
               onClick={run}
               disabled={loading}
               startIcon={
-                loading ? <CircularProgress size={16} color="inherit" /> : undefined
+                loading ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : undefined
               }
             >
               {loading
                 ? t("audit.verify.running", "Verifying…")
                 : t("audit.verify.run", "Verify audit trail")}
             </Button>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={strict}
-                  onChange={(e) => setStrict(e.target.checked)}
-                  disabled={loading}
-                />
-              }
-              label={t("audit.verify.strict", "Strict (treat warnings as errors)")}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {t("audit.verify.ref", "ref")}: <code>{branch}</code> ·{" "}
-              {t("audit.verify.anchor", "anchor")}:{" "}
-              <code>{anchor?.slice(0, 10)}</code>
-            </Typography>
+            {!result && !loading && (
+              <Typography variant="body2" color="text.secondary">
+                {t("audit.verify.notRun", "Not verified yet.")}
+              </Typography>
+            )}
           </Stack>
 
           {error && (
@@ -168,22 +190,26 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
 
           {result && (
             <>
+              {/* Big, plain-language verdict. */}
               <Alert
+                icon={result.result === "pass" ? <PassIcon /> : <FailIcon />}
                 severity={result.result === "pass" ? "success" : "error"}
                 sx={{ mb: 2 }}
               >
                 <AlertTitle>
                   {result.result === "pass"
-                    ? t("audit.verify.pass", "PASS")
-                    : t("audit.verify.fail", "FAIL")}
+                    ? t("audit.verify.passTitle", "Trail verified")
+                    : t("audit.verify.failTitle", "Problems found")}
                 </AlertTitle>
-                {t("audit.verify.summary", "{{error}} errors, {{warning}} warnings, {{info}} info", {
-                  error: result.summary.error,
-                  warning: result.summary.warning,
-                  info: result.summary.info,
-                })}
-                {result.strict ? ` · ${t("audit.verify.strictOn", "strict")}` : ""}
-                {` · AVE v${result.aveVersion}`}
+                {result.result === "pass"
+                  ? t(
+                      "audit.verify.passBody",
+                      "Every change is signed and in order.",
+                    )
+                  : t(
+                      "audit.verify.failBody",
+                      "Some checks didn't pass — see the details below.",
+                    )}
               </Alert>
 
               {result.findings.length === 0 ? (
@@ -192,20 +218,24 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
                 </Typography>
               ) : (
                 SEVERITY_ORDER.map((sev) => {
-                  const group = result.findings.filter((f) => f.severity === sev);
+                  const group = result.findings.filter(
+                    (f) => f.severity === sev,
+                  );
                   if (group.length === 0) return null;
                   return (
                     <Box key={sev} sx={{ mb: 1.5 }}>
-                      <Divider textAlign="left" sx={{ mb: 0.5 }}>
-                        <Chip
-                          size="small"
-                          color={CHIP_COLOR[sev]}
-                          label={`${sev.toUpperCase()} · ${group.length}`}
-                        />
-                      </Divider>
+                      <Chip
+                        size="small"
+                        color={CHIP_COLOR[sev]}
+                        label={`${sev.toUpperCase()} · ${group.length}`}
+                        sx={{ mb: 0.5 }}
+                      />
                       <List dense disablePadding>
                         {group.map((f, i) => (
-                          <FindingRow key={`${f.id}-${f.commit ?? ""}-${i}`} f={f} />
+                          <FindingRow
+                            key={`${f.id}-${f.commit ?? ""}-${i}`}
+                            f={f}
+                          />
                         ))}
                       </List>
                     </Box>
@@ -214,6 +244,57 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
               )}
             </>
           )}
+
+          {/* Advanced knobs + provenance, collapsed by default. */}
+          <Accordion
+            disableGutters
+            elevation={0}
+            sx={{
+              mt: 1,
+              bgcolor: "transparent",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              sx={{ px: 0, minHeight: 0 }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                {t("audit.verify.details", "Details")}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: 0, pt: 0 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={strict}
+                    onChange={(e) => setStrict(e.target.checked)}
+                    disabled={loading}
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t(
+                      "audit.verify.strict",
+                      "Strict (treat warnings as errors)",
+                    )}
+                  </Typography>
+                }
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mt: 0.5 }}
+              >
+                {t("audit.verify.ref", "ref")}: <code>{branch}</code>
+                {" · "}
+                {t("audit.verify.anchor", "anchor")}:{" "}
+                <code>{anchor?.slice(0, 10)}</code>
+                {result ? ` · AVE v${result.aveVersion}` : ""}
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
         </>
       )}
     </Box>

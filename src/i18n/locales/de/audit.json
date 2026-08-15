@@ -162,7 +162,124 @@
       "fail": "FEHLGESCHLAGEN",
       "summary": "{{error}} Fehler, {{warning}} Warnungen, {{info}} Infos",
       "strictOn": "streng",
-      "clean": "Keine Befunde."
+      "clean": "Keine Befunde.",
+      "lead": "Prüfen, dass jede Änderung der Trail signiert und in Ordnung ist.",
+      "notRun": "Noch nicht geprüft.",
+      "passTitle": "Trail verifiziert",
+      "passBody": "Jede Änderung ist signiert und in Reihenfolge.",
+      "failTitle": "Probleme gefunden",
+      "failBody": "Einige Prüfungen sind fehlgeschlagen — siehe Details unten.",
+      "details": "Details",
+      "finding": {
+        "ANCHOR_NOT_FOUND": {
+          "title": "Kein Signer-Manifest in der History",
+          "hint": "Trail bootstrappen: im Signers-Tab einen Signer hinzufügen — das erzeugt das Manifest und seinen ersten Commit."
+        },
+        "ANCHOR_MISMATCH": {
+          "title": "Die Trail startet an einer anderen Wurzel als erwartet",
+          "hint": "Der gepinnte Anchor passt nicht zu dieser History. Neu auf den Bootstrap-Commit dieses Repos pinnen oder prüfen, ob du auf dem richtigen Branch bist."
+        },
+        "ANCHOR_TAG_MOVED": {
+          "title": "Das audit-root-Tag zeigt woanders hin",
+          "hint": "Das audit-root-Tag auf den Bootstrap-Commit setzen — oder ignorieren, falls es absichtlich woanders liegt."
+        },
+        "ANCHOR_SIGNER_NOT_MAINTAINER": {
+          "title": "Der erste Signer ist kein Maintainer",
+          "hint": "Der Bootstrap-Commit muss von jemandem signiert sein, der im eingeführten Manifest als Maintainer geführt ist."
+        },
+        "PRE_ANCHOR_COMMITS": {
+          "title": "Einige Commits liegen vor dem Audit-Start",
+          "hint": "Diese liegen vor der Trail und werden nicht verifiziert — normal direkt nach dem Bootstrappen eines bestehenden Projekts."
+        },
+        "SIG_UNSIGNED": {
+          "title": "Ein Commit ist nicht signiert",
+          "hint": "Commit-Signierung in der Audit-Konfiguration aktivieren und neu committen — unsignierte Commits sind keinem Signer zuzuordnen."
+        },
+        "SIG_BAD": {
+          "title": "Eine Signatur ist ungültig",
+          "hint": "Die Signatur konnte nicht gegen den Schlüssel des Signers verifiziert werden. Commit mit gültigem Schlüssel neu signieren."
+        },
+        "SIGNER_NOT_AUTHORIZED": {
+          "title": "Ein Commit wurde von jemand noch nicht Autorisiertem signiert",
+          "hint": "Der Signer war vor diesem Commit nicht im Manifest. Ein Maintainer muss ihn hinzufügen, bevor er signiert."
+        },
+        "MANIFEST_NOT_MAINTAINER": {
+          "title": "Eine Manifest-Änderung stammt nicht von einem Maintainer",
+          "hint": "Nur Maintainer dürfen .tara/allowed_signers ändern. Die Änderung von einem Maintainer durchführen lassen."
+        },
+        "MANIFEST_NO_MAINTAINER": {
+          "title": "Das Signer-Manifest hat keinen Maintainer",
+          "hint": "Mindestens einen Maintainer im Signers-Tab hinzufügen, sonst kann das Manifest nie wieder geändert werden."
+        },
+        "MANIFEST_EMPTY": {
+          "title": "Das Signer-Manifest ist leer",
+          "hint": "Im Signers-Tab einen Signer hinzufügen."
+        },
+        "MSG_SCHEMA": {
+          "title": "Eine Commit-Message folgt nicht dem geforderten Format",
+          "hint": "'[TARA] <Runde>' mit den erforderlichen Trailern verwenden, oder 'audit:' für Infra-Commits. Der gemanagte Hook erzwingt das künftig."
+        },
+        "REVIEW_MISSING": {
+          "title": "Einer Änderung fehlt ein Reviewer",
+          "hint": "Einen 'Reviewed-by'-Trailer mit einer zweiten Person ergänzen, wenn Vier-Augen-Review verlangt ist."
+        },
+        "REVIEW_SELF": {
+          "title": "Der Autor hat seine eigene Änderung reviewt",
+          "hint": "Der Reviewer muss eine andere Person als der Autor sein."
+        },
+        "HISTORY_NONLINEAR": {
+          "title": "Die History ist nicht linear",
+          "hint": "Ein unerwarteter Merge oder Rewrite wurde gefunden. Den Audit-Branch linear halten (nur Fast-Forward)."
+        },
+        "HISTORY_ORPHAN": {
+          "title": "Ein Commit hat keinen Pfad zurück zum Start",
+          "hint": "Ein Commit führt nicht auf den Anchor zurück — ein Zeichen für einen Rewrite. History prüfen."
+        },
+        "REPO_DIRTY": {
+          "title": "Es gibt uncommittete Änderungen",
+          "hint": "Working-Tree-Änderungen committen oder verwerfen, dann erneut prüfen."
+        },
+        "REPO_DETACHED_HEAD": {
+          "title": "Du bist nicht auf einem Branch (Detached HEAD)",
+          "hint": "Vor der Prüfung den Audit-Branch auschecken."
+        },
+        "TCS_NONREPRODUCIBLE": {
+          "title": "Eine Projektdatei ist nicht in kanonischer Form",
+          "hint": "Die .tara.json mit der aktuellen App neu speichern, damit sie dem kanonischen (reproduzierbaren) Format entspricht."
+        },
+        "TCS_PARSE_ERROR": {
+          "title": "Eine Projektdatei konnte nicht gelesen werden",
+          "hint": "Eine .tara.json ist beschädigt oder abgeschnitten. Aus der git-History wiederherstellen."
+        },
+        "TCS_UNKNOWN_VERSION": {
+          "title": "Eine Projektdatei nutzt ein neueres Format",
+          "hint": "Diese Datei nennt eine TCS-Version, die dieser Build nicht kennt — App aktualisieren."
+        },
+        "HOOKS_VERSION_MISMATCH": {
+          "title": "Die installierten git-Hooks sind veraltet",
+          "hint": "Die gemanagten Hooks neu installieren (Install git hooks), um die aktuelle Version zu erhalten."
+        },
+        "HOOKS_MISSING": {
+          "title": "Die git-Hooks sind nicht installiert",
+          "hint": "Die gemanagten Hooks installieren, um Commits lokal zu schützen (die CLI/CI-Prüfung bleibt maßgeblich)."
+        },
+        "PROTECTION_ATTESTATION": {
+          "title": "Branch-Schutz ist erfasst, wird hier aber nicht geprüft",
+          "hint": "Den Branch-Schutz bei deinem git-Host bestätigen — er ist lokal nicht beobachtbar."
+        },
+        "ROUND_NONMONOTONIC": {
+          "title": "Runden-Nummern steigen nicht an",
+          "hint": "Informativ — Runden sind wiederholbare Workflow-Phasen, kein Zähler."
+        },
+        "ROUND_SKIPPED": {
+          "title": "Eine Runden-Nummer wurde übersprungen",
+          "hint": "Informativ — meist harmlos."
+        },
+        "ENGINE_ERROR": {
+          "title": "Eine Prüfung konnte nicht abgeschlossen werden",
+          "hint": "Eine Prüfung konnte nicht laufen; die technische Meldung hat Details. Der Rest des Ergebnisses ist weiterhin gültig."
+        }
+      }
     },
     "rounds": {
       "initial": "Initiale Bewertung",
