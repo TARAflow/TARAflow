@@ -747,6 +747,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
+    title: `TARAflow ${app.getVersion()}`,
     icon: path.join(
       __dirname,
       process.platform === "win32"
@@ -759,6 +760,8 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  win.setTitle(`TARAflow ${app.getVersion()}`);
 
   mainWindow = win;
 

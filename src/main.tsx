@@ -8,8 +8,6 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-document.title = "TARAflow";
-
 root.render(
   <React.StrictMode>
     <App />
