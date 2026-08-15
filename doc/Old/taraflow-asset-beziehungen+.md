@@ -1,0 +1,4205 @@
+# Asset-Beziehungen in TARAflow
+
+## Konzept
+
+Die Beziehungen zwischen DFD-Elementen und Assets folgen dem **"Active-Impact Modell"** für präzise Bedrohungsanalyse (TARA):
+
+```txt
+DFD-Element → wirkt auf → Asset
+```
+
+### Zwei Perspektiven für vollständige Threat-Analyse
+
+1. **Angriffsvektor** (`uses` mit Qualifiern): *Wie* kann ein Angreifer das System kompromittieren?
+2. **Schadenspotenzial** (`depends_on`): *Welche* Kaskadeneffekte entstehen bei Ausfall?
+
+| Beziehung    | Fokus         | TARA-Relevanz |
+|--------------|---------------|---------------|
+| `uses`       | Interaktion   | Wo ist der Angriffsvektor? (Likelihood) |
+| `depends_on` | Verfügbarkeit | Wie hoch ist der Schaden bei Ausfall? (Impact) |
+
+## is_an - Spezialbeziehung
+
+Die `is_an`-Beziehung ist eine **exklusive, definitorische Beziehung**:
+
+- Ein DFD-Element ist entweder eine Instanz des Assets (`is_an`)
+- **ODER** es hat Auswirkungsbeziehungen zum selben Asset
+- **Nie beides gleichzeitig zum selben Asset** — Beziehungen zu anderen Assets bleiben uneingeschränkt erlaubt
+- **Formal:** `is_an(A, X)` ⇒ keine weiteren Beziehungen zwischen A und X erlaubt
+- **Nicht transitiv vererbbar:** `is_an(A, X)` vererbt keine Beziehungen von X auf A
+- **Mathematische Bedeutung**: `is_an` schafft eine logisch eindeutige Brücke für transitive Ableitungen (siehe Abschnitt "Transitivität")
+
+**Beispiel:**
+
+- External Entity "Administrator" → `is_an` → Human Asset "System Admin Role"  
+  *(kann keine weiteren Beziehungen zu diesem Asset haben)*
+- Process "User Management" → `creates` → Data Asset "Admin Audit Logs"  
+  *(ist nicht is_an; z.B. durch Protokollierung von Admin-Aktionen)*
+- Data Asset "Admin Audit Logs" → affects_privacy → Human Asset "System Admin Role"
+
+---
+
+## Asset-Kategorien & Abstraktionshierarchie
+
+### Vertikale Hierarchie
+
+Die vier vertikalen Asset-Kategorien bilden eine **statische Abstraktionshierarchie** —
+je höher, desto weniger Implementierungsdetails sind bekannt oder notwendig.
+
+```txt
+Infrastructure    ← höchste Ebene, geringste Präzision (Umgebung / Arena)
+  ↓ beherbergt
+System            ← Blackbox-Komponente (Was stellt die Function bereit?)
+  ↓ realisiert
+Function          ← Fähigkeit / Capability (Was muss das System können?)
+  ↓ stützt sich auf
+Data              ← niedrigste Ebene, höchste Präzision (atomare Werte)
+```
+
+Der Einstiegspunkt in die Hierarchie bestimmt die Analysten-Perspektive:
+
+| Perspektive         | Typische Ebene  | Beispiel                          |
+|---------------------|-----------------|-----------------------------------|
+| Produktentwickler   | Function / Data | "Brake Control Function", "Safety Parameters" |
+| Integrator          | System          | "Safety Controller" als Blackbox  |
+| Betreiber / CISO    | Infrastructure  | OT-Netzwerksegment                |
+
+Dieselbe Methode — nur der Scope verschiebt sich.
+
+### Orthogonale Kategorien
+
+Diese Kategorien sind nicht Teil der vertikalen Hierarchie,
+sondern **schneiden alle Ebenen** — sie beschreiben den dynamischen Kontext
+des zu analysierenden Systems:
+
+| Kategorie      | Charakter | Beispiele                                              |
+|----------------|-----------|--------------------------------------------------------|
+| **Process**    | Orchestrator — zeitliche Sequenz von Schritten, Know-how-Asset | Fertigungsrezept, GMP-Herstellungsvorschrift, Behandlungsprotokoll |
+| **Physical**   | Passiver Sachwert ohne eingebettetes System | Wertsachen, Museumsgemälde, Prototyp, physischer Schlüssel |
+| **Service**    | Externer/interner Dienst ausserhalb der eigenen Systemgrenze | Cloud-Service, OTA-Update-Server, externer Wartungsdienst |
+| **Human**      | Schutzsubjekt und Akteur | Operator, Patient, Administrator |
+
+### Abgrenzung Function vs. Process
+
+Diese beiden orthogonalen bzw. vertikalen Typen werden häufig verwechselt:
+
+| Kriterium           | Function                              | Process                                |
+|---------------------|---------------------------------------|----------------------------------------|
+| Charakter           | Fähigkeit / Capability                | Zeitliche Sequenz / Know-how           |
+| Frage               | *Was muss das System können?*         | *Wie wird ein Ergebnis Schritt für Schritt erzeugt?* |
+| Wert des Assets     | Das Verhalten selbst                  | Die Reihenfolge der Schritte           |
+| Änderbarkeit        | Stabil (Normanforderung)              | Änderbar (Rezept, Verfahren, Protokoll)|
+| Implementierung     | Unbekannt / Blackbox                  | Konkret als Abfolge beschreibbar       |
+| Threat-Fokus        | Ausfall / Manipulation der Fähigkeit  | IP-Diebstahl, Sequenzmanipulation      |
+| Hierarchie          | Vertikal (Capability-Ebene)           | Orthogonal (Orchestrator)              |
+
+**Entscheidungsbaum (drei Prüffragen):**
+
+```txt
+1. Kennst du die zeitliche Abfolge der Schritte?
+   Nein → Function
+
+2. Ist der Wert des Assets in der Reihenfolge zur Laufzeit?
+   (= wäre ein Sequencing Attack oder Race Condition ein relevanter Threat?)
+   Nein → Function
+
+3. Wird der Ablauf zur Laufzeit instanziiert?
+   (= gibt es einen konkreten "laufenden Vorgang" der gestartet/gestoppt werden kann?)
+   Nein → Function
+   Ja  → Process
+```
+
+> **Hinweis Grenzfall:** Auch einfache, lineare Abläufe ohne sicherheitsrelevante Sequenz
+> sind Process Assets, wenn sie als Laufzeitinstanz existieren (z.B. Cronjobs, Batch-Prozesse).
+> Entscheidend ist Frage 3 — die Instanziierbarkeit zur Laufzeit.
+
+**Typische Anwendungsfälle:**
+
+| Situation | Korrekte Kategorie |
+|---|---|
+| Safety-Anforderung aus ISO 26262 / MDR / ISO 12100 | **Function** |
+| NC-Programm als Datei auf dem Server | **Data** |
+| GMP-Herstellungsvorschrift als Dokument | **Data** |
+| Behandlungsprotokoll als Dokument | **Data** |
+| Aktiver CNC-Fräsvorgang zur Laufzeit | **Process** |
+| Laufender Therapievollzug der Infusionspumpe | **Process** |
+| Bremsfunktion als Blackbox | **Function** |
+| Einzelner Software-Ablauf (Quellcode bekannt) | Im DFD als Process-Element modellieren |
+
+### Beispiel: CNC-Fertigung über alle Perspektiven
+
+```txt
+Produktentwickler:
+  Function Asset "Zerspanungs-Fähigkeit"        ← Was die CNC können muss
+    └─ implemented_by → System Asset "CNC-Steuerung"
+
+  Process Asset "Turbinenschaufel-Fräsrezept"   ← Das Know-how / die Sequenz
+    └─ [Step 1] invokes → Function Asset "Schruppen"
+    └─ [Step 2] invokes → Function Asset "Schlichten"
+    └─ [Step 3] invokes → Function Asset "Qualitätsprüfung"
+    └─ runs_on → System Asset "CNC-Steuerung"
+
+Integrator:
+  System "CNC-Steuerung" [Blackbox]
+    └─ implements → Function Asset "Zerspanungs-Fähigkeit"
+
+Betreiber:
+  Infrastructure "OT-Netzwerksegment Fertigung"
+    └─ hosts → System Asset "CNC-Steuerung"
+```
+
+---
+
+## Safety Annotation Layer
+
+### Konzept
+
+TARAflow integriert Safety-Aspekte durch einen **optionalen Annotation Layer**, der keine neue Modellierungslogik einführt, sondern bestehende Beziehungen mit Safety-Kontext anreichert.
+
+**Prinzip:**
+
+- ✅ **Optional** - Nur bei safety-relevanten Systemen nötig
+- ✅ **Qualitativ** - Keine komplexen Berechnungen, erklärende Bewertungen
+- ✅ **Nicht-invasiv** - Ändert die Core-Sicherheitsanalyse nicht
+- ✅ **Normkonform** - Ermöglicht EN 50742 / ISO 12100 Compliance
+
+### Das Safety Annotation Pattern
+
+```typescript
+type FunctionAssetId = string & { readonly __brand: 'FunctionAssetId' };
+
+safety: {
+  relevance: "none" | "indirect" | "direct";
+  impact?: "none" | "reversible_injury" | "irreversible_injury" | "fatality";
+  /**
+   * Physical hazard potential — qualitative Gefährdungsbewertung
+   * für die betroffene Person/Anlage.
+   * Festgelegt vom Analysten an der jeweiligen Asset-Relation
+   * (z.B. is_an → CNC-Maschine, affects_safety → Maschinenbediener).
+   * 3-stufig fix nach ISO 12100 / EN 50742 Prinzip.
+   */
+  physicalHazardPotential?: "low" | "medium" | "high";
+  protectionTarget?: boolean;   // speziell für Human Assets (Personen)
+  rationale?: string;
+}
+```
+
+**Dieses Pattern ist einheitlich** über alle DFD-Elemente und Asset-Beziehungen:
+
+- External Entities
+- Processes
+- Data Stores
+- Data Flows
+- Interfaces
+- Chip Boundaries
+- Asset-Beziehungen
+
+> **Verbindung zu Function Assets:**
+> Die Beziehung zwischen einem DFD-Element und den betroffenen Safety Functions
+> wird nicht als Property-Feld modelliert, sondern über Asset-zu-Asset Beziehungen
+> (z.B. `implements`, `depends_on`, `required_by`).
+> Die Traceability zur externen Safety-Analyse (ISO 12100 SF-IDs) erfolgt
+> über `externalRefs` am Function Asset selbst.
+
+**Woher kommen diese Function Assets?**
+Der Analyst leitet sie aus der begleitenden Safety-Analyse ab:
+
+1. ISO 12100 / FMEA identifiziert Safety Functions (z.B. "Emergency Stop", "Brake Control")
+2. Analyst erstellt für jede Safety Function ein Function Asset in TARAflow
+3. Optionales `externalRef`-Feld am Function Asset verknüpft es mit der externen ID (z.B. `"SF-001"`)
+4. `affectedSafetyFunctions` überall im Modell referenziert die TARAflow-internen UUIDs dieser Assets
+
+Damit ist das Modell in sich geschlossen — externe Safety-Analyse und TARAflow-Modell
+sind über `externalRef` nachvollziehbar verknüpft, aber nicht voneinander abhängig.
+Externe `SF-001`-IDs erscheinen **nur** in `externalRef`, nie direkt in `affectedSafetyFunctions`.
+
+### Methodische Kette: Threat → Impact → Injury
+
+TARAflow modelliert Safety-Konsequenzen entlang folgender Kette:
+
+```txt
+Threat → Impact → [Hazardous Situation] → Injury / Harm
+```
+
+**Erläuterung der Klammern:**  
+Die *Hazardous Situation* ist konzeptuell zwischen `impact` und `injury` verortet,
+wird aber bewusst **nicht als eigenes Datenfeld** modelliert.
+
+#### Worst-Case-Annahme
+
+TARAflow arbeitet konservativ: Sobald ein Threat einen Impact auf ein
+safety-relevantes Asset erzeugt, gilt die entstehende Hazardous Situation
+als **gegeben**. Die Frage "Ist der Bediener gerade im Gefahrenbereich?"
+wird nicht separat bewertet — im Worst-Case ist er es.
+
+> *"If a safety-relevant asset is compromised, TARAflow assumes the worst-case
+> hazardous situation has materialized."*
+
+Diese Annahme ist bewusst konservativ und entspricht dem Prinzip der
+sicheren Seite (ISO 12100, Abschnitt 5.6).
+
+#### Abgrenzung zur formalen Safety-Analyse
+
+Die probabilistische Bewertung der Expositionswahrscheinlichkeit
+(Wie oft befindet sich eine Person im Gefahrenbereich?) fällt in den Scope
+der formalen Safety-Analyse:
+
+| Frage                              | Zuständigkeit        |
+|------------------------------------|----------------------|
+| Welcher Cyber-Threat löst aus?     | TARAflow (TARA)      |
+| Welchen Impact hat er auf Assets?  | TARAflow (TARA)      |
+| Ist jemand im Gefahrenbereich?     | Safety-Analyse (ISO 12100 / FMEA) |
+| Wie hoch ist PL / SIL?             | Safety-Analyse (ISO 13849 / IEC 62061) |
+
+#### Antwort für Auditoren
+
+Wenn Auditoren fragen: *"Wo ist die Hazardous Situation dokumentiert?"*
+
+**Antwort:** TARAflow bildet den Cyber-Auslöser ab (`Threat → Impact`).
+Die Hazardous Situation ist durch die Worst-Case-Annahme konservativ
+impliziert. Die formale Bewertung der Exposition erfolgt in der
+begleitenden Safety-Analyse, auf die TARAflow via
+`affectedSafetyFunctions` referenziert.
+
+### Formale Definition: relevance
+
+Die `relevance`-Eigenschaft der SafetyAnnotation ist nicht architektonisch,
+sondern funktional definiert:
+
+**relevance: `direct`**\
+Das Asset kontrolliert unmittelbar eine der folgenden Safety-Funktionen:
+  - Energieabgabe / physische Bewegung / Flussrate
+  - Medikamentendosierung / Therapieausführung
+  - Safety-Interlock / Not-Halt-Funktion
+  - Validierungsentscheidung im Safety-Loop
+  → Kompromittierung dieses Assets = unmittelbare Steuerung des Schadens
+
+> **Semantische Klarstellung:** `direct` in der Safety-Annotation (`relevance: 'direct'`)
+> bedeutet **kausale Unmittelbarkeit** — nicht physischen Kontakt.
+> Davon getrennt ist `direct` als Qualifier bei `Human → Physical: accesses [direct]`,
+> der **physischen Kontakt** mit einem Objekt beschreibt.
+> Beide Verwendungen sind bewusst gleichlautend aber in verschiedenen Dimensionen —
+> perspektivisch werden sie als `relevance: direct` vs. `contact: direct` getrennt.
+
+**relevance: `indirect`**\
+Das Asset beeinflusst ausschliesslich:
+  - Verfügbarkeit von Systemen oder Netzwerken
+  - Konfiguration oder Parametrierung
+  - Infrastruktur oder Übertragungswege
+  → Kompromittierung dieses Assets = systemischer Einfluss, kein direkter Hebel
+
+**Prüffrage:**\
+"Wenn genau dieses Asset kompromittiert wird – kontrolliert es unmittelbar die physische Aktion die den Schaden verursacht?"\
+**Ja**  → relevance: 'direct'\
+**Nein** → relevance: 'indirect'
+
+>**Wichtig für Auditoren:**\
+  Ein Asset kann theoretisch zu **fatality** führen und trotzdem `indirect` sein.
+  Der Grund: Es steuert die Gefährdung nicht unmittelbar, sondern beeinflusst
+  sie nur systemisch. Diese Unterscheidung ist funktional, nicht topologisch.
+
+### Warum kein separates Safety-Modell?
+
+**Vermeidung von:**
+
+- ❌ Doppelpflege (Security + Safety getrennt)
+- ❌ Inkonsistenzen zwischen Modellen
+- ❌ Normen-Hardcoding (z.B. SRSL-Werte fest eingebaut)
+- ❌ Wartungshölle bei Normenänderungen
+
+**Stattdessen:**
+
+- ✅ Safety als Eigenschaft der Security-Analyse
+- ✅ Ein Graph, zwei Perspektiven (Security & Safety)
+- ✅ Automatische Dokumentations-Generierung
+
+### Anwendung
+
+**Ohne Safety-Annotation:**
+
+```txt
+Process "User Login"
+└─ reads → Data Asset "User Credentials"
+   → Standard STRIDE-Analyse
+```
+
+**Mit Safety-Annotation:**
+
+```txt
+Process "Emergency Stop Logic" 
+└─ Properties: { safetyRelevant: true, safetyImpact: 'fatality' }
+└─ modifies → Data Asset "Stop Configuration"
+   └─ safety: {
+        relevance: 'direct',
+        impact: 'fatality',
+        rationale: 'Manipulation disables emergency stop function'
+      }
+   → Höchste Priorität in Threat-Analyse
+   → Automatische Safety-Dokumentation
+```
+
+### Dokumentations-Generierung
+
+Aus dem Safety Annotation Layer werden automatisch Sätze in Normsprache generiert:
+
+**External Entity (Operator):**
+> *"The operator is considered a protection target. Compromise of associated system elements may result in severe safety hazards."*
+
+**Data Store (Safety Parameters):**
+> *"This data store contains safety-relevant configuration data. Unauthorized modification could lead to loss of risk reduction measures."*
+
+**Data Flow:**
+> *"This communication path is safety-relevant as it supports the execution of safety functions."*
+
+**Interface (USB/Ethernet):**
+> *"This interface is safety-relevant due to its potential use for manipulation of safety-critical components."*
+
+### Integration mit Threat-Analyse
+
+Safety-annotierte Beziehungen beeinflussen die Threat-Priorisierung:
+```
+Threat-Scoring ohne Safety:
+Risk = Likelihood × Impact
+
+Threat-Scoring mit Safety:
+If (asset.safety.relevance === 'direct' || asset.safety.impact === 'fatality')
+  → Risk Priority = CRITICAL (unabhängig von Business Impact)
+  → Erfordert zusätzliche Mitigations
+  → Explizite Dokumentation in Safety-Kapitel
+```
+
+### Was Safety-Annotation NICHT ist
+
+- ❌ Kein Ersatz für formale Safety-Analyse (FMEA, FTA)
+- ❌ Keine SRSL-Berechnung
+- ❌ Keine ISO 13849 Performance Level Bestimmung
+- ❌ Keine automatische Safety-Zertifizierung
+
+**Sondern:**
+- ✅ Dokumentation der Safety-Relevanz im Cyber-Kontext
+- ✅ Brücke zwischen Cybersecurity und Functional Safety
+- ✅ Compliance-Nachweis für EN 50742
+- ✅ Nachvollziehbare Priorisierung von Security-Maßnahmen
+
+### Workflow im Tool
+
+1. **Modellierung** - DFD und Assets wie gewohnt erstellen
+2. **Safety-Identifikation** - Safety-relevante Elemente markieren (optional)
+3. **Annotation** - Safety Properties nur wo sinnvoll ausfüllen
+4. **Analyse** - System berücksichtigt Safety automatisch bei Threat-Priorisierung
+5. **Dokumentation** - Automatische Generierung von Safety-Kapiteln für Audit
+
+**Kein Mehraufwand im Alltag. Maximaler Effekt im Review.**
+
+---
+
+## Data Assets
+
+Beschreibt Auswirkungen auf Daten und Informationen.
+
+### Beziehungen
+```
+creates      - DFD-Element erzeugt das Data Asset
+reads        - DFD-Element liest das Data Asset
+modifies     - DFD-Element verändert das Data Asset
+deletes      - DFD-Element löscht das Data Asset
+stores       - DFD-Element speichert das Data Asset
+transports   - DFD-Element transportiert das Data Asset
+is_an        - DFD-Element ist eine Instanz des Data Assets
+```
+
+### Beispiele
+
+```txt
+Process "User Registration"
+├─ creates → Data Asset "User Credentials"
+└─ stores → Data Asset "User Profile"
+
+Data Store "Customer Database"
+└─ is_an → Data Asset "Customer Records"
+
+Data Flow "Encrypted Session"
+└─ transports → Data Asset "Session Token"
+```
+
+---
+
+### Safety-relevante Data Stores
+Data Stores erben ihre Safety-Relevanz primär über das verknüpfte Asset. 
+Die Annotation erfolgt am Asset, um Konsistenz über mehrere Instanzen (z. B. Backup-Stores) zu gewährleisten.
+Data Stores können **safety-kritische Konfigurationsdaten** enthalten, deren Manipulation zu gefährlichen Systemzuständen führen kann:
+
+```typescript
+interface DataStoreProperties {
+  // ... Standard Properties
+
+  // Safety-spezifisch
+  containsSafetyRelevantData?: boolean;
+  safetyImpact?: 'none' | 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+  // Verbindung zu betroffenen Function Assets erfolgt über
+  // Asset-zu-Asset Beziehungen, nicht als Property-Feld
+}
+```
+
+**Verwendung:**
+
+- Automatische Priorisierung von `modifies` und `deletes` Beziehungen zu diesen Stores
+- Generierung von Safety-spezifischen Threat-Szenarien
+- Compliance-Dokumentation (EN 50742: "Identification of safety-related data assets")
+
+**Beispiele:**
+
+```txt
+Data Store "Emergency Stop Configuration"
+└─ is_an → Data Asset "Safety Parameters"
+   └─ Properties: {
+        containsSafetyRelevantData: true,
+        safety: { relevance: 'direct', impact: 'fatality' },
+        safetyImpact: 'fatality',
+        rationale: 'Manipulation could disable emergency stop function'
+        // Beziehung zu FU-001, FU-003 → Asset-zu-Asset Relation
+      }
+
+Process "Configuration Manager"
+└─ modifies → Data Store "Emergency Stop Configuration"
+   → Automatisch höchste Threat-Priorität (Safety-kritisch!)
+
+Data Store "Machine Calibration Data"
+└─ is_an → Data Asset "Operational Parameters"
+   └─ Properties: {
+        containsSafetyRelevantData: true,
+        safetyImpact: 'irreversible_injury',
+        rationale: 'Incorrect calibration can cause uncontrolled movement'
+      }
+```
+
+**Threat-Ableitung:**
+Bei Data Stores mit `containsSafetyRelevantData: true` werden automatisch folgende Threats priorisiert:
+
+- **Tampering (Integrity):** Unbefugte Änderung von Safety-Parametern
+- **Denial of Service (Availability):** Löschen oder Korrumpieren von Safety-Konfiguration
+
+---
+
+## Data Flows - Spezialfall für `transports`
+
+### Das Redundanz-Problem
+
+Data Flows transportieren per Definition Daten. Die `transports`-Beziehung wäre damit redundant - **aber**: Für präzise Threat-Analyse muss explizit sein, **welche** Assets konkret transportiert werden.
+
+### Lösung: Explizit mit UI-Unterstützung (Option C)
+
+**Prinzip**:
+
+- Jeder Data Flow **muss** explizit deklarieren, welche Data Assets er transportiert
+- Das UI macht dies einfach durch intelligente Vorschläge
+- Ein Data Flow ohne `transports`-Beziehung ist unvollständig
+
+**Warum explizit?**
+
+1. **Payload-Präzision**: "HTTPS Request" kann `Password` (hoch kritisch) oder `Language Setting` (niedrig kritisch) enthalten
+2. **Multiple Assets**: Ein Flow kann mehrere Assets gleichzeitig transportieren
+3. **Threat-Generierung**: Automatische STRIDE-Analyse pro Asset auf diesem Kommunikationspfad
+4. **Transitivität**: Ohne explizite Zuordnung bricht die Ableitungskette (siehe Abschnitt "Transitivität")
+
+### UI-Workflow für Data Flows
+
+```txt
+User erstellt: Data Flow "API Response" von Process "Login Service"
+                                        ↓
+UI analysiert: Welche Assets kennt "Login Service"?
+               - creates: "Session Token"
+               - reads: "User Profile"
+               - reads: "User Credentials"
+                                        ↓
+UI schlägt vor: "Transportiert dieser Flow alle 3 Assets?" 
+                [ Alle auswählen ] [ Einzeln wählen ]
+                                        ↓
+User bestätigt: Flow transportiert "Session Token" + "User Profile"
+                (Credentials bleiben intern)
+                                        ↓
+Validierung: ✓ Flow ist vollständig definiert
+```
+
+### Einschränkungen für Data Flow Elemente
+
+Data Flows haben **nur** folgende erlaubte Beziehungen:
+
+- `transports` → Data Asset (Pflicht, kann mehrfach vorkommen)
+- `is_an` → Data Asset (Optional, z.B. für Protokoll-Assets wie "TLS 1.3 Connection")
+
+**Nicht erlaubt** für Data Flows:
+
+- `creates`, `reads`, `modifies`, `deletes`, `stores` (das machen Processes/Data Stores)
+
+### Warnung bei unvollständigen Flows
+
+```txt
+⚠️ Data Flow "API Request" hat keine transports-Beziehung
+   → Bedrohungsanalyse für diesen Kommunikationspfad nicht möglich
+```
+
+### Beispiel
+
+```txt
+Data Flow "Payment Transaction"
+├─ transports → Data Asset "Credit Card Number"
+├─ transports → Data Asset "Transaction Amount"
+└─ transports → Data Asset "Customer ID"
+
+→ STRIDE-Analyse generiert automatisch:
+  - Tampering: Kann Transaction Amount manipuliert werden?
+  - Information Disclosure: Kann Credit Card Number abgefangen werden?
+  - Spoofing: Kann Customer ID gefälscht werden?
+```
+
+### Edge Case: Bidirektionale Kommunikation (Request/Response)
+
+TARAflow erlaubt **ausschliesslich unidirektionale Flows**. Bidirektionale Kommunikation
+wird immer als zwei separate Flows modelliert:
+
+```txt
+┌─────────┐                           ┌──────────┐
+│ Client  │──── Login Request ────→   │  Server  │
+│         │                           │          │
+│         │←─── Login Response ────   │          │
+└─────────┘                           └──────────┘
+
+Flow "Login Request"
+└─ transports → Data Asset "Login Credentials"
+
+Flow "Login Response"
+└─ transports → Data Asset "Session Token"
+```
+
+**Validierungsregel:**
+
+```txt
+IF zwei Flows zwischen denselben Knoten in entgegengesetzter Richtung
+→ INFO: "Bidirektionale Kommunikation erkannt (Request/Response Pattern) —
+         prüfen ob Assets korrekt auf die jeweiligen Flows verteilt sind"
+```
+
+> **Warum kein Richtungs-Qualifier?** Der DFD-Pfeil ist die Primärrichtung —
+> eine zweite Richtungsangabe am Attribut würde zu konkurrierender Semantik führen.
+> Zwei separate Flows sind präziser und erzwingen explizites Denken über Payload-Richtung.
+
+### Safety-Relevanz bei Data Flows
+
+Data Flows können safety-relevante Daten transportieren oder safety-kritische Bereiche verbinden:
+
+```typescript
+interface DataFlowProperties {
+  // ... Standard Properties
+
+  // Safety-spezifisch
+  safetyRelevant?: boolean;
+  crossesSafetyBoundary?: boolean;  // Verbindet safety mit non-safety Bereich
+  safetyRationale?: string;
+  // Verbindung zu betroffenen Function Assets erfolgt über
+  // Asset-zu-Asset Beziehungen, nicht als Property-Feld
+}
+```
+
+**Wichtig: Safety Context/Boundary ≠ visuelles DFD-Element**
+
+**Safety Context/Boundary ist KEINE separate Linie** im DFD (wie Trust Boundary), sondern eine **logische Kategorisierung** durch Properties:
+
+- **Trust Boundary** = eigenes DFD-Element (gestrichelte Linie)
+- **Safety Annotation** = Property an bestehenden Elementen + automatische Erkennung
+
+**Automatische Ableitung:**
+
+```typescript
+function detectSafetyBoundaryCrossing(flow: DataFlow): boolean {
+  const source = getDFDElement(flow.sourceId);
+  const target = getDFDElement(flow.targetId);
+  
+  // Flow kreuzt "Safety Context/Boundary" wenn:
+  return (source.safetyRelevant && !target.safetyRelevant) ||
+         (!source.safetyRelevant && target.safetyRelevant);
+}
+```
+
+**Visuelle Darstellung (Optional):**
+
+- Safety-relevante Elemente: z.B. roter Rahmen oder Hintergrund
+- Safety Context/Boundary-crossing Flows: z.B. rot gestrichelt
+- **Kein neuer DFD-Element-Typ!** Nur Properties + Visualisierung
+
+**Beispiele:**
+
+```txt
+Data Flow "Emergency Stop Signal"
+├─ transports → Data Asset "Stop Command"
+└─ Properties: {
+     safetyRelevant: true,
+     crossesSafetyBoundary: false,  // Beide Enden sind safety-relevant
+     safetyRationale: 'Critical for machine safety function',
+     // Beziehung zu FU-001 → Asset-zu-Asset Relation
+   }
+
+Process "Safety PLC" [safetyRelevant: true]
+    ↓ Data Flow "Status Update" [crossesSafetyBoundary: true]
+Process "Monitoring Dashboard" [safetyRelevant: false]
+
+→ Automatisch erkannt: Flow kreuzt Safety Context/Boundary
+→ Höhere Priorität in Threat-Analyse
+→ Risiko: Kompromittierung von Non-Safety könnte auf Safety übergreifen
+
+
+Data Flow "Remote Monitoring"
+├─ transports → Data Asset "Production Metrics"
+└─ Properties: {
+     safetyRelevant: false,
+     crossesSafetyBoundary: false,
+     safetyRationale: 'No safety function impact'
+   }
+```
+
+**Unterschied Trust Boundary vs. Safety Context/Boundary:**
+
+| Aspekt | Trust Boundary | Safety Context/Boundary |
+|--------|----------------|-----------------|
+| **Visuell im DFD?** | ✅ Ja (gestrichelte Linie) | ❌ Nein (nur Markierung) |
+| **Eigenschaft von?** | Zone/Gruppe von Elementen | Einzelne Elemente + Flows |
+| **Darstellung** | Eigenes DFD-Element | Property + visuelle Hervorhebung |
+| **Beispiel** | Internet → Firewall → LAN | Safety-Prozess → Non-Safety |
+
+**Threat-Relevanz:**
+Ein Flow der eine Safety Context/Boundary kreuzt hat **höhere Priorität** in der Analyse, weil:
+- Kompromittierung des Non-Safety-Bereichs auf Safety-Bereich übergreifen könnte
+- EN 50742 explizit die "Identification of safety-relevant interfaces and communication paths" fordert
+
+**Dokumentationsgewinn (EN 50742):**
+- Automatische Generierung: *"This communication path is safety-relevant as it supports the execution of safety functions."*
+- Identifikation aller safety-boundary-crossing Flows für Audit
+
+---
+
+## Chip Boundary — Asset-Beziehungen
+ 
+### Konzept
+ 
+Eine Chip Boundary repräsentiert einen Hardware-Chip als eigenständige
+Sicherheitsgrenze im DFD. Sie ist connectable — DataFlows können an ihr
+terminieren via Interface-Symbol auf der Boundary-Kante.
+ 
+### Relevante Asset-Beziehungen
+ 
+| Relation | Beispiel | Threat-Relevanz |
+|---|---|---|
+| `uses` | MCU ChipBoundary `uses` Firmware Asset | Angriffsvektor: Firmware Tampering |
+| `uses` | MCU ChipBoundary `uses` Crypto Key Asset | Angriffsvektor: Key Extraction via JTAG |
+| `depends_on` | Application Process `depends_on` SE ChipBoundary | Impact: Krypto-Ausfall bei SE-Kompromittierung |
+| `is_an` | ATECC608 ChipBoundary `is_an` Secure Element System Asset | Instanz-Beziehung: Chip ist die Instanz des System Assets |
+| `hosts` | MCU ChipBoundary `hosts` Bootloader Function Asset | Strukturelle Beziehung: Chip beherbergt Function |
+ 
+### Verbotene Verbindungen (Validator R9)
+ 
+DataStore und TrustBoundary dürfen nicht via DataFlow mit einer
+ChipBoundary verbunden werden. Begründung: Ein DataStore ist kein
+physischer Zugangspunkt — er wird innerhalb des Chips als Prozess oder
+DataStore-Element modelliert (z.B. Flash-Speicher als DataStore innerhalb
+der ChipBoundary).
+ 
+### Safety-Relevanz
+ 
+ChipBoundaries können safety-kritische Hardware beherbergen:
+ 
+- Safety MCU (SIL-zertifiziert): `safetyRelevant = true`
+- SE als Key-Store für Safety-PLC-Authentifizierung: `safetyRelevant = true`
+- Standard-MCU ohne Safety-Funktion: `safetyRelevant = false`
+**Geplante Erweiterung (Phase 2):**
+`ChipBoundaryProperties.safetyRelevant + safetyRationale` — analog zu
+`InterfaceProperties` und `DataFlowProperties`. Erlaubt automatische
+Priorisierung von Threats auf safety-kritischen Chips (z.B. JTAG-Angriff
+auf Safety MCU → höchste Priorität).
+
+
+---
+
+## Physical Boundary — Asset-Beziehungen
+
+### Konzept
+
+Eine Physical Boundary repräsentiert eine räumlich-physische Zugriffsbarriere im DFD.
+Sie beantwortet die Frage: **"Wer kommt physisch ran?"** — semantisch orthogonal zu
+TrustBoundary (logisch/Policy) und ChipBoundary (Hardware-Isolation).
+
+Eine Physical Boundary ist **nicht connectable** — kein DataFlow terminiert daran.
+Stattdessen werden Interfaces geometrisch innerhalb oder auf dem Rand der Boundary
+platziert. Elemente im Innern erben die physische Zugangsvoraussetzung.
+
+### Relevante Asset-Beziehungen
+
+| Relation | Beispiel | Threat-Relevanz |
+|---|---|---|
+| `located_in` | Steuereinheit Physical Asset `located_in` Schaltschrank PhysicalBoundary | Diebstahl, physischer Zugang |
+| `secured_by` | PLC Infrastructure Asset `secured_by` Serverraum PhysicalBoundary | Zugangskontroll-Threats |
+| `is_an` | Gehäuse Physical Asset `is_an` device_enclosure PhysicalBoundary | Instanz-Beziehung |
+| `damages` | ExternalEntity `damages` PhysicalBoundary (via Physical Asset) | Sabotage, Zerstörung |
+
+**Hauptbeziehungen nach Asset-Kategorie:**
+
+```
+Physical Asset    → located_in    PhysicalBoundary  (Sachwert befindet sich darin)
+Infrastructure    → secured_by    PhysicalBoundary  (Infra-Asset wird physisch geschützt)
+Infrastructure    → is_an         PhysicalBoundary  (Infra-Instanz ist diese Boundary)
+System Asset      → depends_on    PhysicalBoundary  (System braucht physischen Schutz)
+```
+
+### Verbotene Verbindungen (Validator R10)
+
+DataFlows dürfen nicht mit einer PhysicalBoundary verbunden werden (kein Endpoint).
+Eine PhysicalBoundary hat keine Kommunikationsschnittstelle — Interaktion wird via
+Interface-Elemente auf der Boundary-Kante modelliert.
+
+### physicalMobility — neue Threat-Dimension
+
+Das Feld `physicalMobility` auf `PhysicalBoundaryProperties` öffnet qualitativ neue
+Threat-Klassen die über PEL und accessibility hinausgehen:
+
+| physicalMobility | Threat-Klasse | Beispiel |
+|---|---|---|
+| `fixed` | Nur Vor-Ort-Angriffe | Wand-PLC, Schaltschrank |
+| `removable` | Depot Attack, Hardware Swap | DIN-Rail Gateway, Steckmodul |
+| `portable` | Evil-Maid, Firmware Implant, Lab-Seitenkanal | Kalibriergerät, Handheld |
+| `vehicle_mounted` | Fahrzeugdiebstahl, Depot Attack bei Wartung | CAN-Gateway, Fahrzeugsteuerung |
+
+**Kalibrierungsgerät-Szenario (Safety-kritisch):**
+```
+boundaryType:          "device_enclosure"
+physicalMobility:      "portable"      ← Evil-Maid Threat-Klasse
+safetyRelevant:        true            ← Rogue Calibration Threat
+tamperProtection:      "seal"          ← einzige praktische Gegenmassnahme
+```
+→ Automatisch generierte Threats: Evil-Maid, Firmware Implant, **Calibration Data
+Manipulation** (Safety-Impact), Tamper Seal Bypass.
+
+### Rückwärtsmapping (dfd-to-asset-mapper)
+
+Die folgenden Asset-Relationen werden automatisch abgeleitet wenn ein Asset
+geometrisch innerhalb einer PhysicalBoundary liegt:
+
+```typescript
+// Physical Asset inside PhysicalBoundary → located_in
+// Infrastructure Asset inside PhysicalBoundary → secured_by
+// physicalExposureLevel der PB → derivedPhysicalExposure auf Asset
+// safetyRelevant der PB → propagiert auf Assets ohne eigenes Flag
+```
+
+### Drei orthogonale Boundary-Dimensionen
+
+| Boundary | Frage | Schutzmechanismus | Threats |
+|---|---|---|---|
+| `TrustBoundary` | Wer vertraut wem? | Firewall, Auth, Policy | MITM, Auth Bypass |
+| `ChipBoundary` | Welche HW-Isolation? | MPU, TrustZone, Debug-Fuse | JTAG Bypass, Fault Injection |
+| `PhysicalBoundary` | Wer kommt physisch ran? | Gehäuse, Schloss, Badge, Siegel | Physical Access, Evil-Maid, Cable Tamper |
+
+---
+## Function Assets
+
+Beschreibt Fähigkeiten eines Systems — unabhängig davon, wie oder wo
+sie implementiert sind. Function ist die Abstraktionsebene zwischen
+Process und System: bekannt ist das Verhalten, nicht die Implementierung.
+
+**Typische Perspektive:** Integrator / Anlagenbauer mit Blackbox-Komponenten.
+
+**Entscheidungsregel:**
+> Wenn der Implementierungsort bekannt und im DFD modellierbar ist → **Process Asset**.
+> Wenn nur das Verhalten bekannt ist → **Function Asset**.
+
+### Beziehungen
+
+```txt
+implements   - DFD-Element stellt diese Function bereit
+invokes      - DFD-Element ruft diese Function auf
+depends_on   - DFD-Element ist abhängig von dieser Function
+is_an        - DFD-Element ist eine Instanz dieser Function
+```
+
+### Beispiele
+
+```txt
+System "Safety Controller" [Blackbox]
+└─ is_an → Function Asset "Brake Control Function"
+
+System "Vision System" [Blackbox]
+└─ implements → Function Asset "Object Detection Function"
+
+Process "Motion Controller"
+└─ depends_on → Function Asset "Brake Control Function"
+```
+
+### Abgrenzung zu Process
+
+| Kriterium           | Function Asset                        | Process Asset                     |
+|---------------------|---------------------------------------|-----------------------------------|
+| Implementierungsort | Unbekannt / irrelevant                | Bekannt, im DFD modellierbar      |
+| Perspektive         | Integrator / Blackbox                 | Produktentwickler                 |
+| Abstraktionsgrad    | "Kann bremsen"                        | "Set Brake Level"                 |
+| Typisches Element   | System → is_an                        | Process → is_an                   |
+
+### Safety-relevante Functions
+
+Safety Functions sind der häufigste Anwendungsfall für Function Assets
+im OT/Maschinenbau-Kontext:
+
+```typescript
+interface ExternalSafetyRef {
+  id: string;        // z.B. "SF-001" aus externer Safety-Analyse
+  standard: string;  // z.B. "ISO 12100", "ISO 13849", "IEC 62061"
+  document?: string; // z.B. "Safety Analysis Rev. 2.3"
+  rationale?: string;// z.B. "Emergency stop function per clause 6.2.4"
+}
+
+interface FunctionAssetProperties {
+  // Standard Properties
+
+  // Safety-spezifisch
+  isSafetyFunction?: boolean;
+  safetyImpact?: 'none' | 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+
+  // Traceability zur externen Safety-Analyse (z.B. ISO 12100, ISO 13849)
+  externalRefs?: ExternalSafetyRef[];
+}
+```
+
+**Beispiel:**
+```txt
+
+Function Asset "Brake Control Function"  [ID: FU-001]
+└─ Properties: {
+     isSafetyFunction: true,
+     safetyImpact: 'fatality',
+     safetyRationale: 'Loss of brake control leads to uncontrolled motion',
+     externalRefs: [
+       {
+         id: 'SF-001',
+         standard: 'ISO 12100',
+         document: 'Safety Analysis Rev. 2.3',
+         rationale: 'Brake control function per clause 6.2.4'
+       }
+     ]
+   }
+
+Function Asset "Emergency Stop Logic"  [ID: FU-002]
+└─ Properties: {
+     isSafetyFunction: true,
+     safetyImpact: 'fatality',
+     safetyRationale: 'Disabling emergency stop allows uncontrolled machine motion',
+     externalRefs: [
+       {
+         id: 'SF-002',
+         standard: 'ISO 12100',
+         document: 'Safety Analysis Rev. 2.3',
+         rationale: 'Emergency stop function per clause 6.2.4'
+       }
+     ]
+   }
+
+System "Safety Controller"
+└─ is_an → Function Asset "Brake Control Function"  [FU-001]
+└─ implements → Function Asset "Emergency Stop Logic"  [FU-002]
+   → Automatisch höchste Threat-Priorität (Safety-kritisch)
+   → Safety Override Rule greift: fatality → CRITICAL
+
+// Verbindung zwischen Data Asset und Function Asset:
+// → über Asset-zu-Asset Beziehungen (siehe taraflow-asset-zu-asset-beziehungen.md)
+// → nicht als Property-Feld
+```
+
+### Threat-Ableitung
+
+Bei Function Assets mit `isSafetyFunction: true` werden automatisch
+folgende Threats priorisiert:
+
+- **Tampering (Integrity):** Manipulation der Funktionslogik oder -parameter
+- **Denial of Service (Availability):** Deaktivierung oder Unterbrechung der Funktion
+- **Spoofing:** Vortäuschen einer validierten Safety Function
+
+### Hinweis zur Hierarchie
+
+Mehrere Function Assets können einen Process bilden. Diese Beziehung
+ist informativ, nicht modellpflicht:
+```
+Function "Read Sensor Value"   ─┐
+Function "Evaluate Threshold"  ─┼─→ bilden zusammen → Process "Safety Monitor"
+Function "Trigger Emergency Stop" ─┘
+```
+
+Für den Integrator, der nur die Blackbox sieht, reicht die Function-Ebene.
+Der Produktentwickler modelliert tiefer auf Process-Ebene.
+
+---
+
+## Process Assets
+
+Ein Process Asset beschreibt einen **aktiven Ablauf zur Laufzeit** — Information *in motion*.
+Es ist nicht das Dokument oder die Datei die den Ablauf beschreibt (das ist ein Data Asset),
+sondern der **laufende Vollzug selbst**: der Zustand, das Timing und die Kontinuität der
+Ausführung.
+
+**Die fundamentale Unterscheidung:**
+
+| | Was es ist | Beispiel | Bedrohung |
+|---|---|---|---|
+| **Data Asset** | Information *at rest* | NC-Programm als Datei, Therapieprofil als Dokument | Diebstahl, Manipulation der Datei |
+| **Process Asset** | Information *in motion* | Der aktive Fräsvorgang, der laufende Therapievollzug | Timing-Manipulation, Race Condition, Deadlock |
+| **Function Asset** | Das Werkzeug | "Schruppen", "Dosis berechnen" | Funktion liefert falsches Ergebnis |
+
+> **Merksatz:** Wenn der Angreifer weder die Datei (Data) noch das Werkzeug (Function)
+> angreift, sondern den **Zeitstrahl** — dann ist ein Process Asset das Ziel.
+
+**Typische Process Assets:**
+
+- Aktiver CNC-Fräsvorgang (nicht: das NC-Programm — das ist Data)
+- Laufender Therapievollzug einer Infusionspumpe (nicht: das Therapieprofil — das ist Data)
+- Aktiver Herstellungslauf in der Pharmaproduktion (nicht: die GMP-Vorschrift — das ist Data)
+- Laufende Dialysebehandlung (nicht: das Behandlungsprotokoll — das ist Data)
+
+**Threat-Fokus:**
+
+- **Timing-Manipulation:** Latency Injection in den Regelkreis — die Datei ist unverändert,
+  die Funktion intakt, aber das Timing ist korrumpiert → Qualitätsverlust oder Patientenschaden
+- **Race Condition:** Zwei Functions laufen gleichzeitig statt sequenziell → ungültiger
+  Prozess-Zustand obwohl beide Functions korrekt arbeiten
+- **Sequencing Attack:** Reihenfolge der Schritte verändert → Schaden entsteht durch
+  die Kombination, nicht durch einzelne fehlerhafte Komponenten
+- **Deadlock / Suspension:** Prozess wird eingefroren oder unendlich verzögert →
+  Availability-Verlust des laufenden Vorgangs
+
+### DFD-Einstieg (Ebene 1)
+
+Process Assets haben DFD-Einstiegspunkte — ein DFD-Element interagiert mit dem
+laufenden Prozess:
+
+```txt
+executes     - DFD-Element führt den Prozess aus (startet und steuert den Vollzug)
+invokes      - DFD-Element startet den Prozess
+terminates   - DFD-Element beendet den Prozess (Notabbruch, reguläres Ende)
+suspends     - DFD-Element pausiert den laufenden Prozess
+monitors     - DFD-Element überwacht den Prozess-Zustand zur Laufzeit
+```
+
+### Geordnete vs. ungeordnete Asset-zu-Asset Beziehungen
+
+Ein Process Asset hat **zwei Arten** von ausgehenden Asset-zu-Asset Beziehungen:
+
+**Schritt-Beziehungen (geordnet) — der Zeitstrahl:**
+
+```txt
+Process → [step: 1] invokes → Function A
+Process → [step: 2] invokes → Function B
+Process → [step: 3] invokes → Function C
+```
+
+Manipulation der Reihenfolge = Sequencing Attack.
+Race Condition zwischen Schritten = gleichzeitige Ausführung die nicht vorgesehen ist.
+
+**Ressourcen-Beziehungen (ungeordnet) — womit der Prozess läuft:**
+
+```txt
+Process → runs_on     → System
+Process → uses        → Data      (liest Konfigurationsdaten zur Laufzeit)
+Process → operated_by → Human
+Process → depends_on  → Service
+```
+
+### Beispiele
+
+```
+Data Asset "NC-Programm Turbinenschaufel v3.2"   ← das Dokument, at rest
+Process Asset "Fräsvorgang Turbinenschaufel"     ← der aktive Lauf, in motion
+├─ [step: 1] invokes → Function Asset "Schruppen"
+│              uses  → Data Asset "NC-Programm Turbinenschaufel v3.2"
+├─ [step: 2] invokes → Function Asset "Schlichten"
+├─ [step: 3] invokes → Function Asset "Qualitätsprüfung"
+├─ runs_on   → System Asset "5-Achs CNC-Steuerung"
+└─ operated_by → Human Asset "CNC-Einrichter"
+
+Threat 1 — Timing-Manipulation:
+  Angreifer injiziert Latenz in den Regelkreis zwischen Schritt 1 und 2.
+  NC-Programm unverändert ✓, Funktion "Schlichten" intakt ✓
+  → Timing korrumpiert → Oberflächentoleranz verletzt → Ausschuss
+
+Threat 2 — Sequencing Attack:
+  Schritt 2 und 3 vertauscht.
+  → Qualitätsprüfung vor Schlichten → Fehler wird nicht erkannt
+  → Kein einzelnes Asset kompromittiert — nur die Reihenfolge
+```
+
+```
+Data Asset "Therapieprofil Patient XY"           ← die Werte, at rest
+Process Asset "Therapievollzug Infusionspumpe"   ← der aktive Vollzug, in motion
+├─ [step: 1] invokes → Function Asset "Bolus berechnen"
+│              uses  → Data Asset "Therapieprofil Patient XY"
+├─ [step: 2] invokes → Function Asset "Dosis verabreichen"
+├─ [step: 3] invokes → Function Asset "Vitalwerte überwachen"
+├─ runs_on   → System Asset "Infusionspumpe"
+└─ operated_by → Human Asset "Pflegefachkraft"
+
+Threat — Race Condition:
+  Schritt 2 und 3 laufen gleichzeitig statt sequenziell.
+  Therapieprofil korrekt ✓, beide Functions intakt ✓
+  → Überdosierung weil Überwachung erst nach Abgabe eingreift
+  → Safety Override greift: fatality → CRITICAL
+```
+
+### Process Asset Properties
+
+```typescript
+interface ProcessAssetProperties {
+  // Standard Properties
+
+  // Klassifikation
+  domain?: string;                    // z.B. "OT-Manufacturing", "Medical", "Pharma"
+  regulatoryReference?: string;       // z.B. "GMP Annex 11", "MDR Annex I Kap. 17"
+  isValidatedProcess?: boolean;       // Validierter/zertifizierter Ablauf?
+  validationRationale?: string;       // Pflicht wenn isValidatedProcess === true
+
+  // Safety
+  isSafetyCritical?: boolean;
+  safetyImpact?: 'none' | 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+}
+```
+
+---
+
+## System Assets
+
+Beschreibt Auswirkungen auf Systeme. System-Beziehungen unterscheiden zwischen aktiver Nutzung (mit Qualifier für Angriffsvektoren) und Abhängigkeiten (für Impact-Analyse).
+
+**Abgrenzung zu Service Assets:**
+> Ein System Asset steht unter **eigener technischer Kontrolle** — der Analyst kann es konfigurieren, überwachen und direkt auf seine Schnittstellen zugreifen. Die Verantwortung liegt vollständig beim eigenen Team (`responsibility: owner`).
+> Ein Service Asset hingegen liegt ganz oder teilweise **ausserhalb der eigenen Kontrolle** — SLA-gebunden, geteilte oder fremde Verantwortung.
+>
+> **Entscheidungsregel:** AWS S3 ist ein **Service Asset** (`responsibility: shared`) — auch wenn die technische Schnittstelle eine API ist. Die Verantwortungsgrenze, nicht die Schnittstelle, entscheidet.
+
+### Beziehungen
+```
+controls     - DFD-Element hat umfassende Kontrolle (start/stop/suspend/configure)
+configures   - DFD-Element ändert Konfiguration
+monitors     - DFD-Element beobachtet/liest Systemzustand.
+uses         - DFD-Element nutzt Funktionalität [REQUIRES QUALIFIER]
+depends_on   - DFD-Element ist abhängig vom System (Kaskadeneffekt bei Ausfall)
+is_an        - DFD-Element ist eine Instanz des System Assets
+```
+
+> [!IMPORTANT]
+> **Sicherheitsspezifische Unterscheidung:**
+> - **monitors:** Beschreibt lediglich die Sichtbarkeit des Systemzustands. Ein Ausfall oder eine Kompromittierung führt zum **Erkenntnisverlust (Repudiation)**, jedoch nicht zum direkten Stillstand des beobachtenden Elements.
+> - **depends_on:** Definiert eine Verfügbarkeits-Abhängigkeit. Ob Ausfall zu Totalausfall oder Degradation führt, hängt vom `degradationMode`-Attribut ab (siehe unten).
+
+**`depends_on` — Transitivitäts-Bremse durch `degradationMode`:**
+
+Eine unkontrollierte `depends_on`-Kette führt zur **Kritikalitäts-Inflation**: wenn A von B abhängt, B von C, und C safety-kritisch ist, werden schnell alle Assets CRITICAL. Um das zu verhindern, trägt jede `depends_on`-Beziehung ein optionales Attribut:
+
+```typescript
+interface DependsOnRelation {
+  type: "depends_on";
+  degradationMode?: boolean;   // default: false
+  degradationDescription?: string; // Pflicht wenn degradationMode === true
+                                   // z.B. "Lokaler Cache verfügbar für 24h"
+}
+```
+
+| `degradationMode` | Bedeutung | Impact-Propagation |
+|---|---|---|
+| `false` (default) | Totalausfall bei Ausfall des Ziel-Assets | volle Kritikalität wird propagiert |
+| `true` | System läuft degradiert weiter | Kritikalität wird um eine Stufe gedämpft |
+
+```
+Beispiel ohne Degradation:
+  System A depends_on[degradationMode: false] System B[CRITICAL]
+  → System A erbt CRITICAL automatisch
+
+Beispiel mit Degradation:
+  System A depends_on[degradationMode: true] System B[CRITICAL]
+  degradationDescription: "Lokaler Fallback für 24h, dann Ausfall"
+  → System A erbt HIGH (gedämpft)
+  → Validierungshinweis: "Fallback dokumentieren für Audit"
+```
+
+> **Resilienz-Anreiz:** Das Attribut zwingt den Analysten, über Fallback-Mechanismen
+> nachzudenken — nicht nur Abhängigkeiten zu listen. Ein dokumentierter Degradation Mode
+> ist gleichzeitig ein Mitigation-Nachweis für den Audit-Report.
+
+### System Qualifiers für `uses`
+
+Die `uses`-Beziehung **erfordert** einen Qualifier, der den Angriffsvektor spezifiziert:
+
+```
+api        - Nutzung via API/REST/RPC (→ Injection, Authentication Bypass)
+network    - Kommunikation über Netzwerk (→ Man-in-the-Middle, Eavesdropping)
+hardware   - Physischer Zugriff (→ Tampering, Physical Attack)
+library    - Shared Library/Code-Einbindung (→ Code Injection, Dependency Confusion)
+```
+
+**Wichtig**: Ohne Qualifier ist die Bedrohungsanalyse nicht präzise durchführbar.
+
+### Beispiele
+```
+Process "Container Orchestrator"
+└─ controls → System Asset "Application Server"
+
+Process "Config Manager"
+└─ configures → System Asset "Database Server"
+
+Process "Health Check Service"
+└─ monitors → System Asset "Application Server"
+
+Process "Web Application"
+└─ uses [api] → System Asset "Database Server"
+
+Process "API Gateway"
+├─ uses [network] → System Asset "Auth Service"
+└─ depends_on → System Asset "Auth Service"
+   (beide Beziehungen sind möglich und sinnvoll!)
+
+External Entity "Cloud VM"
+└─ is_an → System Asset "Virtual Machine Infrastructure"
+```
+
+### Safety-Relevanz bei System Assets
+
+System Assets und deren Interfaces können physische Gefährdungspotenziale haben, insbesondere bei Maschinen und OT-Systemen:
+
+```typescript
+interface SystemAssetProperties {
+  // ... Standard Properties
+
+  // Safety-spezifisch
+  safetyRelevant?: boolean;
+  physicalHazardPotential?: 'low' | 'medium' | 'high';
+  safetyImpact?: 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+  // Verbindung zu betroffenen Function Assets erfolgt über
+  // Asset-zu-Asset Beziehungen (implements, depends_on)
+}
+
+interface InterfaceProperties {
+  // ... Standard Properties
+  
+  // Safety-spezifisch (besonders wichtig für physische Schnittstellen)
+  safetyRelevant?: boolean;
+  physicalHazardPotential?: 'low' | 'medium' | 'high';
+  safetyRationale?: string;
+}
+```
+
+**Physical Hazard Potential:**
+
+- `low`    - Minimales Risiko (z.B. Monitoring-Port ohne Steuerfunktion)
+- `medium` - Moderates Risiko (z.B. Konfigurations-Interface)
+- `high`   - Hohes Risiko (z.B. direkter Zugriff auf Safety-Logik)
+
+**Wichtig für physische Schnittstellen:**
+Ein USB-Port oder Ethernet-Interface ist nicht nur ein IT-Risiko (Information Disclosure), sondern kann auch ein **Engineering-Risiko** sein (Manipulation, Bypass von Safety-Funktionen).
+
+**Beispiele:**
+
+```txt
+System Asset "Safety PLC"
+└─ Properties: {
+     safetyRelevant: true,
+     physicalHazardPotential: 'high',
+     safetyImpact: 'fatality',
+     rationale: 'Controls emergency stop and safety interlocks'
+     // Beziehung zu FU-001, FU-002, FU-005 → Asset-zu-Asset Relationen
+   }
+
+Interface "Maintenance USB Port" (auf Safety PLC)
+└─ Properties: {
+     safetyRelevant: true,
+     physicalHazardPotential: 'high',
+     rationale: 'Direct access to safety-critical programming interface'
+   }
+
+Process "Firmware Update Service"
+├─ uses [hardware] → Interface "Maintenance USB Port"
+│  └─ Threat: Manipulation of Safety Logic via physical access
+└─ modifies → System Asset "Safety PLC"
+   └─ Safety Impact: CRITICAL
+
+System Asset "HMI Display"
+└─ Properties: {
+     safetyRelevant: false,
+     physicalHazardPotential: 'low',
+     rationale: 'No direct control over safety functions'
+   }
+
+Interface "Ethernet Port" (auf Gateway zur Produktionsanlage)
+└─ Properties: {
+     safetyRelevant: true,
+     physicalHazardPotential: 'medium',
+     rationale: 'Network access to safety-related control systems'
+   }
+```
+
+**Dokumentationsgewinn (EN 50742):**
+
+- Explizite Kennzeichnung physischer Schnittstellen als safety-relevant
+- Sehr wichtig bei Maschinen-Audits und OT-Sicherheit
+- Automatische Generierung: *"Physical interfaces are explicitly safety-relevant"*
+
+---
+
+## Infrastructure Assets
+
+Beschreibt Auswirkungen auf physische Anlagen, Hardware und die Umgebung. Infrastruktur-Beziehungen fokussieren auf den physischen Zustand und den Zugriffsschutz.
+
+### Beziehungen
+
+```txt
+accesses     - DFD-Element hat physischen Zugriff auf das Asset
+secures      - DFD-Element schützt das physische Asset (z.B. Schließsystem)
+damages      - DFD-Element kann das Asset physisch beschädigen (Sabotage)
+powers       - DFD-Element stellt die Energieversorgung sicher
+monitors     - DFD-Element überwacht physische Parameter (Temp, Rauch, Intrusion)
+is_an        - DFD-Element ist eine Instanz des Infrastructure Assets
+```
+
+> [!IMPORTANT]
+**Sicherheitsspezifische Unterscheidung:**
+> - **accesses:** Definiert die Möglichkeit des physischen Kontakts. Sicherheitsfolge: Erleichtert Angriffe wie Hardware-Tampering oder Diebstahl.
+> - **secures:** Beschreibt eine Schutzmassnahme. Sicherheitsfolge: Reduziert die Wahrscheinlichkeit physischer Angriffe.
+> - **damages:** Beschreibt die Zerstörung des Assets. Sicherheitsfolge: Totalausfall (Availability) durch physische Einwirkung.
+
+### Infrastructure Qualifiers für accesses
+
+Die `accesses`-Beziehung erfordert einen Qualifier für die Art des Zugangs:
+
+```txt
+on-site    - Zugriff vor Ort auf das Gelände / die Anlage (z.B. Werksgelände, Maschinenraum)
+proximity  - Zugriff aus der Nähe (z.B. RFID-Reichweite, WLAN-Umkreis)
+internal   - Zugriff auf das Innere des Gehäuses (z.B. Debug-Header auf PCB)
+```
+
+> **Abgrenzung `on-site` vs. `direct` (Human→Physical):** `on-site` beschreibt den **Zutritt zu einem Ort** (ortsfeste Infrastruktur). `direct` beschreibt den **physischen Kontakt mit einem Objekt** (mobiles Physical Asset). Gemeinsam: `proximity` ist für beide identisch.
+
+### Beispiele
+
+```txt
+External Entity "Technician"
+└─ accesses [on-site] → Infrastructure Asset "CNC Machine"
+
+Process "Electronic Lock Controller"
+└─ secures → Infrastructure Asset "Server Rack"
+
+Process "UPS (Uninterruptible Power Supply)"
+└─ powers → Infrastructure Asset "Main Control Cabinet"
+
+Process "Intrusion Detection System"
+└─ monitors → Infrastructure Asset "Warehouse Perimeter"
+
+External Entity "Cooling Unit"
+└─ is_an → Infrastructure Asset "HVAC System"
+```
+
+### Safety-Relevanz bei Infrastructure Assets
+Physische Infrastruktur ist oft die letzte Barriere für den Personenschutz oder die Quelle von Gefahren (z.B. Hitze, bewegliche Teile):
+
+```typescript
+interface InfrastructureAssetProperties {
+  // ... Standard Properties
+  
+  // Safety-spezifisch
+  isPhysicalBarrier?: boolean; // z.B. Schutzzäune, Gehäuse
+  environmentalHazard?: 'fire' | 'chemical' | 'mechanical' | 'none';
+  safetyImpact?: 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+
+// High-Value Asset (finanzieller/operativer Schutz)
+  isHighValueAsset?: 'low' | 'medium' | 'high' | 'critical'; // derived — aus Impact-Kriterien + Recoverability-Feldern
+  isHighValueAssetSource?: 'derived' | 'manual';              // manual erfordert highValueRationale
+  replacementLeadTime?: '<3m (low)' | '3-6m (medium)' | '6-12m (high)' | '>12m (critical)';
+  replacementLeadTimeNote?: string;              // optional, z.B. "18-24 months, ASML allocation queue"
+  vendorDependency?: 'multi_vendor' | 'limited' | 'single_source'; // Lieferantenabhängigkeit
+  spareAvailability?: 'on_site' | 'supplier' | 'none';             // Ersatzteilsituation
+  highValueRationale?: string;                   // Pflicht wenn source==='manual' OR isHighValueAsset∈{'high','critical'}
+}
+```
+
+> **Wichtig:** Die Zerstörung (damages) einer Infrastruktur-Komponente kann unmittelbar Safety-Funktionen aushebeln (z.B. Durchbrechen eines Schutzzauns).
+
+**Beispiele:**
+
+```txt
+Infrastructure Asset "CNC Guarding"
+└─ Properties: {
+     isPhysicalBarrier: true,
+     safetyImpact: 'fatality',
+     rationale: 'Prevents contact with high-speed cutting tools'
+   }
+
+Process "Manual Override"
+└─ accesses [internal] → Infrastructure Asset "CNC Guarding"
+   └─ Threat: Bypass of physical safety interlocks
+   └─ Safety Impact: CRITICAL
+
+Infrastructure Asset "Chemical Storage Tank"
+└─ Properties: {
+     environmentalHazard: 'chemical',
+     safetyImpact: 'irreversible_injury',
+     rationale: 'Rupture causes exposure to hazardous substances'
+   }
+
+Infrastructure Asset "Produktionsrezept-Datenbank"
+└─ Properties: {
+     operational: 'critical',
+     assetDestructionImpact: 'high',    // kein Personenschaden, aber Betriebsstopp
+     replacementLeadTime: '3-6m (medium)',
+     vendorDependency: 'multi_vendor',
+     spareAvailability: 'supplier',
+     highValueRationale: 'All production processes depend on recipe data.
+                          Loss causes complete production halt until restore.'
+     // → Operational Criticality Override greift: Threat-Priorität = HIGH minimum
+   }
+
+Infrastructure Asset "Safety PLC Controller"
+└─ Properties: {
+     operational: 'critical',
+     assetDestructionImpact: 'critical',
+     replacementLeadTime: '6-12m (high)',
+     vendorDependency: 'single_source',
+     spareAvailability: 'none',
+     highValueRationale: 'Single-source vendor, no spare on site.
+                          Loss halts production and disables safety functions.'
+     // → isHighValueAsset = true (derived)
+     // → High-Value Override greift: Threat-Priorität = CRITICAL
+   }
+```
+
+**Dokumentationsgewinn (ISO 12100):**
+- Systematische Erfassung physischer Barrieren als Safety-Assets.
+- Verknüpfung von physischem Zugriff (accesses) mit der Umgehung von Schutzeinrichtungen.
+- Automatische Generierung: "Physical barriers are identified and monitored against unauthorized access and damage."
+
+---
+
+### High-Value Asset Override
+
+Bestimmte Infrastruktur-Assets sind keine Safety-Assets im Sinne von ISO 12100
+(kein Personenschutz), aber ihr Verlust oder ihre Zerstörung verursacht einen
+derart hohen finanziellen oder operativen Schaden, dass eine automatische
+Prioritätseskalation gerechtfertigt ist.
+
+**Abgrenzung zu `isProtectionTarget` (Human Assets):**
+
+| Konzept | Träger | Normgrundlage | Override-Grund |
+|---|---|---|---|
+| `isProtectionTarget` | Human Asset | ISO 12100 | Menschenleben nicht verrechenbar |
+| `isHighValueAsset` | Infrastructure Asset | intern/vertraglich | Destruktionsschaden nicht tolerierbar |
+
+**Semantik der Felder:**
+
+- `isHighValueAsset`: **Abgeleitet** aus `assetDestructionImpact` + `replacementLeadTime` +
+  `vendorDependency` + `spareAvailability`. Nur mit `isHighValueAssetSource: 'manual'`
+  überschreibbar — dann ist `highValueRationale` Pflicht.
+
+- `assetDestructionImpact`: **Abgeleitet** in der Asset-Impact-Phase als MAX über alle
+  Impact-Dimensionen (Financial, Operational, Safety, Privacy). Wird nicht manuell erfasst.
+
+- `replacementLeadTime`: Kombiniert faktische Zeitspanne und abgeleitete Kritikalitätsstufe.
+  Der Analyst wählt die passende Stufe; `replacementLeadTimeNote` erlaubt Präzisierung:
+
+  | Wert | Zeitspanne | Kritikalität |
+  |---|---|---|
+  | `<3m (low)` | unter 3 Monate | niedrig |
+  | `3-6m (medium)` | 3 bis 6 Monate | mittel |
+  | `6-12m (high)` | 6 bis 12 Monate | hoch |
+  | `>12m (critical)` | über 12 Monate | kritisch |
+
+- `vendorDependency`: Lieferantenabhängigkeit bei Ersatzbeschaffung:
+
+  | Wert | Bedeutung |
+  |---|---|
+  | `multi_vendor` | Mehrere Lieferanten verfügbar |
+  | `limited` | Wenige Lieferanten, eingeschränkte Verfügbarkeit |
+  | `single_source` | Einziger Lieferant, kein Ersatz verfügbar |
+
+- `spareAvailability`: Verfügbarkeit von Ersatz vor Ort oder beim Lieferanten:
+
+  | Wert | Bedeutung |
+  |---|---|
+  | `on_site` | Ersatz vor Ort vorhanden |
+  | `supplier` | Ersatz beim Lieferanten bestellbar |
+  | `none` | Kein Ersatz verfügbar |
+
+- `replacementLeadTimeNote`: Optionaler Freitext für Präzisierungen, z.B.
+  "18-24 months, ASML allocation queue" oder
+  "Parallel unit in fab B available as fallback → downgraded to high".
+
+- `highValueRationale`: Pflichtfeld wenn `isHighValueAsset` gesetzt (beliebiger Wert).
+  Begründet *warum* das Asset schützenswert ist — nicht die Zeitspanne.
+  Wird verbatim im Audit-Report dokumentiert.
+
+**Ableitungslogik `isHighValueAsset`:**
+```
+HVA: 'low'
+  MAX(financial_damage, operational, physical_damage) === 'medium'
+  AND replacementLeadTime >= '3-6m (medium)'
+
+HVA: 'medium'
+  MAX(financial_damage, operational, physical_damage) === 'high'
+  AND replacementLeadTime >= '3-6m (medium)'
+
+HVA: 'high'
+  MAX(financial_damage, operational, physical_damage) === 'high'
+  AND replacementLeadTime >= '6-12m (high)'
+  AND (vendorDependency === 'limited' OR spareAvailability === 'supplier')
+
+HVA: 'critical'
+  MAX(financial_damage, operational, physical_damage) === 'high'
+  AND replacementLeadTime >= '6-12m (high)'
+  AND (vendorDependency === 'single_source' OR spareAvailability === 'none')
+```
+
+>Die drei Impact-Kriterien stammen aus der Asset-Impact-Phase (low/medium/high).
+>Safety Impact (`safety`) fliesst nicht in die HVA-Ableitung ein —
+>Safety-relevante Assets werden durch die Safety Override Rule separat behandelt.
+
+**High-Value Override Rule:**
+
+> **Grundprinzip:** High-Value Override setzt ein **MINIMUM-Level** — er überschreibt keine höheren Bewertungen aus anderen Quellen (Safety Override, manuelle Analyst-Entscheidung).
+
+```txt
+IF isHighValueAsset === 'critical'
+THEN Threat-Priorität = CRITICAL minimum
+     → Pflicht-Threats: Tampering, Denial of Service, Physical Damage
+     → highValueRationale wird verbatim im Risk-Report dokumentiert
+
+IF isHighValueAsset === 'high'
+THEN Threat-Priorität = HIGH minimum
+     → Pflicht-Threats: Tampering, Denial of Service, Physical Damage
+     → highValueRationale wird verbatim im Risk-Report dokumentiert
+
+IF isHighValueAsset === 'medium'
+THEN Threat-Priorität = HIGH minimum
+     → Pflicht-Threats: Tampering, Denial of Service
+
+IF isHighValueAsset === 'low'
+THEN kein Override — fliesst informativ in den Report ein
+```
+
+**Rangfolge der Override Rules (absteigend):**
+
+1. Safety Override      — fatality/irreversible_injury → CRITICAL
+2. HVA critical         → CRITICAL minimum
+3. HVA high             → HIGH minimum
+4. HVA medium           → HIGH minimum
+5. Operational critical → HIGH minimum
+6. HVA low              → kein Override
+
+> **Interaktion Safety + HVA:** Safety Override hat immer Vorrang. Ein Asset das sowohl
+> `isHighValueAsset: 'high'` als auch `safety.relevance: 'direct'` + `fatality` hat,
+> erhält CRITICAL durch den Safety Override — der HVA-Override ist damit bereits erfüllt.
+
+**`highValueRationale` Pflichtbedingung:**
+```
+Pflicht wenn:
+  isHighValueAssetSource === 'manual'
+  OR isHighValueAsset ∈ {'high', 'critical'}
+
+Optional (empfohlen) wenn:
+  isHighValueAsset ∈ {'low', 'medium'} AND source === 'derived'
+  → Ableitungslogik ist selbst die Begründung
+```
+
+> **Hinweis für spätere Refactorings:** `replacementLeadTime` kombiniert bewusst Zeitspanne
+> und Kritikalitätsstufe in einem Feld (Option A). Sollte eine Domäne feinere Zeitintervalle
+> benötigen, kann dieses Feld zu `replacementLeadTime` (Freitext/Enum) +
+> `replacementCriticality` (low/medium/high/critical) aufgetrennt werden (Option B).
+
+**Beispiele:**
+
+```txt
+Infrastructure Asset "EUV Lithography Machine"
+└─ Properties: {
+     assetDestructionImpact: 'critical',
+     isHighValueAsset: 'critical',        // derived
+     isHighValueAssetSource: 'derived',
+     replacementLeadTime: '>12m (critical)',
+     replacementLeadTimeNote: '18-24 months, subject to ASML allocation queue',
+     highValueRationale: 'Single unit, core of 7nm production line.
+                          Loss causes complete production halt.'
+   }
+
+Infrastructure Asset "5-Axis CNC Machining Center"
+└─ Properties: {
+     assetDestructionImpact: 'high',
+     isHighValueAsset: 'high',            // derived
+     isHighValueAssetSource: 'derived',
+     replacementLeadTime: '6-12m (high)',
+     highValueRationale: 'Custom configuration for titanium aerospace parts,
+                          requalification required after replacement.'
+   }
+
+Infrastructure Asset "CNC Machining Center" (mit Fallback)
+└─ Properties: {
+     assetDestructionImpact: 'high',
+     isHighValueAsset: 'medium',          // manual — Fallback dämpft Bewertung
+     isHighValueAssetSource: 'manual',
+     highValueRationale: 'Primary unit for titanium part production.
+                          Parallel unit in fab B available as fallback.',
+     replacementLeadTime: '>12m (critical)',
+     replacementLeadTimeNote: 'Lead time >12m but parallel unit in fab B available
+                               as fallback → isHighValueAsset downgraded to medium'
+   }
+```
+
+**Dokumentationsgewinn:**
+- Automatische Generierung: *"The following infrastructure assets are classified as
+  high-value assets. Their destruction or prolonged unavailability would result in
+  critical operational or financial impact."*
+- Alle Threats gegen High-Value Assets werden im Risk-Report konsolidiert.
+
+---
+
+## Physical Assets
+
+Beschreibt mobile, rein-passive Sachwerte **ohne eingebettetes System**. Physical Assets
+verarbeiten keine Daten und haben keine eigene Logik. Sie sind vollständig passiv.
+
+**Abgrenzungsregel:**
+> Enthält das Asset ein eingebettetes System, eine CPU oder Software → **System Asset**.
+> Ist das Asset rein passiv, ohne eigene Logik → **Physical Asset**.
+
+**Typische Beispiele:** Museumsgemälde, Antiquitäten, Schmuck, Bargeld, physische Prototypen
+ohne Elektronik, Fertigungsformen, Werkzeuge, physische Schlüssel.
+
+**Nicht gemeint:** Infusionspumpen, Maschinen, Steuergeräte — diese sind System Assets.
+
+### Kein DFD-Einstieg — ausschliesslich Ebene 2
+
+Physical Assets haben **keine Element-zu-Asset Beziehungen** (Ebene 1). Ein DFD modelliert
+Informationsflüsse — Prozesse, Datenspeicher, Datenflüsse. Ein rein passives Physical Asset
+erscheint dort nicht, weil kein Datenfluss durch es hindurchgeht und keine Software auf ihm
+läuft.
+
+Der Cyber-Bedrohungspfad zu einem Physical Asset verläuft **immer** über andere Asset-Typen
+im Asset-zu-Asset-Graphen (Ebene 2):
+
+```
+Angriffspfad Beispiel: Kompromittierung des Überwachungssystems
+                        → Zugang zum physischen Objekt
+
+System Asset "Videoüberwachung"           ← DFD-Einstieg hier (Process → controls)
+  └─ implements → Function Asset "Intrusion Detection"
+                    (schützt indirekt)
+Physical Asset "Gemälde Rembrandt"
+  └─ located_in → Infrastructure Asset "Ausstellungsraum"
+                    (Zugang hierüber)
+
+→ Threat: Kompromittierung der Videoüberwachung ermöglicht
+          unerkannten physischen Zugriff auf das Gemälde
+```
+
+**Ausnahme: Direkte Sabotage durch External Entity**
+
+Für Sabotage-Szenarien in OT/Anlagensicherheit ist eine **eng begrenzte Ausnahme** erlaubt:
+Eine `ExternalEntity` im DFD darf `damages` direkt auf ein Physical Asset beziehen —
+ohne dass das Physical Asset selbst ein DFD-Flow-Element wird.
+
+```
+External Entity "Angreifer / Insider"
+└─ damages → Physical Asset "Statisches Tragseil"
+   → Threat: Sabotage passiver Bauteile = DoS auf abhängige Funktion
+   → STRIDE: Tampering, DoS
+   → Safety: indirect wenn Asset Schutzfunktion hat
+
+External Entity "Wartungstechniker (kompromittiert)"
+└─ damages → Physical Asset "Schutzgehäuse Steuereinheit"
+   → Threat: Physische Zerstörung ermöglicht anschliessenden Zugriff
+              auf System Asset dahinter
+```
+
+> **Einschränkung:** Nur `damages` ist als direkte External-Entity→Physical Beziehung
+> erlaubt. Alle anderen Beziehungen (Diebstahl, Zugang, Überwachung) bleiben Ebene 2.
+> `damages` ist die einzige Beziehung die keinen Informationsfluss voraussetzt —
+> sie beschreibt reine physische Einwirkung.
+
+Alle Beziehungen zu Physical Assets sind in
+`taraflow-asset-zu-asset-beziehungen.md` definiert — insbesondere:
+- `Human → Physical` (`owns`, `responsible_for`, `accesses`)
+- `Infrastructure → Physical` (`houses`)
+- `Physical → Infrastructure` (`located_in`)
+- `Physical → Function` (`enables`, `triggers`)
+- `Physical → System` (`hosts`, `controlled_by`)
+- `Physical → Human` (`endangers`, `exposes`)
+
+**Pflichtverortung — Validierungsregel:**
+```
+IF Physical Asset hat KEINE der folgenden Beziehungen:
+   - located_in → Infrastructure Asset
+   - controlled_by → System Asset
+   - hosts → System Asset
+THEN Validierungswarnung:
+     "Physical Asset ohne Verankerung im Graphen —
+      Mindestens eine Beziehung erforderlich:
+      located_in (Infrastructure) ODER controlled_by/hosts (System).
+      Empfohlen: beide, wenn zutreffend."
+```
+
+> Physical Assets sind nie isoliert modellierbar. Ein nicht verankertes Physical Asset
+> ist für die Threat-Analyse nicht erreichbar — der Angriffspfad fehlt.
+
+### Physical Asset Properties
+
+```typescript
+interface PhysicalAssetProperties {
+  // Standard Properties
+
+  // Klassifikation
+  isUnique: boolean;                 // Unikat (Kunstwerk, Prototyp) vs. ersetzbar (Standardteil)
+  portability: "fixed" | "portable"; // Ortsfest vs. transportierbar
+
+  // High-Value Properties — identisch zu Infrastructure Assets (Physical erbt diese Felder)
+  assetDestructionImpact?: 'low' | 'medium' | 'high' | 'critical';
+  isHighValueAsset?: 'low' | 'medium' | 'high' | 'critical';
+  isHighValueAssetSource?: 'derived' | 'manual';
+  replacementLeadTime?: "<3m (low)" | "3-6m (medium)" | "6-12m (high)" | ">12m (critical)";
+  replacementLeadTimeNote?: string;
+  highValueRationale?: string;       // Pflicht wenn source==='manual' OR isHighValueAsset∈{'high','critical'}
+
+  // Einzigartigkeit
+  uniquenessRationale?: string;      // Pflicht wenn isUnique === true
+                                     // z.B. "Historisches Original, keine Reproduktion möglich"
+}
+```
+
+> Override Rule, Ableitungslogik und Rangfolge sind identisch mit Infrastructure Assets —
+> siehe Abschnitt "High-Value Asset Override" im Infrastructure-Kapitel.
+
+### Abgrenzung zu Infrastructure Assets
+
+| | Infrastructure Asset | Physical Asset |
+|---|---|---|
+| Mobilität | Ortsfest (Immobilie, Netzwerk) | Mobile Wertsache |
+| Logik | Beherbergt Systeme | Vollständig passiv |
+| Beispiel | Serverraum, Produktionshalle | Gemälde, Prototyp, Werkzeug |
+| DFD-Einstieg | ✅ via `accesses` Element-zu-Asset | ⚠️ nur `damages` von External Entity (Sabotage-Ausnahme) |
+| Threat-Fokus | Zugang, Sabotage, Hosting | Diebstahl, Beschädigung, Fälschung |
+
+### Threat-Ableitung (via Asset-zu-Asset)
+
+Threats gegen Physical Assets werden **nicht** direkt vom DFD abgeleitet, sondern aus
+den Asset-zu-Asset Beziehungen im Graphen:
+
+| Threat | Asset-zu-Asset-Trigger | STRIDE | Safety-Relevanz |
+|---|---|---|---|
+| Diebstahl | `Human → Physical: accesses [direct]` | DoS | – |
+| Beschädigung | `Physical → Human: endangers` (Gegenstück) | DoS | indirect |
+| **Sabotage** | **`External Entity → damages` (Ebene-1-Ausnahme)** | **Tampering, DoS** | **indirect wenn Schutzfunktion** |
+| Fälschung/Austausch | `isUnique: true` + Zugang über Infra | Spoofing, Tampering | – |
+| Unbefugter Zugang | `Infrastructure: houses` kompromittiert | Tampering | – |
+| Überwachungsausfall | `System: implements Function` → Schutz fällt weg | DoS | indirect |
+
+**High-Value Override für Physical Assets:**\
+`isHighValueAsset === 'critical'` → Threat-Priorität CRITICAL\
+`isHighValueAsset === 'high'` → Threat-Priorität CRITICAL\
+Pflicht-Threats: Tampering (Fälschung), DoS (Diebstahl/Zerstörung)\
+Für `isUnique === true` zusätzlich: Spoofing (Austausch gegen Fälschung)
+
+---
+
+## Service Assets
+
+Beschreibt interne oder externe Dienste, auf die das zu analysierende System angewiesen ist —
+und die **ganz oder teilweise ausserhalb der eigenen Kontrolle** liegen.
+
+**Primäres Unterscheidungsmerkmal zu System Assets: Verantwortungsgrenze**
+
+| | System Asset | Service Asset |
+|---|---|---|
+| Kontrolle | Volle technische Kontrolle | Ganz oder teilweise extern |
+| Verantwortung | `responsibility: owner` | `shared` oder `third-party` |
+| Konfiguration | Direkt durch eigenes Team | Via SLA / Vertrag begrenzt |
+| Schnittstelle | Beliebig (API, SDK, HW...) | Beliebig — irrelevant für die Klassifikation |
+| Typisches Beispiel | Eigener Auth-Service, internes SIEM | AWS S3, externer OTA-Server |
+
+> **Merksatz:** Die **technische Schnittstelle** (REST-API, SDK, ...) entscheidet **nicht** zwischen System und Service. Die **Verantwortungsgrenze** entscheidet. AWS S3 hat eine REST-API — es ist trotzdem ein Service Asset weil die Verantwortung geteilt ist.
+
+**Typische Beispiele:**
+- Cloud-Dienste (AWS S3, Azure IoT Hub, Google Cloud AI)
+- Externe APIs (Zahlungsdienstleister, Kartendienste, OTA-Update-Server)
+- Interne Dienste anderer Teams (IAM-Service, SIEM, PKI)
+- Wartungs- und Supportdienste externer Anbieter
+
+### Beziehungen
+
+```txt
+uses [qualifier]    - DFD-Element nutzt den Service [Qualifier Pflicht]
+depends_on          - DFD-Element ist kritisch abhängig vom Service (Totalausfall bei Ausfall)
+monitors            - DFD-Element überwacht den Service-Status oder die Verfügbarkeit
+configures          - DFD-Element konfiguriert den Service (Parameter, Einstellungen)
+is_an               - DFD-Element ist eine Instanz des Service Assets
+```
+
+> **`uses` vs. `depends_on`** — dieselbe Unterscheidung wie bei System Assets:
+> - `uses` (Soft-Dependency): Ausfall des Service → Degradation Mode möglich
+> - `depends_on` (Hard-Dependency): Ausfall des Service → Totalausfall, es sei denn `degradationMode: true`
+>
+> Für `depends_on` gilt dasselbe `degradationMode`-Attribut wie bei System Assets —
+> dokumentierter Fallback dämpft die Kritikalitäts-Propagation.
+
+### Service Qualifiers für `uses`
+
+Die `uses`-Beziehung **erfordert** einen Qualifier:
+
+```
+api       - Integration via REST/SOAP/gRPC/GraphQL  (→ Injection, Auth Bypass)
+sdk       - Integration via SDK oder Library         (→ Dependency Confusion, Code Injection)
+webhook   - Event-basierte Integration               (→ Spoofing, Replay Attack)
+managed   - Vollständig verwalteter Dienst ohne eigene API  (→ Availability Risk, Vendor Lock-in)
+```
+
+### Beispiele
+
+```
+Process "OTA Update Manager"
+├─ uses [api] → Service Asset "Vendor Update Service"
+└─ depends_on → Service Asset "Vendor Update Service"
+   → Hard-Dependency: ohne Update-Service kein Firmware-Update möglich
+   → Pflicht-Threat: Supply Chain Attack via Kompromittierung des Update-Services
+
+Process "Remote Monitoring Agent"
+└─ uses [api] → Service Asset "Cloud Monitoring Platform"
+   (uses, nicht depends_on — Gerät funktioniert ohne Cloud weiter, Degradation Mode)
+
+Process "Payment Handler"
+├─ uses [api] → Service Asset "Payment Gateway"
+└─ depends_on → Service Asset "Payment Gateway"
+
+External Entity "Wartungstechniker"
+└─ is_an → Service Asset "Externer Wartungsdienst"
+```
+
+### Service Asset Properties
+
+```typescript
+type ServiceType = "internal" | "external" | "cloud" | "managed";
+type ResponsibilityModel = "owner" | "shared" | "third-party";
+
+interface ServiceAssetProperties {
+  // Standard Properties
+
+  // Service-Klassifikation
+  serviceType: ServiceType;
+
+  // Shared Responsibility Model
+  responsibility: ResponsibilityModel;
+  responsibilityScope?: string;   // Pflicht wenn responsibility === "third-party"
+                                  // Empfohlen wenn responsibility === "shared"
+                                  // Was liegt in eigener Verantwortung?
+                                  // z.B. "App-Security, Datenverschlüsselung;
+                                  //        Provider verantwortet OS-Härtung, Netzwerk-Isolation"
+  providerName?: string;          // Name des externen Anbieters
+  slaReference?: string;          // Verweis auf SLA / Vertrag / Dokument
+
+  // Safety
+  isSafetyCritical?: boolean;
+  safetyImpact?: 'none' | 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+}
+```
+
+**Responsibility-Modelle:**
+
+| Wert | Bedeutung | Typisches Beispiel |
+|---|---|---|
+| `owner` | Vollständige Eigenverantwortung | Selbst betriebener interner Dienst |
+| `shared` | Geteilte Verantwortung | AWS: eigene App-Security, AWS: OS-Härtung |
+| `third-party` | Vollständig extern | SaaS-Dienst ohne Konfigurationszugang |
+
+**Validierungsregeln:**
+```
+IF responsibility === "third-party" AND responsibilityScope === ""
+THEN Validierungsfehler (blockierend):
+     "responsibilityScope Pflichtfeld bei vollständig externem Service —
+      Inhalt muss beschreiben:
+      - Welche Schnittstellen / API-Endpunkte liegen in eigener Verantwortung?
+      - Welche Sicherheitskontrollen übernimmt der Provider?
+      - Welches SLA gilt für Security-Incidents?
+      (CRA Art. 13 – Third-party Component Obligation)"
+
+IF responsibility === "shared" AND responsibilityScope === ""
+THEN Validierungswarnung:
+     "responsibilityScope empfohlen bei geteilter Verantwortung
+      (CRA Art. 13 – Supply Chain Security)"
+
+IF responsibility === "third-party" AND depends_on vorhanden AND depends_on.degradationMode === true
+THEN INFO: "Externer Service mit Degradation Mode — SLA auf Failover-Verhalten prüfen"
+
+IF responsibility === "third-party" AND kein depends_on vorhanden
+THEN Validierungswarnung:
+     "Externer Service ohne explizite Abhängigkeit — is das gewollt?
+      Falls der Ausfall des Services einen Impact hat: depends_on ergänzen"
+```
+
+> **Einheitlicher Trigger:** Der Trigger ist ausschliesslich `responsibility`, nicht
+> `serviceType`. Ein `serviceType: managed` Service hat typischerweise
+> `responsibility: third-party` — der ERROR greift dann automatisch.
+> Kein implizites `!= owner`.
+
+### Threat-Ableitung
+
+| Threat | Beziehungs-Trigger | STRIDE | Safety-Relevanz |
+|---|---|---|---|
+| Supply Chain Attack | `uses [api\|sdk]` auf externen Service | Tampering, Spoofing | transitiv wenn safety-kritisch |
+| Service-Ausfall | `depends_on` Service | Denial of Service | direct wenn `isSafetyCritical: true` |
+| Datenweitergabe | `uses [api]` bei personenbezogenen Daten | Information Disclosure | – |
+| Vendor Impersonation | `uses [webhook]` | Spoofing | – |
+| Scope Creep | `managed` mit `responsibility: third-party` | Elevation of Privilege | – |
+
+---
+
+## Human Assets
+
+Beschreibt Auswirkungen auf Menschen als **Schutzobjekte** (Safety/Security/Privacy).
+
+### Beziehungen
+
+```txt
+affects_safety    - DFD-Element beeinflusst physische Sicherheit
+affects_privacy   - DFD-Element beeinträchtigt Privatsphäre/DSGVO
+identifies        - DFD-Element identifiziert/de-anonymisiert Person
+tracks            - DFD-Element verfolgt/überwacht Person  
+exposes           - DFD-Element gefährdet/exponiert Person
+is_an             - DFD-Element repräsentiert diese Person/Rolle
+```
+
+### Safety-spezifische Properties
+
+Human Assets können zusätzlich als **Protection Targets** (ISO 12100/EN 50742 Terminologie) gekennzeichnet werden:
+```typescript
+interface HumanAssetProperties {
+  // ... Standard Asset Properties
+  
+  // Safety-spezifisch
+  isProtectionTarget?: boolean;  // Person als Schutzgut (Normsprache!)
+  safetyImpact?: 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+}
+```
+
+**Wichtiger Unterschied:**
+- `isProtectionTarget = true` → Person als **Schutzgut** nach ISO 12100 (nicht nur als Asset)
+- Ermöglicht automatische Dokumentation in Normsprache: *"The operator is considered a protection target according to ISO 12100."*
+
+**Safety Impact Klassifizierung:**
+- `reversible_injury` - Reversible Verletzungen (z.B. leichte Quetschungen)
+- `irreversible_injury` - Irreversible Verletzungen (z.B. Amputation)
+- `fatality` - Todesfolge
+
+
+### Beispiel: Human Asset als Schutzobjekt
+
+Hier liegen die Safety-Eigenschaften direkt am **Human Asset**. 
+Jedes DFD-Element, das mit diesem Asset via `is_an` verknüpft ist, wird dadurch automatisch als Teil der kritischen Zone erkannt.
+
+**1. Definition des Human Assets (Träger der Information):**
+Human Asset "Machine Operator"
+└─ Properties: {
+     isProtectionTarget: true,
+     safetyImpact: 'fatality',
+     rationale: 'Physical presence in the hazardous area of the CNC machine'
+   }
+
+**2. Verknüpfung im DFD (Instanziierung):**
+External Entity "Local Operator"
+└─ is_an → Human Asset "Machine Operator"
+   // Erbt automatisch: fatality impact & protection target status
+
+**3. Aktive Wirkung (Physikalische Safety):**
+Process "CNC Axis Control"
+└─ affects_safety → Human Asset "Machine Operator"
+   └─ safety: { relevance: 'direct', impact: 'fatality', rationale: 'Malfunction causes uncontrolled tool movement' }
+
+### Beispiele
+
+```txt
+External Entity "Machine Operator"
+└─ is_an → Human Asset "Machine Operator"
+   └─ Properties: {
+        isProtectionTarget: true,
+        safetyImpact: 'fatality',
+        rationale: 'Direct exposure to machinery hazards'
+      }
+
+Process "CNC Emergency Stop"
+└─ affects_safety → Human Asset "Machine Operator"
+   (bei Fehlfunktion können schwere Verletzungen auftreten)
+
+Process "Employee Location Tracking"
+├─ tracks → Human Asset "Staff Members"
+└─ affects_privacy → Human Asset "Staff Members"
+
+Process "Unauthorized Access"
+└─ exposes → Human Asset "Patients"
+   └─ Context: {
+        isProtectionTarget: true,
+        safetyImpact: 'irreversible_injury',
+        rationale: 'Compromise of medical device control'
+      }
+
+Process "Medical Record Access"
+└─ identifies → Human Asset "Patients"
+```
+
+**Hinweis zu Data Stores und Human Assets:**  
+Data Stores sind passive Speicher und haben keine direkte "aktive Wirkung" auf Human Assets. Die Bedrohung entsteht durch Prozesse, die auf diese Stores zugreifen:
+
+```
+✓ RICHTIG (via Prozess):
+Process "Unauthorized Access"
+└─ exposes → Human Asset "Patients"
+   (dieser Process, wenn kompromittiert, exponiert Patienten)
+
+✓ RICHTIG (via Transitivität):
+Data Store "Patient Database"
+└─ is_an → Data Asset "Medical Records"
+
+Process "Record Query" → reads → Data Store "Patient Database"
+                                  └─ is_an → Data Asset "Medical Records"
+
+[Optional: Dokumentationsbeziehung]
+Data Asset "Medical Records" → belongs_to → Human Asset "Patients"
+
+[Abgeleitet für Threat-Analyse]
+Process "Record Query" → exposes → Human Asset "Patients"
+(wenn Process kompromittiert wird, sind Patienten exponiert)
+
+❌ FALSCH (Data Store kann nicht aktiv exponieren):
+Data Store "Patient Database"
+└─ exposes → Human Asset "Patients"
+   (ein passiver Store exponiert nicht - nur kompromittierte Prozesse tun dies)
+```
+
+Die Beziehung zwischen Data Assets und Human Assets (z.B. `belongs_to`) ist eine **optionale Dokumentationsbeziehung** für Compliance und Impact-Analyse, aber keine aktive Wirkungsbeziehung im Sinne der STRIDE-Analyse.
+
+**Hinweis zur transitiven Herleitung:**  
+Viele Bedrohungen für Human Assets entstehen durch transitive Ketten. Beispiel:
+```
+Process "Web Server" (compromised)
+└─ reads → Data Store "Patient DB"
+           └─ is_an → Data Asset "Medical Records"
+
+[Dokumentationsbeziehung]
+Data Asset "Medical Records"
+└─ belongs_to → Human Asset "Patients"
+
+Während die direkten Beziehungen explizit modelliert werden, entsteht die 
+eigentliche Bedrohung für das Human Asset durch die kompromittierte Komponente.
+Die Dokumentationsbeziehung Data Asset → Human Asset hilft bei der Impact-Analyse,
+ist aber keine aktive Wirkungsbeziehung.
+
+Resultierende Bedrohung:
+→ Process "Web Server" [abgeleitet via Transitivität] → exposes → Human Asset "Patients"
+```
+
+---
+
+## CIANAAA-Schutzziele und Asset-Beziehungen
+
+### Erweiterung von STRIDE
+
+Während STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) ein bewährtes Framework für Threat Modeling ist, bietet **CIANAAA** eine präzisere Zuordnung zu Asset-Beziehungen und Safety-Aspekten:
+
+**CIANAAA:**
+- **C**onfidentiality (Vertraulichkeit)
+- **I**ntegrity (Integrität)
+- **A**vailability (Verfügbarkeit)
+- **N**on-Repudiation (Nachweisbarkeit)
+- **A**uthentication (Authentifizierung)
+- **A**uthorization (Autorisierung)
+- **A**ccountability (Zurechenbarkeit)
+
+### Mapping: Schutzziel → Asset-Beziehung → Threat
+
+Diese Tabelle zeigt, welche Asset-Beziehungen welche Schutzziele gefährden und wie daraus Attack Tree Branches entstehen:
+
+| Schutzziel | Primäre Asset-Beziehungen | Attack Tree Branch Logik | Safety-Relevanz |
+|------------|---------------------------|--------------------------|-----------------|
+| **Confidentiality** | `reads`, `transports` | Abhören von Datenflüssen, Auslesen von Speichern | ⚠️ Bei PII/Medical Data |
+| **Integrity** | `modifies`, `creates` | Manipulation von Daten, Injection von falschen Werten | ⭐ **Kritisch für Safety!** |
+| **Availability** | `deletes`, `stores`, `transports`, `depends_on` | DoS, Blockierung, Ressourcen-Erschöpfung | ⭐ **Kritisch für Safety!** |
+| **Non-Repudiation** | `deletes`, `modifies` (auf Logs) | Manipulation von Audit-Trails, Leugnen von Aktionen | ⚠️ Compliance-relevant |
+| **Authentication** | `creates`, `transports` | Spoofing, Identity Theft, Session Hijacking | ⭐ **Gateway zu Safety-Assets** |
+| **Authorization** | `modifies`, `reads` (auf Permissions) | Privilege Escalation, Umgehen von Access Controls | ⭐ **Gateway zu Safety-Assets** |
+| **Accountability** | `deletes`, `modifies` (auf Logs) | Verschleiern von Täter-Identität, Zerstörung von Audit-Daten | ⚠️ Forensik-relevant |
+
+### CIANAAALevel — Schutzbedarfsstufen
+
+Schutzziele werden nicht binär (aktiv/inaktiv) gesetzt, sondern mit einer **Schutzbedarfsstufe** (Protection Strength) gewichtet:
+
+| Level      | Bedeutung                                         | Threat-Generierung  |
+|------------|---------------------------------------------------|---------------------|
+| `none`     | Nicht anwendbar oder nicht bewertet               | Kein Threat         |
+| `low`      | Schutz erforderlich, geringes Risiko              | Impact = Low        |
+| `medium`   | Mittlerer Schutzbedarf                            | Impact = Medium     |
+| `high`     | Hoher Schutzbedarf                                | Impact = High       |
+| `critical` | Schutz existenziell (Safety-relevant)             | Impact = Critical (Override) |
+
+Der Level wird **deterministisch abgeleitet** — der Analyst setzt ihn nicht direkt, sondern bestätigt oder korrigiert den Systemvorschlag.
+
+### Cause Mechanisms — Analyst-seitige Eingabe
+
+Anstatt CIANAAA-Dimensionen direkt zu konfigurieren, wählt der Analyst **Cause Mechanisms** in verständlicher Sprache. Das System leitet daraus intern die CIANAAA-Dimension und den Level ab:
+
+| Cause Mechanism           | CIANAAA-Dim   | Relevante Impact-Kriterien                                         |
+|---------------------------|---------------|---------------------------------------------------------------------|
+| Content Manipulation      | Integrity (I) | safety, operational, financial_damage, regulatory_compliance        |
+| Unavailability / Outage   | Availability (A) | operational, recoverability                                      |
+| Content Disclosure        | Confidentiality (C) | regulatory_compliance, financial_damage, reputation           |
+| Identity Abuse            | Authentication (AuthN) | safety, operational, regulatory_compliance               |
+| Unauthorized Access       | Authorization (AuthZ) | safety, operational, regulatory_compliance, financial_damage |
+| Missing Evidence          | Non-Repudiation (N) | regulatory_compliance                                        |
+| Missing Accountability    | Accountability (Acc) | regulatory_compliance, operational                          |
+
+### Derivations-Pipeline
+
+```
+1. DFD-Relationen → BASE_RULES[assetGroup:relationType] → applicable SecurityGoalTypes
+   (assetGroup-aware; z.B. "data:stores" → [I, A], "system:controls" → [I, A, AuthZ])
+
+2. CIANAAA_APPLICABLE[assetGroup] → filtert kategorie-ungeeignete Dimensionen
+   (z.B. AuthN/AuthZ nicht auf Data-Ebene, N nicht auf Infrastructure-Ebene)
+
+3. Cause Mechanism × MAX(relevante Impact-Kriterien) → CIANAAALevel
+   Fallback: MAX(alle impactRatings) wenn keine spezifischen Kriterien bewertet
+   Absolutes Minimum: "low" — nie "none" für graph-suggested Goals
+
+4. source: "suggested" (graph) | "manual" (Analyst-Override)
+   Rationale: Pflichtfeld bei source === "manual" (IEC 62443-4-1 Audit Trail)
+```
+
+### CIANAAA_APPLICABLE — Kategoriefilter
+
+Welche CIANAAA-Dimensionen sind für welche Asset-Kategorie konzeptuell anwendbar:
+
+| Kategorie      | C  | I  | A  | N  | AuthN | AuthZ | Acc |
+|----------------|----|----|----|----|-------|-------|-----|
+| Data           | ✓  | ✓  | ✓  | ✓  | ✗     | ✗     | ✓   |
+| Function       | ✗  | ✓  | ✓  | ✓  | ✓     | ✓     | ✓   |
+| Process        | ✗  | ✓  | ✓  | ✓  | ✓     | ✓     | ✓   |
+| System         | ✓  | ✓  | ✓  | ✗  | ✓     | ✓     | ✓   |
+| Infrastructure | ✓  | ✓  | ✓  | ✗  | ✓     | ✓     | ✗   |
+| Physical       | ✗  | ✓  | ✓  | ✗  | ✗     | ✗     | ✓   |
+| Service        | ✓  | ✓  | ✓  | ✓  | ✓     | ✓     | ✓   |
+| Human          | ✓  | ✗  | ✗  | ✗  | ✓     | ✓     | ✓   |
+
+> **Begründung:** AuthN/AuthZ auf Data-Ebene werden auf Element-Ebene behandelt (nicht am Asset selbst).  
+> N auf System/Infrastructure: kein Audit-Trail-Konzept auf dieser Ebene.  
+> I/A auf Human: Menschen sind Schutzziele (ISO 12100), keine Daten-Container.
+
+### Safety-kritische Schutzziele
+
+Für Safety-relevante Systeme (z.B. Maschinen nach MVO 2027) sind **drei Schutzziele besonders kritisch:**
+
+#### 1. Integrity (Integrität)
+
+**Warum kritisch:**  
+Manipulation von Safety-Parametern oder -Logik führt direkt zu Gefährdungen.
+
+**Asset-Beziehungen:**
+- `modifies` → Safety-Parameter, Konfiguration, Steuerlogik
+- `creates` → Falsche Kommandos, gefälschte Sensor-Werte
+
+**Beispiel:**
+```
+Threat: Manipulation der Not-Halt-Konfiguration
+├─ Schutzziel: Integrity
+├─ Asset-Beziehung: Process "Config Manager" → modifies → Data Asset "Emergency Stop Parameters"
+└─ Attack Tree Branch:
+    ├─ Angreifer erhält Zugriff auf Config Manager (Authentication Bypass)
+    ├─ Umgeht Autorisierung (Authorization Failure)
+    └─ Ändert Safety-Parameter (Integrity Violation)
+        → Safety Impact: Fatality
+```
+
+#### 2. Availability (Verfügbarkeit)
+
+**Warum kritisch:**  
+Ausfall von Safety-Funktionen bei Bedarf = Gefährdung.
+
+**Asset-Beziehungen:**
+- `deletes` → Löschen von Safety-Daten
+- `depends_on` → Kaskadenausfall bei Abhängigkeiten
+- `transports` → Blockierung kritischer Kommunikation
+
+**Beispiel:**
+```
+Threat: DoS auf Safety-Kommunikation
+├─ Schutzziel: Availability
+├─ Asset-Beziehung: Data Flow "Safety Signal" → transports → Data Asset "Stop Command"
+└─ Attack Tree Branch:
+    ├─ Angreifer überflutet Netzwerk (Network DoS)
+    └─ Safety Signal kommt nicht durch (Availability Violation)
+        → Safety Impact: Irreversible Injury
+```
+
+#### 3. Authentication & Authorization (Zugangsschutz)
+
+**Warum kritisch:**  
+Gateway zu Safety-Assets - ohne diese sind Integrity und Availability nicht schützbar.
+
+**Asset-Beziehungen:**
+- Alle Beziehungen zu Safety-Assets benötigen starke Authentication/Authorization
+
+**Beispiel:**
+```
+Threat: Unbefugter Zugriff auf Safety-Steuerung
+├─ Schutzziel: Authentication + Authorization
+├─ Asset-Beziehung: External Entity "Maintenance Interface" → uses [hardware] → System Asset "Safety PLC"
+└─ Attack Tree Branch:
+    ├─ Angreifer nutzt ungesicherten USB-Port (Authentication: None)
+    ├─ Erhält vollen Zugriff (Authorization: Admin)
+    └─ Kann nun Integrity und Availability angreifen
+        → Safety Impact: Fatality (potentiell)
+```
+
+### Automatische Threat-Generierung
+
+Basierend auf diesem Mapping kann TARAflow automatisch Threats generieren:
+```typescript
+interface ThreatGenerationRule {
+  schutzziel: CIANAAA;
+  assetRelation: RelationType;
+  threatTemplate: string;
+  safetyRelevant: boolean;
+}
+
+const rules: ThreatGenerationRule[] = [
+  {
+    schutzziel: 'Integrity',
+    assetRelation: 'modifies',
+    threatTemplate: 'Unauthorized modification of {assetName} via {dfdElement}',
+    safetyRelevant: true  // Wenn Asset safety-relevant ist
+  },
+  {
+    schutzziel: 'Availability',
+    assetRelation: 'depends_on',
+    threatTemplate: 'Cascading failure: {dfdElement} unavailable affects {assetName}',
+    safetyRelevant: true
+  },
+  // ... weitere Regeln
+];
+```
+
+### Priorisierung nach Schutzziel
+
+Nicht alle Schutzziel-Verletzungen sind gleich kritisch:
+
+**Für Safety-Systeme (Maschinen, Medizingeräte):**
+1. **Integrity** - Höchste Priorität (direkte Manipulation)
+2. **Availability** - Sehr hohe Priorität (Ausfall bei Bedarf)
+3. **Authentication/Authorization** - Hohe Priorität (Gateway)
+4. **Accountability** - Mittlere Priorität (Forensik)
+5. **Confidentiality** - Variable Priorität (abhängig von Daten)
+6. **Non-Repudiation** - Niedrige Priorität (außer regulatorisch erforderlich)
+
+**Für IT-Systeme (Business-kritisch):**
+1. **Confidentiality** - Höchste Priorität (Datenschutz)
+2. **Integrity** - Sehr hohe Priorität (Datenqualität)
+3. **Availability** - Hohe Priorität (Business Continuity)
+4. **Authentication/Authorization** - Hohe Priorität (Access Control)
+5. **Accountability** - Mittlere Priorität (Compliance)
+6. **Non-Repudiation** - Variable Priorität (je nach Kontext)
+
+### Integration in Attack Trees
+
+CIANAAA-Schutzziele strukturieren Attack Trees logisch:
+
+```txt
+[Root] Gefährdung von Asset "Emergency Stop Logic"
+│
+├─ [Branch 1: Integrity Violation]
+│  ├─ Sub-Goal: Authentication Bypass
+│  ├─ Sub-Goal: Authorization Escalation
+│  └─ Final: Modify Emergency Stop Parameters
+│
+├─ [Branch 2: Availability Violation]
+│  ├─ Sub-Goal: Network Access
+│  └─ Final: DoS auf Safety Communication
+│
+└─ [Branch 3: Confidentiality] (niedrige Prio für Safety)
+   └─ Information Disclosure (nur relevant für Reverse Engineering)
+```
+
+### Dokumentationsgewinn (EN 50742)
+
+Die CIANAAA-Struktur ermöglicht präzise Dokumentation:
+
+> *"The system protects the **integrity** of safety-related data through authentication and authorization controls at all interfaces with `modify` relationships to safety assets. **Availability** of safety functions is ensured through redundancy and monitoring of `depends_on` relationships."*
+
+### Zusammenfassung
+
+| Aspekt | STRIDE | CIANAAA |
+|--------|--------|---------|
+| **Granularität** | 6 Kategorien | 7 Schutzziele |
+| **Asset-Mapping** | Indirekt | Direkt |
+| **Safety-Fokus** | Schwach | Stark (I, A) |
+| **Attack Tree Integration** | Komplex | Natürlich |
+| **Normkonformität** | Gut | Sehr gut (ISO 27001, IEC 62443) |
+
+**Empfehlung:** CIANAAA als primäres Framework, STRIDE als ergänzende Perspektive.
+
+---
+
+## Transitivität und Abgeleitete Beziehungen
+
+### Das Konzept
+
+Wenn ein DFD-Element mit einem anderen DFD-Element interagiert, das wiederum eine `is_an`-Beziehung zu einem Asset hat, entsteht eine **mathematisch eindeutige transitive Beziehung**:
+
+```
+Data Store "User DB" IS_AN Data Asset "User Records"
+Process "Login" reads Data Store "User DB"
+────────────────────────────────────────────────────
+∴ Process "Login" reads Data Asset "User Records" [ABGELEITET]
+```
+
+### Warum Transitivität wichtig ist
+
+**Für TARA:**
+
+- ✅ Verhindert "Blind Spots" (übersehene Asset-Bedrohungen)
+- ✅ Vollständige Threat-Coverage über alle Systemebenen
+- ✅ Compliance-Nachweis (ISO 21434, IEC 62443)
+
+**Risiken ohne Transitivität:**
+
+- ❌ Threats werden nur auf DFD-Element-Ebene erkannt, nicht auf Asset-Ebene
+- ❌ Regulatorische Anforderungen (z.B. DSGVO für PII-Assets) werden übersehen
+- ❌ Impact-Bewertung unvollständig
+
+### Semantische Regel für transitive Ableitungen
+
+Nicht jede Beziehung ist semantisch geeignet, über eine `is_an`-Brücke
+transitiv abgeleitet zu werden.
+
+**Grundregel:**  
+Nur Beziehungen, die eine **inhaltliche Wirkung auf das Asset selbst**
+beschreiben, dürfen propagiert werden.
+
+Beziehungen, die sich auf **Betrieb, Überwachung, Zustand, Verfügbarkeit
+oder Infrastruktur** beziehen, werden **nicht** propagiert, da sie den
+Träger des Assets betreffen, nicht das Asset selbst.
+
+**Beispiele:**
+
+✓ Inhaltliche Propagation:  
+Process --reads--> Data Store --is_an--> Data Asset  
+⇒ Process --reads--> Data Asset  
+
+✗ Keine Propagation:  
+Process --monitors--> Data Store --is_an--> Data Asset  
+⇒ **KEINE Ableitung**  
+*(Überwacht wird der Dienst, nicht die Information)*
+
+Diese Regel wird technisch durch eine **Asset-Gruppen-spezifische
+Allow-List** für ableitbare Beziehungstypen umgesetzt
+(siehe Abschnitt „Graph-Algorithmus“).
+
+### Hybrid-Ansatz: Assistiert, aber nicht automatisch
+
+**Prinzip**: System **berechnet** abgeleitete Beziehungen, aber User **bestätigt** sie.
+
+```typescript
+interface DerivedRelation {
+  id: string;
+  dfdElementId: string;      // Process "Login"
+  assetId: string;           // Data Asset "User Records"
+  relationType: string;      // 'reads'
+  
+  // Ableitungs-Metadaten
+  derivedFrom: string;       // Data Store "User DB" ID
+  bridgeRelation: string;    // is_an Relation ID
+  status: 'pending' | 'confirmed' | 'rejected';
+  
+  // Optional: Scope-Verfeinerung
+  scope?: {
+    attributes?: string[];   // Nur bestimmte Asset-Attribute
+    qualifier?: string;      // Zusätzlicher Kontext
+    restrictions?: string;   // Einschränkungen
+  };
+  
+  // Audit Trail
+  derivedAt: Date;
+  confirmedBy?: string;
+  confirmedAt?: Date;
+}
+```
+
+### UI-Workflow für abgeleitete Beziehungen
+
+#### 1. Discovery Mode (Automatisch)
+
+```
+User verknüpft: Data Store "User DB" → is_an → Data Asset "User Records"
+                                                ↓
+System scannt: Welche Prozesse greifen auf "User DB" zu?
+               - Process "Login" → reads
+               - Process "Profile Display" → reads
+               - Process "Admin Panel" → modifies
+                                                ↓
+System generiert: 3 abgeleitete Beziehungen (Status: pending)
+```
+
+#### 2. Visualisierung
+
+Abgeleitete Beziehungen werden **visuell unterscheidbar** dargestellt:
+
+```
+Process "Login"
+├─ reads → Data Store "User DB"           [durchgezogene Linie]
+└─ 🪄 reads → Data Asset "User Records"   [gestrichelte Linie, grau]
+   └─ Status: Pending ⏸️
+```
+
+**Visual Indicators:**
+- 🪄 = Abgeleitet (Magic Wand Icon)
+- ✓ = Bestätigt (grüne gestrichelte Linie)
+- ✗ = Abgelehnt (nicht angezeigt)
+- ⚠️ = Benötigt Review (orange)
+
+#### 3. Action Buttons
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Process "Login" → Data Asset "User Records"            │
+│ Abgeleitet von: Data Store "User DB" (is_an)           │
+│                                                         │
+│ [✅ Übernehmen] [❌ Ignorieren] [🔍 Scope definieren]  │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Aktionen:**
+- **Übernehmen**: Status → 'confirmed', Beziehung wird fest im Modell verankert
+- **Ignorieren**: Status → 'rejected', wird ausgeblendet (wichtig für Noise-Reduktion!)
+- **Scope definieren**: User spezifiziert welche Teile des Assets betroffen sind
+
+#### 4. Scope-Editor (Verfeinerung)
+
+```
+Process "Login" liest welche Attribute von "User Records"?
+
+Data Asset "User Records" enthält:
+☐ user_id
+☐ username
+☐ password_hash
+☐ email
+☐ phone_number
+☐ payment_info
+☐ medical_data
+
+User wählt: ☑ user_id, ☑ username, ☑ password_hash
+
+Scope gespeichert: {attributes: ["user_id", "username", "password_hash"]}
+```
+
+### Separate Speicherung (KRITISCH!)
+
+Abgeleitete Beziehungen werden **getrennt** von expliziten Beziehungen gespeichert:
+
+**Warum getrennt?**
+1. **Update-Propagation**: Wenn Bridge-Beziehung gelöscht wird → alle Ableitungen neu berechnen
+2. **Audit Trail**: Nachvollziehbarkeit wie Beziehung zustande kam
+3. **Performance**: Keine Filter-Logik bei jedem Query
+4. **Rollback**: User kann Bestätigung rückgängig machen
+
+```
+// FALSCH - Disaster waiting to happen
+interface AssetRelation {
+  isDerived?: boolean;  // ❌ Vermischt explizit und abgeleitet
+}
+
+// RICHTIG - Separate Datenstrukturen
+database/
+  ├─ explicit_relations/
+  │    └─ {id, dfdElementId, assetId, relationType, ...}
+  └─ derived_relations/
+       └─ {id, dfdElementId, assetId, relationType, derivedFrom, status, ...}
+```
+
+### Graph-Algorithmus
+
+```typescript
+// Definiert, welche Beziehungen semantisch "inhaltlich" genug sind,
+// um über eine is_an-Brücke propagiert zu werden.
+// Nicht-inhaltliche Relationen (z.B. monitors, controls) werden bewusst ausgeschlossen.
+const DERIVABLE_RELATIONS: Record<AssetGroup, Set<string>> = {
+  data: new Set(['creates', 'reads', 'modifies', 'deletes', 'stores']),
+  process: new Set(['executes', 'invokes', 'monitors']),
+  system: new Set(['uses', 'depends_on', 'monitors', 'configures']),
+  human: new Set(['affects_safety', 'affects_privacy', 'identifies', 'tracks', 'exposes'])
+};
+
+function deriveRelations(graph: TaraGraph): DerivedRelation[] {
+  const derived: DerivedRelation[] = [];
+  
+  // Finde alle is_an Beziehungen (die "Brücken")
+  const bridges = graph.relations.filter(r => r.relationType === 'is_an');
+  
+  for (const bridge of bridges) {
+    // bridge: DFD-Element X → is_an → Asset A
+    
+    // Finde alle Elemente die auf X zugreifen
+    const accessors = graph.relations.filter(r => 
+      r.assetId === bridge.dfdElementId && 
+      r.relationType !== 'is_an'
+    );
+    
+    for (const accessor of accessors) {
+      // Prüfe ob diese Relation ableitbar ist für diese Asset-Gruppe
+      const asset = graph.assets.find(a => a.id === bridge.assetId);
+      if (!asset) continue;
+      
+      const isDerivable = DERIVABLE_RELATIONS[asset.group]?.has(accessor.relationType);
+      if (!isDerivable) {
+        console.debug(`Skipping non-derivable relation: ${accessor.relationType} for ${asset.group}`);
+        continue;
+      }
+      
+      // accessor: Element Y → [relationType] → Element X
+      // Ableitung: Element Y → [relationType] → Asset A
+      
+      // Prüfe ob bereits existiert (vermeidet Duplikate)
+      const existingExplicit = graph.relations.find(r =>
+        r.dfdElementId === accessor.dfdElementId &&
+        r.assetId === bridge.assetId &&
+        r.relationType === accessor.relationType
+      );
+      
+      if (!existingExplicit) {
+        derived.push({
+          id: generateId(),
+          dfdElementId: accessor.dfdElementId,
+          assetId: bridge.assetId,
+          relationType: accessor.relationType,
+          derivedFrom: bridge.dfdElementId,
+          bridgeRelation: bridge.id,
+          status: 'pending',
+          derivedAt: new Date()
+        });
+      }
+    }
+  }
+  
+  return derived;
+}
+```
+
+**Warum eine Allow-List?**
+
+Nicht alle Beziehungen ergeben transitiv Sinn:
+- ❌ `terminates` auf Data Store → Asset (sinnlos)
+- ❌ `controls` auf Process → Asset (nicht transitiv)
+- ✅ `reads` auf Data Store → Data Asset (sinnvoll)
+- ✅ `uses` auf System → System Asset (sinnvoll)
+
+Die Allow-List verhindert unsinnige Ableitungen und hält das System wartbar bei zukünftigen Erweiterungen.
+
+### Erweiterte Features
+
+#### Bulk Actions
+
+```
+Sie haben 12 abgeleitete Beziehungen für "Process Login":
+
+[✅ Alle übernehmen] [❌ Alle ignorieren] [🔍 Einzeln prüfen]
+```
+
+#### Smart Suggestions
+
+```
+💡 Ähnlicher Process "User Registration" hat diese Relation bestätigt.
+   Auch für "Login" übernehmen?
+   
+   [Ja, übernehmen] [Nein, manuell prüfen]
+```
+
+#### Conflict Resolution
+
+```
+⚠️ Konflikt erkannt:
+   - Explizite Relation: Process "Login" → reads → Data Asset "User Records"
+   - Abgeleitete Relation: Process "Login" → reads → Data Asset "User Records"
+   
+   Action: Abgeleitete Relation wird automatisch als 'confirmed' markiert
+```
+
+### Beispiel: Komplette Kette
+
+```
+[Explizite Beziehungen]
+External Entity "Admin User"
+└─ is_an → Human Asset "System Administrator"
+
+Process "Admin Panel"
+└─ affects_safety → Human Asset "System Administrator"
+   (bei Fehlfunktion können falsche Befehle ausgeführt werden)
+
+
+Data Store "User DB"
+└─ is_an → Data Asset "User Credentials"
+
+Process "Login Service"
+├─ creates → Data Asset "Session Token"
+└─ reads → Data Store "User DB"
+
+
+[Abgeleitete Beziehungen]
+Process "Login Service"
+└─ 🪄 reads → Data Asset "User Credentials"
+   ├─ Status: Pending
+   ├─ Abgeleitet von: Data Store "User DB" (is_an)
+   └─ Action: [✅ Übernehmen mit Scope: {user_id, password_hash}]
+
+
+[Threat-Analyse Resultat]
+Process "Admin Panel":
+- affects_safety auf "System Administrator" [explizit]
+  → Threat: Unbeabsichtigte Systemschäden durch fehlerhafte Admin-Aktionen
+
+Process "Login Service":
+- Information Disclosure auf "User Credentials" [abgeleitet, bestätigt]
+  → Threat: Credential Leakage through Process Memory
+```
+
+---
+
+## Attack Tree Generierung aus Asset-Beziehungen
+
+### Konzept: Asset-Beziehungen als Attack Paths
+
+Asset-Beziehungen im DFD sind nicht nur Dokumentation - sie sind **potenzielle Angriffspfade**. TARAflow nutzt den DFD-Graph, um automatisch Attack Tree Branches zu generieren.
+
+**Grundprinzip:**
+```
+Schutzziel (Goal) → Asset-Beziehung (Path) → DFD-Element (Branch) → External Entity (Entry Point)
+```
+
+### Von Schutzzielen zu Branches
+
+Für jedes Asset mit definiertem Schutzziel (Integrity, Availability, etc.) können die relevanten Angriffspfade systematisch abgeleitet werden:
+
+**Algorithmus:**
+```typescript
+function generateAttackTreeBranches(
+  asset: Asset,
+  protectionGoal: CIANAAA
+): AttackTreeBranch[] {
+  
+  // 1. Identifiziere relevante Asset-Beziehungen basierend auf Schutzziel
+  const relevantRelations = getRelevantRelations(asset, protectionGoal);
+  
+  // 2. Für jede Beziehung: Finde Pfad zur External Entity
+  const branches: AttackTreeBranch[] = [];
+  
+  for (const relation of relevantRelations) {
+    const path = findPathToExternalEntity(relation.dfdElementId, asset.id);
+    
+    branches.push({
+      goal: `Violate ${protectionGoal} of ${asset.name}`,
+      path: path,
+      feasibility: calculateFeasibility(path),
+      barriers: identifyBarriers(path),
+      impact: asset.safetyImpact || asset.businessImpact
+    });
+  }
+  
+  return branches;
+}
+
+function getRelevantRelations(
+  asset: Asset, 
+  goal: CIANAAA
+): AssetRelation[] {
+  
+  const mapping = {
+    'Integrity': ['modifies', 'creates'],
+    'Confidentiality': ['reads', 'transports'],
+    'Availability': ['deletes', 'stores', 'transports', 'depends_on'],
+    'Authentication': ['creates', 'transports'],
+    'Authorization': ['modifies', 'reads'],
+    'Accountability': ['deletes', 'modifies'],
+    'NonRepudiation': ['deletes', 'modifies']
+  };
+  
+  const relevantTypes = mapping[goal] || [];
+  
+  return graph.relations.filter(r => 
+    r.assetId === asset.id && 
+    relevantTypes.includes(r.relationType)
+  );
+}
+```
+
+### Schritt-für-Schritt Beispiel
+
+#### Ausgangslage:
+```
+Asset: "Emergency Stop Configuration" (Safety-kritisch, Impact: Fatality)
+Schutzziel: Integrity
+```
+
+#### Schritt 1: Direkte Branches finden
+```
+Suche: Welche DFD-Elemente haben 'modifies' oder 'creates' Beziehung?
+
+Resultat:
+├─ Process "Configuration Manager" → modifies → Asset "Emergency Stop Configuration"
+└─ Process "Firmware Update" → modifies → Asset "Emergency Stop Configuration"
+```
+
+#### Schritt 2: Indirekte Pfade (via Transport)
+```
+Suche: Welche Data Flows führen zu diesen Processes?
+
+Resultat:
+├─ Data Flow "Config Data" → transports → (führt zu) Process "Configuration Manager"
+└─ Data Flow "Update Package" → transports → (führt zu) Process "Firmware Update"
+```
+
+#### Schritt 3: Entry Points (External Entities)
+```
+Suche: Folge Pfad zurück bis zur External Entity
+
+Resultat:
+├─ External Entity "Maintenance Laptop" → uses [hardware] → Interface "USB Port" 
+│  → Process "Configuration Manager" → modifies → Asset
+│
+└─ External Entity "Update Server" → uses [network] → Interface "Ethernet" 
+   → Process "Firmware Update" → modifies → Asset
+```
+
+#### Schritt 4: Attack Tree Struktur
+```
+[Root Goal] Violate Integrity of "Emergency Stop Configuration"
+│
+├─ [Branch 1: Via Maintenance Interface]
+│  ├─ Entry Point: External Entity "Maintenance Laptop" [F: Low - physical access]
+│  ├─ Interface "USB Port" [B: Medium - no authentication]
+│  ├─ Process "Configuration Manager" [B: Low - weak access control]
+│  └─ modifies → Asset [I: CRITICAL - Fatality]
+│     → Overall Risk: HIGH (Low F + Weak B + Critical I)
+│
+└─ [Branch 2: Via Network Update]
+   ├─ Entry Point: External Entity "Update Server" [F: Medium - network accessible]
+   ├─ Interface "Ethernet" [B: High - strong encryption + auth]
+   ├─ Process "Firmware Update" [B: High - signature verification]
+   └─ modifies → Asset [I: CRITICAL - Fatality]
+      → Overall Risk: MEDIUM (Medium F + Strong B + Critical I)
+```
+
+### External Entity als Threat Source
+
+External Entities dienen in Attack Trees als **Einstiegspunkte** (Threat Sources).
+Sie bestimmen die **initiale Feasibility (F)** eines Attack Tree Branches:
+
+#### Feasibility-Katalog
+
+| EE-Kategorie | Beschreibung | Basis-F | Begründung | Beispiel |
+|--------------|--------------|---------|------------|----------|
+| **Public Network** | Internet, Cloud-Backends, Remote-Wartung (unverschlüsselt) | Sehr Hoch | Zugriff weltweit, anonym, automatisierte Skript-Angriffe möglich | Cloud API ohne Auth |
+| **Corporate IT** | Firmennetzwerk (MES, ERP-Anbindung) | Mittel | Erfordert Erst-Kompromittierung der IT; Lateral Movement nötig | ERP-System |
+| **Adjacent Wireless** | WLAN, Bluetooth, 5G-Campusnetz in Reichweite der Anlage | Mittel-Hoch | Physische Nähe zum Werksgelände, aber kein Gebäudezutritt nötig | Parking Lot Attack |
+| **Local Physical** | USB-Ports, HMI vor Ort, lokale Service-Ports an der Maschine | Niedrig | Physischer Zugang zur Maschine erforderlich (Zutrittskontrolle) | Wartungs-USB |
+| **Supply Chain** | Software-Updates vom Hersteller, Firmware-Signierung | Sehr Niedrig | Hoher Aufwand für Angreifer (Supply Chain Attack), aber enormer Impact | Signed Updates |
+| **Authorized Person** | Bediener, Instandhalter mit gültigen Credentials | Variabel | Fokus auf Insider Threat oder Credential Theft | Service-Techniker |
+
+**TypeScript-Definition:**
+```typescript
+interface ExternalEntityThreatProfile {
+  category: 'public_network' | 'corporate_it' | 'adjacent_wireless' | 
+            'local_physical' | 'supply_chain' | 'authorized_person';
+  baseFeasibility: 'very_low' | 'low' | 'medium' | 'high' | 'very_high';
+  rationale: string;
+}
+
+interface ExternalEntityProperties {
+  // ... andere Properties
+  threatProfile?: ExternalEntityThreatProfile;
+}
+```
+
+**Verwendung im Attack Tree:**
+```
+External Entity "Internet" 
+└─ Threat Profile: { category: 'public_network', baseFeasibility: 'very_high' }
+   └─ Branch startet mit F = very_high
+
+External Entity "Service Technician (Physical)"
+└─ Threat Profile: { category: 'local_physical', baseFeasibility: 'low' }
+   └─ Branch startet mit F = low
+```
+
+### F × B × I Scoring
+
+Jeder Attack Tree Branch wird nach dem **Attacker-centric Modell** bewertet:
+
+**F (Feasibility)** - Machbarkeit für den Angreifer
+- Kommt von der External Entity (Basis-F)
+- Wird durch Barrieren (B) reduziert
+
+**B (Barriers)** - Hindernisse im Pfad
+- Authentifizierung (stark/schwach/keine)
+- Verschlüsselung (ja/nein)
+- Physische Barrieren (Zutrittsschutz)
+- Netzwerk-Segmentierung
+
+**I (Impact)** - Auswirkung auf das Asset
+- Safety Impact (fatality > irreversible > reversible)
+- Business Impact (finanziell, Reputation)
+- Compliance Impact
+
+**Formel:**
+```
+Branch Risk = F - B + I
+
+Wobei:
+- F ∈ [0, 10] (External Entity Feasibility)
+- B ∈ [0, 10] (Summe aller Barrieren im Pfad)
+- I ∈ [0, 10] (Asset Impact, bei Safety: 10 = fatality)
+```
+
+### Mehrere Assets pro DFD-Element
+
+Wenn ein DFD-Element (z.B. eine SPS) viele Assets tangiert, gibt es zwei Strategien:
+
+#### Strategie A: Asset-zentrierte Bäume (Empfohlen für Compliance)
+
+**Separater Attack Tree pro Asset:**
+
+```txt
+Asset 1: "Emergency Stop Logic" [Safety: Fatality]
+└─ Attack Tree 1 (nur für dieses Asset)
+
+Asset 2: "Production Counter" [Business: Low]
+└─ Attack Tree 2 (nur für dieses Asset)
+```
+
+**Vorteil:**
+
+- Klare Trennung nach Impact
+- Audit-fähig (nur safety-kritische Bäume vorlegen)
+- Unterschiedliche Schutzziele pro Asset
+
+#### Strategie B: Cluster-Assets (Effizienz)
+
+**Assets mit identischem Impact/Schutzzielen zusammenfassen:**
+```
+Asset Cluster "Safety Parameters Group"
+├─ Emergency Stop Config
+├─ Speed Limit Config
+└─ Interlock Config
+
+→ Ein gemeinsamer Attack Tree für alle
+```
+
+**Wann verwenden:**
+
+- Assets sind technisch untrennbar
+- Identischer Safety Impact
+- Angriff betrifft immer alle gleichzeitig
+
+### Transitive Pfade in Attack Trees
+
+Abgeleitete Beziehungen fließen in Attack Trees ein:
+```
+[Explizit]
+Process "Login Service" → reads → Data Store "User DB"
+Data Store "User DB" → is_an → Data Asset "User Credentials"
+
+[Abgeleitet via Transitivität]
+Process "Login Service" → reads → Data Asset "User Credentials" [derived, confirmed]
+
+[Attack Tree Branch]
+Goal: Information Disclosure of "User Credentials"
+│
+├─ [Direct Path] via Data Store "User DB"
+│  └─ Process "Login Service" → reads → Data Store → is_an → Asset
+│
+└─ [Derived Path] direkt zum Asset (bestätigt)
+   └─ Process "Login Service" → reads → Asset
+   
+→ Beide Pfade führen zum selben Ziel, aber unterschiedliche Barrieren!
+```
+
+### Priorisierung von Branches
+
+**Automatische Priorisierung nach:**
+
+1. **Safety Impact** (höchste Priorität)
+   - Fatality → CRITICAL
+   - Irreversible Injury → HIGH
+   - Reversible Injury → MEDIUM
+
+2. **Feasibility × Barrier Gap**
+   - High F + Low B → Sehr wahrscheinlich
+   - Low F + High B → Unwahrscheinlich
+
+3. **Business/Compliance Impact**
+   - Nur wenn kein Safety Impact
+
+**Beispiel-Sortierung:**
+```
+Branch 1: F=High, B=Low,  I=Fatality        → Priority: 1 (CRITICAL)
+Branch 2: F=High, B=High, I=Fatality        → Priority: 2 (HIGH)
+Branch 3: F=High, B=Low,  I=Business High   → Priority: 3 (MEDIUM)
+Branch 4: F=Low,  B=High, I=Fatality        → Priority: 4 (LOW - aber dokumentieren!)
+```
+
+### Automatische Mitigations-Vorschläge
+
+Basierend auf dem Branch-Scoring:
+```typescript
+function suggestMitigations(branch: AttackTreeBranch): Mitigation[] {
+  const suggestions: Mitigation[] = [];
+  
+  // Bei hohem F und niedrigem B
+  if (branch.feasibility >= 7 && branch.barriers <= 3) {
+    suggestions.push({
+      type: 'barrier_strengthening',
+      target: branch.weakestBarrier,
+      action: 'Implement multi-factor authentication',
+      priority: 'HIGH'
+    });
+  }
+  
+  // Bei Safety Impact
+  if (branch.impact.safety === 'fatality') {
+    suggestions.push({
+      type: 'safety_critical',
+      action: 'Implement independent safety monitoring',
+      standard: 'ISO 13849, IEC 62061',
+      priority: 'CRITICAL'
+    });
+  }
+  
+  return suggestions;
+}
+```
+
+### Dokumentationsgewinn (MVO 2027 / EN 50742)
+
+Die Attack Tree Generierung aus Asset-Beziehungen ermöglicht:
+
+**Für den Hersteller:**
+> *"Attack paths were systematically derived from the DFD asset relationships. Each branch represents a concrete threat scenario with quantified feasibility, barriers, and impact."*
+
+**Für den Integrator:**
+> *"The following attack trees focus on scenarios with potential safety impact. Branch priorities are based on ISO 12100 injury classifications."*
+
+**Für den Auditor:**
+> *"Threat analysis is reproducible and traceable. Each attack tree branch can be mapped back to specific DFD elements and asset relationships."*
+
+### Beispiel: Kompletter Workflow
+```
+1. Modellierung
+   └─ DFD mit Processes, Data Stores, Flows, External Entities
+   └─ Assets mit Safety-Annotation
+
+2. Asset-Beziehungen definieren
+   └─ Process "Safety PLC" → modifies → Asset "Emergency Stop Config"
+
+3. Automatische Attack Tree Generierung
+   └─ System findet alle Pfade zu diesem Asset
+   └─ Berechnet F × B × I für jeden Branch
+
+4. Review & Verfeinerung
+   └─ Bestätigen der kritischen Branches
+   └─ Verfeinern der Barrieren-Bewertung
+
+5. Mitigations
+   └─ Automatische Vorschläge basierend auf Branch-Scoring
+   └─ Zuweisung zu DFD-Elementen
+
+6. Dokumentation
+   └─ Automatische Generierung von Attack Tree Kapiteln
+   └─ EN 50742 konformes Format
+```
+
+---
+
+## Implementierungshinweise
+
+### TypeScript Typdefinition
+
+```typescript
+// ============================================================================
+// Safety Annotation Layer (Optional für alle Asset-Beziehungen)
+// ============================================================================
+
+interface SafetyAnnotation {
+  relevance: 'none' | 'indirect' | 'direct';
+  impact?: 'none' | 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  protectionTarget?: boolean;  // Speziell für Human Assets
+  rationale?: string;
+  // Verbindung zu betroffenen Function Assets erfolgt über
+  // Asset-zu-Asset Beziehungen, nicht als Property-Feld
+}
+
+type AssetGroup =
+  // Vertikale Hierarchie (aufsteigend nach Abstraktionsgrad)
+  | 'data'
+  | 'function'
+  | 'process'
+  | 'system'
+  | 'infrastructure'
+  // Orthogonale Kategorien
+  | 'physical' // Muss noch abgewogen werden
+  | 'service'  // Muss noch abgewogen werden
+  | 'human';
+
+// Qualifier für System Assets (nur bei 'uses')
+type SystemQualifier = 'api' | 'hardware' | 'network' | 'library';
+
+// Basis-Interface
+interface BaseAssetRelation {
+  assetId: string;
+  assetGroup: AssetGroup;
+  
+  // Safety Annotation Layer (optional)
+  safety?: SafetyAnnotation;
+}
+
+// Asset-spezifische Beziehungen (explizit)
+type DataRelation = BaseAssetRelation & {
+  assetGroup: 'data';
+  relationType: 'creates' | 'reads' | 'modifies' | 'deletes' | 'stores' | 'transports' | 'is_an';
+};
+
+type FunctionRelation = BaseAssetRelation & {
+  assetGroup: 'function';
+  relationType:
+    | 'implements'    // DFD-Element implementiert diese Function
+    | 'invokes'       // DFD-Element ruft diese Function auf
+    | 'depends_on'    // DFD-Element hängt von dieser Function ab
+    | 'creates'       // Function erzeugt Data Asset
+    | 'reads'         // Function liest Data Asset
+    | 'modifies'      // Function verändert Data Asset — safety-kritisch wenn Data safety-relevant
+    | 'deletes'       // Function löscht Data Asset
+    | 'is_an';
+};
+
+type ProcessRelation = BaseAssetRelation & {
+  assetGroup: 'process';
+  relationType: 'executes' | 'invokes' | 'terminates' | 'suspends' | 'monitors' | 'is_an';
+};
+
+// System Relations mit Qualifier für 'uses'
+type SystemRelation = BaseAssetRelation & ({
+  assetGroup: 'system';
+  relationType: 'controls' | 'configures' | 'monitors' | 'depends_on' | 'is_an';
+} | {
+  assetGroup: 'system';
+  relationType: 'uses';
+  qualifier: SystemQualifier;  // REQUIRED für 'uses'
+});
+
+type InfrastructureRelation = BaseAssetRelation & {
+  assetGroup: 'infrastructure';
+  relationType: 'hosts' | 'powers' | 'connects' | 'is_an';
+};
+
+type HumanRelation = BaseAssetRelation & {
+  assetGroup: 'human';
+  relationType: 'affects_safety' | 'affects_privacy' | 'identifies' | 'tracks' | 'exposes' | 'is_an';
+  
+  isProtectionTarget?: boolean;  // ISO 12100 Terminology
+};
+
+// Union aller expliziten Beziehungen
+type ExplicitAssetRelation =
+  | DataRelation
+  | FunctionRelation
+  | ProcessRelation
+  | SystemRelation
+  | InfrastructureRelation
+  | PhysicalRelation
+  | ServiceRelation
+  | HumanRelation;
+
+// Abgeleitete Beziehungen (separat gespeichert!)
+interface DerivedAssetRelation {
+  id: string;
+  dfdElementId: string;
+  assetId: string;
+  assetGroup: AssetGroup;
+  relationType: string;
+  
+  // Ableitungs-Kontext
+  derivedFrom: string;       // ID des Bridge-Elements (z.B. Data Store)
+  bridgeRelation: string;    // ID der is_an Relation
+  status: 'pending' | 'confirmed' | 'rejected';
+  
+  // Optional: Verfeinerung
+  scope?: {
+    attributes?: string[];
+    qualifier?: string;
+    restrictions?: string;
+  };
+
+  // Safety Annotation (vererbt von Quell-Relation)
+  safety?: SafetyAnnotation;
+  
+  // Audit Trail
+  derivedAt: Date;
+  confirmedBy?: string;
+  confirmedAt?: Date;
+}
+
+// Helper-Funktionen
+function validateRelations(
+  relations: ExplicitAssetRelation[], 
+  assetId: string
+): boolean {
+  const relationsToAsset = relations.filter(r => r.assetId === assetId);
+  const hasIsAn = relationsToAsset.some(r => r.relationType === 'is_an');
+  const hasOthers = relationsToAsset.some(r => r.relationType !== 'is_an');
+  
+  // is_an XOR andere Beziehungen
+  return !(hasIsAn && hasOthers);
+}
+
+function requiresQualifier(relation: ExplicitAssetRelation): boolean {
+  return relation.assetGroup === 'system' && relation.relationType === 'uses';
+}
+
+// Safety-spezifische Helper
+function hasSafetyImpact(relation: ExplicitAssetRelation): boolean {
+  return relation.safety?.impact !== 'none' && relation.safety?.impact !== undefined;
+}
+
+function isSafetyCritical(relation: ExplicitAssetRelation): boolean {
+  return relation.safety?.relevance === 'direct' || 
+         relation.safety?.impact === 'fatality' ||
+         relation.safety?.impact === 'irreversible_injury';
+}
+
+function detectSafetyBoundaryCrossing(
+  sourceElement: { safetyRelevant?: boolean },
+  targetElement: { safetyRelevant?: boolean }
+): boolean {
+  return (sourceElement.safetyRelevant && !targetElement.safetyRelevant) ||
+         (!sourceElement.safetyRelevant && targetElement.safetyRelevant);
+}
+
+// Optional: Asset-zu-Asset Beziehungen (nur Dokumentation)
+interface AssetToAssetRelation {
+  sourceAssetId: string;
+  targetAssetId: string;
+  relationType: 'belongs_to' | 'contains' | 'depends_on';
+  purpose: 'documentation' | 'compliance';
+  
+  // Diese Beziehungen werden NICHT für STRIDE verwendet
+  excludeFromThreatAnalysis: true;
+}
+
+// ============================================================================
+// DFD-Element Properties (für Safety-Markierung)
+// ============================================================================
+
+interface DFDElementSafetyProperties {
+  safetyRelevant?: boolean;
+  safetyImpact?: 'none' | 'reversible_injury' | 'irreversible_injury' | 'fatality';
+  safetyRationale?: string;
+  // Verbindung zu betroffenen Function Assets erfolgt über
+  // Asset-zu-Asset Beziehungen, nicht als Property-Feld
+}
+
+interface ProcessProperties extends DFDElementSafetyProperties {
+  // ... andere Process-Properties
+}
+
+interface DataStoreProperties extends DFDElementSafetyProperties {
+  containsSafetyRelevantData?: boolean;
+  // ... andere DataStore-Properties
+}
+
+interface DataFlowProperties extends DFDElementSafetyProperties {
+  crossesSafetyBoundary?: boolean;  // Automatisch ableitbar
+  // ... andere DataFlow-Properties
+}
+
+interface InterfaceProperties extends DFDElementSafetyProperties {
+  physicalHazardPotential?: 'low' | 'medium' | 'high';
+  // ... andere Interface-Properties
+}
+
+interface ExternalEntityProperties extends DFDElementSafetyProperties {
+  isProtectionTarget?: boolean;  // Für Human External Entities
+  // ... andere ExternalEntity-Properties
+}
+```
+
+### UI-Verhalten
+
+1. **Dynamische Beziehungsauswahl:** 
+   - Verfügbare Beziehungstypen werden basierend auf der Asset-Gruppe des ausgewählten Assets gefiltert
+   - Bei System Assets mit `uses`: Qualifier-Auswahl wird automatisch geöffnet
+
+2. **is_an Exklusivität:**
+   - Wenn User `is_an` auswählt → alle anderen Beziehungstypen werden deaktiviert
+   - Wenn User eine andere Beziehung auswählt → `is_an` wird deaktiviert
+   - Pro DFD-Element/Asset-Paar: entweder `is_an` **oder** 1-n Auswirkungsbeziehungen
+   - Bei `is_an`-Auswahl → System triggert automatisch Berechnung abgeleiteter Beziehungen
+
+3. **Qualifier-Erzwingung für System Assets:**
+   ```
+   User wählt: Process "API Gateway" → uses → System Asset "Auth Service"
+                                               ↓
+   UI blockiert: "Bitte Qualifier auswählen:"
+                 ○ api        - API/REST/RPC Aufruf
+                 ○ network    - Netzwerkkommunikation
+                 ○ hardware   - Physischer Zugriff
+                 ○ library    - Shared Library
+   ```
+
+4. **Data Flow Validierung:**
+   - Beim Erstellen eines Data Flows: Automatische Aufforderung Assets zuzuweisen
+   - Warnung bei unvollständigen Flows: ⚠️ "Keine Assets transportiert"
+   - Intelligente Vorschläge basierend auf Quell-/Ziel-Element
+
+5. **Abgeleitete Beziehungen:**
+   - Visualisierung mit gestrichelten Linien und Icons (🪄/✓/✗)
+   - Action-Buttons: Übernehmen / Ignorieren / Scope definieren
+   - Bulk-Actions für mehrere Ableitungen
+   - Notification wenn neue Ableitungen verfügbar
+
+6. **Mehrfachbeziehungen:** 
+   Ein DFD-Element kann mehrere Auswirkungsbeziehungen zum gleichen Asset haben (außer wenn `is_an`)
+   ```
+   Process "User Service"
+   ├─ creates → Data Asset "User Profile"
+   ├─ reads → Data Asset "User Profile"
+   └─ modifies → Data Asset "User Profile"
+   ```
+
+7. **Conflict Resolution:**
+   - Warnung wenn explizite und abgeleitete Beziehung identisch sind
+   - Automatische Markierung der Ableitung als 'confirmed'
+   - User kann nachträglich Scope verfeinern
+
+---
+
+## Kritische Design-Entscheidungen - Zusammenfassung
+
+### 1. Semantic Overlap bei System Assets (gelöst)
+
+**Problem:** `uses` war zu vage für präzise Threat-Analyse.
+
+**Lösung: Active-Impact Modell**
+- `uses [qualifier]` → Angriffsvektor (Likelihood)
+- `depends_on` → Kaskadeneffekt (Impact)
+
+**Implementierung:**
+```typescript
+// Process "API Gateway" greift auf Auth Service zu
+{
+  relationType: 'uses',
+  qualifier: 'network',  // REQUIRED
+  // → Threat: Man-in-the-Middle, Eavesdropping
+}
+
+// Process "API Gateway" fällt aus wenn Auth Service ausfällt
+{
+  relationType: 'depends_on'
+  // → Threat: Denial of Service, Cascading Failure
+}
+```
+
+### 2. Redundanz bei `transports` (gelöst)
+
+**Problem:** Data Flows transportieren per Definition Daten → scheinbare Redundanz.
+
+**Lösung: Explizit mit UI-Unterstützung**
+- Jeder Data Flow muss explizit deklarieren welche Assets transportiert werden
+- UI macht dies einfach durch intelligente Vorschläge
+- Ermöglicht präzise Threat-Analyse pro Asset auf dem Kommunikationspfad
+- Kritisch für Transitivität-Ketten
+
+**Warum wichtig:**
+- "HTTPS Request" kann `Password` ODER `Language Setting` enthalten
+- Unterschiedliche Criticality → unterschiedliche Threats
+- Automatische STRIDE-Generierung pro Asset
+
+### 3. Transitivität (gelöst)
+
+**Problem:** Beziehungen über mehrere Ebenen werden übersehen.
+
+**Lösung: Hybrid-Ansatz**
+- System **berechnet** abgeleitete Beziehungen (mathematisch eindeutig via `is_an`)
+- User **bestätigt** sie (verhindert Alert Fatigue + Compliance-Nachweis)
+- **Separate Speicherung** (kritisch für Wartbarkeit)
+
+**Vorteile:**
+- ✅ Keine Blind Spots
+- ✅ Vollständige Threat-Coverage
+- ✅ User behält Kontrolle
+- ✅ Compliance-fähig (Audit Trail)
+
+Die Propagation erfolgt ausschließlich für semantisch inhaltliche Beziehungen; 
+zustands- oder infrastrukturelle Relationen werden bewusst nicht abgeleitet.
+
+### 4. Validierungsregeln (Edge Cases)
+
+**Wichtige Einschränkungen:**
+- `is_an` nur für repräsentative DFD-Elemente (z.B. nur External Entities für System Assets)
+- Data Flows dürfen nur `transports` und `is_an` verwenden
+- Bidirektionale Kommunikation sollte durch separate Flows modelliert werden
+- Siehe Abschnitt "Validierungsregeln und Edge Cases" für Details
+
+### 5. Grundlegende Annahmen
+
+**Explizit gemacht:**
+- **DFD-zu-DFD Beziehungen** existieren im DFD selbst und sind Basis für Ableitungen
+- **Asset-zu-Asset Beziehungen** sind optional für Dokumentation/Compliance (nicht für STRIDE)
+- **Threat-Entstehung** erfolgt oft über transitive Ketten (siehe Abschnitt "Grundlegende Annahmen")
+
+---
+
+## Grundlegende Annahmen und Konzepte
+
+### DFD-zu-DFD vs. DFD-zu-Asset Beziehungen
+
+Dieses Dokument definiert **DFD-Element → Asset Beziehungen**. Daneben existieren **DFD-zu-DFD Beziehungen** implizit im Datenflussdiagramm:
+
+```
+DFD-zu-DFD (im DFD selbst):
+- Process "Login" → liest aus → Data Store "User DB"
+- External Entity "User" → sendet Daten an → Process "API Gateway"
+- Process "Service A" → kommuniziert mit → Process "Service B"
+
+DFD-zu-Asset (in TARAflow definiert):
+- Process "Login" → reads → Data Asset "User Credentials"
+- Data Store "User DB" → is_an → Data Asset "User Credentials"
+```
+
+**Wichtig:** 
+- DFD-zu-DFD Beziehungen sind die **Grundlage** für Asset-Ableitungen
+- Die Transitivität nutzt DFD-zu-DFD Verbindungen + `is_an` Brücken
+- DFD-zu-DFD Beziehungen werden durch das DFD-Zeichentool (draw.io) erfasst
+
+### Asset-zu-Asset Beziehungen (Dokumentationszweck)
+
+**Regel:** Grundsätzlich beschreiben die Beziehungen **DFD-Element → Asset**.
+
+**Ausnahme:** Für Dokumentationszwecke können Asset-zu-Asset Beziehungen existieren:
+
+```typescript
+// Erlaubt als Dokumentationsbeziehung (nicht aktive Wirkung):
+
+// 1. belongs_to - Dateneigentum/Zugehörigkeit
+Data Asset "Medical Records" → belongs_to → Human Asset "Patients"
+Data Asset "Payment Info" → belongs_to → Human Asset "Customers"
+
+// 2. contains - Hierarchische Strukturen
+Data Asset "Complete Patient File" → contains → Data Asset "Lab Results"
+Data Asset "Complete Patient File" → contains → Data Asset "Diagnoses"
+System Asset "Kubernetes Cluster" → contains → System Asset "Worker Nodes"
+
+// 3. depends_on - Architektur-Abhängigkeiten auf Asset-Ebene
+Data Asset "Monthly Sales Report" → depends_on → Data Asset "Daily Transaction Logs"
+System Asset "Frontend Architecture" → depends_on → System Asset "API Gateway"
+Process Asset "Order Fulfillment" → depends_on → Process Asset "Inventory Check"
+
+// Diese Beziehungen:
+// ✓ dokumentieren Dateneigentum/Zugehörigkeit
+// ✓ unterstützen Compliance (DSGVO: welche Daten betreffen welche Personen?)
+// ✗ sind KEINE aktiven Wirkungsbeziehungen
+// ✗ werden NICHT für STRIDE-Analyse verwendet
+```
+
+**Verwendung:**
+**`belongs_to`:**
+- Automatische Generierung von Datenschutz-Reports
+- DSGVO-Compliance: "Zeige alle Data Assets die Patienten betreffen"
+- Impact-Analyse: "Wenn dieses Data Asset kompromittiert wird, welche Human Assets sind betroffen?"
+
+**`contains`:**
+- Dokumentation von Asset-Hierarchien und Strukturen
+- Visualisierung komplexer System-Architekturen
+- Vollständigkeitsprüfung: "Sind alle Teile des Systems modelliert?"
+
+**`depends_on`:**
+- Architektur-Dokumentation auf logischer Ebene
+- Unterschied zu DFD-Ebene `depends_on`: Dies ist konzeptionelle Abhängigkeit, nicht Laufzeit-Abhängigkeit
+- Beispiel: "Payment Processing Workflow" (Asset) hängt konzeptionell von "Fraud Detection Workflow" (Asset) ab, 
+  auch wenn konkrete Prozesse im DFD die Runtime-Abhängigkeit modellieren
+
+**Wichtig:** Diese Beziehungen sind **separat** von den DFD-Element → Asset Beziehungen zu speichern und zu verwalten.
+
+### Threat-Entstehung durch Transitivität
+
+Bedrohungen für Assets entstehen oft nicht direkt, sondern durch Ketten:
+
+```
+Beispiel: Wie ein Patient exponiert wird
+
+[Aktive Bedrohung]
+External Entity "Hacker"
+└─ kompromittiert → Process "Web Server"
+
+[Transitive Kette]
+Process "Web Server" (kompromittiert)
+└─ reads → Data Store "Patient DB"
+           └─ is_an → Data Asset "Medical Records"
+                     └─ [dokumentiert] belongs_to → Human Asset "Patients"
+
+[Resultierende Bedrohung]
+→ Human Asset "Patients" wird durch kompromittierten Web Server exponiert
+  (Information Disclosure via compromised process)
+```
+
+Die `belongs_to` Dokumentationsbeziehung hilft, die **finale Impact-Analyse** zu komplettieren, ist aber keine aktive Wirkung des Data Stores.
+
+---
+
+## Asset Impact Bewertung - Safety Override Rule
+
+### Das Problem mit Durchschnittswerten
+
+Bei der Bewertung von Asset Impact könnte ein einfacher Mittelwert aus Physical und Business Factors ein hohes physisches Risiko durch niedrige Business-Auswirkungen "schönrechnen":
+```
+❌ FALSCH (Durchschnitt):
+Asset "Emergency Stop Button"
+├─ Physical Factor: Fatality (10/10)
+├─ Business Factor: Low (2/10) - günstige Komponente
+└─ Average Impact: Medium (6/10)
+
+→ Kritisches Safety-Asset wird unterschätzt!
+```
+
+**Grundprinzip (EN 50742, ISO 12100):**
+> Ein Menschenleben ist nicht mit Stillstandskosten verrechenbar.
+
+### Safety-Override-Regel
+
+**Regel:**  
+Wenn ein Asset einen Physical Factor >= "Schwere Verletzung" hat:
+```
+IF safetyImpact ∈ { 'fatality', 'irreversible_injury' }
+   AND relevance === 'direct'
+THEN aggregatedCriticality := CRITICAL
+     strideDepth            := 'vertieft'
+     riskPriority           := 1
+
+IF safetyImpact ∈ { 'fatality', 'irreversible_injury' }
+   AND relevance === 'indirect'
+THEN aggregatedCriticality := MAX(businessImpact, HIGH+)
+     strideDepth            := 'fokussiert'
+     riskPriority           := 2
+
+Begründung:
+  Severity ist eine Eigenschaft des Schadens – nicht des Assets.
+  Ein Asset das fatality nur systemisch beeinflusst (indirect) hat keinen
+  unmittelbaren Steuerungseinfluss. Die Override-Re
+```
+
+**Unabhängig von** Business Factors, Reputation Factors, oder anderen Kategorien.
+
+### Aggregationsmatrix
+
+Die Matrix zeigt wie Business Impact und Safety Impact gemeinsam zur
+aggregierten Asset-Kritikalität führen. `relevance` wirkt als Dämpfung:
+nur bei direkter Steuerungsverantwortung greift der volle Override.
+
+| Business Impact | Safety Impact | relevance | Aggregiert |
+|---|---|---|---|
+| beliebig | HIGH (fatality / irreversible_injury) | direct | **CRITICAL** |
+| beliebig | HIGH (fatality / irreversible_injury) | indirect | **HIGH+** |
+| CRITICAL | – oder MED | – | **CRITICAL** |
+| HIGH | MED (indirect, Hop 1) | – | **HIGH** |
+| HIGH | – | – | **HIGH** |
+| MEDIUM | MED (indirect, Hop 1) | – | **MEDIUM+** |
+| MEDIUM | – | – | **MEDIUM** |
+| LOW | MED (indirect, Hop 1) | – | **MEDIUM** |
+| LOW | – | – | **LOW** |
+
+> **Hinweis zu HIGH+/MEDIUM+:** Diese Zwischenwerte bedeuten "oberes Ende der Stufe"
+> und können durch hohe Likelihood in der Risk-Tabelle zu CRITICAL/HIGH eskalieren.
+> Die finale Risikoeinstufung ergibt sich aus Impact × Likelihood – nicht aus dem
+> aggregierten Kritikalitätswert allein.
+
+---
+
+## Business & Physical Impact Faktoren – Anwendbarkeit nach Asset-Kategorie
+
+Legende: ✅ geeignet · ⚠️ bedingt geeignet · ➖ nicht anwendbar
+
+| Faktor | Data | Function | System | Infra | Physical | Process | Service | Human |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Financial Damage** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ➖ |
+| **Regulatory / Compliance** | ✅ | ✅ | ✅ | ✅ | ⚠️ | ✅ | ✅ | ⚠️ |
+| **Reputation / Brand** | ✅ | ⚠️ | ✅ | ⚠️ | ➖ | ⚠️ | ✅ | ➖ |
+| **Privacy / Data Protection** | ✅ | ⚠️ | ⚠️ | ➖ | ➖ | ⚠️ | ✅ | ✅ |
+| **Operational Impact** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
+| **Affected Users / Systems** | ✅ | ✅ | ✅ | ✅ | ⚠️ | ✅ | ✅ | ➖ |
+| **Recoverability** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ➖ |
+| **Safety Impact** | ⚠️ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ⚠️ | ✅ |
+| **Physical Asset Damage** | ➖ | ➖ | ✅ | ✅ | ✅ | ➖ | ➖ | ➖ |
+| **Environmental Impact** | ➖ | ➖ | ⚠️ | ✅ | ✅ | ⚠️ | ➖ | ➖ |
+| **Supply Chain / Logistics** | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ⚠️ | ➖ |
+
+> **Erläuterungen zu ⚠️-Einträgen:**
+> - **Safety Impact auf Data** – nur wenn das Asset direkt safety-kritische Prozesse konfiguriert (z.B. NC-Programme, Safety-Parameter)
+> - **Safety Impact auf Function / Service** – nur wenn `isSafetyCritical: true` gesetzt ist
+> - **Regulatory auf Physical / Human** – nur bei DSGVO-relevanten Personendaten oder regulierten physischen Gütern
+> - **Privacy auf Process / Function** – nur wenn personenbezogene Daten verarbeitet werden
+> - **Supply Chain auf Data / Service** – nur wenn das Asset direkt Lieferkettenprozesse steuert (z.B. Auftragsdaten, ERP-Schnittstellen)
+
+> **Hinweis für TARAflow:** Die projektweite Auswahl von 5–6 Faktoren gilt global für alle Assets.
+> ⚠️-Felder sind kontextabhängig – der Analyst entscheidet pro Asset ob der Faktor anwendbar ist.
+> ➖-Felder werden in der UI automatisch ausgeblendet.
+
+---
+
+### Implementierung
+```typescript
+interface AssetImpact {
+  physicalFactors: {
+    injury: 'none' | 'reversible' | 'irreversible' | 'fatality';
+    score: number;  // 0-10
+  };
+  businessFactors: {
+    financialLoss: number;
+    downtime: number;
+    score: number;  // 0-10
+  };
+  // ... weitere Faktoren
+}
+
+function calculateFinalImpact(impact: AssetImpact): ImpactLevel {
+  // Safety Override Check
+  if (impact.physicalFactors.injury === 'fatality') {
+    return 'CRITICAL';
+  }
+  
+  if (impact.physicalFactors.injury === 'irreversible') {
+    return 'HIGH';
+  }
+  
+  if (impact.physicalFactors.injury === 'reversible' && 
+      impact.physicalFactors.score >= 7) {
+    return 'HIGH';
+  }
+  
+  // Nur wenn kein Safety-Impact: Normale Berechnung
+  return calculateWeightedAverage(impact);
+}
+```
+
+### Gewichtete Faktoren (Alternative zum Override)
+
+Wenn du eine nuanciertere Bewertung brauchst (z.B. für regulatorische Dokumentation), können Physical Factors höher gewichtet werden:
+```typescript
+function calculateWeightedImpact(impact: AssetImpact): number {
+  const weights = {
+    physical: 2.0,   // Doppeltes Gewicht
+    business: 1.0,
+    reputation: 1.0,
+    compliance: 1.5
+  };
+  
+  return (
+    impact.physicalFactors.score * weights.physical +
+    impact.businessFactors.score * weights.business +
+    // ... weitere Faktoren
+  ) / (weights.physical + weights.business + ...);
+}
+```
+
+**Aber:** Für Safety-kritische Assets (fatality/irreversible injury) bleibt die **Override-Regel** aktiv.
+
+### Beispiele
+
+#### Beispiel 1: Safety-kritisches Asset
+```
+Asset "Robot Control Logic"
+├─ Physical Factor: Fatality (10/10)
+│  └─ Rationale: "Malfunction can cause uncontrolled robot movement"
+├─ Business Factor: Medium (5/10)
+│  └─ Rationale: "Production downtime ~4 hours"
+├─ Reputation Factor: High (8/10)
+│
+└─ Final Impact: CRITICAL
+   └─ Grund: Safety Override (Physical = Fatality)
+```
+
+**Konsequenzen:**
+- Höchste Priorität in Threat-Analyse
+- Strikte Anforderungen an Mitigations (z.B. Multi-Faktor-Authentifizierung)
+- Explizite Dokumentation in Safety-Kapitel
+- Audit-Trail für alle Änderungen
+
+#### Beispiel 2: Business-kritisches Asset (ohne Safety)
+```
+Asset "Customer Database"
+├─ Physical Factor: None (0/10)
+├─ Business Factor: Very High (9/10)
+│  └─ Rationale: "Contains all customer orders and contracts"
+├─ Reputation Factor: Very High (10/10)
+│
+└─ Final Impact: HIGH
+   └─ Grund: Weighted Average (kein Safety Override)
+```
+
+**Konsequenzen:**
+- Hohe Priorität, aber nicht CRITICAL
+- Standard Security-Maßnahmen ausreichend
+- Normale Dokumentation
+
+#### Beispiel 3: Mixed Impact
+```
+Asset "Machine Calibration Data"
+├─ Physical Factor: Irreversible Injury (8/10)
+│  └─ Rationale: "Incorrect calibration → collision risk"
+├─ Business Factor: Low (3/10)
+│  └─ Rationale: "Easy to recalibrate"
+├─ Compliance Factor: Medium (5/10)
+│
+└─ Final Impact: HIGH
+   └─ Grund: Safety Override (Physical = Irreversible Injury)
+```
+
+### Safety-Asset Flag
+
+Für explizite Kennzeichnung können Assets ein `is_safety_related` Flag erhalten:
+```typescript
+interface Asset {
+  id: string;
+  name: string;
+  group: AssetGroup;
+  
+  // Safety-spezifisch
+  isSafetyRelated?: boolean;  // Explizites Flag
+  safetyImpact?: 'reversible_injury' | 'irreversible_injury' | 'fatality';
+}
+```
+
+**Wenn gesetzt:**
+- Automatische Priorisierung aller Beziehungen zu diesem Asset
+- Speziell `modifies` und `deletes` Beziehungen erhalten höchste Priorität
+- Tool zeigt deutliche Warnungen bei Änderungen
+- Audit-Logging wird aktiviert
+
+### Dokumentationsgewinn (EN 50742 / MVO 2027)
+
+Die Safety Override Rule ermöglicht automatische Generierung von:
+
+**Für den Integrator:**
+> *"This asset has been identified as safety-critical. Any `modify` relationship to this asset requires hardened authentication according to Machinery Regulation (EU) 2023/1230."*
+
+**Für den Auditor:**
+> *"The manufacturer has implemented a systematic approach to prioritize safety-critical assets. Physical impact to human life takes precedence over business impact in the risk assessment."*
+
+**Für die Compliance-Dokumentation:**
+> *"Asset risk prioritization follows the principle that human safety is not negotiable against economic factors (ISO 12100, Clause 5.2)."*
+
+### Zusammenfassung
+
+| Kriterium | Ohne Safety Override | Mit Safety Override |
+|-----------|---------------------|---------------------|
+| **Bewertungsmethode** | Durchschnitt aller Faktoren | Physical Impact dominiert |
+| **Ergebnis bei Fatality** | Kann "Medium" werden | Immer CRITICAL |
+| **Normkonformität** | Fragwürdig | ISO 12100 / EN 50742 konform |
+| **Auditor-Akzeptanz** | Niedrig | Hoch |
+| **Implementierung** | Einfach (avg) | IF-Statement (trivial) |
+
+**Klare Empfehlung:** Safety Override Rule implementieren.
+
+---
+
+## Validierungsregeln und Edge Cases
+
+### Regel 1: `is_an` nur für repräsentative Elemente
+
+**Problem:**  
+Ein Process kann versehentlich mit `is_an` zu einem System Asset verknüpft werden, obwohl er eigentlich nur darauf läuft oder davon abhängt.
+
+**Beispiel des Problems:**
+```
+❌ FALSCH:
+Process "Web Application" → is_an → System Asset "Application Server"
+(Ein Process IST KEIN Server, er läuft darauf!)
+
+✓ RICHTIG:
+External Entity "App Server Instance" → is_an → System Asset "Application Server"
+Process "Web Application" → uses [api] → System Asset "Application Server"
+Process "Web Application" → depends_on → System Asset "Application Server"
+```
+
+**Validierungsregel:**
+
+```typescript
+function validateIsAnRelation(
+  dfdElement: DFDElement, 
+  asset: Asset
+): ValidationResult {
+  
+  // System Assets: nur External Entities oder Data Stores dürfen is_an sein
+  if (asset.group === 'system') {
+    if (dfdElement.type !== 'external_entity' && dfdElement.type !== 'data_store') {
+      return {
+        valid: false,
+        error: 'Processes können System Assets nur nutzen (uses/depends_on), nicht repräsentieren (is_an)'
+      };
+    }
+  }
+  
+  // Data Assets: nur Data Stores dürfen is_an sein
+  if (asset.group === 'data') {
+    if (dfdElement.type !== 'data_store') {
+      return {
+        valid: false,
+        error: 'Nur Data Stores können Data Assets repräsentieren (is_an)'
+      };
+    }
+  }
+  
+  // Process Assets: nur Processes dürfen is_an sein
+  if (asset.group === 'process') {
+    if (dfdElement.type !== 'process') {
+      return {
+        valid: false,
+        error: 'Nur Processes können Process Assets repräsentieren (is_an)'
+      };
+    }
+  }
+  
+  // Human Assets: nur External Entities dürfen is_an sein
+  if (asset.group === 'human') {
+    if (dfdElement.type !== 'external_entity') {
+      return {
+        valid: false,
+        error: 'Nur External Entities können Human Assets repräsentieren (is_an)'
+      };
+    }
+  }
+  
+  return { valid: true };
+}
+```
+
+
+
+### Regel 2: `is_an` ist exklusiv
+
+```typescript
+function validateExclusiveIsAn(
+  relations: AssetRelation[], 
+  dfdElementId: string,
+  assetId: string
+): ValidationResult {
+  const relationsToAsset = relations.filter(r => 
+    r.dfdElementId === dfdElementId && 
+    r.assetId === assetId
+  );
+  
+  const hasIsAn = relationsToAsset.some(r => r.relationType === 'is_an');
+  const hasOthers = relationsToAsset.some(r => r.relationType !== 'is_an');
+  
+  if (hasIsAn && hasOthers) {
+    return {
+      valid: false,
+      error: 'is_an darf nicht mit anderen Beziehungen kombiniert werden'
+    };
+  }
+  
+  return { valid: true };
+}
+```
+
+### Regel 3: System `uses` benötigt Qualifier
+
+```typescript
+function validateSystemUsesQualifier(
+  relation: AssetRelation
+): ValidationResult {
+  if (relation.assetGroup === 'system' && 
+      relation.relationType === 'uses' &&
+      !relation.qualifier) {
+    return {
+      valid: false,
+      error: 'uses-Beziehung zu System Asset benötigt Qualifier (api/network/hardware/library)'
+    };
+  }
+  
+  return { valid: true };
+}
+```
+
+### Regel 4: Data Flows nur mit `transports` und `is_an`
+
+```typescript
+function validateDataFlowRelations(
+  dfdElement: DFDElement,
+  relation: AssetRelation
+): ValidationResult {
+  if (dfdElement.type === 'data_flow') {
+    const allowedTypes = ['transports', 'is_an'];
+    
+    if (!allowedTypes.includes(relation.relationType)) {
+      return {
+        valid: false,
+        error: `Data Flows können nur 'transports' oder 'is_an' Beziehungen haben, nicht '${relation.relationType}'`
+      };
+    }
+  }
+  
+  return { valid: true };
+}
+```
+
+### Regel 5: Mindestens ein Asset bei Data Flows
+
+```typescript
+function validateDataFlowCompleteness(
+  dfdElement: DFDElement,
+  relations: AssetRelation[]
+): ValidationResult {
+  if (dfdElement.type === 'data_flow') {
+    const hasTransports = relations.some(r => 
+      r.dfdElementId === dfdElement.id && 
+      r.relationType === 'transports'
+    );
+    
+    if (!hasTransports) {
+      return {
+        valid: false,
+        warning: true,
+        error: 'Data Flow hat keine transports-Beziehung. Threat-Analyse nicht möglich.'
+      };
+    }
+  }
+  
+  return { valid: true };
+}
+```
+
+### UI-Integration der Validierungsregeln
+
+**Bei Beziehungs-Erstellung:**
+```
+User versucht: Process "API" → is_an → System Asset "Server"
+                                        ↓
+UI blockiert: ❌ "Processes können System Assets nur nutzen oder 
+                  von ihnen abhängen, nicht repräsentieren.
+                  
+                  Meinten Sie:
+                  ○ uses [network] → System Asset 'Server'
+                  ○ depends_on → System Asset 'Server'"
+```
+
+**Bei Flow-Erstellung ohne Assets:**
+```
+User erstellt: Data Flow "API Response"
+                                        ↓
+UI warnt: ⚠️ "Dieser Flow transportiert noch keine Assets.
+              Bedrohungsanalyse nicht möglich.
+              
+              [Assets zuweisen]"
+```
+
+**Bei Konflikt:**
+```
+User versucht: Process "Login" → is_an → Data Asset "User"
+               (hat bereits): Process "Login" → reads → Data Asset "User"
+                                        ↓
+UI blockiert: ❌ "is_an kann nicht mit anderen Beziehungen kombiniert werden.
+                  
+                  Optionen:
+                  • is_an entfernen und nur 'reads' behalten
+                  • 'reads' entfernen und is_an setzen"
+```
+
+---
+
+## Besondere Szenarien
+
+### Doppelte Rolle (Akteur & Schutzobjekt)
+
+Eine Person kann gleichzeitig Akteur und Schutzobjekt sein:
+
+```
+Human Asset "Machine Operator"
+├─ External Entity "Operator" → is_an
+│  └─ [triggert: abgeleitete Beziehungen für alle Prozesse die auf Entity zugreifen]
+│
+├─ Process "CNC Control" → affects_safety
+│  └─ Kontext: Direkte physische Steuerung der Maschine - bei Fehlfunktion Verletzungsgefahr
+│
+└─ Process "Logging Service" → affects_privacy
+   └─ Scope: {tracking_data, location, work_hours}
+   
+[Dokumentationsbeziehung]
+Data Asset "Operator Logs"
+└─ belongs_to → Human Asset "Machine Operator"
+   (für DSGVO-Compliance)
+```
+
+### System-Hierarchien mit Qualifiern
+
+Bei verteilten Systemen können Beziehungen auf verschiedenen Ebenen bestehen:
+
+```
+System Asset "Production Environment"
+├─ External Entity "Cloud Platform" → is_an
+│
+├─ Process "Deployment Pipeline" → configures
+│
+├─ Process "API Gateway" → uses [network]
+│  └─ Threat: Man-in-the-Middle auf Prod-Umgebung
+│
+└─ Process "Frontend App" → depends_on
+   └─ Threat: Cascading failure wenn Prod-Umgebung ausfällt
+```
+
+### Transitivität mit Data Flows
+
+Komplette Kette von DFD-Element über Flow zu Asset:
+
+```
+[Explizite Beziehungen]
+Process "Login Service"
+├─ creates → Data Asset "Session Token"
+└─ reads → Data Store "User DB"
+
+Data Store "User DB"
+└─ is_an → Data Asset "User Credentials"
+
+Data Flow "Login Response"
+├─ transports → Data Asset "Session Token" (explizit bestätigt)
+└─ transports → Data Asset "User Profile"  (explizit bestätigt)
+
+
+[Abgeleitete Beziehungen]
+Process "Login Service"
+└─ 🪄 reads → Data Asset "User Credentials"
+   ├─ Status: Pending
+   ├─ Abgeleitet von: Data Store "User DB" (is_an)
+   └─ Action: [✅ Übernehmen mit Scope: {user_id, password_hash}]
+
+
+[Threat-Analyse Resultat]
+Data Flow "Login Response":
+- Tampering auf "Session Token" → Session Hijacking
+- Information Disclosure auf "User Profile" → Privacy Violation
+- [NICHT analysiert]: "User Credentials" (wird nicht transportiert!)
+
+Process "Login Service":
+- Information Disclosure auf "User Credentials" [abgeleitet, bestätigt]
+  → Threat: Credential Leakage through Process Memory
+```
+### Hierarchische Asset-Strukturen mit `contains`
+
+Komplexe Systeme können durch Asset-Hierarchien dokumentiert werden:
+
+```txt
+[Asset-zu-Asset Hierarchie]
+System Asset "E-Commerce Platform"
+├─ contains → System Asset "Web Frontend"
+├─ contains → System Asset "API Gateway"
+├─ contains → System Asset "Payment Service"
+└─ contains → System Asset "Database Cluster"
+
+Data Asset "Complete Order Record"
+├─ contains → Data Asset "Customer Data"
+├─ contains → Data Asset "Payment Information"
+├─ contains → Data Asset "Shipping Details"
+└─ contains → Data Asset "Order Items"
+
+[DFD-zu-Asset Beziehungen bleiben unabhängig davon]
+Process "Checkout Service"
+├─ creates → Data Asset "Complete Order Record"
+└─ reads → Data Asset "Customer Data"
+
+[Impact-Analyse nutzt beide]
+Bei Kompromittierung von "Complete Order Record":
+→ Alle enthaltenen Assets (via contains) sind potenziell betroffen
+→ Alle Human Assets (via belongs_to der Unter-Assets) sind exponiert
+```
+
+## Der TARAflow-Vorteil: Durchgängige Bedrohungsketten
+
+Das Modell erlaubt den Aufbau einer vollständig automatisierten
+Bedrohungsanalyse-Engine, die durchgängige Ketten von der
+Angriffsfläche bis zum Schadensziel berechnet.
+
+Eine typische Bedrohungskette kann dabei:
+
+- beim **Angriffsvektor** beginnen  
+  (z.B. `uses [API]`, `uses [Network Interface]`)
+- über **Kommunikations- und Abhängigkeitsbeziehungen** verlaufen  
+  (z.B. `transports [source_to_target]`, `depends_on`)
+- und am **Schadensziel** enden  
+  (z.B. `affects_safety`, `affects_privacy`, `exposes`)
+
+Durch die klare Trennung von **Likelihood-bezogenen Beziehungen**
+(`uses`, `transports`) und **Impact-bezogenen Beziehungen**
+(`depends_on`, `affects_*`) lassen sich Bedrohungspfade
+rein graphbasiert und ohne heuristische Annahmen ableiten.
+
+Dies ermöglicht eine nachvollziehbare, reproduzierbare und
+skalierbare TARA, bei der jede Bedrohung auf einer expliziten
+Beziehungskette beruht.
+
+## Nächste Entwicklungsschritte (Roadmap)
+
+Das Modell ist bewusst so gestaltet, dass es schrittweise von einer
+assistierten Gefahreneinschätzung zu einer vollständig
+graphbasierten, deterministischen Bedrohungsanalyse weiterentwickelt
+werden kann. Die folgenden Phasen beschreiben diese Entwicklung.
+
+### Phase 1: Modellierung & Assistierte STRIDE-Analyse mit Safety-Annotation
+
+In der ersten Phase liegt der Fokus auf der strukturierten Erfassung
+des Systems, einer assistierten STRIDE-Bedrohungsanalyse und der
+**optionalen** Annotation von Safety-relevanten Aspekten.
+
+**Umfang:**
+
+**1. DFD-Modellierung**
+- Erstellung von DFDs (Processes, Data Stores, External Entities, Data Flows)
+- Manuelle Definition von Beziehungen zwischen DFD-Elementen und Assets
+- Optionale Markierung von safety-relevanten Elementen
+
+**2. Assistierte STRIDE-Analyse**
+- **Automatische Threat-Generierung** basierend auf:
+  - STRIDE per Element (z.B. Process → Tampering, Elevation of Privilege)
+  - STRIDE per Interaction (z.B. Data Flow → Tampering, Information Disclosure)
+- **Manuelle Kontrolle:**
+  - Security Engineer kann generierte Threats übernehmen, ablehnen oder ignorieren
+  - Eigene Threats können manuell hinzugefügt werden
+  - Bewertung, Priorisierung und Mitigations erfolgen manuell
+
+**3. Safety-Annotation (Optional)**
+- **Safety Annotation Layer** kann aktiviert werden für:
+  - DFD-Elemente (Processes, Data Stores, Interfaces, External Entities)
+  - Asset-Beziehungen
+  - Data Flows
+- **Properties auf der SafetyAnnotation (Asset-Relation-Ebene):**
+  - `relevance: "none" | "indirect" | "direct"`
+  - `impact: "none" | "reversible_injury" | "irreversible_injury" | "fatality"`
+  - `physicalHazardPotential: "low" | "medium" | "high"` ← an der Relation, nicht am Element
+  - `protectionTarget: boolean` ← nur bei Human Assets
+  - `affectedSafetyFunctions: FunctionAssetId[]` // ['<uuid-of-function-asset>']
+  - `rationale: string`
+- **Abgeleitete Felder auf AssetProperties (Strict Default, Override möglich):**
+  - `physicalImpact` — aggregiert aus `safety.impact` aller Asset-Relationen des Elements
+  - `securityGoals: SecurityGoal[]` — pro CIANAAA-Dimension ein Eintrag mit:
+    - `level: CIANAAALevel` (`none | low | medium | high | critical`) — Schutzbedarfsstufe
+    - `source: "suggested" | "manual"` — Herkunft des Levels
+    - `formalDescription: string` — Verbindliche Schutzanforderung (Audit-relevant)
+    - `rationale?: string` — Pflicht bei `source === "manual"` (IEC 62443-4-1)
+    - Abgeleitet via: BASE_RULES[assetGroup:relationType] → Cause Mechanism × Impact → CIANAAALevel
+- **Derived/Manual Pattern:**
+  ```
+  Jedes abgeleitete Feld hat ein Herkunfts-Attribut:
+    *Source:    "derived" (default) | "manual"
+    *Rationale: string (Pflicht wenn source === "manual")
+
+  Beispiel:
+    physicalImpactSource:    "manual"
+    physicalImpactRationale: "Assessed directly, SafetyAnnotation pending"
+
+  Im Audit-Report:
+    source === "derived" → keine Dokumentationspflicht
+    source === "manual"  → Rationale wird verbatim dokumentiert (IEC 62443-4-1)
+  ```
+- **Zweck:**
+  - Markierung safety-kritischer Elemente
+  - Priorisierung von Threats mit Safety-Impact
+  - Automatische Dokumentations-Generierung für EN 50742 / MVO 2027
+
+**4. Manuelle Bewertung & Priorisierung**
+- Qualitative Threat-Bewertung (High/Medium/Low)
+- **Safety Override Rule:**
+  - Assets mit Physical Impact "Fatality" oder "Irreversible Injury" erhalten automatisch höchste Priorität
+  - Ein Menschenleben ist nicht mit Business Impact verrechenbar (ISO 12100)
+- **High-Value Override Rule:**
+  - Infrastructure Assets mit `isHighValueAsset === true` und `assetDestructionImpact === "critical"`
+    erhalten automatisch höchste Priorität
+  - Strategisch unersetzliche Assets sind nicht mit normalem Restrisiko verrechenbar
+- Unvollständige Modellierung ist zulässig (schnelle erste Einschätzung)
+- Implizite Annahmen werden explizit dokumentiert
+
+**Ziel:**
+- Aufbau eines konsistenten Grundgraphen (DFD + Assets + Beziehungen)
+- Erste Threat-Identifikation nach bewährter STRIDE-Methodik
+- **Optional:** Safety-Aspekte dokumentieren ohne formale Safety-Analyse
+- Identifikation fehlender oder unklarer Beziehungen
+- Unterstützung des Modellierungsprozesses, nicht dessen Automatisierung
+
+**Was Phase 1 NICHT ist:**
+- ❌ Keine vollständig automatische Threat-Ableitung (das kommt in Phase 3)
+- ❌ Keine formale Safety-Analyse (FMEA, FTA)
+- ❌ Keine SRSL-Berechnung oder ISO 13849 Performance Level
+- ❌ Keine deterministischen Attack Trees (das kommt in Phase 3)
+
+**Was Phase 1 IST:**
+- ✅ Klassisches STRIDE Threat Modeling mit Tool-Unterstützung
+- ✅ Optional: Safety-Kontext für spätere Compliance-Dokumentation
+- ✅ Flexibilität für iterative Verfeinerung
+- ✅ Pragmatischer Einstieg ohne Methodenzwang
+
+**Safety-Integration in Phase 1:**
+
+Die Safety-Annotation in Phase 1 ist bewusst **optional und nicht-invasiv**:
+
+- **Für nicht-safety-relevante Systeme:** Kann komplett ignoriert werden
+- **Für safety-relevante Systeme:** Ermöglicht frühe Dokumentation ohne Methodenzwang
+- **Kein separates Safety-Modell:** Safety ist eine zusätzliche Eigenschaft der Security-Analyse
+- **Dokumentations-Vorbereitung:** Safety-Annotationen fließen später in EN 50742 / MVO 2027 Berichte ein
+
+**Typischer Workflow mit Safety:**
+```
+1. DFD modellieren (wie gewohnt)
+2. Safety-kritische Elemente markieren (z.B. "Safety PLC", "Emergency Stop")
+3. STRIDE-Threats generieren lassen (automatisch)
+4. Threats mit Safety-Impact werden automatisch priorisiert
+5. Manuelle Review & Verfeinerung
+6. Export → Safety-Kapitel in Dokumentation wird automatisch generiert
+```
+
+**Dokumentationsgewinn:**
+- Automatische Generierung: *"The following system elements have been identified as safety-relevant..."*
+- Automatische Generierung: *"Threats with potential safety impact have been prioritized according to ISO 12100."*
+- Kein manueller Mehraufwand, maximaler Compliance-Effekt
+
+---
+
+### Phase 2: Regelbasierte Vervollständigung & Ableitungen
+
+In der zweiten Phase wird der Graph durch formale Regeln ergänzt und
+teilweise automatisiert vervollständigt.
+
+**Umfang:**
+
+- Aktivierung von `is_an`-basierten Ableitungen
+- Transitive Ableitung semantisch geeigneter Beziehungen
+- Aktivierung der **Transitiven Ableitung** (z. B. Prozess erbt Beziehungen vom Data Store via `is_an`).
+- **Validierungs-Engine:**  Validierungsregeln zur Erkennung von:
+  - unvollständigen Knoten
+  - unzulässigen Beziehungstypen
+  - semantisch widersprüchlichen Modellierungen
+- **Explainability:** Jede automatische Ableitung wird für den User begründet (z. B. *"Abgeleitet von Asset X via Relation Y"*).
+- Erste automatische Ableitung potenzieller Bedrohungspfade
+  (read-only, erklärbar)
+
+**Ziel:**
+
+- Reduktion manueller Modellierungsfehler
+- Konsistente, regelbasierte Erweiterung des Graphen
+- Vorbereitung einer vollständig deterministischen Analyse
+- Reduktion von Nutzerfehlern und Steigerung der Datenqualität ohne manuellen Mehraufwand.
+
+**Safety-Integration in Phase 2:**
+- Transitive Ableitung respektiert Safety-Annotationen
+- Abgeleitete Beziehungen zu safety-relevanten Assets werden höher priorisiert
+- Validierungs-Engine warnt bei fehlenden Safety-Annotationen für kritische Beziehungen
+
+---
+
+### Phase 3: Deterministische Bedrohungsableitung
+
+In der dritten Phase erfolgt die vollständige Nutzung des Graphen als
+Analysebasis für eine automatisierte und reproduzierbare TARA.
+
+**Umfang:**
+
+- Strikte Trennung von:
+  - Likelihood-bezogenen Beziehungen (z.B. `uses`, `transports`)
+  - Impact-bezogenen Beziehungen (z.B. `depends_on`, `affects_*`)
+- **Vollständige Pfadberechnung** von Angriffsvektoren bis zu Schadenszielen
+- Ausschließliche Nutzung expliziter und abgeleiteter Beziehungen
+  (keine heuristischen Annahmen)
+- Klare Kennzeichnung des Analysemodus (deterministisch)
+
+**Ziel:**
+
+- Reproduzierbare, nachvollziehbare Bedrohungsketten
+- Vollständig graphbasierte Bedrohungsanalyse
+- Minimierung subjektiver Bewertungen
+
+**Safety-Integration in Phase 3:**
+- Attack Tree Generierung nutzt CIANAAA-Mapping
+- External Entities als Threat Sources mit Feasibility-Katalog
+- F × B × I Scoring berücksichtigt Safety Impact automatisch
+- Safety-Override-Rule: Fatality/Irreversible Injury → höchste Priorität
+- Automatische Mitigations-Vorschläge für safety-kritische Branches
+- Vollständig EN 50742 / MVO 2027 konforme Dokumentation
+
+---
+
+### Phase 4: Analyseunterstützung & Governance (optional)
+
+Optional kann das Modell um Governance- und Analyseunterstützungsfunktionen
+erweitert werden.
+
+**Mögliche Erweiterungen:**
+
+- Priorisierung und Filterung von Bedrohungspfaden
+- Nachvollziehbare Dokumentation von Modellierungsentscheidungen
+- Unterstützung von Reviews, Audits und Normkonformität
+- Versionierung und Vergleich von Graphen
+
+**Ziel:**
+- Skalierbarkeit auf größere Systeme
+- Erhöhte Akzeptanz bei Reviewern und Auditoren
+- Nachhaltige Pflege des Modells über den Lebenszyklus
+
+---
+
+**Für Phase 1:**
+**Schritt 1:** Core Safety Types (Foundation)
+Zuerst die grundlegenden Safety-Interfaces definieren:
+
+- `SafetyAnnotation` interface (inkl. `physicalHazardPotential`)
+- `SafetyImpact` type
+- `ValueSource` type (`"derived" | "manual"`)
+- `ExternalEntityThreatProfile` interface
+
+**Schritt 2:** DFD-Element Properties erweitern
+Alle DFD-Element-Types mit Safety Properties (in `element-properties.ts`):
+
+- `ProcessProperties`
+- `DataStoreProperties`
+- `DataFlowProperties`
+- `InterfaceProperties`
+- `ExternalEntityProperties`
+
+**Schritt 3:** AssetProperties — Derived/Manual Pattern
+Abgeleitete Felder mit Herkunfts-Annotation (in `element-properties.ts`):
+
+- `physicalImpact` + `physicalImpactSource` + `physicalImpactRationale`
+- `securityGoals[].level` (CIANAAALevel) + `securityGoals[].source` + `securityGoals[].rationale`
+  — ersetzt die früheren Boolean-Flags (`nonRepudiationRelevant` etc.)
+  — abgeleitet via `asset-cianaaa-deriver.ts` (BASE_RULES × Impact-Ratings → CIANAAALevel)
+
+**Schritt 4:** Asset-Beziehungen erweitern
+
+- `BaseAssetRelation` mit `safety?: SafetyAnnotation`
+- `HumanRelation` mit `isProtectionTarget`
+- `DerivedAssetRelation` mit Safety-Vererbung
+
+**Schritt 5:** Validierungen & Helper
+
+- Safety-spezifische Validierungsfunktionen
+- Helper-Functions (`hasSafetyImpact`, `isSafetyCritical`, `aggregatePhysicalImpact`)
+- Derivation-Engine: `asset-cianaaa-deriver.ts`
+  - `BASE_RULES[assetGroup:relationType]` → applicable SecurityGoalTypes
+  - `CIANAAA_APPLICABLE[assetGroup]` → Kategoriefilter
+  - `CAUSE_MECHANISM_CRITERIA[mechanism]` → relevante Impact-Kriterien
+  - `MAX(impactRatings)` → `CIANAAALevel`
+  - Fallback: `computeMaxRatingLevel()` wenn keine spezifischen Kriterien bewertet
+  - `explainSuggestion()` → Derivations-Trace für UI-Transparenz (Audit Trail)
