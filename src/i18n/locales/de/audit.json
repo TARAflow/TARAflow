@@ -78,6 +78,14 @@
       "signFormat": "Signaturformat",
       "sshSigningKey": "Pfad zum SSH-Signierschlüssel",
       "browse": "Durchsuchen…",
+      "defaultRoundsHelp": "In deiner Sprache angezeigt; immer auf Englisch committet, damit die Trail sprachunabhängig bleibt.",
+      "committedAs": "committet als \"{{label}}\"",
+      "customRoundsHelp": "Ein Label in der Formulierung deiner Wahl. Es wird genau so angezeigt und committet, wie eingegeben — nie übersetzt.",
+      "customRoundPlaceholder": "Rundenname",
+      "signing": {
+        "section": "Commit-Signierung",
+        "help": "Audit-Commits kryptografisch signieren, damit ihre Echtheit verifiziert werden kann."
+      },
       "signers": {
         "title": "Autorisierte Signierer",
         "help": "Schlüssel, die Audit-Commits signieren dürfen (.tara/allowed_signers). Hinzufügen/Entfernen ist selbst ein signierter audit:-Commit.",

@@ -78,6 +78,14 @@
       "signFormat": "Signature format",
       "sshSigningKey": "SSH signing key path",
       "browse": "Browse…",
+      "defaultRoundsHelp": "Shown in your language; always committed in English so the trail stays language-independent.",
+      "committedAs": "committed as \"{{label}}\"",
+      "customRoundsHelp": "One label in the wording you choose. It is shown and committed exactly as typed — never translated.",
+      "customRoundPlaceholder": "Round name",
+      "signing": {
+        "section": "Commit Signing",
+        "help": "Sign audit commits cryptographically so their authenticity can be verified."
+      },
       "signers": {
         "title": "Authorized signers",
         "help": "Keys allowed to sign audit commits (.tara/allowed_signers). Adding or removing one is itself a signed audit: commit.",
