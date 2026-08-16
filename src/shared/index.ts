@@ -212,7 +212,7 @@ export {
   createAsset,
   generateAssetId,
 } from "./services/asset-creation";
- 
+
 // ==================== ASSET GROUP TYPES ====================
 // Single source of truth for AssetGroup and A2ARelationType.
 // Used by both dfd and assets features without cross-feature dependency.
@@ -233,3 +233,11 @@ export {
   flattenProjectTags,
   isProjectTags,
 } from "./models/project-tags";
+
+export {
+  getTagWarnings,
+  requiresHazardAnalysis,
+} from "./services/tag-validator";
+
+export { SafetyAnalysisToggle } from "./components/safety-analysis-toggle";
+export { ProjectTagsEditor } from "./components/project-tags-editor";

@@ -1,0 +1,242 @@
+/**
+ * EN 50742 Approach A — pure computation core.
+ *
+ * No TARAflow dependencies: factor score tables, the attack-potential formula,
+ * the SRSL lookup (Table B.6 + the confirmed `fatal` extension row), and the
+ * Clause 7.4.3 protection-requirement catalogue (SRSLProfile).
+ *
+ * Normative source: prEN 50742:2025 (E), Annex B + Clause 7.4.3. The `fatal`
+ * severity row is a TARAflow extension (see design doc §1.3). Requirement
+ * wording is condensed to implementation form; authoritative text is the norm.
+ */
+
+// ---------------------------------------------------------------------------
+// Factor scales (Annex B)
+// ---------------------------------------------------------------------------
+
+/** Exposure Level — per interface / connection. Table B.4. */
+export type ExposureLevel = "EL0" | "EL1" | "EL2" | "EL3" | "EL4";
+export const EXPOSURE_LEVEL_SCORE: Record<ExposureLevel, number> = {
+  EL0: 0, // Internal
+  EL1: 2, // Physical
+  EL2: 5, // Local
+  EL3: 16, // Adjacent
+  EL4: 24, // Public
+};
+
+/** Window of Opportunity — one value for the whole machinery. Table B.3. */
+export type WindowOfOpportunity =
+  | "very_restricted"
+  | "moderately_restricted"
+  | "limited"
+  | "unlimited";
+export const WINDOW_OF_OPPORTUNITY_MULTIPLIER: Record<WindowOfOpportunity, number> = {
+  very_restricted: 0.6,
+  moderately_restricted: 0.8,
+  limited: 0.9,
+  unlimited: 1.0,
+};
+
+/**
+ * Attacker Capability — per threat. Table B.2.
+ * NOTE inverted polarity: a lower-capability-sufficient attack scores HIGHER
+ * (basic = 4) and therefore yields a HIGHER attack potential.
+ */
+export type AttackerCapability =
+  | "advanced" // Extensive knowledge + Advanced skill
+  | "specialist" // Moderate knowledge + Specialist skill
+  | "medium" // Moderate knowledge + Medium-level skill
+  | "basic"; // Minimal knowledge + Basic skills
+export const ATTACKER_CAPABILITY_SCORE: Record<AttackerCapability, number> = {
+  advanced: 1,
+  specialist: 2,
+  medium: 3,
+  basic: 4,
+};
+
+// ---------------------------------------------------------------------------
+// Attack Potential — AP = (EL × WoO) + AC  (Annex B, line 592)
+// ---------------------------------------------------------------------------
+
+export type AttackPotentialBand = "AP0" | "AP1" | "AP2" | "AP3" | "AP4";
+
+export interface AttackPotentialInput {
+  exposureLevel: ExposureLevel; // per interface (higher-EL-wins across boundaries)
+  windowOfOpportunity: WindowOfOpportunity; // project-global
+  attackerCapability: AttackerCapability; // per threat
+}
+
+export interface AttackPotentialResult {
+  score: number; // raw AP, may be fractional (WoO is a multiplier)
+  band: AttackPotentialBand;
+}
+
+/**
+ * Precision rule: raw AP is rounded to one decimal place before banding, so
+ * boundary values land deterministically against the one-decimal Table B.5
+ * bands (5.0 vs 5.1, etc.). Matches the norm's worked example (5×0.8)+4 = 8.
+ */
+export function computeAttackPotential(input: AttackPotentialInput): AttackPotentialResult {
+  const el = EXPOSURE_LEVEL_SCORE[input.exposureLevel];
+  const woo = WINDOW_OF_OPPORTUNITY_MULTIPLIER[input.windowOfOpportunity];
+  const ac = ATTACKER_CAPABILITY_SCORE[input.attackerCapability];
+
+  const raw = el * woo + ac;
+  const score = Math.round(raw * 10) / 10;
+
+  return { score, band: bandForAttackPotential(score) };
+}
+
+/** Table B.5 — Attack potential score → band. */
+export function bandForAttackPotential(score: number): AttackPotentialBand {
+  if (score <= 5) return "AP0"; // 0 – 5
+  if (score <= 10) return "AP1"; // 5.1 – 10
+  if (score <= 15) return "AP2"; // 10.1 – 15
+  if (score <= 20) return "AP3"; // 15.1 – 20
+  return "AP4"; // > 20
+}
+
+// ---------------------------------------------------------------------------
+// SRSL determination — Table B.6 (+ confirmed `fatal` extension row)
+// ---------------------------------------------------------------------------
+
+export type Severity = "reversible" | "non_reversible" | "fatal";
+export type Srsl = "SRSL0" | "SRSL1" | "SRSL2" | "SRSL3";
+
+/**
+ * Table B.6 — SRSL as a literal lookup (AP band × severity). The first two rows
+ * are the norm; `fatal` is the confirmed TARAflow extension (never SRSL0;
+ * saturates SRSL3 one AP-band earlier than non_reversible).
+ */
+export const SRSL_LOOKUP: Record<Severity, Record<AttackPotentialBand, Srsl>> = {
+  reversible: { AP0: "SRSL0", AP1: "SRSL1", AP2: "SRSL1", AP3: "SRSL2", AP4: "SRSL3" },
+  non_reversible: { AP0: "SRSL0", AP1: "SRSL1", AP2: "SRSL2", AP3: "SRSL3", AP4: "SRSL3" },
+  fatal: { AP0: "SRSL1", AP1: "SRSL2", AP2: "SRSL3", AP3: "SRSL3", AP4: "SRSL3" },
+};
+
+export function determineSrsl(band: AttackPotentialBand, severity: Severity): Srsl {
+  return SRSL_LOOKUP[severity][band];
+}
+
+/** Convenience: full AP → SRSL pass for one (interface, threat, safety-function). */
+export function evaluateApproachA(
+  ap: AttackPotentialInput,
+  severity: Severity,
+): { attackPotential: AttackPotentialResult; srsl: Srsl } {
+  const attackPotential = computeAttackPotential(ap);
+  return { attackPotential, srsl: determineSrsl(attackPotential.band, severity) };
+}
+
+// ---------------------------------------------------------------------------
+// SRSLProfile — Clause 7.4.3 security protection requirements, tiered SRSL0–3
+// Condensed to implementation form; authoritative wording is the standard.
+// `null` = "None" for that tier.
+// ---------------------------------------------------------------------------
+
+export interface SrslRequirement {
+  clause: string;
+  category: string;
+  tiers: Record<Srsl, string | null>;
+}
+export type SrslProfile = SrslRequirement[];
+
+export const EN50742_SRSL_PROFILE: SrslProfile = [
+  {
+    clause: "7.4.3.2.1",
+    category: "Authentication",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Entities authenticated.",
+      SRSL2: "Entities authenticated.",
+      SRSL3: "Entities uniquely authenticated.",
+    },
+  },
+  {
+    clause: "7.4.3.3.1",
+    category: "Authorization enforcement",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Interventions require authorization.",
+      SRSL2: "Interventions require authorization.",
+      SRSL3: "Interventions require authorization with specific privileges (e.g. RBAC).",
+    },
+  },
+  {
+    clause: "7.4.3.4.1",
+    category: "Software and information integrity",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Integrity verified at startup (e.g. checksums).",
+      SRSL2: "Integrity verified at startup and periodically (e.g. checksums).",
+      SRSL3:
+        "Integrity cryptographically verified at startup and periodically (hashes, HMACs, CMACs).",
+    },
+  },
+  {
+    clause: "7.4.3.4.2",
+    category: "Integrity of boot process",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Boot integrity protected and verified at startup (e.g. checksums).",
+      SRSL2: "Boot integrity protected and verified at startup.",
+      SRSL3:
+        "Secure boot: crypto signature verification with trusted roots; rollback or safe state on failure.",
+    },
+  },
+  {
+    clause: "7.4.3.4.3",
+    category: "Information exchange integrity",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Integrity of exchanged information verified.",
+      SRSL2: "Integrity of exchanged information verified.",
+      SRSL3:
+        "Guaranteed by secure cryptographic protocols that detect and reject modified/replayed messages.",
+    },
+  },
+  {
+    clause: "7.4.3.4.4",
+    category: "Input data validation",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Validate against defined boundaries; reject invalid.",
+      SRSL2: "Validate rigorously (syntax, semantics, format, data-type); reject invalid.",
+      SRSL3:
+        "Validate rigorously with strict context-aware checks (syntactic, semantic, boundary, protocol-specific); reject invalid.",
+    },
+  },
+  {
+    clause: "7.4.3.4.5",
+    category: "Physical tampering",
+    tiers: {
+      SRSL0: null,
+      SRSL1: "Physical tampering detected (e.g. seal breaking).",
+      SRSL2: "Physical tampering detected.",
+      SRSL3: "Physical tampering detected.",
+    },
+  },
+  {
+    clause: "7.4.3.5.1",
+    category: "Authenticity of SRESW/SRASW",
+    tiers: {
+      SRSL0: null,
+      SRSL1: null,
+      SRSL2:
+        "Authenticity of critical data (SRESW/SRASW, critical config) verified via crypto signatures or equivalent at installation time.",
+      SRSL3:
+        "Authenticity of critical data (SRESW/SRASW, critical config) verified via crypto signatures or equivalent at installation time.",
+    },
+  },
+];
+
+/** The set of protection requirements that apply at (or below) a determined SRSL. */
+export function requirementsForSrsl(
+  srsl: Srsl,
+  profile: SrslProfile = EN50742_SRSL_PROFILE,
+): { clause: string; category: string; requirement: string | null }[] {
+  return profile.map((r) => ({
+    clause: r.clause,
+    category: r.category,
+    requirement: r.tiers[srsl],
+  }));
+}

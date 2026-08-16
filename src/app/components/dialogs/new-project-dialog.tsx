@@ -2,32 +2,18 @@ import React, { useState } from "react";
 import { X, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "@mui/material";
-import {
-  TAG_CATEGORIES,
-  TagCategoryKey,
-  TagCategory,
-  isPredefinedTag,
-  getTagCategory,
-  getTagStyles,
-  getTagDefinition,
-  getAvailablePredefinedTags,
-  ProjectTags,
-  EMPTY_PROJECT_TAGS,
-  addTagToProject,
-  removeTagFromProject,
-  flattenProjectTags,
-} from "shared";
+import { ProjectTags, EMPTY_PROJECT_TAGS } from "shared";
+import { SafetyAnalysisToggle, ProjectTagsEditor } from "shared";
 
 // ==================== NEW PROJECT DIALOG ====================
 // Creates a new project with the same layout as project-info
 // Layout:
 //   Project Name (1/1)
 //   Version (1/2) | Responsible (1/2)
-//   Workflow + Slide Switch (1/1)
+//   Criticality + Slide Switch (1/1)     (isHighImpact — dialog-specific)
+//   Safety + Slide Switch (1/1)          -> SafetyAnalysisToggle (shared)
 //   Description (1/1)
-//   Selected Tags (1/1)
-//   Available Tags (1/1)
-//   Custom Tag Input (1/1)
+//   Tags Section (1/1)                   -> ProjectTagsEditor (shared)
 
 interface NewProjectDialogProps {
   onClose: () => void;
@@ -62,8 +48,6 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [tagInput, setTagInput] = useState("");
-  const [tagCategory, setTagCategory] = useState<TagCategoryKey>("domain");
 
   // Validation
   const validate = (): boolean => {
@@ -87,37 +71,6 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Tag handlers
-  const addTag = (tag: string, categoryOverride?: TagCategoryKey) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: addTagToProject(prev.tags, tag, categoryOverride),
-    }));
-    setTagInput("");
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: removeTagFromProject(prev.tags, tagToRemove),
-    }));
-  };
-
-  const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTag(tagInput, tagCategory);
-    }
-  };
-
-  // Get tags grouped by category
-  const getTagsByCategory = (tags: ProjectTags) => {
-    return TAG_CATEGORIES.map((cat) => ({
-      category: cat,
-      tags: tags[cat.key as keyof ProjectTags] as string[],
-    })).filter(({ tags }) => tags.length > 0);
-  };
-
   // Form submit — the dialog only validates and passes data to the parent.
   // main-layout owns the native save dialog (Electron) or download (Browser).
   // Opening the save dialog here would cause a double-dialog because
@@ -135,83 +88,6 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
     if (e.key === "Escape") {
       onClose();
     }
-  };
-
-  // ==================== TAG RENDERING HELPERS ====================
-
-  /**
-   * Render a single tag badge with optional tooltip (for regulations)
-   */
-  const renderTagBadge = (tag: string, showRemoveButton: boolean = false) => {
-    const styles = getTagStyles(tag, {});
-    const tagDef = getTagDefinition(tag);
-    const hasTooltip = tagDef?.tooltipKey;
-
-    const badge = (
-      <span
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${styles.bg} ${styles.text}`}
-      >
-        {tag}
-        {showRemoveButton && (
-          <button
-            type="button"
-            onClick={() => removeTag(tag)}
-            className="hover:opacity-70"
-            aria-label={t("common.remove")}
-          >
-            <X className="w-3 h-3" />
-          </button>
-        )}
-      </span>
-    );
-
-    if (hasTooltip) {
-      return (
-        <Tooltip
-          key={tag}
-          title={t(tagDef.tooltipKey!, { defaultValue: tag })}
-          arrow
-          placement="top"
-        >
-          {badge}
-        </Tooltip>
-      );
-    }
-
-    return <React.Fragment key={tag}>{badge}</React.Fragment>;
-  };
-
-  /**
-   * Render available tag button with optional tooltip
-   */
-  const renderAvailableTagButton = (tagName: string, category: TagCategory) => {
-    const tagDef = getTagDefinition(tagName);
-    const hasTooltip = tagDef?.tooltipKey;
-
-    const button = (
-      <button
-        type="button"
-        onClick={() => addTag(tagName)}
-        className={`px-2.5 py-1 text-xs border rounded-full transition-colors ${category.bgColor} ${category.textColor} border-transparent hover:opacity-80`}
-      >
-        + {tagName}
-      </button>
-    );
-
-    if (hasTooltip) {
-      return (
-        <Tooltip
-          key={tagName}
-          title={t(tagDef.tooltipKey!, { defaultValue: tagName })}
-          arrow
-          placement="top"
-        >
-          {button}
-        </Tooltip>
-      );
-    }
-
-    return <React.Fragment key={tagName}>{button}</React.Fragment>;
   };
 
   return (
@@ -311,7 +187,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
               </div>
             </div>
 
-            {/* Workflow + Slide Switch (1/1) */}
+            {/* Criticality + Slide Switch (1/1) — dialog-specific (isHighImpact) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t("settings.criticality", { defaultValue: "Criticality" })}
@@ -407,101 +283,15 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
               </label>
             </div>
 
-            {/* Safety + Slide Switch (1/1) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("settings.safety", { defaultValue: "Safety Analysis" })}
-              </label>
-              <label className="flex items-center justify-between border border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  {/* Slide Switch */}
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={formData.safetyRelevant ?? false}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          safetyRelevant: e.target.checked,
-                        })
-                      }
-                      className="sr-only peer"
-                    />
-                    <div
-                      className={`w-11 h-6 rounded-full transition-colors ${
-                        formData.safetyRelevant
-                          ? "bg-emerald-500"
-                          : "bg-gray-200"
-                      }`}
-                    />
-                    <div
-                      className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${
-                        formData.safetyRelevant ? "translate-x-5" : ""
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm font-medium transition-colors ${
-                          formData.safetyRelevant
-                            ? "text-emerald-600"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {formData.safetyRelevant
-                          ? t("settings.safetyOn", {
-                              defaultValue: "Hazard Analysis",
-                            })
-                          : t("settings.safetyOff", {
-                              defaultValue: "Security Only",
-                            })}
-                      </span>
-
-                      {formData.safetyRelevant && (
-                        <AlertTriangle className="w-4 h-4 text-emerald-500" />
-                      )}
-
-                      <Tooltip
-                        title={
-                          <div className="p-1">
-                            <p className="mb-2">
-                              {t("settings.safetyTooltip", {
-                                defaultValue:
-                                  "Enables the Hazard tab for safety/hazard analysis, independent of the Standard/Critical workflow.",
-                              })}
-                            </p>
-                            <p className="text-xs opacity-80 mb-1">
-                              <strong>Off:</strong> Overview → DFD → …
-                            </p>
-                            <p className="text-xs opacity-80">
-                              <strong>On:</strong> Overview → Hazard → DFD → …
-                            </p>
-                          </div>
-                        }
-                        arrow
-                        placement="right"
-                      >
-                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                      </Tooltip>
-                    </div>
-
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {formData.safetyRelevant
-                        ? t("settings.safetyOnDescription", {
-                            defaultValue:
-                              "Hazard tab shown after Overview, before DFD",
-                          })
-                        : t("settings.safetyOffDescription", {
-                            defaultValue:
-                              "No Hazard tab — security analysis only",
-                          })}
-                    </p>
-                  </div>
-                </div>
-              </label>
-            </div>
+            {/* Safety + Slide Switch (1/1) — shared, incl. EN 50742 coupling */}
+            <SafetyAnalysisToggle
+              tags={formData.tags}
+              safetyRelevant={formData.safetyRelevant ?? false}
+              editing
+              onChange={(v) =>
+                setFormData((d) => ({ ...d, safetyRelevant: v }))
+              }
+            />
 
             {/* Description (1/1) */}
             <div>
@@ -528,109 +318,16 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
               )}
             </div>
 
-            {/* Tags Section */}
+            {/* Tags Section — shared, incl. conflict warnings */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("project.tags")}
               </label>
-
-              {/* Selected Tags */}
-              {flattenProjectTags(formData.tags).length > 0 && (
-                <div className="p-3 bg-gray-50 rounded-lg mb-3">
-                  <label className="block text-xs font-medium text-gray-500 mb-2">
-                    {t("projectInfo.selectedTags", {
-                      defaultValue: "Selected Tags",
-                    })}
-                  </label>
-                  <div className="space-y-2">
-                    {getTagsByCategory(formData.tags).map(
-                      ({ category, tags }) => (
-                        <div
-                          key={category.key}
-                          className="flex flex-wrap gap-2"
-                        >
-                          <span className="text-xs text-gray-400 self-center mr-1 min-w-[70px]">
-                            {t(category.labelKey, {
-                              defaultValue: category.key,
-                            })}
-                            :
-                          </span>
-                          {tags.map((tag) => renderTagBadge(tag, true))}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Available Tags by Category */}
-              <div className="space-y-3 mb-3">
-                {TAG_CATEGORIES.map((category) => {
-                  const availableTags = getAvailablePredefinedTags(
-                    category,
-                    flattenProjectTags(formData.tags),
-                  );
-                  if (availableTags.length === 0) return null;
-
-                  return (
-                    <div key={category.key}>
-                      <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                        {t(category.labelKey, { defaultValue: category.key })}
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {availableTags.map((tagDef) =>
-                          renderAvailableTagButton(tagDef.name, category),
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Custom Tag Input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  {t("projectInfo.customTag", { defaultValue: "Custom Tag" })}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={handleTagKeyPress}
-                    placeholder={t("projectInfo.customTagPlaceholder", {
-                      defaultValue: "Enter custom tag...",
-                    })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-
-                  <select
-                    value={tagCategory}
-                    onChange={(e) =>
-                      setTagCategory(e.target.value as TagCategoryKey)
-                    }
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    aria-label={t("projectInfo.selectCategory", {
-                      defaultValue: "Select category",
-                    })}
-                  >
-                    {TAG_CATEGORIES.map((cat) => (
-                      <option key={cat.key} value={cat.key}>
-                        {t(cat.labelKey, { defaultValue: cat.key })}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => addTag(tagInput, tagCategory)}
-                    disabled={!tagInput.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t("common.add")}
-                  </button>
-                </div>
-              </div>
+              <ProjectTagsEditor
+                tags={formData.tags}
+                editing
+                onChange={(tags) => setFormData((d) => ({ ...d, tags }))}
+              />
             </div>
 
             {/* Info Box */}

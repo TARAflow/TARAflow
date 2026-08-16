@@ -107,7 +107,8 @@
     "safetyOff": "Nur Security",
     "safetyOnDescription": "Hazard-Tab nach Overview, vor DFD",
     "safetyOffDescription": "Kein Hazard-Tab — nur Security-Analyse",
-    "safetyTooltip": "Aktiviert den Hazard-Tab für die Safety-/Hazard-Analyse, unabhängig vom Standard/Critical-Workflow."
+    "safetyTooltip": "Aktiviert den Hazard-Tab für die Safety-/Hazard-Analyse, unabhängig vom Standard/Critical-Workflow.",
+    "safetyLockedByEn50742": "Durch EN 50742 vorgegeben — fest aktiviert"
   },
   "validation": {
     "nameRequired": "Projektname ist erforderlich",
@@ -252,6 +253,10 @@
       "en18031": "EN 18031 zielt auf vernetzte Produkte. Erwäge ein Plattform-Tag hinzuzufügen (Embedded, IoT, Web oder Mobile).",
       "iec62443": "IEC 62443 zielt auf OT/Industriesysteme. Erwäge OT als Plattform-Tag oder ein industrielles Domain-Tag hinzuzufügen.",
       "iso27017": "ISO 27017 ist cloudspezifisch. Erwäge das Plattform-Tag Cloud hinzuzufügen."
+    },
+    "tagConflicts": {
+      "methodRegime": "{{a}} und {{b}} definieren je die Risikomethode des Projekts — ein Projekt folgt nur einer. Wähle ein einzelnes Regulierungs-Preset.",
+      "en50742Approach": "EN 50742 Approach A und Approach B schliessen sich gegenseitig aus (Abschnitt 4.1) — wähle einen Ansatz."
     }
   },
   "stride": {

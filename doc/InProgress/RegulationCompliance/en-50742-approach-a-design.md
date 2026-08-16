@@ -1,0 +1,453 @@
+# TARAflow — EN 50742 Approach A Design
+
+> Scope: how TARAflow supports an **EN 50742 Approach A compliant** analysis and
+> report, driven by the `en-50742-a` regulation preset. Content is mainly the
+> Approach A method (Clause 7 + Annex B of prEN 50742:2025) and how it maps onto
+> the existing TARAflow structure.
+>
+> **Approach B** (Clause 8 — the fixed IEC 62443-3-3/-4-2 subset, Tables 3/4) is
+> **out of scope here** and is delivered by the Compliance feature
+> (`taraflow-compliance-architecture.md`) as the `en-50742-b` preset's
+> `complianceProfile`. This document does not duplicate it.
+>
+> **ISO 21434** rides the same preset rails (see `regulation-presets-design.md`
+> and `taraflow-iso21434-todo.md`); the shared layers below are built once.
+>
+> Normative source: prEN 50742:2025 (E), CENELEC CLC/TC 44X (Draft for Enquiry,
+> Dec 2025). Requirement wording below is condensed into implementation form;
+> the authoritative text is the standard itself. Numeric tables are reproduced
+> as data.
+
+---
+
+## 1. The Approach A method (normative model)
+
+Approach A is **risk-derived**: for each safety function, per interface, an
+attack potential is computed, combined with the safety severity, and mapped to a
+Safety-related Security Level (SRSL 0–3). The SRSL then selects a tiered set of
+security protection requirements (Clause 7.4.3).
+
+### 1.1 Attack Potential (Annex B, Clause B / line 592)
+
+```
+AP = (EL × WoO) + AC
+```
+
+| Factor | Scope | Table |
+|---|---|---|
+| `EL` — Exposure Level | per interface / connection | B.4 |
+| `WoO` — Window of Opportunity | whole machinery (project-global), depends on Security Context | B.3 |
+| `AC` — Attacker Capability | per threat | B.2 |
+
+**Exposure Level score (Table B.4)** — static, = attack surface:
+
+| Exposure | EL | Value |
+|---|---|---|
+| Internal | EL0 | 0 |
+| Physical | EL1 | 2 |
+| Local | EL2 | 5 |
+| Adjacent | EL3 | 16 |
+| Public | EL4 | 24 |
+
+Rule (B, line 546): if a connection crosses trust boundaries, its EL is the
+**higher** one (EL1↔EL2 → EL2). Trust boundaries in the DFD are labelled with EL
+(Annex C.7).
+
+**Window of Opportunity score (Table B.3)** — a multiplier, one per machine:
+
+| WoO | Multiplier |
+|---|---|
+| Very Restricted | 0.6 |
+| Moderately Restricted | 0.8 |
+| Limited | 0.9 |
+| Unlimited | 1.0 |
+
+**Attacker Capability score (Table B.2)** — **note inverted polarity**:
+
+| Capability | Value |
+|---|---|
+| Extensive knowledge + Advanced skill | 1 |
+| Moderate knowledge + Specialist skill | 2 |
+| Moderate knowledge + Medium-level skill | 3 |
+| Minimal knowledge + Basic skills | 4 |
+
+AC = 4 (a basic-skill attacker is sufficient) yields the **highest** AP → highest
+likelihood. This is the opposite polarity of the ISO/IEC 18045 attack-potential
+convention (higher effort → lower feasibility). See §3.1.
+
+### 1.2 AP banding (Table B.5)
+
+| AP score | Band | Label |
+|---|---|---|
+| 0 – 5 | AP0 | Very Low |
+| 5.1 – 10 | AP1 | Low |
+| 10.1 – 15 | AP2 | Medium |
+| 15.1 – 20 | AP3 | High |
+| > 20 | AP4 | Very High |
+
+Worked example from the norm (line 604): moderately restricted access (WoO 0.8),
+bus between EL1/EL2 → EL2 (5), basic attacker (AC 4):
+`AP = (5 × 0.8) + 4 = 8 → AP1`.
+
+### 1.3 SRSL determination (Table B.6) — AP × severity
+
+Severity is sourced from the functional-safety assessment (SIL/PLr; Table B.4
+NOTE 1 permits using PLr to express safety impact, SIL↔PLr per Annex A of
+EN ISO 13849). TARAflow uses **three** severity levels; the third (`fatal`) is a
+TARAflow extension — the norm's Table B.6 defines only the first two rows.
+
+| Severity ＼ AP | AP0 | AP1 | AP2 | AP3 | AP4 | Source |
+|---|---|---|---|---|---|---|
+| reversible | SRSL0 | SRSL1 | SRSL1 | SRSL2 | SRSL3 | Table B.6 (norm) |
+| non-reversible | SRSL0 | SRSL1 | SRSL2 | SRSL3 | SRSL3 | Table B.6 (norm) |
+| **fatal** (extension) | **SRSL1** | **SRSL2** | **SRSL3** | **SRSL3** | **SRSL3** | TARAflow — CONFIRMED |
+
+The first two rows are the norm verbatim. The `fatal` row is a confirmed TARAflow
+extension: a third severity level (minor / serious / fatal) mirrors the graded
+severity scales common in functional-safety risk estimation (e.g. EN ISO 12100
+and related safety-norm risk graphs), where death / irreversible catastrophic
+harm is its own top tier rather than folded into "non-reversible". Behaviour:
+`fatal` never maps to SRSL0 (even at very low AP) and saturates SRSL3 one AP-band
+earlier than non-reversible.
+
+This is a fixed lookup, not a smooth numeric threshold (AP2 → SRSL1 / SRSL2 /
+SRSL3 depending on severity). Implement it as a literal table, not a derived band.
+
+SRSL applies **per safety function, per interface** (line 590). SRSL0 corresponds
+to a completely isolated safety function (no external interfaces).
+
+---
+
+## 2. Mapping onto the existing TARAflow structure
+
+It fits — no new analysis paradigm is needed. Approach A is DFD → assets → STRIDE
+→ per-threat likelihood → risk output, which is exactly TARAflow's spine.
+
+| EN 50742 Approach A | TARAflow |
+|---|---|
+| Item / machine definition + Security Context (C.5) | Overview tab |
+| **Safety function** | **Asset** (carries severity reversible/non-reversible) |
+| **Interface** | **Asset** (carries EL, or EL derived from trust-boundary crossing) |
+| Other safety assets (safety config data, SRESW/SRASW, memory devices — C.4) | Assets |
+| Data flow diagram (C.6): assets, data stores, processes, actors, network equipment, data flows | DFD tab |
+| Trust boundaries labelled with EL (C.7) | Trust boundaries (EL as boundary/connection property) |
+| Threat identification via STRIDE per element (C.8) | STRIDE threat generation (already the default generator) |
+| Attack potential `AP=(EL×WoO)+AC` | New likelihood method `en50742-attack-potential` |
+| Severity (SIL/PLr → reversible / non-reversible / fatal) | 3-level impact criterion on the safety-function asset |
+| SRSL (Table B.6) | Risk-output axis (SRSL0–3), via a literal AP×severity lookup |
+| Security protection requirements per SRSL (7.4.3) | `SRSLProfile` catalogue (§5) → Risk-tab requirement set |
+| Eliminate / mitigate / compensating countermeasure (Fig 1, 4.3) | Mitigation + Won't/claim model |
+
+**Key fit points:**
+
+- Impact stays on the asset / security goal (severity on the safety-function
+  asset), never on a tree node — consistent with the existing rule.
+- The risk matrix already combines axes numerically with independent
+  vocabularies, so likelihood = AP0–AP4, impact = reversible/non-reversible,
+  output = SRSL0–3 is expressible — **except** the AP×severity step is a fixed
+  lookup (Table B.6), so it bypasses the numeric-threshold matrix and uses the
+  literal table.
+- EL following the "crosses trust boundary → higher EL" rule fits the existing
+  derived/manual-source pattern (like `exposureLevelSource`): EL derived from the
+  boundary the connection crosses, manually overridable.
+
+### 2.1 What genuinely does NOT come from the risk engine
+
+Approach A's Clause 7 also carries **baseline product requirements** that are not
+risk-derived and apply regardless of SRSL:
+
+- 7.3 Information collection — tracing log of interventions, evidence content,
+  storage ≥ 5 years (7.3.4), tamper protection (7.3.5).
+- 7.5 Identification of software versions and configuration (human-readable, on
+  demand).
+
+These are a static checklist, closer to the Compliance-feature style than the
+risk engine. See §6 for the scope decision.
+
+---
+
+## 3. Open points to clarify (decide before coding)
+
+### 3.1 Flat per-threat AP vs. attack-tree aggregation — biggest one
+
+The norm computes AP **flat, per threat / per (safety function, interface)** — it
+has no attack-tree AND/OR aggregation anywhere (Annex C uses a flat STRIDE threat
+table). So for a faithful Approach A, AP is a per-threat computation, and the
+Attack Tree tab is **optional**, not on the critical path.
+
+**Decided:** the AttackTree tab is **central only for ISO 21434**, and
+**optional for EN 50742** — EN 50742 uses the flat per-threat AP as its primary
+likelihood path. If attack trees are used anyway on an EN 50742 project (a
+project may want them), the polarity is inverted vs. the ISO effort model, so
+aggregation must be:
+
+```
+OR-Node:  MAX(AP)   ← attacker takes the most-likely alternative path
+AND-Node: MIN(AP)   ← the least-likely necessary step gates the chain
+```
+
+- [x] **Decided:** EN 50742 AP is a flat per-threat factor; attack trees optional
+  for EN 50742, central for ISO 21434. The `en-50742-a` preset does not require
+  the AttackTree tab.
+
+### 3.2 EL source in the DFD
+
+- [ ] EL lives on the interface asset, on the connection/data flow, or is
+  **derived** from the trust boundary the connection crosses (norm's
+  higher-EL-wins rule)? Recommended: derived-from-boundary with manual override,
+  mirroring `exposureLevelSource`.
+
+### 3.3 WoO is machinery-global
+
+- [ ] Confirm WoO is a single project-level field tied to the Security Context,
+  not per interface (norm: "estimated for the whole machinery", line 578).
+
+### 3.4 AP precision / band boundaries
+
+WoO is fractional, so `EL×WoO` is fractional (e.g. 16×0.6 = 9.6). Bands split at
+5.0/5.1, 10.0/10.1, etc.
+- [ ] Fix a rounding/precision rule so values on a boundary land deterministically
+  (norm gives one-decimal bands; the worked example is exact).
+
+### 3.5 Table B.6 as a literal lookup
+
+- [ ] Confirm Table B.6 is hardcoded (AP × {reversible|non-reversible} → SRSL),
+  not derived from the numeric risk matrix (the steps are irregular).
+
+### 3.6 Severity entry
+
+- [x] **Decided:** 3-level manual severity per safety-function asset —
+  `reversible / non-reversible / fatal` — with optional SIL/PLr annotation for
+  the report. TARAflow is not a functional-safety tool, so it does not compute
+  SIL/PLr. The `fatal` SRSL-lookup row (§1.3) is **confirmed** — no open items
+  remain.
+
+### 3.7 Cardinality: per (safety function × interface)
+
+- [ ] One safety function reachable via N interfaces → N SRSL determinations
+  (one per interface, each with its own protection-requirement set on that
+  interface). Confirm the asset-relation model carries an SRSL per
+  (safety-function asset, interface asset) pair.
+
+### 3.8 Eliminate / mitigate / compensating mapping
+
+Approach A's process (Fig 1): (2.A) eliminate the vulnerability → (2.B) mitigate
+per Clause 7 → (2.C) document residual risk + compensating countermeasure in
+information for use.
+- [ ] Map to TARAflow's mitigation + Won't/claim types: elimination ≈ removal;
+  mitigation ≈ selected measure; compensating-countermeasure-by-user ≈ a claim
+  documented in information-for-use (avoidance/acceptance/sharing).
+
+### 3.9 SRSL0 special case
+
+- [ ] SRSL0 emerges from AP0 in Table B.6, but Table 2 also describes it as
+  "completely isolated safety function (no external interfaces)". Decide whether
+  SRSL0 is purely AP-driven or also gated on "no external interfaces".
+
+### 3.10 7.4.3.4.2 wording quirk (carry faithfully)
+
+The norm's boot-integrity SRSL2 ("protected and verified at startup") reads
+weaker than SRSL1 ("... e.g. checksums"). Reproduce the catalogue as written;
+do not "fix" it.
+
+---
+
+## 4. `en-50742-a` preset
+
+| Field | Value |
+|---|---|
+| `id` | `en-50742-a` |
+| `likelihoodMethod` | `en50742-attack-potential` (distinct from ISO 18045 sum) |
+| `likelihoodFactorIds` | `exposure_level, window_of_opportunity, attacker_capability` |
+| `motivationModel` | `not-applicable` — benefit/motivation must NOT enter (line 241: "the likelihood of being a target/victim shall not be relevant") |
+| `severityAxis` | 3-level `reversible | non_reversible | fatal` (from safety assessment; `fatal` is a TARAflow extension, §1.3) |
+| `riskOutput` | `SRSL0..SRSL3` via literal Table B.6 lookup |
+| `srslProfile` | §5 |
+| `complianceProfile` | absent (that is `en-50742-b`) |
+| `hazardSwitch` | forced active (see §7.1) |
+| `normativeBasis` | `"prEN 50742:2025 (Draft), Clause 7.4.2/7.4.3, Annex B"` |
+
+> Correction to `regulation-presets-design.md` §10.5: `motivationModel` for
+> `en-50742-a` should be `not-applicable`/feasibility-only, not
+> `feasibility-supplement` — Clause 4.3 explicitly forbids likelihood-of-being-
+> targeted from entering the assessment. Confirm and align the preset table.
+
+---
+
+## 5. `SRSLProfile` — Clause 7.4.3 protection-requirement catalogue
+
+Tiered per SRSL0–3, grouped by category. Statements below are condensed to
+implementation form; the authoritative wording is prEN 50742:2025 Clause 7.4.3.
+
+**7.4.3.2.1 Authentication**
+- SRSL0: none
+- SRSL1: entities authenticated
+- SRSL2: entities authenticated
+- SRSL3: entities **uniquely** authenticated
+
+**7.4.3.3.1 Authorization enforcement**
+- SRSL0: none
+- SRSL1: interventions require authorization
+- SRSL2: interventions require authorization
+- SRSL3: interventions require authorization with specific privileges (e.g. RBAC)
+
+**7.4.3.4.1 Software & information integrity**
+- SRSL0: none
+- SRSL1: integrity verified at startup (e.g. checksums)
+- SRSL2: integrity verified at startup and periodically (e.g. checksums)
+- SRSL3: integrity **cryptographically** verified at startup and periodically (hashes, HMACs, CMACs)
+
+**7.4.3.4.2 Integrity of boot process**
+- SRSL0: none
+- SRSL1: boot integrity protected + verified at startup (e.g. checksums)
+- SRSL2: boot integrity protected + verified at startup
+- SRSL3: secure boot (crypto signature verification with trusted roots; rollback or safe state on failure)
+
+**7.4.3.4.3 Information exchange integrity**
+- SRSL0: none
+- SRSL1: integrity of exchanged information verified
+- SRSL2: integrity of exchanged information verified
+- SRSL3: guaranteed by secure cryptographic protocols that detect and reject modified/replayed messages
+
+**7.4.3.4.4 Input data validation**
+- SRSL0: none
+- SRSL1: validate against defined boundaries; reject invalid
+- SRSL2: validate rigorously (syntax, semantics, format, data-type); reject invalid
+- SRSL3: validate rigorously with strict context-aware checks (syntactic, semantic, boundary, protocol-specific); reject invalid
+
+**7.4.3.4.5 Physical tampering**
+- SRSL0: none
+- SRSL1: physical tampering detected (e.g. seal breaking)
+- SRSL2: physical tampering detected
+- SRSL3: physical tampering detected
+
+**7.4.3.5.1 Authenticity of SRESW/SRASW**
+- SRSL0: none
+- SRSL1: none
+- SRSL2: authenticity of critical data (SRESW/SRASW, critical config) verified via crypto signatures or equivalent at installation time
+- SRSL3: as SRSL2
+
+Data shape:
+
+```ts
+// per (safety function, interface) the determined SRSL selects the row;
+// each category yields the requirement(s) for that tier.
+type SrslTier = "SRSL0" | "SRSL1" | "SRSL2" | "SRSL3";
+interface SrslRequirement {
+  clause: string;          // "7.4.3.4.1"
+  category: string;        // "Software & information integrity"
+  tiers: Record<SrslTier, string | null>;  // null = "none"
+}
+type SRSLProfile = SrslRequirement[];
+```
+
+---
+
+## 6. Baseline (non-risk-derived) Approach A requirements
+
+Scope decision needed. These apply regardless of SRSL and are a static checklist,
+not a risk output:
+
+- 7.3.1–7.3.5 Tracing log: which interventions to log, evidence content,
+  storage ≥ 5 years, tamper protection, authorized-only deletion.
+- 7.5 Identification of software versions and configuration on demand,
+  human-readable.
+- 9 Information for use: security context, software/config identification,
+  permission/prohibition of modifications.
+
+- [ ] **Decide:** include as a fixed Approach-A checklist in the report now, or
+  defer to the Compliance-feature checklist engine. Recommended: a small static
+  section in the Approach-A report (they are few and fixed), independent of the
+  SRSL loop.
+
+---
+
+## 7. Phased implementation
+
+### 7.1 Phase 1 — Preset infrastructure + Hazard switch
+- Build the preset core (`regulation-presets-design.md` §2–§7): `RegulationPresetId`,
+  `RegulationPreset`, `REGULATION_PRESETS`, `ProjectSettingsData.regulationPreset`,
+  Overview selector, non-destructive apply (Class-B on downgrade).
+- Tag `EN50742_A` / `EN50742_B` selected → **Hazard Slide Switch forced active**
+  (Approach A cannot be evaluated without the severity axis). Auto-enable pattern
+  like `updateSafetyFactorAutoEnable`; wire the safety layer (`safetyRelevant` +
+  3-level severity criterion: reversible / non-reversible / fatal).
+
+### 7.2 Phase 2 — Asset tab
+- Safety function = asset; add the 3-level severity criterion (reversible /
+  non-reversible / fatal), optional SIL/PLr note.
+- Interface = asset; EL property (derived from trust-boundary crossing, manual
+  override).
+- Asset-relation carries the (safety function × interface) pairing that an SRSL
+  attaches to (§3.7).
+
+### 7.3 Phase 3 — Likelihood (AP)
+- New method `en50742-attack-potential`: `AP = (EL × WoO) + AC`, WoO project-global,
+  EL per interface, AC per threat; band via Table B.5.
+- Flat per-threat (attack trees optional; if used, OR=MAX/AND=MIN — §3.1).
+- Precision rule (§3.4).
+
+### 7.4 Phase 4 — Risk tab (SRSL + requirements)
+- SRSL via literal Table B.6 lookup (AP × severity).
+- `SRSLProfile` (§5) drives the required protection-requirement set per determined
+  SRSL, per (function, interface); verification status reuses existing
+  `verification_method`/`verification_status`.
+- Residual/compensating mapping (§3.8).
+
+### 7.5 Phase 5 — Report (Approach A evidence)
+- Per (safety function, interface): severity + source, AP (EL, WoO, AC, formula,
+  band), SRSL, the SRSL-required protection requirements with verification status.
+- Baseline checklist (§6).
+- Methodology section with `normativeBasis`; optionally surface the Annex ZZ
+  mapping (which clauses give presumption of conformity to Regulation (EU)
+  2023/1230, Annex III 1.1.9 / 1.2.1 a) / f)).
+- Full traceability: `measure → threat → STRIDE → safety function → severity →
+  interface → EL/WoO/AC → AP → SRSL → protection requirement (7.4.3)`.
+
+### 7.6 Phase 6 — ISO 21434 on the same rails
+- Instantiate `iso-21434` preset; fold in the `Modus_21434` todo (Threat-tab
+  columns, 18045 5-factor leaf form, SFOP severity, cybersecurity goals/claims,
+  WP-15 output). Confirms the infrastructure generalizes.
+
+---
+
+## 8. Out of scope
+
+- **Approach B** (`en-50742-b`): Clause 8, IEC 62443-3-3/-4-2 fixed subset
+  (Tables 3/4), system/component role, `ComplianceProfile`, compensating-
+  countermeasure/SL-C reduction (8.3), persistency (8.5). Delivered by the
+  Compliance feature (`taraflow-compliance-architecture.md`); this document does
+  not restate it.
+- No new calculation math beyond the AP formula + Table B.6 lookup.
+
+---
+
+## 9. Effort
+
+| Area | Phase | Effort | Note |
+|---|---|---|---|
+| Preset infra + Hazard switch | 1 | medium | shared with ISO 21434 |
+| Asset tab (severity + EL) | 2 | small–medium | both are assets already |
+| Likelihood (AP) | 3 | medium | new method + precision + polarity |
+| Risk tab (SRSL + SRSLProfile) | 4 | medium–large | Table B.6 lookup + catalogue content |
+| Report | 5 | large | full Approach-A evidence path |
+| ISO 21434 fold-in | 6 | medium | rides 1–5 |
+
+---
+
+## 10. Definition of Done — EN 50742 Approach A compliant
+
+A project with preset `en-50742-a` can:
+1. mark safety functions and interfaces as assets, with severity (reversible /
+   non-reversible / fatal) and EL respectively;
+2. set the machinery-global WoO and per-threat AC;
+3. compute `AP = (EL × WoO) + AC` and band it (Table B.5);
+4. derive the SRSL per (safety function, interface) via Table B.6;
+5. select and verify the SRSL-required protection requirements (Clause 7.4.3);
+6. produce a report with the baseline checklist (7.3/7.5/9), full traceability,
+   and `normativeBasis`.
+
+---
+
+<sub>© Jürgen Messerer · 2026 · All rights reserved. Normative content derives
+from prEN 50742:2025 (Draft for Enquiry); authoritative wording is the standard.</sub>
