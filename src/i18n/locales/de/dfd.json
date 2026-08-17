@@ -1754,6 +1754,7 @@
                 "physical": "Physische Grenze",
                 "legal": "Gesetzliche / regulatorische Grenze",
                 "device": "Gerätegrenze",
+                "platform": "Plattformgrenze (App-Sandbox ↔ Betriebssystem)",
                 "peripheral": "Peripheriegrenze (MCU ↔ externer Chip)",
                 "boot": "Boot-Grenze (Bootloader ↔ Anwendung)",
                 "debug": "Debug-Schnittstellengrenze (SWD/JTAG)"
@@ -1766,6 +1767,7 @@
                 "physical": "Physisches Gehäuse oder Schrankgrenze, z.B. Maschinengehäuse oder Bedienfeld",
                 "legal": "Regulatorische oder vertragliche Grenze, z.B. DSGVO-Datenspeicherort oder PCI-DSS-Umfang",
                 "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway",
+                "platform": "Trennt die eigene App-Sandbox von einer vom Betriebssystem-/Plattformhersteller kontrollierten Komponente, z. B. einem Mobile-OS-Browser-Broker oder Keychain/Keystore. Gleiches Gerät, aber andere verantwortliche Partei — Massnahmen hier stützen sich auf Plattform-Garantien, nicht auf eigenen Code.",
                 "peripheral": "Grenze zwischen MCU und externen Chips (SPI/I2C-Sensoren, EEPROM, Co-Prozessoren). Häufig übersehene Angriffsfläche.",
                 "boot": "Grenze zwischen Bootloader und Anwendung. Kritisch für Firmware-Integrität und sichere Boot-Kette.",
                 "debug": "SWD-, JTAG- oder UART-Konsolenschnittstelle. Muss in Produktions-Builds deaktiviert oder gesperrt sein."

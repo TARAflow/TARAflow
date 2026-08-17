@@ -1752,6 +1752,7 @@
                 "physical": "Physical Boundary",
                 "legal": "Legal / Regulatory Boundary",
                 "device": "Device Boundary",
+                "platform": "Platform Boundary (App Sandbox ↔ OS)",
                 "peripheral": "Peripheral Boundary (MCU ↔ external chip)",
                 "boot": "Boot Boundary (Bootloader ↔ Application)",
                 "debug": "Debug Interface Boundary (SWD/JTAG)"
@@ -1764,6 +1765,7 @@
                 "physical": "Physical enclosure or cabinet boundary, e.g. machine housing or control panel",
                 "legal": "Regulatory or contractual boundary, e.g. GDPR data residency or PCI-DSS scope",
                 "device": "Boundary of a single device or embedded system, e.g. PLC, ECU or IoT gateway",
+                "platform": "Separates an app's own sandbox from a component controlled by the OS/platform vendor, e.g. a mobile OS browser broker or keychain/keystore. Same device, different responsible party — mitigations here rely on platform guarantees, not on your own code.",
                 "peripheral": "Boundary between MCU and external chips (SPI/I2C sensors, EEPROM, co-processors). Often overlooked attack surface.",
                 "boot": "Boundary between bootloader and application. Critical for firmware integrity and secure boot chain.",
                 "debug": "SWD, JTAG or UART console interface. Must be disabled or locked in production builds."

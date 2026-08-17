@@ -1687,21 +1687,46 @@ export interface InterfaceProperties {
   notes?: string;
 }
 
+// ---------------------------------------------------------------------------
+// boundaryType — split into a core group (IT/OT/cloud) and an
+// embedded-specific group. Both feed the same TrustBoundaryProperties field;
+// the split only exists so the form can render them as two menu sections
+// (see trust-boundary-form.tsx).
+// ---------------------------------------------------------------------------
+
+export const TRUST_BOUNDARY_CORE_TYPE_OPTIONS = [
+  "network", // Network segment boundary (VLAN, subnet, firewall zone)
+  "privilege", // Privilege level change (user ↔ admin, process ↔ kernel)
+  "organization", // Organisational boundary (company, department, partner)
+  "cloud", // Cloud service boundary (tenant, region, provider)
+  "legal", // Legal/contractual boundary (data processing agreement)
+  "device", // Logical device boundary (between two connected devices)
+  // App sandbox ↔ OS-/platform-vendor-controlled component (e.g. mobile OS
+  // browser broker, keychain/keystore, container runtime ↔ host).
+  // Distinction from "privilege": not a privilege escalation within the
+  // same trust domain, but a change of RESPONSIBLE PARTY (OS vendor instead
+  // of own code), while remaining on the same physical device.
+  "platform",
+] as const;
+
+export const TRUST_BOUNDARY_EMBEDDED_TYPE_OPTIONS = [
+  "peripheral", // MCU ↔ external chip (SPI, I2C, UART sensor/EEPROM)
+  "boot", // Bootloader ↔ Application boundary
+  "debug", // Debug/programming interface (SWD, JTAG, UART console)
+] as const;
+
+export const TRUST_BOUNDARY_TYPE_OPTIONS = [
+  ...TRUST_BOUNDARY_CORE_TYPE_OPTIONS,
+  ...TRUST_BOUNDARY_EMBEDDED_TYPE_OPTIONS,
+] as const;
+
+export type TrustBoundaryType = (typeof TRUST_BOUNDARY_TYPE_OPTIONS)[number];
+
 // ==================== TRUST BOUNDARY PROPERTIES ====================
 
 export interface TrustBoundaryProperties {
   boundaryId?: string;
-  boundaryType?:
-    | "network" // Network segment boundary (VLAN, subnet, firewall zone)
-    | "privilege" // Privilege level change (user ↔ admin, process ↔ kernel)
-    | "organization" // Organisational boundary (company, department, partner)
-    | "cloud" // Cloud service boundary (tenant, region, provider)
-    | "legal" // Legal/contractual boundary (data processing agreement)
-    | "device" // Logical device boundary (between two connected devices)
-    // Embedded-specific boundaries
-    | "peripheral" // MCU ↔ external chip (SPI, I2C, UART sensor/EEPROM)
-    | "boot" // Bootloader ↔ Application boundary
-    | "debug"; // Debug/programming interface (SWD, JTAG, UART console)
+  boundaryType?: TrustBoundaryType;
   defaultExposureLevel?: ExposureLevel;
   securityAssumptions?: string;
 

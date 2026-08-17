@@ -44,6 +44,10 @@ import {
   applyCascadeDefaults,
   buildClearPatch,
 } from "../../models/element-property-defaults";
+import {
+  TRUST_BOUNDARY_CORE_TYPE_OPTIONS,
+  TRUST_BOUNDARY_EMBEDDED_TYPE_OPTIONS,
+} from "../../models/element-properties";
 
 // ==================== PROPS ====================
 
@@ -58,6 +62,13 @@ interface TrustBoundaryFormProps {
 
 const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
 
+// "platform" is intentionally NOT included here: boundaryControlTypes
+// (firewall, VPN gateway, authentication gateway, ...) are controls the
+// analyst configures on infrastructure they operate. A platform boundary
+// is OS-vendor-controlled (app sandbox ↔ browser broker, keychain/keystore) —
+// there is nothing here for the analyst to configure. Revisit if a
+// platform-specific control vocabulary (e.g. "os_sandboxing", "code_signing")
+// is ever added to BoundaryControlType.
 const SHOW_BOUNDARY_CONTROLS = new Set([
   "network",
   "privilege",
@@ -66,6 +77,9 @@ const SHOW_BOUNDARY_CONTROLS = new Set([
   "device",
 ]);
 
+// "platform" excluded: the app has no logging/monitoring visibility into
+// OS-vendor-controlled components, so a monitoringEnabled toggle here would
+// be meaningless.
 const SHOW_MONITORING = new Set([
   "network",
   "privilege",
@@ -184,16 +198,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                   {t("common.not_specified", { defaultValue: "Not specified" })}
                 </em>
               </MenuItem>
-              {(
-                [
-                  "network",
-                  "privilege",
-                  "organization",
-                  "cloud",
-                  "legal",
-                  "device",
-                ] as const
-              ).map((opt) => (
+              {TRUST_BOUNDARY_CORE_TYPE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt}>
                   <Tooltip
                     title={t(
@@ -215,7 +220,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
               <MenuItem disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
                 — Embedded-specific —
               </MenuItem>
-              {(["peripheral", "boot", "debug"] as const).map((opt) => (
+              {TRUST_BOUNDARY_EMBEDDED_TYPE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt}>
                   <Tooltip
                     title={t(

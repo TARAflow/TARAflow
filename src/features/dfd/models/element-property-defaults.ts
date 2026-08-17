@@ -10,6 +10,7 @@ import type {
   DataFlowProperties,
   InterfaceProperties,
   TrustBoundaryProperties,
+  TrustBoundaryType,
   PhysicalBoundaryProperties,
   ChipBoundaryProperties,
 } from "./element-properties";
@@ -1373,7 +1374,7 @@ export const INTERFACE_TYPE_DRIVEN_FIELDS: (keyof InterfaceProperties)[] = [
  * Cascade defaults based on TrustBoundary.boundaryType selection.
  */
 export const TB_TYPE_DEFAULTS: Record<
-  NonNullable<TrustBoundaryProperties["boundaryType"]>,
+  TrustBoundaryType,
   Partial<TrustBoundaryProperties>
 > = {
   // Network boundary — firewall is the expected baseline control
@@ -1397,6 +1398,14 @@ export const TB_TYPE_DEFAULTS: Record<
   },
   // Device boundary — no default control (analyst must assess)
   device: {
+    defaultExposureLevel: "EL1",
+    monitoringEnabled: false,
+  },
+  // Platform boundary (app sandbox ↔ OS-vendor-controlled component) —
+  // no network control here; the control, if any, lives in OS-level
+  // enforcement (sandboxing, code signing) that the analyst cannot configure.
+  // No monitoring by default: app-side logging has no visibility into this layer.
+  platform: {
     defaultExposureLevel: "EL1",
     monitoringEnabled: false,
   },
@@ -1429,24 +1438,25 @@ export const TB_TYPE_DEFAULTS: Record<
  * Placeholder text for securityAssumptions field, keyed by boundaryType.
  * These are hints only — not auto-filled — so existing analyst text is never overwritten.
  */
-export const TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<
-  NonNullable<TrustBoundaryProperties["boundaryType"]>,
-  string
-> = {
-  network:
-    "External network is untrusted. All ingress/egress requires authentication and encryption.",
-  cloud:
-    "Cloud perimeter is public. IAM policies and encryption are mandatory.",
-  privilege:
-    "Lower privilege zone cannot initiate connections to higher privilege zone.",
-  device: "Device boundary. External interfaces require authentication.",
-  organization: "Organizational boundary. Contractual controls apply.",
-  legal: "Regulatory boundary. Compliance controls apply.",
-  peripheral:
-    "MCU to external chip boundary. Bus protocol has no authentication.",
-  boot: "Bootloader to application boundary. Secure Boot chain enforced.",
-  debug: "Debug interface boundary. Must be locked or disabled in production.",
-};
+export const TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<TrustBoundaryType, string> =
+  {
+    network:
+      "External network is untrusted. All ingress/egress requires authentication and encryption.",
+    cloud:
+      "Cloud perimeter is public. IAM policies and encryption are mandatory.",
+    privilege:
+      "Lower privilege zone cannot initiate connections to higher privilege zone.",
+    device: "Device boundary. External interfaces require authentication.",
+    platform:
+      "OS-vendor-controlled component (e.g. mobile OS browser broker, keychain/keystore). Security relies on platform guarantees, not on own code.",
+    organization: "Organizational boundary. Contractual controls apply.",
+    legal: "Regulatory boundary. Compliance controls apply.",
+    peripheral:
+      "MCU to external chip boundary. Bus protocol has no authentication.",
+    boot: "Bootloader to application boundary. Secure Boot chain enforced.",
+    debug:
+      "Debug interface boundary. Must be locked or disabled in production.",
+  };
 
 /** Fields driven by TrustBoundary.boundaryType — used for clearing on driver reset */
 export const TB_TYPE_DRIVEN_FIELDS: (keyof TrustBoundaryProperties)[] = [
