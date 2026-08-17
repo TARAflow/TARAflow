@@ -1402,8 +1402,9 @@ export const TB_TYPE_DEFAULTS: Record<
     monitoringEnabled: false,
   },
   // Platform boundary (app sandbox ↔ OS-vendor-controlled component) —
-  // no network control here; the control, if any, lives in OS-level
-  // enforcement (sandboxing, code signing) that the analyst cannot configure.
+  // no default boundaryControlTypes: whether the OS secure store is gated
+  // behind device authentication ("os_authentication") is a real, per-app
+  // configuration choice the analyst must verify, not something to assume.
   // No monitoring by default: app-side logging has no visibility into this layer.
   platform: {
     defaultExposureLevel: "EL1",

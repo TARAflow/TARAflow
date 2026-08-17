@@ -1788,6 +1788,7 @@
                 "unidirectional_gateway": "Unidirektionales Gateway",
                 "network_segmentation": "Netzwerksegmentierung",
                 "jump_host": "Jump Host / Bastion",
+                "os_authentication": "Betriebssystem-Authentifizierung (Biometrie/Passcode)",
                 "custom": "Benutzerdefiniert"
               },
               "tooltips": {
@@ -1800,6 +1801,7 @@
                 "unidirectional_gateway": "Softwareerzwungenes Einweg-Gateway (z.B. Waterfall)",
                 "network_segmentation": "VLAN-, Mikrosegmentierungs- oder ACL-basierte Trennung",
                 "jump_host": "Bastion- / Jump-Server für administrativen Zugriff",
+                "os_authentication": "Geräte-Authentifizierung (Face ID/Touch ID/Biometrie oder Passcode) ist erforderlich, bevor das Betriebssystem das geschützte Secret aus Keychain/Keystore freigibt — im Unterschied zu authentication_gateway, das die Identität an einer Netzwerk-/API-Grenze prüft.",
                 "custom": "Anbieter- oder domänenspezifisch — in Weitere Controls beschreiben"
               }
             },

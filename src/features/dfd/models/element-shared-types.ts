@@ -138,21 +138,30 @@ export type InterfaceLocation =
 //   vpn_gateway                 → Encrypted tunnel across boundary
 //   dmz                         → Demilitarised zone separation
 //   authentication_gateway      → Identity enforcement at boundary
-//   unidirectional_gateway      → Hardware-enforced one-way data flow
+//   os_authentication            → Device auth gates access to OS-managed secret
+//   unidirectional_gateway       → Hardware-enforced one-way data flow
 //   network_segmentation        → VLAN / logical separation
 //   jump_host                   → Bastion host for remote access control
 //   custom                      → Describe in customBoundaryControls
 
 export type BoundaryControlType =
-  | "firewall"               // Stateful packet inspection firewall
-  | "ids_ips"                // Intrusion Detection / Prevention System
-  | "data_diode"             // Hardware data diode — unidirectional enforcement
-  | "vpn_gateway"            // VPN concentrator / encrypted tunnel endpoint
-  | "dmz"                    // Demilitarised zone (dual-firewall architecture)
-  | "authentication_gateway" // Identity / auth enforcement at boundary
+  | "firewall" // Stateful packet inspection firewall
+  | "ids_ips" // Intrusion Detection / Prevention System
+  | "data_diode" // Hardware data diode — unidirectional enforcement
+  | "vpn_gateway" // VPN concentrator / encrypted tunnel endpoint
+  | "dmz" // Demilitarised zone (dual-firewall architecture)
+  | "authentication_gateway" // Identity / auth enforcement at boundary (network/API)
+  // Device-level authentication (biometric/passcode) required before an
+  // OS-managed secure store releases a secret — e.g. iOS Keychain with
+  // kSecAttrAccessControl biometryCurrentSet, Android Keystore
+  // setUserAuthenticationRequired(true). Distinct from
+  // "authentication_gateway": this gates a LOCAL secret release, not a
+  // network/API identity check. Primarily relevant for "platform"
+  // TrustBoundary type.
+  | "os_authentication"
   | "unidirectional_gateway" // Software-enforced one-way gateway (e.g. Waterfall)
-  | "network_segmentation"   // VLAN, microsegmentation, ACL-based separation
-  | "jump_host"              // Bastion / jump server for admin access
+  | "network_segmentation" // VLAN, microsegmentation, ACL-based separation
+  | "jump_host" // Bastion / jump server for admin access
   | "custom";                // Vendor/domain-specific — use customBoundaryControls
 
 // ==================== SECURITY CONTROL RECORD ====================

@@ -62,19 +62,18 @@ interface TrustBoundaryFormProps {
 
 const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
 
-// "platform" is intentionally NOT included here: boundaryControlTypes
-// (firewall, VPN gateway, authentication gateway, ...) are controls the
-// analyst configures on infrastructure they operate. A platform boundary
-// is OS-vendor-controlled (app sandbox ↔ browser broker, keychain/keystore) —
-// there is nothing here for the analyst to configure. Revisit if a
-// platform-specific control vocabulary (e.g. "os_sandboxing", "code_signing")
-// is ever added to BoundaryControlType.
+// "platform" IS included: while there is no network-level control here,
+// the analyst can (and should) record whether the OS-managed secret store
+// requires device authentication before release — see BoundaryControlType
+// "os_authentication". (Earlier revision excluded "platform" here on the
+// wrong assumption that nothing was configurable at this boundary type.)
 const SHOW_BOUNDARY_CONTROLS = new Set([
   "network",
   "privilege",
   "organization",
   "cloud",
   "device",
+  "platform",
 ]);
 
 // "platform" excluded: the app has no logging/monitoring visibility into
@@ -347,6 +346,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                   "vpn_gateway",
                   "dmz",
                   "authentication_gateway",
+                  "os_authentication",
                   "unidirectional_gateway",
                   "network_segmentation",
                   "jump_host",
