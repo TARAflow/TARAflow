@@ -371,17 +371,23 @@ export function useDFDEditor(
    */
   const updateElementDescription = useCallback(
     (elementId: string, updates: Partial<DFDElement>) => {
-      // Update data (rebuilds graph)
-      const updatedDFD = data.updateElement(elementId, updates);
-
-      // Schedule debounced save
-      const result: DFDUpdateResult = {
-        dfd: updatedDFD,
-        phaseStatus: project.phaseStatus,
-        lastModified: updatedDFD.lastModified!,
-      };
-
-      persistence.scheduleSave(result);
+      // THE FIX: build from `base` (scheduleSave's freshest known state —
+      // pending unflushed edit, or project.dfd if nothing is pending), via
+      // data.updateElement's optional baseDfd override — not from data's
+      // own closed-over `dfd` (project.dfd). Without this, editing one
+      // element/asset/connection then another within the ~500ms debounce
+      // window computed the second edit from a dfd missing the first
+      // edit's still-pending change, and scheduleSave's wholesale replace
+      // of the pending save silently discarded it — the same bug fixed in
+      // dfd-tab.tsx's handleAssetChange.
+      persistence.scheduleSave((base) => {
+        const updatedDFD = data.updateElement(elementId, updates, base);
+        return {
+          dfd: updatedDFD,
+          phaseStatus: project.phaseStatus,
+          lastModified: updatedDFD.lastModified!,
+        };
+      });
       validation.scheduleValidation(autoValidateInterval);
     },
     [data, project.phaseStatus, persistence, validation, autoValidateInterval],
@@ -392,17 +398,14 @@ export function useDFDEditor(
    */
   const updateAssetDescription = useCallback(
     (assetId: string, updates: Partial<DFDAsset>) => {
-      // Update data (rebuilds graph, re-syncs linkedElements)
-      const updatedDFD = data.updateAsset(assetId, updates);
-
-      // Schedule debounced save
-      const result: DFDUpdateResult = {
-        dfd: updatedDFD,
-        phaseStatus: project.phaseStatus,
-        lastModified: updatedDFD.lastModified!,
-      };
-
-      persistence.scheduleSave(result);
+      persistence.scheduleSave((base) => {
+        const updatedDFD = data.updateAsset(assetId, updates, base);
+        return {
+          dfd: updatedDFD,
+          phaseStatus: project.phaseStatus,
+          lastModified: updatedDFD.lastModified!,
+        };
+      });
     },
     [data, project.phaseStatus, persistence],
   );
@@ -412,17 +415,14 @@ export function useDFDEditor(
    */
   const updateConnectionDescription = useCallback(
     (connectionId: string, updates: Partial<DFDConnection>) => {
-      // Update data (rebuilds graph)
-      const updatedDFD = data.updateConnection(connectionId, updates);
-
-      // Schedule debounced save
-      const result: DFDUpdateResult = {
-        dfd: updatedDFD,
-        phaseStatus: project.phaseStatus,
-        lastModified: updatedDFD.lastModified!,
-      };
-
-      persistence.scheduleSave(result);
+      persistence.scheduleSave((base) => {
+        const updatedDFD = data.updateConnection(connectionId, updates, base);
+        return {
+          dfd: updatedDFD,
+          phaseStatus: project.phaseStatus,
+          lastModified: updatedDFD.lastModified!,
+        };
+      });
       validation.scheduleValidation(autoValidateInterval);
     },
     [data, project.phaseStatus, persistence, validation, autoValidateInterval],

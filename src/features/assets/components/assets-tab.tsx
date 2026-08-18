@@ -137,8 +137,18 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  // Sync from project when it changes
+  // Sync from project when it changes — but never while a local edit is
+  // still pending write-back (isDirty). Without this guard, ANY external
+  // change to project.assets during the 1s auto-save debounce below (e.g.
+  // useBidirectionalAssetSync firing for an unrelated asset, or simply a
+  // parent re-render passing a new project.assets reference) silently
+  // discards whatever was just typed in the Asset Dialog, before the
+  // debounced onUpdate() ever had a chance to persist it upward.
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+
   useEffect(() => {
+    if (isDirtyRef.current) return; // a local edit is in flight — don't clobber it
     if (project.assets) {
       const data = {
         ...project.assets,
@@ -462,8 +472,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     dfdElements: project.dfdElements,
     dfdConnections: project.dfdConnections,
     onSync: (result) => {
-      console.log("[ASSETS-TAB] Sync completed:", result);
-
       setSyncWarnings(result.warnings);
 
       // Only update state if something actually changed

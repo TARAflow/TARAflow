@@ -23,7 +23,10 @@ import { mapDFDAssetsToAssetFeature } from "./dfd-to-asset-mapper";
  * - On load/backfill: pass `prev = undefined` to force a sync that repairs any
  *   pre-existing drift (stale `linkedDFDElements`, stranded hazard targets).
  *
- * Elements/connections are reserved (unused) params in syncFromDFD → [] is faithful.
+ * Elements/connections are reserved (unused) params in syncFromDFD → [] is
+ * faithful for those two. mapDFDAssetsToAssetFeature's elements/connections
+ * are a separate, REQUIRED pair — it rebuilds linkedElements (incl. safety)
+ * from their assetRelations, not from a mirror. Do not conflate the two.
  */
 export function commitAssetSync(
   prev: Project | undefined,
@@ -37,7 +40,11 @@ export function commitAssetSync(
 
   const { assetData, hasChanges } = syncFromDFD(
     next.assets,
-    mapDFDAssetsToAssetFeature(next.dfd?.assets ?? []),
+    mapDFDAssetsToAssetFeature(
+      next.dfd?.assets ?? [],
+      next.dfd?.elements ?? [],
+      next.dfd?.connections ?? [],
+    ),
     [],
     [],
   );

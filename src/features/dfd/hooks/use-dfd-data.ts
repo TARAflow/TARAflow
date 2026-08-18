@@ -37,11 +37,30 @@ export interface UseDFDDataReturn {
   stats: DFDStats | undefined;
 
   // Atomic update operations (always rebuild graph + sync + stats)
-  updateElement: (elementId: string, updates: Partial<DFDElement>) => DFDData;
-  updateAsset: (assetId: string, updates: Partial<DFDAsset>) => DFDData;
+  //
+  // `baseDfd` is optional and lets a caller override which DFDData to build
+  // on top of, instead of this hook's own closed-over `project.dfd`. This
+  // matters for callers that pair these functions with a debounced
+  // scheduleSave: scheduleSave's updater receives the freshest known state
+  // (a still-pending, not-yet-flushed edit, or project.dfd if nothing is
+  // pending) — without threading that through as `baseDfd`, a second edit
+  // arriving within the debounce window would be computed from the stale
+  // project.dfd (missing the first edit) and silently discard it when
+  // scheduleSave replaces the pending save wholesale.
+  updateElement: (
+    elementId: string,
+    updates: Partial<DFDElement>,
+    baseDfd?: DFDData,
+  ) => DFDData;
+  updateAsset: (
+    assetId: string,
+    updates: Partial<DFDAsset>,
+    baseDfd?: DFDData,
+  ) => DFDData;
   updateConnection: (
     connectionId: string,
     updates: Partial<DFDConnection>,
+    baseDfd?: DFDData,
   ) => DFDData;
 
   /**
@@ -56,13 +75,14 @@ export interface UseDFDDataReturn {
     name: string,
     assetGroup: AssetGroup,
     protectionNeed?: DFDAsset["protectionNeed"],
+    baseDfd?: DFDData,
   ) => { newDfd: DFDData; asset: DFDAsset };
 
   /**
    * Delete an asset from dfd.assets[] and remove all its relations
    * from elements and connections atomically.
    */
-  deleteAsset: (assetId: string) => DFDData;
+  deleteAsset: (assetId: string, baseDfd?: DFDData) => DFDData;
 
   /**
    * Derive AvailableAsset[] from dfd.assets for the AssetRelationSelector.
@@ -71,7 +91,7 @@ export interface UseDFDDataReturn {
   availableAssets: AvailableAsset[];
 
   // Low-level update (for advanced use cases)
-  updateDFD: (updater: (dfd: DFDData) => DFDData) => DFDData;
+  updateDFD: (updater: (dfd: DFDData) => DFDData, baseDfd?: DFDData) => DFDData;
 }
 
 // ==================== HELPER: SYNC LINKED ELEMENTS ====================
@@ -176,15 +196,19 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    *   2. Graph is rebuilt
    *   3. Stats are recalculated
    *   4. lastModified is updated
+   *
+   * `baseDfd`, if provided, overrides this hook's own `dfd` (project.dfd) as
+   * the state to apply `updater` on top of — see UseDFDDataReturn for why.
    */
   const updateDFD = useCallback(
-    (updater: (dfd: DFDData) => DFDData): DFDData => {
-      if (!dfd) {
+    (updater: (dfd: DFDData) => DFDData, baseDfd?: DFDData): DFDData => {
+      const base = baseDfd ?? dfd;
+      if (!base) {
         throw new Error("Cannot update DFD: project.dfd is null");
       }
 
       // 1. Apply caller's changes
-      const updated = updater(dfd);
+      const updated = updater(base);
 
       // 2. Sync asset linkedElements (SINGLE SOURCE OF TRUTH)
       const syncedAssets = syncAssetLinkedElements(
@@ -222,13 +246,20 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    * Update element properties (description, properties, assetRelations, …)
    */
   const updateElement = useCallback(
-    (elementId: string, updates: Partial<DFDElement>): DFDData =>
-      updateDFD((current) => ({
-        ...current,
-        elements: current.elements.map((el) =>
-          el.id === elementId ? { ...el, ...updates } : el,
-        ),
-      })),
+    (
+      elementId: string,
+      updates: Partial<DFDElement>,
+      baseDfd?: DFDData,
+    ): DFDData =>
+      updateDFD(
+        (current) => ({
+          ...current,
+          elements: current.elements.map((el) =>
+            el.id === elementId ? { ...el, ...updates } : el,
+          ),
+        }),
+        baseDfd,
+      ),
     [updateDFD],
   );
 
@@ -242,9 +273,15 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    * prefix is generated (DA-001 → SY-001) via the shared generateAssetId.
    */
   const updateAsset = useCallback(
-    (assetId: string, updates: Partial<DFDAsset>): DFDData => {
-      // Detect category change
-      const oldAsset = dfd?.assets.find((a) => a.id === assetId);
+    (
+      assetId: string,
+      updates: Partial<DFDAsset>,
+      baseDfd?: DFDData,
+    ): DFDData => {
+      // Detect category change — must inspect the SAME base updateDFD will
+      // actually apply on top of, not necessarily this hook's own `dfd`.
+      const effectiveBase = baseDfd ?? dfd;
+      const oldAsset = effectiveBase?.assets.find((a) => a.id === assetId);
       const categoryChanged =
         updates.assetGroup &&
         oldAsset &&
@@ -308,22 +345,29 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
           connections,
           assets,
         };
-      });
+      }, baseDfd);
     },
-    [dfd?.assets, updateDFD],
+    [dfd, updateDFD],
   );
 
   /**
    * Update connection properties (label, properties, assetRelations, …)
    */
   const updateConnection = useCallback(
-    (connectionId: string, updates: Partial<DFDConnection>): DFDData =>
-      updateDFD((current) => ({
-        ...current,
-        connections: current.connections.map((c) =>
-          c.id === connectionId ? { ...c, ...updates } : c,
-        ),
-      })),
+    (
+      connectionId: string,
+      updates: Partial<DFDConnection>,
+      baseDfd?: DFDData,
+    ): DFDData =>
+      updateDFD(
+        (current) => ({
+          ...current,
+          connections: current.connections.map((c) =>
+            c.id === connectionId ? { ...c, ...updates } : c,
+          ),
+        }),
+        baseDfd,
+      ),
     [updateDFD],
   );
 
@@ -349,11 +393,14 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
       name: string,
       assetGroup: AssetGroup,
       protectionNeed?: DFDAsset["protectionNeed"],
+      baseDfd?: DFDData,
     ): { newDfd: DFDData; asset: DFDAsset } => {
-      if (!dfd) throw new Error("Cannot create asset: project.dfd is null");
+      const effectiveBase = baseDfd ?? dfd;
+      if (!effectiveBase)
+        throw new Error("Cannot create asset: project.dfd is null");
 
       const seed = createAssetSeed(
-        dfd.assets.map((a) => a.id),
+        effectiveBase.assets.map((a) => a.id),
         name,
         assetGroup,
         protectionNeed,
@@ -364,10 +411,13 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         linkedElements: [], // will be populated by syncAssetLinkedElements
       };
 
-      const newDfd = updateDFD((current) => ({
-        ...current,
-        assets: [...current.assets, newAsset],
-      }));
+      const newDfd = updateDFD(
+        (current) => ({
+          ...current,
+          assets: [...current.assets, newAsset],
+        }),
+        baseDfd,
+      );
 
       return { newDfd, asset: newAsset };
     },
@@ -381,31 +431,34 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    * Atomically: graph rebuild + stats + linkedElements sync guaranteed by updateDFD.
    */
   const deleteAsset = useCallback(
-    (assetId: string): DFDData =>
-      updateDFD((current) => ({
-        ...current,
-        assets: current.assets.filter((a) => a.id !== assetId),
-        elements: current.elements.map((el) =>
-          el.assetRelations?.some((r) => r.assetId === assetId)
-            ? {
-                ...el,
-                assetRelations: el.assetRelations!.filter(
-                  (r) => r.assetId !== assetId,
-                ),
-              }
-            : el,
-        ),
-        connections: current.connections.map((conn) =>
-          conn.assetRelations?.some((r) => r.assetId === assetId)
-            ? {
-                ...conn,
-                assetRelations: conn.assetRelations!.filter(
-                  (r) => r.assetId !== assetId,
-                ),
-              }
-            : conn,
-        ),
-      })),
+    (assetId: string, baseDfd?: DFDData): DFDData =>
+      updateDFD(
+        (current) => ({
+          ...current,
+          assets: current.assets.filter((a) => a.id !== assetId),
+          elements: current.elements.map((el) =>
+            el.assetRelations?.some((r) => r.assetId === assetId)
+              ? {
+                  ...el,
+                  assetRelations: el.assetRelations!.filter(
+                    (r) => r.assetId !== assetId,
+                  ),
+                }
+              : el,
+          ),
+          connections: current.connections.map((conn) =>
+            conn.assetRelations?.some((r) => r.assetId === assetId)
+              ? {
+                  ...conn,
+                  assetRelations: conn.assetRelations!.filter(
+                    (r) => r.assetId !== assetId,
+                  ),
+                }
+              : conn,
+          ),
+        }),
+        baseDfd,
+      ),
     [updateDFD],
   );
 

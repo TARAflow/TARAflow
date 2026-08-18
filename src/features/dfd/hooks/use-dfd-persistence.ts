@@ -24,7 +24,19 @@ export interface UseDFDPersistenceReturn {
 
   // Actions
   save: (thumbnailData?: string) => Promise<DFDUpdateResult | null>;
-  scheduleSave: (result: DFDUpdateResult) => void;
+  /**
+   * Schedule a debounced save. `updater` receives the freshest known base —
+   * the still-pending (not yet flushed) DFDData if one exists, otherwise the
+   * current project.dfd — and must return the full DFDUpdateResult to save.
+   *
+   * Building from `base` (not from a closed-over `dfd` value) is what
+   * prevents a second scheduleSave call, arriving before the first one's
+   * debounce fires, from silently discarding the first edit: without this,
+   * both calls would compute their DFDData from the same stale project.dfd,
+   * and the second call's wholesale replacement of pendingSaveRef.current
+   * would win completely, losing the first caller's change.
+   */
+  scheduleSave: (updater: (base: DFDData) => DFDUpdateResult) => void;
   scheduleDrawioSave: (xml: string) => void; // Debounced autosave triggered by DrawIO changes
   flush: () => void;
   markDirty: () => void;
@@ -61,6 +73,21 @@ export function useDFDPersistence(
   // (which arrives via scheduleSave/onUpdate AFTER the drawio save fires).
   const projectRef = useRef<DFDProjectData>(project);
   projectRef.current = project;
+
+  // The freshest dfd this hook has ever handed to onUpdate — set at the
+  // moment of every onUpdate call (save, scheduleSave flush, scheduleSave
+  // immediate, scheduleDrawioSave), NOT only while an edit is still
+  // pending. `pendingSaveRef` alone is not enough: it is cleared back to
+  // null by scheduleSave's OWN timer the instant it flushes, which (with
+  // the default 500ms/1500ms delays) always happens BEFORE
+  // scheduleDrawioSave's timer fires when both start around the same
+  // time. By then there is nothing "pending" to read anymore, yet
+  // `project` (the prop) has not necessarily re-rendered with the flushed
+  // value yet — projectRef.current is stale in exactly that gap. This ref
+  // survives across that gap. See schedule-drawio-save-lost-update.test.ts.
+  const lastCommittedDfdRef = useRef<DFDData | undefined>(
+    project.dfd ?? undefined,
+  );
 
   const pendingXmlRef = useRef<string | null>(null);
 
@@ -114,6 +141,7 @@ export function useDFDPersistence(
         };
 
         // Notify parent
+        lastCommittedDfdRef.current = updateResult.dfd;
         onUpdate?.(updateResult);
 
         // Mark as clean
@@ -130,13 +158,34 @@ export function useDFDPersistence(
   );
 
   /**
-   * Schedule a debounced save
-   * Used for auto-save during description editing
+   * Schedule a debounced save.
+   * Used for auto-save during description editing.
+   *
+   * See UseDFDPersistenceReturn.scheduleSave for why this takes an updater
+   * function rather than a precomputed DFDUpdateResult.
    */
   const scheduleSave = useCallback(
-    (result: DFDUpdateResult) => {
+    (updater: (base: DFDData) => DFDUpdateResult) => {
+      // The freshest known state: a still-pending (not yet flushed) edit
+      // wins, then the last dfd we've ever handed to onUpdate (which may
+      // have flushed already but not yet round-tripped back through
+      // `project`), then finally project.dfd as the last resort.
+      const base =
+        pendingSaveRef.current?.dfd ??
+        lastCommittedDfdRef.current ??
+        projectRef.current.dfd;
+      if (!base) {
+        console.warn(
+          "[useDFDPersistence] scheduleSave called with no dfd available (neither pending, last-committed, nor project.dfd) — ignoring",
+        );
+        return;
+      }
+
+      const result = updater(base);
+
       if (debounceDelay <= 0) {
         // Debouncing disabled, save immediately
+        lastCommittedDfdRef.current = result.dfd;
         onUpdate?.(result);
         markClean();
         return;
@@ -156,6 +205,7 @@ export function useDFDPersistence(
         console.log("[useDFDPersistence] Executing debounced save...");
 
         if (pendingSaveRef.current) {
+          lastCommittedDfdRef.current = pendingSaveRef.current.dfd;
           onUpdate?.(pendingSaveRef.current);
           pendingSaveRef.current = null;
           markClean();
@@ -189,7 +239,25 @@ export function useDFDPersistence(
         if (!currentXml) return;
 
         try {
-          const currentProject = projectRef.current;
+          // Freshest known dfd — same fallback chain as scheduleSave's
+          // `base`. Using ONLY pendingSaveRef here is not enough:
+          // scheduleSave's own timer clears it to null the instant it
+          // flushes, which (with default delays) happens before this
+          // timer fires whenever both were scheduled around the same
+          // time — leaving nothing "pending" to read, while `project`
+          // (the prop) may not have re-rendered with the flushed value
+          // yet. lastCommittedDfdRef survives exactly that gap. Without
+          // this, saveDFDFromXml's mergeAssetProperties merges against a
+          // stale base and silently reverts a just-saved description —
+          // the confirmed root cause of asset/element/connection
+          // descriptions vanishing shortly after being saved whenever a
+          // DrawIO autosave event fired in the same window — see
+          // schedule-drawio-save-lost-update.test.ts.
+          const base =
+            pendingSaveRef.current?.dfd ??
+            lastCommittedDfdRef.current ??
+            projectRef.current.dfd;
+          const currentProject = { ...projectRef.current, dfd: base };
 
           // XML direkt verarbeiten — kein localStorage-Read mehr
           const result = dfdService.saveDFDFromXml(currentProject, currentXml);
@@ -208,7 +276,19 @@ export function useDFDPersistence(
             lastModified: result.lastModified,
           };
 
+          lastCommittedDfdRef.current = updateResult.dfd;
           onUpdate?.(updateResult);
+
+          // The pending scheduleSave edit (if any) is now folded into this
+          // result. Clear it and cancel its timer so it doesn't fire again
+          // afterwards with a now-outdated base and overwrite what we just
+          // saved — the second half of the same race.
+          if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+          }
+          pendingSaveRef.current = null;
+
           markClean();
           onAfterDrawioSave?.(updateResult);
 
@@ -242,6 +322,7 @@ export function useDFDPersistence(
     // Execute pending description-edit save
     if (pendingSaveRef.current) {
       console.log("[useDFDPersistence] Flushing pending save...");
+      lastCommittedDfdRef.current = pendingSaveRef.current.dfd;
       onUpdate?.(pendingSaveRef.current);
       pendingSaveRef.current = null;
       markClean();

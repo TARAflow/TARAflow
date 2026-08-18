@@ -168,11 +168,18 @@ export function syncFromDFD(
         syncedWithDFD: true,
         linkedDFDElements,
         properties: {
-          description: dfdAsset.description ?? "",
+          description: dfdAsset.description || undefined,
           protectionNeed: dfdAsset.protectionNeed,
         },
       };
-      updatedAssets = [...updatedAssets, newAsset];
+      // Derive immediately — without this, an asset created with an
+      // existing safety annotation could get permanently stuck with no
+      // physicalImpact: the update branch below skips derivation whenever
+      // linkedDFDElements hasn't changed since last sync, and on a freshly
+      // created asset it never will (it was set to exactly the incoming
+      // value one line above). See asset-sync-service.safety.test.ts.
+      const withPhysical = deriveAndApplyImpacts(newAsset, linkedDFDElements);
+      updatedAssets = [...updatedAssets, withPhysical];
       newAssetIds.push(dfdAsset.id);
     } else {
       // Update existing — preserve all analyst-set fields, only refresh links
@@ -205,8 +212,11 @@ export function syncFromDFD(
         assetGroup: newGroup,
         properties: {
           ...existing.properties,
-          description:
-            existing.properties?.description ?? dfdAsset.description ?? "",
+          // description is owned by use-bidirectional-asset-sync (last-writer-wins).
+          // syncFromDFD must NOT recompute it — the old
+          //   existing?.description ?? dfd.description ?? ""
+          // discarded fresh DFD edits (empty-string short-circuits ??) and
+          // reset undefined→"", poisoning the hook's change detection.
           protectionNeed:
             dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
         },

@@ -45,12 +45,20 @@ function stripVolatile<T>(result: T): T {
 
 /**
  * Runs the DFD → AssetData sync exactly as the app would: map the persisted
- * dfd.assets into the asset-feature reference shape, then sync. Elements and
- * connections are reserved params in syncFromDFD (unused today) → [] is faithful.
+ * dfd.assets into the asset-feature reference shape, then sync.
+ *
+ * mapDFDAssetsToAssetFeature now REQUIRES elements/connections — it rebuilds
+ * linkedElements (incl. safety) from their assetRelations rather than the
+ * (lossy) DFDAsset.linkedElements mirror. syncFromDFD's own elements/
+ * connections params remain reserved/unused — [] is still faithful there.
  */
 function runSync(project: ReturnType<typeof loadProjectFixture>) {
   const assetData = project.assets ?? createDefaultAssetData();
-  const dfdAssets = mapDFDAssetsToAssetFeature(project.dfd?.assets ?? []);
+  const dfdAssets = mapDFDAssetsToAssetFeature(
+    project.dfd?.assets ?? [],
+    project.dfd?.elements ?? [],
+    project.dfd?.connections ?? [],
+  );
   return syncFromDFD(assetData, dfdAssets, [], []);
 }
 
@@ -149,13 +157,15 @@ describe("Phase 0 — §3.4 safety-projection gap (sentinel)", () => {
 
 describe("Phase 0 — AssetReference projection snapshot", () => {
   it("SmokeDetector: id → derived impact fields", () => {
-    const refs = toRefs(loadProjectFixture(FIXTURES.smokeDetector)).map((r) => ({
-      id: r.id,
-      assetGroup: r.assetGroup,
-      aggregatedImpact: r.aggregatedImpact,
-      physicalImpact: r.physicalImpact,
-      hasSafetyAnnotation: r.hasSafetyAnnotation,
-    }));
+    const refs = toRefs(loadProjectFixture(FIXTURES.smokeDetector)).map(
+      (r) => ({
+        id: r.id,
+        assetGroup: r.assetGroup,
+        aggregatedImpact: r.aggregatedImpact,
+        physicalImpact: r.physicalImpact,
+        hasSafetyAnnotation: r.hasSafetyAnnotation,
+      }),
+    );
     // Known baseline (verified against the fixture): aggregatedImpact distribution
     // CRITICAL×1, HIGH+×3, undefined×15; physicalImpact set on 4.
     expect(refs).toMatchSnapshot();

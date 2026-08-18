@@ -27,7 +27,7 @@ export interface ProjectContextValue {
   // All feature tabs call this when their data changes.
   // Implemented with useRef internally — no stale-closure risk.
 
-  updateProject: (project: Project) => Promise<void>;
+  updateProject: (patch: Partial<Project> & { id: string }) => Promise<void>;
 
   // ── Project lifecycle ─────────────────────────────────────────────────────
 

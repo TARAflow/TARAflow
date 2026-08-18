@@ -7,7 +7,6 @@
 //   - All feature tab handlers (DFD, Assets, Threats, Risks, etc.)
 //   - All memoized data transformations for feature tabs
 //   - activeProjectRef (stale-closure protection for async handlers)
-//   - useBidirectionalAssetSync
 //
 // What does NOT live here:
 //   - Project list state (ProjectShell / useProjectManager)
@@ -29,7 +28,6 @@ import {
 } from "shared";
 
 import { useProjectContext } from "../../contexts/project-context";
-import { useBidirectionalAssetSync } from "../../hooks/use-bidirectional-asset-sync";
 
 import { PhaseTabs } from "../navigation/phase-tab-bar";
 
@@ -114,38 +112,33 @@ export const WorkspaceLayout: React.FC = () => {
   const activeProjectRef = useRef<Project | undefined>(undefined);
   activeProjectRef.current = activeProject;
 
+  // "" and undefined are the same "no description" state — Assets stores it
+  // inside properties (can be "" after a cleared text field), DFD stores it
+  // as an optional top-level field (undefined when absent). Used by both
+  // handleDFDUpdate (DFD→Assets mirror) and handleAssetsUpdate (Assets→DFD
+  // mirror) below.
+  const normDesc = (s: string | undefined): string | undefined =>
+    s && s.trim().length > 0 ? s : undefined;
+
   // ── Bidirectional asset sync ──────────────────────────────────────────────
-
-  const handleBidirectionalUpdate = useCallback(
-    (updates: any) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-
-      updateProject({
-        ...current,
-        ...updates,
-        dfd: updates.dfd
-          ? {
-              ...current.dfd,
-              ...updates.dfd,
-              ...(current.dfd?.graph ? { graph: current.dfd.graph } : {}),
-            }
-          : current.dfd,
-        info: {
-          ...current.info,
-          lastModified: new Date().toISOString(),
-        },
-      });
-    },
-    // updateProject is stable (useCallback with stable deps in use-project-manager)
-    [updateProject],
-  );
-
-  useBidirectionalAssetSync({
-    project: activeProject,
-    onUpdate: handleBidirectionalUpdate,
-    enabled: true,
-  });
+  // REMOVED (see handleAssetsUpdate / handleDFDUpdate below): name and
+  // description edits are now mirrored synchronously, in the SAME
+  // updateProject call as the edit itself. There is never any ambiguity
+  // about which side is "the change" — the handler that receives the edit
+  // IS the source of truth for that edit, by construction (Asset-Tab edits
+  // arrive via handleAssetsUpdate, DFD-Tab edits via handleDFDUpdate /
+  // updateAssetDescription — never both for the same edit).
+  //
+  // The old design wrote each side independently and used a separate,
+  // debounced effect (useBidirectionalAssetSync) to reconcile them
+  // afterwards via snapshot-history heuristics ("which side still matches
+  // the last known baseline"). That gap between the two writes — and the
+  // heuristics needed to guess across it — was the root cause of every
+  // description-loss bug found in this investigation (the DrawIO-autosave
+  // race, the StrictMode double-invoke issue, and the assets-tab
+  // cross-contamination bug). Writing both sides atomically in one
+  // updateProject call removes the gap entirely, so there is nothing left
+  // to guess and nothing left to race.
 
   // ── Phase change ──────────────────────────────────────────────────────────
 
@@ -171,7 +164,7 @@ export const WorkspaceLayout: React.FC = () => {
       }
 
       setActivePhase(phaseId);
-      updateProject({ ...current, currentPhase: phaseId });
+      updateProject({ id: current.id, currentPhase: phaseId });
     },
     [setActivePhase, toast, updateProject],
   );
@@ -189,35 +182,35 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── General tab ───────────────────────────────────────────────────────────
 
-    const generalTabData: GeneralTabData | undefined = activeProject?.info
-      ? {
-          info: activeProject.info,
-          settings: activeProject.settings,
-          phaseStatus: activeProject.phaseStatus,
-          dfdValidation: activeProject.dfd?.validation
-            ? {
-                valid: activeProject.dfd.validation.errors.length === 0,
-                // GeneralTabData.dfdValidation uses the generic, string-based
-                // ValidationResult (common-types.ts) — it's a plain summary
-                // widget, not the interactive DFD notification panel, so it
-                // doesn't need displayId/elementId, just translated text.
-                errors: activeProject.dfd.validation.errors.map((f) =>
-                  translateFinding(t, f),
-                ),
-                warnings: activeProject.dfd.validation.warnings.map((f) =>
-                  translateFinding(t, f),
-                ),
-              }
-            : undefined,
-        }
-      : undefined;
+  const generalTabData: GeneralTabData | undefined = activeProject?.info
+    ? {
+        info: activeProject.info,
+        settings: activeProject.settings,
+        phaseStatus: activeProject.phaseStatus,
+        dfdValidation: activeProject.dfd?.validation
+          ? {
+              valid: activeProject.dfd.validation.errors.length === 0,
+              // GeneralTabData.dfdValidation uses the generic, string-based
+              // ValidationResult (common-types.ts) — it's a plain summary
+              // widget, not the interactive DFD notification panel, so it
+              // doesn't need displayId/elementId, just translated text.
+              errors: activeProject.dfd.validation.errors.map((f) =>
+                translateFinding(t, f),
+              ),
+              warnings: activeProject.dfd.validation.warnings.map((f) =>
+                translateFinding(t, f),
+              ),
+            }
+          : undefined,
+      }
+    : undefined;
 
   const handleGeneralTabUpdate = useCallback(
     (data: GeneralTabData) => {
       const current = activeProjectRef.current;
       if (!current) return;
       updateProject({
-        ...current,
+        id: current.id,
         info: data.info,
         settings: data.settings,
         phaseStatus: data.phaseStatus,
@@ -287,11 +280,38 @@ export const WorkspaceLayout: React.FC = () => {
       if (dfd.assets && current.assets) {
         const { assetData } = syncFromDFD(
           current.assets,
-          mapDFDAssetsToAssetFeature(dfd.assets),
+          mapDFDAssetsToAssetFeature(
+            dfd.assets,
+            dfd.elements ?? [],
+            dfd.connections ?? [],
+          ),
           mapDFDElementsToAssetFeature(dfd.elements ?? []),
           mapDFDConnectionsToAssetFeature(dfd.connections ?? []),
         );
-        assets = assetData;
+
+        // syncFromDFD deliberately never touches `description` (see
+        // asset-sync-service.ts) — that was previously the sole
+        // responsibility of the now-removed useBidirectionalAssetSync.
+        // Mirror it here explicitly, synchronously, in the same
+        // updateProject call — symmetric to the Asset→DFD mirroring added
+        // in handleAssetsUpdate. Without this, a description edited in the
+        // DFD tab never reaches the Assets tab.
+        const dfdAssetsList = dfd.assets;
+        assets = {
+          ...assetData,
+          assets: assetData.assets.map((asset) => {
+            const dfdAsset = dfdAssetsList.find((a) => a.id === asset.id);
+            if (!dfdAsset) return asset;
+            const newDesc = normDesc(dfdAsset.description);
+            if (newDesc === normDesc(asset.properties?.description)) {
+              return asset;
+            }
+            return {
+              ...asset,
+              properties: { ...asset.properties, description: newDesc },
+            };
+          }),
+        };
       }
 
       // 2) Build the enriched asset reference from the freshly-synced store.
@@ -311,7 +331,7 @@ export const WorkspaceLayout: React.FC = () => {
       );
 
       await updateProject({
-        ...current,
+        id: current.id,
         dfd,
         assets, // persist the reconciled asset store too
         phaseStatus: updates.phaseStatus,
@@ -342,7 +362,11 @@ export const WorkspaceLayout: React.FC = () => {
       if (updates.createdAssets?.length && dfd?.assets && current.assets) {
         const { assetData } = syncFromDFD(
           current.assets,
-          mapDFDAssetsToAssetFeature(dfd.assets),
+          mapDFDAssetsToAssetFeature(
+            dfd.assets,
+            dfd.elements ?? [],
+            dfd.connections ?? [],
+          ),
           mapDFDElementsToAssetFeature(dfd.elements ?? []),
           mapDFDConnectionsToAssetFeature(dfd.connections ?? []),
         );
@@ -350,10 +374,10 @@ export const WorkspaceLayout: React.FC = () => {
       }
 
       await updateProject({
-        ...current,
+        id: current.id,
         hazards: updates.hazards,
         dfd,
-        assets, // ← neu: synchronisierter Assets-Store
+        assets, // ← synchronisierter Assets-Store
         phaseStatus: { ...current.phaseStatus, [PhaseId.Hazard]: status },
       });
     },
@@ -366,9 +390,48 @@ export const WorkspaceLayout: React.FC = () => {
     async (updates: AssetUpdateResult) => {
       const current = activeProjectRef.current;
       if (!current) return;
+
+      // Mirror name/description edits from the Asset-Tab onto dfd.assets in
+      // THIS SAME updateProject call. The Asset-Tab is the known source of
+      // this edit — there is nothing to guess, so we just propagate it.
+      // See the note above (former "Bidirectional asset sync" section) for
+      // why this replaced the async heuristic sync.
+      let dfd = current.dfd;
+      const newAssets = updates.assets?.assets;
+      if (dfd?.assets && newAssets) {
+        let changed = false;
+        const mirroredAssets = dfd.assets.map((dfdAsset) => {
+          const asset = newAssets.find((a) => a.id === dfdAsset.id);
+          if (!asset) return dfdAsset;
+
+          const newName = asset.name || dfdAsset.name;
+          const newDesc = normDesc(asset.properties?.description);
+          const nameChanged = newName !== dfdAsset.name;
+          const descChanged = newDesc !== normDesc(dfdAsset.description);
+
+          if (!nameChanged && !descChanged) return dfdAsset;
+
+          changed = true;
+          return {
+            ...dfdAsset,
+            name: newName,
+            description: newDesc,
+          };
+        });
+
+        if (changed) {
+          dfd = {
+            ...dfd,
+            assets: mirroredAssets,
+            lastModified: new Date().toISOString(),
+          };
+        }
+      }
+
       await updateProject({
-        ...current,
+        id: current.id,
         assets: updates.assets,
+        dfd,
         phaseStatus: updates.phaseStatus,
       });
     },
@@ -382,7 +445,7 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
       await updateProject({
-        ...current,
+        id: current.id,
         threats: updates.threats,
         phaseStatus: updates.phaseStatus,
       });
@@ -397,7 +460,7 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
       await updateProject({
-        ...current,
+        id: current.id,
         risks: updates.risks,
         phaseStatus: updates.phaseStatus,
       });
@@ -412,10 +475,9 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
       updateProject({
-        ...current,
+        id: current.id,
         attackTrees: updates.attackTrees,
         phaseStatus: updates.phaseStatus,
-        info: { ...current.info, lastModified: updates.lastModified },
       });
     },
     [updateProject],
@@ -428,10 +490,9 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
       updateProject({
-        ...current,
+        id: current.id,
         audit: updates.audit,
         phaseStatus: updates.phaseStatus,
-        info: { ...current.info, lastModified: updates.lastModified },
       });
     },
     [updateProject],
@@ -441,7 +502,7 @@ export const WorkspaceLayout: React.FC = () => {
     (isDirty: boolean) => {
       const current = activeProjectRef.current;
       if (!current) return;
-      updateProject({ ...current, hasUnsavedChanges: isDirty });
+      updateProject({ id: current.id, hasUnsavedChanges: isDirty });
     },
     [updateProject],
   );
@@ -453,7 +514,7 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
       updateProject({
-        ...current,
+        id: current.id,
         documentation: updates.documentation,
         phaseStatus: updates.phaseStatus,
       });
@@ -468,9 +529,8 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
       updateProject({
-        ...current,
+        id: current.id,
         integration: data.integration,
-        hasUnsavedChanges: true,
       });
     },
     [updateProject],
@@ -481,9 +541,21 @@ export const WorkspaceLayout: React.FC = () => {
   const memoizedDFDAssets = useMemo(
     () =>
       activeProject?.dfd?.assets
-        ? mapDFDAssetsToAssetFeature(activeProject.dfd.assets)
+        ? mapDFDAssetsToAssetFeature(
+            activeProject.dfd.assets,
+            activeProject.dfd.elements ?? [],
+            activeProject.dfd.connections ?? [],
+          )
         : undefined,
-    [activeProject?.dfd?.assets],
+    // Must also depend on elements/connections: linkedElements (incl.
+    // safety) is rebuilt from their assetRelations, so a safety-only edit
+    // on an element/connection — with the assets array reference
+    // unchanged — must still invalidate this memo.
+    [
+      activeProject?.dfd?.assets,
+      activeProject?.dfd?.elements,
+      activeProject?.dfd?.connections,
+    ],
   );
 
   const memoizedDFDElements = useMemo(
@@ -916,4 +988,4 @@ export const WorkspaceLayout: React.FC = () => {
       </div>
     </>
   );
-};;
+};;;

@@ -1523,8 +1523,14 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
           value={localDescription}
           onChange={setLocalDescription}
           onBlur={() => {
-            if (localDescription !== asset.description)
-              handlePropertyChange("description", localDescription);
+            // description is a top-level DFDAsset field (dfd-asset-types.ts),
+            // NOT part of AssetProperties — must go through onChange directly.
+            // handlePropertyChange writes into properties.<key>, which for
+            // "description" created an untyped properties.description that
+            // nothing (including this field's own read/init above) ever
+            // looked at again — the actual bug behind "not saved".
+            if (localDescription !== (asset.description || ""))
+              onChange({ description: localDescription || undefined });
           }}
           label=""
           helperText={t("tabs.dfd.element_description.asset.descriptionHelper")}

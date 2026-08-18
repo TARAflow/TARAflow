@@ -20,6 +20,7 @@ import type { DFDElement } from "../models/dfd-types";
 
 interface BaseElementProperties {
   notes?: string;
+  description?: string;
 }
 
 // ==================== TYPES ====================
@@ -66,14 +67,15 @@ export function useElementForm<P extends BaseElementProperties>(
 
   // Local text state — onBlur pattern avoids excessive re-renders
   const [localDescription, setLocalDescription] = useState(
-    element.description || "",
+    props.description || "",
   );
   const [localNotes, setLocalNotes] = useState(props.notes || "");
 
   // Sync when element changes externally (e.g. undo, external update)
   useEffect(() => {
-    setLocalDescription(element.description || "");
-  }, [element.description]);
+    setLocalDescription((element.properties as P).description || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(element.properties as P).description]);
 
   useEffect(() => {
     setLocalNotes((element.properties as P).notes || "");
@@ -81,11 +83,31 @@ export function useElementForm<P extends BaseElementProperties>(
   }, [(element.properties as P).notes]);
 
   // Commit helpers — called on onBlur
+  // NOTE: description is stored in properties.description, not on a top-level
+  // element.description — that field does not exist in the persisted schema
+  // (verified against real project data: DFDElement's only top-level keys are
+  // assetRelations/displayId/id/name/position/properties/size/type). An
+  // earlier version of this hook wrote to element.description directly,
+  // which was silently lost on save/reload.
+  //
+  // The element property UNION (ProcessProperties | ... ) does not declare
+  // `description` (unlike `notes`, which is inline on every member — hence
+  // commitNotes needs no cast). The merged literal is therefore cast to the
+  // union to suppress the excess-property check. This mirrors the existing
+  // read-site casts (e.g. dfd-description-view.tsx). The type-honest
+  // alternative is to declare `description?: string` on the properties union
+  // in dfd-types.ts, which makes this cast unnecessary.
   const commitDescription = useCallback(() => {
-    if (localDescription !== element.description) {
-      onChange({ description: localDescription });
+    const current = (element.properties as P).description;
+    if (localDescription !== (current || "")) {
+      onChange({
+        properties: {
+          ...element.properties,
+          description: localDescription || undefined,
+        } as DFDElement["properties"],
+      });
     }
-  }, [localDescription, element.description, onChange]);
+  }, [localDescription, element.properties, onChange]);
 
   const commitNotes = useCallback(() => {
     const current = (element.properties as P).notes;

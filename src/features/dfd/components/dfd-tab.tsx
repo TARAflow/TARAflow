@@ -216,11 +216,16 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       const { newDfd, asset } = createAsset(name, assetGroup);
 
       // DFD persistieren (debounced)
-      scheduleSave({
+      // NOTE: createAsset() computes newDfd from useDFDData's own `dfd`
+      // closure, not from scheduleSave's `base` — see the comment on
+      // handleAssetChange below for why this is a smaller, separate residual
+      // gap (asset creation racing a pending description edit) rather than
+      // the bug this fixes (two description edits racing each other).
+      scheduleSave(() => ({
         dfd: newDfd,
         phaseStatus: project.phaseStatus,
         lastModified: newDfd.lastModified!,
-      });
+      }));
 
       // Zurück an Selector → wird sofort als assetId der neuen Relation verwendet
       return {
@@ -275,27 +280,36 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const handleAssetChange = useCallback(
     (assetId: string, changes: Partial<DFDAsset>) => {
-      const updatedAssets = (dfd?.assets ?? []).map((a) =>
-        a.id === assetId ? { ...a, ...changes } : a,
-      );
-      scheduleSave({
-        dfd: { ...dfd!, assets: updatedAssets },
-        phaseStatus: project.phaseStatus,
-        lastModified: new Date().toISOString(),
+      // THE FIX: build from `base` (scheduleSave's freshest known state —
+      // pending unflushed edit, or project.dfd if nothing is pending), not
+      // from the closed-over `dfd` prop. Previously, editing asset A then
+      // switching to asset B within the ~500ms debounce window computed
+      // asset B's update from `dfd`, which did not yet include asset A's
+      // still-pending edit — the resulting scheduleSave call wholesale
+      // replaced the pending save, silently dropping asset A's change.
+      scheduleSave((base) => {
+        const updatedAssets = (base.assets ?? []).map((a) =>
+          a.id === assetId ? { ...a, ...changes } : a,
+        );
+        return {
+          dfd: { ...base, assets: updatedAssets },
+          phaseStatus: project.phaseStatus,
+          lastModified: new Date().toISOString(),
+        };
       });
     },
-    [dfd, scheduleSave, project.phaseStatus],
+    [scheduleSave, project.phaseStatus],
   );
 
   // Create asset from the asset tree panel (group known, name defaults to empty)
   const handleCreateAssetForGroup = useCallback(
     (assetGroup: AssetGroup) => {
       const { newDfd } = createAsset("", assetGroup);
-      scheduleSave({
+      scheduleSave(() => ({
         dfd: newDfd,
         phaseStatus: project.phaseStatus,
         lastModified: newDfd.lastModified!,
-      });
+      }));
     },
     [createAsset, scheduleSave, project.phaseStatus],
   );
@@ -304,11 +318,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const handleDeleteAsset = useCallback(
     (assetId: string) => {
       const newDfd = deleteAsset(assetId);
-      scheduleSave({
+      scheduleSave(() => ({
         dfd: newDfd,
         phaseStatus: project.phaseStatus,
         lastModified: newDfd.lastModified!,
-      });
+      }));
     },
     [deleteAsset, scheduleSave, project.phaseStatus],
   );

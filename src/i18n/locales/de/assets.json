@@ -18,6 +18,7 @@
       "impactLabels": {
         "low": "LOW",
         "medium": "MEDIUM",
+        "med": "MEDIUM",
         "high": "HIGH",
         "highPlus": "HIGH+",
         "critical": "CRITICAL"

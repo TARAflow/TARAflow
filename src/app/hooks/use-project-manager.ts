@@ -56,7 +56,7 @@ export interface UseProjectManagerReturn {
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
 
   // Project operations
-  updateProject: (project: Project) => Promise<void>;
+  updateProject: (patch: Partial<Project> & { id: string }) => Promise<void>;
   syncProjectToStorage: (project: Project) => Promise<boolean>;
   switchProject: (projectId: string) => void;
   saveProject: (projectId: string) => Promise<void>;
@@ -146,42 +146,88 @@ export function useProjectManager(): UseProjectManagerReturn {
   );
 
   // ── Core write channel ────────────────────────────────────────────────────
-  // All feature tab handlers call this. Uses functional updater +
-  // ref pattern to prevent stale-closure overwrites.
+  // All feature tab handlers call this. Accepts a PARTIAL patch (not a full
+  // Project) and merges it against the freshest state inside setProjects'
+  // functional updater — this is the fix for a real lost-update race:
+  //
+  //   Previously, updateProject took a full Project object that each caller
+  //   built by spreading their OWN snapshot (`{...activeProjectRef.current,
+  //   someField: ...}`) and then REPLACED the project entry wholesale. If two
+  //   callers fired close together (e.g. AssetsTab's 1s debounced save, and
+  //   useBidirectionalAssetSync reacting to that very save), each built its
+  //   full replacement from a snapshot that didn't yet see the other's
+  //   change — whichever replacement landed last in setProjects won
+  //   COMPLETELY, silently discarding the other caller's edit (e.g. a
+  //   just-typed asset description).
+  //
+  //   Merging the patch onto `p` (the freshest entry from React's own state
+  //   queue, not a caller-side ref) inside the functional updater removes
+  //   the race: every top-level field NOT included in the patch is always
+  //   taken from the latest known state, regardless of how many callers
+  //   fire concurrently.
+  //
+  //   Residual scope note: this fixes races on TOP-LEVEL Project fields
+  //   (assets, dfd, threats, ...). A caller that patches a NESTED object
+  //   (e.g. `dfd: {...current.dfd, ...updates.dfd}`) can still build that
+  //   sub-object from a stale `current.dfd` — the same class of race one
+  //   level deeper. None of today's callers do this for `assets`, which is
+  //   what mattered here; revisit with a deeper merge if a similar bug
+  //   surfaces for a nested field.
 
   const updateProject = useCallback(
-    async (updatedProject: Project): Promise<void> => {
+    async (patch: Partial<Project> & { id: string }): Promise<void> => {
       const now = new Date().toISOString();
 
-      // Phase 2 — single sync chokepoint. Every feature tab writes through
-      // updateProject, so re-syncing AssetData from DFD here means no write path
-      // can strand or drift assets. Reference-guarded + idempotent → cheap no-op
-      // when DFD assets are unchanged.
-      const previous = projectsRef.current.find(
-        (p) => p.id === updatedProject.id,
-      );
-      const synced = commitAssetSync(previous, updatedProject);
-      const safe = commitProjectSafety(synced);
+      setProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== patch.id) return p;
 
-      const projectWithChanges: Project = {
-        ...safe,
-        info: { ...safe.info, lastModified: now },
+          const merged: Project = {
+            ...p,
+            ...patch,
+            info: { ...p.info, ...patch.info, lastModified: now },
+            hasUnsavedChanges: true,
+          };
+
+          const synced = commitAssetSync(p, merged);
+          return commitProjectSafety(synced);
+        }),
+      );
+
+      // Autosave decision + content: recompute the merge from
+      // projectsRef.current (kept current every render) rather than trying
+      // to read a value out of the setProjects updater above — an earlier
+      // version used flushSync for that, which React refuses to run when
+      // called from inside a lifecycle context (confirmed in production:
+      // "flushSync was called from inside a lifecycle method", triggered by
+      // useBidirectionalAssetSync's effect firing on mount). This redundant
+      // merge can, in the rare case of two truly simultaneous updateProject
+      // calls, lag one render behind for THIS immediate extra disk-write —
+      // the in-memory state set above is unaffected and always correct, and
+      // the next autosave interval or manual save captures the latest state
+      // regardless.
+      const latest = projectsRef.current.find((p) => p.id === patch.id);
+      if (!latest) return;
+
+      const mergedRaw: Project = {
+        ...latest,
+        ...patch,
+        info: { ...latest.info, ...patch.info, lastModified: now },
         hasUnsavedChanges: true,
       };
-
-      setProjects((prev) =>
-        prev.map((p) => (p.id === updatedProject.id ? projectWithChanges : p)),
+      const mergedForAutoSave = commitProjectSafety(
+        commitAssetSync(latest, mergedRaw),
       );
 
-      if (updatedProject.settings?.autoSave) {
+      if (mergedForAutoSave.settings?.autoSave) {
         const savedProject: Project = {
-          ...projectWithChanges,
+          ...mergedForAutoSave,
           hasUnsavedChanges: false,
         };
         const success = await syncProjectToStorage(savedProject);
         if (success) {
           setProjects((prev) =>
-            prev.map((p) => (p.id === updatedProject.id ? savedProject : p)),
+            prev.map((p) => (p.id === patch.id ? savedProject : p)),
           );
         }
       }
