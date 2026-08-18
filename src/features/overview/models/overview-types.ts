@@ -2,7 +2,12 @@
 // Data structures for the Overview/General feature
 // These define the shape of data this feature works with
 
-import type { PhaseStatusMap, ProjectTags, ValidationResult } from "shared";
+import type {
+  PhaseStatusMap,
+  ProjectTags,
+  RegulationPresetId,
+  ValidationResult,
+} from "shared";
 
 // ==================== OVERVIEW-SPECIFIC TYPES ====================
 /**
@@ -38,6 +43,12 @@ export interface ProjectSettingsData {
   strictMode: boolean;
   autoSave: boolean;
   autoSaveInterval?: number;
+  /**
+   * Project-wide regulation preset (single-select). Undefined → treated as the
+   * default ("owasp"). Drives which likelihood factors the risk config uses;
+   * see regulation-preset-service.applyRegulationPreset.
+   */
+  regulationPreset?: RegulationPresetId;
 }
 
 // ==================== PROJECT PROGRESS ====================

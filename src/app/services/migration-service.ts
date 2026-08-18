@@ -9,6 +9,7 @@ import {
 } from "../../shared/models/project-tags";
 import type { PhaseStatus, PhaseStatusMap } from "shared";
 import type { ProjectSettingsData } from "features/overview";
+import { DEFAULT_REGULATION_PRESET } from "shared";
 import type { Project } from "../models/project-types";
 import { migrateRiskData } from "../../features/risks/models/risk-assessment-types";
 import { CURRENT_SCHEMA_VERSION } from "./schema-version";
@@ -41,6 +42,7 @@ export const DEFAULT_SETTINGS: ProjectSettingsData = {
   strictMode: false,
   autoSave: true,
   autoSaveInterval: 2,
+  regulationPreset: DEFAULT_REGULATION_PRESET,
 };
 
 // ==================== VALIDATION ====================
@@ -122,6 +124,8 @@ export function repairProject(raw: any): Project | null {
       autoSave: raw.settings?.autoSave ?? DEFAULT_SETTINGS.autoSave,
       autoSaveInterval:
         raw.settings?.autoSaveInterval ?? DEFAULT_SETTINGS.autoSaveInterval,
+      regulationPreset:
+        raw.settings?.regulationPreset ?? DEFAULT_SETTINGS.regulationPreset,
     },
     status: raw.status ?? "draft",
     hazards: raw.hazards ?? null,
