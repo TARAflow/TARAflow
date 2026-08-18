@@ -23,6 +23,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { TrustBoundaryProperties } from "../../models/element-properties";
@@ -383,7 +384,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
           </FormControl>
 
           {/* Custom Boundary Controls — vendor/domain-specific free text */}
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             label={t(
@@ -391,11 +392,8 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
               { defaultValue: "Additional Controls" },
             )}
             value={props.customBoundaryControls ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange(
-                "customBoundaryControls",
-                e.target.value,
-              )
+            onCommit={(v) =>
+              form.handlePropertyChange("customBoundaryControls", v)
             }
             placeholder={t(
               "tabs.dfd.element_description.trustboundary.fields.customBoundaryControls.placeholder",
@@ -496,7 +494,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
           )}
 
           {/* Security Assumptions — dynamic placeholder driven by boundaryType */}
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             multiline
@@ -506,8 +504,8 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
               { defaultValue: "Security Assumptions" },
             )}
             value={props.securityAssumptions ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("securityAssumptions", e.target.value)
+            onCommit={(v) =>
+              form.handlePropertyChange("securityAssumptions", v)
             }
             placeholder={securityAssumptionsPlaceholder}
             helperText={t(
@@ -526,7 +524,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             })}
           />
 
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             label={t(
@@ -534,8 +532,8 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
               { defaultValue: "Compliance Relevance" },
             )}
             value={props.complianceRelevance ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("complianceRelevance", e.target.value)
+            onCommit={(v) =>
+              form.handlePropertyChange("complianceRelevance", v)
             }
             placeholder={t(
               "tabs.dfd.element_description.trustboundary.fields.complianceRelevance.placeholder",
@@ -545,7 +543,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
             )}
           />
 
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             label={t(
@@ -553,7 +551,7 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
               { defaultValue: "Owner / Responsible Team" },
             )}
             value={props.owner ?? ""}
-            onChange={(e) => form.handlePropertyChange("owner", e.target.value)}
+            onCommit={(v) => form.handlePropertyChange("owner", v)}
             placeholder={t(
               "tabs.dfd.element_description.trustboundary.fields.owner.placeholder",
               { defaultValue: "Who maintains this boundary?" },

@@ -23,6 +23,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { MultiprocessProperties } from "../../models/element-properties";
@@ -757,7 +758,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
 
             {props.safetyRelevant && (
               <Grid item xs={12}>
-                <TextField
+                <BufferedTextField
                   fullWidth
                   size="small"
                   multiline
@@ -767,9 +768,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
                     { defaultValue: "Safety Rationale" },
                   )}
                   value={props.safetyRationale ?? ""}
-                  onChange={(e) =>
-                    handlePropertyChange("safetyRationale", e.target.value)
-                  }
+                  onCommit={(v) => handlePropertyChange("safetyRationale", v)}
                   placeholder={t(
                     "tabs.dfd.element_description.multiprocess.fields.safetyRationale.placeholder",
                     {
@@ -1036,7 +1035,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
       />
 
       {/* Internal Components — informative, not used for threat generation */}
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         multiline
@@ -1046,9 +1045,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           { defaultValue: "Internal Components" },
         )}
         value={props.internalComponents ?? ""}
-        onChange={(e) =>
-          handlePropertyChange("internalComponents", e.target.value)
-        }
+        onCommit={(v) => handlePropertyChange("internalComponents", v)}
         placeholder={t(
           "tabs.dfd.element_description.multiprocess.fields.internalComponents.placeholder",
           {
@@ -1059,7 +1056,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
       />
 
       {/* Security Summary — free text, system-level controls overview */}
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         multiline
@@ -1069,9 +1066,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           { defaultValue: "Security Summary" },
         )}
         value={props.securitySummary ?? ""}
-        onChange={(e) =>
-          handlePropertyChange("securitySummary", e.target.value)
-        }
+        onCommit={(v) => handlePropertyChange("securitySummary", v)}
         placeholder={t(
           "tabs.dfd.element_description.multiprocess.fields.securitySummary.placeholder",
           {
@@ -1081,7 +1076,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
         )}
       />
 
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         label={t(
@@ -1089,7 +1084,7 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           { defaultValue: "Owner" },
         )}
         value={props.owner ?? ""}
-        onChange={(e) => handlePropertyChange("owner", e.target.value)}
+        onCommit={(v) => handlePropertyChange("owner", v)}
         placeholder={t(
           "tabs.dfd.element_description.multiprocess.fields.owner.placeholder",
           { defaultValue: "e.g. OT Security Team" },

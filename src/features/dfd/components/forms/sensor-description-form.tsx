@@ -6,8 +6,9 @@
 // Structure: Context → Security → Safety → Documentation (no accordions)
 
 import React, { useCallback } from "react";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import { useTranslation } from "react-i18next";
-import { Grid, Stack, TextField } from "@mui/material";
+import { Grid, Stack } from "@mui/material";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { SensorProperties } from "../../models/transducer-properties";
@@ -142,14 +143,14 @@ const SensorGeneralTab: React.FC<SensorGeneralTabProps> = ({
       />
       <Grid container rowSpacing={2} columnSpacing={2}>
         <Grid item xs={12} sm={6}>
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             label={t("tabs.dfd.element_description.sensor.fields.type.label", {
               defaultValue: "Device kind",
             })}
             value={(props.type as string) ?? ""}
-            onChange={(e) => set("type", e.target.value || undefined)}
+            onCommit={(v) => set("type", v || undefined)}
             placeholder={t(
               "tabs.dfd.element_description.sensor.fields.type.placeholder",
               { defaultValue: "e.g. PT100, MEMS accelerometer" },
@@ -268,7 +269,7 @@ const SensorGeneralTab: React.FC<SensorGeneralTabProps> = ({
           onChange={(v) => set("safetyClassification", v)}
         />
         <Grid item xs={12}>
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             multiline
@@ -278,9 +279,7 @@ const SensorGeneralTab: React.FC<SensorGeneralTabProps> = ({
               { defaultValue: "Safety rationale" },
             )}
             value={(props.safetyRationale as string) ?? ""}
-            onChange={(e) =>
-              set("safetyRationale", e.target.value || undefined)
-            }
+            onCommit={(v) => set("safetyRationale", v || undefined)}
           />
         </Grid>
       </Grid>

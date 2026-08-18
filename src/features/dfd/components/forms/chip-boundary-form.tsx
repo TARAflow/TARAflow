@@ -27,6 +27,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { ChipBoundaryProperties } from "../../models/element-properties";
@@ -557,7 +558,7 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
           />
 
           {props.safetyRelevant && (
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
@@ -567,9 +568,7 @@ export const ChipBoundaryDescriptionForm = React.memo<ChipBoundaryFormProps>(
                 { defaultValue: "Safety Rationale" },
               )}
               value={props.safetyRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("safetyRationale", e.target.value)
-              }
+              onCommit={(v) => form.handlePropertyChange("safetyRationale", v)}
               placeholder="e.g. SIL-2 certified MCU controlling emergency stop function"
               helperText={t(
                 "tabs.dfd.element_description.chipboundary.fields.safetyRationale.helper",

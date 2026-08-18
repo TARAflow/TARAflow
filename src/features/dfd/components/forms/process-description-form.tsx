@@ -20,6 +20,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { ProcessProperties } from "../../models/element-properties";
@@ -905,12 +906,12 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
         })}
       />
 
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         label={t("tabs.dfd.element_description.process.fields.owner.label")}
         value={(props.owner as string) ?? ""}
-        onChange={(e) => handlePropertyChange("owner", e.target.value)}
+        onCommit={(v) => handlePropertyChange("owner", v)}
         placeholder={t(
           "tabs.dfd.element_description.process.fields.owner.placeholder",
         )}

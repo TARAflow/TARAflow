@@ -49,6 +49,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import {
   Cable as InterfaceIcon,
   Cloud as ServiceIcon,
@@ -1079,16 +1080,14 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                     <MenuItem value="frequent">Frequent</MenuItem>
                   </Select>
                 </FormControl>
-                <TextField
+                <BufferedTextField
                   fullWidth
                   size="small"
                   label={t("tabs.dfd.element_description.asset.domain", {
                     defaultValue: "Domain / Regulatory context",
                   })}
                   value={asset.properties?.domain || ""}
-                  onChange={(e) =>
-                    handlePropertyChange("domain", e.target.value)
-                  }
+                  onCommit={(v) => handlePropertyChange("domain", v)}
                   placeholder="e.g. OT-Manufacturing, Medical, Pharma, Automotive"
                 />
                 <FormControlLabel
@@ -1112,7 +1111,7 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                 />
                 {asset.properties?.isValidatedProcess && (
                   <>
-                    <TextField
+                    <BufferedTextField
                       fullWidth
                       size="small"
                       label={t(
@@ -1120,15 +1119,12 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                         { defaultValue: "Regulatory Reference" },
                       )}
                       value={asset.properties?.regulatoryReference || ""}
-                      onChange={(e) =>
-                        handlePropertyChange(
-                          "regulatoryReference",
-                          e.target.value,
-                        )
+                      onCommit={(v) =>
+                        handlePropertyChange("regulatoryReference", v)
                       }
                       placeholder="e.g. IEC 61508 SIL-2, ISO 13485 §7.5, GMP Annex 11"
                     />
-                    <TextField
+                    <BufferedTextField
                       fullWidth
                       size="small"
                       multiline
@@ -1141,11 +1137,8 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                         },
                       )}
                       value={asset.properties?.validationRationale || ""}
-                      onChange={(e) =>
-                        handlePropertyChange(
-                          "validationRationale",
-                          e.target.value,
-                        )
+                      onCommit={(v) =>
+                        handlePropertyChange("validationRationale", v)
                       }
                       placeholder="e.g. SIL-2 validation per IEC 61508, acceptance protocol on file"
                     />
@@ -1234,7 +1227,7 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                     },
                   )}
                 />
-                <TextField
+                <BufferedTextField
                   fullWidth
                   size="small"
                   label={t("tabs.dfd.element_description.asset.externalRef", {
@@ -1242,9 +1235,9 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                   })}
                   placeholder="SF-001"
                   value={asset.properties?.externalRefs?.[0]?.id || ""}
-                  onChange={(e) =>
+                  onCommit={(v) =>
                     handlePropertyChange("externalRefs", [
-                      { id: e.target.value, standard: "ISO 12100" },
+                      { id: v, standard: "ISO 12100" },
                     ])
                   }
                   helperText={t(
@@ -1365,18 +1358,15 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                 {/* responsibilityScope — required for third-party, recommended for shared */}
                 {(asset.properties?.responsibility === "shared" ||
                   asset.properties?.responsibility === "third-party") && (
-                  <TextField
+                  <BufferedTextField
                     fullWidth
                     label={t(
                       "tabs.dfd.element_description.asset.responsibilityScope",
                       { defaultValue: "Responsibility Scope" },
                     )}
                     value={asset.properties?.responsibilityScope || ""}
-                    onChange={(e) =>
-                      handlePropertyChange(
-                        "responsibilityScope",
-                        e.target.value,
-                      )
+                    onCommit={(v) =>
+                      handlePropertyChange("responsibilityScope", v)
                     }
                     multiline
                     rows={2}
@@ -1403,26 +1393,22 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                     placeholder="e.g. Own: app-security, data encryption. Provider: OS hardening, physical security"
                   />
                 )}
-                <TextField
+                <BufferedTextField
                   fullWidth
                   label={t("tabs.dfd.element_description.asset.providerName", {
                     defaultValue: "Provider Name",
                   })}
                   value={asset.properties?.providerName || ""}
-                  onChange={(e) =>
-                    handlePropertyChange("providerName", e.target.value)
-                  }
+                  onCommit={(v) => handlePropertyChange("providerName", v)}
                   placeholder="e.g. AWS, Siemens MindSphere, SAP"
                 />
-                <TextField
+                <BufferedTextField
                   fullWidth
                   label={t("tabs.dfd.element_description.asset.slaReference", {
                     defaultValue: "SLA / Contract Reference",
                   })}
                   value={asset.properties?.slaReference || ""}
-                  onChange={(e) =>
-                    handlePropertyChange("slaReference", e.target.value)
-                  }
+                  onCommit={(v) => handlePropertyChange("slaReference", v)}
                   placeholder="e.g. Contract #2024-OT-042, SLA v2.1"
                 />
               </Stack>
@@ -1466,7 +1452,7 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                 </FormControl>
                 {asset.properties?.safetyImpact &&
                   asset.properties.safetyImpact !== "none" && (
-                    <TextField
+                    <BufferedTextField
                       fullWidth
                       size="small"
                       multiline
@@ -1478,8 +1464,8 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                         },
                       )}
                       value={asset.properties?.safetyRationale || ""}
-                      onChange={(e) =>
-                        handlePropertyChange("safetyRationale", e.target.value)
+                      onCommit={(v) =>
+                        handlePropertyChange("safetyRationale", v)
                       }
                       placeholder={t(
                         "tabs.dfd.element_description.asset.safetyRationalePlaceholder",

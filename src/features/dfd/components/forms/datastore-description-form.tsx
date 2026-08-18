@@ -23,6 +23,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { DataStoreProperties } from "../../models/element-properties";
@@ -302,17 +303,14 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
         {/* Access Model Rationale — required on override or mpu/communication conflict */}
         {showAccessModelRationale && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
               minRows={2}
               value={props.accessModelRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange(
-                  "accessModelRationale",
-                  e.target.value,
-                )
+              onCommit={(v) =>
+                form.handlePropertyChange("accessModelRationale", v)
               }
               label={t(
                 "tabs.dfd.element_description.datastore.fields.accessModelRationale.label",
@@ -589,7 +587,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
 
         {/* Access Control Policy */}
         <Grid item xs={12} sm={6}>
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             label={t(
@@ -597,9 +595,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
               { defaultValue: "Access Control Policy" },
             )}
             value={props.accessControl ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("accessControl", e.target.value)
-            }
+            onCommit={(v) => form.handlePropertyChange("accessControl", v)}
             placeholder={t(
               "tabs.dfd.element_description.datastore.fields.accessControl.placeholder",
               {
@@ -742,7 +738,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
 
         {props.containsSafetyRelevantData && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
@@ -752,9 +748,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
                 { defaultValue: "Safety Rationale" },
               )}
               value={props.safetyRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("safetyRationale", e.target.value)
-              }
+              onCommit={(v) => form.handlePropertyChange("safetyRationale", v)}
               placeholder={t(
                 "tabs.dfd.element_description.datastore.fields.safetyRationale.placeholder",
                 {
@@ -821,7 +815,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
         </Select>
       </FormControl>
 
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         label={t(
@@ -829,9 +823,7 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
           { defaultValue: "Deletion Policy" },
         )}
         value={props.deletionPolicy ?? ""}
-        onChange={(e) =>
-          form.handlePropertyChange("deletionPolicy", e.target.value)
-        }
+        onCommit={(v) => form.handlePropertyChange("deletionPolicy", v)}
         placeholder={t(
           "tabs.dfd.element_description.datastore.fields.deletionPolicy.placeholder",
           {
@@ -841,14 +833,14 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
         )}
       />
 
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         label={t("tabs.dfd.element_description.datastore.fields.owner.label", {
           defaultValue: "Owner",
         })}
         value={props.owner ?? ""}
-        onChange={(e) => form.handlePropertyChange("owner", e.target.value)}
+        onCommit={(v) => form.handlePropertyChange("owner", v)}
         placeholder={t(
           "tabs.dfd.element_description.datastore.fields.owner.placeholder",
           { defaultValue: "Team or person responsible" },

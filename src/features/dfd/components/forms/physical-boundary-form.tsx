@@ -31,6 +31,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { DFDElement } from "../../models/dfd-types";
 import type { PhysicalBoundaryProperties } from "../../models/element-properties";
 import {
@@ -660,7 +661,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
           />
 
           {props.safetyRelevant && (
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
@@ -670,9 +671,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
                 { defaultValue: "Safety Rationale" },
               )}
               value={props.safetyRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("safetyRationale", e.target.value)
-              }
+              onCommit={(v) => form.handlePropertyChange("safetyRationale", v)}
               placeholder="e.g. Schaltschrank houses SIL-2 certified Safety PLC — physical access restricted to authorised personnel only"
               helperText={t(
                 "tabs.dfd.element_description.physicalboundary.fields.safetyRationale.helper",
@@ -691,7 +690,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
             })}
           />
 
-          <TextField
+          <BufferedTextField
             fullWidth
             size="small"
             label={t(
@@ -699,9 +698,7 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
               { defaultValue: "Owner / Responsible" },
             )}
             value={props.owner ?? ""}
-            onChange={(e) =>
-              form.handlePropertyChange("owner", e.target.value || undefined)
-            }
+            onCommit={(v) => form.handlePropertyChange("owner", v || undefined)}
             placeholder="e.g. Facility Management, OT Team"
           />
 

@@ -22,6 +22,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import type {
@@ -326,14 +327,14 @@ export const TransducerDocumentationSection: React.FC<{
   const { t } = useTranslation();
   return (
     <>
-      <TextField
+      <BufferedTextField
         fullWidth
         size="small"
         label={t(`tabs.dfd.element_description.${ns}.fields.owner.label`, {
           defaultValue: "Owner",
         })}
         value={owner ?? ""}
-        onChange={(e) => onOwnerChange(e.target.value || undefined)}
+        onCommit={(v) => onOwnerChange(v || undefined)}
         placeholder={t(
           `tabs.dfd.element_description.${ns}.fields.owner.placeholder`,
           { defaultValue: "Team or person responsible" },
@@ -353,7 +354,9 @@ export const TransducerDocumentationSection: React.FC<{
         onBlur={form.commitNotes}
       />
 
-      <SecurityControlOwnershipDisplay records={securityControlOwnership ?? []} />
+      <SecurityControlOwnershipDisplay
+        records={securityControlOwnership ?? []}
+      />
 
       <Box>
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -362,9 +365,12 @@ export const TransducerDocumentationSection: React.FC<{
           })}
         </Typography>
         <RichTextEditor
-          label={t(`tabs.dfd.element_description.${ns}.fields.description.label`, {
-            defaultValue: "Description",
-          })}
+          label={t(
+            `tabs.dfd.element_description.${ns}.fields.description.label`,
+            {
+              defaultValue: "Description",
+            },
+          )}
           value={form.localDescription}
           onChange={form.setLocalDescription}
           onBlur={form.commitDescription}

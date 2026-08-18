@@ -29,6 +29,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
 import type { InterfaceProperties } from "../../models/element-properties";
@@ -553,7 +554,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
               </Select>
             </FormControl>
             {isCurrentlyOverride && (
-              <TextField
+              <BufferedTextField
                 fullWidth
                 size="small"
                 multiline
@@ -563,11 +564,8 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                   { defaultValue: "Override Rationale" },
                 )}
                 value={props.exposureLevelRationale ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "exposureLevelRationale",
-                    e.target.value,
-                  )
+                onCommit={(v) =>
+                  form.handlePropertyChange("exposureLevelRationale", v)
                 }
                 placeholder={t(
                   "tabs.dfd.element_description.exposure_level.rationale_placeholder",
@@ -1047,7 +1045,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
 
         {props.safetyRelevant && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
@@ -1057,9 +1055,7 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                 { defaultValue: "Safety Rationale" },
               )}
               value={props.safetyRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("safetyRationale", e.target.value)
-              }
+              onCommit={(v) => form.handlePropertyChange("safetyRationale", v)}
               placeholder={t(
                 "tabs.dfd.element_description.interface.fields.safetyRationale.placeholder",
                 {

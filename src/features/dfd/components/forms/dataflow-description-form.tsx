@@ -23,6 +23,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { BufferedTextField } from "../shared/buffered-text-field";
 import { Warning as WarningIcon } from "@mui/icons-material";
 import type { AssetGroup } from "shared";
 import type { DFDConnection } from "../../models/dfd-types";
@@ -427,7 +428,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         {/* Data Type Notes — only when messageType=custom */}
         {props.messageType === "custom" && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               label={t(
@@ -435,9 +436,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 { defaultValue: "Data Type Notes" },
               )}
               value={props.dataTypeNotes ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("dataTypeNotes", e.target.value)
-              }
+              onCommit={(v) => form.handlePropertyChange("dataTypeNotes", v)}
               placeholder={t(
                 "tabs.dfd.element_description.dataflow.fields.dataTypeNotes.placeholder",
                 {
@@ -561,7 +560,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
 
         {!hasNoTransportMedium && showLocationRationale && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               label={t(
@@ -569,8 +568,8 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 { defaultValue: "Location Rationale" },
               )}
               value={props.locationRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("locationRationale", e.target.value)
+              onCommit={(v) =>
+                form.handlePropertyChange("locationRationale", v)
               }
               placeholder={t(
                 "tabs.dfd.element_description.dataflow.fields.locationRationale.placeholder",
@@ -845,7 +844,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                   </Select>
                 </FormControl>
                 {isCurrentlyOverride && (
-                  <TextField
+                  <BufferedTextField
                     fullWidth
                     size="small"
                     multiline
@@ -855,11 +854,8 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                       { defaultValue: "Override Rationale" },
                     )}
                     value={props.exposureLevelRationale ?? ""}
-                    onChange={(e) =>
-                      form.handlePropertyChange(
-                        "exposureLevelRationale",
-                        e.target.value,
-                      )
+                    onCommit={(v) =>
+                      form.handlePropertyChange("exposureLevelRationale", v)
                     }
                     placeholder={t(
                       "tabs.dfd.element_description.exposure_level.rationale_placeholder",
@@ -1178,7 +1174,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
 
         {isSafetyRelevant && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
@@ -1190,9 +1186,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 { defaultValue: "Safety Rationale" },
               )}
               value={props.safetyRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange("safetyRationale", e.target.value)
-              }
+              onCommit={(v) => form.handlePropertyChange("safetyRationale", v)}
               placeholder={t(
                 "tabs.dfd.element_description.dataflow.fields.safetyRationale.placeholder",
                 {
@@ -1244,7 +1238,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
 
         {props.excludeFromThreatGen && (
           <Grid item xs={12}>
-            <TextField
+            <BufferedTextField
               fullWidth
               size="small"
               multiline
@@ -1257,11 +1251,8 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 },
               )}
               value={props.excludeFromThreatGenRationale ?? ""}
-              onChange={(e) =>
-                form.handlePropertyChange(
-                  "excludeFromThreatGenRationale",
-                  e.target.value,
-                )
+              onCommit={(v) =>
+                form.handlePropertyChange("excludeFromThreatGenRationale", v)
               }
               placeholder={t(
                 "tabs.dfd.element_description.dataflow.fields.excludeFromThreatGenRationale.placeholder",
