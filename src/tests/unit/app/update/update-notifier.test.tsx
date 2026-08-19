@@ -1,5 +1,6 @@
 // src/tests/unit/app/update/update-notifier.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ReactNode } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { UpdateCheckResult } from "shared/models/update-types";
 
@@ -22,8 +23,19 @@ vi.mock("app/services/storage-service", () => ({
   },
 }));
 vi.mock("react-markdown", () => ({
-  default: ({ children }: { children: string }) => (
-    <div data-testid="md">{children}</div>
+  default: ({
+    children,
+    components,
+  }: {
+    children: string;
+    components?: {
+      a?: (p: { href?: string; children?: ReactNode }) => ReactNode;
+    };
+  }) => (
+    <div data-testid="md">
+      {children}
+      {components?.a?.({ href: "https://example/note-link", children: "note-link" })}
+    </div>
   ),
 }));
 vi.mock("remark-gfm", () => ({ default: () => undefined }));
@@ -90,6 +102,15 @@ describe("UpdateNotifier", () => {
 
     fireEvent.click(screen.getByText("update.openReleasePage"));
     expect(openExternal).toHaveBeenCalledWith("https://example/rel");
+  });
+
+  it("opens release-note links in the external browser, not the app window", async () => {
+    currentResult = available;
+    render(<UpdateNotifier />);
+    fireEvent.click(screen.getByText("update.details"));
+    const link = await screen.findByText("note-link");
+    fireEvent.click(link);
+    expect(openExternal).toHaveBeenCalledWith("https://example/note-link");
   });
 
   it("runs a manual check when the Help menu fires", () => {

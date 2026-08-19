@@ -1,8 +1,8 @@
 // src/app/update/index.ts
-// ==================== UPDATES FEATURE — PUBLIC API ====================
-
+// ==================== UPDATE (APP SERVICE) — PUBLIC API ====================
 
 export { UpdateNotifier } from "./update-notifier";
+export { externalHref, openExternalHref } from "./external-link";
 
 export { useUpdateCheck } from "./use-update-check";
 export type { UseUpdateCheck } from "./use-update-check";
@@ -16,5 +16,3 @@ export {
   DEFAULT_UPDATE_PREFERENCES,
 } from "./update-preferences";
 export type { UpdatePreferences, PreferenceStore } from "./update-preferences";
-
-

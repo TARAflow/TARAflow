@@ -7,7 +7,7 @@
 // include-pre-releases toggle. All gating lives in useUpdateCheck; this file
 // is presentation only.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -32,6 +32,29 @@ import {
   loadUpdatePreferences,
   saveUpdatePreferences,
 } from "./update-preferences";
+import { openExternalHref } from "./external-link";
+
+// Release-note links open in the external browser, never in the app window.
+// Only real http(s) URLs are forwarded (see external-link.ts).
+function MarkdownLink({
+  href,
+  children,
+}: {
+  href?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        openExternalHref(href);
+      }}
+    >
+      {children}
+    </a>
+  );
+}
 
 export function UpdateNotifier() {
   const { t, i18n } = useTranslation();
@@ -149,7 +172,10 @@ export function UpdateNotifier() {
               </Typography>
             )}
             <Box sx={{ mt: 1 }}>
-              <Markdown remarkPlugins={[remarkGfm]}>
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={{ a: MarkdownLink }}
+              >
                 {result.releaseNotes}
               </Markdown>
             </Box>
