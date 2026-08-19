@@ -1,3 +1,4 @@
+// electron/services/update/release-source.ts
 // ==================== UPDATE — RELEASE SOURCE (PORT + ADAPTER) ====================
 // The single seam to the outside world: fetching releases from GitHub.
 // The pure core depends only on the ReleaseSource PORT; the real adapter

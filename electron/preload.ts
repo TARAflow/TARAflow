@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
 import { type AuditConfig } from "audit/models/audit-types";
+import { type UpdateCheckOptions } from "shared/models/update-types";
 
 console.log("=== PRELOAD LOADED ===");
 
@@ -158,6 +159,12 @@ contextBridge.exposeInMainWorld("credentials", {
 // ==================== AUDIT API (window.audit) ====================
 contextBridge.exposeInMainWorld("audit", {
   verify: (params: unknown) => ipcRenderer.invoke("audit:verify", params),
+});
+
+// ==================== UPDATE API (window.updates) ====================
+contextBridge.exposeInMainWorld("updates", {
+  check: (opts: UpdateCheckOptions) =>
+    ipcRenderer.invoke("update:check", opts),
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {

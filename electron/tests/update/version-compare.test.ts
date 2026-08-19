@@ -1,4 +1,6 @@
+// electron/tests/update/version-compare.test.ts
 import { describe, it, expect } from "vitest";
+// Consume the update feature only through its public barrel (encapsulation).
 import { isNewer, normalizeVersion } from "services/update";
 
 describe("normalizeVersion", () => {

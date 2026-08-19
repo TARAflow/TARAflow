@@ -1,3 +1,4 @@
+// electron/services/update/check-for-update.ts
 // ==================== UPDATE — CHECK ORCHESTRATOR ====================
 // The one function the IPC handler calls. Pure except for the injected
 // ReleaseSource — no electron, no DOM, no network of its own. It owns the

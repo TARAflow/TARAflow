@@ -1,3 +1,4 @@
+// electron/tests/update/check-for-update.test.ts
 import { describe, it, expect } from "vitest";
 import { checkForUpdate } from "services/update";
 import type { GithubRelease, ReleaseSource } from "services/update";

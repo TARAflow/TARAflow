@@ -1,5 +1,7 @@
+// electron/tests/update/release-source.test.ts
 import { describe, it, expect } from "vitest";
-import { GitHubReleaseSource, type FetchLike } from "services/update";
+import { GitHubReleaseSource } from "services/update";
+import type { FetchLike } from "services/update";
 
 const okJson = (data: unknown): ReturnType<FetchLike> =>
   Promise.resolve({ ok: true, status: 200, json: async () => data });
@@ -82,9 +84,7 @@ describe("GitHubReleaseSource", () => {
       },
     });
     await source.listReleases();
-    expect(calledUrl).toContain(
-      "/repos/TARAflow/TARAflow/releases?per_page=30",
-    );
+    expect(calledUrl).toContain("/repos/TARAflow/TARAflow/releases?per_page=30");
     expect(calledUrl).not.toContain("/releases/latest");
   });
 

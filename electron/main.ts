@@ -12,6 +12,7 @@ import {
   generatePdfFile,
 } from "./services/pdf-generator-main";
 import { runAuditVerify } from "./services/audit-verify-main";
+import { handleUpdateCheck } from "./services/update/update-check-main";
 
 // ==================== PDF GENERATION ====================
 
@@ -105,6 +106,9 @@ ipcMain.handle("jira:deleteToken", async (_, { account }) => {
 ipcMain.handle("audit:verify", async (_e, params) => {
   return runAuditVerify(params, gitService?.getRepoPath());
 });
+
+// Notify-only update check (see electron/services/update). Never rejects.
+ipcMain.handle("update:check", (_e, opts) => handleUpdateCheck(opts));
 
 // ==================== USER DATA PATH ====================
 

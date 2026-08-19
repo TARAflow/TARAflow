@@ -1,3 +1,4 @@
+// electron/services/update/version-compare.ts
 // ==================== UPDATE — VERSION COMPARISON ====================
 // SemVer comparison, prerelease-aware. All version reasoning lives here so
 // the rest of the feature never touches SemVer directly (SRP).

@@ -1,3 +1,4 @@
+// src/shared/models/update-types.ts
 // ==================== UPDATE — SHARED CONTRACT TYPES ====================
 // The contract between the update PRODUCER (electron main) and the
 // CONSUMER (renderer). PURE TYPES ONLY — no runtime code — so importing

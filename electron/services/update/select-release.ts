@@ -1,3 +1,4 @@
+// electron/services/update/select-release.ts
 // ==================== UPDATE — SELECT LATEST RELEASE ====================
 // Pure selection: given the releases GitHub returned, pick the one that
 // represents "the latest version" under the user's prerelease preference.

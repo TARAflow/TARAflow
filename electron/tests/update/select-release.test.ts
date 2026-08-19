@@ -1,3 +1,4 @@
+// electron/tests/update/select-release.test.ts
 import { describe, it, expect } from "vitest";
 import { selectLatestRelease } from "services/update";
 import type { GithubRelease } from "services/update";

@@ -200,6 +200,12 @@ declare global {
       >;
     };
 
+    updates?: {
+      check: (
+        opts: import("shared/models/update-types").UpdateCheckOptions,
+      ) => Promise<import("shared/models/update-types").UpdateCheckResult>;
+    };
+
     pdf?: {
       generateBuffer: (
         html: string,
