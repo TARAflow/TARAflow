@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, shell, dialog, Menu } from "electron";
 import path from "path";
 import fs from "fs/promises";
 import { dirname } from "path";
@@ -13,6 +13,7 @@ import {
 } from "./services/pdf-generator-main";
 import { runAuditVerify } from "./services/audit-verify-main";
 import { handleUpdateCheck } from "./services/update/update-check-main";
+import { buildAppMenu } from "./app-menu";
 
 // ==================== PDF GENERATION ====================
 
@@ -842,6 +843,7 @@ function createWindow() {
 registerOAuthProtocol();
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(buildAppMenu());
   createWindow();
   setupOAuthHandler(mainWindow);
 });

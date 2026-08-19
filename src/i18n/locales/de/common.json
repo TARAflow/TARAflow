@@ -579,5 +579,17 @@
         }
       }
     }
+  },
+  "update": {
+    "available": "Version {{version}} ist verfügbar",
+    "upToDate": "Du verwendest die neueste Version",
+    "checkFailed": "Aktualisierungsprüfung fehlgeschlagen. Bitte später erneut versuchen.",
+    "details": "Details",
+    "updateDialogTitle": "Aktualisierung verfügbar",
+    "releaseNotes": "Release Notes",
+    "openReleasePage": "Release-Seite öffnen",
+    "publishedOn": "Veröffentlicht am {{date}}",
+    "includePrereleases": "Vorabversionen einschließen",
+    "checking": "Suche nach Aktualisierungen…"
   }
 }

@@ -204,6 +204,7 @@ declare global {
       check: (
         opts: import("shared/models/update-types").UpdateCheckOptions,
       ) => Promise<import("shared/models/update-types").UpdateCheckResult>;
+      onMenuCheck: (callback: () => void) => () => void;
     };
 
     pdf?: {

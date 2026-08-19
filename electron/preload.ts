@@ -163,8 +163,12 @@ contextBridge.exposeInMainWorld("audit", {
 
 // ==================== UPDATE API (window.updates) ====================
 contextBridge.exposeInMainWorld("updates", {
-  check: (opts: UpdateCheckOptions) =>
-    ipcRenderer.invoke("update:check", opts),
+  check: (opts: UpdateCheckOptions) => ipcRenderer.invoke("update:check", opts),
+  onMenuCheck: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("update:menu-check", listener);
+    return () => ipcRenderer.removeListener("update:menu-check", listener);
+  },
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {

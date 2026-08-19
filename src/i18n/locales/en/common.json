@@ -581,5 +581,17 @@
         }
       }
     }
+  },
+  "update": {
+    "available": "Version {{version}} is available",
+    "upToDate": "You're on the latest version",
+    "checkFailed": "Couldn't check for updates. Please try again later.",
+    "details": "Details",
+    "updateDialogTitle": "Update available",
+    "releaseNotes": "Release notes",
+    "openReleasePage": "Open release page",
+    "publishedOn": "Published on {{date}}",
+    "includePrereleases": "Include pre-release versions",
+    "checking": "Checking for updates…"
   }
 }

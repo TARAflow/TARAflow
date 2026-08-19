@@ -1,6 +1,7 @@
 import React from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { MainLayout } from "app/components/layout/main-layout";
+import { UpdateNotifier } from "app/update";
 
 // Minimal MUI theme — primary purpose is to disable Popper's window resize
 // listener globally. Without this, every Tooltip/Select/Menu re-render
@@ -23,6 +24,7 @@ function App() {
     <ThemeProvider theme={appTheme}>
       <div className="App">
         <MainLayout />
+        <UpdateNotifier />
       </div>
     </ThemeProvider>
   );
