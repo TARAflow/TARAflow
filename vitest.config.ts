@@ -31,6 +31,7 @@ export default defineConfig({
       shared: "/src/shared",
       i18n: "/src/i18n",
       audit: "/src/features/audit",
+      services: "/electron/services",
     },
   },
 });

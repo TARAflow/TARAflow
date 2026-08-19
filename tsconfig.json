@@ -26,7 +26,9 @@
       "i18n": ["./src/i18n"],
       "i18n/*": ["./src/i18n/*"],
       "audit": ["./src/features/audit"],
-      "audit/*": ["./src/features/audit/*"]
+      "audit/*": ["./src/features/audit/*"],
+      "services": ["./electron/services"],
+      "services/*": ["./electron/services/*"]
     }
   },
   "include": ["src", "electron"]
