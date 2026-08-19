@@ -1,7 +1,7 @@
 // src/tests/unit/app/update/update-notifier.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import type { UpdateCheckResult } from "shared/models/update-types";
 
 const check = vi.fn(async () => {});
@@ -113,10 +113,12 @@ describe("UpdateNotifier", () => {
     expect(openExternal).toHaveBeenCalledWith("https://example/note-link");
   });
 
-  it("runs a manual check when the Help menu fires", () => {
+  it("runs a manual check when the Help menu fires", async () => {
     render(<UpdateNotifier />);
     check.mockClear();
-    menuCb?.();
+    await act(async () => {
+      menuCb?.();
+    });
     expect(check).toHaveBeenCalledWith("manual");
   });
 });

@@ -14,6 +14,7 @@ import {
 import { runAuditVerify } from "./services/audit-verify-main";
 import { handleUpdateCheck } from "./services/update/update-check-main";
 import { buildAppMenu } from "./app-menu";
+import { hardenWindowNavigation, makeIsInternalUrl } from "./window-navigation";
 
 // ==================== PDF GENERATION ====================
 
@@ -769,6 +770,8 @@ function createWindow() {
   win.setTitle(`TARAflow ${app.getVersion()}`);
 
   mainWindow = win;
+
+  hardenWindowNavigation(win.webContents, makeIsInternalUrl(app.isPackaged));
 
   // ==================== Force-close: bypass draw.io's iframe beforeunload ====================
   // draw.io (embedded as an iframe) installs window.onbeforeunload as soon as a

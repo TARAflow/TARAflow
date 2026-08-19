@@ -1,11 +1,12 @@
 // src/app/update/update-notifier.tsx
 // ==================== UPDATE NOTIFIER ====================
 // Mounted once at the app root. Fires the silent startup check, listens for
-// the Help-menu manual check, and renders the outcome: a snackbar (info for
-// an available update, success/warning otherwise) plus a details dialog with
-// the release notes (Markdown), an "open release page" action, and the
-// include-pre-releases toggle. All gating lives in useUpdateCheck; this file
-// is presentation only.
+// the Help-menu manual check (with a visible "checking…" state), and renders
+// the outcome: a snackbar (info for an available update, success/warning
+// otherwise) plus a details dialog with the release notes (Markdown), an
+// "open release page" action, and the include-pre-releases toggle. Release-
+// note links open externally, never in the app window. All result gating
+// lives in useUpdateCheck; this file is presentation only.
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +18,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -60,6 +62,7 @@ export function UpdateNotifier() {
   const { t, i18n } = useTranslation();
   const { result, check, dismiss } = useUpdateCheck();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [manualPending, setManualPending] = useState(false);
   const [includePrereleases, setIncludePrereleases] = useState(
     DEFAULT_UPDATE_PREFERENCES.includePrereleases,
   );
@@ -80,10 +83,21 @@ export function UpdateNotifier() {
     void check("startup");
   }, [check]);
 
+  // Manual check with a visible "checking…" state (used by the Help menu and
+  // by toggling the prerelease preference).
+  const runManual = useCallback(async () => {
+    setManualPending(true);
+    try {
+      await check("manual");
+    } finally {
+      setManualPending(false);
+    }
+  }, [check]);
+
   // Manual check from the Help menu.
   useEffect(() => {
-    return window.updates?.onMenuCheck?.(() => void check("manual"));
-  }, [check]);
+    return window.updates?.onMenuCheck?.(() => void runManual());
+  }, [runManual]);
 
   const handleClose = useCallback(
     (_event: unknown, reason?: string) => {
@@ -95,7 +109,7 @@ export function UpdateNotifier() {
 
   const openReleasePage = useCallback(() => {
     if (result?.status === "update-available") {
-      void window.electron?.shell.openExternal(result.releaseUrl);
+      openExternalHref(result.releaseUrl);
     }
   }, [result]);
 
@@ -103,59 +117,69 @@ export function UpdateNotifier() {
     async (next: boolean) => {
       setIncludePrereleases(next);
       await saveUpdatePreferences({ includePrereleases: next }, storageService);
-      void check("manual");
+      void runManual();
     },
-    [check],
+    [runManual],
   );
 
-  if (!result) return null;
-
-  const isUpdate = result.status === "update-available";
+  const showResult = result !== null && !manualPending;
+  const isUpdate = result?.status === "update-available";
   const severity: AlertColor =
-    result.status === "update-available"
+    result?.status === "update-available"
       ? "info"
-      : result.status === "up-to-date"
+      : result?.status === "up-to-date"
         ? "success"
         : "warning";
   const message =
-    result.status === "update-available"
+    result?.status === "update-available"
       ? t("update.available", { version: result.latestVersion })
-      : result.status === "up-to-date"
+      : result?.status === "up-to-date"
         ? t("update.upToDate")
         : t("update.checkFailed");
   const published =
-    result.status === "update-available" && result.publishedAt
+    result?.status === "update-available" && result.publishedAt
       ? new Date(result.publishedAt).toLocaleDateString(i18n.language)
       : null;
 
   return (
     <>
       <Snackbar
-        open
-        autoHideDuration={isUpdate ? null : 6000}
-        onClose={handleClose}
+        open={manualPending}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert
-          severity={severity}
-          onClose={handleClose}
-          action={
-            isUpdate ? (
-              <Button
-                color="inherit"
-                size="small"
-                onClick={() => setDetailsOpen(true)}
-              >
-                {t("update.details")}
-              </Button>
-            ) : undefined
-          }
-        >
-          {message}
+        <Alert severity="info" icon={<CircularProgress size={16} />}>
+          {t("update.checking")}
         </Alert>
       </Snackbar>
 
-      {result.status === "update-available" && (
+      {showResult && (
+        <Snackbar
+          open
+          autoHideDuration={isUpdate ? null : 6000}
+          onClose={handleClose}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert
+            severity={severity}
+            onClose={handleClose}
+            action={
+              isUpdate ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => setDetailsOpen(true)}
+                >
+                  {t("update.details")}
+                </Button>
+              ) : undefined
+            }
+          >
+            {message}
+          </Alert>
+        </Snackbar>
+      )}
+
+      {result?.status === "update-available" && (
         <Dialog
           open={detailsOpen}
           onClose={() => setDetailsOpen(false)}
