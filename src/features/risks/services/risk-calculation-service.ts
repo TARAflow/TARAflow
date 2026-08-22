@@ -63,11 +63,6 @@ export interface RiskCalculationResult {
 
 // ==================== RISK SCORE CALCULATION ====================
 
-/**
- * Calculate impact, likelihood, and overall risk score.
- * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2)
- * Severity range: 1 to N² where N = number of scale levels.
- */
 // ==================== SCORE-TABLE LIKELIHOOD ====================
 // ISO 21434 / ETSI TVRA compute likelihood from per-level point tables (summed
 // to an attack potential, mapped to a band), not a weighted mean. A
@@ -149,6 +144,11 @@ function scoreTableLikelihood(
   return normaliseImpactValue(ordinal, 5, scaleLevels);
 }
 
+/**
+ * Calculate impact, likelihood, and overall risk score.
+ * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2)
+ * Severity range: 1 to N² where N = number of scale levels.
+ */
 export function calculateRiskValues(
   ratings: FactorRating[],
   configuration: RiskConfiguration,
