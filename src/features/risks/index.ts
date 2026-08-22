@@ -126,6 +126,7 @@ export {
 
 // ==================== SERVICES ====================
 export { riskService } from "./services/risk-service";
+export { calculateRiskValues } from "./services/risk-calculation-service";
 
 // ==================== COMPONENTS ====================
 export { RisksTab } from "./components/risks-tab";

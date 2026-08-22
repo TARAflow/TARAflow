@@ -92,6 +92,7 @@ export {
   getRegulationPreset,
   type RegulationPreset,
   type RegulationPresetId,
+  type LikelihoodMethod,
 } from "./models/regulation-preset";
 
 // ==================== ASSET RELATION UNION TYPES ====================

@@ -73,3 +73,25 @@ describe("applyRegulationPresetToProject", () => {
     expect(res.changed).toBe(false);
   });
 });
+
+describe("applyRegulationPresetToProject — likelihoodMethod", () => {
+  it("sets the score-table method on the risk configuration", () => {
+    const res = applyRegulationPresetToProject(project(), "etsi-tvra");
+    expect(res.project.risks!.configuration.likelihoodMethod).toBe("etsi-tvra");
+  });
+
+  it("sets weighted-mean for the standard preset", () => {
+    const res = applyRegulationPresetToProject(project(), "standard");
+    expect(res.project.risks!.configuration.likelihoodMethod).toBe(
+      "weighted-mean",
+    );
+  });
+
+  it("sets the method even when no factors change (en-50742-b)", () => {
+    const res = applyRegulationPresetToProject(project(), "en-50742-b");
+    expect(res.changed).toBe(false);
+    expect(res.project.risks!.configuration.likelihoodMethod).toBe(
+      "weighted-mean",
+    );
+  });
+});

@@ -18,7 +18,7 @@ import type {
   RiskRoundingMethod,
 } from "../models/risk-scale-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
-import { RISK_SCALES } from "../models/risk-scale-types";
+import { RISK_SCALES, LIKELIHOOD_SCALES } from "../models/risk-scale-types";
 import {
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
@@ -28,8 +28,30 @@ import type {
   AssetReference,
   AssetDataReference,
   AttackTreeLikelihoodReference,
+  LikelihoodMethod,
 } from "shared";
 import { getWorstCriterionValue, normaliseImpactValue } from "shared";
+import {
+  ISO21434_FACTOR_LEVELS,
+  ISO21434_ELAPSED_TIME_POINTS,
+  ISO21434_EXPERTISE_POINTS,
+  ISO21434_KNOWLEDGE_POINTS,
+  ISO21434_WOO_POINTS,
+  ISO21434_EQUIPMENT_POINTS,
+  iso21434Feasibility,
+} from "../models/iso21434-core";
+import {
+  TVRA_FACTOR_LEVELS,
+  TVRA_TIME_POINTS,
+  TVRA_EXPERTISE_POINTS,
+  TVRA_KNOWLEDGE_POINTS,
+  TVRA_OPPORTUNITY_POINTS,
+  TVRA_EQUIPMENT_POINTS,
+  TVRA_INTENSITY_POINTS,
+  TVRA_AP_LEVEL_LIKELIHOOD,
+  tvraApLevel,
+} from "../models/etsi-tvra-core";
+
 
 // ==================== CALCULATION RESULTS ====================
 
@@ -46,6 +68,87 @@ export interface RiskCalculationResult {
  * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2)
  * Severity range: 1 to N² where N = number of scale levels.
  */
+// ==================== SCORE-TABLE LIKELIHOOD ====================
+// ISO 21434 / ETSI TVRA compute likelihood from per-level point tables (summed
+// to an attack potential, mapped to a band), not a weighted mean. A
+// FactorRating.value is the 1-based level index into the factor's level list;
+// value 0 = not rated. The band ordinal is normalised onto the project
+// likelihood scale via the same helper the asset-impact path uses.
+
+const ISO_POINTS: Record<string, Record<string, number>> = {
+  iso_elapsed_time: ISO21434_ELAPSED_TIME_POINTS,
+  iso_expertise: ISO21434_EXPERTISE_POINTS,
+  iso_knowledge: ISO21434_KNOWLEDGE_POINTS,
+  iso_window_of_opportunity: ISO21434_WOO_POINTS,
+  iso_equipment: ISO21434_EQUIPMENT_POINTS,
+};
+
+const TVRA_POINTS: Record<string, Record<string, number>> = {
+  time: TVRA_TIME_POINTS,
+  expertise: TVRA_EXPERTISE_POINTS,
+  knowledge: TVRA_KNOWLEDGE_POINTS,
+  etsi_opportunity: TVRA_OPPORTUNITY_POINTS,
+  equipment: TVRA_EQUIPMENT_POINTS,
+  etsi_intensity: TVRA_INTENSITY_POINTS,
+};
+
+// ISO 21434 feasibility → likelihood ordinal (higher feasibility = more likely).
+const ISO_FEASIBILITY_ORDINAL: Record<string, number> = {
+  high: 4,
+  medium: 3,
+  low: 2,
+  "very-low": 1,
+};
+
+function sumScoreTablePoints(
+  ratings: FactorRating[],
+  levels: Record<string, readonly string[]>,
+  points: Record<string, Record<string, number>>,
+): { sum: number; rated: number } {
+  let sum = 0;
+  let rated = 0;
+  for (const factorId of Object.keys(points)) {
+    const value = ratings.find((r) => r.factorId === factorId)?.value ?? 0;
+    if (value <= 0) continue; // not rated
+    const key = levels[factorId]?.[value - 1]; // 1-based level index
+    if (key === undefined) continue;
+    sum += points[factorId][key] ?? 0;
+    rated++;
+  }
+  return { sum, rated };
+}
+
+/**
+ * Likelihood for a score-table method, expressed on the project likelihood
+ * scale (1..scaleLevels). Returns 0 when no method factor is rated (mirrors the
+ * weighted-mean path's "empty → 0").
+ */
+function scoreTableLikelihood(
+  ratings: FactorRating[],
+  method: "iso-21434" | "etsi-tvra",
+  scaleLevels: number,
+): number {
+  if (method === "iso-21434") {
+    const { sum, rated } = sumScoreTablePoints(
+      ratings,
+      ISO21434_FACTOR_LEVELS,
+      ISO_POINTS,
+    );
+    if (rated === 0) return 0;
+    const ordinal = ISO_FEASIBILITY_ORDINAL[iso21434Feasibility(sum)];
+    return normaliseImpactValue(ordinal, 4, scaleLevels);
+  }
+  // etsi-tvra
+  const { sum, rated } = sumScoreTablePoints(
+    ratings,
+    TVRA_FACTOR_LEVELS,
+    TVRA_POINTS,
+  );
+  if (rated === 0) return 0;
+  const ordinal = TVRA_AP_LEVEL_LIKELIHOOD[tvraApLevel(sum)];
+  return normaliseImpactValue(ordinal, 5, scaleLevels);
+}
+
 export function calculateRiskValues(
   ratings: FactorRating[],
   configuration: RiskConfiguration,
@@ -73,7 +176,16 @@ export function calculateRiskValues(
   };
 
   const impact = weightedAvg(impactRatings);
-  const likelihood = weightedAvg(likelihoodRatings);
+
+  // Likelihood: score-table methods (ISO 21434 / ETSI TVRA) compute from
+  // per-level point tables; everything else uses the weighted mean.
+  const method: LikelihoodMethod =
+    configuration.likelihoodMethod ?? "weighted-mean";
+  const scaleLevels = LIKELIHOOD_SCALES[configuration.scale].levels.length;
+  const likelihood =
+    method === "iso-21434" || method === "etsi-tvra"
+      ? scoreTableLikelihood(ratings, method, scaleLevels)
+      : weightedAvg(likelihoodRatings);
   const risk = impact > 0 && likelihood > 0 ? impact * likelihood : 0;
 
   return {

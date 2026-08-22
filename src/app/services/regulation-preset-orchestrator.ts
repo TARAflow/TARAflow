@@ -10,6 +10,7 @@
 
 import type { Project } from "../models/project-types";
 import type { RegulationPresetId } from "shared";
+import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { riskService } from "features/risks/services/risk-service";
 
@@ -44,16 +45,38 @@ export function applyRegulationPresetToProject(
   );
 
   if (!changed) {
-    // Setting still updated (e.g. first selection that matches defaults, or a
-    // preset that manages no factors); factor config untouched.
-    return { project: { ...project, settings }, conflicts, changed: false };
+    // Factor config untouched, but the method may still differ (e.g. a preset
+    // that manages no factors). Set it without a rating migration.
+    const method = getRegulationPreset(presetId).likelihoodMethod;
+    const risks =
+      project.risks.configuration.likelihoodMethod === method
+        ? project.risks
+        : {
+            ...project.risks,
+            configuration: {
+              ...project.risks.configuration,
+              likelihoodMethod: method,
+            },
+          };
+    return {
+      project: { ...project, settings, risks },
+      conflicts,
+      changed: false,
+    };
   }
 
-  // Migrate ratings + recalc via the existing config-update path.
-  const risks = riskService.updateConfiguration(project.risks, {
+  // Migrate ratings + recalc via the existing config-update path, then pin the
+  // method on the result (independent of whether updateConfiguration preserves
+  // unknown config fields).
+  const method = getRegulationPreset(presetId).likelihoodMethod;
+  const migrated = riskService.updateConfiguration(project.risks, {
     ...project.risks.configuration,
     activeFactors,
   });
+  const risks = {
+    ...migrated,
+    configuration: { ...migrated.configuration, likelihoodMethod: method },
+  };
 
   return {
     project: { ...project, settings, risks },

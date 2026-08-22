@@ -13,6 +13,15 @@
 // handled by the Compliance feature) omits it, and applying it never touches
 // activeFactors.
 
+/** Which likelihood scoring family a preset uses. weighted-mean = the default
+ * TARAflow factors (uniform scale × weight); the rest are score-table methods
+ * (per-level points → sum → band), each with its own core. */
+export type LikelihoodMethod =
+  | "weighted-mean"
+  | "en-50742-a"
+  | "iso-21434"
+  | "etsi-tvra";
+
 export type RegulationPresetId =
   | "standard"
   | "iso-21434"
@@ -29,6 +38,9 @@ export interface RegulationPreset {
   nameKey: string;
   /** i18n key for the description: regulationPresets.<id>.description */
   descriptionKey: string;
+  /** The likelihood scoring method this preset selects (read by
+   * calculateRiskValues via RiskConfiguration.likelihoodMethod). */
+  likelihoodMethod: LikelihoodMethod;
   /**
    * Likelihood factor IDs this regime activates. Omitted → the preset does not
    * manage likelihood factors (applying it is a no-op on activeFactors).
@@ -40,6 +52,7 @@ export interface RegulationPreset {
 export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = {
   standard: {
     id: "standard",
+    likelihoodMethod: "weighted-mean",
     nameKey: "regulationPresets.standard.name",
     descriptionKey: "regulationPresets.standard.description",
     // The default TARAflow likelihood set (orig. OWASP; matches DEFAULT_CONFIGURATION).
@@ -52,6 +65,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "iso-21434": {
     id: "iso-21434",
+    likelihoodMethod: "iso-21434",
     nameKey: "regulationPresets.iso-21434.name",
     descriptionKey: "regulationPresets.iso-21434.description",
     // ISO/SAE 21434 attack-potential factors (Annex G.2 — score-table method,
@@ -66,6 +80,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "en-50742-a": {
     id: "en-50742-a",
+    likelihoodMethod: "en-50742-a",
     nameKey: "regulationPresets.en-50742-a.name",
     descriptionKey: "regulationPresets.en-50742-a.description",
     // Annex B attack potential: AP = (EL × WoO) + AC.
@@ -77,6 +92,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "en-50742-b": {
     id: "en-50742-b",
+    likelihoodMethod: "weighted-mean",
     nameKey: "regulationPresets.en-50742-b.name",
     descriptionKey: "regulationPresets.en-50742-b.description",
     // Approach B is compliance-driven (IEC 62443-3-3/-4-2 fixed subset),
@@ -85,6 +101,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "etsi-tvra": {
     id: "etsi-tvra",
+    likelihoodMethod: "etsi-tvra",
     nameKey: "regulationPresets.etsi-tvra.name",
     descriptionKey: "regulationPresets.etsi-tvra.description",
     // ETSI TS 102 165-1 weighted-summation factors (score-table; etsi-tvra-core.ts).

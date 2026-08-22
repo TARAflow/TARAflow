@@ -6,7 +6,7 @@
 //   risk-factor-types (RiskFactorDefinition, ActiveFactor, AssetImpactMapping,
 //                      DEFAULT_ASSET_IMPACT_MAPPINGS, ALL_PREDEFINED_FACTORS)
 
-import type { StrideMethod } from "shared";
+import type { StrideMethod, LikelihoodMethod } from "shared";
 import type { RiskMethodType, RiskScaleType, RiskRoundingMethod } from "./risk-scale-types";
 import type { RiskFactorDefinition, ActiveFactor, AssetImpactMapping } from "./risk-factor-types";
 import { DEFAULT_ASSET_IMPACT_MAPPINGS } from "./risk-factor-types";
@@ -19,6 +19,13 @@ export interface RiskConfiguration {
   roundingMethod: RiskRoundingMethod;
   activeStrideMethod: StrideMethod;
   activeFactors: ActiveFactor[];
+  /**
+   * The likelihood scoring method (derived from the regulation preset). Undefined
+   * → "weighted-mean" (the default TARAflow factors). Score-table methods
+   * (iso-21434 / etsi-tvra / en-50742-a) compute likelihood from per-level point
+   * tables instead of a weighted mean; see calculateRiskValues.
+   */
+  likelihoodMethod?: LikelihoodMethod;
   showIndividualFactors: boolean;
   customFactors: RiskFactorDefinition[];
   useAssetImpact: boolean;
