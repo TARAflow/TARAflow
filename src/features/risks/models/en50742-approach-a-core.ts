@@ -240,3 +240,170 @@ export function requirementsForSrsl(
     requirement: r.tiers[srsl],
   }));
 }
+
+// ===========================================================================
+// SCORE-TABLE RATING INTEGRATION  (design §2.2 / §2.3 / §3.2)
+// Added for the pure-logic core: level registries, band→likelihood ordinal,
+// combined evaluation, and DFD exposure-level resolution.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Rating-level registries
+// ---------------------------------------------------------------------------
+// A FactorRating.value is a 1-based index into the factor's ordered level list
+// (0 = not rated), mirroring the ISO 21434 / ETSI TVRA cores. EN 50742 exposes
+// registries for the two RATED factors only:
+//   - exposure_level      (derived from the DFD, overridable — §3.2)
+//   - attacker_capability (per threat, rated in the Risk dialog)
+// WoO is NOT a per-risk factor (project-global config, §3.3); its ordered list
+// is provided for the Overview dropdown, not for rating indexing.
+
+export const EN50742_EXPOSURE_LEVELS: readonly ExposureLevel[] = [
+  "EL0", "EL1", "EL2", "EL3", "EL4",
+];
+
+/**
+ * Ordered most-capable → least-capable, so the level index rises WITH the
+ * (inverted-polarity) AC score: index 1 = advanced (score 1) … index 4 = basic
+ * (score 4). See ATTACKER_CAPABILITY_SCORE — a basic-skill-sufficient attack
+ * scores highest and yields the highest attack potential.
+ */
+export const EN50742_ATTACKER_CAPABILITY_LEVELS: readonly AttackerCapability[] = [
+  "advanced", "specialist", "medium", "basic",
+];
+
+/** Overview dropdown order (least → most opportunity). NOT a rating registry. */
+export const EN50742_WOO_LEVELS: readonly WindowOfOpportunity[] = [
+  "very_restricted", "moderately_restricted", "limited", "unlimited",
+];
+
+/** factorId → ordered level keys, for the two rated EN 50742 factors. */
+export const EN50742_FACTOR_LEVELS: Record<string, readonly string[]> = {
+  exposure_level: EN50742_EXPOSURE_LEVELS,
+  attacker_capability: EN50742_ATTACKER_CAPABILITY_LEVELS,
+};
+
+/**
+ * Map a 1-based FactorRating.value to its level key, or undefined if unrated
+ * (value <= 0) or out of range.
+ */
+export function en50742LevelFromRating(
+  factorId: string,
+  value: number,
+): string | undefined {
+  const levels = EN50742_FACTOR_LEVELS[factorId];
+  if (!levels || value <= 0 || value > levels.length) return undefined;
+  return levels[value - 1];
+}
+
+// ---------------------------------------------------------------------------
+// Band → likelihood ordinal — NATURAL polarity (§2.2)
+// ---------------------------------------------------------------------------
+// EN 50742 AC has inverted polarity at the FACTOR level (basic attacker → high
+// AP), but the band→likelihood mapping is NATURAL: a higher AP band means a MORE
+// likely attack. This is the OPPOSITE of ISO 21434 / ETSI TVRA, where higher
+// attack potential means LOWER feasibility/occurrence. Do NOT copy the ISO/TVRA
+// inversion here.
+
+/** Number of AP bands = source scale for normalising onto the project scale. */
+export const EN50742_AP_BAND_COUNT = 5;
+
+const EN50742_BAND_ORDINAL: Record<AttackPotentialBand, number> = {
+  AP0: 1, // Very Low  → lowest likelihood
+  AP1: 2,
+  AP2: 3,
+  AP3: 4,
+  AP4: 5, // Very High → highest likelihood
+};
+
+export function en50742LikelihoodOrdinal(band: AttackPotentialBand): number {
+  return EN50742_BAND_ORDINAL[band];
+}
+
+// ---------------------------------------------------------------------------
+// Combined EN 50742 likelihood evaluation (§2.3)
+// ---------------------------------------------------------------------------
+
+export interface EN50742LikelihoodEval {
+  attackPotential: AttackPotentialResult; // { score, band }
+  /**
+   * 1..EN50742_AP_BAND_COUNT, natural polarity. Feed to normaliseImpactValue
+   * (source scale = EN50742_AP_BAND_COUNT) to reach the project likelihood scale.
+   */
+  likelihoodOrdinal: number;
+  /**
+   * Authoritative Approach-A output — Table B.6 (band × severity). Independent
+   * of the likelihood ordinal; the two may diverge in ordering (§2.2).
+   */
+  srsl: Srsl;
+}
+
+export function evaluateEN50742Likelihood(
+  ap: AttackPotentialInput,
+  severity: Severity,
+): EN50742LikelihoodEval {
+  const attackPotential = computeAttackPotential(ap);
+  return {
+    attackPotential,
+    likelihoodOrdinal: en50742LikelihoodOrdinal(attackPotential.band),
+    srsl: determineSrsl(attackPotential.band, severity),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Exposure-level resolution for a threat — higher-EL-wins, LOCAL only (§3.2)
+// ---------------------------------------------------------------------------
+// For a given threat, EL = MAX over the EL-carrying elements the threat's
+// location ITSELF touches: its own element/flow EL plus the ELs of the trust
+// boundaries that element/flow directly crosses or sits behind. Higher-EL-wins.
+//
+// CRITICAL — non-transitive: the caller passes ONLY the locally-touched ELs, not
+// the upstream chain. A data flow that stays internal after crossing one public
+// boundary must NOT inherit that boundary's EL; its crossedBoundaryELs list is
+// simply empty (or its local zone). Otherwise every element behind a public
+// boundary would become EL4 and zoning would be meaningless. EL measures direct
+// attack surface, not multi-hop reachability. Gathering the correct LOCAL set is
+// the DFD adapter's job; this function only takes the MAX.
+
+export interface ExposureResolutionInput {
+  /**
+   * EL authored directly on the threat's own element (the data flow for a
+   * per-interaction threat, the interface/element for a per-element threat).
+   */
+  ownEL?: ExposureLevel;
+  /**
+   * ELs of the trust boundaries this element/flow ITSELF crosses or sits behind
+   * — local only, never the upstream chain.
+   */
+  crossedBoundaryELs?: readonly ExposureLevel[];
+}
+
+export interface ExposureResolution {
+  el: ExposureLevel;
+  /**
+   * Where the winning EL came from. "default" = nothing supplied → EL0 (isolated
+   * element, §3.9). Ties favour "own".
+   */
+  source: "own" | "boundary" | "default";
+}
+
+export function resolveExposureLevelForThreat(
+  input: ExposureResolutionInput,
+): ExposureResolution {
+  let best: ExposureLevel | undefined;
+  let source: "own" | "boundary" | "default" = "default";
+
+  const consider = (el: ExposureLevel, src: "own" | "boundary"): void => {
+    // Strictly-greater replaces → own (considered first) wins ties.
+    if (best === undefined || EXPOSURE_LEVEL_SCORE[el] > EXPOSURE_LEVEL_SCORE[best]) {
+      best = el;
+      source = src;
+    }
+  };
+
+  if (input.ownEL) consider(input.ownEL, "own");
+  for (const b of input.crossedBoundaryELs ?? []) consider(b, "boundary");
+
+  if (best === undefined) return { el: "EL0", source: "default" };
+  return { el: best, source };
+}

@@ -164,6 +164,50 @@ risk-derived and apply regardless of SRSL:
 These are a static checklist, closer to the Compliance-feature style than the
 risk engine. See §6 for the scope decision.
 
+### 2.2 Output model — SRSL primary, R=I×L secondary (DECIDED)
+
+- [x] **Decided (Output Model C):** an `en-50742-a` project produces **both**
+  outputs, but **SRSL is the authoritative one** and R=I×L is a secondary
+  TARAflow lens.
+  - **SRSL0–3** — the normative Approach-A output, via the literal Table B.6
+    lookup `(AP band × severity)`. This is what the report, the traceability
+    chain, and the protection-requirement selection (§5) run on. It is *not* a
+    likelihood and *not* R=I×L — it already folds in severity.
+  - **R = I × L** — kept as TARAflow's native risk number so this project still
+    populates the risk matrix / dashboard / cross-project comparison. Here L is
+    the AP-band mapped onto the project likelihood scale (natural polarity:
+    AP4 → highest likelihood), I is the impact factors as usual.
+
+**Warning — the two axes can disagree in ordering, by design.** R=I×L is a
+*smooth product*; SRSL=TableB.6(band, severity) is an *irregular lookup* (AP2 →
+SRSL1/2/3 depending on severity, §3.5). So R may read "medium" while SRSL reads
+"SRSL3". Do **not** try to make R=I×L reproduce SRSL — they are two deliberately
+different combination rules over the same two axes (severity, AP band). Surface
+both, label SRSL as the governing one, and let them differ.
+
+### 2.3 Dedicated calculation function (DECIDED)
+
+- [x] **Decided:** EN 50742 gets its **own** `calculateEN50742RiskValues`
+  function, **not** a branch inside the generic `calculateRiskValues` and **not**
+  a third case in `scoreTableLikelihood`. Reasons:
+  - the aggregation is `(EL × WoO) + AC` with WoO as a **multiplier** (0.6–1.0),
+    which `sumScoreTablePoints` (pure additive) structurally cannot express;
+  - it needs two inputs the generic signature does not carry: **WoO** (project-
+    global config, §3.3) and **severity** (from the linked safety-function
+    asset, §3.6) — neither lives in `ratings`;
+  - it emits an extra output (SRSL) that `RiskCalculationResult` does not model.
+
+  Signature (shape): `(ratings, configuration, severity) → { impact, likelihood,
+  risk, srsl }`, where `configuration` now carries `windowOfOpportunity` and
+  `severity` is resolved from the linked asset by the caller. Internally it calls
+  the core's `computeAttackPotential` → `{ score, band }`, then
+  `bandForAttackPotential`/`determineSrsl`. AC is the only truly *rated* factor;
+  EL is a **derived** rating (§3.2); WoO is config, not a factor.
+
+  Consequence for the preset: `en-50742-a.likelihoodFactorIds` becomes
+  `[attacker_capability, exposure_level]` — **WoO is removed as a per-risk
+  factor** (see §4).
+
 ---
 
 ## 3. Open points to clarify (decide before coding)
@@ -190,17 +234,50 @@ AND-Node: MIN(AP)   ← the least-likely necessary step gates the chain
   for EN 50742, central for ISO 21434. The `en-50742-a` preset does not require
   the AttackTree tab.
 
-### 3.2 EL source in the DFD
+### 3.2 EL source in the DFD (DECIDED)
 
-- [ ] EL lives on the interface asset, on the connection/data flow, or is
-  **derived** from the trust boundary the connection crosses (norm's
-  higher-EL-wins rule)? Recommended: derived-from-boundary with manual override,
-  mirroring `exposureLevelSource`.
+- [x] **Decided:** EL is authored on **trust boundaries, interfaces, AND data
+  flows** (all three carry it in the current DFD model) and is resolved onto each
+  threat by a **dedicated step** `resolveExposureLevelForThreat` — separate from
+  the impact prefill (`applyAssetCriteriaToFactorRatings`), because EL comes from
+  boundaries/flows, not from asset impact criteria. The resolved value is written
+  as an `exposure_level` rating with `source="derived"` and is **manually
+  overridable** (mirroring the derived/manual pattern).
 
-### 3.3 WoO is machinery-global
+**Resolution rule — local, higher-EL-wins, NOT transitive.** For a given threat,
+`EL = MAX` over the EL-carrying elements the threat's location **itself** touches:
 
-- [ ] Confirm WoO is a single project-level field tied to the Security Context,
-  not per interface (norm: "estimated for the whole machinery", line 578).
+| Threat kind | EL used |
+|---|---|
+| per-interaction / data-flow threat | `MAX(DF's own EL, EL of boundaries this DF crosses)` |
+| per-element threat on an interface | `MAX(interface's own EL, EL of the boundary it is exposed through)` |
+| per-element threat, internal element with no external interface | EL0 → `AP = (0×WoO)+AC = AC` → low band → typically SRSL0 (the "isolated safety function", §3.9) |
+
+The trust boundary's EL is **never applied to a threat directly** (boundaries are
+not STRIDE elements). It propagates into the DF/interface that crosses or sits on
+it, and *wins* when it is the highest **local** source. Critically, higher-EL-wins
+applies only to boundaries the element/flow **itself** crosses — **not** the whole
+upstream chain. Otherwise every element behind a Public boundary would inherit
+EL4 and zoning would be meaningless: a DF that stays internal after crossing one
+public boundary keeps its local (internal) EL. EL measures *direct* attack
+surface, not multi-hop reachability.
+
+> **VERIFY:** prEN 50742:2025 is a Draft and Annex C.7 does not fully spell out
+> the flat-DFD resolution (boundary label vs. flow/interface EL). The local,
+> non-transitive higher-EL-wins rule above is TARAflow's engineering
+> interpretation; confirm against the final norm.
+
+### 3.3 WoO is machinery-global (DECIDED)
+
+- [x] **Decided:** WoO is a single **project-global** field on the Security
+  Context, entered in the **Overview tab** and stored on `project.info` (it is
+  fachlicher Input, not a tool setting, so `info` over `settings`). It is
+  **not** a per-risk factor. The value is threaded to the risk engine via
+  `RiskConfiguration.windowOfOpportunity` (set by the preset orchestrator when
+  the Overview value changes — same write path as the tag→preset wiring), and
+  read by `calculateEN50742RiskValues` (§2.3). Changing WoO recomputes AP/SRSL
+  for **all** `en-50742-a` risks. (Norm: "estimated for the whole machinery",
+  line 578.)
 
 ### 3.4 AP precision / band boundaries
 
@@ -229,14 +306,39 @@ WoO is fractional, so `EL×WoO` is fractional (e.g. 16×0.6 = 9.6). Bands split 
   interface). Confirm the asset-relation model carries an SRSL per
   (safety-function asset, interface asset) pair.
 
-### 3.8 Eliminate / mitigate / compensating mapping
+### 3.8 What happens after SRSL — requirement-driven, NOT discretionary (DECIDED)
 
-Approach A's process (Fig 1): (2.A) eliminate the vulnerability → (2.B) mitigate
-per Clause 7 → (2.C) document residual risk + compensating countermeasure in
-information for use.
-- [ ] Map to TARAflow's mitigation + Won't/claim types: elimination ≈ removal;
-  mitigation ≈ selected measure; compensating-countermeasure-by-user ≈ a claim
-  documented in information-for-use (avoidance/acceptance/sharing).
+This is the second fundamental break from the standard risk flow. Standard-Risk:
+threat → assess → analyst **freely selects** mitigations → residual. Approach A:
+(safety function × interface) → SRSL → the SRSL row of the **Clause 7.4.3
+catalogue (§5) DICTATES** the protection requirements. Not a menu — a mandate.
+
+- [x] **Decided:** SRSL → `requirementsForSrsl(srsl)` (already in the core)
+  produces the required protection requirement per category (Authentication,
+  Authorization, Software/Info Integrity, Boot Integrity, Info-exchange Integrity,
+  Input Validation, Physical Tampering, SRESW/SRASW Authenticity). The analyst's
+  job is to **demonstrate each required control is implemented and verified**, not
+  to pick controls to reduce a number.
+
+Two semantics that invert vs. standard risk:
+
+1. **SRSL is not "mitigated down."** It is a *target* level (like SL-T in
+   IEC 62443), derived from inherent AP × severity. Adding controls **satisfies**
+   the SRSL; it does not lower it. What lowers SRSL is **elimination** (Fig 1,
+   2.A) — e.g. removing an interface → EL drops → AP drops → SRSL re-derived. That
+   is a design change on the **input**, not an in-place countermeasure that
+   re-rates likelihood.
+2. **Unmet requirement → compensating countermeasure** (2.C), documented as a
+   claim in information-for-use (avoidance / acceptance / sharing).
+
+**Reuse, don't rebuild:** the SRSL-mandated requirements reuse TARAflow's
+mitigation / control-instance / verification infrastructure
+(`verification_method` / `verification_status`). The only difference is
+**provenance** — SRSL-mandated, not analyst-selected. In the Risk tab they should
+appear as pre-determined control rows to verify, **not** in the free mitigation
+picker. Mapping to existing types: elimination ≈ removal (re-derives EL/AP);
+required protection requirement ≈ a mandated control to verify;
+compensating-countermeasure-by-user ≈ a claim in information-for-use.
 
 ### 3.9 SRSL0 special case
 
@@ -257,11 +359,12 @@ do not "fix" it.
 | Field | Value |
 |---|---|
 | `id` | `en-50742-a` |
-| `likelihoodMethod` | `en50742-attack-potential` (distinct from ISO 18045 sum) |
-| `likelihoodFactorIds` | `exposure_level, window_of_opportunity, attacker_capability` |
+| `likelihoodMethod` | `en50742-attack-potential` (distinct from ISO 18045 sum; own function §2.3, not the score-table sum path) |
+| `likelihoodFactorIds` | `attacker_capability` (rated, per threat), `exposure_level` (**derived** from DFD, §3.2, manual override). **WoO removed** — it is project-global config (§3.3), not a per-risk factor. |
+| `windowOfOpportunity` | project-global, on `project.info` (Overview / Security Context); threaded via `RiskConfiguration.windowOfOpportunity` (§3.3) |
 | `motivationModel` | `not-applicable` — benefit/motivation must NOT enter (line 241: "the likelihood of being a target/victim shall not be relevant") |
-| `severityAxis` | 3-level `reversible | non_reversible | fatal` (from safety assessment; `fatal` is a TARAflow extension, §1.3) |
-| `riskOutput` | `SRSL0..SRSL3` via literal Table B.6 lookup |
+| `severityAxis` | 3-level `reversible | non_reversible | fatal` on the safety-function asset (from safety assessment; `fatal` is a TARAflow extension, §1.3, §3.6) |
+| `riskOutput` | **primary:** `SRSL0..SRSL3` via literal Table B.6 lookup `(AP band × severity)`. **secondary:** `R = I × L` with L = AP band on the project likelihood scale (Output Model C, §2.2 — SRSL governs; the two may diverge in ordering by design). |
 | `srslProfile` | §5 |
 | `complianceProfile` | absent (that is `en-50742-b`) |
 | `hazardSwitch` | forced active (see §7.1) |
@@ -382,16 +485,24 @@ not a risk output:
   attaches to (§3.7).
 
 ### 7.3 Phase 3 — Likelihood (AP)
-- New method `en50742-attack-potential`: `AP = (EL × WoO) + AC`, WoO project-global,
-  EL per interface, AC per threat; band via Table B.5.
+- **Dedicated** `calculateEN50742RiskValues` (§2.3), not a branch in the generic
+  calc and not a score-table case: `AP = (EL × WoO) + AC` via the core's
+  `computeAttackPotential`; band via Table B.5.
+- WoO entered in the Overview tab (`project.info`), threaded via
+  `RiskConfiguration.windowOfOpportunity` (§3.3). EL resolved by a dedicated step
+  `resolveExposureLevelForThreat` → `exposure_level` derived rating (§3.2).
+  AC per threat, rated in the Risk dialog. Precision rule (§3.4).
 - Flat per-threat (attack trees optional; if used, OR=MAX/AND=MIN — §3.1).
-- Precision rule (§3.4).
+- Level registry on `en50742-approach-a-core.ts` (factorId → ordered levels),
+  analog to the ISO/TVRA cores, so the rated factors map level-index → enum.
 
 ### 7.4 Phase 4 — Risk tab (SRSL + requirements)
-- SRSL via literal Table B.6 lookup (AP × severity).
+- **SRSL primary output** via literal Table B.6 lookup (AP band × severity);
+  R=I×L kept as secondary lens (Output Model C, §2.2 — they may diverge).
 - `SRSLProfile` (§5) drives the required protection-requirement set per determined
-  SRSL, per (function, interface); verification status reuses existing
-  `verification_method`/`verification_status`.
+  SRSL, per (function, interface) — **requirement-driven, not discretionary**
+  (§3.8): rendered as pre-determined control rows to verify, not the free
+  mitigation picker; verification reuses `verification_method`/`verification_status`.
 - Residual/compensating mapping (§3.8).
 
 ### 7.5 Phase 5 — Report (Approach A evidence)
