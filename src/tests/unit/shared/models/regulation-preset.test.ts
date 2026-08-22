@@ -13,15 +13,15 @@ describe("regulation preset catalog", () => {
     }
   });
 
-  it("lists exactly the four known presets", () => {
+  it("lists exactly the five known presets", () => {
     expect([...REGULATION_PRESET_IDS].sort()).toEqual(
-      ["en-50742-a", "en-50742-b", "iso-21434", "owasp"].sort(),
+      ["en-50742-a", "en-50742-b", "etsi-tvra", "iso-21434", "standard"].sort(),
     );
   });
 
-  it("defaults to owasp", () => {
-    expect(DEFAULT_REGULATION_PRESET).toBe("owasp");
-    expect(getRegulationPreset(undefined).id).toBe("owasp");
+  it("defaults to standard", () => {
+    expect(DEFAULT_REGULATION_PRESET).toBe("standard");
+    expect(getRegulationPreset(undefined).id).toBe("standard");
     expect(getRegulationPreset("en-50742-a").id).toBe("en-50742-a");
   });
 
@@ -34,7 +34,9 @@ describe("regulation preset catalog", () => {
   });
 
   it("en-50742-b manages no likelihood factors (compliance-driven)", () => {
-    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).toBeUndefined();
+    expect(
+      REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds,
+    ).toBeUndefined();
   });
 
 
@@ -44,5 +46,28 @@ describe("regulation preset catalog", () => {
       expect(p.nameKey).toBe(`regulationPresets.${id}.name`);
       expect(p.descriptionKey).toBe(`regulationPresets.${id}.description`);
     }
+  });
+});
+
+describe("regulation preset catalog — score-table presets", () => {
+  it("iso-21434 activates the five ISO 21434 attack-potential factors", () => {
+    expect(REGULATION_PRESETS["iso-21434"].likelihoodFactorIds).toEqual([
+      "iso_elapsed_time",
+      "iso_expertise",
+      "iso_knowledge",
+      "iso_window_of_opportunity",
+      "iso_equipment",
+    ]);
+  });
+
+  it("etsi-tvra activates the six TVRA weighted-summation factors", () => {
+    expect(REGULATION_PRESETS["etsi-tvra"].likelihoodFactorIds).toEqual([
+      "time",
+      "expertise",
+      "knowledge",
+      "etsi_opportunity",
+      "equipment",
+      "etsi_intensity",
+    ]);
   });
 });

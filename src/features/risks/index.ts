@@ -37,7 +37,7 @@ export type {
   AssetImpactMapping,
 } from "./models/risk-factor-types";
 export {
-  OWASP_LIKELIHOOD_FACTORS,
+  STANDARD_LIKELIHOOD_FACTORS,
   IMPACT_FACTORS,
   ETSI_FACTORS,
   EN50742_FACTORS,
@@ -105,6 +105,25 @@ export {
   getRiskStatistics,
 } from "./models/risk-assessment-types";
 
+export {
+  ISO21434_FACTOR_LEVELS,
+  ISO21434_ELAPSED_TIME_POINTS,
+  ISO21434_EXPERTISE_POINTS,
+  ISO21434_KNOWLEDGE_POINTS,
+  ISO21434_WOO_POINTS,
+  ISO21434_EQUIPMENT_POINTS,
+} from "./models/iso21434-core";
+
+export {
+  TVRA_FACTOR_LEVELS,
+  TVRA_TIME_POINTS,
+  TVRA_EXPERTISE_POINTS,
+  TVRA_KNOWLEDGE_POINTS,
+  TVRA_OPPORTUNITY_POINTS,
+  TVRA_EQUIPMENT_POINTS,
+  TVRA_INTENSITY_POINTS,
+} from "./models/etsi-tvra-core";
+
 // ==================== SERVICES ====================
 export { riskService } from "./services/risk-service";
 
@@ -117,3 +136,12 @@ export { WontRiskTable } from "./components/wont-risk-table";
 
 // ==================== DEFAULT EXPORT ====================
 export { RisksTab as default } from "./components/risks-tab";
+
+// ==================== UTILS ====================
+export {
+  iso21434AttackPotential,
+  iso21434Feasibility,
+  iso21434RateFeasibility,
+} from "./models/iso21434-core";
+
+export { tvraAttackPotential, tvraApLevel, tvraRate } from "./models/etsi-tvra-core";

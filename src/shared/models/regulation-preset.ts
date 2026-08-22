@@ -14,13 +14,14 @@
 // activeFactors.
 
 export type RegulationPresetId =
-  | "owasp"
+  | "standard"
   | "iso-21434"
   | "en-50742-a"
-  | "en-50742-b";
+  | "en-50742-b"
+  | "etsi-tvra";
 
 /** The default preset when a project has none set. */
-export const DEFAULT_REGULATION_PRESET: RegulationPresetId = "owasp";
+export const DEFAULT_REGULATION_PRESET: RegulationPresetId = "standard";
 
 export interface RegulationPreset {
   id: RegulationPresetId;
@@ -37,21 +38,31 @@ export interface RegulationPreset {
 }
 
 export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = {
-  owasp: {
-    id: "owasp",
-    nameKey: "regulationPresets.owasp.name",
-    descriptionKey: "regulationPresets.owasp.description",
-    // The app's default likelihood set (matches DEFAULT_CONFIGURATION).
-    likelihoodFactorIds: ["skill_level", "motive", "opportunity", "ease_of_exploit"],
+  standard: {
+    id: "standard",
+    nameKey: "regulationPresets.standard.name",
+    descriptionKey: "regulationPresets.standard.description",
+    // The default TARAflow likelihood set (orig. OWASP; matches DEFAULT_CONFIGURATION).
+    likelihoodFactorIds: [
+      "skill_level",
+      "motive",
+      "opportunity",
+      "ease_of_exploit",
+    ],
   },
   "iso-21434": {
     id: "iso-21434",
     nameKey: "regulationPresets.iso-21434.name",
     descriptionKey: "regulationPresets.iso-21434.description",
-    // ISO/SAE 21434 uses an ISO 18045-style attack-potential set. Provisional —
-    // refine when the ISO 21434 strand (Modus_21434) is built; the ETSI/TVRA
-    // factors are the closest existing catalogue entries.
-    likelihoodFactorIds: ["knowledge", "expertise", "time", "equipment"],
+    // ISO/SAE 21434 attack-potential factors (Annex G.2 — score-table method,
+    // scored via iso21434-core.ts). Distinct set from ETSI TVRA.
+    likelihoodFactorIds: [
+      "iso_elapsed_time",
+      "iso_expertise",
+      "iso_knowledge",
+      "iso_window_of_opportunity",
+      "iso_equipment",
+    ],
   },
   "en-50742-a": {
     id: "en-50742-a",
@@ -71,6 +82,20 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     // Approach B is compliance-driven (IEC 62443-3-3/-4-2 fixed subset),
     // delivered by the Compliance feature — it does not manage likelihood
     // factors, so likelihoodFactorIds is intentionally omitted.
+  },
+  "etsi-tvra": {
+    id: "etsi-tvra",
+    nameKey: "regulationPresets.etsi-tvra.name",
+    descriptionKey: "regulationPresets.etsi-tvra.description",
+    // ETSI TS 102 165-1 weighted-summation factors (score-table; etsi-tvra-core.ts).
+    likelihoodFactorIds: [
+      "time",
+      "expertise",
+      "knowledge",
+      "etsi_opportunity",
+      "equipment",
+      "etsi_intensity",
+    ],
   },
 };
 

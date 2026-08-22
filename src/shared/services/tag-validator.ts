@@ -16,6 +16,7 @@
 
 import i18n from "i18next";
 import type { ProjectTags } from "shared";
+import type { RegulationPresetId } from "../models/regulation-preset";
 
 // ==================== TYPES ====================
 
@@ -152,6 +153,8 @@ function methodGroupOf(tag: string): string | null {
   const n = normalizeTag(tag);
   if (n === "ISO21434" || n === "ISOSAE21434") return "ISO 21434";
   if (n.startsWith("EN50742")) return "EN 50742";
+  if (n === "ETSITVRA" || n === "TVRA" || n.startsWith("ETSITS102165"))
+    return "ETSI TVRA";
   // Extend here as further method-defining presets are added (e.g. a future
   // regime that also owns the likelihood/compliance method).
   return null;
@@ -171,13 +174,44 @@ function en50742ApproachOf(tag: string): "A" | "B" | null {
 
 /**
  * Whether the selected regulations MANDATE hazard analysis (the Hazard tab).
- * EN 50742 is fundamentally a machinery-safety standard, so any EN 50742 tag
- * (Approach A or B) forces `safetyRelevant = true` and locks the Hazard slide
- * switch. Consumed by project-info to derive the switch state; keep the safety
- * classification next to the other EN 50742 tag classifiers above.
+ * A set of safety-relevant standards forces `safetyRelevant = true` and locks
+ * the Hazard slide switch: EN 50742 (machinery), IEC 81001 / IEC TR 60601
+ * (medical), IEC 63452 / CLC/TS 50701 (railway). Independent of the likelihood
+ * preset — e.g. IEC 81001 activates the Hazard tab while the method stays
+ * `standard`. Consumed by project-info to derive the switch state.
  */
+const HAZARD_REGULATIONS: ReadonlySet<string> = new Set(
+  ["EN 50742", "IEC 81001", "IEC TR 60601", "IEC 63452", "CLC/TS 50701"].map(
+    normalizeTag,
+  ),
+);
+
 export function requiresHazardAnalysis(tags: ProjectTags): boolean {
-  return tags.regulation.some((reg) => methodGroupOf(reg) === "EN 50742");
+  return tags.regulation.some((reg) => {
+    const n = normalizeTag(reg);
+    // EN 50742 (any approach) matches by prefix; the rest by exact normalized id.
+    return n.startsWith("EN50742") || HAZARD_REGULATIONS.has(n);
+  });
+}
+
+/**
+ * Derive the regulation preset from the project's regulation tags. The tag IS
+ * the selection — there is no separate preset picker. First matching regime
+ * wins; falls back to the default when no regime tag is present. A bare
+ * "EN 50742" tag (no approach suffix) defaults to Approach A.
+ */
+export function regulationPresetFromTags(
+  tags: ProjectTags,
+): RegulationPresetId {
+  for (const reg of tags.regulation) {
+    const group = methodGroupOf(reg);
+    if (group === "EN 50742") {
+      return en50742ApproachOf(reg) === "B" ? "en-50742-b" : "en-50742-a";
+    }
+    if (group === "ISO 21434") return "iso-21434";
+    if (group === "ETSI TVRA") return "etsi-tvra";
+  }
+  return "standard";
 }
 
 // ==================== VALIDATOR ====================

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import type { ActiveFactor } from "features/risks/models/risk-factor-types";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 import { ALL_PREDEFINED_FACTORS } from "features/risks/models/risk-factor-types";
-import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { REGULATION_PRESETS, REGULATION_PRESET_IDS } from "shared";
 
 // A fresh copy of the app-default activeFactors for each test.
@@ -18,7 +18,7 @@ const enabledIds = (fs: ActiveFactor[]) =>
     .sort();
 
 const EN = ["window_of_opportunity", "attacker_capability", "exposure_level"];
-const OWASP4 = ["skill_level", "motive", "opportunity", "ease_of_exploit"];
+const STANDARD4 = ["skill_level", "motive", "opportunity", "ease_of_exploit"];
 
 describe("applyRegulationPreset — purity", () => {
   it("does not mutate the input array or its factors", () => {
@@ -29,19 +29,19 @@ describe("applyRegulationPreset — purity", () => {
   });
 });
 
-describe("applyRegulationPreset — owasp → en-50742-a", () => {
-  it("enables the 3 EN 50742 factors and disables the OWASP likelihood factors", () => {
+describe("applyRegulationPreset — standard → en-50742-a", () => {
+  it("enables the 3 EN 50742 factors and disables the standard likelihood factors", () => {
     const res = applyRegulationPreset(defaults(), "en-50742-a");
 
     for (const id of EN) {
       expect(byId(res.activeFactors, id)?.enabled).toBe(true);
       expect(byId(res.activeFactors, id)?.autoEnabled).toBe(true);
     }
-    for (const id of OWASP4) {
+    for (const id of STANDARD4) {
       expect(byId(res.activeFactors, id)?.enabled).toBe(false);
     }
     expect(res.enabled.sort()).toEqual([...EN].sort());
-    expect(res.disabled.sort()).toEqual([...OWASP4].sort());
+    expect(res.disabled.sort()).toEqual([...STANDARD4].sort());
     expect(res.conflicts).toEqual([]);
     expect(res.changed).toBe(true);
   });
@@ -57,12 +57,12 @@ describe("applyRegulationPreset — owasp → en-50742-a", () => {
 });
 
 describe("applyRegulationPreset — round trip", () => {
-  it("en-50742-a → owasp restores the OWASP set and disables EN 50742", () => {
+  it("en-50742-a → standard restores the standard set and disables EN 50742", () => {
     const en = applyRegulationPreset(defaults(), "en-50742-a").activeFactors;
-    const res = applyRegulationPreset(en, "owasp");
+    const res = applyRegulationPreset(en, "standard");
 
     expect(enabledIds(res.activeFactors)).toEqual(
-      [...OWASP4, "deployment_scope"].sort(),
+      [...STANDARD4, "deployment_scope"].sort(),
     );
     for (const id of EN) {
       expect(byId(res.activeFactors, id)?.enabled).toBe(false);
@@ -127,18 +127,6 @@ describe("applyRegulationPreset — idempotence & no-op presets", () => {
   });
 });
 
-describe("applyRegulationPreset — iso-21434", () => {
-  it("enables the ISO/ETSI factor set and disables OWASP", () => {
-    const res = applyRegulationPreset(defaults(), "iso-21434");
-    for (const id of ["knowledge", "expertise", "time", "equipment"]) {
-      expect(byId(res.activeFactors, id)?.enabled).toBe(true);
-    }
-    for (const id of OWASP4) {
-      expect(byId(res.activeFactors, id)?.enabled).toBe(false);
-    }
-  });
-});
-
 describe("preset factor ids resolve against the factor catalog", () => {
   const known = new Set(ALL_PREDEFINED_FACTORS.map((f) => f.id));
   it("every declared likelihood factor id exists", () => {
@@ -146,6 +134,71 @@ describe("preset factor ids resolve against the factor catalog", () => {
       for (const fid of REGULATION_PRESETS[id].likelihoodFactorIds ?? []) {
         expect(known.has(fid)).toBe(true);
       }
+    }
+  });
+});
+
+describe("applyRegulationPreset — iso-21434 (factors absent from defaults)", () => {
+  const ISO = [
+    "iso_elapsed_time",
+    "iso_expertise",
+    "iso_knowledge",
+    "iso_window_of_opportunity",
+    "iso_equipment",
+  ];
+
+  it("adds and enables all five ISO factors and disables the standard set", () => {
+    const res = applyRegulationPreset(defaults(), "iso-21434");
+    for (const id of ISO) {
+      expect(byId(res.activeFactors, id)?.enabled).toBe(true);
+      expect(byId(res.activeFactors, id)?.autoEnabled).toBe(true);
+      expect(res.enabled).toContain(id); // added, since not in DEFAULT_CONFIGURATION
+    }
+    for (const id of [
+      "skill_level",
+      "motive",
+      "opportunity",
+      "ease_of_exploit",
+    ]) {
+      expect(byId(res.activeFactors, id)?.enabled).toBe(false);
+    }
+    expect(res.changed).toBe(true);
+  });
+
+  it("round-trips back to standard", () => {
+    const iso = applyRegulationPreset(defaults(), "iso-21434").activeFactors;
+    const back = applyRegulationPreset(iso, "standard");
+    for (const id of ISO) {
+      expect(byId(back.activeFactors, id)?.enabled).toBe(false);
+    }
+    expect(byId(back.activeFactors, "skill_level")?.enabled).toBe(true);
+  });
+
+  it("is idempotent", () => {
+    const iso = applyRegulationPreset(defaults(), "iso-21434").activeFactors;
+    expect(applyRegulationPreset(iso, "iso-21434").changed).toBe(false);
+  });
+});
+
+describe("applyRegulationPreset — etsi-tvra (mix of existing + new factors)", () => {
+  it("enables the four existing ETSI factors and adds the two new ones", () => {
+    const res = applyRegulationPreset(defaults(), "etsi-tvra");
+    // present in DEFAULT_CONFIGURATION (disabled) → enabled, not 'added'
+    for (const id of ["time", "expertise", "knowledge", "equipment"]) {
+      expect(byId(res.activeFactors, id)?.enabled).toBe(true);
+    }
+    // absent from DEFAULT_CONFIGURATION → added + enabled
+    for (const id of ["etsi_opportunity", "etsi_intensity"]) {
+      expect(byId(res.activeFactors, id)?.enabled).toBe(true);
+      expect(res.enabled).toContain(id);
+    }
+    for (const id of [
+      "skill_level",
+      "motive",
+      "opportunity",
+      "ease_of_exploit",
+    ]) {
+      expect(byId(res.activeFactors, id)?.enabled).toBe(false);
     }
   });
 });

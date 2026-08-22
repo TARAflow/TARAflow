@@ -19,9 +19,10 @@ export interface RiskFactorDefinition {
   description: string;
   defaultWeight: number;
   source:
-    | "OWASP"
+    | "standard"
     | "ETSI"
     | "EN50742"
+    | "ISO21434"
     | "ISO27005"
     | "FAIR"
     | "CVSS"
@@ -31,18 +32,77 @@ export interface RiskFactorDefinition {
 // ==================== PREDEFINED FACTORS ====================
 
 /**
- * OWASP Risk Rating likelihood factors.
+ * Standard TARAflow likelihood factors (orig. OWASP Risk Rating).
  * Names/descriptions are i18n keys: risks.factors.{id}.name / .description
  */
-export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
-  { id: "skill_level",        category: "likelihood", name: "Skill Level",        description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "motive",             category: "likelihood", name: "Motive",             description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "opportunity",        category: "likelihood", name: "Opportunity",        description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "size",               category: "likelihood", name: "Size",               description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "ease_of_discovery",  category: "likelihood", name: "Ease of Discovery",  description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "ease_of_exploit",    category: "likelihood", name: "Ease of Exploit",    description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "awareness",          category: "likelihood", name: "Awareness",          description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "intrusion_detection",category: "likelihood", name: "Intrusion Detection",description: "", defaultWeight: 1.0, source: "OWASP" },
+export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
+  // Standard TARAflow factors (originally derived from the OWASP Risk Rating
+  // method: Likelihood / Technical Impact / Business Impact factors — that
+  // method is disputed and no longer published by OWASP; kept as the default).
+  {
+    id: "skill_level",
+    category: "likelihood",
+    name: "Skill Level",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "motive",
+    category: "likelihood",
+    name: "Motive",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "opportunity",
+    category: "likelihood",
+    name: "Opportunity",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "size",
+    category: "likelihood",
+    name: "Size",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "ease_of_discovery",
+    category: "likelihood",
+    name: "Ease of Discovery",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "ease_of_exploit",
+    category: "likelihood",
+    name: "Ease of Exploit",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "awareness",
+    category: "likelihood",
+    name: "Awareness",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "intrusion_detection",
+    category: "likelihood",
+    name: "Intrusion Detection",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
 ];
 
 /**
@@ -50,28 +110,156 @@ export const OWASP_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
  * Names/descriptions are i18n keys: risks.factors.{id}.name / .description
  */
 export const IMPACT_FACTORS: RiskFactorDefinition[] = [
-  { id: "financial_damage",      category: "impact", name: "Financial Damage",      description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "regulatory_compliance", category: "impact", name: "Regulatory Compliance", description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "reputation",            category: "impact", name: "Reputation Damage",     description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "privacy",               category: "impact", name: "Privacy Violation",     description: "", defaultWeight: 1.0, source: "OWASP" },
-  { id: "operational",           category: "impact", name: "Operational Impact",    description: "", defaultWeight: 1.0, source: "OWASP" },
+  {
+    id: "financial_damage",
+    category: "impact",
+    name: "Financial Damage",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "regulatory_compliance",
+    category: "impact",
+    name: "Regulatory Compliance",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "reputation",
+    category: "impact",
+    name: "Reputation Damage",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "privacy",
+    category: "impact",
+    name: "Privacy Violation",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
+  {
+    id: "operational",
+    category: "impact",
+    name: "Operational Impact",
+    description: "",
+    defaultWeight: 1.0,
+    source: "standard",
+  },
   // OT/TARA extended
-  { id: "affected_users",        category: "impact", name: "Affected Users",        description: "", defaultWeight: 1.0, source: "custom" },
-  { id: "recoverability",        category: "impact", name: "Recoverability",        description: "", defaultWeight: 1.0, source: "custom" },
-  { id: "accountability",        category: "impact", name: "Accountability Loss",   description: "", defaultWeight: 1.0, source: "custom" },
+  {
+    id: "affected_users",
+    category: "impact",
+    name: "Affected Users",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
+  {
+    id: "recoverability",
+    category: "impact",
+    name: "Recoverability",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
+  {
+    id: "accountability",
+    category: "impact",
+    name: "Accountability Loss",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
   // safety: auto-enabled when DFD / Asset Tab safety annotations detected
-  { id: "safety",                category: "impact", name: "Safety Impact",         description: "", defaultWeight: 1.0, source: "custom" },
-  { id: "physical_damage",       category: "impact", name: "Physical Damage",       description: "", defaultWeight: 1.0, source: "custom" },
-  { id: "environmental",         category: "impact", name: "Environmental Impact",  description: "", defaultWeight: 1.0, source: "custom" },
-  { id: "supply_chain",          category: "impact", name: "Supply Chain Impact",   description: "", defaultWeight: 1.0, source: "custom" },
+  {
+    id: "safety",
+    category: "impact",
+    name: "Safety Impact",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
+  {
+    id: "physical_damage",
+    category: "impact",
+    name: "Physical Damage",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
+  {
+    id: "environmental",
+    category: "impact",
+    name: "Environmental Impact",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
+  {
+    id: "supply_chain",
+    category: "impact",
+    name: "Supply Chain Impact",
+    description: "",
+    defaultWeight: 1.0,
+    source: "custom",
+  },
 ];
 
 /** ETSI TVRA likelihood factors */
 export const ETSI_FACTORS: RiskFactorDefinition[] = [
-  { id: "knowledge", category: "likelihood", name: "Knowledge Factor", description: "", defaultWeight: 1.0, source: "ETSI" },
-  { id: "expertise", category: "likelihood", name: "Expertise Factor", description: "", defaultWeight: 1.0, source: "ETSI" },
-  { id: "time",      category: "likelihood", name: "Time Factor",      description: "", defaultWeight: 1.0, source: "ETSI" },
-  { id: "equipment", category: "likelihood", name: "Equipment Factor", description: "", defaultWeight: 1.0, source: "ETSI" },
+  {
+    id: "knowledge",
+    category: "likelihood",
+    name: "Knowledge Factor",
+    description: "",
+    defaultWeight: 1.0,
+    source: "ETSI",
+  },
+  {
+    id: "expertise",
+    category: "likelihood",
+    name: "Expertise Factor",
+    description: "",
+    defaultWeight: 1.0,
+    source: "ETSI",
+  },
+  {
+    id: "time",
+    category: "likelihood",
+    name: "Time Factor",
+    description: "",
+    defaultWeight: 1.0,
+    source: "ETSI",
+  },
+  {
+    id: "equipment",
+    category: "likelihood",
+    name: "Equipment Factor",
+    description: "",
+    defaultWeight: 1.0,
+    source: "ETSI",
+  },
+  {
+    id: "etsi_opportunity",
+    category: "likelihood",
+    name: "Opportunity Factor",
+    description: "",
+    defaultWeight: 1.0,
+    source: "ETSI",
+  },
+  {
+    id: "etsi_intensity",
+    category: "likelihood",
+    name: "Intensity Factor",
+    description: "",
+    defaultWeight: 1.0,
+    source: "ETSI",
+  },
 ];
 
 /** EN 50742 / IEC 62443-3-2 Attacker Potential factors */
@@ -86,6 +274,17 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
  * deployment_scope: can a single attack compromise multiple installations simultaneously?
  * Distinct from affected_users (how many are harmed) — measures attack amplification.
  */
+// ISO/SAE 21434 attack-potential factors (Annex G.2). Score-table method — the
+// per-level point tables + aggregation live in iso21434-core.ts; these are the
+// factor identities the catalog/rating reference.
+export const ISO21434_FACTORS: RiskFactorDefinition[] = [
+  { id: "iso_elapsed_time",         category: "likelihood", name: "Elapsed Time",          description: "", defaultWeight: 1.0, source: "ISO21434" },
+  { id: "iso_expertise",            category: "likelihood", name: "Specialist Expertise",   description: "", defaultWeight: 1.0, source: "ISO21434" },
+  { id: "iso_knowledge",            category: "likelihood", name: "Knowledge of the Item",  description: "", defaultWeight: 1.0, source: "ISO21434" },
+  { id: "iso_window_of_opportunity",category: "likelihood", name: "Window of Opportunity",  description: "", defaultWeight: 1.0, source: "ISO21434" },
+  { id: "iso_equipment",            category: "likelihood", name: "Equipment",              description: "", defaultWeight: 1.0, source: "ISO21434" },
+];
+
 export const TARAFLOW_FACTORS: RiskFactorDefinition[] = [
   {
     id: "deployment_scope",
@@ -119,10 +318,11 @@ export const TARAFLOW_FACTORS: RiskFactorDefinition[] = [
 export const ATTACK_TREE_LIKELIHOOD_FACTOR_ID = "attack_tree_likelihood";
 
 export const ALL_PREDEFINED_FACTORS: RiskFactorDefinition[] = [
-  ...OWASP_LIKELIHOOD_FACTORS,
+  ...STANDARD_LIKELIHOOD_FACTORS,
   ...IMPACT_FACTORS,
   ...ETSI_FACTORS,
   ...EN50742_FACTORS,
+  ...ISO21434_FACTORS,
   ...TARAFLOW_FACTORS,
 ];
 

@@ -591,5 +591,28 @@
     "publishedOn": "Veröffentlicht am {{date}}",
     "includePrereleases": "Vorabversionen einschließen",
     "checking": "Suche nach Aktualisierungen…"
+  },
+  "regulationPresets": {
+    "conflictBanner": "These factors stayed active because you enabled them manually: {{factors}}",
+    "standard": {
+      "name": "Standard (TARAflow)",
+      "description": "Default TARAflow likelihood factors (originally OWASP Risk Rating)."
+    },
+    "iso-21434": {
+      "name": "ISO/SAE 21434",
+      "description": "Automotive cybersecurity — ISO 18045 attack potential (score-table)."
+    },
+    "en-50742-a": {
+      "name": "EN 50742 Approach A",
+      "description": "Machinery safety — Annex B attack potential (EL × WoO + AC)."
+    },
+    "en-50742-b": {
+      "name": "EN 50742 Approach B",
+      "description": "Machinery safety — IEC 62443 compliance subset (Compliance feature)."
+    },
+    "etsi-tvra": {
+      "name": "ETSI TVRA",
+      "description": "ETSI TS 102 165-1 — weighted-summation attack potential (score-table)."
+    }
   }
 }

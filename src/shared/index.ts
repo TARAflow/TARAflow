@@ -244,6 +244,9 @@ export {
 } from "./models/project-tags";
 
 export {
+  regulationPresetFromTags,
+  getRegulationConflicts,
+  hasTagConflicts,
   getTagWarnings,
   requiresHazardAnalysis,
 } from "./services/tag-validator";

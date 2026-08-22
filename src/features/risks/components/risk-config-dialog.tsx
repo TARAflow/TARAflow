@@ -57,11 +57,12 @@ import {
   RiskFactorCategory,
   AssetImpactMapping,
   AssetImpactLevel,
-  OWASP_LIKELIHOOD_FACTORS,
+  STANDARD_LIKELIHOOD_FACTORS,
   EN50742_FACTORS,
   ETSI_FACTORS,
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
+  ISO21434_FACTORS,
 } from "../models/risk-factor-types";
 import {
   RiskScaleType,
@@ -166,9 +167,10 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   const factorGroups = useMemo(
     () => ({
       likelihood: [
-        ...OWASP_LIKELIHOOD_FACTORS,
+        ...STANDARD_LIKELIHOOD_FACTORS,
         ...ETSI_FACTORS,
         ...EN50742_FACTORS,
+        ...ISO21434_FACTORS,
       ],
       // Phase 3: derived from ALL_PREDEFINED_FACTORS — includes all aligned
       // impact factors (financial_damage, operational, affected_users, safety, etc.)

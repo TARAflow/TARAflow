@@ -14,7 +14,7 @@
 // ON and reported in `conflicts` so the UI can explain why it stayed active,
 // rather than silently dropping the analyst's choice.
 //
-// Only regime LIKELIHOOD factors (source OWASP / ETSI / EN50742) are touched.
+// Only regime LIKELIHOOD factors (source standard / ETSI / EN50742) are touched.
 // Impact factors, safety, deployment_scope, attack_tree_likelihood and custom
 // factors are never affected by a preset.
 
@@ -23,15 +23,13 @@ import {
   type RiskFactorDefinition,
   ALL_PREDEFINED_FACTORS,
 } from "../models/risk-factor-types";
-import {
-  REGULATION_PRESETS,
-  type RegulationPresetId,
-} from "shared";
+import { REGULATION_PRESETS, type RegulationPresetId } from "shared";
 
 const REGIME_LIKELIHOOD_SOURCES: ReadonlySet<string> = new Set([
-  "OWASP",
+  "standard",
   "ETSI",
   "EN50742",
+  "ISO21434",
 ]);
 
 /**
