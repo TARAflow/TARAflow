@@ -17,9 +17,8 @@
     "test": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "clean:electron": "rimraf dist-electron",
-    "compile:electron": "tsc -p tsconfig.electron.json",
-    "fix:electron": "node scripts/fix-electron-imports.cjs",
-    "build:electron-dev": "npm run clean:electron && npm run compile:electron && npm run fix:electron && npm run bundle:audit-main",
+    "typecheck:electron": "tsc -p tsconfig.electron.json",
+    "build:electron-dev": "npm run clean:electron && npm run typecheck:electron && node scripts/build-electron.mjs",
     "dev:electron": "npm run build:electron-dev && concurrently \"vite\" \"wait-on http://localhost:5173 && electron . --inspect=5858\"",
     "build:electron": "npm run build && npm run build:electron-dev && electron-builder",
     "build:electron:clean": "rimraf dist dist-electron release && npm run build:electron",
@@ -30,8 +29,7 @@
     "verify:fixtures": "tsx scripts/verify-fixtures.ts",
     "verify:cli": "tsx --tsconfig tsconfig.cli.json taraflow-verifier/taraflow-verify.ts",
     "build:cli:verify": "esbuild taraflow-verifier/taraflow-verify.ts --bundle --platform=node --format=esm --alias:app=./src/app --alias:features=./src/features --alias:shared=./src/shared --outfile=dist-cli/taraflow-verify.js && chmod +x dist-cli/taraflow-verify.js",
-    "package:cli:verify:deb": "npm run build:cli:verify && nfpm package --config taraflow-verifier/packaging/nfpm.yaml --packager deb --target ./release/",
-    "bundle:audit-main": "esbuild electron/services/audit-verify-main.ts --bundle --platform=node --format=cjs --alias:audit=./src/features/audit --alias:features=./src/features --alias:shared=./src/shared --alias:app=./src/app --outfile=dist-electron/services/audit-verify-main.cjs"
+    "package:cli:verify:deb": "npm run build:cli:verify && nfpm package --config taraflow-verifier/packaging/nfpm.yaml --packager deb --target ./release/"
   },
   "build": {
     "appId": "com.taraflow.app",

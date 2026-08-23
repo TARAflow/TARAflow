@@ -9,7 +9,7 @@
 // The exported API (generatePdfBuffer / generatePdfFile / the "generate-pdf"
 // IPC handler) is unchanged, so neither main.ts nor the renderer need edits.
 
-import { ipcMain, BrowserWindow } from "electron";
+import { BrowserWindow } from "electron";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -111,11 +111,3 @@ export async function generatePdfFile(
   const buffer = await generatePdfBuffer(html, options);
   await fs.writeFile(outputPath, buffer as unknown as Uint8Array);
 }
-
-// ==================== IPC Handler ====================
-ipcMain.handle(
-  "generate-pdf",
-  async (_event, html: string, options: PdfOptions) => {
-    return await generatePdfBuffer(html, options);
-  },
-);

@@ -1,15 +1,14 @@
 {
   "compilerOptions": {
-    "inlineSources": true,
-    "inlineSourceMap": true,
+    "noEmit": true,
     "module": "commonjs",
-    "outDir": "./dist-electron",
     "target": "ES2021",
     "lib": ["ES2021"],
     "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": false,
+    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {

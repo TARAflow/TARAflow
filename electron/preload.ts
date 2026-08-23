@@ -2,6 +2,17 @@ import { contextBridge, ipcRenderer, webFrame } from "electron";
 import { type AuditConfig } from "audit/models/audit-types";
 import { type UpdateCheckOptions } from "shared/models/update-types";
 
+// Security: this preload runs once per frame, including the embedded draw.io
+// iframe. Bail out for anything that isn't the main (top-level) frame so
+// third-party content never gets window.electron/git/credentials/etc.
+if (!process.isMainFrame) {
+  console.log("=== PRELOAD SKIPPED (subframe) ===");
+} else {
+  runPreload();
+}
+
+function runPreload() {
+
 console.log("=== PRELOAD LOADED ===");
 
 // ==================== DISABLE BROWSER ZOOM ====================
@@ -201,3 +212,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
 console.log(
   "Electron APIs exposed to renderer (electron, git, credentials, audit, electronAPI)",
 );
+
+} // end runPreload()

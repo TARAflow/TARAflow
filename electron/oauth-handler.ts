@@ -35,28 +35,31 @@ export function registerOAuthProtocol() {
  * Handle OAuth callback URLs
  * Call this in your main process setup
  */
-export function setupOAuthHandler(mainWindow: BrowserWindow | null) {
+export function setupOAuthHandler(getMainWindow: () => BrowserWindow | null) {
   // Handle deep links on macOS
-  app.on('open-url', (event, url) => {
+  app.on("open-url", (event, url) => {
     event.preventDefault();
-    handleOAuthCallback(url, mainWindow);
+    handleOAuthCallback(url, getMainWindow());
   });
 
   // Handle deep links on Windows/Linux
   const gotTheLock = app.requestSingleInstanceLock();
-  
+
   if (!gotTheLock) {
     app.quit();
   } else {
-    app.on('second-instance', (event, commandLine) => {
+    app.on("second-instance", (event, commandLine) => {
       // Someone tried to run a second instance, we should focus our window
+      const mainWindow = getMainWindow();
       if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
       }
 
       // Check for OAuth callback in command line
-      const url = commandLine.find((arg) => arg.startsWith(`${OAUTH_PROTOCOL}://`));
+      const url = commandLine.find((arg) =>
+        arg.startsWith(`${OAUTH_PROTOCOL}://`),
+      );
       if (url) {
         handleOAuthCallback(url, mainWindow);
       }
@@ -116,8 +119,10 @@ registerOAuthProtocol();
 app.whenReady().then(() => {
   mainWindow = createWindow(); // Your window creation function
   
-  // Setup OAuth callback handler
-  setupOAuthHandler(mainWindow);
+  // Setup OAuth callback handler — pass a getter so it always resolves the
+  // *current* mainWindow, even after it's been recreated (e.g. macOS
+  // close-then-reopen).
+  setupOAuthHandler(() => mainWindow);
 });
 
 app.on('window-all-closed', () => {

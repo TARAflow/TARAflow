@@ -10,6 +10,23 @@
 
 import { Menu, BrowserWindow, type MenuItemConstructorOptions } from "electron";
 
+// Electron's `role: "viewMenu"` bundles resetZoom/zoomIn/zoomOut with the
+// CmdOrCtrl+0 / CmdOrCtrl+Plus / CmdOrCtrl+Minus accelerators baked in — those
+// accelerators are exactly how keyboard zoom stays reachable even though
+// preload.ts's webFrame.setVisualZoomLevelLimits() blocks pinch-to-zoom. So we
+// rebuild the View menu ourselves, keeping everything except the zoom items,
+// instead of using the role shorthand.
+const viewMenu: MenuItemConstructorOptions = {
+  label: "View",
+  submenu: [
+    { role: "reload" },
+    { role: "forceReload" },
+    { role: "toggleDevTools" },
+    { type: "separator" },
+    { role: "togglefullscreen" },
+  ],
+};
+
 export function buildAppMenu(): Menu {
   const isMac = process.platform === "darwin";
 
@@ -17,7 +34,7 @@ export function buildAppMenu(): Menu {
     ...(isMac ? [{ role: "appMenu" as const }] : []),
     { role: "fileMenu" },
     { role: "editMenu" },
-    { role: "viewMenu" },
+    viewMenu,
     { role: "windowMenu" },
     {
       role: "help",

@@ -1,8 +1,17 @@
-import { app, BrowserWindow, ipcMain, shell, dialog, Menu } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  dialog,
+  Menu,
+  type OpenDialogOptions,
+} from "electron";
 import path from "path";
 import fs from "fs/promises";
 import { dirname } from "path";
 import { mkdir, writeFile } from "fs/promises";
+import { homedir } from "os";
 import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
 import simpleGit from "simple-git";
 import { GitService } from "./services/git-service-main";
@@ -559,16 +568,20 @@ ipcMain.handle("credentials:getSSHKeyPath", async (_, identifier) => {
 // ==================== FILE I/O SERVICE ====================
 
 // Save Dialog
-ipcMain.handle("file:saveDialog", async (_, defaultName: string) => {
+ipcMain.handle("file:saveDialog", async (event, defaultName: string) => {
   try {
-    const result = await dialog.showSaveDialog({
+    const parentWindow = BrowserWindow.fromWebContents(event.sender);
+    const options = {
       title: "Save Project",
       defaultPath: `${defaultName}.tara.json`,
       filters: [
         { name: "TARAflow Projects", extensions: ["tara.json"] },
         { name: "All Files", extensions: ["*"] },
       ],
-    });
+    };
+    const result = parentWindow
+      ? await dialog.showSaveDialog(parentWindow, options)
+      : await dialog.showSaveDialog(options);
 
     if (result.canceled || !result.filePath) {
       return { success: false, error: "Save canceled" };
@@ -584,18 +597,22 @@ ipcMain.handle("file:saveDialog", async (_, defaultName: string) => {
 // from file:openDialog on purpose: that one is project-specific (title, tara.json
 // filter, no hidden files). Key files live in ~/.ssh — a DOT-dir you can't enter
 // without showHiddenFiles. `~` is expanded here since the renderer has no homedir.
-ipcMain.handle("file:pickFile", async (_e, options) => {
+ipcMain.handle("file:pickFile", async (event, options) => {
   try {
     const expandHome = (p: string | undefined) =>
-      p && p.startsWith("~") ? require("os").homedir() + p.slice(1) : p;
+      p && p.startsWith("~") ? homedir() + p.slice(1) : p;
 
-    const result = await dialog.showOpenDialog({
+    const parentWindow = BrowserWindow.fromWebContents(event.sender);
+    const dialogOptions: OpenDialogOptions = {
       title: options?.title ?? "Select file",
       defaultPath: expandHome(options?.defaultPath),
       buttonLabel: options?.buttonLabel,
       filters: options?.filters,
       properties: ["openFile", "showHiddenFiles", "dontAddToRecent"],
-    });
+    };
+    const result = parentWindow
+      ? await dialog.showOpenDialog(parentWindow, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
 
     if (result.canceled || result.filePaths.length === 0) {
       return { success: false, error: "canceled" };
@@ -607,16 +624,20 @@ ipcMain.handle("file:pickFile", async (_e, options) => {
 });
 
 // Open Dialog
-ipcMain.handle("file:openDialog", async () => {
+ipcMain.handle("file:openDialog", async (event) => {
   try {
-    const result = await dialog.showOpenDialog({
+    const parentWindow = BrowserWindow.fromWebContents(event.sender);
+    const options: OpenDialogOptions = {
       title: "Open Project",
       filters: [
         { name: "TARAflow Projects", extensions: ["tara.json"] },
         { name: "All Files", extensions: ["*"] },
       ],
       properties: ["openFile"],
-    });
+    };
+    const result = parentWindow
+      ? await dialog.showOpenDialog(parentWindow, options)
+      : await dialog.showOpenDialog(options);
 
     if (result.canceled || result.filePaths.length === 0) {
       return { success: false, error: "Open canceled" };
@@ -765,6 +786,46 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+    show: false,
+  });
+
+  win.once("ready-to-show", () => {
+    clearTimeout(showFallbackTimer);
+    win.show();
+  });
+
+  // Safety net: on at least one FUSE-mounted AppImage launch, "ready-to-show"
+  // never fired at all — the window stayed permanently invisible (worked fine
+  // from linux-unpacked/ and via --appimage-extract-and-run, so it's specific
+  // to that mount type; root cause not yet confirmed — suspect a first-paint /
+  // GPU-compositor issue). Rather than depend entirely on an event that can
+  // silently not fire, fall back to showing the window after a grace period.
+  // This trades back a small amount of "empty window flash" risk in that
+  // specific scenario for the guarantee that the app is never invisible.
+  const READY_TO_SHOW_TIMEOUT_MS = 500;
+  const showFallbackTimer = setTimeout(() => {
+    console.warn(
+      `[Main] "ready-to-show" did not fire within ${READY_TO_SHOW_TIMEOUT_MS}ms — showing window anyway`,
+    );
+    win.show();
+  }, READY_TO_SHOW_TIMEOUT_MS);
+
+  // Diagnostics for the underlying cause — if the fallback above ever fires,
+  // these logs should show whether the page failed to load, the renderer
+  // crashed, or the GPU process died.
+  win.webContents.on(
+    "did-fail-load",
+    (_e, errorCode, errorDescription, validatedURL) => {
+      console.error(
+        `[Main] did-fail-load: code=${errorCode} desc="${errorDescription}" url=${validatedURL}`,
+      );
+    },
+  );
+  win.webContents.on("render-process-gone", (_e, details) => {
+    console.error(`[Main] render-process-gone: reason=${details.reason}`);
+  });
+  app.on("gpu-process-crashed" as any, (_e: unknown, killed: boolean) => {
+    console.error(`[Main] gpu-process-crashed: killed=${killed}`);
   });
 
   win.setTitle(`TARAflow ${app.getVersion()}`);
@@ -791,27 +852,13 @@ function createWindow() {
 
   // ==================== DISABLE BROWSER ZOOM ====================
 
-  // Block zoom-changed event and reset immediately
+  // Block zoom-changed event (pinch / Ctrl+wheel) and reset immediately.
+  // Keyboard shortcuts (Ctrl/Cmd + "+"/"-"/"0") are blocked at the source:
+  // app-menu.ts builds its own View submenu without the zoom role items, so
+  // those accelerators are never registered in the first place.
   win.webContents.on("zoom-changed", (_event, zoomDirection) => {
     console.log(`[Main] Zoom change blocked: ${zoomDirection}`);
     win.webContents.setZoomLevel(0);
-  });
-
-  // Periodically enforce zoom level (catches edge cases)
-  const enforceZoom = () => {
-    if (!win.isDestroyed()) {
-      const currentZoom = win.webContents.getZoomLevel();
-      if (currentZoom !== 0) {
-        console.log(`[Main] Resetting zoom from ${currentZoom} to 0`);
-        win.webContents.setZoomLevel(0);
-      }
-    }
-  };
-
-  const zoomInterval = setInterval(enforceZoom, 100);
-
-  win.on("closed", () => {
-    clearInterval(zoomInterval);
   });
 
   // Set initial zoom
@@ -838,7 +885,6 @@ function createWindow() {
 
   // Cleanup on close
   win.on("closed", () => {
-    clearInterval(zoomInterval);
     mainWindow = null;
   });
 }
@@ -848,7 +894,7 @@ registerOAuthProtocol();
 app.whenReady().then(() => {
   Menu.setApplicationMenu(buildAppMenu());
   createWindow();
-  setupOAuthHandler(mainWindow);
+  setupOAuthHandler(() => mainWindow);
 });
 
 app.on("window-all-closed", () => {
