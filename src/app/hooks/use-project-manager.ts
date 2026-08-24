@@ -51,9 +51,7 @@ export interface UseProjectManagerReturn {
   activePhase: number;
 
   // Setters needed by ProjectShell
-  setActiveProjectId: (id: string | null) => void;
   setActivePhase: (phase: number) => void;
-  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
 
   // Project operations
   updateProject: (patch: Partial<Project> & { id: string }) => Promise<void>;
@@ -62,6 +60,7 @@ export interface UseProjectManagerReturn {
   saveProject: (projectId: string) => Promise<void>;
   closeProject: (projectId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<boolean>;
+  activateProject: (project: Project) => void;
 
   // File operations (used by ProjectShell dialogs)
   loadProjects: () => Promise<void>;
@@ -435,6 +434,28 @@ export function useProjectManager(): UseProjectManagerReturn {
     [],
   );
 
+  // ── Activate (open or create) ───────────────────────────────────────────
+  // Shared tail for "put this project in the list and make it current" —
+  // the pattern handleOpenFromFile already used internally (append-or-
+  // replace, then activate). Used by project-shell for:
+  //   - the normal (non-early-return, non-auto-close) branch of
+  //     handleProjectOpen, where a freshly loaded project may or may not
+  //     already be in the list;
+  //   - NewProjectDialog.onCreate, where the project is always new (the
+  //     append branch always runs, but the exists-check is harmless).
+  // Does NOT own persistence — callers persist first (loadById + sync, or
+  // saveNewProject) and pass in the already-saved project.
+  const activateProject = useCallback((project: Project): void => {
+    setProjects((prev) => {
+      const exists = prev.find((p) => p.id === project.id);
+      return exists
+        ? prev.map((p) => (p.id === project.id ? project : p))
+        : [...prev, project];
+    });
+    setActiveProjectId(project.id);
+    setActivePhase(project.currentPhase ?? 0);
+  }, []);
+
   // ── File open / import ────────────────────────────────────────────────────
 
   const handleOpenFromFile = useCallback(
@@ -530,9 +551,7 @@ export function useProjectManager(): UseProjectManagerReturn {
     isLoading,
     activePhase,
 
-    setActiveProjectId,
     setActivePhase,
-    setProjects,
 
     updateProject,
     syncProjectToStorage,
@@ -540,6 +559,7 @@ export function useProjectManager(): UseProjectManagerReturn {
     saveProject,
     closeProject,
     deleteProject,
+    activateProject,
 
     loadProjects,
     loadRecentProjects,

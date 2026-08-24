@@ -897,4 +897,130 @@ describe("ProjectShell lifecycle — activeProjectId reassignment characterizati
       expect(activeIdShown()).toBe("A");
     });
   });
+
+  // ── Gap #1: activateProject's "replace in place" branch ─────────────────
+
+  describe("activateProject — replacing an already-known (but closed) project in place", () => {
+    it("re-opening a project that is still in the list (isOpen:false) replaces its row instead of appending a duplicate", async () => {
+      // This exercises the branch of activateProject that "normal open"
+      // (test #4 above) never reaches, because there the target is brand
+      // new to the list. Here B is already known — just closed — so
+      // handleProjectOpen's early-return is skipped (existing.isOpen is
+      // false) and the load-then-activate path runs, landing on the
+      // "exists → replace" branch instead of "append".
+      const a = makeProject({ id: "A", isOpen: true });
+      const bClosed = makeProject({
+        id: "B",
+        isOpen: false,
+        currentPhase: 1,
+      });
+      await renderShellWith([a, bClosed]);
+      await waitFor(() => expect(activeIdShown()).toBe("A"));
+
+      const bReloaded = makeProject({
+        id: "B",
+        isOpen: false, // handleProjectOpen sets isOpen:true itself
+        currentPhase: 5,
+      });
+      (projectRepository.loadById as any).mockResolvedValue({
+        success: true,
+        data: bReloaded,
+      });
+
+      await act(async () => {
+        screen.getByRole("button", { name: "open-dialog" }).click();
+      });
+      fireEvent.change(screen.getByTestId("open-dialog-id-input"), {
+        target: { value: "B" },
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "open-selected" }).click();
+      });
+
+      await waitFor(() => expect(activeIdShown()).toBe("B"));
+
+      // Exactly one row-B — the replace branch ran, not an append that
+      // would have produced a duplicate testid (React would also warn on
+      // duplicate keys, but we assert the count directly to be explicit).
+      expect(screen.queryAllByTestId("row-B")).toHaveLength(1);
+      expect(screen.getByTestId("row-B")).toHaveAttribute("data-open", "true");
+      // Row count overall stays at 2 (A, B) — no phantom third row.
+      expect(screen.queryAllByTestId(/^row-/)).toHaveLength(2);
+    });
+  });
+
+  // ── Gap #2: switchProject's isOpen guard, now reachable via confirmProjectSwitch ─
+
+  describe("confirmProjectSwitch — target is not (or no longer) an open project", () => {
+    it("TARGET now includes a guard the old inline code lacked: switching to a non-open pendingProjectId is a silent no-op — activeProjectId stays on the source", async () => {
+      // ASSUMPTION FLAGGED: this exercises the guard through my own
+      // ProjectSidebar stub, which offers a "select" action for every
+      // project regardless of isOpen. I have not seen the real
+      // ProjectSidebar component and cannot confirm it ever lets a user
+      // select a closed project this way (it may only render "select" for
+      // open rows, e.g. via the sidebar's "open" tab vs a separate
+      // "recent/closed" list). If the real sidebar never offers this
+      // action for a closed project, this guard is unreachable in
+      // practice and this test — while accurate about the CODE — may be
+      // documenting a path a user can never trigger. Worth confirming
+      // against the real ProjectSidebar before relying on this as
+      // meaningful coverage.
+      const a = makeProject({ id: "A", isOpen: true, hasUnsavedChanges: true });
+      const bClosed = makeProject({ id: "B", isOpen: false });
+      await renderShellWith([a, bClosed]);
+      await waitFor(() => expect(activeIdShown()).toBe("A"));
+
+      await act(async () => {
+        screen.getByRole("button", { name: "select-B" }).click();
+      });
+      expect(screen.getByTestId("unsaved-dialog")).toBeInTheDocument();
+
+      await act(async () => {
+        screen.getByRole("button", { name: "discard-and-switch" }).click();
+      });
+
+      // switchProject("B") no-ops because B.isOpen is false — old inline
+      // code had no such guard and would have switched regardless.
+      expect(activeIdShown()).toBe("A");
+    });
+  });
+
+  // ── Gap #3: handleProjectOpen doesn't check the persist result ──────────
+
+  describe("handleProjectOpen — persistence failure now blocks activation", () => {
+    it("TARGET BEHAVIOR (fixed): if syncProjectToStorage fails, the project is NOT activated and does not appear as open", async () => {
+      // Was a pre-existing gap (not introduced by this refactor): the
+      // original code never checked syncProjectToStorage's result before
+      // activating, unlike closeProject/deleteProject/saveProject which
+      // all gate on `success`. Now fixed to match that discipline.
+      const a = makeProject({ id: "A", isOpen: true });
+      await renderShellWith([a]);
+      await waitFor(() => expect(activeIdShown()).toBe("A"));
+
+      const loaded = makeProject({ id: "B", isOpen: false });
+      (projectRepository.loadById as any).mockResolvedValue({
+        success: true,
+        data: loaded,
+      });
+      (h.persistence.saveExistingProject as any).mockResolvedValueOnce({
+        success: false,
+        error: "disk full",
+      });
+
+      await act(async () => {
+        screen.getByRole("button", { name: "open-dialog" }).click();
+      });
+      fireEvent.change(screen.getByTestId("open-dialog-id-input"), {
+        target: { value: "B" },
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "open-selected" }).click();
+      });
+
+      // No activation, no row at all — B never entered the list.
+      await waitFor(() => expect(h.toast.error).toHaveBeenCalled());
+      expect(activeIdShown()).toBe("A");
+      expect(screen.queryByTestId("row-B")).not.toBeInTheDocument();
+    });
+  });
 });

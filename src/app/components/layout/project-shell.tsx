@@ -61,12 +61,11 @@ export const ProjectShell: React.FC = () => {
     recentProjectsMetadata,
     isLoading,
     activePhase,
-    setActiveProjectId,
     setActivePhase,
-    setProjects,
     updateProject,
     closeProject,
     deleteProject,
+    activateProject,
     syncProjectToStorage,
     switchProject,
     saveProject,
@@ -107,30 +106,21 @@ export const ProjectShell: React.FC = () => {
   const confirmProjectSwitch = useCallback(
     async (save: boolean) => {
       if (save && activeProject) {
-        const savedProject = { ...activeProject, hasUnsavedChanges: false };
-        await syncProjectToStorage(savedProject);
-        setProjects((prev) =>
-          prev.map((p) => (p.id === activeProject.id ? savedProject : p)),
-        );
-        toast.success(`Project "${activeProject.info?.name}" saved`);
+        await saveProject(activeProject.id);
       }
-
-      const target = projects.find((p) => p.id === pendingProjectId);
-      setActiveProjectId(pendingProjectId);
-      setActivePhase(target?.currentPhase ?? 0);
+      if (pendingProjectId) {
+        // NOTE: switchProject no-ops if the target isn't isOpen (a guard
+        // the old inline version didn't have). Every pendingProjectId here
+        // comes from handleProjectSwitch, which is only ever invoked with
+        // ids from the currently-open sidebar list — so this is stricter
+        // in theory, not in observed practice. Flagging in case a future
+        // caller of handleProjectSwitch passes a closed project's id.
+        switchProject(pendingProjectId);
+      }
       setShowUnsavedDialog(false);
       setPendingProjectId(null);
     },
-    [
-      activeProject,
-      pendingProjectId,
-      projects,
-      setActiveProjectId,
-      setActivePhase,
-      setProjects,
-      syncProjectToStorage,
-      toast,
-    ],
+    [activeProject, pendingProjectId, saveProject, switchProject],
   );
 
   // ── Project open (from recent list) ──────────────────────────────────────
@@ -139,8 +129,7 @@ export const ProjectShell: React.FC = () => {
     async (projectId: string) => {
       const existing = projects.find((p) => p.id === projectId);
       if (existing?.isOpen) {
-        setActiveProjectId(projectId);
-        setActivePhase(existing.currentPhase ?? 0);
+        switchProject(projectId);
         return;
       }
 
@@ -184,27 +173,26 @@ export const ProjectShell: React.FC = () => {
           }
         }
 
-        await syncProjectToStorage(fullProject);
-
-        setProjects((prev) => {
-          const exists = prev.find((p) => p.id === projectId);
-          return exists
-            ? prev.map((p) => (p.id === projectId ? fullProject : p))
-            : [...prev, fullProject];
-        });
-
-        setActiveProjectId(projectId);
-        setActivePhase(fullProject.currentPhase ?? 0);
+        // syncProjectToStorage already toasts on failure internally (see
+        // use-project-manager.ts) — gate activation on its result so a
+        // failed write doesn't leave the UI showing an "opened" project
+        // that never actually landed on disk. Matches the discipline
+        // closeProject/deleteProject/saveProject already follow; this was
+        // the one inconsistent holdout (see
+        // project-shell.lifecycle-characterization.test.tsx, "Gap #3").
+        const success = await syncProjectToStorage(fullProject);
+        if (!success) return;
+        activateProject(fullProject);
       } catch (error: any) {
         toast.error(`Failed to open project: ${error.message}`);
       }
     },
     [
+      activateProject,
+      closeProject,
       openProjects,
       projects,
-      setActiveProjectId,
-      setActivePhase,
-      setProjects,
+      switchProject,
       syncProjectToStorage,
       toast,
     ],
@@ -462,9 +450,7 @@ export const ProjectShell: React.FC = () => {
 
               await projectRegistry.upsert(savedProject);
 
-              setProjects((prev) => [...prev, savedProject]);
-              setActiveProjectId(savedProject.id);
-              setActivePhase(0);
+              activateProject(savedProject);
               setShowNewDialog(false);
               toast.success(`Project "${savedProject.info.name}" created!`);
             }}
