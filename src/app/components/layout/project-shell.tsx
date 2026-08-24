@@ -65,6 +65,8 @@ export const ProjectShell: React.FC = () => {
     setActivePhase,
     setProjects,
     updateProject,
+    closeProject,
+    deleteProject,
     syncProjectToStorage,
     switchProject,
     saveProject,
@@ -177,11 +179,7 @@ export const ProjectShell: React.FC = () => {
           )[0];
 
           if (oldest) {
-            const closedProject = { ...oldest, isOpen: false };
-            await syncProjectToStorage(closedProject);
-            setProjects((prev) =>
-              prev.map((p) => (p.id === oldest.id ? closedProject : p)),
-            );
+            await closeProject(oldest.id);
             toast.warning(`Auto-closed "${oldest.info?.name}"`);
           }
         }
@@ -214,40 +212,12 @@ export const ProjectShell: React.FC = () => {
 
   // ── Project close ─────────────────────────────────────────────────────────
 
-  const closeProject = useCallback(
+  const closeProjectAndRefresh = useCallback(
     async (projectId: string) => {
-      const project = projects.find((p) => p.id === projectId);
-      if (!project) return;
-
-      const closedProject = { ...project, isOpen: false };
-      await syncProjectToStorage(closedProject);
-
-      setProjects((prev) =>
-        prev.map((p) => (p.id === projectId ? closedProject : p)),
-      );
-
-      if (activeProjectId === projectId) {
-        const remaining = openProjects.filter((p) => p.id !== projectId);
-        setActiveProjectId(remaining[0]?.id ?? null);
-        setActivePhase(remaining[0]?.currentPhase ?? 0);
-        persistence.clearCurrentFile();
-      }
-
-      setShowCloseDialog(false);
-      setProjectToClose(null);
+      await closeProject(projectId);
       await loadRecentProjects();
     },
-    [
-      activeProjectId,
-      openProjects,
-      persistence,
-      projects,
-      loadRecentProjects,
-      setActiveProjectId,
-      setActivePhase,
-      setProjects,
-      syncProjectToStorage,
-    ],
+    [closeProject, loadRecentProjects],
   );
 
   const handleProjectClose = useCallback(
@@ -259,35 +229,26 @@ export const ProjectShell: React.FC = () => {
         setProjectToClose(projectId);
         setShowCloseDialog(true);
       } else {
-        closeProject(projectId);
+        void closeProjectAndRefresh(projectId);
       }
     },
-    [closeProject, projects],
+    [closeProjectAndRefresh, projects],
   );
 
   const confirmProjectClose = useCallback(
     async (save: boolean) => {
-      if (save && projectToClose) {
+      if (!projectToClose) return;
+      // closeProject persists hasUnsavedChanges:false in its own single
+      // write now — nothing left to save separately here.
+      if (save) {
         const project = projects.find((p) => p.id === projectToClose);
-        if (project) {
-          const savedProject = { ...project, hasUnsavedChanges: false };
-          await syncProjectToStorage(savedProject);
-          setProjects((prev) =>
-            prev.map((p) => (p.id === projectToClose ? savedProject : p)),
-          );
-          toast.success(`Project "${project.info?.name}" saved`);
-        }
+        toast.success(`Project "${project?.info?.name}" saved`);
       }
-      closeProject(projectToClose!);
+      await closeProjectAndRefresh(projectToClose);
+      setShowCloseDialog(false);
+      setProjectToClose(null);
     },
-    [
-      closeProject,
-      projectToClose,
-      projects,
-      setProjects,
-      syncProjectToStorage,
-      toast,
-    ],
+    [closeProjectAndRefresh, projectToClose, projects, toast],
   );
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -299,39 +260,10 @@ export const ProjectShell: React.FC = () => {
 
   const confirmDeleteProject = useCallback(async () => {
     if (!projectToDelete) return;
-
-    const project = projects.find((p) => p.id === projectToDelete);
-    if (!project) return;
-
-    const result = await projectService.deleteProject(projectToDelete);
-
-    if (result.success) {
-      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete));
-
-      if (activeProjectId === projectToDelete) {
-        const remaining = projects.filter(
-          (p) => p.isOpen && p.id !== projectToDelete,
-        );
-        setActiveProjectId(remaining[0]?.id ?? null);
-        setActivePhase(remaining[0]?.currentPhase ?? 0);
-      }
-
-      toast.success(`Project "${project.info?.name}" deleted`);
-    } else {
-      toast.error(`Failed to delete: ${result.error}`);
-    }
-
+    await deleteProject(projectToDelete);
     setShowDeleteDialog(false);
     setProjectToDelete(null);
-  }, [
-    activeProjectId,
-    projectToDelete,
-    projects,
-    setActiveProjectId,
-    setActivePhase,
-    setProjects,
-    toast,
-  ]);
+  }, [deleteProject, projectToDelete]);
 
   // ── Export ────────────────────────────────────────────────────────────────
 
@@ -548,16 +480,20 @@ export const ProjectShell: React.FC = () => {
             ): Promise<ImportResult> => {
               const result = await projectService.importProjectAsCopy(file);
               if (result.success && result.data) {
-                await persistence.saveExistingProject(result.data);
-                await projectRegistry.upsert(result.data);
-                setProjects((prev) => [...prev, result.data!]);
-                setActiveProjectId(result.data.id);
-                setActivePhase(0);
-                toast.success(`Project "${result.data.info?.name}" imported!`);
+                // Route through the SAME pipeline handleOpenFromFile and
+                // direct-file imports use — ensureProjectGraph,
+                // commitAssetSync, commitProjectSafety — which
+                // importProjectAsCopy alone never applied (see
+                // import-path-parity.test.ts). handleImportFile also owns
+                // persistence (saveExistingProject + registry upsert) and
+                // its own success toast now, so this handler no longer
+                // duplicates either.
+                const { id, info } = result.data;
+                await handleImportFile(result.data);
                 return {
                   success: true,
-                  projectId: result.data.id,
-                  projectName: result.data.info?.name || "",
+                  projectId: id,
+                  projectName: info?.name || "",
                 };
               } else {
                 toast.error(`Import failed: ${result.error}`);
@@ -581,4 +517,4 @@ export const ProjectShell: React.FC = () => {
       </div>
     </ProjectContext.Provider>
   );
-};;
+};

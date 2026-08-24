@@ -60,6 +60,8 @@ export interface UseProjectManagerReturn {
   syncProjectToStorage: (project: Project) => Promise<boolean>;
   switchProject: (projectId: string) => void;
   saveProject: (projectId: string) => Promise<void>;
+  closeProject: (projectId: string) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<boolean>;
 
   // File operations (used by ProjectShell dialogs)
   loadProjects: () => Promise<void>;
@@ -348,6 +350,91 @@ export function useProjectManager(): UseProjectManagerReturn {
     [syncProjectToStorage],
   );
 
+  // ── Close ─────────────────────────────────────────────────────────────────
+  // Single writer for "close a project": persists the current in-memory
+  // content with isOpen:false AND hasUnsavedChanges:false in ONE write —
+  // no separate pre-save step (see project-shell.tsx's confirmProjectClose,
+  // which used to write twice: once to clear hasUnsavedChanges, once more
+  // here to also set isOpen:false).
+  //
+  // Used by BOTH the manual close button/dialog AND handleProjectOpen's
+  // auto-close-oldest-at-MAX_OPEN path. Previously auto-close had its own,
+  // simpler inline duplicate that never touched activeProjectId at all —
+  // if the oldest project being auto-closed happened to be the active one,
+  // activeProjectId briefly kept pointing at a now-closed project (harmless
+  // before only because the caller immediately overwrote it with the
+  // newly-opened project's id). This unifies both paths onto one writer.
+  const closeProject = useCallback(
+    async (projectId: string): Promise<void> => {
+      const project = projectsRef.current.find((p) => p.id === projectId);
+      if (!project) return;
+
+      const closedProject: Project = {
+        ...project,
+        isOpen: false,
+        hasUnsavedChanges: false,
+      };
+
+      const success = await syncProjectToStorage(closedProject);
+      if (!success) return;
+
+      setProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? closedProject : p)),
+      );
+
+      if (activeProjectRef.current?.id === projectId) {
+        const remaining = projectsRef.current.filter(
+          (p) => p.isOpen && p.id !== projectId,
+        );
+        setActiveProjectId(remaining[0]?.id ?? null);
+        setActivePhase(remaining[0]?.currentPhase ?? 0);
+        persistence.clearCurrentFile();
+      }
+    },
+    [persistence, syncProjectToStorage],
+  );
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  // Same discipline as closeProject: reads from projectsRef (freshest
+  // state) rather than closing over the `projects` render snapshot the way
+  // project-shell's original confirmDeleteProject did. If the deleted
+  // project was active, reassigns activeProjectId to the first remaining
+  // OPEN project — identical selection rule to closeProject, computed from
+  // the PRE-delete list filtered by id, matching the characterization
+  // tests pinned before this refactor.
+  //
+  // Owns its own toast feedback (like saveProject/handleImportFile do),
+  // unlike closeProject which stays silent and lets project-shell decide
+  // when to toast (closeProject has no single "success" message — it's
+  // used both for a user-visible close AND a background auto-close with a
+  // different message). Delete only ever has one message, so it lives here.
+  const deleteProject = useCallback(
+    async (projectId: string): Promise<boolean> => {
+      const project = projectsRef.current.find((p) => p.id === projectId);
+      if (!project) return false;
+
+      const result = await projectService.deleteProject(projectId);
+      if (!result.success) {
+        toastRef.current.error(`Failed to delete: ${result.error}`);
+        return false;
+      }
+
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+      if (activeProjectRef.current?.id === projectId) {
+        const remaining = projectsRef.current.filter(
+          (p) => p.isOpen && p.id !== projectId,
+        );
+        setActiveProjectId(remaining[0]?.id ?? null);
+        setActivePhase(remaining[0]?.currentPhase ?? 0);
+      }
+
+      toastRef.current.success(`Project "${project.info?.name}" deleted`);
+      return true;
+    },
+    [],
+  );
+
   // ── File open / import ────────────────────────────────────────────────────
 
   const handleOpenFromFile = useCallback(
@@ -451,6 +538,8 @@ export function useProjectManager(): UseProjectManagerReturn {
     syncProjectToStorage,
     switchProject,
     saveProject,
+    closeProject,
+    deleteProject,
 
     loadProjects,
     loadRecentProjects,

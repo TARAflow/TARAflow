@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:component": "vitest run --config vitest.component.config.ts",
     "clean:electron": "rimraf dist-electron",
     "typecheck:electron": "tsc -p tsconfig.electron.json",
     "build:electron-dev": "npm run clean:electron && npm run typecheck:electron && node scripts/build-electron.mjs",
