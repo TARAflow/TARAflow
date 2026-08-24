@@ -909,6 +909,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
         <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
           {isExpanded && (
             <AssetDescriptionForm
+              key={asset.id}
               asset={asset}
               onChange={onUpdate}
               onAssetFeatureUpdate={onAssetFeatureUpdate}

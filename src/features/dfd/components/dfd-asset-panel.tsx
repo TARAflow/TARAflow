@@ -641,6 +641,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
             </Box>
             <Box sx={{ flex: 1, overflow: "auto" }}>
               <AssetDescriptionForm
+                key={selectedAsset.id}
                 asset={selectedAsset}
                 onChange={(changes) => onAssetChange(selectedAsset.id, changes)}
                 allAssets={assets}

@@ -213,27 +213,42 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // onCreateAsset-Callback — atomar: Asset + DFD updaten
   const handleCreateAsset = useCallback(
     (name: string, assetGroup: AssetGroup): AvailableAsset => {
-      const { newDfd, asset } = createAsset(name, assetGroup);
-
-      // DFD persistieren (debounced)
-      // NOTE: createAsset() computes newDfd from useDFDData's own `dfd`
-      // closure, not from scheduleSave's `base` — see the comment on
-      // handleAssetChange below for why this is a smaller, separate residual
-      // gap (asset creation racing a pending description edit) rather than
-      // the bug this fixes (two description edits racing each other).
-      scheduleSave(() => ({
-        dfd: newDfd,
-        phaseStatus: project.phaseStatus,
-        lastModified: newDfd.lastModified!,
-      }));
+      // Build on scheduleSave's `base` (the freshest known state — a pending,
+      // not-yet-flushed edit if one exists, otherwise project.dfd), the same
+      // way handleAssetChange and updateElementDescription do. Passing `base`
+      // through to createAsset closes the race where the asset was created on
+      // useDFDData's own project.dfd closure while a save was pending: the
+      // Selector then immediately relates to the new asset via
+      // updateElementDescription (which DOES build on `base`), and the two
+      // computed on different foundations — the later wholesale replacement of
+      // the pending save dropped the just-created asset, so it vanished from
+      // both the DFD and the Asset tab right after the relation was added.
+      //
+      // scheduleSave runs its updater synchronously, so `created` is populated
+      // before this callback returns and the real assetId reaches the Selector.
+      let created!: DFDAsset;
+      scheduleSave((base) => {
+        const { newDfd, asset } = createAsset(
+          name,
+          assetGroup,
+          undefined,
+          base,
+        );
+        created = asset;
+        return {
+          dfd: newDfd,
+          phaseStatus: project.phaseStatus,
+          lastModified: newDfd.lastModified!,
+        };
+      });
 
       // Zurück an Selector → wird sofort als assetId der neuen Relation verwendet
       return {
-        id: asset.id,
-        displayId: asset.displayId,
-        name: asset.name,
-        assetGroup: asset.assetGroup,
-        protectionNeed: asset.protectionNeed,
+        id: created.id,
+        displayId: created.displayId,
+        name: created.name,
+        assetGroup: created.assetGroup,
+        protectionNeed: created.protectionNeed,
       };
     },
     [createAsset, scheduleSave, project.phaseStatus],
@@ -304,12 +319,16 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // Create asset from the asset tree panel (group known, name defaults to empty)
   const handleCreateAssetForGroup = useCallback(
     (assetGroup: AssetGroup) => {
-      const { newDfd } = createAsset("", assetGroup);
-      scheduleSave(() => ({
-        dfd: newDfd,
-        phaseStatus: project.phaseStatus,
-        lastModified: newDfd.lastModified!,
-      }));
+      // Same base-threading fix as handleCreateAsset — never build the new
+      // asset on a stale project.dfd while another save is pending.
+      scheduleSave((base) => {
+        const { newDfd } = createAsset("", assetGroup, undefined, base);
+        return {
+          dfd: newDfd,
+          phaseStatus: project.phaseStatus,
+          lastModified: newDfd.lastModified!,
+        };
+      });
     },
     [createAsset, scheduleSave, project.phaseStatus],
   );

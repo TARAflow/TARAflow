@@ -335,8 +335,8 @@ export const ALLOWED_PHYSICAL_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: [],
   PhysicalBoundary: ["is_an", "secures", "accesses", "damages"],
-  Sensor: ["accesses", "monitors"],
-  Actuator: ["accesses", "damages", "secures"],
+  Sensor: ["is_an", "accesses", "monitors"],
+  Actuator: ["is_an", "accesses", "damages", "secures"],
 };
 
 export const ALLOWED_SERVICE_RELATIONS: Record<
