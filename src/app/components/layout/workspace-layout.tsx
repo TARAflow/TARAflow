@@ -102,8 +102,13 @@ export const WorkspaceLayout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const toast = useToast();
 
-  const { activeProject, activePhase, setActivePhase, updateProject } =
-    useProjectContext();
+  const {
+    projects,
+    activeProject,
+    activePhase,
+    setActivePhase,
+    updateProject,
+  } = useProjectContext();
 
   // ── Stable ref — stale-closure protection ─────────────────────────────────
   // Async handlers (DFD autosave, thumbnail) read the CURRENT activeProject
@@ -111,6 +116,18 @@ export const WorkspaceLayout: React.FC = () => {
 
   const activeProjectRef = useRef<Project | undefined>(undefined);
   activeProjectRef.current = activeProject;
+
+  // ── Projects-by-id ref — target-project lookup for late-firing handlers ────
+  // activeProjectRef always points at whatever is active NOW. That is wrong
+  // for a handler that fires AFTER a project switch — most importantly the
+  // Assets flush-on-unmount: when AssetsTab (keyed by project id) unmounts on
+  // switch, its pending-edit flush calls onUpdate with the OUTGOING project's
+  // assets, but by then activeProject is already the incoming one. Resolving
+  // the target project by its explicit id (see makeAssetsUpdateHandler) against
+  // this ref writes the flushed edit — and mirrors its name/description onto
+  // the correct dfd.assets — into the project the edit actually belongs to.
+  const projectsRef = useRef<Project[]>(projects);
+  projectsRef.current = projects;
 
   // "" and undefined are the same "no description" state — Assets stores it
   // inside properties (can be "" after a cleared text field), DFD stores it
@@ -386,9 +403,15 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Assets tab ────────────────────────────────────────────────────────────
 
-  const handleAssetsUpdate = useCallback(
-    async (updates: AssetUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Bound to a specific project id, NOT to "whatever is active now". AssetsTab
+  // is keyed by project id, so each mounted instance owns a handler pinned to
+  // its own project. This matters for the flush-on-unmount edit, which fires
+  // just after the active project has already switched: we must resolve the
+  // target — and its dfd — by the pinned id, or the outgoing project's assets
+  // would be written into (and mirrored onto) the incoming project.
+  const makeAssetsUpdateHandler = useCallback(
+    (projectId: string) => async (updates: AssetUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
 
       // Mirror name/description edits from the Asset-Tab onto dfd.assets in
@@ -429,7 +452,7 @@ export const WorkspaceLayout: React.FC = () => {
       }
 
       await updateProject({
-        id: current.id,
+        id: projectId,
         assets: updates.assets,
         dfd,
         phaseStatus: updates.phaseStatus,
@@ -831,6 +854,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Assets && (
           <AssetsTab
+            key={activeProject.id}
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
@@ -842,7 +866,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               lastModified: activeProject.info?.lastModified || "",
             }}
-            onUpdate={handleAssetsUpdate}
+            onUpdate={makeAssetsUpdateHandler(activeProject.id)}
             hazardLinks={memoizedHazardRef}
           />
         )}

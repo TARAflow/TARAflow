@@ -144,6 +144,15 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // parent re-render passing a new project.assets reference) silently
   // discards whatever was just typed in the Asset Dialog, before the
   // debounced onUpdate() ever had a chance to persist it upward.
+  //
+  // NOTE ON PROJECT SWITCHING: this effect ONLY handles external updates to
+  // the *same* project. A switch to a different project is handled by the
+  // parent rendering this component with key={project.id}, which unmounts
+  // this instance entirely and mounts a fresh one — so this effect never has
+  // to reconcile a project-identity change, and the isDirty guard can never
+  // leak one project's edits into another (that was the cross-project
+  // overwrite bug). The flush-on-unmount effect below saves any in-flight
+  // edit against the OLD project before that teardown happens.
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
 
@@ -181,6 +190,56 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
     return () => clearTimeout(timeoutId);
   }, [isDirty, assetData, project, onUpdate]);
+
+  // ── Flush-on-unmount ───────────────────────────────────────────────────
+  // With key={project.id} on this component (set by the parent), a project
+  // switch unmounts this instance entirely — that is now the ONLY way project
+  // identity changes here. If a debounced auto-save was still pending (isDirty)
+  // at that moment, React clears the pending setTimeout on unmount and the edit
+  // would be silently lost. This flushes it synchronously before teardown.
+  //
+  // Refs are required (not the state values directly): the empty-dependency
+  // cleanup below captures its closure once, at mount, so without refs it would
+  // only ever see the assetData / project / onUpdate from that first render,
+  // not the latest ones. Each ref is kept current by its own effect.
+  const projectRef = useRef(project);
+  const assetDataRef = useRef(assetData);
+  const onUpdateRef = useRef(onUpdate);
+
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
+
+  useEffect(() => {
+    assetDataRef.current = assetData;
+  }, [assetData]);
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
+  useEffect(() => {
+    return () => {
+      if (!isDirtyRef.current) return;
+
+      const result = assetService.saveAssets(
+        projectRef.current,
+        assetDataRef.current,
+      );
+
+      if (result.success) {
+        onUpdateRef.current({
+          assets: result.assets,
+          phaseStatus: result.phaseStatus,
+          lastModified: result.lastModified,
+        });
+      }
+      // Best-effort: if saveAssets fails here there is no UI left to surface
+      // an error in (the component is already tearing down). Losing an edit
+      // made in the final second before a project switch is an acceptable
+      // trade-off versus writing it into the wrong project.
+    };
+  }, []); // empty deps — a true unmount cleanup, not a per-render one
 
   // Recalculate overall impact when calculation or rounding method changes
   useEffect(() => {
