@@ -1,776 +1,43 @@
-import {
-  app,
-  BrowserWindow,
-  ipcMain,
-  shell,
-  dialog,
-  Menu,
-  type OpenDialogOptions,
-} from "electron";
+import { app, BrowserWindow, Menu } from "electron";
 import path from "path";
-import fs from "fs/promises";
-import { dirname } from "path";
-import { mkdir, writeFile } from "fs/promises";
-import { homedir } from "os";
 import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
-import simpleGit from "simple-git";
-import { GitService } from "./services/git-service-main";
-import { credentialService } from "./services/credential-service-main";
-import {
-  generatePdfBuffer,
-  generatePdfFile,
-} from "./services/pdf-generator-main";
-import { runAuditVerify } from "./services/audit-verify-main";
-import { handleUpdateCheck } from "./services/update/update-check-main";
 import { buildAppMenu } from "./app-menu";
 import { hardenWindowNavigation, makeIsInternalUrl } from "./window-navigation";
 
-// ==================== PDF GENERATION ====================
-
-// Generate PDF buffer from HTML
-ipcMain.handle(
-  "pdf:generateBuffer",
-  async (_, html: string, puppeteerOptions: object) => {
-    try {
-      const buffer = await generatePdfBuffer(html, puppeteerOptions);
-      return { success: true, data: buffer };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  },
-);
-
-// Generate PDF file and save
-ipcMain.handle(
-  "pdf:generateFile",
-  async (_, html: string, puppeteerOptions: object, outputPath: string) => {
-    try {
-      await generatePdfFile(html, puppeteerOptions, outputPath);
-      return { success: true, data: outputPath };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  },
-);
-
-// ==================== JIRA PROXY (GEGEN CORS) ====================
-
-ipcMain.handle("jira:request", async (_, { url, options }) => {
-  try {
-    const response = await fetch(url, {
-      method: options.method || "GET",
-      headers: {
-        ...options.headers,
-        "User-Agent": "Electron-App",
-      },
-      body: options.body ?? undefined,
-    });
-
-    const text = await response.text();
-    let data: any = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
-      }
-    }
-
-    return { ok: response.ok, status: response.status, data };
-  } catch (error: any) {
-    console.error("Jira proxy error:", error);
-    return { ok: false, status: 0, error: error.message };
-  }
-});
-
-// Jira Credentials (via OS Keychain)
-ipcMain.handle("jira:saveToken", async (_, { account, token }) => {
-  try {
-    await credentialService.saveJiraToken(account, token);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle("jira:getToken", async (_, { account }) => {
-  try {
-    const token = await credentialService.getJiraToken(account);
-    return { success: true, token };
-  } catch (error: any) {
-    return { success: false, error: error.message, token: null };
-  }
-});
-
-ipcMain.handle("jira:deleteToken", async (_, { account }) => {
-  try {
-    await credentialService.deleteJiraToken(account);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// ==================== AUDIT VERIFICATION ====================
-// Engine runs here in main (it spawns git); renderer gets only the result.
-// Falls back to the bound audit repo (git:setRepoPath) when no repoPath is passed.
-ipcMain.handle("audit:verify", async (_e, params) => {
-  return runAuditVerify(params, gitService?.getRepoPath());
-});
-
-// Notify-only update check (see electron/services/update). Never rejects.
-ipcMain.handle("update:check", (_e, opts) => handleUpdateCheck(opts));
-
-// ==================== USER DATA PATH ====================
-
-const getUserDataPath = () => app.getPath("userData");
-const getRecentProjectsPath = () =>
-  path.join(getUserDataPath(), "recent-projects.json");
-
-// ==================== IPC HANDLERS ====================
-
-ipcMain.handle("shell:openExternal", async (_, url: string) => {
-  await shell.openExternal(url);
-});
-
-// ==================== DRAWIO PLUGIN INJECTION ====================
-
-let cachedDrawioFrame: any = null;
-
-ipcMain.handle("drawio:injectPlugin", async (event) => {
-  try {
-    const webContents = event.sender;
-
-    // Finde alle frames
-    const frames = webContents.mainFrame.frames;
-    console.log(
-      "[Main] Available frames:",
-      frames.map((f) => f.url),
-    );
-
-    // Finde DrawIO iframe
-    const drawioFrame = frames.find(
-      (f) =>
-        f.url.includes("embed.diagrams.net") || f.url.includes("diagrams.net"),
-    );
-
-    if (!drawioFrame) {
-      console.error("[Main] DrawIO frame not found");
-      return {
-        success: false,
-        error: "DrawIO frame not found",
-        availableFrames: frames.map((f) => f.url),
-      };
-    }
-
-    console.log("[Main] Found DrawIO frame:", drawioFrame.url);
-
-    // No polling needed — library loading happens inside Draw.loadPlugin
-    // callback which draw.io fires when it is ready. The pluginCode below
-    // registers the callback via Draw.loadPlugin(fn) which executes fn(ui)
-    // once draw.io initialises — ui is guaranteed available at that point.
-
-    // Plugin Code
-    const pluginCode = `
-      (function() {
-        console.log('[Plugin Injection] Starting...');
-        console.log('[Plugin Injection] typeof Draw:', typeof Draw);
-        console.log('[Plugin Injection] typeof mxEvent:', typeof mxEvent);
-        
-        if (typeof Draw === 'undefined') {
-          return { 
-            success: false, 
-            error: 'Draw object not found',
-            globals: Object.keys(window).filter(k => k.includes('draw') || k.includes('Draw') || k.includes('mx'))
-          };
-        }
-        
-        if (!Draw.loadPlugin) {
-          return { 
-            success: false, 
-            error: 'Draw.loadPlugin not available',
-            drawKeys: Object.keys(Draw)
-          };
-        }
-        
-        try {
-          Draw.loadPlugin(function(ui) {
-            Draw._taraflowUi = ui;
-            console.log('[Plugin] ✅ Selection Plugin loaded successfully!');
-
-            // Load DFD libraries from customEntries registered via configure message.
-            // drawio-controller.ts owns the data — this code only triggers the load
-            // once ui is guaranteed available inside the loadPlugin callback.
-            setTimeout(function() {
-              try {
-                var sidebar = ui.sidebar;
-                if (!sidebar || !sidebar.customEntries) return;
-
-                // Hide all default palettes from localStorage cache
-                Object.keys(sidebar.palettes).forEach(function(k) {
-                  if (k === 'search') return;
-                  var p = sidebar.palettes[k];
-                  if (p && p[0]) p[0].style.display = 'none';
-                  if (p && p[1]) p[1].style.display = 'none';
-                });
-
-                sidebar.customEntries.forEach(function(group) {
-                  (group.entries || []).forEach(function(entry) {
-                    (entry.libs || []).slice().reverse().forEach(function(libDef) {
-                      if (!libDef.data) return;
-                      var title = (libDef.title && (libDef.title.main || libDef.title)) || entry.id;
-                      var lib = new LocalLibrary(ui, libDef.data, title);
-                      ui.loadLibrary(lib, true);
-
-                      setTimeout(function() {
-                        var hash = lib.getHash();
-                        var p = sidebar.palettes[hash];
-                        if (!p) return;
-                        var container = p[1] && p[1].querySelector('.geSidebar');
-                        var images = JSON.parse(
-                          libDef.data.replace('<mxlibrary>', '').replace('</mxlibrary>', '')
-                        );
-                        if (container && container.children.length === 0) {
-                          ui.addLibraryEntries(images, container);
-                        }
-                        if (p[0]) p[0].style.display = '';
-                        if (p[1]) p[1].style.display = '';
-                      }, 200);
-                    });
-                  });
-                });
-
-                console.log('[Plugin] DFD libraries loaded from customEntries');
-              } catch(libErr) {
-                console.warn('[Plugin] Library load failed:', libErr.message);
-              }
-            }, 100);
-
-            // Setup selection listener
-            ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
-              var cells = ui.editor.graph.getSelectionCells();
-              var selection = cells.map(function(c) {
-                return { 
-                  id: c.id, 
-                  value: c.value,
-                  type: c.getAttribute ? c.getAttribute('type') : null
-                };
-              });
-              
-              console.log('[Plugin] Selection changed:', selection);
-              
-              window.parent.postMessage(JSON.stringify({
-                event: 'selection',
-                selection: selection
-              }), '*');
-            });
-
-            // Viewport restore handler
-            window.addEventListener('message', function(evt) {
-              try {
-                var msg = (typeof evt.data === 'string') ? JSON.parse(evt.data) : evt.data;
-                if (msg.action === 'taraflow:setViewport') {
-                  var view = ui.editor.graph.view;
-                  view.setScale(msg.scale);
-                  view.setTranslate(msg.translate.x, msg.translate.y);
-                  view.revalidate();
-                }
-              } catch(e) {}
-            }, false);
-          });
-          
-          
-          return { success: true, message: 'Plugin loaded successfully' };
-        } catch (error) {
-          return { 
-            success: false, 
-            error: 'Plugin load failed: ' + error.message,
-            stack: error.stack
-          };
-        }
-      })();
-    `;
-
-    // Execute in DrawIO frame
-    const result = await drawioFrame.executeJavaScript(pluginCode);
-    console.log("[Main] Plugin injection result:", result);
-
-    // Cache frame for setViewport IPC handler
-    cachedDrawioFrame = drawioFrame ?? null;
-
-    return result || { success: true };
-  } catch (error: any) {
-    console.error("[Main] Plugin injection error:", error);
-    return {
-      success: false,
-      error: error.message,
-      stack: error.stack,
-    };
-  }
-});
-
-// ==================== DRAWIO SET VIEWPORT ====================
-
-ipcMain.handle(
-  "drawio:setViewport",
-  async (
-    _,
-    viewport: {
-      translate: { x: number; y: number };
-      scale: number;
-      scrollLeft?: number;
-      scrollTop?: number;
-    },
-  ) => {
-    if (!cachedDrawioFrame)
-      return { success: false, error: "No drawio frame cached" };
-    try {
-      const scale = viewport.scale;
-      const tx = viewport.translate.x;
-      const ty = viewport.translate.y;
-      const sl = viewport.scrollLeft ?? 0;
-      const st = viewport.scrollTop ?? 0;
-
-      await cachedDrawioFrame.executeJavaScript(`
-      (function() {
-        var ui = Draw._taraflowUi;
-        if (!ui) { console.warn('[Main:setViewport] No taraflowUi'); return false; }
-        var view = ui.editor.graph.view;
-        view.setScale(${scale});
-        view.setTranslate(${tx}, ${ty});
-        if (ui.editor.graph.container) {
-          ui.editor.graph.container.scrollLeft = ${sl};
-          ui.editor.graph.container.scrollTop = ${st};
-        }
-        view.revalidate();
-
-        return true;
-      })()
-    `);
-      return { success: true };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  },
-);
-
-// ==================== DRAWIO SELECT CELL ====================
-
-ipcMain.handle("drawio:selectCell", async (_, cellId: string) => {
-  if (!cachedDrawioFrame)
-    return { success: false, error: "No drawio frame cached" };
-  try {
-    await cachedDrawioFrame.executeJavaScript(`
-      (function() {
-        var ui = Draw._taraflowUi;
-        if (!ui) { console.warn('[Main:selectCell] No taraflowUi'); return false; }
-        var graph = ui.editor.graph;
-        var cell = graph.model.getCell("${cellId}");
-        if (!cell) { console.warn('[Main:selectCell] Cell not found: ${cellId}'); return false; }
-        graph.setSelectionCell(cell);
-        graph.scrollCellToVisible(cell, true);
-        return true;
-      })()
-    `);
-    return { success: true };
-  } catch (e: any) {
-    return { success: false, error: e.message };
-  }
-});
-
-// ==================== DRAWIO GET SCROLL ====================
-
-ipcMain.handle("drawio:getScroll", async () => {
-  if (!cachedDrawioFrame) return { scrollLeft: 0, scrollTop: 0 };
-  try {
-    const result = await cachedDrawioFrame.executeJavaScript(`
-      (function() {
-        var ui = Draw._taraflowUi;
-        if (!ui) return { scrollLeft: 0, scrollTop: 0 };
-        var container = ui.editor.graph.container;
-        return {
-          scrollLeft: container ? container.scrollLeft : 0,
-          scrollTop: container ? container.scrollTop : 0
-        };
-      })()
-    `);
-    return result || { scrollLeft: 0, scrollTop: 0 };
-  } catch (e) {
-    return { scrollLeft: 0, scrollTop: 0 };
-  }
-});
-
-// ==================== GIT SERVICE ====================
-
-let gitService: GitService;
-
-// Repository
-ipcMain.handle("git:isRepository", async () => {
-  if (!gitService) gitService = new GitService(".");
-  return await gitService.isRepository();
-});
-
-ipcMain.handle("git:initRepository", async () => {
-  if (!gitService) gitService = new GitService(".");
-  return await gitService.initRepository();
-});
-
-// Status
-ipcMain.handle("git:getStatus", async () => {
-  return await gitService.getStatus();
-});
-
-ipcMain.handle("git:isClean", async () => {
-  return await gitService.isClean();
-});
-
-// Commit
-ipcMain.handle("git:stage", (_e, relPaths) => gitService.stage(relPaths));
-
-ipcMain.handle("git:commit", (_e, m, cfg, sign, relPaths) =>
-  gitService.commit(m, cfg, sign, relPaths),
-);
-
-// Branches
-ipcMain.handle("git:getBranches", async () => {
-  return await gitService.getBranches();
-});
-
-ipcMain.handle("git:getCurrentBranch", async () => {
-  return await gitService.getCurrentBranch();
-});
-
-ipcMain.handle("git:createBranch", async (_, name, checkout) => {
-  return await gitService.createBranch(name, checkout);
-});
-
-ipcMain.handle("git:checkoutBranch", async (_, name) => {
-  return await gitService.checkoutBranch(name);
-});
-
-ipcMain.handle("git:branchExists", async (_, name) => {
-  return await gitService.branchExists(name);
-});
-
-// Remote
-ipcMain.handle("git:addRemote", async (_, name, url) => {
-  return await gitService.addRemote(name, url);
-});
-
-ipcMain.handle("git:getRemotes", async () => {
-  return await gitService.getRemotes();
-});
-
-ipcMain.handle("git:remoteExists", async (_, name) => {
-  return await gitService.remoteExists(name);
-});
-
-// Push
-ipcMain.handle("git:push", async (_, remote, branch, config) => {
-  return await gitService.push(remote, branch, config);
-});
-
-// Log
-ipcMain.handle("git:getLog", async (_, maxCount) => {
-  return await gitService.getLog(maxCount);
-});
-
-ipcMain.handle("git:getLatestCommit", async () => {
-  return await gitService.getLatestCommit();
-});
-
-// Diff
-ipcMain.handle("git:getDiff", async (_, filePath) => {
-  return await gitService.getDiff(filePath);
-});
-
-// Raw
-ipcMain.handle("git:raw", async (_, command) => {
-  return await gitService.raw(command);
-});
-
-// Raw git in an ARBITRARY directory — for repo discovery (rev-parse) and the
-// .gitattributes check (check-attr), which must run in a dir that may not be the
-// bound repo (and before any repo is selected). Uses its own simpleGit(dir), but
-// stays in the main process, so the "one git path" rule (no git in the renderer)
-// still holds. Never throws to the renderer: a non-zero exit is returned as { code }.
-ipcMain.handle("git:rawInDir", async (_, dir: string, args: string[]) => {
-  try {
-    const stdout = await simpleGit(dir, {
-      unsafe: { allowUnsafeHooksPath: true },
-    }).raw(args);
-    return { success: true, data: { stdout, stderr: "", code: 0 } };
-  } catch (err: any) {
-    // simple-git throws on non-zero exit (e.g. rev-parse outside a repo)
-    return {
-      success: true,
-      data: {
-        stdout: err?.git?.stdout ?? "",
-        stderr: String(err?.message ?? err),
-        code: typeof err?.exitCode === "number" ? err.exitCode : 128,
-      },
-    };
-  }
-});
-
-// Rebind the bound GitService to the discovered audit repo root. Called on
-// project open (after discovery) before any stateful op (commit/branch/push).
-ipcMain.handle("git:setRepoPath", async (_, root: string) => {
-  try {
-    gitService = new GitService(root);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: String(err) };
-  }
-});
-
-// ==================== CREDENTIAL SERVICE ====================
-
-// Git Tokens
-ipcMain.handle("credentials:saveGitToken", async (_, account, token) => {
-  await credentialService.saveGitToken(account, token);
-});
-
-ipcMain.handle("credentials:getGitToken", async (_, account) => {
-  return await credentialService.getGitToken(account);
-});
-
-ipcMain.handle("credentials:deleteGitToken", async (_, account) => {
-  return await credentialService.deleteGitToken(account);
-});
-
-// GPG Keys
-ipcMain.handle("credentials:saveGPGKey", async (_, keyId, privateKey) => {
-  await credentialService.saveGPGKey(keyId, privateKey);
-});
-
-ipcMain.handle("credentials:getGPGKey", async (_, keyId) => {
-  return await credentialService.getGPGKey(keyId);
-});
-
-ipcMain.handle("credentials:deleteGPGKey", async (_, keyId) => {
-  return await credentialService.deleteGPGKey(keyId);
-});
-
-ipcMain.handle("credentials:hasGPGKey", async (_, keyId) => {
-  return await credentialService.hasGPGKey(keyId);
-});
-
-// SSH Keys
-ipcMain.handle("credentials:saveSSHKeyPath", async (_, identifier, keyPath) => {
-  await credentialService.saveSSHKeyPath(identifier, keyPath);
-});
-
-ipcMain.handle("credentials:getSSHKeyPath", async (_, identifier) => {
-  return await credentialService.getSSHKeyPath(identifier);
-});
-
-// ==================== FILE I/O SERVICE ====================
-
-// Save Dialog
-ipcMain.handle("file:saveDialog", async (event, defaultName: string) => {
-  try {
-    const parentWindow = BrowserWindow.fromWebContents(event.sender);
-    const options = {
-      title: "Save Project",
-      defaultPath: `${defaultName}.tara.json`,
-      filters: [
-        { name: "TARAflow Projects", extensions: ["tara.json"] },
-        { name: "All Files", extensions: ["*"] },
-      ],
-    };
-    const result = parentWindow
-      ? await dialog.showSaveDialog(parentWindow, options)
-      : await dialog.showSaveDialog(options);
-
-    if (result.canceled || !result.filePath) {
-      return { success: false, error: "Save canceled" };
-    }
-
-    return { success: true, data: result.filePath };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// Generic single-file picker (SSH keys, allowed_signers pubkeys, …). Distinct
-// from file:openDialog on purpose: that one is project-specific (title, tara.json
-// filter, no hidden files). Key files live in ~/.ssh — a DOT-dir you can't enter
-// without showHiddenFiles. `~` is expanded here since the renderer has no homedir.
-ipcMain.handle("file:pickFile", async (event, options) => {
-  try {
-    const expandHome = (p: string | undefined) =>
-      p && p.startsWith("~") ? homedir() + p.slice(1) : p;
-
-    const parentWindow = BrowserWindow.fromWebContents(event.sender);
-    const dialogOptions: OpenDialogOptions = {
-      title: options?.title ?? "Select file",
-      defaultPath: expandHome(options?.defaultPath),
-      buttonLabel: options?.buttonLabel,
-      filters: options?.filters,
-      properties: ["openFile", "showHiddenFiles", "dontAddToRecent"],
-    };
-    const result = parentWindow
-      ? await dialog.showOpenDialog(parentWindow, dialogOptions)
-      : await dialog.showOpenDialog(dialogOptions);
-
-    if (result.canceled || result.filePaths.length === 0) {
-      return { success: false, error: "canceled" };
-    }
-    return { success: true, data: result.filePaths[0] };
-  } catch (error) {
-    return { success: false, error: (error as Error).message };
-  }
-});
-
-// Open Dialog
-ipcMain.handle("file:openDialog", async (event) => {
-  try {
-    const parentWindow = BrowserWindow.fromWebContents(event.sender);
-    const options: OpenDialogOptions = {
-      title: "Open Project",
-      filters: [
-        { name: "TARAflow Projects", extensions: ["tara.json"] },
-        { name: "All Files", extensions: ["*"] },
-      ],
-      properties: ["openFile"],
-    };
-    const result = parentWindow
-      ? await dialog.showOpenDialog(parentWindow, options)
-      : await dialog.showOpenDialog(options);
-
-    if (result.canceled || result.filePaths.length === 0) {
-      return { success: false, error: "Open canceled" };
-    }
-
-    return { success: true, data: result.filePaths[0] };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// Write Project
-ipcMain.handle(
-  "file:writeProject",
-  async (_, filePath: string, projectData: string) => {
-    try {
-      await fs.writeFile(filePath, projectData, "utf-8");
-      return { success: true, data: filePath };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  },
-);
-
-// Read Project
-ipcMain.handle("file:readProject", async (_, filePath: string) => {
-  try {
-    const data = await fs.readFile(filePath, "utf-8");
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// Generic text read — used by the audit feature for .gitattributes (and later
-// allowed_signers / hook files). A MISSING file is not an error: it returns
-// { success:true, data:null } so callers can distinguish "absent" (→ create it)
-// from a real read failure (→ { success:false }).
-ipcMain.handle("file:readText", async (_, filePath: string) => {
-  try {
-    const data = await fs.readFile(filePath, "utf-8");
-    return { success: true, data };
-  } catch (error: any) {
-    if (error?.code === "ENOENT") {
-      return { success: true, data: null };
-    }
-    return { success: false, error: error.message };
-  }
-});
-
-// Generic text write — counterpart to file:readText.
-ipcMain.handle(
-  "file:writeText",
-  async (_, filePath: string, content: string) => {
-    try {
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, content, "utf-8");
-      return { success: true, data: filePath };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  },
-);
-
-// Make a file executable (git hooks need +x on Unix; harmless on Windows).
-ipcMain.handle("file:makeExecutable", async (_, filePath: string) => {
-  try {
-    await fs.chmod(filePath, 0o755);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// ==================== METADATA SERVICE ====================
-
-// Get recent projects metadata
-ipcMain.handle("metadata:getRecentProjects", async () => {
-  try {
-    const metadataPath = getRecentProjectsPath();
-    const exists = await fs
-      .access(metadataPath)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!exists) {
-      return { success: true, data: [] };
-    }
-
-    const data = await fs.readFile(metadataPath, "utf-8");
-    const metadata = JSON.parse(data);
-    return { success: true, data: metadata };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// Save recent projects metadata
-ipcMain.handle("metadata:saveRecentProjects", async (_, metadata: any[]) => {
-  try {
-    const metadataPath = getRecentProjectsPath();
-
-    // Ensure directory exists
-    const dir = path.dirname(metadataPath);
-    await fs.mkdir(dir, { recursive: true });
-
-    await fs.writeFile(
-      metadataPath,
-      JSON.stringify(metadata, null, 2),
-      "utf-8",
-    );
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
-
-// Remove project from metadata
-ipcMain.handle("metadata:removeProject", async (_, projectId: string) => {
-  try {
-    const result = await ipcMain.emit("metadata:getRecentProjects");
-    // This is a simplified version - proper implementation below
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-});
+import { registerShellHandlers } from "./ipc/shell-handlers";
+import { registerPdfHandlers } from "./ipc/pdf-handlers";
+import { registerJiraHandlers } from "./ipc/jira-handlers";
+import { registerDrawioHandlers } from "./ipc/drawio-handlers";
+import { registerGitHandlers } from "./ipc/git-handlers";
+import { registerAuditHandlers } from "./ipc/audit-handlers";
+import { registerUpdateHandlers } from "./ipc/update-handlers";
+import { registerCredentialHandlers } from "./ipc/credential-handlers";
+import { registerFileHandlers } from "./ipc/file-handlers";
+import { registerMetadataHandlers } from "./ipc/metadata-handlers";
+
+// ==================== IPC REGISTRATION ====================
+// Each domain owns its own ipcMain.handle calls (and any private state, e.g.
+// git-handlers.ts's bound GitService, drawio-handlers.ts's cached frame).
+// main.ts just wires them up once at startup — see electron/ipc/*.ts for the
+// actual handler implementations. This file used to be ~900 lines with every
+// handler inline; it's app lifecycle + window creation now.
+registerShellHandlers();
+registerPdfHandlers();
+registerJiraHandlers();
+registerDrawioHandlers();
+registerGitHandlers();
+registerAuditHandlers();
+registerUpdateHandlers();
+registerCredentialHandlers();
+registerFileHandlers();
+registerMetadataHandlers();
 
 // ==================== WINDOW CREATION ====================
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  const t0 = Date.now();
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -786,29 +53,47 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    show: false,
+    // Dev mode shows immediately (old default Electron behavior) — Vite dev
+    // serves unbundled modules on demand and typically takes ~2-3s to reach
+    // did-finish-load for a dependency-heavy app like this one (confirmed by
+    // measurement, not a bug). Waiting on that in dev just turns a harmless
+    // brief flash into a multi-second stare at nothing, for no benefit: a
+    // packaged build loads a pre-bundled dist/index.html from disk and is
+    // fast, which is where the anti-flash dance below actually pays off.
+    show: app.isPackaged ? false : true,
   });
 
-  win.once("ready-to-show", () => {
-    clearTimeout(showFallbackTimer);
-    win.show();
-  });
+  if (app.isPackaged) {
+    // "ready-to-show" turned out to not reliably fire in this app at all
+    // (confirmed: the fallback below used to fire on *every* dev:electron
+    // run — that was actually just dev-mode's inherent ~2-3s Vite load time
+    // outrunning the timeout, not a real failure; see the isPackaged check
+    // above). "did-finish-load" fires more reliably and races against it;
+    // whichever comes first shows the window. The timeout stays as a
+    // last-resort safety net for the packaged/FUSE-AppImage case that
+    // originally surfaced this (ready-to-show never fired there at all).
+    let shown = false;
+    const showOnce = (source: string) => {
+      if (shown) return;
+      shown = true;
+      clearTimeout(showFallbackTimer);
+      console.log(
+        `[Main] showing window (trigger: ${source}, +${Date.now() - t0}ms)`,
+      );
+      win.show();
+    };
 
-  // Safety net: on at least one FUSE-mounted AppImage launch, "ready-to-show"
-  // never fired at all — the window stayed permanently invisible (worked fine
-  // from linux-unpacked/ and via --appimage-extract-and-run, so it's specific
-  // to that mount type; root cause not yet confirmed — suspect a first-paint /
-  // GPU-compositor issue). Rather than depend entirely on an event that can
-  // silently not fire, fall back to showing the window after a grace period.
-  // This trades back a small amount of "empty window flash" risk in that
-  // specific scenario for the guarantee that the app is never invisible.
-  const READY_TO_SHOW_TIMEOUT_MS = 500;
-  const showFallbackTimer = setTimeout(() => {
-    console.warn(
-      `[Main] "ready-to-show" did not fire within ${READY_TO_SHOW_TIMEOUT_MS}ms — showing window anyway`,
-    );
-    win.show();
-  }, READY_TO_SHOW_TIMEOUT_MS);
+    win.once("ready-to-show", () => showOnce("ready-to-show"));
+    win.webContents.once("did-finish-load", () => showOnce("did-finish-load"));
+
+    const READY_TO_SHOW_TIMEOUT_MS = 500;
+    const showFallbackTimer = setTimeout(() => {
+      console.warn(
+        `[Main] neither "ready-to-show" nor "did-finish-load" fired within ${READY_TO_SHOW_TIMEOUT_MS}ms — showing window anyway`,
+      );
+      showOnce("timeout");
+    }, READY_TO_SHOW_TIMEOUT_MS);
+  }
 
   // Diagnostics for the underlying cause — if the fallback above ever fires,
   // these logs should show whether the page failed to load, the renderer
@@ -872,6 +157,12 @@ function createWindow() {
   });
 
   // Load app: filesystem in production, Vite dev server in development
+  console.log(`[Main] starting page load (+${Date.now() - t0}ms)`);
+  win.webContents.on("did-finish-load", () => {
+    console.log(
+      `[Main] did-finish-load fired (+${Date.now() - t0}ms) [diagnostic, non-gating]`,
+    );
+  });
   if (app.isPackaged) {
     // Production: load the built index.html from filesystem — no server needed
     // Renderer lives at dist/ in the project root;
