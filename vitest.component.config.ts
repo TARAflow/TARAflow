@@ -3,9 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // Component tests (src/tests/component/**) render REAL components through
 // @testing-library/react and jsdom — the same real-render style used e.g. by
-// attacktree-path-columns.test.tsx and (despite its currently-stale path
-// comment claiming src/tests/component/..., it actually lives under
-// src/tests/unit/features/attacktree/services/) attacktree-editor
+// attacktree-path-columns.test.tsx and attacktree-editor
 // .validation-render.test.tsx.
 //
 // These differ from src/tests/unit/** in kind, not just location: unit tests

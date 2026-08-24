@@ -5,27 +5,44 @@
 // flushed to onUpdate — gets silently discarded if a DrawIO autosave event
 // (scheduleDrawioSave, 1500ms debounce) resolves in the meantime.
 //
-// Root cause: scheduleDrawioSave's timer callback reads `projectRef.current`
-// only — the project PROP snapshot from the last render — and passes that
-// into dfdService.saveDFDFromXml() as the merge base. It never consults
-// `pendingSaveRef.current`, the freshest known dfd. saveDFDFromXml's
-// mergeAssetProperties() merges the freshly-parsed XML against the STALE
-// project.dfd.assets, and any pending description is gone from the result
-// handed to onUpdate — which flows into workspace-layout.tsx's
-// handleDFDUpdate, corrupting `patch.dfd` while `patch.assets` (built via
-// syncFromDFD's content-aware merge) happens to survive. This produces the
-// exact split observed in production traces: patch.assets correct,
-// patch.dfd stale for the same asset id.
+// Root cause: scheduleDrawioSave's timer callback used to read
+// `projectRef.current` only — the project PROP snapshot from the last
+// render — and passed that into dfdService.saveDFDFromXml() as the merge
+// base. It never consulted `pendingSaveRef.current`, the freshest known
+// dfd. saveDFDFromXml's mergeAssetProperties() would merge the freshly-
+// parsed XML against the STALE project.dfd.assets, and any pending
+// description was gone from the result handed to onUpdate — which flowed
+// into workspace-layout.tsx's handleDFDUpdate, corrupting `patch.dfd`
+// while `patch.assets` (built via syncFromDFD's content-aware merge)
+// happened to survive. This produced the exact split observed in
+// production traces: patch.assets correct, patch.dfd stale for the same
+// asset id.
 //
-// Fix under test (not yet applied — THE BUG tests below should FAIL until
-// it is, THE FIX tests document the required behavior once it lands):
-//   1. scheduleDrawioSave must build its merge base the same way
-//      scheduleSave does: `pendingSaveRef.current?.dfd ?? projectRef.current.dfd`.
+// STATUS: FIXED AND CONFIRMED (all tests below pass — full suite run
+// confirmed 148/148 test files, 1308/1309 tests green, 1 unrelated todo).
+// The fix, now live in use-dfd-persistence.ts:
+//   1. scheduleDrawioSave builds its merge base the same way scheduleSave
+//      does, plus one extra fallback layer:
+//      `pendingSaveRef.current?.dfd ?? lastCommittedDfdRef.current ??
+//      projectRef.current.dfd`. The middle fallback (lastCommittedDfdRef)
+//      covers a gap the original two-step chain alone would still have
+//      missed: the instant scheduleSave's OWN timer flushes, it clears
+//      pendingSaveRef back to null, but `project` (the prop) has not
+//      necessarily re-rendered with the flushed value yet — stale
+//      projectRef.current in exactly that window. lastCommittedDfdRef is
+//      updated at every onUpdate call site and survives that gap.
 //   2. After a DrawIO save successfully folds a pending edit into its
-//      result, it must clear `pendingSaveRef.current` and cancel
-//      `saveTimerRef.current` — otherwise scheduleSave's own timer later
-//      fires with a now-stale pending value and overwrites the DrawIO
+//      result, it clears `pendingSaveRef.current` and cancels
+//      `saveTimerRef.current` — so scheduleSave's own timer doesn't later
+//      fire with a now-stale pending value and overwrite the DrawIO
 //      result's asset data.
+//
+// The "THE BUG" test names below are kept as-is (rather than renamed to
+// "THE FIX") because they still describe the SCENARIO under test, and
+// renaming them would lose the git-blame trail back to the original bug
+// report. What changed is that they now pass instead of documenting an
+// expected failure — the inline comments at each assertion still explain
+// why.
 //
 // dfdParser.parse / dfdValidator.validate are mocked to isolate the race
 // itself from XML-parsing specifics — every test asset that is NOT present
@@ -33,6 +50,10 @@
 // mergeAssetProperties "assetsOnlyInProject" branch, which spreads the
 // existing asset through untouched. That makes the merge base — and ONLY
 // the merge base — the variable under test.
+//
+// See also: schedule-save-own-race.test.ts, which covers races between
+// TWO scheduleSave calls (no DrawIO involved) — a gap this file's DrawIO-
+// focused scenarios don't reach.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -147,9 +168,8 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(
-      onUpdate.mock.calls[0][0].dfd.assets.find(
-        (a: any) => a.id === "DA-002",
-      ).description,
+      onUpdate.mock.calls[0][0].dfd.assets.find((a: any) => a.id === "DA-002")
+        .description,
     ).toBe("dddddd");
 
     // NOTE: in production, WorkspaceLayout only re-renders (and therefore
@@ -161,8 +181,12 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
 
     act(() => {
       // t=1500 — scheduleDrawioSave's timer fires. It builds its merge
-      // base from `projectRef.current` — still the ORIGINAL project,
-      // missing "dddddd".
+      // base from `pendingSaveRef.current?.dfd ?? lastCommittedDfdRef.current
+      // ?? projectRef.current.dfd` — at this point pendingSaveRef is
+      // already null (scheduleSave's own timer cleared it at t=500), so it
+      // falls through to lastCommittedDfdRef, which DOES have "dddddd"
+      // (set at the same t=500 flush). Before the fix, this fell straight
+      // to the stale projectRef.current, missing "dddddd" entirely.
       vi.advanceTimersByTime(1000);
     });
 
@@ -170,9 +194,6 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
     const da002 = onUpdate.mock.calls[1][0].dfd.assets.find(
       (a: any) => a.id === "DA-002",
     );
-
-    // Documents the CORRECT behavior. Fails until scheduleDrawioSave builds
-    // its base as `pendingSaveRef.current?.dfd ?? projectRef.current.dfd`.
     expect(da002.description).toBe("dddddd");
   });
 
@@ -228,14 +249,13 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(
-      onUpdate.mock.calls[0][0].dfd.assets.find(
-        (a: any) => a.id === "DA-002",
-      ).description,
+      onUpdate.mock.calls[0][0].dfd.assets.find((a: any) => a.id === "DA-002")
+        .description,
     ).toBe("dddddd");
 
     act(() => {
-      // t=1500 — DrawIO timer (started at t=0) fires. Same staleness
-      // problem as the first test, just with the two calls interleaved
+      // t=1500 — DrawIO timer (started at t=0) fires. Same lastCommittedDfdRef
+      // fallback as the first test, just with the two calls interleaved
       // the other way round.
       vi.advanceTimersByTime(800);
     });
@@ -302,17 +322,16 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
 
     act(() => {
       // t=1500 — DrawIO timer fires. pendingSaveRef is STILL populated
-      // (its own timer hasn't reached t=1600 yet) — the fix must fold it
-      // into the merge base AND cancel/clear it so it doesn't also fire
-      // on its own afterwards.
+      // (its own timer hasn't reached t=1600 yet) — folded into the merge
+      // base AND cancelled/cleared so it doesn't also fire on its own
+      // afterwards.
       vi.advanceTimersByTime(400);
     });
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(
-      onUpdate.mock.calls[0][0].dfd.assets.find(
-        (a: any) => a.id === "DA-002",
-      ).description,
+      onUpdate.mock.calls[0][0].dfd.assets.find((a: any) => a.id === "DA-002")
+        .description,
     ).toBe("dddddd");
 
     act(() => {
@@ -356,9 +375,8 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(
-      onUpdate.mock.calls[0][0].dfd.assets.find(
-        (a: any) => a.id === "DA-001",
-      ).description,
+      onUpdate.mock.calls[0][0].dfd.assets.find((a: any) => a.id === "DA-001")
+        .description,
     ).toBe("kept");
   });
 
@@ -407,9 +425,8 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(
-      onUpdate.mock.calls[0][0].dfd.assets.find(
-        (a: any) => a.id === "DA-002",
-      ).description,
+      onUpdate.mock.calls[0][0].dfd.assets.find((a: any) => a.id === "DA-002")
+        .description,
     ).toBe("dddddd");
 
     act(() => {
@@ -458,9 +475,8 @@ describe("useDFDPersistence — scheduleDrawioSave lost-update race", () => {
     // Description untouched either way — this test guards the debounce
     // coalescing behavior itself, independent of the description race.
     expect(
-      onUpdate.mock.calls[0][0].dfd.assets.find(
-        (a: any) => a.id === "DA-001",
-      ).description,
+      onUpdate.mock.calls[0][0].dfd.assets.find((a: any) => a.id === "DA-001")
+        .description,
     ).toBe("kept");
   });
 });
