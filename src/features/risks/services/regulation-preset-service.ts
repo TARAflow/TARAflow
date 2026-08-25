@@ -149,3 +149,101 @@ export function applyRegulationPreset(
     changed: enabled.length > 0 || disabled.length > 0,
   };
 }
+
+/**
+ * Two locking modes for the config dialog (design §3.11, enforcement A2):
+ *
+ *   "none"      weighted-mean presets (standard, en-50742-b) — nothing locked.
+ *   "method"    EN 50742-a — norm factors (EL/WoO/AC) locked; OTHER regime
+ *               likelihood factors locked off; IMPACT + custom factors stay
+ *               EDITABLE (they feed only the secondary R=I×L lens; the
+ *               authoritative SRSL uses asset severity, so they cannot corrupt
+ *               the norm result).
+ *   "exclusive" iso-21434 / etsi-tvra — ONLY the norm factors are active;
+ *               EVERYTHING else is locked off, impact factors included. Impact
+ *               must therefore come from asset-impact (useAssetImpact), not from
+ *               impact-factor ratings.
+ */
+export type PresetLockMode = "none" | "method" | "exclusive";
+ 
+export interface PresetFactorLock {
+  mode: PresetLockMode;
+  /** Norm factors — checked, cannot be disabled. */
+  targets: string[];
+  /** Other regimes' likelihood factors — cannot be enabled (both locking modes). */
+  lockedLikelihood: string[];
+}
+ 
+/** Methods whose lock excludes ALL non-norm factors (impact included). */
+const EXCLUSIVE_METHODS: ReadonlySet<string> = new Set(["iso-21434", "etsi-tvra"]);
+ 
+export function presetFactorLock(
+  presetId: RegulationPresetId,
+  factorDefs: RiskFactorDefinition[] = ALL_PREDEFINED_FACTORS,
+): PresetFactorLock {
+  const preset = REGULATION_PRESETS[presetId];
+  if (preset.likelihoodMethod === "weighted-mean" || !preset.likelihoodFactorIds) {
+    return { mode: "none", targets: [], lockedLikelihood: [] };
+  }
+  const target = new Set(preset.likelihoodFactorIds);
+  const pool = regimeLikelihoodPool(factorDefs);
+  const lockedLikelihood = [...pool].filter((id) => !target.has(id)).sort();
+  const mode: PresetLockMode = EXCLUSIVE_METHODS.has(preset.likelihoodMethod)
+    ? "exclusive"
+    : "method";
+  return { mode, targets: [...target].sort(), lockedLikelihood };
+}
+ 
+export type FactorLockState = "locked-on" | "locked-off" | "editable";
+ 
+   /**
+    * Per-factor lock state for the dialog. In "method" mode only norm targets
+    * (locked-on) and other regime likelihood factors (locked-off) are locked;
+    * impact/custom stay editable. In "exclusive" mode everything but the norm
+    * targets is locked-off.
+    */
+export function factorLockState(
+  factorId: string,
+  lock: PresetFactorLock,
+): FactorLockState {
+  if (lock.mode === "none") return "editable";
+  if (lock.targets.includes(factorId)) return "locked-on";
+  if (lock.mode === "exclusive") return "locked-off"; // only norm factors active
+  // "method": other regime likelihood locked off; impact / custom stay editable.
+  return lock.lockedLikelihood.includes(factorId) ? "locked-off" : "editable";
+}
+ 
+export interface PresetFactorDrift {
+  drifted: boolean;
+  disabledTargets: string[];
+  foreignEnabled: string[];
+}
+ 
+/**
+ * Backstop predicate (design §3.11) for handleRisksUpdate / import. In "method"
+ * mode only foreign regime LIKELIHOOD factors count as drift (impact is free);
+ * in "exclusive" mode ANY enabled non-norm factor is drift.
+ */
+export function detectPresetFactorDrift(
+  activeFactors: ActiveFactor[],
+  presetId: RegulationPresetId,
+  factorDefs: RiskFactorDefinition[] = ALL_PREDEFINED_FACTORS,
+): PresetFactorDrift {
+  const lock = presetFactorLock(presetId, factorDefs);
+  if (lock.mode === "none") {
+    return { drifted: false, disabledTargets: [], foreignEnabled: [] };
+  }
+  const targetSet = new Set(lock.targets);
+  const enabled = activeFactors.filter((f) => f.enabled).map((f) => f.factorId);
+  const disabledTargets = lock.targets.filter((id) => !enabled.includes(id));
+  const foreignEnabled = (
+    lock.mode === "exclusive"
+      ? enabled.filter((id) => !targetSet.has(id))
+      : enabled.filter((id) => lock.lockedLikelihood.includes(id))
+  ).sort();
+  return {
+    drifted: disabledTargets.length > 0 || foreignEnabled.length > 0,
+    disabledTargets,
+    foreignEnabled,
+  };
+}

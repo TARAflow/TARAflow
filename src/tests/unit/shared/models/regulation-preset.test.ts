@@ -25,11 +25,12 @@ describe("regulation preset catalog", () => {
     expect(getRegulationPreset("en-50742-a").id).toBe("en-50742-a");
   });
 
-  it("en-50742-a activates exactly the three Annex B factors", () => {
+  it("en-50742-a activates exactly the two rated Annex B factors", () => {
+    // WoO is project-global (Overview → RiskConfiguration.windowOfOpportunity,
+    // §3.3), NOT a per-risk factor — only EL + AC are rated per risk.
     expect(REGULATION_PRESETS["en-50742-a"].likelihoodFactorIds).toEqual([
-      "window_of_opportunity",
-      "attacker_capability",
       "exposure_level",
+      "attacker_capability",
     ]);
   });
 

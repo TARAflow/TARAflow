@@ -193,7 +193,12 @@
         "treeContributionFactorDesc": "Die Eintrittswahrscheinlichkeit aus dem Angriffsbaum wird als Faktor \"Angriffsbaum-Eintrittswahrscheinlichkeit\" geschrieben und fließt wie jeder andere Eintrittswahrscheinlichkeits-Faktor in den Mittelwert ein. Sie ergänzt die OWASP-Faktoren, überschreibt sie nie.",
         "treeContributionAdvisory": "Hinweis — wird nur als Information angezeigt",
         "treeContributionAdvisoryDesc": "Die Eintrittswahrscheinlichkeit aus dem Angriffsbaum wird zur Information angezeigt, aber nicht als aktiver Faktor geschrieben; der Analyst passt die OWASP-Faktoren selbst an.",
-        "treeContributionHint": "Gilt nur, wenn ein bedrohungsverankerter Angriffsbaum ein Risiko verfeinert, das bereits andere Eintrittswahrscheinlichkeits-Faktoren hat. Asset-verankerte und rein ISO-basierte (Feasibility) Risiken sind davon nicht betroffen — der Baum bestimmt den Wert in jedem Fall."
+        "treeContributionHint": "Gilt nur, wenn ein bedrohungsverankerter Angriffsbaum ein Risiko verfeinert, das bereits andere Eintrittswahrscheinlichkeits-Faktoren hat. Asset-verankerte und rein ISO-basierte (Feasibility) Risiken sind davon nicht betroffen — der Baum bestimmt den Wert in jedem Fall.",
+        "factorLocked": "Durch die aktive Regulierung gesperrt — entferne den Norm-Tag im Overview, um Faktoren zu bearbeiten.",
+        "factorCountLocked": "{{count}} Faktoren aktiv — durch die Regulierung definiert",
+        "lockMethod": "Diese Regulierung definiert die Likelihood-Faktoren (gesperrt). Impact-Faktoren bleiben editierbar. Entferne den Norm-Tag im Overview, um die Methode zu ändern; die aktuellen Likelihood-Bewertungen werden dabei zurückgesetzt.",
+        "lockExclusive": "Diese Regulierung definiert die Risikomethode. Nur ihre Faktoren sind aktiv; alle anderen (inkl. Impact) sind gesperrt — Impact kommt aus dem Asset-Impact. Entferne den Norm-Tag im Overview, um Faktoren zu bearbeiten; die aktuellen Likelihood-Bewertungen werden dabei zurückgesetzt.",
+        "addFactorLocked": "Die aktive Regulierung definiert den Faktorensatz — entferne den Norm-Tag im Overview, um eigene Faktoren hinzuzufügen."
       },
       "matrix": {
         "title": "Risikomatrix",
@@ -598,6 +603,34 @@
         "name": "Verbreitungsreichweite",
         "shortName": "Reichweite",
         "description": "Kann ein einzelner erfolgreicher Angriff gleichzeitig mehrere Installationen kompromittieren? 1 = Nein — jede Anlage muss einzeln angegriffen werden, 2 = Teilweise — Angriff betrifft mehrere Systeme beim selben Kunden, 3 = Ja — gemeinsame Infrastruktur (Cloud, OTA, SCADA) betrifft alle Anlagen eines Typs gleichzeitig, 4 = Ja — Supply-Chain-Angriff kompromittiert alle Kunden auf einmal."
+      },
+      "iso_elapsed_time": {
+        "name": "Verstrichene Zeit",
+        "description": "Zeit, die benötigt wird, um die Schwachstelle zu identifizieren und auszunutzen (ISO/SAE 21434 Anhang G.6, Common Criteria B.4)."
+      },
+      "iso_expertise": {
+        "name": "Fachkenntnis",
+        "description": "Erforderliches Spezialwissen des Angreifers — Laie bis mehrere Experten."
+      },
+      "iso_knowledge": {
+        "name": "Kenntnis des Objekts",
+        "description": "Wie eingeschränkt das Wissen des Angreifers über das betrachtete Objekt sein muss — öffentlich bis streng vertraulich."
+      },
+      "iso_window_of_opportunity": {
+        "name": "Gelegenheitsfenster",
+        "description": "Zugriffszeit und Gelegenheit, die der Angreifer benötigt — unbegrenzt bis schwierig."
+      },
+      "iso_equipment": {
+        "name": "Ausrüstung",
+        "description": "Ausrüstung, die zur Identifikation und Ausnutzung der Schwachstelle benötigt wird — Standard bis mehrfach massgeschneidert."
+      },
+      "etsi_opportunity": {
+        "name": "Opportunity-Faktor",
+        "description": "Für den Angriff benötigte Zugriffsgelegenheit (ETSI TS 102 165-1) — unbegrenzt bis schwierig."
+      },
+      "etsi_intensity": {
+        "name": "Intensitäts-Faktor",
+        "description": "Anzahl der benötigten Angriffsinstanzen — einzeln, moderat oder stark wiederholt (ETSI TS 102 165-1 Tabelle 3)."
       }
     }
   }

@@ -17,7 +17,7 @@ const enabledIds = (fs: ActiveFactor[]) =>
     .map((f) => f.factorId)
     .sort();
 
-const EN = ["window_of_opportunity", "attacker_capability", "exposure_level"];
+const EN = ["attacker_capability", "exposure_level"];
 const STANDARD4 = ["skill_level", "motive", "opportunity", "ease_of_exploit"];
 
 describe("applyRegulationPreset — purity", () => {

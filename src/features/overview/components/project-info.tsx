@@ -2,14 +2,21 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Edit3, Save, X } from "lucide-react";
 import type { ProjectInfoData } from "../models/overview-types";
-import { SafetyAnalysisToggle, ProjectTagsEditor } from "shared";
+import {
+  SafetyAnalysisToggle,
+  ProjectTagsEditor,
+  regulationPresetFromTags,
+} from "shared";
+import { WindowOfOpportunitySelector } from "./window-of-opportunity-selector";
 
 // ==================== PROJECT INFO ====================
 // Displays and allows editing of project metadata
 // Layout:
 //   Project Name (1/1)
 //   Version (1/2) | Responsible (1/2)
-//   Safety + Slide Switch (1/1)          -> SafetyAnalysisToggle (shared)
+//   Safety Switch (1/2) | Window of Opportunity (1/2)
+//     -> SafetyAnalysisToggle (shared) | WindowOfOpportunitySelector (shared,
+//        EN 50742 A only — hides itself and Safety Switch takes the full row)
 //   Description (1/1)
 //   Created (1/2) | Last Modified (1/2) - read-only
 //   Tags Section (1/1)                   -> ProjectTagsEditor (shared)
@@ -169,15 +176,47 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
           </div>
         </div>
 
-        {/* Safety + Slide Switch (1/1) */}
-        <SafetyAnalysisToggle
-          tags={isEditing ? editData.tags : info.tags}
-          safetyRelevant={
-            (isEditing ? editData.safetyRelevant : info.safetyRelevant) ?? false
-          }
-          editing={isEditing}
-          onChange={(v) => setEditData((d) => ({ ...d, safetyRelevant: v }))}
-        />
+        {/* Safety Switch (1/2) | Window of Opportunity (1/2) — WoO only shows
+            for EN 50742 Approach A; Safety Switch takes the full row when it
+            doesn't (grid-cols-1 below), so there's never an empty half. */}
+        {(() => {
+          const currentTags = isEditing ? editData.tags : info.tags;
+          const wooRelevant =
+            regulationPresetFromTags(currentTags) === "en-50742-a";
+          return (
+            <div
+              className={
+                wooRelevant ? "grid grid-cols-2 gap-4" : "grid grid-cols-1"
+              }
+            >
+              <SafetyAnalysisToggle
+                tags={currentTags}
+                safetyRelevant={
+                  (isEditing ? editData.safetyRelevant : info.safetyRelevant) ??
+                  false
+                }
+                editing={isEditing}
+                onChange={(v) =>
+                  setEditData((d) => ({ ...d, safetyRelevant: v }))
+                }
+              />
+              {wooRelevant && (
+                <WindowOfOpportunitySelector
+                  tags={currentTags}
+                  value={
+                    isEditing
+                      ? editData.windowOfOpportunity
+                      : info.windowOfOpportunity
+                  }
+                  editing={isEditing}
+                  onChange={(v) =>
+                    setEditData((d) => ({ ...d, windowOfOpportunity: v }))
+                  }
+                />
+              )}
+            </div>
+          );
+        })()}
 
         {/* Description (1/1) */}
         <div>

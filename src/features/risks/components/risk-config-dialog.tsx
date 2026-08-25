@@ -49,6 +49,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Info as InfoIcon,
+  Lock as LockIcon,
 } from "@mui/icons-material";
 
 import {
@@ -70,6 +71,12 @@ import {
   RISK_SCALES,
 } from "../models/risk-scale-types";
 import { RiskConfiguration } from "../models/risk-config-types";
+import {
+  presetFactorLock,
+  factorLockState,
+  type PresetFactorLock,
+} from "../services/regulation-preset-service";
+import type { RegulationPresetId, LikelihoodMethod } from "shared";
 
 // Derive impact factors directly from ALL_PREDEFINED_FACTORS — always in sync.
 const ALL_IMPACT_FACTORS = ALL_PREDEFINED_FACTORS.filter(
@@ -179,9 +186,23 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     [],
   );
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── Regulation preset factor lock (design §3.11, A2) ──────────────────────
+  // The tag-derived likelihood method decides which factors are norm-locked.
+  //   "method" (EN 50742-a): norm factors locked, impact/custom editable.
+  //   "exclusive" (ISO 21434 / ETSI TVRA): only norm factors active, rest locked.
+  //   "none" (weighted-mean): nothing locked.
+  const factorLock = useMemo<PresetFactorLock>(() => {
+    const method = (configuration.likelihoodMethod ??
+      "weighted-mean") as LikelihoodMethod;
+    const presetId: RegulationPresetId =
+      method === "weighted-mean" ? "standard" : (method as RegulationPresetId);
+    return presetFactorLock(presetId);
+  }, [configuration.likelihoodMethod]);
 
   const handleToggleFactor = (factorId: string) => {
+    // Norm-locked factors cannot be toggled (design §3.11, A2). The backstop
+    // (detectPresetFactorDrift) handles any drift reaching config non-interactively.
+    if (factorLockState(factorId, factorLock) !== "editable") return;
     setActiveFactors((prev) => {
       const existing = prev.find((f) => f.factorId === factorId);
       if (existing) {
@@ -210,7 +231,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         ];
       }
     });
-  };
+  };;
 
   const handleWeightChange = (factorId: string, weight: number) => {
     setActiveFactors((prev) =>
@@ -244,12 +265,24 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   };
 
   const handleSave = () => {
+    // Persist what the lock displays: locked-on → enabled, locked-off → disabled
+    // (so an interactive save never leaves visible drift for the backstop).
+    const normalizedFactors =
+      factorLock.mode === "none"
+        ? activeFactors
+        : activeFactors.map((f) => {
+            const state = factorLockState(f.factorId, factorLock);
+            if (state === "locked-on") return { ...f, enabled: true };
+            if (state === "locked-off") return { ...f, enabled: false };
+            return f;
+          });
+
     onSave({
       ...configuration,
       method: "complex",
       scale,
       roundingMethod,
-      activeFactors,
+      activeFactors: normalizedFactors,
       showIndividualFactors,
       customFactors,
       useAssetImpact,
@@ -257,7 +290,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       severityThresholds,
       treeLikelihoodContribution,
     });
-  };
+  };;
 
   // ── Render factor list ────────────────────────────────────────────────────
 
@@ -277,6 +310,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
             const weight = activeFactor?.weight ?? factor.defaultWeight;
             const isAutoEnabled =
               factor.id === "safety" && activeFactor?.autoEnabled === true;
+            const lockState = factorLockState(factor.id, factorLock);
+            const isLocked = lockState !== "editable";
+            const checked =
+              lockState === "locked-on"
+                ? true
+                : lockState === "locked-off"
+                  ? false
+                  : isEnabled;
 
             return (
               <ListItem
@@ -295,10 +336,16 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 <ListItemButton
                   onClick={() => handleToggleFactor(factor.id)}
                   dense
+                  disabled={isLocked}
                   sx={{ py: 0.5 }}
                 >
                   <ListItemIcon sx={{ minWidth: 40 }}>
-                    <Checkbox edge="start" checked={isEnabled} tabIndex={-1} />
+                    <Checkbox
+                      edge="start"
+                      checked={checked}
+                      disabled={isLocked}
+                      tabIndex={-1}
+                    />
                   </ListItemIcon>
                   <ListItemText
                     primary={
@@ -308,6 +355,16 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                             defaultValue: factor.name,
                           })}
                         </Typography>
+                        {isLocked && (
+                          <Tooltip
+                            title={t("tabs.risks.config.factorLocked", {
+                              defaultValue:
+                                "Locked by the active regulation — remove the norm tag in the Overview to edit factors.",
+                            })}
+                          >
+                            <LockIcon fontSize="small" color="warning" />
+                          </Tooltip>
+                        )}
                         <Chip
                           label={factor.source}
                           size="small"
@@ -342,7 +399,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     })}
                   />
                 </ListItemButton>
-                {isEnabled && (
+                {checked && (
                   <Box sx={{ px: 2, minWidth: 150 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
@@ -360,6 +417,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         max={1}
                         step={0.1}
                         size="small"
+                        disabled={lockState === "locked-on"}
                         sx={{ width: 80 }}
                       />
                       <Typography variant="caption" sx={{ minWidth: 30 }}>
@@ -398,6 +456,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
             );
             const isEnabled = activeFactor?.enabled ?? false;
             const weight = activeFactor?.weight ?? factor.defaultWeight;
+            const lockState = factorLockState(factor.id, factorLock);
+            const isLocked = lockState !== "editable";
+            const checked =
+              lockState === "locked-on"
+                ? true
+                : lockState === "locked-off"
+                  ? false
+                  : isEnabled;
 
             return (
               <ListItem
@@ -426,10 +492,16 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 <ListItemButton
                   onClick={() => handleToggleFactor(factor.id)}
                   dense
+                  disabled={isLocked}
                   sx={{ py: 0.5 }}
                 >
                   <ListItemIcon sx={{ minWidth: 40 }}>
-                    <Checkbox edge="start" checked={isEnabled} tabIndex={-1} />
+                    <Checkbox
+                      edge="start"
+                      checked={checked}
+                      disabled={isLocked}
+                      tabIndex={-1}
+                    />
                   </ListItemIcon>
                   <ListItemText
                     primary={
@@ -439,6 +511,16 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                             defaultValue: factor.name,
                           })}
                         </Typography>
+                        {isLocked && (
+                          <Tooltip
+                            title={t("tabs.risks.config.factorLocked", {
+                              defaultValue:
+                                "Locked by the active regulation — remove the norm tag in the Overview to edit factors.",
+                            })}
+                          >
+                            <LockIcon fontSize="small" color="warning" />
+                          </Tooltip>
+                        )}
                         <Chip
                           label={factor.category}
                           size="small"
@@ -455,7 +537,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     })}
                   />
                 </ListItemButton>
-                {isEnabled && (
+                {checked && (
                   <Box sx={{ px: 2, minWidth: 150, mr: 4 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
@@ -491,10 +573,21 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
   // ── Derived stats ─────────────────────────────────────────────────────────
 
-  const enabledCount = activeFactors.filter((f) => f.enabled).length;
+  // Count the EFFECTIVE enabled factors (what the lock displays), not the raw
+  // state — otherwise locked-off-but-still-enabled factors inflate the count.
+  const enabledCount = activeFactors.filter((f) => {
+    const s = factorLockState(f.factorId, factorLock);
+    return s === "locked-on" ? true : s === "locked-off" ? false : f.enabled;
+  }).length;
   const minFactors = 3;
   const maxFactors = 10;
-  const isValidCount = enabledCount >= minFactors && enabledCount <= maxFactors;
+  // The 3–10 recommendation only applies to the free (weighted-mean) method; a
+  // regulation preset dictates its own factor set, so it never blocks save.
+  const isValidCount =
+    factorLock.mode !== "none" ||
+    (enabledCount >= minFactors && enabledCount <= maxFactors);
+  // A regulation preset defines the factor set — no ad-hoc custom factors.
+  const factorsLocked = factorLock.mode !== "none";
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1193,13 +1286,36 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
             }}
           >
             <Alert severity={isValidCount ? "info" : "warning"}>
-              {t("tabs.risks.config.factorCountInfo", {
-                count: enabledCount,
-                min: minFactors,
-                max: maxFactors,
-                defaultValue: `${enabledCount} factors selected (recommended: ${minFactors}–${maxFactors})`,
-              })}
+              {factorLock.mode !== "none"
+                ? t("tabs.risks.config.factorCountLocked", {
+                    count: enabledCount,
+                    defaultValue: `${enabledCount} factors active — defined by the regulation`,
+                  })
+                : t("tabs.risks.config.factorCountInfo", {
+                    count: enabledCount,
+                    min: minFactors,
+                    max: maxFactors,
+                    defaultValue: `${enabledCount} factors selected (recommended: ${minFactors}–${maxFactors})`,
+                  })}
             </Alert>
+
+            {factorLock.mode !== "none" && (
+              <Alert
+                severity="info"
+                icon={<LockIcon fontSize="small" />}
+                sx={{ mb: 2 }}
+              >
+                {factorLock.mode === "exclusive"
+                  ? t("tabs.risks.config.lockExclusive", {
+                      defaultValue:
+                        "This regulation defines the risk method. Only its factors are active; all others (impact included) are locked — impact comes from asset impact. Remove the norm tag in the Overview to edit factors; the current likelihood ratings will be cleared.",
+                    })
+                  : t("tabs.risks.config.lockMethod", {
+                      defaultValue:
+                        "This regulation defines the likelihood factors (locked). Impact factors stay editable. Remove the norm tag in the Overview to change the method; the current likelihood ratings will be cleared.",
+                    })}
+              </Alert>
+            )}
 
             {/* Predefined Factors — side by side */}
             <Box
@@ -1235,6 +1351,18 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   defaultValue: "Add Custom Factor",
                 })}
               </Typography>
+              {factorsLocked && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mb: 1 }}
+                >
+                  {t("tabs.risks.config.addFactorLocked", {
+                    defaultValue:
+                      "The active regulation defines the factor set — remove the norm tag in the Overview to add custom factors.",
+                  })}
+                </Typography>
+              )}
               <Stack spacing={2}>
                 <TextField
                   size="small"
@@ -1244,6 +1372,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   value={newFactorName}
                   onChange={(e) => setNewFactorName(e.target.value)}
                   fullWidth
+                  disabled={factorsLocked}
                 />
                 <TextField
                   size="small"
@@ -1255,9 +1384,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                   fullWidth
                   multiline
                   rows={2}
+                  disabled={factorsLocked}
                 />
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <FormControl
+                    size="small"
+                    sx={{ minWidth: 150 }}
+                    disabled={factorsLocked}
+                  >
                     <InputLabel>
                       {t("tabs.risks.config.category", {
                         defaultValue: "Category",
@@ -1283,7 +1417,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={handleAddCustomFactor}
-                    disabled={!newFactorName.trim()}
+                    disabled={factorsLocked || !newFactorName.trim()}
                   >
                     {t("tabs.risks.config.addFactor", {
                       defaultValue: "Add Factor",
@@ -1310,6 +1444,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+};;
 
 export default RiskConfigDialog;

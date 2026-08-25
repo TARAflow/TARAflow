@@ -46,6 +46,20 @@ export const SafetyAnalysisToggle: React.FC<SafetyAnalysisToggleProps> = ({
     }
   }, [editing, hazardForced, safetyRelevant, onChange]);
 
+  // Release the lock when the forcing tag is removed: reset the toggle back
+  // to off on the true→false transition of hazardForced, rather than leaving
+  // a stale "on" that no tag backs anymore (the tag is the conformance claim
+  // — cf. the likelihood factor lock's escape hatch, design §3.11). Tracked
+  // via a ref so a user-initiated manual "on" (no forcing tag involved) is
+  // never touched — only a forced value that just lost its tag is cleared.
+  const wasForcedRef = React.useRef(hazardForced);
+  React.useEffect(() => {
+    if (editing && !hazardForced && wasForcedRef.current && safetyRelevant) {
+      onChange(false);
+    }
+    wasForcedRef.current = hazardForced;
+  }, [editing, hazardForced, safetyRelevant, onChange]);
+
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -100,8 +114,12 @@ export const SafetyAnalysisToggle: React.FC<SafetyAnalysisToggleProps> = ({
                   }`}
                 >
                   {safetyOn
-                    ? t("settings.safetyOn", { defaultValue: "Hazard Analysis" })
-                    : t("settings.safetyOff", { defaultValue: "Security Only" })}
+                    ? t("settings.safetyOn", {
+                        defaultValue: "Hazard Analysis",
+                      })
+                    : t("settings.safetyOff", {
+                        defaultValue: "Security Only",
+                      })}
                 </span>
 
                 {safetyOn && (
@@ -158,7 +176,9 @@ export const SafetyAnalysisToggle: React.FC<SafetyAnalysisToggleProps> = ({
             </span>
           )}
           <Tooltip
-            title={safetyOn ? "Overview → Hazard → DFD → …" : "Overview → DFD → …"}
+            title={
+              safetyOn ? "Overview → Hazard → DFD → …" : "Overview → DFD → …"
+            }
             arrow
             placement="right"
           >

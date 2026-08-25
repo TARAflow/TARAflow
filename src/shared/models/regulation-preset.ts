@@ -84,11 +84,9 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     nameKey: "regulationPresets.en-50742-a.name",
     descriptionKey: "regulationPresets.en-50742-a.description",
     // Annex B attack potential: AP = (EL × WoO) + AC.
-    likelihoodFactorIds: [
-      "window_of_opportunity",
-      "attacker_capability",
-      "exposure_level",
-    ],
+    // WoO is project-global (Overview → RiskConfiguration.windowOfOpportunity,
+    // design §3.3) — NOT a per-risk factor. Only EL + AC are rated per risk.
+    likelihoodFactorIds: ["exposure_level", "attacker_capability"],
   },
   "en-50742-b": {
     id: "en-50742-b",
@@ -126,3 +124,56 @@ export function getRegulationPreset(
 export const REGULATION_PRESET_IDS = Object.keys(
   REGULATION_PRESETS,
 ) as RegulationPresetId[];
+
+// ==================== WINDOW OF OPPORTUNITY (EN 50742 Approach A) ====================
+// prEN 50742:2025, Annex B, Table B.3. Project-global input to the Approach A
+// attack-potential formula (AP = EL × WoO + AC) — NOT a per-risk factor (§3.3).
+// Lives here (shared) rather than in features/risks/models/en50742-approach-a-core.ts
+// so the Overview feature can read/write it without a risks→overview or
+// overview→risks feature cycle: risks' en50742-approach-a-core.ts should import
+// this type from shared instead of (re)declaring it locally.
+
+export type WindowOfOpportunity =
+  | "very_restricted"
+  | "moderately_restricted"
+  | "limited"
+  | "unlimited";
+
+/** Table B.3 multiplier per WoO level, used in AP = EL × WoO + AC. */
+export const WINDOW_OF_OPPORTUNITY_MULTIPLIERS: Record<
+  WindowOfOpportunity,
+  number
+> = {
+  very_restricted: 0.6,
+  moderately_restricted: 0.8,
+  limited: 0.9,
+  unlimited: 1,
+};
+
+/** Display order + i18n keys for a WoO selector UI. */
+export const WINDOW_OF_OPPORTUNITY_OPTIONS: {
+  id: WindowOfOpportunity;
+  nameKey: string;
+  descriptionKey: string;
+}[] = [
+  {
+    id: "very_restricted",
+    nameKey: "windowOfOpportunity.veryRestricted.name",
+    descriptionKey: "windowOfOpportunity.veryRestricted.description",
+  },
+  {
+    id: "moderately_restricted",
+    nameKey: "windowOfOpportunity.moderatelyRestricted.name",
+    descriptionKey: "windowOfOpportunity.moderatelyRestricted.description",
+  },
+  {
+    id: "limited",
+    nameKey: "windowOfOpportunity.limited.name",
+    descriptionKey: "windowOfOpportunity.limited.description",
+  },
+  {
+    id: "unlimited",
+    nameKey: "windowOfOpportunity.unlimited.name",
+    descriptionKey: "windowOfOpportunity.unlimited.description",
+  },
+];

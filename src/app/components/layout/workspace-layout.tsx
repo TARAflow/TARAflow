@@ -96,6 +96,9 @@ import { toReferenceGraph } from "../../utils/to-reference-graph";
 import type { Project } from "../../models/project-types";
 import { syncFromDFD } from "features/assets/services/asset-sync-service";
 
+import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
+import { getRegulationConflicts } from "shared";
+
 // ==================== COMPONENT ====================
 
 export const WorkspaceLayout: React.FC = () => {
@@ -226,14 +229,27 @@ export const WorkspaceLayout: React.FC = () => {
     (data: GeneralTabData) => {
       const current = activeProjectRef.current;
       if (!current) return;
-      updateProject({
-        id: current.id,
+      const edited: Project = {
+        ...current,
         info: data.info,
         settings: data.settings,
         phaseStatus: data.phaseStatus,
+      };
+      const { project } = applyRegulationFromTags(
+        edited,
+        edited.info.windowOfOpportunity,
+      );
+      updateProject({
+        id: current.id,
+        info: project.info,
+        settings: project.settings,
+        phaseStatus: project.phaseStatus,
+        ...(project.risks ? { risks: project.risks } : {}),
       });
+      const conflicts = getRegulationConflicts(data.info.tags);
+      if (conflicts.length > 0) toast.warning(conflicts[0].message);
     },
-    [updateProject],
+    [updateProject, toast],
   );
 
   // ── DFD tab ───────────────────────────────────────────────────────────────
@@ -482,10 +498,16 @@ export const WorkspaceLayout: React.FC = () => {
     async (updates: RiskUpdateResult) => {
       const current = activeProjectRef.current;
       if (!current) return;
+      const withRisks: Project = { ...current, risks: updates.risks };
+      const { project } = applyRegulationFromTags(
+        withRisks,
+        current.info.windowOfOpportunity,
+      );
       await updateProject({
         id: current.id,
-        risks: updates.risks,
+        risks: project.risks,
         phaseStatus: updates.phaseStatus,
+        settings: project.settings,
       });
     },
     [updateProject],
@@ -1012,4 +1034,4 @@ export const WorkspaceLayout: React.FC = () => {
       </div>
     </>
   );
-};;;
+}

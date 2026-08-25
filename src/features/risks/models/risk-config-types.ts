@@ -10,6 +10,7 @@ import type { StrideMethod, LikelihoodMethod } from "shared";
 import type { RiskMethodType, RiskScaleType, RiskRoundingMethod } from "./risk-scale-types";
 import type { RiskFactorDefinition, ActiveFactor, AssetImpactMapping } from "./risk-factor-types";
 import { DEFAULT_ASSET_IMPACT_MAPPINGS } from "./risk-factor-types";
+import type { WindowOfOpportunity } from "./en50742-approach-a-core";
 
 // ==================== RISK CONFIGURATION ====================
 
@@ -26,6 +27,13 @@ export interface RiskConfiguration {
    * tables instead of a weighted mean; see calculateRiskValues.
    */
   likelihoodMethod?: LikelihoodMethod;
+  /**
+   * EN 50742 Approach A: project-global Window of Opportunity (Overview /
+   * Security Context), threaded here from project.info by the preset
+   * orchestrator. Read by calculateEN50742RiskValues; irrelevant to other
+   * methods. Undefined until set on an en-50742-a project.
+   */
+  windowOfOpportunity?: WindowOfOpportunity;
   showIndividualFactors: boolean;
   customFactors: RiskFactorDefinition[];
   useAssetImpact: boolean;

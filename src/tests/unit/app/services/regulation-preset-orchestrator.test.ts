@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { applyRegulationPresetToProject } from "app/services/regulation-preset-orchestrator";
+import { threadWindowOfOpportunity } from "app/services/regulation-preset-orchestrator";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 import type { Project } from "app/models/project-types";
+import type { RiskConfiguration } from "features/risks/models/risk-config-types";
 import type { RiskData } from "features/risks";
 
 // Minimal Project fixtures — only the fields the orchestrator reads/writes.
@@ -93,5 +95,37 @@ describe("applyRegulationPresetToProject — likelihoodMethod", () => {
     expect(res.project.risks!.configuration.likelihoodMethod).toBe(
       "weighted-mean",
     );
+  });
+});
+
+describe("threadWindowOfOpportunity", () => {
+  it("sets WoO on the config when a value is provided", () => {
+    const out = threadWindowOfOpportunity(project(), "moderately_restricted");
+    expect(out.risks!.configuration.windowOfOpportunity).toBe(
+      "moderately_restricted",
+    );
+  });
+
+  it("is idempotent — returns the SAME object when WoO already matches", () => {
+    const p = project();
+    p.risks!.configuration.windowOfOpportunity = "limited";
+    expect(threadWindowOfOpportunity(p, "limited")).toBe(p);
+  });
+
+  it("returns the same object when woo is undefined", () => {
+    const p = project();
+    expect(threadWindowOfOpportunity(p, undefined)).toBe(p);
+  });
+
+  it("no-ops when there is no risk data yet (ordering gap)", () => {
+    const p = project({ risks: null });
+    expect(threadWindowOfOpportunity(p, "unlimited")).toBe(p);
+  });
+
+  it("overwrites a previous WoO value", () => {
+    const p = project();
+    p.risks!.configuration.windowOfOpportunity = "very_restricted";
+    const out = threadWindowOfOpportunity(p, "unlimited");
+    expect(out.risks!.configuration.windowOfOpportunity).toBe("unlimited");
   });
 });

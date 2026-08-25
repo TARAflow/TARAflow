@@ -279,6 +279,25 @@ surface, not multi-hop reachability.
   for **all** `en-50742-a` risks. (Norm: "estimated for the whole machinery",
   line 578.)
 
+  **Implemented.** `WindowOfOpportunitySelector` (Overview tab, dropdown,
+  self-hides outside `en-50742-a`) feeds `project.info.windowOfOpportunity` →
+  `applyRegulationFromTags()` → `threadWindowOfOpportunity()` →
+  `RiskConfiguration.windowOfOpportunity`, wired from both the General-tab and
+  Risks-tab update handlers in `workspace-layout.tsx`. Pure/idempotent — returns
+  the same `Project` reference when nothing changed. The type + Table B.3
+  multipliers (`WindowOfOpportunity`, `WINDOW_OF_OPPORTUNITY_MULTIPLIERS`,
+  `WINDOW_OF_OPPORTUNITY_OPTIONS`) live in `shared/models/regulation-preset.ts`,
+  not in `en50742-approach-a-core.ts` — the Overview feature needs to read/write
+  WoO without a risks↔overview import cycle (same reasoning as the preset id
+  itself, §0 note at the top of `regulation-preset.ts`).
+
+  > **Known gap:** `en50742-approach-a-core.ts` and `risk-config-types.ts`
+  > still reference a **locally-declared** `WindowOfOpportunity` instead of the
+  > shared one. Same string-literal shape, so it compiles and behaves
+  > identically today — but it's two sources of truth for one norm value.
+  > Consolidate: have `en50742-approach-a-core.ts` import the type (and ideally
+  > the multiplier table) from `shared` and drop its local copy.
+
 ### 3.4 AP precision / band boundaries
 
 WoO is fractional, so `EL×WoO` is fractional (e.g. 16×0.6 = 9.6). Bands split at
@@ -353,6 +372,103 @@ weaker than SRSL1 ("... e.g. checksums"). Reproduce the catalogue as written;
 do not "fix" it.
 
 ---
+
+### 3.11 Preset factor lock — the norm tag is a conformance claim (DECIDED)
+
+While a norm tag is set, the project asserts "I follow this method". The
+likelihood factors ARE the method (EL/WoO/AC for Approach A), so they are **not
+negotiable** while the tag is present. Two honest states only:
+
+1. **Conformant** — tag set, factors = preset. Deviation is not allowed.
+2. **Deliberately deviating** — the analyst removes the norm tag; the project
+   falls back to `standard` (weighted-mean) and factors become freely editable.
+
+What must never exist: tag set (= "EN 50742 A conformant") AND factors deviating
+— a silent false claim in the report.
+
+- [x] **Decided (enforcement = A2, lock + hint):** the Risk config dialog
+  **locks factors** while a score-table preset is active, rather than allowing a
+  toggle and snapping it back (A1, which reads as a broken control). The lock has
+  **two modes** — the norm decides which:
+  - **`method` (EN 50742-a):** norm factors (EL/AC) locked ON; other regimes'
+    likelihood factors locked OFF; **impact + custom factors stay EDITABLE.** The
+    authoritative output (SRSL) uses asset severity, so impact factors feed only
+    the secondary R=I×L lens and cannot corrupt the norm result. (Per-risk
+    `window_of_opportunity` is NOT a target — WoO is project-global now, §3.3 —
+    so it stays locked OFF like any other non-target regime factor.)
+  - **`exclusive` (ISO 21434, ETSI TVRA):** **only the norm factors are active;
+    everything else is locked OFF, impact factors included.** These methods have
+    no decoupled second output — the method IS the result — so no free factor may
+    enter.
+  - **`none` (standard, en-50742-b):** nothing locked.
+  - In both locking modes: target factors → checked + locked; weight sliders on
+    score-table factors → disabled (the per-level point table IS the weighting,
+    cores design §2b); a banner explains the lock and the escape hatch ("remove
+    the {norm} tag in the Overview — the current likelihood ratings will be
+    cleared").
+
+  > **Consequence of `exclusive`:** with all impact factors off, impact can no
+  > longer come from impact-factor ratings — it **must** come from asset-impact
+  > (`useAssetImpact`), or R = I × L = 0. This is ISO-correct (impact from the
+  > damage scenario / SFOP, not OWASP factors), but ISO/TVRA projects therefore
+  > require `useAssetImpact = true`. Enforce or validate when the ISO/TVRA calc
+  > is built.
+
+  Pure helpers (`regulation-preset-service.ts`): `presetFactorLock(presetId)` →
+  `{ mode, targets, lockedLikelihood }` drives the dialog; `factorLockState(id,
+  lock)` → `locked-on | locked-off | editable` per factor;
+  `detectPresetFactorDrift(activeFactors, presetId)` is the backstop predicate
+  (in `method` mode only foreign regime likelihood counts as drift; in
+  `exclusive` mode any enabled non-norm factor does).
+
+**Consequence — the two-layer model.** With the UI locking factors per mode
+(§3.11 above), interactive drift can no longer originate. The service layer is the
+**backstop** for non-interactive paths (import, migration, legacy projects):
+`detectPresetFactorDrift` reports drift per mode — in `method` mode a disabled
+norm target or an enabled foreign *regime likelihood* factor; in `exclusive` mode
+a disabled norm target or *any* enabled non-norm factor — and the reconcile
+repairs it silently, which is correct when no human is toggling. (In `method`
+mode the reconcile must NOT strip impact/custom factors — they are legitimately
+editable; only norm-likelihood conformance is enforced.)
+
+**Escape hatch = method change.** Removing the last norm tag flips the method to
+`weighted-mean`, which **clears the score-table likelihood ratings** (EL/WoO/AC
+are meaningless under weighted mean — cores design §6). So "remove tag" must run
+through the method-change confirmation flow (rating reset with confirmation),
+not silently.
+
+**Pure helpers (in `regulation-preset-service.ts`):**
+- `lockedLikelihoodFactorIds(presetId)` → `{ locked, lockedOn }` drives the
+  dialog's disabled state (only the norm factors). `locked=false` for
+  weighted-mean presets (standard, en-50742-b) → nothing locked.
+- `detectPresetFactorDrift(activeFactors, presetId)` → `{ drifted,
+  disabledTargets }` — the ONLY conformance-breaking deviation is a norm factor
+  turned OFF; added factors are not drift. Backstop for `handleRisksUpdate` /
+  import.
+
+### 3.12 Tag split: "EN 50742 A" / "EN 50742 B" (DONE)
+
+§3.11 above was written when there was a single `EN 50742` tag. It has since
+split into two, mirroring Clause 4.1's real structure:
+
+- **`EN 50742 A`** — this document's method. Selects the `en-50742-a` preset
+  (the "norm tag" §3.11 talks about) and therefore locks factors in the Risk
+  config dialog.
+- **`EN 50742 B`** — Clause 8 compliance subset (§8, out of scope here).
+  Selects `en-50742-b`, which is `weighted-mean` with no
+  `likelihoodFactorIds` — **no factor lock**, the default TARAflow factors
+  apply unchanged.
+- The two tags are **mutually exclusive** (`tagConflicts.en50742Approach`
+  fires a soft warning if both are set on one project — consistent with §3.11's
+  "two honest states only," now enforced per-approach instead of per-norm).
+- Both tags still force the Hazard tab (`requiresHazardAnalysis`) — Approach B
+  needs it too, even without an AP/SRSL computation, since it shares the safety
+  severity axis with Approach A's asset model.
+
+`regulationPresetFromTags()` resolves the preset directly from these tag
+strings (normalized, punctuation/case-insensitive — `"EN 50742 A"`,
+`"EN50742_A"`, `"EN 50742 Approach A"` all resolve the same way). A bare
+`"EN 50742"` tag with no approach suffix defaults to Approach A.
 
 ## 4. `en-50742-a` preset
 
@@ -471,10 +587,17 @@ not a risk output:
 - Build the preset core (`regulation-presets-design.md` §2–§7): `RegulationPresetId`,
   `RegulationPreset`, `REGULATION_PRESETS`, `ProjectSettingsData.regulationPreset`,
   Overview selector, non-destructive apply (Class-B on downgrade).
-- Tag `EN50742_A` / `EN50742_B` selected → **Hazard Slide Switch forced active**
+- Tag `EN 50742 A` / `EN 50742 B` selected → **Hazard Slide Switch forced active**
   (Approach A cannot be evaluated without the severity axis). Auto-enable pattern
   like `updateSafetyFactorAutoEnable`; wire the safety layer (`safetyRelevant` +
   3-level severity criterion: reversible / non-reversible / fatal).
+
+  **[DONE]** `SafetyAnalysisToggle` (`requiresHazardAnalysis`) forces the switch
+  on for either tag, tag-locked and disabled while forced. It now also
+  **releases** the lock on the forced→not-forced transition (reset to off when
+  the last forcing tag is removed) instead of leaving a stale "on" no tag backs
+  — a manually-enabled switch with no forcing tag is left untouched. The
+  3-level severity criterion (§3.6) is tracked separately; see Phase 2.
 
 ### 7.2 Phase 2 — Asset tab
 - Safety function = asset; add the 3-level severity criterion (reversible /
@@ -492,6 +615,10 @@ not a risk output:
   `RiskConfiguration.windowOfOpportunity` (§3.3). EL resolved by a dedicated step
   `resolveExposureLevelForThreat` → `exposure_level` derived rating (§3.2).
   AC per threat, rated in the Risk dialog. Precision rule (§3.4).
+
+  **[DONE]** WoO-in-Overview half of this bullet — see §3.3 for the
+  implementation. `resolveExposureLevelForThreat` and the precision rule
+  (§3.4) are not covered by this status update; verify separately.
 - Flat per-threat (attack trees optional; if used, OR=MAX/AND=MIN — §3.1).
 - Level registry on `en50742-approach-a-core.ts` (factorId → ordered levels),
   analog to the ISO/TVRA cores, so the rated factors map level-index → enum.

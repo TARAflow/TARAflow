@@ -110,7 +110,12 @@
     "safetyOnDescription": "Hazard tab shown after Overview, before DFD",
     "safetyOffDescription": "No Hazard tab — security analysis only",
     "safetyTooltip": "Enables the Hazard tab for safety/hazard analysis, independent of the Standard/Critical workflow.",
-    "safetyLockedByEn50742": "Required by EN 50742 — locked on"
+    "safetyLockedByEn50742": "Required by EN 50742 — locked on",
+    "windowOfOpportunity": "Window of Opportunity",
+    "windowOfOpportunityUnset": "Not set",
+    "windowOfOpportunityRequired": "Required for EN 50742 Approach A — likelihood cannot be computed until this is set.",
+    "windowOfOpportunityTooltip": "EN 50742 Approach A likelihood factor: how often and how predictably an attacker gets an unnoticed opportunity to access the machine — driven by how frequently it is serviced/accessed and how closely that access is supervised (Annex B, Table B.3). This is the WoO in AP = EL × WoO + AC, applied to every risk in this project; Exposure Level (a separate per-risk factor) covers which interfaces are reachable, not how often.",
+    "windowOfOpportunityPlaceholder": "Select…"
   },
   "validation": {
     "nameRequired": "Project name is required",
@@ -338,10 +343,12 @@
       "iec63452": "IEC 63452 - Railway communication and signaling security",
       "iso27001": "ISO/IEC 27001 - Information Security Management System (ISMS)",
       "iso27017": "ISO/IEC 27017 - Cloud security controls",
+      "etsiTvra": "ETSI TS 102 165-1 - Threat Vulnerability Risk Analysis (weighted-summation attack potential)",
       "etsiEn303645": "ETSI EN 303 645 - Consumer IoT device cybersecurity baseline",
       "en17927": "EN 17927 - Industrial IoT security requirements",
       "iec62351": "IEC 62351 - Power systems management and data exchange security",
-      "en50742": "EN 50742 - Machinery Regulation cybersecurity requirements",
+      "en50742A": "prEN 50742:2025 Approach A - risk-derived attack potential (AP = EL x WoO + AC), Clause 7 / Annex B",
+      "en50742B": "prEN 50742:2025 Approach B - fixed IEC 62443-3-3/-4-2 compliance subset, Clause 8",
       "web": "How do users interact with the system via a web interface?",
       "mobile": "How do users interact with the system via mobile applications?",
       "desktop": "How do users interact with the system via desktop applications?",
@@ -381,10 +388,12 @@
       "iec63452": "**IEC 63452** addresses cybersecurity for railway communication and signaling systems. It provides specific security requirements for safety-critical railway applications.\n\nKey aspects include:\n\n- Security for train control and signaling systems\n- Protection of safety-related communication\n- Integration of security and safety requirements\n- Secure system architecture for railway applications\n\nThis threat model considers IEC 63452 requirements for securing communication between railway components while maintaining the required safety integrity levels.",
       "iso27001": "**ISO/IEC 27001** is the international standard for Information Security Management Systems (ISMS). It provides a framework for establishing, implementing, maintaining, and continually improving information security.\n\nRelevant requirements for this analysis:\n\n- Risk assessment and treatment methodology\n- Security controls from Annex A\n- Documentation and records requirements\n- Continuous improvement processes\n\nThis threat model contributes to ISO 27001 compliance by providing systematic risk assessment documentation and identifying appropriate security controls from Annex A.",
       "iso27017": "**ISO/IEC 27017** provides guidelines for information security controls applicable to cloud services, extending ISO 27002 controls for the cloud environment.\n\nKey areas addressed:\n\n- Shared responsibilities between cloud service providers and customers\n- Cloud-specific security controls and implementation guidance\n- Virtual machine security and isolation\n- Cloud service administration security\n\nThis threat model addresses ISO 27017 requirements by analyzing cloud-specific threats and identifying appropriate controls for the cloud deployment model.",
+      "etsiTvra": "**ETSI TS 102 165-1** defines the Threat, Vulnerability and Risk Analysis (TVRA) methodology, a weighted-summation attack-potential method derived from Common Criteria / ISO-IEC 18045 (the same basis ISO/SAE 21434 adapts).\n\nThe method covers:\n\n- Five shared attack-potential factors (elapsed time, expertise, knowledge, opportunity, equipment) plus an ETSI-specific Intensity factor\n- Attack potential as the sum of factor scores, mapped to an attack-potential level (Basic ... Beyond High)\n- A separate threat-agent layer (Motivation x Capability) for threat-level classification\n\nThis threat model applies the ETSI TVRA scoring method to derive likelihood, summing the per-level point tables into an attack-potential level instead of a weighted mean.",
       "etsiEn303645": "**ETSI EN 303 645** establishes a cybersecurity baseline for consumer IoT devices. It defines 13 security provisions that manufacturers must implement.\n\nThe standard requires:\n\n- No universal default passwords\n- Vulnerability disclosure policy implementation\n- Software update mechanisms\n- Secure storage of sensitive security parameters\n- Secure communication\n- Minimized exposed attack surfaces\n\nThis threat model addresses ETSI EN 303 645 requirements by identifying threats specific to consumer IoT devices and verifying that baseline security provisions are adequately addressed.",
       "en17927": "**EN 17927** specifies cybersecurity requirements for Industrial IoT (IIoT) devices and systems. It addresses the specific challenges of IoT devices in industrial environments.\n\nKey requirements include:\n\n- Secure device identity and authentication\n- Secure communication protocols\n- Firmware and software update security\n- Secure configuration management\n- Incident detection and response capabilities\n\nThis threat model analyzes threats specific to industrial IoT deployments and verifies compliance with EN 17927 security requirements.",
       "iec62351": "**IEC 62351** provides security standards for power system communication protocols. It addresses confidentiality, integrity, and availability of power system data exchange.\n\nThe standard series covers:\n\n- Authentication and access control for SCADA systems\n- Secure communication for IEC 61850 and DNP3 protocols\n- Key management for power system security\n- Role-based access control for energy systems\n\nThis threat model addresses IEC 62351 requirements by analyzing threats to power system communications and control systems, ensuring appropriate security measures are in place.",
-      "en50742": "**EN 50742** specifies cybersecurity requirements for machinery under the new Machinery Regulation. It addresses security for industrial machinery with digital components.\n\nRequirements include:\n\n- Security risk assessment for machinery\n- Secure remote access and connectivity\n- Protection against unauthorized modification\n- Security update mechanisms\n- Integration with machinery safety requirements\n\nThis threat model addresses EN 50742 requirements by analyzing security threats to machinery control systems and ensuring appropriate protective measures while maintaining required safety functions."
+      "en50742A": "**prEN 50742:2025 — Approach A** is the risk-derived route for machinery cybersecurity under the new Machinery Regulation. For each safety function and interface, an attack potential is computed per-threat (AP = EL x WoO + AC — Exposure Level x Window of Opportunity + Attacker Capability, Annex B) and mapped to attack feasibility.\n\nKey characteristics:\n\n- Own likelihood method (`en-50742-a` preset) — not the weighted-mean default\n- Attack potential drives a dedicated Severity/Risk lens alongside the report's SRSL output\n- Baseline (non-risk-derived) product requirements from Clause 7 also apply\n\nThis threat model follows Approach A methodology, computing per-threat attack potential and deriving safety-relevant cybersecurity requirements from it. Mutually exclusive with Approach B (Clause 4.1).",
+      "en50742B": "**prEN 50742:2025 — Approach B** is the compliance-subset route for machinery cybersecurity under the new Machinery Regulation: a fixed set of IEC 62443-3-3 / IEC 62443-4-2 requirements (Clause 8, Tables 3/4), verified rather than risk-derived.\n\nKey characteristics:\n\n- No dedicated likelihood method — the project's risk method is unaffected\n- Conformance is demonstrated against the fixed requirement tables, not a per-threat attack-potential computation\n\nThis threat model addresses Approach B by verifying the fixed IEC 62443-3-3/-4-2 requirement subset. Mutually exclusive with Approach A (Clause 4.1)."
     }
   },
   "messages": {
@@ -615,6 +624,24 @@
     "etsi-tvra": {
       "name": "ETSI TVRA",
       "description": "ETSI TS 102 165-1 — weighted-summation attack potential (score-table)."
+    }
+  },
+  "windowOfOpportunity": {
+    "veryRestricted": {
+      "name": "Very Restricted",
+      "description": "Rarely accessible or under constant surveillance; very limited practical access."
+    },
+    "moderatelyRestricted": {
+      "name": "Moderately Restricted",
+      "description": "Occasional, predictable opportunity windows (e.g. monthly maintenance, with moderate access control)."
+    },
+    "limited": {
+      "name": "Limited",
+      "description": "Regular opportunities (weekly/daily scheduled access with low access control)."
+    },
+    "unlimited": {
+      "name": "Unlimited",
+      "description": "Open, frequent, or unlimited opportunity."
     }
   }
 }

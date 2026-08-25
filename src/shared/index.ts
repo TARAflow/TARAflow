@@ -89,10 +89,12 @@ export {
   DEFAULT_REGULATION_PRESET,
   REGULATION_PRESETS,
   REGULATION_PRESET_IDS,
+  WINDOW_OF_OPPORTUNITY_OPTIONS,
   getRegulationPreset,
   type RegulationPreset,
   type RegulationPresetId,
   type LikelihoodMethod,
+  type WindowOfOpportunity,
 } from "./models/regulation-preset";
 
 // ==================== ASSET RELATION UNION TYPES ====================

@@ -108,7 +108,12 @@
     "safetyOnDescription": "Hazard-Tab nach Overview, vor DFD",
     "safetyOffDescription": "Kein Hazard-Tab — nur Security-Analyse",
     "safetyTooltip": "Aktiviert den Hazard-Tab für die Safety-/Hazard-Analyse, unabhängig vom Standard/Critical-Workflow.",
-    "safetyLockedByEn50742": "Durch EN 50742 vorgegeben — fest aktiviert"
+    "safetyLockedByEn50742": "Durch EN 50742 vorgegeben — fest aktiviert",
+    "windowOfOpportunity": "Window of Opportunity",
+    "windowOfOpportunityUnset": "Nicht gesetzt",
+    "windowOfOpportunityRequired": "Erforderlich für EN 50742 Approach A — Likelihood kann erst berechnet werden, wenn dies gesetzt ist.",
+    "windowOfOpportunityTooltip": "EN 50742 Approach A Likelihood-Faktor: wie oft und wie vorhersehbar ein Angreifer eine unbemerkte Gelegenheit erhält, an die Maschine zu gelangen — abhängig davon, wie häufig sie gewartet/zugänglich ist und wie eng dieser Zugriff überwacht wird (Anhang B, Tabelle B.3). Das ist das WoO in AP = EL × WoO + AC, angewendet auf jedes Risiko dieses Projekts; Exposure Level (ein separater Pro-Risiko-Faktor) deckt ab, welche Schnittstellen erreichbar sind — nicht wie oft.",
+    "windowOfOpportunityPlaceholder": "Auswählen…"
   },
   "validation": {
     "nameRequired": "Projektname ist erforderlich",
@@ -336,10 +341,12 @@
       "iec63452": "IEC 63452 - Sicherheit der Bahnkommunikation und -signalisierung",
       "iso27001": "ISO/IEC 27001 - Informationssicherheits-Managementsystem (ISMS)",
       "iso27017": "ISO/IEC 27017 - Cloud-Sicherheitskontrollen",
+      "etsiTvra": "ETSI TS 102 165-1 - Bedrohungs-, Schwachstellen- und Risikoanalyse (Angriffspotenzial nach gewichteter Summation)",
       "etsiEn303645": "ETSI EN 303 645 - Cybersicherheits-Grundanforderungen für Consumer-IoT",
       "en17927": "EN 17927 - Sicherheitsanforderungen für industrielles IoT",
       "iec62351": "IEC 62351 - Sicherheit für Energiesysteme und Datenaustausch",
-      "en50742": "EN 50742 - Cybersicherheitsanforderungen der Maschinenverordnung",
+      "en50742A": "prEN 50742:2025 Approach A - risikobasiertes Angriffspotenzial (AP = EL x WoO + AC), Abschnitt 7 / Anhang B",
+      "en50742B": "prEN 50742:2025 Approach B - fester IEC 62443-3-3/-4-2 Compliance-Teilumfang, Abschnitt 8",
       "web": "Wie interagieren Nutzer über eine Web-Oberfläche mit dem System?",
       "mobile": "Wie interagieren Nutzer über mobile Anwendungen mit dem System?",
       "desktop": "Wie interagieren Nutzer über Desktop-Anwendungen mit dem System?",
@@ -379,10 +386,12 @@
       "iec63452": "**IEC 63452** adressiert Cybersicherheit für Bahnkommunikation und Signalsysteme. Sie bietet spezifische Sicherheitsanforderungen für sicherheitskritische Bahnanwendungen.\n\nWesentliche Aspekte umfassen:\n\n- Sicherheit für Zugsteuerungs- und Signalsysteme\n- Schutz sicherheitsrelevanter Kommunikation\n- Integration von Security- und Safety-Anforderungen\n- Sichere Systemarchitektur für Bahnanwendungen\n\nDiese Bedrohungsanalyse berücksichtigt IEC 63452-Anforderungen zur Absicherung der Kommunikation zwischen Bahnkomponenten bei gleichzeitiger Aufrechterhaltung der erforderlichen Sicherheitsintegritätsstufen.",
       "iso27001": "**ISO/IEC 27001** ist die internationale Norm für Informationssicherheits-Managementsysteme (ISMS). Sie bietet einen Rahmen für Aufbau, Implementierung, Aufrechterhaltung und kontinuierliche Verbesserung der Informationssicherheit.\n\nFür diese Analyse relevante Anforderungen:\n\n- Risikobewertungs- und Behandlungsmethodik\n- Sicherheitsmaßnahmen aus Anhang A\n- Dokumentations- und Aufzeichnungsanforderungen\n- Kontinuierliche Verbesserungsprozesse\n\nDiese Bedrohungsanalyse trägt zur ISO 27001-Compliance bei durch Bereitstellung systematischer Risikobewertungsdokumentation und Identifikation angemessener Sicherheitsmaßnahmen aus Anhang A.",
       "iso27017": "**ISO/IEC 27017** bietet Leitlinien für Informationssicherheitsmaßnahmen für Cloud-Dienste und erweitert ISO 27002-Maßnahmen für die Cloud-Umgebung.\n\nWesentliche adressierte Bereiche:\n\n- Geteilte Verantwortlichkeiten zwischen Cloud-Dienstleistern und Kunden\n- Cloud-spezifische Sicherheitsmaßnahmen und Implementierungsleitlinien\n- Sicherheit und Isolation virtueller Maschinen\n- Sicherheit der Cloud-Dienstverwaltung\n\nDiese Bedrohungsanalyse adressiert ISO 27017-Anforderungen durch Analyse cloud-spezifischer Bedrohungen und Identifikation angemessener Maßnahmen für das Cloud-Deployment-Modell.",
+      "etsiTvra": "**ETSI TS 102 165-1** definiert die Threat, Vulnerability and Risk Analysis (TVRA)-Methodik, eine Angriffspotenzial-Methode nach gewichteter Summation, abgeleitet aus Common Criteria / ISO-IEC 18045 (dieselbe Basis, die ISO/SAE 21434 adaptiert).\n\nDie Methode umfasst:\n\n- Fünf gemeinsame Angriffspotenzial-Faktoren (Elapsed Time, Expertise, Knowledge, Opportunity, Equipment) plus einen ETSI-spezifischen Intensity-Faktor\n- Angriffspotenzial als Summe der Faktorwerte, abgebildet auf ein Angriffspotenzial-Level (Basic ... Beyond High)\n- Eine separate Threat-Agent-Schicht (Motivation x Capability) zur Bedrohungsklassifikation\n\nDiese Bedrohungsanalyse wendet die ETSI-TVRA-Bewertungsmethode zur Likelihood-Herleitung an und summiert die Punktetabellen pro Level zu einem Angriffspotenzial-Level statt eines gewichteten Mittels.",
       "etsiEn303645": "**ETSI EN 303 645** etabliert eine Cybersicherheits-Baseline für Consumer-IoT-Geräte. Sie definiert 13 Sicherheitsbestimmungen, die Hersteller implementieren müssen.\n\nDie Norm fordert:\n\n- Keine universellen Standardpasswörter\n- Implementierung einer Schwachstellen-Offenlegungsrichtlinie\n- Software-Update-Mechanismen\n- Sichere Speicherung sensibler Sicherheitsparameter\n- Sichere Kommunikation\n- Minimierte exponierte Angriffsflächen\n\nDiese Bedrohungsanalyse adressiert ETSI EN 303 645-Anforderungen durch Identifikation IoT-gerätespezifischer Bedrohungen und Verifizierung, dass grundlegende Sicherheitsbestimmungen angemessen adressiert sind.",
       "en17927": "**EN 17927** spezifiziert Cybersicherheitsanforderungen für industrielle IoT (IIoT) Geräte und Systeme. Sie adressiert die spezifischen Herausforderungen von IoT-Geräten in industriellen Umgebungen.\n\nWesentliche Anforderungen umfassen:\n\n- Sichere Geräteidentität und Authentifizierung\n- Sichere Kommunikationsprotokolle\n- Firmware- und Software-Update-Sicherheit\n- Sicheres Konfigurationsmanagement\n- Fähigkeiten zur Vorfallserkennung und -reaktion\n\nDiese Bedrohungsanalyse analysiert industrielle IoT-Deployments spezifische Bedrohungen und verifiziert Compliance mit EN 17927-Sicherheitsanforderungen.",
       "iec62351": "**IEC 62351** bietet Sicherheitsstandards für Energiesystem-Kommunikationsprotokolle. Sie adressiert Vertraulichkeit, Integrität und Verfügbarkeit des Datenaustauschs in Energiesystemen.\n\nDie Normenreihe behandelt:\n\n- Authentifizierung und Zugriffskontrolle für SCADA-Systeme\n- Sichere Kommunikation für IEC 61850 und DNP3-Protokolle\n- Schlüsselmanagement für Energiesystem-Sicherheit\n- Rollenbasierte Zugriffskontrolle für Energiesysteme\n\nDiese Bedrohungsanalyse adressiert IEC 62351-Anforderungen durch Analyse von Bedrohungen für Energiesystem-Kommunikation und -Steuerungssysteme und stellt sicher, dass angemessene Sicherheitsmaßnahmen implementiert sind.",
-      "en50742": "**EN 50742** spezifiziert Cybersicherheitsanforderungen für Maschinen gemäß der neuen Maschinenverordnung. Sie adressiert Sicherheit für Industriemaschinen mit digitalen Komponenten.\n\nAnforderungen umfassen:\n\n- Sicherheitsrisikobewertung für Maschinen\n- Sicherer Fernzugriff und Konnektivität\n- Schutz gegen unbefugte Modifikation\n- Mechanismen für Sicherheitsupdates\n- Integration mit Maschinen-Safety-Anforderungen\n\nDiese Bedrohungsanalyse adressiert EN 50742-Anforderungen durch Analyse von Sicherheitsbedrohungen für Maschinensteuerungssysteme und stellt angemessene Schutzmaßnahmen sicher unter Beibehaltung erforderlicher Sicherheitsfunktionen."
+      "en50742A": "**prEN 50742:2025 — Approach A** ist der risikobasierte Weg für Maschinen-Cybersicherheit unter der neuen Maschinenverordnung. Für jede Sicherheitsfunktion und Schnittstelle wird pro Bedrohung ein Angriffspotenzial berechnet (AP = EL x WoO + AC — Exposure Level x Window of Opportunity + Attacker Capability, Anhang B) und auf die Angriffs-Feasibility abgebildet.\n\nWesentliche Merkmale:\n\n- Eigene Likelihood-Methode (Preset `en-50742-a`) — nicht der Standard-Weighted-Mean\n- Das Angriffspotenzial treibt eine dedizierte Severity/Risk-Sicht zusätzlich zum SRSL-Ergebnis des Reports\n- Baseline-Anforderungen (nicht risikobasiert) aus Abschnitt 7 gelten zusätzlich\n\nDiese Bedrohungsanalyse folgt der Approach-A-Methodik, berechnet das Angriffspotenzial pro Bedrohung und leitet daraus sicherheitsrelevante Cybersicherheitsanforderungen ab. Schliesst sich mit Approach B gegenseitig aus (Abschnitt 4.1).",
+      "en50742B": "**prEN 50742:2025 — Approach B** ist der Compliance-basierte Weg für Maschinen-Cybersicherheit unter der neuen Maschinenverordnung: ein fester Satz von IEC 62443-3-3 / IEC 62443-4-2 Anforderungen (Abschnitt 8, Tabellen 3/4), der verifiziert statt risikobasiert hergeleitet wird.\n\nWesentliche Merkmale:\n\n- Keine eigene Likelihood-Methode — die Risikomethode des Projekts bleibt unverändert (Standard-Weighted-Mean, Default-Faktoren)\n- Konformität wird gegen die festen Anforderungstabellen nachgewiesen, nicht über eine pro-Bedrohung-Angriffspotenzial-Berechnung\n\nDiese Bedrohungsanalyse adressiert Approach B durch Verifikation des festen IEC 62443-3-3/-4-2 Anforderungsumfangs. Schliesst sich mit Approach A gegenseitig aus (Abschnitt 4.1)."
     }
   },
   "messages": {
@@ -613,6 +622,24 @@
     "etsi-tvra": {
       "name": "ETSI TVRA",
       "description": "ETSI TS 102 165-1 — weighted-summation attack potential (score-table)."
+    }
+  },
+  "windowOfOpportunity": {
+    "veryRestricted": {
+      "name": "Stark eingeschränkt",
+      "description": "Selten zugänglich oder unter ständiger Überwachung; sehr begrenzter praktischer Zugriff."
+    },
+    "moderatelyRestricted": {
+      "name": "Mässig eingeschränkt",
+      "description": "Gelegentliche, vorhersehbare Zeitfenster (z.B. monatliche Wartung, mit moderater Zugriffskontrolle)."
+    },
+    "limited": {
+      "name": "Eingeschränkt",
+      "description": "Regelmässige Gelegenheiten (wöchentlicher/täglicher planmässiger Zugriff mit geringer Zugriffskontrolle)."
+    },
+    "unlimited": {
+      "name": "Unbeschränkt",
+      "description": "Offener, häufiger oder unbeschränkter Zugriff."
     }
   }
 }

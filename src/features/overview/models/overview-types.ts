@@ -7,6 +7,7 @@ import type {
   ProjectTags,
   RegulationPresetId,
   ValidationResult,
+  WindowOfOpportunity,
 } from "shared";
 
 // ==================== OVERVIEW-SPECIFIC TYPES ====================
@@ -31,6 +32,15 @@ export interface ProjectInfoData {
    * Overview and before DFD (independent of Standard/Critical). Default: false.
    */
   safetyRelevant?: boolean;
+  /**
+   * Project-global Window of Opportunity (EN 50742 Approach A, Annex B, Table
+   * B.3 — prEN 50742:2025 §3.3). Only meaningful when the project's regulation
+   * tags resolve to the `en-50742-a` preset (regulationPresetFromTags); the
+   * orchestrator threads this value onto
+   * RiskConfiguration.windowOfOpportunity via threadWindowOfOpportunity() —
+   * it is NOT a per-risk factor. Undefined until the analyst sets it.
+   */
+  windowOfOpportunity?: WindowOfOpportunity;
 }
 export interface PhaseValidationInfo {
   errors: number;

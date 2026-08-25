@@ -192,7 +192,12 @@
         "treeContributionFactorDesc": "The tree's likelihood is written as the Attack Tree Likelihood factor and averages in like any other likelihood factor. It supplements the OWASP factors, never overrides them.",
         "treeContributionAdvisory": "Advisory — shown as a hint only",
         "treeContributionAdvisoryDesc": "The tree's likelihood is shown for reference but not written as an active factor; the analyst adjusts the OWASP factors themselves.",
-        "treeContributionHint": "Applies only when a threat-anchored tree refines a risk that also has other likelihood factors. Asset-anchored and ISO feasibility-only risks are unaffected — the tree drives the number regardless."
+        "treeContributionHint": "Applies only when a threat-anchored tree refines a risk that also has other likelihood factors. Asset-anchored and ISO feasibility-only risks are unaffected — the tree drives the number regardless.",
+        "factorLocked": "Locked by the active regulation — remove the norm tag in the Overview to edit factors.",
+        "factorCountLocked": "{{count}} factors active — defined by the regulation",
+        "lockMethod": "This regulation defines the likelihood factors (locked). Impact factors stay editable. Remove the norm tag in the Overview to change the method; the current likelihood ratings will be cleared.",
+        "lockExclusive": "This regulation defines the risk method. Only its factors are active; all others (impact included) are locked — impact comes from asset impact. Remove the norm tag in the Overview to edit factors; the current likelihood ratings will be cleared.",
+        "addFactorLocked": "The active regulation defines the factor set — remove the norm tag in the Overview to add custom factors."
       },
       "matrix": {
         "title": "Risk Matrix",
@@ -603,6 +608,34 @@
         "name": "Deployment Scope",
         "shortName": "Depl. Scope",
         "description": "Can a single successful attack simultaneously compromise multiple installations? 1 = no — each installation must be attacked individually, 2 = partially — attack affects multiple systems at the same customer, 3 = yes — shared infrastructure (cloud, OTA, SCADA) affects all installations of a product type simultaneously, 4 = yes — supply-chain attack compromises all customers at once."
+      },
+      "iso_elapsed_time": {
+        "name": "Elapsed Time",
+        "description": "Time required to identify and exploit the vulnerability (ISO/SAE 21434 Annex G.6, Common Criteria B.4)."
+      },
+      "iso_expertise": {
+        "name": "Specialist Expertise",
+        "description": "Level of specialist knowledge needed by the attacker — Layman to multiple experts."
+      },
+      "iso_knowledge": {
+        "name": "Knowledge of the Item",
+        "description": "How restricted the attacker's knowledge of the item under consideration must be — public to strictly confidential."
+      },
+      "iso_window_of_opportunity": {
+        "name": "Window of Opportunity",
+        "description": "Access time and opportunity the attacker needs — unlimited to difficult."
+      },
+      "iso_equipment": {
+        "name": "Equipment",
+        "description": "Equipment needed to identify and exploit the vulnerability — standard to multiple bespoke."
+      },
+      "etsi_opportunity": {
+        "name": "Opportunity Factor",
+        "description": "Access opportunity needed to mount the attack (ETSI TS 102 165-1) — unlimited to difficult."
+      },
+      "etsi_intensity": {
+        "name": "Intensity Factor",
+        "description": "Number of attack instances required — single, moderate, or heavy repetition (ETSI TS 102 165-1 Table 3)."
       }
     }
   }

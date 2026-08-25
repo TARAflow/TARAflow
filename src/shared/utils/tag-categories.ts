@@ -133,6 +133,11 @@ export const TAG_CATEGORIES: TagCategory[] = [
         tooltipKey: "tags.tooltips.iso27001",
         docDescriptionKey: "tags.docDescriptions.iso27001",
       },
+      {
+        name: "ETSI TVRA",
+        tooltipKey: "tags.tooltips.etsiTvra",
+        docDescriptionKey: "tags.docDescriptions.etsiTvra",
+      },
       // Cloud
       {
         name: "ISO 27017",
@@ -156,11 +161,23 @@ export const TAG_CATEGORIES: TagCategory[] = [
         tooltipKey: "tags.tooltips.iec62351",
         docDescriptionKey: "tags.docDescriptions.iec62351",
       },
-      // Machinery
+      // Machinery — Approach A (risk-derived: AP = EL×WoO+AC) and Approach B
+      // (Clause 8 fixed IEC 62443-3-3/-4-2 subset) are separate conformance
+      // claims (prEN 50742:2025 Clause 4.1, mutually exclusive — see
+      // tagConflicts.en50742Approach). Only Approach A selects the
+      // `en-50742-a` likelihood preset and therefore locks factors in
+      // risk-config-dialog / asset-config-dialog; Approach B has no risk
+      // method impact (compliance-subset only). Both still require the
+      // Hazard tab (requiresHazardAnalysis).
       {
-        name: "EN 50742",
-        tooltipKey: "tags.tooltips.en50742",
-        docDescriptionKey: "tags.docDescriptions.en50742",
+        name: "EN 50742 A",
+        tooltipKey: "tags.tooltips.en50742A",
+        docDescriptionKey: "tags.docDescriptions.en50742A",
+      },
+      {
+        name: "EN 50742 B",
+        tooltipKey: "tags.tooltips.en50742B",
+        docDescriptionKey: "tags.docDescriptions.en50742B",
       },
     ],
   },
@@ -287,6 +304,6 @@ export const getRegulationTags = (tagNames: string[]): TagDefinition[] => {
   if (!regulationCategory) return [];
 
   return regulationCategory.tags.filter((tagDef) =>
-    tagNames.includes(tagDef.name)
+    tagNames.includes(tagDef.name),
   );
 };

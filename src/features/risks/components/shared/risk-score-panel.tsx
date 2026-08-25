@@ -24,10 +24,16 @@ export const RiskScorePanel = ({
   highlightRisk = true,
 }: RiskScorePanelProps) => {
   const { t } = useTranslation();
-  const scaleLabel = (axis: "likelihood" | "impact", raw: string) =>
-    t(`risks.scales.${axis}.${raw.toLowerCase().replace(/ /g, "_")}`, {
+  const scaleLabel = (axis: "likelihood" | "impact", raw: string) => {
+    // getLikelihoodLabel/getFactorLabel/getRiskLabel return this sentinel for
+    // an unrated (<= 0) value — it's a placeholder, not a scale label, so it
+    // never has (or needs) a translation key. Skip the lookup entirely to
+    // avoid a missingKey warning on every unrated risk.
+    if (raw === "-") return raw;
+    return t(`risks.scales.${axis}.${raw.toLowerCase().replace(/ /g, "_")}`, {
       defaultValue: raw,
     });
+  };
 
   const riskColor = getRiskColor(
     risk,
