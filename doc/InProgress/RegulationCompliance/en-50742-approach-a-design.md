@@ -365,11 +365,21 @@ Two semantics that invert vs. standard risk:
 **Reuse, don't rebuild:** the SRSL-mandated requirements reuse TARAflow's
 mitigation / control-instance / verification infrastructure
 (`verification_method` / `verification_status`). The only difference is
-**provenance** — SRSL-mandated, not analyst-selected. In the Risk tab they should
-appear as pre-determined control rows to verify, **not** in the free mitigation
-picker. Mapping to existing types: elimination ≈ removal (re-derives EL/AP);
-required protection requirement ≈ a mandated control to verify;
-compensating-countermeasure-by-user ≈ a claim in information-for-use.
+**provenance** — SRSL-mandated, not analyst-selected. Mapping to existing types:
+elimination ≈ removal (re-derives EL/AP); required protection requirement ≈ a
+mandated control to verify; compensating-countermeasure-by-user ≈ a claim in
+information-for-use.
+
+> **Refined by §11 (integrated picker).** An earlier draft of this section said
+> the mandated controls should appear as separate "pre-determined control rows
+> to verify, **not** in the free mitigation picker". That has been superseded:
+> §11.4 keeps the **same** Risk-dialog picker and distinguishes the two kinds by
+> **provenance** instead of by location — SRSL-mandated controls are shown
+> **pre-selected and marked** as mandated (≥1 where several apply), while the
+> standard catalogue mitigations remain visible and freely selectable alongside
+> them. Same rule for verifications. The "requirement-driven, not discretionary"
+> principle above is unchanged; only its rendering is (one picker, two
+> provenances — not two separate surfaces).
 
 ### 3.9 SRSL0 special case
 
@@ -507,6 +517,14 @@ strings (normalized, punctuation/case-insensitive — `"EN 50742 A"`,
 
 ## 5. `SRSLProfile` — Clause 7.4.3 protection-requirement catalogue
 
+> **Note on structure:** this catalogue is indexed by *category* (Authentication,
+> Authorization, the five Integrity sub-clauses, SRESW/SRASW Authenticity) × SRSL
+> tier — it has **no STRIDE dimension**. Selecting *which* categories are the
+> mandated controls for a given threat requires a **STRIDE → category mapping**,
+> which the norm does not itself provide; that mapping (and the fact that the
+> 7.4.3 catalogue deliberately covers no Confidentiality / Availability /
+> Repudiation controls in Approach A) is worked out in §11.3–§11.4.
+
 Tiered per SRSL0–3, grouped by category. Statements below are condensed to
 implementation form; the authoritative wording is prEN 50742:2025 Clause 7.4.3.
 
@@ -640,8 +658,10 @@ not a risk output:
   R=I×L kept as secondary lens (Output Model C, §2.2 — they may diverge).
 - `SRSLProfile` (§5) drives the required protection-requirement set per determined
   SRSL, per (function, interface) — **requirement-driven, not discretionary**
-  (§3.8): rendered as pre-determined control rows to verify, not the free
-  mitigation picker; verification reuses `verification_method`/`verification_status`.
+  (§3.8): rendered in the **same** Risk-dialog picker as **pre-selected, marked**
+  mandated controls (integrated picker, §11.4), alongside the freely-selectable
+  standard mitigations; verification reuses
+  `verification_method`/`verification_status` with the same two-provenance rule.
 - Residual/compensating mapping (§3.8).
 
 ### 7.5 Phase 5 — Report (Approach A evidence)
@@ -696,6 +716,143 @@ A project with preset `en-50742-a` can:
 5. select and verify the SRSL-required protection requirements (Clause 7.4.3);
 6. produce a report with the baseline checklist (7.3/7.5/9), full traceability,
    and `normativeBasis`.
+
+---
+
+## 11. EL → SRSL → mitigation: per-risk routing and the integrated picker (DESIGN)
+
+This chapter consolidates the decisions made while wiring the *derived* EL into
+the risk engine and connecting SRSL to the mitigation selection. It refines
+§3.2 (EL source), §3.8 (requirement-driven mitigation), and §5 (SRSLProfile has
+no STRIDE dimension). **Status: design agreed, not yet implemented.**
+
+### 11.1 Two separate EL anchors — do not conflate
+
+EL is authored/derived in the DFD and reaches a threat through exactly one of
+two anchors, depending on the threat method. These are **independent paths**:
+
+| Threat method | Anchor | EL source |
+|---|---|---|
+| per-element | the linked **Interface** | Interface's own `exposureLevel` (derived by `deriveExposureLevels` from its TrustBoundary / ChipBoundary / PhysicalBoundary, manual override respected) |
+| per-interaction | the crossing **DataFlow** | the DataFlow's own `exposureLevel` (EL set on the DF *and* on the TB it crosses; `deriveExposureLevels` resolves the crossing via local `maxEL`) |
+
+Interfaces are their own anchor and have nothing to do with per-interaction —
+they are per-element threats. WoO is project-global (§3.3); AC is rated per
+threat. Only EL differs by anchor.
+
+`deriveExposureLevels()` (in `dfd-graph-builder.ts`) already computes and writes
+`exposureLevel` onto both element and connection properties, respecting the
+`exposureLevelSource: "manual"` override. **This is the single source of truth
+for EL** — the risk side only *reads* it. There is no per-threat EL
+recomputation: the previously-scaffolded `resolveExposureLevelForThreat()` in
+`en50742-approach-a-core.ts` is therefore dead (a threat has no EL of its own; it
+inherits the anchor element's EL as a property) and is to be removed together
+with its test, mirroring the `extractEN50742Factors` cleanup (§3.3).
+
+### 11.2 Per-risk method routing — EL is the gate
+
+The choice "EN 50742 AP/SRSL calc vs. generic `R = I × L`" is made **per risk**,
+not project-wide, and the gate is: **does the risk's anchor carry an EL?**
+
+- **EL present** → run **both**: SRSL (primary, authoritative — §2.2 Output
+  Model C) *and* `R = I × L` (secondary TARAflow lens). Order in the report:
+  SRSL first, then R = I × L.
+- **EL absent** → **only** the generic `R = I × L`. No AP, no SRSL. The threat
+  runs the standard path exactly as if this were not an `en-50742-a` project.
+
+This is consistent with the existing `EN50742CalculationResult` shape (`impact`,
+`likelihood`, `risk`, **and** `srsl`) and its `srsl: null` "not fully rated"
+case — `null` here also covers "no EL anchor", never mistaken for the genuinely
+isolated SRSL0 (§3.9).
+
+**Adapter (Variante A — read, don't recompute).** A pure function reads the
+anchor element/DataFlow's already-derived `exposureLevel` from the DFD snapshot
+(`DFDReference.elements[].properties` / `.connections[].properties`, reachable at
+both call sites: `risk-dialog.tsx` via `dfdData`, `risk-sync-service.ts` via its
+`dfd` param), converts `"EL2"` → the 1-based level index via
+`EN50742_EXPOSURE_LEVELS`, and writes it as a **derived** `exposure_level`
+`FactorRating` (non-destructive: only when the entry exists, `value === 0`,
+`source !== "manual"` — same discipline as the impact prefill
+`applyAssetCriteriaToFactorRatings`). Threat→anchor linkage: per-element via
+`threat.linkedElement.elementId`, per-interaction via the crossing DataFlow.
+
+### 11.3 SRSL is per (safety function × interface/DF) — NOT per STRIDE
+
+Clause 7.4.3.1 binds the protection requirements to "the respective safety
+functions and their related interfaces", and SRSL is determined per
+(safety function × interface/DF) from AP × severity. **STRIDE does not enter the
+SRSL derivation.** Consequence: an EL-bearing anchor has *one* SRSL that holds
+for **all** its threats, whatever their STRIDE class. STRIDE only decides *which
+catalogue controls are mandated* (§11.4), not *whether* there is an SRSL.
+
+**The 7.4.3 catalogue is deliberately incomplete vs. STRIDE — verified against
+the draft.** prEN 50742:2025 Clause 7.4.3 defines exactly four requirement
+groups: Authentication (7.4.3.2), Authorization (7.4.3.3), Integrity (7.4.3.4.1–.5),
+Authenticity (7.4.3.5.1). It has **no Confidentiality, no Availability, no
+Repudiation** control. Those appear only in **Approach B** (Clause 8, Tables 3/4:
+IEC 62443 FR4 Data confidentiality, FR7 Resource availability) — out of scope
+here (§8). This is a norm boundary, not a gap in `EN50742_SRSL_PROFILE`: the core
+mirrors 7.4.3 completely. Fachlich stimmig — Approach A is safety-driven
+(integrity/authenticity of the safety function), and delegates
+confidentiality/availability to the 62443 route.
+
+### 11.4 STRIDE → mandated control, and the integrated picker
+
+**Decision (R/I/D handling = "Option B").** SRSL is still computed for every
+EL-bearing anchor (it is interface/DF-bound, §11.3). What varies by STRIDE is the
+**mandated-control set**, which for R/I/D is simply **empty** — those threats are
+demonstrated via the free standard mitigations, with `R = I × L` as the lens. No
+invented Confidentiality/Availability controls (that would be a TARAflow
+extension beyond the norm; explicitly *not* done here, though §11.4 leaves room
+to add an opt-in extension catalogue later without touching the core loop).
+
+The mapping is defined only over the (anchor × STRIDE) combinations that can
+actually occur (`STRIDE_PER_ELEMENT_TYPE.Interface` = S,T,R,I,D,E;
+`STRIDE_PER_ELEMENT_TYPE.DataFlow` = T,I,D). For per-interaction the generator
+emits all six STRIDE, but the attacked/victim role is always an **endpoint**
+(source/target), and EL is carried by the **DataFlow**; S/R/E are endpoint-
+identity/authorization concerns handled at the endpoint Interface anchor, not at
+the DF anchor — so the DF anchor contributes mandated controls only for T.
+
+| Anchor × STRIDE | Mandated 7.4.3 control | Uniqueness |
+|---|---|---|
+| Interface × **S** | 7.4.3.2.1 Authentication | unique |
+| Interface × **T** | 7.4.3.4.1/.2/.4/.5 Integrity (± 7.4.3.5.1 Authenticity) | **several → user picks ≥1** |
+| Interface × **E** | 7.4.3.3.1 Authorization (± 7.4.3.5.1 Authenticity) | possibly several |
+| Interface × **R/I/D** | ∅ | standard method only |
+| DataFlow × **T** | 7.4.3.4.3 Information exchange integrity | unique |
+| DataFlow × **I/D** | ∅ | standard method only |
+| DataFlow × **S/R/E** | — (belongs to the endpoint Interface anchor, not the DF) | — |
+
+> **VERIFY (engineering interpretation, not spelled out by the draft):** the
+> exact category set for **Interface × T** (which Integrity sub-clauses are
+> *always* mandatory vs. context-dependent) and whether **Interface × E** pulls
+> Authorization alone or also Authenticity. The norm gives the catalogue and the
+> SRSL binding, but not the STRIDE→category assignment; confirm against the final
+> norm and adjust the table.
+
+**Integrated picker (refines §3.8).** The Risk dialog stays the single place to
+choose mitigations and verifications. It shows two provenances in one list:
+
+1. **SRSL-mandated** controls (from the STRIDE × SRSL lookup above):
+   **pre-selected and marked** as mandated. Where the lookup is unique, exactly
+   one; where several apply (Interface × T/E), at least one is pre-selected and
+   the analyst may choose among the rest.
+2. **Standard** catalogue mitigations: remain visible and **freely, optionally**
+   selectable alongside the mandated ones.
+
+Same two-provenance rule for **verifications**. The analyst's obligation for the
+mandated set is to *demonstrate implemented + verified* (§3.8), not to reduce a
+number; the standard set is discretionary risk reduction on the `R = I × L` lens.
+
+### 11.5 SRSL as a risk-table column (secondary implementation step)
+
+To surface both outputs (§2.2 Output Model C), the risk table gains a dedicated
+**SRSL column** next to `R = I × L`. This needs a new `srsl?` field on the `Risk`
+type plus persistence/migration and the column rendering — a separate, larger
+step (Phase 4, §7.4), tracked here so the two-output model is not lost. SRSL is
+labelled the governing/normative output; the two axes may diverge in ordering by
+design (§2.2), and that divergence is shown, not reconciled.
 
 ---
 
