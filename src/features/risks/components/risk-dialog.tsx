@@ -97,6 +97,7 @@ import {
   applyAssetImpactToFactorRatings,
   resetFactorToDerived,
 } from "../services/risk-calculation-service";
+import { applyExposureLevelToFactorRatings } from "../services/en50742-risk-calculation";
 import { RiskScorePanel } from "./shared/risk-score-panel";
 
 // ==================== CONSTANTS ====================
@@ -250,6 +251,22 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         }
       }
     }
+
+    // EN 50742 EL prefill (§11.2, Variante A) — independent of asset linkage,
+    // reads exposureLevel from the threat's DFD anchor (Interface / crossing
+    // DataFlow). No-op when the risk has no exposure_level entry
+    // (non-en-50742-a projects) or it's already rated/manual.
+    const currentThreatForEL = threats?.find(
+      (t) => t.id === currentRisk.threatId,
+    );
+    state = {
+      ...state,
+      factorRatings: applyExposureLevelToFactorRatings(
+        state.factorRatings,
+        currentThreatForEL ?? {},
+        dfdData,
+      ),
+    };
 
     setLocal(state);
   }, [currentRisk?.id]); // eslint-disable-line react-hooks/exhaustive-deps

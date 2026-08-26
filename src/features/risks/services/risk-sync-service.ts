@@ -39,6 +39,7 @@ import {
    setAttackTreeLikelihoodFactor,
    type TreeLikelihoodContribution,
  } from "../services/risk-calculation-service";
+import { applyExposureLevelToFactorRatings } from "../services/en50742-risk-calculation";
 
 // ==================== RESULT TYPES ====================
 
@@ -567,6 +568,13 @@ export function syncRisksFromThreats(
       // mitigatedFactorRatings not touched — analyst owns Risk After values
     }
 
+    // EN 50742 EL prefill (§11.2, Variante A) — independent of asset linkage.
+    updatedFactorRatings = applyExposureLevelToFactorRatings(
+      updatedFactorRatings,
+      threat,
+      dfd,
+    );
+
     const ratingsChanged =
       JSON.stringify(updatedFactorRatings) !==
       JSON.stringify(reconciledRatings);
@@ -620,24 +628,37 @@ export function syncRisksFromThreats(
       threat.linkedAssetIds,
       assetDataRef,
     );
-    // No assets → return the empty risk (impact factors are present via
-    // createEmptyRisk with value 0; asset prefill is simply skipped). The
-    // attack-tree factor is NOT set here — syncRisksFromAttackTrees does that
-    // in a separate pass.
-    if (!assetDataRef || linkedAssets.length === 0) return emptyRisk;
 
-    const prefilled = applyAssetCriteriaToFactorRatings(
-      emptyRisk.factorRatings,
-      linkedAssets,
-      assetDataRef,
+    // Asset-criteria prefill (impact factors) — skipped when no linked
+    // assets. The attack-tree factor is NOT set here — syncRisksFromAttackTrees
+    // does that in a separate pass.
+    let factorRatings =
+      assetDataRef && linkedAssets.length > 0
+        ? applyAssetCriteriaToFactorRatings(
+            emptyRisk.factorRatings,
+            linkedAssets,
+            assetDataRef,
+            updatedConfiguration,
+          )
+        : emptyRisk.factorRatings;
+
+    // EN 50742 EL prefill (§11.2, Variante A) — independent of asset linkage,
+    // reads exposureLevel from the threat's DFD anchor. No-op outside
+    // en-50742-a projects (no exposure_level factor entry to fill).
+    factorRatings = applyExposureLevelToFactorRatings(
+      factorRatings,
+      threat,
+      dfd,
+    );
+
+    const beforeValues = calculateRiskValues(
+      factorRatings,
       updatedConfiguration,
     );
 
-    const beforeValues = calculateRiskValues(prefilled, updatedConfiguration);
-
     return {
       ...emptyRisk,
-      factorRatings: prefilled,
+      factorRatings,
       // mitigatedFactorRatings stay empty — analyst fills manually or copies from Before
       calculatedImpact: beforeValues.impact,
       calculatedLikelihood: beforeValues.likelihood,
