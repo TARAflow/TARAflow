@@ -90,6 +90,7 @@ export {
   REGULATION_PRESETS,
   REGULATION_PRESET_IDS,
   WINDOW_OF_OPPORTUNITY_OPTIONS,
+  WINDOW_OF_OPPORTUNITY_MULTIPLIERS,
   getRegulationPreset,
   type RegulationPreset,
   type RegulationPresetId,

@@ -6,11 +6,14 @@
 //   risk-factor-types (RiskFactorDefinition, ActiveFactor, AssetImpactMapping,
 //                      DEFAULT_ASSET_IMPACT_MAPPINGS, ALL_PREDEFINED_FACTORS)
 
-import type { StrideMethod, LikelihoodMethod } from "shared";
+import type {
+  StrideMethod,
+  LikelihoodMethod,
+  WindowOfOpportunity,
+} from "shared";
 import type { RiskMethodType, RiskScaleType, RiskRoundingMethod } from "./risk-scale-types";
 import type { RiskFactorDefinition, ActiveFactor, AssetImpactMapping } from "./risk-factor-types";
 import { DEFAULT_ASSET_IMPACT_MAPPINGS } from "./risk-factor-types";
-import type { WindowOfOpportunity } from "./en50742-approach-a-core";
 
 // ==================== RISK CONFIGURATION ====================
 

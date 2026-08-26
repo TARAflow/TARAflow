@@ -10,6 +10,16 @@
  * wording is condensed to implementation form; authoritative text is the norm.
  */
 
+/**
+ * Window of Opportunity — one value for the whole machinery. Table B.3.
+ * Canonical declaration lives in shared/regulation-preset.ts (the Overview
+ * feature needs to read/write it without a risks↔overview import cycle — see
+ * design doc §3.3).
+ */
+
+import type { WindowOfOpportunity } from "shared";
+import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS } from "shared";
+
 // ---------------------------------------------------------------------------
 // Factor scales (Annex B)
 // ---------------------------------------------------------------------------
@@ -22,19 +32,6 @@ export const EXPOSURE_LEVEL_SCORE: Record<ExposureLevel, number> = {
   EL2: 5, // Local
   EL3: 16, // Adjacent
   EL4: 24, // Public
-};
-
-/** Window of Opportunity — one value for the whole machinery. Table B.3. */
-export type WindowOfOpportunity =
-  | "very_restricted"
-  | "moderately_restricted"
-  | "limited"
-  | "unlimited";
-export const WINDOW_OF_OPPORTUNITY_MULTIPLIER: Record<WindowOfOpportunity, number> = {
-  very_restricted: 0.6,
-  moderately_restricted: 0.8,
-  limited: 0.9,
-  unlimited: 1.0,
 };
 
 /**
@@ -78,7 +75,7 @@ export interface AttackPotentialResult {
  */
 export function computeAttackPotential(input: AttackPotentialInput): AttackPotentialResult {
   const el = EXPOSURE_LEVEL_SCORE[input.exposureLevel];
-  const woo = WINDOW_OF_OPPORTUNITY_MULTIPLIER[input.windowOfOpportunity];
+  const woo = WINDOW_OF_OPPORTUNITY_MULTIPLIERS[input.windowOfOpportunity];
   const ac = ATTACKER_CAPABILITY_SCORE[input.attackerCapability];
 
   const raw = el * woo + ac;

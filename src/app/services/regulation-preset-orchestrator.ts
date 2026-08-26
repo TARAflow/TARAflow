@@ -9,12 +9,11 @@
 // riskService here is fine (unlike importing them into shared).
 
 import type { Project } from "../models/project-types";
-import type { RegulationPresetId } from "shared";
+import type { RegulationPresetId, WindowOfOpportunity } from "shared";
  import { regulationPresetFromTags } from "shared";
 import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { riskService } from "features/risks/services/risk-service";
-import type { WindowOfOpportunity } from "features/risks/models/en50742-approach-a-core";
 
 export interface RegulationPresetProjectResult {
   project: Project;
@@ -133,4 +132,3 @@ export function applyRegulationFromTags(
     project: threadWindowOfOpportunity(applied.project, woo),
   };
 }
- 

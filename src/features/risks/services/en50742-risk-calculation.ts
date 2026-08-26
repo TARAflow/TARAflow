@@ -20,6 +20,7 @@ import type { FactorRating } from "../models/risk-factor-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
 import { normaliseImpactValue } from "shared";
+import type { WindowOfOpportunity } from "shared";
 import { calculateRiskValues } from "./risk-calculation-service";
 import {
   EN50742_AP_BAND_COUNT,
@@ -30,7 +31,6 @@ import {
   type ExposureLevel,
   type Severity,
   type Srsl,
-  type WindowOfOpportunity,
 } from "../models/en50742-approach-a-core";
 
 export const EN50742_EL_FACTOR = "exposure_level";

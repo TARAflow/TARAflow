@@ -291,12 +291,24 @@ surface, not multi-hop reachability.
   WoO without a risks↔overview import cycle (same reasoning as the preset id
   itself, §0 note at the top of `regulation-preset.ts`).
 
-  > **Known gap:** `en50742-approach-a-core.ts` and `risk-config-types.ts`
-  > still reference a **locally-declared** `WindowOfOpportunity` instead of the
-  > shared one. Same string-literal shape, so it compiles and behaves
-  > identically today — but it's two sources of truth for one norm value.
-  > Consolidate: have `en50742-approach-a-core.ts` import the type (and ideally
-  > the multiplier table) from `shared` and drop its local copy.
+  **[DONE]** Consolidated: `en50742-approach-a-core.ts` now imports
+  `WindowOfOpportunity` and `WINDOW_OF_OPPORTUNITY_MULTIPLIERS` from `shared`
+  and no longer declares its own copy. Deliberately **no re-export** —
+  `risk-config-types.ts`, `regulation-preset-orchestrator.ts`, and
+  `en50742-risk-calculation.ts` each import `WindowOfOpportunity` directly
+  from `shared` now, not via this module (`shared/index.ts` gained a missing
+  `WINDOW_OF_OPPORTUNITY_MULTIPLIERS` barrel export in the process). One
+  canonical declaration, zero indirection.
+
+  Same pass also removed `calculateAttackerPotential()` /
+  `extractEN50742Factors()` from `risk-calculation-service.ts` — a legacy
+  pair superseded by `en50742-risk-calculation.ts`'s
+  `calculateEN50742RiskValues` (§2.3), still reading the old per-risk
+  `window_of_opportunity` rating that this section's decision (WoO as
+  project-global config) had already made obsolete. Verified zero call sites
+  repo-wide before removal; the `window_of_opportunity` *factor definition*
+  itself is untouched — it remains load-bearing for the preset factor lock
+  (§3.11, locked-off state).
 
 ### 3.4 AP precision / band boundaries
 

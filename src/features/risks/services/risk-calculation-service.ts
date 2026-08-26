@@ -470,37 +470,6 @@ export function resetFactorToDerived(rating: FactorRating): FactorRating {
   };
 }
 
-// ==================== EN 50742 ATTACKER POTENTIAL ====================
-
-/**
- * Calculate Attacker Potential per EN 50742 / IEC 62443-3-2.
- * Formula: AP = (EL × WoO) + AC
- */
-export function calculateAttackerPotential(
-  el: number,
-  woo: number,
-  ac: number,
-): number {
-  if (el <= 0 || woo <= 0 || ac <= 0) return 0;
-  return el * woo + ac;
-}
-
-/**
- * Extract EN 50742 factor values from a FactorRating[].
- */
-export function extractEN50742Factors(ratings: FactorRating[]): {
-  el: number;
-  woo: number;
-  ac: number;
-  ap: number;
-} {
-  const get = (id: string) => ratings.find((r) => r.factorId === id)?.value ?? 0;
-  const el  = get("exposure_level");
-  const woo = get("window_of_opportunity");
-  const ac  = get("attacker_capability");
-  return { el, woo, ac, ap: calculateAttackerPotential(el, woo, ac) };
-}
-
 // ==================== ATTACK-TREE LIKELIHOOD (5b-2) ====================
 
 /**
