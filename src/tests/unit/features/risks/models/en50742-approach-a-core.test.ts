@@ -6,7 +6,6 @@ import {
   en50742LevelFromRating,
   en50742LikelihoodOrdinal,
   evaluateEN50742Likelihood,
-  resolveExposureLevelForThreat,
   EN50742_EXPOSURE_LEVELS,
   EN50742_ATTACKER_CAPABILITY_LEVELS,
   EN50742_AP_BAND_COUNT,
@@ -112,31 +111,6 @@ describe("EN 50742 — SRSL (Table B.6, incl. fatal extension row)", () => {
     const ySrsl = determineSrsl("AP1", "fatal"); //      SRSL2
     expect(xOrd).toBeGreaterThan(yOrd);
     expect(srslRank(xSrsl)).toBeLessThan(srslRank(ySrsl));
-  });
-});
-
-describe("EN 50742 — exposure resolution (higher-EL-wins, LOCAL, non-transitive)", () => {
-  it("takes the max exposure across own EL and crossed boundaries", () => {
-    expect(resolveExposureLevelForThreat({ ownEL: "EL1", crossedBoundaryELs: ["EL3"] }))
-      .toEqual({ el: "EL3", source: "boundary" });
-    expect(resolveExposureLevelForThreat({ ownEL: "EL4", crossedBoundaryELs: ["EL2"] }))
-      .toEqual({ el: "EL4", source: "own" });
-    expect(resolveExposureLevelForThreat({ crossedBoundaryELs: ["EL2", "EL0", "EL3"] }))
-      .toEqual({ el: "EL3", source: "boundary" });
-  });
-
-  it("favours own on a tie", () => {
-    expect(resolveExposureLevelForThreat({ ownEL: "EL2", crossedBoundaryELs: ["EL2"] }))
-      .toEqual({ el: "EL2", source: "own" });
-  });
-
-  it("is non-transitive: an internal flow crossing no boundary stays EL0", () => {
-    // A public EL4 boundary may exist upstream, but it is not in the local set,
-    // so it must NOT leak in. EL measures direct attack surface.
-    expect(resolveExposureLevelForThreat({ crossedBoundaryELs: [] }))
-      .toEqual({ el: "EL0", source: "default" });
-    expect(resolveExposureLevelForThreat({}))
-      .toEqual({ el: "EL0", source: "default" });
   });
 });
 

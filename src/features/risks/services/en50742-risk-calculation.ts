@@ -20,12 +20,13 @@ import type { FactorRating } from "../models/risk-factor-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
 import { normaliseImpactValue } from "shared";
-import type { WindowOfOpportunity } from "shared";
+import type { WindowOfOpportunity, DFDReference } from "shared";
 import { calculateRiskValues } from "./risk-calculation-service";
 import {
   EN50742_AP_BAND_COUNT,
   en50742LevelFromRating,
   evaluateEN50742Likelihood,
+  EN50742_EXPOSURE_LEVELS,
   type AttackPotentialBand,
   type AttackerCapability,
   type ExposureLevel,
@@ -136,4 +137,85 @@ export function calculateEN50742RiskValues(
     scaleLevels,
     normaliseImpactValue,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Exposure-level read-adapter (§11.2, "Variante A" — read, don't recompute)
+// ---------------------------------------------------------------------------
+// deriveExposureLevels() (dfd-graph-builder.ts) is the SINGLE SOURCE OF TRUTH
+// for EL: it already resolves the higher-EL-wins MAX and writes the result
+// onto element/connection `properties.exposureLevel` on every saveDFD. This
+// adapter only READS that already-derived value for a threat's anchor and
+// mirrors it into the exposure_level FactorRating — no MAX logic here (that
+// would duplicate dfd-graph-builder.ts and risk drift out of sync with it).
+//
+// Anchor per threat method (§11.1, mutually exclusive on a Threat):
+//   per-element    → threat.linkedElement.elementId → dfd.elements[].id
+//   per-interaction→ threat.dataFlow.connectionId   → dfd.connections[].id
+//
+// Non-destructive, same discipline as applyAssetCriteriaToFactorRatings
+// (risk-calculation-service.ts): only fills in when an exposure_level rating
+// entry already exists, is currently unrated (value === 0), and was not
+// manually overridden. Unlike the asset-impact prefill, an already-derived
+// non-zero value is intentionally left alone (no silent refresh) — EL doesn't
+// vary across multiple criteria the way impact does, so there's nothing to
+// reconcile on re-application, and re-deriving here would risk masking a
+// DFD change that should instead flow through the normal sync path.
+
+/**
+ * Minimal structural threat shape the adapter needs — mirrors the
+ * ThreatForCoverage pattern (shared/utils/mitigation-coverage.ts) rather than
+ * depending on the full features/threats Threat type (features/risks must not
+ * import features/threats).
+ */
+export interface ExposureLevelAnchorThreat {
+  linkedElement?: { elementId: string } | null;
+  dataFlow?: { connectionId?: string } | null;
+}
+
+function resolveAnchorProperties(
+  threat: ExposureLevelAnchorThreat,
+  dfd: DFDReference | null | undefined,
+): Record<string, unknown> | undefined {
+  const elementId = threat.linkedElement?.elementId;
+  if (elementId) {
+    return dfd?.elements?.find((e) => e.id === elementId)?.properties;
+  }
+  const connectionId = threat.dataFlow?.connectionId;
+  if (connectionId) {
+    return dfd?.connections?.find((c) => c.id === connectionId)?.properties;
+  }
+  return undefined;
+}
+
+/**
+ * Reads the anchor's already-derived exposureLevel and writes it as a derived
+ * exposure_level FactorRating. No-op (returns `ratings` unchanged) when: no
+ * exposure_level entry exists yet, it's already rated (value !== 0), it was
+ * manually overridden, no anchor can be resolved, or the anchor carries no
+ * (valid) exposureLevel.
+ */
+export function applyExposureLevelToFactorRatings(
+  ratings: FactorRating[],
+  threat: ExposureLevelAnchorThreat,
+  dfd: DFDReference | null | undefined,
+): FactorRating[] {
+  const idx = ratings.findIndex((r) => r.factorId === EN50742_EL_FACTOR);
+  if (idx === -1) return ratings;
+
+  const rating = ratings[idx];
+  if (rating.value !== 0 || rating.source === "manual") return ratings;
+
+  const rawEL = resolveAnchorProperties(threat, dfd)?.exposureLevel;
+  const el =
+    typeof rawEL === "string" &&
+    (EN50742_EXPOSURE_LEVELS as readonly string[]).includes(rawEL)
+      ? (rawEL as ExposureLevel)
+      : undefined;
+  if (!el) return ratings;
+
+  const value = EN50742_EXPOSURE_LEVELS.indexOf(el) + 1;
+  const next = [...ratings];
+  next[idx] = { ...rating, value, derivedValue: value, source: "derived" };
+  return next;
 }
