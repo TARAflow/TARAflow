@@ -90,7 +90,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -659,11 +658,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     [markDirty, setSyncWarnings],
   );
 
-  const handleProceed = useCallback(
-    () => onPhaseComplete?.(),
-    [onPhaseComplete],
-  );
-
   // ── Safety removal dialog handlers ────────────────────────────────────────
 
   const handleSafetyRemovalKeep = useCallback(() => {
@@ -733,7 +727,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onImport={handleImport}
         onToggleWontTable={() => setShowWontTable(!showWontTable)}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        onProceed={handleProceed}
       />
 
       {/* Warnings */}

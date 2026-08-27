@@ -6,18 +6,16 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  Button,
   IconButton,
   Tooltip,
   Divider,
   Chip,
-  Typography
+  Typography,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Settings as SettingsIcon,
   Sync as SyncIcon,
-  SkipNext as NextIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Download as ExportIcon,
@@ -38,7 +36,6 @@ export interface AssetsToolbarProps {
   onExport: () => void;
   onImport: () => void;
   onSyncFromDFD: () => void;
-  onProceed: () => void;
 }
 
 // ==================== COMPONENT ====================
@@ -54,7 +51,6 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
     onExport,
     onImport,
     onSyncFromDFD,
-    onProceed,
   }) => {
     const { t } = useTranslation();
 
@@ -118,7 +114,9 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
 
         {/* Sync from DFD */}
         <Tooltip
-          title={t("tabs.assets.syncFromDFD", { defaultValue: "Sync from DFD" })}
+          title={t("tabs.assets.syncFromDFD", {
+            defaultValue: "Sync from DFD",
+          })}
         >
           <IconButton onClick={onSyncFromDFD} size="small">
             <SyncIcon />
@@ -177,26 +175,43 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
           placement="top"
           componentsProps={{ tooltip: { sx: { maxWidth: 320 } } }}
           title={
-            validation && (validation.errors.length > 0 || validation.warnings.length > 0) ? (
+            validation &&
+            (validation.errors.length > 0 || validation.warnings.length > 0) ? (
               <Box sx={{ p: 0.5 }}>
                 {validation.errors.map((err, i) => (
-                  <Typography key={i} variant="caption" display="block" color="rgba(255,180,180,1)">
+                  <Typography
+                    key={i}
+                    variant="caption"
+                    display="block"
+                    color="rgba(255,180,180,1)"
+                  >
                     • {translateValidationMessage(err)}
                   </Typography>
                 ))}
                 {validation.warnings.map((warn, i) => (
-                  <Typography key={i} variant="caption" display="block" color="rgba(255,220,100,1)">
+                  <Typography
+                    key={i}
+                    variant="caption"
+                    display="block"
+                    color="rgba(255,220,100,1)"
+                  >
                     • {translateValidationMessage(warn)}
                   </Typography>
                 ))}
               </Box>
             ) : (
-              t("validation.noMessages", { defaultValue: "No validation messages" })
+              t("validation.noMessages", {
+                defaultValue: "No validation messages",
+              })
             )
           }
         >
           <Box component="span" sx={{ display: "inline-block" }}>
-            <Chip label={getStatusText()} size="small" color={getStatusColor()} />
+            <Chip
+              label={getStatusText()}
+              size="small"
+              color={getStatusColor()}
+            />
           </Box>
         </Tooltip>
 
@@ -209,20 +224,6 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
             variant="outlined"
           />
         )}
-
-        <Divider orientation="vertical" flexItem />
-
-        {/* Proceed */}
-        <Button
-          endIcon={<NextIcon />}
-          onClick={onProceed}
-          disabled={!validation?.isComplete}
-          size="small"
-          variant="outlined"
-          color="success"
-        >
-          {t("common.continue", { defaultValue: "Continue" })}
-        </Button>
       </Box>
     );
   },

@@ -73,7 +73,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   onUpdate,
   onDFDAssetUpdate,
   onDirtyChange,
-  onPhaseComplete,
   hazardLinks,
 }) => {
   const { t } = useTranslation();
@@ -512,13 +511,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     setShowExportImportDialog(false);
   }, []);
 
-  // ==================== PROCEED ====================
-
-  const handleProceed = useCallback(() => {
-    // Auto-save handles saving, just proceed to next phase
-    onPhaseComplete?.();
-  }, [onPhaseComplete]);
-
   // ==================== DFD SYNC ====================
 
   const {
@@ -643,7 +635,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onExport={handleExport}
         onImport={handleImport}
         onSyncFromDFD={handleSyncFromDFD}
-        onProceed={handleProceed}
       />
       {/* Warnings */}
       <Collapse in={hasWarnings || missingInDFD.length > 0}>

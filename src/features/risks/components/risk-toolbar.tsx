@@ -8,7 +8,6 @@ import {
   Box,
   IconButton,
   Tooltip,
-  Button,
   Divider,
   Chip,
   CircularProgress,
@@ -19,7 +18,6 @@ import {
 import {
   Settings as SettingsIcon,
   Sync as SyncIcon,
-  SkipNext as NextIcon,
   Warning as WarningIcon,
   Download as ExportIcon,
   Upload as ImportIcon,
@@ -72,7 +70,6 @@ export interface RisksToolbarProps {
   onImport: () => void;
   onToggleWontTable: () => void;
   onToggleFilters: () => void;
-  onProceed: () => void;
 }
 
 // ==================== COMPONENT ====================
@@ -106,7 +103,6 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   onImport,
   onToggleWontTable,
   onToggleFilters,
-  onProceed,
 }) => {
   const { t } = useTranslation();
 
@@ -381,20 +377,6 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           variant="outlined"
         />
       )}
-
-      <Divider orientation="vertical" flexItem />
-
-      {/* Proceed */}
-      <Button
-        endIcon={<NextIcon />}
-        onClick={onProceed}
-        disabled={riskCount === 0 || completedRiskCount !== riskCount}
-        size="small"
-        variant="outlined"
-        color="success"
-      >
-        {t("common.continue", { defaultValue: "Continue" })}
-      </Button>
     </Box>
   );
 };
