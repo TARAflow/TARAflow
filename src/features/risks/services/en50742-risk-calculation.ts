@@ -20,8 +20,11 @@ import type { FactorRating } from "../models/risk-factor-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
 import { normaliseImpactValue } from "shared";
-import type { WindowOfOpportunity, DFDReference } from "shared";
-import { calculateRiskValues } from "./risk-calculation-service";
+import type { WindowOfOpportunity, DFDReference, AssetReference } from "shared";
+import {
+  calculateRiskValues,
+  worstPhysicalImpact,
+} from "./risk-calculation-service";
 import {
   EN50742_AP_BAND_COUNT,
   en50742LevelFromRating,
@@ -58,13 +61,19 @@ const round1 = (n: number): number => Math.round(n * 10) / 10;
 /**
  * Pure EN 50742 risk computation over already-resolved inputs. Depends only on
  * the core plus an injected `normalise` — no app wiring, fully unit-testable.
+ *
+ * `severity` is optional (§11.2 gate): a risk can have EL+AC fully rated
+ * without a linked safety-function asset carrying a resolvable severity. AP/
+ * likelihood are still computed for the R×L lens; `srsl` is `null` in that
+ * case (evaluateEN50742Likelihood's convention, not the "el/ac unrated" null
+ * below — see EN50742CalculationResult.srsl doc).
  */
 export function en50742RiskFromResolved(
   impact: number,
   el: ExposureLevel | undefined,
   ac: AttackerCapability | undefined,
   windowOfOpportunity: WindowOfOpportunity,
-  severity: Severity,
+  severity: Severity | undefined,
   scaleLevels: number,
   normalise: NormaliseFn,
 ): EN50742CalculationResult {
@@ -102,13 +111,14 @@ export function en50742RiskFromResolved(
 
 /**
  * Wiring: impact via the generic path (parity), EL (derived) + AC (rated) from
- * `ratings`, WoO/severity from the caller.
+ * `ratings`, WoO/severity from the caller. `severity` is optional — see
+ * resolveEN50742Severity() below for the standard resolution from linked assets.
  */
 export function calculateEN50742RiskValues(
   ratings: FactorRating[],
   configuration: RiskConfiguration,
   windowOfOpportunity: WindowOfOpportunity,
-  severity: Severity,
+  severity: Severity | undefined,
 ): EN50742CalculationResult {
   const scaleLevels = LIKELIHOOD_SCALES[configuration.scale].levels.length;
 
@@ -154,13 +164,19 @@ export function calculateEN50742RiskValues(
 //   per-interaction→ threat.dataFlow.connectionId   → dfd.connections[].id
 //
 // Non-destructive, same discipline as applyAssetCriteriaToFactorRatings
-// (risk-calculation-service.ts): only fills in when an exposure_level rating
-// entry already exists, is currently unrated (value === 0), and was not
-// manually overridden. Unlike the asset-impact prefill, an already-derived
-// non-zero value is intentionally left alone (no silent refresh) — EL doesn't
-// vary across multiple criteria the way impact does, so there's nothing to
-// reconcile on re-application, and re-deriving here would risk masking a
-// DFD change that should instead flow through the normal sync path.
+// (risk-calculation-service.ts): only ever touches an exposure_level rating
+// that was NOT manually overridden (source !== "manual"). A manual override
+// always wins, permanently, until the analyst clears it.
+//
+// Unlike an earlier version of this adapter, a derived value is NOT frozen
+// after the first successful derivation — every re-application (dialog init,
+// threat sync) re-reads the DFD anchor and keeps the rating in sync with it,
+// exactly like the asset-impact prefill keeps impact factors in sync with
+// Asset Tab data. If the DFD's EL for this anchor changes (e.g. EL1 → EL3),
+// the rating follows. If the DFD no longer provides a valid EL for this
+// anchor at all (element deleted, property removed, ...), the rating resets
+// to unrated (0) rather than keeping a stale value — again mirroring
+// applyAssetCriteriaToFactorRatings' behaviour when asset data disappears.
 
 /**
  * Minimal structural threat shape the adapter needs — mirrors the
@@ -189,11 +205,13 @@ function resolveAnchorProperties(
 }
 
 /**
- * Reads the anchor's already-derived exposureLevel and writes it as a derived
- * exposure_level FactorRating. No-op (returns `ratings` unchanged) when: no
- * exposure_level entry exists yet, it's already rated (value !== 0), it was
- * manually overridden, no anchor can be resolved, or the anchor carries no
- * (valid) exposureLevel.
+ * Reads the anchor's current exposureLevel from the DFD and keeps the
+ * exposure_level FactorRating in sync with it — re-applied on every dialog
+ * init / threat sync, not just once. No-op (returns `ratings` unchanged)
+ * when: no exposure_level entry exists, or it was manually overridden
+ * (source === "manual" always wins). When the anchor no longer resolves to a
+ * valid EL, the rating resets to unrated (0) rather than keeping a stale
+ * value.
  */
 export function applyExposureLevelToFactorRatings(
   ratings: FactorRating[],
@@ -204,7 +222,15 @@ export function applyExposureLevelToFactorRatings(
   if (idx === -1) return ratings;
 
   const rating = ratings[idx];
-  if (rating.value !== 0 || rating.source === "manual") return ratings;
+  // A manual EL of exactly 0 can no longer be freshly created (updateFactor
+  // in risk-dialog.tsx now clears `source` entirely when the analyst picks
+  // "Not rated" for EL specifically) — any {value: 0, source: "manual"}
+  // still around is leftover corruption from before that fix, not a
+  // deliberate "the value is zero forever" choice (that assertion is
+  // meaningless for EL anyway: 0 already means unrated). Self-heals old
+  // data without a migration step. A manual NONZERO value still wins,
+  // permanently, exactly as before.
+  if (rating.source === "manual" && rating.value !== 0) return ratings;
 
   const rawEL = resolveAnchorProperties(threat, dfd)?.exposureLevel;
   const el =
@@ -212,10 +238,147 @@ export function applyExposureLevelToFactorRatings(
     (EN50742_EXPOSURE_LEVELS as readonly string[]).includes(rawEL)
       ? (rawEL as ExposureLevel)
       : undefined;
-  if (!el) return ratings;
+
+  if (!el) {
+    // DFD no longer provides a valid EL for this anchor — reset to unrated
+    // rather than leaving a stale derived value in place.
+    if (rating.value === 0 && rating.derivedValue === undefined) {
+      return ratings; // already unrated — no-op, avoid needless churn
+    }
+    const next = [...ratings];
+    next[idx] = {
+      ...rating,
+      value: 0,
+      derivedValue: undefined,
+      source: undefined,
+    };
+    return next;
+  }
 
   const value = EN50742_EXPOSURE_LEVELS.indexOf(el) + 1;
+  if (rating.value === value && rating.source === "derived") {
+    return ratings; // already in sync — no-op, avoid needless churn
+  }
   const next = [...ratings];
   next[idx] = { ...rating, value, derivedValue: value, source: "derived" };
   return next;
+}
+
+// ---------------------------------------------------------------------------
+// Severity resolver (§3.6/§3.7) — worst-case physicalImpact over linked assets
+// ---------------------------------------------------------------------------
+// Severity is NOT a new concept: asset.physicalImpact is already the
+// hazard-chain-resolved severity for that asset (resolveAssetPhysicalImpact,
+// app/utils/resolve-asset-physical-impact.ts — manual override, else worst
+// HazardItem.endangers severity, else legacy annotation). The existing
+// "Safety Impact" business factor already takes the worst physicalImpact
+// across a risk's linkedAssets (deriveSafetyValue, risk-calculation-service.ts);
+// EN 50742 severity reuses the SAME worst-case selection via the shared
+// worstPhysicalImpact() helper — just mapped onto the 3-level EN 50742
+// vocabulary instead of the 4-level business-impact scale.
+//
+// §3.7 (SRSL per safety-function × interface) falls out of this for free: a
+// Risk is already anchored to exactly one EL-bearing interface/DataFlow via
+// its threat (§11.1), so different interfaces naturally produce different
+// Risks with independently-resolved severities. The one gap vs. a fully
+// norm-literal reading: if a single Risk has linkedAssets belonging to
+// multiple DIFFERENT safety functions with different severities, worst-case
+// collapses them into one severity rather than two separate SRSL
+// determinations. Accepted simplification — no explicit "this asset IS the
+// safety function relevant to this interface" relation exists in the asset
+// model today (would require new asset-relation modeling, out of scope here).
+
+const PHYSICAL_IMPACT_TO_SEVERITY: Record<
+  "reversible_injury" | "irreversible_injury" | "fatality",
+  Severity
+> = {
+  reversible_injury: "reversible",
+  irreversible_injury: "non_reversible",
+  fatality: "fatal",
+};
+
+/**
+ * Resolves EN 50742 severity from a risk's linked assets: worst-case
+ * physicalImpact (already hazard-chain-resolved on the asset, see module
+ * comment above), mapped onto the 3-level EN 50742 vocabulary. `undefined`
+ * when no linked asset carries a physicalImpact — the caller (§11.2 gate)
+ * still computes AP/likelihood for the R×L lens; only SRSL is affected
+ * (evaluateEN50742Likelihood returns srsl: null in that case).
+ */
+export function resolveEN50742Severity(
+  linkedAssets: AssetReference[],
+): Severity | undefined {
+  const worst = worstPhysicalImpact(linkedAssets);
+  return worst ? PHYSICAL_IMPACT_TO_SEVERITY[worst] : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Per-risk gate (§11.2) — EN 50742 AP/SRSL vs. generic R = I × L
+// ---------------------------------------------------------------------------
+// The choice is made PER RISK, not project-wide. Gate: does this risk's
+// anchor carry an EL? Reduces to a rating check, not a DFD/threat lookup —
+// applyExposureLevelToFactorRatings() (§11.2 Variante A) has already written
+// the resolved EL into `ratings` by the time this runs (both call sites
+// apply it before computing risk values), so this function only ever reads
+// `ratings`, never `dfd`/`threat` itself.
+//
+//   method !== "en-50742-a"            → generic path, srsl/apScore/apBand
+//                                         simply absent (not an EN 50742
+//                                         project at all).
+//   method === "en-50742-a":
+//     exposure_level unrated (value 0)
+//     OR windowOfOpportunity not yet configured on the project
+//                                       → generic R×L path, srsl/apScore/
+//                                         apBand explicitly null (§11.2: "no
+//                                         EL anchor" — one of two reasons
+//                                         srsl is null, never SRSL0).
+//     exposure_level rated             → calculateEN50742RiskValues: SRSL
+//                                         (primary) + R×L (secondary lens,
+//                                         L = AP band on the project scale).
+//                                         severity resolved from linkedAssets
+//                                         via resolveEN50742Severity(); may
+//                                         itself be unresolved → srsl null
+//                                         for that separate reason (§11.2
+//                                         gate docs on EN50742LikelihoodEval).
+
+export interface GatedRiskCalculationResult {
+  impact: number;
+  likelihood: number;
+  risk: number;
+  /** Present (possibly null) only for en-50742-a projects — see module doc. */
+  srsl?: Srsl | null;
+  apScore?: number | null;
+  apBand?: AttackPotentialBand | null;
+}
+
+/**
+ * Routes a risk's calculation between the generic R=I×L path and the EN 50742
+ * AP/SRSL path, per the §11.2 gate. Single entry point for both call sites
+ * (risk-dialog.tsx, risk-sync-service.ts) so the gate logic exists exactly
+ * once.
+ */
+export function calculateGatedRiskValues(
+  ratings: FactorRating[],
+  configuration: RiskConfiguration,
+  linkedAssets: AssetReference[],
+): GatedRiskCalculationResult {
+  if (configuration.likelihoodMethod !== "en-50742-a") {
+    return calculateRiskValues(ratings, configuration);
+  }
+
+  const elValue =
+    ratings.find((r) => r.factorId === EN50742_EL_FACTOR)?.value ?? 0;
+
+  if (elValue <= 0 || !configuration.windowOfOpportunity) {
+    const generic = calculateRiskValues(ratings, configuration);
+    return { ...generic, srsl: null, apScore: null, apBand: null };
+  }
+
+  const severity = resolveEN50742Severity(linkedAssets);
+  return calculateEN50742RiskValues(
+    ratings,
+    configuration,
+    configuration.windowOfOpportunity,
+    severity,
+  );
 }

@@ -10,6 +10,7 @@
 //   risk-factor-types    (FactorRating, ALL_PREDEFINED_FACTORS, migrateFactorRatings)
 //   risk-config-types    (RiskConfiguration, DEFAULT_CONFIGURATION, RiskValidation)
 //   risk-mitigation-types (SelectedMitigation, MitigationStatus)
+//   en50742-approach-a-core (Srsl, AttackPotentialBand — §11.2 gate output, D)
 
 import type {
   AttackTreeLikelihoodReference,
@@ -33,6 +34,7 @@ import { DEFAULT_CONFIGURATION } from "./risk-config-types";
 import type { SelectedMitigation } from "./risk-mitigation-types";
 import type { MoSCoWPriority, RiskTreatment } from "./risk-scale-types";
 import type { RiskIntegrationConnection } from "./risk-integration-types";
+import type { Srsl, AttackPotentialBand } from "./en50742-approach-a-core";
 
 // ==================== RISK ====================
 export interface RiskUpdateResult {
@@ -57,6 +59,29 @@ export interface Risk {
   calculatedImpact: number;
   calculatedLikelihood: number;
   calculatedRiskBeforeMitigation: number;
+  /**
+   * EN 50742 Approach A (§2.2 Output Model C; routed via the §11.2 gate,
+   * calculateGatedRiskValues in en50742-risk-calculation.ts) — the primary,
+   * authoritative output when this risk's anchor carries an Exposure Level.
+   * calculatedLikelihood/calculatedRiskBeforeMitigation remain the secondary
+   * R×L lens in that case (L = AP band on the project scale) — SRSL is NOT
+   * derived from them, and is never "mitigated down" by
+   * mitigatedFactorRatings (§3.8: SRSL is a target level, satisfied by
+   * controls, not lowered by them).
+   *
+   * `undefined` — not an en-50742-a project; these fields simply don't apply.
+   * `null` — en-50742-a project, but not (yet) determined for this risk:
+   *   either the anchor carries no EL (gate inactive, standard R×L only) or
+   *   EL/AC aren't fully rated. Deliberately distinct from `undefined` so a
+   *   UI can tell "not applicable" apart from "applicable but not yet rated"
+   *   — and both are distinct from a genuine SRSL0 result (§3.9).
+   * concrete `Srsl` value — gate active, fully determined.
+   */
+  calculatedSrsl?: Srsl | null;
+  /** EN 50742 Attack Potential score underlying calculatedSrsl — same undefined/null convention. */
+  calculatedApScore?: number | null;
+  /** EN 50742 Attack Potential band underlying calculatedSrsl — same undefined/null convention. */
+  calculatedApBand?: AttackPotentialBand | null;
   selectedMitigations: SelectedMitigation[];
   selectedVerifications: string[];
   mitigatedFactorRatings: FactorRating[];
@@ -162,6 +187,11 @@ export function createEmptyRisk(
     calculatedImpact: 0,
     calculatedLikelihood: 0,
     calculatedRiskBeforeMitigation: 0,
+    // calculatedSrsl/calculatedApScore/calculatedApBand intentionally omitted
+    // here (stay undefined) — the §11.2 gate wrapper (E) fills them in right
+    // after creation for en-50742-a projects, same as calculatedImpact/
+    // Likelihood/RiskBeforeMitigation are recomputed by the caller, not by
+    // this factory.
     selectedMitigations: [],
     selectedVerifications: [],
     mitigatedFactorRatings: enabledFactors.map((f) => ({

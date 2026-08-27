@@ -139,7 +139,26 @@
         "treeFactorBadge": "Attack Tree",
         "treeFactorReadOnly": "read-only, edit at source",
         "treeAdvisoryLabel": "Attack Tree (advisory)",
-        "treeAdvisoryHint": "Not included in the calculation — shown for reference only."
+        "treeAdvisoryHint": "Not included in the calculation — shown for reference only.",
+        "srslLabel": "SRSL (EN 50742, primary)",
+        "srslNotDetermined": "Not yet determined — rate Exposure Level and Attacker Capability",
+        "srslNoSeverity": "No severity — link a safety-function asset with a physical impact",
+        "srslFormula": "AP = ({{el}} × {{woo}}) + {{ac}} = {{result}} → {{band}}",
+        "srslSectionTitle": "SRSL (EN 50742)",
+        "wooTooltip": "Global value — change it in the Overview tab (Security Context).",
+        "wooNotSet": "Not set — configure in Overview",
+        "severity": "Severity",
+        "severityNone": "No linked safety-function asset",
+        "factorDerivedDfd": "DFD",
+        "factorDerivedDfdTooltip": "Derived from the linked DFD element/DataFlow's Exposure Level",
+        "factorOverriddenTooltipDfd": "DFD-derived value: {{value}}. Click ↺ to reset.",
+        "apLabel": "Attack Potential (AP)",
+        "apNotDetermined": "Not yet determined",
+        "srslTablesToggle": "Show norm reference tables",
+        "tableB5Title": "Table B.5 — AP Score → Band",
+        "tableB6Title": "Table B.6 — Severity × Band → SRSL",
+        "tableScoreRange": "Score",
+        "tableBand": "Band"
       },
       "config": {
         "title": "Risk Assessment Configuration",
@@ -197,7 +216,8 @@
         "factorCountLocked": "{{count}} factors active — defined by the regulation",
         "lockMethod": "This regulation defines the likelihood factors (locked). Impact factors stay editable. Remove the norm tag in the Overview to change the method; the current likelihood ratings will be cleared.",
         "lockExclusive": "This regulation defines the risk method. Only its factors are active; all others (impact included) are locked — impact comes from asset impact. Remove the norm tag in the Overview to edit factors; the current likelihood ratings will be cleared.",
-        "addFactorLocked": "The active regulation defines the factor set — remove the norm tag in the Overview to add custom factors."
+        "addFactorLocked": "The active regulation defines the factor set — remove the norm tag in the Overview to add custom factors.",
+        "resetToDefault": "Reset to default"
       },
       "matrix": {
         "title": "Risk Matrix",
@@ -289,6 +309,17 @@
         "high": "High",
         "very_high": "Very High"
       }
+    },
+    "severity": {
+      "reversible": "Reversible",
+      "non_reversible": "Non-reversible",
+      "fatal": "Fatal"
+    },
+    "woo": {
+      "very_restricted": "Very Restricted",
+      "moderately_restricted": "Moderately Restricted",
+      "limited": "Limited",
+      "unlimited": "Unlimited"
     },
     "treatment": {
       "eliminate": {

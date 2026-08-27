@@ -39,7 +39,10 @@ import {
    setAttackTreeLikelihoodFactor,
    type TreeLikelihoodContribution,
  } from "../services/risk-calculation-service";
-import { applyExposureLevelToFactorRatings } from "../services/en50742-risk-calculation";
+import {
+  applyExposureLevelToFactorRatings,
+  calculateGatedRiskValues,
+} from "../services/en50742-risk-calculation";
 
 // ==================== RESULT TYPES ====================
 
@@ -588,10 +591,14 @@ export function syncRisksFromThreats(
       ratingsChanged
     ) {
       updated++;
-      const beforeValues = calculateRiskValues(
+      const beforeValues = calculateGatedRiskValues(
         updatedFactorRatings,
         updatedConfiguration,
+        linkedAssets,
       );
+      // mitigatedFactorRatings NEVER go through the gate — SRSL is a target
+      // level satisfied by controls, not "mitigated down" (§3.8); the After
+      // lens stays the plain generic R×L calc regardless of method.
       const afterValues = calculateRiskValues(
         updatedMitigatedRatings,
         updatedConfiguration,
@@ -612,6 +619,9 @@ export function syncRisksFromThreats(
         calculatedLikelihood: beforeValues.likelihood,
         calculatedRiskBeforeMitigation: beforeValues.risk,
         calculatedRiskAfterMitigation: afterValues.risk,
+        calculatedSrsl: beforeValues.srsl,
+        calculatedApScore: beforeValues.apScore,
+        calculatedApBand: beforeValues.apBand,
         lastModified: new Date().toISOString(),
       };
     }
@@ -651,9 +661,10 @@ export function syncRisksFromThreats(
       dfd,
     );
 
-    const beforeValues = calculateRiskValues(
+    const beforeValues = calculateGatedRiskValues(
       factorRatings,
       updatedConfiguration,
+      linkedAssets,
     );
 
     return {
@@ -664,6 +675,9 @@ export function syncRisksFromThreats(
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
       calculatedRiskAfterMitigation: 0,
+      calculatedSrsl: beforeValues.srsl,
+      calculatedApScore: beforeValues.apScore,
+      calculatedApBand: beforeValues.apBand,
     };
   });
 

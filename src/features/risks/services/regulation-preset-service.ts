@@ -25,7 +25,43 @@ import {
 } from "../models/risk-factor-types";
 import { REGULATION_PRESETS, type RegulationPresetId } from "shared";
 
-const REGIME_LIKELIHOOD_SOURCES: ReadonlySet<string> = new Set([
+// BUGFIX (reported: en-50742-a locked off ALL standard likelihood factors,
+// not just the norm-competing ones): "standard" (OWASP-style skill_level,
+// motive, opportunity, ease_of_exploit, ...) is the baseline factor set
+// available to every method — it is never mutually exclusive with a
+// regulatory regime and must stay analyst-configurable under "method" mode
+// (en-50742-a). Only the actual competing NORM regimes (ISO21434 / ETSI /
+// EN50742 themselves) lock each other out. "exclusive" mode (iso-21434 /
+// etsi-tvra) is unaffected by this set — it locks off everything non-target
+// via a separate branch in factorLockState(), never consulting this pool.
+// Methods whose regime is exclusive — ONLY the norm's own factors are ever
+// active; standard (OWASP-style) likelihood factors ARE regime-managed and
+// get disabled just like any other foreign-regime factor. Declared here
+// (not just near presetFactorLock below) because applyRegulationPreset also
+// needs it, to select the right pool.
+const EXCLUSIVE_METHODS: ReadonlySet<string> = new Set(["iso-21434", "etsi-tvra"]);
+
+// Pool for "method"-style presets (en-50742-a today): mutual exclusivity is
+// only between actual COMPETING NORM regimes. "standard" (OWASP-style
+// skill_level, motive, opportunity, ...) is the baseline factor set
+// available to every method — it is never mutually exclusive with a
+// regulatory regime and must stay analyst-configurable (bugfix: this used to
+// include "standard", so applying en-50742-a locked off ALL standard
+// likelihood factors, not just norm-competing ones).
+const METHOD_REGIME_SOURCES: ReadonlySet<string> = new Set([
+  "ETSI",
+  "EN50742",
+  "ISO21434",
+]);
+
+// Pool for "exclusive"-style presets (iso-21434 / etsi-tvra): these presets
+// replace the likelihood factor set ENTIRELY — only the preset's own targets
+// stay active, "standard" included. Keeping "standard" out of this pool
+// (as METHOD_REGIME_SOURCES does) would leave OWASP-style factors silently
+// enabled after switching to e.g. iso-21434, contradicting "ONLY the norm
+// factors are active" and letting stale weighted-mean factors leak into a
+// project that's supposed to be a pure score-table method.
+const EXCLUSIVE_REGIME_SOURCES: ReadonlySet<string> = new Set([
   "standard",
   "ETSI",
   "EN50742",
@@ -33,16 +69,18 @@ const REGIME_LIKELIHOOD_SOURCES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The pool of likelihood factors a preset is allowed to manage: every
- * likelihood-category factor from a regulatory regime source. Derived from the
- * factor definitions so it stays correct as factors are added.
+ * The pool of likelihood factors a preset is allowed to manage — mode-aware
+ * (see the two source sets above). Derived from the factor definitions so it
+ * stays correct as factors are added.
  */
-function regimeLikelihoodPool(defs: RiskFactorDefinition[]): Set<string> {
+function regimeLikelihoodPool(
+  defs: RiskFactorDefinition[],
+  exclusive: boolean,
+): Set<string> {
+  const sources = exclusive ? EXCLUSIVE_REGIME_SOURCES : METHOD_REGIME_SOURCES;
   return new Set(
     defs
-      .filter(
-        (d) => d.category === "likelihood" && REGIME_LIKELIHOOD_SOURCES.has(d.source),
-      )
+      .filter((d) => d.category === "likelihood" && sources.has(d.source))
       .map((d) => d.id),
   );
 }
@@ -87,7 +125,10 @@ export function applyRegulationPreset(
   }
 
   const target = new Set(preset.likelihoodFactorIds);
-  const pool = regimeLikelihoodPool(factorDefs);
+  const pool = regimeLikelihoodPool(
+    factorDefs,
+    EXCLUSIVE_METHODS.has(preset.likelihoodMethod),
+  );
 
   const enabled: string[] = [];
   const disabled: string[] = [];
@@ -151,14 +192,20 @@ export function applyRegulationPreset(
 }
 
 /**
- * Two locking modes for the config dialog (design §3.11, enforcement A2):
+ * Locking modes for the config dialog (design §3.11, enforcement A2):
  *
- *   "none"      weighted-mean presets (standard, en-50742-b) — nothing locked.
- *   "method"    EN 50742-a — norm factors (EL/WoO/AC) locked; OTHER regime
- *               likelihood factors locked off; IMPACT + custom factors stay
- *               EDITABLE (they feed only the secondary R=I×L lens; the
- *               authoritative SRSL uses asset severity, so they cannot corrupt
- *               the norm result).
+ *   "none"      weighted-mean presets (standard, en-50742-b) AND en-50742-a —
+ *               nothing locked. EN 50742-a's own factors (EL/WoO/AC) are no
+ *               longer part of this dialog's managed set at all (see
+ *               presetFactorLock below) — they're shown/rated exclusively in
+ *               RiskDialog's SRSL section, auto-enabled via
+ *               applyRegulationPreset() when the tag is set.
+ *   "method"    currently UNREACHABLE — no LikelihoodMethod maps to it
+ *               anymore (en-50742-a was the only "method" preset; it moved
+ *               to "none" above). Kept only so PresetLockMode/factorLockState
+ *               don't need a wider revert if a future preset needs this
+ *               "norm targets locked-on, other regimes locked-off, impact
+ *               stays editable" shape again.
  *   "exclusive" iso-21434 / etsi-tvra — ONLY the norm factors are active;
  *               EVERYTHING else is locked off, impact factors included. Impact
  *               must therefore come from asset-impact (useAssetImpact), not from
@@ -174,23 +221,30 @@ export interface PresetFactorLock {
   lockedLikelihood: string[];
 }
  
-/** Methods whose lock excludes ALL non-norm factors (impact included). */
-const EXCLUSIVE_METHODS: ReadonlySet<string> = new Set(["iso-21434", "etsi-tvra"]);
- 
 export function presetFactorLock(
   presetId: RegulationPresetId,
   factorDefs: RiskFactorDefinition[] = ALL_PREDEFINED_FACTORS,
 ): PresetFactorLock {
   const preset = REGULATION_PRESETS[presetId];
-  if (preset.likelihoodMethod === "weighted-mean" || !preset.likelihoodFactorIds) {
+  // en-50742-a's own factors (WoO/AC/EL) are no longer part of the
+  // config-dialog's managed set at all (risk-config-dialog.tsx excludes
+  // EN50742_FACTORS from factorGroups.likelihood entirely) — they're shown
+  // and rated exclusively in RiskDialog's SRSL section, activated via
+  // applyRegulationPreset() when the tag is set, never toggled here. There
+  // is therefore nothing left for this dialog's lock system to manage for
+  // en-50742-a; treat it like weighted-mean (mode "none").
+  if (
+    preset.likelihoodMethod === "weighted-mean" ||
+    preset.likelihoodMethod === "en-50742-a" ||
+    !preset.likelihoodFactorIds
+  ) {
     return { mode: "none", targets: [], lockedLikelihood: [] };
   }
   const target = new Set(preset.likelihoodFactorIds);
-  const pool = regimeLikelihoodPool(factorDefs);
+  const exclusive = EXCLUSIVE_METHODS.has(preset.likelihoodMethod);
+  const pool = regimeLikelihoodPool(factorDefs, exclusive);
   const lockedLikelihood = [...pool].filter((id) => !target.has(id)).sort();
-  const mode: PresetLockMode = EXCLUSIVE_METHODS.has(preset.likelihoodMethod)
-    ? "exclusive"
-    : "method";
+  const mode: PresetLockMode = exclusive ? "exclusive" : "method";
   return { mode, targets: [...target].sort(), lockedLikelihood };
 }
  

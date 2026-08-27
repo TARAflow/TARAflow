@@ -40,7 +40,12 @@ describe("applyRegulationPresetToProject", () => {
     expect(res.project.settings.regulationPreset).toBe("en-50742-a");
     expect(res.changed).toBe(true);
     expect(enabled(res.project)).toContain("exposure_level");
-    expect(enabled(res.project)).not.toContain("skill_level");
+    // "standard" (OWASP-style) factors are NOT regime-managed — en-50742-a
+    // no longer disables them (design simplification: config-dialog only
+    // manages the standard method's factors; EN 50742's own factors are
+    // independent of it). skill_level was already enabled by
+    // DEFAULT_CONFIGURATION and stays that way.
+    expect(enabled(res.project)).toContain("skill_level");
   });
 
   it("does not mutate the input project", () => {
@@ -57,16 +62,30 @@ describe("applyRegulationPresetToProject", () => {
     expect(res.project.risks).toBeNull();
   });
 
-  it("passes analyst-conflict factors through", () => {
+  it("passes analyst-conflict factors through — using a genuinely regime-pooled factor", () => {
+    // "size" (source: "standard") is no longer regime-managed at all — it can
+    // never conflict with any preset anymore (design simplification, see
+    // test above). A genuine conflict now requires a factor from an ACTUAL
+    // competing norm regime — e.g. an ISO21434-source factor the analyst
+    // enabled by hand before switching to en-50742-a: it's in the regime
+    // pool (ISO21434 source) but not an en-50742-a target, so applying the
+    // preset would normally switch it off — UNLESS the analyst explicitly
+    // enabled it (autoEnabled: false), which is exactly what "conflict"
+    // means here.
     const p = project();
-    const size = p.risks!.configuration.activeFactors.find(
-      (f) => f.factorId === "size",
-    )!;
-    size.enabled = true;
-    size.autoEnabled = false;
+    // iso_elapsed_time isn't in DEFAULT_CONFIGURATION.activeFactors at all
+    // (only standard/EN50742/impact factors are) — add it as the analyst's
+    // explicit choice, same as risk-config-dialog.tsx would when toggling a
+    // factor on for the first time.
+    p.risks!.configuration.activeFactors.push({
+      factorId: "iso_elapsed_time",
+      enabled: true,
+      weight: 1.0,
+      autoEnabled: false,
+    });
 
     const res = applyRegulationPresetToProject(p, "en-50742-a");
-    expect(res.conflicts).toContain("size");
+    expect(res.conflicts).toContain("iso_elapsed_time");
   });
 
   it("is a no-op change for a preset that manages no factors (en-50742-b)", () => {

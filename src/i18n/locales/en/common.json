@@ -643,5 +643,13 @@
       "name": "Unlimited",
       "description": "Open, frequent, or unlimited opportunity."
     }
+  },
+  "mitigation": {
+    "coverage": {
+      "fullyImplemented": "All properties already set in DFD model",
+      "implemented": "Already implemented",
+      "partiallyImplemented": "Partially implemented in DFD model",
+      "partial": "Partially implemented"
+    }
   }
 }

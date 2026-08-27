@@ -263,6 +263,7 @@
           "asset": {
             "label": "Asset",
             "createNew": "Create new asset…",
+            "noAvailable": "No assets available. Create assets in the DFD Asset Panel first.",
             "newAsset": {
               "title": "Create New Asset",
               "name": "Asset Name",

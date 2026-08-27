@@ -15,15 +15,18 @@ describe("presetFactorLock — modes", () => {
     expect(presetFactorLock("standard").mode).toBe("none");
     expect(presetFactorLock("en-50742-b").mode).toBe("none");
   });
-  it("method for en-50742-a", () => {
+  it("none for en-50742-a — its own factors (WoO/AC/EL) are no longer part of this dialog's managed set at all", () => {
+    // Design simplification (superseding the earlier "method" mode): rather
+    // than keep patching the lock interaction between "standard" factors and
+    // EN 50742's own factors, EN 50742's factors were removed from
+    // risk-config-dialog.tsx's factorGroups.likelihood entirely — they're
+    // shown/rated exclusively in RiskDialog's SRSL section, auto-enabled via
+    // applyRegulationPreset() when the tag is set. There is nothing left for
+    // this dialog's lock system to manage for en-50742-a.
     const l = presetFactorLock("en-50742-a");
-    expect(l.mode).toBe("method");
-    expect(l.targets).toEqual(["attacker_capability", "exposure_level"]);
-    // WoO is project-global now (Overview), NOT a per-risk target — it is a
-    // regime likelihood factor that stays locked OFF.
-    expect(l.lockedLikelihood).toContain("window_of_opportunity");
-    expect(l.lockedLikelihood).toContain("skill_level");
-    expect(l.lockedLikelihood).toContain("iso_elapsed_time");
+    expect(l.mode).toBe("none");
+    expect(l.targets).toEqual([]);
+    expect(l.lockedLikelihood).toEqual([]);
   });
   it("exclusive for iso-21434 and etsi-tvra", () => {
     expect(presetFactorLock("iso-21434").mode).toBe("exclusive");
@@ -31,21 +34,22 @@ describe("presetFactorLock — modes", () => {
   });
 });
 
-describe("factorLockState — EN 50742 (method): impact editable, norm locked", () => {
+describe("factorLockState — EN 50742-a (none): nothing locked, config-dialog doesn't manage these factors", () => {
   const lock = presetFactorLock("en-50742-a");
-  it("norm factor → locked-on", () => {
-    expect(factorLockState("exposure_level", lock)).toBe("locked-on");
+  it("EN 50742's own norm factors → editable (not shown in this dialog at all, but the function itself locks nothing)", () => {
+    expect(factorLockState("exposure_level", lock)).toBe("editable");
+    expect(factorLockState("attacker_capability", lock)).toBe("editable");
   });
-  it("other regime likelihood → locked-off", () => {
-    expect(factorLockState("skill_level", lock)).toBe("locked-off");
-    expect(factorLockState("time", lock)).toBe("locked-off");
+  it("other regimes' likelihood factors → editable (never competed with en-50742-a in the first place)", () => {
+    expect(factorLockState("skill_level", lock)).toBe("editable");
+    expect(factorLockState("time", lock)).toBe("editable");
   });
-  it("impact factor → EDITABLE (feeds only R=I×L)", () => {
+  it("impact factor → editable (unchanged)", () => {
     expect(factorLockState("financial_damage", lock)).toBe("editable");
     expect(factorLockState("reputation", lock)).toBe("editable");
   });
-  it("per-risk window_of_opportunity → locked-off (WoO is global now)", () => {
-    expect(factorLockState("window_of_opportunity", lock)).toBe("locked-off");
+  it("per-risk window_of_opportunity → editable (global WoO lives on configuration.windowOfOpportunity, unrelated to this per-risk factor id's lock state)", () => {
+    expect(factorLockState("window_of_opportunity", lock)).toBe("editable");
   });
   it("unknown/custom factor → editable", () => {
     expect(factorLockState("my_custom", lock)).toBe("editable");
@@ -66,35 +70,39 @@ describe("factorLockState — ISO/TVRA (exclusive): everything but norm locked",
   });
 });
 
-describe("detectPresetFactorDrift — method (EN 50742)", () => {
-  const base: ActiveFactor[] = [
-    af("exposure_level", true), af("attacker_capability", true),
-    af("financial_damage", true), // impact ON — allowed in method mode
-  ];
-  it("impact factor enabled is NOT drift in method mode", () => {
-    expect(detectPresetFactorDrift(base, "en-50742-a").drifted).toBe(false);
-  });
-  it("disabled norm target is drift", () => {
-    const d = detectPresetFactorDrift(base.map((f) => f.factorId === "exposure_level" ? af("exposure_level", false) : f), "en-50742-a");
-    expect(d.disabledTargets).toEqual(["exposure_level"]);
-    expect(d.drifted).toBe(true);
-  });
-  it("foreign regime likelihood enabled is drift", () => {
-    const d = detectPresetFactorDrift([...base, af("skill_level", true)], "en-50742-a");
-    expect(d.foreignEnabled).toEqual(["skill_level"]);
+describe("detectPresetFactorDrift — en-50742-a (none): never drifts", () => {
+  // mode "none" short-circuits to {drifted:false,...} unconditionally — there
+  // is nothing for this dialog to consider drift for en-50742-a anymore,
+  // regardless of what activeFactors looks like.
+  it("no drift regardless of activeFactors state — nothing is managed here", () => {
+    const anything: ActiveFactor[] = [
+      af("exposure_level", false), // "disabled norm target" — not drift anymore
+      af("skill_level", true), // "foreign regime enabled" — not drift anymore
+      af("financial_damage", true),
+    ];
+    const d = detectPresetFactorDrift(anything, "en-50742-a");
+    expect(d.drifted).toBe(false);
+    expect(d.disabledTargets).toEqual([]);
+    expect(d.foreignEnabled).toEqual([]);
   });
 });
 
 describe("detectPresetFactorDrift — exclusive (ISO/TVRA)", () => {
   const norm: ActiveFactor[] = [
-    af("iso_elapsed_time", true), af("iso_expertise", true), af("iso_knowledge", true),
-    af("iso_window_of_opportunity", true), af("iso_equipment", true),
+    af("iso_elapsed_time", true),
+    af("iso_expertise", true),
+    af("iso_knowledge", true),
+    af("iso_window_of_opportunity", true),
+    af("iso_equipment", true),
   ];
   it("only norm factors → no drift", () => {
     expect(detectPresetFactorDrift(norm, "iso-21434").drifted).toBe(false);
   });
   it("ANY enabled non-norm factor is drift — impact included", () => {
-    const d = detectPresetFactorDrift([...norm, af("financial_damage", true)], "iso-21434");
+    const d = detectPresetFactorDrift(
+      [...norm, af("financial_damage", true)],
+      "iso-21434",
+    );
     expect(d.drifted).toBe(true);
     expect(d.foreignEnabled).toEqual(["financial_damage"]);
   });

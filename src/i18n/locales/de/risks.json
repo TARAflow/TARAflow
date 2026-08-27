@@ -140,7 +140,26 @@
         "treeFactorBadge": "Angriffsbaum",
         "treeFactorReadOnly": "nur lesbar, Bearbeitung an der Quelle",
         "treeAdvisoryLabel": "Angriffsbaum (Hinweis)",
-        "treeAdvisoryHint": "Nicht in die Berechnung einbezogen — nur zur Information angezeigt."
+        "treeAdvisoryHint": "Nicht in die Berechnung einbezogen — nur zur Information angezeigt.",
+        "srslLabel": "SRSL (EN 50742, primär)",
+        "srslNotDetermined": "Noch nicht bestimmt — Exposure Level und Attacker Capability bewerten",
+        "srslNoSeverity": "Keine Severity — Safety-Function-Asset mit physischem Impact verlinken",
+        "srslFormula": "AP = ({{el}} × {{woo}}) + {{ac}} = {{result}} → {{band}}",
+        "srslSectionTitle": "SRSL (EN 50742)",
+        "wooTooltip": "Globaler Wert — Änderung im Overview-Tab (Security Context).",
+        "wooNotSet": "Nicht gesetzt — im Overview konfigurieren",
+        "severity": "Severity",
+        "severityNone": "Kein verlinktes Safety-Function-Asset",
+        "factorDerivedDfd": "DFD",
+        "factorDerivedDfdTooltip": "Abgeleitet vom Exposure Level des verlinkten DFD-Elements/DataFlow",
+        "factorOverriddenTooltipDfd": "DFD-abgeleiteter Wert: {{value}}. Klick ↺ zum Zurücksetzen.",
+        "apLabel": "Attack Potential (AP)",
+        "apNotDetermined": "Not yet determined",
+        "srslTablesToggle": "Norm-Referenztabellen anzeigen",
+        "tableB5Title": "Tabelle B.5 — AP-Score → Band",
+        "tableB6Title": "Tabelle B.6 — Severity × Band → SRSL",
+        "tableScoreRange": "Score",
+        "tableBand": "Band"
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",
@@ -198,7 +217,8 @@
         "factorCountLocked": "{{count}} Faktoren aktiv — durch die Regulierung definiert",
         "lockMethod": "Diese Regulierung definiert die Likelihood-Faktoren (gesperrt). Impact-Faktoren bleiben editierbar. Entferne den Norm-Tag im Overview, um die Methode zu ändern; die aktuellen Likelihood-Bewertungen werden dabei zurückgesetzt.",
         "lockExclusive": "Diese Regulierung definiert die Risikomethode. Nur ihre Faktoren sind aktiv; alle anderen (inkl. Impact) sind gesperrt — Impact kommt aus dem Asset-Impact. Entferne den Norm-Tag im Overview, um Faktoren zu bearbeiten; die aktuellen Likelihood-Bewertungen werden dabei zurückgesetzt.",
-        "addFactorLocked": "Die aktive Regulierung definiert den Faktorensatz — entferne den Norm-Tag im Overview, um eigene Faktoren hinzuzufügen."
+        "addFactorLocked": "Die aktive Regulierung definiert den Faktorensatz — entferne den Norm-Tag im Overview, um eigene Faktoren hinzuzufügen.",
+        "resetToDefault": "Auf Standard zurücksetzen"
       },
       "matrix": {
         "title": "Risikomatrix",
@@ -290,6 +310,17 @@
         "high": "Hoch",
         "very_high": "Sehr hoch"
       }
+    },
+    "severity": {
+      "reversible": "Reversibel",
+      "non_reversible": "Irreversibel",
+      "fatal": "Tödlich"
+    },
+    "woo": {
+      "very_restricted": "Sehr eingeschränkt",
+      "moderately_restricted": "Mäßig eingeschränkt",
+      "limited": "Eingeschränkt",
+      "unlimited": "Unbeschränkt"
     },
     "treatment": {
       "eliminate": {

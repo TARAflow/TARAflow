@@ -84,13 +84,27 @@ export function computeAttackPotential(input: AttackPotentialInput): AttackPoten
   return { score, band: bandForAttackPotential(score) };
 }
 
+/** Table B.5 — Attack potential score → band, as data (not just the function
+ * below) so a reference-table UI can render it without duplicating the
+ * thresholds. `maxScore: null` means "no upper bound" (AP4). */
+export interface ApBandThreshold {
+  band: AttackPotentialBand;
+  maxScore: number | null;
+}
+export const AP_BAND_TABLE: readonly ApBandThreshold[] = [
+  { band: "AP0", maxScore: 5 },
+  { band: "AP1", maxScore: 10 },
+  { band: "AP2", maxScore: 15 },
+  { band: "AP3", maxScore: 20 },
+  { band: "AP4", maxScore: null },
+];
+
 /** Table B.5 — Attack potential score → band. */
 export function bandForAttackPotential(score: number): AttackPotentialBand {
-  if (score <= 5) return "AP0"; // 0 – 5
-  if (score <= 10) return "AP1"; // 5.1 – 10
-  if (score <= 15) return "AP2"; // 10.1 – 15
-  if (score <= 20) return "AP3"; // 15.1 – 20
-  return "AP4"; // > 20
+  for (const t of AP_BAND_TABLE) {
+    if (t.maxScore === null || score <= t.maxScore) return t.band;
+  }
+  return "AP4"; // unreachable — AP_BAND_TABLE always ends in a null upper bound
 }
 
 // ---------------------------------------------------------------------------
@@ -331,18 +345,23 @@ export interface EN50742LikelihoodEval {
   /**
    * Authoritative Approach-A output — Table B.6 (band × severity). Independent
    * of the likelihood ordinal; the two may diverge in ordering (§2.2).
+   * `null` when `severity` could not be resolved (§11.2 gate: a risk can have
+   * a fully-rated EL/AC without a linked safety-function asset carrying a
+   * physicalImpact — AP/likelihood are still meaningful for the R×L lens, but
+   * there is nothing to look up in Table B.6). Same "null ≠ unrated" convention
+   * as the caller's overall unrated case (§ EN50742CalculationResult.srsl).
    */
-  srsl: Srsl;
+  srsl: Srsl | null;
 }
 
 export function evaluateEN50742Likelihood(
   ap: AttackPotentialInput,
-  severity: Severity,
+  severity: Severity | undefined,
 ): EN50742LikelihoodEval {
   const attackPotential = computeAttackPotential(ap);
   return {
     attackPotential,
     likelihoodOrdinal: en50742LikelihoodOrdinal(attackPotential.band),
-    srsl: determineSrsl(attackPotential.band, severity),
+    srsl: severity ? determineSrsl(attackPotential.band, severity) : null,
   };
 }

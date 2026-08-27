@@ -43,6 +43,7 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  Collapse,
 } from "@mui/material";
 import {
   NavigateBefore as PrevIcon,
@@ -50,6 +51,7 @@ import {
   Warning as WarningIcon,
   ContentCopy as CopyIcon,
   Refresh as ResetIcon,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import {
   MitigationStatus,
@@ -97,8 +99,26 @@ import {
   applyAssetImpactToFactorRatings,
   resetFactorToDerived,
 } from "../services/risk-calculation-service";
-import { applyExposureLevelToFactorRatings } from "../services/en50742-risk-calculation";
+import {
+  applyExposureLevelToFactorRatings,
+  calculateGatedRiskValues,
+  resolveEN50742Severity,
+  EN50742_EL_FACTOR,
+} from "../services/en50742-risk-calculation";
+import type {
+  Severity,
+  ExposureLevel,
+  AttackerCapability,
+} from "../models/en50742-approach-a-core";
+import {
+  en50742LevelFromRating,
+  EXPOSURE_LEVEL_SCORE,
+  ATTACKER_CAPABILITY_SCORE,
+} from "../models/en50742-approach-a-core";
+import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS } from "shared";
 import { RiskScorePanel } from "./shared/risk-score-panel";
+import { SrslBadge } from "./shared/srsl-badge";
+import { SrslReferenceTables } from "./shared/srsl-reference-tables";
 
 // ==================== CONSTANTS ====================
 
@@ -201,6 +221,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
   const [tabValue, setTabValue] = useState(0);
   const [local, setLocal] = useState<LocalRiskState | null>(null);
+  const [showSrslTables, setShowSrslTables] = useState(false);
   const isProcessing = useRef(false);
 
   // ── Init local state when risk changes (with optional asset-impact pre-fill) ─
@@ -283,13 +304,83 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   // ── Computed values ───────────────────────────────────────────────────────
   const scale = RISK_SCALES[configuration.scale];
 
+  // §11.2: WoO/AC/EL feed AP/SRSL, not the standard weighted mean — gates
+  // both the severity lookup below and the factor-list split further down.
+  const isEN50742 = configuration.likelihoodMethod === "en-50742-a";
+
+  // ── Linked assets — fallback to threatRef if Risk has no linkedAssetIds ────
+  // Moved above beforeValues: calculateGatedRiskValues (§11.2 gate) needs
+  // linkedAssets to resolve EN 50742 severity (resolveEN50742Severity).
+  const currentThreatRef = useMemo(
+    () => threats?.find((t) => t.id === currentRisk?.threatId),
+    [threats, currentRisk?.threatId],
+  );
+
+  const effectiveLinkedAssetIds = useMemo(
+    () =>
+      currentRisk?.linkedAssetIds?.length
+        ? currentRisk.linkedAssetIds
+        : (currentThreatRef?.linkedAssetIds ?? []),
+    [currentRisk?.linkedAssetIds, currentThreatRef?.linkedAssetIds],
+  );
+
+  const linkedAssets = useMemo(() => {
+    if (!assetDataRef || !effectiveLinkedAssetIds.length) return [];
+    const found = effectiveLinkedAssetIds
+      .map((id) => assetDataRef.assets.find((a) => a.id === id))
+      .filter((a): a is AssetReference => Boolean(a));
+    return found;
+  }, [assetDataRef, effectiveLinkedAssetIds]);
+
+  // Read-only display (§3.6/§3.7) — same worst-case resolution the gate
+  // itself uses (resolveEN50742Severity), so the badge never disagrees with
+  // what actually produced calculatedSrsl.
+  const en50742Severity = useMemo(
+    () => (isEN50742 ? resolveEN50742Severity(linkedAssets) : undefined),
+    [isEN50742, linkedAssets],
+  );
+
+  // Resolved multiplicands for the AP formula tooltip (AP box) — display
+  // only, the actual apScore/apBand always come from beforeValues (the gate's
+  // own computation). Looked up from the same tables computeAttackPotential
+  // uses (en50742-approach-a-core.ts / shared), never re-derived.
+  const srslFormula = useMemo(() => {
+    if (!isEN50742 || !local) return undefined;
+    const elValue =
+      local.factorRatings.find((r) => r.factorId === "exposure_level")?.value ??
+      0;
+    const acValue =
+      local.factorRatings.find((r) => r.factorId === "attacker_capability")
+        ?.value ?? 0;
+    const elLevel = en50742LevelFromRating("exposure_level", elValue) as
+      | ExposureLevel
+      | undefined;
+    const acLevel = en50742LevelFromRating("attacker_capability", acValue) as
+      | AttackerCapability
+      | undefined;
+    const woo = configuration.windowOfOpportunity;
+    if (!elLevel || !acLevel || !woo) return undefined;
+    return {
+      elScore: EXPOSURE_LEVEL_SCORE[elLevel],
+      wooMultiplier: WINDOW_OF_OPPORTUNITY_MULTIPLIERS[woo],
+      acScore: ATTACKER_CAPABILITY_SCORE[acLevel],
+    };
+  }, [isEN50742, local?.factorRatings, configuration.windowOfOpportunity]);
+
   const beforeValues = useMemo(
     () =>
       local
-        ? calculateRiskValues(local.factorRatings, configuration)
+        ? calculateGatedRiskValues(
+            local.factorRatings,
+            configuration,
+            linkedAssets,
+          )
         : { impact: 0, likelihood: 0, risk: 0 },
-    [local?.factorRatings, configuration],
+    [local?.factorRatings, configuration, linkedAssets],
   );
+  // mitigatedFactorRatings NEVER go through the §11.2 gate — SRSL is a target
+  // level satisfied by controls, not "mitigated down" (§3.8); the After lens
+  // stays the plain generic R×L calc regardless of method.
   const afterValues = useMemo(
     () =>
       local
@@ -311,25 +402,45 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     return threat?.trustBoundaryName ?? "";
   }, [threats, currentRisk?.id]);
 
+  // §11.2: WoO/AC/EL feed AP/SRSL, not the standard weighted mean — they move
+  // into their own section only for en-50742-a projects. Outside that method,
+  // an analyst can still enable e.g. window_of_opportunity as an ordinary
+  // rated factor, so nothing is filtered there.
+  const EN50742_SRSL_FACTOR_IDS = [
+    "window_of_opportunity",
+    "attacker_capability",
+    "exposure_level",
+  ];
+
   // ── Active factors ────────────────────────────────────────────────────────
-  const { impactFactors, likelihoodFactors } = useMemo(() => {
-    const all = configuration.activeFactors
-      .filter((af) => af.enabled)
-      .map((af) => ({
-        ...af,
-        definition: getFactorDefinition(
-          af.factorId,
-          configuration.customFactors,
-        ),
-      }))
-      .filter((f) => f.definition !== undefined);
-    return {
-      impactFactors: all.filter((f) => f.definition!.category === "impact"),
-      likelihoodFactors: all.filter(
+  const { impactFactors, likelihoodFactors, elFactor, acFactor } =
+    useMemo(() => {
+      const all = configuration.activeFactors
+        .filter((af) => af.enabled)
+        .map((af) => ({
+          ...af,
+          definition: getFactorDefinition(
+            af.factorId,
+            configuration.customFactors,
+          ),
+        }))
+        .filter((f) => f.definition !== undefined);
+
+      const likelihood = all.filter(
         (f) => f.definition!.category === "likelihood",
-      ),
-    };
-  }, [configuration]);
+      );
+
+      return {
+        impactFactors: all.filter((f) => f.definition!.category === "impact"),
+        likelihoodFactors: isEN50742
+          ? likelihood.filter(
+              (f) => !EN50742_SRSL_FACTOR_IDS.includes(f.factorId),
+            )
+          : likelihood,
+        elFactor: likelihood.find((f) => f.factorId === "exposure_level"),
+        acFactor: likelihood.find((f) => f.factorId === "attacker_capability"),
+      };
+    }, [configuration, isEN50742]);
 
   // ── Resolved mitigations/verifications for checkboxes ────────────────────
   const resolvedMitigations = useMemo(
@@ -347,31 +458,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     [currentRisk],
   );
 
-  // ── Linked assets — fallback to threatRef if Risk has no linkedAssetIds ────
-  const currentThreatRef = useMemo(
-    () => threats?.find((t) => t.id === currentRisk?.threatId),
-    [threats, currentRisk?.threatId],
-  );
-
-  const effectiveLinkedAssetIds = useMemo(
-    () =>
-      currentRisk?.linkedAssetIds?.length
-        ? currentRisk.linkedAssetIds
-        : (currentThreatRef?.linkedAssetIds ?? []),
-    [currentRisk?.linkedAssetIds, currentThreatRef?.linkedAssetIds],
-  );
-
   const effectiveCauseDescription =
     currentRisk?.causeDescription || currentThreatRef?.causeDescription;
-
-  const linkedAssets = useMemo(() => {
-    const matchingThreat = threats?.find((t) => t.id === currentRisk?.threatId);
-    if (!assetDataRef || !effectiveLinkedAssetIds.length) return [];
-    const found = effectiveLinkedAssetIds
-      .map((id) => assetDataRef.assets.find((a) => a.id === id))
-      .filter((a): a is AssetReference => Boolean(a));
-    return found;
-  }, [assetDataRef, effectiveLinkedAssetIds]);
 
   const assetImpactLevels = useMemo(
     () =>
@@ -398,6 +486,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
       calculatedRiskAfterMitigation: afterValues.risk,
+      calculatedSrsl: beforeValues.srsl,
+      calculatedApScore: beforeValues.apScore,
+      calculatedApBand: beforeValues.apBand,
     });
   }, [currentRisk, local, beforeValues, afterValues, onSave]);
 
@@ -454,6 +545,29 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           ...prev,
           [key]: prev[key].map((r) => {
             if (r.factorId !== factorId) return r;
+
+            // EL-specific: choosing "Not rated" means "I don't want to
+            // override this — let the DFD derive it again", not "I insist
+            // the value is exposed level zero forever". Every other derived
+            // factor (impact, etc.) keeps the general rule below, where any
+            // value the analyst picks — including 0 — is a deliberate manual
+            // choice that freezes until reset. EL differs because its
+            // "derived" source (the DFD) can change on its own at any time,
+            // unprompted by the analyst, unlike Asset Tab data which the
+            // analyst is actively editing when they'd want an override to
+            // stick. Mirrors what the ↺ Reset button already does, just
+            // reachable without a second click, and without requiring a
+            // prior derivedValue to exist (works even if EL was never
+            // derived yet).
+            if (r.factorId === EN50742_EL_FACTOR && value === 0) {
+              return {
+                ...r,
+                value: 0,
+                derivedValue: undefined,
+                source: undefined,
+              };
+            }
+
             const isReturningToDerived =
               r.derivedValue !== undefined && value === r.derivedValue;
             return {
@@ -547,6 +661,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       calculatedLikelihood: beforeValues.likelihood,
       calculatedRiskBeforeMitigation: beforeValues.risk,
       calculatedRiskAfterMitigation: afterValues.risk,
+      calculatedSrsl: beforeValues.srsl,
+      calculatedApScore: beforeValues.apScore,
+      calculatedApBand: beforeValues.apBand,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [local]);
@@ -658,6 +775,33 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
     const isDerived = rating?.source === "derived";
 
+    // §11.2: exposure_level is derived from the DFD (deriveExposureLevels →
+    // applyExposureLevelToFactorRatings), not from the Asset Tab — everything
+    // else that reaches "derived" status still comes from asset-criteria
+    // prefill. The badge/tooltip text must say which, or it actively
+    // misleads the analyst about where to go fix a wrong value.
+    const isDfdDerived = factor.factorId === "exposure_level";
+    const derivedLabel = isDfdDerived
+      ? t("tabs.risks.dialog.factorDerivedDfd", { defaultValue: "DFD" })
+      : t("tabs.risks.dialog.factorDerived", { defaultValue: "Assets" });
+    const derivedTooltip = isDfdDerived
+      ? t("tabs.risks.dialog.factorDerivedDfdTooltip", {
+          defaultValue:
+            "Derived from the linked DFD element/DataFlow's Exposure Level",
+        })
+      : t("tabs.risks.dialog.factorDerivedTooltip", {
+          defaultValue: "Pre-filled from Asset Tab data",
+        });
+    const overriddenTooltip = isDfdDerived
+      ? t("tabs.risks.dialog.factorOverriddenTooltipDfd", {
+          value: rating?.derivedValue,
+          defaultValue: `DFD-derived value: ${rating?.derivedValue}. Click ↺ to reset.`,
+        })
+      : t("tabs.risks.dialog.factorOverriddenTooltip", {
+          value: rating?.derivedValue,
+          defaultValue: `Asset-derived value: ${rating?.derivedValue}. Click ↺ to reset.`,
+        });
+
     return (
       <Paper key={factor.factorId} variant="outlined" sx={{ p: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
@@ -669,17 +813,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             })}
           </Typography>
 
-          {/* "From Assets" badge — subtle, shown when value is derived and not overridden */}
+          {/* "From Assets"/"From DFD" badge — subtle, shown when value is derived and not overridden */}
           {isDerived && !isOverridden && (
-            <Tooltip
-              title={t("tabs.risks.dialog.factorDerivedTooltip", {
-                defaultValue: "Pre-filled from Asset Tab data",
-              })}
-            >
+            <Tooltip title={derivedTooltip}>
               <Chip
-                label={t("tabs.risks.dialog.factorDerived", {
-                  defaultValue: "Assets",
-                })}
+                label={derivedLabel}
                 size="small"
                 sx={{
                   height: 18,
@@ -695,12 +833,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
           {/* Overridden chip — analyst changed a derived value */}
           {isOverridden && (
-            <Tooltip
-              title={t("tabs.risks.dialog.factorOverriddenTooltip", {
-                value: rating!.derivedValue,
-                defaultValue: `Asset-derived value: ${rating!.derivedValue}. Click ↺ to reset.`,
-              })}
-            >
+            <Tooltip title={overriddenTooltip}>
               <Chip
                 label={t("tabs.risks.dialog.factorOverridden", {
                   defaultValue: "Overridden",
@@ -776,13 +909,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             return (
               <MenuItem key={level.value} value={level.value}>
                 <Tooltip
-                  title={
-                    isAssetValue
-                      ? t("tabs.risks.dialog.factorDerivedTooltip", {
-                          defaultValue: "Pre-filled from Asset Tab data",
-                        })
-                      : ""
-                  }
+                  title={isAssetValue ? derivedTooltip : ""}
                   placement="right"
                   disableHoverListener={!isAssetValue}
                 >
@@ -1388,6 +1515,218 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
                 <Divider />
 
+                {isEN50742 &&
+                  (() => {
+                    const arrow = (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          px: 0.5,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Typography variant="h6" color="text.disabled">
+                          →
+                        </Typography>
+                      </Box>
+                    );
+
+                    const wooBox = (
+                      <Tooltip
+                        title={t("tabs.risks.dialog.wooTooltip", {
+                          defaultValue:
+                            "Global value — change it in the Overview tab (Security Context).",
+                        })}
+                        placement="top"
+                        arrow
+                      >
+                        <Paper
+                          variant="outlined"
+                          sx={{ p: 1.5, height: "100%" }}
+                        >
+                          <Typography
+                            variant="body2"
+                            fontWeight="medium"
+                            gutterBottom
+                          >
+                            {t("risks.factors.window_of_opportunity.name", {
+                              defaultValue: "Window of Opportunity (WoO)",
+                            })}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {configuration.windowOfOpportunity
+                              ? t(
+                                  `risks.woo.${configuration.windowOfOpportunity}`,
+                                  {
+                                    defaultValue:
+                                      configuration.windowOfOpportunity.replace(
+                                        /_/g,
+                                        " ",
+                                      ),
+                                  },
+                                )
+                              : t("tabs.risks.dialog.wooNotSet", {
+                                  defaultValue:
+                                    "Not set — configure in Overview",
+                                })}
+                          </Typography>
+                        </Paper>
+                      </Tooltip>
+                    );
+
+                    const severityBox = (
+                      <Paper variant="outlined" sx={{ p: 1.5, height: "100%" }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="medium"
+                          gutterBottom
+                        >
+                          {t("tabs.risks.dialog.severity", {
+                            defaultValue: "Severity",
+                          })}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {en50742Severity
+                            ? t(`risks.severity.${en50742Severity}`, {
+                                defaultValue: en50742Severity.replace(
+                                  /_/g,
+                                  " ",
+                                ),
+                              })
+                            : t("tabs.risks.dialog.severityNone", {
+                                defaultValue: "No linked safety-function asset",
+                              })}
+                        </Typography>
+                      </Paper>
+                    );
+
+                    const apBox = (
+                      <Tooltip
+                        title={
+                          srslFormula && beforeValues.apScore != null
+                            ? t("tabs.risks.dialog.srslFormula", {
+                                el: srslFormula.elScore,
+                                woo: srslFormula.wooMultiplier,
+                                ac: srslFormula.acScore,
+                                result: beforeValues.apScore.toFixed(1),
+                                band: beforeValues.apBand,
+                                defaultValue:
+                                  "AP = ({{el}} × {{woo}}) + {{ac}} = {{result}} → {{band}}",
+                              })
+                            : ""
+                        }
+                        placement="top"
+                        arrow
+                      >
+                        <Paper
+                          variant="outlined"
+                          sx={{ p: 1.5, height: "100%" }}
+                        >
+                          <Typography
+                            variant="body2"
+                            fontWeight="medium"
+                            gutterBottom
+                          >
+                            {t("tabs.risks.dialog.apLabel", {
+                              defaultValue: "Attack Potential (AP)",
+                            })}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {beforeValues.apScore != null && beforeValues.apBand
+                              ? `${beforeValues.apScore.toFixed(1)} (${beforeValues.apBand})`
+                              : t("tabs.risks.dialog.apNotDetermined", {
+                                  defaultValue: "Not yet determined",
+                                })}
+                          </Typography>
+                        </Paper>
+                      </Tooltip>
+                    );
+
+                    return (
+                      <>
+                        <Box>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="space-between"
+                          >
+                            <Typography variant="subtitle2" gutterBottom>
+                              {t("tabs.risks.dialog.srslSectionTitle", {
+                                defaultValue: "SRSL (EN 50742)",
+                              })}
+                            </Typography>
+                            <Tooltip
+                              title={t("tabs.risks.dialog.srslTablesToggle", {
+                                defaultValue: "Show norm reference tables",
+                              })}
+                            >
+                              <IconButton
+                                size="small"
+                                onClick={() => setShowSrslTables((v) => !v)}
+                                sx={{
+                                  transform: showSrslTables
+                                    ? "rotate(180deg)"
+                                    : "none",
+                                  transition: "transform 0.2s",
+                                }}
+                              >
+                                <ExpandMoreIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+
+                          {/* Row 1: WoO, EL, AC → AP */}
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="stretch"
+                            sx={{ mb: 1 }}
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>{wooBox}</Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              {elFactor && renderFactorRow(elFactor, false)}
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              {acFactor && renderFactorRow(acFactor, false)}
+                            </Box>
+                            {arrow}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>{apBox}</Box>
+                          </Stack>
+
+                          {/* Row 2: AP, Severity → SRSL */}
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="stretch"
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>{apBox}</Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              {severityBox}
+                            </Box>
+                            {arrow}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <SrslBadge
+                                srsl={beforeValues.srsl}
+                                apBand={beforeValues.apBand}
+                              />
+                            </Box>
+                          </Stack>
+
+                          <Collapse in={showSrslTables}>
+                            <SrslReferenceTables
+                              currentApScore={beforeValues.apScore}
+                              currentApBand={beforeValues.apBand}
+                              currentSeverity={en50742Severity}
+                            />
+                          </Collapse>
+                        </Box>
+
+                        <Divider />
+                      </>
+                    );
+                  })()}
+
                 {/* Calculated score */}
                 <Typography variant="subtitle2" gutterBottom>
                   {t("tabs.risks.dialog.tabBefore", {
@@ -1509,7 +1848,117 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   </Box>
                 )}
 
-                {/* Proposed Mitigations checkboxes */}
+                {/* ══ 1. RISK TREATMENT ═══════════════════════════════ */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {t("tabs.risks.dialog.treatment", {
+                      defaultValue: "Risk Treatment",
+                    })}
+                  </Typography>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {RISK_TREATMENTS.map((tr) => (
+                      <Tooltip
+                        key={tr.value}
+                        title={t(`risks.treatment.${tr.value}.description`, {
+                          defaultValue: tr.description,
+                        })}
+                        placement="top"
+                        arrow
+                      >
+                        <Chip
+                          label={t(`risks.treatment.${tr.value}.label`, {
+                            defaultValue: tr.label,
+                          })}
+                          onClick={() =>
+                            setLocal((prev) => {
+                              if (!prev) return prev;
+
+                              const autoFixed =
+                                tr.value === "accept" ||
+                                tr.value === "transfer";
+
+                              const newMoscow = autoFixed
+                                ? ("wont" as MoSCoWPriority)
+                                : prev.moscowPriority === "wont"
+                                  ? ("should" as MoSCoWPriority)
+                                  : prev.moscowPriority;
+
+                              return {
+                                ...prev,
+                                treatment: tr.value,
+                                moscowPriority: newMoscow,
+                                ...(autoFixed
+                                  ? {
+                                      mitigatedFactorRatings:
+                                        prev.factorRatings.map((r) => ({
+                                          ...r,
+                                        })),
+                                    }
+                                  : {}),
+                              };
+                            })
+                          }
+                          sx={{
+                            bgcolor:
+                              local.treatment === tr.value
+                                ? tr.color
+                                : "transparent",
+                            color:
+                              local.treatment === tr.value ? "white" : tr.color,
+                            border: `2px solid ${tr.color}`,
+                            fontWeight:
+                              local.treatment === tr.value ? "bold" : "normal",
+                            cursor: "pointer",
+                          }}
+                        />
+                      </Tooltip>
+                    ))}
+                  </Stack>
+
+                  {/* Justification — contextual to Risk Treatment (accept/transfer/share) */}
+                  {passiveTreatment && local.moscowPriority !== "wont" && (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      multiline
+                      rows={2}
+                      sx={{ mt: 1.5 }}
+                      label={t("tabs.risks.dialog.treatmentJustification", {
+                        defaultValue: "Treatment Justification (required)",
+                      })}
+                      value={local.treatmentJustification}
+                      onChange={(e) =>
+                        setLocal((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                treatmentJustification: e.target.value,
+                              }
+                            : prev,
+                        )
+                      }
+                      error={
+                        passiveTreatment && !local.treatmentJustification.trim()
+                      }
+                      helperText={
+                        passiveTreatment && !local.treatmentJustification.trim()
+                          ? t(
+                              "tabs.risks.dialog.treatmentJustificationRequired",
+                              {
+                                defaultValue:
+                                  "Required for accept / transfer / share",
+                              },
+                            )
+                          : undefined
+                      }
+                    />
+                  )}
+                </Box>
+
+                <Divider />
+
+                {/* ══ 2. MITIGATION & VERIFICATION ═══════════════════ */}
                 {resolvedMitigations.length > 0 && (
                   <Box sx={{ opacity: isAccepted ? 0.5 : 1 }}>
                     <Typography variant="subtitle2" gutterBottom>
@@ -1639,211 +2088,76 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
 
                 <Divider />
 
-                {/* Treatment */}
+                {/* ══ 3. MOSCOW PRIORITY — same visual language as Risk Treatment ══ */}
                 <Box>
-                  <Stack
-                    direction="row"
-                    spacing={8}
-                    alignItems="flex-start"
-                    flexWrap="wrap"
-                  >
-                    {/* LEFT: Risk Treatment */}
-                    <Box sx={{ minWidth: 200 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        {t("tabs.risks.dialog.treatment", {
-                          defaultValue: "Risk Treatment",
+                  <Typography variant="subtitle2" gutterBottom>
+                    {t("tabs.risks.dialog.priority", {
+                      defaultValue: "Priority",
+                    })}
+                  </Typography>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {MOSCOW_PRIORITIES.map((p) => (
+                      <Chip
+                        key={p.value}
+                        label={t(`risks.moscow.${p.value}.label`, {
+                          defaultValue: p.label,
                         })}
-                      </Typography>
-
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        flexWrap="wrap"
-                        useFlexGap
-                      >
-                        {RISK_TREATMENTS.map((tr) => (
-                          <Tooltip
-                            key={tr.value}
-                            title={t(
-                              `risks.treatment.${tr.value}.description`,
-                              {
-                                defaultValue: tr.description,
-                              },
-                            )}
-                            placement="top"
-                            arrow
-                          >
-                            <Chip
-                              label={t(`risks.treatment.${tr.value}.label`, {
-                                defaultValue: tr.label,
-                              })}
-                              onClick={() =>
-                                setLocal((prev) => {
-                                  if (!prev) return prev;
-
-                                  const autoFixed =
-                                    tr.value === "accept" ||
-                                    tr.value === "transfer";
-
-                                  const newMoscow = autoFixed
-                                    ? ("wont" as MoSCoWPriority)
-                                    : prev.moscowPriority === "wont"
-                                      ? ("should" as MoSCoWPriority)
-                                      : prev.moscowPriority;
-
-                                  return {
-                                    ...prev,
-                                    treatment: tr.value,
-                                    moscowPriority: newMoscow,
-                                    ...(autoFixed
-                                      ? {
-                                          mitigatedFactorRatings:
-                                            prev.factorRatings.map((r) => ({
-                                              ...r,
-                                            })),
-                                        }
-                                      : {}),
-                                  };
-                                })
-                              }
-                              sx={{
-                                bgcolor:
-                                  local.treatment === tr.value
-                                    ? tr.color
-                                    : "transparent",
-                                color:
-                                  local.treatment === tr.value
-                                    ? "white"
-                                    : tr.color,
-                                border: `2px solid ${tr.color}`,
-                                fontWeight:
-                                  local.treatment === tr.value
-                                    ? "bold"
-                                    : "normal",
-                                cursor: "pointer",
-                              }}
-                            />
-                          </Tooltip>
-                        ))}
-                      </Stack>
-                    </Box>
-
-                    {/* RIGHT: MoSCoW Priority */}
-                    <Box sx={{ flexShrink: 0 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        {t("tabs.risks.dialog.priority", {
-                          defaultValue: "Priority",
-                        })}
-                      </Typography>
-
-                      <FormControl size="small" sx={{ minWidth: 140 }}>
-                        <Select
-                          value={local.moscowPriority}
-                          onChange={(e) =>
-                            setLocal((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    moscowPriority: e.target
-                                      .value as MoSCoWPriority,
-                                  }
-                                : prev,
-                            )
-                          }
-                          size="small"
-                          sx={{
-                            fontSize: "0.75rem",
-                            "& .MuiSelect-select": { py: 0.5 },
-                          }}
-                        >
-                          {MOSCOW_PRIORITIES.map((p) => (
-                            <MenuItem key={p.value} value={p.value}>
-                              <Chip
-                                label={t(`risks.moscow.${p.value}.label`, {
-                                  defaultValue: p.label,
-                                })}
-                                size="small"
-                                sx={{
-                                  bgcolor: p.color,
-                                  color: "white",
-                                  fontSize: "0.65rem",
-                                }}
-                              />
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
+                        onClick={() =>
+                          setLocal((prev) =>
+                            prev ? { ...prev, moscowPriority: p.value } : prev,
+                          )
+                        }
+                        sx={{
+                          bgcolor:
+                            local.moscowPriority === p.value
+                              ? p.color
+                              : "transparent",
+                          color:
+                            local.moscowPriority === p.value
+                              ? "white"
+                              : p.color,
+                          border: `2px solid ${p.color}`,
+                          fontWeight:
+                            local.moscowPriority === p.value
+                              ? "bold"
+                              : "normal",
+                          cursor: "pointer",
+                        }}
+                      />
+                    ))}
                   </Stack>
 
-                  {/* Justification bleibt unten */}
-                  {passiveTreatment && local.moscowPriority !== "wont" && (
+                  {/* Won't justification — contextual to MoSCoW "wont" */}
+                  {local.moscowPriority === "wont" && (
                     <TextField
                       size="small"
                       fullWidth
                       multiline
                       rows={2}
                       sx={{ mt: 1.5 }}
-                      label={t("tabs.risks.dialog.treatmentJustification", {
-                        defaultValue: "Treatment Justification (required)",
+                      label={t("tabs.risks.dialog.wontJustification", {
+                        defaultValue: "Justification for Won't (required)",
                       })}
-                      value={local.treatmentJustification}
+                      value={local.wontJustification}
                       onChange={(e) =>
                         setLocal((prev) =>
                           prev
-                            ? {
-                                ...prev,
-                                treatmentJustification: e.target.value,
-                              }
+                            ? { ...prev, wontJustification: e.target.value }
                             : prev,
                         )
                       }
-                      error={
-                        passiveTreatment && !local.treatmentJustification.trim()
-                      }
+                      error={!local.wontJustification.trim()}
                       helperText={
-                        passiveTreatment && !local.treatmentJustification.trim()
-                          ? t(
-                              "tabs.risks.dialog.treatmentJustificationRequired",
-                              {
-                                defaultValue:
-                                  "Required for accept / transfer / share",
-                              },
-                            )
+                        !local.wontJustification.trim()
+                          ? t("tabs.risks.validation.required", {
+                              defaultValue: "Required",
+                            })
                           : undefined
                       }
                     />
                   )}
                 </Box>
-
-                {/* Won't justification */}
-                {local.moscowPriority === "wont" && (
-                  <TextField
-                    size="small"
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label={t("tabs.risks.dialog.wontJustification", {
-                      defaultValue: "Justification for Won't (required)",
-                    })}
-                    value={local.wontJustification}
-                    onChange={(e) =>
-                      setLocal((prev) =>
-                        prev
-                          ? { ...prev, wontJustification: e.target.value }
-                          : prev,
-                      )
-                    }
-                    error={!local.wontJustification.trim()}
-                    helperText={
-                      !local.wontJustification.trim()
-                        ? t("tabs.risks.validation.required", {
-                            defaultValue: "Required",
-                          })
-                        : undefined
-                    }
-                  />
-                )}
               </Stack>
             )}
 
@@ -2201,6 +2515,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};
+}
 
 export default RiskDialog;

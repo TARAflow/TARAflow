@@ -321,6 +321,36 @@ export function deriveSafetyValueFromPhysicalImpact(
 }
 
 /**
+ * Worst-case physicalImpact across a set of linked assets, in severity order.
+ * `undefined` when none of the assets carry a physicalImpact.
+ *
+ * Extracted so other severity resolvers — e.g. EN 50742's
+ * resolveEN50742Severity() (en50742-risk-calculation.ts) — can reuse the same
+ * worst-case selection over the same hazard-chain-resolved source
+ * (asset.physicalImpact — see app/utils/resolve-asset-physical-impact.ts)
+ * instead of re-implementing it against a different vocabulary.
+ */
+export function worstPhysicalImpact(
+  linkedAssets: AssetReference[],
+): "reversible_injury" | "irreversible_injury" | "fatality" | undefined {
+  const ORDER = [
+    "reversible_injury",
+    "irreversible_injury",
+    "fatality",
+  ] as const;
+
+  const physicalImpacts = linkedAssets
+    .map((a) => a.physicalImpact)
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+  if (physicalImpacts.length === 0) return undefined;
+
+  return physicalImpacts.reduce((acc, cur) =>
+    ORDER.indexOf(cur) > ORDER.indexOf(acc) ? cur : acc,
+  );
+}
+
+/**
  * Derives the safety factor value for a risk from linked assets.
  *
  * Priority order (highest wins):
@@ -337,20 +367,8 @@ export function deriveSafetyValue(
   riskScaleLevels: number,
 ): number {
   // Priority 1: physicalImpact annotation (fixed 4-level, no normalisation)
-  const ORDER = [
-    "reversible_injury",
-    "irreversible_injury",
-    "fatality",
-  ] as const;
-
-  const physicalImpacts = linkedAssets
-    .map((a) => a.physicalImpact)
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
-
-  if (physicalImpacts.length > 0) {
-    const worst = physicalImpacts.reduce((acc, cur) =>
-      ORDER.indexOf(cur) > ORDER.indexOf(acc) ? cur : acc,
-    );
+  const worst = worstPhysicalImpact(linkedAssets);
+  if (worst) {
     return deriveSafetyValueFromPhysicalImpact(worst);
   }
 

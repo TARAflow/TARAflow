@@ -50,6 +50,7 @@ import {
   Delete as DeleteIcon,
   Info as InfoIcon,
   Lock as LockIcon,
+  RestartAlt as RestartAltIcon,
 } from "@mui/icons-material";
 
 import {
@@ -64,13 +65,18 @@ import {
   ALL_PREDEFINED_FACTORS,
   DEFAULT_ASSET_IMPACT_MAPPINGS,
   ISO21434_FACTORS,
+  TARAFLOW_FACTORS,
+  ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
 } from "../models/risk-factor-types";
 import {
   RiskScaleType,
   RiskRoundingMethod,
   RISK_SCALES,
 } from "../models/risk-scale-types";
-import { RiskConfiguration } from "../models/risk-config-types";
+import {
+  RiskConfiguration,
+  DEFAULT_CONFIGURATION,
+} from "../models/risk-config-types";
 import {
   presetFactorLock,
   factorLockState,
@@ -176,8 +182,23 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       likelihood: [
         ...STANDARD_LIKELIHOOD_FACTORS,
         ...ETSI_FACTORS,
-        ...EN50742_FACTORS,
         ...ISO21434_FACTORS,
+        // TARAFLOW_FACTORS minus attack_tree_likelihood: deployment_scope is
+        // an ordinary analyst-toggleable likelihood factor (was missing from
+        // this list entirely — pre-existing gap, unrelated to the EN50742
+        // change above — DEFAULT_CONFIGURATION enables it by default so it
+        // still showed up in RiskDialog, just could never be toggled here).
+        // attack_tree_likelihood is intentionally excluded: sole owner is
+        // syncRisksFromAttackTrees (§5b-2), never analyst-toggled.
+        ...TARAFLOW_FACTORS.filter(
+          (f) => f.id !== ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+        ),
+        // EN50742_FACTORS (window_of_opportunity, attacker_capability,
+        // exposure_level) intentionally excluded — these are the EN 50742
+        // Approach A inputs, shown/rated exclusively in the SRSL section of
+        // RiskDialog once the en-50742-a tag is active. They are never
+        // toggled here; applyRegulationPreset() auto-enables them in
+        // activeFactors when the tag is applied, independent of this dialog.
       ],
       // Phase 3: derived from ALL_PREDEFINED_FACTORS — includes all aligned
       // impact factors (financial_damage, operational, affected_users, safety, etc.)
@@ -231,11 +252,37 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         ];
       }
     });
-  };;
+  };
 
   const handleWeightChange = (factorId: string, weight: number) => {
     setActiveFactors((prev) =>
       prev.map((f) => (f.factorId === factorId ? { ...f, weight } : f)),
+    );
+  };
+
+  /**
+   * Resets one category's PREDEFINED factors (per factorGroups[category]) back
+   * to DEFAULT_CONFIGURATION's enabled/weight state. Scoped to that category
+   * only — the other category and custom factors are untouched. Locked
+   * (non-editable) factors are skipped: their state comes from the preset, not
+   * from ship defaults, and resetting them here would fight factorLockState.
+   */
+  const resetCategoryToDefault = (category: "likelihood" | "impact") => {
+    const categoryIds = new Set(factorGroups[category].map((f) => f.id));
+    setActiveFactors((prev) =>
+      prev.map((f) => {
+        if (!categoryIds.has(f.factorId)) return f;
+        if (factorLockState(f.factorId, factorLock) !== "editable") return f;
+        const defaultFactor = DEFAULT_CONFIGURATION.activeFactors.find(
+          (df) => df.factorId === f.factorId,
+        );
+        return {
+          ...f,
+          enabled: defaultFactor?.enabled ?? false,
+          weight: defaultFactor?.weight ?? f.weight,
+          autoEnabled: undefined,
+        };
+      }),
     );
   };
 
@@ -290,17 +337,39 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       severityThresholds,
       treeLikelihoodContribution,
     });
-  };;
+  };
 
   // ── Render factor list ────────────────────────────────────────────────────
 
-  const renderFactorList = (factors: RiskFactorDefinition[], title: string) => {
+  const renderFactorList = (
+    factors: RiskFactorDefinition[],
+    title: string,
+    category: "likelihood" | "impact",
+  ) => {
     if (factors.length === 0) return null;
     return (
       <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          {title}
-        </Typography>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            {title}
+          </Typography>
+          <Tooltip
+            title={t("tabs.risks.config.resetToDefault", {
+              defaultValue: "Reset to default",
+            })}
+          >
+            <IconButton
+              size="small"
+              onClick={() => resetCategoryToDefault(category)}
+            >
+              <RestartAltIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
         <List dense disablePadding>
           {factors.map((factor) => {
             const activeFactor = activeFactors.find(
@@ -575,7 +644,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
   // Count the EFFECTIVE enabled factors (what the lock displays), not the raw
   // state — otherwise locked-off-but-still-enabled factors inflate the count.
+  // EN50742's own factors (WoO/AC/EL) are excluded: applyRegulationPreset()
+  // keeps them enabled in activeFactors, but this dialog no longer shows or
+  // manages them (factorGroups.likelihood excludes EN50742_FACTORS) — they
+  // must not silently count toward (or block) the 3–10 recommendation for a
+  // set the analyst can't even see here.
+  const EN50742_OWN_FACTOR_IDS = new Set(EN50742_FACTORS.map((f) => f.id));
   const enabledCount = activeFactors.filter((f) => {
+    if (EN50742_OWN_FACTOR_IDS.has(f.factorId)) return false;
     const s = factorLockState(f.factorId, factorLock);
     return s === "locked-on" ? true : s === "locked-off" ? false : f.enabled;
   }).length;
@@ -1331,12 +1407,14 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 t("tabs.risks.config.likelihoodFactors", {
                   defaultValue: "Likelihood Factors",
                 }),
+                "likelihood",
               )}
               {renderFactorList(
                 factorGroups.impact,
                 t("tabs.risks.config.impactFactors", {
                   defaultValue: "Impact Factors",
                 }),
+                "impact",
               )}
             </Box>
 
@@ -1444,6 +1522,6 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-};;
+};;;
 
 export default RiskConfigDialog;

@@ -330,12 +330,30 @@ WoO is fractional, so `EL×WoO` is fractional (e.g. 16×0.6 = 9.6). Bands split 
   SIL/PLr. The `fatal` SRSL-lookup row (§1.3) is **confirmed** — no open items
   remain.
 
-### 3.7 Cardinality: per (safety function × interface)
+### 3.7 Cardinality: per (safety function × interface) (DECIDED — simplified)
 
-- [ ] One safety function reachable via N interfaces → N SRSL determinations
-  (one per interface, each with its own protection-requirement set on that
-  interface). Confirm the asset-relation model carries an SRSL per
-  (safety-function asset, interface asset) pair.
+- [x] **Decided:** no explicit (safety-function asset × interface asset)
+  relation was built. Severity is resolved via worst-case `physicalImpact`
+  across the risk's `linkedAssetIds` (`resolveEN50742Severity()`,
+  `en50742-risk-calculation.ts`), reusing the same worst-case selection
+  `deriveSafetyValue()` already uses for the generic "Safety Impact" factor
+  (`worstPhysicalImpact()`, extracted into `risk-calculation-service.ts` so
+  both resolvers share one source of truth over the same hazard-chain-resolved
+  `asset.physicalImpact`).
+
+  The (safety function × interface) granularity from Clause 7.4.3.1 falls out
+  "for free": a Risk is already anchored to exactly one EL-bearing
+  interface/DataFlow via its threat (§11.1), so different interfaces
+  naturally produce different Risks with independently-resolved severities —
+  no explicit relation needed for the *common* case.
+
+  **Known gap vs. the norm-literal reading:** if a single Risk's
+  `linkedAssetIds` span *multiple different* safety functions with different
+  severities, worst-case collapses them into one severity instead of
+  determining two separate SRSLs. No explicit "this asset IS the safety
+  function relevant to this interface" relation exists in the asset model —
+  building one (new relation type, Asset-Relation UI) was judged out of scope
+  for this pass. Revisit if/when that gap causes an actual reported issue.
 
 ### 3.8 What happens after SRSL — requirement-driven, NOT discretionary (DECIDED)
 
@@ -467,6 +485,60 @@ not silently.
   disabledTargets }` — the ONLY conformance-breaking deviation is a norm factor
   turned OFF; added factors are not drift. Backstop for `handleRisksUpdate` /
   import.
+
+#### 3.11 Update — en-50742-a's own factors decoupled from the config dialog entirely (SUPERSEDES "method" mode above)
+
+Testing surfaced a real bug in the `method`-mode design above:
+`REGIME_LIKELIHOOD_SOURCES` (the pool `presetFactorLock`/`applyRegulationPreset`
+used to decide what a preset may lock) included `"standard"`, so applying
+`en-50742-a` locked off **all** standard (OWASP-style) likelihood factors, not
+just norm-competing ones — contradicting the stated intent that impact +
+custom factors stay editable, and by extension that the standard method
+should keep working alongside EN 50742.
+
+Rather than keep patching the lock interaction between "standard" and EN
+50742's own factors, the design was simplified further:
+
+- **`en-50742-a`'s own factors (WoO/AC/EL) are no longer part of the Risk
+  Config dialog's managed set at all.** `risk-config-dialog.tsx`'s
+  `factorGroups.likelihood` excludes `EN50742_FACTORS` entirely — they are
+  shown and rated **exclusively** in the Risk dialog's SRSL section (§11.2
+  below), auto-enabled in `activeFactors` via `applyRegulationPreset()` when
+  the tag is set, and never toggled in Config.
+- **`presetFactorLock("en-50742-a")` now returns `mode: "none"`** (not
+  `"method"`) — there is nothing left for the Config dialog to lock, since it
+  no longer displays these factors at all. `"method"` mode is consequently
+  **unreachable** by any current `LikelihoodMethod` (only `en-50742-a` ever
+  used it) — left in the type/code, documented as such, rather than removed.
+- **Config-dialog changes now only ever affect the standard method's
+  factors** (skill_level, motive, ... plus impact). En-50742-a's own factors
+  are fully independent of it — the clean separation between "standard
+  method configuration" and "EN 50742 inputs" that the two areas needed.
+- **Regime pool is now mode-aware**, not a single set: `METHOD_REGIME_SOURCES`
+  (`ETSI`, `EN50742`, `ISO21434` — excludes `"standard"`) is used wherever a
+  "method"-style preset (today: only `en-50742-a`, via `applyRegulationPreset`'s
+  actual data mutation, which still runs to auto-enable EL/AC) decides what to
+  disable; `EXCLUSIVE_REGIME_SOURCES` (adds `"standard"`) is used for
+  `iso-21434`/`etsi-tvra`, which still **must** disable standard factors —
+  real, tested, pre-existing behaviour (14 tests going back to commit
+  `904443d`) that a first, too-broad fix nearly broke by removing `"standard"`
+  from the pool globally instead of mode-aware. Both `applyRegulationPreset`
+  and `presetFactorLock` select the pool via
+  `EXCLUSIVE_METHODS.has(preset.likelihoodMethod)`.
+- **Unrelated pre-existing gap fixed in the same pass:** `TARAFLOW_FACTORS`
+  (where `deployment_scope` lives) was never in `factorGroups.likelihood` at
+  all, so it showed in the Risk dialog (enabled by default) but could never
+  be toggled in Config. Added, excluding `attack_tree_likelihood` (sole
+  owner: `syncRisksFromAttackTrees`, §5b-2, never analyst-toggled).
+
+**For the next instance:** if you're about to reason about `"method"` mode
+for `en-50742-a` based on the bullet list above §3.12, stop — this update
+supersedes it. The `detectPresetFactorDrift`/`factorLockState` backstop
+described there for `method` mode is now a no-op for `en-50742-a`
+specifically (mode `"none"` short-circuits both) — there is nothing left to
+drift from in this dialog. `"exclusive"` mode (iso-21434/etsi-tvra) is
+**unaffected** by any of this and still works exactly as originally
+documented above.
 
 ### 3.12 Tag split: "EN 50742 A" / "EN 50742 B" (DONE)
 
@@ -765,16 +837,82 @@ This is consistent with the existing `EN50742CalculationResult` shape (`impact`,
 case — `null` here also covers "no EL anchor", never mistaken for the genuinely
 isolated SRSL0 (§3.9).
 
-**Adapter (Variante A — read, don't recompute).** A pure function reads the
-anchor element/DataFlow's already-derived `exposureLevel` from the DFD snapshot
-(`DFDReference.elements[].properties` / `.connections[].properties`, reachable at
-both call sites: `risk-dialog.tsx` via `dfdData`, `risk-sync-service.ts` via its
-`dfd` param), converts `"EL2"` → the 1-based level index via
-`EN50742_EXPOSURE_LEVELS`, and writes it as a **derived** `exposure_level`
-`FactorRating` (non-destructive: only when the entry exists, `value === 0`,
-`source !== "manual"` — same discipline as the impact prefill
-`applyAssetCriteriaToFactorRatings`). Threat→anchor linkage: per-element via
+**Adapter (Variante A — read, don't recompute).** A pure function
+(`applyExposureLevelToFactorRatings`, `en50742-risk-calculation.ts`) reads the
+anchor element/DataFlow's already-derived `exposureLevel` from the DFD
+snapshot (`DFDReference.elements[].properties` / `.connections[].properties`,
+reachable at both call sites: `risk-dialog.tsx` via `dfdData`,
+`risk-sync-service.ts` via its `dfd` param), converts `"EL2"` → the 1-based
+level index via `EN50742_EXPOSURE_LEVELS`, and writes it as a **derived**
+`exposure_level` `FactorRating`. Threat→anchor linkage: per-element via
 `threat.linkedElement.elementId`, per-interaction via the crossing DataFlow.
+
+> **Updated — supersedes the original "only when `value === 0`" wording.**
+> The adapter does **not** freeze after the first successful derivation — it
+> re-applies on every dialog init / threat sync and keeps the rating in sync
+> with the DFD's *current* EL, exactly like `applyAssetCriteriaToFactorRatings`
+> keeps impact factors in sync with Asset Tab data. If the DFD's EL for an
+> anchor changes (e.g. EL1 → EL3 after a later save), the rating follows. If
+> the anchor no longer resolves to a valid EL at all (element deleted,
+> property removed), the rating resets to unrated (0) rather than keeping a
+> stale value. `source === "manual"` still always wins — permanently, until
+> cleared — **except** a leftover `{value: 0, source: "manual"}` specifically,
+> which self-heals back to derived: that exact state can no longer be freshly
+> created (see the dialog behaviour below), and asserting "EL is zero
+> forever" is meaningless for EL anyway (0 already means unrated).
+>
+> **Dialog behaviour (`risk-dialog.tsx`, `updateFactor`):** selecting
+> "Not rated" for `exposure_level` specifically clears `source` entirely
+> (does **not** mark it `manual`) — the analyst releases control back to the
+> DFD immediately, without a second click on the ↺ Reset button. Every other
+> derived factor (impact, etc.) keeps the general rule: any manually-picked
+> value, 0 included, freezes as `source: "manual"` until reset. EL is the one
+> exception, because its derivation source (the DFD) can change unprompted by
+> the analyst, unlike Asset Tab data the analyst is actively editing when an
+> override should stick.
+
+**Gate implementation.** `calculateGatedRiskValues()`
+(`en50742-risk-calculation.ts`) is the single routing point used by both call
+sites — it does **not** re-resolve `dfd`/`threat` itself, only reads
+`ratings` (the adapter above has already synced EL into it by the time this
+runs):
+- `configuration.likelihoodMethod !== "en-50742-a"` → generic path, `srsl` /
+  `apScore` / `apBand` simply absent (`undefined`) on the result.
+- `en-50742-a` project, `exposure_level` rating `<= 0` OR
+  `configuration.windowOfOpportunity` not yet set → generic `R×L` path,
+  `srsl`/`apScore`/`apBand` explicitly `null` ("no EL anchor" — one of two
+  reasons `srsl` is `null`, never mistaken for `SRSL0`).
+- `en-50742-a` project, `exposure_level` rated → delegates to
+  `calculateEN50742RiskValues`: severity resolved via
+  `resolveEN50742Severity(linkedAssets)` (§3.6/§3.7); if severity is
+  unresolved, `srsl` is `null` for that *separate* reason, while AP/likelihood
+  (the R×L lens) still compute — the two "null" causes are distinguished in
+  the UI (below), not in the stored value itself.
+
+**UI realization (`risk-dialog.tsx`, `srsl-badge.tsx`,
+`srsl-reference-tables.tsx`).** The Risk dialog's Before tab gets a dedicated
+SRSL section (only rendered when `likelihoodMethod === "en-50742-a"`), laid
+out as the actual two-stage computation, not a flat list:
+- **Row 1:** WoO (read-only, project-global, tooltip → "change in Overview")
+  + EL (editable, `renderFactorRow`, DFD-sourced) + AC (editable,
+  `renderFactorRow`, manually rated) → **AP** (read-only box: score + band,
+  full formula `AP = (EL × WoO) + AC = ... → APx` on hover).
+- **Row 2:** AP (same box, repeated) + Severity (read-only, from
+  `resolveEN50742Severity`) → **SrslBadge** (colour-coded result, or one of
+  two distinct "pending" messages — AP computable but severity missing, vs.
+  nothing computable yet).
+- Collapsible **Table B.5 / B.6 reference** (chevron beside the section
+  title), current cell highlighted — driven directly by the exported
+  `AP_BAND_TABLE` / `SRSL_LOOKUP` data, never a hand-copied duplicate.
+- Below this section (unchanged): the standard-method factor lists
+  (`likelihoodFactors`/`impactFactors`, now filtered to exclude
+  `window_of_opportunity`/`attacker_capability`/`exposure_level` when
+  `en-50742-a`) feed the existing `RiskScorePanel` — the secondary `R×L`
+  lens, ordered *after* the SRSL section per §2.2 ("SRSL first, then R×L").
+- The "Risk After" tab is **unchanged** — no SRSL section there, since SRSL
+  has no mitigated counterpart (§3.8).
+- Config-dialog no longer shows/manages EL/AC/WoO at all (§3.11 update) —
+  they're exclusively rated/displayed here.
 
 ### 11.3 SRSL is per (safety function × interface/DF) — NOT per STRIDE
 
@@ -853,6 +991,13 @@ type plus persistence/migration and the column rendering — a separate, larger
 step (Phase 4, §7.4), tracked here so the two-output model is not lost. SRSL is
 labelled the governing/normative output; the two axes may diverge in ordering by
 design (§2.2), and that divergence is shown, not reconciled.
+
+> **Status:** the `Risk` type already carries `calculatedSrsl` /
+> `calculatedApScore` / `calculatedApBand` (`risk-assessment-types.ts`),
+> computed and persisted by `calculateGatedRiskValues` at both call sites
+> (§11.2) — the data side of this step is done. Only the **risk-table column
+> rendering itself** (outside the Risk dialog — the tabular Risk overview) is
+> still outstanding.
 
 ---
 

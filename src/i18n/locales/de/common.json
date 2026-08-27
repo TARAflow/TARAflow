@@ -641,5 +641,13 @@
       "name": "Unbeschränkt",
       "description": "Offener, häufiger oder unbeschränkter Zugriff."
     }
+  },
+  "mitigation": {
+    "coverage": {
+      "fullyImplemented": "Alle Eigenschaften bereits im DFD-Modell gesetzt",
+      "implemented": "Bereits implementiert",
+      "partiallyImplemented": "Teilweise im DFD-Modell implementiert",
+      "partial": "Teilweise implementiert"
+    }
   }
 }
