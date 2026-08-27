@@ -15,10 +15,8 @@ import {
   parseConnections,
   assignDisplayIds as assignConnectionDisplayIds,
 } from "./parsers/connection-parser";
-import { parseAssets } from "./parsers/asset-parser";
 import { calculateStats } from "./parsers/stats-calculator";
 import { createEmptyStats } from "./parsers/parser-utils";
-import { dfdAnalyzer } from "../utils/dfd-analyzer";
 
 export interface ParseResult {
   elements: DFDElement[];
@@ -36,8 +34,13 @@ export interface ParseResult {
  * - xml-parser: Low-level XML handling
  * - element-parser: Parse DFD elements
  * - connection-parser: Parse dataflows
- * - asset-parser: Parse asset markers and relationships
  * - stats-calculator: Calculate statistics
+ *
+ * NOTE: Assets are NOT parsed from XML. They are references living in
+ * dfd.assets[], linked to elements via element.assetRelations. There is no
+ * "asset marker" shape on the canvas (removed — legacy relic). parse()
+ * therefore always returns assets: []; the authoritative asset list is
+ * carried by the project and reconciled in dfd-service.mergeAssetProperties.
  */
 export class DFDParser {
   /**
@@ -71,8 +74,9 @@ export class DFDParser {
       const { connections, unconnectedDataflows } = parseConnections(doc);
       assignConnectionDisplayIds(connections, idLabels);
 
-      // 5. Parse assets (includes linking to overlapping elements)
-      const assets = parseAssets(doc, elements, connections, dfdAnalyzer);
+      // 5. Assets are not markers on the canvas — they live in dfd.assets[]
+      // and are reconciled downstream in dfd-service. Parsing derives none.
+      const assets: DFDAsset[] = [];
 
       // 6. Calculate statistics
       const stats = calculateStats(elements, connections, assets);

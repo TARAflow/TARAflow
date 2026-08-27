@@ -3,64 +3,18 @@
 // Shared utility used by both dfd-validator and asset-service
 
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
-import type { DFDAsset } from "../models/dfd-asset-types";
 import { geometryAnalyzer, type GeometricElement } from "../utils/geometry-analyzer";
-
-/**
- * Result of analyzing which elements an asset protects/overlaps
- */
-export interface AssetElementAnalysis {
-  /** The asset being analyzed */
-  assetId: string;
-  assetName: string;
-
-  /** True if asset overlaps with at least one valid element */
-  hasValidPlacement: boolean;
-}
 
 /**
  * DFDAnalyzer - Geometric analysis and element relationship detection
  *
  * Provides reusable geometric algorithms for:
- * - Asset placement validation
- * - Element overlap detection
  * - Dataflow intersection detection
  * - Interface usage detection
  * 
  * Now uses GeometryAnalyzer for all geometric calculations
  */
 export class DFDAnalyzer {
-  /**
-   * Find all elements and dataflows that overlap with an asset
-   *
-   * Returns links to:
-   * - Process, Multiprocess, DataStore, ExternalEntity (rectangles)
-   * - Dataflow (lines)
-   * - Interface (rectangles)
-   */
-  findElementsOverlappingAsset(
-    asset: DFDAsset,
-    _elements: DFDElement[],
-    _connections: DFDConnection[],
-  ): AssetElementAnalysis {
-    return {
-      assetId: asset.id,
-      assetName: asset.name,
-      hasValidPlacement: false,
-    };
-  }
-
-  /**
-   * Check if an asset has valid placement (overlaps with at least one element)
-   */
-  validateAssetPlacement(
-    _asset: DFDAsset,
-    _elements: DFDElement[],
-    _connections: DFDConnection[],
-  ): boolean {
-    return false;
-  }
-
   /**
    * Find all dataflows that pass through an interface
    */

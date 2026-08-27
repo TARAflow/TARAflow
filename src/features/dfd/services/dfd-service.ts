@@ -95,7 +95,7 @@ class DFDService {
 
       // Parse XML
       const parseResult = this.parser.parse(project.dfd!.xml!);
-      const { elements, connections, assets, unconnectedDataflows } =
+      const { elements, connections, unconnectedDataflows } =
         parseResult;
 
       // Merge with existing user properties
@@ -107,10 +107,7 @@ class DFDService {
         connections,
         project.dfd?.connections || [],
       );
-      const mergedAssets = this.mergeAssetProperties(
-        assets,
-        project.dfd?.assets || [],
-      );
+      const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
 
       // Sync linkedElements
       const syncedAssets = this.syncAssetLinkedElements(
@@ -214,45 +211,24 @@ class DFDService {
   }
 
   /**
-   * Merge parsed assets with existing properties
-   * linkedElements are NOT merged here - they're computed in syncAssetLinkedElements()
+   * Carry the project's assets through a re-parse of the DrawIO XML.
+   *
+   * Assets are NOT markers on the canvas — they are references that live in
+   * dfd.assets[] and are linked to elements via element.assetRelations. The
+   * XML therefore contributes nothing to the asset list; the project's
+   * existing assets are the single source of truth and pass through
+   * untouched here. linkedElements are cleared and recomputed from
+   * assetRelations in syncAssetLinkedElements().
+   *
+   * (Historically this merged a parsed "asset marker" list against the
+   * project's assets — the marker concept has been removed, so there is no
+   * parsed list to merge anymore.)
    */
-  private mergeAssetProperties(
-    parsedAssets: DFDAsset[],
-    existingAssets: DFDAsset[],
-  ): DFDAsset[] {
-    // Start with parsed assets from XML (if any)
-    const merged = parsedAssets.map((parsed) => {
-      const existing = existingAssets.find((a) => a.id === parsed.id);
-      if (!existing) return parsed;
-
-      // Keep parsed geometry, keep existing user properties
-      return {
-        id: parsed.id,
-        displayId: parsed.displayId,
-        name: existing.name || parsed.name,
-        description: existing.description,
-        assetGroup: existing.assetGroup ?? parsed.assetGroup,
-        protectionNeed: existing.protectionNeed,
-        properties: existing.properties || parsed.properties,
-        linkedElements: [], // Will be set by syncAssetLinkedElements()
-      };
-    });
-
-    // ✅ CRITICAL: Add existing assets that are NOT in parsed XML
-    // This preserves assets created via AssetRelationSelector
-    const parsedIds = new Set(parsedAssets.map((a) => a.id));
-    const assetsOnlyInProject = existingAssets.filter(
-      (a) => !parsedIds.has(a.id),
-    );
-
-    return [
-      ...merged,
-      ...assetsOnlyInProject.map((a) => ({
-        ...a,
-        linkedElements: [], // Will be recomputed
-      })),
-    ];
+  private mergeAssetProperties(existingAssets: DFDAsset[]): DFDAsset[] {
+    return existingAssets.map((a) => ({
+      ...a,
+      linkedElements: [], // Recomputed by syncAssetLinkedElements()
+    }));
   }
 
   /**
@@ -368,7 +344,7 @@ class DFDService {
       const xml = adapter.getXml();
 
       // Parse and validate
-      const { elements, connections, assets, stats, unconnectedDataflows } =
+      const { elements, connections, unconnectedDataflows } =
         this.parser.parse(xml || "");
 
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
@@ -382,31 +358,7 @@ class DFDService {
         project.dfd?.connections || [],
       );
 
-      console.debug("[saveDFD] Assets BEFORE merge", {
-        parsedAssets: assets.map((a) => ({
-          id: a.id,
-          name: a.name,
-          linkedElements: a.linkedElements,
-        })),
-        existingAssets: (project.dfd?.assets || []).map((a) => ({
-          id: a.id,
-          name: a.name,
-          linkedElements: a.linkedElements,
-        })),
-      });
-
-      const mergedAssets = this.mergeAssetProperties(
-        assets,
-        project.dfd?.assets || [],
-      );
-
-      console.debug("[saveDFD] Assets AFTER merge", {
-        mergedAssets: mergedAssets.map((a) => ({
-          id: a.id,
-          name: a.name,
-          linkedElements: a.linkedElements,
-        })),
-      });
+      const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
 
       // Sync linkedElements from assetRelations (SINGLE SOURCE OF TRUTH)
       const syncedAssets = this.syncAssetLinkedElements(
@@ -415,13 +367,13 @@ class DFDService {
         mergedAssets,
       );
 
-      console.debug("[saveDFD] Assets AFTER sync", {
-        syncedAssets: syncedAssets.map((a) => ({
-          id: a.id,
-          name: a.name,
-          linkedElements: a.linkedElements,
-        })),
-      });
+      // Recalculate stats after merge — assets live in dfd.assets[], not
+      // in the XML, so parse-time stats always report 0 assets.
+      const stats = calculateStats(
+        mergedElements,
+        mergedConnections,
+        syncedAssets,
+      );
 
       const graphBuilder = new DefaultDFDGraphBuilder();
 
@@ -537,7 +489,7 @@ class DFDService {
     };
 
     try {
-      const { elements, connections, assets, stats, unconnectedDataflows } =
+      const { elements, connections, unconnectedDataflows } =
         this.parser.parse(xml);
 
       const mergedElements = this.mergeElementProperties(
@@ -548,14 +500,19 @@ class DFDService {
         connections,
         project.dfd?.connections || [],
       );
-      const mergedAssets = this.mergeAssetProperties(
-        assets,
-        project.dfd?.assets || [],
-      );
+      const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
       const syncedAssets = this.syncAssetLinkedElements(
         mergedElements,
         mergedConnections,
         mergedAssets,
+      );
+
+      // Recalculate stats after merge — assets live in dfd.assets[], not
+      // in the XML, so parse-time stats always report 0 assets.
+      const stats = calculateStats(
+        mergedElements,
+        mergedConnections,
+        syncedAssets,
       );
 
       const graphBuilder = new DefaultDFDGraphBuilder();
@@ -637,7 +594,7 @@ class DFDService {
     const adapter = createDFDStorageAdapter(project.id);
     adapter.syncFromLegacy();
     const xml = adapter.getXml();
-    const { elements, connections, assets, stats, unconnectedDataflows } =
+    const { elements, connections, unconnectedDataflows } =
       this.parser.parse(xml || "");
 
     const mergedConnections = this.mergeConnectionProperties(
@@ -650,14 +607,19 @@ class DFDService {
     );
 
     // NEU — Assets aus project.dfd mergen und linkedElements syncen
-    const mergedAssets = this.mergeAssetProperties(
-      assets,
-      project.dfd?.assets || [],
-    );
+    const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
     const syncedAssets = this.syncAssetLinkedElements(
       mergedElements,
       mergedConnections,
       mergedAssets,
+    );
+
+    // Recalculate stats after merge — assets live in dfd.assets[], not in
+    // the XML, so parse-time stats always report 0 assets.
+    const stats = calculateStats(
+      mergedElements,
+      mergedConnections,
+      syncedAssets,
     );
 
     const graphBuilder = new DefaultDFDGraphBuilder();

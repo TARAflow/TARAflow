@@ -7,6 +7,36 @@ import type { ValidationResult } from "../services/dfd-validator";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
 import dfdService from "../services/dfd-service";
 
+/**
+ * Pick the freshest of two candidate DFDData snapshots by `lastModified`.
+ *
+ * The DFD tab is not the only writer of `project.dfd`: the Assets tab,
+ * Hazards, and load-time backfill all write it directly via updateProject,
+ * bypassing this hook — so `lastCommittedDfdRef` (which only tracks writes
+ * that went THROUGH this hook) can be older than the `project` prop. The old
+ * `lastCommittedDfdRef.current ?? projectRef.current.dfd` chain always
+ * preferred the ref whenever it was non-null, silently shadowing a fresher
+ * foreign write and dropping whatever that write added (e.g. an asset created
+ * in the Assets tab, then referenced by an is_an relation added in the DFD
+ * tab — the relation persisted while the asset object vanished). Comparing
+ * `lastModified` picks the genuinely newest snapshot instead.
+ *
+ * `a` (the last dfd this hook committed) wins ties and unparseable
+ * timestamps, preserving prior behavior when the two are equally fresh.
+ */
+function freshestOf(
+  a: DFDData | undefined,
+  b: DFDData | null | undefined,
+): DFDData | undefined {
+  if (!a) return b ?? undefined;
+  if (!b) return a;
+  const at = Date.parse(a.lastModified ?? "");
+  const bt = Date.parse(b.lastModified ?? "");
+  if (Number.isNaN(bt)) return a;
+  if (Number.isNaN(at)) return b;
+  return bt > at ? b : a;
+}
+
 // ==================== TYPES ====================
 
 export interface UseDFDPersistenceOptions {
@@ -167,13 +197,13 @@ export function useDFDPersistence(
   const scheduleSave = useCallback(
     (updater: (base: DFDData) => DFDUpdateResult) => {
       // The freshest known state: a still-pending (not yet flushed) edit
-      // wins, then the last dfd we've ever handed to onUpdate (which may
-      // have flushed already but not yet round-tripped back through
-      // `project`), then finally project.dfd as the last resort.
+      // wins, then the fresher of {last dfd we handed to onUpdate, current
+      // project.dfd} — see freshestOf(): a foreign channel may have written
+      // project.dfd more recently than our last commit, and must not be
+      // shadowed by a stale lastCommittedDfdRef.
       const base =
         pendingSaveRef.current?.dfd ??
-        lastCommittedDfdRef.current ??
-        projectRef.current.dfd;
+        freshestOf(lastCommittedDfdRef.current, projectRef.current.dfd);
       if (!base) {
         console.warn(
           "[useDFDPersistence] scheduleSave called with no dfd available (neither pending, last-committed, nor project.dfd) — ignoring",
@@ -255,9 +285,8 @@ export function useDFDPersistence(
           // schedule-drawio-save-lost-update.test.ts.
           const base =
             pendingSaveRef.current?.dfd ??
-            lastCommittedDfdRef.current ??
-            projectRef.current.dfd;
-          const currentProject = { ...projectRef.current, dfd: base };
+            freshestOf(lastCommittedDfdRef.current, projectRef.current.dfd);
+          const currentProject = { ...projectRef.current, dfd: base ?? null };
 
           // XML direkt verarbeiten — kein localStorage-Read mehr
           const result = dfdService.saveDFDFromXml(currentProject, currentXml);

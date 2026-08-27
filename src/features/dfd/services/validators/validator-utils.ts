@@ -96,8 +96,6 @@ export const ValidationMessages = {
     "dfdValidation.interfaceConnectorTypeInvalid",
 
   // Asset Relations
-  // ASSET_MARKER_NO_RELATION: "dfdValidation.assetMarkerNoRelation",
-  // ASSET_RELATION_NO_MARKER: "dfdValidation.assetRelationNoMarker",
   ASSET_RELATION_TYPE_INVALID: "dfdValidation.assetRelationTypeInvalid",
   ASSET_RELATION_INCONSISTENT: "dfdValidation.assetRelationInconsistent",
   ASSET_MISSING_NAME: "dfdValidation.assetMissingName",
