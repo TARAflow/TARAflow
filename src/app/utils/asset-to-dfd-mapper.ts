@@ -84,6 +84,20 @@ function deriveLinkedElements(
 }
 
 /**
+ * The feature-store assets that belong in the DFD's asset list.
+ *
+ * At runtime the feature store is a superset of dfd.assets: syncFromDFD adds
+ * every DFD asset with source "dfd", and keeps manual-only assets (source
+ * "manual") that have no DFD element. dfd.assets ≡ exactly the source "dfd"
+ * subset — verified against real project fixtures. Use this as the membership
+ * filter before deriveDfdAssets() so the projection reproduces dfd.assets
+ * rather than also pulling in manual-only assets.
+ */
+export function dfdSourcedAssets(featureAssets: Asset[]): Asset[] {
+  return featureAssets.filter((a) => a.source === "dfd");
+}
+
+/**
  * Reconstruct the DFDAsset[] shape from the canonical feature-store assets
  * plus the current diagram.
  *
