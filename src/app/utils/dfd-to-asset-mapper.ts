@@ -26,9 +26,9 @@ import type {
   AssetRelation,
 } from "features/dfd";
 import type {
-  DFDAssetReference,
-  DFDElementReference,
-  DFDConnectionReference,
+  AssetDFDAsset,
+  AssetDFDElement,
+  AssetDFDConnection,
   DFDElementLink,
 } from "features/assets";
 import { isSystemUsesRelation, isInfraAccessesRelation } from "features/dfd";
@@ -55,7 +55,7 @@ export function mapDFDAssetsToAssetFeature(
   dfdAssets: DFDAsset[],
   elements: DFDElement[],
   connections: DFDConnection[],
-): DFDAssetReference[] {
+): AssetDFDAsset[] {
   const linksByAssetId = new Map<string, DFDElementLink[]>();
 
   const addLink = (assetId: string, link: DFDElementLink): void => {
@@ -114,7 +114,7 @@ export function mapDFDAssetsToAssetFeature(
  */
 export function mapDFDElementsToAssetFeature(
   dfdElements: DFDElement[],
-): DFDElementReference[] {
+): AssetDFDElement[] {
   return dfdElements.map((element) => ({
     id: element.id,
     type: element.type,
@@ -137,7 +137,7 @@ export function mapDFDElementsToAssetFeature(
  */
 export function mapDFDConnectionsToAssetFeature(
   dfdConnections: DFDConnection[],
-): DFDConnectionReference[] {
+): AssetDFDConnection[] {
   return dfdConnections.map((conn) => ({
     id: conn.id,
     from: conn.from,

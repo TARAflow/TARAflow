@@ -12,9 +12,9 @@ import type {
 } from "./asset-impact-types";
 import type { SecurityGoal } from "./asset-security-goals-types";
 import type {
-  DFDAssetReference as AssetDFDAsset,
-  DFDElementReference as AssetDFDElement,
-  DFDConnectionReference as AssetDFDConnection,
+  AssetDFDAsset,
+  AssetDFDElement,
+  AssetDFDConnection,
   DFDElementLink,
   AssetToAssetRelationReference,
 } from "./dfd-asset-link-types";

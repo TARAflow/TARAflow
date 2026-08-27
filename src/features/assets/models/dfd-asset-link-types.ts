@@ -40,7 +40,7 @@ export interface SafetyAnnotationSummary {
  * Read-only reference to a DFD asset.
  * Used in the assets tab for sync and display.
  */
-export interface DFDAssetReference {
+export interface AssetDFDAsset {
   readonly id: string;
   readonly displayId: string;
   readonly name?: string;
@@ -86,7 +86,7 @@ export interface DFDAssetReference {
  * Read-only reference to a DFD element.
  * Used for sync and display in the assets tab.
  */
-export interface DFDElementReference {
+export interface AssetDFDElement {
   readonly id: string;
   readonly type: string;
   readonly name: string;
@@ -114,7 +114,7 @@ export interface DFDElementReference {
  * Read-only reference to a DFD DataFlow.
  * name = the arrow label in the diagram (previously: label).
  */
-export interface DFDConnectionReference {
+export interface AssetDFDConnection {
   readonly id: string;
   readonly from: string;
   readonly to: string;
@@ -151,7 +151,7 @@ export interface AssetToAssetRelationReference {
 
 /**
  * Simplified link for display in the asset table.
- * Derived from DFDAssetReference.linkedElements.
+ * Derived from AssetDFDAsset.linkedElements.
  */
 export interface DFDElementLink {
   elementId: string;
@@ -177,7 +177,7 @@ export interface DFDElementLink {
  */
 export function getLinkedElementsForAsset(
   assetId: string,
-  dfdAssets?: ReadonlyArray<DFDAssetReference>,
+  dfdAssets?: ReadonlyArray<AssetDFDAsset>,
 ): DFDElementLink[] {
   const dfdAsset = dfdAssets?.find((a) => a.id === assetId);
   if (!dfdAsset?.linkedElements) return [];
@@ -197,9 +197,9 @@ export function getLinkedElementsForAsset(
  * Returns all asset relations of an element filtered by asset group.
  */
 export function getElementRelationsByGroup(
-  element: DFDElementReference,
+  element: AssetDFDElement,
   assetGroup: AssetGroup,
-): NonNullable<DFDElementReference["assetRelations"]> {
+): NonNullable<AssetDFDElement["assetRelations"]> {
   return (
     element.assetRelations?.filter((r) => r.assetGroup === assetGroup) ?? []
   );
@@ -209,7 +209,7 @@ export function getElementRelationsByGroup(
  * Returns true if an element has an is_an relation to the given asset.
  */
 export function hasIsAnRelation(
-  element: DFDElementReference,
+  element: AssetDFDElement,
   assetId: string,
 ): boolean {
   return (
