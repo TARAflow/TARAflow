@@ -112,18 +112,26 @@ const ID_PREFIX_TO_CATEGORY: Record<string, AssetGroup> = {
   IF: "infrastructure",
   PR: "process",
   PH: "physical",
-  SE: "service",
+  SV: "service",
   HU: "human",
   EN: "environment",
 };
 
 function getCategoryFromAsset(asset: Asset): AssetGroup | undefined {
-  // 1. Canonical path — populated by asset-sync-service since sync fix
+  // 1. Canonical field on the Asset itself (used elsewhere, e.g. showHVAColumn's
+  //    `a.assetGroup === "infrastructure"` check) — this was previously not
+  //    consulted here at all, which is why Physical/Process/Service/Human/
+  //    Environment assets fell through to "–": their properties.category was
+  //    unset and their ID prefix didn't match ID_PREFIX_TO_CATEGORY.
+  if (asset.assetGroup && asset.assetGroup in ASSET_GROUP_CONFIG)
+    return asset.assetGroup as AssetGroup;
+
+  // 2. properties.category — populated by asset-sync-service since sync fix
   const fromProperties = asset.properties?.category;
   if (fromProperties && fromProperties in ASSET_GROUP_CONFIG)
     return fromProperties as AssetGroup;
 
-  // 2. Fallback: derive from ID prefix for legacy / manually-created assets
+  // 3. Fallback: derive from ID prefix for legacy / manually-created assets
   const prefix = asset.id?.split("-")[0]?.toUpperCase();
   return prefix ? ID_PREFIX_TO_CATEGORY[prefix] : undefined;
 }
