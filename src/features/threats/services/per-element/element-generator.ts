@@ -32,6 +32,10 @@ import {
   getImplementedMitigationHints,
   mergeMitigationHints,
 } from "../implemented-controls-mapper";
+import {
+  mergeGeneratedTables,
+  elementThreatNaturalKey,
+} from "../threat-identity";
 
 // ==================== ASSET REVERSE INDEX ====================
 
@@ -296,7 +300,18 @@ export class ElementThreatGenerator {
       }))
       .filter((table) => table.threats.length > 0);
 
-    return deduplicatedTables;
+    // ── Preserve analyst-owned fields across full regeneration ────────────
+    // A full regeneration rebuilds every threat from scratch (createEmptyThreat),
+    // which would otherwise discard analyst edits (relevance, notes, custom
+    // entries, ...) from the previous set — the renumber data-loss bug. Match
+    // each fresh threat to its predecessor by stable natural key
+    // (elementId + strideCategory) and carry the analyst fields over. When there
+    // is no previous set the fresh tables are returned unchanged.
+    return mergeGeneratedTables(
+      deduplicatedTables,
+      project.threats?.perElementTables,
+      elementThreatNaturalKey,
+    );
   }
 
   // ── Private generators ──────────────────────────────────────────────────

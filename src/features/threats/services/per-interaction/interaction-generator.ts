@@ -49,6 +49,10 @@ import {
   getImplementedMitigationHints,
   mergeMitigationHints,
 } from "../implemented-controls-mapper";
+import {
+  mergeGeneratedTables,
+  interactionThreatNaturalKey,
+} from "../threat-identity";
 
 // ==================== TYPES ====================
 
@@ -393,7 +397,16 @@ export class InteractionThreatGenerator {
       }
     }
 
-    return tables;
+    // ── Preserve analyst-owned fields across full regeneration ────────────
+    // See threat-identity.ts. Match each fresh threat to its predecessor by
+    // stable natural key (connectionId + strideCategory + direction for
+    // data-flow threats, elementId + strideCategory for interface threats) and
+    // carry the analyst fields over. No previous set → fresh tables unchanged.
+    return mergeGeneratedTables(
+      tables,
+      project.threats?.perInteractionTables,
+      interactionThreatNaturalKey,
+    );
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
