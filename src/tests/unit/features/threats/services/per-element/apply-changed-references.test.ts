@@ -53,7 +53,7 @@ function change(
 }
 
 describe("applyChangedReferences", () => {
-  it("regenerates threat.id from newId on renumber and refreshes linkedElement", () => {
+  it("regenerates threat.displayId from newDisplayId on renumber and refreshes linkedElement", () => {
     const tables = [table([threat("P1-S-1", "e1", "Auth", "P-1")])];
     const changes = [
       change("P1-S-1", "P2-S-1", {
@@ -71,7 +71,8 @@ describe("applyChangedReferences", () => {
 
     expect(updated).toBe(1);
     const t = out[0].threats[0];
-    expect(t.id).toBe("P2-S-1");
+    expect(t.displayId).toBe("P2-S-1"); // display label tracks renumber
+    expect(t.id).toBe("P1-S-1"); // identity is stable
     expect(t.linkedElement?.displayId).toBe("P-2");
     expect(t.linkedElement?.elementName).toBe("Auth");
   });

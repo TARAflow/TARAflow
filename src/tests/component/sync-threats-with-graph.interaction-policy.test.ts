@@ -68,13 +68,13 @@ function interactionThreats(out: ThreatBundle | null) {
 }
 
 describe("syncThreatsWithGraph — per-interaction Class A/B policy", () => {
-  it("Class A: a data-flow renumber regenerates the id silently", () => {
+  it("Class A: a data-flow renumber regenerates the display id silently", () => {
     const graph = graphOf([TB, S, T], [conn("c1", "s1", "t1", "DF-9")]);
     const out = syncThreatsWithGraph(bundle(), graph);
     const threats = interactionThreats(out);
 
     expect(threats).toHaveLength(1);
-    expect(threats[0].id).toBe("TB1-DF9-S-OUT-1");
+    expect(threats[0].displayId).toBe("TB1-DF9-S-OUT-1");
   });
 
   it("Class A: an endpoint rename refreshes the source name silently", () => {

@@ -91,7 +91,7 @@ export class ElementThreatSync {
 
             const changes: ("name" | "id" | "type")[] = [];
 
-            if (threat.displayId !== expectedId) {
+            if ((threat.displayId ?? threat.id) !== expectedId) {
               changes.push("id");
             }
 
@@ -166,7 +166,7 @@ export class ElementThreatSync {
 
         const elemChanges: ("name" | "id" | "type")[] = [];
 
-        if (threat.displayId !== expectedId) {
+        if ((threat.displayId ?? threat.id) !== expectedId) {
           elemChanges.push("id");
         }
         if (element.name !== threat.linkedElement.elementName) {
@@ -398,7 +398,7 @@ export class ElementThreatSync {
           const dataFlowIdNormalized = (conn.displayId || "").replace(/-/g, "");
           const newThreatId = `${dataFlowIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
 
-          if (threat.displayId !== newThreatId) {
+          if ((threat.displayId ?? threat.id) !== newThreatId) {
             updated++;
             return {
               ...threat,
@@ -440,7 +440,7 @@ export class ElementThreatSync {
           newThreatId = `${elementIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         }
 
-        if (threat.displayId !== newThreatId) {
+        if ((threat.displayId ?? threat.id) !== newThreatId) {
           updated++;
           return {
             ...threat,

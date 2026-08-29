@@ -84,7 +84,7 @@ function emptyStatus(): ThreatSyncStatus {
 }
 
 describe("interactionThreatSync.applyChangedReferences", () => {
-  it("renumber: regenerates the interaction threat id and refreshes the dataFlow", () => {
+  it("renumber: regenerates the interaction threat display id and refreshes the dataFlow", () => {
     const graph = graphOf([TB, S, T], [conn("DF-9")]); // connection renumbered
     const status = {
       ...emptyStatus(),
@@ -115,7 +115,7 @@ describe("interactionThreatSync.applyChangedReferences", () => {
 
     expect(updated).toBe(1);
     const t = tables[0].threats[0] as any;
-    expect(t.id).toBe("TB1-DF9-S-OUT-1");
+    expect(t.displayId).toBe("TB1-DF9-S-OUT-1"); // display label tracks renumber
     expect(t.dataFlow.dataFlowId).toBe("DF-9");
     expect(tables[0].threats).toHaveLength(1); // non-destructive
   });

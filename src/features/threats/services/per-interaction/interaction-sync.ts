@@ -143,7 +143,7 @@ export class InteractionThreatSync {
                 threat.sequenceNumber,
               );
 
-              if (threat.displayId !== expectedId) {
+              if ((threat.displayId ?? threat.id) !== expectedId) {
                 changes.push("id");
               }
             }
@@ -217,7 +217,7 @@ export class InteractionThreatSync {
                 threat.sequenceNumber,
               );
 
-              if (threat.displayId !== expectedId) {
+              if ((threat.displayId ?? threat.id) !== expectedId) {
                 changedElements.push({
                   threatId: threat.id,
                   oldDisplayId: threat.linkedElement.displayId || "",

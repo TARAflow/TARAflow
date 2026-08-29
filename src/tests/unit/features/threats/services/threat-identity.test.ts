@@ -191,19 +191,22 @@ describe("mergeGeneratedThreat", () => {
 
   it("recomputes system-derived fields from fresh", () => {
     const existing = baseThreat({
-      id: "OLD-S-1",
+      id: "uuid-existing-0001",
+      displayId: "OLD-S-1",
       linkedAssetIds: ["A-stale"],
       templateId: "T-old",
       causeDescription: "stale cause",
     });
     const fresh = baseThreat({
-      id: "P2-S-1",
+      id: "uuid-fresh-0002",
+      displayId: "P2-S-1",
       linkedAssetIds: ["A-current"],
       templateId: "T-001",
       causeDescription: "fresh cause",
     });
     const merged = mergeGeneratedThreat(existing, fresh);
-    expect(merged.id).toBe("P2-S-1");
+    expect(merged.id).toBe("uuid-existing-0001"); // identity preserved
+    expect(merged.displayId).toBe("P2-S-1"); // system-derived label from fresh
     expect(merged.linkedAssetIds).toEqual(["A-current"]);
     expect(merged.templateId).toBe("T-001");
     expect(merged.causeDescription).toBe("fresh cause");
@@ -250,7 +253,8 @@ describe("mergeGeneratedTables", () => {
         displayIdentifier: "[UB]",
         threats: [
           baseThreat({
-            id: "P1-S-1",
+            id: "uuid-stable-0001",
+            displayId: "P1-S-1",
             relevance: "relevant",
             evalNote: "confirmed",
             proposedMitigations: [{ id: "M-S-001", notes: "wire up mTLS" }],
@@ -266,7 +270,8 @@ describe("mergeGeneratedTables", () => {
         displayIdentifier: "[UB]",
         threats: [
           baseThreat({
-            id: "P2-S-1",
+            id: "uuid-fresh-9999",
+            displayId: "P2-S-1",
             relevance: "unrated",
             evalNote: undefined,
             proposedMitigations: [{ id: "M-S-001" }],
@@ -277,7 +282,8 @@ describe("mergeGeneratedTables", () => {
 
     const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey);
     const t = merged[0].threats[0];
-    expect(t.id).toBe("P2-S-1"); // display id tracks renumber
+    expect(t.displayId).toBe("P2-S-1"); // display id tracks renumber
+    expect(t.id).toBe("uuid-stable-0001"); // identity preserved across renumber
     expect(t.relevance).toBe("relevant"); // analyst rating survived
     expect(t.evalNote).toBe("confirmed");
     expect(t.proposedMitigations[0].notes).toBe("wire up mTLS");

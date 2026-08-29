@@ -67,9 +67,12 @@ describe("syncPerElementThreatsForGraph", () => {
       ]),
     );
 
-    expect(byLink["131"].id).toBe("DF6-T-1");
+    // New identity contract: id is stable, displayId tracks the renumber.
+    expect(byLink["131"].displayId).toBe("DF6-T-1");
+    expect(byLink["131"].id).toBe("DF7-T-1"); // stable, unchanged
     expect(byLink["131"].linkedElement.displayId).toBe("DF-6");
-    expect(byLink["140"].id).toBe("DF7-T-1");
+    expect(byLink["140"].displayId).toBe("DF7-T-1");
+    expect(byLink["140"].id).toBe("DF6-T-1"); // stable, unchanged
     expect(byLink["140"].linkedElement.displayId).toBe("DF-7");
   });
 

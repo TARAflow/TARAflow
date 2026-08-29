@@ -33,20 +33,47 @@ merge in the generator with **no** identity change.
     `src/tests/unit/features/threats/services/threat-identity.test.ts`.
   - Validated via esbuild+Node harness (23/23) mirroring the vitest cases; patch
     dry-run-applies cleanly to a fresh clone.
-- **Patch 2 = A.** The architectural hardening: `Threat.id` → UUID, `displayId` →
-  label, `migrate_4_to_5`, sync-detection redirect (§Phase 3), UI display/sort switch
-  (§Phase 5), dedup re-key (§Phase 2 caveat). **Reuses Patch 1's
+- **Patch 2 = A — DONE (COMBINED, not Threat-only).** Shipped on branch
+  `origin/fix_threat_id_problem`. The architectural hardening: `Threat.id` → UUID,
+  `displayId` → label, `migrate_4_to_5`, sync-detection redirect (§Phase 3), UI
+  display/sort switch (§Phase 5), dedup re-key (§Phase 2 caveat). **Reuses Patch 1's
   `mergeGeneratedThreat` / `mergeGeneratedTables` verbatim** — only the
-  identity-preservation line differs (`id: fresh.id` → keep `existing.id`, recompute
-  `displayId`). Nothing in Patch 1 is thrown away.
-- **Patch 3 = Risk** (independent `Risk.id` UUID + `migrateRiskIdentity` repoint,
-  `R-<displayId>` computed at render — Phase 7).
-- **Patch 4 = Attack-tree** (anchors, local ref copies, DSL `threatRef`
-  investigation — Phase 8).
+  identity-preservation line differs (keep `existing.id`, recompute `displayId`).
+  - **Why it had to swallow Risk + Attack-tree (the finding that killed the
+    separate-patch plan):** Risk resolves its threat everywhere via
+    `threats.find(t => t.id === risk.threatId)` AND parses/displays `threatId` as a
+    *label* (grouping regexes, risk-matrix, Jira text, attack-tree DSL `[THREAT_ID]`).
+    Flip `Threat.id` → UUID and exactly one half breaks no matter what: repoint the FK
+    and UUIDs leak into display/grouping/Jira; don't repoint and risks can't resolve
+    their threat. So all three features change together — migration repoints FKs
+    (`Risk.threatId`, `AttackTreeAnchor.threatId`) to the new UUIDs AND stores display
+    snapshots (`Risk.threatDisplayId`, `AttackTreeAnchor.threatDisplayId`). Resolution
+    stays on the UUID; every label site switched to the snapshot. **Phases 7 & 8
+    (former Patch 3/4) are therefore folded into Patch 2, not deferred.**
+  - **Required-field decision:** `ThreatReference.displayId` is **required**, not
+    optional. An optional field with a `?? id` display fallback would leak a UUID into
+    the UI. Both the shared `ThreatReference` (`src/shared/models`) and the separate
+    attack-tree-local `ThreatReference` (`attacktree-types.ts`) carry it; every
+    construction site sets it.
+  - **Drift-detection transition semantics ([Correction], the fixup commit):** the
+    element/interaction sync compares the *current* label against the *expected* one
+    via `(threat.displayId ?? threat.id) !== expected`. The `?? threat.id` is **not** a
+    display fallback — it is comparison-only logic for the transition window. A
+    migrated v5 threat always has a `displayId` and uses it; the `id` fallback bites
+    solely for un-migrated v4 data (and test doubles built with only an `id`), where
+    `id` is still the label — exactly the value the comparison needs. Without it,
+    every pre-migration threat compared `undefined` against its label and was flagged
+    as phantom drift (the EdGe2 golden project reported 71 changedReferences and lost
+    `inSync`; per-element sync lost its no-op guarantee). Six sites: element-sync ×4,
+    interaction-sync ×2.
+  - **Validation:** full suite green — 158 unit files / 1385 tests + 33 component
+    tests, 0 failures. (Sandbox note: `npm install` there can't fetch `xlsx` from the
+    sheetjs CDN, so local vitest runs temporarily repoint `xlsx` to a registry version;
+    this never lands in a patch.)
 
-Rationale: ship the fix testable today at near-zero regression risk, then layer the
-identity split. Going straight to A is also viable — Patch 1's merge machinery is
-already the code A needs, so it would be *extended*, not replaced.
+Rationale for the 1-then-2 split: Patch 1 shipped the data-loss fix testable
+immediately at near-zero regression risk; Patch 2 then layered the identity split,
+extending Patch 1's merge machinery rather than replacing it.
 
 ---
 
@@ -348,6 +375,24 @@ A `// TEMP DEBUG` block (~lines 253–270) runs `console.log("[DEBUG] …")` on 
 per-interaction generation. Same class as the `audit-git-adapters.ts` path leak.
 Remove.
 
+### 3b-iii. `verify:fixtures` script broken by a stale import — FIXED (separate diff)
+Pre-existing on `fix_threat_id_problem`, unrelated to the identity work — surfaced
+while checking that the real `.tara.json` fixtures still migrate. `scripts/verify-
+fixtures.ts` imported `canonicalStringify` from `prepare-for-disk`, which stopped
+re-exporting it after the `tcs-serialize` extraction (prepare-for-disk now *imports*
+it for its own use but no longer re-exports). The script crashed at load with
+"does not provide an export named 'canonicalStringify'". `verify:fixtures` is in fact
+the **audit-engine** fixture verifier (positive `cb29c334…`/`main` + negative
+`fixture-broken-bootstrap` against `TARAflow_Examples`), NOT a schema-migration check —
+so it has no bearing on the identity migration (that path is exercised by the passing
+vitest suite: SmokeDetector v2, cnc-ref v2, Simple_Test_Project v3 all migrate through
+to v5). Fix = one line: import `canonicalStringify` from its owner module
+`../src/app/services/tcs-serialize` instead of `prepare-for-disk` (only caller doing
+so; keeps prepare-for-disk's surface minimal — single source of truth for canonical).
+Delivered as `fix-verify-fixtures-import.diff`, kept **out** of the identity commit.
+Verified: the script runs its full engine logic after the change (only errors on a
+non-Examples path are the expected `ENGINE_ERROR — ref not found`).
+
 ---
 
 ## 4. Implementation Phases
@@ -455,37 +500,47 @@ Reproduce the original bug end-to-end:
    `causeDescription` + `causeDescriptionExtension` + `relevance` + mitigation `notes`
    all preserved, `linkedAssetIds` freshly recomputed, mitigation
    `alreadyImplemented` flags freshly recomputed from current element properties.
-- **Note:** `src/tests/component/renumber-roundtrip.test.ts` currently encodes the
-  *old* contract (after `P-1`→`P-2` renumber, `threat.id` `P1-S-1`→`P2-S-1`). Under
-  Strategy A this becomes the regression test and must be rewritten to assert `id`
-  (UUID) stable / `displayId` updated. Patch 1 leaves it green as-is (ids still move).
+- **Note — DONE:** `src/tests/component/renumber-roundtrip.test.ts` was rewritten in
+  Patch 2 to the new contract (`id` UUID stable / `displayId` `P1-S-1`→`P2-S-1`). The
+  fixup commit did the same for the remaining tests that still encoded the old
+  "id regenerates" contract: `apply-changed-references`, `apply-dfd-change-sync`,
+  `interaction-apply-changed-references`, `sync-threats` interaction-policy Class A,
+  and the `threat-identity` merge / table-merge cases. Pattern in every case: assert
+  `displayId` tracks the renumber, assert `id` stays stable. The reporter fixture in
+  `taraflow-reporter/tests/unit/load-project.test.ts` was bumped to `schemaVersion: 5`
+  so "already-current-schema, no migration" still holds.
 
-### Phase 7 — Risk identity fix (Patch 3, scoped)
-Pending Open Questions 4–5 (deep review). Expected shape:
-- `Risk.id`: independent UUID, `generateRiskId()` retired as a storage-key generator.
-- `Risk.threatId`: repointed to resolve against `Threat.id` (UUID) — requires Phase 0
-  first; the `extractThreatReferences` bridge already exposes the UUID (§1a).
-- Display label "R-EE1-S-1": computed at render time from the live threat's
-  `displayId`, never persisted.
-- Migration: `migrateRiskIdentity`, run **after** the threat migration (needs the
-  threat's new UUID to exist to repoint `threatId`). For existing risks only.
-- Needs a merge/reconciliation pass analogous to Phase 1/2 if "Generate Risks" turns
-  out to be as unguarded as the Threat generator was (Open Question 4).
-- Separate, lower-priority follow-up: the "Risk copies threat fields once, then goes
-  stale" issue (§1a) — likely a `risk-sync-service.ts` change (Open Question 5).
+### Phase 7 — Risk identity fix — DONE (folded into Patch 2)
+Shipped as part of the combined patch. Final shape (differs from the original scoped
+plan — `Risk.id` was **not** turned into a UUID; the display-snapshot approach made it
+unnecessary):
+- `Risk.threatId`: repointed by `migrate_4_to_5` to the threat's new UUID; all
+  `threats.find(t => t.id === risk.threatId)` resolution now matches on the UUID.
+- `Risk.threatDisplayId`: **new required** display snapshot. Every label site
+  (grouping regexes, risk-matrix sort/display, Jira ticket text, filters) switched
+  from `threatId` to `threatDisplayId`. `createEmptyRisk` sets it from
+  `threatRef.displayId`; `id` stays `R-<displayId>` via `generateRiskId`.
+- `risk-sync-service.ts`: refreshes `threatDisplayId` when the threat's label changes
+  (the "Risk copies threat fields once, then goes stale" issue is handled by the same
+  sync trigger).
+- No separate Risk merge pass needed — resolution is UUID-stable by construction.
 
-### Phase 8 — Attack-Tree identity fix (Patch 4, scoped)
-Pending Open Questions 6–8 (deep review). Expected shape:
-- `AttackTreeAnchor.threatId`/`.riskId`: repointed to the stable UUIDs, migration
-  analogous to Phase 4/7, run after both Threat and Risk migrations.
-- Local `ThreatReference`/`RiskReference` copies in `attacktree-types.ts`: add
-  `displayId` alongside `id` so the attack-tree UI can keep showing the short label
-  while resolving identity via `id`.
-- `AttackTreeNode.threatRef` (DSL-embedded reference): investigate feasibility of a
-  real fix once the parser is read; may end up documented as a known limitation.
-- Verify (or fix) `attacktree-threat-generator.ts` to use the shared
-  `createEmptyThreat()`/merge machinery from Phase 1/2.
-- No fix needed for `AttackPath.pathKey` — already correct, cited as precedent.
+### Phase 8 — Attack-Tree identity fix — DONE (folded into Patch 2)
+Shipped as part of the combined patch. Final shape:
+- `AttackTreeAnchor.threatId`: repointed by `migrate_4_to_5` to the stable threat
+  UUID; likelihood matching stays UUID-based (correct by construction).
+- `AttackTreeAnchor.threatDisplayId`: **new optional** snapshot; anchor display name
+  (`getAnchorDisplayName`), the DSL `[THREAT_ID]` emission (`attacktree-service.ts`),
+  tab2/detail-view display, and the create-dialog menu all read it (menu `value` still
+  stores `threat.id` = UUID).
+- Attack-tree-local `ThreatReference` (`attacktree-types.ts`) got a required
+  `displayId`; `extractThreatReferencesForAttackTree` and the factory set it. This is a
+  **separate** interface from the shared `ThreatReference` — both carry the field.
+- `attacktree-threat-generator.ts`: the two attack-path `ThreatReference` literals set
+  `displayId = buildThreatId(tree.id, path.pathKey, strideCategory)` (same as `id` —
+  the AT-id is renumber-proof, so no UUID split needed there).
+- `AttackTreeNode.threatRef` (DSL-embedded): resolves via the anchor snapshot; no
+  parser change was required.
 
 ---
 

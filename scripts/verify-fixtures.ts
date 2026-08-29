@@ -5,7 +5,7 @@
 import { createGitReaderExec } from "../src/features/audit/services/verify/git-reader-exec";
 import { verifyAudit } from "../src/features/audit/services/verify/engine";
 import { makePolicy } from "../src/features/audit/services/verify/policy";
-import { canonicalStringify } from "../src/app/services/prepare-for-disk";
+import { canonicalStringify } from "../src/app/services/tcs-serialize";
 
 const EXAMPLES = process.argv[2];
 if (!EXAMPLES) {
