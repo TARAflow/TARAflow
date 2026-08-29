@@ -19,7 +19,8 @@ import {
 
 function baseThreat(over: Partial<Threat> = {}): Threat {
   return {
-    id: "P1-S-1",
+    id: "uuid-existing-0001",
+    displayId: "P1-S-1",
     trustBoundaryId: null,
     trustBoundaryName: null,
     trustBoundaryDisplayId: null,
@@ -287,5 +288,67 @@ describe("mergeGeneratedTables", () => {
       { trustBoundaryId: null, trustBoundaryName: "", displayIdentifier: "", threats: [baseThreat()] } as any,
     ];
     expect(mergeGeneratedTables(fresh, undefined, elementThreatNaturalKey)).toBe(fresh);
+  });
+});
+
+// ── Identity preservation (Strategy A) ───────────────────────────────────────
+
+describe("identity preservation on merge", () => {
+  it("keeps the existing UUID id and takes the fresh displayId", () => {
+    // Existing threat was renumbered away: its label is now P2-S-1, but its
+    // stable UUID must survive a full regeneration unchanged.
+    const existing = baseThreat({
+      id: "uuid-STABLE-42",
+      displayId: "P1-S-1",
+      relevance: "relevant",
+    });
+    const fresh = baseThreat({
+      id: "uuid-FRESH-99", // createEmptyThreat mints a new UUID every run
+      displayId: "P2-S-1", // regenerated label after the renumber
+    });
+
+    const merged = mergeGeneratedThreat(existing, fresh);
+
+    expect(merged.id).toBe("uuid-STABLE-42"); // identity preserved
+    expect(merged.displayId).toBe("P2-S-1"); // label regenerated
+    expect(merged.relevance).toBe("relevant"); // analyst field preserved
+  });
+
+  it("a genuinely new threat keeps its fresh UUID and label", () => {
+    const fresh = baseThreat({ id: "uuid-NEW-1", displayId: "P3-S-1" });
+    const merged = mergeGeneratedThreat(undefined, fresh);
+    expect(merged.id).toBe("uuid-NEW-1");
+    expect(merged.displayId).toBe("P3-S-1");
+  });
+
+  it("table merge preserves the prior UUID for a natural-key match", () => {
+    const prior = {
+      trustBoundaryId: null,
+      trustBoundaryName: "",
+      displayIdentifier: "",
+      threats: [
+        baseThreat({
+          id: "uuid-PRIOR",
+          displayId: "P1-S-1",
+          relevance: "relevant",
+        }),
+      ],
+    } as any;
+    const regenerated = {
+      trustBoundaryId: null,
+      trustBoundaryName: "",
+      displayIdentifier: "",
+      threats: [baseThreat({ id: "uuid-REGEN", displayId: "P2-S-1" })],
+    } as any;
+
+    const [out] = mergeGeneratedTables(
+      [regenerated],
+      [prior],
+      elementThreatNaturalKey,
+    );
+
+    expect(out.threats[0].id).toBe("uuid-PRIOR");
+    expect(out.threats[0].displayId).toBe("P2-S-1");
+    expect(out.threats[0].relevance).toBe("relevant");
   });
 });

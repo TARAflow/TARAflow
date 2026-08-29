@@ -440,8 +440,8 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   const contextLabel = hasInteraction
     ? currentThreat.dataFlow
       ? `${currentThreat.dataFlow.sourceName} → ${currentThreat.dataFlow.targetName}`
-      : currentThreat.id
-    : (currentThreat.linkedElement?.elementName ?? currentThreat.id);
+      : currentThreat.displayId
+    : (currentThreat.linkedElement?.elementName ?? currentThreat.displayId);
 
   // ==================== RENDER ====================
 
@@ -475,7 +475,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             color="text.secondary"
             sx={{ flexShrink: 0, fontFamily: "monospace" }}
           >
-            {currentThreat.id}
+            {currentThreat.displayId}
           </Typography>
           {/* Element / DataFlow — semantic context, fills available space */}
           <Typography
@@ -658,7 +658,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             }}
                           />
                           <Typography variant="caption" noWrap>
-                            {threat.id}
+                            {threat.displayId}
                           </Typography>
                         </Stack>
                       }

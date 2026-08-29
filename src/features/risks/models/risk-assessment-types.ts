@@ -45,7 +45,14 @@ export interface RiskUpdateResult {
 
 export interface Risk {
   id: string;
+  /** FK to the owning threat's STABLE identity (Threat.id, a UUID). */
   threatId: string;
+  /**
+   * Display snapshot of the threat's regenerable label (Threat.displayId, e.g.
+   * "P1-S-1"). Kept fresh by risk-sync-service. Use this for display, grouping
+   * and Jira text — never threatId, which is now an opaque UUID.
+   */
+  threatDisplayId: string;
   threatDescription: string;
   attackDescription: string;
   causeDescription?: string;
@@ -168,8 +175,11 @@ export function createEmptyRisk(
   const enabledFactors = configuration.activeFactors.filter((f) => f.enabled);
 
   return {
-    id: generateRiskId(threatRef.id),
+    // Risk.id keeps the human-readable "R-<label>" form (from the threat's
+    // display label, not its UUID). threatId is the stable UUID FK.
+    id: generateRiskId(threatRef.displayId),
     threatId: threatRef.id,
+    threatDisplayId: threatRef.displayId,
     threatDescription: threatRef.threatDescription,
     attackDescription: threatRef.attackDescription || "",
     causeDescription: threatRef.causeDescription,

@@ -673,7 +673,7 @@ export class PdfMakeConverter {
         "-";
 
       tableBody.push([
-        { text: threat.id },
+        { text: threat.displayId },
         { text: elementOrFlow },
         { text: strideName },
         { text: threat.threatDescription || "-" },

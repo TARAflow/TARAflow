@@ -38,8 +38,8 @@ export interface ElementChange {
   threatId: string;
   oldRef: LinkedDFDElement;
   newRef: DFDElementReference;
-  /** Regenerated threat id (expectedId from current displayId) — applied on renumber. */
-  newId?: string;
+  /** Regenerated threat DISPLAY label (from the current element displayId) — applied to threat.displayId on renumber. Threat identity (threat.id, a UUID) is untouched. */
+  newDisplayId?: string;
   changes: ("name" | "id" | "type")[];
 }
 

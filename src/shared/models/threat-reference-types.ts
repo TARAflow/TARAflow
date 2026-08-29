@@ -56,7 +56,10 @@ export interface MitigationDraftRef {
  * Phase 3: initialImpact added for CIANAAA → Risk factor prefill (Phase 3b).
  */
 export interface ThreatReference {
+  /** Stable threat identity (Threat.id, a UUID). */
   id: string;
+  /** Regenerable display label (Threat.displayId, e.g. "P1-S-1"). */
+  displayId: string;
   strideCategory: StrideCategory;
   threatDescription: string;
   attackDescription: string;

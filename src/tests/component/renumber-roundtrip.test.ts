@@ -8,14 +8,17 @@ import type {
 } from "../../features/threats/models/threat-types";
 
 /**
- * Round-trip of the silent Class A path for a renumber: after the element's
- * displayId changes (P-1 → P-2), checkSyncStatus must report the id drift with
- * a regenerated newId, applyChangedReferences must rewrite the threat id, and a
- * second checkSyncStatus must then report inSync — i.e. the drift truly clears
- * (the original bug left it detected forever).
+ * Round-trip of the silent Class A path for a renumber under the identity
+ * split (schema v5): after the element's displayId changes (P-1 → P-2),
+ * checkSyncStatus must report the drift with a regenerated newDisplayId,
+ * applyChangedReferences must rewrite threat.DISPLAYID while leaving the stable
+ * threat.id (UUID) untouched, and a second checkSyncStatus must report inSync.
+ * The threat's identity surviving the renumber is the whole point of the fix.
  */
 
-function buildProject(displayId: string, threatId: string): ThreatProjectData {
+const STABLE_ID = "uuid-threat-stable-0001";
+
+function buildProject(displayId: string, threatDisplayId: string): ThreatProjectData {
   const element = {
     id: "e1",
     type: "Process",
@@ -28,7 +31,8 @@ function buildProject(displayId: string, threatId: string): ThreatProjectData {
     trustBoundaryName: "No Trust Boundary",
     threats: [
       {
-        id: threatId,
+        id: STABLE_ID,
+        displayId: threatDisplayId,
         strideCategory: "S",
         sequenceNumber: 1,
         linkedElement: {
@@ -57,29 +61,29 @@ function buildProject(displayId: string, threatId: string): ThreatProjectData {
   } as unknown as ThreatProjectData;
 }
 
-describe("renumber round-trip (Class A)", () => {
+describe("renumber round-trip (Class A, identity split)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("detects the id drift, regenerates the id, then reports inSync", () => {
-    // No missing/orphaned noise — the only element is already threatened.
+  it("keeps the UUID id stable, regenerates displayId, then reports inSync", () => {
     vi.spyOn(
       elementThreatGenerator,
       "getEffectiveStrideCategories",
     ).mockReturnValue([] as any);
 
-    // Element renumbered to P-2; threat still carries the old id P1-S-1.
+    // Element renumbered to P-2; threat still carries the old label P1-S-1
+    // but its stable UUID id must not move.
     const project = buildProject("P-2", "P1-S-1");
     const tables = project.threats!.perElementTables;
 
     const status1 = elementThreatSync.checkSyncStatus(project, tables);
     const change = status1.changedReferences.elements.find(
-      (c) => c.threatId === "P1-S-1",
+      (c) => c.threatId === STABLE_ID,
     );
     expect(change).toBeDefined();
     expect(change!.changes).toContain("id");
-    expect(change!.newId).toBe("P2-S-1");
+    expect(change!.newDisplayId).toBe("P2-S-1");
 
     const { tables: updatedTables, updated } =
       elementThreatSync.applyChangedReferences(
@@ -87,9 +91,10 @@ describe("renumber round-trip (Class A)", () => {
         status1.changedReferences.elements,
       );
     expect(updated).toBe(1);
-    expect(updatedTables[0].threats[0].id).toBe("P2-S-1");
+    // Identity preserved, label regenerated.
+    expect(updatedTables[0].threats[0].id).toBe(STABLE_ID);
+    expect(updatedTables[0].threats[0].displayId).toBe("P2-S-1");
 
-    // Re-check against a project that now reflects the applied tables.
     const project2 = {
       ...project,
       threats: { ...project.threats!, perElementTables: updatedTables },

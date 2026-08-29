@@ -22,6 +22,7 @@ function ref(
 ): ThreatReference {
   return {
     id,
+    displayId: id,
     strideCategory: "T",
     threatDescription: id,
     attackDescription: "",

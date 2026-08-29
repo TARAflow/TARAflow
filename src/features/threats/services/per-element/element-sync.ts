@@ -91,7 +91,7 @@ export class ElementThreatSync {
 
             const changes: ("name" | "id" | "type")[] = [];
 
-            if (threat.id !== expectedId) {
+            if (threat.displayId !== expectedId) {
               changes.push("id");
             }
 
@@ -124,7 +124,7 @@ export class ElementThreatSync {
                   position: { x: 0, y: 0 },
                   size: { width: 0, height: 0 },
                 } as DFDElementReference,
-                newId: expectedId,
+                newDisplayId: expectedId,
                 changes,
               });
             }
@@ -166,7 +166,7 @@ export class ElementThreatSync {
 
         const elemChanges: ("name" | "id" | "type")[] = [];
 
-        if (threat.id !== expectedId) {
+        if (threat.displayId !== expectedId) {
           elemChanges.push("id");
         }
         if (element.name !== threat.linkedElement.elementName) {
@@ -186,7 +186,7 @@ export class ElementThreatSync {
               type: element.type,
               displayId: element.displayId,
             } as DFDElementReference,
-            newId: expectedId,
+            newDisplayId: expectedId,
             changes: elemChanges,
           });
         }
@@ -281,7 +281,8 @@ export class ElementThreatSync {
    * Apply reference drift (rename / renumber / retype) to a set of tables.
    *
    * Pure and NON-destructive: refreshes each threat's linkedElement mirror and
-   * regenerates threat.id from the precomputed newId. Never adds or removes
+   * regenerates threat.displayId from the precomputed newDisplayId (the stable
+   * UUID threat.id is left untouched). Never adds or removes
    * threats. This is the "silent" half of sync (Class A) — the live DFD-change
    * path applies it on every save without a banner, because a rename/renumber
    * has exactly one correct outcome and needs no user decision. Adding or
@@ -304,7 +305,9 @@ export class ElementThreatSync {
         updated++;
         return {
           ...threat,
-          id: change.newId ?? threat.id,
+          // Identity (threat.id, a UUID) is stable across renumber — only the
+          // human-readable label is regenerated.
+          displayId: change.newDisplayId ?? threat.displayId,
           linkedElement: {
             elementId: change.newRef.id,
             elementName: change.newRef.name,
@@ -395,11 +398,11 @@ export class ElementThreatSync {
           const dataFlowIdNormalized = (conn.displayId || "").replace(/-/g, "");
           const newThreatId = `${dataFlowIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
 
-          if (threat.id !== newThreatId) {
+          if (threat.displayId !== newThreatId) {
             updated++;
             return {
               ...threat,
-              id: newThreatId,
+              displayId: newThreatId,
               linkedElement: {
                 ...threat.linkedElement,
                 elementName:
@@ -437,11 +440,11 @@ export class ElementThreatSync {
           newThreatId = `${elementIdNormalized}-${threat.strideCategory}-${threat.sequenceNumber}`;
         }
 
-        if (threat.id !== newThreatId) {
+        if (threat.displayId !== newThreatId) {
           updated++;
           return {
             ...threat,
-            id: newThreatId,
+            displayId: newThreatId,
             trustBoundaryDisplayId:
               currentTB?.displayId || threat.trustBoundaryDisplayId,
             linkedElement: {

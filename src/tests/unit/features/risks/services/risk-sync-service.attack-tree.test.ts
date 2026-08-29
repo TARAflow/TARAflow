@@ -19,6 +19,7 @@ import type { ThreatReference, AttackTreeLikelihoodReference } from "shared";
 function threat(id: string): ThreatReference {
   return {
     id,
+    displayId: id,
     strideCategory: "T",
     threatDescription: id,
     attackDescription: "",

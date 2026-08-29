@@ -52,7 +52,7 @@ export const useRiskGrouping = (
 
     return risks.filter((risk) => {
       const threat = threatsMap.get(risk.threatId);
-      return !isInterfaceThreat(threat?.id);
+      return !isInterfaceThreat(risk.threatDisplayId);
     });
   }, [risks, threatsMap, isPerElement]);
 
@@ -81,7 +81,7 @@ export const useRiskGrouping = (
 
       // For per-element: group by element within trust boundary
       if (isPerElement && threat?.elementName) {
-        const elementIdMatch = risk.threatId.match(/^([A-Z]+\d+)/);
+        const elementIdMatch = (risk.threatDisplayId ?? "").match(/^([A-Z]+\d+)/);
         const elementId = elementIdMatch
           ? elementIdMatch[1]
           : threat.elementName;
@@ -116,7 +116,7 @@ export const useRiskGrouping = (
 
       // For per-interaction: group by dataflow within trust boundary
       if (!isPerElement && threat?.dataFlowName) {
-        const dataFlowIdMatch = risk.threatId.match(/^(DF\d+)/);
+        const dataFlowIdMatch = (risk.threatDisplayId ?? "").match(/^(DF\d+)/);
         const dataFlowId = dataFlowIdMatch
           ? dataFlowIdMatch[1]
           : `DF-${threat.dataFlowName}`;
@@ -150,7 +150,7 @@ export const useRiskGrouping = (
 
     const interfaceRiskList = risks.filter((risk) => {
       const threat = threatsMap.get(risk.threatId);
-      return isInterfaceThreat(threat?.id);
+      return isInterfaceThreat(risk.threatDisplayId);
     });
 
     if (interfaceRiskList.length === 0) return null;
@@ -162,7 +162,7 @@ export const useRiskGrouping = (
       const threat = threatsMap.get(risk.threatId);
       if (!threat) continue;
 
-      const elementId = risk.threatId.split("-")[0];
+      const elementId = (risk.threatDisplayId ?? "").split("-")[0];
       const elementName = threat.elementName || elementId;
 
       if (!groups.has(elementId)) {

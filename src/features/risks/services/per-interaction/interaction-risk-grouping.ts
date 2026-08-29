@@ -75,7 +75,7 @@ export function groupInteractionRisks(
     // Group by dataflow within trust boundary
     if (threat?.dataFlowName) {
       // Extract dataflow ID from threatId (e.g., "DF1-S-1" -> "DF1")
-      const dataFlowIdMatch = risk.threatId.match(/^(DF\d+)/);
+      const dataFlowIdMatch = (risk.threatDisplayId ?? "").match(/^(DF\d+)/);
       const dataFlowId = dataFlowIdMatch
         ? dataFlowIdMatch[1]
         : `DF-${threat.dataFlowName}`;
@@ -141,7 +141,7 @@ export function groupInterfaceRisks(
     if (!threat) continue;
 
     // Extract element ID (e.g., "IF1" from "IF1-S-IN-1")
-    const elementId = risk.threatId.split("-")[0];
+    const elementId = (risk.threatDisplayId ?? "").split("-")[0];
     const elementName = threat.elementName || elementId;
 
     if (!groups.has(elementId)) {

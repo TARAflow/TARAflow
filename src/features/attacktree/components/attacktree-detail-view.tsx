@@ -113,7 +113,7 @@ function groupLabelFor(tree: AttackTree): string {
       : "Asset";
   }
   if (tree.anchor.type === "threat") {
-    return tree.anchor.threatId ?? "Threat";
+    return tree.anchor.threatDisplayId ?? tree.anchor.threatId ?? "Threat";
   }
   return tree.anchor.type;
 }

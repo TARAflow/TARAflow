@@ -50,6 +50,7 @@ export function extractThreatReferencesForAttackTree(project: Project): ThreatRe
       table.threats.forEach(function(threat) {
         threats.push({
           id: threat.id,
+          displayId: threat.displayId,
           strideCategory: threat.strideCategory,
           threatDescription: threat.threatDescription || "",
           mitigation: (threat.proposedMitigations ?? [])
@@ -68,6 +69,7 @@ export function extractThreatReferencesForAttackTree(project: Project): ThreatRe
       table.threats.forEach(function(threat) {
         threats.push({
           id: threat.id,
+          displayId: threat.displayId,
           strideCategory: threat.strideCategory,
           threatDescription: threat.threatDescription || "",
           mitigation: (threat.proposedMitigations ?? [])

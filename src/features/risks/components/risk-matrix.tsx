@@ -244,7 +244,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
         }
 
         // If same value, sort alphabetically by threatId
-        return a.threatId.localeCompare(b.threatId, undefined, {
+        return a.threatDisplayId.localeCompare(b.threatDisplayId, undefined, {
           numeric: true,
         });
       });
@@ -303,7 +303,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
             }}
           >
             <Typography variant="body2" fontWeight="bold">
-              {risk.threatId} ({risk.strideCategory})
+              {risk.threatDisplayId} ({risk.strideCategory})
             </Typography>
             {impactColors && impact && (
               <Box
@@ -567,7 +567,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                           }),
                         }}
                       >
-                        {risk.threatId}
+                        {risk.threatDisplayId}
                       </Typography>
                     </Tooltip>
                   ))}
@@ -793,7 +793,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                       arrow
                     >
                       <Chip
-                        label={risk.threatId}
+                        label={risk.threatDisplayId}
                         size="small"
                         variant="outlined"
                         onClick={() => onRiskClick?.(risk)}
@@ -918,7 +918,7 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
                     arrow
                   >
                     <Chip
-                      label={`${risk.threatId} (${risk.strideCategory})`}
+                      label={`${risk.threatDisplayId} (${risk.strideCategory})`}
                       size="small"
                       onClick={() => onRiskClick?.(risk)}
                       sx={{ cursor: "pointer", ...getWontStyles(risk) }}

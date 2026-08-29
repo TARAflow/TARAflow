@@ -287,8 +287,22 @@ export const THREAT_ACTORS: ThreatActorDefinition[] = [
  * Method-specific fields: linkedElement (per-element), dataFlow + interactionContext (per-interaction).
  */
 export interface Threat {
-  /** Unique Threat ID */
+  /**
+   * Stable identity — an opaque UUID minted once at creation and NEVER changed
+   * by regeneration, renumber or sync. Every cross-reference (Risk.threatId,
+   * AttackTreeAnchor.threatId, table row keys, dialog lookups) hangs on this.
+   * Do NOT display it — show `displayId` instead.
+   */
   id: string;
+
+  /**
+   * Human-readable, REGENERABLE label (e.g. "P1-S-1"). Derived from the
+   * element/flow displayId + STRIDE + sequence and updated on renumber.
+   * DISPLAY ONLY — never persist a cross-reference against it. Mirrors the
+   * `AttackPath.id`/`pathKey` split already established in the attack-tree
+   * module.
+   */
+  displayId: string;
 
   /** Trust Boundary ID this threat belongs to */
   trustBoundaryId: string | null;
@@ -884,7 +898,7 @@ export function getActiveThreatTables(
 }
 
 export function createEmptyThreat(
-  id: string,
+  displayId: string,
   strideCategory: StrideCategory,
   trustBoundaryId: string | null,
   trustBoundaryName: string | null,
@@ -892,7 +906,11 @@ export function createEmptyThreat(
   interactionContext?: any
 ): Threat {
   return {
-    id,
+    // Stable identity: a fresh UUID, independent of the display label. The
+    // caller passes the human-readable label as `displayId`; identity is never
+    // derived from it (that coupling was the renumber data-loss bug).
+    id: crypto.randomUUID(),
+    displayId,
     trustBoundaryId,
     trustBoundaryName,
     trustBoundaryDisplayId,

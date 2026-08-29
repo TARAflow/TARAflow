@@ -14,6 +14,7 @@ function makeThreatRef(
 ): ThreatReference {
   return {
     id: "T-1",
+    displayId: "T-1",
     strideCategory: "S",
     threatDescription: "spoofing the sensor",
     attackDescription: "root > forge identity > read",

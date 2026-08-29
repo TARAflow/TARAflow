@@ -169,7 +169,10 @@ export function loadTemplate(
     dsl = dsl.replace(/\[ASSET_ID\]/g, "[" + anchor.assetId + "]");
   }
   if (anchor && anchor.threatId) {
-    dsl = dsl.replace(/\[THREAT_ID\]/g, "[" + anchor.threatId + "]");
+    dsl = dsl.replace(
+      /\[THREAT_ID\]/g,
+      "[" + (anchor.threatDisplayId ?? anchor.threatId) + "]",
+    );
   }
 
   const newTree = createEmptyAttackTree(anchor || { type: "standalone" }, {

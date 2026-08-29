@@ -775,6 +775,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         references.push({
           id: threat.id,
+          displayId: threat.displayId,
           strideCategory: threat.strideCategory,
           threatDescription: threat.threatDescription,
           attackDescription: threat.attackDescription,

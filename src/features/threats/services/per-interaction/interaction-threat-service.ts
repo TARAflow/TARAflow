@@ -69,9 +69,9 @@ export class InteractionThreatService implements ThreatService {
     for (const table of tables) {
       for (const threat of table.threats) {
         if (threat.proposedMitigations.length === 0)
-          warnings.push(`Threat ${threat.id}: No mitigations proposed`);
+          warnings.push(`Threat ${threat.displayId}: No mitigations proposed`);
         if (threat.proposedVerifications.length === 0)
-          warnings.push(`Threat ${threat.id}: No verifications proposed`);
+          warnings.push(`Threat ${threat.displayId}: No verifications proposed`);
       }
     }
     return { isComplete: errors.length === 0, errors, warnings };

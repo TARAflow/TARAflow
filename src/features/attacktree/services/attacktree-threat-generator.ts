@@ -188,6 +188,7 @@ function createThreatForPath(
 ): ThreatReference {
   return {
     id: buildThreatId(tree.id, path.pathKey, strideCategory),
+    displayId: buildThreatId(tree.id, path.pathKey, strideCategory),
     strideCategory,
 
     // The ROOT is the threat scenario; the chain is how it is realised.
@@ -369,10 +370,11 @@ function createSecondaryThreatForPath(
 ): ThreatReference {
   return {
     id: buildThreatId(tree.id, path.pathKey, strideCategory),
+    displayId: buildThreatId(tree.id, path.pathKey, strideCategory),
     strideCategory,
     threatDescription: tree.ast?.name ?? tree.name,
     attackDescription: describeAttackChain(path),
-    causeDescription: `Attack path analysis (${tree.name}) — alternate route to the same effect as ${tree.anchor.threatId}`,
+    causeDescription: `Attack path analysis (${tree.name}) — alternate route to the same effect as ${tree.anchor.threatDisplayId ?? tree.anchor.threatId}`,
     sourceStrideMethod: "attack-path",
     relevance: "unrated",
     // No assetId on a threat anchor — attacktree may not import

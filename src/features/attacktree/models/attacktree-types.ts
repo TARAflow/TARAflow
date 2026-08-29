@@ -61,6 +61,8 @@ export interface AssetReference {
 
 export interface ThreatReference {
   id: string;
+  /** Regenerable display label (Threat.displayId, e.g. "P1-S-1"). */
+  displayId: string;
   strideCategory: StrideCategory;
   threatDescription: string;
   mitigation?: string;
@@ -144,7 +146,10 @@ export interface AttackTreeAnchor {
   securityGoal?: SecurityGoalType;
 
   // Threat anchor (Standard Workflow)
+  /** Stable threat identity (Threat.id, a UUID). */
   threatId?: string;
+  /** Display snapshot of the threat label (Threat.displayId) — for DSL + UI. */
+  threatDisplayId?: string;
   threatTitle?: string;
   strideCategory?: StrideCategory;
 
@@ -940,7 +945,10 @@ function generateInitialDSL(anchor: AttackTreeAnchor): string {
     case "threat":
       return (
         "# Attack Tree: " +
-        (anchor.threatTitle || anchor.threatId || "Threat Detail") +
+        (anchor.threatTitle ||
+          anchor.threatDisplayId ||
+          anchor.threatId ||
+          "Threat Detail") +
         "\n" +
         "# Threat: " +
         (anchor.threatId || "T-XXX") +

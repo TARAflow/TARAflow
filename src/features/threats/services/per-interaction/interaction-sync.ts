@@ -143,7 +143,7 @@ export class InteractionThreatSync {
                 threat.sequenceNumber,
               );
 
-              if (threat.id !== expectedId) {
+              if (threat.displayId !== expectedId) {
                 changes.push("id");
               }
             }
@@ -217,7 +217,7 @@ export class InteractionThreatSync {
                 threat.sequenceNumber,
               );
 
-              if (threat.id !== expectedId) {
+              if (threat.displayId !== expectedId) {
                 changedElements.push({
                   threatId: threat.id,
                   oldDisplayId: threat.linkedElement.displayId || "",
@@ -404,7 +404,7 @@ export class InteractionThreatSync {
 
             return {
               ...threat,
-              id: newThreatId,
+              displayId: newThreatId,
               trustBoundaryDisplayId: currentTB?.displayId || "",
               linkedElement: {
                 ...threat.linkedElement,
@@ -453,7 +453,7 @@ export class InteractionThreatSync {
 
             return {
               ...threat,
-              id: newThreatId,
+              displayId: newThreatId,
               trustBoundaryDisplayId: currentTB?.displayId || "",
               dataFlow: {
                 connectionId: change.newRef.id,

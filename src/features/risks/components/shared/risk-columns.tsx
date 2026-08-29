@@ -237,9 +237,9 @@ export const useRiskColumns = ({
         header: t("tabs.risks.columns.threatId", { defaultValue: "T-ID" }),
         width: 80,
         renderCell: (risk) => (
-          <Tooltip title={risk.threatId} placement="top">
+          <Tooltip title={risk.threatDisplayId} placement="top">
             <Chip
-              label={risk.threatId}
+              label={risk.threatDisplayId}
               size="small"
               sx={{
                 bgcolor: STRIDE_COLORS[risk.strideCategory] ?? "#9ca3af",

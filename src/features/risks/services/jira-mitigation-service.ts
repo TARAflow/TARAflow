@@ -280,7 +280,7 @@ export const buildTicketDescription = (
   lines.push("");
 
   // Threat context
-  lines.push(`*Threat:* ${risk.threatId} — ${risk.threatDescription ?? ""}`);
+  lines.push(`*Threat:* ${risk.threatDisplayId} — ${risk.threatDescription ?? ""}`);
   if (risk.attackDescription) {
     lines.push(`*Attack:* ${risk.attackDescription}`);
   }
@@ -350,7 +350,7 @@ export const buildTicketSummary = (
   mitigationText: string,
 ): string => {
   const prefix = `Mitigation: ${mitigationText}`;
-  const suffix = `[${risk.threatId}]`;
+  const suffix = `[${risk.threatDisplayId}]`;
   // Jira summary max 255 chars
   const maxMid = 255 - suffix.length - 2;
   const truncated =

@@ -67,13 +67,13 @@ export class ElementThreatService implements ThreatService {
     for (const table of tables) {
       for (const threat of table.threats) {
         if (!threat.threatDescription?.trim())
-          errors.push(`Threat ${threat.id}: Missing threat description`);
+          errors.push(`Threat ${threat.displayId}: Missing threat description`);
         if (!threat.attackDescription?.trim())
-          warnings.push(`Threat ${threat.id}: Missing attack description`);
+          warnings.push(`Threat ${threat.displayId}: Missing attack description`);
         if (threat.proposedMitigations.length === 0)
-          warnings.push(`Threat ${threat.id}: No mitigations proposed`);
+          warnings.push(`Threat ${threat.displayId}: No mitigations proposed`);
         if (threat.proposedVerifications.length === 0)
-          warnings.push(`Threat ${threat.id}: No verifications proposed`);
+          warnings.push(`Threat ${threat.displayId}: No verifications proposed`);
       }
     }
     return { isComplete: errors.length === 0, errors, warnings };

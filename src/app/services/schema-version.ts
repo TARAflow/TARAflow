@@ -14,5 +14,11 @@
  *   4 = DataFlow.properties.direction dropped — redundant with the DF
  *       label verb + tag (dataflow-labeling-convention_v3.md is the
  *       source of truth; the property only ever duplicated it).
+ *   5 = Threat identity split. Threat.id becomes an opaque UUID (stable
+ *       across renumber); the old regenerable label (e.g. "P1-S-1") moves to
+ *       the new Threat.displayId. Cross-feature foreign keys that referenced
+ *       the old label are repointed to the new UUID in the same pass:
+ *       Risk.threatId and AttackTreeAnchor.threatId. (Risk.id and the DSL
+ *       threatRef keep their own hardening for a later change.)
  */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;

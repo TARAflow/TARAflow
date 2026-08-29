@@ -29,7 +29,11 @@ export function sortThreats(
   return [...threats].sort((a, b) => {
     let cmp = 0;
     if (field === "id") {
-      cmp = a.id.localeCompare(b.id, undefined, { numeric: true });
+      // Sort on the human label — a numeric compare on the opaque UUID id
+      // would be meaningless.
+      cmp = a.displayId.localeCompare(b.displayId, undefined, {
+        numeric: true,
+      });
     } else if (field === "strideCategory") {
       const order = ["S", "T", "R", "I", "D", "E"];
       cmp = order.indexOf(a.strideCategory) - order.indexOf(b.strideCategory);

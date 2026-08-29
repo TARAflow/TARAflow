@@ -285,16 +285,19 @@ export class ElementThreatGenerator {
       });
     }
 
-    // Safety net: deduplicate threat IDs across all tables.
+    // Safety net: deduplicate threats by DISPLAY label across all tables.
     // Handles edge cases not covered by effectiveTBElements logic
     // (e.g. DataFlow threats that could theoretically appear twice).
-    const seenThreatIds = new Set<string>();
+    // NB: keyed on displayId, NOT id — createEmptyThreat mints a fresh UUID
+    // for every threat, so id is unique by construction and dedup-by-id would
+    // never remove anything. The display label is the real collision key.
+    const seenDisplayIds = new Set<string>();
     const deduplicatedTables = tables
       .map((table) => ({
         ...table,
         threats: table.threats.filter((threat) => {
-          if (seenThreatIds.has(threat.id)) return false;
-          seenThreatIds.add(threat.id);
+          if (seenDisplayIds.has(threat.displayId)) return false;
+          seenDisplayIds.add(threat.displayId);
           return true;
         }),
       }))

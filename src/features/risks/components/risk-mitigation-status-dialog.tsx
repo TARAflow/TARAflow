@@ -792,7 +792,7 @@ export const RiskMitigationStatusDialog: React.FC<
             })}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
-            {risk.threatId} — {risk.threatDescription?.slice(0, 80)}
+            {risk.threatDisplayId} — {risk.threatDescription?.slice(0, 80)}
             {(risk.threatDescription?.length ?? 0) > 80 ? "…" : ""}
           </Typography>
           {risk.attackDescription && (

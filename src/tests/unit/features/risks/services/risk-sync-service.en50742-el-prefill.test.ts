@@ -24,6 +24,7 @@ import type { ThreatReference, DFDReference } from "shared";
 function baseThreat(id: string): ThreatReference {
   return {
     id,
+    displayId: id,
     strideCategory: "T",
     threatDescription: id,
     attackDescription: "",

@@ -36,6 +36,7 @@ export function makeThreat(
 ): ThreatReference {
   return {
     id: "T-001",
+    displayId: "T-001",
     strideCategory: "I",
     threatDescription: "Information disclosure of config data",
     mitigation: "M-001",

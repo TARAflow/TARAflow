@@ -89,6 +89,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
         anchor = {
           type: "threat",
           threatId: selectedThreatId,
+          threatDisplayId: threat?.displayId,
           threatTitle: threat
             ? threat.threatDescription.substring(0, 50)
             : undefined,
@@ -316,7 +317,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
               >
                 {threats.map((threat) => (
                   <MenuItem key={threat.id} value={threat.id}>
-                    {threat.id}: {threat.threatDescription.substring(0, 50)}
+                    {threat.displayId}: {threat.threatDescription.substring(0, 50)}
                   </MenuItem>
                 ))}
               </Select>

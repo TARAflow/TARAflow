@@ -71,7 +71,7 @@ export function useRiskFilters() {
         filtered = filtered.filter(
           (r) =>
             r.id.toLowerCase().includes(search) ||
-            r.threatId.toLowerCase().includes(search) ||
+            r.threatDisplayId.toLowerCase().includes(search) ||
             r.threatDescription.toLowerCase().includes(search) ||
             r.selectedMitigations.some(
               (m) =>

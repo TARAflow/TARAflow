@@ -28,6 +28,7 @@ import type { ThreatReference, DFDReference, AssetReference, AssetDataReference 
 function baseThreat(id: string): ThreatReference {
   return {
     id,
+    displayId: id,
     strideCategory: "T",
     threatDescription: id,
     attackDescription: "",

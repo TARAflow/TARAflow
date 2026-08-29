@@ -536,7 +536,7 @@ export class DiffService {
         changes.push({
           type: "added",
           id: threat.id,
-          name: `${threat.id} (${threat.strideCategory})`,
+          name: `${threat.displayId} (${threat.strideCategory})`,
           description: threat.threatDescription,
         });
       }
@@ -548,7 +548,7 @@ export class DiffService {
         changes.push({
           type: "deleted",
           id: threat.id,
-          name: `${threat.id} (${threat.strideCategory})`,
+          name: `${threat.displayId} (${threat.strideCategory})`,
           description: threat.threatDescription,
         });
       }

@@ -29,6 +29,7 @@ import { syncRisksFromThreats } from "features/risks/services/risk-sync-service"
 function makeThreatRef(overrides: Partial<ThreatReference> = {}): ThreatReference {
   return {
     id: "P1-S-1",
+    displayId: "P1-S-1",
     strideCategory: "S",
     threatDescription: "Spoofing of P-1",
     attackDescription: "Attacker impersonates P-1",

@@ -343,7 +343,7 @@ const InteractionThreatRows: React.FC<{
                 >
                   <TableCell sx={cellSx}>
                     <Stack spacing={0.5} direction="row" alignItems="center">
-                      <ThreatIdCell id={threat.id} />
+                      <ThreatIdCell id={threat.displayId} />
                       <SourceBadge
                         source={threat.source}
                         initialImpact={threat.initialImpact}

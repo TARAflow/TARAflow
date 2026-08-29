@@ -168,9 +168,15 @@ export function mergeProposedVerifications(
  * `existing === undefined` → the threat is genuinely new; `fresh` is returned
  * unchanged.
  *
- * SYSTEM-DERIVED (always from `fresh`, via the spread): id, linkedElement,
- * dataFlow, interactionContext, trustBoundary*, linkedAssetIds, initialImpact,
- * source, templateId, causeDescription, sequenceNumber.
+ * STABLE IDENTITY (preserved from `existing`): id (the UUID). A regeneration
+ * mints a fresh UUID on every threat via createEmptyThreat(); when the threat
+ * already existed we keep its original UUID so all cross-references
+ * (Risk.threatId, AttackTreeAnchor.threatId, table row keys) stay intact.
+ *
+ * SYSTEM-DERIVED (always from `fresh`, via the spread): displayId (the
+ * regenerated label), linkedElement, dataFlow, interactionContext,
+ * trustBoundary*, linkedAssetIds, initialImpact, source, templateId,
+ * causeDescription, sequenceNumber.
  *
  * ANALYST-OWNED (preserved from `existing`): relevance, workflowStatus,
  * evalNote, threatActor, isTextCustomized (+ the customised threat/attack text
@@ -191,6 +197,9 @@ export function mergeGeneratedThreat(
 
   return {
     ...fresh,
+
+    // ── Stable identity: keep the original UUID (fresh has a brand-new one) ─
+    id: existing.id,
 
     // ── Analyst-owned: always preserved ──────────────────────────────────
     relevance: existing.relevance,

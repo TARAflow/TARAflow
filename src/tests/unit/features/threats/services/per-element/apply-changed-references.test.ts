@@ -17,6 +17,7 @@ import type { ElementChange } from "../../../../../../features/threats/models/pe
 function threat(id: string, eid: string, name: string, displayId: string): Threat {
   return {
     id,
+    displayId: id,
     strideCategory: "S",
     sequenceNumber: 1,
     linkedElement: {
@@ -46,7 +47,7 @@ function change(
     threatId,
     oldRef: {} as any,
     newRef: ref as any,
-    newId,
+    newDisplayId: newId,
     changes,
   };
 }

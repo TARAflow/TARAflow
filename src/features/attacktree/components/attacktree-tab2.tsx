@@ -161,7 +161,7 @@ function groupTrees(
       id: threatId,
       type: "threat",
       name: threat
-        ? `${threat.id}: ${
+        ? `${threat.displayId}: ${
             threat.threatDescription?.substring(0, 40) || "Threat"
           }`
         : threatId,

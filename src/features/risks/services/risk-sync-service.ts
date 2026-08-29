@@ -549,6 +549,7 @@ export function syncRisksFromThreats(
       JSON.stringify(threat.proposedVerifications) !==
       JSON.stringify(risk.proposedVerifications);
     const relevanceChanged = threat.relevance !== risk.threatRelevance;
+    const displayChanged = threat.displayId !== risk.threatDisplayId;
 
     // Re-apply asset criteria prefill (non-destructive — respects manual overrides)
     const linkedAssets = resolveLinkedAssets(risk.linkedAssetIds, assetDataRef);
@@ -588,7 +589,8 @@ export function syncRisksFromThreats(
       mitigationsChanged ||
       verificationsChanged ||
       relevanceChanged ||
-      ratingsChanged
+      ratingsChanged ||
+      displayChanged
     ) {
       updated++;
       const beforeValues = calculateGatedRiskValues(
@@ -606,6 +608,7 @@ export function syncRisksFromThreats(
 
       return {
         ...risk,
+        threatDisplayId: threat.displayId,
         threatDescription: threat.threatDescription,
         attackDescription: threat.attackDescription,
         causeDescription: threat.causeDescription,
