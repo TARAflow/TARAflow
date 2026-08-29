@@ -13,6 +13,7 @@ import {
   mergeProposedVerifications,
   mergeGeneratedThreat,
   mergeGeneratedTables,
+  retainManualThreatTables,
 } from "../../../../../features/threats/services/threat-identity";
 
 // ── Builders ────────────────────────────────────────────────────────────────
@@ -294,6 +295,90 @@ describe("mergeGeneratedTables", () => {
       { trustBoundaryId: null, trustBoundaryName: "", displayIdentifier: "", threats: [baseThreat()] } as any,
     ];
     expect(mergeGeneratedTables(fresh, undefined, elementThreatNaturalKey)).toBe(fresh);
+  });
+});
+
+describe("mergeGeneratedTables — manual threat preservation (keepManual)", () => {
+  const genThreat = () =>
+    baseThreat({ id: "uuid-gen-1", displayId: "P1-S-1", source: "generated:full" });
+  const manualThreat = (over: Partial<Threat> = {}) =>
+    baseThreat({
+      id: "uuid-manual-1",
+      displayId: "P1-M-1",
+      strideCategory: "T",
+      source: "manual",
+      threatDescription: "analyst-authored supply-chain threat",
+      ...over,
+    });
+  const tbl = (threats: Threat[], displayIdentifier = "[UB]", trustBoundaryId: string | null = null) =>
+    ({ trustBoundaryId, trustBoundaryName: "No Trust Boundary", displayIdentifier, threats } as any);
+
+  it("drops manual threats by default (unchanged behaviour)", () => {
+    const previous = [tbl([genThreat(), manualThreat()])];
+    const fresh = [tbl([genThreat()])];
+    const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey);
+    expect(merged[0].threats).toHaveLength(1);
+    expect(merged[0].threats.some((t) => t.source === "manual")).toBe(false);
+  });
+
+  it("keepManual re-attaches a manual threat to the matching fresh table", () => {
+    const previous = [tbl([genThreat(), manualThreat()])];
+    const fresh = [tbl([genThreat()])];
+    const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey, {
+      keepManual: true,
+    });
+    expect(merged).toHaveLength(1);
+    expect(merged[0].threats).toHaveLength(2);
+    const manual = merged[0].threats.find((t) => t.source === "manual");
+    expect(manual?.displayId).toBe("P1-M-1");
+  });
+
+  it("keepManual lets a manual threat coexist with a generated one of the same element+STRIDE", () => {
+    // manual threat shares element e1 + STRIDE S with the generated row → same
+    // natural key, but they are distinct rows and must both survive.
+    const previous = [tbl([genThreat(), manualThreat({ strideCategory: "S", displayId: "P1-S-2" })])];
+    const fresh = [tbl([genThreat()])];
+    const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey, {
+      keepManual: true,
+    });
+    expect(merged[0].threats).toHaveLength(2);
+    expect(merged[0].threats.filter((t) => t.strideCategory === "S")).toHaveLength(2);
+  });
+
+  it("keepManual preserves an orphaned manual threat whose table no longer exists", () => {
+    // Previous had two tables; the fresh set no longer has the [DB] grouping
+    // (element/boundary deleted). Its manual threat must not vanish.
+    const previous = [
+      tbl([genThreat()], "[UB]"),
+      tbl([manualThreat({ displayId: "P9-M-1" })], "[DB]", "tb-db"),
+    ];
+    const fresh = [tbl([genThreat()], "[UB]")];
+    const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey, {
+      keepManual: true,
+    });
+    const allManual = merged.flatMap((table) => table.threats).filter((t) => t.source === "manual");
+    expect(allManual).toHaveLength(1);
+    expect(allManual[0].displayId).toBe("P9-M-1");
+  });
+});
+
+describe("retainManualThreatTables", () => {
+  const gen = () => baseThreat({ id: "uuid-g", displayId: "P1-S-1", source: "generated:full" });
+  const man = (over: Partial<Threat> = {}) =>
+    baseThreat({ id: "uuid-m", displayId: "P1-M-1", source: "manual", ...over });
+  const tbl = (threats: Threat[], displayIdentifier = "[UB]") =>
+    ({ trustBoundaryId: null, trustBoundaryName: "", displayIdentifier, threats } as any);
+
+  it("keeps only manual threats and drops emptied tables", () => {
+    const tables = [tbl([gen(), man()]), tbl([gen()], "[DB]")];
+    const kept = retainManualThreatTables(tables);
+    expect(kept).toHaveLength(1); // [DB] had no manual threat → dropped
+    expect(kept[0].threats).toHaveLength(1);
+    expect(kept[0].threats[0].source).toBe("manual");
+  });
+
+  it("returns an empty array when there are no manual threats", () => {
+    expect(retainManualThreatTables([tbl([gen()])])).toEqual([]);
   });
 });
 

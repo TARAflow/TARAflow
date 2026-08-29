@@ -21,6 +21,7 @@
       "threatsFound": "Bedrohungen gefunden",
       "generateConfirmTitle": "Bedrohungen neu generieren?",
       "generateConfirmMessage": "Alle bestehenden Bedrohungen werden überschrieben, einschließlich manueller Änderungen. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "deleteManualOnRegenerate": "Manuell erstellte Bedrohungen ebenfalls löschen (sonst bleiben sie erhalten)",
       "importConfirmTitle": "Bedrohungen importieren?",
       "importConfirmMessage": "Alle bestehenden Bedrohungen werden mit den importierten Daten überschrieben. Diese Aktion kann nicht rückgängig gemacht werden.",
       "importError": "Ungültiges Dateiformat. Bitte wählen Sie eine gültige Threats-Exportdatei.",

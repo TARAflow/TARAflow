@@ -119,6 +119,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const [showThreatDialog, setShowThreatDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  const [deleteManualThreats, setDeleteManualThreats] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<{
@@ -212,24 +213,27 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   const handleGenerateConfirm = useCallback(async () => {
     setShowGenerateConfirm(false);
+    const keepManual = !deleteManualThreats;
 
     let success = false;
 
     if (activeMethod === "per-element") {
-      success = await elementHook.generateThreats();
+      success = await elementHook.generateThreats({ keepManual });
     } else {
-      success = await interactionHook.generateThreats();
+      success = await interactionHook.generateThreats({ keepManual });
     }
 
     if (success) {
       setShowSyncWarning(false);
     }
-  }, [activeMethod, elementHook, interactionHook]);
+    setDeleteManualThreats(false);
+  }, [activeMethod, elementHook, interactionHook, deleteManualThreats]);
 
   const handleDeleteAllConfirm = useCallback(() => {
-    activeHook.deleteAllThreats();
+    activeHook.deleteAllThreats({ keepManual: !deleteManualThreats });
     setShowDeleteAllConfirm(false);
-  }, [activeHook]);
+    setDeleteManualThreats(false);
+  }, [activeHook, deleteManualThreats]);
 
   const handleOpenEditDialog = useCallback(
     (tableIndex: number, threat: Threat) => {
@@ -623,8 +627,26 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           })}
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           onConfirm={handleGenerateConfirm}
-          onCancel={() => setShowGenerateConfirm(false)}
-        />
+          onCancel={() => {
+            setShowGenerateConfirm(false);
+            setDeleteManualThreats(false);
+          }}
+        >
+          <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={deleteManualThreats}
+              onChange={(e) => setDeleteManualThreats(e.target.checked)}
+            />
+            <span>
+              {t("tabs.threats.deleteManualOnRegenerate", {
+                defaultValue:
+                  "Also delete manually created threats (otherwise they are kept)",
+              })}
+            </span>
+          </label>
+        </ConfirmDialog>
       )}
 
       {/* Import Confirmation */}
@@ -660,8 +682,26 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           confirmLabel={t("common.deleteAll", { defaultValue: "Delete All" })}
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           onConfirm={handleDeleteAllConfirm}
-          onCancel={() => setShowDeleteAllConfirm(false)}
-        />
+          onCancel={() => {
+            setShowDeleteAllConfirm(false);
+            setDeleteManualThreats(false);
+          }}
+        >
+          <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={deleteManualThreats}
+              onChange={(e) => setDeleteManualThreats(e.target.checked)}
+            />
+            <span>
+              {t("tabs.threats.deleteManualOnRegenerate", {
+                defaultValue:
+                  "Also delete manually created threats (otherwise they are kept)",
+              })}
+            </span>
+          </label>
+        </ConfirmDialog>
       )}
     </Box>
   );

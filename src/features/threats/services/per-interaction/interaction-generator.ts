@@ -65,6 +65,7 @@ export class InteractionThreatGenerator {
     project: ThreatProjectData,
     dfdContext: DFDAnalysisContext,
     configuration?: ThreatConfiguration,
+    options?: { keepManual?: boolean },
   ): ThreatTable[] {
     if (!project.dfdGraph) return [];
 
@@ -387,6 +388,7 @@ export class InteractionThreatGenerator {
       tables,
       project.threats?.perInteractionTables,
       interactionThreatNaturalKey,
+      { keepManual: options?.keepManual },
     );
   }
 

@@ -68,6 +68,7 @@ export class ElementThreatGenerator {
   generateThreatsForProject(
     project: ThreatProjectData,
     configuration?: ThreatConfiguration,
+    options?: { keepManual?: boolean },
   ): ThreatTable[] {
     if (!project.dfdGraph) return [];
 
@@ -314,6 +315,7 @@ export class ElementThreatGenerator {
       deduplicatedTables,
       project.threats?.perElementTables,
       elementThreatNaturalKey,
+      { keepManual: options?.keepManual },
     );
   }
 

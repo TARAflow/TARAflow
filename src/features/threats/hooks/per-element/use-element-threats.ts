@@ -18,6 +18,7 @@ import type {
   ThreatSyncStatus,
 } from "../../models/threat-types";
 import { elementThreatService } from "../../services/per-element/element-threat-service";
+import { retainManualThreatTables } from "../../services/threat-identity";
 import type { StatisticsResult } from "../../services/threat-service";
 import { DFDAnalysisContext } from "shared";
 
@@ -41,8 +42,8 @@ export interface UseElementThreatsResult {
   stats: StatisticsResult;
 
   // Operations
-  generateThreats: () => Promise<boolean>;
-  deleteAllThreats: () => void;
+  generateThreats: (options?: { keepManual?: boolean }) => Promise<boolean>;
+  deleteAllThreats: (options?: { keepManual?: boolean }) => void;
   synchronizeThreats: (options: {
     updateReferences: boolean;
     removeOrphaned: boolean;
@@ -124,13 +125,15 @@ export function useElementThreats({
 
   // ==================== OPERATIONS ====================
 
-  const generateThreats = useCallback(async (): Promise<boolean> => {
+  const generateThreats = useCallback(
+    async (options?: { keepManual?: boolean }): Promise<boolean> => {
     setIsGenerating(true);
     try {
       const result = elementThreatService.generateThreats(
         project,
         dfdContext,
         configuration,
+        options,
       );
 
       if (result.success) {
@@ -152,10 +155,14 @@ export function useElementThreats({
     }
   }, [project, dfdContext, configuration, notifyUpdate]);
 
-  const deleteAllThreats = useCallback(() => {
-    setTables([]);
-    notifyUpdate([]);
-  }, [notifyUpdate]);
+  const deleteAllThreats = useCallback(
+    (options?: { keepManual?: boolean }) => {
+      const kept = options?.keepManual ? retainManualThreatTables(tables) : [];
+      setTables(kept);
+      notifyUpdate(kept);
+    },
+    [tables, notifyUpdate],
+  );
 
   const synchronizeThreats = useCallback(
     async (options: {

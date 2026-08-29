@@ -19,6 +19,7 @@ import type {
   ThreatSyncStatus,
 } from "../../models/threat-types";
 import { interactionThreatService } from "../../services/per-interaction/interaction-threat-service";
+import { retainManualThreatTables } from "../../services/threat-identity";
 import type { StatisticsResult } from "../../services/threat-service";
 import type { DFDAnalysisContext } from "shared";
 
@@ -42,8 +43,8 @@ export interface UseInteractionThreatsResult {
   stats: StatisticsResult;
 
   // Operations
-  generateThreats: () => Promise<boolean>;
-  deleteAllThreats: () => void;
+  generateThreats: (options?: { keepManual?: boolean }) => Promise<boolean>;
+  deleteAllThreats: (options?: { keepManual?: boolean }) => void;
   synchronizeThreats: (options: {
     updateReferences: boolean;
     removeOrphaned: boolean;
@@ -124,7 +125,8 @@ export function useInteractionThreats({
   }, [project.threats?.perInteractionTables]);
 
   // ==================== OPERATIONS ====================
-  const generateThreats = useCallback(async (): Promise<boolean> => {
+  const generateThreats = useCallback(
+    async (options?: { keepManual?: boolean }): Promise<boolean> => {
     const ctx = dfdContextRef.current || dfdContext;
     const proj = projectRef.current;
 
@@ -141,6 +143,7 @@ export function useInteractionThreats({
         proj,
         ctx,
         configuration,
+        options,
       );
 
       if (result.success) {
@@ -161,30 +164,37 @@ export function useInteractionThreats({
     }
   }, [configuration, notifyUpdate]);
 
-  const deleteAllThreats = useCallback(() => {
-    setTables([]);
+  const deleteAllThreats = useCallback(
+    (options?: { keepManual?: boolean }) => {
+      const kept = options?.keepManual
+        ? retainManualThreatTables(tables)
+        : [];
 
-    // Aktuelle Threats oder Default
-    const oldThreats: ThreatData = projectRef.current.threats ?? {
-      configuration,
-      perElementTables: [],
-      perInteractionTables: [],
-      lastModified: new Date().toISOString(),
-    };
+      setTables(kept);
 
-    // Aktualisiere projectRef
-    projectRef.current = {
-      ...projectRef.current,
-      threats: {
-        ...oldThreats,
+      // Aktuelle Threats oder Default
+      const oldThreats: ThreatData = projectRef.current.threats ?? {
+        configuration,
+        perElementTables: [],
         perInteractionTables: [],
         lastModified: new Date().toISOString(),
-      },
-    };
+      };
 
-    // Notify parent
-    notifyUpdate([]);
-  }, [configuration, notifyUpdate]);
+      // Aktualisiere projectRef
+      projectRef.current = {
+        ...projectRef.current,
+        threats: {
+          ...oldThreats,
+          perInteractionTables: kept,
+          lastModified: new Date().toISOString(),
+        },
+      };
+
+      // Notify parent
+      notifyUpdate(kept);
+    },
+    [tables, configuration, notifyUpdate],
+  );
 
   const synchronizeThreats = useCallback(
     async (options: {

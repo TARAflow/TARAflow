@@ -24,6 +24,7 @@ export class ElementThreatService implements ThreatService {
     project: ThreatProjectData,
     dfdContext: DFDAnalysisContext,
     _configuration: ThreatConfiguration,
+    options?: { keepManual?: boolean },
   ): GenerationResult {
     try {
       if (!project.dfdGraph) {
@@ -41,7 +42,11 @@ export class ElementThreatService implements ThreatService {
         };
       }
 
-      const tables = generator.generateThreatsForProject(project);
+      const tables = generator.generateThreatsForProject(
+        project,
+        _configuration,
+        options,
+      );
 
       if (tables.length === 0) {
         return {

@@ -21,6 +21,7 @@
       "threatsFound": "Threats found",
       "generateConfirmTitle": "Regenerate Threats?",
       "generateConfirmMessage": "This will overwrite all existing threats...",
+      "deleteManualOnRegenerate": "Also delete manually created threats (otherwise they are kept)",
       "importConfirmTitle": "Import Threats?",
       "importConfirmMessage": "This will overwrite all existing threats with the imported data. This action cannot be undone.",
       "importError": "Invalid file format. Please select a valid threats export file.",

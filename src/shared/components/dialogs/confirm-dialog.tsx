@@ -23,6 +23,8 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   /** Callback when cancelled */
   onCancel: () => void;
+  /** Optional extra content rendered below the message (e.g. an option toggle) */
+  children?: React.ReactNode;
 }
 
 const VARIANT_CONFIG = {
@@ -60,6 +62,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel,
   onConfirm,
   onCancel,
+  children,
 }) => {
   const { t } = useTranslation();
   const config = VARIANT_CONFIG[variant];
@@ -94,6 +97,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         {/* Content */}
         <div className="px-6 py-4">
           <p className="text-gray-600">{message}</p>
+          {children && <div className="mt-4">{children}</div>}
         </div>
 
         {/* Actions */}

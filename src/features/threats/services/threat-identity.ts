@@ -235,19 +235,107 @@ export function mergeGeneratedThreat(
  * matched against the previously generated tables by natural key. This is the
  * single call the generators make after building their fresh tables.
  */
+/**
+ * Keep only analyst-authored (`source === "manual"`) threats, dropping tables
+ * that become empty. Used by "Delete all threats" when the analyst chose to
+ * preserve manual threats — mirrors the keepManual behaviour of
+ * mergeGeneratedTables, but for a plain deletion rather than a regeneration.
+ */
+export function retainManualThreatTables(tables: ThreatTable[]): ThreatTable[] {
+  return tables
+    .map((table) => ({
+      ...table,
+      threats: table.threats.filter((t) => t.source === "manual"),
+    }))
+    .filter((table) => table.threats.length > 0);
+}
+
+export interface MergeGeneratedTablesOptions {
+  /**
+   * When true, analyst-authored threats (`source === "manual"`) present in the
+   * previous tables are carried over into the regenerated set instead of being
+   * dropped. The generator never emits manual threats, so without this they
+   * would simply disappear on regeneration. Manual threats are re-attached to
+   * the fresh table sharing their trust-boundary grouping; those whose grouping
+   * no longer exists (element/boundary deleted) are preserved in a carried-over
+   * table so nothing is lost silently. Defaults to false (drop manual threats).
+   */
+  keepManual?: boolean;
+}
+
 export function mergeGeneratedTables(
   freshTables: ThreatTable[],
   previousTables: ThreatTable[] | undefined,
   keyFn: (threat: Threat) => string | null,
+  options: MergeGeneratedTablesOptions = {},
 ): ThreatTable[] {
   const index = buildThreatIndex(previousTables, keyFn);
-  if (index.size === 0) return freshTables;
 
-  return freshTables.map((table) => ({
-    ...table,
-    threats: table.threats.map((fresh) => {
-      const key = keyFn(fresh);
-      return mergeGeneratedThreat(key ? index.get(key) : undefined, fresh);
-    }),
-  }));
+  const merged =
+    index.size === 0
+      ? freshTables
+      : freshTables.map((table) => ({
+          ...table,
+          threats: table.threats.map((fresh) => {
+            const key = keyFn(fresh);
+            return mergeGeneratedThreat(key ? index.get(key) : undefined, fresh);
+          }),
+        }));
+
+  if (!options.keepManual || !previousTables) return merged;
+
+  return reattachManualThreats(merged, previousTables);
+}
+
+/** Grouping key for matching a manual threat's previous table to a fresh one. */
+function tableGroupKey(table: ThreatTable): string {
+  return `${table.trustBoundaryId ?? "∅"}::${table.displayIdentifier}`;
+}
+
+/**
+ * Re-attach `source === "manual"` threats from the previous tables into the
+ * regenerated set. A manual threat is appended to the fresh table sharing its
+ * previous table's grouping; if no such fresh table exists, its previous table
+ * is carried over (holding only its manual threats) so the analyst's work is
+ * never lost silently. Manual threats intentionally coexist with a generated
+ * threat of the same element+STRIDE — they are distinct analyst-authored rows,
+ * not duplicates, so they are appended rather than merged by natural key.
+ */
+function reattachManualThreats(
+  freshTables: ThreatTable[],
+  previousTables: ThreatTable[],
+): ThreatTable[] {
+  const manualByGroup = new Map<string, Threat[]>();
+  for (const table of previousTables) {
+    const manual = table.threats.filter((t) => t.source === "manual");
+    if (manual.length === 0) continue;
+    const key = tableGroupKey(table);
+    const bucket = manualByGroup.get(key);
+    if (bucket) bucket.push(...manual);
+    else manualByGroup.set(key, [...manual]);
+  }
+  if (manualByGroup.size === 0) return freshTables;
+
+  const consumed = new Set<string>();
+  const withManual = freshTables.map((table) => {
+    const key = tableGroupKey(table);
+    const manual = manualByGroup.get(key);
+    if (!manual) return table;
+    consumed.add(key);
+    return { ...table, threats: [...table.threats, ...manual] };
+  });
+
+  // Manual threats whose grouping no longer exists in the fresh set: preserve
+  // them in a carried-over table rather than dropping them.
+  for (const table of previousTables) {
+    const key = tableGroupKey(table);
+    if (consumed.has(key) || !manualByGroup.has(key)) continue;
+    consumed.add(key);
+    withManual.push({
+      ...table,
+      threats: manualByGroup.get(key)!,
+    });
+  }
+
+  return withManual;
 }

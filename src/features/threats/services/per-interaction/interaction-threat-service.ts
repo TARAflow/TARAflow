@@ -22,6 +22,7 @@ export class InteractionThreatService implements ThreatService {
     project: ThreatProjectData,
     dfdContext: DFDAnalysisContext,
     configuration: ThreatConfiguration,
+    options?: { keepManual?: boolean },
   ): GenerationResult {
     try {
       if (!project.dfdGraph) {
@@ -43,6 +44,7 @@ export class InteractionThreatService implements ThreatService {
         project,
         dfdContext,
         configuration,
+        options,
       );
 
       if (tables.length === 0) {
