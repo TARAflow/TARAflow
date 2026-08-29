@@ -254,25 +254,6 @@ export class InteractionThreatGenerator {
       }
     }
 
-    // TEMP DEBUG
-    let crossCount = 0,
-      internalCount = 0,
-      noTbCount = 0;
-    for (const df of dfdContext.getDataFlows()) {
-      const senderTB = df.fromEffectiveTrustBoundary ?? null;
-      const receiverTB = df.toEffectiveTrustBoundary ?? null;
-      if (senderTB && senderTB === receiverTB) internalCount++;
-      else if (senderTB || receiverTB) crossCount++;
-      else noTbCount++;
-    }
-    console.log(
-      `[DEBUG] Cross: ${crossCount}, Internal: ${internalCount}, NoTB: ${noTbCount}`,
-    );
-    console.log(
-      `[DEBUG] Expected max threats: ${crossCount * 12 + internalCount * 6 + noTbCount * 6}`,
-    );
-    // END TEMP DEBUG
-
     // ── Interface threats ─────────────────────────────────────────────────
     for (const element of graph.elementsById.values()) {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
