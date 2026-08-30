@@ -961,7 +961,7 @@ export abstract class BaseDocumentGenerator {
           "-";
 
         const values = {
-          id: threat.id,
+          id: threat.displayId,
           strideCategory: threat.strideCategory,
           strideName,
           elementOrFlow: this.escapeTableText(elementOrFlow),
@@ -1050,7 +1050,7 @@ export abstract class BaseDocumentGenerator {
 
         const values = {
           id: risk.id,
-          threatId: risk.threatId,
+          threatId: risk.threatDisplayId,
           strideCategory: risk.strideCategory,
           threatDescription: this.escapeTableText(
             risk.threatDescription || "-",
@@ -1110,7 +1110,7 @@ export abstract class BaseDocumentGenerator {
 
         const values = {
           id: risk.id,
-          threatId: risk.threatId,
+          threatId: risk.threatDisplayId,
           strideCategory: risk.strideCategory,
           threatDescription: this.escapeTableText(
             risk.threatDescription || "-",

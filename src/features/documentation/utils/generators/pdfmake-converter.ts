@@ -763,7 +763,7 @@ export class PdfMakeConverter {
 
       tableBody.push([
         { text: risk.id },
-        { text: risk.threatId },
+        { text: risk.threatDisplayId },
         {
           text: riskBeforeLabel,
           alignment: "center",

@@ -39,6 +39,20 @@ export interface PropertyEntry {
 
 // ==================== LABEL TRANSLATIONS ====================
 
+/**
+ * Fields that hold analyst-entered free text (names, prose, rationale), never
+ * an enum token. Their values are rendered verbatim and never resolved against
+ * the DFD options catalogue — see formatValue().
+ */
+const FREE_TEXT_FIELDS = new Set<string>([
+  "owner",
+  "notes",
+  "description",
+  "safetyRationale",
+  "securityAssumptions",
+  "customBoundaryControls",
+]);
+
 const PROPERTY_LABELS: Record<string, { en: string; de: string }> = {
   // Basic
   description: { en: "Description", de: "Beschreibung" },
@@ -199,9 +213,15 @@ function formatValue(
   if (typeof value === "object" && !Array.isArray(value)) return "N/A";
 
   const t = i18n.getFixedT(lang, "dfd");
+  const field = fieldPath?.split(".fields.")[1];
   const toLabel = (raw: string): string => {
     const token = raw.trim();
     if (token === "not_specified") return "N/A";
+    // Free-text fields (owner, notes, ...) hold names/prose, not enum tokens —
+    // never resolve them against the options catalogue (a single-letter owner
+    // like "d" would otherwise trigger a spurious missing-key lookup, and a
+    // free-text value that happens to match an enum token would be mistranslated).
+    if (field && FREE_TEXT_FIELDS.has(field)) return raw;
     // Only resolve enum-like tokens; leave free text alone.
     if (!fieldPath || !/^[a-z0-9]+(_[a-z0-9]+)*$/i.test(token)) return raw;
     return t(`tabs.dfd.element_description.${fieldPath}.options.${token}`, {
@@ -239,8 +259,18 @@ export function getElementPropertiesGrouped(
   lang: DocLanguage,
 ): PropertyGroup[] {
   const props = (element.properties ?? {}) as Record<string, unknown>;
-  const read = (field: string): unknown =>
-    field === "description" ? element.description : props[field];
+  const implementedControls = (props.implementedControls ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const read = (field: string): unknown => {
+    if (field === "description") return element.description;
+    // Interface security controls are stored nested under implementedControls,
+    // not at the top level — resolve them there before falling back.
+    if (element.type === "Interface" && field in implementedControls)
+      return implementedControls[field];
+    return props[field];
+  };
   return buildGroupsFromLayout(element.type, lang, read);
 }
 
@@ -362,7 +392,7 @@ const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
     security: [
       "physicalAccessProtection",
       "signalProtection",
-      "logicalAccessControl",
+      "linkAuthentication",
       "serviceAccessPolicy",
       "debugProtection",
       "abuseProtection",
