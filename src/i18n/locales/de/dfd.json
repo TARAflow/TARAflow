@@ -253,7 +253,13 @@
           "deselect": "Abwählen",
           "safetyAnnotation": {
             "title": "Safety-Annotation",
-            "relevance": "Safety-Relevanz"
+            "relevance": "Safety-Relevanz",
+            "impact": "Safety-Auswirkung",
+            "physicalHazardPotential": "Physisches Gefährdungspotenzial",
+            "rationale": {
+              "label": "Safety-Begründung",
+              "placeholder": "Erläutern, warum diese Beziehung sicherheitsrelevant ist…"
+            }
           },
           "groupChange": {
             "title": "Asset-Gruppe ändern?",
