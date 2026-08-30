@@ -74,10 +74,6 @@ interface DFDDescriptionViewProps {
     connectionId: string,
     updates: Partial<DFDConnection>,
   ) => void;
-  onAssetFeatureUpdate?: (
-    assetId: string,
-    updates: { name?: string; properties?: any },
-  ) => void;
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   expandedGroups: string[];
   onToggleGroup: (groupKey: string) => void;
@@ -242,7 +238,6 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   onElementUpdate,
   onAssetUpdate,
   onConnectionUpdate,
-  onAssetFeatureUpdate,
   onCreateAsset,
   expandedGroups,
   onToggleGroup,
@@ -486,7 +481,6 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                   elements={elements}
                   connections={connections}
                   onUpdate={assetUpdateHandlers.get(asset.id)!} // ✅ Stable function!
-                  onAssetFeatureUpdate={onAssetFeatureUpdate}
                   isExpanded={expandedElements.includes(asset.id)}
                   onToggle={(event, isExpanded) => onToggleElement(asset.id)} // ✅ Inline callback!
                 />
@@ -859,10 +853,6 @@ interface AssetAccordionProps {
   elements: DFDElement[];
   connections: DFDConnection[];
   onUpdate: (updates: Partial<DFDAsset>) => void;
-  onAssetFeatureUpdate?: (
-    assetId: string,
-    updates: { name?: string; properties?: any },
-  ) => void;
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void; // ✅ Direct callback
 }
@@ -873,7 +863,6 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
     elements,
     connections,
     onUpdate,
-    onAssetFeatureUpdate,
     isExpanded,
     onToggle,
   }) => {
@@ -912,7 +901,6 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
               key={asset.id}
               asset={asset}
               onChange={onUpdate}
-              onAssetFeatureUpdate={onAssetFeatureUpdate}
               elements={elements}
               connections={connections}
             />
@@ -933,7 +921,6 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onToggle !== nextProps.onToggle ||
-      prevProps.onAssetFeatureUpdate !== nextProps.onAssetFeatureUpdate ||
       prevProps.elements.length !== nextProps.elements.length ||
       prevProps.connections.length !== nextProps.connections.length
     ) {

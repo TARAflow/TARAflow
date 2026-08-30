@@ -98,10 +98,6 @@ interface AssetDescriptionFormProps {
   allAssets?: DFDAsset[];
   elements?: DFDElement[];
   connections?: DFDConnection[];
-  onAssetFeatureUpdate?: (
-    assetId: string,
-    updates: { name?: string; properties?: any },
-  ) => void;
   /** Auto-focus name field on mount (e.g. after creating new asset) */
   autoFocusName?: boolean;
   /** Called after name field has been focused */
@@ -373,7 +369,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
   allAssets = [],
   elements = [],
   connections = [],
-  onAssetFeatureUpdate,
   autoFocusName = false,
   onNameFocused,
 }) => {
@@ -445,18 +440,16 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
       const trimmed = newName.trim();
       if (trimmed === asset.name) return;
       onChange({ name: trimmed });
-      onAssetFeatureUpdate?.(asset.id, { name: trimmed });
     },
-    [asset.id, asset.name, onChange, onAssetFeatureUpdate],
+    [asset.id, asset.name, onChange],
   );
 
   const handlePropertyChange = useCallback(
     (key: string, value: any) => {
       const updatedProperties = { ...asset.properties, [key]: value };
       onChange({ properties: updatedProperties });
-      onAssetFeatureUpdate?.(asset.id, { properties: updatedProperties });
     },
-    [asset.id, asset.properties, onChange, onAssetFeatureUpdate],
+    [asset.id, asset.properties, onChange],
   );
 
   // Category change: warn if referencing elements exist
@@ -727,14 +720,12 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                 ...asset.properties,
                 protectionNeed: value,
               };
-              // Canonical top-level (read by asset-property-validator) goes via onChange;
-              // onAssetFeatureUpdate only carries properties (its type excludes top-level
-              // fields) — same split as handleCategoryChange.
+              // Canonical top-level (read by asset-property-validator) and the
+              // properties mirror both go via onChange; the DFD → AssetData sync
+              // now carries properties to the feature store (Phase 4b-iii), so
+              // no separate feature-store write is needed here.
               onChange({
                 protectionNeed: value,
-                properties: updatedProperties,
-              });
-              onAssetFeatureUpdate?.(asset.id, {
                 properties: updatedProperties,
               });
             }}

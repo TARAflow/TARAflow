@@ -59,10 +59,6 @@ interface DFDDetailsPanelProps {
   onCreateAssetForGroup?: (group: AssetGroup) => void;
   /** Called when user confirms deletion of an asset in the asset tree */
   onDeleteAsset?: (assetId: string) => void;
-  onAssetFeatureUpdate?: (
-    assetId: string,
-    updates: { name?: string; properties?: any },
-  ) => void;
   /** Current DFD visibility state for assets (controlled from parent) */
   assetVisibility?: AssetVisibility;
   /** Called when user toggles eye icon in asset tree */
@@ -92,7 +88,6 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onAssetChange,
   onCreateAssetForGroup,
   onDeleteAsset,
-  onAssetFeatureUpdate,
   assetVisibility = {},
   onAssetVisibilityChange,
   onClearAllVisibility,
@@ -325,7 +320,6 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   onAssetChange={onAssetChange ?? (() => {})}
                   onCreateAsset={onCreateAssetForGroup}
                   onDeleteAsset={onDeleteAsset}
-                  onAssetFeatureUpdate={onAssetFeatureUpdate}
                   onClearAllVisibility={onClearAllVisibility}
                 />
               </Box>

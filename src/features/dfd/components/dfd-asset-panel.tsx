@@ -97,10 +97,6 @@ interface AssetPanelProps {
   onCreateAsset?: (group: AssetGroup) => void;
   /** Called when user confirms deletion of an asset */
   onDeleteAsset?: (assetId: string) => void;
-  onAssetFeatureUpdate?: (
-    assetId: string,
-    updates: { name?: string; properties?: any },
-  ) => void;
   /** Called when user clicks the global "clear all overlays" button */
   onClearAllVisibility?: () => void;
   selectedAssetId?: string | null;
@@ -429,7 +425,6 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   onAssetChange,
   onCreateAsset,
   onDeleteAsset,
-  onAssetFeatureUpdate,
   onClearAllVisibility,
   selectedAssetId: externalSelectedAssetId,
 }) => {
@@ -647,7 +642,6 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
                 allAssets={assets}
                 elements={elements}
                 connections={connections}
-                onAssetFeatureUpdate={onAssetFeatureUpdate}
                 autoFocusName={shouldFocusName}
                 onNameFocused={() => setShouldFocusName(false)}
               />
