@@ -131,8 +131,9 @@ function getCategoryFromAsset(asset: Asset): AssetGroup | undefined {
   if (fromProperties && fromProperties in ASSET_GROUP_CONFIG)
     return fromProperties as AssetGroup;
 
-  // 3. Fallback: derive from ID prefix for legacy / manually-created assets
-  const prefix = asset.id?.split("-")[0]?.toUpperCase();
+  // 3. Fallback: derive from displayId prefix for legacy / manually-created
+  //    assets (displayId keeps the group prefix even once id becomes a UUID).
+  const prefix = (asset.displayId ?? asset.id)?.split("-")[0]?.toUpperCase();
   return prefix ? ID_PREFIX_TO_CATEGORY[prefix] : undefined;
 }
 
@@ -225,7 +226,7 @@ export const AssetTable = React.memo<AssetTableProps>(
           const cfg = category ? ASSET_GROUP_CONFIG[category] : undefined;
           return (
             <Chip
-              label={params.value}
+              label={params.row.displayId ?? params.value}
               size="small"
               variant="outlined"
               sx={{

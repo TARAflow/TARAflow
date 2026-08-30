@@ -146,6 +146,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "aggregatedImpact": "CRITICAL",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-001",
         "id": "DA-001",
         "impactRatings": [
           {
@@ -248,6 +249,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "aggregatedImpact": "CRITICAL",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-002",
         "id": "DA-002",
         "impactRatings": [
           {
@@ -370,6 +372,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "aggregatedImpact": "HIGH+",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-003",
         "id": "DA-003",
         "impactRatings": [
           {
@@ -478,6 +481,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "aggregatedImpact": "HIGH+",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-004",
         "id": "DA-004",
         "impactRatings": [
           {
@@ -561,6 +565,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
       {
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-005",
         "id": "DA-005",
         "impactRatings": [
           {
@@ -640,6 +645,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "aggregatedImpact": "LOW",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-006",
         "id": "DA-006",
         "impactRatings": [
           {
@@ -738,6 +744,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "aggregatedImpact": "LOW",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-007",
         "id": "DA-007",
         "impactRatings": [
           {
@@ -1219,6 +1226,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
       {
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-008",
         "id": "DA-008",
         "impactRatings": [
           {
@@ -1797,6 +1805,7 @@ exports[`Phase 0 — syncFromDFD characterization > cnc-ref (migrated): re-sync 
         "aggregatedImpact": "MED",
         "assetGroup": "data",
         "created": "<volatile>",
+        "displayId": "DA-001",
         "id": "DA-001",
         "impactRatings": [
           {

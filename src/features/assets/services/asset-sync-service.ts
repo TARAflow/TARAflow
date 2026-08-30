@@ -185,6 +185,7 @@ export function syncFromDFD(
           dfdAsset.assetGroup,
         ),
         name: dfdAsset.name ?? dfdAsset.id,
+        displayId: dfdAsset.displayId ?? dfdAsset.id,
         assetGroup: dfdAsset.assetGroup ?? "data",
         source: "dfd",
         syncedWithDFD: true,
@@ -256,6 +257,7 @@ export function syncFromDFD(
       let updated: Asset = {
         ...existing,
         name: newName,
+        displayId: dfdAsset.displayId ?? existing.displayId ?? existing.id,
         syncedWithDFD: true,
         linkedDFDElements,
         assetGroup: newGroup,

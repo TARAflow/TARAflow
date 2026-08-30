@@ -54,6 +54,7 @@ export function createEmptyAsset(
 
   return {
     id,
+    displayId: id,
     numericId,
     name: "",
     assetGroup,

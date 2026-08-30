@@ -82,8 +82,20 @@ export const DEFAULT_ASSET_CONFIGURATION: AssetConfiguration = {
  * Core Asset data structure
  */
 export interface Asset {
-  /** Unique ID (e.g., "A-001", "A-01", "A-1") */
+  /**
+   * Stable identity — the reference elements point at via
+   * element.assetRelations[].assetId. Readable today (e.g. "DA-001"); becomes an
+   * opaque UUID in the Phase 5 UUID switch. Never shown to the user — use
+   * displayId for that.
+   */
   id: string;
+
+  /**
+   * Human-readable, group-prefixed label (e.g. "DA-001", "SY-003), regenerated
+   * on a group change. This is what the UI shows. Equal to id today; the two
+   * diverge once id becomes a UUID.
+   */
+  displayId?: string;
 
   /** Numeric part for sorting and renumbering */
   numericId: number;
