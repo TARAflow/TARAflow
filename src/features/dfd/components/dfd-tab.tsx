@@ -194,7 +194,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     iframeRef: editor.iframeRef,
   });
 
-  const { updateElement, createAsset, deleteAsset, dfd } = useDFDData(project);
+  const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
+    useDFDData(project);
   const { scheduleSave } = useDFDPersistence(project, { onUpdate });
 
   // AvailableAssets aus dfd.assets ableiten
@@ -295,25 +296,21 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const handleAssetChange = useCallback(
     (assetId: string, changes: Partial<DFDAsset>) => {
-      // THE FIX: build from `base` (scheduleSave's freshest known state —
-      // pending unflushed edit, or project.dfd if nothing is pending), not
-      // from the closed-over `dfd` prop. Previously, editing asset A then
-      // switching to asset B within the ~500ms debounce window computed
-      // asset B's update from `dfd`, which did not yet include asset A's
-      // still-pending edit — the resulting scheduleSave call wholesale
-      // replaced the pending save, silently dropping asset A's change.
+      // Route through useDFDData.updateAsset (not a plain spread) so an
+      // assetGroup change gets the identity handling: the stable UUID id is
+      // kept, displayId is regenerated with the new group prefix, relations are
+      // preserved, and linkedElements are re-synced. base-threading is
+      // preserved by passing scheduleSave's freshest `base` as the third arg.
       scheduleSave((base) => {
-        const updatedAssets = (base.assets ?? []).map((a) =>
-          a.id === assetId ? { ...a, ...changes } : a,
-        );
+        const newDfd = updateAsset(assetId, changes, base);
         return {
-          dfd: { ...base, assets: updatedAssets },
+          dfd: newDfd,
           phaseStatus: project.phaseStatus,
-          lastModified: new Date().toISOString(),
+          lastModified: newDfd.lastModified ?? new Date().toISOString(),
         };
       });
     },
-    [scheduleSave, project.phaseStatus],
+    [scheduleSave, updateAsset, project.phaseStatus],
   );
 
   // Create asset from the asset tree panel (group known, name defaults to empty)

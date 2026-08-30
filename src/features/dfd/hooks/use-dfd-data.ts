@@ -267,10 +267,10 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    * Update asset properties (name, protectionNeed, properties, …).
    * linkedElements will be re-synced automatically by updateDFD.
    *
-   * ✅ CLEANUP: If assetGroup changes, all existing asset relations
-   * in elements/connections are automatically removed (incompatible relations).
-   * ✅ ID REGENERATION: If assetGroup changes, a new ID with the correct
-   * prefix is generated (DA-001 → SY-001) via the shared generateAssetId.
+   * IDENTITY (Phase 5b, UUID): the asset `id` is an opaque, stable UUID —
+   * never regenerated — the reference DFD elements point at via assetRelations.
+   * On an assetGroup change, only `displayId` is regenerated with the new group
+   * prefix (DA-001 → SY-001); the id stays put and relations are preserved.
    */
   const updateAsset = useCallback(
     (
@@ -288,50 +288,24 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         updates.assetGroup !== oldAsset.assetGroup;
 
       return updateDFD((current) => {
-        let elements = current.elements;
-        let connections = current.connections;
+        const elements = current.elements;
+        const connections = current.connections;
         let finalUpdates = { ...updates };
 
-        // ✅ Cleanup asset relations if category changed
+        // Phase 5b (UUID): the id is stable and opaque — never regenerated. On a
+        // group change only the readable displayId is regenerated with the new
+        // group prefix (minted from existing display ids). The stable id keeps
+        // every element/connection assetRelation valid, so relations are
+        // PRESERVED (no stripping).
         if (categoryChanged) {
-          // Generate new ID with correct prefix (shared primitive — takes ids).
-          const newId = generateAssetId(
-            current.assets.map((a) => a.id),
+          const newDisplayId = generateAssetId(
+            current.assets.map((a) => a.displayId ?? a.id),
             updates.assetGroup!,
           );
           finalUpdates = {
             ...updates,
-            id: newId,
-            displayId: newId,
+            displayId: newDisplayId,
           };
-
-          elements = elements.map((el) => {
-            const hasRelation = el.assetRelations?.some(
-              (r) => r.assetId === assetId,
-            );
-            if (!hasRelation) return el;
-
-            return {
-              ...el,
-              assetRelations: el.assetRelations!.filter(
-                (r) => r.assetId !== assetId,
-              ),
-            };
-          });
-
-          connections = connections.map((conn) => {
-            const hasRelation = conn.assetRelations?.some(
-              (r) => r.assetId === assetId,
-            );
-            if (!hasRelation) return conn;
-
-            return {
-              ...conn,
-              assetRelations: conn.assetRelations!.filter(
-                (r) => r.assetId !== assetId,
-              ),
-            };
-          });
         }
 
         // Update asset (using old ID to find it, but applying new ID if category changed)
@@ -400,7 +374,7 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         throw new Error("Cannot create asset: project.dfd is null");
 
       const seed = createAssetSeed(
-        effectiveBase.assets.map((a) => a.id),
+        effectiveBase.assets.map((a) => a.displayId ?? a.id),
         name,
         assetGroup,
         protectionNeed,

@@ -183,6 +183,7 @@ export function syncFromDFD(
           dfdAsset.id,
           assetData.configuration,
           dfdAsset.assetGroup,
+          dfdAsset.displayId ?? dfdAsset.id,
         ),
         name: dfdAsset.name ?? dfdAsset.id,
         displayId: dfdAsset.displayId ?? dfdAsset.id,

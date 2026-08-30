@@ -33,6 +33,7 @@ import {
   generateNextAssetId,
   renumberAssets,
 } from "./asset-factory";
+import { generateAssetId } from "shared/services/asset-creation";
 import {
   calculateOverallImpact,
   recalculateAllImpacts,
@@ -161,8 +162,18 @@ class AssetService {
   // ── CRUD ────────────────────────────────────────────────────────────────
 
   createAsset(assetData: AssetData): Asset {
-    const id = generateNextAssetId(assetData.assets);
-    return createEmptyAsset(id, assetData.configuration);
+    // Phase 5b (UUID): opaque stable id, readable group-prefixed displayId
+    // (default group "data") minted from existing display ids.
+    const displayId = generateAssetId(
+      assetData.assets.map((a) => a.displayId ?? a.id),
+      "data",
+    );
+    return createEmptyAsset(
+      crypto.randomUUID(),
+      assetData.configuration,
+      "data",
+      displayId,
+    );
   }
 
   addAsset(assetData: AssetData, asset: Asset): AssetData {

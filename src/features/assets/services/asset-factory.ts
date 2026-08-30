@@ -49,12 +49,14 @@ export function createEmptyAsset(
   id: string,
   configuration: AssetConfiguration,
   assetGroup: AssetGroup = "data",
+  displayId: string = id,
 ): Asset {
-  const numericId = parseAssetId(id);
+  // numericId sorts/renumbers by the readable label, not the (opaque UUID) id.
+  const numericId = parseAssetId(displayId);
 
   return {
     id,
-    displayId: id,
+    displayId,
     numericId,
     name: "",
     assetGroup,

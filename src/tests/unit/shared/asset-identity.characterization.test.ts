@@ -22,36 +22,38 @@
 import { describe, it, expect } from "vitest";
 import { createAsset } from "shared/services/asset-creation";
 
-describe("asset identity — current readable-id model (pre-UUID)", () => {
-  it("mints id as a readable, group-prefixed string", () => {
+describe("asset identity — UUID model (Phase 5b)", () => {
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  it("mints id as an opaque UUID", () => {
     const a = createAsset([], "Config Data", "data");
-    expect(a.id).toMatch(/^DA-\d{3}$/);
+    expect(a.id).toMatch(UUID_RE);
   });
 
-  it("sets displayId equal to id (no separate stable identity yet)", () => {
+  it("mints displayId as the readable, group-prefixed label", () => {
     const a = createAsset([], "Config Data", "data");
-    expect(a.displayId).toBe(a.id);
+    expect(a.displayId).toMatch(/^DA-\d{3}$/);
+    expect(a.displayId).not.toBe(a.id);
   });
 
-  it("encodes the current group in the id prefix", () => {
-    expect(createAsset([], "x", "data").id).toMatch(/^DA-/);
-    expect(createAsset([], "y", "system").id).toMatch(/^SY-/);
+  it("encodes the current group in the displayId prefix", () => {
+    expect(createAsset([], "x", "data").displayId).toMatch(/^DA-/);
+    expect(createAsset([], "y", "system").displayId).toMatch(/^SY-/);
   });
 
-  it("assigns sequential ids within a group", () => {
+  it("assigns sequential displayIds within a group (from existing display ids)", () => {
     const a = createAsset([], "x", "data");
-    const b = createAsset([a.id], "y", "data");
-    expect(a.id).toBe("DA-001");
-    expect(b.id).toBe("DA-002");
+    const b = createAsset([a.displayId], "y", "data");
+    expect(a.displayId).toBe("DA-001");
+    expect(b.displayId).toBe("DA-002");
+    // ids are independent opaque uuids
+    expect(a.id).not.toBe(b.id);
   });
 
-  it("uses the readable id itself as the reference key", () => {
-    // The value elements point at via assetRelations[].assetId IS the readable
-    // id today — there is no opaque uuid behind it. Phase 5b flips this.
+  it("uses the opaque id as the reference key, displayId only for humans", () => {
     const a = createAsset([], "x", "data");
-    expect(a.id).toBe(a.displayId);
-    expect(a.id).not.toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    );
+    expect(a.id).toMatch(UUID_RE);
+    expect(a.displayId).not.toMatch(UUID_RE);
   });
 });

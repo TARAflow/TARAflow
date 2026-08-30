@@ -53,7 +53,12 @@ function normRole(s: string): string {
 export interface BridgeOptions {
   makeHazardItemId: () => HazardItemId;
   /** Existing assets (project + pending) for Human-target dedup and id minting. */
-  existingAssets: { id: string; name: string; assetGroup: string }[];
+  existingAssets: {
+    id: string;
+    displayId?: string;
+    name: string;
+    assetGroup: string;
+  }[];
   /** Mint a new Human protection-target asset (wraps the shared asset-creation primitive). */
   mintHumanAsset: (name: string, existingIds: string[]) => CreatedAsset;
   defaultHazardDistance?: number;
@@ -82,7 +87,7 @@ export function bridgeSafetyHazards(
   for (const a of opts.existingAssets) {
     if (a.assetGroup === "human") roleToId.set(normRole(a.name), a.id);
   }
-  const allIds = opts.existingAssets.map((a) => a.id);
+  const allIds = opts.existingAssets.map((a) => a.displayId ?? a.id);
 
   const targetFor = (role: string): string => {
     const key = normRole(role);
@@ -90,7 +95,7 @@ export function bridgeSafetyHazards(
     if (existing) return existing;
     const created = opts.mintHumanAsset(role, allIds);
     roleToId.set(key, created.id);
-    allIds.push(created.id);
+    allIds.push(created.displayId);
     createdAssets.push(created);
     return created.id;
   };

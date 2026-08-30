@@ -68,15 +68,19 @@ export function generateAssetId(existingIds: readonly string[], group: string): 
  * ids created earlier in the same unsaved session too.
  */
 export function createAsset<G extends string>(
-  existingIds: readonly string[],
+  existingDisplayIds: readonly string[],
   name: string,
   group: G,
   protectionNeed?: AssetProtectionNeed,
 ): CreatedAsset<G> {
-  const id = generateAssetId(existingIds, group);
+  // Phase 5b (UUID): the id is an opaque, stable identity (never shown, never
+  // regenerated — the reference elements point at). The readable, group-
+  // prefixed label lives in displayId and is minted from existing DISPLAY ids
+  // so it does not collide.
+  const displayId = generateAssetId(existingDisplayIds, group);
   return {
-    id,
-    displayId: id,
+    id: crypto.randomUUID(),
+    displayId,
     name,
     assetGroup: group,
     ...(protectionNeed ? { protectionNeed } : {}),

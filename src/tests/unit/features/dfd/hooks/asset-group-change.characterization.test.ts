@@ -67,34 +67,32 @@ function makeProject(): DFDProjectData {
   };
 }
 
-describe("asset group change — current behaviour (pre Phase 5)", () => {
-  it("regenerates the asset id with the new group prefix", () => {
+describe("asset group change — stable-id model (Phase 5b)", () => {
+  it("keeps the asset id stable and regenerates only the displayId", () => {
     const { result } = renderHook(() => useDFDData(makeProject()));
     const next = result.current.updateAsset("DA-001", {
       assetGroup: "system",
     });
 
-    // The record is found by name (its id changed out from under it).
-    const asset = next.assets.find((a) => a.name === "Config Data")!;
-    expect(asset.id).not.toBe("DA-001");
-    expect(asset.id).toMatch(/^SY-/);
-    // displayId currently tracks the (regenerated) id 1:1.
-    expect(asset.displayId).toBe(asset.id);
+    const asset = next.assets.find((a) => a.id === "DA-001")!;
+    expect(asset).toBeDefined(); // id is stable — still found by DA-001
     expect(asset.assetGroup).toBe("system");
+    // displayId is regenerated with the new group prefix.
+    expect(asset.displayId).not.toBe("DA-001");
+    expect(asset.displayId).toMatch(/^SY-/);
   });
 
-  it("strips the element assetRelations that referenced the old id", () => {
+  it("preserves the element assetRelations across a group change", () => {
     const { result } = renderHook(() => useDFDData(makeProject()));
     const next = result.current.updateAsset("DA-001", {
       assetGroup: "system",
     });
 
     const el = next.elements.find((e) => e.id === "3")!;
-    // The relation to the old DA-001 is removed (links lost on group change).
+    // The stable id keeps the relation valid — it is NOT stripped.
     expect(
       (el.assetRelations ?? []).some((r) => r.assetId === "DA-001"),
-    ).toBe(false);
-    expect(el.assetRelations ?? []).toHaveLength(0);
+    ).toBe(true);
   });
 
   it("leaves id/relations untouched when the group does NOT change", () => {
