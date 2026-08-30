@@ -1,21 +1,14 @@
 // tests/unit/features/assets/services/asset-sync-property-drop.golden.test.ts
 //
-// Phase 4 NET of the Asset-Store SoT refactor (see asset-store-ssot-refactor-v2.md, §3.1).
+// Phase 4 of the Asset-Store SoT refactor (see asset-store-ssot-refactor-v2.md, §3.1).
 //
-// PURPOSE: pin the CURRENT (deliberately lossy) behaviour before Phase 4 merges the
-// two property bags. It does NOT assert what SHOULD happen — it locks in what does.
-//
-// Finding §3.1: the rich, category-specific `DFDAsset.properties` block
-// (dataType, isSafetyFunction, automationLevel, containsSafetyRelevantData,
-// externalRefs, …) never reaches AssetData through the DFD → AssetData path.
-// The projection type `AssetDFDAsset` (mapDFDAssetsToAssetFeature's output) has
-// NO `properties` channel at all, so the fields are dropped at the mapping
-// boundary, before syncFromDFD ever sees them. Only `protectionNeed` is carried
-// (into Asset.properties.protectionNeed).
-//
-// When Phase 4 gives Asset a canonical merged property schema and points the
-// form at it, THIS test must be updated consciously — that update is the signal
-// that the data-loss seam has been closed on purpose.
+// This test previously PINNED the lossy behaviour (properties dropped on the
+// DFD → AssetData path). Phase 4b-iii closed that seam: AssetDFDAsset now
+// carries a `properties` channel, mapDFDAssetsToAssetFeature passes
+// DFDAsset.properties through, and syncFromDFD merges them into
+// Asset.properties. So the test now asserts the OPPOSITE — the rich
+// category-specific properties survive — which is the conscious update the
+// original drop-test asked for.
 
 import { describe, it, expect } from "vitest";
 
@@ -54,7 +47,7 @@ function runSyncFor(dfdAsset: DFDAsset) {
   return synced.assets.find((a) => a.id === dfdAsset.id);
 }
 
-describe("§3.1 — DFDAsset.properties is dropped on the DFD → AssetData sync path", () => {
+describe("§3.1 (closed) — DFDAsset.properties now flows to AssetData via sync", () => {
   it("creates the asset record (id / name / group survive)", () => {
     const asset = runSyncFor(dfdAssetWithRichProps);
     expect(asset).toBeDefined();
@@ -62,26 +55,24 @@ describe("§3.1 — DFDAsset.properties is dropped on the DFD → AssetData sync
     expect(asset!.assetGroup).toBe("data");
   });
 
-  it("carries protectionNeed into Asset.properties (the one field that survives)", () => {
+  it("carries protectionNeed into Asset.properties", () => {
     const asset = runSyncFor(dfdAssetWithRichProps);
     expect(asset!.properties?.protectionNeed).toBe("high");
   });
 
-  it("DROPS the rich DFD category fields — pins the §3.1 data loss", () => {
+  it("CARRIES the rich DFD category fields through to Asset.properties", () => {
     const asset = runSyncFor(dfdAssetWithRichProps);
     const props = (asset!.properties ?? {}) as Record<string, unknown>;
 
-    // None of the DFD-only category fields make it across today.
-    expect(props.dataType).toBeUndefined();
-    expect(props.lifecycle).toBeUndefined();
-    expect(props.containsSafetyRelevantData).toBeUndefined();
-    expect(props.isSafetyFunction).toBeUndefined();
-    expect(props.automationLevel).toBeUndefined();
+    expect(props.dataType).toEqual(["configuration"]);
+    expect(props.lifecycle).toBe("stored");
+    expect(props.containsSafetyRelevantData).toBe(true);
+    expect(props.isSafetyFunction).toBe(true);
+    expect(props.automationLevel).toBe("fully_automated");
   });
 
-  it("confirms the loss happens at the projection boundary (AssetDFDAsset has no properties channel)", () => {
+  it("exposes the properties channel on the projection (AssetDFDAsset carries properties)", () => {
     const [ref] = mapDFDAssetsToAssetFeature([dfdAssetWithRichProps], [], []);
-    // The reference the sync consumes never carries properties at all.
-    expect((ref as unknown as Record<string, unknown>).properties).toBeUndefined();
+    expect((ref as unknown as Record<string, unknown>).properties).toBeDefined();
   });
 });

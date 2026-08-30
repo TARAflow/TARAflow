@@ -79,6 +79,28 @@ function linkedElementsEqual(
 }
 
 /**
+ * Order-insensitive shallow equality for the flat AssetProperties bag.
+ * Used to decide whether a DFD property edit actually changed anything, so a
+ * properties-only edit still triggers a sync update (before the SoT
+ * consolidation, properties were ignored here entirely — §3.1).
+ */
+function propertiesEqual(
+  a: object | undefined,
+  b: object | undefined,
+): boolean {
+  const ao = (a ?? {}) as Record<string, unknown>;
+  const bo = (b ?? {}) as Record<string, unknown>;
+  // Union of keys; `undefined` and an absent key compare equal, so a merge that
+  // only adds `protectionNeed: undefined` (or re-sets a value to what it was)
+  // is not treated as a change.
+  const keys = new Set([...Object.keys(ao), ...Object.keys(bo)]);
+  for (const k of keys) {
+    if (ao[k] !== bo[k]) return false;
+  }
+  return true;
+}
+
+/**
  * Derive physicalImpact and aggregatedImpact for an asset after sync.
  * Uses fresh linkedDFDElements for physicalImpact derivation.
  * Respects manual overrides on physicalImpact.
@@ -168,8 +190,10 @@ export function syncFromDFD(
         syncedWithDFD: true,
         linkedDFDElements,
         properties: {
+          ...dfdAsset.properties,
           description: dfdAsset.description || undefined,
-          protectionNeed: dfdAsset.protectionNeed,
+          protectionNeed:
+            dfdAsset.protectionNeed ?? dfdAsset.properties?.protectionNeed,
         },
       };
       // Derive immediately — without this, an asset created with an
@@ -199,38 +223,61 @@ export function syncFromDFD(
         existing.linkedDFDElements,
       );
 
-      if (!nameChanged && !groupChanged && !linkedChanged) {
+      // Merge DFD-owned category properties over the existing ones. Asset-owned
+      // fields the DFD form never writes (e.g. the HVA block) are absent from
+      // dfdAsset.properties and survive the spread. `description` stays owned by
+      // use-bidirectional-asset-sync (last-writer-wins), so it is stripped here
+      // rather than pulled from the DFD mirror. protectionNeed keeps its
+      // canonical top-level → mirror precedence.
+      const { description: _dfdDescription, ...dfdPropsNoDescription } =
+        dfdAsset.properties ?? {};
+      const mergedProps = {
+        ...existing.properties,
+        ...dfdPropsNoDescription,
+        protectionNeed:
+          dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
+      };
+      const propsChanged = !propertiesEqual(mergedProps, existing.properties);
+
+      if (!nameChanged && !groupChanged && !linkedChanged && !propsChanged) {
         // Nothing changed — keep existing asset reference unchanged
         continue;
       }
 
-      const updated: Asset = {
+      // Impact derivation is driven by linkedDFDElements (physicalImpact from
+      // link SafetyAnnotations) and asset-owned HVA properties (aggregation) —
+      // neither of which a properties-only DFD edit touches. So re-derive only
+      // when the original triggers changed; a props-only change carries the
+      // merged properties WITHOUT re-running derivation, which would otherwise
+      // heal stale derived values as an unintended side effect (4b-iii = carry
+      // properties and nothing else).
+      const shouldRederive = nameChanged || groupChanged || linkedChanged;
+
+      let updated: Asset = {
         ...existing,
         name: newName,
         syncedWithDFD: true,
         linkedDFDElements,
         assetGroup: newGroup,
-        properties: {
-          ...existing.properties,
-          // description is owned by use-bidirectional-asset-sync (last-writer-wins).
-          // syncFromDFD must NOT recompute it — the old
-          //   existing?.description ?? dfd.description ?? ""
-          // discarded fresh DFD edits (empty-string short-circuits ??) and
-          // reset undefined→"", poisoning the hook's change detection.
-          protectionNeed:
-            dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
-        },
-        overallImpact: calculateOverallImpact(
-          existing.impactRatings,
-          assetData.configuration.calculationMethod,
-          assetData.configuration.roundingMethod,
-          assetData.configuration.impactCriteria,
-        ),
+        properties: mergedProps,
         lastModified: new Date().toISOString(),
       };
-      const withPhysical = deriveAndApplyImpacts(updated, linkedDFDElements);
+
+      if (shouldRederive) {
+        updated = {
+          ...updated,
+          overallImpact: calculateOverallImpact(
+            existing.impactRatings,
+            assetData.configuration.calculationMethod,
+            assetData.configuration.roundingMethod,
+            assetData.configuration.impactCriteria,
+          ),
+        };
+        updated = deriveAndApplyImpacts(updated, linkedDFDElements);
+      }
+
       updatedAssets = updatedAssets.map((a, i) =>
-        i === existingIndex ? withPhysical : a,
+        i === existingIndex ? updated : a,
       );
     }
   }

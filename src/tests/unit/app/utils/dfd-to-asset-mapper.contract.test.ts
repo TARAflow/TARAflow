@@ -2,26 +2,24 @@
 //
 // Field-contract for mapDFDAssetsToAssetFeature — the DFD→Feature sync boundary.
 //
-// TARAflow's asset ownership split (confirmed design):
-//   DFD world      owns: existence, relations, structural + technical
-//                        properties (portability, …), and protectionNeed
-//                        (canonical on DFDAsset, edited in the DFD form).
-//   Feature world  owns: impact ratings, security goals (CIANAAA).
-//   Shared:        name, description  (bidirectional, mirrored in
-//                  workspace-layout's handleDFDUpdate / handleAssetsUpdate).
-//   One-way DFD→Feature (read-only in Feature): protectionNeed, so the impact
-//                  assessment can read the protection need without editing it.
+// TARAflow's asset ownership split (SoT model — one canonical store):
+//   DFD tab        EDITS: existence, relations, structural + technical
+//                        properties (dataType, portability, …), and
+//                        protectionNeed. It no longer owns a separate store —
+//                        those edits are STORED in the one feature store.
+//   Asset tab      EDITS: impact ratings, security goals (CIANAAA), HVA block.
+//   Shared:        name, description  (bidirectional).
 //
-// This mapper is the ONE place the DFD→Feature projection happens. The bugs we
-// chased ("portability never reaches the Asset tab") were NOT bugs — properties
-// are deliberately DFD-only. So the contract is a POSITIVE list (fields that
-// must cross) AND a NEGATIVE list (fields that must NOT), because the dangerous
-// regression in either direction is silent: adding properties to the projection
-// would leak DFD-only data into the Feature world and re-create two-world drift.
+// Under the single-source-of-truth consolidation there is only ONE asset store
+// (the feature store). The structural `properties` bag is edited in the DFD tab
+// but must be STORED on the feature Asset — there is nowhere else for it to
+// live. So the mapper carries `properties` across (as well as protectionNeed).
 //
-// This replaces dfd-asset-feature-update-wired.test.ts, which asserted the
-// opposite (that DFD property edits must reach the Feature store) and was based
-// on a wrong premise.
+// NOTE: an earlier version of this test asserted the OPPOSITE (properties are
+// "deliberately DFD-only" and must never cross), written under the former
+// two-world model. That model is exactly what the consolidation dissolves:
+// with one store there is no second world to drift against, so carrying
+// properties is required, not a leak.
 
 import { describe, it, expect } from "vitest";
 import { mapDFDAssetsToAssetFeature } from "app/utils/dfd-to-asset-mapper";
@@ -62,15 +60,13 @@ describe("mapDFDAssetsToAssetFeature — field contract", () => {
     expect(ref.protectionNeed).toBe("medium");
   });
 
-  it("does NOT leak DFD-only properties into the Feature world", () => {
-    // The core boundary guard. portability (and the whole `properties` bag)
-    // is DFD-owned and must never appear on the Feature reference. If someone
-    // later adds `properties: asset.properties` to the mapper "to be helpful",
-    // this fails — which is exactly the regression we want to catch.
+  it("carries the structural properties into the Feature world (one store)", () => {
+    // Under SoT the DFD-edited properties are stored on the feature Asset.
+    // The mapper must project them through so the sync can land them.
     const [ref] = mapDFDAssetsToAssetFeature([makeDfdAsset()], [], []) as any[];
 
-    expect(ref.properties).toBeUndefined();
-    expect(ref.portability).toBeUndefined();
+    expect(ref.properties).toBeDefined();
+    expect(ref.properties.portability).toBe("portable");
   });
 
   it("does NOT carry Feature-owned assessment fields", () => {
@@ -95,6 +91,7 @@ describe("mapDFDAssetsToAssetFeature — field contract", () => {
         "id",
         "linkedElements",
         "name",
+        "properties",
         "protectionNeed",
       ].sort(),
     );

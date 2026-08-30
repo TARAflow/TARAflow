@@ -12,6 +12,7 @@
 //   - Marker logic removed (positions, sizes, xmlIds)
 
 import type { AssetGroup, A2ARelationType } from "shared";
+import type { AssetProperties } from "shared/models/asset-property-types";
 
 // ==================== SAFETY ANNOTATION SUMMARY ====================
 
@@ -54,6 +55,14 @@ export interface AssetDFDAsset {
 
   /** Protection need — used for chip color in AssetRelationSelector */
   readonly protectionNeed?: "low" | "medium" | "high" | "critical";
+
+  /**
+   * The DFD asset's category-specific properties, projected through unchanged
+   * so the DFD → AssetData sync can carry them into Asset.properties. Before
+   * the SoT consolidation this channel did not exist, so DFD-edited properties
+   * only reached AssetData via the manual double-write (§3.1/§3.2).
+   */
+  readonly properties?: AssetProperties;
 
   // NOTE: isHighValueAsset has been moved to asset-tab/models/asset-types.ts (Asset.properties).
   // HVA assessment belongs to the asset rating phase, not the DFD structural phase.

@@ -193,7 +193,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
+          "dataType": [
+            "telemetry",
+          ],
           "description": "",
+          "lifecycle": "transient",
         },
         "securityGoals": [
           {
@@ -312,7 +316,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
+          "dataType": [
+            "configuration",
+          ],
           "description": "",
+          "lifecycle": "stored",
         },
         "securityGoals": [
           {
@@ -416,7 +424,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
+          "dataType": [
+            "configuration",
+          ],
           "description": "",
+          "lifecycle": "stored",
         },
         "securityGoals": [
           {
@@ -498,7 +510,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
+          "dataType": [
+            "configuration",
+          ],
           "description": "",
+          "lifecycle": "stored",
         },
         "securityGoals": [
           {
@@ -574,7 +590,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "numericId": 5,
         "overallImpact": 0,
         "properties": {
+          "dataType": [
+            "configuration",
+          ],
           "description": "",
+          "lifecycle": "stored",
         },
         "securityGoals": [
           {
@@ -665,7 +685,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "physicalImpactSource": "derived",
         "properties": {
+          "dataType": [
+            "credentials",
+          ],
           "description": "",
+          "lifecycle": "stored",
         },
         "securityGoals": [
           {
@@ -773,7 +797,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "physicalImpactSource": "derived",
         "properties": {
+          "dataType": [
+            "configuration",
+          ],
           "description": "",
+          "lifecycle": "stored",
         },
         "securityGoals": [
           {
@@ -1228,7 +1256,11 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "numericId": 8,
         "overallImpact": 0,
         "properties": {
+          "dataType": [
+            "telemetry",
+          ],
           "description": "",
+          "lifecycle": "transient",
         },
         "securityGoals": [
           {
@@ -1795,6 +1827,10 @@ exports[`Phase 0 — syncFromDFD characterization > cnc-ref (migrated): re-sync 
         "overallImpact": 2,
         "physicalImpactSource": "derived",
         "properties": {
+          "containsSafetyRelevantData": true,
+          "dataType": [
+            "credentials",
+          ],
           "description": "Test Text for asset-tab4444444",
         },
         "securityGoals": [
@@ -2110,7 +2146,7 @@ exports[`Phase 0 — syncFromDFD characterization > cnc-ref (migrated): re-sync 
       ],
     },
   },
-  "hasChanges": false,
+  "hasChanges": true,
   "newAssets": [],
   "warnings": [],
 }
