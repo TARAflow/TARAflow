@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 5,
+  "id": "synthetic-uuid-migration",
+  "name": "Asset UUID migration fixture (synthetic)",
+  "assets": {
+    "assets": [
+      {
+        "id": "DA-001",
+        "numericId": 1,
+        "name": "Config Data",
+        "assetGroup": "data",
+        "source": "dfd",
+        "syncedWithDFD": true,
+        "impactRatings": [],
+        "securityGoals": [],
+        "linkedDFDElements": [],
+        "properties": {}
+      },
+      {
+        "id": "DA-002",
+        "numericId": 2,
+        "name": "Data Service",
+        "assetGroup": "system",
+        "source": "dfd",
+        "syncedWithDFD": true,
+        "impactRatings": [],
+        "securityGoals": [],
+        "linkedDFDElements": [],
+        "properties": {}
+      }
+    ],
+    "configuration": {}
+  },
+  "dfd": {
+    "assets": [
+      { "id": "DA-001", "displayId": "DA-001", "name": "Config Data", "assetGroup": "data", "linkedElements": [] },
+      { "id": "DA-002", "displayId": "DA-002", "name": "Data Service", "assetGroup": "system", "linkedElements": [] }
+    ],
+    "elements": [
+      {
+        "id": "3",
+        "type": "Process",
+        "name": "MyProcess",
+        "displayId": "P-1",
+        "assetRelations": [
+          { "assetId": "DA-001", "assetGroup": "data", "relationType": "creates" },
+          { "assetId": "DA-001", "assetGroup": "data", "relationType": "modifies" },
+          { "assetId": "DA-002", "assetGroup": "system", "relationType": "is_an" }
+        ]
+      }
+    ],
+    "connections": []
+  }
+}

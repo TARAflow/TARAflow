@@ -20,5 +20,11 @@
  *       the old label are repointed to the new UUID in the same pass:
  *       Risk.threatId and AttackTreeAnchor.threatId. (Risk.id and the DSL
  *       threatRef keep their own hardening for a later change.)
+ *   6 = Asset identity split (mirror of v5 for assets). Asset.id becomes an
+ *       opaque UUID (stable across a group change); the old readable,
+ *       group-prefixed label (e.g. "DA-001") moves to Asset.displayId. Every
+ *       asset-id foreign key is repointed to the new UUID in the same pass —
+ *       assetId / sourceAssetId / targetAssetId / linkedAssetIds / assetIds,
+ *       wherever they occur — across both the feature store and the dfd mirror.
  */
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;

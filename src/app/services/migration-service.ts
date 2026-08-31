@@ -19,6 +19,7 @@ import {
   migrate_2_to_3,
   migrate_3_to_4,
   migrate_4_to_5,
+  migrate_5_to_6,
 } from "./versions";
 
 
@@ -200,6 +201,11 @@ export function applyMigrations(raw: any): {
 
   if ((data.schemaVersion ?? 0) < 5) {
     data = migrate_4_to_5(data);
+    migrated = true;
+  }
+
+  if ((data.schemaVersion ?? 0) < 6) {
+    data = migrate_5_to_6(data);
     migrated = true;
   }
 
