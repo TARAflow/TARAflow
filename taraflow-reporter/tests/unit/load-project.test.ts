@@ -13,6 +13,7 @@ import { mkdtemp, writeFile, rm } from "fs/promises";
 import os from "os";
 import path from "path";
 import { loadProject } from "../../cli/load-project";
+import { CURRENT_SCHEMA_VERSION } from "../../../src/app/services/schema-version";
 
 const tempDirs: string[] = [];
 
@@ -33,7 +34,7 @@ afterEach(async () => {
 describe("loadProject", () => {
   it("loads a valid, already-current-schema project without migrating", async () => {
     const minimalProject = {
-      schemaVersion: 5,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       id: "test-id",
       info: {
         name: "Test Project",
@@ -52,7 +53,7 @@ describe("loadProject", () => {
 
     expect(result.project.id).toBe("test-id");
     expect(result.migrated).toBe(false);
-    expect(result.fromVersion).toBe(5);
+    expect(result.fromVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 
   it("throws a clear error when the file cannot be read", async () => {

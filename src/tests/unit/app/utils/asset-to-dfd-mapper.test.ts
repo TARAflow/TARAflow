@@ -79,6 +79,21 @@ describe("deriveDfdAssets — feature store → DFDAsset[] bridge", () => {
     expect(dfdAsset.protectionNeed).toBe("high");
   });
 
+  it("carries the UUID id and the readable displayId separately (UUID model)", () => {
+    const assets = [
+      makeAsset({
+        id: "71d70a31-f399-4729-8627-90166ddac686",
+        displayId: "DA-001",
+        assetGroup: "data",
+      }),
+    ];
+
+    const [dfdAsset] = deriveDfdAssets(assets, [], []);
+
+    expect(dfdAsset.id).toBe("71d70a31-f399-4729-8627-90166ddac686");
+    expect(dfdAsset.displayId).toBe("DA-001"); // the label, NOT the uuid
+  });
+
   it("leaves description/protectionNeed undefined when the feature asset has none", () => {
     const [dfdAsset] = deriveDfdAssets([makeAsset({ properties: {} })], [], []);
     expect(dfdAsset.description).toBeUndefined();

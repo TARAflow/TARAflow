@@ -125,7 +125,9 @@ export function deriveDfdAssets(
   return featureAssets.map((asset) => {
     const dfdAsset: DFDAsset = {
       id: asset.id,
-      displayId: asset.id,
+      // The readable label — falls back to id for pre-UUID-migration data
+      // where the two were still equal.
+      displayId: asset.displayId ?? asset.id,
       name: asset.name,
       assetGroup: asset.assetGroup,
       linkedElements: linksByAssetId.get(asset.id) ?? [],
