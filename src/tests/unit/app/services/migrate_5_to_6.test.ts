@@ -38,16 +38,13 @@ describe("migrate_5_to_6 — asset id → UUID, label → displayId (real fixtur
     }
   });
 
-  it("uses the SAME mapping for the dfd mirror as the feature store", () => {
+  it("drops the dfd.assets mirror (feature store is the single canonical store)", () => {
     const out = migrate_5_to_6(loadFixture());
-    // Match feature ↔ dfd assets by displayId (the stable readable label) and
-    // assert their new UUID ids agree.
-    const dfdByLabel = new Map(
-      out.dfd.assets.map((a: any) => [a.displayId, a.id]),
-    );
-    for (const a of out.assets.assets) {
-      expect(dfdByLabel.get(a.displayId)).toBe(a.id);
-    }
+    // dfd.assets is emptied — a runtime projection, no longer persisted.
+    expect(out.dfd.assets).toEqual([]);
+    // The feature store still holds every asset, and element references still
+    // resolve to them (proven in the "no orphans" test above).
+    expect(out.assets.assets.length).toBeGreaterThan(0);
   });
 
   it("is idempotent — a second run changes nothing", () => {

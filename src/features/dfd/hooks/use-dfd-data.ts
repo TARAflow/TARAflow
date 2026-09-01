@@ -11,12 +11,15 @@ import type {
   DFDElement,
   DFDConnection,
   DFDStats,
+  DFDElementType,
 } from "../models/dfd-types";
 import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
 import {
   isSystemUsesRelation,
   isInfraAccessesRelation,
 } from "../models/asset-relation-types";
+import type { AssetRelation } from "../models/asset-relation-types";
+import { getAllowedRelations } from "../models/asset-constants";
 import { DefaultDFDGraphBuilder } from "../services/dfd-graph-builder";
 import { calculateStats } from "../services/parsers/stats-calculator";
 import type { DFDGraph } from "../models/dfd-graph-types";
@@ -288,24 +291,57 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         updates.assetGroup !== oldAsset.assetGroup;
 
       return updateDFD((current) => {
-        const elements = current.elements;
-        const connections = current.connections;
+        let elements = current.elements;
+        let connections = current.connections;
         let finalUpdates = { ...updates };
 
         // Phase 5b (UUID): the id is stable and opaque — never regenerated. On a
         // group change only the readable displayId is regenerated with the new
-        // group prefix (minted from existing display ids). The stable id keeps
-        // every element/connection assetRelation valid, so relations are
-        // PRESERVED (no stripping).
+        // group prefix (minted from existing display ids).
         if (categoryChanged) {
+          const newGroup = updates.assetGroup!;
           const newDisplayId = generateAssetId(
             current.assets.map((a) => a.displayId ?? a.id),
-            updates.assetGroup!,
+            newGroup,
           );
           finalUpdates = {
             ...updates,
             displayId: newDisplayId,
           };
+
+          // (B) A group change can cross relation families: relation TYPES are
+          // group-bound (creates/reads are data relations; uses/depends_on are
+          // system relations), so a relation valid for the old group may be
+          // invalid for the new one. Keep the relations whose type is still
+          // allowed for the new group — updating their cached assetGroup (the
+          // union discriminant) so it cannot drift — and strip the rest. The
+          // stable id keeps every surviving link valid.
+          const remap = (
+            elementType: DFDElementType,
+            relations: AssetRelation[] | undefined,
+          ): AssetRelation[] =>
+            (relations ?? [])
+              .filter(
+                (r) =>
+                  r.assetId !== assetId ||
+                  getAllowedRelations(elementType, newGroup).includes(
+                    r.relationType,
+                  ),
+              )
+              .map((r) =>
+                r.assetId === assetId
+                  ? ({ ...r, assetGroup: newGroup } as AssetRelation)
+                  : r,
+              );
+
+          elements = elements.map((el) => ({
+            ...el,
+            assetRelations: remap(el.type, el.assetRelations),
+          }));
+          connections = connections.map((conn) => ({
+            ...conn,
+            assetRelations: remap("DataFlow", conn.assetRelations),
+          }));
         }
 
         // Update asset (using old ID to find it, but applying new ID if category changed)

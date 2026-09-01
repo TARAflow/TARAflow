@@ -38,6 +38,7 @@ const processEl = {
   properties: {},
   assetRelations: [
     { assetId: "DA-001", assetGroup: "data", relationType: "creates" },
+    { assetId: "DA-001", assetGroup: "data", relationType: "is_an" },
   ],
 } as unknown as DFDElement;
 
@@ -82,17 +83,23 @@ describe("asset group change — stable-id model (Phase 5b)", () => {
     expect(asset.displayId).toMatch(/^SY-/);
   });
 
-  it("preserves the element assetRelations across a group change", () => {
+  it("strips relations whose type is invalid for the new group, keeps compatible ones (B)", () => {
     const { result } = renderHook(() => useDFDData(makeProject()));
     const next = result.current.updateAsset("DA-001", {
       assetGroup: "system",
     });
 
-    const el = next.elements.find((e) => e.id === "3")!;
-    // The stable id keeps the relation valid — it is NOT stripped.
-    expect(
-      (el.assetRelations ?? []).some((r) => r.assetId === "DA-001"),
-    ).toBe(true);
+    const rels = next.elements.find((e) => e.id === "3")!.assetRelations ?? [];
+
+    // "creates" is a data-family relation type — invalid for a system asset →
+    // stripped.
+    expect(rels.some((r) => r.relationType === "creates")).toBe(false);
+
+    // "is_an" is universal — kept, and its cached assetGroup follows the asset
+    // to the new group (no drift).
+    const isAn = rels.find((r) => r.relationType === "is_an");
+    expect(isAn).toBeDefined();
+    expect(isAn!.assetGroup).toBe("system");
   });
 
   it("leaves id/relations untouched when the group does NOT change", () => {

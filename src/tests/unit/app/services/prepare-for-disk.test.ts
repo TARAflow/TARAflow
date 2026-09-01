@@ -138,6 +138,26 @@ describe("prepareForDisk — derived DFD data", () => {
     expect(result.dfd.elements).toEqual([{ id: "P-1" }]);
   });
 
+  it("empties dfd.assets on disk — the feature store is the single asset store", () => {
+    const project = makeProject({
+      dfd: {
+        xml: "<mxfile/>",
+        elements: [{ id: "P-1" }],
+        assets: [
+          { id: "uuid-1", displayId: "DA-001", name: "X", assetGroup: "data" },
+        ],
+      },
+    } as unknown as Partial<Project>);
+
+    const result = prepareForDisk(project) as unknown as {
+      dfd: Record<string, unknown>;
+    };
+    // dfd.assets carries no records on disk (runtime projection, re-derived on
+    // load); the rest of the dfd is untouched.
+    expect(result.dfd.assets).toEqual([]);
+    expect(result.dfd.elements).toEqual([{ id: "P-1" }]);
+  });
+
   it("normalises a missing dfd to null", () => {
     const result = prepareForDisk(makeProject({ dfd: undefined } as never));
     expect(result.dfd).toBeNull();

@@ -189,11 +189,21 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
   return {
     ...rest,
     dfd: project.dfd
-      ? {
-          ...project.dfd,
-          graph: undefined,
-          thumbnail: normalizeThumbnail(project.dfd.thumbnail),
-        }
+      ? (() => {
+          // dfd.assets is NOT persisted with data. It is a runtime projection
+          // of the canonical feature store (project.assets), re-derived on load
+          // by commitAssetSync. Emptying it on disk removes the second asset
+          // store (the drift source the SoT consolidation removes) while
+          // keeping the runtime type intact (assets stays required at runtime,
+          // always present).
+          const { assets: _dfdAssets, ...dfdRest } = project.dfd;
+          return {
+            ...dfdRest,
+            assets: [],
+            graph: undefined,
+            thumbnail: normalizeThumbnail(project.dfd.thumbnail),
+          };
+        })()
       : null,
     audit: audit ? auditForDisk(audit) : null,
   };

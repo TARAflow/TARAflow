@@ -30,9 +30,12 @@
  * so no reference site can be silently missed; only values that are actual old
  * asset ids (present in the map) are replaced, so unrelated strings are safe.
  *
- * Both asset stores are remapped with the SAME id → UUID mapping:
- *   - project.assets.assets[]  (canonical feature store)
- *   - project.dfd.assets[]     (the DFD mirror)
+ * The feature store is remapped to the new UUIDs and becomes the single
+ * canonical asset store. The dfd.assets mirror is DROPPED (emptied): it is a
+ * runtime projection of the feature store, re-derived on load (commitAssetSync)
+ * and stripped on save (prepareForDisk), so it is no longer persisted:
+ *   - project.assets.assets[]  (canonical feature store — remapped)
+ *   - project.dfd.assets[]     (mirror — dropped)
  *
  * Idempotent: an asset whose id already looks like a UUID contributes no
  * mapping and is left untouched, and refs already pointing at a UUID are left
@@ -125,12 +128,16 @@ export function migrate_5_to_6(data: any): any {
       },
     };
   }
-  if (next.dfd?.assets && Array.isArray(next.dfd.assets)) {
+  // Drop the dfd.assets mirror: the feature store is now the single canonical
+  // asset store, and all references were repointed above. dfd.assets is a
+  // runtime projection re-derived on load (commitAssetSync) and stripped on
+  // save (prepareForDisk), so it is not persisted.
+  if (next.dfd && Array.isArray(next.dfd.assets)) {
     next = {
       ...next,
       dfd: {
         ...next.dfd,
-        assets: next.dfd.assets.map(rewriteRecord),
+        assets: [],
       },
     };
   }
