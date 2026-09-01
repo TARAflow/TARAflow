@@ -54,3 +54,77 @@ describe("Phase 2 — commitAssetSync", () => {
     expect(commitAssetSync(undefined, empty)).toBe(empty);
   });
 });
+
+describe("Phase 5c — single-store load (dfd.assets derived from feature store)", () => {
+  // A project persisted WITHOUT the dfd.assets mirror: the canonical feature
+  // store holds the (dfd-sourced) assets, dfd has only the elements +
+  // assetRelations that reference them.
+  const uuid = "11111111-2222-4333-8444-555555555555";
+  const project: any = {
+    id: "p",
+    assets: {
+      assets: [
+        {
+          id: uuid,
+          displayId: "DA-001",
+          name: "Config Data",
+          assetGroup: "data",
+          source: "dfd",
+          syncedWithDFD: true,
+          impactRatings: [],
+          securityGoals: [],
+          linkedDFDElements: [],
+          properties: {},
+        },
+        {
+          id: "manual-1",
+          displayId: "DA-002",
+          name: "Manual only",
+          assetGroup: "data",
+          source: "manual",
+          impactRatings: [],
+          securityGoals: [],
+          linkedDFDElements: [],
+          properties: {},
+        },
+      ],
+      configuration: {},
+    },
+    dfd: {
+      assets: [], // stripped
+      elements: [
+        {
+          id: "3",
+          type: "Process",
+          name: "MyProcess",
+          displayId: "P-1",
+          assetRelations: [{ assetId: uuid, relationType: "creates" }],
+        },
+      ],
+      connections: [],
+    },
+  };
+
+  it("derives dfd.assets from the feature store instead of pruning it", () => {
+    const out = commitAssetSync(undefined, project);
+
+    // dfd.assets rebuilt from the dfd-sourced feature asset...
+    expect(out.dfd!.assets.map((a: any) => a.id)).toEqual([uuid]);
+    const derived = out.dfd!.assets[0];
+    expect(derived.displayId).toBe("DA-001");
+    expect(derived.assetGroup).toBe("data");
+    // ...with its link derived from the element's assetRelation.
+    expect(derived.linkedElements?.[0]?.elementId).toBe("3");
+
+    // The feature store is left intact — the dfd-sourced asset is NOT pruned,
+    // and the manual-only asset is untouched.
+    expect(out.assets!.assets.map((a: any) => a.id).sort()).toEqual(
+      [uuid, "manual-1"].sort(),
+    );
+  });
+
+  it("excludes manual-only assets from the derived dfd.assets", () => {
+    const out = commitAssetSync(undefined, project);
+    expect(out.dfd!.assets.some((a: any) => a.id === "manual-1")).toBe(false);
+  });
+});

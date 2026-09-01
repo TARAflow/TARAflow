@@ -13,6 +13,7 @@
 import type { Project } from "../models/project-types";
 import { syncFromDFD } from "features/assets/services/asset-sync-service"; // or barrel: "features/assets"
 import { mapDFDAssetsToAssetFeature } from "./dfd-to-asset-mapper";
+import { deriveDfdAssets, dfdSourcedAssets } from "./asset-to-dfd-mapper";
 
 /**
  * Returns `next` with AssetData re-synced from its DFD assets.
@@ -34,6 +35,26 @@ export function commitAssetSync(
 ): Project {
   // Nothing to sync into.
   if (!next.assets) return next;
+
+  // ── Single-store load (feature store canonical) ───────────────────────────
+  // If dfd.assets is empty but the canonical feature store holds dfd-sourced
+  // assets, the project was persisted WITHOUT the dfd.assets mirror. Derive the
+  // DFD's runtime asset list from the feature store (via assetRelations) rather
+  // than running the reconcile below — which, keying off an empty dfd.assets,
+  // would prune those very assets. Behaviour-neutral while dfd.assets is still
+  // present (the branch simply does not fire).
+  const dfdAssetList = next.dfd?.assets ?? [];
+  if (dfdAssetList.length === 0 && next.dfd) {
+    const sourced = dfdSourcedAssets(next.assets.assets ?? []);
+    if (sourced.length > 0) {
+      const projected = deriveDfdAssets(
+        sourced,
+        next.dfd.elements ?? [],
+        next.dfd.connections ?? [],
+      );
+      return { ...next, dfd: { ...next.dfd, assets: projected } };
+    }
+  }
 
   // Write path: DFD assets unchanged since last commit → no work.
   if (prev && prev.dfd?.assets === next.dfd?.assets) return next;
