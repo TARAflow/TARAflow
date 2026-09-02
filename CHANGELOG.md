@@ -1,3 +1,44 @@
+## [0.8.8-alpha] - 2026-09-02
+
+### Fixed
+- **Impact chips showed the raw asset UUID instead of its name.** Since
+  the Phase 5b identity split, `asset.id` is the opaque
+  `crypto.randomUUID()` reference key, but `ImpactCell` still rendered it
+  directly as the chip label — every chip in the Threats table showed a
+  UUID instead of a readable asset label. `AssetReference` gained
+  `displayId` and `description` (populated in
+  `buildAssetDataReference` from `a.displayId` / `a.properties?.description
+  ?? ""`); the chip label now uses `asset.name`, and the tooltip header
+  switches from `{id} — {name}` to `{displayId}: {name}` with the asset
+  description appended below it.
+- **EN 50742 exposure level silently dropped for data-flow threats.** The
+  Risk tab showed no exposure level even though the DFD had it set on the
+  connection, due to two anchor-resolution gaps in series:
+  1. `resolveAnchorProperties` only looked `linkedElement.elementId` up in
+     `dfd.elements`, but a per-element STRIDE anchor on a DataFlow carries
+     the *connection* id with `elementType: "DataFlow"`, which lives in
+     `dfd.connections`. DataFlow-typed anchors are now resolved against
+     connections, with a defensive elements-to-connections fallback for
+     older data lacking `elementType`.
+  2. `extractThreatReferences` built the `ThreatReferences` feeding the
+     Risk dialog and sync without copying `linkedElement`/`dataFlow` onto
+     them, leaving the EL adapter with an anchorless reference. Both are
+     now populated on the reference.
+
+  Verified end-to-end against `Simple_Test_Project`: DF-3 (EL3) → rating
+  4, DF-4 (EL1) → rating 2, both `source: "derived"`. AP/SRSL still
+  require a rated attacker capability (and, for SRSL, a resolvable asset
+  severity) as designed. Also updates
+  `en-50742-approach-a-design.md` §11.1 (two-anchor → three-anchor model)
+  and extends `en50742-exposure-level-adapter.test.ts` with DataFlow-anchor
+  regression cases (17/17 green).
+
+---
+
+Full commit range: `v0.8.7-alpha..v0.8.8-alpha` (3 commits)
+
+---
+
 ## [0.8.7-alpha] - 2026-09-01
 
 ### Added
