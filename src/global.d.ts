@@ -166,6 +166,21 @@ declare global {
         GitOperationResult<{ stdout: string; stderr: string; code: number }>
       >;
       setRepoPath: (root: string) => Promise<GitOperationResult<void>>;
+
+      // Source Version Binding (Phase 2) — no bound repo needed, works via
+      // bare `git ls-remote`. `reachable: false` = host/network unreachable;
+      // `reachable: true, sha: null` = repo reached, ref not found there.
+      resolveRemoteRef: (
+        repoUrl: string,
+        refLabel: string,
+      ) => Promise<
+        | { success: true; data: { reachable: true; sha: string | null } }
+        | {
+            success: false;
+            data: { reachable: false; sha: null };
+            error: string;
+          }
+      >;
     };
 
     // Credentials APIs (für Audit Feature)
