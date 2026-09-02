@@ -31,7 +31,9 @@ export interface AssetImpactRatingRef {
  */
 export interface AssetReference {
   id: string;
+  displayId?: string;
   name: string;
+  description?: string;
   assetGroup: string;
   aggregatedImpact?: "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
   physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";

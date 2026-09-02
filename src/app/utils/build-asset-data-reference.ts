@@ -38,7 +38,9 @@ export function buildAssetDataReference(
 ): AssetDataReference {
   const assetRefs: AssetReference[] = assets.map((a) => ({
     id: a.id,
+    displayId: a.displayId,
     name: a.name,
+    description: a.properties?.description ?? "",
     assetGroup: a.assetGroup,
     aggregatedImpact: a.aggregatedImpact,
     // Effective physical impact: manual > HazardItem chain > legacy annotation.

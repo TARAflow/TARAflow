@@ -53,11 +53,19 @@ function sortAssetsByPriority(assets: AssetReference[]): AssetReference[] {
 function AssetTooltip({ asset }: { asset: AssetReference }): React.ReactElement {
   return (
     <Box sx={{ p: 0.5, minWidth: 160 }}>
-      <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-        {asset.id} — {asset.name}
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
+      >
+        {asset.displayId}: {asset.name}
+        {asset.description}
       </Typography>
       {asset.physicalImpact && (
-        <Typography variant="caption" display="block" sx={{ color: getPhysicalImpactColor(asset.physicalImpact) }}>
+        <Typography
+          variant="caption"
+          display="block"
+          sx={{ color: getPhysicalImpactColor(asset.physicalImpact) }}
+        >
           ⚠ Safety: {PHYSICAL_IMPACT_LABELS[asset.physicalImpact]}
         </Typography>
       )}
@@ -106,15 +114,21 @@ export const ImpactCell: React.FC<{
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.3 }}>
                   {hasSafety && (
                     <WarningAmberIcon
-                      sx={{ fontSize: 10, color: getPhysicalImpactColor(asset.physicalImpact) }}
+                      sx={{
+                        fontSize: 10,
+                        color: getPhysicalImpactColor(asset.physicalImpact),
+                      }}
                     />
                   )}
-                  <span style={{ fontFamily: "monospace", fontSize: "0.65rem" }}>
-                    {asset.id}
+                  <span
+                    style={{ fontFamily: "monospace", fontSize: "0.65rem" }}
+                  >
+                    {asset.name}
                   </span>
                   {asset.aggregatedImpact && (
                     <span style={{ fontSize: "0.6rem", fontWeight: 700 }}>
-                      {" "}{asset.aggregatedImpact}
+                      {" "}
+                      {asset.aggregatedImpact}
                     </span>
                   )}
                 </Box>
