@@ -6,6 +6,7 @@ import type {
   PhaseStatusMap,
   ProjectTags,
   RegulationPresetId,
+  SourceBinding,
   ValidationResult,
   WindowOfOpportunity,
 } from "shared";
@@ -106,6 +107,18 @@ export interface GeneralTabData {
 
   // Phase status
   phaseStatus: PhaseStatusMap;
+
+  /**
+   * Project-level source-repository references (Source Version Binding,
+   * implementation plan §3.5) — "this TARA was performed against repo X,
+   * release Y". An analysis/evidence reference, deliberately NOT implied to
+   * apply to every element automatically; element-level bindings on
+   * Function/Process/System Asset properties are a separate, non-inheriting
+   * collection. Rendered as its own section in GeneralTab, after
+   * ProjectSettings (plan §4). Undefined/empty is the normal case — this is
+   * an optional documentation reference, not a required field.
+   */
+  sourceBindings?: SourceBinding[];
 
   // Validation results (optional)
   dfdValidation?: ValidationResult;
