@@ -1,9 +1,25 @@
 // src/tests/component/source-bindings-section.test.tsx
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { SourceBinding } from "shared";
 import { SourceBindingsSection } from "features/overview/components/source-bindings-section";
+import { resolveSourceBinding } from "features/overview/services/source-binding-service";
+
+// Resolve-flow tests below mock resolveSourceBinding directly rather than
+// window.git — the consent-gating and host-extraction logic it wraps is
+// already fully covered in src/tests/unit/source-binding-service.test.ts;
+// here we only need to verify the component wires the result correctly
+// (persist on success, show the right message on failure, label toggling).
+vi.mock("features/overview/services/source-binding-service", async () => {
+  const actual = await vi.importActual<
+    typeof import("features/overview/services/source-binding-service")
+  >("features/overview/services/source-binding-service");
+  return {
+    ...actual,
+    resolveSourceBinding: vi.fn(),
+  };
+});
 
 // Self-contained i18n mock. `t()` returns `defaultValue` when passed, else
 // falls back to a small table of the well-known `common.*` keys the app's
@@ -163,5 +179,96 @@ describe("SourceBindingsSection", () => {
         "This looks like a local path — only the remote URL is stored.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("resolves a binding and persists the SHA + timestamp on success, from the read-only view", async () => {
+    const onUpdate = vi.fn();
+    vi.mocked(resolveSourceBinding).mockResolvedValue({
+      success: true,
+      reachable: true,
+      sha: "abcdef1234567890",
+    });
+
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Resolve"));
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledTimes(1));
+    const saved = onUpdate.mock.calls[0][0] as SourceBinding[];
+    expect(saved[0].resolvedCommitSha).toBe("abcdef1234567890");
+    expect(saved[0].resolvedAt).toBeDefined();
+  });
+
+  it("shows an unreachable-host message and does not persist anything on failure", async () => {
+    const onUpdate = vi.fn();
+    vi.mocked(resolveSourceBinding).mockResolvedValue({
+      success: false,
+      reachable: false,
+      error: "getaddrinfo ENOTFOUND github.com",
+    });
+
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Resolve"));
+
+    await screen.findByText("Could not reach github.com.");
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("shows a distinct message when consent was denied", async () => {
+    const onUpdate = vi.fn();
+    vi.mocked(resolveSourceBinding).mockResolvedValue({
+      success: false,
+      reachable: false,
+      error: "consent_denied",
+    });
+
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Resolve"));
+
+    await screen.findByText("Network access was not allowed.");
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("labels the action 'Re-resolve' and shows the short SHA once a binding is already resolved", () => {
+    const resolvedBinding: SourceBinding = {
+      ...binding,
+      resolvedCommitSha: "1234567890abcdef",
+      resolvedAt: new Date().toISOString(),
+    };
+
+    render(
+      <SourceBindingsSection
+        bindings={[resolvedBinding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Re-resolve")).toBeInTheDocument();
+    expect(screen.getByText(/Resolved to 1234567/)).toBeInTheDocument();
   });
 });

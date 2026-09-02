@@ -137,6 +137,10 @@ contextBridge.exposeInMainWorld("git", {
     ipcRenderer.invoke("git:rawInDir", dir, args),
 
   setRepoPath: (root: string) => ipcRenderer.invoke("git:setRepoPath", root),
+
+  // Source Version Binding (Phase 2)
+  resolveRemoteRef: (repoUrl: string, refLabel: string) =>
+    ipcRenderer.invoke("git:resolveRemoteRef", repoUrl, refLabel),
 });
 
 // ==================== CREDENTIALS API (window.credentials) ====================

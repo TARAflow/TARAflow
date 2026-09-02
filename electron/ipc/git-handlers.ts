@@ -133,4 +133,43 @@ export function registerGitHandlers() {
       return { success: false, error: String(err) };
     }
   });
+
+  // ==================== SOURCE VERSION BINDING (Phase 2) ====================
+  // Resolves a SourceBinding's refLabel to a commit SHA via
+  // `git ls-remote <repoUrl> <refLabel>` — no local clone, no bound repo,
+  // works before/independent of the audit GitService above. Consent
+  // (implementation-plan.md §5) is a renderer-side concern (the renderer
+  // decides whether to ask before ever calling this) — this handler just
+  // executes what it's asked and never throws to the renderer.
+  //
+  // `reachable: false` (host/network unreachable — DNS, firewall, VPN,
+  // timeout) is deliberately distinct from `reachable: true, sha: null`
+  // (repo WAS reached but refLabel doesn't resolve there, e.g. a deleted
+  // tag). Phase 2 (this handler) only consumes `sha`; Phase 3 drift
+  // detection needs exactly this reachable/sha split to tell "unreachable"
+  // apart from "ref_missing" (DriftStatus), so it's preserved here now
+  // rather than retrofitted later.
+  ipcMain.handle(
+    "git:resolveRemoteRef",
+    async (_e, repoUrl: string, refLabel: string) => {
+      try {
+        const output = await simpleGit().listRemote([repoUrl, refLabel]);
+        const line = output
+          .split("\n")
+          .map((l) => l.trim())
+          .find((l) => l.length > 0);
+        if (!line) {
+          return { success: true, data: { reachable: true, sha: null } };
+        }
+        const sha = line.split("\t")[0];
+        return { success: true, data: { reachable: true, sha } };
+      } catch (err: any) {
+        return {
+          success: false,
+          data: { reachable: false, sha: null },
+          error: String(err?.message ?? err),
+        };
+      }
+    },
+  );
 }

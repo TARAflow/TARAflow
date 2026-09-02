@@ -1,6 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Edit3, Save, X, Plus, Trash2, AlertTriangle } from "lucide-react";
+import {
+  Edit3,
+  Save,
+  X,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  RefreshCw,
+  CheckCircle2,
+} from "lucide-react";
 import type { SourceBinding } from "shared";
 import { useSourceBindings } from "../hooks/use-source-bindings";
 import {
@@ -8,27 +17,36 @@ import {
   isSourceBindingComplete,
   looksLikeLocalPath,
 } from "../utils/source-binding-utils";
+import {
+  resolveSourceBinding,
+  extractRepoHost,
+} from "../services/source-binding-service";
+import { NetworkConsentDialog } from "./network-consent-dialog";
 
 // ==================== SOURCE BINDINGS SECTION ====================
-// Phase 1 (static entry, no resolution yet) — implementation plan §4.
-// Fields per row: repo URL, ref type, ref label. No resolve/drift-check
-// button yet (Phase 2/3); no "detect from local checkout…" affordance yet
-// either (that needs an Electron IPC round-trip, deferred to the Phase 2
-// patch alongside electron/ipc/git-handlers.ts).
+// Phase 1 fields (repo URL, ref type, ref label) plus Phase 2 resolution
+// (implementation plan §5): a "Resolve" action per row that calls
+// `git ls-remote` via source-binding-service, gated by a one-per-host-
+// per-session consent dialog. Resolution persists immediately on success
+// (it's a factual outcome, not a draft edit) — it works from the read-only
+// view, independent of the row-editing (isEditing) flow below, which still
+// only covers the three static fields. No "detect from local checkout…"
+// affordance yet (plan §3.3) — separate concern, not part of this patch.
 //
 // Reused for both scopes (plan §3.5/§4) via scopeLabel/scopeDescriptionKey:
 // project-level ("Project source reference", wired in general-tab.tsx) and,
-// later, element-level ("Implementation source reference", on a
-// Function/Process/System Asset's own properties panel) — same fields, same
-// component, only the heading/copy differs so the analyst always knows
-// which kind they're editing.
+// later, element-level ("Implementation source reference").
 
 interface SourceBindingsSectionProps {
-  /** Bindings owned by this scope — purely what the parent passes in. */
   bindings: SourceBinding[];
   scopeLabel: string;
   scopeDescriptionKey: string;
   onUpdate: (bindings: SourceBinding[]) => void;
+}
+
+interface PendingConsent {
+  host: string;
+  resolve: (allowed: boolean) => void;
 }
 
 export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
@@ -49,11 +67,81 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
     setIsEditing,
   } = useSourceBindings(bindings);
 
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveErrors, setResolveErrors] = useState<Record<string, string>>(
+    {},
+  );
+  const [pendingConsent, setPendingConsent] =
+    useState<PendingConsent | null>(null);
+
   const handleEdit = () => startEdit(bindings);
   const handleCancel = () => cancelEdit(bindings);
   const handleSave = () => {
     onUpdate(draft);
     setIsEditing(false);
+  };
+
+  const requestConsent = (host: string): Promise<boolean> =>
+    new Promise((resolvePromise) => {
+      setPendingConsent({ host, resolve: resolvePromise });
+    });
+
+  const handleConsentAllow = () => {
+    pendingConsent?.resolve(true);
+    setPendingConsent(null);
+  };
+
+  const handleConsentDeny = () => {
+    pendingConsent?.resolve(false);
+    setPendingConsent(null);
+  };
+
+  const handleResolve = async (row: SourceBinding) => {
+    setResolvingId(row.id);
+    setResolveErrors((errs) => {
+      const next = { ...errs };
+      delete next[row.id];
+      return next;
+    });
+
+    const result = await resolveSourceBinding(row, requestConsent);
+
+    setResolvingId(null);
+
+    if (!result.success || !result.reachable) {
+      const message =
+        result.error === "consent_denied"
+          ? t("sourceBinding.resolveError.consentDenied", {
+              defaultValue: "Network access was not allowed.",
+            })
+          : t("sourceBinding.resolveError.unreachable", {
+              defaultValue: `Could not reach ${extractRepoHost(row.repoUrl)}.`,
+            });
+      setResolveErrors((errs) => ({ ...errs, [row.id]: message }));
+      return;
+    }
+
+    if (result.sha === null || result.sha === undefined) {
+      setResolveErrors((errs) => ({
+        ...errs,
+        [row.id]: t("sourceBinding.resolveError.refNotFound", {
+          defaultValue: `Reached the repository, but "${row.refLabel}" was not found there.`,
+        }),
+      }));
+      return;
+    }
+
+    onUpdate(
+      bindings.map((b) =>
+        b.id === row.id
+          ? {
+              ...b,
+              resolvedCommitSha: result.sha as string,
+              resolvedAt: new Date().toISOString(),
+            }
+          : b,
+      ),
+    );
   };
 
   const rows = isEditing ? draft : bindings;
@@ -210,17 +298,62 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
               </div>
             )}
 
-            {/* Phase 1 has no resolution — say so plainly instead of an
-                empty/misleading status area. */}
-            {!isEditing &&
-              isSourceBindingComplete(row) &&
-              !row.resolvedCommitSha && (
-                <div className="col-span-12 text-xs text-gray-400">
-                  {t("sourceBinding.notResolvedYet", {
-                    defaultValue: "Not yet resolved to a commit.",
-                  })}
+            {/* Resolution status + action — read-only view only; editing a
+                row's fields and resolving it are separate actions. */}
+            {!isEditing && isSourceBindingComplete(row) && (
+              <div className="col-span-12 flex items-center justify-between gap-2 flex-wrap">
+                <div className="text-xs">
+                  {row.resolvedCommitSha ? (
+                    <span className="flex items-center gap-1 text-green-700">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {t("sourceBinding.resolvedAs", {
+                        defaultValue: `Resolved to ${row.resolvedCommitSha.slice(0, 7)}`,
+                      })}
+                      {row.resolvedAt && (
+                        <span className="text-gray-400">
+                          {" "}
+                          ·{" "}
+                          {new Date(row.resolvedAt).toLocaleString(
+                            undefined,
+                            { dateStyle: "medium", timeStyle: "short" },
+                          )}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">
+                      {t("sourceBinding.notResolvedYet", {
+                        defaultValue: "Not yet resolved to a commit.",
+                      })}
+                    </span>
+                  )}
+                  {resolveErrors[row.id] && (
+                    <p className="flex items-center gap-1 text-red-600 mt-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {resolveErrors[row.id]}
+                    </p>
+                  )}
                 </div>
-              )}
+                <button
+                  onClick={() => handleResolve(row)}
+                  disabled={resolvingId === row.id}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw
+                    className={`w-3 h-3 ${resolvingId === row.id ? "animate-spin" : ""}`}
+                  />
+                  {resolvingId === row.id
+                    ? t("sourceBinding.resolving", {
+                        defaultValue: "Resolving…",
+                      })
+                    : row.resolvedCommitSha
+                      ? t("sourceBinding.reResolve", {
+                          defaultValue: "Re-resolve",
+                        })
+                      : t("sourceBinding.resolve", { defaultValue: "Resolve" })}
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -233,6 +366,14 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
           <Plus className="w-4 h-4" />
           {t("sourceBinding.addReference", { defaultValue: "Add reference" })}
         </button>
+      )}
+
+      {pendingConsent && (
+        <NetworkConsentDialog
+          host={pendingConsent.host}
+          onAllow={handleConsentAllow}
+          onDeny={handleConsentDeny}
+        />
       )}
     </div>
   );
