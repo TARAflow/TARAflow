@@ -315,6 +315,21 @@
       "non_reversible": "Non-reversible",
       "fatal": "Fatal"
     },
+    "en50742Levels": {
+      "exposure_level": {
+        "EL0": "EL0 – Internal",
+        "EL1": "EL1 – Physical",
+        "EL2": "EL2 – Local",
+        "EL3": "EL3 – Adjacent",
+        "EL4": "EL4 – Public"
+      },
+      "attacker_capability": {
+        "advanced": "Advanced (extensive knowledge)",
+        "specialist": "Specialist (moderate knowledge)",
+        "medium": "Medium (moderate knowledge)",
+        "basic": "Basic (minimal knowledge)"
+      }
+    },
     "woo": {
       "very_restricted": "Very Restricted",
       "moderately_restricted": "Moderately Restricted",

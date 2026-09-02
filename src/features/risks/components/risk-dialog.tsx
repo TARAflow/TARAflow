@@ -819,7 +819,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       en50742Levels
         ? en50742Levels.map((key, i) => ({
             value: i + 1,
-            label: en50742LevelLabel(factor.factorId, key),
+            // i18n label (en/de) with the norm English string from the core as
+            // the fallback — keeps CLI/report and any unlocalised build correct.
+            label: t(`risks.en50742Levels.${factor.factorId}.${key}`, {
+              defaultValue: en50742LevelLabel(factor.factorId, key),
+            }),
           }))
         : (def.category === "likelihood" ? LIKELIHOOD_SCALES : RISK_SCALES)[
             configuration.scale

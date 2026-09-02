@@ -316,6 +316,21 @@
       "non_reversible": "Irreversibel",
       "fatal": "Tödlich"
     },
+    "en50742Levels": {
+      "exposure_level": {
+        "EL0": "EL0 – Intern",
+        "EL1": "EL1 – Physisch",
+        "EL2": "EL2 – Lokal",
+        "EL3": "EL3 – Angrenzend",
+        "EL4": "EL4 – Öffentlich"
+      },
+      "attacker_capability": {
+        "advanced": "Fortgeschritten (umfangreiches Wissen)",
+        "specialist": "Spezialist (mittleres Wissen)",
+        "medium": "Mittel (mittleres Wissen)",
+        "basic": "Basis (minimales Wissen)"
+      }
+    },
     "woo": {
       "very_restricted": "Sehr eingeschränkt",
       "moderately_restricted": "Mäßig eingeschränkt",
