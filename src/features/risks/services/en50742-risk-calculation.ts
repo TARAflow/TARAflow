@@ -185,7 +185,7 @@ export function calculateEN50742RiskValues(
  * import features/threats).
  */
 export interface ExposureLevelAnchorThreat {
-  linkedElement?: { elementId: string } | null;
+  linkedElement?: { elementId: string; elementType?: string } | null;
   dataFlow?: { connectionId?: string } | null;
 }
 
@@ -193,9 +193,23 @@ function resolveAnchorProperties(
   threat: ExposureLevelAnchorThreat,
   dfd: DFDReference | null | undefined,
 ): Record<string, unknown> | undefined {
-  const elementId = threat.linkedElement?.elementId;
-  if (elementId) {
-    return dfd?.elements?.find((e) => e.id === elementId)?.properties;
+  const linked = threat.linkedElement;
+  if (linked?.elementId) {
+    // A per-element STRIDE threat can be anchored to a DataFlow
+    // (STRIDE_PER_ELEMENT_TYPE.DataFlow = T,I,D). In that case linkedElement
+    // is the DataFlow itself and elementId is a CONNECTION id, which lives in
+    // dfd.connections, not dfd.elements. Interfaces (and every other element
+    // anchor) live in dfd.elements. draw.io cell ids are unique across the
+    // whole graph, so the elementType check is the primary signal and the
+    // cross-collection fallback is safe for older data lacking elementType.
+    if (linked.elementType === "DataFlow") {
+      return dfd?.connections?.find((c) => c.id === linked.elementId)
+        ?.properties;
+    }
+    return (
+      dfd?.elements?.find((e) => e.id === linked.elementId)?.properties ??
+      dfd?.connections?.find((c) => c.id === linked.elementId)?.properties
+    );
   }
   const connectionId = threat.dataFlow?.connectionId;
   if (connectionId) {

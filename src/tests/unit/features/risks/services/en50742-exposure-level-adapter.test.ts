@@ -19,6 +19,16 @@ const dfdWithDataFlowEL4: DFDReference = {
   connections: [{ id: "c1", properties: { exposureLevel: "EL4" } }],
 };
 
+// A DataFlow is ALSO a per-element STRIDE anchor (STRIDE_PER_ELEMENT_TYPE.DataFlow
+// = T,I,D). Such a threat carries linkedElement.elementType === "DataFlow" and an
+// elementId that is a CONNECTION id — it lives in dfd.connections, never in
+// dfd.elements. The two collections coexist here to prove the adapter reads the
+// connection side (regression: it used to search dfd.elements only → EL stayed 0).
+const dfdMixedElementAndDataFlow: DFDReference = {
+  elements: [{ id: "e1", properties: { exposureLevel: "EL2" } }],
+  connections: [{ id: "c7", properties: { exposureLevel: "EL3" } }],
+};
+
 const unratedExposureLevel: FactorRating = {
   factorId: "exposure_level",
   value: 0,
@@ -58,6 +68,102 @@ describe("applyExposureLevelToFactorRatings (§11.2 — reads and stays in sync 
 
     expect(result[0].value).toBe(5); // EL4 → index 5
     expect(result[0].source).toBe("derived");
+  });
+
+  // ── Regression: per-element STRIDE on a DataFlow ──────────────────────────
+  // A DataFlow is a per-element anchor (T,I,D), not only a per-interaction one.
+  // Its linkedElement.elementType is "DataFlow" and elementId is a CONNECTION
+  // id, so it must be resolved against dfd.connections. Before the fix the
+  // adapter searched dfd.elements only, the id was never found, and EL was
+  // silently dropped (stayed 0) for every data-flow threat.
+  it("per-element DataFlow anchor: reads EL from the connection (elementType === 'DataFlow')", () => {
+    const ratings = [unratedExposureLevel];
+    const threat = {
+      linkedElement: { elementId: "c7", elementType: "DataFlow" },
+      dataFlow: null,
+    };
+
+    const result = applyExposureLevelToFactorRatings(
+      ratings,
+      threat,
+      dfdMixedElementAndDataFlow,
+    );
+
+    // EL3 → 1-based index 4; picked up from dfd.connections, NOT dfd.elements
+    expect(result[0]).toEqual({
+      factorId: "exposure_level",
+      value: 4,
+      derivedValue: 4,
+      weight: 1,
+      source: "derived",
+    });
+  });
+
+  it("per-element Interface anchor is unaffected by the DataFlow branch (still reads dfd.elements)", () => {
+    const ratings = [unratedExposureLevel];
+    const threat = {
+      linkedElement: { elementId: "e1", elementType: "Interface" },
+      dataFlow: null,
+    };
+
+    const result = applyExposureLevelToFactorRatings(
+      ratings,
+      threat,
+      dfdMixedElementAndDataFlow,
+    );
+
+    expect(result[0].value).toBe(3); // EL2 (element) → index 3
+    expect(result[0].source).toBe("derived");
+  });
+
+  it("falls back to dfd.connections for a DataFlow anchor lacking elementType (older data)", () => {
+    const ratings = [unratedExposureLevel];
+    // No elementType — the id resolves in neither elements nor the element
+    // branch; the fallback must still find it among the connections.
+    const threat = { linkedElement: { elementId: "c7" }, dataFlow: null };
+
+    const result = applyExposureLevelToFactorRatings(
+      ratings,
+      threat,
+      dfdMixedElementAndDataFlow,
+    );
+
+    expect(result[0].value).toBe(4); // EL3 → index 4, via the connections fallback
+    expect(result[0].source).toBe("derived");
+  });
+
+  it("resets to unrated when a DataFlow anchor's connection no longer carries an EL", () => {
+    const ratings: FactorRating[] = [
+      {
+        factorId: "exposure_level",
+        value: 4,
+        derivedValue: 4,
+        weight: 1,
+        source: "derived",
+      },
+    ];
+    const threat = {
+      linkedElement: { elementId: "c7", elementType: "DataFlow" },
+      dataFlow: null,
+    };
+    const dfdConnElRemoved: DFDReference = {
+      elements: [{ id: "e1", properties: { exposureLevel: "EL2" } }],
+      connections: [{ id: "c7", properties: {} }], // EL removed from the DF
+    };
+
+    const result = applyExposureLevelToFactorRatings(
+      ratings,
+      threat,
+      dfdConnElRemoved,
+    );
+
+    expect(result[0]).toEqual({
+      factorId: "exposure_level",
+      value: 0,
+      derivedValue: undefined,
+      weight: 1,
+      source: undefined,
+    });
   });
 
   it("is non-destructive: never overwrites a manual override with a nonzero value", () => {

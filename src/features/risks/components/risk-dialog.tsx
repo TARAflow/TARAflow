@@ -112,6 +112,8 @@ import type {
 } from "../models/en50742-approach-a-core";
 import {
   en50742LevelFromRating,
+  en50742LevelLabel,
+  EN50742_FACTOR_LEVELS,
   EXPOSURE_LEVEL_SCORE,
   ATTACKER_CAPABILITY_SCORE,
 } from "../models/en50742-approach-a-core";
@@ -802,6 +804,36 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           defaultValue: `Asset-derived value: ${rating?.derivedValue}. Click ↺ to reset.`,
         });
 
+    // EN 50742 rated level factors (exposure_level / attacker_capability) must
+    // render as NORM LEVELS (EL0..EL4 / AC skill bands), not the 1-based
+    // FactorRating.value: EL3 is stored as value 4 (index+1, so EL0=1 can be
+    // told apart from "unrated"=0), and showing that raw 4 read as "EL4" — an
+    // off-by-one against the exposure level the analyst set in the DFD. The
+    // option value stays the 1-based rating index (what the gate/core decode
+    // via en50742LevelFromRating); only the LABEL is the level.
+    const en50742Levels =
+      isEN50742 && EN50742_FACTOR_LEVELS[factor.factorId]
+        ? EN50742_FACTOR_LEVELS[factor.factorId]
+        : undefined;
+    const factorOptions: { value: number; label: string; color?: string }[] =
+      en50742Levels
+        ? en50742Levels.map((key, i) => ({
+            value: i + 1,
+            label: en50742LevelLabel(factor.factorId, key),
+          }))
+        : (def.category === "likelihood" ? LIKELIHOOD_SCALES : RISK_SCALES)[
+            configuration.scale
+          ].levels.map((level) => ({
+            value: level.value,
+            color: level.color,
+            label: `${level.value} – ${t(
+              `risks.scales.${
+                def.category === "likelihood" ? "likelihood" : "impact"
+              }.${level.label.toLowerCase().replace(/ /g, "_")}`,
+              { defaultValue: level.label },
+            )}`,
+          }));
+
     return (
       <Paper key={factor.factorId} variant="outlined" sx={{ p: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
@@ -900,14 +932,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
               {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
             </em>
           </MenuItem>
-          {(def.category === "likelihood" ? LIKELIHOOD_SCALES : RISK_SCALES)[
-            configuration.scale
-          ].levels.map((level) => {
+          {factorOptions.map((opt) => {
             const isAssetValue =
-              (isDerived || isOverridden) &&
-              level.value === rating?.derivedValue;
+              (isDerived || isOverridden) && opt.value === rating?.derivedValue;
             return (
-              <MenuItem key={level.value} value={level.value}>
+              <MenuItem key={opt.value} value={opt.value}>
                 <Tooltip
                   title={isAssetValue ? derivedTooltip : ""}
                   placement="right"
@@ -920,24 +949,18 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     width="100%"
                     sx={{ fontWeight: isAssetValue ? "bold" : "normal" }}
                   >
-                    <Box
-                      sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: "50%",
-                        bgcolor: level.color,
-                      }}
-                    />
+                    {opt.color && (
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          bgcolor: opt.color,
+                        }}
+                      />
+                    )}
                     <span>
-                      {level.value} –{" "}
-                      {t(
-                        `risks.scales.${
-                          def.category === "likelihood"
-                            ? "likelihood"
-                            : "impact"
-                        }.${level.label.toLowerCase().replace(/ /g, "_")}`,
-                        { defaultValue: level.label },
-                      )}
+                      {opt.label}
                       {isAssetValue && " *"}
                     </span>
                   </Stack>

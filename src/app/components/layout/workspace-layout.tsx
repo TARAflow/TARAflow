@@ -803,6 +803,14 @@ export const WorkspaceLayout: React.FC = () => {
           dataFlowName,
           trustBoundaryId: table.displayIdentifier,
           trustBoundaryName: table.trustBoundaryName,
+          // EL-anchor resolution (§11.1) reads the DFD's exposureLevel off the
+          // threat's raw anchor: per-element (incl. a DataFlow-typed element,
+          // STRIDE_PER_ELEMENT_TYPE.DataFlow = T,I,D) via linkedElement, and
+          // per-interaction via dataFlow. These must survive onto the
+          // ThreatReference or applyExposureLevelToFactorRatings has no anchor
+          // to resolve and EN 50742 EL silently stays 0 in the Risk tab.
+          linkedElement: threat.linkedElement ?? null,
+          dataFlow: threat.dataFlow ?? null,
         });
       }
     }

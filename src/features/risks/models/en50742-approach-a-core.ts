@@ -295,6 +295,43 @@ export const EN50742_FACTOR_LEVELS: Record<string, readonly string[]> = {
 };
 
 /**
+ * Human-readable labels for the two rated EN 50742 level factors, for the Risk
+ * dialog dropdowns. The dropdown MUST show the NORM level (EL0..EL4 / AC skill
+ * bands), NOT the 1-based FactorRating.value — otherwise EL3 renders as "4"
+ * (its rating index) and the analyst reads a wrong exposure level. Kept as norm
+ * text here (the same Table B.4 / B.2 wording used in the score maps above),
+ * co-located with the levels they label.
+ */
+export const EXPOSURE_LEVEL_LABEL: Record<ExposureLevel, string> = {
+  EL0: "EL0 – Internal",
+  EL1: "EL1 – Physical",
+  EL2: "EL2 – Local",
+  EL3: "EL3 – Adjacent",
+  EL4: "EL4 – Public",
+};
+
+export const ATTACKER_CAPABILITY_LABEL: Record<AttackerCapability, string> = {
+  advanced: "Advanced (extensive knowledge)",
+  specialist: "Specialist (moderate knowledge)",
+  medium: "Medium (moderate knowledge)",
+  basic: "Basic (minimal knowledge)",
+};
+
+/**
+ * Label for a level KEY of an EN 50742 rated factor (exposure_level /
+ * attacker_capability). Falls back to the raw key for anything else.
+ */
+export function en50742LevelLabel(factorId: string, levelKey: string): string {
+  if (factorId === "exposure_level") {
+    return EXPOSURE_LEVEL_LABEL[levelKey as ExposureLevel] ?? levelKey;
+  }
+  if (factorId === "attacker_capability") {
+    return ATTACKER_CAPABILITY_LABEL[levelKey as AttackerCapability] ?? levelKey;
+  }
+  return levelKey;
+}
+
+/**
  * Map a 1-based FactorRating.value to its level key, or undefined if unrated
  * (value <= 0) or out of range.
  */
