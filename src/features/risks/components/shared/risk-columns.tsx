@@ -33,6 +33,8 @@ import {
   getRiskLabel,
 } from "../../services/risk-calculation-service";
 import { resolveMitigationDrafts } from "../../../threats/services/threat-catalog-service";
+import { SRSL_COLORS } from "./srsl-badge";
+import type { Srsl, AttackPotentialBand } from "../../models/en50742-approach-a-core";
 import type { StrideCategory, DataColumn } from "shared";
 
 // ==================== COLUMN TYPE ====================
@@ -153,6 +155,42 @@ const RiskChipCell: React.FC<RiskChipProps> = ({
     />
   </Tooltip>
 );
+
+// EN 50742 SRSL cell — categorical Table B.6 output (band × severity), shown
+// only for en-50742-a projects. `null` (project is en-50742-a but SRSL not yet
+// determined: no exposure anchor, EL/AC unrated, or no severity asset) renders
+// a muted dash, never a fake SRSL0.
+const SrslChipCell: React.FC<{
+  srsl?: Srsl | null;
+  apBand?: AttackPotentialBand | null;
+}> = ({ srsl }) => {
+  const { t } = useTranslation();
+  if (!srsl) {
+    return (
+      <Tooltip
+        title={t("tabs.risks.columns.srslPending", {
+          defaultValue: "Not yet determined (no exposure anchor or severity)",
+        })}
+      >
+        <Typography variant="body2" color="text.disabled">
+          –
+        </Typography>
+      </Tooltip>
+    );
+  }
+  return (
+    <Chip
+      label={srsl}
+      size="small"
+      sx={{
+        bgcolor: SRSL_COLORS[srsl],
+        color: "white",
+        fontWeight: "bold",
+        minWidth: 56,
+      }}
+    />
+  );
+};
 
 // ==================== HOOK ====================
 
@@ -341,6 +379,22 @@ export const useRiskColumns = ({
       },
     );
     //}
+
+    // ── SRSL (EN 50742 Approach A) — categorical safety-security level ───────
+    if (configuration.likelihoodMethod === "en-50742-a") {
+      cols.push({
+        id: "srsl",
+        header: t("tabs.risks.columns.srsl", { defaultValue: "SRSL" }),
+        width: 70,
+        align: "center",
+        renderCell: (risk) => (
+          <SrslChipCell
+            srsl={risk.calculatedSrsl}
+            apBand={risk.calculatedApBand}
+          />
+        ),
+      });
+    }
 
     // ── Mitigation ──────────────────────────────────────────────────────────
     cols.push({

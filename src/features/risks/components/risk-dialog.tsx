@@ -342,6 +342,18 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     [isEN50742, linkedAssets],
   );
 
+  // §11.3 gate — the SRSL section applies only to an EL-bearing anchor
+  // (a crossing DataFlow or an Interface). An exposure_level rating > 0 means
+  // an EL was resolved (EL0..EL4 map to 1..5; 0 = no anchor). Internal elements
+  // (Process / DataStore) carry no EL → no SRSL, so the whole section is hidden
+  // rather than shown as an eternal "not determined".
+  const hasExposureAnchor = useMemo(
+    () =>
+      (local?.factorRatings.find((r) => r.factorId === "exposure_level")
+        ?.value ?? 0) > 0,
+    [local],
+  );
+
   // Resolved multiplicands for the AP formula tooltip (AP box) — display
   // only, the actual apScore/apBand always come from beforeValues (the gate's
   // own computation). Looked up from the same tables computeAttackPotential
@@ -1543,6 +1555,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 <Divider />
 
                 {isEN50742 &&
+                  hasExposureAnchor &&
                   (() => {
                     const arrow = (
                       <Box
@@ -1721,24 +1734,42 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             <Box sx={{ flex: 1, minWidth: 0 }}>{apBox}</Box>
                           </Stack>
 
-                          {/* Row 2: AP, Severity → SRSL */}
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="stretch"
-                          >
-                            <Box sx={{ flex: 1, minWidth: 0 }}>{apBox}</Box>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              {severityBox}
-                            </Box>
-                            {arrow}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <SrslBadge
-                                srsl={beforeValues.srsl}
-                                apBand={beforeValues.apBand}
-                              />
-                            </Box>
-                          </Stack>
+                          {/* Row 2: AP, Severity → SRSL — full only when a
+                              safety-function asset provides a severity. Without
+                              it, AP stays valid (shown in Row 1) but SRSL is not
+                              computable, so this row collapses to a single note
+                              instead of an empty severity box + a null badge. */}
+                          {en50742Severity ? (
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="stretch"
+                            >
+                              <Box sx={{ flex: 1, minWidth: 0 }}>{apBox}</Box>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                {severityBox}
+                              </Box>
+                              {arrow}
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <SrslBadge
+                                  srsl={beforeValues.srsl}
+                                  apBand={beforeValues.apBand}
+                                />
+                              </Box>
+                            </Stack>
+                          ) : (
+                            <Paper variant="outlined" sx={{ p: 1 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {t("tabs.risks.dialog.srslNoSeverityCompact", {
+                                  defaultValue:
+                                    "No linked safety-function asset for Severity",
+                                })}
+                              </Typography>
+                            </Paper>
+                          )}
 
                           <Collapse in={showSrslTables}>
                             <SrslReferenceTables

@@ -6,7 +6,7 @@ import type { Srsl, AttackPotentialBand } from "../../models/en50742-approach-a-
 // 4-level RISK_SCALES (Low/Medium/High/Critical) — SRSL0..3 maps 1:1 onto
 // that palette so the badge reads consistently with the rest of the app,
 // even though SRSL is its own categorical vocabulary, not a risk-scale value.
-const SRSL_COLORS: Record<Srsl, string> = {
+export const SRSL_COLORS: Record<Srsl, string> = {
   SRSL0: "#22c55e",
   SRSL1: "#eab308",
   SRSL2: "#f97316",

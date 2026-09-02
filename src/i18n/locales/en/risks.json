@@ -71,7 +71,9 @@
         "justification": "Justification",
         "treatment": "Treatment",
         "implementation": "Implementation",
-        "assessmentRationale": "Rationale"
+        "assessmentRationale": "Rationale",
+        "srsl": "SRSL",
+        "srslPending": "Not yet determined (no exposure anchor or severity)"
       },
       "dialog": {
         "title": "Risk Assessment: {{id}}",
@@ -158,7 +160,8 @@
         "tableB5Title": "Table B.5 — AP Score → Band",
         "tableB6Title": "Table B.6 — Severity × Band → SRSL",
         "tableScoreRange": "Score",
-        "tableBand": "Band"
+        "tableBand": "Band",
+        "srslNoSeverityCompact": "No linked safety-function asset for Severity"
       },
       "config": {
         "title": "Risk Assessment Configuration",

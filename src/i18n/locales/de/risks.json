@@ -71,7 +71,9 @@
         "justification": "Begründung",
         "treatment": "Behandlung",
         "implementation": "Implementierung",
-        "assessmentRationale": "Begründung"
+        "assessmentRationale": "Begründung",
+        "srsl": "SRSL",
+        "srslPending": "Noch nicht bestimmt (kein Exposure-Anker oder keine Severity)"
       },
       "dialog": {
         "title": "Risikobewertung: {{id}}",
@@ -159,7 +161,8 @@
         "tableB5Title": "Tabelle B.5 — AP-Score → Band",
         "tableB6Title": "Tabelle B.6 — Severity × Band → SRSL",
         "tableScoreRange": "Score",
-        "tableBand": "Band"
+        "tableBand": "Band",
+        "srslNoSeverityCompact": "Kein verknüpftes Safety-Function-Asset für Severity"
       },
       "config": {
         "title": "Risikobewertungs-Konfiguration",
