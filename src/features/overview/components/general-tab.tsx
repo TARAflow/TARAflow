@@ -1,8 +1,15 @@
 import React from "react";
-import { PhaseDefinition, PhaseStatus, flattenProjectTags } from "shared";
+import { useTranslation } from "react-i18next";
+import {
+  PhaseDefinition,
+  PhaseStatus,
+  SourceBinding,
+  flattenProjectTags,
+} from "shared";
 import { ProjectInfo } from "./project-info";
 import { ProjectProgress } from "./project-progress";
 import { ProjectSettings } from "./project-settings";
+import { SourceBindingsSection } from "./source-bindings-section";
 import {
   GeneralTabData,
   ProjectInfoData,
@@ -47,6 +54,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   getStatusColor,
   onUpdate,
 }) => {
+  const { t } = useTranslation();
+
   // Progress grid: only the phases that count, scoped by the app layer
   // (Hazard already filtered out there when safety analysis is off).
   const overviewPhases = phases.filter((p) => progressPhaseIds.includes(p.id));
@@ -122,6 +131,17 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     });
   };
 
+  // Handle project-level source binding updates (Source Version Binding,
+  // implementation plan §3.5/§4 — the project-wide "analysed against repo
+  // X, release Y" reference; element-level bindings are a separate,
+  // non-inheriting collection edited elsewhere).
+  const handleSourceBindingsUpdate = (sourceBindings: SourceBinding[]) => {
+    onUpdate({
+      ...data,
+      sourceBindings,
+    });
+  };
+
   return (
     <div className="p-6 max-w-6xl">
       <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
@@ -137,6 +157,15 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
         settings={data.settings}
         onUpdate={handleSettingsUpdate}
       />
+
+      <SourceBindingsSection
+        bindings={data.sourceBindings ?? []}
+        scopeLabel={t("sourceBinding.projectScope.title", {
+          defaultValue: "Project Source Reference",
+        })}
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={handleSourceBindingsUpdate}
+      />
     </div>
   );
-};;
+};

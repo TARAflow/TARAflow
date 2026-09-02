@@ -98,6 +98,15 @@ export {
   type WindowOfOpportunity,
 } from "./models/regulation-preset";
 
+export type {
+  CredentialRef,
+  DriftStatus,
+  DriftEvent,
+  LocalCheckoutHint,
+  SourceBinding,
+  SourceRefType,
+} from "./models/source-binding-types";
+
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
 export type {
