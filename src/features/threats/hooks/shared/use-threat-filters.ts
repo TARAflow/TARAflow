@@ -7,14 +7,21 @@ import type { Threat } from "../../models/threat-types";
 
 // ==================== TYPES ====================
 
+// Derived from the model instead of redeclared, so a future change to
+// Threat["relevance"] (e.g. a new status) surfaces here as a type error
+// instead of silently falling out of sync.
+export type ThreatRelevanceFilter = Threat["relevance"] | "";
+
 export interface ThreatFilters {
   strideCategory: StrideCategory | "";
+  relevance: ThreatRelevanceFilter;
   searchText: string;
 }
 
 export interface UseThreatFiltersResult {
   filters: ThreatFilters;
   setStrideFilter: (category: StrideCategory | "") => void;
+  setRelevanceFilter: (relevance: ThreatRelevanceFilter) => void;
   setSearchText: (text: string) => void;
   clearFilters: () => void;
   filterThreats: (threats: Threat[]) => Threat[];
@@ -25,12 +32,13 @@ export interface UseThreatFiltersResult {
 
 export function useThreatFilters(): UseThreatFiltersResult {
   const [strideCategory, setStrideCategory] = useState<StrideCategory | "">("");
+  const [relevance, setRelevance] = useState<ThreatRelevanceFilter>("");
   const [searchText, setSearchText] = useState("");
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return !!strideCategory || !!searchText.trim();
-  }, [strideCategory, searchText]);
+    return !!strideCategory || !!relevance || !!searchText.trim();
+  }, [strideCategory, relevance, searchText]);
 
   // Filter function
   const filterThreats = useCallback(
@@ -40,6 +48,11 @@ export function useThreatFilters(): UseThreatFiltersResult {
       // Filter by STRIDE category
       if (strideCategory) {
         filtered = filtered.filter((t) => t.strideCategory === strideCategory);
+      }
+
+      // Filter by relevance / triage status
+      if (relevance) {
+        filtered = filtered.filter((t) => t.relevance === relevance);
       }
 
       // Filter by search text
@@ -81,18 +94,20 @@ export function useThreatFilters(): UseThreatFiltersResult {
 
       return filtered;
     },
-    [strideCategory, searchText]
+    [strideCategory, relevance, searchText],
   );
 
   // Clear all filters
   const clearFilters = useCallback(() => {
     setStrideCategory("");
+    setRelevance("");
     setSearchText("");
   }, []);
 
   return {
-    filters: { strideCategory, searchText },
+    filters: { strideCategory, relevance, searchText },
     setStrideFilter: setStrideCategory,
+    setRelevanceFilter: setRelevance,
     setSearchText,
     clearFilters,
     filterThreats,

@@ -56,6 +56,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
     const {
       filters,
       setStrideFilter,
+      setRelevanceFilter,
       setSearchText,
       clearFilters,
       filterThreats,
@@ -109,8 +110,10 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
           <Box sx={{ flexShrink: 0 }}>
             <ThreatFilters
               strideCategory={filters.strideCategory}
+              relevance={filters.relevance}
               searchText={filters.searchText}
               onStrideCategoryChange={setStrideFilter}
+              onRelevanceChange={setRelevanceFilter}
               onSearchTextChange={setSearchText}
               onClear={clearFilters}
               show={showFilters}

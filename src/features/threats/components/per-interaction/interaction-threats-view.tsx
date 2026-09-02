@@ -55,6 +55,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
     const {
       filters,
       setStrideFilter,
+      setRelevanceFilter,
       setSearchText,
       clearFilters,
       filterThreats,
@@ -108,8 +109,10 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
           <Box sx={{ flexShrink: 0 }}>
             <ThreatFilters
               strideCategory={filters.strideCategory}
+              relevance={filters.relevance}
               searchText={filters.searchText}
               onStrideCategoryChange={setStrideFilter}
+              onRelevanceChange={setRelevanceFilter}
               onSearchTextChange={setSearchText}
               onClear={clearFilters}
               show={showFilters}

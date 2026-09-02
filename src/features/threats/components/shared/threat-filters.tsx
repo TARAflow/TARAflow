@@ -18,13 +18,30 @@ import {
 } from "@mui/material";
 import { STRIDE_COLORS } from "shared";
 import type { StrideCategory } from "shared";
+import type { ThreatRelevanceFilter } from "../../hooks/shared/use-threat-filters";
+
+// ==================== RELEVANCE OPTIONS ====================
+// Same palette as RELEVANCE_ROW_BG in element-threat-table.tsx, just a
+// slightly stronger tone since these render as solid Chips, not backgrounds.
+
+const RELEVANCE_OPTIONS: {
+  value: Exclude<ThreatRelevanceFilter, "">;
+  color: string;
+}[] = [
+  { value: "unrated", color: "#9ca3af" },
+  { value: "relevant", color: "#16a34a" },
+  { value: "uncertain", color: "#d97706" },
+  { value: "not_relevant", color: "#dc2626" },
+];
 
 // ==================== TYPES ====================
 
 export interface ThreatFiltersProps {
   strideCategory: StrideCategory | "";
+  relevance: ThreatRelevanceFilter;
   searchText: string;
   onStrideCategoryChange: (category: StrideCategory | "") => void;
+  onRelevanceChange: (relevance: ThreatRelevanceFilter) => void;
   onSearchTextChange: (text: string) => void;
   onClear: () => void;
   show: boolean;
@@ -37,8 +54,10 @@ export interface ThreatFiltersProps {
 export const ThreatFilters = React.memo<ThreatFiltersProps>(
   ({
     strideCategory,
+    relevance,
     searchText,
     onStrideCategoryChange,
+    onRelevanceChange,
     onSearchTextChange,
     show,
     totalCount,
@@ -85,6 +104,42 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
                   </MenuItem>
                 ),
               )}
+            </Select>
+          </FormControl>
+
+          {/* Relevance / Triage Status Dropdown */}
+          <FormControl size="small" sx={{ minWidth: 170 }}>
+            <InputLabel>
+              {t("tabs.threats.eval.relevance", { defaultValue: "Relevance" })}
+            </InputLabel>
+            <Select
+              value={relevance}
+              label={t("tabs.threats.eval.relevance", {
+                defaultValue: "Relevance",
+              })}
+              onChange={(e) =>
+                onRelevanceChange(e.target.value as ThreatRelevanceFilter)
+              }
+            >
+              <MenuItem value="">
+                <em>{t("common.all", { defaultValue: "All" })}</em>
+              </MenuItem>
+              {RELEVANCE_OPTIONS.map(({ value, color }) => (
+                <MenuItem key={value} value={value}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip
+                      label=""
+                      size="small"
+                      sx={{ backgroundColor: color, width: 12, height: 12 }}
+                    />
+                    <Typography variant="body2">
+                      {t(`tabs.threats.eval.${value}`, {
+                        defaultValue: value,
+                      })}
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
