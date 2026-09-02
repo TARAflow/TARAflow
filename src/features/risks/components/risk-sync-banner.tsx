@@ -75,6 +75,16 @@ export const RiskSyncBanner: React.FC<Props> = ({
                 variant="outlined"
               />
             )}
+            {syncStatus.changedExposureLevels > 0 && (
+              <Chip
+                label={`${syncStatus.changedExposureLevels} exposure level${
+                  syncStatus.changedExposureLevels === 1 ? "" : "s"
+                } changed`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+            )}
             {syncStatus.uncertainRisks > 0 && (
               <Chip
                 label={`${syncStatus.uncertainRisks} uncertain`}

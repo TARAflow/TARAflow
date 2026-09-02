@@ -10,7 +10,10 @@
 // Pure logic, no rendering.
 
 import { describe, it, expect } from "vitest";
-import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
+import {
+  syncRisksFromThreats,
+  checkRiskSyncStatus,
+} from "features/risks/services/risk-sync-service";
 import {
   createDefaultRiskData,
   createEmptyRisk,
@@ -203,5 +206,85 @@ describe("syncRisksFromThreats — EN 50742 EL prefill wiring (§11.2, existing 
     const risk = result.riskData.risks.find((r) => r.threatId === "T-5")!;
     expect(elRating(risk)?.value).toBe(4);
     expect(elRating(risk)?.source).toBe("manual");
+  });
+});
+
+
+describe("checkRiskSyncStatus — EN 50742 EL drift detection", () => {
+  it("flags a risk whose persisted EL no longer matches the DFD (needsSync)", () => {
+    const data = riskDataWithConfig(configWithELEnabled);
+    const threat = perElementThreat("T-1", "if-1");
+    const risk = createEmptyRisk(threat, data.configuration); // exposure_level: 0
+    const riskData: RiskData = { ...data, risks: [risk] };
+
+    const status = checkRiskSyncStatus(
+      riskData,
+      [threat],
+      dfdWithElementEL("if-1", "EL2"), // derives value 3 → drift vs the stored 0
+    );
+
+    expect(status.changedExposureLevels).toBe(1);
+    expect(status.needsSync).toBe(true);
+    // not a NEW threat / not a description change — the EL drift is the reason
+    expect(status.newThreats).toBe(0);
+    expect(status.changedDescriptions).toBe(0);
+  });
+
+  it("does not flag once the risk has been synced to the DFD's EL", () => {
+    const data = riskDataWithConfig(configWithELEnabled);
+    const threat = perElementThreat("T-1", "if-1");
+    const risk = createEmptyRisk(threat, data.configuration);
+    const dfd = dfdWithElementEL("if-1", "EL2");
+
+    // Persist the derived EL first, then re-check against the same DFD.
+    const synced = syncRisksFromThreats(
+      { ...data, risks: [risk] },
+      [threat],
+      dfd,
+    );
+    const status = checkRiskSyncStatus(synced.riskData, [threat], dfd);
+
+    expect(status.changedExposureLevels).toBe(0);
+  });
+
+  it("is a no-op for non-en-50742-a projects (no exposure_level factor)", () => {
+    const data = riskDataWithConfig((c) => c); // exposure_level stays disabled
+    const threat = perElementThreat("T-1", "if-1");
+    const risk = createEmptyRisk(threat, data.configuration);
+    const riskData: RiskData = { ...data, risks: [risk] };
+
+    const status = checkRiskSyncStatus(
+      riskData,
+      [threat],
+      dfdWithElementEL("if-1", "EL2"),
+    );
+
+    expect(status.changedExposureLevels).toBe(0);
+  });
+
+  it("flags EL drift for a DataFlow-anchored per-element threat (elementType DataFlow)", () => {
+    const data = riskDataWithConfig(configWithELEnabled);
+    // DataFlow is a per-element STRIDE anchor: linkedElement.elementType
+    // "DataFlow", elementId = connection id, resolved against dfd.connections.
+    const threat: ThreatReference = {
+      ...baseThreat("T-DF"),
+      linkedElement: {
+        elementId: "c7",
+        elementName: "push cmd",
+        elementType: "DataFlow",
+        displayId: "DF-3",
+      },
+    };
+    const risk = createEmptyRisk(threat, data.configuration);
+    const riskData: RiskData = { ...data, risks: [risk] };
+
+    const status = checkRiskSyncStatus(
+      riskData,
+      [threat],
+      dfdWithConnectionEL("c7", "EL3"),
+    );
+
+    expect(status.changedExposureLevels).toBe(1);
+    expect(status.needsSync).toBe(true);
   });
 });

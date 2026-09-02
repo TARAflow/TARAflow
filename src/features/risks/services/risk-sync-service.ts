@@ -61,6 +61,15 @@ export interface RiskSyncStatus {
   changedDescriptions: number;
   changedMitigations: number;
   uncertainRisks: number;
+  /**
+   * Risks whose persisted exposure_level rating no longer matches what the DFD
+   * would derive (EN 50742 EL edited on the linked Interface/DataFlow since the
+   * last sync). syncRisksFromThreats already re-derives EL and recomputes
+   * AP/SRSL, but a DFD-only property edit doesn't touch threats, so without
+   * this the sync affordance would never light up and the Risk table would
+   * silently show stale AP/SRSL.
+   */
+  changedExposureLevels: number;
   needsSync: boolean;
   /** Safety factor was auto-enabled during this sync check */
   safetyAutoEnabled: boolean;
@@ -374,6 +383,21 @@ export function checkRiskSyncStatus(
     );
   }).length;
 
+  // EN 50742 EL drift: the DFD's exposure level changed on the anchor
+  // (Interface / DataFlow) but the risk still carries the old derived rating.
+  // No-op for non-en-50742-a projects (no exposure_level entry → adapter
+  // returns the ratings unchanged), so this is safe to evaluate unconditionally.
+  const changedExposureLevels = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    if (!threat) return false;
+    const withEl = applyExposureLevelToFactorRatings(
+      risk.factorRatings,
+      threat,
+      dfd,
+    );
+    return JSON.stringify(withEl) !== JSON.stringify(risk.factorRatings);
+  }).length;
+
   const uncertainRisks = riskData.risks.filter(
     (r) => r.threatRelevance === "uncertain",
   ).length;
@@ -401,10 +425,12 @@ export function checkRiskSyncStatus(
     changedDescriptions,
     changedMitigations,
     uncertainRisks,
+    changedExposureLevels,
     needsSync:
       newThreats > 0 ||
       orphanedRisks > 0 ||
       changedDescriptions > 0 ||
+      changedExposureLevels > 0 ||
       impactAutoEnabledCount > 0 ||
       impactAutoDisabledCount > 0,
     safetyAutoEnabled,
