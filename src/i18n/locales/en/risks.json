@@ -50,6 +50,9 @@
       "rationaleBefore": "Before",
       "rationaleAfter": "After",
       "attackPathRisksTitle": "Attack Tree Risks",
+      "threatsNotConfirmed": "Threats not yet confirmed",
+      "threatsNotConfirmedPerElementHint": "Per-Element threats exist but haven't been confirmed yet. Confirm them in the Threat Eval tab before assessing risks here.",
+      "threatsNotConfirmedPerInteractionHint": "Per-Interaction threats exist but haven't been confirmed yet. Confirm them in the Threat Eval tab before assessing risks here.",
       "safetyRemovalDialog": {
         "title": "Safety Factor Source Removed",
         "message": "The safety annotations that automatically enabled the Safety Impact factor have been removed from the DFD and Asset Tab. Do you want to keep the Safety Impact factor active?\n\nKeeping it preserves existing safety ratings. Removing it will clear all safety factor values from your risk assessments.",

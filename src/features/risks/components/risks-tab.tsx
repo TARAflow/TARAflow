@@ -234,15 +234,29 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   const activeStrideMethod = useMemo((): StrideMethod => {
     const saved = riskData.configuration?.activeStrideMethod;
-    if (perElementEligible === 0 && perInteractionEligible > 0)
+    // Auto-select only when a method has NO threats generated at all yet —
+    // never based on how many of its threats are confirmed/eligible.
+    // Gating on eligibility here would silently force the method back
+    // whenever the user manually switches to a method whose threats aren't
+    // confirmed yet (e.g. both methods have threats, only per-element is
+    // confirmed) — the switch would appear to do nothing. Whether the user
+    // can actually work with the method is instead surfaced as an empty
+    // state below (see hasEligibleThreatsForMethod).
+    if (
+      project.perElementThreats.length === 0 &&
+      project.perInteractionThreats.length > 0
+    )
       return "per-interaction";
-    if (perInteractionEligible === 0 && perElementEligible > 0)
+    if (
+      project.perInteractionThreats.length === 0 &&
+      project.perElementThreats.length > 0
+    )
       return "per-element";
     return saved ?? "per-element";
   }, [
     riskData.configuration?.activeStrideMethod,
-    perElementEligible,
-    perInteractionEligible,
+    project.perElementThreats.length,
+    project.perInteractionThreats.length,
   ]);
 
   const canSwitchStrideMethod =
@@ -311,6 +325,17 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const hasThreatsForMethod =
     currentThreats.length > 0 ||
     (project.perAttackPathThreats?.length ?? 0) > 0;
+  // Threats exist for the active method (hasThreatsForMethod), but that's
+  // not enough to assess risks — they must be confirmed/eligible first
+  // (see risk-sync-service.getEligibleThreats). Distinguishing this lets us
+  // show a "please confirm your threats" hint instead of the generic
+  // "sync from threats" prompt, which would otherwise sync nothing and
+  // look broken.
+  const eligibleCountForMethod =
+    activeStrideMethod === "per-element"
+      ? perElementEligible
+      : perInteractionEligible;
+  const hasEligibleThreatsForMethod = eligibleCountForMethod > 0;
   const hasAnyThreats = allThreats.length > 0;
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
@@ -885,6 +910,35 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                   defaultValue:
                     "Switch to the other method or create threats in Phase 3.",
                 })}
+              </Typography>
+            </Box>
+          ) : !hasEligibleThreatsForMethod ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "text.secondary",
+              }}
+            >
+              <WarningIcon sx={{ fontSize: 48, mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                {t("tabs.risks.threatsNotConfirmed", {
+                  defaultValue: "Threats not yet confirmed",
+                })}
+              </Typography>
+              <Typography variant="body2">
+                {activeStrideMethod === "per-element"
+                  ? t("tabs.risks.threatsNotConfirmedPerElementHint", {
+                      defaultValue:
+                        "Per-Element threats exist but haven't been confirmed yet. Confirm them in the Threat Eval tab before assessing risks here.",
+                    })
+                  : t("tabs.risks.threatsNotConfirmedPerInteractionHint", {
+                      defaultValue:
+                        "Per-Interaction threats exist but haven't been confirmed yet. Confirm them in the Threat Eval tab before assessing risks here.",
+                    })}
               </Typography>
             </Box>
           ) : !hasRisksForMethod ? (

@@ -50,6 +50,9 @@
       "rationaleBefore": "Vorher",
       "rationaleAfter": "Nachher",
       "attackPathRisksTitle": "Angriffsbaum-Risiken",
+      "threatsNotConfirmed": "Threats noch nicht bestätigt",
+      "threatsNotConfirmedPerElementHint": "Es existieren Per-Element-Threats, die aber noch nicht bestätigt wurden. Bestätige sie im Threat-Eval-Tab, bevor du hier Risiken bewertest.",
+      "threatsNotConfirmedPerInteractionHint": "Es existieren Per-Interaction-Threats, die aber noch nicht bestätigt wurden. Bestätige sie im Threat-Eval-Tab, bevor du hier Risiken bewertest.",
       "safetyRemovalDialog": {
         "title": "Safety-Faktor-Quelle entfernt",
         "message": "Die Safety-Annotationen, die den Safety-Auswirkungs-Faktor automatisch aktiviert haben, wurden aus dem DFD und dem Asset-Tab entfernt. Möchten Sie den Safety-Auswirkungs-Faktor aktiv behalten?\n\nBeim Behalten bleiben bestehende Safety-Bewertungen erhalten. Beim Entfernen werden alle Safety-Faktorwerte aus Ihren Risikobewertungen gelöscht.",
