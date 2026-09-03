@@ -18,6 +18,7 @@ import { describe, it, expect } from "vitest";
 
 import { syncFromDFD } from "features/assets/services/asset-sync-service";
 import { createDefaultAssetData } from "features/assets/services/asset-factory";
+import { assetService } from "features/assets/services/asset-service";
 import type { AssetData } from "features/assets/models/asset-types";
 
 function storeWith(
@@ -74,13 +75,14 @@ describe("syncFromDFD — asset-loss regression (empty mirror must not prune)", 
     ]);
   });
 
-  it("still prunes a genuinely removed asset when the mirror is non-empty", () => {
+  it("SSOT: does NOT remove a record even when absent from a non-empty mirror", () => {
+    // Post-Phase-4: syncFromDFD is create/update only. An asset missing from
+    // the mirror is NOT pruned — it persists in the canonical store (orphaned)
+    // and removal is an explicit user action, never a mirror-diff side effect.
     const store = storeWith([
       { id: "A1", source: "dfd" },
       { id: "A2", source: "dfd" },
     ]);
-
-    // A non-empty mirror that lists only A1 → A2 was genuinely removed.
     const mirror = [
       {
         id: "A1",
@@ -89,11 +91,23 @@ describe("syncFromDFD — asset-loss regression (empty mirror must not prune)", 
         linkedElements: [],
       },
     ];
+
     const { assetData, warnings } = syncFromDFD(store, mirror, [], []);
 
     const ids = assetData.assets.map((a) => a.id);
     expect(ids).toContain("A1");
-    expect(ids).not.toContain("A2");
-    expect(warnings.join(" ")).toMatch(/A2.*no longer in DFD/);
+    expect(ids).toContain("A2"); // persists — not pruned
+    expect(warnings.join(" ")).not.toMatch(/no longer in DFD/);
+  });
+
+  it("explicit deleteAsset still removes a record (removal is intentional, not implicit)", () => {
+    const store = storeWith([
+      { id: "A1", source: "dfd" },
+      { id: "A2", source: "dfd" },
+    ]);
+
+    const after = assetService.deleteAsset(store, "A2");
+
+    expect(after.assets.map((a) => a.id)).toEqual(["A1"]);
   });
 });

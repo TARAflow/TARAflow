@@ -285,30 +285,14 @@ export function syncFromDFD(
     }
   }
 
-  // Warn about / prune DFD-sourced assets no longer present in the DFD mirror.
-  //
-  // SAFETY GUARD (asset-loss regression): NEVER prune against an EMPTY mirror.
-  // dfd.assets is stripped on disk (prepare-for-disk) and re-derived on load,
-  // and an edit can hand us a partial/empty mirror. An empty dfdAssets means
-  // "the mirror was not materialised", NOT "every DFD asset was deleted" —
-  // pruning here silently wipes every source:"dfd" record from the canonical
-  // feature store. (The SSOT refactor removes record-removal from syncFromDFD
-  // entirely; until then this guard stops the data loss.)
-  const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
-  const removedAssets =
-    dfdAssets.length > 0
-      ? updatedAssets.filter(
-          (a) => a.source === "dfd" && !dfdAssetIds.has(a.id),
-        )
-      : [];
-  if (removedAssets.length > 0) {
-    updatedAssets = updatedAssets.filter(
-      (a) => !(a.source === "dfd" && !dfdAssetIds.has(a.id)),
-    );
-    removedAssets.forEach((a) =>
-      warnings.push(`Asset ${a.id} (${a.name}) removed — no longer in DFD`),
-    );
-  }
+  // SSOT (Asset-Store refactor, Phase 4): syncFromDFD is create/update ONLY.
+  // It never removes records from the canonical feature store. Record removal
+  // is an EXPLICIT operation (deleteAsset) — never a side effect of a mirror
+  // diff. This eliminates the whole class of "asset silently lost because the
+  // dfd.assets mirror was empty/partial" bugs: the feature store is the single
+  // source of truth, the mirror is a projection. An asset whose DFD links are
+  // all gone simply becomes orphaned (surfaced via getAssetsMissingInDFD) and
+  // is removed by the user, not pruned here.
 
   // Auto-add safety criterion when safety annotations are found in DFD
   const hasSafetyAnnotations = updatedAssets.some((a) =>
@@ -331,7 +315,6 @@ export function syncFromDFD(
   // Only bump lastModified if something actually changed
   const hasChanges =
     newAssetIds.length > 0 ||
-    removedAssets.length > 0 ||
     updatedConfiguration !== assetData.configuration ||
     updatedAssets.length !== assetData.assets.length ||
     updatedAssets.some((a, i) => a !== assetData.assets[i]);
