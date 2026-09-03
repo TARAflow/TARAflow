@@ -18,6 +18,7 @@ import type {
   RiskRoundingMethod,
 } from "../models/risk-scale-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
+import { EN50742_SRSL_FACTOR_IDS } from "../models/en50742-approach-a-core";
 import { RISK_SCALES, LIKELIHOOD_SCALES } from "../models/risk-scale-types";
 import {
   ALL_PREDEFINED_FACTORS,
@@ -164,6 +165,10 @@ export function calculateRiskValues(
   });
 
   const likelihoodRatings = ratings.filter((r) => {
+    // EN 50742 SRSL/AP inputs (EL, AC, WoO) are a SEPARATE assessment dimension
+    // and never feed R = L × I — see EN50742_SRSL_FACTOR_IDS. (They are only
+    // rated in en-50742-a projects; excluding them unconditionally is safe.)
+    if (EN50742_SRSL_FACTOR_IDS.includes(r.factorId)) return false;
     const factor = allFactors.find((f) => f.id === r.factorId);
     return factor?.category === "likelihood" && r.value > 0;
   });

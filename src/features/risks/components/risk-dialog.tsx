@@ -115,6 +115,7 @@ import {
   en50742LevelFromRating,
   en50742LevelLabel,
   EN50742_FACTOR_LEVELS,
+  EN50742_SRSL_FACTOR_IDS,
   EXPOSURE_LEVEL_SCORE,
   ATTACKER_CAPABILITY_SCORE,
 } from "../models/en50742-approach-a-core";
@@ -421,11 +422,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   // into their own section only for en-50742-a projects. Outside that method,
   // an analyst can still enable e.g. window_of_opportunity as an ordinary
   // rated factor, so nothing is filtered there.
-  const EN50742_SRSL_FACTOR_IDS = [
-    "window_of_opportunity",
-    "attacker_capability",
-    "exposure_level",
-  ];
+  // EN50742_SRSL_FACTOR_IDS imported from the core (single source of truth).
 
   // ── Active factors ────────────────────────────────────────────────────────
   const { impactFactors, likelihoodFactors, elFactor, acFactor } =

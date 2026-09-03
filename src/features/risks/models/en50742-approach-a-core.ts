@@ -289,6 +289,20 @@ export const EN50742_WOO_LEVELS: readonly WindowOfOpportunity[] = [
 ];
 
 /** factorId → ordered level keys, for the two rated EN 50742 factors. */
+/**
+ * Factor ids that belong to the EN 50742 SRSL / attack-potential dimension —
+ * NOT to the R = L × I likelihood. SRSL and Risk are separate assessments:
+ * these inputs drive the SRSL (via the AP computation) and must be excluded
+ * from the standard likelihood weighted mean, so setting EL/AC/WoO never moves
+ * the residual risk. (window_of_opportunity is project-global but listed here
+ * so any per-risk rating of it is likewise kept out of L.)
+ */
+export const EN50742_SRSL_FACTOR_IDS: readonly string[] = [
+  "exposure_level",
+  "attacker_capability",
+  "window_of_opportunity",
+];
+
 export const EN50742_FACTOR_LEVELS: Record<string, readonly string[]> = {
   exposure_level: EN50742_EXPOSURE_LEVELS,
   attacker_capability: EN50742_ATTACKER_CAPABILITY_LEVELS,

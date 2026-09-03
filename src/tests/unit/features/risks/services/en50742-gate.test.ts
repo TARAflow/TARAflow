@@ -62,6 +62,13 @@ const acRated = (value = 4): FactorRating => ({
   weight: 1,
 });
 
+// A standard (OWASP) likelihood factor — this, not EL/AC, drives R = L × I.
+const likRated = (value = 3): FactorRating => ({
+  factorId: "skill_level",
+  value,
+  weight: 1,
+});
+
 // ── Tests ────────────────────────────────────────────────────────────────
 
 describe("calculateGatedRiskValues — non-en-50742-a projects", () => {
@@ -112,7 +119,8 @@ describe("calculateGatedRiskValues — en-50742-a projects, EL present (gate act
   it("delegates to the EN 50742 path and resolves severity from linkedAssets", () => {
     const config = en50742Config();
     const ratings: FactorRating[] = [
-      { factorId: "financial_damage", value: 4, weight: 1 }, // impact factor — needed so risk = impact × likelihood > 0
+      { factorId: "financial_damage", value: 4, weight: 1 }, // impact
+      likRated(3), // OWASP likelihood → drives L (NOT EL/AC)
       elRated(3),
       acRated(4),
     ]; // EL2, basic — worked example
@@ -120,16 +128,24 @@ describe("calculateGatedRiskValues — en-50742-a projects, EL present (gate act
 
     const result = calculateGatedRiskValues(ratings, config, linkedAssets);
 
+    // SRSL/AP dimension — from EL/AC/WoO/severity.
     expect(result.apBand).toBe("AP1"); // (5×0.8)+4 = 8
     expect(result.srsl).not.toBeNull();
+    // R = L × I dimension — from the standard factors, present & independent.
     expect(result.likelihood).toBeGreaterThan(0);
     expect(result.risk).toBeGreaterThan(0);
+    // The separation: L/R equal the pure standard computation — EL/AC do NOT
+    // contribute to them.
+    const generic = calculateRiskValues(ratings, config);
+    expect(result.likelihood).toBe(generic.likelihood);
+    expect(result.risk).toBe(generic.risk);
   });
 
   it("still runs AP/likelihood when severity cannot be resolved; srsl is null for THAT reason", () => {
     const config = en50742Config();
     const ratings: FactorRating[] = [
       { factorId: "financial_damage", value: 4, weight: 1 },
+      likRated(3), // OWASP likelihood → drives L
       elRated(3),
       acRated(4),
     ];
@@ -138,8 +154,37 @@ describe("calculateGatedRiskValues — en-50742-a projects, EL present (gate act
     const result = calculateGatedRiskValues(ratings, config, linkedAssets);
 
     expect(result.apBand).toBe("AP1");
-    expect(result.likelihood).toBeGreaterThan(0); // R×L lens unaffected
+    expect(result.likelihood).toBeGreaterThan(0); // R×L lens unaffected by EL/AC
     expect(result.risk).toBeGreaterThan(0);
     expect(result.srsl).toBeNull(); // but no severity → no Table B.6 lookup
+  });
+});
+
+describe("calculateGatedRiskValues — SRSL and R = L × I are separated", () => {
+  it("EL/AC do not move likelihood or risk; only the SRSL/AP changes", () => {
+    const config = en50742Config();
+    const base: FactorRating[] = [
+      { factorId: "financial_damage", value: 4, weight: 1 }, // impact
+      likRated(3), // the only likelihood input
+    ];
+    const linkedAssets = [asset("A-1", "irreversible_injury")];
+
+    const strong = calculateGatedRiskValues(
+      [...base, elRated(4), acRated(4)],
+      config,
+      linkedAssets,
+    );
+    const weak = calculateGatedRiskValues(
+      [...base, elRated(2), acRated(1)],
+      config,
+      linkedAssets,
+    );
+
+    // R = L × I identical regardless of EL/AC …
+    expect(weak.likelihood).toBe(strong.likelihood);
+    expect(weak.risk).toBe(strong.risk);
+    // … while the SRSL/AP dimension differs.
+    expect(weak.apBand).not.toBe(strong.apBand);
+    expect(weak.srsl).not.toBe(strong.srsl);
   });
 });

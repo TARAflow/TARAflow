@@ -376,23 +376,45 @@ export function calculateGatedRiskValues(
   configuration: RiskConfiguration,
   linkedAssets: AssetReference[],
 ): GatedRiskCalculationResult {
+  // SRSL and R = L × I are SEPARATE assessments (EN 50742 Approach A yields an
+  // SRSL + mandated controls; the residual risk stays the standard L × I).
+  // Likelihood, impact and risk therefore ALWAYS come from the standard calc —
+  // EL/AC/WoO are excluded from L (see EN50742_SRSL_FACTOR_IDS) and only drive
+  // the SRSL, which is overlaid here as a parallel output. Setting EL/AC/WoO
+  // never moves the risk.
+  const generic = calculateRiskValues(ratings, configuration);
   if (configuration.likelihoodMethod !== "en-50742-a") {
-    return calculateRiskValues(ratings, configuration);
+    return generic;
   }
 
   const elValue =
     ratings.find((r) => r.factorId === EN50742_EL_FACTOR)?.value ?? 0;
+  const acValue =
+    ratings.find((r) => r.factorId === EN50742_AC_FACTOR)?.value ?? 0;
+  const el = en50742LevelFromRating(EN50742_EL_FACTOR, elValue) as
+    | ExposureLevel
+    | undefined;
+  const ac = en50742LevelFromRating(EN50742_AC_FACTOR, acValue) as
+    | AttackerCapability
+    | undefined;
 
-  if (elValue <= 0 || !configuration.windowOfOpportunity) {
-    const generic = calculateRiskValues(ratings, configuration);
+  if (!el || !ac || !configuration.windowOfOpportunity) {
     return { ...generic, srsl: null, apScore: null, apBand: null };
   }
 
   const severity = resolveEN50742Severity(linkedAssets);
-  return calculateEN50742RiskValues(
-    ratings,
-    configuration,
-    configuration.windowOfOpportunity,
+  const evaluated = evaluateEN50742Likelihood(
+    {
+      exposureLevel: el,
+      windowOfOpportunity: configuration.windowOfOpportunity,
+      attackerCapability: ac,
+    },
     severity,
   );
+  return {
+    ...generic,
+    srsl: evaluated.srsl,
+    apScore: evaluated.attackPotential.score,
+    apBand: evaluated.attackPotential.band,
+  };
 }

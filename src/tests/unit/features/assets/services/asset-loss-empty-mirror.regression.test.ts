@@ -40,11 +40,10 @@ function storeWith(
       securityGoals: [],
       impactRatings: [],
       overallImpact: 0,
-      aggregatedImpact: "UNRATED",
       physicalImpactSource: "derived",
       lastModified: "<t>",
       created: "<t>",
-    })) as AssetData["assets"],
+    })) as unknown as AssetData["assets"],
   };
 }
 
@@ -86,6 +85,7 @@ describe("syncFromDFD — asset-loss regression (empty mirror must not prune)", 
     const mirror = [
       {
         id: "A1",
+        displayId: "A1",
         name: "A1",
         assetGroup: "data" as const,
         linkedElements: [],
