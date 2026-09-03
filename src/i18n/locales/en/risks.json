@@ -161,7 +161,8 @@
         "tableB6Title": "Table B.6 — Severity × Band → SRSL",
         "tableScoreRange": "Score",
         "tableBand": "Band",
-        "srslNoSeverityCompact": "No linked safety-function asset for Severity"
+        "srslNoSeverityCompact": "No linked safety-function asset for Severity",
+        "srslNoSeverityTooltip": "SRSL needs a severity, which comes from a linked safety-function asset that carries a physical impact.\n\n1. In the Asset tab, add a safety-function asset and set its physical impact (Safety Impact Manual Override + rationale).\n2. Relate it to this threat's anchor: an Interface can “invokes” or “monitors” it; a DataFlow can “invokes” it.\n\nSeverity then flows anchor → threat → risk and the SRSL is computed."
       },
       "config": {
         "title": "Risk Assessment Configuration",

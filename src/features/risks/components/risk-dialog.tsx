@@ -52,6 +52,7 @@ import {
   ContentCopy as CopyIcon,
   Refresh as ResetIcon,
   ExpandMore as ExpandMoreIcon,
+  InfoOutlined as InfoIcon,
 } from "@mui/icons-material";
 import {
   MitigationStatus,
@@ -1758,17 +1759,51 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                               </Box>
                             </Stack>
                           ) : (
-                            <Paper variant="outlined" sx={{ p: 1 }}>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
+                            <Tooltip
+                              placement="top"
+                              arrow
+                              title={
+                                <Box
+                                  sx={{
+                                    whiteSpace: "pre-line",
+                                    maxWidth: 340,
+                                  }}
+                                >
+                                  {t(
+                                    "tabs.risks.dialog.srslNoSeverityTooltip",
+                                    {
+                                      defaultValue:
+                                        "SRSL needs a severity, which comes from a linked safety-function asset that carries a physical impact.\n\n1. In the Asset tab, add a safety-function asset and set its physical impact (Safety Impact Manual Override + rationale).\n2. Relate it to this threat's anchor: an Interface can \u201cinvokes\u201d or \u201cmonitors\u201d it; a DataFlow can \u201cinvokes\u201d it.\n\nSeverity then flows anchor \u2192 threat \u2192 risk and the SRSL is computed.",
+                                    },
+                                  )}
+                                </Box>
+                              }
+                            >
+                              <Paper
+                                variant="outlined"
+                                sx={{
+                                  p: 1,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.75,
+                                  cursor: "help",
+                                }}
                               >
-                                {t("tabs.risks.dialog.srslNoSeverityCompact", {
-                                  defaultValue:
-                                    "No linked safety-function asset for Severity",
-                                })}
-                              </Typography>
-                            </Paper>
+                                <InfoIcon fontSize="small" color="action" />
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  {t(
+                                    "tabs.risks.dialog.srslNoSeverityCompact",
+                                    {
+                                      defaultValue:
+                                        "No linked safety-function asset for Severity",
+                                    },
+                                  )}
+                                </Typography>
+                              </Paper>
+                            </Tooltip>
                           )}
 
                           <Collapse in={showSrslTables}>
