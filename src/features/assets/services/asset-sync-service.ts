@@ -285,11 +285,22 @@ export function syncFromDFD(
     }
   }
 
-  // Warn about DFD-sourced assets no longer present in DFD
+  // Warn about / prune DFD-sourced assets no longer present in the DFD mirror.
+  //
+  // SAFETY GUARD (asset-loss regression): NEVER prune against an EMPTY mirror.
+  // dfd.assets is stripped on disk (prepare-for-disk) and re-derived on load,
+  // and an edit can hand us a partial/empty mirror. An empty dfdAssets means
+  // "the mirror was not materialised", NOT "every DFD asset was deleted" —
+  // pruning here silently wipes every source:"dfd" record from the canonical
+  // feature store. (The SSOT refactor removes record-removal from syncFromDFD
+  // entirely; until then this guard stops the data loss.)
   const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
-  const removedAssets = updatedAssets.filter(
-    (a) => a.source === "dfd" && !dfdAssetIds.has(a.id),
-  );
+  const removedAssets =
+    dfdAssets.length > 0
+      ? updatedAssets.filter(
+          (a) => a.source === "dfd" && !dfdAssetIds.has(a.id),
+        )
+      : [];
   if (removedAssets.length > 0) {
     updatedAssets = updatedAssets.filter(
       (a) => !(a.source === "dfd" && !dfdAssetIds.has(a.id)),
