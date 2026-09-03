@@ -12,7 +12,11 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { AssetGroup } from "shared";
-import type { DFDViewMode, AssetRelation } from "../models/dfd-types";
+import type {
+  DFDViewMode,
+  AssetRelation,
+  DFDElementType,
+} from "../models/dfd-types";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ControlInstance } from "shared/models/control-instance";
@@ -571,11 +575,24 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [editor],
   );
 
-  // Get current element's assets for dialog
+  // Get current element's assets for dialog. The dialog target can be an
+  // element OR a connection (DataFlow) — both carry assetRelations. Resolving
+  // only elements left a DataFlow with an undefined type, which yields the
+  // wrong allowed relations in the dialog (e.g. DataFlow→Function offered
+  // "is_an" instead of the correct "invokes").
   const currentElement = project.dfd?.elements.find(
     (e) => e.id === assetAssignment.dialogState.elementId,
   );
-  const currentRelations = currentElement?.assetRelations || [];
+  const currentConnection = project.dfd?.connections?.find(
+    (c) => c.id === assetAssignment.dialogState.elementId,
+  );
+  const currentRelations =
+    currentElement?.assetRelations ??
+    currentConnection?.assetRelations ??
+    [];
+  // Connections are always DataFlows for the purpose of allowed-relation lookup.
+  const currentElementType: DFDElementType | undefined =
+    currentElement?.type ?? (currentConnection ? "DataFlow" : undefined);
 
   // Get Selected Item (simplified)
   const selectedElement = selectedElementId
@@ -777,7 +794,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onClose={assetAssignment.closeDialog}
         elementId={assetAssignment.dialogState.elementId}
         elementLabel={assetAssignment.dialogState.elementLabel}
-        elementType={currentElement?.type}
+        elementType={currentElementType}
         availableAssets={dfd?.assets ?? []}
         currentAssignments={currentRelations}
         onSave={handleAssetSave}
