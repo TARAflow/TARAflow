@@ -142,6 +142,7 @@ class DFDService {
         graph,
         {
           unconnectedDataflows,
+          knownAssets: project.knownAssets,
         },
       );
 

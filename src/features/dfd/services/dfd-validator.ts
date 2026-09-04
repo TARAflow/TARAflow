@@ -52,6 +52,14 @@ export interface ValidationResult {
 export interface ValidateOptions {
   /** Labels of dataflows that are not connected to elements */
   unconnectedDataflows?: string[];
+  /**
+   * The CANONICAL asset registry (feature store) to validate asset relations
+   * against, instead of the dfd.assets mirror. The mirror can lag the store
+   * (it is stripped on disk and re-derived asynchronously), which produced
+   * false "asset not found" errors until the user visited the Asset tab. The
+   * feature store is the single source of truth and never lags.
+   */
+  knownAssets?: readonly { id: string; name: string }[];
 }
 
 /**
@@ -110,8 +118,15 @@ export class DFDValidator {
     // 3. Validate Asset Properties
     validateAssetProperties(assets, warnings);
 
-    // 4. Validate Asset Relations
-    validateAssetRelations(assets, elements, connections, errors, warnings);
+    // 4. Validate Asset Relations — against the canonical registry when the
+    //    caller supplies it (the mirror can lag), else the mirror.
+    validateAssetRelations(
+      options?.knownAssets ?? assets,
+      elements,
+      connections,
+      errors,
+      warnings,
+    );
 
     // 5. Validate Scenario & Completeness
     const scenario = validateScenario(

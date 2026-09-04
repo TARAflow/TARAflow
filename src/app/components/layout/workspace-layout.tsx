@@ -263,6 +263,11 @@ export const WorkspaceLayout: React.FC = () => {
   // invalidates when the content actually changes, not the reference.
   const phaseStatusKey = JSON.stringify(activeProject?.phaseStatus);
   const settingsKey = JSON.stringify(activeProject?.settings);
+  // Invalidate dfdTabProject when the canonical asset registry (ids/names)
+  // changes, so DFD validation always sees the current asset set.
+  const knownAssetsKey = JSON.stringify(
+    activeProject?.assets?.assets?.map((a) => [a.id, a.name]) ?? [],
+  );
 
   const dfdTabProject = useMemo(
     () =>
@@ -271,6 +276,13 @@ export const WorkspaceLayout: React.FC = () => {
             id: activeProject.id,
             name: activeProject.info?.name ?? "",
             dfd: activeProject.dfd ?? null,
+            // Canonical asset registry — validate DFD relations against the
+            // feature store (truth), not the lagging dfd.assets mirror.
+            knownAssets:
+              activeProject.assets?.assets?.map((a) => ({
+                id: a.id,
+                name: a.name,
+              })) ?? [],
             phaseStatus: activeProject.phaseStatus,
             settings: activeProject.settings,
             lastModified: activeProject.info?.lastModified ?? "",
@@ -286,6 +298,7 @@ export const WorkspaceLayout: React.FC = () => {
       // prevents memo invalidation when spread creates new object identity.
       phaseStatusKey,
       settingsKey,
+      knownAssetsKey,
     ],
   );
 

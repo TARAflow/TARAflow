@@ -333,6 +333,13 @@ export interface DFDProjectData {
   id: string;
   name: string;
   dfd: DFDData | null;
+  /**
+   * Canonical asset registry (id + name) from the feature store, used to
+   * validate DFD asset relations against the single source of truth rather
+   * than the dfd.assets mirror (which can lag). Optional: absent → validation
+   * falls back to the mirror.
+   */
+  knownAssets?: readonly { id: string; name: string }[];
   phaseStatus: PhaseStatusMap;
   settings: {
     autoSave: boolean;
