@@ -651,5 +651,6 @@
       "partiallyImplemented": "Partially implemented in DFD model",
       "partial": "Partially implemented"
     }
-  }
+  },
+  "UNRATED": "Unrated"
 }

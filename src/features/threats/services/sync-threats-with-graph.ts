@@ -2,6 +2,7 @@
 import type { ThreatProjectData } from "../models/threat-types";
 import type { DFDGraphReference } from "shared";
 import { elementThreatSync } from "./per-element/element-sync";
+import { buildElementToAssetsIndex } from "./per-element/element-generator";
 // NOTE: align path with the per-element import above (per-interaction/ sibling).
 import { interactionThreatSync } from "./per-interaction/interaction-sync";
 
@@ -37,7 +38,80 @@ export function syncThreatsWithGraph(
     working = syncPerElementThreats(working, graph, assetDataRef);
   }
 
+  // ── Asset-link freshness ────────────────────────────────────────────────
+  // A threat's linkedAssetIds is a cache of the element→asset index taken at
+  // GENERATION time. When an asset relation is later added/removed on the DFD
+  // (e.g. a DataFlow gains a safety-function asset), the cache goes stale and
+  // the risk — which inherits linkedAssetIds from the threat — never sees the
+  // asset, so its EN 50742 severity can't resolve. Re-derive linkedAssetIds
+  // from the CURRENT asset store on every graph sync so the chain stays live.
+  working = refreshLinkedAssets(working, assetDataRef);
+
   return working;
+}
+
+function sameIds(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((id) => set.has(id));
+}
+
+/**
+ * Re-derive every threat's linkedAssetIds from the current asset store, so a
+ * DFD asset-relation change propagates threat → risk without a full
+ * regeneration. Per-element anchors read the element's assets directly;
+ * per-interaction anchors union the connection + both endpoints (mirrors the
+ * generators). Only rewrites a threat object when its asset set actually
+ * changed, to avoid needless churn.
+ */
+export function refreshLinkedAssets(
+  bundle: ThreatBundle,
+  assetDataRef: ThreatProjectData["assetDataRef"],
+): ThreatBundle {
+  if (!assetDataRef) return bundle;
+  const index = buildElementToAssetsIndex(assetDataRef);
+
+  const refreshThreat = <T extends ThreatBundle["perElementTables"][number]["threats"][number]>(
+    threat: T,
+  ): T => {
+    let ids: string[] | undefined;
+    const df = threat.dataFlow;
+    if (df?.connectionId) {
+      ids = [
+        ...new Set([
+          ...(index.get(df.connectionId) ?? []),
+          ...(df.fromElementId ? (index.get(df.fromElementId) ?? []) : []),
+          ...(df.toElementId ? (index.get(df.toElementId) ?? []) : []),
+        ]),
+      ];
+    } else if (threat.linkedElement?.elementId) {
+      ids = index.get(threat.linkedElement.elementId) ?? [];
+    }
+    if (ids === undefined) return threat;
+    if (sameIds(threat.linkedAssetIds ?? [], ids)) return threat;
+    return { ...threat, linkedAssetIds: ids };
+  };
+
+  const refreshTables = <
+    TT extends { threats: unknown[] },
+  >(
+    tables: TT[] | undefined,
+  ): TT[] | undefined =>
+    tables?.map((t) => ({
+      ...t,
+      threats: (t.threats as Parameters<typeof refreshThreat>[0][]).map(
+        refreshThreat,
+      ),
+    }));
+
+  return {
+    ...bundle,
+    perElementTables: refreshTables(bundle.perElementTables) ??
+      bundle.perElementTables,
+    perInteractionTables:
+      refreshTables(bundle.perInteractionTables) ??
+      bundle.perInteractionTables,
+  };
 }
 
 function syncPerElementThreats(

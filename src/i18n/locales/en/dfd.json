@@ -228,6 +228,7 @@
       },
       "element_description": {
         "title": "Element Descriptions",
+        "safetyAnnotation": { "title": "Safety Annotations" },
         "assets": "Assets",
         "dataFlows": "Data Flows",
         "tabs": {

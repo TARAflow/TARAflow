@@ -21,7 +21,8 @@
         "med": "MEDIUM",
         "high": "HIGH",
         "highPlus": "HIGH+",
-        "critical": "CRITICAL"
+        "critical": "CRITICAL",
+        "medPlus": "MED+"
       },
       "securityGoals": {
         "C": {
