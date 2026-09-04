@@ -150,7 +150,7 @@ export const HTML_EXTENDED_TEMPLATES = {
   assetRelationSection: (lang: DocLanguage) =>
     lang === "de"
       ? `<div class="asset-section">
-  <h3>{{assetId}}: {{assetName}}</h3>
+  <h3>{{assetDisplayId}}: {{assetName}}</h3>
   
   {{#assetDescription}}<p class="asset-description"><strong>Beschreibung:</strong> {{assetDescription}}</p>{{/assetDescription}}
   
@@ -163,7 +163,7 @@ export const HTML_EXTENDED_TEMPLATES = {
 
 `
       : `<div class="asset-section">
-  <h3>{{assetId}}: {{assetName}}</h3>
+  <h3>{{assetDisplayId}}: {{assetName}}</h3>
   
   {{#assetDescription}}<p class="asset-description"><strong>Description:</strong> {{assetDescription}}</p>{{/assetDescription}}
   

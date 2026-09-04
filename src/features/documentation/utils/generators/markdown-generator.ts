@@ -197,6 +197,18 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_TEMPLATES.riskRow;
   }
 
+  getSRSLHeaderTemplate(): string {
+    return MD_TEMPLATES.srslHeader(this.ctx.lang);
+  }
+
+  getSRSLTableTemplate(): string {
+    return MD_TEMPLATES.srslTable(this.ctx.lang);
+  }
+
+  getSRSLRowTemplate(): string {
+    return MD_TEMPLATES.srslRow;
+  }
+
   getAcceptedRisksTemplate(): string {
     return MD_TEMPLATES.acceptedRisks(this.ctx.lang);
   }

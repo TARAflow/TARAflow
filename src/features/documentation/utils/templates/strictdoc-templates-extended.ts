@@ -173,7 +173,7 @@ This chapter shows which DFD elements are related to which assets.
   assetRelationSection: (lang: DocLanguage) =>
     lang === "de"
       ? `[SECTION]
-TITLE: {{assetId}}: {{assetName}}
+TITLE: {{assetDisplayId}}: {{assetName}}
 
 [FREETEXT]
 {{#assetDescription}}**Beschreibung**: {{assetDescription}}
@@ -188,7 +188,7 @@ TITLE: {{assetId}}: {{assetName}}
 
 `
       : `[SECTION]
-TITLE: {{assetId}}: {{assetName}}
+TITLE: {{assetDisplayId}}: {{assetName}}
 
 [FREETEXT]
 {{#assetDescription}}**Description**: {{assetDescription}}

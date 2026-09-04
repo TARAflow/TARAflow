@@ -484,9 +484,12 @@ function buildGroupsFromLayout(
 
 // ==================== ASSET RELATION FORMATTING ====================
 
+type AssetNameResolver = (assetId: string) => string;
+
 export function formatElementAssetRelations(
   element: DFDElement,
   lang: DocLanguage,
+  resolveAssetName?: AssetNameResolver,
 ): string {
   if (!element.assetRelations || element.assetRelations.length === 0) {
     return "N/A";
@@ -497,7 +500,8 @@ export function formatElementAssetRelations(
       const relationLabel = rel.relationType
         ? getRelationTypeLabel(rel.relationType, lang)
         : "";
-      return `${rel.assetId} (${relationLabel})`;
+      const name = resolveAssetName ? resolveAssetName(rel.assetId) : rel.assetId;
+      return `${name} (${relationLabel})`;
     })
     .join("; ");
 }
@@ -508,6 +512,7 @@ export function formatElementAssetRelations(
 export function formatConnectionAssetRelations(
   connection: DFDConnection,
   lang: DocLanguage,
+  resolveAssetName?: AssetNameResolver,
 ): string {
   if (!connection.assetRelations || connection.assetRelations.length === 0) {
     return "N/A";
@@ -518,20 +523,26 @@ export function formatConnectionAssetRelations(
       const relationLabel = rel.relationType
         ? getRelationTypeLabel(rel.relationType, lang)
         : "";
-      return `${rel.assetId} (${relationLabel})`;
+      const name = resolveAssetName ? resolveAssetName(rel.assetId) : rel.assetId;
+      return `${name} (${relationLabel})`;
     })
     .join("; ");
 }
 
 /**
- * Get asset IDs as comma-separated list for overview table
+ * Get asset names as comma-separated list for overview table
  */
 
-export function getAssetIdList(element: DFDElement | DFDConnection): string {
+export function getAssetIdList(
+  element: DFDElement | DFDConnection,
+  resolveAssetName?: AssetNameResolver,
+): string {
   const relations = element.assetRelations;
   if (!relations || relations.length === 0) return "N/A";
-  
-  return relations.map((rel) => rel.assetId).join(", ");
+
+  return relations
+    .map((rel) => (resolveAssetName ? resolveAssetName(rel.assetId) : rel.assetId))
+    .join(", ");
 }
 
 // ==================== LEGACY COMPATIBILITY (for base-generator) ====================

@@ -473,6 +473,36 @@ The following table shows the risk assessment for threats from the STRIDE-per-In
   riskRow: `| <a id="risk-{{threatId}}"></a>[{{threatId}}](#threat-{{threatId}}) | {{threatDescription}} | {{riskBeforeLabel}} | {{mitigations}} | {{riskAfterLabel}} | {{moscowLabel}} | {{statusLabel}} |
 `,
 
+  // ==================== SRSL ASSESSMENT (EN 50742 A) ====================
+  srslHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `## SRSL-Bewertung (EN 50742 Approach A)
+
+Der Security-Related Safety Level (SRSL) wird aus dem Attack Potential AP = (EL × WoO) + AC (Table B.4/B.5) und der Severity des verknüpften Safety-Function-Assets (Table B.6) bestimmt. Der SRSL ist **getrennt** vom Rest-Risiko R = L × I: EL, WoO und AC speisen ausschliesslich den SRSL, nicht die Likelihood.
+
+`
+      : `## SRSL Assessment (EN 50742 Approach A)
+
+The Security-Related Safety Level (SRSL) is derived from the attack potential AP = (EL × WoO) + AC (Table B.4/B.5) and the severity of the linked safety-function asset (Table B.6). SRSL is **separate** from the residual risk R = L × I: EL, WoO and AC feed only the SRSL, not the likelihood.
+
+`,
+
+  srslTable: (lang: DocLanguage) =>
+    lang === "de"
+      ? `| T-ID | Safety-Asset | Severity | EL | WoO | AC | AP | SRSL |
+|------|--------------|----------|----|-----|----|----|------|
+{{srslRows}}
+
+`
+      : `| T-ID | Safety Asset | Severity | EL | WoO | AC | AP | SRSL |
+|------|--------------|----------|----|-----|----|----|------|
+{{srslRows}}
+
+`,
+
+  srslRow: `| [{{threatId}}](#threat-{{threatId}}) | {{asset}} | {{severity}} | {{el}} | {{woo}} | {{ac}} | {{ap}} | {{srsl}} |
+`,
+
   // ==================== ACCEPTED RISKS ====================
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"

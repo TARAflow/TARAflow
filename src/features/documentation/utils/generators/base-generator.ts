@@ -22,6 +22,7 @@ import type {
 } from "../../../dfd/models/dfd-types";
 import type { Asset } from "features/assets";
 import { deriveImplementationProgress } from "../../../risks/models/risk-mitigation-types";
+import { en50742LevelFromRating } from "../../../risks/models/en50742-approach-a-core";
 import {
   getSecurityLevelText,
   getTrustLevelText,
@@ -112,6 +113,11 @@ export abstract class BaseDocumentGenerator {
     };
   }
 
+  /** Resolve an asset id to its display name (falls back to the id). */
+  protected resolveAssetName = (assetId: string): string =>
+    this.ctx.project.assets?.assets?.find((a) => a.id === assetId)?.name ??
+    assetId;
+
   // ==================== ABSTRACT METHODS ====================
   // Must be implemented by concrete generators
 
@@ -154,6 +160,18 @@ export abstract class BaseDocumentGenerator {
   ): string;
   abstract getRisksTableTemplate(): string;
   abstract getRiskRowTemplate(): string;
+  // EN 50742 SRSL table — default empty so a format that has not implemented
+  // it yet simply produces no SRSL chapter (auto-hidden). Overridden in the
+  // markdown and asciidoc generators.
+  protected getSRSLHeaderTemplate(): string {
+    return "";
+  }
+  protected getSRSLTableTemplate(): string {
+    return "";
+  }
+  protected getSRSLRowTemplate(): string {
+    return "";
+  }
   abstract getAcceptedRisksTemplate(): string;
   abstract getWontRiskRowTemplate(): string;
   abstract getAppendixTemplate(): string;
@@ -263,6 +281,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateRisks(title, "per-element");
       case "risks-per-interaction":
         return this.generateRisks(title, "per-interaction");
+      case "srsl-assessment":
+        return this.generateSRSLAssessment(title);
       case "accepted-risks":
         return this.generateAcceptedRisks(title);
       case "appendix":
@@ -534,7 +554,7 @@ export abstract class BaseDocumentGenerator {
           description: this.escapeTableText(
             truncateText(element.description ?? "-", 60),
           ),
-          assets: this.escapeTableText(getAssetIdList(element)),
+          assets: this.escapeTableText(getAssetIdList(element, this.resolveAssetName)),
         };
         return replacePlaceholders(
           this.getElementOverviewRowTemplate(),
@@ -602,7 +622,7 @@ export abstract class BaseDocumentGenerator {
 
     const propertyGroups = getElementPropertiesGrouped(element, lang);
     const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
-    const assetRelations = formatElementAssetRelations(element, lang);
+    const assetRelations = formatElementAssetRelations(element, lang, this.resolveAssetName);
 
     const values = {
       displayId: element.displayId || element.id,
@@ -637,7 +657,7 @@ export abstract class BaseDocumentGenerator {
 
     const propertyGroups = getConnectionPropertiesGrouped(connection, lang);
     const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
-    const assetRelations = formatConnectionAssetRelations(connection, lang);
+    const assetRelations = formatConnectionAssetRelations(connection, lang, this.resolveAssetName);
 
     const values = {
       displayId: connection.displayId || connection.id,
@@ -784,6 +804,7 @@ export abstract class BaseDocumentGenerator {
 
     const values = {
       assetId: asset.id,
+      assetDisplayId: asset.displayId ?? asset.id,
       assetName: this.escapeTableText(asset.name),
       assetDescription: asset.properties?.description
         ? this.escapeTableText(asset.properties.description)
@@ -1081,6 +1102,81 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  // ==================== SRSL ASSESSMENT (EN 50742 A) ====================
+
+  /**
+   * EN 50742 Approach A SRSL table: one row per risk that has an exposure
+   * anchor (EL > 0), showing the linked safety-function asset + severity, and
+   * the attack-potential inputs EL / WoO / AC → AP → SRSL. Separate from the
+   * R = L × I risk register. Only rendered for en-50742-a projects and only for
+   * formats that implement the templates (else auto-hidden).
+   */
+  protected generateSRSLAssessment(title: string): ChapterContent {
+    const { project } = this.ctx;
+    const chapterId = "srsl-assessment";
+    const config = project.risks?.configuration;
+    const tableTemplate = this.getSRSLTableTemplate();
+
+    if (config?.likelihoodMethod !== "en-50742-a" || !tableTemplate) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+
+    const woo = config.windowOfOpportunity ?? "-";
+    const assetsById = new Map(
+      (project.assets?.assets ?? []).map((a) => [a.id, a]),
+    );
+    const ratingValue = (
+      risk: { factorRatings?: { factorId: string; value: number }[] },
+      factorId: string,
+    ): number =>
+      risk.factorRatings?.find((f) => f.factorId === factorId)?.value ?? 0;
+
+    const srslRows = (project.risks?.risks ?? [])
+      .filter((r) => r.moscowPriority !== "wont")
+      .filter((r) => ratingValue(r, "exposure_level") > 0)
+      .map((risk) => {
+        const el =
+          en50742LevelFromRating(
+            "exposure_level",
+            ratingValue(risk, "exposure_level"),
+          ) ?? "-";
+        const ac =
+          en50742LevelFromRating(
+            "attacker_capability",
+            ratingValue(risk, "attacker_capability"),
+          ) ?? "-";
+        const linked = (risk.linkedAssetIds ?? [])
+          .map((id) => assetsById.get(id))
+          .filter((a): a is NonNullable<typeof a> => Boolean(a));
+        const safetyAsset =
+          linked.find((a) => a.physicalImpact) ?? linked[0] ?? null;
+        const values = {
+          threatId: risk.threatDisplayId,
+          asset: this.escapeTableText(safetyAsset?.name ?? "-"),
+          severity: safetyAsset?.physicalImpact ?? "-",
+          el,
+          woo,
+          ac,
+          ap:
+            risk.calculatedApScore != null
+              ? `${risk.calculatedApScore} (${risk.calculatedApBand ?? "-"})`
+              : "-",
+          srsl: risk.calculatedSrsl ?? "-",
+        };
+        return replacePlaceholders(this.getSRSLRowTemplate(), values);
+      })
+      .join("");
+
+    if (!srslRows) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+
+    let content = this.getSRSLHeaderTemplate();
+    content += replacePlaceholders(tableTemplate, { srslRows });
+
+    return { id: chapterId, title, content, hasContent: true };
   }
 
   // ==================== ACCEPTED RISKS ====================

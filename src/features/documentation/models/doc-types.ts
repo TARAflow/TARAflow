@@ -33,6 +33,7 @@ export type DocChapterId =
   | "threats-per-interaction"
   | "risks-per-element"
   | "risks-per-interaction"
+  | "srsl-assessment"
   | "accepted-risks"
   | "attack-trees"
   | "appendix";
@@ -78,6 +79,11 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Risk Assessment (STRIDE per Interaction)",
     de: "Risikobewertung (STRIDE pro Interaktion)",
   },
+  "srsl-assessment": {
+    en: "SRSL Assessment (EN 50742 Approach A)",
+    de: "SRSL-Bewertung (EN 50742 Approach A)",
+  },
+
   "accepted-risks": {
     en: "Accepted Risks (Won't Address)",
     de: "Akzeptierte Risiken (Wird nicht behandelt)",
@@ -98,10 +104,25 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "threats-per-interaction", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-interaction", enabled: true, autoHideIfEmpty: true },
+  { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
   { id: "attack-trees", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];
+
+/**
+ * Ensure a (possibly older, persisted) chapter list contains every default
+ * chapter, in the canonical order, preserving each existing chapter's enabled
+ * state / settings. New default chapters (e.g. the EN 50742 SRSL assessment
+ * added later) are inserted so existing projects pick them up without a
+ * migration.
+ */
+export function withDefaultChapters(
+  chapters: DocChapterConfig[] | undefined,
+): DocChapterConfig[] {
+  const byId = new Map((chapters ?? []).map((c) => [c.id, c]));
+  return DEFAULT_CHAPTER_CONFIG.map((def) => byId.get(def.id) ?? { ...def });
+}
 
 // ==================== TEMPLATE CONFIGURATION ====================
 

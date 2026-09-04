@@ -12,7 +12,7 @@ import type {
   DocLanguage,
   DocChapterId,
 } from "../models/doc-types";
-import { createDefaultDocData, isChapterVisible } from "../models/doc-types";
+import { createDefaultDocData, isChapterVisible, withDefaultChapters } from "../models/doc-types";
 import {
   generateDocument,
   validateProjectForDoc,
@@ -71,6 +71,19 @@ export interface UseDocumentGenerationReturn {
 
 // ==================== HOOK ====================
 
+
+// Merge any default chapters missing from a persisted config (e.g. the EN 50742
+// SRSL chapter added later) so existing projects show them.
+function withMergedChapters(docData: DocData): DocData {
+  return {
+    ...docData,
+    configuration: {
+      ...docData.configuration,
+      chapters: withDefaultChapters(docData.configuration.chapters),
+    },
+  };
+}
+
 export const useDocumentGeneration = ({
   project,
   onUpdate,
@@ -90,7 +103,7 @@ export const useDocumentGeneration = ({
 
   // Documentation data (local working copy)
   const [docData, setDocData] = useState<DocData>(() => {
-    return project.documentation ?? createDefaultDocData();
+    return withMergedChapters(project.documentation ?? createDefaultDocData());
   });
 
   // Generated content
@@ -165,6 +178,10 @@ export const useDocumentGeneration = ({
       "threats-per-interaction": threats.perInteraction > 0,
       "risks-per-element": risks.perElement > 0,
       "risks-per-interaction": risks.perInteraction > 0,
+      // EN 50742 SRSL chapter — only for en-50742-a projects (the generator
+      // additionally auto-hides when no risk carries an exposure anchor).
+      "srsl-assessment":
+        project.risks?.configuration?.likelihoodMethod === "en-50742-a",
       "accepted-risks": risks.wont > 0,
       "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
       appendix: true, // Always has content
@@ -204,7 +221,7 @@ export const useDocumentGeneration = ({
   // Sync from project when it changes
   useEffect(() => {
     if (project.documentation) {
-      setDocData(project.documentation);
+      setDocData(withMergedChapters(project.documentation));
     }
   }, [project.documentation]);
 
