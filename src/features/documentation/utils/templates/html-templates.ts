@@ -538,6 +538,57 @@ export const HTML_TEMPLATES = {
       </tr>
 `,
 
+  // ==================== SRSL ASSESSMENT (EN 50742 A) ====================
+  srslHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `<section id="srsl-bewertung">
+  <h2>SRSL-Bewertung (EN 50742 Approach A)</h2>
+  <p>Der Security-Related Safety Level (SRSL) wird aus dem Attack Potential AP = (EL &times; WoO) + AC (Table B.4/B.5) und der Severity des verkn&uuml;pften Safety-Function-Assets (Table B.6) bestimmt. Der SRSL ist <strong>getrennt</strong> vom Rest-Risiko R = L &times; I: EL, WoO und AC speisen ausschliesslich den SRSL, nicht die Likelihood.</p>
+
+`
+      : `<section id="srsl-assessment">
+  <h2>SRSL Assessment (EN 50742 Approach A)</h2>
+  <p>The Security-Related Safety Level (SRSL) is derived from the attack potential AP = (EL &times; WoO) + AC (Table B.4/B.5) and the severity of the linked safety-function asset (Table B.6). SRSL is <strong>separate</strong> from the residual risk R = L &times; I: EL, WoO and AC feed only the SRSL, not the likelihood.</p>
+
+`,
+
+  srslTable: (lang: DocLanguage) =>
+    lang === "de"
+      ? `  <table>
+    <thead>
+      <tr><th>T-ID</th><th>Safety-Asset</th><th>Severity</th><th>EL</th><th>WoO</th><th>AC</th><th>AP</th><th>SRSL</th></tr>
+    </thead>
+    <tbody>
+{{srslRows}}
+    </tbody>
+  </table>
+</section>
+
+`
+      : `  <table>
+    <thead>
+      <tr><th>T-ID</th><th>Safety Asset</th><th>Severity</th><th>EL</th><th>WoO</th><th>AC</th><th>AP</th><th>SRSL</th></tr>
+    </thead>
+    <tbody>
+{{srslRows}}
+    </tbody>
+  </table>
+</section>
+
+`,
+
+  srslRow: `      <tr>
+        <td><a href="#threat-{{threatId}}">{{threatId}}</a></td>
+        <td>{{asset}}</td>
+        <td>{{severity}}</td>
+        <td>{{el}}</td>
+        <td>{{woo}}</td>
+        <td>{{ac}}</td>
+        <td>{{ap}}</td>
+        <td>{{srsl}}</td>
+      </tr>
+`,
+
   // ==================== ACCEPTED RISKS ====================
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"

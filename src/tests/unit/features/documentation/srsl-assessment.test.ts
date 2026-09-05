@@ -136,3 +136,30 @@ describe("withDefaultChapters — existing projects pick up new chapters", () =>
     expect(merged.find((c) => c.id === "risks-per-element")?.enabled).toBe(true);
   });
 });
+
+import { HtmlGenerator } from "features/documentation/utils/generators/html-generator";
+import { StrictdocGenerator } from "features/documentation/utils/generators/strictdoc-generator";
+
+describe("SRSL Assessment chapter — html + strictdoc", () => {
+  it("html: renders the SRSL table for en-50742-a", () => {
+    const gen = new HtmlGenerator(project("en-50742-a"), config, t);
+    const chapter = srsl(gen as never);
+    expect(chapter.hasContent).toBe(true);
+    expect(chapter.content).toContain("SRSL Assessment (EN 50742 Approach A)");
+    expect(chapter.content).toContain("<td>Config Data</td>");
+    expect(chapter.content).toContain("SRSL3");
+  });
+
+  it("strictdoc: renders the SRSL requirements for en-50742-a", () => {
+    const gen = new StrictdocGenerator(project("en-50742-a"), config, t);
+    const chapter = srsl(gen as never);
+    expect(chapter.hasContent).toBe(true);
+    expect(chapter.content).toContain("UID: SRSL-DF-3-T-1");
+    expect(chapter.content).toContain("SRSL: SRSL3");
+  });
+
+  it("html: auto-hides for a non-en-50742-a project", () => {
+    const gen = new HtmlGenerator(project("standard"), config, t);
+    expect(srsl(gen as never).hasContent).toBe(false);
+  });
+});

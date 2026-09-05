@@ -7,6 +7,7 @@
 
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
+import { en50742LevelFromRating } from "../../../risks/models/en50742-approach-a-core";
 import {
   formatDocDate,
   getChapterTitle,
@@ -257,6 +258,9 @@ export class PdfMakeConverter {
           if (this.hasRisks()) {
             content.push(...this.createRisks());
           }
+          break;
+        case "srsl-assessment":
+          content.push(...this.createSRSLAssessment());
           break;
         case "accepted-risks":
           if (this.getWontRisks().length > 0) {
@@ -704,6 +708,88 @@ export class PdfMakeConverter {
   }
 
   // ==================== RISKS ====================
+
+  // EN 50742 Approach A SRSL table (pdfmake). One row per risk with an exposure
+  // anchor (EL > 0); en-50742-a projects only. Mirrors createRisks().
+  private createSRSLAssessment(): Content[] {
+    const config = this.project.risks?.configuration;
+    if (config?.likelihoodMethod !== "en-50742-a") return [];
+
+    const woo = config.windowOfOpportunity ?? "-";
+    const assetsById = new Map(
+      (this.project.assets?.assets ?? []).map((a) => [a.id, a]),
+    );
+    const ratingValue = (
+      risk: { factorRatings?: { factorId: string; value: number }[] },
+      factorId: string,
+    ): number =>
+      risk.factorRatings?.find((f) => f.factorId === factorId)?.value ?? 0;
+
+    const rows = (this.project.risks?.risks ?? []).filter(
+      (r) => r.moscowPriority !== "wont" && ratingValue(r, "exposure_level") > 0,
+    );
+    if (rows.length === 0) return [];
+
+    const content: Content[] = [];
+    content.push({
+      text: this.chapterTitle("srsl-assessment"),
+      style: "h1",
+      tocItem: true,
+    });
+
+    const tableBody: TableCell[][] = [
+      [
+        { text: "T-ID", style: "tableHeader" },
+        { text: "Safety Asset", style: "tableHeader" },
+        { text: "Severity", style: "tableHeader" },
+        { text: "EL", style: "tableHeader" },
+        { text: "WoO", style: "tableHeader" },
+        { text: "AC", style: "tableHeader" },
+        { text: "AP", style: "tableHeader" },
+        { text: "SRSL", style: "tableHeader" },
+      ],
+    ];
+
+    for (const risk of rows) {
+      const el =
+        en50742LevelFromRating(
+          "exposure_level",
+          ratingValue(risk, "exposure_level"),
+        ) ?? "-";
+      const ac =
+        en50742LevelFromRating(
+          "attacker_capability",
+          ratingValue(risk, "attacker_capability"),
+        ) ?? "-";
+      const linked = (risk.linkedAssetIds ?? [])
+        .map((id) => assetsById.get(id))
+        .filter((a): a is NonNullable<typeof a> => Boolean(a));
+      const safetyAsset =
+        linked.find((a) => a.physicalImpact) ?? linked[0] ?? null;
+      const ap =
+        risk.calculatedApScore != null
+          ? `${risk.calculatedApScore} (${risk.calculatedApBand ?? "-"})`
+          : "-";
+      tableBody.push([
+        { text: risk.threatDisplayId },
+        { text: safetyAsset?.name ?? "-" },
+        { text: safetyAsset?.physicalImpact ?? "-" },
+        { text: el, alignment: "center" },
+        { text: woo, alignment: "center" },
+        { text: ac, alignment: "center" },
+        { text: ap, alignment: "center" },
+        { text: risk.calculatedSrsl ?? "-", alignment: "center" },
+      ]);
+    }
+
+    content.push({
+      table: { headerRows: 1, widths: ["auto", "*", "auto", "auto", "auto", "auto", "auto", "auto"], body: tableBody },
+      layout: "lightHorizontalLines",
+      margin: [0, 4, 0, 12],
+    });
+
+    return content;
+  }
 
   private createRisks(): Content[] {
     const content: Content[] = [];

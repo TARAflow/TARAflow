@@ -399,6 +399,18 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
   // (RISIKO_VORHER / RISIKO_NACHHER for DE, RISK_BEFORE / RISK_AFTER for EN).
   // We override getRiskRowTemplate to pick the right field names at runtime.
 
+  getSRSLHeaderTemplate(): string {
+    return SDOC_TEMPLATES.srslHeader(this.ctx.lang);
+  }
+
+  getSRSLTableTemplate(): string {
+    return SDOC_TEMPLATES.srslTable(this.ctx.lang);
+  }
+
+  getSRSLRowTemplate(): string {
+    return SDOC_TEMPLATES.srslRow;
+  }
+
   override getRiskRowTemplate(): string {
     if (this.ctx.lang === "de") {
       return `[REQUIREMENT]

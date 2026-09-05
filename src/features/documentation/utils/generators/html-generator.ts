@@ -241,6 +241,18 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.riskRow;
   }
 
+  getSRSLHeaderTemplate(): string {
+    return HTML_TEMPLATES.srslHeader(this.ctx.lang);
+  }
+
+  getSRSLTableTemplate(): string {
+    return HTML_TEMPLATES.srslTable(this.ctx.lang);
+  }
+
+  getSRSLRowTemplate(): string {
+    return HTML_TEMPLATES.srslRow;
+  }
+
   getAcceptedRisksTemplate(): string {
     return HTML_TEMPLATES.acceptedRisks(this.ctx.lang);
   }

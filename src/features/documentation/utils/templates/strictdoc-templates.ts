@@ -676,6 +676,46 @@ RELATIONS:
 
 `,
 
+  // ==================== SRSL ASSESSMENT (EN 50742 A) ====================
+  srslHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: SRSL-Bewertung (EN 50742 Approach A)
+
+[FREETEXT]
+Der Security-Related Safety Level (SRSL) wird aus dem Attack Potential AP = (EL x WoO) + AC (Table B.4/B.5) und der Severity des verknuepften Safety-Function-Assets (Table B.6) bestimmt. Der SRSL ist getrennt vom Rest-Risiko R = L x I: EL, WoO und AC speisen ausschliesslich den SRSL, nicht die Likelihood.
+[/FREETEXT]
+
+`
+      : `[SECTION]
+TITLE: SRSL Assessment (EN 50742 Approach A)
+
+[FREETEXT]
+The Security-Related Safety Level (SRSL) is derived from the attack potential AP = (EL x WoO) + AC (Table B.4/B.5) and the severity of the linked safety-function asset (Table B.6). SRSL is separate from the residual risk R = L x I: EL, WoO and AC feed only the SRSL, not the likelihood.
+[/FREETEXT]
+
+`,
+
+  srslTable: (_lang: DocLanguage) => `{{srslRows}}[/SECTION]
+
+`,
+
+  srslRow: `[REQUIREMENT]
+UID: SRSL-{{threatId}}
+TITLE: SRSL for {{threatId}}
+SRSL: {{srsl}}
+ATTACK_POTENTIAL: {{ap}}
+EXPOSURE_LEVEL: {{el}}
+WINDOW_OF_OPPORTUNITY: {{woo}}
+ATTACKER_CAPABILITY: {{ac}}
+SEVERITY: {{severity}}
+SAFETY_ASSET: {{asset}}
+RELATIONS:
+- TYPE: Parent
+  VALUE: {{threatId}}
+
+`,
+
   // ==================== ACCEPTED RISKS ====================
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"
