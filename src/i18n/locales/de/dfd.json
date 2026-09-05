@@ -378,7 +378,7 @@
               "none": "Keine",
               "reversible_injury": "Reversible Verletzung",
               "irreversible_injury": "Irreversible Verletzung",
-              "fatality": "Todesfall"
+              "fatality": "Fatal"
             },
             "hazardOptions": {
               "not_set": "Nicht gesetzt",
@@ -723,7 +723,7 @@
                   "none": "Keine",
                   "reversible_injury": "Reversible Verletzung",
                   "irreversible_injury": "Irreversible Verletzung",
-                  "fatality": "Todesfall"
+                  "fatality": "Fatal"
                 }
               },
               "physicalHazardPotential": {

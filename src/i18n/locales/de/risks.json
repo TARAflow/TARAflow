@@ -166,7 +166,7 @@
         "tableScoreRange": "Score",
         "tableBand": "Band",
         "srslNoSeverityCompact": "Kein verknüpftes Safety-Function-Asset für Severity",
-        "srslNoSeverityTooltip": "Für SRSL fehlt die Severity – sie stammt aus einem verknüpften Safety-Function-Asset mit physischer Auswirkung.\n\n1. Im Asset-Tab ein Safety-Function-Asset anlegen und dessen Physical Impact setzen (Safety Impact Manual Override + Begründung).\n2. Es mit dem Anker dieses Threats verknüpfen: ein Interface kann es „invokes“ oder „monitors“, ein DataFlow „invokes“.\n\nDie Severity fließt dann Anker → Threat → Risk und der SRSL wird berechnet.",
+        "srslNoSeverityTooltip": "Für SRSL fehlt die Severity – sie stammt aus einem verknüpften Safety-Function-Asset mit physischer Auswirkung.\n\n1. Im Asset-Tab ein Safety-Function-Asset anlegen und dessen Physical Impact setzen (Safety Impact Manual Override + Begründung).\n2. Im DFD-Tab dieses Asset mit dem Anker dieses Threats verknüpfen (Interface: „invokes“/„monitors“; DataFlow: „invokes“).\n\nDie Severity fließt dann Anker → Threat → Risk und der SRSL wird berechnet.",
         "en50742Mandated": "EN 50742 A"
       },
       "config": {

@@ -341,7 +341,7 @@
         },
         "4": {
           "label": "Critical",
-          "severity": "Fatality"
+          "severity": "Fatal"
         }
       },
       "config": {

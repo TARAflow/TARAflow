@@ -340,7 +340,7 @@
         },
         "4": {
           "label": "Kritisch",
-          "severity": "Tödlich"
+          "severity": "Fatal"
         }
       },
       "config": {
