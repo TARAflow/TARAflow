@@ -115,6 +115,7 @@ import {
   en50742LevelFromRating,
   en50742LevelLabel,
   mandatedRequirementsForThreat,
+  formatMandatedControlLabel,
   EN50742_FACTOR_LEVELS,
   EN50742_SRSL_FACTOR_IDS,
   EXPOSURE_LEVEL_SCORE,
@@ -496,7 +497,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     if (!anchorType || !stride) return [];
     return mandatedRequirementsForThreat(anchorType, stride, srsl).map((r) => ({
       id: `en50742-${r.clause}`,
-      text: `${r.category} — ${r.requirement} (${r.clause})`,
+      // Full "EN50742: <category> — <requirement> (<clause>)" label, matching
+      // the risk-table tooltip style.
+      text:
+        formatMandatedControlLabel(r.clause, srsl) ??
+        `EN50742: ${r.category} — ${r.requirement} (${r.clause})`,
       notes: undefined as string | undefined,
       isCustom: false,
       isMandated: true,
@@ -2131,9 +2136,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         const id = m.id ?? m.notes ?? "";
                         const isMandated =
                           "isMandated" in m && m.isMandated === true;
-                        const label = m.isCustom
-                          ? `[custom] ${m.notes ?? ""}`
-                          : `${m.id}: ${m.text}`;
+                        const label = isMandated
+                          ? m.text
+                          : m.isCustom
+                            ? `[custom] ${m.notes ?? ""}`
+                            : `${m.id}: ${m.text}`;
                         return (
                           <Paper
                             key={id}

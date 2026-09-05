@@ -287,6 +287,30 @@ export const EN50742_MANDATED_CLAUSES: Record<
  * requirements at that SRSL tier for the mapped clauses. Empty when STRIDE
  * mandates nothing (R/I/D) or the SRSL tier is "None" for those clauses.
  */
+/**
+ * A display label for a mandated control selected on a risk. The
+ * SelectedMitigation only stores the id `en50742-<clause>`; the human text
+ * depends on the SRSL tier, so it is recomposed from the profile here. Returns
+ * null if the clause is unknown or "None" at that tier. Shape mirrors the
+ * catalogue labels ("<id>: <text>") but keyed on the norm, not a catalogue id:
+ *   "EN50742: <category> — <requirement> (<clause>)"
+ */
+export function formatMandatedControlLabel(
+  clause: string,
+  srsl: Srsl,
+  profile: SrslProfile = EN50742_SRSL_PROFILE,
+): string | null {
+  const req = profile.find((r) => r.clause === clause);
+  const requirement = req?.tiers[srsl];
+  if (!req || requirement == null) return null;
+  return `EN50742: ${req.category} — ${requirement} (${clause})`;
+}
+
+/** Extract the clause from a mandated-control mitigation id, or null. */
+export function clauseFromMandatedId(id: string): string | null {
+  return id.startsWith("en50742-") ? id.slice("en50742-".length) : null;
+}
+
 export function mandatedRequirementsForThreat(
   anchorType: SrslAnchorType,
   stride: StrideCategory,

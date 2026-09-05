@@ -35,6 +35,10 @@ import {
 import { resolveMitigationDrafts } from "../../../threats/services/threat-catalog-service";
 import { SRSL_COLORS } from "./srsl-badge";
 import type { Srsl, AttackPotentialBand } from "../../models/en50742-approach-a-core";
+import {
+  formatMandatedControlLabel,
+  clauseFromMandatedId,
+} from "../../models/en50742-approach-a-core";
 import type { StrideCategory, DataColumn } from "shared";
 
 // ==================== COLUMN TYPE ====================
@@ -416,29 +420,29 @@ export const useRiskColumns = ({
             </Typography>
           );
 
-        // Resolve full text from catalog (same approach as threat-tables)
-        const selected =
-          risk.proposedMitigations?.filter((m) =>
-            risk.selectedMitigations.some(
-              (s) => s.id === (m.id ?? m.notes ?? ""),
-            ),
-          ) ?? [];
-        const resolved = resolveMitigationDrafts(selected);
-
-        const lines =
-          resolved.length > 0
-            ? resolved.map((m) =>
-                m.isCustom ? `[custom] ${m.notes ?? ""}` : `${m.id}: ${m.text}`,
-              )
-            : risk.selectedMitigations.map((s) => s.id ?? "");
+        // Resolve each selected mitigation to a display line. Catalogue entries
+        // use their localized text; custom entries their notes; EN 50742
+        // mandated controls (id "en50742-<clause>", not in the catalogue) are
+        // recomposed from the SRSL profile at the risk's SRSL tier.
+        const lines = risk.selectedMitigations.map((sel) => {
+          const id = sel.id ?? "";
+          const clause = clauseFromMandatedId(id);
+          if (clause && risk.calculatedSrsl) {
+            return (
+              formatMandatedControlLabel(clause, risk.calculatedSrsl) ??
+              `EN50742: ${clause}`
+            );
+          }
+          if (!sel.id) return `[custom] ${sel.notes ?? ""}`;
+          const [r] = resolveMitigationDrafts([
+            { id: sel.id, notes: sel.notes },
+          ]);
+          return `${sel.id}: ${r?.text ?? ""}`;
+        });
 
         const displayText = lines[0] ?? "";
-        const tooltipLines = lines.map((text, idx) => {
-          const mitigation = risk.selectedMitigations[idx];
-          const status = mitigation?.status ?? "open";
-          return `${text} [${status}]`;
-        });
-        const tooltipText = tooltipLines.join("\n");
+        // Status is shown in its own table column — no need to repeat it here.
+        const tooltipText = lines.join("\n");
 
         return (
           <Tooltip

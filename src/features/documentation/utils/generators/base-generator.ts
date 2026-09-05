@@ -1118,7 +1118,7 @@ export abstract class BaseDocumentGenerator {
    * formats that implement the templates (else auto-hidden).
    */
   protected generateSRSLAssessment(title: string): ChapterContent {
-    const { project } = this.ctx;
+    const { project, t } = this.ctx;
     const chapterId = "srsl-assessment";
     const config = project.risks?.configuration;
     const tableTemplate = this.getSRSLTableTemplate();
@@ -1127,7 +1127,7 @@ export abstract class BaseDocumentGenerator {
       return { id: chapterId, title, content: "", hasContent: false };
     }
 
-    const woo = config.windowOfOpportunity ?? "-";
+    const woo = t(config.windowOfOpportunity ?? "-");
     const assetsById = new Map(
       (project.assets?.assets ?? []).map((a) => [a.id, a]),
     );
@@ -1190,7 +1190,7 @@ export abstract class BaseDocumentGenerator {
         const values = {
           threatId: risk.threatDisplayId,
           asset: this.escapeTableText(safetyAsset?.name ?? "-"),
-          severity: safetyAsset?.physicalImpact ?? "-",
+          severity: t(safetyAsset?.physicalImpact ?? "-"),
           el,
           woo,
           ac,

@@ -719,7 +719,7 @@ export class PdfMakeConverter {
     const config = this.project.risks?.configuration;
     if (config?.likelihoodMethod !== "en-50742-a") return [];
 
-    const woo = config.windowOfOpportunity ?? "-";
+    const woo = (config.windowOfOpportunity ?? "-").replace(/_/g, " ");
     const assetsById = new Map(
       (this.project.assets?.assets ?? []).map((a) => [a.id, a]),
     );
@@ -806,7 +806,7 @@ export class PdfMakeConverter {
       tableBody.push([
         { text: risk.threatDisplayId },
         { text: safetyAsset?.name ?? "-" },
-        { text: safetyAsset?.physicalImpact ?? "-" },
+        { text: (safetyAsset?.physicalImpact ?? "-").replace(/_/g, " ") },
         { text: el, alignment: "center" },
         { text: woo, alignment: "center" },
         { text: ac, alignment: "center" },

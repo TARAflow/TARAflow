@@ -9,6 +9,8 @@ import { describe, it, expect } from "vitest";
 
 import {
   mandatedRequirementsForThreat,
+  formatMandatedControlLabel,
+  clauseFromMandatedId,
   EN50742_MANDATED_CLAUSES,
 } from "features/risks/models/en50742-approach-a-core";
 
@@ -72,5 +74,23 @@ describe("mandatedRequirementsForThreat (§11.4 STRIDE → mandated 7.4.3 contro
       "T",
     ]);
     expect(Object.keys(EN50742_MANDATED_CLAUSES.DataFlow)).toEqual(["T"]);
+  });
+});
+
+describe("formatMandatedControlLabel / clauseFromMandatedId", () => {
+  it("produces the EN50742 label style", () => {
+    const label = formatMandatedControlLabel("7.4.3.4.3", "SRSL3");
+    expect(label).toContain("EN50742: Information exchange integrity");
+    expect(label).toContain("(7.4.3.4.3)");
+  });
+
+  it("returns null for an unknown clause or a 'None' tier", () => {
+    expect(formatMandatedControlLabel("9.9.9", "SRSL3")).toBe(null);
+    expect(formatMandatedControlLabel("7.4.3.2.1", "SRSL0")).toBe(null);
+  });
+
+  it("extracts the clause from a mandated id", () => {
+    expect(clauseFromMandatedId("en50742-7.4.3.4.3")).toBe("7.4.3.4.3");
+    expect(clauseFromMandatedId("M-T-001")).toBe(null);
   });
 });
