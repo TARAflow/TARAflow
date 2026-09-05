@@ -288,3 +288,44 @@ describe("checkRiskSyncStatus — EN 50742 EL drift detection", () => {
     expect(status.needsSync).toBe(true);
   });
 });
+
+describe("checkRiskSyncStatus — asset-link drift detection", () => {
+  it("flags a risk whose linkedAssetIds no longer match the threat (needsSync)", () => {
+    const data = riskDataWithConfig(configWithELEnabled);
+    const threat: ThreatReference = {
+      ...perElementThreat("T-1", "if-1"),
+      linkedAssetIds: ["ASSET-NEW"], // DFD now relates this asset
+    };
+    const risk = createEmptyRisk(threat, data.configuration);
+    risk.linkedAssetIds = ["ASSET-OLD"]; // stale / manual link
+    const riskData: RiskData = { ...data, risks: [risk] };
+
+    const status = checkRiskSyncStatus(
+      riskData,
+      [threat],
+      dfdWithElementEL("if-1", "EL2"),
+    );
+
+    expect(status.changedLinkedAssets).toBe(1);
+    expect(status.needsSync).toBe(true);
+  });
+
+  it("does not flag when the risk already carries the threat's asset set", () => {
+    const data = riskDataWithConfig(configWithELEnabled);
+    const threat: ThreatReference = {
+      ...perElementThreat("T-1", "if-1"),
+      linkedAssetIds: ["ASSET-A"],
+    };
+    const risk = createEmptyRisk(threat, data.configuration);
+    risk.linkedAssetIds = ["ASSET-A"];
+    const riskData: RiskData = { ...data, risks: [risk] };
+
+    const status = checkRiskSyncStatus(
+      riskData,
+      [threat],
+      dfdWithElementEL("if-1", "EL2"),
+    );
+
+    expect(status.changedLinkedAssets).toBe(0);
+  });
+});

@@ -70,6 +70,7 @@ export interface RiskSyncStatus {
    * silently show stale AP/SRSL.
    */
   changedExposureLevels: number;
+  changedLinkedAssets: number;
   needsSync: boolean;
   /** Safety factor was auto-enabled during this sync check */
   safetyAutoEnabled: boolean;
@@ -398,6 +399,17 @@ export function checkRiskSyncStatus(
     return JSON.stringify(withEl) !== JSON.stringify(risk.factorRatings);
   }).length;
 
+  // Asset-link drift: the risk's linkedAssetIds no longer match what the DFD
+  // (via the threat) now says — e.g. a DataFlow gained a safety-function asset.
+  const changedLinkedAssets = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    if (!threat) return false;
+    return (
+      JSON.stringify([...(risk.linkedAssetIds ?? [])].sort()) !==
+      JSON.stringify([...(threat.linkedAssetIds ?? [])].sort())
+    );
+  }).length;
+
   const uncertainRisks = riskData.risks.filter(
     (r) => r.threatRelevance === "uncertain",
   ).length;
@@ -426,11 +438,13 @@ export function checkRiskSyncStatus(
     changedMitigations,
     uncertainRisks,
     changedExposureLevels,
+    changedLinkedAssets,
     needsSync:
       newThreats > 0 ||
       orphanedRisks > 0 ||
       changedDescriptions > 0 ||
       changedExposureLevels > 0 ||
+      changedLinkedAssets > 0 ||
       impactAutoEnabledCount > 0 ||
       impactAutoDisabledCount > 0,
     safetyAutoEnabled,
@@ -578,7 +592,14 @@ export function syncRisksFromThreats(
     const displayChanged = threat.displayId !== risk.threatDisplayId;
 
     // Re-apply asset criteria prefill (non-destructive — respects manual overrides)
-    const linkedAssets = resolveLinkedAssets(risk.linkedAssetIds, assetDataRef);
+    // Resolve the linked assets from the THREAT (DFD-derived, kept fresh by
+    // refreshLinkedAssets), not the risk's possibly-stale/manual linkedAssetIds
+    // — otherwise the gate reads the wrong safety asset and EN 50742 severity
+    // (hence SRSL) never resolves after a DFD asset-relation change.
+    const linkedAssets = resolveLinkedAssets(
+      threat.linkedAssetIds,
+      assetDataRef,
+    );
     // Reconcile: inject entries for any factors newly enabled since this risk
     // was created, so applyAssetCriteriaToFactorRatings can fill them.
     const reconciledRatings = reconcileFactorRatings(
@@ -609,7 +630,14 @@ export function syncRisksFromThreats(
       JSON.stringify(updatedFactorRatings) !==
       JSON.stringify(reconciledRatings);
 
+    // The DFD asset relations changed → the risk must inherit the new asset
+    // set (and its severity) from the threat.
+    const linkedAssetsChanged =
+      JSON.stringify([...(risk.linkedAssetIds ?? [])].sort()) !==
+      JSON.stringify([...(threat.linkedAssetIds ?? [])].sort());
+
     if (
+      linkedAssetsChanged ||
       descChanged ||
       attackChanged ||
       mitigationsChanged ||

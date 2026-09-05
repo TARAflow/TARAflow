@@ -85,6 +85,16 @@ export const RiskSyncBanner: React.FC<Props> = ({
                 variant="outlined"
               />
             )}
+            {syncStatus.changedLinkedAssets > 0 && (
+              <Chip
+                label={`${syncStatus.changedLinkedAssets} asset link${
+                  syncStatus.changedLinkedAssets === 1 ? "" : "s"
+                } changed`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+            )}
             {syncStatus.uncertainRisks > 0 && (
               <Chip
                 label={`${syncStatus.uncertainRisks} uncertain`}
