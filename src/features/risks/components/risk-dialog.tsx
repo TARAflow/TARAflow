@@ -114,11 +114,13 @@ import type {
 import {
   en50742LevelFromRating,
   en50742LevelLabel,
+  mandatedRequirementsForThreat,
   EN50742_FACTOR_LEVELS,
   EN50742_SRSL_FACTOR_IDS,
   EXPOSURE_LEVEL_SCORE,
   ATTACKER_CAPABILITY_SCORE,
 } from "../models/en50742-approach-a-core";
+import type { SrslAnchorType } from "../models/en50742-approach-a-core";
 import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS } from "shared";
 import { RiskScorePanel } from "./shared/risk-score-panel";
 import { SrslBadge } from "./shared/srsl-badge";
@@ -468,7 +470,75 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         ? resolveVerificationDrafts(currentRisk.proposedVerifications ?? [])
         : [],
     [currentRisk],
+  )
+
+  // ── EN 50742 mandated 7.4.3 controls (§11.4) ─────────────────────────────
+  // The threat's anchor type + STRIDE + the computed SRSL determine which
+  // 7.4.3 protection requirements are mandated. They are mixed into the same
+  // mitigation list, marked with an "EN 50742 A" chip and pre-selected.
+  const currentThreat = useMemo(
+    () => threats?.find((t) => t.id === currentRisk?.threatId),
+    [threats, currentRisk],
   );
+
+  const mandatedControls = useMemo(() => {
+    if (!isEN50742 || !hasExposureAnchor) return [];
+    const srsl = beforeValues.srsl;
+    if (!srsl) return [];
+    const et = currentThreat?.linkedElement?.elementType;
+    const anchorType: SrslAnchorType | undefined =
+      et === "Interface"
+        ? "Interface"
+        : et === "DataFlow" || currentThreat?.dataFlow
+          ? "DataFlow"
+          : undefined;
+    const stride = currentRisk?.strideCategory;
+    if (!anchorType || !stride) return [];
+    return mandatedRequirementsForThreat(anchorType, stride, srsl).map((r) => ({
+      id: `en50742-${r.clause}`,
+      text: `${r.category} — ${r.requirement} (${r.clause})`,
+      notes: undefined as string | undefined,
+      isCustom: false,
+      isMandated: true,
+    }));
+  }, [
+    isEN50742,
+    hasExposureAnchor,
+    beforeValues.srsl,
+    currentThreat,
+    currentRisk,
+  ]);
+
+  const displayedMitigations = useMemo(() => {
+    const mandatedIds = new Set(mandatedControls.map((m) => m.id));
+    return [
+      ...mandatedControls,
+      ...resolvedMitigations.filter((m) => !mandatedIds.has(m.id ?? "")),
+    ];
+  }, [mandatedControls, resolvedMitigations]);
+
+  // Pre-select the mandated controls (they are required by the SRSL tier).
+  useEffect(() => {
+    if (mandatedControls.length === 0) return;
+    setLocal((prev) => {
+      if (!prev) return prev;
+      const missing = mandatedControls.filter(
+        (mc) => !prev.selectedMitigations.some((sm) => sm.id === mc.id),
+      );
+      if (missing.length === 0) return prev;
+      return {
+        ...prev,
+        selectedMitigations: [
+          ...prev.selectedMitigations,
+          ...missing.map((mc) => ({
+            id: mc.id,
+            status: "open" as MitigationStatus,
+          })),
+        ],
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mandatedControls]);;
 
   const effectiveCauseDescription =
     currentRisk?.causeDescription || currentThreatRef?.causeDescription;
@@ -2049,7 +2119,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 <Divider />
 
                 {/* ══ 2. MITIGATION & VERIFICATION ═══════════════════ */}
-                {resolvedMitigations.length > 0 && (
+                {displayedMitigations.length > 0 && (
                   <Box sx={{ opacity: isAccepted ? 0.5 : 1 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       {t("tabs.risks.dialog.selectedMitigations", {
@@ -2057,8 +2127,10 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       })}
                     </Typography>
                     <Stack spacing={0.5}>
-                      {resolvedMitigations.map((m) => {
+                      {displayedMitigations.map((m) => {
                         const id = m.id ?? m.notes ?? "";
+                        const isMandated =
+                          "isMandated" in m && m.isMandated === true;
                         const label = m.isCustom
                           ? `[custom] ${m.notes ?? ""}`
                           : `${m.id}: ${m.text}`;
@@ -2095,6 +2167,17 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                                   <Typography variant="body2">
                                     {label}
                                   </Typography>
+                                  {isMandated && (
+                                    <Chip
+                                      label={t(
+                                        "tabs.risks.dialog.en50742Mandated",
+                                        { defaultValue: "EN 50742 A" },
+                                      )}
+                                      size="small"
+                                      color="primary"
+                                      variant="outlined"
+                                    />
+                                  )}
                                   <MitigationCoverageBadge
                                     coverage={mitigationCoverage.get(id)}
                                   />

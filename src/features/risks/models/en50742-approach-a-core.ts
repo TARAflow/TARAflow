@@ -17,7 +17,7 @@
  * design doc §3.3).
  */
 
-import type { WindowOfOpportunity } from "shared";
+import type { WindowOfOpportunity, StrideCategory } from "shared";
 import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS } from "shared";
 
 // ---------------------------------------------------------------------------
@@ -250,6 +250,62 @@ export function requirementsForSrsl(
     category: r.category,
     requirement: r.tiers[srsl],
   }));
+}
+
+// ---------------------------------------------------------------------------
+// STRIDE → mandated 7.4.3 control  (design §11.4)
+// ---------------------------------------------------------------------------
+// Which 7.4.3 clauses are mandated for a threat depends on its anchor type
+// (Interface vs DataFlow) and its STRIDE category. SRSL itself is computed for
+// every EL-bearing anchor (§11.3); STRIDE only decides WHICH catalogue controls
+// are mandated. R/I/D are handled by the standard method only ("Option B") → no
+// mandated control. The exact Integrity sub-clauses for Interface × T and
+// whether Interface × E also pulls Authenticity carry a VERIFY against the
+// final norm — all clause lists are centralised here for a one-line change.
+
+export type SrslAnchorType = "Interface" | "DataFlow";
+
+export const EN50742_MANDATED_CLAUSES: Record<
+  SrslAnchorType,
+  Partial<Record<StrideCategory, readonly string[]>>
+> = {
+  Interface: {
+    S: ["7.4.3.2.1"], // Authentication (unique)
+    T: ["7.4.3.4.1", "7.4.3.4.2", "7.4.3.4.4", "7.4.3.4.5"], // Integrity (pick ≥1)
+    E: ["7.4.3.3.1"], // Authorization enforcement
+    // R / I / D → standard method only (no mandated control)
+  },
+  DataFlow: {
+    T: ["7.4.3.4.3"], // Information exchange integrity (unique)
+    // I / D → standard method only; S / R / E belong to the endpoint Interface
+  },
+};
+
+/**
+ * The mandated 7.4.3 protection requirements for a threat, given its anchor
+ * type, STRIDE category and the computed SRSL. Returns the non-null profile
+ * requirements at that SRSL tier for the mapped clauses. Empty when STRIDE
+ * mandates nothing (R/I/D) or the SRSL tier is "None" for those clauses.
+ */
+export function mandatedRequirementsForThreat(
+  anchorType: SrslAnchorType,
+  stride: StrideCategory,
+  srsl: Srsl,
+  profile: SrslProfile = EN50742_SRSL_PROFILE,
+): { clause: string; category: string; requirement: string }[] {
+  const clauses = EN50742_MANDATED_CLAUSES[anchorType]?.[stride] ?? [];
+  if (clauses.length === 0) return [];
+  return profile
+    .filter((r) => clauses.includes(r.clause))
+    .map((r) => ({
+      clause: r.clause,
+      category: r.category,
+      requirement: r.tiers[srsl],
+    }))
+    .filter(
+      (r): r is { clause: string; category: string; requirement: string } =>
+        r.requirement != null,
+    );
 }
 
 // ===========================================================================
