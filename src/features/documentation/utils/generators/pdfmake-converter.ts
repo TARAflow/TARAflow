@@ -7,7 +7,11 @@
 
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
-import { en50742LevelFromRating } from "../../../risks/models/en50742-approach-a-core";
+import {
+  en50742LevelFromRating,
+  mandatedRequirementsForThreat,
+} from "../../../risks/models/en50742-approach-a-core";
+import type { SrslAnchorType } from "../../../risks/models/en50742-approach-a-core";
 import {
   formatDocDate,
   getChapterTitle,
@@ -730,6 +734,16 @@ export class PdfMakeConverter {
     );
     if (rows.length === 0) return [];
 
+    const threatById = new Map(
+      [
+        ...(this.project.threats?.perElementTables?.flatMap((t) => t.threats) ??
+          []),
+        ...(this.project.threats?.perInteractionTables?.flatMap(
+          (t) => t.threats,
+        ) ?? []),
+      ].map((t) => [t.id, t]),
+    );
+
     const content: Content[] = [];
     content.push({
       text: this.chapterTitle("srsl-assessment"),
@@ -747,6 +761,7 @@ export class PdfMakeConverter {
         { text: "AC", style: "tableHeader" },
         { text: "AP", style: "tableHeader" },
         { text: "SRSL", style: "tableHeader" },
+        { text: "Mandated 7.4.3 Controls", style: "tableHeader" },
       ],
     ];
 
@@ -770,6 +785,24 @@ export class PdfMakeConverter {
         risk.calculatedApScore != null
           ? `${risk.calculatedApScore} (${risk.calculatedApBand ?? "-"})`
           : "-";
+      const threat = threatById.get(risk.threatId);
+      const et = threat?.linkedElement?.elementType;
+      const anchorType: SrslAnchorType | undefined =
+        et === "Interface"
+          ? "Interface"
+          : et === "DataFlow" || threat?.dataFlow
+            ? "DataFlow"
+            : undefined;
+      const controls =
+        anchorType && risk.calculatedSrsl
+          ? mandatedRequirementsForThreat(
+              anchorType,
+              risk.strideCategory,
+              risk.calculatedSrsl,
+            )
+              .map((r) => `${r.category} (${r.clause})`)
+              .join("; ") || "-"
+          : "-";
       tableBody.push([
         { text: risk.threatDisplayId },
         { text: safetyAsset?.name ?? "-" },
@@ -779,11 +812,12 @@ export class PdfMakeConverter {
         { text: ac, alignment: "center" },
         { text: ap, alignment: "center" },
         { text: risk.calculatedSrsl ?? "-", alignment: "center" },
+        { text: controls },
       ]);
     }
 
     content.push({
-      table: { headerRows: 1, widths: ["auto", "*", "auto", "auto", "auto", "auto", "auto", "auto"], body: tableBody },
+      table: { headerRows: 1, widths: ["auto", "*", "auto", "auto", "auto", "auto", "auto", "auto", "*"], body: tableBody },
       layout: "lightHorizontalLines",
       margin: [0, 4, 0, 12],
     });

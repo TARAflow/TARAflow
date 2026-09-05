@@ -489,18 +489,18 @@ The Security-Related Safety Level (SRSL) is derived from the attack potential AP
 
   srslTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `| T-ID | Safety-Asset | Severity | EL | WoO | AC | AP | SRSL |
-|------|--------------|----------|----|-----|----|----|------|
+      ? `| T-ID | Safety-Asset | Severity | EL | WoO | AC | AP | SRSL | Mandated 7.4.3 Controls |
+|------|--------------|----------|----|-----|----|----|------|-------------------------|
 {{srslRows}}
 
 `
-      : `| T-ID | Safety Asset | Severity | EL | WoO | AC | AP | SRSL |
-|------|--------------|----------|----|-----|----|----|------|
+      : `| T-ID | Safety Asset | Severity | EL | WoO | AC | AP | SRSL | Mandated 7.4.3 Controls |
+|------|--------------|----------|----|-----|----|----|------|-------------------------|
 {{srslRows}}
 
 `,
 
-  srslRow: `| [{{threatId}}](#threat-{{threatId}}) | {{asset}} | {{severity}} | {{el}} | {{woo}} | {{ac}} | {{ap}} | {{srsl}} |
+  srslRow: `| [{{threatId}}](#threat-{{threatId}}) | {{asset}} | {{severity}} | {{el}} | {{woo}} | {{ac}} | {{ap}} | {{srsl}} | {{controls}} |
 `,
 
   // ==================== ACCEPTED RISKS ====================

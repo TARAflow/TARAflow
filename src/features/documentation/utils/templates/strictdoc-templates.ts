@@ -710,6 +710,7 @@ WINDOW_OF_OPPORTUNITY: {{woo}}
 ATTACKER_CAPABILITY: {{ac}}
 SEVERITY: {{severity}}
 SAFETY_ASSET: {{asset}}
+MANDATED_CONTROLS: {{controls}}
 RELATIONS:
 - TYPE: Parent
   VALUE: {{threatId}}

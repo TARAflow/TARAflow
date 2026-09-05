@@ -25,6 +25,21 @@ const project = (likelihoodMethod: string): any => ({
       },
     ],
   },
+  threats: {
+    perElementTables: [
+      {
+        threats: [
+          {
+            id: "TH-DF3-T",
+            strideCategory: "T",
+            linkedElement: { elementId: "7", elementType: "DataFlow" },
+            dataFlow: null,
+          },
+        ],
+      },
+    ],
+    perInteractionTables: [],
+  },
   risks: {
     configuration: {
       likelihoodMethod,
@@ -33,6 +48,8 @@ const project = (likelihoodMethod: string): any => ({
     risks: [
       {
         id: "R-DF3-T-1",
+        threatId: "TH-DF3-T",
+        strideCategory: "T",
         threatDisplayId: "DF-3-T-1",
         moscowPriority: "should",
         linkedAssetIds: ["AC"],
@@ -82,6 +99,8 @@ describe("SRSL Assessment chapter (EN 50742 Approach A)", () => {
     expect(chapter.content).toContain("moderately_restricted");
     expect(chapter.content).toContain("16.8 (AP3)");
     expect(chapter.content).toContain("SRSL3");
+    // mandated 7.4.3 control for DataFlow × T
+    expect(chapter.content).toContain("Information exchange integrity (7.4.3.4.3)");
     // the internal (EL 0) risk is NOT in the SRSL table
     expect(chapter.content).not.toContain("P-1-S-1");
   });

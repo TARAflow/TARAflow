@@ -556,7 +556,7 @@ export const HTML_TEMPLATES = {
     lang === "de"
       ? `  <table>
     <thead>
-      <tr><th>T-ID</th><th>Safety-Asset</th><th>Severity</th><th>EL</th><th>WoO</th><th>AC</th><th>AP</th><th>SRSL</th></tr>
+      <tr><th>T-ID</th><th>Safety-Asset</th><th>Severity</th><th>EL</th><th>WoO</th><th>AC</th><th>AP</th><th>SRSL</th><th>Mandated 7.4.3 Controls</th></tr>
     </thead>
     <tbody>
 {{srslRows}}
@@ -567,7 +567,7 @@ export const HTML_TEMPLATES = {
 `
       : `  <table>
     <thead>
-      <tr><th>T-ID</th><th>Safety Asset</th><th>Severity</th><th>EL</th><th>WoO</th><th>AC</th><th>AP</th><th>SRSL</th></tr>
+      <tr><th>T-ID</th><th>Safety Asset</th><th>Severity</th><th>EL</th><th>WoO</th><th>AC</th><th>AP</th><th>SRSL</th><th>Mandated 7.4.3 Controls</th></tr>
     </thead>
     <tbody>
 {{srslRows}}
@@ -586,6 +586,7 @@ export const HTML_TEMPLATES = {
         <td>{{ac}}</td>
         <td>{{ap}}</td>
         <td>{{srsl}}</td>
+        <td>{{controls}}</td>
       </tr>
 `,
 

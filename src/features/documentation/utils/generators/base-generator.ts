@@ -22,7 +22,11 @@ import type {
 } from "../../../dfd/models/dfd-types";
 import type { Asset } from "features/assets";
 import { deriveImplementationProgress } from "../../../risks/models/risk-mitigation-types";
-import { en50742LevelFromRating } from "../../../risks/models/en50742-approach-a-core";
+import {
+  en50742LevelFromRating,
+  mandatedRequirementsForThreat,
+} from "../../../risks/models/en50742-approach-a-core";
+import type { SrslAnchorType } from "../../../risks/models/en50742-approach-a-core";
 import {
   getSecurityLevelText,
   getTrustLevelText,
@@ -1133,6 +1137,16 @@ export abstract class BaseDocumentGenerator {
     ): number =>
       risk.factorRatings?.find((f) => f.factorId === factorId)?.value ?? 0;
 
+    // Threat lookup for the mandated-control mapping (anchor type lives on the
+    // threat, not the risk).
+    const threatById = new Map(
+      [
+        ...(project.threats?.perElementTables?.flatMap((t) => t.threats) ?? []),
+        ...(project.threats?.perInteractionTables?.flatMap((t) => t.threats) ??
+          []),
+      ].map((t) => [t.id, t]),
+    );
+
     const srslRows = (project.risks?.risks ?? [])
       .filter((r) => r.moscowPriority !== "wont")
       .filter((r) => ratingValue(r, "exposure_level") > 0)
@@ -1152,6 +1166,27 @@ export abstract class BaseDocumentGenerator {
           .filter((a): a is NonNullable<typeof a> => Boolean(a));
         const safetyAsset =
           linked.find((a) => a.physicalImpact) ?? linked[0] ?? null;
+
+        // Mandated 7.4.3 controls (§11.4): anchor type × STRIDE × SRSL.
+        const threat = threatById.get(risk.threatId);
+        const et = threat?.linkedElement?.elementType;
+        const anchorType: SrslAnchorType | undefined =
+          et === "Interface"
+            ? "Interface"
+            : et === "DataFlow" || threat?.dataFlow
+              ? "DataFlow"
+              : undefined;
+        const controls =
+          anchorType && risk.calculatedSrsl
+            ? mandatedRequirementsForThreat(
+                anchorType,
+                risk.strideCategory,
+                risk.calculatedSrsl,
+              )
+                .map((r) => `${r.category} (${r.clause})`)
+                .join("; ") || "-"
+            : "-";
+
         const values = {
           threatId: risk.threatDisplayId,
           asset: this.escapeTableText(safetyAsset?.name ?? "-"),
@@ -1164,6 +1199,7 @@ export abstract class BaseDocumentGenerator {
               ? `${risk.calculatedApScore} (${risk.calculatedApBand ?? "-"})`
               : "-",
           srsl: risk.calculatedSrsl ?? "-",
+          controls: this.escapeTableText(controls),
         };
         return replacePlaceholders(this.getSRSLRowTemplate(), values);
       })
