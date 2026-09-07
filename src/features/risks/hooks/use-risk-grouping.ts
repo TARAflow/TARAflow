@@ -116,13 +116,16 @@ export const useRiskGrouping = (
 
       // For per-interaction: group by dataflow within trust boundary
       if (!isPerElement && threat?.dataFlowName) {
-        const dataFlowIdMatch = (risk.threatDisplayId ?? "").match(/^(DF\d+)/);
-        const dataFlowId = dataFlowIdMatch
-          ? dataFlowIdMatch[1]
-          : `DF-${threat.dataFlowName}`;
+        // dataFlow.dataFlowId is the authoritative id and already carries the
+        // "DF-" prefix (e.g. "DF-24"), so use it directly — no display-id
+        // parsing, no manual prefix. Fall back to the flow name only when the
+        // reference is missing (?? avoids the literal "undefined" a template
+        // string would produce for a null dataFlow).
+        const dataFlowId =
+          threat.dataFlow?.dataFlowId ?? `DF-${threat.dataFlowName}`;
 
         let dataFlowGroup = group.dataFlows?.find(
-          (df) => df.dataFlowId === dataFlowId
+          (df) => df.dataFlowId === dataFlowId,
         );
         if (!dataFlowGroup) {
           dataFlowGroup = {
