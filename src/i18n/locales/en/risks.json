@@ -11,6 +11,8 @@
       "noRisks": "No risks assessed yet",
       "noRisksHint": "Click 'Sync from Threats' to create risk assessments.",
       "risks": "Risks",
+      "riskLevel": "Risk Level",
+      "allRiskLevels": "All Risk Levels",
       "syncFromThreats": "Sync from Threats",
       "sync": "Sync",
       "syncConfirmTitle": "Sync Risks from Threats",

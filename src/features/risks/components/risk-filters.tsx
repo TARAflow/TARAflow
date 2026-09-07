@@ -1,6 +1,6 @@
 // ==================== RISK FILTERS ====================
 // Filter bar for risks - matches threat-filters.tsx structure
-// Simple one-line collapse with Priority + Status + Search + Count
+// One-line collapse with Priority + Risk Level + Search + Count
 
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -20,8 +20,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
 } from "@mui/icons-material";
-import { MOSCOW_PRIORITIES } from "../models/risk-scale-types";
-import type { MoSCoWPriority } from "../models/risk-scale-types";
+import { MOSCOW_PRIORITIES, RISK_SCALES } from "../models/risk-scale-types";
+import type { MoSCoWPriority, RiskScaleType } from "../models/risk-scale-types";
 
 // ==================== TYPES ====================
 
@@ -29,10 +29,15 @@ export interface RiskFiltersProps {
   // Filter state
   searchText: string;
   priorityFilter: MoSCoWPriority | "";
+  /** Selected risk level (RiskScaleLevel.value, 1..N) or "" for all. */
+  riskLevelFilter: number | "";
+  /** Active risk scale — drives which level options are shown. */
+  scale: RiskScaleType;
 
   // Callbacks
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
+  onRiskLevelFilterChange: (level: number | "") => void;
   onClear: () => void;
 
   // UI state
@@ -49,15 +54,25 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
   ({
     searchText,
     priorityFilter,
+    riskLevelFilter,
+    scale,
     onSearchTextChange,
     onPriorityFilterChange,
+    onRiskLevelFilterChange,
     onClear,
     show,
     filteredCount,
     totalCount,
   }) => {
     const { t } = useTranslation();
-    const hasFilters = searchText.trim() !== "" || priorityFilter !== "";
+    const hasFilters =
+      searchText.trim() !== "" ||
+      priorityFilter !== "" ||
+      riskLevelFilter !== "";
+
+    // Level options come from the active scale so 3-/4-/5-level all work
+    // (4-level -> Low / Medium / High / Critical). Highest severity first.
+    const levelOptions = [...RISK_SCALES[scale].levels].reverse();
 
     return (
       <Collapse in={show} timeout={300}>
@@ -97,6 +112,55 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
                   {t(`risks.moscow.${p.value}.label`, {
                     defaultValue: p.label,
                   })}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Risk Level Filter */}
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>
+              {t("tabs.risks.riskLevel", { defaultValue: "Risk Level" })}
+            </InputLabel>
+            <Select
+              value={riskLevelFilter}
+              label={t("tabs.risks.riskLevel", { defaultValue: "Risk Level" })}
+              onChange={(e) =>
+                onRiskLevelFilterChange(
+                  e.target.value === "" ? "" : Number(e.target.value),
+                )
+              }
+              startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
+            >
+              <MenuItem value="">
+                <em>
+                  {t("tabs.risks.allRiskLevels", {
+                    defaultValue: "All Risk Levels",
+                  })}
+                </em>
+              </MenuItem>
+              {levelOptions.map((lvl) => (
+                <MenuItem key={lvl.value} value={lvl.value}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box
+                      component="span"
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "2px",
+                        bgcolor: lvl.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span>
+                      {t(
+                        `risks.scales.impact.${lvl.label
+                          .toLowerCase()
+                          .replace(/\s+/g, "_")}`,
+                        { defaultValue: lvl.label },
+                      )}
+                    </span>
+                  </Stack>
                 </MenuItem>
               ))}
             </Select>

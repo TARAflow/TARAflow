@@ -11,6 +11,8 @@
       "noRisks": "Noch keine Risiken bewertet",
       "noRisksHint": "Klicken Sie auf \"Aus Bedrohungen synchronisieren\" um Risikobewertungen zu erstellen.",
       "risks": "Risiken",
+      "riskLevel": "Risikostufe",
+      "allRiskLevels": "Alle Risikostufen",
       "syncFromThreats": "Aus Bedrohungen synchronisieren",
       "sync": "Synchronisieren",
       "syncConfirmTitle": "Risiken aus Bedrohungen synchronisieren",

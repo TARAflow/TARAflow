@@ -31,9 +31,11 @@ interface ElementRiskViewProps {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
     treatmentFilter: string;
+    riskLevelFilter: number | "";
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
+  onRiskLevelFilterChange: (level: number | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
 
@@ -55,6 +57,7 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   filters,
   onSearchTextChange,
   onPriorityFilterChange,
+  onRiskLevelFilterChange,
   onClearFilters,
   filteredCount,
   onEdit,
@@ -160,8 +163,11 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
       <RiskFilters
         searchText={filters.searchText}
         priorityFilter={filters.priorityFilter}
+        riskLevelFilter={filters.riskLevelFilter}
+        scale={configuration.scale}
         onSearchTextChange={onSearchTextChange}
         onPriorityFilterChange={onPriorityFilterChange}
+        onRiskLevelFilterChange={onRiskLevelFilterChange}
         onClear={onClearFilters}
         show={showFilters}
         filteredCount={filteredCount}

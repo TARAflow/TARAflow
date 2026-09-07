@@ -31,9 +31,12 @@ interface RiskTableViewProps {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
     treatmentFilter: RiskTreatment | "";
+    /** Selected risk level (RiskScaleLevel.value, 1..N) or "" for all. */
+    riskLevelFilter: number | "";
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
+  onRiskLevelFilterChange: (level: number | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
 
@@ -127,6 +130,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
     filters,
     onSearchTextChange,
     onPriorityFilterChange,
+    onRiskLevelFilterChange,
     onClearFilters,
     filteredCount,
     onEdit,
@@ -159,6 +163,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
             filters={filters}
             onSearchTextChange={onSearchTextChange}
             onPriorityFilterChange={onPriorityFilterChange}
+            onRiskLevelFilterChange={onRiskLevelFilterChange}
             onClearFilters={onClearFilters}
             filteredCount={filteredCount}
             onEdit={onEdit}
@@ -181,6 +186,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
           filters={filters}
           onSearchTextChange={onSearchTextChange}
           onPriorityFilterChange={onPriorityFilterChange}
+          onRiskLevelFilterChange={onRiskLevelFilterChange}
           onClearFilters={onClearFilters}
           filteredCount={filteredCount}
           onEdit={onEdit}

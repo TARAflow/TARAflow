@@ -34,9 +34,11 @@ interface InteractionRiskViewProps {
     searchText: string;
     priorityFilter: MoSCoWPriority | "";
     treatmentFilter: string;
+    riskLevelFilter: number | "";
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
+  onRiskLevelFilterChange: (level: number | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
 
@@ -58,6 +60,7 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
   filters,
   onSearchTextChange,
   onPriorityFilterChange,
+  onRiskLevelFilterChange,
   onClearFilters,
   filteredCount,
   onEdit,
@@ -200,8 +203,11 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
       <RiskFilters
         searchText={filters.searchText}
         priorityFilter={filters.priorityFilter}
+        riskLevelFilter={filters.riskLevelFilter}
+        scale={configuration.scale}
         onSearchTextChange={onSearchTextChange}
         onPriorityFilterChange={onPriorityFilterChange}
+        onRiskLevelFilterChange={onRiskLevelFilterChange}
         onClear={onClearFilters}
         show={showFilters}
         filteredCount={filteredCount}

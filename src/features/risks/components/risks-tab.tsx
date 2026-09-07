@@ -343,13 +343,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     filters,
     setSearchText,
     setPriorityFilter,
+    setRiskLevelFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,
   } = useRiskFilters();
   const filteredActiveRisks = useMemo(
-    () => filterRisks(activeRisks),
-    [activeRisks, filterRisks],
+    () => filterRisks(activeRisks, riskData.configuration),
+    [activeRisks, filterRisks, riskData.configuration],
   );
 
   // ==================== EFFECTS ====================
@@ -944,7 +945,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           ) : (
             <>
               <RiskTableView
-                risks={activeRisks}
+                risks={filteredActiveRisks}
                 threats={currentThreats}
                 configuration={riskData.configuration}
                 strideMethod={activeStrideMethod}
@@ -952,8 +953,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 filters={filters}
                 onSearchTextChange={setSearchText}
                 onPriorityFilterChange={setPriorityFilter}
+                onRiskLevelFilterChange={setRiskLevelFilter}
                 onClearFilters={clearFilters}
-                filteredCount={activeRisks.length}
+                filteredCount={filteredActiveRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
                 onTreatmentChange={handleTreatmentChange}
@@ -1083,6 +1085,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Dialog>
     </Box>
   );
-}
+};;;
 
 export default RisksTab;
