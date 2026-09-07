@@ -25,6 +25,11 @@
       "cause": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
       "attack": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail"
     },
+    "D-009": {
+      "threat": "Interface denial of service (wireless) — attacker jams or floods the wireless interface to render it unavailable",
+      "cause": "Wireless interface has no protection against signal flooding or jamming and no redundant path — it can be disabled by overwhelming the channel",
+      "attack": "Attacker floods or jams the wireless channel (RF interference, connection/association flooding) causing the interface to drop or become unresponsive"
+    },
     "E-004": {
       "threat": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
       "cause": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",

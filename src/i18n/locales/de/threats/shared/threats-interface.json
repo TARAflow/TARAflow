@@ -25,6 +25,11 @@
       "cause": "Schnittstelle hat keinen Schutz gegen elektrische Überlastung oder Signalflutung",
       "attack": "Angreifer legt übermässige elektrische Eingaben oder Flutungssignale an die Schnittstelle an"
     },
+    "D-009": {
+      "threat": "Interface Denial-of-Service (drahtlos) — Angreifer stört oder flutet die drahtlose Schnittstelle und macht sie unverfügbar",
+      "cause": "Drahtlose Schnittstelle hat keinen Schutz gegen Signal-Flooding oder Jamming und keinen redundanten Pfad — sie kann durch Überlastung des Kanals deaktiviert werden",
+      "attack": "Angreifer flutet oder stört den drahtlosen Kanal (RF-Interferenz, Verbindungs-/Association-Flooding), sodass die Schnittstelle abbricht oder nicht mehr reagiert"
+    },
     "E-004": {
       "threat": "Schnittstellen-Rechteausweitung — Angreifer nutzt die Schnittstelle für erhöhten Systemzugriff oder zum Einschleusen nicht autorisierter Firmware",
       "cause": "Schnittstelle bietet Zugang zu privilegierten Funktionen ohne ausreichende Authentifizierung und akzeptiert Firmware-Updates ohne Signaturprüfung",
