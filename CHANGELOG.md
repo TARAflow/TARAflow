@@ -1,3 +1,118 @@
+## [0.9.0-alpha] - 2026-09-07
+
+The headline of this release is **EN 50742 Approach A (SRSL)**: the Security
+Requirement Severity Level is now a first-class, parallel output alongside the
+standard R = L × I risk — surfaced in the Risk tab, the mitigation picker, and
+every report format. This release also adds risk- and threat-level filtering,
+consolidates the asset store into a single source of truth, and fixes a class
+of "assets disappearing" bugs.
+
+### Added
+- **EN 50742 Approach A — SRSL in the Risk tab.** An SRSL column (en-50742-a
+  projects only) renders `calculatedSrsl` as a coloured SRSL0–3 chip (muted "–"
+  when not yet determined). The dialog's SRSL section is gated on an
+  exposure-bearing anchor (`exposure_level > 0`) — it shows for crossing
+  DataFlows and Interfaces, not internal elements — and, when no
+  safety-function asset provides a severity, collapses to a single "No linked
+  safety-function asset for Severity" note (AP stays visible; it is valid
+  without severity) with an info tooltip describing exactly how to resolve it.
+- **Mandated 7.4.3 controls.** The SRSL-mandated protection requirements
+  (anchor type × STRIDE × SRSL, from `mandatedRequirementsForThreat`) are mixed
+  into the mitigation picker with an "EN 50742 A" chip and pre-selected;
+  standard catalogue and custom mitigations remain selectable alongside them. A
+  "Mandated 7.4.3 Controls" column is added to the SRSL report table.
+- **SRSL Assessment report chapter (all formats).** A new "SRSL Assessment
+  (EN 50742 Approach A)" chapter — one row per exposure-anchored risk (safety
+  asset, severity, EL / WoO / AC → AP → SRSL) plus the "SRSL vs R = L × I"
+  separation note — is available in Markdown, AsciiDoc, HTML, StrictDoc and PDF,
+  and auto-hides on non-en-50742-a projects. Existing projects pick up the
+  chapter without a migration (`withDefaultChapters` merge), and reports now
+  resolve asset UUIDs to names and use the asset `displayId` (not the UUID) as
+  the relation heading.
+- **Risk-level filter.** A "Risk Level" dropdown on the risk filter bar
+  (Critical / High / Medium / Low). Options are derived from the active scale
+  (`RISK_SCALES`), so 3-/4-/5-level projects all work, each with a colour swatch.
+- **Threat relevance filter.** A second dropdown beside the STRIDE filter
+  filters threats by triage status (unrated / relevant / uncertain /
+  not_relevant) in both per-element and per-interaction views.
+
+### Changed
+- **SRSL is now fully separated from the R = L × I risk.** EN 50742 factors
+  (EL, AC, WoO) are excluded from the likelihood mean
+  (`EN50742_SRSL_FACTOR_IDS`, single source in the core) and drive **only** the
+  SRSL, which `calculateGatedRiskValues` overlays as a parallel output.
+  Setting EL / AC / WoO no longer changes likelihood or the risk score; the
+  residual risk stays the standard L × I. *(Behaviour change — previously these
+  factors moved the risk via the attack potential.)*
+- **Single canonical asset store (SSOT completion).** `syncFromDFD` is now
+  create/update only — it never removes records from a mirror diff. An asset
+  whose DFD links are gone becomes *orphaned* (`getAssetsMissingInDFD`) and is
+  removed only by an explicit user action, eliminating the mirror-diff
+  asset-loss class entirely.
+- **Risk notifications consolidated into one accordion.** The separate
+  sync-warning, uncertain-threats and out-of-sync banners are replaced by a
+  single collapsible notifications accordion (count when collapsed, a bulleted
+  list when expanded, "Sync Now" preserved on the out-of-sync entry). This
+  removes the nested-`Collapse` height-measurement glitches and banner clipping
+  under the parent's `overflow: hidden`.
+- **Severity terminology and guidance.** The `physicalImpact` severity label
+  "Fatality" → "Fatal" (en + de), aligning with the EN 50742 "fatal" naming;
+  the no-severity tooltip now points to the DFD tab as the place to create the
+  asset relation (Interface: invokes/monitors; DataFlow: invokes).
+
+### Fixed
+- **Assets could silently disappear.** `syncFromDFD` pruned every
+  `source:"dfd"` asset absent from the `dfd.assets` mirror — but that mirror is
+  stripped on disk and re-derived on load, so a partial/empty mirror wiped the
+  canonical feature store. The prune is now skipped when the incoming mirror is
+  empty; genuine removals against a non-empty mirror are unaffected. Regression
+  test reproduces the loss.
+- **False "asset not found" on DFD relations.** The asset-relation validator
+  checked `project.dfd.assets` (the mirror, which can lag the canonical store),
+  so a relation to a known asset not yet mirrored errored until the Asset tab
+  was opened. It now validates against the canonical asset registry threaded
+  through `ValidateOptions.knownAssets`, with the mirror as fallback.
+- **EN 50742 severity didn't resolve after a relation was added later.** A
+  threat's `linkedAssetIds` cache went stale when a DFD asset relation was added
+  after generation, so the risk never saw the safety asset and its SRSL could
+  not resolve. `syncThreatsWithGraph` now re-derives `linkedAssetIds` from the
+  current asset store on every graph sync; the risk gate resolves assets from
+  the fresh threat, asset-link drift is an update trigger, and
+  `checkRiskSyncStatus` detects the drift so the sync affordance lights up.
+- **Manual STRIDE-method switch was silently reverted.** The active method was
+  re-derived from confirmed-threat counts on every render, flipping a manual
+  switch back to per-element when the target method's threats weren't confirmed
+  yet. Auto-selection is now based only on whether a method has any threats at
+  all; a dedicated "threats not yet confirmed" empty state replaces the
+  misleading "Sync from Threats" prompt (which would have synced nothing).
+- **Per-interaction group labels showed the flow name instead of its id.** The
+  data-flow accordion headers read "DF-&lt;flow name&gt;" instead of e.g.
+  "DF-7", because the id was parsed from a trust-boundary-prefixed display id
+  and fell back to the name. Grouping now uses the authoritative
+  `dataFlow.dataFlowId` (already in "DF-nn" form).
+- **Wrong relations in the asset-assignment dialog for data flows.** A DataFlow
+  (a connection) resolved to `elementType=undefined`, so it offered the wrong
+  allowed relations (`is_an` instead of `invokes`) and hid its existing ones.
+  The dialog now resolves connections too, treats them as DataFlow for the
+  allowed-relation lookup, and reads their `assetRelations`.
+- **Risk filters never filtered the table.** The Risk tab passed unfiltered
+  risks to the table, so the priority and search filters had no effect on the
+  rows. It now passes the filtered set with a matching count — fixed alongside
+  the new risk-level filter.
+- **Mandated-control labels and SRSL fields were unreadable.** Mandated
+  controls showed a raw `en50742-<clause>` id; they are now recomposed as
+  "EN50742: &lt;category&gt; — &lt;requirement&gt; (&lt;clause&gt;)". The
+  risk-table mitigation tooltip resolves every selected mitigation (catalogue,
+  custom and mandated, not just proposed) and drops the redundant trailing
+  `[status]`; the SRSL report's Severity and WoO now render with spaces instead
+  of underscores.
+
+---
+
+Full commit range: `v0.8.8-alpha..v0.9.0-alpha` (20 commits)
+
+---
+
 ## [0.8.8-alpha] - 2026-09-02
 
 ### Fixed
