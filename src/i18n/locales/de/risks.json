@@ -18,6 +18,8 @@
       "outOfSync": "Nicht synchronisiert",
       "syncNow": "Jetzt synchronisieren",
       "outOfSyncDetails": "Risiken sind nicht mit Bedrohungen synchronisiert:",
+      "bannerSummary_one": "{{count}} Meldung erfordert Ihre Aufmerksamkeit",
+      "bannerSummary_other": "{{count}} Meldungen erfordern Ihre Aufmerksamkeit",
       "newThreats": "neu",
       "orphaned": "verwaist",
       "changed": "geändert",

@@ -18,6 +18,8 @@
       "outOfSync": "Out of sync",
       "syncNow": "Sync Now",
       "outOfSyncDetails": "Risks are out of sync with Threats:",
+      "bannerSummary_one": "{{count}} notification needs your attention",
+      "bannerSummary_other": "{{count}} notifications need your attention",
       "newThreats": "new",
       "orphaned": "orphaned",
       "changed": "changed",

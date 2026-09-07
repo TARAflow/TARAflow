@@ -16,8 +16,6 @@ import React, {
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  Alert,
-  Collapse,
   Button,
   Typography,
   Dialog,
@@ -340,8 +338,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
   const needsSync = hasAnyThreats && syncStatus.needsSync;
-  const hasWarnings = syncWarnings.length > 0;
-  const uncertainCount = syncStatus.uncertainRisks ?? 0;
 
   const {
     filters,
@@ -754,40 +750,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      {/* Warnings */}
-      <Collapse in={hasWarnings}>
-        <Box sx={{ px: 2, py: 1 }}>
-          {syncWarnings.map((warning, i) => (
-            <Alert
-              key={i}
-              severity="info"
-              onClose={() =>
-                setSyncWarnings(syncWarnings.filter((_, idx) => idx !== i))
-              }
-              sx={{ mb: 1 }}
-            >
-              {warning}
-            </Alert>
-          ))}
-        </Box>
-      </Collapse>
-
-      {/* Uncertain Threats Warning */}
-      {uncertainCount > 0 && (
-        <Alert
-          severity="warning"
-          icon={<WarningIcon />}
-          sx={{ mx: 2, mt: 1, flexShrink: 0 }}
-        >
-          {t("tabs.risks.uncertainWarning", {
-            count: uncertainCount,
-            defaultValue: `${uncertainCount} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.`,
-          })}
-        </Alert>
-      )}
-
-      {/* Out-of-Sync Alert */}
+      {/* Notifications — self-contained accordion (renders nothing when
+          there is nothing to show). */}
       <RiskSyncBanner
+        syncWarnings={syncWarnings}
         needsSync={needsSync}
         isSyncing={isSyncing}
         syncStatus={syncStatus}
@@ -799,6 +765,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         ref={splitContainerRef}
         sx={{
           flexGrow: 1,
+          minHeight: 0,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -1116,6 +1083,6 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       </Dialog>
     </Box>
   );
-};
+}
 
 export default RisksTab;
