@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.9.0-alpha`
+> **Current version:** `v0.10.0-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -194,6 +194,18 @@ The verification system provides:
 * Integration tests and verification fixtures
 
 The verification functionality is available both inside the application and through the standalone `taraflow-verify` command-line tool.
+
+---
+
+## Source Version Binding
+
+TARAflow can record which **source version** a security analysis was performed against, giving version-exact traceability from the TARA to the implementation it describes — supporting EN 50742 §7.5 / §8.4 ("identification of software").
+
+At the project level, an analyst records a source reference — a repository URL and a ref (branch, release branch, tag, or commit) — and resolves it, on demand and behind an explicit per-host network-consent prompt, to a pinned commit SHA via `git ls-remote`. On-premise and offline Git hosts are handled explicitly rather than silently failing.
+
+Once a binding is pinned, TARAflow can **detect drift**: re-checking classifies the current state into six outcomes (in sync, branch advanced, expected release-branch advance, tag moved, ref no longer exists, or unreachable) and keeps a bounded, append-only record of every state *transition* — the evidence of whether, and when, the analysed source moved after the analysis was performed.
+
+> Current scope: project-level bindings. Element-level bindings (a source reference per Function/Process/System asset) and the validation/coverage reporting that builds on them are planned — see `doc/Open/`.
 
 ---
 

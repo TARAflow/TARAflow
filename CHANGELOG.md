@@ -1,3 +1,50 @@
+## [0.10.0-alpha] - 2026-09-10
+
+The headline of this release is **Source Version Binding**: TARAflow can now
+record which source version a security analysis was performed against, resolve
+it to a pinned commit, and detect when that source has drifted since — giving
+version-exact traceability from the TARA to the implementation it describes
+(EN 50742 §7.5 / §8.4, "identification of software"). This release delivers the
+project-level scope end to end (Phases 1–3); element-level bindings and the
+validation/coverage reporting that builds on them are deferred (see `doc/Open/`).
+
+### Added
+- **Source references (project scope).** An analyst can record a project-level
+  source reference — repository URL, ref type (branch / release branch / tag /
+  commit) and ref label — on the Overview tab, as an optional
+  documentation/evidence reference. The full data model (`SourceBinding`,
+  `DriftStatus`, `DriftEvent`) ships up front so later phases need no migration.
+- **Commit resolution (remote-first, consent-gated).** A per-binding *Resolve*
+  action pins a ref to a commit SHA via `git ls-remote`, behind an explicit
+  network-consent prompt shown once per host per Electron session (never
+  persisted, never silent). Host/network-unreachable is distinguished from
+  repo-reached-but-ref-not-found, and on-prem / offline hosts are handled
+  explicitly rather than failing silently.
+- **Drift detection.** A *Check for changes* action re-resolves a pinned binding
+  and classifies the result into six states (in sync, branch advanced, expected
+  release-branch advance, tag moved, ref missing, unreachable), with a live
+  status badge and an expandable history. Every state *transition* is recorded
+  to an append-only `driftEvents` log; repeated or clean checks add no entry,
+  keeping the record bounded. A declined-consent or engine-unavailable check
+  records nothing, so the log never conflates "chose not to check" with "the
+  host was down". Reuses the audit Finding/severity vocabulary.
+
+### Changed
+- **Build target raised to es2022** (`tsconfig.json` and
+  `tsconfig.electron.json`), with `useDefineForClassFields` pinned to `false` so
+  the existing class-field emit is unchanged — a lib/syntax bump only.
+
+### Fixed
+- **D-009 (wireless-interface DoS) i18n.** The catalog interface D-009 had no
+  threat/attack/cause text and resolved to the raw fallback key; en + de entries
+  added. Fixes newly generated threats only — projects generated before this
+  text existed have the raw key frozen into their stored descriptions.
+- **Missing asset-to-asset relation i18n keys.** `noTargets`, `noRelationTypes`,
+  `stepOrder` and `rationale` under `assets.relations.a2a` were absent in en + de
+  and logged `missingKey`; added.
+
+Full commit range: `v0.9.0-alpha..v0.10.0-alpha` (9 commits)
+
 ## [0.9.0-alpha] - 2026-09-07
 
 The headline of this release is **EN 50742 Approach A (SRSL)**: the Security
