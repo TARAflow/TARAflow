@@ -115,7 +115,8 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
               defaultValue: "Network access was not allowed.",
             })
           : t("sourceBinding.resolveError.unreachable", {
-              defaultValue: `Could not reach ${extractRepoHost(row.repoUrl)}.`,
+              host: extractRepoHost(row.repoUrl),
+              defaultValue: "Could not reach {{host}}.",
             });
       setResolveErrors((errs) => ({ ...errs, [row.id]: message }));
       return;
@@ -125,7 +126,8 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
       setResolveErrors((errs) => ({
         ...errs,
         [row.id]: t("sourceBinding.resolveError.refNotFound", {
-          defaultValue: `Reached the repository, but "${row.refLabel}" was not found there.`,
+          ref: row.refLabel,
+          defaultValue: 'Reached the repository, but "{{ref}}" was not found there.',
         }),
       }));
       return;
@@ -307,7 +309,8 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                     <span className="flex items-center gap-1 text-green-700">
                       <CheckCircle2 className="w-3 h-3" />
                       {t("sourceBinding.resolvedAs", {
-                        defaultValue: `Resolved to ${row.resolvedCommitSha.slice(0, 7)}`,
+                        sha: row.resolvedCommitSha.slice(0, 7),
+                        defaultValue: "Resolved to {{sha}}",
                       })}
                       {row.resolvedAt && (
                         <span className="text-gray-400">

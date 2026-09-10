@@ -146,6 +146,15 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     <div className="p-6 max-w-6xl">
       <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
 
+      <SourceBindingsSection
+        bindings={data.sourceBindings ?? []}
+        scopeLabel={t("sourceBinding.projectScope.title", {
+          defaultValue: "Project Source Reference",
+        })}
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={handleSourceBindingsUpdate}
+      />
+
       <ProjectProgress
         data={progressData}
         phases={overviewPhases}
@@ -156,15 +165,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       <ProjectSettings
         settings={data.settings}
         onUpdate={handleSettingsUpdate}
-      />
-
-      <SourceBindingsSection
-        bindings={data.sourceBindings ?? []}
-        scopeLabel={t("sourceBinding.projectScope.title", {
-          defaultValue: "Project Source Reference",
-        })}
-        scopeDescriptionKey="sourceBinding.projectScope.description"
-        onUpdate={handleSourceBindingsUpdate}
       />
     </div>
   );

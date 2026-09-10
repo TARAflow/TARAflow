@@ -31,13 +31,21 @@ vi.mock("features/overview/services/source-binding-service", async () => {
 // global test i18n setup if/once one exists for component tests.
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: { defaultValue?: string }) => {
+    t: (
+      key: string,
+      options?: { defaultValue?: string } & Record<string, unknown>,
+    ) => {
       const knownTranslations: Record<string, string> = {
         "common.edit": "Edit",
         "common.cancel": "Cancel",
         "common.save": "Save",
       };
-      return knownTranslations[key] ?? options?.defaultValue ?? key;
+      const base = knownTranslations[key] ?? options?.defaultValue ?? key;
+      // Minimal i18next-style {{var}} interpolation so message tests exercise
+      // the real interpolation path (host/ref/sha) rather than a JS literal.
+      return base.replace(/\{\{(\w+)\}\}/g, (_m, name: string) =>
+        options && name in options ? String(options[name]) : `{{${name}}}`,
+      );
     },
   }),
 }));

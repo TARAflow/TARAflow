@@ -114,8 +114,8 @@ export interface GeneralTabData {
    * release Y". An analysis/evidence reference, deliberately NOT implied to
    * apply to every element automatically; element-level bindings on
    * Function/Process/System Asset properties are a separate, non-inheriting
-   * collection. Rendered as its own section in GeneralTab, after
-   * ProjectSettings (plan §4). Undefined/empty is the normal case — this is
+   * collection. Rendered as its own section in GeneralTab, directly below
+   * Project Information (plan §4). Undefined/empty is the normal case — this is
    * an optional documentation reference, not a required field.
    */
   sourceBindings?: SourceBinding[];

@@ -349,4 +349,48 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
   });
 });
 
- 
+ describe("prepareForDisk — project-level source bindings survive to disk", () => {
+  // The whole point of Source Version Binding is portability + 10-year MVO
+  // retention: the binding must land in the .tara.json, not just in memory.
+  // prepareForDisk keeps unknown top-level fields via ...rest (a strip-list,
+  // not an allow-list), so sourceBindings is persisted by default. This pins
+  // that: if prepareForDisk is ever switched to an explicit allow-list, or a
+  // stray strip is added, this fails loudly rather than the binding vanishing
+  // on the next save.
+  const bindings = [
+    {
+      id: "b-1",
+      repoUrl: "https://github.com/org/repo.git",
+      refType: "tag" as const,
+      refLabel: "v2.3.1",
+      resolvedCommitSha: "abc1234def5678",
+      resolvedAt: "2026-03-02T10:00:00.000Z",
+      driftEvents: [],
+    },
+  ];
+
+  it("keeps sourceBindings unchanged on disk", () => {
+    const result = prepareForDisk(
+      makeProject({ sourceBindings: bindings } as unknown as Partial<Project>),
+    ) as unknown as Record<string, unknown>;
+    expect(result).toHaveProperty("sourceBindings");
+    expect(result.sourceBindings).toEqual(bindings);
+  });
+
+  it("keeps the resolved commit SHA + timestamp (the compliance-relevant pin)", () => {
+    const result = prepareForDisk(
+      makeProject({ sourceBindings: bindings } as unknown as Partial<Project>),
+    ) as unknown as { sourceBindings: Array<Record<string, unknown>> };
+    expect(result.sourceBindings[0].resolvedCommitSha).toBe("abc1234def5678");
+    expect(result.sourceBindings[0].resolvedAt).toBe(
+      "2026-03-02T10:00:00.000Z",
+    );
+  });
+
+  it("preserves an empty sourceBindings array rather than dropping it", () => {
+    const result = prepareForDisk(
+      makeProject({ sourceBindings: [] } as unknown as Partial<Project>),
+    ) as unknown as Record<string, unknown>;
+    expect(result.sourceBindings).toEqual([]);
+  });
+});

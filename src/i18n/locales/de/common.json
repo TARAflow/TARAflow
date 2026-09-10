@@ -650,5 +650,40 @@
       "partial": "Teilweise implementiert"
     }
   },
-  "UNRATED": "Nicht bewertet"
+  "UNRATED": "Nicht bewertet",
+  "sourceBinding": {
+    "projectScope": {
+      "title": "Projekt-Quellreferenz",
+      "description": "Das Repository und der Release, gegen die diese TARA durchgeführt wurde. Eine Analysereferenz für das gesamte Projekt — sie wird nicht automatisch auf einzelne Elemente angewendet."
+    },
+    "empty": "Keine Quellreferenzen erfasst.",
+    "addReference": "Referenz hinzufügen",
+    "repoUrl": "Repository-URL",
+    "localPathWarning": "Das sieht nach einem lokalen Pfad aus — es wird nur die Remote-URL gespeichert.",
+    "refLabel": "Ref-Bezeichnung",
+    "refLabelPlaceholder": "main, v2.3.1…",
+    "refType": {
+      "label": "Ref-Typ",
+      "branch": "Branch",
+      "releaseBranch": "Release-Branch",
+      "tag": "Tag",
+      "commit": "Commit"
+    },
+    "resolve": "Auflösen",
+    "reResolve": "Erneut auflösen",
+    "resolving": "Wird aufgelöst…",
+    "resolvedAs": "Aufgelöst auf {{sha}}",
+    "notResolvedYet": "Noch nicht auf einen Commit aufgelöst.",
+    "resolveError": {
+      "consentDenied": "Netzwerkzugriff wurde nicht erlaubt.",
+      "unreachable": "{{host}} konnte nicht erreicht werden.",
+      "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden."
+    },
+    "consent": {
+      "title": "Netzwerkzugriff erlauben?",
+      "body": "TARAflow möchte den folgenden Host kontaktieren, um eine Quellreferenz aufzulösen:",
+      "scope": "Die Abfrage erfolgt einmal pro Host für diese Sitzung — weitere Bindungen auf demselben Host fragen erst nach einem Neustart von TARAflow erneut.",
+      "allow": "Erlauben"
+    }
+  }
 }
