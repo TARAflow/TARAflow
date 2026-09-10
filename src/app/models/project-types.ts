@@ -2,7 +2,7 @@ import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
 import { HazardData } from "features/hazards";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
-import { PhaseStatus, PhaseStatusMap, ProjectTags } from "shared";
+import { PhaseStatus, PhaseStatusMap, ProjectTags, SourceBinding } from "shared";
 import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
 import { AttackTreeData } from "features/attacktree";
@@ -92,6 +92,15 @@ export interface Project {
   documentation: DocData | null;
   integration: IntegrationData | null;
   audit: AuditData | null; // Git/Version Control
+  /**
+   * Project-level source-version bindings (implementation plan §3.5): the
+   * project-wide "this TARA was analysed against repo X, release Y" evidence
+   * references. Element-level bindings are a separate, non-inheriting
+   * collection on the respective asset properties. Optional — missing/[]
+   * is the normal case, no migration needed. Persisted by default via
+   * prepareForDisk's ...rest.
+   */
+  sourceBindings?: SourceBinding[];
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
   filePath?: string; // Runtime-only (Electron). Stripped by prepareForDisk() before write — never persisted.

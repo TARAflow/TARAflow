@@ -506,6 +506,10 @@
       },
       "a2a": {
         "relationType": "Relation Type",
+        "noTargets": "All assets are already related to this asset.",
+        "noRelationTypes": "No defined relation types for this source → target combination.",
+        "stepOrder": "Step Order (optional)",
+        "rationale": "Rationale (optional)",
         "noRelations": "No asset-to-asset relations defined.",
         "add": "Add Relation",
         "addRelation": "Add Asset Relation",
@@ -652,5 +656,55 @@
       "partial": "Partially implemented"
     }
   },
-  "UNRATED": "Unrated"
+  "UNRATED": "Unrated",
+  "sourceBinding": {
+    "projectScope": {
+      "title": "Project Source Reference",
+      "description": "The repository and release this TARA was performed against. An analysis reference for the whole project — it is not automatically applied to individual elements."
+    },
+    "empty": "No source references recorded.",
+    "addReference": "Add reference",
+    "repoUrl": "Repository URL",
+    "localPathWarning": "This looks like a local path — only the remote URL is stored.",
+    "refLabel": "Ref label",
+    "refLabelPlaceholder": "main, v2.3.1…",
+    "refType": {
+      "label": "Ref type",
+      "branch": "Branch",
+      "releaseBranch": "Release branch",
+      "tag": "Tag",
+      "commit": "Commit"
+    },
+    "resolve": "Resolve",
+    "reResolve": "Re-resolve",
+    "resolving": "Resolving…",
+    "resolvedAs": "Resolved to {{sha}}",
+    "notResolvedYet": "Not yet resolved to a commit.",
+    "resolveError": {
+      "consentDenied": "Network access was not allowed.",
+      "unreachable": "Could not reach {{host}}.",
+      "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there."
+    },
+    "consent": {
+      "title": "Allow network access?",
+      "body": "TARAflow wants to contact the following host to resolve a source reference:",
+      "scope": "This asks once per host for this session — other bindings on the same host won't ask again until TARAflow restarts.",
+      "allow": "Allow"
+    },
+      "drift": {
+        "check": "Check for changes",
+        "checking": "Checking…",
+        "checkFailed": "Could not check {{host}} for changes.",
+        "aborted": "Check was not completed.",
+        "history": "Drift history ({{n}})",
+        "status": {
+          "clean": "In sync",
+          "branch_advanced": "Branch advanced",
+          "branch_advanced_expected": "Release branch advanced (expected)",
+          "tag_moved": "Tag moved",
+          "ref_missing": "Ref no longer exists",
+          "unreachable": "Could not reach the repository"
+        }
+      }
+  }
 }

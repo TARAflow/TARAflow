@@ -77,6 +77,7 @@
 // signing settings won't survive a reload. Ship both halves together.
 
 import type { Project } from "../models/project-types";
+import type { SourceBinding } from "shared";
 
 // The canonical TCS serializer lives in its own project-types-free module
 // (./tcs-serialize) so the Electron main process and the CLI can import it
@@ -206,7 +207,20 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
         })()
       : null,
     audit: audit ? auditForDisk(audit) : null,
+    sourceBindings: project.sourceBindings?.map(sourceBindingForDisk),
   };
+}
+
+/**
+ * currentDriftStatus is a live value, recomputed on demand — never persisted
+ * as truth (plan §3.2/§6.3). Stripping it keeps the file idempotent: a drift
+ * check must not churn the .tara.json. driftEvents, the append-only audit
+ * record, is deliberately KEPT.
+ */
+function sourceBindingForDisk(binding: SourceBinding): SourceBinding {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { currentDriftStatus, ...rest } = binding;
+  return rest;
 }
 
 // ==================== TCS CANONICAL SERIALIZATION ====================

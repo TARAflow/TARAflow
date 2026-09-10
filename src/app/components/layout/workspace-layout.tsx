@@ -97,6 +97,7 @@ import type { Project } from "../../models/project-types";
 import { syncFromDFD } from "features/assets/services/asset-sync-service";
 
 import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
+import { buildGeneralTabPatch } from "app/services/general-tab-update";
 import { getRegulationConflicts } from "shared";
 
 // ==================== COMPONENT ====================
@@ -207,6 +208,7 @@ export const WorkspaceLayout: React.FC = () => {
         info: activeProject.info,
         settings: activeProject.settings,
         phaseStatus: activeProject.phaseStatus,
+        sourceBindings: activeProject.sourceBindings,
         dfdValidation: activeProject.dfd?.validation
           ? {
               valid: activeProject.dfd.validation.errors.length === 0,
@@ -229,23 +231,7 @@ export const WorkspaceLayout: React.FC = () => {
     (data: GeneralTabData) => {
       const current = activeProjectRef.current;
       if (!current) return;
-      const edited: Project = {
-        ...current,
-        info: data.info,
-        settings: data.settings,
-        phaseStatus: data.phaseStatus,
-      };
-      const { project } = applyRegulationFromTags(
-        edited,
-        edited.info.windowOfOpportunity,
-      );
-      updateProject({
-        id: current.id,
-        info: project.info,
-        settings: project.settings,
-        phaseStatus: project.phaseStatus,
-        ...(project.risks ? { risks: project.risks } : {}),
-      });
+      updateProject(buildGeneralTabPatch(current, data));
       const conflicts = getRegulationConflicts(data.info.tags);
       if (conflicts.length > 0) toast.warning(conflicts[0].message);
     },
