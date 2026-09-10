@@ -11,7 +11,6 @@
 // UI-layer concern, added alongside the panel component, not here.
 
 import type { DriftStatus, DriftEvent } from "shared";
-
 export type Severity = "error" | "warning" | "info";
 
 /** One finding id per non-clean DriftStatus. "clean" never produces a
@@ -31,9 +30,17 @@ const STATUS_TO_ID: Record<Exclude<DriftStatus, "clean">, DriftFindingId> = {
   unreachable: "source-binding.unreachable",
 };
 
+// Severities follow plan §7, which is also the Phase-4 validation rollup:
+// every non-clean drift status is a "warning" nudge-to-review, except an
+// expected release-branch advance ("info"). "error" is intentionally NOT used
+// by any drift status — §7 reserves it for a binding with no resolvedCommitSha
+// at all, a Phase-4 validation condition, not a drift outcome. (tag_moved is
+// the one a reviewer might argue up to "error" as an integrity signal; kept at
+// "warning" so the Finding severity and the §7 validation nudge stay in sync —
+// flip this single line if that policy changes.)
 export const DEFAULT_SEVERITY: Record<DriftFindingId, Severity> = {
-  "source-binding.tag-moved": "error",
-  "source-binding.ref-missing": "error",
+  "source-binding.tag-moved": "warning",
+  "source-binding.ref-missing": "warning",
   "source-binding.unreachable": "warning",
   "source-binding.branch-advanced": "warning",
   "source-binding.branch-advanced-expected": "info",
@@ -58,4 +65,15 @@ export function driftFindingFor(event: DriftEvent): DriftFinding {
     severity: DEFAULT_SEVERITY[id],
     ...(event.currentCommitSha ? { commit: event.currentCommitSha } : {}),
   };
+}
+
+/**
+ * Severity for a bare DriftStatus (the live badge shows currentDriftStatus,
+ * not a persisted DriftEvent). "clean" carries no finding — treated as "info"
+ * so the badge can render it neutrally; every other status uses the same
+ * DEFAULT_SEVERITY as driftFindingFor, so badge and Finding stay consistent.
+ */
+export function driftStatusSeverity(status: DriftStatus): Severity {
+  if (status === "clean") return "info";
+  return DEFAULT_SEVERITY[STATUS_TO_ID[status]];
 }

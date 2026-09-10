@@ -35,12 +35,14 @@ describe("driftFindingFor", () => {
     }
   });
 
-  it("applies the documented default severities", () => {
+  it("applies the documented default severities (plan §7)", () => {
+    // §7: non-clean drift statuses are warnings (review nudges); an expected
+    // release-branch advance is info. No drift status is an "error".
     expect(driftFindingFor(makeEvent({ status: "tag_moved" })).severity).toBe(
-      "error",
+      "warning",
     );
     expect(driftFindingFor(makeEvent({ status: "ref_missing" })).severity).toBe(
-      "error",
+      "warning",
     );
     expect(driftFindingFor(makeEvent({ status: "unreachable" })).severity).toBe(
       "warning",

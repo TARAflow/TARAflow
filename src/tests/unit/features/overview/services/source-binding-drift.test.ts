@@ -64,12 +64,21 @@ describe("checkDrift", () => {
     ).toBe("unreachable");
   });
 
-  it("returns unreachable for a denied-consent result (reachable: false)", () => {
+  it("classifies a genuine ls-remote failure (real error message) as unreachable", () => {
+    // A real network/host failure comes back success:false with a git error
+    // string (NOT one of the did-not-run codes). checkDrift only inspects
+    // reachable, so it reads as a recordable unreachable — the orchestrator's
+    // did-not-run filter is what keeps consent/engine cases out (see below).
     const binding = makeBinding();
     expect(
       checkDrift(
         binding,
-        result({ success: false, reachable: false, sha: undefined, error: "consent_denied" }),
+        result({
+          success: false,
+          reachable: false,
+          sha: undefined,
+          error: "fatal: unable to access ... Could not resolve host",
+        }),
       ),
     ).toBe("unreachable");
   });
@@ -162,6 +171,20 @@ describe("recordDriftIfTransitioned", () => {
     expect(updated.driftEvents).toHaveLength(1);
   });
 
+  it("records nothing when the binding has no baseline pin", () => {
+    // Guards the traceability log against an empty previousResolvedCommitSha:
+    // an unresolved binding has nothing to drift from, so only the live badge
+    // updates. (The UI never offers drift-check on unresolved bindings, but
+    // the function is defensive at its own boundary.)
+    const binding = makeBinding({
+      resolvedCommitSha: undefined,
+      driftEvents: [],
+    });
+    const updated = recordDriftIfTransitioned(binding, "branch_advanced", "bbb222");
+    expect(updated.driftEvents).toHaveLength(0);
+    expect(updated.currentDriftStatus).toBe("branch_advanced");
+  });
+
   it("never mutates the input binding or its driftEvents array", () => {
     const priorEvent = makeEvent();
     const originalEvents = [priorEvent];
@@ -198,31 +221,78 @@ describe("checkAndRecordDrift", () => {
     const binding = makeBinding({ refType: "branch", resolvedCommitSha: "aaa111" });
     const onConsentRequired = vi.fn().mockResolvedValue(true);
 
-    const updated = await checkAndRecordDrift(binding, onConsentRequired);
+    const outcome = await checkAndRecordDrift(binding, onConsentRequired);
 
     expect(sourceBindingService.resolveSourceBinding).toHaveBeenCalledWith(
       binding,
       onConsentRequired,
     );
-    expect(updated.currentDriftStatus).toBe("branch_advanced");
-    expect(updated.driftEvents).toHaveLength(1);
-    expect(updated.driftEvents[0].currentCommitSha).toBe("bbb222");
+    if (!outcome.ran) throw new Error("expected the check to have run");
+    expect(outcome.status).toBe("branch_advanced");
+    expect(outcome.recorded).toBe(true);
+    expect(outcome.binding.currentDriftStatus).toBe("branch_advanced");
+    expect(outcome.binding.driftEvents).toHaveLength(1);
+    expect(outcome.binding.driftEvents[0].currentCommitSha).toBe("bbb222");
   });
 
-  it("propagates a consent-denied result as unreachable, without a crash", async () => {
+  it("does NOT record when the analyst denies consent (ran: false)", async () => {
+    // The key correctness fix: a declined network prompt must not write a
+    // false "unreachable" transition into the append-only compliance log.
     vi.spyOn(sourceBindingService, "resolveSourceBinding").mockResolvedValue({
       success: false,
       reachable: false,
       error: "consent_denied",
     });
     const binding = makeBinding();
-    const onConsentRequired = vi.fn().mockResolvedValue(false);
 
-    const updated = await checkAndRecordDrift(binding, onConsentRequired);
+    const outcome = await checkAndRecordDrift(
+      binding,
+      vi.fn().mockResolvedValue(false),
+    );
 
-    expect(updated.currentDriftStatus).toBe("unreachable");
-    expect(updated.driftEvents).toHaveLength(1);
-    expect(updated.driftEvents[0].currentCommitSha).toBeUndefined();
+    expect(outcome.ran).toBe(false);
+    if (outcome.ran) throw new Error("expected the check NOT to have run");
+    expect(outcome.reason).toBe("consent_denied");
+  });
+
+  it("does NOT record when the git engine is unavailable (ran: false)", async () => {
+    vi.spyOn(sourceBindingService, "resolveSourceBinding").mockResolvedValue({
+      success: false,
+      reachable: false,
+      error: "engine_unavailable",
+    });
+
+    const outcome = await checkAndRecordDrift(
+      makeBinding(),
+      vi.fn().mockResolvedValue(true),
+    );
+
+    expect(outcome.ran).toBe(false);
+    if (outcome.ran) throw new Error("expected the check NOT to have run");
+    expect(outcome.reason).toBe("engine_unavailable");
+  });
+
+  it("DOES record a genuine unreachable host (real ls-remote failure)", async () => {
+    // success:false with a real git error (not a did-not-run code) is a real
+    // check that reached a verdict: the host was genuinely unreachable.
+    vi.spyOn(sourceBindingService, "resolveSourceBinding").mockResolvedValue({
+      success: false,
+      reachable: false,
+      sha: undefined,
+      error: "fatal: unable to access ... Could not resolve host",
+    });
+    const binding = makeBinding({ resolvedCommitSha: "aaa111" });
+
+    const outcome = await checkAndRecordDrift(
+      binding,
+      vi.fn().mockResolvedValue(true),
+    );
+
+    if (!outcome.ran) throw new Error("expected the check to have run");
+    expect(outcome.status).toBe("unreachable");
+    expect(outcome.recorded).toBe(true);
+    expect(outcome.binding.driftEvents).toHaveLength(1);
+    expect(outcome.binding.driftEvents[0].currentCommitSha).toBeUndefined();
   });
 
   it("leaves driftEvents empty when the resolved state is clean", async () => {
@@ -231,9 +301,14 @@ describe("checkAndRecordDrift", () => {
     );
     const binding = makeBinding({ resolvedCommitSha: "aaa111" });
 
-    const updated = await checkAndRecordDrift(binding, vi.fn().mockResolvedValue(true));
+    const outcome = await checkAndRecordDrift(
+      binding,
+      vi.fn().mockResolvedValue(true),
+    );
 
-    expect(updated.currentDriftStatus).toBe("clean");
-    expect(updated.driftEvents).toHaveLength(0);
+    if (!outcome.ran) throw new Error("expected the check to have run");
+    expect(outcome.status).toBe("clean");
+    expect(outcome.recorded).toBe(false);
+    expect(outcome.binding.driftEvents).toHaveLength(0);
   });
 });

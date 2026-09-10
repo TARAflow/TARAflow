@@ -99,7 +99,7 @@ export async function resolveSourceBinding(
     return {
       success: false,
       reachable: false,
-      error: "window.git.resolveRemoteRef is not available in this build",
+      error: "engine_unavailable",
     };
   }
 

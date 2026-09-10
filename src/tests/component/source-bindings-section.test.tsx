@@ -279,4 +279,99 @@ describe("SourceBindingsSection", () => {
     expect(screen.getByText("Re-resolve")).toBeInTheDocument();
     expect(screen.getByText(/Resolved to 1234567/)).toBeInTheDocument();
   });
+
+  it("records and persists a drift transition when the remote has moved", async () => {
+    const onUpdate = vi.fn();
+    const resolvedBinding: SourceBinding = {
+      ...binding,
+      refType: "tag",
+      resolvedCommitSha: "1234567890abcdef",
+      resolvedAt: new Date().toISOString(),
+      driftEvents: [],
+    };
+    // checkAndRecordDrift re-resolves via the (mocked) service; a different
+    // sha on a tag is a tag_moved transition.
+    vi.mocked(resolveSourceBinding).mockResolvedValue({
+      success: true,
+      reachable: true,
+      sha: "ffffffff00000000",
+    });
+
+    render(
+      <SourceBindingsSection
+        bindings={[resolvedBinding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Check for changes"));
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledTimes(1));
+    const saved = onUpdate.mock.calls[0][0] as SourceBinding[];
+    expect(saved[0].driftEvents).toHaveLength(1);
+    expect(saved[0].driftEvents[0].status).toBe("tag_moved");
+    expect(saved[0].driftEvents[0].currentCommitSha).toBe("ffffffff00000000");
+  });
+
+  it("does not persist when the remote is unchanged (clean check)", async () => {
+    const onUpdate = vi.fn();
+    const resolvedBinding: SourceBinding = {
+      ...binding,
+      refType: "tag",
+      resolvedCommitSha: "1234567890abcdef",
+      resolvedAt: new Date().toISOString(),
+      driftEvents: [],
+    };
+    vi.mocked(resolveSourceBinding).mockResolvedValue({
+      success: true,
+      reachable: true,
+      sha: "1234567890abcdef", // same as the recorded pin
+    });
+
+    render(
+      <SourceBindingsSection
+        bindings={[resolvedBinding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Check for changes"));
+
+    await screen.findByText("In sync");
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("does not record a drift event when consent is denied", async () => {
+    const onUpdate = vi.fn();
+    const resolvedBinding: SourceBinding = {
+      ...binding,
+      refType: "tag",
+      resolvedCommitSha: "1234567890abcdef",
+      resolvedAt: new Date().toISOString(),
+      driftEvents: [],
+    };
+    vi.mocked(resolveSourceBinding).mockResolvedValue({
+      success: false,
+      reachable: false,
+      error: "consent_denied",
+    });
+
+    render(
+      <SourceBindingsSection
+        bindings={[resolvedBinding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Check for changes"));
+
+    await screen.findByText("Network access was not allowed.");
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
 });

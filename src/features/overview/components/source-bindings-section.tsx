@@ -10,7 +10,7 @@ import {
   RefreshCw,
   CheckCircle2,
 } from "lucide-react";
-import type { SourceBinding } from "shared";
+import type { SourceBinding, DriftStatus } from "shared";
 import { useSourceBindings } from "../hooks/use-source-bindings";
 import {
   SOURCE_REF_TYPE_OPTIONS,
@@ -21,6 +21,8 @@ import {
   resolveSourceBinding,
   extractRepoHost,
 } from "../services/source-binding-service";
+import { checkAndRecordDrift } from "../services/source-binding-drift";
+import { driftStatusSeverity } from "../services/source-binding-findings";
 import { NetworkConsentDialog } from "./network-consent-dialog";
 
 // ==================== SOURCE BINDINGS SECTION ====================
@@ -73,6 +75,16 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
   );
   const [pendingConsent, setPendingConsent] =
     useState<PendingConsent | null>(null);
+
+  // Drift (Phase 3). The live status badge is SESSION state, deliberately not
+  // persisted (plan §3.2) — recomputed on demand. Only a genuine transition
+  // (a new DriftEvent) is persisted, via onUpdate below.
+  const [driftCheckingId, setDriftCheckingId] = useState<string | null>(null);
+  const [driftStatuses, setDriftStatuses] = useState<
+    Record<string, DriftStatus>
+  >({});
+  const [driftErrors, setDriftErrors] = useState<Record<string, string>>({});
+  const [openHistoryId, setOpenHistoryId] = useState<string | null>(null);
 
   const handleEdit = () => startEdit(bindings);
   const handleCancel = () => cancelEdit(bindings);
@@ -144,6 +156,43 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
           : b,
       ),
     );
+  };
+
+  // A drift check re-resolves the current remote state and compares it to the
+  // recorded pin — the orchestrator owns consent, classification, and the
+  // transition-only recording. We persist only when it reports a genuine
+  // transition, so a clean/repeat check never churns the project file; a
+  // check that didn't run (consent denied / engine unavailable) records
+  // nothing and just surfaces a message.
+  const handleCheckDrift = async (row: SourceBinding) => {
+    setDriftCheckingId(row.id);
+    setDriftErrors((errs) => {
+      const next = { ...errs };
+      delete next[row.id];
+      return next;
+    });
+
+    const outcome = await checkAndRecordDrift(row, requestConsent);
+    setDriftCheckingId(null);
+
+    if (!outcome.ran) {
+      const message =
+        outcome.reason === "consent_denied"
+          ? t("sourceBinding.resolveError.consentDenied", {
+              defaultValue: "Network access was not allowed.",
+            })
+          : t("sourceBinding.drift.checkFailed", {
+              host: extractRepoHost(row.repoUrl),
+              defaultValue: "Could not check {{host}} for changes.",
+            });
+      setDriftErrors((errs) => ({ ...errs, [row.id]: message }));
+      return;
+    }
+
+    setDriftStatuses((s) => ({ ...s, [row.id]: outcome.status }));
+    if (outcome.recorded) {
+      onUpdate(bindings.map((b) => (b.id === row.id ? outcome.binding : b)));
+    }
   };
 
   const rows = isEditing ? draft : bindings;
@@ -303,7 +352,8 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
             {/* Resolution status + action — read-only view only; editing a
                 row's fields and resolving it are separate actions. */}
             {!isEditing && isSourceBindingComplete(row) && (
-              <div className="col-span-12 flex items-center justify-between gap-2 flex-wrap">
+              <div className="col-span-12 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="text-xs">
                   {row.resolvedCommitSha ? (
                     <span className="flex items-center gap-1 text-green-700">
@@ -355,6 +405,122 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                         })
                       : t("sourceBinding.resolve", { defaultValue: "Resolve" })}
                 </button>
+                </div>
+
+                {row.resolvedCommitSha && row.refType !== "commit" && (
+                  <div className="flex items-center justify-between gap-2 flex-wrap border-t border-gray-100 pt-2">
+                    <div className="text-xs">
+                      {driftStatuses[row.id] === "clean" && (
+                        <span className="flex items-center gap-1 text-green-700">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {t("sourceBinding.drift.status.clean", {
+                            defaultValue: "In sync",
+                          })}
+                        </span>
+                      )}
+                      {driftStatuses[row.id] &&
+                        driftStatuses[row.id] !== "clean" && (
+                          <span
+                            className={`flex items-center gap-1 ${
+                              driftStatusSeverity(driftStatuses[row.id]!) ===
+                              "warning"
+                                ? "text-amber-600"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {driftStatusSeverity(driftStatuses[row.id]!) ===
+                              "warning" && (
+                              <AlertTriangle className="w-3 h-3" />
+                            )}
+                            {t(
+                              `sourceBinding.drift.status.${driftStatuses[row.id]}`,
+                              { defaultValue: driftStatuses[row.id] },
+                            )}
+                          </span>
+                        )}
+                      {driftErrors[row.id] && (
+                        <p className="flex items-center gap-1 text-red-600 mt-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {driftErrors[row.id]}
+                        </p>
+                      )}
+                      {row.driftEvents.length > 0 && (
+                        <button
+                          onClick={() =>
+                            setOpenHistoryId(
+                              openHistoryId === row.id ? null : row.id,
+                            )
+                          }
+                          className="mt-1 block text-gray-500 hover:text-gray-700 underline"
+                        >
+                          {t("sourceBinding.drift.history", {
+                            n: row.driftEvents.length,
+                            defaultValue: "Drift history ({{n}})",
+                          })}
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleCheckDrift(row)}
+                      disabled={
+                        driftCheckingId === row.id || resolvingId === row.id
+                      }
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <RefreshCw
+                        className={`w-3 h-3 ${driftCheckingId === row.id ? "animate-spin" : ""}`}
+                      />
+                      {driftCheckingId === row.id
+                        ? t("sourceBinding.drift.checking", {
+                            defaultValue: "Checking…",
+                          })
+                        : t("sourceBinding.drift.check", {
+                            defaultValue: "Check for changes",
+                          })}
+                    </button>
+                  </div>
+                )}
+
+                {openHistoryId === row.id && row.driftEvents.length > 0 && (
+                  <ul className="text-xs text-gray-600 space-y-1 border-t border-gray-100 pt-2">
+                    {row.driftEvents.map((ev) => (
+                      <li key={ev.id} className="flex flex-col">
+                        <span className="flex items-center gap-1 flex-wrap">
+                          <span className="text-gray-400">
+                            {new Date(ev.detectedAt).toLocaleString(undefined, {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </span>
+                          <span>·</span>
+                          <span
+                            className={
+                              driftStatusSeverity(ev.status) === "warning"
+                                ? "text-amber-600"
+                                : "text-gray-600"
+                            }
+                          >
+                            {t(`sourceBinding.drift.status.${ev.status}`, {
+                              defaultValue: ev.status,
+                            })}
+                          </span>
+                        </span>
+                        <span className="text-gray-400">
+                          {ev.previousResolvedCommitSha.slice(0, 7)}
+                          {" → "}
+                          {ev.currentCommitSha
+                            ? ev.currentCommitSha.slice(0, 7)
+                            : "—"}
+                        </span>
+                        {ev.note && (
+                          <span className="text-gray-500 italic">
+                            {ev.note}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

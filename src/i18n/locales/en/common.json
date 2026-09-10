@@ -506,6 +506,10 @@
       },
       "a2a": {
         "relationType": "Relation Type",
+        "noTargets": "All assets are already related to this asset.",
+        "noRelationTypes": "No defined relation types for this source → target combination.",
+        "stepOrder": "Step Order (optional)",
+        "rationale": "Rationale (optional)",
         "noRelations": "No asset-to-asset relations defined.",
         "add": "Add Relation",
         "addRelation": "Add Asset Relation",
@@ -686,6 +690,21 @@
       "body": "TARAflow wants to contact the following host to resolve a source reference:",
       "scope": "This asks once per host for this session — other bindings on the same host won't ask again until TARAflow restarts.",
       "allow": "Allow"
-    }
+    },
+      "drift": {
+        "check": "Check for changes",
+        "checking": "Checking…",
+        "checkFailed": "Could not check {{host}} for changes.",
+        "aborted": "Check was not completed.",
+        "history": "Drift history ({{n}})",
+        "status": {
+          "clean": "In sync",
+          "branch_advanced": "Branch advanced",
+          "branch_advanced_expected": "Release branch advanced (expected)",
+          "tag_moved": "Tag moved",
+          "ref_missing": "Ref no longer exists",
+          "unreachable": "Could not reach the repository"
+        }
+      }
   }
 }

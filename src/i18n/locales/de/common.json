@@ -504,6 +504,10 @@
       },
       "a2a": {
         "relationType": "Beziehungstyp",
+        "noTargets": "Alle Assets sind bereits mit diesem Asset verknüpft.",
+        "noRelationTypes": "Keine definierten Beziehungstypen für diese Quelle → Ziel-Kombination.",
+        "stepOrder": "Schrittreihenfolge (optional)",
+        "rationale": "Begründung (optional)",
         "noRelations": "Keine Asset-zu-Asset-Beziehungen definiert.",
         "add": "Beziehung hinzufügen",
         "addRelation": "Asset-Beziehung hinzufügen",
@@ -684,6 +688,21 @@
       "body": "TARAflow möchte den folgenden Host kontaktieren, um eine Quellreferenz aufzulösen:",
       "scope": "Die Abfrage erfolgt einmal pro Host für diese Sitzung — weitere Bindungen auf demselben Host fragen erst nach einem Neustart von TARAflow erneut.",
       "allow": "Erlauben"
-    }
+    },
+      "drift": {
+        "check": "Auf Änderungen prüfen",
+        "checking": "Wird geprüft…",
+        "checkFailed": "{{host}} konnte nicht auf Änderungen geprüft werden.",
+        "aborted": "Prüfung wurde nicht abgeschlossen.",
+        "history": "Drift-Verlauf ({{n}})",
+        "status": {
+          "clean": "Aktuell",
+          "branch_advanced": "Branch weitergewandert",
+          "branch_advanced_expected": "Release-Branch weitergewandert (erwartet)",
+          "tag_moved": "Tag verschoben",
+          "ref_missing": "Ref existiert nicht mehr",
+          "unreachable": "Repository nicht erreichbar"
+        }
+      }
   }
 }

@@ -393,4 +393,39 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
     ) as unknown as Record<string, unknown>;
     expect(result.sourceBindings).toEqual([]);
   });
+
+  it("strips the live currentDriftStatus but keeps the driftEvents log", () => {
+    // currentDriftStatus is recomputed on demand (plan §3.2/§6.3) — persisting
+    // it would churn the file on every drift check. driftEvents is the
+    // append-only audit record and must survive.
+    const driftEvents = [
+      {
+        id: "de-1",
+        bindingId: "b-1",
+        detectedAt: "2026-03-02T10:00:00.000Z",
+        status: "tag_moved",
+        previousStatus: "clean",
+        previousResolvedCommitSha: "abc1234def5678",
+        currentCommitSha: "999888777666",
+      },
+    ];
+    const result = prepareForDisk(
+      makeProject({
+        sourceBindings: [
+          {
+            id: "b-1",
+            repoUrl: "https://github.com/org/repo.git",
+            refType: "tag" as const,
+            refLabel: "v2.3.1",
+            resolvedCommitSha: "abc1234def5678",
+            currentDriftStatus: "tag_moved",
+            driftEvents,
+          },
+        ],
+      } as unknown as Partial<Project>),
+    ) as unknown as { sourceBindings: Array<Record<string, unknown>> };
+
+    expect(result.sourceBindings[0]).not.toHaveProperty("currentDriftStatus");
+    expect(result.sourceBindings[0].driftEvents).toEqual(driftEvents);
+  });
 });
