@@ -41,6 +41,30 @@ import { REGULATION_PRESETS, type RegulationPresetId } from "shared";
 // needs it, to select the right pool.
 const EXCLUSIVE_METHODS: ReadonlySet<string> = new Set(["iso-21434", "etsi-tvra"]);
 
+/**
+ * True for exclusive-mode likelihood methods (iso-21434 / etsi-tvra). These
+ * methods lock ALL impact factors off (design §3.11 exclusive), so impact can
+ * only come from asset-impact — see isAssetImpactMandatory. Keys on the method
+ * string so the config dialog (which holds configuration.likelihoodMethod, not
+ * a preset id) can call it directly.
+ */
+export function isExclusiveLikelihoodMethod(method: string): boolean {
+  return EXCLUSIVE_METHODS.has(method);
+}
+
+/**
+ * Whether a preset REQUIRES useAssetImpact = true. Exclusive-mode presets lock
+ * every impact factor off, so without asset-impact the impact axis is empty and
+ * R = I × L = 0 (design DS-4). Enforced by the orchestrator (threadUseAssetImpact,
+ * the backstop for import / legacy / tag-change) and locked in the config dialog
+ * (interactive). Non-exclusive presets leave the analyst's choice untouched.
+ */
+export function isAssetImpactMandatory(presetId: RegulationPresetId): boolean {
+  return isExclusiveLikelihoodMethod(
+    REGULATION_PRESETS[presetId].likelihoodMethod,
+  );
+}
+
 // Pool for "method"-style presets (en-50742-a today): mutual exclusivity is
 // only between actual COMPETING NORM regimes. "standard" (OWASP-style
 // skill_level, motive, opportunity, ...) is the baseline factor set

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { applyRegulationPresetToProject } from "app/services/regulation-preset-orchestrator";
 import { threadWindowOfOpportunity } from "app/services/regulation-preset-orchestrator";
+import { threadUseAssetImpact } from "app/services/regulation-preset-orchestrator";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 import type { Project } from "app/models/project-types";
 import type { RiskConfiguration } from "features/risks/models/risk-config-types";
@@ -146,5 +147,42 @@ describe("threadWindowOfOpportunity", () => {
     p.risks!.configuration.windowOfOpportunity = "very_restricted";
     const out = threadWindowOfOpportunity(p, "unlimited");
     expect(out.risks!.configuration.windowOfOpportunity).toBe("unlimited");
+  });
+});
+describe("threadUseAssetImpact (design DS-4)", () => {
+  const withUseAssetImpact = (v: boolean): Project =>
+    project({
+      risks: {
+        ...riskData(),
+        configuration: {
+          ...DEFAULT_CONFIGURATION,
+          useAssetImpact: v,
+          activeFactors: [],
+        } as unknown as RiskConfiguration,
+      } as unknown as RiskData,
+    });
+
+  it("forces useAssetImpact=true for an exclusive preset when it is off", () => {
+    const p = withUseAssetImpact(false);
+    const out = threadUseAssetImpact(p, "iso-21434");
+    expect(out.risks!.configuration.useAssetImpact).toBe(true);
+    expect(out).not.toBe(p); // changed → new reference
+  });
+
+  it("is idempotent when already true (returns the same reference)", () => {
+    const p = withUseAssetImpact(true);
+    expect(threadUseAssetImpact(p, "etsi-tvra")).toBe(p);
+  });
+
+  it("leaves non-exclusive presets untouched (choice stays free)", () => {
+    const p = withUseAssetImpact(false);
+    const out = threadUseAssetImpact(p, "standard");
+    expect(out).toBe(p);
+    expect(out.risks!.configuration.useAssetImpact).toBe(false);
+  });
+
+  it("returns the project unchanged when there are no risks yet", () => {
+    const p = project({ risks: undefined });
+    expect(threadUseAssetImpact(p, "iso-21434")).toBe(p);
   });
 });

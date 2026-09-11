@@ -35,6 +35,8 @@ import {
   applyRegulationPreset,
   presetFactorLock,
   factorLockState,
+  isAssetImpactMandatory,
+  isExclusiveLikelihoodMethod,
 } from "features/risks/services/regulation-preset-service";
 import type { ActiveFactor } from "features/risks/models/risk-factor-types";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
@@ -331,5 +333,32 @@ describe("presetFactorLock — 'exclusive' mode (iso-21434) is unaffected by eit
     for (const id of STANDARD_LIKELIHOOD_IDS) {
       expect(factorLockState(id, lock)).toBe("locked-off");
     }
+  });
+});
+describe("asset-impact mandatory (exclusive presets — design DS-4)", () => {
+  it("iso-21434 and etsi-tvra require asset impact", () => {
+    expect(isAssetImpactMandatory("iso-21434")).toBe(true);
+    expect(isAssetImpactMandatory("etsi-tvra")).toBe(true);
+  });
+
+  it("standard / en-50742-a / en-50742-b do not require it", () => {
+    expect(isAssetImpactMandatory("standard")).toBe(false);
+    expect(isAssetImpactMandatory("en-50742-a")).toBe(false);
+    expect(isAssetImpactMandatory("en-50742-b")).toBe(false);
+  });
+
+  it("mandatory iff the preset's lock mode is exclusive", () => {
+    for (const id of REGULATION_PRESET_IDS) {
+      expect(isAssetImpactMandatory(id)).toBe(
+        presetFactorLock(id).mode === "exclusive",
+      );
+    }
+  });
+
+  it("isExclusiveLikelihoodMethod keys on the method string", () => {
+    expect(isExclusiveLikelihoodMethod("iso-21434")).toBe(true);
+    expect(isExclusiveLikelihoodMethod("etsi-tvra")).toBe(true);
+    expect(isExclusiveLikelihoodMethod("weighted-mean")).toBe(false);
+    expect(isExclusiveLikelihoodMethod("en-50742-a")).toBe(false);
   });
 });

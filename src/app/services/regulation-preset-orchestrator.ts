@@ -13,6 +13,7 @@ import type { RegulationPresetId, WindowOfOpportunity } from "shared";
  import { regulationPresetFromTags } from "shared";
 import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
+import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
 import { riskService } from "features/risks/services/risk-service";
 
 export interface RegulationPresetProjectResult {
@@ -107,6 +108,31 @@ export function threadWindowOfOpportunity(
     },
   };
 }
+
+/**
+ * Force useAssetImpact = true for exclusive-mode presets (iso-21434 / etsi-tvra):
+ * they lock every impact factor off, so impact can only come from asset-impact,
+ * or R = I × L = 0 (design DS-4). Pure and idempotent — returns the SAME project
+ * when nothing changes (non-exclusive preset, no risks, or already true), so it
+ * never triggers a needless write/re-render. The config dialog additionally
+ * locks the toggle interactively; this is the backstop for the import / legacy /
+ * tag-change paths that don't go through the dialog.
+ */
+export function threadUseAssetImpact(
+  project: Project,
+  presetId: RegulationPresetId,
+): Project {
+  if (!project.risks || !isAssetImpactMandatory(presetId)) return project;
+  const cfg = project.risks.configuration;
+  if (cfg.useAssetImpact === true) return project;
+  return {
+    ...project,
+    risks: {
+      ...project.risks,
+      configuration: { ...cfg, useAssetImpact: true },
+    },
+  };
+}
  
 /**
  * The single entry point the workspace handlers call: derive the preset from
@@ -127,8 +153,9 @@ export function applyRegulationFromTags(
 ): RegulationPresetProjectResult {
   const presetId = regulationPresetFromTags(project.info.tags);
   const applied = applyRegulationPresetToProject(project, presetId);
+  const withWoo = threadWindowOfOpportunity(applied.project, woo);
   return {
     ...applied,
-    project: threadWindowOfOpportunity(applied.project, woo),
+    project: threadUseAssetImpact(withWoo, presetId),
   };
 }
