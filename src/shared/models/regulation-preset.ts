@@ -59,6 +59,18 @@ export interface RegulationPreset {
    * getDisabledThreatGenerators / isThreatGeneratorEnabled.
    */
   disabledThreatGenerators?: StrideMethod[];
+
+  /**
+   * Impact criteria (Asset Tab) this preset sets up when it becomes active via
+   * tag. Omitted → the preset does not touch the asset impact criteria. Applied
+   * ONLY while the criteria set is still the untouched package default (or
+   * default + the DFD-driven safety criterion): it then REPLACES them with
+   * exactly this set; once seeded or once the analyst adds/removes anything, the
+   * set is left alone, so analyst additions are preserved. Threaded by the app
+   * orchestrator (threadImpactCriteria) via assetService.updateConfiguration,
+   * which realigns each asset's impactRatings. iso-21434 → SFOP (ISO 15.5).
+   */
+  impactCriteriaIds?: string[];
 }
 
 export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = {
@@ -95,6 +107,11 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     // (iso-21434-support-design.md DS-2). DataFlow coverage is not lost —
     // per-element on DataFlow still emits [T, I, D].
     disabledThreatGenerators: ["per-interaction"],
+    // SFOP impact categories (ISO/SAE 21434 15.5): Safety, Financial,
+    // Operational, Privacy. Seeded onto the Asset Tab when the ISO tag is set
+    // (only while criteria are still the untouched default — see
+    // threadImpactCriteria). Analyst may add further criteria afterwards.
+    impactCriteriaIds: ["safety", "financial_damage", "operational", "privacy"],
   },
   "en-50742-a": {
     id: "en-50742-a",

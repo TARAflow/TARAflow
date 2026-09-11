@@ -14,6 +14,9 @@ import type { RegulationPresetId, WindowOfOpportunity } from "shared";
 import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
+import { assetService } from "features/assets/services/asset-service";
+import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
+import { SAFETY_CRITERION_ID } from "features/assets/models/asset-impact-types";
 import { riskService } from "features/risks/services/risk-service";
 
 export interface RegulationPresetProjectResult {
@@ -133,6 +136,58 @@ export function threadUseAssetImpact(
     },
   };
 }
+
+function setEquals(a: Set<string>, b: Set<string>): boolean {
+  return a.size === b.size && [...a].every((x) => b.has(x));
+}
+
+/**
+ * "Pristine default" = the analyst has not touched the impact-criteria SET: it
+ * is exactly the package default, or the default plus the DFD-driven safety
+ * criterion. Compared by id-set only (weights and order are irrelevant to
+ * whether the analyst chose the dimensions).
+ */
+function isPristineDefaultCriteria(ids: string[]): boolean {
+  const current = new Set(ids);
+  const def = new Set(
+    DEFAULT_ASSET_CONFIGURATION.impactCriteria.map((c) => c.id),
+  );
+  const defPlusSafety = new Set(def).add(SAFETY_CRITERION_ID);
+  return setEquals(current, def) || setEquals(current, defPlusSafety);
+}
+
+/**
+ * Seed the preset's impact criteria onto the Asset Tab when a preset declares
+ * them (iso-21434 → SFOP). REPLACE-on-pristine-default: while the criteria set
+ * is still the untouched default (or default + safety), set it to EXACTLY the
+ * preset's criteria; otherwise leave it alone. That makes it idempotent (after
+ * seeding, the set no longer matches the default → never runs again) and
+ * preserves any criteria the analyst adds afterwards (design DS-1 / §3.11 impact
+ * side). Routed through assetService.updateConfiguration so every asset's
+ * impactRatings are realigned to the new criteria (existing values kept, new
+ * ones start unrated, removed ones dropped). Pure and idempotent — returns the
+ * SAME project when nothing changes.
+ */
+export function threadImpactCriteria(
+  project: Project,
+  presetId: RegulationPresetId,
+): Project {
+  if (!project.assets) return project;
+  const wanted = getRegulationPreset(presetId).impactCriteriaIds ?? [];
+  if (wanted.length === 0) return project;
+
+  const current = project.assets.configuration.impactCriteria;
+  if (!isPristineDefaultCriteria(current.map((c) => c.id))) return project;
+
+  const newConfig = {
+    ...project.assets.configuration,
+    impactCriteria: wanted.map((id) => ({ id, weight: 1 / wanted.length })),
+  };
+  return {
+    ...project,
+    assets: assetService.updateConfiguration(project.assets, newConfig),
+  };
+}
  
 /**
  * The single entry point the workspace handlers call: derive the preset from
@@ -154,8 +209,9 @@ export function applyRegulationFromTags(
   const presetId = regulationPresetFromTags(project.info.tags);
   const applied = applyRegulationPresetToProject(project, presetId);
   const withWoo = threadWindowOfOpportunity(applied.project, woo);
+  const withImpact = threadUseAssetImpact(withWoo, presetId);
   return {
     ...applied,
-    project: threadUseAssetImpact(withWoo, presetId),
+    project: threadImpactCriteria(withImpact, presetId),
   };
 }
