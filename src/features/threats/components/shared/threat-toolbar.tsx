@@ -44,6 +44,10 @@ export interface ThreatToolbarProps {
   isSyncing: boolean;
   validation: ThreatValidation | null;
   activeMethod: StrideMethod;
+  /** STRIDE methods disabled by the active regulation preset — their toggle
+   * buttons are shown disabled and cannot be selected (e.g. per-interaction
+   * under ISO/SAE 21434). */
+  disabledMethods?: StrideMethod[];
   hasThreats: boolean;
   hasDFD: boolean;
   syncStatus: ThreatSyncStatus | null;
@@ -74,6 +78,7 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     isSyncing,
     validation,
     activeMethod,
+    disabledMethods,
     hasThreats,
     hasDFD,
     syncStatus,
@@ -142,11 +147,21 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
               <PerElementIcon fontSize="small" />
             </Tooltip>
           </ToggleButton>
-          <ToggleButton value="per-interaction">
+          <ToggleButton
+            value="per-interaction"
+            disabled={disabledMethods?.includes("per-interaction")}
+          >
             <Tooltip
-              title={t("tabs.threats.perInteraction", {
-                defaultValue: "STRIDE per Interaction",
-              })}
+              title={
+                disabledMethods?.includes("per-interaction")
+                  ? t("tabs.threats.perInteractionDisabled", {
+                      defaultValue:
+                        "STRIDE per Interaction is disabled by the active regulation preset",
+                    })
+                  : t("tabs.threats.perInteraction", {
+                      defaultValue: "STRIDE per Interaction",
+                    })
+              }
             >
               <PerInteractionIcon fontSize="small" />
             </Tooltip>
