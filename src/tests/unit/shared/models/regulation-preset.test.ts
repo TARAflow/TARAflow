@@ -4,6 +4,8 @@ import {
   REGULATION_PRESET_IDS,
   DEFAULT_REGULATION_PRESET,
   getRegulationPreset,
+  getDisabledThreatGenerators,
+  isThreatGeneratorEnabled,
   type RegulationPresetId,
 } from "shared";
 describe("regulation preset catalog", () => {
@@ -70,5 +72,37 @@ describe("regulation preset catalog — score-table presets", () => {
       "equipment",
       "etsi_intensity",
     ]);
+  });
+});
+
+describe("threat generator activation (disabledThreatGenerators)", () => {
+  it("iso-21434 disables exactly the per-interaction generator", () => {
+    expect(REGULATION_PRESETS["iso-21434"].disabledThreatGenerators).toEqual([
+      "per-interaction",
+    ]);
+    expect(getDisabledThreatGenerators("iso-21434")).toEqual([
+      "per-interaction",
+    ]);
+  });
+
+  it("iso-21434 keeps per-element and attack-path enabled", () => {
+    expect(isThreatGeneratorEnabled("iso-21434", "per-element")).toBe(true);
+    expect(isThreatGeneratorEnabled("iso-21434", "attack-path")).toBe(true);
+    expect(isThreatGeneratorEnabled("iso-21434", "per-interaction")).toBe(
+      false,
+    );
+  });
+
+  it("no other preset disables any generator", () => {
+    for (const id of REGULATION_PRESET_IDS) {
+      if (id === "iso-21434") continue;
+      expect(getDisabledThreatGenerators(id)).toEqual([]);
+      expect(isThreatGeneratorEnabled(id, "per-interaction")).toBe(true);
+    }
+  });
+
+  it("undefined preset falls back to the default and disables nothing", () => {
+    expect(getDisabledThreatGenerators(undefined)).toEqual([]);
+    expect(isThreatGeneratorEnabled(undefined, "per-interaction")).toBe(true);
   });
 });

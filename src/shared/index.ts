@@ -92,6 +92,8 @@ export {
   WINDOW_OF_OPPORTUNITY_OPTIONS,
   WINDOW_OF_OPPORTUNITY_MULTIPLIERS,
   getRegulationPreset,
+  getDisabledThreatGenerators,
+  isThreatGeneratorEnabled,
   type RegulationPreset,
   type RegulationPresetId,
   type LikelihoodMethod,

@@ -8,6 +8,7 @@ import type {
   ThreatSyncResult,
 } from "../../models/threat-types";
 import type { DFDAnalysisContext, StrideCategory } from "shared";
+import { regulationPresetFromTags, isThreatGeneratorEnabled } from "shared";
 import type {
   ThreatService,
   GenerationResult,
@@ -25,6 +26,22 @@ export class InteractionThreatService implements ThreatService {
     options?: { keepManual?: boolean },
   ): GenerationResult {
     try {
+      // The active regulation preset may disable the per-interaction generator
+      // (e.g. ISO/SAE 21434). Guard here — not only in the GUI — so an imported
+      // or legacy project cannot bypass the block. Preset is derived live from
+      // the project tags, never persisted.
+      const presetId = project.info?.tags
+        ? regulationPresetFromTags(project.info.tags)
+        : undefined;
+      if (!isThreatGeneratorEnabled(presetId, "per-interaction")) {
+        return {
+          success: false,
+          tables: [],
+          error:
+            "STRIDE per-interaction is disabled by the active regulation preset.",
+        };
+      }
+
       if (!project.dfdGraph) {
         return {
           success: false,

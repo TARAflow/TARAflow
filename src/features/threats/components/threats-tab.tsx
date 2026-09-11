@@ -34,6 +34,11 @@ import { useElementThreats } from "../hooks/per-element/use-element-threats";
 import { useInteractionThreats } from "../hooks/per-interaction/use-interaction-threats";
 import { ConfirmDialog } from "shared";
 import type { DFDAnalysisContext } from "shared";
+import {
+  getDisabledThreatGenerators,
+  regulationPresetFromTags,
+  EMPTY_PROJECT_TAGS,
+} from "shared";
 import { StrategyIndicator } from "./shared/strategy-indicator";
 
 // ==================== HELPER ====================
@@ -79,9 +84,24 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const { t } = useTranslation();
   // ==================== STATE ====================
 
-  const [activeMethod, setActiveMethod] = useState<StrideMethod>(
-    () => project.threats?.configuration?.activeMethod ?? "per-element",
+  // STRIDE methods the active regulation preset disables (derived live from the
+  // project tags — never persisted, so it can't go stale). Drives the toolbar
+  // toggle-disable and coerces a stale persisted activeMethod on open.
+  const disabledMethods = useMemo(
+    () =>
+      getDisabledThreatGenerators(
+        regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS),
+      ),
+    [project.info?.tags],
   );
+
+  const [activeMethod, setActiveMethod] = useState<StrideMethod>(() => {
+    const initial =
+      project.threats?.configuration?.activeMethod ?? "per-element";
+    // A legacy/imported project may carry a now-disabled method — fall back to
+    // per-element for display (view-only; no write forced here).
+    return disabledMethods.includes(initial) ? "per-element" : initial;
+  });
 
   const threatData = useMemo(
     () => ensureValidThreatData(project.threats),
@@ -402,6 +422,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         isSyncing={activeHook.isSyncing}
         validation={validation}
         activeMethod={activeMethod}
+        disabledMethods={disabledMethods}
         hasThreats={hasThreats}
         hasDFD={hasDFD}
         syncStatus={activeHook.syncStatus}

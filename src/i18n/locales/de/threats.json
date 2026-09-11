@@ -16,6 +16,7 @@
       "deleteConfirm": "Sind Sie sicher, dass Sie diese Bedrohung löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
+      "perInteractionDisabled": "STRIDE per Interaction ist durch das aktive Regulierungs-Preset deaktiviert",
       "configuration": "Konfiguration",
       "searchPlaceholder": "Bedrohungen durchsuchen...",
       "threatsFound": "Bedrohungen gefunden",

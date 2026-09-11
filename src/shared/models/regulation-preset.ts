@@ -13,6 +13,8 @@
 // handled by the Compliance feature) omits it, and applying it never touches
 // activeFactors.
 
+import type { StrideMethod } from "./common-types";
+
 /** Which likelihood scoring family a preset uses. weighted-mean = the default
  * TARAflow factors (uniform scale × weight); the rest are score-table methods
  * (per-level points → sum → band), each with its own core. */
@@ -47,6 +49,16 @@ export interface RegulationPreset {
    * IDs reference risk-factor-types factor definitions.
    */
   likelihoodFactorIds?: string[];
+
+  /**
+   * STRIDE threat generators this preset disables (per-element / per-interaction
+   * / attack-path). Omitted → the preset disables none. Enforced BOTH in the GUI
+   * (the method toggle is disabled and cannot be selected) AND in the backend
+   * generation service, so an imported or legacy project cannot bypass it.
+   * Derived live from the active preset, never persisted — see
+   * getDisabledThreatGenerators / isThreatGeneratorEnabled.
+   */
+  disabledThreatGenerators?: StrideMethod[];
 }
 
 export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = {
@@ -77,6 +89,12 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
       "iso_window_of_opportunity",
       "iso_equipment",
     ],
+    // Per-interaction STRIDE (trust-boundary crossings) does not map onto the
+    // ISO asset → damage-scenario → threat-scenario chain; ISO uses per-element
+    // STRIDE anchored to assets + attack trees for feasibility
+    // (iso-21434-support-design.md DS-2). DataFlow coverage is not lost —
+    // per-element on DataFlow still emits [T, I, D].
+    disabledThreatGenerators: ["per-interaction"],
   },
   "en-50742-a": {
     id: "en-50742-a",
@@ -118,6 +136,27 @@ export function getRegulationPreset(
   id: RegulationPresetId | undefined,
 ): RegulationPreset {
   return REGULATION_PRESETS[id ?? DEFAULT_REGULATION_PRESET];
+}
+
+// ==================== THREAT GENERATOR ACTIVATION ====================
+// A preset may disable specific STRIDE threat generators. Resolve the active
+// preset from tags via regulationPresetFromTags(), then ask these helpers.
+// Kept pure and preset-id-based (no tag-validator import) so the model layer
+// stays free of the services layer.
+
+/** STRIDE generators this preset disables (empty array when it disables none). */
+export function getDisabledThreatGenerators(
+  id: RegulationPresetId | undefined,
+): StrideMethod[] {
+  return getRegulationPreset(id).disabledThreatGenerators ?? [];
+}
+
+/** True when `method` is allowed to generate threats under this preset. */
+export function isThreatGeneratorEnabled(
+  id: RegulationPresetId | undefined,
+  method: StrideMethod,
+): boolean {
+  return !getDisabledThreatGenerators(id).includes(method);
 }
 
 /** All preset ids, for building selectors. */
