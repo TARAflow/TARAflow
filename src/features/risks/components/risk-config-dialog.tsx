@@ -220,6 +220,12 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
     return presetFactorLock(presetId);
   }, [configuration.likelihoodMethod]);
 
+  // Exclusive-mode presets (ISO 21434 / ETSI TVRA) lock all impact factors off,
+  // so impact MUST come from asset-impact — the toggle is forced on and locked
+  // (design DS-4). The orchestrator (threadUseAssetImpact) is the non-interactive
+  // backstop for import / legacy / tag-change.
+  const impactMandatory = factorLock.mode === "exclusive";
+
   const handleToggleFactor = (factorId: string) => {
     // Norm-locked factors cannot be toggled (design §3.11, A2). The backstop
     // (detectPresetFactorDrift) handles any drift reaching config non-interactively.
@@ -332,7 +338,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       activeFactors: normalizedFactors,
       showIndividualFactors,
       customFactors,
-      useAssetImpact,
+      useAssetImpact: impactMandatory || useAssetImpact,
       assetImpactMapping,
       severityThresholds,
       treeLikelihoodContribution,
@@ -1226,7 +1232,8 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={useAssetImpact}
+                    checked={impactMandatory || useAssetImpact}
+                    disabled={impactMandatory}
                     onChange={(e) => {
                       setUseAssetImpact(e.target.checked);
                       if (e.target.checked) {
@@ -1252,6 +1259,18 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                           "an 'Overridden' chip marks values that differ from the derived value.",
                       })}
                     </Typography>
+                    {impactMandatory && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mt: 0.5, fontStyle: "italic" }}
+                      >
+                        {t("tabs.risks.config.useAssetImpactLocked", {
+                          defaultValue:
+                            "Required by the active regulation preset (ISO/SAE 21434) — impact must come from Asset Tab data.",
+                        })}
+                      </Typography>
+                    )}
                   </Box>
                 }
               />

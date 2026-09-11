@@ -209,6 +209,7 @@
         "assetImpact": "Asset-Auswirkung",
         "useAssetImpact": "Auswirkung aus Asset-Tab-Daten vorausfüllen",
         "useAssetImpactDesc": "Auswirkungsfaktoren werden aus verknüpften Asset-Kriterien vorausgefüllt (1:1-Zuordnung per ID). Der Analyst kann jeden Wert überschreiben — ein «Überschrieben»-Chip markiert Werte, die vom abgeleiteten Wert abweichen.",
+        "useAssetImpactLocked": "Durch das aktive Regulierungs-Preset (ISO/SAE 21434) vorgeschrieben — Impact muss aus den Asset-Tab-Daten kommen.",
         "assetImpactMapping": "Aggregierter Asset-Impact → Risikoskala (Fallback)",
         "assetImpactMappingDesc": "Wird verwendet, wenn für einen Faktor keine kriteriumsspezifischen Daten verfügbar sind.",
         "assetImpactMappingHint": "Standard-Zuordnung wird bei Skalenwechsel zurückgesetzt.",

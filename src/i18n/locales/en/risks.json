@@ -208,6 +208,7 @@
         "assetImpact": "Asset Impact",
         "useAssetImpact": "Pre-fill Impact from Asset Tab data",
         "useAssetImpactDesc": "Impact factors are pre-filled from linked asset criteria (1:1 match by ID). The analyst can override any value — an 'Overridden' chip marks values that differ from the derived value.",
+        "useAssetImpactLocked": "Required by the active regulation preset (ISO/SAE 21434) — impact must come from Asset Tab data.",
         "assetImpactMapping": "Aggregated Asset Impact → Risk Scale (fallback)",
         "assetImpactMappingDesc": "Used when no per-criterion data is available for a factor.",
         "assetImpactMappingHint": "Default mapping resets when scale changes.",
