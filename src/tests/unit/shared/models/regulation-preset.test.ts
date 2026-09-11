@@ -106,3 +106,21 @@ describe("threat generator activation (disabledThreatGenerators)", () => {
     expect(isThreatGeneratorEnabled(undefined, "per-interaction")).toBe(true);
   });
 });
+
+describe("SFOP impact criteria (iso-21434)", () => {
+  it("iso-21434 declares exactly the four SFOP impact criteria", () => {
+    expect(REGULATION_PRESETS["iso-21434"].impactCriteriaIds).toEqual([
+      "safety",
+      "financial_damage",
+      "operational",
+      "privacy",
+    ]);
+  });
+
+  it("no other preset declares impact criteria", () => {
+    for (const id of REGULATION_PRESET_IDS) {
+      if (id === "iso-21434") continue;
+      expect(REGULATION_PRESETS[id].impactCriteriaIds).toBeUndefined();
+    }
+  });
+});

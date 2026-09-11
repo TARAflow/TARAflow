@@ -64,6 +64,15 @@ export interface SecurityGoal {
   impactRatings?: ImpactRating[];
 
   /**
+   * Damage-scenario consequence (ISO/SAE 21434 3.1.22): the adverse outcome of
+   * compromising this cybersecurity property — e.g. "location disclosure enables
+   * physical stalking". Distinct from formalDescription, which is the formal
+   * security requirement/goal statement. OPTIONAL and ISO-surfaced; absent for
+   * non-ISO projects, so every existing project keeps working untouched.
+   */
+  consequence?: string;
+
+  /**
    * Protection-need level — derived from Cause Mechanism × Impact.
    * "none" = not applicable or not suggested for this asset.
    *

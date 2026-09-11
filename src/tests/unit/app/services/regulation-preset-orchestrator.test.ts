@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import { applyRegulationPresetToProject } from "app/services/regulation-preset-orchestrator";
 import { threadWindowOfOpportunity } from "app/services/regulation-preset-orchestrator";
 import { threadUseAssetImpact } from "app/services/regulation-preset-orchestrator";
+import { threadImpactCriteria } from "app/services/regulation-preset-orchestrator";
+import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
+import type { AssetData } from "features/assets";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 import type { Project } from "app/models/project-types";
 import type { RiskConfiguration } from "features/risks/models/risk-config-types";
@@ -184,5 +187,64 @@ describe("threadUseAssetImpact (design DS-4)", () => {
   it("returns the project unchanged when there are no risks yet", () => {
     const p = project({ risks: undefined });
     expect(threadUseAssetImpact(p, "iso-21434")).toBe(p);
+  });
+});
+
+describe("threadImpactCriteria (SFOP seeding — design DS-1, rule 2)", () => {
+  const SFOP = ["safety", "financial_damage", "operational", "privacy"];
+  const DEFAULT_CRITERIA = DEFAULT_ASSET_CONFIGURATION.impactCriteria;
+
+  const assetData = (criteria: { id: string; weight: number }[]): AssetData =>
+    ({
+      assets: [],
+      configuration: {
+        ...DEFAULT_ASSET_CONFIGURATION,
+        impactCriteria: criteria,
+      },
+      lastModified: "2026-01-01T00:00:00.000Z",
+    }) as unknown as AssetData;
+
+  const withCriteria = (criteria: { id: string; weight: number }[]): Project =>
+    project({ assets: assetData(criteria) });
+
+  const idsOf = (p: Project) =>
+    p.assets!.configuration.impactCriteria.map((c) => c.id).sort();
+
+  it("seeds SFOP when the criteria set is the pristine default", () => {
+    const out = threadImpactCriteria(withCriteria(DEFAULT_CRITERIA), "iso-21434");
+    expect(idsOf(out)).toEqual([...SFOP].sort());
+  });
+
+  it("seeds SFOP when the set is default + the DFD safety criterion", () => {
+    const p = withCriteria([...DEFAULT_CRITERIA, { id: "safety", weight: 1 }]);
+    expect(idsOf(threadImpactCriteria(p, "iso-21434"))).toEqual([...SFOP].sort());
+  });
+
+  it("is idempotent once seeded (SFOP present → untouched, same reference)", () => {
+    const p = withCriteria(SFOP.map((id) => ({ id, weight: 0.25 })));
+    expect(threadImpactCriteria(p, "iso-21434")).toBe(p);
+  });
+
+  it("leaves a config the analyst extended untouched", () => {
+    const p = withCriteria([
+      ...DEFAULT_CRITERIA,
+      { id: "reputation", weight: 0.1 },
+    ]);
+    expect(threadImpactCriteria(p, "iso-21434")).toBe(p);
+  });
+
+  it("leaves a config the analyst trimmed (≠ default set) untouched", () => {
+    const p = withCriteria([{ id: "financial_damage", weight: 1 }]);
+    expect(threadImpactCriteria(p, "iso-21434")).toBe(p);
+  });
+
+  it("does nothing for a preset that declares no impact criteria", () => {
+    const p = withCriteria(DEFAULT_CRITERIA);
+    expect(threadImpactCriteria(p, "standard")).toBe(p);
+  });
+
+  it("does nothing when the project has no assets", () => {
+    const p = project({ assets: null });
+    expect(threadImpactCriteria(p, "iso-21434")).toBe(p);
   });
 });
