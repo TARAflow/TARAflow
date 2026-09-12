@@ -151,8 +151,10 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
         </IconButton>
       </Tooltip>
 
-      {/* Sync from Assets (Critical Workflow only) */}
-      {isCriticalWorkflow && onSyncFromAssets && (
+      {/* Sync from Assets — shown in the critical workflow, and whenever a sync
+          is actually required (e.g. ISO 21434, where asset-anchored trees are
+          central) so the "sync required" chip always has a matching action. */}
+      {onSyncFromAssets && (isCriticalWorkflow || needsSync) && (
         <Tooltip title={t("attacktree:tabs.attacktree.toolbar.syncFromAssets")}>
           <span>
             <IconButton
