@@ -98,7 +98,11 @@ import { syncFromDFD } from "features/assets/services/asset-sync-service";
 
 import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
 import { buildGeneralTabPatch } from "app/services/general-tab-update";
-import { getRegulationConflicts } from "shared";
+import {
+  getRegulationConflicts,
+  regulationPresetFromTags,
+  EMPTY_PROJECT_TAGS,
+} from "shared";
 
 // ==================== COMPONENT ====================
 
@@ -895,6 +899,10 @@ export const WorkspaceLayout: React.FC = () => {
               dfdConnections: memoizedDFDConnections,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               lastModified: activeProject.info?.lastModified || "",
+              damageScenarioMode:
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ) === "iso-21434",
             }}
             onUpdate={makeAssetsUpdateHandler(activeProject.id)}
             hazardLinks={memoizedHazardRef}

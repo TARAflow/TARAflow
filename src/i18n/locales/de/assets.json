@@ -297,6 +297,8 @@
         "overallImpactTooltip": "Gesamt: {{label}}",
         "securityGoals": "Schutzziele (CIANAAA)",
         "formalDescription": "Formale Sicherheitsanforderung",
+        "consequence": "Schadensszenario — Konsequenz",
+        "consequencePlaceholder": "Nachteilige Folge einer Kompromittierung dieser Eigenschaft — z. B. «Standortpreisgabe ermöglicht physisches Stalking».",
         "useTemplate": "Vorlage verwenden",
         "linkedElements": "Verknüpfte DFD-Elemente",
         "tabGeneral": "Impact-Bewertung",

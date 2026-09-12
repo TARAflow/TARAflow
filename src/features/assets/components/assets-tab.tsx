@@ -746,6 +746,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           configuration={assetData.configuration}
           onSave={handleSaveAsset}
           onClose={handleCloseAssetDialog}
+          damageScenarioMode={project.damageScenarioMode ?? false}
         />
       )}
       {/* Configuration Dialog */}
