@@ -917,6 +917,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
           <AttackTreeDetailView
             selectedTree={selectedTree}
             trees={attackTreeData.trees}
+            assets={project.assets}
             onSelectTree={setSelectedTreeId}
             localDsl={localDsl}
             handleDslChange={handleDslChange}

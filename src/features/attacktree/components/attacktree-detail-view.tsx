@@ -46,9 +46,11 @@ import {
   AttackTree,
   AttackPathAssessment,
   getAnchorTypeIcon,
+  AssetReference,
 } from "../models/attacktree-types";
 import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
 import { FEASIBILITY_RANK } from "../models/attacktree-feasibility-types";
+import { treeDisplayTitle } from "../utils/attacktree-labels";
 import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeTableView } from "./attacktree-tableview";
@@ -67,6 +69,8 @@ export interface AttackTreeDetailViewProps {
   selectedTree: AttackTree;
   /** All trees, for the selector. */
   trees: AttackTree[];
+  /** Assets, to resolve a tree's anchor asset id → current displayId + name. */
+  assets: AssetReference[];
   onSelectTree: (treeId: string) => void;
 
   localDsl: string;
@@ -124,6 +128,7 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
   ({
     selectedTree,
     trees,
+    assets,
     onSelectTree,
     localDsl,
     handleDslChange,
@@ -197,17 +202,31 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
       max: 85,
     });
 
-    // ── Grouped selector options ──────────────────────────────────────────
+    // ── Grouped selector options: one group per asset, header "DA-001: <name>"
+    //    resolved from the stable anchor asset id; items are the scenario titles.
     const groupedTrees = React.useMemo(() => {
-      const groups = new Map<string, AttackTree[]>();
+      const groups = new Map<string, { label: string; trees: AttackTree[] }>();
       for (const tree of trees) {
-        const label = groupLabelFor(tree);
-        const list = groups.get(label) ?? [];
-        list.push(tree);
-        groups.set(label, list);
+        let key: string;
+        let label: string;
+        if (tree.anchor.type === "asset" && tree.anchor.assetId) {
+          key = `asset:${tree.anchor.assetId}`;
+          const asset = assets.find((a) => a.id === tree.anchor.assetId);
+          label = asset
+            ? `${asset.displayId ?? asset.id}: ${asset.name}`
+            : (tree.anchor.assetName ?? tree.anchor.assetId);
+        } else {
+          label = groupLabelFor(tree);
+          key = `other:${label}`;
+        }
+        const group = groups.get(key) ?? { label, trees: [] };
+        group.trees.push(tree);
+        groups.set(key, group);
       }
-      return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-    }, [trees]);
+      return [...groups.values()].sort((a, b) =>
+        a.label.localeCompare(b.label),
+      );
+    }, [trees, assets]);
 
     return (
       <Box
@@ -237,13 +256,27 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
               onChange={(e) => onSelectTree(e.target.value)}
               displayEmpty
             >
-              {groupedTrees.flatMap(([label, groupTrees]) => [
-                <ListSubheader key={`h-${label}`}>{label}</ListSubheader>,
+              {groupedTrees.flatMap(({ label, trees: groupTrees }) => [
+                <ListSubheader
+                  key={`h-${label}`}
+                  sx={{ bgcolor: "action.hover", fontWeight: 600 }}
+                >
+                  {label}
+                </ListSubheader>,
                 ...groupTrees.map((tree) => (
                   <MenuItem key={tree.id} value={tree.id}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        width: "100%",
+                      }}
+                    >
                       <span>{getAnchorTypeIcon(tree.anchor.type)}</span>
-                      <span>{tree.name}</span>
+                      <span style={{ flexGrow: 1 }}>
+                        {treeDisplayTitle(tree, t)}
+                      </span>
                       {tree.validation?.isValid ? (
                         <ValidIcon fontSize="small" color="success" />
                       ) : (
