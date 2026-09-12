@@ -146,7 +146,10 @@ function groupTrees(
     groups.push({
       id: assetId,
       type: "asset",
-      name: asset ? `${asset.id}: ${asset.name}` : assetId,
+      // Resolve the display id at render from the (stable) asset uuid — never
+      // bake the uuid into the label, and never trust a stored displayId (it
+      // changes on renumber). asset.id remains the group key below.
+      name: asset ? `${asset.displayId ?? asset.id}: ${asset.name}` : assetId,
       icon: "📦",
       trees: assetTrees,
       isComplete: missingGoals.length === 0,

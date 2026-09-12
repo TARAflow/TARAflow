@@ -22,6 +22,7 @@ export function extractAssetReferences(project: Project): AssetReference[] {
   return project.assets.assets.map(function(asset) {
     return {
       id: asset.id,
+      displayId: asset.displayId,
       name: asset.name,
       securityGoals: asset.securityGoals.map(function(sg) {
         return {

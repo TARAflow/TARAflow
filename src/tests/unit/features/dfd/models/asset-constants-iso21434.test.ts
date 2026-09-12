@@ -29,4 +29,9 @@ describe("getAllowedRelations — ISO 21434 headlamp relations", () => {
     expect(getAllowedRelations("Sensor", "function")).not.toContain("executes");
     expect(getAllowedRelations("Actuator", "function")).not.toContain("invokes");
   });
+
+  it("ExternalEntity may store data (a foreign system can persist data), Process may not", () => {
+    expect(getAllowedRelations("ExternalEntity", "data")).toContain("stores");
+    expect(getAllowedRelations("Process", "data")).not.toContain("stores");
+  });
 });

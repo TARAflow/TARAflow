@@ -188,7 +188,7 @@ export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationTyp
     Multiprocess: ["creates", "reads", "modifies", "deletes", "stores", "is_an"],
     DataStore: ["stores", "deletes", "is_an"],
     DataFlow: ["transports"],
-    ExternalEntity: ["creates", "reads", "is_an"],
+    ExternalEntity: ["creates", "reads", "stores", "is_an"],
     Interface: ["transports"],
     TrustBoundary: [],
     ChipBoundary: ["reads", "stores", "modifies"],
