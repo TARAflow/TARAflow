@@ -102,6 +102,7 @@ import {
   getRegulationConflicts,
   regulationPresetFromTags,
   EMPTY_PROJECT_TAGS,
+  getDisabledThreatGenerators,
 } from "shared";
 
 // ==================== COMPONENT ====================
@@ -927,6 +928,9 @@ export const WorkspaceLayout: React.FC = () => {
               dfdGraph: memoizedDFDGraphRef,
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
+              info: {
+                tags: activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+              },
             }}
             dfdContext={memoizedDFDContext}
             onUpdate={handleThreatsUpdate}
@@ -953,6 +957,11 @@ export const WorkspaceLayout: React.FC = () => {
               ),
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
+              ),
+              disabledStrideMethods: getDisabledThreatGenerators(
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ),
               ),
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,

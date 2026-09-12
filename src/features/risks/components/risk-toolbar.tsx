@@ -50,6 +50,9 @@ export interface RisksToolbarProps {
   perInteractionCount: number;
   /** Tab switch only enabled when both methods have eligible threats */
   canSwitchStrideMethod: boolean;
+  /** Preset disables per-interaction (e.g. ISO/SAE 21434) — hard-lock the toggle
+   * regardless of how many per-interaction threats exist. */
+  perInteractionDisabled?: boolean;
   hasRisks: boolean;
   hasThreatsForMethod: boolean;
   hasAnyThreats: boolean;
@@ -86,6 +89,7 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   perElementCount,
   perInteractionCount,
   canSwitchStrideMethod,
+  perInteractionDisabled,
   hasRisks,
   hasThreatsForMethod,
   hasAnyThreats,
@@ -222,7 +226,11 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         </ToggleButton>
         <ToggleButton
           value="per-interaction"
-          disabled={!canSwitchStrideMethod || perInteractionCount === 0}
+          disabled={
+            perInteractionDisabled ||
+            !canSwitchStrideMethod ||
+            perInteractionCount === 0
+          }
         >
           <Tooltip
             title={`${t("tabs.risks.perInteraction", {

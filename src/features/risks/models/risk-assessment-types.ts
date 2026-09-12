@@ -139,6 +139,14 @@ export interface RiskProjectData {
   phaseStatus: PhaseStatusMap;
   perElementThreats: ThreatReference[];
   perInteractionThreats: ThreatReference[];
+
+  /**
+   * STRIDE methods the active regulation preset disables (e.g. per-interaction
+   * under ISO/SAE 21434). Derived live at the app layer from the project tags;
+   * the risk toolbar disables the matching method toggle so it cannot be
+   * selected regardless of how many threats exist. Absent → none disabled.
+   */
+  disabledStrideMethods?: StrideMethod[];
   /**
    * Attack-path threats emitted by asset-anchored attack trees (Phase 5a).
    * A third source alongside the two STRIDE methods; the Risk tab treats them
