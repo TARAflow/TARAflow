@@ -231,6 +231,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   );
 
   const activeStrideMethod = useMemo((): StrideMethod => {
+    const perInteractionDisabled = (
+      project.disabledStrideMethods ?? []
+    ).includes("per-interaction");
     const saved = riskData.configuration?.activeStrideMethod;
     // Auto-select only when a method has NO threats generated at all yet —
     // never based on how many of its threats are confirmed/eligible.
@@ -240,21 +243,30 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     // confirmed) — the switch would appear to do nothing. Whether the user
     // can actually work with the method is instead surfaced as an empty
     // state below (see hasEligibleThreatsForMethod).
+    let method: StrideMethod;
     if (
       project.perElementThreats.length === 0 &&
       project.perInteractionThreats.length > 0
-    )
-      return "per-interaction";
-    if (
+    ) {
+      method = "per-interaction";
+    } else if (
       project.perInteractionThreats.length === 0 &&
       project.perElementThreats.length > 0
-    )
-      return "per-element";
-    return saved ?? "per-element";
+    ) {
+      method = "per-element";
+    } else {
+      method = saved ?? "per-element";
+    }
+    // A method the active regulation preset disables (e.g. per-interaction
+    // under ISO/SAE 21434) is never selectable — fall back to per-element.
+    return perInteractionDisabled && method === "per-interaction"
+      ? "per-element"
+      : method;
   }, [
     riskData.configuration?.activeStrideMethod,
     project.perElementThreats.length,
     project.perInteractionThreats.length,
+    project.disabledStrideMethods,
   ]);
 
   const canSwitchStrideMethod =
@@ -732,6 +744,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
         canSwitchStrideMethod={canSwitchStrideMethod}
+        perInteractionDisabled={(project.disabledStrideMethods ?? []).includes(
+          "per-interaction",
+        )}
         hasRisks={hasRisks}
         hasThreatsForMethod={hasThreatsForMethod}
         hasAnyThreats={hasAnyThreats}
