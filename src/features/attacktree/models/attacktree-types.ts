@@ -51,6 +51,9 @@ export type SecurityGoalType =
 
 export interface AssetReference {
   id: string;
+  /** Regenerable display label (e.g. "DA-001"). Resolve labels from this, never
+   * from the uuid; it is derived at projection time from the stable asset id. */
+  displayId?: string;
   name: string;
   securityGoals: Array<{
     type: SecurityGoalType;
