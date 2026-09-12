@@ -298,6 +298,8 @@
         "overallImpactTooltip": "Overall: {{label}}",
         "securityGoals": "Security Goals (CIANAAA)",
         "formalDescription": "Formal Security Requirement",
+        "consequence": "Damage Scenario — Consequence",
+        "consequencePlaceholder": "Adverse consequence of compromising this property — e.g. 'location disclosure enables physical stalking'.",
         "useTemplate": "Use template",
         "linkedElements": "Linked DFD Elements",
         "tooManyCriteria": "You have selected more than 6 criteria...",

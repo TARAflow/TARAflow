@@ -230,6 +230,14 @@ export interface AssetProjectData {
   assets: AssetData | null;
   phaseStatus: PhaseStatusMap;
 
+  /**
+   * ISO/SAE 21434 mode — surfaces the per-goal damage-scenario consequence field
+   * in the asset dialog. Derived live from the active regulation preset at the
+   * app layer (regulationPresetFromTags(tags) === "iso-21434"); never persisted,
+   * so it cannot go stale. The asset feature stays regulation-agnostic.
+   */
+  damageScenarioMode?: boolean;
+
   /** DFD assets for asset synchronization and linking */
   dfdAssets?: AssetDFDAsset[];
 

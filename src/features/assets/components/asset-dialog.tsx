@@ -119,6 +119,13 @@ interface AssetDialogProps {
   configuration: AssetConfiguration;
   onSave: (asset: Asset) => void;
   onClose: () => void;
+  /**
+   * ISO/SAE 21434 mode: surface the per-goal damage-scenario consequence field
+   * (a security goal + its consequence + impact = the damage scenario). Derived
+   * live from the active regulation preset at the app layer; the asset feature
+   * stays regulation-agnostic and just honors this flag. Default false.
+   */
+  damageScenarioMode?: boolean;
 }
 
 interface TabPanelProps {
@@ -163,6 +170,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   configuration,
   onSave,
   onClose,
+  damageScenarioMode = false,
 }) => {
   const { t } = useTranslation();
 
@@ -394,6 +402,18 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       ...prev,
       securityGoals: prev.securityGoals.map((sg) =>
         sg.type === type ? { ...sg, formalDescription: description } : sg,
+      ),
+    }));
+  };
+
+  const handleSecurityGoalConsequence = (
+    type: SecurityGoalType,
+    consequence: string,
+  ) => {
+    setEditedAsset((prev) => ({
+      ...prev,
+      securityGoals: prev.securityGoals.map((sg) =>
+        sg.type === type ? { ...sg, consequence } : sg,
       ),
     }));
   };
@@ -1872,6 +1892,34 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                             </IconButton>
                           </Tooltip>
                         </Box>
+
+                        {/* ── Damage-scenario consequence (ISO/SAE 21434) ── */}
+                        {damageScenarioMode && (
+                          <TextField
+                            label={t("tabs.assets.dialog.consequence", {
+                              defaultValue: "Damage Scenario — Consequence",
+                            })}
+                            value={goal?.consequence ?? ""}
+                            onChange={(e) =>
+                              handleSecurityGoalConsequence(
+                                goalDef.type,
+                                e.target.value,
+                              )
+                            }
+                            fullWidth
+                            multiline
+                            rows={2}
+                            size="small"
+                            sx={{ mt: 1 }}
+                            placeholder={t(
+                              "tabs.assets.dialog.consequencePlaceholder",
+                              {
+                                defaultValue:
+                                  "Adverse consequence of compromising this property — e.g. 'location disclosure enables physical stalking'.",
+                              },
+                            )}
+                          />
+                        )}
 
                         {/* ── Override rationale — shown for manual adjustments ── */}
                         {goal?.source === "manual" && (
