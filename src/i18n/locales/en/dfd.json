@@ -795,13 +795,16 @@
               }
             },
             "exposedToInternet": {
-              "label": "Exposed to Internet"
+              "label": "Exposed to Internet",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "remoteAccessEnabled": {
-              "label": "Remote Access Enabled"
+              "label": "Remote Access Enabled",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "airGapped": {
-              "label": "Air-Gapped"
+              "label": "Air-Gapped",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "multiTenant": {
               "label": "Multi-Tenant"
@@ -838,7 +841,8 @@
               }
             },
             "safetyRelevant": {
-              "label": "Safety-Relevant System"
+              "label": "Safety-Relevant System",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "safetyRationale": {
               "label": "Safety Rationale",
@@ -889,6 +893,7 @@
               "label": "Authenticator Storage",
               "options": {
                 "system_software": "System Software (extractable)",
+                "software_only": "Software Only",
                 "tpm": "TPM (Trusted Platform Module)",
                 "secure_element": "Secure Element",
                 "hsm": "Hardware Security Module",
@@ -1146,7 +1151,8 @@
               "label": "Description"
             },
             "safetyRelevant": {
-              "label": "Safety-relevant interface (EN 50742 — e.g. programming port on Safety PLC)"
+              "label": "Safety-relevant interface (EN 50742 — e.g. programming port on Safety PLC)",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "safetyRationale": {
               "label": "Safety Rationale",
@@ -1251,10 +1257,12 @@
               "placeholder": "e.g., Read-only, Specific endpoints, Limited operations"
             },
             "contractExists": {
-              "label": "Contract / SLA Exists"
+              "label": "Contract / SLA Exists",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "rateLimited": {
-              "label": "Rate Limited"
+              "label": "Rate Limited",
+              "options": { "yes": "Yes", "no": "No" }
             },
             "owner": {
               "label": "Contact / Owner",

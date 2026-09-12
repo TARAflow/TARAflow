@@ -185,7 +185,7 @@ export const PHYSICAL_CONTACT_QUALIFIER_LABEL_KEYS: Record<
 export const ALLOWED_DATA_RELATIONS: Record<DFDElementType, DataAssetRelationType[]> =
   {
     Process: ["creates", "reads", "modifies", "deletes", "is_an"],
-    Multiprocess: ["creates", "reads", "modifies", "deletes", "is_an"],
+    Multiprocess: ["creates", "reads", "modifies", "deletes", "stores", "is_an"],
     DataStore: ["stores", "deletes", "is_an"],
     DataFlow: ["transports"],
     ExternalEntity: ["creates", "reads", "is_an"],
@@ -224,8 +224,8 @@ export const ALLOWED_FUNCTION_RELATIONS: Record<
   TrustBoundary: [],
   ChipBoundary: ["implements", "depends_on"],
   PhysicalBoundary: [],
-  Sensor: ["implements", "monitors"],
-  Actuator: ["implements"],
+  Sensor: ["implements", "monitors", "invokes"],
+  Actuator: ["implements", "executes"],
 };
 
 export const ALLOWED_PROCESS_RELATIONS: Record<
