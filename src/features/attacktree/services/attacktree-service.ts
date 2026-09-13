@@ -339,6 +339,7 @@ export function generateFromAsset(
   const dsl =
     "# Attack Tree: " + asset.name + " - " + goalName + "\n" +
     "# Asset ID: " + assetId + "\n" +
+    "# Asset DisplayId: " + (asset.displayId ?? assetId) + "\n" +
     "# Security Goal: " + securityGoal + " (" + goalName + ")\n" +
     "# Impact: " + asset.overallImpact + "\n" +
     "# Generated: " + new Date().toISOString().split("T")[0] + "\n" +

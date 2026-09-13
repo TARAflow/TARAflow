@@ -954,6 +954,11 @@ export const WorkspaceLayout: React.FC = () => {
               ),
               perAttackPathThreats: buildAttackPathThreatReferences(
                 activeProject.attackTrees,
+                // ISO 21434: a relevant path reaches the Risk tab without a
+                // mitigation (risk is assessed before treatment is decided).
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ) !== "iso-21434",
               ),
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
