@@ -46,6 +46,7 @@ import {
  */
 export function buildAttackPathThreatReferences(
   attackTrees: AttackTreeData | null | undefined,
+  requireMitigation: boolean = true,
 ): ThreatReference[] {
   const trees = attackTrees?.trees ?? [];
   if (trees.length === 0) return [];
@@ -73,11 +74,16 @@ export function buildAttackPathThreatReferences(
           (x) =>
             buildThreatId(tree.id, x.pathKey, x.strideCategory) === threat.id,
         );
-        // Two-stage gate: an attack-path threat reaches the Risk tab only when the
-        // path is RELEVANT and has ≥1 mitigation. unrated / uncertain /
-        // relevant-without-mitigation / not_relevant stay in the attack-tree tab.
-        // (Verification is NOT required here — it gates "fully closed", not entry.)
-        return a ? isReadyForRisk(a) && a.relevance === "relevant" : false;
+        // Two-stage gate: an attack-path threat reaches the Risk tab when the
+        // path is RELEVANT and (outside ISO) has ≥1 mitigation. ISO 21434
+        // assesses the risk (impact × feasibility) BEFORE deciding treatment,
+        // so requireMitigation=false lets a relevant path reach the Risk tab
+        // immediately; mitigations/treatment are decided there.
+        // unrated / uncertain / not_relevant always stay in the attack-tree tab.
+        return a
+          ? a.relevance === "relevant" &&
+              (requireMitigation ? isReadyForRisk(a) : true)
+          : false;
       }),
     );
   }
