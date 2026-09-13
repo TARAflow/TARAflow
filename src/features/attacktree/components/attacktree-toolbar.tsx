@@ -29,6 +29,8 @@ import {
   Warning as WarningIcon,
   Download as ExportIcon,
   Upload as ImportIcon,
+  DeleteSweep as DeleteOrphanedIcon,
+  DeleteForever as DeleteAllIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Add as AddIcon,
@@ -63,6 +65,9 @@ export interface AttackTreeToolbarProps {
   needsSync: boolean;
   validTreeCount: number;
   totalTreeCount: number;
+  orphanedTreeCount: number;
+  onDeleteAll: () => void;
+  onDeleteOrphaned: () => void;
   completeAssets?: number;
   totalAssets?: number;
   isDirty: boolean;
@@ -89,6 +94,9 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
   needsSync,
   validTreeCount,
   totalTreeCount,
+  orphanedTreeCount,
+  onDeleteAll,
+  onDeleteOrphaned,
   completeAssets,
   totalAssets,
   isDirty,
@@ -190,6 +198,43 @@ export const AttackTreeToolbar: React.FC<AttackTreeToolbarProps> = ({
         <IconButton onClick={onImport} size="small">
           <ImportIcon />
         </IconButton>
+      </Tooltip>
+
+      {/* Delete orphaned trees (anchor asset/threat gone) */}
+      <Tooltip
+        title={t("attacktree:tabs.attacktree.toolbar.deleteOrphaned", {
+          count: orphanedTreeCount,
+          defaultValue: "Delete orphaned trees ({{count}})",
+        })}
+      >
+        <span>
+          <IconButton
+            onClick={onDeleteOrphaned}
+            size="small"
+            color="warning"
+            disabled={orphanedTreeCount === 0}
+          >
+            <DeleteOrphanedIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+
+      {/* Delete all trees */}
+      <Tooltip
+        title={t("attacktree:tabs.attacktree.toolbar.deleteAll", {
+          defaultValue: "Delete all trees",
+        })}
+      >
+        <span>
+          <IconButton
+            onClick={onDeleteAll}
+            size="small"
+            color="error"
+            disabled={!hasTrees}
+          >
+            <DeleteAllIcon />
+          </IconButton>
+        </span>
       </Tooltip>
 
       <Box sx={{ flexGrow: 1 }} />

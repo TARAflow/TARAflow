@@ -36,6 +36,7 @@ export interface AttackTreeDataActions {
   createTree: (anchor: AttackTreeAnchor, templateId?: string) => void;
   updateTree: (tree: AttackTree) => void;
   deleteTree: (treeId: string) => void;
+  deleteTrees: (treeIds: string[]) => void;
 
   // Batch Operations
   syncFromAssets: () => AttackTree[];
@@ -255,6 +256,27 @@ export function useAttackTreeData(
   );
 
   /**
+   * Delete many trees at once (bulk clean-up: "delete all" / "delete orphaned").
+   * Filters in a single pass and clears the selection if the selected tree went.
+   */
+  const deleteTrees = useCallback(
+    (treeIds: string[]) => {
+      if (treeIds.length === 0) return;
+      const toRemove = new Set(treeIds);
+      setAttackTreeData((prev) => ({
+        ...prev,
+        trees: prev.trees.filter((t) => !toRemove.has(t.id)),
+        lastModified: new Date().toISOString(),
+      }));
+      if (selectedTreeId && toRemove.has(selectedTreeId)) {
+        setSelectedTreeId(null);
+      }
+      setIsDirty(true);
+    },
+    [selectedTreeId]
+  );
+
+  /**
    * Sync missing trees from assets (Critical Workflow)
    */
   const syncFromAssets = useCallback((): AttackTree[] => {
@@ -333,6 +355,7 @@ export function useAttackTreeData(
     createTree,
     updateTree,
     deleteTree,
+    deleteTrees,
     syncFromAssets,
     updateConfiguration,
     importTree,
