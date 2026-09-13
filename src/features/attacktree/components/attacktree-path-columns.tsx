@@ -240,8 +240,9 @@ export function useAttackTreePathColumns({
     columns.push({
       id: "path",
       header: t("attacktree:tabs.attacktree.tableview.attackPath"),
-      flex: 1,
-      minWidth: 180,
+      // Fixed column (non-flex): stays at minWidth so the path chain has a
+      // stable width; the Mitigations column is the flexible one that shrinks.
+      minWidth: 260,
       renderCell: (path) => (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
           {path.path.map((node, idx) => (
@@ -332,7 +333,10 @@ export function useAttackTreePathColumns({
     columns.push({
       id: "mitigations",
       header: t("attacktree:tabs.attacktree.tableview.mitigations"),
-      minWidth: 400,
+      // Flexible column: takes the remaining width and shrinks first when space
+      // is tight (Attack Path keeps its fixed width).
+      flex: 1,
+      minWidth: 200,
       renderCell: (path) => {
         const forPath =
           assessments?.filter((a) => a.pathKey === path.pathKey) ?? [];
@@ -377,7 +381,8 @@ export function useAttackTreePathColumns({
     columns.push({
       id: "status",
       header: t("attacktree:tabs.attacktree.tableview.status"),
-      width: 90,
+      flex: 1,
+      minWidth: 90,
       align: "center",
       renderCell: (path) =>
         path.isCritical ? (
@@ -401,7 +406,8 @@ export function useAttackTreePathColumns({
         header: t("attacktree:tabs.attacktree.tableview.primary", {
           defaultValue: "Primary",
         }),
-        width: 90,
+        flex: 1,
+        minWidth: 90,
         align: "center",
         stopRowClick: true,
         renderCell: (path) => {
@@ -480,7 +486,8 @@ export function useAttackTreePathColumns({
       columns.push({
         id: "relevance",
         header: t("attacktree:tabs.attacktree.threatTable.relevance"),
-        width: 260,
+        flex: 1,
+        minWidth: 120,
         align: "center",
         renderCell: (path) => {
           const categories = strideCategoriesForPath(path);
