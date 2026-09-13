@@ -212,6 +212,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     createTree,
     updateTree,
     deleteTree,
+    deleteTrees,
     syncFromAssets,
     updateConfiguration,
     importTree,
@@ -435,6 +436,34 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     cancelDelete();
   }, [treeToDelete, deleteTree, cancelDelete]);
 
+  // Trees whose anchor asset/threat no longer exists — self-contained tree-only
+  // orphan check from the tab's own projections (asset ids + threat ids).
+  const orphanedTreeIds = useMemo(() => {
+    const assetIds = new Set(project.assets.map((a) => a.id));
+    const threatIds = new Set(project.threats.map((th) => th.id));
+    return attackTreeData.trees
+      .filter((tree) => {
+        const a = tree.anchor;
+        if (a?.type === "asset")
+          return !a.assetId || !assetIds.has(a.assetId);
+        if (a?.type === "threat")
+          return !a.threatId || !threatIds.has(a.threatId);
+        return false;
+      })
+      .map((t) => t.id);
+  }, [attackTreeData.trees, project.assets, project.threats]);
+
+  // Bulk delete (all / orphaned) with a confirm step.
+  const [bulkDelete, setBulkDelete] = useState<"all" | "orphaned" | null>(null);
+  const confirmBulkDelete = useCallback(() => {
+    if (bulkDelete === "all") {
+      deleteTrees(attackTreeData.trees.map((t) => t.id));
+    } else if (bulkDelete === "orphaned") {
+      deleteTrees(orphanedTreeIds);
+    }
+    setBulkDelete(null);
+  }, [bulkDelete, deleteTrees, attackTreeData.trees, orphanedTreeIds]);
+
   /**
    * What deleting the tree currently pending confirmation would cost — feeds
    * the guarded-delete dialog's message. null while no delete is pending.
@@ -554,6 +583,9 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
       needsSync={needsSync}
       validTreeCount={validTreeCount}
       totalTreeCount={attackTreeData.trees.length}
+      orphanedTreeCount={orphanedTreeIds.length}
+      onDeleteAll={() => setBulkDelete("all")}
+      onDeleteOrphaned={() => setBulkDelete("orphaned")}
     />
   );
 
@@ -969,6 +1001,38 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
           }}
           onSave={handleSaveConfig}
           onClose={() => setShowConfigDialog(false)}
+        />
+      )}
+
+      {bulkDelete && (
+        <ConfirmDialog
+          title={
+            bulkDelete === "all"
+              ? t("attacktree:tabs.attacktree.tab.deleteAllTrees", {
+                  defaultValue: "Delete all attack trees",
+                })
+              : t("attacktree:tabs.attacktree.tab.deleteOrphanedTrees", {
+                  defaultValue: "Delete orphaned attack trees",
+                })
+          }
+          message={
+            bulkDelete === "all"
+              ? t("attacktree:tabs.attacktree.tab.deleteAllTreesMessage", {
+                  count: attackTreeData.trees.length,
+                  defaultValue:
+                    "Delete all {{count}} attack tree(s)? Their assessed paths and the risks they produced are removed too. This cannot be undone.",
+                })
+              : t("attacktree:tabs.attacktree.tab.deleteOrphanedTreesMessage", {
+                  count: orphanedTreeIds.length,
+                  defaultValue:
+                    "Delete {{count}} orphaned attack tree(s) whose anchor asset or threat no longer exists? This cannot be undone.",
+                })
+          }
+          variant="danger"
+          confirmLabel={t("attacktree:tabs.attacktree.tab.delete")}
+          cancelLabel={t("attacktree:tabs.attacktree.tab.cancel")}
+          onConfirm={confirmBulkDelete}
+          onCancel={() => setBulkDelete(null)}
         />
       )}
 
