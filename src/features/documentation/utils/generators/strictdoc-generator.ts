@@ -411,6 +411,18 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_TEMPLATES.srslRow;
   }
 
+  getTraceabilityMatrixHeaderTemplate(): string {
+    return SDOC_TEMPLATES.traceabilityMatrixHeader(this.ctx.lang);
+  }
+
+  getTraceabilityMatrixTableTemplate(): string {
+    return SDOC_TEMPLATES.traceabilityMatrixTable(this.ctx.lang);
+  }
+
+  getTraceabilityRowTemplate(): string {
+    return SDOC_TEMPLATES.traceabilityRow;
+  }
+
   override getRiskRowTemplate(): string {
     if (this.ctx.lang === "de") {
       return `[REQUIREMENT]

@@ -209,6 +209,18 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_TEMPLATES.srslRow;
   }
 
+  getTraceabilityMatrixHeaderTemplate(): string {
+    return MD_TEMPLATES.traceabilityMatrixHeader(this.ctx.lang);
+  }
+
+  getTraceabilityMatrixTableTemplate(): string {
+    return MD_TEMPLATES.traceabilityMatrixTable(this.ctx.lang);
+  }
+
+  getTraceabilityRowTemplate(): string {
+    return MD_TEMPLATES.traceabilityRow;
+  }
+
   getAcceptedRisksTemplate(): string {
     return MD_TEMPLATES.acceptedRisks(this.ctx.lang);
   }

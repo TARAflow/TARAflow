@@ -590,6 +590,58 @@ export const HTML_TEMPLATES = {
       </tr>
 `,
 
+  // ==================== TRACEABILITY MATRIX (ISO/SAE 21434) ====================
+  traceabilityMatrixHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `<section id="rueckverfolgbarkeitsmatrix">
+  <h2>Rückverfolgbarkeitsmatrix (ISO/SAE 21434)</h2>
+  <p>Diese Matrix ist ein Abdeckungs-Check der Kette <strong>Asset (AS) &rarr; Schadensszenario (DS) &rarr; Bedrohungsszenario (TS) &rarr; Angriffsm&ouml;glichkeit (AF) &rarr; Risiko &rarr; Risikobehandlung (RT) &rarr; Restrisiko (RR)</strong> gem&auml;ss Clause 15. Jede Zeile weist aus, ob das Schadensszenario und die Angriffsm&ouml;glichkeitsbewertung (ISO/IEC 18045-Faktoren) tats&auml;chlich aufgel&ouml;st sind &mdash; <code>missing</code> markiert eine offene L&uuml;cke, keinen still&uuml;bergangenen Fall.</p>
+  <p><strong>Normative Basis</strong>: ISO/SAE 21434:2021 &mdash; Attack-Potential-Faktoren nach Annex G.2 (ISO/IEC 18045).</p>
+
+`
+      : `<section id="traceability-matrix">
+  <h2>Traceability Matrix (ISO/SAE 21434)</h2>
+  <p>This matrix is a coverage check over the chain <strong>Asset (AS) &rarr; Damage Scenario (DS) &rarr; Threat Scenario (TS) &rarr; Attack Feasibility (AF) &rarr; Risk &rarr; Risk Treatment (RT) &rarr; Residual Risk (RR)</strong> per Clause 15. Each row states whether the damage-scenario impact and the attack-feasibility rating (ISO/IEC 18045 factors) actually resolve &mdash; <code>missing</code> flags an open gap, not a silently skipped case.</p>
+  <p><strong>Normative basis</strong>: ISO/SAE 21434:2021 &mdash; attack-potential factors per Annex G.2 (ISO/IEC 18045).</p>
+
+`,
+
+  traceabilityMatrixTable: (lang: DocLanguage) =>
+    lang === "de"
+      ? `  <table>
+    <thead>
+      <tr><th>AS</th><th>DS</th><th>TS</th><th>AF</th><th>Risiko (R=I&times;L)</th><th>Behandlung (RT)</th><th>Restrisiko (RR)</th></tr>
+    </thead>
+    <tbody>
+{{traceabilityRows}}
+    </tbody>
+  </table>
+</section>
+
+`
+      : `  <table>
+    <thead>
+      <tr><th>AS</th><th>DS</th><th>TS</th><th>AF</th><th>Risk (R=I&times;L)</th><th>Treatment (RT)</th><th>Residual (RR)</th></tr>
+    </thead>
+    <tbody>
+{{traceabilityRows}}
+    </tbody>
+  </table>
+</section>
+
+`,
+
+  traceabilityRow: `      <tr>
+        <td>{{asId}} {{asName}}</td>
+        <td>{{dsStatus}}: {{dsLabel}}</td>
+        <td><a href="#threat-{{tsAnchor}}">{{tsId}}</a> {{tsDescription}}</td>
+        <td>{{afStatus}}: {{afLabel}}</td>
+        <td>{{riskBefore}}</td>
+        <td>{{treatment}}</td>
+        <td>{{riskAfter}}</td>
+      </tr>
+`,
+
   // ==================== ACCEPTED RISKS ====================
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"

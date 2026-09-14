@@ -27,7 +27,25 @@
         "risksPerElement": "Risikobewertung (STRIDE pro Element)",
         "risksPerInteraction": "Risikobewertung (STRIDE pro Interaktion)",
         "acceptedRisks": "Akzeptierte Risiken (Wird nicht behandelt)",
+        "traceabilityMatrix": "Rückverfolgbarkeitsmatrix (ISO/SAE 21434)",
         "appendix": "Anhang"
+      },
+      "traceability": {
+        "resolved": "aufgelöst",
+        "missing": "fehlt",
+        "category": {
+          "safety": "Sicherheit",
+          "financial": "Finanziell",
+          "operational": "Operativ",
+          "privacy": "Datenschutz",
+          "other": "Sonstige"
+        },
+        "feasibility": {
+          "high": "Hoch",
+          "medium": "Mittel",
+          "low": "Niedrig",
+          "very-low": "Sehr niedrig"
+        }
       },
       "empty": "Leer",
       "noContent": "Noch kein Inhalt generiert",
