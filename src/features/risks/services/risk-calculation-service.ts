@@ -187,10 +187,22 @@ export function calculateRiskValues(
   const method: LikelihoodMethod =
     configuration.likelihoodMethod ?? "weighted-mean";
   const scaleLevels = LIKELIHOOD_SCALES[configuration.scale].levels.length;
-  const likelihood =
-    method === "iso-21434" || method === "etsi-tvra"
-      ? scoreTableLikelihood(ratings, method, scaleLevels)
-      : weightedAvg(likelihoodRatings);
+  const isScoreTable = method === "iso-21434" || method === "etsi-tvra";
+
+  // For a tree-derived risk the attack feasibility comes from the attack tree:
+  // the attack_tree_likelihood rating already carries the feasibility mapped onto
+  // the likelihood scale. The score-table (18045 / TVRA factors rated on the
+  // risk itself) is the fallback for risks an analyst rates directly. Without
+  // this, ISO risks created from an attack tree score likelihood 0 because their
+  // iso_* factors are unrated. The weighted-mean path already folds the factor in.
+  const attackTreeLikelihood = ratings.find(
+    (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID && r.value > 0,
+  );
+  const likelihood = isScoreTable
+    ? attackTreeLikelihood
+      ? attackTreeLikelihood.value
+      : scoreTableLikelihood(ratings, method, scaleLevels)
+    : weightedAvg(likelihoodRatings);
   const risk = impact > 0 && likelihood > 0 ? impact * likelihood : 0;
 
   return {
