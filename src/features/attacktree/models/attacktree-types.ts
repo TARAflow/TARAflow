@@ -635,6 +635,10 @@ export interface AttackTreeProjectData {
   name: string;
   phaseStatus: PhaseStatusMap;
   isHighImpact: boolean;
+  /** ISO/SAE 21434 active — generate attack trees with the attack-potential
+   * (ISO/IEC 18045) method instead of the extended (f,b,i) probability model.
+   * Derived live from the project tags at the app layer. */
+  isoMode?: boolean;
 
   /** Attack tree data (from Project.attackTrees) */
   attackTrees: AttackTreeData | null;
