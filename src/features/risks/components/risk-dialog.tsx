@@ -314,6 +314,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   // §11.2: WoO/AC/EL feed AP/SRSL, not the standard weighted mean — gates
   // both the severity lookup below and the factor-list split further down.
   const isEN50742 = configuration.likelihoodMethod === "en-50742-a";
+  // ISO 21434: likelihood comes from the attack tree (attack_tree_likelihood,
+  // rendered read-only below), never from likelihood factors rated on the risk.
+  // Hide the editable likelihood factors so the analyst rates feasibility on the
+  // tree (attack-potential / 18045), not here.
+  const isISO = configuration.likelihoodMethod === "iso-21434";
 
   // ── Linked assets — fallback to threatRef if Risk has no linkedAssetIds ────
   // Moved above beforeValues: calculateGatedRiskValues (§11.2 gate) needs
@@ -451,11 +456,13 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           ? likelihood.filter(
               (f) => !EN50742_SRSL_FACTOR_IDS.includes(f.factorId),
             )
-          : likelihood,
+          : isISO
+            ? []
+            : likelihood,
         elFactor: likelihood.find((f) => f.factorId === "exposure_level"),
         acFactor: likelihood.find((f) => f.factorId === "attacker_capability"),
       };
-    }, [configuration, isEN50742]);
+    }, [configuration, isEN50742, isISO]);
 
   // ── Resolved mitigations/verifications for checkboxes ────────────────────
   const resolvedMitigations = useMemo(
