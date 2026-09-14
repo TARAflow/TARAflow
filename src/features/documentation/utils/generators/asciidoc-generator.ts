@@ -186,6 +186,18 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return ADOC_TEMPLATES.srslRow;
   }
 
+  getTraceabilityMatrixHeaderTemplate(): string {
+    return ADOC_TEMPLATES.traceabilityMatrixHeader(this.ctx.lang);
+  }
+
+  getTraceabilityMatrixTableTemplate(): string {
+    return ADOC_TEMPLATES.traceabilityMatrixTable(this.ctx.lang);
+  }
+
+  getTraceabilityRowTemplate(): string {
+    return ADOC_TEMPLATES.traceabilityRow;
+  }
+
   getAcceptedRisksTemplate(): string {
     return ADOC_TEMPLATES.acceptedRisks(this.ctx.lang);
   }

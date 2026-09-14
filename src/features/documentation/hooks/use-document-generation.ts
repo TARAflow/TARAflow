@@ -183,6 +183,11 @@ export const useDocumentGeneration = ({
       "srsl-assessment":
         project.risks?.configuration?.likelihoodMethod === "en-50742-a",
       "accepted-risks": risks.wont > 0,
+      // ISO/SAE 21434 traceability matrix — only for iso-21434 projects, and
+      // only once there is at least one risk to walk the AS->...->RR chain for.
+      "traceability-matrix":
+        project.risks?.configuration?.likelihoodMethod === "iso-21434" &&
+        (project.risks?.risks?.length ?? 0) > 0,
       "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
       appendix: true, // Always has content
     };

@@ -28,6 +28,14 @@ import {
 } from "../../../risks/models/en50742-approach-a-core";
 import type { SrslAnchorType } from "../../../risks/models/en50742-approach-a-core";
 import {
+  ISO21434_FACTOR_LEVELS,
+  iso21434AttackPotential,
+  iso21434Feasibility,
+  type Iso21434Factors,
+  type Iso21434Feasibility as Iso21434FeasibilityLevel,
+} from "../../../risks/models/iso21434-core";
+import { assetImpactResolver } from "../../../assets/services/asset-impact-resolver";
+import {
   getSecurityLevelText,
   getTrustLevelText,
   getDFDElementTypeText,
@@ -97,6 +105,52 @@ export interface DocumentGeneratorResult {
   content: string;
   format: string;
   filename: string;
+}
+
+// ==================== ISO 21434 FEASIBILITY (TRACEABILITY MATRIX) ====================
+
+/**
+ * Resolve a risk's five ISO 21434 Annex G.2 factor ratings (if all five are
+ * rated) into an attack potential + feasibility band. Returns null when any
+ * factor is unrated — that null IS the "AF-" coverage gap the traceability
+ * matrix (§6) is meant to surface, not an error to paper over.
+ */
+function resolveIso21434Feasibility(
+  factorRatings: { factorId: string; value: number }[],
+): { attackPotential: number; feasibility: Iso21434FeasibilityLevel } | null {
+  const levelFor = <K extends keyof typeof ISO21434_FACTOR_LEVELS>(
+    factorId: K,
+  ): (typeof ISO21434_FACTOR_LEVELS)[K][number] | undefined => {
+    const rating = factorRatings.find((f) => f.factorId === factorId);
+    if (!rating || rating.value <= 0) return undefined;
+    return ISO21434_FACTOR_LEVELS[factorId][rating.value - 1];
+  };
+
+  const elapsedTime = levelFor("iso_elapsed_time");
+  const expertise = levelFor("iso_expertise");
+  const knowledge = levelFor("iso_knowledge");
+  const windowOfOpportunity = levelFor("iso_window_of_opportunity");
+  const equipment = levelFor("iso_equipment");
+
+  if (
+    !elapsedTime ||
+    !expertise ||
+    !knowledge ||
+    !windowOfOpportunity ||
+    !equipment
+  ) {
+    return null;
+  }
+
+  const factors: Iso21434Factors = {
+    elapsedTime,
+    expertise,
+    knowledge,
+    windowOfOpportunity,
+    equipment,
+  };
+  const attackPotential = iso21434AttackPotential(factors);
+  return { attackPotential, feasibility: iso21434Feasibility(attackPotential) };
 }
 
 // ==================== ABSTRACT BASE CLASS ====================
@@ -174,6 +228,18 @@ export abstract class BaseDocumentGenerator {
     return "";
   }
   protected getSRSLRowTemplate(): string {
+    return "";
+  }
+  // ISO/SAE 21434 traceability matrix (§6) — default empty so a format that
+  // has not implemented it yet simply produces no chapter (auto-hidden), same
+  // convention as the SRSL templates above.
+  protected getTraceabilityMatrixHeaderTemplate(): string {
+    return "";
+  }
+  protected getTraceabilityMatrixTableTemplate(): string {
+    return "";
+  }
+  protected getTraceabilityRowTemplate(): string {
     return "";
   }
   abstract getAcceptedRisksTemplate(): string;
@@ -289,6 +355,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateSRSLAssessment(title);
       case "accepted-risks":
         return this.generateAcceptedRisks(title);
+      case "traceability-matrix":
+        return this.generateTraceabilityMatrix(title);
       case "appendix":
         return this.generateAppendix(title);
       default:
@@ -1211,6 +1279,118 @@ export abstract class BaseDocumentGenerator {
 
     let content = this.getSRSLHeaderTemplate();
     content += replacePlaceholders(tableTemplate, { srslRows });
+
+    return { id: chapterId, title, content, hasContent: true };
+  }
+
+  // ==================== ISO 21434 TRACEABILITY MATRIX (§6) ====================
+
+  /**
+   * ISO/SAE 21434 Clause 15 traceability matrix: AS -> DS -> TS -> AF -> Risk
+   * -> RT -> RR, rendered as a coverage CHECK rather than a static mapping —
+   * each row states whether the damage-scenario impact and the attack-
+   * feasibility rating actually resolve, or are missing, so a broken chain is
+   * a reported finding instead of a silent gap (design doc §6). Only rendered
+   * for iso-21434 projects, and only for formats that implement the table
+   * template (else auto-hidden, same convention as the SRSL chapter).
+   *
+   * Scope note: DS resolution uses the asset-level impact (the resolver's
+   * floor per asset-impact-resolver.ts) rather than a specific security-goal
+   * override, since risks do not currently carry a stored goal reference —
+   * this is the same 1:n damage-scenario gap the design doc tracks as
+   * deferred (DS-1, §11-Q1), not a shortcut introduced here.
+   */
+  protected generateTraceabilityMatrix(title: string): ChapterContent {
+    const { project, t } = this.ctx;
+    const chapterId: DocChapterId = "traceability-matrix";
+    const config = project.risks?.configuration;
+    const tableTemplate = this.getTraceabilityMatrixTableTemplate();
+
+    if (config?.likelihoodMethod !== "iso-21434" || !tableTemplate) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+
+    const risks = project.risks?.risks ?? [];
+    if (risks.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+
+    const assetsById = new Map(
+      (project.assets?.assets ?? []).map((a) => [a.id, a]),
+    );
+    const resolvedText = t("tabs.doc.traceability.resolved", "resolved");
+    const missingText = t("tabs.doc.traceability.missing", "missing");
+
+    const traceabilityRows = risks
+      .map((risk, index) => {
+        const linkedAssets = (risk.linkedAssetIds ?? [])
+          .map((id) => assetsById.get(id))
+          .filter((a): a is NonNullable<typeof a> => Boolean(a));
+        const primaryAsset = linkedAssets[0];
+
+        // DS: asset-level damage-scenario impact (see scope note above).
+        const resolvedImpact = primaryAsset
+          ? assetImpactResolver.resolveImpactRatings(primaryAsset, undefined)
+          : null;
+        const impactByCategory = resolvedImpact
+          ? assetImpactResolver.deriveImpactByCategory(resolvedImpact.ratings)
+          : null;
+        const dominantCategory = impactByCategory
+          ? assetImpactResolver.findDominantCategory(impactByCategory)
+          : undefined;
+        const dsStatus = dominantCategory ? resolvedText : missingText;
+        const dsLabel = dominantCategory
+          ? t(
+              `tabs.doc.traceability.category.${dominantCategory}`,
+              dominantCategory,
+            )
+          : "-";
+
+        // AF: ISO/IEC 18045 attack-potential feasibility from the five rated
+        // Annex G.2 factors (elapsed time, expertise, knowledge, window of
+        // opportunity, equipment). null => at least one factor unrated.
+        const iso = resolveIso21434Feasibility(risk.factorRatings ?? []);
+        const afStatus = iso ? resolvedText : missingText;
+        const afLabel = iso
+          ? `${iso.attackPotential} (${t(
+              `tabs.doc.traceability.feasibility.${iso.feasibility}`,
+              iso.feasibility,
+            )})`
+          : "-";
+
+        const values = {
+          asId: primaryAsset
+            ? (primaryAsset.displayId ?? primaryAsset.id)
+            : "-",
+          asName: primaryAsset ? this.escapeTableText(primaryAsset.name) : "-",
+          dsStatus,
+          dsLabel,
+          // TS-<n>: short sequential label per the design doc's ID scheme —
+          // the underlying threatDisplayId (which can be a long,
+          // auto-generated attack-path id) stays as the anchor TARGET so the
+          // link still resolves, it just isn't shown as the row's label.
+          tsAnchor: risk.threatDisplayId,
+          tsId: `TS-${index + 1}`,
+          tsDescription: this.escapeTableText(risk.threatDescription || "-"),
+          afStatus,
+          afLabel,
+          riskBefore:
+            project.computed.riskBeforeLabels.get(risk.id) ??
+            risk.calculatedRiskBeforeMitigation.toString(),
+          treatment: t(
+            `risks.treatment.${risk.treatment}.label`,
+            risk.treatment,
+          ),
+          riskAfter:
+            project.computed.riskAfterLabels.get(risk.id) ??
+            risk.calculatedRiskAfterMitigation.toString(),
+        };
+        return replacePlaceholders(this.getTraceabilityRowTemplate(), values);
+      })
+      .join("");
+
+    let content = this.getTraceabilityMatrixHeaderTemplate();
+    content += replacePlaceholders(tableTemplate, { traceabilityRows });
 
     return { id: chapterId, title, content, hasContent: true };
   }

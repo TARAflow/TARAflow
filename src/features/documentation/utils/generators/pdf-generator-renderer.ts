@@ -357,6 +357,18 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.getWontRiskRowTemplate();
   }
 
+  getTraceabilityMatrixHeaderTemplate(): string {
+    return this.htmlGenerator.getTraceabilityMatrixHeaderTemplate();
+  }
+
+  getTraceabilityMatrixTableTemplate(): string {
+    return this.htmlGenerator.getTraceabilityMatrixTableTemplate();
+  }
+
+  getTraceabilityRowTemplate(): string {
+    return this.htmlGenerator.getTraceabilityRowTemplate();
+  }
+
   getAppendixTemplate(): string {
     return this.htmlGenerator.getAppendixTemplate();
   }

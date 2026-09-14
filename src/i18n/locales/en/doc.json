@@ -27,7 +27,25 @@
         "risksPerElement": "Risk Assessment (STRIDE per Element)",
         "risksPerInteraction": "Risk Assessment (STRIDE per Interaction)",
         "acceptedRisks": "Accepted Risks (Won't Address)",
+        "traceabilityMatrix": "Traceability Matrix (ISO/SAE 21434)",
         "appendix": "Appendix"
+      },
+      "traceability": {
+        "resolved": "resolved",
+        "missing": "missing",
+        "category": {
+          "safety": "Safety",
+          "financial": "Financial",
+          "operational": "Operational",
+          "privacy": "Privacy",
+          "other": "Other"
+        },
+        "feasibility": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low",
+          "very-low": "Very Low"
+        }
       },
       "empty": "Empty",
       "noContent": "No content generated yet",

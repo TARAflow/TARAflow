@@ -261,6 +261,18 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.wontRiskRow;
   }
 
+  getTraceabilityMatrixHeaderTemplate(): string {
+    return HTML_TEMPLATES.traceabilityMatrixHeader(this.ctx.lang);
+  }
+
+  getTraceabilityMatrixTableTemplate(): string {
+    return HTML_TEMPLATES.traceabilityMatrixTable(this.ctx.lang);
+  }
+
+  getTraceabilityRowTemplate(): string {
+    return HTML_TEMPLATES.traceabilityRow;
+  }
+
   getAppendixTemplate(): string {
     return HTML_TEMPLATES.appendix(this.ctx.lang);
   }

@@ -35,6 +35,7 @@ export type DocChapterId =
   | "risks-per-interaction"
   | "srsl-assessment"
   | "accepted-risks"
+  | "traceability-matrix"
   | "attack-trees"
   | "appendix";
 
@@ -88,6 +89,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Accepted Risks (Won't Address)",
     de: "Akzeptierte Risiken (Wird nicht behandelt)",
   },
+  "traceability-matrix": {
+    en: "Traceability Matrix (ISO/SAE 21434)",
+    de: "Rückverfolgbarkeitsmatrix (ISO/SAE 21434)",
+  },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
   appendix: { en: "Appendix", de: "Anhang" },
 };
@@ -106,6 +111,7 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "risks-per-interaction", enabled: true, autoHideIfEmpty: true },
   { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
+  { id: "traceability-matrix", enabled: true, autoHideIfEmpty: true },
   { id: "attack-trees", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];

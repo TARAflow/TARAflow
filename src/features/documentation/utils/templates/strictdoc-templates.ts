@@ -717,6 +717,68 @@ RELATIONS:
 
 `,
 
+  // ==================== TRACEABILITY MATRIX (ISO/SAE 21434) ====================
+  // Rendered as an RST list-table inside [FREETEXT], like the assets section —
+  // this is a report table, not something traced further, so it is not
+  // modelled as [REQUIREMENT] nodes and needs no grammar changes.
+  traceabilityMatrixHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: Rückverfolgbarkeitsmatrix (ISO/SAE 21434)
+
+[FREETEXT]
+Diese Matrix ist ein Abdeckungs-Check der Kette Asset (AS) -> Schadensszenario (DS) -> Bedrohungsszenario (TS) -> Angriffsmoeglichkeit (AF) -> Risiko -> Risikobehandlung (RT) -> Restrisiko (RR) gemaess Clause 15. Jede Zeile weist aus, ob das Schadensszenario und die Angriffsmoeglichkeitsbewertung (ISO/IEC 18045-Faktoren) tatsaechlich aufgeloest sind.
+
+Normative Basis: ISO/SAE 21434:2021 - Attack-Potential-Faktoren nach Annex G.2 (ISO/IEC 18045).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 20 25 20 10 10 10
+
+   * - AS
+     - DS
+     - TS
+     - AF
+     - Risiko (R=IxL)
+     - Behandlung (RT)
+     - Restrisiko (RR)
+`
+      : `[SECTION]
+TITLE: Traceability Matrix (ISO/SAE 21434)
+
+[FREETEXT]
+This matrix is a coverage check over the chain Asset (AS) -> Damage Scenario (DS) -> Threat Scenario (TS) -> Attack Feasibility (AF) -> Risk -> Risk Treatment (RT) -> Residual Risk (RR) per Clause 15. Each row states whether the damage-scenario impact and the attack-feasibility rating (ISO/IEC 18045 factors) actually resolve.
+
+Normative basis: ISO/SAE 21434:2021 - attack-potential factors per Annex G.2 (ISO/IEC 18045).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 20 25 20 10 10 10
+
+   * - AS
+     - DS
+     - TS
+     - AF
+     - Risk (R=IxL)
+     - Treatment (RT)
+     - Residual (RR)
+`,
+
+  traceabilityMatrixTable: (_lang: DocLanguage) => `{{traceabilityRows}}[/FREETEXT]
+
+[/SECTION]
+
+`,
+
+  traceabilityRow: `   * - {{asId}} {{asName}}
+     - {{dsStatus}}: {{dsLabel}}
+     - {{tsId}} {{tsDescription}}
+     - {{afStatus}}: {{afLabel}}
+     - {{riskBefore}}
+     - {{treatment}}
+     - {{riskAfter}}
+`,
+
   // ==================== ACCEPTED RISKS ====================
   acceptedRisks: (lang: DocLanguage) =>
     lang === "de"
