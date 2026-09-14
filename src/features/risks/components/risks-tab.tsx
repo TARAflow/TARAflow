@@ -299,6 +299,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   );
 
   const hasRisks = riskData.risks.length > 0;
+  // Attack-path risks are a separate source; they must show even when the active
+  // STRIDE method has no confirmed threats (otherwise the "confirm your
+  // per-element threats" empty-state hides them).
+  const hasAttackPathRisks =
+    attackPathActiveRisks.length > 0 || attackPathWontRisks.length > 0;
   const hasRisksForMethod =
     activeRisks.length > 0 ||
     wontRisks.length > 0 ||
@@ -867,7 +872,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 })}
               </Typography>
             </Box>
-          ) : !hasThreatsForMethod ? (
+          ) : !hasThreatsForMethod && !hasAttackPathRisks ? (
             <Box
               sx={{
                 display: "flex",
@@ -895,7 +900,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 })}
               </Typography>
             </Box>
-          ) : !hasEligibleThreatsForMethod ? (
+          ) : !hasEligibleThreatsForMethod && !hasAttackPathRisks ? (
             <Box
               sx={{
                 display: "flex",
