@@ -1008,6 +1008,10 @@ export const WorkspaceLayout: React.FC = () => {
               name: activeProject.info?.name || "",
               phaseStatus: activeProject.phaseStatus,
               isHighImpact: activeProject.info?.isHighImpact || false,
+              isoMode:
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ) === "iso-21434",
               attackTrees: activeProject.attackTrees,
               assets: extractAssetReferences(activeProject),
               threats: extractThreatReferencesForAttackTree(activeProject),

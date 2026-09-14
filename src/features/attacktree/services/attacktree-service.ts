@@ -238,18 +238,32 @@ export function generateFromThreat(
     "# Generated: " +
     new Date().toISOString().split("T")[0] +
     "\n" +
-    "# Method: Extended (f,b,i)\n\n" +
+    (projectData.isoMode
+      ? "# Method: Attack Potential (ISO/IEC 18045)\n\n"
+      : "# Method: Extended (f,b,i)\n\n") +
     (threat.threatDescription || "Threat Goal") +
     " [" +
     threatId +
     "];ROOT\n" +
     "\t# TODO: Define detailed attack paths\n" +
     "\tAttack Vector 1;OR\n" +
-    "\t\tStep 1;0.5,0.5,3 " +
+    "\t\tStep 1;" +
+    (projectData.isoMode
+      ? "et=1w,se=proficient,kn=restricted,wo=moderate,eq=standard"
+      : "0.5,0.5,3") +
+    " " +
     mitigations +
     "\n" +
-    "\t\tStep 2;0.5,0.5,3\n" +
-    "\tAttack Vector 2;0.4,0.5,3\n";
+    "\t\tStep 2;" +
+    (projectData.isoMode
+      ? "et=1w,se=proficient,kn=restricted,wo=moderate,eq=standard"
+      : "0.5,0.5,3") +
+    "\n" +
+    "\tAttack Vector 2;" +
+    (projectData.isoMode
+      ? "et=1w,se=proficient,kn=restricted,wo=moderate,eq=standard"
+      : "0.4,0.5,3") +
+    "\n";
 
   const newTree = createEmptyAttackTree(anchor, {
     evaluationMethod: "extended",
@@ -284,6 +298,9 @@ export function generateFromRisk(
   };
 
   // Generate DSL
+  const iso = projectData.isoMode === true;
+  const isoLeaf = "et=1w,se=proficient,kn=restricted,wo=moderate,eq=standard";
+  const leaf = (fbi: string): string => (iso ? isoLeaf : fbi);
   const dsl =
     "# Attack Tree: Risk Detail Analysis\n" +
     "# Risk ID: " + riskId + "\n" +
@@ -291,15 +308,17 @@ export function generateFromRisk(
     "# Risk Level Before: " + risk.calculatedRiskBeforeMitigation + "\n" +
     "# Priority: " + risk.moscowPriority + "\n" +
     "# Generated: " + new Date().toISOString().split("T")[0] + "\n" +
-    "# Method: Extended (f,b,i)\n\n" +
+    (iso
+      ? "# Method: Attack Potential (ISO/IEC 18045)\n\n"
+      : "# Method: Extended (f,b,i)\n\n") +
     (threat ? threat.threatDescription : "Risk Scenario") + " [" + riskId + "];ROOT\n" +
     "\t# Analyze attack vectors to refine likelihood assessment\n" +
     "\tPrimary Vector;OR\n" +
     "\t\tPath A;AND\n" +
-    "\t\t\tStep 1;0.5,0.5,3\n" +
-    "\t\t\tStep 2;0.5,0.5,3\n" +
-    "\t\tPath B;0.4,0.6,3\n" +
-    "\tSecondary Vector;0.3,0.4,3\n";
+    "\t\t\tStep 1;" + leaf("0.5,0.5,3") + "\n" +
+    "\t\t\tStep 2;" + leaf("0.5,0.5,3") + "\n" +
+    "\t\tPath B;" + leaf("0.4,0.6,3") + "\n" +
+    "\tSecondary Vector;" + leaf("0.3,0.4,3") + "\n";
 
   const newTree = createEmptyAttackTree(anchor, {
     evaluationMethod: "extended",
@@ -335,6 +354,16 @@ export function generateFromAsset(
   const attackGoal = getDefaultAttackGoal(securityGoal);
   const goalName = getSecurityGoalName(securityGoal);
 
+  // ISO 21434 uses the attack-potential (ISO/IEC 18045) method; other modes keep
+  // the extended (f,b,i) probability model. isoLeaf is a moderate starting point
+  // the analyst refines per leaf.
+  const iso = projectData.isoMode === true;
+  const methodComment = iso
+    ? "# Method: Attack Potential (ISO/IEC 18045)\n\n"
+    : "# Method: Extended (f,b,i)\n\n";
+  const isoLeaf = "et=1w,se=proficient,kn=restricted,wo=moderate,eq=standard";
+  const leaf = (fbi: string): string => (iso ? isoLeaf : fbi);
+
   // Generate DSL
   const dsl =
     "# Attack Tree: " + asset.name + " - " + goalName + "\n" +
@@ -343,15 +372,15 @@ export function generateFromAsset(
     "# Security Goal: " + securityGoal + " (" + goalName + ")\n" +
     "# Impact: " + asset.overallImpact + "\n" +
     "# Generated: " + new Date().toISOString().split("T")[0] + "\n" +
-    "# Method: Extended (f,b,i)\n\n" +
+    methodComment +
     "Compromise " + goalName + " [" + assetId + "];ROOT @" + attackGoal + "\n" +
     "\t# Define attack vectors for " + goalName + "\n" +
     "\tRemote Attack;OR\n" +
-    "\t\tNetwork Exploitation;0.5,0.5,3 @" + attackGoal + "\n" +
-    "\t\tApplication Attack;0.5,0.5,3 @" + attackGoal + "\n" +
+    "\t\tNetwork Exploitation;" + leaf("0.5,0.5,3") + " @" + attackGoal + "\n" +
+    "\t\tApplication Attack;" + leaf("0.5,0.5,3") + " @" + attackGoal + "\n" +
     "\tLocal Attack;OR\n" +
-    "\t\tInsider Threat;0.3,0.8,4 @" + attackGoal + "\n" +
-    "\t\tPhysical Access;0.2,0.5,3 @" + attackGoal + "\n";
+    "\t\tInsider Threat;" + leaf("0.3,0.8,4") + " @" + attackGoal + "\n" +
+    "\t\tPhysical Access;" + leaf("0.2,0.5,3") + " @" + attackGoal + "\n";
 
   const newTree = createEmptyAttackTree(anchor, {
     evaluationMethod: "extended",
