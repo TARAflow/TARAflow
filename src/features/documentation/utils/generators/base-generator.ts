@@ -153,6 +153,52 @@ function resolveIso21434Feasibility(
   return { attackPotential, feasibility: iso21434Feasibility(attackPotential) };
 }
 
+/**
+ * Resolve a risk's attack feasibility from its attack tree — the ISO source of
+ * truth for feasibility (feasibility is tree-derived, ISO 15.7/15.8). ISO risks
+ * do NOT carry the five Annex G.2 factors on `risk.factorRatings`; those live on
+ * the attack-tree leaves and are aggregated into `tree.pathAnalysis`.
+ *
+ * A risk points at exactly one tree + one path (`risk.attackTreeAssessment`), so
+ * we take that path's own feasibility — it is the path the risk was raised for.
+ * If the path can't be found or carries no evaluation we fall back to the
+ * scenario-level aggregate (cheapest / MAX-feasibility path, 15.8 NOTE 2).
+ *
+ * Returns null when no tree feasibility resolves at all — that null IS the "AF-"
+ * coverage gap the traceability matrix (§6) surfaces, not an error to paper over.
+ */
+function resolveTreeFeasibility(
+  attackTree: DocProjectData["attackTree"],
+  assessment: { treeId: string; pathKey: string } | undefined,
+): { attackPotential: number | null; feasibility: Iso21434FeasibilityLevel } | null {
+  if (!attackTree || !assessment) return null;
+  const tree = attackTree.trees?.find((tr) => tr.id === assessment.treeId);
+  const analysis = tree?.pathAnalysis;
+  if (!analysis) return null;
+
+  // 1. The specific path this risk was raised for (stable pathKey).
+  const path = analysis.paths?.find((p) => p.pathKey === assessment.pathKey);
+  if (path?.feasibilityLevel) {
+    return {
+      attackPotential: path.attackPotential ?? null,
+      feasibility: path.feasibilityLevel,
+    };
+  }
+
+  // 2. Fallback: scenario-level aggregate (easiest path / MAX across paths).
+  const cheapest = analysis.cheapestPath;
+  if (cheapest?.feasibilityLevel) {
+    return {
+      attackPotential: cheapest.attackPotential ?? null,
+      feasibility: cheapest.feasibilityLevel,
+    };
+  }
+  if (analysis.aggregatedFeasibility) {
+    return { attackPotential: null, feasibility: analysis.aggregatedFeasibility };
+  }
+  return null;
+}
+
 // ==================== ABSTRACT BASE CLASS ====================
 
 export abstract class BaseDocumentGenerator {
@@ -1346,17 +1392,29 @@ export abstract class BaseDocumentGenerator {
             )
           : "-";
 
-        // AF: ISO/IEC 18045 attack-potential feasibility from the five rated
-        // Annex G.2 factors (elapsed time, expertise, knowledge, window of
-        // opportunity, equipment). null => at least one factor unrated.
-        const iso = resolveIso21434Feasibility(risk.factorRatings ?? []);
-        const afStatus = iso ? resolvedText : missingText;
-        const afLabel = iso
-          ? `${iso.attackPotential} (${t(
-              `tabs.doc.traceability.feasibility.${iso.feasibility}`,
-              iso.feasibility,
-            )})`
-          : "-";
+        // AF: ISO/IEC 18045 attack-potential feasibility. Primary source is the
+        // risk's attack tree (feasibility is tree-derived, 15.7/15.8); we fall
+        // back to five Annex G.2 factors rated directly on the risk, for the
+        // simple/legacy case. null => neither source resolved (coverage gap).
+        // attackPotential is shown only when known (audit mode); quick-mode
+        // paths yield a feasibility band without a numeric potential.
+        const af =
+          resolveTreeFeasibility(
+            project.attackTree,
+            risk.attackTreeAssessment,
+          ) ?? resolveIso21434Feasibility(risk.factorRatings ?? []);
+        const afStatus = af ? resolvedText : missingText;
+        const afFeasibilityLabel = af
+          ? t(
+              `tabs.doc.traceability.feasibility.${af.feasibility}`,
+              af.feasibility,
+            )
+          : "";
+        const afLabel = !af
+          ? "-"
+          : af.attackPotential != null
+            ? `${af.attackPotential} (${afFeasibilityLabel})`
+            : afFeasibilityLabel;
 
         const values = {
           asId: primaryAsset
