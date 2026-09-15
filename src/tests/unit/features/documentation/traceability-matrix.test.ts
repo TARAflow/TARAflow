@@ -60,7 +60,11 @@ const FACTORS_AP13_HIGH = iso(
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const baseProject = (likelihoodMethod: string, risks: any[]): any => ({
+const baseProject = (
+  likelihoodMethod: string,
+  risks: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
+  attackTree?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+): any => ({
   info: { name: "Test" },
   assets: {
     assets: [
@@ -80,11 +84,30 @@ const baseProject = (likelihoodMethod: string, risks: any[]): any => ({
     ],
   },
   threats: { perElementTables: [], perInteractionTables: [] },
+  attackTree,
   risks: { configuration: { likelihoodMethod }, risks },
   computed: {
     riskBeforeLabels: new Map<string, string>(),
     riskAfterLabels: new Map<string, string>(),
   },
+});
+
+// A tree whose one path (keyed "pk-hi") is High at attack potential 11 — the
+// shape a real ISO project produces (factors on the tree, not the risk). The
+// Headlamp example is exactly this: AP 11 → "high".
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const treeWith = (
+  paths: { pathKey: string; feasibilityLevel?: string; attackPotential?: number }[],
+  cheapest?: { pathKey: string; feasibilityLevel?: string; attackPotential?: number },
+  aggregatedFeasibility?: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => ({
+  trees: [
+    {
+      id: "at-1",
+      pathAnalysis: { paths, cheapestPath: cheapest, aggregatedFeasibility },
+    },
+  ],
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -223,5 +246,125 @@ describe("Traceability Matrix chapter (ISO/SAE 21434)", () => {
     expect(chapter.hasContent).toBe(true);
     expect(chapter.content).toContain("20 (low)");
     expect(chapter.content).toContain("|===");
+  });
+});
+
+describe("Traceability Matrix — attack-tree-derived feasibility (ISO source of truth)", () => {
+  // An attack-path/ISO risk carries NO iso_* factors on the risk; feasibility
+  // lives on its attack tree. The AF column must resolve from the tree.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isoRisk = (overrides: any = {}) => ({
+    id: "R-TREE",
+    threatDisplayId: "AT-at-1-66817c284a7a-T",
+    threatDescription: "Attack-path threat, factors on the tree",
+    treatment: "reduce",
+    sourceStrideMethod: "attack-path",
+    linkedAssetIds: ["AS-CFG"],
+    // Only impact-derivation factors here — NOT the ISO Annex G.2 factors.
+    factorRatings: [{ factorId: "safety", value: 4, source: "derived" }],
+    attackTreeAssessment: {
+      treeId: "at-1",
+      pathKey: "pk-hi",
+      likelihoodComponent: 0,
+      strideCategory: "T",
+    },
+    calculatedRiskBeforeMitigation: 15,
+    calculatedRiskAfterMitigation: 0,
+    ...overrides,
+  });
+
+  it("resolves AF from the risk's own path (AP 11 → high) — the Headlamp case", () => {
+    const gen = new MarkdownGenerator(
+      baseProject(
+        "iso-21434",
+        [isoRisk()],
+        treeWith([
+          { pathKey: "pk-hi", feasibilityLevel: "high", attackPotential: 11 },
+        ]),
+      ),
+      config,
+      t,
+    );
+    const chapter = matrix(gen as never);
+    expect(chapter.hasContent).toBe(true);
+    // AF resolved from the tree, not "missing"
+    expect(chapter.content).toContain("resolved: 11 (high)");
+    // DS still resolves from the asset impact
+    expect(chapter.content).toContain("resolved: safety");
+  });
+
+  it("falls back to the scenario cheapest path when the risk's pathKey isn't found", () => {
+    const gen = new MarkdownGenerator(
+      baseProject(
+        "iso-21434",
+        [isoRisk({ attackTreeAssessment: { treeId: "at-1", pathKey: "gone" } })],
+        treeWith(
+          [{ pathKey: "other", feasibilityLevel: "low", attackPotential: 20 }],
+          { pathKey: "other", feasibilityLevel: "low", attackPotential: 20 },
+        ),
+      ),
+      config,
+      t,
+    );
+    const chapter = matrix(gen as never);
+    expect(chapter.content).toContain("resolved: 20 (low)");
+  });
+
+  it("quick-mode path (band without a numeric attack potential) shows the band only", () => {
+    const gen = new MarkdownGenerator(
+      baseProject(
+        "iso-21434",
+        [isoRisk()],
+        treeWith([{ pathKey: "pk-hi", feasibilityLevel: "medium" }]),
+      ),
+      config,
+      t,
+    );
+    const chapter = matrix(gen as never);
+    expect(chapter.content).toContain("resolved: medium");
+    // no numeric potential → no "N (…)" wrapping
+    expect(chapter.content).not.toContain("(medium)");
+  });
+
+  it("AF is 'missing' when the tree has no evaluation and the risk has no ISO factors", () => {
+    const gen = new MarkdownGenerator(
+      baseProject(
+        "iso-21434",
+        [isoRisk()],
+        treeWith([{ pathKey: "pk-hi" }]), // path present but unrated
+      ),
+      config,
+      t,
+    );
+    const chapter = matrix(gen as never);
+    expect(chapter.content).toContain("missing: -");
+  });
+
+  it("prefers the tree over stray iso_* factors on the risk (single source of truth)", () => {
+    const gen = new MarkdownGenerator(
+      baseProject(
+        "iso-21434",
+        [
+          isoRisk({
+            // Even if someone mirrored ISO factors onto the risk, the tree wins.
+            factorRatings: [
+              { factorId: "iso_elapsed_time", value: 5 },
+              { factorId: "iso_expertise", value: 4 },
+              { factorId: "iso_knowledge", value: 4 },
+              { factorId: "iso_window_of_opportunity", value: 4 },
+              { factorId: "iso_equipment", value: 4 },
+            ],
+          }),
+        ],
+        treeWith([
+          { pathKey: "pk-hi", feasibilityLevel: "high", attackPotential: 11 },
+        ]),
+      ),
+      config,
+      t,
+    );
+    const chapter = matrix(gen as never);
+    expect(chapter.content).toContain("resolved: 11 (high)");
+    expect(chapter.content).not.toContain("very-low");
   });
 });
