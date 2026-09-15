@@ -45,13 +45,16 @@ describe("iso21434 attack potential (Table G.6)", () => {
 
 describe("iso21434 feasibility bands (Table G.7)", () => {
   it.each([
+    // Table G.7: High = 0–13, Medium = 14–19, Low = 20–24, Very low = ≥25.
     [0, "high"],
     [9, "high"],
-    [10, "medium"],
-    [13, "medium"],
-    [14, "low"],
-    [19, "low"],
-    [20, "very-low"],
+    [10, "high"],
+    [13, "high"],
+    [14, "medium"],
+    [19, "medium"],
+    [20, "low"],
+    [24, "low"],
+    [25, "very-low"],
     [57, "very-low"],
   ])("AP %i → %s", (ap, expected) => {
     expect(iso21434Feasibility(ap as number)).toBe(expected);
