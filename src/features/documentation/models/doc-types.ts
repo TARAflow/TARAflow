@@ -31,6 +31,7 @@ export type DocChapterId =
   | "asset-element-relations"
   | "threats-per-element"
   | "threats-per-interaction"
+  | "threats-attack-path"
   | "risks-per-element"
   | "risks-per-interaction"
   | "srsl-assessment"
@@ -72,6 +73,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Threat Analysis (STRIDE per Interaction)",
     de: "Bedrohungsanalyse (STRIDE pro Interaktion)",
   },
+  "threats-attack-path": {
+    en: "Threat Scenarios (Attack Path)",
+    de: "Bedrohungsszenarien (Angriffspfad)",
+  },
   "risks-per-element": {
     en: "Risk Assessment (STRIDE per Element)",
     de: "Risikobewertung (STRIDE pro Element)",
@@ -107,6 +112,7 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "asset-element-relations", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-interaction", enabled: true, autoHideIfEmpty: true },
+  { id: "threats-attack-path", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-interaction", enabled: true, autoHideIfEmpty: true },
   { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },

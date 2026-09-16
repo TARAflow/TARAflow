@@ -306,6 +306,10 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_TEMPLATES.threatRow;
   }
 
+  getAttackPathThreatsHeaderTemplate(): string {
+    return SDOC_TEMPLATES.attackPathThreatsHeader(this.ctx.lang);
+  }
+
   getRisksHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return SDOC_TEMPLATES.risksHeader(this.ctx.lang, method);
   }

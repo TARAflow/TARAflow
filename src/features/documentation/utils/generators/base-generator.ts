@@ -259,6 +259,7 @@ export abstract class BaseDocumentGenerator {
   ): string;
   abstract getThreatsTableTemplate(): string;
   abstract getThreatRowTemplate(): string;
+  abstract getAttackPathThreatsHeaderTemplate(): string;
   abstract getRisksHeaderTemplate(
     method: "per-element" | "per-interaction",
   ): string;
@@ -393,6 +394,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateThreats(title, "per-element");
       case "threats-per-interaction":
         return this.generateThreats(title, "per-interaction");
+      case "threats-attack-path":
+        return this.generateAttackPathThreats(title);
       case "risks-per-element":
         return this.generateRisks(title, "per-element");
       case "risks-per-interaction":
@@ -1142,6 +1145,79 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  // ==================== THREATS (ATTACK PATH) ====================
+
+  /**
+   * Attack-path threats have no per-element/per-interaction table — they are
+   * carried on the risks (sourceStrideMethod === "attack-path"). Without a
+   * chapter that renders them, the `threat-<id>` anchor is never emitted and
+   * every #threat-<id> link (traceability matrix, risk / SRSL / won't rows)
+   * that targets an attack-path threat dangles. This chapter gives those
+   * threats an anchored home, reusing the existing threat row/table templates
+   * so the anchor convention (and therefore the links) match exactly.
+   */
+  protected generateAttackPathThreats(title: string): ChapterContent {
+    const { project } = this.ctx;
+    const chapterId: DocChapterId = "threats-attack-path";
+
+    const assets = project.assets?.assets ?? [];
+    const assetLabel = (ids?: string[]): string => {
+      const first = ids?.[0];
+      const asset = first ? assets.find((a) => a.id === first) : undefined;
+      if (!asset) return "-";
+      const extra = (ids?.length ?? 0) > 1 ? ` (+${(ids!.length - 1)})` : "";
+      return `${asset.displayId ?? asset.id} ${asset.name}${extra}`;
+    };
+
+    // One row per unique threatDisplayId; exclude won't-address risks (they are
+    // reported in the accepted-risks chapter). Order preserved from risks.
+    const seen = new Set<string>();
+    const threatRows = (project.risks?.risks ?? [])
+      .filter(
+        (r) =>
+          r.sourceStrideMethod === "attack-path" &&
+          r.moscowPriority !== "wont" &&
+          !!r.threatDisplayId,
+      )
+      .filter((r) => {
+        if (seen.has(r.threatDisplayId)) return false;
+        seen.add(r.threatDisplayId);
+        return true;
+      })
+      .map((r) => {
+        const strideCategory = r.attackTreeAssessment?.strideCategory;
+        const strideName = strideCategory
+          ? (project.computed.strideNames.get(strideCategory) ?? strideCategory)
+          : "-";
+        const values = {
+          id: r.threatDisplayId, // emits the <a id="threat-{{id}}"> anchor
+          strideCategory: strideCategory ?? "-",
+          strideName,
+          elementOrFlow: this.escapeTableText(assetLabel(r.linkedAssetIds)),
+          trustBoundary: "-",
+          threatDescription: this.escapeTableText(r.threatDescription || "-"),
+          // In ISO mode the threat tab is pure identification — mitigation and
+          // verification live on the risk (cybersecurity goal + claim).
+          attackDescription: "-",
+          mitigation: "-",
+          verification: "-",
+        };
+        return replacePlaceholders(this.getThreatRowTemplate(), values);
+      })
+      .join("");
+
+    if (threatRows.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+
+    let content = this.getAttackPathThreatsHeaderTemplate();
+    content += replacePlaceholders(this.getThreatsTableTemplate(), {
+      threatRows,
+    });
+
+    return { id: chapterId, title, content, hasContent: true };
   }
 
   // ==================== RISKS ====================

@@ -229,6 +229,10 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.threatRow;
   }
 
+  getAttackPathThreatsHeaderTemplate(): string {
+    return HTML_TEMPLATES.attackPathThreatsHeader(this.ctx.lang);
+  }
+
   getRisksHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return HTML_TEMPLATES.risksHeader(this.ctx.lang, method);
   }

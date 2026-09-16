@@ -431,6 +431,18 @@ The following table shows the identified threats based on the STRIDE-per-Interac
 
 `,
 
+  attackPathThreatsHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `== Bedrohungsszenarien (Angriffspfad)
+
+Die folgende Tabelle listet die Bedrohungsszenarien aus der Angriffspfad-Analyse. Sie stellt die Anker bereit, auf die Risiko-, Rückverfolgbarkeits- und weitere Kapitel verweisen.
+
+`
+      : `== Threat Scenarios (Attack Path)
+
+The following table lists the threat scenarios derived from attack-path analysis. It provides the anchors referenced by the risk, traceability and related chapters.
+
+`,
   threatRow: `| [[threat-{{id}}]]<<risk-{{id}},{{id}}>> | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}} | {{verification}}
 `,
 

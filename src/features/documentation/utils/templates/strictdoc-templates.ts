@@ -607,6 +607,24 @@ The following threats were identified based on the STRIDE-per-Interaction method
   threatsTable: (_lang: DocLanguage) => `{{threatRows}}`,
 
   // Each threat becomes a full [REQUIREMENT] node.
+  attackPathThreatsHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: Bedrohungsszenarien (Angriffspfad)
+
+[FREETEXT]
+Bedrohungsszenarien aus der Angriffspfad-Analyse. Stellt die UID-Anker bereit, auf die Risiko- und Rückverfolgbarkeits-Kapitel verweisen.
+[/FREETEXT]
+
+`
+      : `[SECTION]
+TITLE: Threat Scenarios (Attack Path)
+
+[FREETEXT]
+Threat scenarios derived from attack-path analysis. Provides the UID anchors referenced by the risk and traceability chapters.
+[/FREETEXT]
+
+`,
   threatRow: `[REQUIREMENT]
 UID: {{id}}
 STRIDE: {{strideCategory}}
