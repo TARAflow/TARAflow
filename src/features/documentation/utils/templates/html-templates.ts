@@ -452,6 +452,18 @@ export const HTML_TEMPLATES = {
 
 `,
 
+  attackPathThreatsHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `<section id="bedrohungsszenarien-angriffspfad">
+  <h2>Bedrohungsszenarien (Angriffspfad)</h2>
+  <p>Die folgende Tabelle listet die Bedrohungsszenarien aus der Angriffspfad-Analyse. Sie stellt die Anker bereit, auf die Risiko-, Rückverfolgbarkeits- und weitere Kapitel verweisen.</p>
+  
+`
+      : `<section id="threat-scenarios-attack-path">
+  <h2>Threat Scenarios (Attack Path)</h2>
+  <p>The following table lists the threat scenarios derived from attack-path analysis. It provides the anchors referenced by the risk, traceability and related chapters.</p>
+  
+`,
   threatRow: `      <tr>
         <td><a id="threat-{{id}}" href="#risk-{{id}}">{{id}}</a></td>
         <td>{{elementOrFlow}}</td>

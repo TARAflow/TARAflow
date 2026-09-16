@@ -176,6 +176,10 @@ export const useDocumentGeneration = ({
       ),
       "threats-per-element": threats.perElement > 0,
       "threats-per-interaction": threats.perInteraction > 0,
+      "threats-attack-path": (project.risks?.risks ?? []).some(
+        (r: any) =>
+          r.sourceStrideMethod === "attack-path" && r.moscowPriority !== "wont",
+      ),
       "risks-per-element": risks.perElement > 0,
       "risks-per-interaction": risks.perInteraction > 0,
       // EN 50742 SRSL chapter — only for en-50742-a projects (the generator
