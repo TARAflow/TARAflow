@@ -199,8 +199,28 @@ function resolveTreeFeasibility(
   return null;
 }
 
-// ==================== ABSTRACT BASE CLASS ====================
+/**
+ * Resolve the attack-path node chain (root goal → … → leaf) a risk was raised
+ * for, for human-readable display. Reads the same tree + pathKey as
+ * resolveTreeFeasibility; falls back to the cheapest path. Returns null when no
+ * path is found, so the caller can fall back to the plain threat description.
+ */
+function resolveAttackPathChain(
+  attackTree: DocProjectData["attackTree"],
+  assessment: { treeId: string; pathKey: string } | undefined,
+): string[] | null {
+  if (!attackTree || !assessment) return null;
+  const tree = attackTree.trees?.find((tr) => tr.id === assessment.treeId);
+  const analysis = tree?.pathAnalysis;
+  if (!analysis) return null;
+  const path =
+    analysis.paths?.find((p) => p.pathKey === assessment.pathKey) ??
+    analysis.cheapestPath;
+  const chain = path?.path;
+  return chain && chain.length > 0 ? chain : null;
+}
 
+// ==================== ABSTRACT BASE CLASS ====================
 export abstract class BaseDocumentGenerator {
   protected ctx: GenerationContext;
 
@@ -260,6 +280,7 @@ export abstract class BaseDocumentGenerator {
   abstract getThreatsTableTemplate(): string;
   abstract getThreatRowTemplate(): string;
   abstract getAttackPathThreatsHeaderTemplate(): string;
+  abstract getAttackPathThreatRowTemplate(): string;
   abstract getRisksHeaderTemplate(
     method: "per-element" | "per-interaction",
   ): string;
@@ -1172,49 +1193,47 @@ export abstract class BaseDocumentGenerator {
     };
 
     // One row per unique threatDisplayId; exclude won't-address risks (they are
-    // reported in the accepted-risks chapter). Order preserved from risks.
+    // reported in the accepted-risks chapter). The visible label is TS-<n>,
+    // numbered by position in the full risk list so it matches the traceability
+    // matrix exactly; the long threatDisplayId stays only as the anchor the
+    // #threat-<id> links resolve to.
     const seen = new Set<string>();
-    const threatRows = (project.risks?.risks ?? [])
-      .filter(
-        (r) =>
-          r.sourceStrideMethod === "attack-path" &&
-          r.moscowPriority !== "wont" &&
-          !!r.threatDisplayId,
-      )
-      .filter((r) => {
-        if (seen.has(r.threatDisplayId)) return false;
-        seen.add(r.threatDisplayId);
-        return true;
-      })
-      .map((r) => {
-        const strideCategory = r.attackTreeAssessment?.strideCategory;
-        const strideName = strideCategory
-          ? (project.computed.strideNames.get(strideCategory) ?? strideCategory)
-          : "-";
-        const values = {
-          id: r.threatDisplayId, // emits the <a id="threat-{{id}}"> anchor
-          strideCategory: strideCategory ?? "-",
-          strideName,
-          elementOrFlow: this.escapeTableText(assetLabel(r.linkedAssetIds)),
-          trustBoundary: "-",
-          threatDescription: this.escapeTableText(r.threatDescription || "-"),
-          // In ISO mode the threat tab is pure identification — mitigation and
-          // verification live on the risk (cybersecurity goal + claim).
-          attackDescription: "-",
-          mitigation: "-",
-          verification: "-",
-        };
-        return replacePlaceholders(this.getThreatRowTemplate(), values);
-      })
-      .join("");
+    const rows: string[] = [];
+    (project.risks?.risks ?? []).forEach((r, index) => {
+      if (r.sourceStrideMethod !== "attack-path") return;
+      if (r.moscowPriority === "wont") return;
+      if (!r.threatDisplayId || seen.has(r.threatDisplayId)) return;
+      seen.add(r.threatDisplayId);
 
-    if (threatRows.length === 0) {
+      const strideCategory = r.attackTreeAssessment?.strideCategory ?? "-";
+      const chain = resolveAttackPathChain(
+        project.attackTree,
+        r.attackTreeAssessment,
+      );
+      const threat = chain ? chain.join(" → ") : r.threatDescription || "-";
+
+      const values = {
+        anchor: r.threatDisplayId, // <a id="threat-{{anchor}}"> — link target
+        tsId: `TS-${index + 1}`, // short label, matches the matrix
+        strideCategory,
+        elementOrFlow: this.escapeTableText(assetLabel(r.linkedAssetIds)),
+        threatDescription: this.escapeTableText(threat),
+        // ISO mode: mitigation / verification live on the risk, not the threat.
+        mitigation: "-",
+        verification: "-",
+      };
+      rows.push(
+        replacePlaceholders(this.getAttackPathThreatRowTemplate(), values),
+      );
+    });
+
+    if (rows.length === 0) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
 
     let content = this.getAttackPathThreatsHeaderTemplate();
     content += replacePlaceholders(this.getThreatsTableTemplate(), {
-      threatRows,
+      threatRows: rows.join(""),
     });
 
     return { id: chapterId, title, content, hasContent: true };

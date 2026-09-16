@@ -464,6 +464,14 @@ export const HTML_TEMPLATES = {
   <p>The following table lists the threat scenarios derived from attack-path analysis. It provides the anchors referenced by the risk, traceability and related chapters.</p>
   
 `,
+  attackPathThreatRow: `      <tr>
+        <td><a id="threat-{{anchor}}" href="#risk-{{anchor}}">{{tsId}}</a></td>
+        <td>{{elementOrFlow}}</td>
+        <td>{{threatDescription}}</td>
+        <td>{{mitigation}}</td>
+        <td>{{verification}}</td>
+      </tr>
+`,
   threatRow: `      <tr>
         <td><a id="threat-{{id}}" href="#risk-{{id}}">{{id}}</a></td>
         <td>{{elementOrFlow}}</td>

@@ -448,6 +448,10 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
     return this.htmlGenerator.getAttackPathThreatsHeaderTemplate();
   }
 
+  getAttackPathThreatRowTemplate(): string {
+    return this.htmlGenerator.getAttackPathThreatRowTemplate();
+  }
+
   getRisksHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return this.htmlGenerator.getRisksHeaderTemplate(method);
   }

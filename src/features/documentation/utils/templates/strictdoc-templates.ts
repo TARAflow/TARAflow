@@ -625,6 +625,15 @@ Threat scenarios derived from attack-path analysis. Provides the UID anchors ref
 [/FREETEXT]
 
 `,
+  attackPathThreatRow: `[REQUIREMENT]
+UID: {{anchor}}
+STRIDE: {{strideCategory}}
+TITLE: {{tsId}} – {{elementOrFlow}}
+STATEMENT: {{threatDescription}}
+MITIGATION: {{mitigation}}
+VERIFICATION: {{verification}}
+
+`,
   threatRow: `[REQUIREMENT]
 UID: {{id}}
 STRIDE: {{strideCategory}}
