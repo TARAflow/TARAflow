@@ -189,6 +189,10 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_TEMPLATES.attackPathThreatsHeader(this.ctx.lang);
   }
 
+  getAttackPathThreatRowTemplate(): string {
+    return MD_TEMPLATES.attackPathThreatRow;
+  }
+
   getRisksHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return MD_TEMPLATES.risksHeader(this.ctx.lang, method);
   }

@@ -443,6 +443,8 @@ Die folgende Tabelle listet die Bedrohungsszenarien aus der Angriffspfad-Analyse
 The following table lists the threat scenarios derived from attack-path analysis. It provides the anchors referenced by the risk, traceability and related chapters.
 
 `,
+  attackPathThreatRow: `| [[threat-{{anchor}}]]<<risk-{{anchor}},{{tsId}}>> | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}} | {{verification}}
+`,
   threatRow: `| [[threat-{{id}}]]<<risk-{{id}},{{id}}>> | {{elementOrFlow}} | {{threatDescription}} | {{mitigation}} | {{verification}}
 `,
 

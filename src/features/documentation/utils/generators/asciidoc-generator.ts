@@ -166,6 +166,10 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return ADOC_TEMPLATES.attackPathThreatsHeader(this.ctx.lang);
   }
 
+  getAttackPathThreatRowTemplate(): string {
+    return ADOC_TEMPLATES.attackPathThreatRow;
+  }
+
   getRisksHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return ADOC_TEMPLATES.risksHeader(this.ctx.lang, method);
   }

@@ -61,16 +61,44 @@ describe("Attack-path threats chapter", () => {
     expect(c.content).toBe("");
   });
 
-  it("emits a threat-<id> anchor that #threat-<id> links resolve to", () => {
+  it("emits a threat-<id> anchor but shows a short TS-<n> label", () => {
     const gen = new MarkdownGenerator(project([apRisk()]), config, t);
     const c = chapter(gen as never);
     expect(c.hasContent).toBe(true);
-    // the anchor the matrix / risk / srsl / won't rows point at
+    // long threatDisplayId stays only as the link target the matrix points at
     expect(c.content).toContain('id="threat-AT-at-1-66817c284a7a-T"');
-    // id links to the risk row; description + asset label rendered
-    expect(c.content).toContain("[AT-at-1-66817c284a7a-T](#risk-AT-at-1-66817c284a7a-T)");
+    // visible label is the short TS-1 (matches the traceability matrix), linking
+    // to the risk row via the long anchor
+    expect(c.content).toContain("[TS-1](#risk-AT-at-1-66817c284a7a-T)");
+    // the raw id is NOT shown as the visible cell text
+    expect(c.content).not.toContain("]AT-at-1-66817c284a7a-T");
     expect(c.content).toContain("AS-1 Config Data");
+    // no attackTree in this fixture → falls back to the plain description
     expect(c.content).toContain("Malicious control signals");
+  });
+
+  it("shows the attack-path chain (root → … → leaf) when the tree is present", () => {
+    const p = project([apRisk()]);
+    p.attackTree = {
+      trees: [
+        {
+          id: "at-1",
+          pathAnalysis: {
+            paths: [
+              {
+                pathKey: "pk",
+                path: ["Compromise Integrity", "Remote Attack", "Network Exploitation"],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const gen = new MarkdownGenerator(p, config, t);
+    const c = chapter(gen as never);
+    expect(c.content).toContain(
+      "Compromise Integrity → Remote Attack → Network Exploitation",
+    );
   });
 
   it("renders one row per unique threatDisplayId (dedup)", () => {
@@ -94,7 +122,7 @@ describe("Attack-path threats chapter", () => {
     expect(c.hasContent).toBe(false);
   });
 
-  it("resolves the STRIDE name from the assessment category", () => {
+  it("anchors each threat by its full threatDisplayId", () => {
     const gen = new MarkdownGenerator(
       project([apRisk({ threatDisplayId: "AT-at-2-D", attackTreeAssessment: { treeId: "at-2", pathKey: "p", likelihoodComponent: 0, strideCategory: "D" } })]),
       config,
