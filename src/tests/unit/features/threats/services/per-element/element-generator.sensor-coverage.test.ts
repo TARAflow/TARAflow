@@ -90,4 +90,22 @@ describe("Sensor/Actuator coverage (RC-2)", () => {
     );
     expect(new Set(cats)).toEqual(new Set(["T", "D"]));
   });
+
+  it("fills generic category-based content for template-less types (no empty shells)", () => {
+    // Sensor/Actuator have no authored element templates yet, so selectElementTemplate
+    // returns undefined. The generic fallback must still give every emitted threat a
+    // description and category-based mitigations instead of an empty shell.
+    const tables = elementThreatGenerator.generateThreatsForProject(
+      projectWithOrphanSensor(),
+    );
+    const sensorThreats = allThreats(tables).filter(
+      (th) => th.linkedElement?.elementId === orphanSensor.id,
+    );
+    expect(sensorThreats.length).toBeGreaterThan(0);
+    for (const th of sensorThreats) {
+      expect(th.threatDescription.trim().length).toBeGreaterThan(0);
+      expect(th.proposedMitigations.length).toBeGreaterThan(0);
+      expect(th.templateId).toBe(`__generic-${th.strideCategory}`);
+    }
+  });
 });

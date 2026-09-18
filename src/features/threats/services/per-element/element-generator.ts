@@ -18,11 +18,14 @@ import {
   generateThreatIdPerElement,
   generateThreatIdForInterface,
 } from "../../models/per-element-types";
-import { createEmptyThreat } from "../../models/threat-types";
+import { createEmptyThreat, STRIDE_DEFINITIONS } from "../../models/threat-types";
+import i18n from "i18next";
 import {
   getLocalizedElementThreat,
   getLocalizedElementAttack,
   getLocalizedElementCause,
+  getAllMitigations,
+  getAllVerifications,
 } from "../threat-catalog-service";
 import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
@@ -743,6 +746,40 @@ export class ElementThreatGenerator {
       threat.proposedVerifications = template.verifications.map((id) => ({
         id,
       }));
+    } else {
+      // Coverage gap: no catalog element template for this
+      // (elementType, strideCategory). Some element types are emitted without
+      // authored templates yet (e.g. Sensor / Actuator — see TB_ONLY_TYPES),
+      // which otherwise yields a content-less threat (empty description,
+      // no mitigations, no verifications). Fall back to a generic,
+      // category-based threat so the register never shows an empty shell.
+      // A real template, once authored, wins via selectElementTemplate and this
+      // branch is skipped.
+      threat.templateId = `__generic-${strideCategory}`;
+      const def = STRIDE_DEFINITIONS.find((d) => d.type === strideCategory);
+      const isDE = (i18n.language ?? "").toLowerCase().startsWith("de");
+      const strideName =
+        (isDE ? def?.nameDE : def?.name) ?? strideCategory;
+      const strideDesc = (isDE ? def?.descriptionDE : def?.description) ?? "";
+      threat.threatDescription = strideDesc
+        ? `${strideName} — ${strideDesc}`
+        : strideName;
+      threat.attackDescription = "";
+      threat.causeDescription = "";
+      const hints = getImplementedMitigationHints(
+        element.type,
+        elementProps,
+        strideCategory,
+      );
+      threat.proposedMitigations = mergeMitigationHints(
+        getAllMitigations()
+          .filter((m) => m.strideCategory === strideCategory)
+          .map((m) => ({ id: m.id })),
+        hints,
+      );
+      threat.proposedVerifications = getAllVerifications()
+        .filter((v) => v.strideCategory === strideCategory)
+        .map((v) => ({ id: v.id }));
     }
 
     return threat;
