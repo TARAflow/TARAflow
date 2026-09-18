@@ -53,12 +53,15 @@ export function buildAttackPathThreatReferences(
 
   const references: ThreatReference[] = [];
 
-  for (const tree of trees) {
+  for (let index = 0; index < trees.length; index++) {
+    const tree = trees[index];
     // The generator is the single gate on "does this tree emit at all": it
     // returns [] for standalone / threat-anchored / asset-less trees. We do not
     // re-check the anchor here — that would duplicate (and risk diverging from)
     // its ISO 3.1.33 rule.
-    const { threats } = generateThreatsFromAttackTree(tree);
+    // index + 1 is the tree's 1-based position in the project; it drives the
+    // friendly AT-<treeNo>.<pathNo> display id on the emitted threats.
+    const { threats } = generateThreatsFromAttackTree(tree, undefined, index + 1);
     if (threats.length === 0) continue;
 
         const overlaid = applyAssessmentsToThreats(

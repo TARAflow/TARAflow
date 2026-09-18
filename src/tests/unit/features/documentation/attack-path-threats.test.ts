@@ -61,17 +61,18 @@ describe("Attack-path threats chapter", () => {
     expect(c.content).toBe("");
   });
 
-  it("emits a threat-<id> anchor but shows a short TS-<n> label", () => {
-    const gen = new MarkdownGenerator(project([apRisk()]), config, t);
+  it("emits a threat-<id> anchor and shows the friendly displayId as label", () => {
+    const gen = new MarkdownGenerator(
+      project([apRisk({ threatDisplayId: "AT-1.1" })]),
+      config,
+      t,
+    );
     const c = chapter(gen as never);
     expect(c.hasContent).toBe(true);
-    // long threatDisplayId stays only as the link target the matrix points at
-    expect(c.content).toContain('id="threat-AT-at-1-66817c284a7a-T"');
-    // visible label is the short TS-1 (matches the traceability matrix), linking
-    // to the risk row via the long anchor
-    expect(c.content).toContain("[TS-1](#risk-AT-at-1-66817c284a7a-T)");
-    // the raw id is NOT shown as the visible cell text
-    expect(c.content).not.toContain("]AT-at-1-66817c284a7a-T");
+    // anchor the matrix / risk / srsl / won't rows point at
+    expect(c.content).toContain('id="threat-AT-1.1"');
+    // visible label is the friendly displayId, linking to the risk row
+    expect(c.content).toContain("[AT-1.1](#risk-AT-1.1)");
     expect(c.content).toContain("AS-1 Config Data");
     // no attackTree in this fixture → falls back to the plain description
     expect(c.content).toContain("Malicious control signals");

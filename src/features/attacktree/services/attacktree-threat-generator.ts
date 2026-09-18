@@ -168,6 +168,25 @@ export function buildThreatId(
   return `${buildAttackPathThreatId(treeId, pathKey)}-${strideCategory}`;
 }
 
+/**
+ * Regenerable display label for an attack-path threat: `AT-<treeNo>.<pathNo>`
+ * (e.g. AT-1.1 = first path of the first tree). treeNo is the tree's 1-based
+ * position in the project; pathNo is taken from the path's enumeration id
+ * ("path-N"), so it matches the number shown for that path in the attack-tree
+ * tab. Order-based like path.id — it renumbers when trees or paths are
+ * reordered, which is fine for a display label: the STABLE identity stays on
+ * `id` / `pathKey`, never on this. Callers append the STRIDE letter when a
+ * single path emits more than one category, to keep the label unique.
+ */
+export function attackPathDisplayId(
+  treeNumber: number,
+  path: AttackPath,
+): string {
+  const match = /(\d+)\s*$/.exec(path.id ?? "");
+  const pathNo = match ? match[1] : (path.id ?? "?");
+  return `AT-${treeNumber}.${pathNo}`;
+}
+
 /** The attack chain, rendered for the threat's attackDescription. */
 function describeAttackChain(path: AttackPath): string {
   return path.path.join(" > ");
@@ -185,10 +204,11 @@ function createThreatForPath(
   path: AttackPath,
   strideCategory: StrideCategory,
   assetId: string,
+  displayId: string,
 ): ThreatReference {
   return {
     id: buildThreatId(tree.id, path.pathKey, strideCategory),
-    displayId: buildThreatId(tree.id, path.pathKey, strideCategory),
+    displayId,
     strideCategory,
 
     // The ROOT is the threat scenario; the chain is how it is realised.
@@ -236,13 +256,14 @@ export interface AttackTreeThreatGenerationResult {
 export function generateThreatsFromAttackTree(
   tree: AttackTree,
   options: EmissionOptions = DEFAULT_EMISSION_OPTIONS,
+  treeNumber?: number,
 ): AttackTreeThreatGenerationResult {
   // AttackTreeAnchor is a flat interface, not a discriminated union, so
   // `type === "asset"` does NOT guarantee assetId is set. A tree claiming an
   // asset anchor without an asset is broken — emitting an asset-less threat
   // from it would put an unattributable entry in the register.
   if (tree.anchor.type === "asset" && tree.anchor.assetId) {
-    return generateAssetAnchoredThreats(tree, options);
+    return generateAssetAnchoredThreats(tree, options, treeNumber);
   }
 
   // Threat-anchored, opt-in secondary-path split — see primaryPathKey's doc
@@ -256,7 +277,7 @@ export function generateThreatsFromAttackTree(
     tree.anchor.strideCategory &&
     tree.primaryPathKey
   ) {
-    return generateThreatAnchoredSecondaryThreats(tree, options);
+    return generateThreatAnchoredSecondaryThreats(tree, options, treeNumber);
   }
 
   return { threats: [], suppressedPaths: [] };
@@ -266,6 +287,7 @@ export function generateThreatsFromAttackTree(
 function generateAssetAnchoredThreats(
   tree: AttackTree,
   options: EmissionOptions,
+  treeNumber?: number,
 ): AttackTreeThreatGenerationResult {
   const suppressedPaths: Array<{ path: AttackPath; reason: string }> = [];
 
@@ -306,7 +328,15 @@ function generateAssetAnchoredThreats(
     }
 
     for (const strideCategory of categories) {
-      threats.push(createThreatForPath(tree, path, strideCategory, assetId));
+      const stableId = buildThreatId(tree.id, path.pathKey, strideCategory);
+      const displayId =
+        treeNumber === undefined
+          ? stableId
+          : attackPathDisplayId(treeNumber, path) +
+            (categories.length > 1 ? strideCategory : "");
+      threats.push(
+        createThreatForPath(tree, path, strideCategory, assetId, displayId),
+      );
     }
   }
 
@@ -326,6 +356,7 @@ function generateAssetAnchoredThreats(
 function generateThreatAnchoredSecondaryThreats(
   tree: AttackTree,
   options: EmissionOptions,
+  treeNumber?: number,
 ): AttackTreeThreatGenerationResult {
   const suppressedPaths: Array<{ path: AttackPath; reason: string }> = [];
 
@@ -357,7 +388,13 @@ function generateThreatAnchoredSecondaryThreats(
       continue;
     }
 
-    threats.push(createSecondaryThreatForPath(tree, path, anchorStride));
+    const displayId =
+      treeNumber === undefined
+        ? buildThreatId(tree.id, path.pathKey, anchorStride)
+        : attackPathDisplayId(treeNumber, path);
+    threats.push(
+      createSecondaryThreatForPath(tree, path, anchorStride, displayId),
+    );
   }
 
   return { threats, suppressedPaths };
@@ -367,10 +404,11 @@ function createSecondaryThreatForPath(
   tree: AttackTree,
   path: AttackPath,
   strideCategory: StrideCategory,
+  displayId: string,
 ): ThreatReference {
   return {
     id: buildThreatId(tree.id, path.pathKey, strideCategory),
-    displayId: buildThreatId(tree.id, path.pathKey, strideCategory),
+    displayId,
     strideCategory,
     threatDescription: tree.ast?.name ?? tree.name,
     attackDescription: describeAttackChain(path),
@@ -397,11 +435,11 @@ export function generateThreatsFromAttackTrees(
   const threats: ThreatReference[] = [];
   const suppressedPaths: AttackTreeThreatGenerationResult["suppressedPaths"] = [];
 
-  for (const tree of trees) {
-    const result = generateThreatsFromAttackTree(tree, options);
+  trees.forEach((tree, index) => {
+    const result = generateThreatsFromAttackTree(tree, options, index + 1);
     threats.push(...result.threats);
     suppressedPaths.push(...result.suppressedPaths);
-  }
+  });
 
   return { threats, suppressedPaths };
 }
