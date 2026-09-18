@@ -1199,7 +1199,7 @@ export abstract class BaseDocumentGenerator {
     // #threat-<id> links resolve to.
     const seen = new Set<string>();
     const rows: string[] = [];
-    (project.risks?.risks ?? []).forEach((r, index) => {
+    (project.risks?.risks ?? []).forEach((r) => {
       if (r.sourceStrideMethod !== "attack-path") return;
       if (r.moscowPriority === "wont") return;
       if (!r.threatDisplayId || seen.has(r.threatDisplayId)) return;
@@ -1214,7 +1214,7 @@ export abstract class BaseDocumentGenerator {
 
       const values = {
         anchor: r.threatDisplayId, // <a id="threat-{{anchor}}"> — link target
-        tsId: `TS-${index + 1}`, // short label, matches the matrix
+        tsId: r.threatDisplayId, // AT-<n>.<m> — same label the matrix shows
         strideCategory,
         elementOrFlow: this.escapeTableText(assetLabel(r.linkedAssetIds)),
         threatDescription: this.escapeTableText(threat),
@@ -1463,7 +1463,7 @@ export abstract class BaseDocumentGenerator {
     const missingText = t("tabs.doc.traceability.missing", "missing");
 
     const traceabilityRows = risks
-      .map((risk, index) => {
+      .map((risk) => {
         const linkedAssets = (risk.linkedAssetIds ?? [])
           .map((id) => assetsById.get(id))
           .filter((a): a is NonNullable<typeof a> => Boolean(a));
@@ -1518,12 +1518,11 @@ export abstract class BaseDocumentGenerator {
           asName: primaryAsset ? this.escapeTableText(primaryAsset.name) : "-",
           dsStatus,
           dsLabel,
-          // TS-<n>: short sequential label per the design doc's ID scheme —
-          // the underlying threatDisplayId (which can be a long,
-          // auto-generated attack-path id) stays as the anchor TARGET so the
-          // link still resolves, it just isn't shown as the row's label.
+          // The threat scenario's own display id (AT-<n>.<m> for attack-path
+          // threats, P#-S-# for STRIDE). It doubles as the anchor target, so
+          // label and #threat-<id> link stay in sync.
           tsAnchor: risk.threatDisplayId,
-          tsId: `TS-${index + 1}`,
+          tsId: risk.threatDisplayId,
           tsDescription: this.escapeTableText(risk.threatDescription || "-"),
           afStatus,
           afLabel,

@@ -148,9 +148,9 @@ describe("Traceability Matrix chapter (ISO/SAE 21434)", () => {
       baseProject("iso-21434", [
         {
           id: "R-AP",
-          // An attack-path-sourced display id — note the anchor TARGET is this
-          // raw id (see the attack-path dead-link ticket); the label is TS-1.
-          threatDisplayId: "AT-at-123-su3-T",
+          // Attack-path display id (AT-<tree>.<path> in real data). It doubles
+          // as the anchor target, so label and #threat-<id> link stay in sync.
+          threatDisplayId: "AT-1.1",
           threatDescription: "Malicious control signals via cellular ECU",
           treatment: "reduce",
           linkedAssetIds: ["AS-CFG"],
@@ -168,8 +168,8 @@ describe("Traceability Matrix chapter (ISO/SAE 21434)", () => {
     // AS + DS link resolves to the rated safety category
     expect(chapter.content).toContain("AS-1 Config Data");
     expect(chapter.content).toContain("resolved: safety");
-    // TS label is sequential; the anchor still targets the raw display id
-    expect(chapter.content).toContain("[TS-1](#threat-AT-at-123-su3-T)");
+    // The threat display id is both the visible label and the anchor target
+    expect(chapter.content).toContain("[AT-1.1](#threat-AT-1.1)");
     // AF: 20 → Low (the corrected band; old code produced "very-low")
     expect(chapter.content).toContain("resolved: 20 (low)");
     expect(chapter.content).not.toContain("very-low");

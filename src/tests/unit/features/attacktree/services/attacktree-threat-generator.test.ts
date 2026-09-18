@@ -437,3 +437,45 @@ describe("the generator is pure", () => {
     ).toEqual([]);
   });
 });
+// ──────────────────────────────────────────────────────────────────────────
+// Friendly attack-path display ids (AT-<treeNo>.<pathNo>)
+// ──────────────────────────────────────────────────────────────────────────
+
+describe("attack-path display id", () => {
+  it("assigns AT-<treeNo>.<pathNo> via the all-trees entry, id stays stable", () => {
+    const tree = makeTree(SIMPLE_TREE);
+    const { threats } =
+      attackTreeThreatGenerator.generateThreatsFromAttackTrees([tree], opts());
+
+    expect(threats.length).toBeGreaterThan(0);
+    for (const th of threats) {
+      // friendly, tree-numbered label (tree #1)
+      expect(th.displayId).toMatch(/^AT-1\.\d+/);
+      // stable identity untouched — still the pathKey-encoded id
+      expect(th.id.startsWith("AT-at-")).toBe(true);
+      expect(th.id).not.toBe(th.displayId);
+    }
+  });
+
+  it("numbers trees by position: second tree → AT-2.*", () => {
+    const t1 = makeTree(SIMPLE_TREE);
+    const t2 = makeTree(SIMPLE_TREE);
+    const { threats } =
+      attackTreeThreatGenerator.generateThreatsFromAttackTrees(
+        [t1, t2],
+        opts(),
+      );
+    // both trees are identical, so half the threats must carry each tree number
+    expect(threats.some((th) => /^AT-1\./.test(th.displayId))).toBe(true);
+    expect(threats.some((th) => /^AT-2\./.test(th.displayId))).toBe(true);
+  });
+
+  it("falls back to the stable id for single-tree callers (no tree number)", () => {
+    const tree = makeTree(SIMPLE_TREE);
+    const { threats } =
+      attackTreeThreatGenerator.generateThreatsFromAttackTree(tree, opts());
+    for (const th of threats) {
+      expect(th.displayId).toBe(th.id);
+    }
+  });
+});
