@@ -1257,7 +1257,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             fontFamily="monospace"
             color="text.secondary"
           >
-            {currentRisk.id}
+            {currentRisk.threatDisplayId}
           </Typography>
           <Typography
             variant="subtitle1"
@@ -1466,7 +1466,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             }}
                           />
                           <Typography variant="caption" noWrap>
-                            {risk.id}
+                            {risk.threatDisplayId}
                           </Typography>
                         </Stack>
                       }
