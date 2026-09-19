@@ -52,7 +52,7 @@ import type {
   AttackTree,
   PathAnalysis,
 } from "../models/attacktree-types";
-import { ATTACK_GOAL_TO_STRIDE } from "../models/attacktree-types";
+import { ATTACK_GOAL_TO_STRIDE, getAnchorDisplayName } from "../models/attacktree-types";
 import { buildAttackPathThreatId } from "./attacktree-path-identity";
 import type {
   MitigationDraftRef,
@@ -214,7 +214,7 @@ function createThreatForPath(
     // The ROOT is the threat scenario; the chain is how it is realised.
     threatDescription: tree.ast?.name ?? tree.name,
     attackDescription: describeAttackChain(path),
-    causeDescription: `Attack path analysis (${tree.name})`,
+    causeDescription: `Attack path analysis (${getAnchorDisplayName(tree.anchor)})`,
 
     // Traceability: this is what marks the threat as tree-derived. The register
     // treats it like any other; nothing branches on it except the reporter.
@@ -412,7 +412,7 @@ function createSecondaryThreatForPath(
     strideCategory,
     threatDescription: tree.ast?.name ?? tree.name,
     attackDescription: describeAttackChain(path),
-    causeDescription: `Attack path analysis (${tree.name}) — alternate route to the same effect as ${tree.anchor.threatDisplayId ?? tree.anchor.threatId}`,
+    causeDescription: `Attack path analysis (${getAnchorDisplayName(tree.anchor)}) — alternate route to the same effect as ${tree.anchor.threatDisplayId ?? tree.anchor.threatId}`,
     sourceStrideMethod: "attack-path",
     relevance: "unrated",
     // No assetId on a threat anchor — attacktree may not import

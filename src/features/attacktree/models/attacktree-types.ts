@@ -897,18 +897,19 @@ export function createEmptyAttackTree(
 
 export function getAnchorDisplayName(anchor: AttackTreeAnchor): string {
   switch (anchor.type) {
-    case "asset":
+    case "asset": {
       const goalSuffix = anchor.securityGoal
         ? " (" + anchor.securityGoal + ")"
         : "";
-      return (
-        (anchor.assetId || "Asset") +
-        (anchor.assetName ? ": " + anchor.assetName : "") +
-        goalSuffix
-      );
+      // Prefer the human asset name; the raw assetId is a UUID and must not
+      // surface in tree titles / root-cause text.
+      return (anchor.assetName || anchor.assetId || "Asset") + goalSuffix;
+    }
     case "threat":
+      // threatDisplayId is the friendly label (AT-<n>.<m> / P#-S-#); threatId is
+      // a UUID kept only for stable identity.
       return (
-        (anchor.threatId || "Threat") +
+        (anchor.threatDisplayId || anchor.threatId || "Threat") +
         (anchor.threatTitle ? ": " + anchor.threatTitle : "")
       );
     case "risk":

@@ -568,8 +568,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               defaultValue: "Create Asset",
             })
           : t("tabs.assets.dialog.editTitle", {
-              id: editedAsset.id,
-              defaultValue: `Edit Asset ${editedAsset.id}`,
+              id: editedAsset.displayId ?? editedAsset.id,
+              defaultValue: `Edit Asset ${editedAsset.displayId ?? editedAsset.id}`,
             })}
       </DialogTitle>
 
