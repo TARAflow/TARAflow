@@ -13,5 +13,14 @@
   },
   "V-S-005": {
     "verification": "Account-Widerrufs-Prozess verifizieren — Stale-Accounts innerhalb SLA entfernt"
+  },
+  "V-S-006": {
+    "verification": "Prüfen, dass jeder Messwert eine gültige Gerätesignatur/MAC trägt"
+  },
+  "V-S-007": {
+    "verification": "Testen, dass Messwerte eines nicht provisionierten oder gefälschten Sensors abgelehnt werden"
+  },
+  "V-S-008": {
+    "verification": "Prüfen, dass der Aktuator nicht authentifizierte oder nicht autorisierte Kommandos ablehnt"
   }
 }

@@ -9,6 +9,16 @@
       "threat": "Embedded system identity spoofing — attacker impersonates a legitimate embedded controller or safety system",
       "cause": "No hardware-based authentication between embedded systems — systemClass identity is not verified",
       "attack": "Attacker places a rogue embedded device claiming to be a legitimate controller and injects falsified commands"
+    },
+    "S-003": {
+      "threat": "Sensor spoofing — an attacker impersonates the sensor or injects forged readings from a rogue device",
+      "cause": "Sensor identity and readings are not authenticated",
+      "attack": "Attacker feeds forged measurements from a rogue or cloned sensor"
+    },
+    "S-004": {
+      "threat": "Command spoofing — an attacker issues commands that appear to come from an authorized controller",
+      "cause": "The command source is not authenticated",
+      "attack": "Attacker sends forged actuation commands on the control channel"
     }
   }
 }

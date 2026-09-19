@@ -22,5 +22,11 @@
   },
   "V-D-008": {
     "verification": "Mailbox-Stall-/Deadlock-Recovery-Test — hängendes oder korruptes Handshake-Flag injizieren und Watchdog-Timeout und Recovery verifizieren"
+  },
+  "V-D-009": {
+    "verification": "Eintritt in den sicheren Zustand bei Messwertverlust oder Timeout testen"
+  },
+  "V-D-010": {
+    "verification": "Fail-Safe-Zustand bei Kommandoverlust oder Timeout testen"
   }
 }

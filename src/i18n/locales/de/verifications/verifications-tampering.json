@@ -25,5 +25,17 @@
   },
   "V-T-008": {
     "verification": "Concurrency- und Race-Testing des Shared-Memory-Zugriffs — Atomarität und TOCTOU-Sicherheit unter gleichzeitigem Multi-Master-Zugriff verifizieren (Stress und Interleaving)"
+  },
+  "V-T-009": {
+    "verification": "Integritätsprüfung auf dem Sensordatenpfad verifizieren"
+  },
+  "V-T-010": {
+    "verification": "Manipulationsnachweis und physischen Schutz prüfen"
+  },
+  "V-T-011": {
+    "verification": "Kommando-Integrität und Replay-Schutz verifizieren"
+  },
+  "V-T-012": {
+    "verification": "Testen, dass Verriegelungen unzulässige oder unsichere Kommandos ablehnen"
   }
 }

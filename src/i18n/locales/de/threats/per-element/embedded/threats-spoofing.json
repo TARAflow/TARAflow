@@ -9,6 +9,16 @@
       "threat": "Controller-Identitäts-Spoofing auf dem Feldbus",
       "cause": "Feldbusprotokoll (Modbus, CAN, Profibus) besitzt keine eingebaute Authentifizierung — jeder Knoten kann eine beliebige Geräteadresse beanspruchen",
       "attack": "Angreifer verbindet einen unautorisierten Knoten mit dem Feldbus, antwortet auf Anfragen an den legitimen Controller und injiziert dabei falsche Sensordaten oder akzeptiert Steuerbefehle"
+    },
+    "S-003": {
+      "threat": "Sensor-Spoofing — ein Angreifer gibt sich als der Sensor aus oder schleust gefälschte Messwerte von einem fremden Gerät ein",
+      "cause": "Sensoridentität und Messwerte werden nicht authentifiziert",
+      "attack": "Angreifer speist gefälschte Messwerte von einem fremden oder geklonten Sensor ein"
+    },
+    "S-004": {
+      "threat": "Kommando-Spoofing — ein Angreifer sendet Kommandos, die scheinbar von einem autorisierten Steuergerät stammen",
+      "cause": "Die Kommandoquelle wird nicht authentifiziert",
+      "attack": "Angreifer sendet gefälschte Stellbefehle über den Steuerkanal"
     }
   }
 }

@@ -56,6 +56,42 @@
       ],
       "isCustom": false,
       "domain": "embedded"
+    },
+    {
+      "id": "S-003",
+      "strideCategory": "S",
+      "elementTypes": [
+        "Sensor"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-S-009",
+        "M-S-010",
+        "M-S-011"
+      ],
+      "verifications": [
+        "V-S-006",
+        "V-S-007"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "S-004",
+      "strideCategory": "S",
+      "elementTypes": [
+        "Actuator"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-S-012",
+        "M-S-013"
+      ],
+      "verifications": [
+        "V-S-008"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
     }
   ]
 }

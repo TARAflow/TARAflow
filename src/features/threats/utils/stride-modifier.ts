@@ -416,10 +416,10 @@ function hasSafetySignal(p: {
 /**
  * Modulate STRIDE for a Sensor element.
  *
- * Base is [T, D]: a sensor reading can always be tampered (T) and its
- * availability denied (D). Set-level output therefore stays within [T, D] —
- * the safety signal escalates priority / initialImpact, it does not expand the
- * category set. Missing integrity/availability mitigations keep the respective
+ * Base is [S, T, D]: a sensor identity/reading can be spoofed (S), the reading
+ * tampered (T) and its availability denied (D). The modifier only re-asserts
+ * categories on a safety signal or missing control — it never expands beyond the
+ * base set. Missing integrity/availability mitigations keep the respective
  * category firmly in scope.
  *
  * Rules:
@@ -441,9 +441,10 @@ export function modifySensorStride(
 /**
  * Modulate STRIDE for an Actuator element.
  *
- * Symmetric to Sensor — base [T, D]: an actuator command can be tampered (T)
- * and its execution denied (D), both with physical consequence when safety-
- * relevant. Set-level output stays within [T, D].
+ * Symmetric to Sensor — base [S, T, D]: an actuator command source can be
+ * spoofed (S), the command tampered (T) and its execution denied (D), all with
+ * physical consequence when safety-relevant. The modifier stays within the base
+ * set.
  *
  * Rules:
  *   safetyRelevant / physicalImpact / safetyClassification → keep T + D

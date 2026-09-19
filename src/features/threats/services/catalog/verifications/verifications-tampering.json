@@ -50,6 +50,30 @@
       "context": {},
       "isCustom": false
     },
-    { "id": "V-T-008", "strideCategory": "T", "context": {}, "isCustom": false }
+    { "id": "V-T-008", "strideCategory": "T", "context": {}, "isCustom": false },
+    {
+      "id": "V-T-009",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-010",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-011",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-T-012",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    }
   ]
 }

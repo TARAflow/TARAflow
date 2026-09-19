@@ -28,5 +28,20 @@
   },
   "M-D-010": {
     "mitigation": "Timeout/Watchdog auf Inter-Core-Mailbox-Handshakes implementieren — hängendes oder korruptes Flag erkennen und in einen definierten Zustand zurückführen"
+  },
+  "M-D-011": {
+    "mitigation": "Frische-/Heartbeat-Prüfung mit Timeout und sicherem Zustand bei ausbleibenden Messwerten"
+  },
+  "M-D-012": {
+    "mitigation": "Ratenbegrenzung und Eingabevalidierung gegen Flooding"
+  },
+  "M-D-013": {
+    "mitigation": "Redundanter Erfassungspfad"
+  },
+  "M-D-014": {
+    "mitigation": "Watchdog mit definiertem Fail-Safe- oder Fail-Operational-Zustand"
+  },
+  "M-D-015": {
+    "mitigation": "Kommando-Timing/Latenz überwachen und bei Verletzung in den sicheren Zustand gehen"
   }
 }

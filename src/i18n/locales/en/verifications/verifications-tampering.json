@@ -25,5 +25,17 @@
   },
   "V-T-008": {
     "verification": "Concurrency and race testing of shared-memory access — verify atomicity and TOCTOU safety under simultaneous multi-master access (stress and interleaving)"
+  },
+  "V-T-009": {
+    "verification": "Verify the integrity check on the sensor data path"
+  },
+  "V-T-010": {
+    "verification": "Inspect tamper-evidence and physical protection"
+  },
+  "V-T-011": {
+    "verification": "Verify command integrity and replay protection"
+  },
+  "V-T-012": {
+    "verification": "Test that interlocks reject out-of-range or unsafe commands"
   }
 }

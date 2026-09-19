@@ -22,5 +22,11 @@
   },
   "V-D-008": {
     "verification": "Mailbox stall/deadlock recovery testing — inject a stuck or corrupted handshake flag and verify watchdog timeout and recovery"
+  },
+  "V-D-009": {
+    "verification": "Test safe-state entry on reading loss or timeout"
+  },
+  "V-D-010": {
+    "verification": "Test fail-safe state on command loss or timeout"
   }
 }
