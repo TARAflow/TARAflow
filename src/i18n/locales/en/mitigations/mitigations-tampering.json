@@ -40,5 +40,23 @@
   },
   "M-T-013": {
     "mitigation": "Synchronize shared-memory and MMIO access between masters using locks, atomic operations, or memory barriers; re-validate data at the point of use to close TOCTOU windows"
+  },
+  "M-T-014": {
+    "mitigation": "Integrity-protect the acquisition path (signed or MAC-protected sensor frames)"
+  },
+  "M-T-015": {
+    "mitigation": "Tamper-evident sensor housing or seal"
+  },
+  "M-T-016": {
+    "mitigation": "Sensor fusion or redundancy cross-check to detect single-sensor manipulation"
+  },
+  "M-T-017": {
+    "mitigation": "Integrity-protect the command path (MAC/signature with replay protection)"
+  },
+  "M-T-018": {
+    "mitigation": "Command plausibility checks and interlocks against unsafe setpoints"
+  },
+  "M-T-019": {
+    "mitigation": "Enforce local safety limits independently of the command channel"
   }
 }

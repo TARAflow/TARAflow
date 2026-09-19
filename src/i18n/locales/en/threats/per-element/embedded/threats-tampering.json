@@ -69,6 +69,16 @@
       "threat": "Embedded bus data tampering — attacker modifies communication on internal bus",
       "cause": "Embedded bus communication carries no integrity protection or authentication",
       "attack": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data"
+    },
+    "T-015": {
+      "threat": "Measurement tampering — an attacker alters the measured value the system acts on",
+      "cause": "The sensor acquisition path lacks integrity protection",
+      "attack": "Attacker manipulates the sensor signal or data frame in the acquisition path"
+    },
+    "T-016": {
+      "threat": "Unauthorized actuation — an attacker injects or alters actuation commands, driving the actuator to an unsafe state",
+      "cause": "The command path lacks integrity protection and interlocks",
+      "attack": "Attacker injects or modifies actuation commands to force an unintended state"
     }
   }
 }

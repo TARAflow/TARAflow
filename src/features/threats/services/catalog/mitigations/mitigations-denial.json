@@ -142,6 +142,46 @@
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-D-008"]
+    },
+    {
+      "id": "M-D-011",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-D-009"]
+    },
+    {
+      "id": "M-D-012",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-D-009"]
+    },
+    {
+      "id": "M-D-013",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-D-009"]
+    },
+    {
+      "id": "M-D-014",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-D-010"]
+    },
+    {
+      "id": "M-D-015",
+      "strideCategory": "D",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-D-010"]
     }
   ]
 }

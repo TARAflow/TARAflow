@@ -194,6 +194,44 @@
       "mitigations": ["M-T-001", "M-T-002", "M-T-008"],
       "verifications": ["V-T-001", "V-T-002"],
       "domain": "embedded"
+    },
+    {
+      "id": "T-015",
+      "strideCategory": "T",
+      "elementTypes": [
+        "Sensor"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-T-014",
+        "M-T-015",
+        "M-T-016"
+      ],
+      "verifications": [
+        "V-T-009",
+        "V-T-010"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
+    },
+    {
+      "id": "T-016",
+      "strideCategory": "T",
+      "elementTypes": [
+        "Actuator"
+      ],
+      "context": {},
+      "mitigations": [
+        "M-T-017",
+        "M-T-018",
+        "M-T-019"
+      ],
+      "verifications": [
+        "V-T-011",
+        "V-T-012"
+      ],
+      "isCustom": false,
+      "domain": "embedded"
     }
   ]
 }

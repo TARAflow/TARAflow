@@ -22,5 +22,20 @@
   },
   "M-S-008": {
     "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
+  },
+  "M-S-009": {
+    "mitigation": "Authenticate each sensor per device (device keys/certificates, signed readings)"
+  },
+  "M-S-010": {
+    "mitigation": "Bind the sensor to a provisioned identity at commissioning; reject unprovisioned sources"
+  },
+  "M-S-011": {
+    "mitigation": "Plausibility and rate checks to detect injected, out-of-profile readings"
+  },
+  "M-S-012": {
+    "mitigation": "Authenticate the command source over an authenticated control channel"
+  },
+  "M-S-013": {
+    "mitigation": "Enforce a command authorization policy (only permitted controllers)"
   }
 }

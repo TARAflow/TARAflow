@@ -13,5 +13,14 @@
   },
   "V-S-005": {
     "verification": "Verify account revocation process — confirm stale accounts are removed within SLA"
+  },
+  "V-S-006": {
+    "verification": "Verify each reading carries a valid device signature/MAC"
+  },
+  "V-S-007": {
+    "verification": "Test that readings from an unprovisioned or rogue sensor are rejected"
+  },
+  "V-S-008": {
+    "verification": "Verify the actuator rejects unauthenticated or unauthorized commands"
   }
 }

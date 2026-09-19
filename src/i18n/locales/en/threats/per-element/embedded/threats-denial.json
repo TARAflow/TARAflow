@@ -29,6 +29,16 @@
       "threat": "Inter-core mailbox deadlock — shared-memory handshake stalls, halting communication",
       "cause": "The shared-memory mailbox handshake has no timeout or watchdog — a stuck or corrupted flag blocks the consumer indefinitely",
       "attack": "An attacker or fault holds or corrupts the mailbox flag so the consuming core blocks forever, denying inter-core communication"
+    },
+    "D-007": {
+      "threat": "Reading denial — an attacker suppresses, delays or floods sensor readings so the system loses timely input",
+      "cause": "No freshness check or safe-state on missing readings",
+      "attack": "Attacker jams, drops or floods the sensor channel"
+    },
+    "D-008": {
+      "threat": "Actuation denial — an attacker blocks or delays commands so a required physical action does not happen in time",
+      "cause": "No watchdog or fail-safe on missing commands",
+      "attack": "Attacker blocks or delays the command channel to prevent actuation"
     }
   }
 }

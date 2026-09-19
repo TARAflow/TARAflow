@@ -28,5 +28,20 @@
   },
   "M-D-010": {
     "mitigation": "Implement a timeout/watchdog on inter-core mailbox handshakes — detect a stalled or corrupted flag and recover to a defined state"
+  },
+  "M-D-011": {
+    "mitigation": "Freshness/heartbeat with timeout and safe-state on missing readings"
+  },
+  "M-D-012": {
+    "mitigation": "Rate limiting and input validation against flooding"
+  },
+  "M-D-013": {
+    "mitigation": "Redundant sensing path"
+  },
+  "M-D-014": {
+    "mitigation": "Watchdog with a defined fail-safe or fail-operational state"
+  },
+  "M-D-015": {
+    "mitigation": "Monitor command timing/latency and enter safe-state on violation"
   }
 }

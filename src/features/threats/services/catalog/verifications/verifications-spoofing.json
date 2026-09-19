@@ -31,6 +31,24 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false
+    },
+    {
+      "id": "V-S-006",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-S-007",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-S-008",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false
     }
   ]
 }

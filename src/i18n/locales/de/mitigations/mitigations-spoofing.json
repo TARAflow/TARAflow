@@ -22,5 +22,20 @@
   },
   "M-S-008": {
     "mitigation": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)"
+  },
+  "M-S-009": {
+    "mitigation": "Sensor pro Gerät authentifizieren (Geräteschlüssel/Zertifikate, signierte Messwerte)"
+  },
+  "M-S-010": {
+    "mitigation": "Sensor bei der Inbetriebnahme an eine bereitgestellte Identität binden; nicht provisionierte Quellen ablehnen"
+  },
+  "M-S-011": {
+    "mitigation": "Plausibilitäts- und Ratenprüfungen, um eingeschleuste, profilfremde Messwerte zu erkennen"
+  },
+  "M-S-012": {
+    "mitigation": "Kommandoquelle über einen authentifizierten Steuerkanal authentifizieren"
+  },
+  "M-S-013": {
+    "mitigation": "Kommando-Autorisierungsrichtlinie durchsetzen (nur zugelassene Steuergeräte)"
   }
 }

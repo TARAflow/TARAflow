@@ -69,6 +69,16 @@
       "threat": "Manipulation von Daten auf einem Embedded-Bus – Angreifer verändert die Kommunikation auf einem internen Bus",
       "cause": "Die Kommunikation über den Embedded-Bus verfügt weder über Integritätsschutz noch über Authentisierung",
       "attack": "Der Angreifer schließt eine Hardware-Sonde an den Embedded-Bus an und injiziert oder verändert übertragene Daten"
+    },
+    "T-015": {
+      "threat": "Messwert-Manipulation — ein Angreifer verändert den Messwert, auf den das System reagiert",
+      "cause": "Der Sensor-Erfassungspfad hat keinen Integritätsschutz",
+      "attack": "Angreifer manipuliert das Sensorsignal oder den Daten-Frame im Erfassungspfad"
+    },
+    "T-016": {
+      "threat": "Unbefugte Aktuierung — ein Angreifer schleust Stellbefehle ein oder verändert sie und bringt den Aktuator in einen unsicheren Zustand",
+      "cause": "Der Kommandopfad hat keinen Integritätsschutz und keine Verriegelungen",
+      "attack": "Angreifer schleust Stellbefehle ein oder verändert sie, um einen unbeabsichtigten Zustand zu erzwingen"
     }
   }
 }

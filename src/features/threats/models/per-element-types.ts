@@ -24,8 +24,8 @@ export const STRIDE_PER_ELEMENT_TYPE: Record<string, StrideCategory[]> = {
   Interface: ["S", "T", "R", "I", "D", "E"],
   ChipBoundary: ["T", "I", "E"],
   PhysicalBoundary: ["S", "T", "R", "I", "D", "E"],
-  Sensor: ["T", "D"],
-  Actuator: ["T", "D"],
+  Sensor: ["S", "T", "D"],
+  Actuator: ["S", "T", "D"],
 };
 
 

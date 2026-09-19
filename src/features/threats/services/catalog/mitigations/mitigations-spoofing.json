@@ -186,6 +186,46 @@
         }
       ],
       "verifications": ["V-IF-S-001"]
+    },
+    {
+      "id": "M-S-009",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-S-006", "V-S-007"]
+    },
+    {
+      "id": "M-S-010",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-S-006", "V-S-007"]
+    },
+    {
+      "id": "M-S-011",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-S-006", "V-S-007"]
+    },
+    {
+      "id": "M-S-012",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-S-008"]
+    },
+    {
+      "id": "M-S-013",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-S-008"]
     }
   ]
 }
