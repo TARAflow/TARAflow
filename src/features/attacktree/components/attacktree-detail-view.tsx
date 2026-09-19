@@ -439,7 +439,7 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
                   assessments={selectedTree.pathAssessments ?? []}
                   mitigationCatalog={mitigationCatalog}
                   verificationCatalog={verificationCatalog}
-                  title={selectedTree.name}
+                  title={treeDisplayTitle(selectedTree, t)}
                 />
               </>
             ) : (
