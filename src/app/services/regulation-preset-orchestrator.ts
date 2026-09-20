@@ -14,6 +14,7 @@ import type { RegulationPresetId, WindowOfOpportunity } from "shared";
 import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
+import type { ActiveFactor } from "features/risks";
 import { assetService } from "features/assets/services/asset-service";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import { SAFETY_CRITERION_ID } from "features/assets/models/asset-impact-types";
@@ -33,6 +34,40 @@ export interface RegulationPresetProjectResult {
  * input. If the project has no risk data yet, only the setting is recorded;
  * factors are reconciled when risk data is first created / next applied.
  */
+/**
+ * Exclusive-mode presets (iso-21434 → SFOP) mandate a fixed set of impact
+ * factors that must ALWAYS be enabled: neither the analyst nor the system may
+ * disable them — only ADD further factors. Force them on (adding any that are
+ * missing), overriding the "analyst disabled" heuristic in
+ * updateImpactFactorsAutoEnable. Data-driven — the set is the preset's
+ * impactCriteriaIds, so extending the preset extends the mandate. Idempotent:
+ * returns the same array reference when nothing changes.
+ */
+function enforceMandatoryImpactFactors(
+  activeFactors: ActiveFactor[],
+  presetId: RegulationPresetId,
+): { activeFactors: ActiveFactor[]; changed: boolean } {
+  if (!isAssetImpactMandatory(presetId)) {
+    return { activeFactors, changed: false };
+  }
+  const mandatory = getRegulationPreset(presetId).impactCriteriaIds ?? [];
+  if (mandatory.length === 0) return { activeFactors, changed: false };
+
+  let changed = false;
+  const next = [...activeFactors];
+  for (const id of mandatory) {
+    const i = next.findIndex((factor) => factor.factorId === id);
+    if (i === -1) {
+      next.push({ factorId: id, enabled: true, weight: 1.0, autoEnabled: true });
+      changed = true;
+    } else if (next[i].enabled !== true) {
+      next[i] = { ...next[i], enabled: true, autoEnabled: true };
+      changed = true;
+    }
+  }
+  return changed ? { activeFactors: next, changed: true } : { activeFactors, changed: false };
+}
+
 export function applyRegulationPresetToProject(
   project: Project,
   presetId: RegulationPresetId,
@@ -44,10 +79,16 @@ export function applyRegulationPresetToProject(
     return { project: { ...project, settings }, conflicts: [], changed: false };
   }
 
-  const { activeFactors, conflicts, changed } = applyRegulationPreset(
+  const preset = applyRegulationPreset(
     project.risks.configuration.activeFactors,
     presetId,
   );
+  const conflicts = preset.conflicts;
+  // Fold in the mandatory-impact enforcement so exclusive-mode presets always
+  // carry their full SFOP set, even if a factor was left/marked disabled.
+  const mandated = enforceMandatoryImpactFactors(preset.activeFactors, presetId);
+  const activeFactors = mandated.activeFactors;
+  const changed = preset.changed || mandated.changed;
 
   if (!changed) {
     // Factor config untouched, but the method may still differ (e.g. a preset

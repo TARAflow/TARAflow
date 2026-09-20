@@ -18,6 +18,7 @@ import React, { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Toast, ToastContainer, useToast } from "shared";
 import type { Project } from "../../models/project-types";
+import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
 
 import { ProjectContext } from "../../contexts/project-context";
 import { useProjectManager } from "../../hooks/use-project-manager";
@@ -180,9 +181,19 @@ export const ProjectShell: React.FC = () => {
         // closeProject/deleteProject/saveProject already follow; this was
         // the one inconsistent holdout (see
         // project-shell.lifecycle-characterization.test.tsx, "Gap #3").
-        const success = await syncProjectToStorage(fullProject);
+        // Reconcile the regulation preset on open: exclusive-mode presets
+        // (ISO 21434) mandate their full SFOP impact-factor set, so a project
+        // saved before a factor became mandatory (or that drifted) gets it
+        // enabled here. Idempotent — returns the same project when nothing
+        // changes, so already-correct projects incur no extra write.
+        const { project: reconciled } = applyRegulationFromTags(
+          fullProject,
+          fullProject.info.windowOfOpportunity,
+        );
+
+        const success = await syncProjectToStorage(reconciled);
         if (!success) return;
-        activateProject(fullProject);
+        activateProject(reconciled);
       } catch (error: any) {
         toast.error(`Failed to open project: ${error.message}`);
       }
