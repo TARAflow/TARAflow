@@ -15,7 +15,7 @@ import {
 import CodeMirror from "@uiw/react-codemirror";
 import { StreamLanguage, indentUnit } from "@codemirror/language";
 import { linter, Diagnostic } from "@codemirror/lint";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, hoverTooltip } from "@codemirror/view";
 import { EditorSelection, Prec } from "@codemirror/state";
 import { indentWithTab } from "@codemirror/commands";
 
@@ -23,6 +23,15 @@ import {
   AttackTreeConfiguration,
   ValidationError,
 } from "../models/attacktree-types";
+import {
+  ELAPSED_TIME_ALIASES,
+  EXPERTISE_ALIASES,
+  KNOWLEDGE_ALIASES,
+  WINDOW_ALIASES,
+  EQUIPMENT_ALIASES,
+  BENEFIT_ALIASES,
+} from "../models/attacktree-feasibility-types";
+import i18n from "../../../i18n/services/i18n";
 
 // ==================== TYPES ====================
 
@@ -162,6 +171,88 @@ function createLinter(validationErrors: ValidationError[]) {
 /**
  * Custom theme for Attack Tree DSL
  */
+// ==================== FACTOR HOVER TOOLTIPS (point 2 / A1) ====================
+// Translate the terse audit-DSL factor tokens (et=1w, se=expert, b=high …) into
+// a readable "<factor>: <level>" tooltip on hover. Read-only aid — the DSL stays
+// the source of truth; nothing is written back. Attack-potential POINTS are
+// intentionally NOT shown: they depend on the project's configurable feasibility
+// weights, which the editor does not receive (see the leaf-editor design doc /
+// open point 9). Add them once the resolved weights reach the editor.
+
+const FACTOR_ALIAS_MAPS: Record<string, Record<string, string>> = {
+  et: ELAPSED_TIME_ALIASES,
+  se: EXPERTISE_ALIASES,
+  kn: KNOWLEDGE_ALIASES,
+  wo: WINDOW_ALIASES,
+  eq: EQUIPMENT_ALIASES,
+};
+
+/** Resolve a `key=value` audit token to its i18n factor + level labels. */
+function describeFactorToken(
+  key: string,
+  rawValue: string,
+): { factor: string; level: string } | null {
+  const val = rawValue.toLowerCase();
+  if (key === "b") {
+    const lvl = BENEFIT_ALIASES[val];
+    if (!lvl) return null;
+    return {
+      factor: i18n.t("attacktree:tabs.attacktree.feasibility.benefit", {
+        defaultValue: "Benefit",
+      }),
+      level: i18n.t(`attacktree:tabs.attacktree.feasibility.value.${lvl}`, {
+        defaultValue: lvl,
+      }),
+    };
+  }
+  const aliases = FACTOR_ALIAS_MAPS[key];
+  if (!aliases) return null;
+  // Accept both the shorthand aliases an analyst types (1w, week) and a
+  // canonical level key (le-1-week) if it appears verbatim.
+  const lvl =
+    aliases[val] ?? (Object.values(aliases).includes(val) ? val : undefined);
+  if (!lvl) return null;
+  return {
+    factor: i18n.t(`attacktree:tabs.attacktree.feasibility.factor.${key}`, {
+      defaultValue: key,
+    }),
+    level: i18n.t(`attacktree:tabs.attacktree.feasibility.value.${lvl}`, {
+      defaultValue: lvl,
+    }),
+  };
+}
+
+/** CodeMirror hover extension: shows "<factor>: <level>" over an audit token. */
+const factorHoverTooltip = hoverTooltip((view, pos) => {
+  const line = view.state.doc.lineAt(pos);
+  const rel = pos - line.from;
+  const re = /\b(et|se|kn|wo|eq|b)\s*=\s*([A-Za-z0-9>._-]+)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line.text)) !== null) {
+    const start = m.index;
+    const end = m.index + m[0].length;
+    if (rel < start || rel > end) continue;
+    const info = describeFactorToken(m[1].toLowerCase(), m[2]);
+    if (!info) return null;
+    return {
+      pos: line.from + start,
+      end: line.from + end,
+      above: true,
+      create() {
+        const dom = document.createElement("div");
+        dom.className = "cm-attacktree-factor-tooltip";
+        dom.style.padding = "2px 6px";
+        const label = dom.appendChild(document.createElement("span"));
+        label.textContent = `${info.factor}: `;
+        label.style.opacity = "0.7";
+        dom.appendChild(document.createTextNode(info.level));
+        return { dom };
+      },
+    };
+  }
+  return null;
+});
+
 const attackTreeTheme = EditorView.theme({
   "&": {
     fontSize: "14px",
@@ -268,6 +359,7 @@ const AttackTreeEditorComponent: React.FC<AttackTreeEditorProps> = ({
       attackTreeLanguage,
       attackTreeTheme,
       syntaxHighlighting,
+      factorHoverTooltip,
       // linterExtension, // DISABLED FOR TESTING
       // The DSL's tree hierarchy is defined by leading TAB characters
       // (see attacktree-parser.ts). Without these three extensions, Tab
