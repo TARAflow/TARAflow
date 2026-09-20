@@ -110,6 +110,7 @@
         "mitigationPlaceholder": "Massnahme beschreiben...",
         "addMitigation": "Massnahme hinzufügen",
         "notRated": "Nicht bewertet",
+        "isoPointsPerLevel": "{{points}} ISO-18045-Angriffspotenzial-Punkte (höher = mehr Aufwand \u2192 geringere Durchführbarkeit)",
         "priority": "MoSCoW-Priorität",
         "status": "Status",
         "treatment": "Risikobehandlung",
@@ -343,6 +344,29 @@
         "medium": "Mittel (mittleres Wissen)",
         "basic": "Basis (minimales Wissen)"
       }
+    },
+    "isoLevels": {
+      "<=1day": "≤ 1 Tag",
+      "<=1week": "≤ 1 Woche",
+      "<=1month": "≤ 1 Monat",
+      "<=6months": "≤ 6 Monate",
+      ">6months": "> 6 Monate",
+      "layman": "Laie",
+      "proficient": "Sachkundig",
+      "expert": "Experte",
+      "multiple-experts": "Mehrere Experten",
+      "public": "Öffentlich",
+      "restricted": "Eingeschränkt",
+      "confidential": "Vertraulich",
+      "strictly-confidential": "Streng vertraulich",
+      "unlimited": "Unbegrenzt",
+      "easy": "Einfach",
+      "moderate": "Mittel",
+      "difficult": "Schwierig",
+      "standard": "Standard",
+      "specialized": "Spezialisiert",
+      "bespoke": "Massgeschneidert",
+      "multiple-bespoke": "Mehrfach massgeschneidert"
     },
     "woo": {
       "very_restricted": "Sehr eingeschränkt",
@@ -665,22 +689,27 @@
       },
       "iso_elapsed_time": {
         "name": "Verstrichene Zeit",
+        "shortName": "Zeit",
         "description": "Zeit, die benötigt wird, um die Schwachstelle zu identifizieren und auszunutzen (ISO/SAE 21434 Anhang G.6, Common Criteria B.4)."
       },
       "iso_expertise": {
         "name": "Fachkenntnis",
+        "shortName": "Fachkenntnis",
         "description": "Erforderliches Spezialwissen des Angreifers — Laie bis mehrere Experten."
       },
       "iso_knowledge": {
         "name": "Kenntnis des Objekts",
+        "shortName": "Objektkenntnis",
         "description": "Wie eingeschränkt das Wissen des Angreifers über das betrachtete Objekt sein muss — öffentlich bis streng vertraulich."
       },
       "iso_window_of_opportunity": {
         "name": "Gelegenheitsfenster",
+        "shortName": "Gelegenheit",
         "description": "Zugriffszeit und Gelegenheit, die der Angreifer benötigt — unbegrenzt bis schwierig."
       },
       "iso_equipment": {
         "name": "Ausrüstung",
+        "shortName": "Ausrüstung",
         "description": "Ausrüstung, die zur Identifikation und Ausnutzung der Schwachstelle benötigt wird — Standard bis mehrfach massgeschneidert."
       },
       "etsi_opportunity": {

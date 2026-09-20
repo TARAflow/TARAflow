@@ -1229,8 +1229,19 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     const value = ratings.find((r) => r.factorId === factorId)?.value ?? 0;
     const optionLabel = (idx1: number) => {
       const lvl = levels[idx1 - 1];
+      return t(`risks.isoLevels.${lvl}`, { defaultValue: lvl });
+    };
+    // Per-level tooltip: surfaces the ISO 18045 attack-potential points that
+    // used to clutter the option label (removed), plus the direction cue.
+    const optionTooltip = (idx1: number) => {
+      const lvl = levels[idx1 - 1];
       const pts = ISO_AP_POINTS_BY_FACTOR[factorId]?.[lvl] ?? 0;
-      return `${t(`risks.isoLevels.${lvl}`, { defaultValue: lvl })} (${pts})`;
+      return t("tabs.risks.dialog.isoPointsPerLevel", {
+        points: pts,
+        defaultValue:
+          `${pts} ISO 18045 attack-potential points ` +
+          `(higher = more attacker effort → lower feasibility)`,
+      });
     };
     return (
       <Paper
@@ -1262,21 +1273,32 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             </MenuItem>
             {levels.map((_, i) => (
               <MenuItem key={i + 1} value={i + 1}>
-                {optionLabel(i + 1)}
+                <Tooltip title={optionTooltip(i + 1)} placement="right">
+                  <span style={{ display: "block", width: "100%" }}>
+                    {optionLabel(i + 1)}
+                  </span>
+                </Tooltip>
               </MenuItem>
             ))}
           </Select>
         ) : (
-          <Chip
-            size="small"
-            variant="outlined"
-            sx={{ width: "100%", justifyContent: "flex-start" }}
-            label={
-              value >= 1
-                ? optionLabel(value)
-                : t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })
-            }
-          />
+          <Tooltip
+            title={value >= 1 ? optionTooltip(value) : ""}
+            placement="right"
+          >
+            <Chip
+              size="small"
+              variant="outlined"
+              sx={{ width: "100%", justifyContent: "flex-start" }}
+              label={
+                value >= 1
+                  ? optionLabel(value)
+                  : t("tabs.risks.dialog.notRated", {
+                      defaultValue: "Not rated",
+                    })
+              }
+            />
+          </Tooltip>
         )}
       </Paper>
     );

@@ -110,6 +110,7 @@
         "mitigationPlaceholder": "Describe the mitigation...",
         "addMitigation": "Add Mitigation",
         "notRated": "Not rated",
+        "isoPointsPerLevel": "{{points}} ISO 18045 attack-potential points (higher = more attacker effort \u2192 lower feasibility)",
         "priority": "MoSCoW Priority",
         "status": "Status",
         "treatment": "Risk Treatment",
@@ -342,6 +343,29 @@
         "medium": "Medium (moderate knowledge)",
         "basic": "Basic (minimal knowledge)"
       }
+    },
+    "isoLevels": {
+      "<=1day": "≤ 1 day",
+      "<=1week": "≤ 1 week",
+      "<=1month": "≤ 1 month",
+      "<=6months": "≤ 6 months",
+      ">6months": "> 6 months",
+      "layman": "Layman",
+      "proficient": "Proficient",
+      "expert": "Expert",
+      "multiple-experts": "Multiple experts",
+      "public": "Public",
+      "restricted": "Restricted",
+      "confidential": "Confidential",
+      "strictly-confidential": "Strictly confidential",
+      "unlimited": "Unlimited",
+      "easy": "Easy",
+      "moderate": "Moderate",
+      "difficult": "Difficult",
+      "standard": "Standard",
+      "specialized": "Specialized",
+      "bespoke": "Bespoke",
+      "multiple-bespoke": "Multiple bespoke"
     },
     "woo": {
       "very_restricted": "Very Restricted",
@@ -670,22 +694,27 @@
       },
       "iso_elapsed_time": {
         "name": "Elapsed Time",
+        "shortName": "Elapsed time",
         "description": "Time required to identify and exploit the vulnerability (ISO/SAE 21434 Annex G.6, Common Criteria B.4)."
       },
       "iso_expertise": {
         "name": "Specialist Expertise",
+        "shortName": "Expertise",
         "description": "Level of specialist knowledge needed by the attacker — Layman to multiple experts."
       },
       "iso_knowledge": {
         "name": "Knowledge of the Item",
+        "shortName": "Item knowledge",
         "description": "How restricted the attacker's knowledge of the item under consideration must be — public to strictly confidential."
       },
       "iso_window_of_opportunity": {
         "name": "Window of Opportunity",
+        "shortName": "Opportunity",
         "description": "Access time and opportunity the attacker needs — unlimited to difficult."
       },
       "iso_equipment": {
         "name": "Equipment",
+        "shortName": "Equipment",
         "description": "Equipment needed to identify and exploit the vulnerability — standard to multiple bespoke."
       },
       "etsi_opportunity": {
