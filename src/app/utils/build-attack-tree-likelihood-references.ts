@@ -105,6 +105,57 @@ export function buildAttackTreeLikelihoodReferences(
  * rebuild the SAME threat id the generator used, so the reference's riskId
  * matches the risk that path's threat became.
  */
+
+// Canonical ISO 18045 factor value (as stored on the attack path) → the risk
+// feature's iso_* factor value, a 1-based index into ISO21434_FACTOR_LEVELS.
+// Both vocabularies are in the same order; only elapsed-time spells its levels
+// differently. Absent factors are simply omitted.
+const CANON_TO_ISO_INDEX: Record<string, Record<string, number>> = {
+  iso_elapsed_time: {
+    "le-1-day": 1,
+    "le-1-week": 2,
+    "le-1-month": 3,
+    "le-6-months": 4,
+    "gt-6-months": 5,
+  },
+  iso_expertise: { layman: 1, proficient: 2, expert: 3, "multiple-experts": 4 },
+  iso_knowledge: {
+    public: 1,
+    restricted: 2,
+    confidential: 3,
+    "strictly-confidential": 4,
+  },
+  iso_window_of_opportunity: { unlimited: 1, easy: 2, moderate: 3, difficult: 4 },
+  iso_equipment: { standard: 1, specialized: 2, bespoke: 3, "multiple-bespoke": 4 },
+};
+
+function isoFactorsFromPath(
+  f:
+    | {
+        elapsedTime?: string;
+        specialistExpertise?: string;
+        knowledgeOfItem?: string;
+        windowOfOpportunity?: string;
+        equipment?: string;
+      }
+    | undefined,
+): Record<string, number> | undefined {
+  if (!f) return undefined;
+  const pairs: Array<[string, string | undefined]> = [
+    ["iso_elapsed_time", f.elapsedTime],
+    ["iso_expertise", f.specialistExpertise],
+    ["iso_knowledge", f.knowledgeOfItem],
+    ["iso_window_of_opportunity", f.windowOfOpportunity],
+    ["iso_equipment", f.equipment],
+  ];
+  const out: Record<string, number> = {};
+  for (const [id, val] of pairs) {
+    const idx = val ? CANON_TO_ISO_INDEX[id]?.[val] : undefined;
+    if (idx !== undefined) out[id] = idx;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function refsForAssetTree(
   tree: AttackTree,
   levelToRiskScale: Record<FeasibilityLevel, number>,
@@ -140,6 +191,8 @@ function refsForAssetTree(
       strideCategory: threat.strideCategory,
       likelihoodComponent: match.feasibility ?? match.probability ?? 0,
       mappedValue,
+      isoFactors: isoFactorsFromPath(match.attackPotentialFactors),
+      levelToRiskScale,
     });
   }
 
@@ -191,5 +244,7 @@ function refForThreatTree(
     strideCategory: stride,
     likelihoodComponent: component,
     mappedValue,
+    isoFactors: isoFactorsFromPath(primaryPath?.attackPotentialFactors),
+    levelToRiskScale,
   };
 }

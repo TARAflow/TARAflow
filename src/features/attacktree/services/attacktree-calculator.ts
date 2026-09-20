@@ -500,6 +500,7 @@ export function extractAllPaths(
         benefits: benefits,
         feasibilityLevel: feasibilityLevel,
         attackPotential: attackPotential,
+        attackPotentialFactors: node.evaluation?.attackPotential,
         likelihoodLevel: likelihoodLevel,
         benefit: benefit,
         attackGoals: goals,

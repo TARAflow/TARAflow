@@ -116,6 +116,9 @@ export interface Risk {
     pathKey: string;
     likelihoodComponent: number;
     strideCategory: StrideCategory;
+    /** Feasibility band → risk-scale value, mirrored from the tree so the
+     *  dialog's residual computation uses the same mapping as "before". */
+    levelToRiskScale?: Record<string, number>;
   };
   created: string;
   lastModified: string;

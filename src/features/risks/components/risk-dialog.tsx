@@ -60,6 +60,51 @@ import {
 } from "../models/risk-mitigation-types";
 import { FactorRating } from "../models/risk-factor-types";
 import { ATTACK_TREE_LIKELIHOOD_FACTOR_ID } from "../models/risk-factor-types";
+import {
+  ISO21434_FACTOR_LEVELS,
+  ISO21434_ELAPSED_TIME_POINTS,
+  ISO21434_EXPERTISE_POINTS,
+  ISO21434_KNOWLEDGE_POINTS,
+  ISO21434_WOO_POINTS,
+  ISO21434_EQUIPMENT_POINTS,
+  iso21434Feasibility,
+} from "../models/iso21434-core";
+
+// The five ISO/SAE 21434 Annex G (18045) attack-potential factors, in the order
+// they are shown. Editable in the residual (after) lens; read-only (from the
+// tree) in the before lens.
+const ISO_AP_FACTOR_IDS = [
+  "iso_elapsed_time",
+  "iso_expertise",
+  "iso_knowledge",
+  "iso_window_of_opportunity",
+  "iso_equipment",
+] as const;
+
+// factorId → Table G.6 points, keyed by the factor's level string.
+const ISO_AP_POINTS_BY_FACTOR: Record<string, Record<string, number>> = {
+  iso_elapsed_time: ISO21434_ELAPSED_TIME_POINTS,
+  iso_expertise: ISO21434_EXPERTISE_POINTS,
+  iso_knowledge: ISO21434_KNOWLEDGE_POINTS,
+  iso_window_of_opportunity: ISO21434_WOO_POINTS,
+  iso_equipment: ISO21434_EQUIPMENT_POINTS,
+};
+
+// Fallback band→scale mapping (ISO default) when the tree didn't pass one.
+const DEFAULT_LEVEL_TO_RISK_SCALE: Record<string, number> = {
+  "very-low": 1,
+  low: 2,
+  medium: 3,
+  high: 5,
+};
+
+/** Table G.6 points for a factor at a given 1-based rating value. */
+function isoFactorPoints(factorId: string, value: number): number {
+  const levels =
+    ISO21434_FACTOR_LEVELS[factorId as keyof typeof ISO21434_FACTOR_LEVELS];
+  if (!levels || value < 1 || value > levels.length) return 0;
+  return ISO_AP_POINTS_BY_FACTOR[factorId]?.[levels[value - 1]] ?? 0;
+}
 import { RiskConfiguration } from "../models/risk-config-types";
 import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
@@ -418,6 +463,56 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     [local?.mitigatedFactorRatings, configuration],
   );
 
+  // Keep the residual attack_tree_likelihood in sync with the edited residual
+  // ISO factors (audit-mode trees). Derived here because the calc consumes
+  // attack_tree_likelihood — it wins over iso_*. Self-contained (reads
+  // currentRisk + module helpers, writes via setLocal) and placed with the
+  // other top-level hooks, so hook order stays stable on every render path.
+  useEffect(() => {
+    if (!local) return;
+    const assessment = currentRisk.attackTreeAssessment;
+    if (!assessment) return;
+
+    let ap = 0;
+    for (const id of ISO_AP_FACTOR_IDS) {
+      const v =
+        local.mitigatedFactorRatings.find((r) => r.factorId === id)?.value ?? 0;
+      if (v <= 0) return; // not fully rated → nothing to derive
+      ap += isoFactorPoints(id, v);
+    }
+    const band = iso21434Feasibility(ap);
+    const map = assessment.levelToRiskScale ?? DEFAULT_LEVEL_TO_RISK_SCALE;
+    const derived = map[band] ?? 0;
+
+    const current = local.mitigatedFactorRatings.find(
+      (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+    )?.value;
+    if (current === derived) return;
+
+    setLocal((prev) => {
+      if (!prev) return prev;
+      const exists = prev.mitigatedFactorRatings.some(
+        (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+      );
+      const mitigatedFactorRatings = exists
+        ? prev.mitigatedFactorRatings.map((r) =>
+            r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID
+              ? { ...r, value: derived }
+              : r,
+          )
+        : [
+            ...prev.mitigatedFactorRatings,
+            {
+              factorId: ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+              value: derived,
+              weight: 1,
+            },
+          ];
+      return { ...prev, mitigatedFactorRatings };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [local?.mitigatedFactorRatings, currentRisk.attackTreeAssessment]);
+
   const assessedCount = useMemo(
     () =>
       sortedRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
@@ -483,7 +578,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         ? resolveVerificationDrafts(currentRisk.proposedVerifications ?? [])
         : [],
     [currentRisk],
-  )
+  );
 
   // ── EN 50742 mandated 7.4.3 controls (§11.4) ─────────────────────────────
   // The threat's anchor type + STRIDE + the computed SRSL determine which
@@ -555,7 +650,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mandatedControls]);;
+  }, [mandatedControls]);
 
   const effectiveCauseDescription =
     currentRisk?.causeDescription || currentThreatRef?.causeDescription;
@@ -1090,8 +1185,215 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   );
   const treeAssessment = currentRisk.attackTreeAssessment;
 
+  // Whether this risk carries the tree-seeded ISO factor breakdown (audit-mode
+  // trees). Quick-mode trees have none — those fall back to the consolidated
+  // residual band.
+  const hasTreeIsoFactors = ISO_AP_FACTOR_IDS.some(
+    (id) =>
+      (local.factorRatings.find((r) => r.factorId === id)?.value ?? 0) > 0,
+  );
+
+  // Residual attack potential → G.7 band → risk-scale likelihood, from a
+  // ratings array. Uses the SAME level→scale mapping the tree used for the
+  // before value (passed through on the assessment), so before/after stay
+  // comparable. Returns null until all five factors are rated.
+  const isoResidual = (
+    ratings: FactorRating[],
+  ): { ap: number; band: string; likelihood: number } | null => {
+    let ap = 0;
+    for (const id of ISO_AP_FACTOR_IDS) {
+      const v = ratings.find((r) => r.factorId === id)?.value ?? 0;
+      if (v <= 0) return null; // not fully rated → no residual yet
+      ap += isoFactorPoints(id, v);
+    }
+    const band = iso21434Feasibility(ap);
+    const map = treeAssessment?.levelToRiskScale ?? DEFAULT_LEVEL_TO_RISK_SCALE;
+    return { ap, band, likelihood: map[band] ?? 0 };
+  };
+
+  // One ISO attack-potential factor: read-only chip (before) or a labelled
+  // "<level> (<points>)" dropdown (after).
+  const renderIsoFactorRow = (factorId: string, mitigated: boolean) => {
+    const levels =
+      ISO21434_FACTOR_LEVELS[factorId as keyof typeof ISO21434_FACTOR_LEVELS];
+    if (!levels) return null;
+    const def = getFactorDefinition(factorId, configuration.customFactors);
+    const name = t(`risks.factors.${factorId}.shortName`, {
+      defaultValue: t(`risks.factors.${factorId}.name`, {
+        defaultValue: def?.name ?? factorId,
+      }),
+    });
+    const ratings = mitigated
+      ? local.mitigatedFactorRatings
+      : local.factorRatings;
+    const value = ratings.find((r) => r.factorId === factorId)?.value ?? 0;
+    const optionLabel = (idx1: number) => {
+      const lvl = levels[idx1 - 1];
+      const pts = ISO_AP_POINTS_BY_FACTOR[factorId]?.[lvl] ?? 0;
+      return `${t(`risks.isoLevels.${lvl}`, { defaultValue: lvl })} (${pts})`;
+    };
+    return (
+      <Paper
+        key={`${factorId}-${mitigated}`}
+        variant="outlined"
+        sx={{ p: 1.25 }}
+      >
+        <Typography
+          variant="caption"
+          fontWeight="medium"
+          display="block"
+          sx={{ mb: 0.5 }}
+        >
+          {name}
+        </Typography>
+        {mitigated ? (
+          <Select
+            size="small"
+            fullWidth
+            value={value}
+            onChange={(e) =>
+              updateFactor(factorId, e.target.value as number, true)
+            }
+          >
+            <MenuItem value={0}>
+              <em>
+                {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
+              </em>
+            </MenuItem>
+            {levels.map((_, i) => (
+              <MenuItem key={i + 1} value={i + 1}>
+                {optionLabel(i + 1)}
+              </MenuItem>
+            ))}
+          </Select>
+        ) : (
+          <Chip
+            size="small"
+            variant="outlined"
+            sx={{ width: "100%", justifyContent: "flex-start" }}
+            label={
+              value >= 1
+                ? optionLabel(value)
+                : t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })
+            }
+          />
+        )}
+      </Paper>
+    );
+  };
+
   const renderTreeFactorRow = (mitigated: boolean) => {
-    if (mitigated || !treeAssessment) return null;
+    if (!treeAssessment) return null;
+
+    // After lens: the tree feeds the BEFORE likelihood, but the residual
+    // (post-mitigation) feasibility is an analyst decision — a control that
+    // makes the attack path harder lowers likelihood. Render an editable
+    // residual band here so likelihood (not only impact) can be reduced.
+    // Stored on mitigatedFactorRatings' attack_tree_likelihood.
+    if (mitigated) {
+      const residual = local.mitigatedFactorRatings.find(
+        (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+      );
+      const residualValue = residual?.value ?? treeFactorRating?.value ?? 0;
+      // ISO default levelToRiskScale — feasibility band → risk-scale value.
+      const residualOptions: Array<{ value: number; label: string }> = [
+        {
+          value: 5,
+          label: t("tabs.risks.dialog.feasibility.high", {
+            defaultValue: "High",
+          }),
+        },
+        {
+          value: 3,
+          label: t("tabs.risks.dialog.feasibility.medium", {
+            defaultValue: "Medium",
+          }),
+        },
+        {
+          value: 2,
+          label: t("tabs.risks.dialog.feasibility.low", {
+            defaultValue: "Low",
+          }),
+        },
+        {
+          value: 1,
+          label: t("tabs.risks.dialog.feasibility.veryLow", {
+            defaultValue: "Very low",
+          }),
+        },
+      ];
+      // Keep the current value selectable even if it is outside the standard
+      // bands (e.g. 0 after an "eliminate" treatment, or a custom scale).
+      if (!residualOptions.some((o) => o.value === residualValue)) {
+        residualOptions.unshift({
+          value: residualValue,
+          label: t("tabs.risks.dialog.feasibility.custom", {
+            value: residualValue,
+            defaultValue: `Level ${residualValue}`,
+          }),
+        });
+      }
+      return (
+        <Paper
+          key="attack-tree-likelihood-residual"
+          variant="outlined"
+          sx={{ p: 1.5, borderColor: "info.main", borderStyle: "dashed" }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+            <Typography
+              variant="body2"
+              fontWeight="medium"
+              sx={{ flexGrow: 1 }}
+            >
+              {t(
+                `risks.factors.${ATTACK_TREE_LIKELIHOOD_FACTOR_ID}.shortName`,
+                {
+                  defaultValue: t(
+                    `risks.factors.${ATTACK_TREE_LIKELIHOOD_FACTOR_ID}.name`,
+                    {
+                      defaultValue:
+                        treeFactorDef?.name ?? "Attack Tree Likelihood",
+                    },
+                  ),
+                },
+              )}
+            </Typography>
+            <Tooltip
+              title={t("tabs.risks.dialog.residualLikelihoodTooltip", {
+                defaultValue:
+                  "Residual feasibility once the mitigation is in place. A control that makes the attack path harder lowers likelihood — set the level it drops to.",
+              })}
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ cursor: "help" }}
+              >
+                ⓘ
+              </Typography>
+            </Tooltip>
+          </Stack>
+          <Select
+            value={residualValue}
+            onChange={(e) =>
+              updateFactor(
+                ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+                e.target.value as number,
+                true,
+              )
+            }
+            size="small"
+            fullWidth
+          >
+            {residualOptions.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                {o.label} ({o.value})
+              </MenuItem>
+            ))}
+          </Select>
+        </Paper>
+      );
+    }
 
     const provenanceTooltip = t(
       "tabs.risks.dialog.treeFactorProvenanceTooltip",
@@ -1970,6 +2272,10 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       }}
                     >
                       {renderTreeFactorRow(false)}
+                      {hasTreeIsoFactors &&
+                        ISO_AP_FACTOR_IDS.map((id) =>
+                          renderIsoFactorRow(id, false),
+                        )}
                       {likelihoodFactors.map((f) => renderFactorRow(f, false))}
                     </Box>
                   </Box>
@@ -2641,6 +2947,53 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         gap: 1,
                       }}
                     >
+                      {hasTreeIsoFactors ? (
+                        <>
+                          {ISO_AP_FACTOR_IDS.map((id) =>
+                            renderIsoFactorRow(id, true),
+                          )}
+                          {(() => {
+                            const res = isoResidual(
+                              local.mitigatedFactorRatings,
+                            );
+                            return (
+                              <Paper
+                                variant="outlined"
+                                sx={{
+                                  p: 1.25,
+                                  gridColumn: "1 / -1",
+                                  borderColor: "info.main",
+                                  borderStyle: "dashed",
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  display="block"
+                                >
+                                  {t("tabs.risks.dialog.residualFeasibility", {
+                                    defaultValue:
+                                      "Residual feasibility (from the factors above)",
+                                  })}
+                                </Typography>
+                                <Typography variant="body2" fontWeight="medium">
+                                  {res
+                                    ? `AP ${res.ap} → ${res.band} → L ${res.likelihood}`
+                                    : t(
+                                        "tabs.risks.dialog.residualIncomplete",
+                                        {
+                                          defaultValue:
+                                            "Rate all five factors to compute residual feasibility",
+                                        },
+                                      )}
+                                </Typography>
+                              </Paper>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        renderTreeFactorRow(true)
+                      )}
                       {likelihoodFactors.map((f) => renderFactorRow(f, true))}
                     </Box>
                   </Box>
@@ -2707,6 +3060,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
-}
+};
 
 export default RiskDialog;

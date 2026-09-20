@@ -774,6 +774,36 @@ export function syncRisksFromThreats(
 // The tree contributes to BEFORE-mitigation likelihood only; mitigatedFactorRatings
 // and the after value stay the analyst's (5b design).
 
+
+/**
+ * Upsert the tree-derived ISO 18045 factor levels onto the BEFORE ratings, so
+ * the risk dialog can show them read-only (before) and seed the editable
+ * residual (after) from them. Marked as derived-from-source. These do NOT
+ * change the calculation — attack_tree_likelihood wins the likelihood; the
+ * iso_* factors are only its fallback and a display/seed convenience.
+ */
+function applyTreeIsoFactors(
+  ratings: FactorRating[],
+  isoFactors: Record<string, number> | undefined,
+): FactorRating[] {
+  if (!isoFactors) return ratings;
+  let out = ratings;
+  for (const [factorId, value] of Object.entries(isoFactors)) {
+    const exists = out.some((r) => r.factorId === factorId);
+    out = exists
+      ? out.map((r) =>
+          r.factorId === factorId
+            ? { ...r, value, source: "derived", derivedValue: value }
+            : r,
+        )
+      : [
+          ...out,
+          { factorId, value, weight: 1, source: "derived", derivedValue: value },
+        ];
+  }
+  return out;
+}
+
 export function syncRisksFromAttackTrees(
   riskData: RiskData,
   attackTreeLikelihoods: AttackTreeLikelihoodReference[],
@@ -788,10 +818,9 @@ export function syncRisksFromAttackTrees(
   const risks = riskData.risks.map((risk) => {
     const ref = byRiskId.get(risk.threatId) ?? null;
 
-    const newRatings = setAttackTreeLikelihoodFactor(
-      risk.factorRatings,
-      ref,
-      contribution,
+    const newRatings = applyTreeIsoFactors(
+      setAttackTreeLikelihoodFactor(risk.factorRatings, ref, contribution),
+      ref?.isoFactors,
     );
 
     // Provenance is persisted in BOTH modes — even "advisory", where the
@@ -802,6 +831,7 @@ export function syncRisksFromAttackTrees(
           pathKey: ref.pathKey,
           likelihoodComponent: ref.likelihoodComponent,
           strideCategory: ref.strideCategory,
+          levelToRiskScale: ref.levelToRiskScale,
         }
       : undefined;
 

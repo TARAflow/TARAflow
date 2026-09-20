@@ -44,6 +44,24 @@ export interface AttackTreeLikelihoodReference {
   likelihoodComponent: number;
 
   /**
+   * Before-mitigation ISO 18045 attack-potential factor levels, as risk-factor
+   * values (1-based index into ISO21434_FACTOR_LEVELS), keyed by iso_* factor
+   * id. Seed + read-only display for the risk dialog; does NOT affect the
+   * calculation (attack_tree_likelihood wins, this is only its fallback).
+   * Absent for quick-mode trees that carry no rated factors.
+   */
+  isoFactors?: Record<string, number>;
+
+  /**
+   * Feasibility level → risk-scale value, exactly as used to map the BEFORE
+   * likelihood. Passed so the dialog's residual (after) computation maps the
+   * recomputed feasibility band to the same scale — keeping before/after
+   * comparable. Plain string keys ("high" … "very-low") to avoid importing the
+   * attack-tree FeasibilityLevel type across the boundary.
+   */
+  levelToRiskScale?: Record<string, number>;
+
+  /**
    * The likelihood ALREADY mapped to the active risk scale (1..N). This is the
    * value that becomes the attack_tree_likelihood factor rating.
    */

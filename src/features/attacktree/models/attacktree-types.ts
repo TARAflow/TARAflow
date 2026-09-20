@@ -559,6 +559,16 @@ export interface AttackPath {
   attackPotential?: number;
 
   /**
+   * The winning leaf's ISO 18045 attack-potential factor breakdown
+   * (elapsed time, expertise, knowledge, window, equipment) behind
+   * `attackPotential`. Persisted so consumers — the report and the risk
+   * dialog's residual (post-mitigation) editor — can show and adjust the
+   * individual factors instead of only the consolidated level. Present only in
+   * audit mode.
+   */
+  attackPotentialFactors?: AttackPotentialFactors;
+
+  /**
    * Likelihood: feasibility, plus benefit iff the project's LikelihoodModel is
    * "feasibility-x-motivation" (IEC 62443 / classic). In ISO mode this always
    * equals `feasibilityLevel` — benefit never enters the risk number (3.1.29).
