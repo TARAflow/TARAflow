@@ -516,9 +516,9 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     return getApplicableElementTemplates(strideCategory, elementType).map(
       (tpl) => ({
         id: tpl.id,
-        threat: getLocalizedElementThreat(tpl.id),
-        attack: getLocalizedElementAttack(tpl.id),
-        cause: getLocalizedElementCause(tpl.id),
+        threat: getLocalizedElementThreat(tpl.id, tpl.domain),
+        attack: getLocalizedElementAttack(tpl.id, tpl.domain),
+        cause: getLocalizedElementCause(tpl.id, tpl.domain),
       }),
     );
   }, [
