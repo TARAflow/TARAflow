@@ -365,6 +365,8 @@ export const WorkspaceLayout: React.FC = () => {
         current.threats ?? null,
         toGraphReference(graph),
         assetDataRef,
+        regulationPresetFromTags(current.info?.tags ?? EMPTY_PROJECT_TAGS) ===
+          "iso-21434",
       );
 
       await updateProject({

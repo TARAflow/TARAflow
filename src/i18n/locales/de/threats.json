@@ -196,6 +196,8 @@
         "verificationPlaceholder": "Verifizierung beschreiben...",
         "notePlaceholder": "Optionale Notiz für das Audit-Trail...",
         "noteLabel": "Notiz",
+        "overrideNeedsNote": "Für eine Abweichung von der asset-abgeleiteten Relevanz ist eine Begründung erforderlich.",
+        "relevanceAutoDerived": "Die Relevanz wird aus dem Asset-Bezug abgeleitet; ein Override braucht eine Begründung.",
         "advancedSection": "Bedrohungsakteur",
         "mitigations": "Gegenmaßnahmen",
         "verifications": "Verifikationen",

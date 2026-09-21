@@ -202,6 +202,8 @@
         "verificationPlaceholder": "Describe the verification...",
         "notePlaceholder": "Optional note for audit trail...",
         "noteLabel": "Note",
+        "overrideNeedsNote": "A justification is required to deviate from the asset-derived relevance.",
+        "relevanceAutoDerived": "Relevance is derived from the asset relationship; overriding it needs a justification.",
         "advancedSection": "Threat Actor",
         "mitigations": "Mitigations",
         "verifications": "Verifications",

@@ -23,6 +23,7 @@ export function syncThreatsWithGraph(
   threats: ThreatBundle | null,
   graph: DFDGraphReference,
   assetDataRef?: ThreatProjectData["assetDataRef"],
+  isoMode = false,
 ): ThreatBundle | null {
   if (!threats || !graph) return threats;
 
@@ -47,7 +48,68 @@ export function syncThreatsWithGraph(
   // from the CURRENT asset store on every graph sync so the chain stays live.
   working = refreshLinkedAssets(working, assetDataRef);
 
+  // ── ISO 21434: derive relevance from the asset relationship ──────────────
+  // In ISO mode a threat scenario is relevant iff it relates to an asset. Drive
+  // relevance from linkedAssetIds instead of a manual choice; analyst overrides
+  // (relevanceOverridden) and the transient "uncertain" state are preserved.
+  working = applyIsoAssetRelevance(working, isoMode);
+
   return working;
+}
+
+/**
+ * ISO mode only: set each threat's relevance from its asset relationship
+ * (asset-linked → "relevant", none → "not_relevant"). Self-correcting on every
+ * sync, so a later DFD asset change re-derives relevance. Never touches a
+ * threat the analyst overrode (relevanceOverridden) or parked as "uncertain".
+ */
+export function applyIsoAssetRelevance(
+  bundle: ThreatBundle,
+  isoMode: boolean,
+): ThreatBundle {
+  if (!isoMode) return bundle;
+
+  const deriveThreat = <
+    T extends {
+      linkedAssetIds?: string[];
+      relevance: ThreatBundle["perElementTables"][number]["threats"][number]["relevance"];
+      relevanceOverridden?: boolean;
+      workflowStatus: ThreatBundle["perElementTables"][number]["threats"][number]["workflowStatus"];
+    },
+  >(
+    threat: T,
+  ): T => {
+    if (threat.relevanceOverridden || threat.relevance === "uncertain") {
+      return threat;
+    }
+    const desired =
+      (threat.linkedAssetIds?.length ?? 0) > 0 ? "relevant" : "not_relevant";
+    if (threat.relevance === desired) return threat;
+    return {
+      ...threat,
+      relevance: desired,
+      workflowStatus:
+        threat.workflowStatus === "open" ? "reviewed" : threat.workflowStatus,
+    };
+  };
+
+  const deriveTables = <TT extends { threats: unknown[] }>(
+    tables: TT[] | undefined,
+  ): TT[] | undefined =>
+    tables?.map((t) => ({
+      ...t,
+      threats: (t.threats as Parameters<typeof deriveThreat>[0][]).map(
+        deriveThreat,
+      ),
+    }));
+
+  return {
+    ...bundle,
+    perElementTables:
+      deriveTables(bundle.perElementTables) ?? bundle.perElementTables,
+    perInteractionTables:
+      deriveTables(bundle.perInteractionTables) ?? bundle.perInteractionTables,
+  };
 }
 
 function sameIds(a: string[], b: string[]): boolean {

@@ -617,6 +617,11 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               dfdData={project.dfd ?? null}
               onSave={handleSaveThreat}
               onClose={handleCloseThreatDialog}
+              isoMode={
+                regulationPresetFromTags(
+                  project.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ) === "iso-21434"
+              }
             />
           );
         })()}

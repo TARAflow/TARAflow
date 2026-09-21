@@ -390,6 +390,13 @@ export interface Threat {
    */
   evalNote?: string;
 
+  /**
+   * ISO 21434 mode: true when the analyst manually set relevance, deviating
+   * from (or parking, for "uncertain") the asset-derived default. Blocks the
+   * asset-relevance auto-derivation from overwriting that decision.
+   */
+  relevanceOverridden?: boolean;
+
   /** True when the analyst has manually edited threatDescription or attackDescription */
   isTextCustomized: boolean;
 
@@ -930,6 +937,7 @@ export function createEmptyThreat(
     relevance: "unrated",
     workflowStatus: "open",
     evalNote: undefined,
+    relevanceOverridden: false,
     isTextCustomized: false,
     created: new Date().toISOString(),
     lastModified: new Date().toISOString(),

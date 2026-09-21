@@ -149,6 +149,8 @@ export interface ThreatEvalDialogProps {
   dfdData?: DFDReference | null;
   onSave: (threatId: string, updates: Partial<Threat>) => void;
   onClose: () => void;
+  /** ISO 21434 mode: relevance is asset-derived; overrides need a note. */
+  isoMode?: boolean;
 }
 
 // ==================== LOCAL TYPES ====================
@@ -162,6 +164,7 @@ interface LocalThreatState {
   relevance: ThreatRelevance;
   evalNote: string;
   threatActor: ThreatActorType;
+  relevanceOverridden: boolean;
 }
 
 // ==================== HELPERS ====================
@@ -176,6 +179,7 @@ function toLocalState(threat: Threat): LocalThreatState {
     relevance: threat.relevance,
     evalNote: threat.evalNote ?? "",
     threatActor: threat.threatActor,
+    relevanceOverridden: threat.relevanceOverridden ?? false,
   };
 }
 
@@ -204,6 +208,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   dfdData,
   onSave,
   onClose,
+  isoMode = false,
 }) => {
   const { t } = useTranslation();
 
@@ -233,6 +238,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
     return idx >= 0 ? idx : initialIndex;
   });
   const currentThreat = sortedThreats[currentIndex] ?? null;
+  const [relevanceError, setRelevanceError] = useState<string | null>(null);
 
   // Guard against rapid repeated clicks causing IPC queue overflow
   const isProcessing = useRef(false);
@@ -383,6 +389,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
       workflowStatus:
         s.relevance !== "unrated" ? "reviewed" : currentThreat!.workflowStatus,
       evalNote: s.evalNote || undefined,
+      relevanceOverridden: s.relevanceOverridden,
       threatActor: s.threatActor,
       lastModified: new Date().toISOString(),
     };
@@ -428,35 +435,40 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
   const handleSave = () => saveCurrentThreat();
 
-  const handleConfirm = () => {
+  // Asset-derived relevance (ISO 21434): a threat scenario is relevant iff it
+  // relates to an asset. Deviating from this needs a justification.
+  const applyRelevance = (rel: ThreatRelevance) => {
     if (isProcessing.current) return;
+    const assetDerived: ThreatRelevance =
+      (currentThreat?.linkedAssetIds?.length ?? 0) > 0
+        ? "relevant"
+        : "not_relevant";
+    // "uncertain" is a transient parking state — allowed without a note.
+    const deviates = rel !== assetDerived && rel !== "uncertain";
+    if (isoMode && deviates && !local?.evalNote.trim()) {
+      setRelevanceError(
+        t("tabs.threats.dialog.overrideNeedsNote", {
+          defaultValue:
+            "A justification is required to deviate from the asset-derived relevance.",
+        }),
+      );
+      return;
+    }
+    setRelevanceError(null);
     isProcessing.current = true;
-    saveCurrentThreat({ relevance: "relevant" });
+    saveCurrentThreat({
+      relevance: rel,
+      relevanceOverridden: isoMode && rel !== assetDerived,
+    });
     navigateNextUnrated();
     setTimeout(() => {
       isProcessing.current = false;
     }, 300);
   };
 
-  const handleDismiss = () => {
-    if (isProcessing.current) return;
-    isProcessing.current = true;
-    saveCurrentThreat({ relevance: "not_relevant" });
-    navigateNextUnrated();
-    setTimeout(() => {
-      isProcessing.current = false;
-    }, 300);
-  };
-
-  const handleMarkUncertain = () => {
-    if (isProcessing.current) return;
-    isProcessing.current = true;
-    saveCurrentThreat({ relevance: "uncertain" });
-    navigateNextUnrated();
-    setTimeout(() => {
-      isProcessing.current = false;
-    }, 300);
-  };
+  const handleConfirm = () => applyRelevance("relevant");
+  const handleDismiss = () => applyRelevance("not_relevant");
+  const handleMarkUncertain = () => applyRelevance("uncertain");
 
   // ── Mitigation coverage (Rules of Hooks: must be before early return) ───────
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1338,7 +1350,20 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                 defaultValue: "Optional note for audit trail...",
               })}
               value={local.evalNote}
-              onChange={(e) => patch({ evalNote: e.target.value })}
+              onChange={(e) => {
+                patch({ evalNote: e.target.value });
+                if (relevanceError) setRelevanceError(null);
+              }}
+              error={!!relevanceError}
+              helperText={
+                relevanceError ??
+                (isoMode
+                  ? t("tabs.threats.dialog.relevanceAutoDerived", {
+                      defaultValue:
+                        "Relevance is derived from the asset relationship; overriding it needs a justification.",
+                    })
+                  : undefined)
+              }
               multiline
               minRows={3}
               maxRows={6}
