@@ -71,9 +71,9 @@
       "attack": "Der Angreifer schließt eine Hardware-Sonde an den Embedded-Bus an und injiziert oder verändert übertragene Daten"
     },
     "T-015": {
-      "threat": "Messwert-Manipulation — ein Angreifer verändert den Messwert, auf den das System reagiert",
-      "cause": "Der Sensor-Erfassungspfad hat keinen Integritätsschutz",
-      "attack": "Angreifer manipuliert das Sensorsignal oder den Daten-Frame im Erfassungspfad"
+      "threat": "Messwert-Manipulation — ein Angreifer verändert den Wert, auf den das System reagiert, entweder im Signal-/Datenpfad oder durch Manipulation der physikalischen Messgrösse",
+      "cause": "Der Erfassungspfad hat keinen Integritätsschutz und die Messwerte werden nicht gegen eine unabhängige Messung gegengeprüft",
+      "attack": "Angreifer manipuliert das Sensorsignal oder den Daten-Frame — oder beeinflusst die physikalische Messgrösse (z.B. angelegtes Feld, lokale Erwärmung, Abdecken), sodass ein plausibel wirkender, aber falscher Wert gemeldet wird"
     },
     "T-016": {
       "threat": "Unbefugte Aktuierung — ein Angreifer schleust Stellbefehle ein oder verändert sie und bringt den Aktuator in einen unsicheren Zustand",

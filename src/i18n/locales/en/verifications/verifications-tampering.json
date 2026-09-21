@@ -27,7 +27,7 @@
     "verification": "Concurrency and race testing of shared-memory access — verify atomicity and TOCTOU safety under simultaneous multi-master access (stress and interleaving)"
   },
   "V-T-009": {
-    "verification": "Verify the integrity check on the sensor data path"
+    "verification": "Verify the integrity check and replay protection on the sensor data path"
   },
   "V-T-010": {
     "verification": "Inspect tamper-evidence and physical protection"

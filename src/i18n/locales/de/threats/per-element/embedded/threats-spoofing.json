@@ -16,9 +16,9 @@
       "attack": "Angreifer speist gefälschte Messwerte von einem fremden oder geklonten Sensor ein"
     },
     "S-004": {
-      "threat": "Kommando-Spoofing — ein Angreifer sendet Kommandos, die scheinbar von einem autorisierten Steuergerät stammen",
-      "cause": "Die Kommandoquelle wird nicht authentifiziert",
-      "attack": "Angreifer sendet gefälschte Stellbefehle über den Steuerkanal"
+      "threat": "Kommando- oder Feedback-Spoofing — ein Angreifer sendet scheinbar autorisierte Kommandos oder fälscht die Aktuator-Rückmeldung, sodass die Steuerung die Ausführung annimmt",
+      "cause": "Kommandoquelle und Aktuator-Rückmeldung werden weder authentifiziert noch unabhängig verifiziert",
+      "attack": "Angreifer sendet gefälschte Stellbefehle oder fälscht die Status-/Positionsrückmeldung, um eine Nicht-Ausführung zu verschleiern"
     }
   }
 }

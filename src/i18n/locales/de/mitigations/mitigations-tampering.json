@@ -42,7 +42,7 @@
     "mitigation": "Zugriff auf Shared Memory und MMIO zwischen Mastern mit Locks, atomaren Operationen oder Memory-Barriers synchronisieren; Daten am Verwendungspunkt erneut validieren, um TOCTOU-Fenster zu schliessen"
   },
   "M-T-014": {
-    "mitigation": "Erfassungspfad integritätsschützen (signierte oder MAC-geschützte Sensor-Frames)"
+    "mitigation": "Erfassungspfad integritätsschützen (signierte oder MAC-geschützte Sensor-Frames) mit Replay-Schutz (Frische/Sequenz); wo kryptografische Integrität auf Legacy-/Analog-Feldgeräten nicht umsetzbar ist, mit Segmentierung und unabhängigen Gegenprüfungen kompensieren"
   },
   "M-T-015": {
     "mitigation": "Manipulationssicheres Sensorgehäuse oder Siegel"
@@ -51,7 +51,7 @@
     "mitigation": "Sensorfusion oder Redundanz-Abgleich, um die Manipulation eines einzelnen Sensors zu erkennen"
   },
   "M-T-017": {
-    "mitigation": "Kommandopfad integritätsschützen (MAC/Signatur mit Replay-Schutz)"
+    "mitigation": "Kommandopfad integritätsschützen (MAC/Signatur mit Replay-Schutz); wo kryptografische Integrität auf Legacy-/Analog-Feldgeräten nicht umsetzbar ist, mit Zonen/Conduits-Segmentierung und Verriegelungen kompensieren"
   },
   "M-T-018": {
     "mitigation": "Kommando-Plausibilitätsprüfungen und Verriegelungen gegen unsichere Sollwerte"

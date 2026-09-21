@@ -24,7 +24,7 @@
     "mitigation": "Implement hardware authentication (secure elements, cryptographic chips)"
   },
   "M-S-009": {
-    "mitigation": "Authenticate each sensor per device (device keys/certificates, signed readings)"
+    "mitigation": "Authenticate each sensor per device (device keys/certificates, signed readings) with freshness/anti-replay (nonce, timestamp or counter); where per-device crypto is infeasible on legacy/analog field devices, compensate with zone/conduit segmentation (IEC 62443-3-3 SR 5.1) and continuous plausibility monitoring"
   },
   "M-S-010": {
     "mitigation": "Bind the sensor to a provisioned identity at commissioning; reject unprovisioned sources"
@@ -33,9 +33,12 @@
     "mitigation": "Plausibility and rate checks to detect injected, out-of-profile readings"
   },
   "M-S-012": {
-    "mitigation": "Authenticate the command source over an authenticated control channel"
+    "mitigation": "Authenticate the command source over an authenticated control channel; where per-device crypto is infeasible on legacy/analog field devices, compensate with zone/conduit segmentation (IEC 62443-3-3 SR 5.1)"
   },
   "M-S-013": {
     "mitigation": "Enforce a command authorization policy (only permitted controllers)"
+  },
+  "M-S-015": {
+    "mitigation": "Verify actuation through an independent measurement / closed-loop feedback rather than trusting the actuator's own status report"
   }
 }

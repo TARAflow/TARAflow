@@ -226,6 +226,14 @@
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-S-008"]
+    },
+    {
+      "id": "M-S-015",
+      "strideCategory": "S",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-S-009"]
     }
   ]
 }

@@ -16,9 +16,9 @@
       "attack": "Attacker feeds forged measurements from a rogue or cloned sensor"
     },
     "S-004": {
-      "threat": "Command spoofing — an attacker issues commands that appear to come from an authorized controller",
-      "cause": "The command source is not authenticated",
-      "attack": "Attacker sends forged actuation commands on the control channel"
+      "threat": "Command or feedback spoofing — an attacker issues commands that appear authorized, or spoofs the actuation feedback so the controller believes the action occurred",
+      "cause": "The command source and the actuation feedback are neither authenticated nor independently verified",
+      "attack": "Attacker sends forged actuation commands, or forges the status/position feedback to mask non-execution"
     }
   }
 }

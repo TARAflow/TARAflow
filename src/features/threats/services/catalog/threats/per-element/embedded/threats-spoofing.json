@@ -85,10 +85,12 @@
       "context": {},
       "mitigations": [
         "M-S-012",
-        "M-S-013"
+        "M-S-013",
+        "M-S-015"
       ],
       "verifications": [
-        "V-S-008"
+        "V-S-008",
+        "V-S-009"
       ],
       "isCustom": false,
       "domain": "embedded"

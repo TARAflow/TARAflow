@@ -24,7 +24,7 @@
     "mitigation": "Hardware-Authentifizierung implementieren (Secure Elements, kryptographische Chips)"
   },
   "M-S-009": {
-    "mitigation": "Sensor pro Gerät authentifizieren (Geräteschlüssel/Zertifikate, signierte Messwerte)"
+    "mitigation": "Sensor pro Gerät authentifizieren (Geräteschlüssel/Zertifikate, signierte Messwerte) mit Frische/Replay-Schutz (Nonce, Zeitstempel oder Zähler); wo Krypto pro Gerät auf Legacy-/Analog-Feldgeräten nicht umsetzbar ist, mit Zonen/Conduits-Segmentierung (IEC 62443-3-3 SR 5.1) und kontinuierlichem Plausibilitäts-Monitoring kompensieren"
   },
   "M-S-010": {
     "mitigation": "Sensor bei der Inbetriebnahme an eine bereitgestellte Identität binden; nicht provisionierte Quellen ablehnen"
@@ -33,9 +33,12 @@
     "mitigation": "Plausibilitäts- und Ratenprüfungen, um eingeschleuste, profilfremde Messwerte zu erkennen"
   },
   "M-S-012": {
-    "mitigation": "Kommandoquelle über einen authentifizierten Steuerkanal authentifizieren"
+    "mitigation": "Kommandoquelle über einen authentifizierten Steuerkanal authentifizieren; wo Krypto pro Gerät auf Legacy-/Analog-Feldgeräten nicht umsetzbar ist, mit Zonen/Conduits-Segmentierung (IEC 62443-3-3 SR 5.1) kompensieren"
   },
   "M-S-013": {
     "mitigation": "Kommando-Autorisierungsrichtlinie durchsetzen (nur zugelassene Steuergeräte)"
+  },
+  "M-S-015": {
+    "mitigation": "Aktuierung über eine unabhängige Messung / geschlossene Rückführung verifizieren, statt der Statusmeldung des Aktuators selbst zu vertrauen"
   }
 }

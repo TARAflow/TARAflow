@@ -71,9 +71,9 @@
       "attack": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data"
     },
     "T-015": {
-      "threat": "Measurement tampering — an attacker alters the measured value the system acts on",
-      "cause": "The sensor acquisition path lacks integrity protection",
-      "attack": "Attacker manipulates the sensor signal or data frame in the acquisition path"
+      "threat": "Measurement tampering — an attacker alters the value the system acts on, either in the signal/data path or by manipulating the physical stimulus the sensor measures",
+      "cause": "The acquisition path lacks integrity protection and readings are not cross-checked against an independent measurement",
+      "attack": "Attacker manipulates the sensor signal or data frame, or influences the physical quantity the sensor measures (e.g. applied field, local heating, obscuring) so a genuine-looking but false value is reported"
     },
     "T-016": {
       "threat": "Unauthorized actuation — an attacker injects or alters actuation commands, driving the actuator to an unsafe state",
