@@ -35,6 +35,48 @@ import {
   buildThreatId,
   isReadyForRisk,
 } from "features/attacktree";
+import { getAllMitigations, getAllVerifications } from "features/threats";
+
+/**
+ * Cap on total proposed controls after enrichment. The analyst's DSL [M-] refs
+ * are always kept in full; catalog STRIDE-category controls only fill the
+ * remaining slots up to this cap. Kept in sync with the generic element
+ * fallback cap (element-generator.ts GENERIC_CATEGORY_CONTROL_CAP).
+ */
+const CATEGORY_CONTROL_CAP = 4;
+
+/**
+ * Top up a tree-derived threat's controls with catalog STRIDE-category controls.
+ * The tree carries only the analyst's DSL [M-] refs; STRIDE element threats get
+ * category controls from the catalog, so attack-path threats should too. DSL
+ * refs stay first and are never dropped; deduped category controls fill up to
+ * CATEGORY_CONTROL_CAP total.
+ */
+function enrichWithCategoryControls(threat: ThreatReference): ThreatReference {
+  const mits = threat.proposedMitigations ?? [];
+  const mitIds = new Set(mits.map((m) => m.id));
+  const mitTopUp = getAllMitigations()
+    .filter(
+      (m) => m.strideCategory === threat.strideCategory && !mitIds.has(m.id),
+    )
+    .slice(0, Math.max(0, CATEGORY_CONTROL_CAP - mits.length))
+    .map((m) => ({ id: m.id }));
+
+  const vers = threat.proposedVerifications ?? [];
+  const verIds = new Set(vers.map((v) => v.id));
+  const verTopUp = getAllVerifications()
+    .filter(
+      (v) => v.strideCategory === threat.strideCategory && !verIds.has(v.id),
+    )
+    .slice(0, Math.max(0, CATEGORY_CONTROL_CAP - vers.length))
+    .map((v) => ({ id: v.id }));
+
+  return {
+    ...threat,
+    proposedMitigations: [...mits, ...mitTopUp],
+    proposedVerifications: [...vers, ...verTopUp],
+  };
+}
 
 /**
  * Derive the attack-path ThreatReferences a project contributes to the risk
@@ -87,7 +129,7 @@ export function buildAttackPathThreatReferences(
           ? a.relevance === "relevant" &&
               (requireMitigation ? isReadyForRisk(a) : true)
           : false;
-      }),
+      }).map(enrichWithCategoryControls),
     );
   }
 

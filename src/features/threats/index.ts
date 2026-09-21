@@ -86,6 +86,7 @@ export {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
   getAllMitigations,
+  getAllVerifications,
 } from "./services/threat-catalog-service";
 
 export { syncThreatsWithGraph } from "./services/sync-threats-with-graph";

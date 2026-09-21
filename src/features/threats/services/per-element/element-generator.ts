@@ -20,6 +20,14 @@ import {
 } from "../../models/per-element-types";
 import { createEmptyThreat, STRIDE_DEFINITIONS } from "../../models/threat-types";
 import i18n from "i18next";
+
+/**
+ * Cap on how many catalog STRIDE-category controls a generic (template-less)
+ * threat receives, so the register never shows a threat flooded with the full
+ * category list. Kept in sync with the attack-path enrichment cap
+ * (build-attack-path-threat-references.ts).
+ */
+const GENERIC_CATEGORY_CONTROL_CAP = 4;
 import {
   getLocalizedElementThreat,
   getLocalizedElementAttack,
@@ -774,11 +782,16 @@ export class ElementThreatGenerator {
       threat.proposedMitigations = mergeMitigationHints(
         getAllMitigations()
           .filter((m) => m.strideCategory === strideCategory)
+          // Curated cap: never flood a generic (template-less) threat with the
+          // full category list. Analyst refines in the Risk tab. Implemented
+          // hints may still append beyond this via mergeMitigationHints.
+          .slice(0, GENERIC_CATEGORY_CONTROL_CAP)
           .map((m) => ({ id: m.id })),
         hints,
       );
       threat.proposedVerifications = getAllVerifications()
         .filter((v) => v.strideCategory === strideCategory)
+        .slice(0, GENERIC_CATEGORY_CONTROL_CAP)
         .map((v) => ({ id: v.id }));
     }
 
