@@ -970,6 +970,10 @@ export const WorkspaceLayout: React.FC = () => {
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
                 ),
               ),
+              isoMode:
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ) === "iso-21434",
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
               dfdPreviewImage: activeProject.dfd?.thumbnail,

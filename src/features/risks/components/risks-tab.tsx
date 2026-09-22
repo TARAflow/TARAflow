@@ -182,6 +182,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       project.perElementThreats,
       project.perInteractionThreats,
       project.perAttackPathThreats,
+      project.isoMode,
     ],
   );
 
@@ -191,6 +192,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
       project.perElementThreats,
       project.perInteractionThreats,
       project.perAttackPathThreats,
+      project.isoMode,
     ],
   );
 

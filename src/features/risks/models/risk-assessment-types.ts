@@ -151,6 +151,13 @@ export interface RiskProjectData {
    */
   disabledStrideMethods?: StrideMethod[];
   /**
+   * ISO/SAE 21434 mode (derived at the app layer from the project tags). In
+   * this mode per-element/per-interaction STRIDE threats are enumeration that
+   * feeds attack-tree analysis — they are NOT imported into the risk register
+   * directly; risk comes only from attack-path threats. Absent → treated false.
+   */
+  isoMode?: boolean;
+  /**
    * Attack-path threats emitted by asset-anchored attack trees (Phase 5a).
    * A third source alongside the two STRIDE methods; the Risk tab treats them
    * identically (sourceStrideMethod: "attack-path"). Optional: absent on

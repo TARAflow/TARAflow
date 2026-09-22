@@ -103,7 +103,10 @@ export function getEligibleThreats(threats: ThreatReference[]): ThreatReference[
 export function collectAllThreats(
   project: Pick<
     RiskProjectData,
-    "perElementThreats" | "perInteractionThreats" | "perAttackPathThreats"
+    | "perElementThreats"
+    | "perInteractionThreats"
+    | "perAttackPathThreats"
+    | "isoMode"
   >,
 ): ThreatReference[] {
   return getEligibleThreats(collectAllThreatsUnfiltered(project));
@@ -113,13 +116,23 @@ export function collectAllThreats(
  * All threats across the three sources, WITHOUT the relevance filter — the
  * union RisksTab uses for its unfiltered view. perAttackPathThreats is
  * optional (absent on projects without attack trees) → defaulted to [].
+ *
+ * ISO 21434: per-element/per-interaction STRIDE threats are enumeration feeding
+ * attack-tree analysis, not risks in their own right, so they are excluded from
+ * the risk register; only attack-path threats are imported.
  */
 export function collectAllThreatsUnfiltered(
   project: Pick<
     RiskProjectData,
-    "perElementThreats" | "perInteractionThreats" | "perAttackPathThreats"
+    | "perElementThreats"
+    | "perInteractionThreats"
+    | "perAttackPathThreats"
+    | "isoMode"
   >,
 ): ThreatReference[] {
+  if (project.isoMode) {
+    return [...(project.perAttackPathThreats ?? [])];
+  }
   return [
     ...project.perElementThreats,
     ...project.perInteractionThreats,

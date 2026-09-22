@@ -39,6 +39,7 @@ type Sources = {
   perElementThreats: ThreatReference[];
   perInteractionThreats: ThreatReference[];
   perAttackPathThreats?: ThreatReference[];
+  isoMode?: boolean;
 };
 
 const base = (over: Partial<Sources> = {}): Sources => ({
@@ -109,5 +110,34 @@ describe("collectAllThreats — the regression guard", () => {
     expect(collectAllThreats(p).map((t) => t.id)).toEqual(
       expect.arrayContaining(["PE-1", "PI-1", "AT-x-T"]),
     );
+  });
+});
+
+describe("ISO 21434 mode — STRIDE threats excluded from the risk register", () => {
+  it("drops per-element/per-interaction threats, keeps attack-path", () => {
+    const p = base({
+      perElementThreats: [ref("PE-1", "relevant")],
+      perInteractionThreats: [ref("PI-1", "relevant")],
+      perAttackPathThreats: [ref("AT-x-T", "relevant")],
+      isoMode: true,
+    });
+    expect(collectAllThreatsUnfiltered(p).map((t) => t.id)).toEqual(["AT-x-T"]);
+    expect(collectAllThreats(p).map((t) => t.id)).toEqual(["AT-x-T"]);
+  });
+
+  it("with no attack trees the ISO risk register is empty", () => {
+    const p = base({
+      perElementThreats: [ref("PE-1", "relevant")],
+      isoMode: true,
+    });
+    expect(collectAllThreats(p)).toHaveLength(0);
+  });
+
+  it("non-ISO still includes the STRIDE sources", () => {
+    const p = base({
+      perElementThreats: [ref("PE-1", "relevant")],
+      isoMode: false,
+    });
+    expect(collectAllThreats(p).map((t) => t.id)).toEqual(["PE-1"]);
   });
 });
