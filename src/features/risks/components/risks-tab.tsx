@@ -751,6 +751,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
         canSwitchStrideMethod={canSwitchStrideMethod}
+        isoMode={project.isoMode ?? false}
         perInteractionDisabled={(project.disabledStrideMethods ?? []).includes(
           "per-interaction",
         )}

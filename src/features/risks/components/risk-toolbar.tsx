@@ -50,6 +50,8 @@ export interface RisksToolbarProps {
   perInteractionCount: number;
   /** Tab switch only enabled when both methods have eligible threats */
   canSwitchStrideMethod: boolean;
+  /** ISO 21434 mode: STRIDE threats don't feed risk, so hide the method switcher */
+  isoMode?: boolean;
   /** Preset disables per-interaction (e.g. ISO/SAE 21434) — hard-lock the toggle
    * regardless of how many per-interaction threats exist. */
   perInteractionDisabled?: boolean;
@@ -89,6 +91,7 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   perElementCount,
   perInteractionCount,
   canSwitchStrideMethod,
+  isoMode = false,
   perInteractionDisabled,
   hasRisks,
   hasThreatsForMethod,
@@ -196,9 +199,11 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         </ToggleButton>
       </ToggleButtonGroup>
 
-      <Divider orientation="vertical" flexItem />
+      {!isoMode && (
+        <>
+          <Divider orientation="vertical" flexItem />
 
-      {/* STRIDE Method Toggle */}
+          {/* STRIDE Method Toggle */}
       <ToggleButtonGroup
         value={activeStrideMethod}
         exclusive
@@ -263,6 +268,8 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         size="small"
         variant="outlined"
       />
+        </>
+      )}
 
       <Divider orientation="vertical" flexItem />
 
