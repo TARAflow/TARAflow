@@ -46,6 +46,7 @@ import {
   Add as AddIcon,
   ExpandMore as ExpandMoreIcon,
   WarningAmber as CauseIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 
 import type {
@@ -122,6 +123,21 @@ function getThreatImpact(
       ? "HIGH"
       : worstBusiness;
 }
+
+// ── Shared styling for the mitigation/verification item container ─────────
+// Idle: white fill, neutral divider border.
+// When a field inside gets focus: border turns light blue.
+const editableItemBoxSx = {
+  border: 1,
+  borderColor: "divider",
+  borderRadius: 1,
+  p: 1.5,
+  bgcolor: "background.paper",
+  transition: "border-color 0.15s ease",
+  "&:focus-within": {
+    borderColor: "primary.light",
+  },
+} as const;
 
 export interface ThreatEvalDialogProps {
   open: boolean;
@@ -295,6 +311,36 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
       i === index ? { ...d, notes: notes || undefined } : d,
     );
     patch({ proposedVerifications: updated });
+  };
+
+  const deleteMitigation = (index: number) => {
+    if (!local) return;
+    const confirmed = window.confirm(
+      t("tabs.threats.dialog.confirmDeleteMitigation", {
+        defaultValue: "Delete this custom mitigation?",
+      }),
+    );
+    if (!confirmed) return;
+    patch({
+      proposedMitigations: local.proposedMitigations.filter(
+        (_, i) => i !== index,
+      ),
+    });
+  };
+
+  const deleteVerification = (index: number) => {
+    if (!local) return;
+    const confirmed = window.confirm(
+      t("tabs.threats.dialog.confirmDeleteVerification", {
+        defaultValue: "Delete this custom verification?",
+      }),
+    );
+    if (!confirmed) return;
+    patch({
+      proposedVerifications: local.proposedVerifications.filter(
+        (_, i) => i !== index,
+      ),
+    });
   };
 
   const confirmAddMitigation = () => {
@@ -976,20 +1022,41 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
               <Stack spacing={1}>
                 {resolvedMitigations.map((m, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      border: 1,
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 1.5,
-                      bgcolor: "background.paper",
-                    }}
-                  >
+                  <Box key={index} sx={editableItemBoxSx}>
                     {m.isCustom ? (
-                      <Typography variant="body2" fontStyle="italic">
-                        [custom] {m.notes}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <TextField
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={1}
+                          variant="standard"
+                          InputProps={{ disableUnderline: true }}
+                          value={m.notes ?? ""}
+                          onChange={(e) =>
+                            updateMitigationNote(index, e.target.value)
+                          }
+                          placeholder={t(
+                            "tabs.threats.dialog.mitigationPlaceholder",
+                            {
+                              defaultValue: "Describe the mitigation...",
+                            },
+                          )}
+                        />
+                        <Tooltip
+                          title={t("common.delete", {
+                            defaultValue: "Delete",
+                          })}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => deleteMitigation(index)}
+                            sx={{ mt: 0.25 }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     ) : (
                       <>
                         <Box
@@ -1022,6 +1089,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           }
                           sx={{ mt: 0.25 }}
                           variant="standard"
+                          InputProps={{ disableUnderline: true }}
                         />
                       </>
                     )}
@@ -1134,19 +1202,41 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
               <Stack spacing={1}>
                 {resolvedVerifications.map((v, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      border: 1,
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 1.5,
-                    }}
-                  >
+                  <Box key={index} sx={editableItemBoxSx}>
                     {v.isCustom ? (
-                      <Typography variant="body2" fontStyle="italic">
-                        {v.notes}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <TextField
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={1}
+                          variant="standard"
+                          InputProps={{ disableUnderline: true }}
+                          value={v.notes ?? ""}
+                          onChange={(e) =>
+                            updateVerificationNote(index, e.target.value)
+                          }
+                          placeholder={t(
+                            "tabs.threats.dialog.verificationPlaceholder",
+                            {
+                              defaultValue: "Describe the verification...",
+                            },
+                          )}
+                        />
+                        <Tooltip
+                          title={t("common.delete", {
+                            defaultValue: "Delete",
+                          })}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => deleteVerification(index)}
+                            sx={{ mt: 0.25 }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     ) : (
                       <>
                         <Typography variant="body2" fontWeight="medium">
@@ -1167,6 +1257,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           }
                           sx={{ mt: 0.75 }}
                           variant="standard"
+                          InputProps={{ disableUnderline: true }}
                         />
                       </>
                     )}
