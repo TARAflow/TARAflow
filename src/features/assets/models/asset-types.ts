@@ -238,6 +238,13 @@ export interface AssetProjectData {
    */
   damageScenarioMode?: boolean;
 
+  /**
+   * Impact criteria the active regulation preset makes mandatory (SFOP under
+   * ISO/SAE 21434). Derived at the app layer from the project tags; the config
+   * dialog locks these so they cannot be deselected. Absent/empty → none locked.
+   */
+  mandatoryImpactCriteriaIds?: string[];
+
   /** DFD assets for asset synchronization and linking */
   dfdAssets?: AssetDFDAsset[];
 

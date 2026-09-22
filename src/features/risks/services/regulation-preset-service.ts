@@ -65,6 +65,19 @@ export function isAssetImpactMandatory(presetId: RegulationPresetId): boolean {
   );
 }
 
+/**
+ * The impact criteria a preset makes mandatory on the ASSET side (SFOP under
+ * ISO/SAE 21434). Empty for non-exclusive presets. Single source for both the
+ * asset-config UI lock and the orchestrator's data enforcement.
+ */
+export function getMandatoryAssetCriteriaIds(
+  presetId: RegulationPresetId,
+): string[] {
+  return isAssetImpactMandatory(presetId)
+    ? (REGULATION_PRESETS[presetId].impactCriteriaIds ?? [])
+    : [];
+}
+
 // Pool for "method"-style presets (en-50742-a today): mutual exclusivity is
 // only between actual COMPETING NORM regimes. "standard" (OWASP-style
 // skill_level, motive, opportunity, ...) is the baseline factor set

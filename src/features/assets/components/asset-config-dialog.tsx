@@ -56,6 +56,8 @@ interface AssetConfigDialogProps {
   configuration: AssetConfiguration;
   /** True if any DFD element has a SafetyAnnotation — locks the "safety" criterion */
   hasSafetyAnnotations?: boolean;
+  /** Impact criteria the regulation preset makes mandatory — locked (not removable) */
+  mandatoryCriteriaIds?: string[];
   onChange: (config: AssetConfiguration) => void;
   onSave: () => void;
   onClose: () => void;
@@ -87,6 +89,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
   open,
   configuration,
   hasSafetyAnnotations = false,
+  mandatoryCriteriaIds = [],
   onChange,
   onSave,
   onClose,
@@ -122,6 +125,8 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
     let newCriteria: WeightedImpactCriterion[];
 
     if (currentCriteria.some((c) => c.id === criterionId)) {
+      // Mandatory (preset-locked) criteria cannot be deselected.
+      if (mandatoryCriteriaIds.includes(criterionId)) return;
       if (currentCriteria.length <= MIN_CRITERIA) return;
       newCriteria = currentCriteria.filter((c) => c.id !== criterionId);
     } else {
@@ -175,9 +180,13 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
           );
           const isSafetyLocked =
             criterion.id === SAFETY_CRITERION_ID && hasSafetyAnnotations;
+          const isMandatoryLocked = mandatoryCriteriaIds.includes(
+            criterion.id,
+          );
           const canDeselect =
             configuration.impactCriteria.length > MIN_CRITERIA &&
-            !isSafetyLocked;
+            !isSafetyLocked &&
+            !isMandatoryLocked;
           const activeCriterion = configuration.impactCriteria.find(
             (c) => c.id === criterion.id,
           );
@@ -207,6 +216,16 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                       title={t("tabs.assets.config.safetyLocked", {
                         defaultValue:
                           "Safety criterion is locked — graph contains safety annotations",
+                      })}
+                      arrow
+                    >
+                      <LockIcon fontSize="small" color="warning" />
+                    </Tooltip>
+                  ) : isSelected && isMandatoryLocked ? (
+                    <Tooltip
+                      title={t("tabs.assets.config.mandatoryLocked", {
+                        defaultValue:
+                          "Mandatory under the active regulation preset (ISO/SAE 21434 SFOP) — cannot be removed",
                       })}
                       arrow
                     >

@@ -65,6 +65,7 @@ import {
 } from "features/threats";
 
 import { RisksTab, RiskUpdateResult } from "features/risks";
+import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
 
 import {
   AttackTreeTab,
@@ -906,6 +907,11 @@ export const WorkspaceLayout: React.FC = () => {
                 regulationPresetFromTags(
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
                 ) === "iso-21434",
+              mandatoryImpactCriteriaIds: getMandatoryAssetCriteriaIds(
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ),
+              ),
             }}
             onUpdate={makeAssetsUpdateHandler(activeProject.id)}
             hazardLinks={memoizedHazardRef}

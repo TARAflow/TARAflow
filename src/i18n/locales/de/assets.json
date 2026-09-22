@@ -374,6 +374,7 @@
         "resetWeights": "Gewichtungen auf 1.0 zurücksetzen",
         "criteriaCountInfo": "{{count}} Kriterien ausgewählt (empfohlen: {{min}}–{{max}})",
         "safetyLocked": "Safety-Kriterium ist gesperrt — Graph enthält Safety-Annotationen",
+        "mandatoryLocked": "Durch das aktive Regulierungs-Preset verpflichtend (ISO/SAE 21434 SFOP) — nicht entfernbar",
         "safetyLockedInfo": "Das \"Safety\"-Kriterium ist gesperrt, weil das DFD Safety-Annotationen enthält.",
         "derived": "Graph-abgeleitet",
         "weightsDisabled": "Gewichtungen sind im Konservativ-Modus (MAX) deaktiviert — wechsle zu Gewichtetem Mittelwert."

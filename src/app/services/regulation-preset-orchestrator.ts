@@ -14,6 +14,7 @@ import type { RegulationPresetId, WindowOfOpportunity } from "shared";
 import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
+import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
 import type { ActiveFactor } from "features/risks";
 import { assetService } from "features/assets/services/asset-service";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
@@ -231,6 +232,39 @@ export function threadImpactCriteria(
 }
  
 /**
+ * Data backstop for the asset-side SFOP lock: ensures every mandatory impact
+ * criterion is present on the asset config (self-correcting on import / legacy
+ * / tag-change), mirroring enforceMandatoryImpactFactors on the risk side.
+ * Unlike threadImpactCriteria it runs regardless of pristine state, but only
+ * ADDS missing criteria — existing criteria and their weights are untouched.
+ */
+export function enforceMandatoryAssetCriteria(
+  project: Project,
+  presetId: RegulationPresetId,
+): Project {
+  if (!project.assets) return project;
+  const mandatory = getMandatoryAssetCriteriaIds(presetId);
+  if (mandatory.length === 0) return project;
+
+  const current = project.assets.configuration.impactCriteria;
+  const present = new Set(current.map((c) => c.id));
+  const missing = mandatory.filter((id) => !present.has(id));
+  if (missing.length === 0) return project;
+
+  const newConfig = {
+    ...project.assets.configuration,
+    impactCriteria: [
+      ...current,
+      ...missing.map((id) => ({ id, weight: 1 })),
+    ],
+  };
+  return {
+    ...project,
+    assets: assetService.updateConfiguration(project.assets, newConfig),
+  };
+}
+
+/**
  * The single entry point the workspace handlers call: derive the preset from
  * the project's regulation tags (the tag IS the selection — no separate
  * picker), apply it (settings.regulationPreset + factor/method reconcile), and
@@ -251,8 +285,9 @@ export function applyRegulationFromTags(
   const applied = applyRegulationPresetToProject(project, presetId);
   const withWoo = threadWindowOfOpportunity(applied.project, woo);
   const withImpact = threadUseAssetImpact(withWoo, presetId);
+  const withCriteria = threadImpactCriteria(withImpact, presetId);
   return {
     ...applied,
-    project: threadImpactCriteria(withImpact, presetId),
+    project: enforceMandatoryAssetCriteria(withCriteria, presetId),
   };
 }

@@ -754,6 +754,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         open={showConfigDialog}
         configuration={tempConfig || assetData.configuration}
         hasSafetyAnnotations={hasSafetyAnnotations}
+        mandatoryCriteriaIds={project.mandatoryImpactCriteriaIds ?? []}
         onChange={handleConfigChange}
         onSave={handleSaveConfig}
         onClose={handleCloseConfig}
