@@ -1,3 +1,56 @@
+## [0.11.0-alpha] - 2026-09-22
+
+The headline of this release is **ISO/SAE 21434 support**: TARAflow's TARA
+pipeline and documentation generator now conform to ISO/SAE 21434 end to end —
+asset-driven threat relevance, attack-potential-based attack feasibility
+(Annex G / ISO 18045), SFOP impact, and risk derived from attack-path
+feasibility. STRIDE per-element/per-interaction threats become the enumeration
+that feeds attack-tree analysis rather than risks in their own right.
+
+### Added
+- **Asset-driven threat relevance (ISO mode).** In an ISO/SAE 21434 project a
+  per-element/per-interaction threat's relevance is derived from its asset
+  relationship (asset-linked → relevant, none → not-relevant), self-correcting
+  on every graph sync. The analyst can still override in the threat dialog, but
+  deviating from the asset-derived value requires a justification; "uncertain"
+  remains a transient, note-free working state.
+- **Attack-path threats carry catalog controls.** Attack-path threats now
+  receive the catalog's STRIDE-category mitigations and verifications (capped;
+  the analyst's DSL `[M-]` refs are kept first) instead of only the tree's own
+  refs. The generic element fallback is capped consistently.
+- **SFOP impact mandatory and locked.** Exclusive-mode presets (ISO/SAE 21434 →
+  SFOP) force the impact criteria on and lock them: they cannot be deselected on
+  the risk side or in the asset-config dialog, and any missing mandatory
+  criterion is re-added automatically (self-correcting).
+- **Attack-tree editor factor tooltips.** Hovering an audit-DSL factor token
+  (`et=1w`, `se=expert`, `b=high` …) shows a readable "&lt;factor&gt;: &lt;level&gt;"
+  tooltip (EN/DE).
+- **Sensor / Actuator STRIDE templates (OT-reviewed).** Compensating controls
+  where per-device crypto is infeasible on legacy/analog field devices
+  (IEC 62443-3-3 SR 5.1), freshness/anti-replay on the sensor path, and
+  physical/process-side sensor spoofing plus actuator feedback spoofing.
+
+### Changed
+- **STRIDE threats excluded from the risk register in ISO mode.** They are
+  enumeration feeding attack-tree analysis; risk comes only from attack-path
+  threats. The risk toolbar's STRIDE method switcher is hidden in ISO mode.
+- **Single source of truth for the feasibility bands.** The ISO risk core and
+  the attack-tree config now derive their Table G.7 band tables from one shared
+  definition (`shared/attack-feasibility-bands`), so they cannot drift.
+- **Risk-dialog ISO factor pickers** show the canonical Table G.7 level order
+  with clean level names; the ISO 18045 attack-potential points moved into a
+  per-entry tooltip.
+- **i18n (EN/DE)** for the ISO factor levels and names, residual strings, and
+  the attack-tree factor levels.
+
+### Fixed
+- **Element threat text resolved without its domain.** The create-threat dialog
+  looked up element threat/attack/cause text without the template domain, so an
+  embedded template whose id also exists under "general" (e.g. `S-004`) showed
+  the wrong text. It now resolves with the template's domain.
+
+Full commit range: `v0.10.0-alpha..v0.11.0-alpha`
+
 ## [0.10.0-alpha] - 2026-09-10
 
 The headline of this release is **Source Version Binding**: TARAflow can now

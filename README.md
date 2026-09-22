@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.10.0-alpha`
+> **Current version:** `v0.11.0-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -206,6 +206,18 @@ At the project level, an analyst records a source reference — a repository URL
 Once a binding is pinned, TARAflow can **detect drift**: re-checking classifies the current state into six outcomes (in sync, branch advanced, expected release-branch advance, tag moved, ref no longer exists, or unreachable) and keeps a bounded, append-only record of every state *transition* — the evidence of whether, and when, the analysed source moved after the analysis was performed.
 
 > Current scope: project-level bindings. Element-level bindings (a source reference per Function/Process/System asset) and the validation/coverage reporting that builds on them are planned — see `doc/Open/`.
+
+---
+
+## ISO/SAE 21434 Support
+
+TARAflow's TARA pipeline and documentation generator conform to ISO/SAE 21434 end to end — an **asset-driven, attack-feasibility-based** method for road-vehicle cybersecurity engineering. The preset is selected via the project's regulation tag.
+
+In an ISO/SAE 21434 project, threat relevance is derived from the **asset relationship**: a STRIDE per-element/per-interaction threat is relevant when it relates to an asset, and is treated as the enumeration that feeds attack-tree analysis rather than a risk in its own right. The analyst may still override relevance in the threat dialog, with a documented justification. Impact is assessed per **SFOP** (Safety, Financial, Operational, Privacy — ISO 15.5), which is mandatory and locked on both the risk and the asset side.
+
+Attack feasibility follows **Annex G / ISO 18045**: the five attack-potential factors — elapsed time, specialist expertise, knowledge of the item, window of opportunity, equipment — sum to an attack potential that maps to a four-level feasibility band (Table G.7). Attack trees carry these factors per leaf; the resulting attack-path feasibility drives risk, and attack-path threats are enriched with the catalog's STRIDE-category mitigations and verifications.
+
+> Current scope: a structured (dropdown-based) leaf editor for the attack-tree DSL, and generating starter attack trees from confirmed threats, are planned — see the post-release backlog.
 
 ---
 
