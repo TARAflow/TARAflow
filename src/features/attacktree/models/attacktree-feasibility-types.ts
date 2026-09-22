@@ -37,6 +37,8 @@
  *
  * Project-wide, bound to the ISO chip in the Overview tab.
  */
+import { FEASIBILITY_BAND_MINIMA } from "shared";
+
 export type LikelihoodModel = "feasibility-only" | "feasibility-x-motivation";
 
 export const DEFAULT_LIKELIHOOD_MODEL: LikelihoodModel = "feasibility-only";
@@ -277,13 +279,14 @@ export interface FeasibilityBand {
   minPotential: number;
 }
 
-export const DEFAULT_FEASIBILITY_BANDS: FeasibilityBand[] = [
-  // TODO: calibrate against Annex G Table G.7 of the licensed standard.
-  { level: "high", minPotential: 0 },
-  { level: "medium", minPotential: 14 },
-  { level: "low", minPotential: 20 },
-  { level: "very-low", minPotential: 25 },
-];
+export const DEFAULT_FEASIBILITY_BANDS: FeasibilityBand[] =
+  // Derived from the shared single source of truth (open point 9) so the
+  // attack-tree config and the ISO risk core cannot drift. Table G.7:
+  // High = 0–13; Medium = 14–19; Low = 20–24; Very low = ≥25.
+  FEASIBILITY_BAND_MINIMA.map((b) => ({
+    level: b.level,
+    minPotential: b.minPotential,
+  }));
 
 /**
  * Quick mode: bare probability (0..1) → feasibility level.

@@ -10,6 +10,14 @@
 //
 // Mirrors en50742-approach-a-core.ts. Pure, no I/O, no framework deps.
 
+// Band thresholds are the shared single source of truth (open point 9), so the
+// risk core and the attack-tree config cannot drift.
+import {
+  FEASIBILITY_BAND_MINIMA,
+  feasibilityBandFor,
+  type FeasibilityBandLevel,
+} from "shared";
+
 // -------------------- Factor levels --------------------
 
 export type Iso21434ElapsedTime =
@@ -104,7 +112,7 @@ export function iso21434AttackPotential(f: Iso21434Factors): number {
 
 // -------------------- Attack feasibility (Table G.7) --------------------
 
-export type Iso21434Feasibility = "high" | "medium" | "low" | "very-low";
+export type Iso21434Feasibility = FeasibilityBandLevel;
 
 export interface Iso21434FeasibilityBand {
   min: number;
@@ -113,29 +121,25 @@ export interface Iso21434FeasibilityBand {
 }
 
 /**
- * Table G.7 — higher attack potential ⇒ lower feasibility.
- *
- * Boundaries are verbatim from ISO/SAE 21434:2021 Table G.7 "Example attack
- * potential mapping": High covers the two 18045 sub-ranges 0–9 AND 10–13 (a
- * single merged "High" cell in the standard), i.e. High = 0–13; Medium = 14–19;
- * Low = 20–24; Very low = ≥25.
+ * Table G.7 — higher attack potential ⇒ lower feasibility. Built from the
+ * shared FEASIBILITY_BAND_MINIMA (High = 0–13; Medium = 14–19; Low = 20–24;
+ * Very low = ≥25); each band's inclusive max is one below the next band's min.
  */
-export const ISO21434_FEASIBILITY_BANDS: readonly Iso21434FeasibilityBand[] = [
-  { min: 0, max: 13, feasibility: "high" },
-  { min: 14, max: 19, feasibility: "medium" },
-  { min: 20, max: 24, feasibility: "low" },
-  { min: 25, max: Infinity, feasibility: "very-low" },
-];
+export const ISO21434_FEASIBILITY_BANDS: readonly Iso21434FeasibilityBand[] =
+  FEASIBILITY_BAND_MINIMA.map((b, i) => ({
+    min: b.minPotential,
+    max:
+      i + 1 < FEASIBILITY_BAND_MINIMA.length
+        ? FEASIBILITY_BAND_MINIMA[i + 1].minPotential - 1
+        : Infinity,
+    feasibility: b.level,
+  }));
 
-export function iso21434Feasibility(attackPotential: number): Iso21434Feasibility {
-  const band = ISO21434_FEASIBILITY_BANDS.find(
-    (b) => attackPotential >= b.min && attackPotential <= b.max,
-  );
-  // Bands cover [0, ∞); negative input is out of range.
-  if (!band) {
-    throw new RangeError(`attackPotential out of range: ${attackPotential}`);
-  }
-  return band.feasibility;
+export function iso21434Feasibility(
+  attackPotential: number,
+): Iso21434Feasibility {
+  // Bands cover [0, ∞); negative input throws (RangeError from the shared fn).
+  return feasibilityBandFor(attackPotential);
 }
 
 /** Convenience: factors → feasibility in one step. */

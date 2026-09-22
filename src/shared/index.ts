@@ -60,6 +60,11 @@ export type {
   SecurityGoalReference,
 } from "./models/cianaaa-reference-types";
 export { CIANAAA_TO_STRIDE } from "./models/cianaaa-reference-types";
+export {
+  FEASIBILITY_BAND_MINIMA,
+  feasibilityBandFor,
+} from "./models/attack-feasibility-bands";
+export type { FeasibilityBandLevel } from "./models/attack-feasibility-bands";
 
 // Asset
 export type {
