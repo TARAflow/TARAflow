@@ -183,7 +183,12 @@ function riskToLocal(risk: Risk): LocalRiskState {
         ? { id: m, status: "open" as MitigationStatus }
         : { ...m },
     ),
-    selectedVerifications: [...(risk.selectedVerifications ?? [])],
+    selectedVerifications: (
+      (risk.selectedVerifications ?? []) as (
+        | string
+        | { id?: string; notes?: string }
+      )[]
+    ).map((v) => (typeof v === "string" ? v : v.id ?? v.notes ?? "")),
     treatment: risk.treatment ?? "reduce",
     treatmentJustification: risk.treatmentJustification ?? "",
     moscowPriority: risk.moscowPriority,
