@@ -73,7 +73,10 @@ export interface ThreatReference {
 }
 
 export interface RiskReference {
+  /** Opaque stable key (Risk.id, "R-<threat UUID>") — never shown. */
   id: string;
+  /** Readable label ("R-<threat display id>"), see formatRiskLabel. */
+  displayId?: string;
   threatId: string;
   calculatedRiskBeforeMitigation: number;
   moscowPriority: string;
@@ -157,7 +160,10 @@ export interface AttackTreeAnchor {
   strideCategory?: StrideCategory;
 
   // Risk anchor (Standard Workflow)
+  /** Stable risk key (Risk.id). */
   riskId?: string;
+  /** Display snapshot of the risk label (formatRiskLabel) — for UI/DSL text. */
+  riskDisplayId?: string;
   riskLevel?: string;
   moscowPriority?: string;
 }
@@ -923,7 +929,12 @@ export function getAnchorDisplayName(anchor: AttackTreeAnchor): string {
         (anchor.threatTitle ? ": " + anchor.threatTitle : "")
       );
     case "risk":
-      return (anchor.riskId || "Risk") + " [" + (anchor.riskLevel || "?") + "]";
+      return (
+        (anchor.riskDisplayId || anchor.riskId || "Risk") +
+        " [" +
+        (anchor.riskLevel || "?") +
+        "]"
+      );
     case "standalone":
       return "Standalone Analysis";
     default:

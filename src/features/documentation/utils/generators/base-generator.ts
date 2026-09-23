@@ -82,6 +82,7 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
 } from "../../../threats/services/threat-catalog-service";
+import { formatRiskLabel } from "../../../../shared/models/risk-label";
 
 // ==================== TYPES ====================
 
@@ -1283,7 +1284,7 @@ export abstract class BaseDocumentGenerator {
         const statusLabel = implStatus.replace(/_/g, " ");
 
         const values = {
-          id: risk.id,
+          id: formatRiskLabel(risk),
           threatId: risk.threatDisplayId,
           strideCategory: risk.strideCategory,
           threatDescription: this.escapeTableText(
@@ -1573,7 +1574,7 @@ export abstract class BaseDocumentGenerator {
           risk.calculatedRiskBeforeMitigation.toString();
 
         const values = {
-          id: risk.id,
+          id: formatRiskLabel(risk),
           threatId: risk.threatDisplayId,
           strideCategory: risk.strideCategory,
           threatDescription: this.escapeTableText(

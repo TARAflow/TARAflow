@@ -182,6 +182,13 @@ export interface RiskProjectData {
 
 // ==================== FACTORY FUNCTIONS ====================
 
+/**
+ * Stable risk key, derived from the threat's UUID (never from its display
+ * label). A DFD renumber relabels threats; keying Risk.id on the label made
+ * the key drift and, with duplicate labels, collide — riskService.updateRisk
+ * then overwrote every risk sharing the key. Show formatRiskLabel(risk) to the
+ * user, never Risk.id.
+ */
 export function generateRiskId(threatId: string): string {
   return `R-${threatId}`;
 }
@@ -193,9 +200,9 @@ export function createEmptyRisk(
   const enabledFactors = configuration.activeFactors.filter((f) => f.enabled);
 
   return {
-    // Risk.id keeps the human-readable "R-<label>" form (from the threat's
-    // display label, not its UUID). threatId is the stable UUID FK.
-    id: generateRiskId(threatRef.displayId),
+    // Risk.id is keyed on the threat UUID (stable across renumbers); the
+    // readable label is formatRiskLabel(risk) → "R-<threatDisplayId>".
+    id: generateRiskId(threatRef.id),
     threatId: threatRef.id,
     threatDisplayId: threatRef.displayId,
     threatDescription: threatRef.threatDescription,

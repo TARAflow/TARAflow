@@ -26,5 +26,10 @@
  *       asset-id foreign key is repointed to the new UUID in the same pass —
  *       assetId / sourceAssetId / targetAssetId / linkedAssetIds / assetIds,
  *       wherever they occur — across both the feature store and the dfd mirror.
+ *   7 = Risk identity. Risk.id becomes "R-<threat UUID>" (stable across a DFD
+ *       renumber, unique per threat) instead of "R-<threat display id>". The
+ *       readable label is derived (formatRiskLabel → "R-<threatDisplayId>").
+ *       AttackTreeAnchor.riskId and dfd control-provenance riskId are repointed
+ *       in the same pass; risk anchors gain a riskDisplayId snapshot.
  */
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;

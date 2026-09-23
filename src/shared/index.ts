@@ -205,6 +205,8 @@ export { useToast } from "./components/toast";
 export { useSplitViewResize } from "./hooks/use-split-view-resize";
 export { useSplitPercentResize } from "./hooks/use-split-percent-resize";
 export { formatExportFilename } from "./utils/formatters";
+export { formatRiskLabel } from "./models/risk-label";
+export type { RiskLabelSource } from "./models/risk-label";
 export {
   getPhaseStatusBgColor,
   getPhaseStatusColor,

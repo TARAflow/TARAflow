@@ -29,6 +29,7 @@ import type { DFDData } from "features/dfd";
 import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
+import { formatRiskLabel } from "shared/models/risk-label";
 
 // ==================== DIFF SERVICE ====================
 
@@ -655,7 +656,7 @@ export class DiffService {
         changes.push({
           type: "added",
           id: risk.id,
-          name: `${risk.id} (${risk.strideCategory})`,
+          name: `${formatRiskLabel(risk)} (${risk.strideCategory})`,
           description: risk.threatDescription,
         });
       }
@@ -667,7 +668,7 @@ export class DiffService {
         changes.push({
           type: "deleted",
           id: risk.id,
-          name: `${risk.id} (${risk.strideCategory})`,
+          name: `${formatRiskLabel(risk)} (${risk.strideCategory})`,
           description: risk.threatDescription,
         });
       }
@@ -683,7 +684,7 @@ export class DiffService {
         changes.push({
           type: "modified",
           id: currentRisk.id,
-          name: `${currentRisk.id} (${currentRisk.strideCategory})`,
+          name: `${formatRiskLabel(currentRisk)} (${currentRisk.strideCategory})`,
           description: `Risk modified: ${details.length} field(s) changed`,
           details,
         });

@@ -293,6 +293,7 @@ export function generateFromRisk(
   const anchor: AttackTreeAnchor = {
     type: "risk",
     riskId: risk.id,
+    riskDisplayId: risk.displayId ?? risk.id,
     riskLevel: risk.calculatedRiskBeforeMitigation.toString(),
     moscowPriority: risk.moscowPriority,
   };

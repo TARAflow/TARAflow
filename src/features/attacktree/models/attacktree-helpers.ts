@@ -10,6 +10,7 @@ import type {
   DFDElementReference,
   MitigationReference,
 } from "./attacktree-types";
+import { formatRiskLabel } from "shared/models/risk-label";
 
 /**
  * Extract asset references from project
@@ -97,6 +98,7 @@ export function extractRiskReferences(project: Project): RiskReference[] {
   return project.risks.risks.map(function(risk) {
     return {
       id: risk.id,
+      displayId: formatRiskLabel(risk),
       threatId: risk.threatId,
       calculatedRiskBeforeMitigation: risk.calculatedRiskBeforeMitigation,
       moscowPriority: risk.moscowPriority,

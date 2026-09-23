@@ -25,6 +25,7 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
 } from "../../../threats/services/threat-catalog-service";
+import { formatRiskLabel } from "../../../../shared/models/risk-label";
 
 // ==================== LABELS (Phase 6 fix) ====================
 //
@@ -882,7 +883,7 @@ export class PdfMakeConverter {
           .join(", ") || "-";
 
       tableBody.push([
-        { text: risk.id },
+        { text: formatRiskLabel(risk) },
         { text: risk.threatDisplayId },
         {
           text: riskBeforeLabel,
@@ -946,7 +947,7 @@ export class PdfMakeConverter {
 
     for (const risk of this.getWontRisks()) {
       tableBody.push([
-        { text: risk.id },
+        { text: formatRiskLabel(risk) },
         { text: risk.threatDescription || "-" },
         { text: risk.wontJustification || "-" },
       ]);

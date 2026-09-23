@@ -102,6 +102,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
         anchor = {
           type: "risk",
           riskId: selectedRiskId,
+          riskDisplayId: risk?.displayId ?? selectedRiskId,
           riskLevel: risk
             ? String(risk.calculatedRiskBeforeMitigation)
             : undefined,
@@ -337,7 +338,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
               >
                 {risks.map((risk) => (
                   <MenuItem key={risk.id} value={risk.id}>
-                    {risk.id} [{risk.moscowPriority}] - Risk:{" "}
+                    {risk.displayId ?? risk.id} [{risk.moscowPriority}] - Risk:{" "}
                     {risk.calculatedRiskBeforeMitigation}
                   </MenuItem>
                 ))}
