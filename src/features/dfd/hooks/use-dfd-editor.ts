@@ -33,6 +33,7 @@ import { useDFDCompletion } from "./use-dfd-completion";
 
 import { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
+import { waitForRenderable } from "../utils/wait-for-renderable";
 
 // ==================== TYPES ====================
 
@@ -228,6 +229,19 @@ export function useDFDEditor(
     onAfterDrawioSave: generateThumbnailOnSave
       ? async () => {
           try {
+            // Same guard as the initial thumbnail: an export from a hidden or
+            // not-yet-laid-out iframe persists a broken image. Skip it — the
+            // next autosave while the DFD is visible refreshes the thumbnail.
+            const renderable = await waitForRenderable(
+              () => bridgeRef.current?.iframeRef.current,
+              { timeoutMs: 2_000 },
+            );
+            if (!renderable) {
+              console.debug(
+                "[useDFDEditor] Thumbnail skipped — DFD iframe not visible",
+              );
+              return;
+            }
             const imageData = (await bridgeRef.current?.exportImage()) ?? null;
             if (!imageData) return;
 
@@ -257,17 +271,33 @@ export function useDFDEditor(
     [persistence, validation, autoValidateInterval],
   );
 
+  // Latest project, readable from the (intentionally stable) plugin-ready
+  // callback without re-subscribing the bridge.
+  const projectRef = useRef(project);
+  projectRef.current = project;
+
   // Called once after the draw.io plugin is fully injected (~3 s after mount).
-  // This is the first moment exportImage() can reliably return data.
-  // We generate an initial thumbnail here so new projects get a preview
-  // even before the user manually saves.
+  // Only projects WITHOUT a thumbnail get one here. The thumbnail is a
+  // derivation of the diagram and is refreshed after every autosave
+  // (onAfterDrawioSave); regenerating it on every OPEN raced draw.io's
+  // rendering (hidden tab, fonts not loaded → missing/shifted labels) and
+  // rewrote dfd.thumbnail on every open (churn in the .tara.json history).
   const handlePluginReady = useCallback(async () => {
     if (!generateThumbnailOnSave) return;
+    if (projectRef.current.dfd?.thumbnail) return;
+
+    // Wait until draw.io can export faithfully (visible, fonts loaded, layout
+    // settled) instead of a fixed delay. Never visible → skip; the first
+    // autosave after an edit produces the thumbnail.
+    const renderable = await waitForRenderable(
+      () => bridgeRef.current?.iframeRef.current,
+    );
+    if (!renderable) {
+      console.debug("[useDFDEditor] Initial thumbnail skipped — DFD iframe not visible");
+      return;
+    }
 
     console.log("[useDFDEditor] Plugin ready — generating initial thumbnail");
-    // Small extra delay: give draw.io time to finish rendering after inject.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     try {
       const imageData = (await bridgeRef.current?.exportImage?.()) ?? null;
       if (imageData) {
