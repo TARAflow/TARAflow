@@ -10,7 +10,7 @@
 
 import type { Project } from "../models/project-types";
 import type { RegulationPresetId, WindowOfOpportunity } from "shared";
- import { regulationPresetFromTags } from "shared";
+ import { regulationPresetFromTags, EMPTY_PROJECT_TAGS } from "shared";
 import { getRegulationPreset } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
@@ -281,7 +281,13 @@ export function applyRegulationFromTags(
   project: Project,
   woo?: WindowOfOpportunity,
 ): RegulationPresetProjectResult {
-  const presetId = regulationPresetFromTags(project.info.tags);
+  // A project without tags (legacy data, test fixtures) has no regulation —
+  // same default the workspace uses (info?.tags ?? EMPTY_PROJECT_TAGS).
+  // Without it, opening such a project threw inside handleProjectOpen and
+  // was reported as "Failed to open project".
+  const presetId = regulationPresetFromTags(
+    project.info?.tags ?? EMPTY_PROJECT_TAGS,
+  );
   const applied = applyRegulationPresetToProject(project, presetId);
   const withWoo = threadWindowOfOpportunity(applied.project, woo);
   const withImpact = threadUseAssetImpact(withWoo, presetId);
