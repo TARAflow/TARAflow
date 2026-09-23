@@ -74,6 +74,12 @@ export const RiskSyncBanner: React.FC<Props> = ({
           syncStatus.changedLinkedAssets === 1 ? "" : "s"
         } changed`,
       );
+    if ((syncStatus.changedDisplayIds ?? 0) > 0)
+      parts.push(
+        `${syncStatus.changedDisplayIds} threat ID${
+          syncStatus.changedDisplayIds === 1 ? "" : "s"
+        } renumbered`,
+      );
     return parts.join(", ");
   }, [syncStatus]);
 

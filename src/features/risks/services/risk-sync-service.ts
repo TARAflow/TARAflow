@@ -71,6 +71,14 @@ export interface RiskSyncStatus {
    */
   changedExposureLevels: number;
   changedLinkedAssets: number;
+  /**
+   * Risks whose threatDisplayId no longer matches the label of the threat they
+   * point at (via the stable threatId UUID). A DFD renumber relabels threats
+   * without touching descriptions, so without this count the sync affordance
+   * never lit up and the Risk register kept showing the pre-renumber label —
+   * which after a renumber can be the label of a DIFFERENT threat.
+   */
+  changedDisplayIds: number;
   needsSync: boolean;
   /** Safety factor was auto-enabled during this sync check */
   safetyAutoEnabled: boolean;
@@ -423,6 +431,14 @@ export function checkRiskSyncStatus(
     );
   }).length;
 
+  // Label drift: the threat was relabelled (e.g. DFD renumber) but the risk
+  // still carries the old display label. Identity is unaffected (threatId is
+  // the UUID); syncRisksFromThreats refreshes threatDisplayId.
+  const changedDisplayIds = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    return threat !== undefined && threat.displayId !== risk.threatDisplayId;
+  }).length;
+
   const uncertainRisks = riskData.risks.filter(
     (r) => r.threatRelevance === "uncertain",
   ).length;
@@ -452,12 +468,14 @@ export function checkRiskSyncStatus(
     uncertainRisks,
     changedExposureLevels,
     changedLinkedAssets,
+    changedDisplayIds,
     needsSync:
       newThreats > 0 ||
       orphanedRisks > 0 ||
       changedDescriptions > 0 ||
       changedExposureLevels > 0 ||
       changedLinkedAssets > 0 ||
+      changedDisplayIds > 0 ||
       impactAutoEnabledCount > 0 ||
       impactAutoDisabledCount > 0,
     safetyAutoEnabled,
