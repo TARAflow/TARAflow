@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.11.0-alpha`
+> **Current version:** `v0.11.1-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -518,6 +518,8 @@ The project format contains the information required to reconstruct and analyze 
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
+The file carries a schema version. Older projects are migrated automatically when opened, and a backup of the original file is written alongside it. A migrated project cannot be opened again by an older TARAflow version (current schema: **7**, since `v0.11.1-alpha`).
+
 ---
 
 ## Git-Based Workflow
@@ -554,6 +556,8 @@ Data Flow Diagram
         Audit Verification
 ```
 
+A detailed version of this workflow is available as a diagram in [`doc/TARAflow-Workflow.png`](doc/TARAflow-Workflow.png) (source: `doc/TARAflow-Workflow.drawio`).
+
 The purpose of this workflow is to keep the different analysis artifacts connected rather than treating the DFD, threat model, risk assessment, and documentation as independent documents.
 
 ---
@@ -564,17 +568,19 @@ TARAflow is currently in the alpha development phase.
 
 Recent development versions include:
 
-* `v0.6.0-alpha`
-* `v0.7.0-alpha`
-* `v0.7.1-alpha`
 * `v0.8.x-alpha`
 * `v0.9.0-alpha`
+* `v0.10.0-alpha` — Source Version Binding
+* `v0.11.0-alpha` — ISO/SAE 21434 support
+* `v0.11.1-alpha` — identity and label integrity, DFD thumbnail fixes
 
 The current development state is represented by:
 
 ```text
-v0.9.0-alpha
+v0.11.1-alpha
 ```
+
+See [`CHANGELOG.md`](CHANGELOG.md) for details.
 
 Because the project is still in the `0.x` series, interfaces, project formats, and internal APIs may change between releases.
 
@@ -630,7 +636,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.9.0-alpha**
+**TARAflow 0.11.1-alpha**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

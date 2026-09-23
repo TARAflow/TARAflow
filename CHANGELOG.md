@@ -1,3 +1,72 @@
+## [0.11.1-alpha] - 2026-09-23
+
+A maintenance release focused on **identity and label integrity**. Threat and
+risk identities were already UUID-based; this release removes the last places
+where a human-readable label still acted as a key, repairs data written by
+older builds on load, and fixes the DFD thumbnail. Found and verified on a real
+ISO/SAE 21434 project.
+
+> **Project format:** schema version **7**. Projects are migrated on open (a
+> backup of the original file is written alongside it). A file saved with
+> 0.11.1 cannot be opened by 0.11.0 or older.
+
+### Changed
+- **Risk identity is keyed on the threat UUID.** `Risk.id` is now
+  `R-<threat UUID>` instead of `R-<threat display id>`. The readable label
+  (`R-<threat display id>`) is derived wherever a risk is shown — reports,
+  audit diff, Jira footer, attack-tree risk anchors. Schema v7 migration
+  (`migrate_6_to_7`) rekeys existing risks and repoints attack-tree risk
+  anchors and DFD control-provenance references in one pass.
+- **DFD thumbnail only on real edits.** The thumbnail is no longer exported and
+  saved on every project open; it is generated once for projects without one
+  and refreshed after edits. This removes a write on every open (churn in the
+  `.tara.json` history).
+
+### Fixed
+- **Risk labels after a DFD renumber.** Renumbering relabelled threats but the
+  risk register kept the old label — after a renumber possibly the label of a
+  different threat. The risk sync now detects label drift and the banner shows
+  "N threat IDs renumbered".
+- **Colliding risk ids overwrote each other.** Two risks could share an id
+  (same threat label); saving one silently overwrote the other, threat link
+  included. Fixed by the UUID-based risk key; the v7 migration separates
+  existing duplicates.
+- **Manual threats got duplicate labels.** Their sequence number was never
+  persisted, the next number was counted per table instead of across all
+  tables, and regeneration did not see manual threats. Numbers are now
+  `max + 1` over the whole project and persisted; collisions are resolved after
+  regeneration.
+- **Regeneration could merge a manual threat into a generated one.** A freshly
+  generated threat of the same element and STRIDE category inherited the manual
+  threat's identity and analyst fields. Manual threats are no longer treated as
+  generator predecessors.
+- **Threat groups without a title.** Threat tables written by older builds in an
+  element-keyed shape rendered as untitled accordions (React duplicate-key
+  warning) and survived every regeneration. They are dissolved on load into the
+  table of their trust boundary; manual threats take their table's boundary.
+- **Empty Threats tab.** The tab only renders with a DFD graph, which is derived
+  and never saved; it was rebuilt only as a side effect of the per-open
+  thumbnail save. The graph is now rebuilt where it is used.
+- **Broken DFD thumbnails.** Exports ran on fixed timers, often while the DFD
+  was hidden or not yet laid out, producing missing or shifted labels. The
+  export now waits until the draw.io frame is visible and settled, is safe for
+  the cross-origin frame, and is skipped rather than saved broken.
+- **DFD preview zoom scrolled the page** ("Unable to preventDefault inside
+  passive event listener").
+- **Custom mitigations stored as catalog ids.** Selecting a custom mitigation in
+  the risk dialog stored its text as a catalog id (i18next "missingKey"
+  warnings, wrong catalog lookups). Custom selections are stored as notes;
+  existing data is repaired on load.
+- **Opening a project without tags failed** ("Failed to open project") when the
+  regulation preset was reconciled.
+
+### Internal
+- Component test suites load again (partial mocks); both had failed at import
+  time since 0.11.0, hiding four failing tests.
+- Updated workflow diagram (`doc/TARAflow-Workflow.drawio` / `.png`).
+
+Full commit range: `v0.11.0-alpha..v0.11.1-alpha`
+
 ## [0.11.0-alpha] - 2026-09-22
 
 The headline of this release is **ISO/SAE 21434 support**: TARAflow's TARA
