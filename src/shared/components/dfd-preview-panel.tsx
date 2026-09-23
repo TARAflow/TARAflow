@@ -131,11 +131,23 @@ export const DFDPreviewPanel: React.FC<DFDPreviewPanelProps> = ({
 
   // ==================== WHEEL ZOOM ====================
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-    setZoom((prev) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)));
-  }, []);
+  // React registers wheel listeners as PASSIVE at the root, so preventDefault()
+  // inside onWheel is ignored ("Unable to preventDefault inside passive event
+  // listener invocation") and the surrounding page scrolled along with the
+  // zoom. A native listener with { passive: false } can cancel the scroll.
+  const hasImage = !!imageSrc;
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      setZoom((prev) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)));
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+    // Re-bind when the image container mounts/unmounts (early-return states).
+  }, [hasImage, isGenerating, isRegenerating]);
 
   // ==================== REGENERATE THUMBNAIL ====================
 
@@ -334,7 +346,6 @@ export const DFDPreviewPanel: React.FC<DFDPreviewPanelProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        onWheel={handleWheel}
       >
         <img
           ref={imageRef}
