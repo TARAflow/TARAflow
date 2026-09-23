@@ -70,6 +70,12 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
       }));
     }, [tables, filterThreats, hasActiveFilters]);
 
+    // Unfiltered: numbering must see threats hidden by the active filters.
+    const allThreats = React.useMemo(
+      () => tables.flatMap((t) => t.threats),
+      [tables],
+    );
+
     const totalThreats = React.useMemo(
       () => tables.reduce((sum, t) => sum + t.threats.length, 0),
       [tables],
@@ -187,6 +193,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
               <InteractionThreatTable
                 key={`${table.trustBoundaryId ?? "none"}-${table.trustBoundaryName}`}
                 table={table}
+                allThreats={allThreats}
                 tableIndex={index}
                 configuration={configuration}
                 assetDataRef={assetDataRef}

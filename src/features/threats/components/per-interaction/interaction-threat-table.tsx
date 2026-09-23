@@ -91,6 +91,12 @@ interface ElementGroup {
 
 export interface InteractionThreatTableProps {
   table: ThreatTableType;
+  /**
+   * Every threat of the project (all tables, unfiltered). New manual threats
+   * are numbered against this set so their label cannot collide with a
+   * threat in another table. Falls back to this table's threats.
+   */
+  allThreats?: Threat[];
   tableIndex: number;
   configuration: ThreatConfiguration;
   assetDataRef?: AssetDataReference;
@@ -596,6 +602,7 @@ function countImpacts(
 export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
   ({
     table,
+    allThreats,
     assetDataRef,
     showThreatActor = false,
     onEdit,
@@ -1061,7 +1068,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
         <CreateThreatDialog
           open={!!createDialogGroup}
           table={table}
-          existingThreats={table.threats}
+          existingThreats={allThreats ?? table.threats}
           assetDataRef={assetDataRef}
           dataFlowRef={
             createDialogGroup

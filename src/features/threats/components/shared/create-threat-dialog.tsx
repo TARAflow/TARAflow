@@ -58,6 +58,7 @@ import {
   getLocalizedMitigation,
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
+import { labelStem, nextSequenceNumber } from "../../services/threat-sequence";
 
 // ==================== PROPS ====================
 
@@ -91,19 +92,17 @@ interface CreateThreatDialogProps {
 
 // ==================== HELPERS ====================
 
+/**
+ * Next free sequence number for a label. `buildLabel(1)` yields the label the
+ * new threat would get with number 1; its stem is the collision domain. The
+ * number is max+1 over EVERY threat of the project sharing that stem (all
+ * tables, generated and manual), not count+1 over the current table.
+ */
 function computeNextSeqNum(
   existingThreats: Threat[],
-  elementDisplayId: string | undefined,
-  strideCategory: StrideCategory,
+  buildLabel: (seq: number) => string,
 ): number {
-  return (
-    existingThreats.filter(
-      (t) =>
-        t.strideCategory === strideCategory &&
-        (t.linkedElement?.displayId === elementDisplayId ||
-          t.linkedElement?.elementId === elementDisplayId),
-    ).length + 1
-  );
+  return nextSequenceNumber(existingThreats, labelStem(buildLabel(1)));
 }
 
 // ==================== CONTEXT BOX ====================
@@ -601,6 +600,7 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     if (!strideCategory || !allComplete) return;
 
     let id: string;
+    let seqNum: number;
     const direction = perspective === "sender" ? "outgoing" : "incoming";
 
     if (isInteractionMode && dataFlowRef) {
@@ -611,30 +611,25 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
         "",
       );
       const dfIdPart = `DF${dfNum}`;
-      const seqNum =
-        existingThreats.filter(
-          (t) =>
-            t.strideCategory === strideCategory &&
-            t.dataFlow?.dataFlowId === dataFlowRef.dataFlowId,
-        ).length + 1;
-      id = generateThreatIdPerInteraction(
-        tbDisplayId,
-        dfIdPart,
-        strideCategory,
-        direction,
-        seqNum,
-      );
+      const buildLabel = (seq: number) =>
+        generateThreatIdPerInteraction(
+          tbDisplayId,
+          dfIdPart,
+          strideCategory,
+          direction,
+          seq,
+        );
+      seqNum = computeNextSeqNum(existingThreats, buildLabel);
+      id = buildLabel(seqNum);
     } else {
-      const seqNum = computeNextSeqNum(
-        existingThreats,
-        elementDisplayId,
-        strideCategory,
-      );
-      id = generateThreatIdPerElement(
-        elementDisplayId || elementId || "M",
-        strideCategory,
-        seqNum,
-      );
+      const buildLabel = (seq: number) =>
+        generateThreatIdPerElement(
+          elementDisplayId || elementId || "M",
+          strideCategory,
+          seq,
+        );
+      seqNum = computeNextSeqNum(existingThreats, buildLabel);
+      id = buildLabel(seqNum);
     }
 
     const threat = createEmptyThreat(
@@ -646,6 +641,10 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     );
 
     threat.source = "manual";
+    // Persist the number: the sync passes rebuild labels as
+    // stem + sequenceNumber, so an unset (default 1) number collapsed every
+    // manual threat onto "-1" at the next relabel.
+    threat.sequenceNumber = seqNum;
     threat.threatDescription = threatDescription.trim();
     threat.attackDescription = attackDescription.trim();
     threat.causeDescription = causeDescription.trim();
@@ -700,33 +699,24 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
 
   const threatIdPreview = useMemo(() => {
     if (!strideCategory) return null;
-    if (isInteractionMode && dataFlowRef) {
-      const tbDisplayId =
-        table.displayIdentifier?.replace(/[\[\]]/g, "") ?? "TB";
-      const dfNum = (dataFlowRef.displayId ?? dataFlowRef.dataFlowId).replace(
-        /^DF-/,
-        "",
-      );
-      const seqNum =
-        existingThreats.filter(
-          (t) =>
-            t.strideCategory === strideCategory &&
-            t.dataFlow?.dataFlowId === dataFlowRef.dataFlowId,
-        ).length + 1;
-      const dir = perspective === "sender" ? "outgoing" : "incoming";
-      return generateThreatIdPerInteraction(
-        tbDisplayId,
-        `DF${dfNum}`,
-        strideCategory,
-        dir as any,
-        seqNum,
-      );
-    }
-    return generateThreatIdPerElement(
-      elementDisplayId || elementId || "?",
-      strideCategory,
-      computeNextSeqNum(existingThreats, elementDisplayId, strideCategory),
-    );
+    const direction = perspective === "sender" ? "outgoing" : "incoming";
+    const buildLabel =
+      isInteractionMode && dataFlowRef
+        ? (seq: number) =>
+            generateThreatIdPerInteraction(
+              table.displayIdentifier?.replace(/[\[\]]/g, "") ?? "TB",
+              `DF${(dataFlowRef.displayId ?? dataFlowRef.dataFlowId).replace(/^DF-/, "")}`,
+              strideCategory,
+              direction,
+              seq,
+            )
+        : (seq: number) =>
+            generateThreatIdPerElement(
+              elementDisplayId || elementId || "M",
+              strideCategory,
+              seq,
+            );
+    return buildLabel(computeNextSeqNum(existingThreats, buildLabel));
   }, [
     strideCategory,
     isInteractionMode,

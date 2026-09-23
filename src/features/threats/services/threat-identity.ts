@@ -38,6 +38,7 @@ import type {
   MitigationDraft,
   VerificationDraft,
 } from "../models/threat-types";
+import { resolveManualSequenceCollisions } from "./threat-sequence";
 
 // ==================== NATURAL KEYS ====================
 
@@ -80,7 +81,12 @@ export function interactionThreatNaturalKey(threat: Threat): string | null {
 // ==================== INDEX ====================
 
 /**
- * Index a set of threat tables by natural key. First occurrence wins — the
+ * Index a set of threat tables by natural key. Manual threats are NOT indexed:
+ * they are never a generator predecessor. A manual threat carries a
+ * linkedElement like a generated one, so indexing it let a freshly generated
+ * threat of the same element+STRIDE inherit the manual threat's UUID and
+ * analyst fields while the manual threat itself was re-attached — two rows,
+ * one identity. First occurrence wins — the
  * generator's own end-of-run dedup guarantees at most one threat per key, so a
  * collision here would only mean pre-existing duplicate residue in a loaded
  * file, in which case keeping the first is the safe choice.
@@ -93,6 +99,7 @@ export function buildThreatIndex(
   if (!tables) return index;
   for (const table of tables) {
     for (const threat of table.threats) {
+      if (threat.source === "manual") continue;
       const key = keyFn(threat);
       if (key && !index.has(key)) index.set(key, threat);
     }
@@ -284,7 +291,13 @@ export function mergeGeneratedTables(
 
   if (!options.keepManual || !previousTables) return merged;
 
-  return reattachManualThreats(merged, previousTables);
+  // The generator numbers from 1 without seeing manual threats, so a
+  // re-attached manual threat can land on a label the regeneration just
+  // issued (e.g. a manual DS4-I-1 created before the element had generated
+  // threats). Re-number such manual threats; identity (UUID) is unaffected.
+  return resolveManualSequenceCollisions(
+    reattachManualThreats(merged, previousTables),
+  );
 }
 
 /** Grouping key for matching a manual threat's previous table to a fresh one. */

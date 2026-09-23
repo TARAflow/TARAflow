@@ -74,6 +74,12 @@ interface ElementGroup {
 
 export interface ElementThreatTableProps {
   table: ThreatTableType;
+  /**
+   * Every threat of the project (all tables, unfiltered). New manual threats
+   * are numbered against this set so their label cannot collide with a
+   * threat in another table. Falls back to this table's threats.
+   */
+  allThreats?: Threat[];
   tableIndex: number;
   configuration: ThreatConfiguration;
   assetDataRef?: AssetDataReference;
@@ -516,6 +522,7 @@ ThreatRows.displayName = "ThreatRows";
 export const ElementThreatTable = React.memo<ElementThreatTableProps>(
   ({
     table,
+    allThreats,
     assetDataRef,
     showThreatActor = false,
     onEdit,
@@ -849,7 +856,7 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
         <CreateThreatDialog
           open={!!createDialogGroup}
           table={table}
-          existingThreats={table.threats}
+          existingThreats={allThreats ?? table.threats}
           assetDataRef={assetDataRef}
           elementId={createDialogGroup?.elementId}
           elementName={createDialogGroup?.elementName}
