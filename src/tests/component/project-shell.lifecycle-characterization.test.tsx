@@ -65,7 +65,12 @@ vi.mock("react-i18next", () => ({
 
 // ==================== shared (Toast/ToastContainer/useToast) ====================
 
-vi.mock("shared", () => ({
+// Partial mock: only the toast surface is replaced. A full factory mock
+// breaks as soon as any module in the import graph needs another "shared"
+// export at module-evaluation time (e.g. FEASIBILITY_BAND_MINIMA, read by
+// iso21434-core via risk-calculation-service).
+vi.mock("shared", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("shared")>()),
   useToast: () => h.toast,
   Toast: () => null,
   ToastContainer: () => null,

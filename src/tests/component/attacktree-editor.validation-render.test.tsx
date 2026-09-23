@@ -23,7 +23,10 @@ import type {
 } from "features/attacktree/models/attacktree-types";
 
 // i18n: render the key itself so assertions don't depend on the catalog.
-vi.mock("react-i18next", () => ({
+// Partial mock: keep the real module (initReactI18next is needed by
+// src/i18n/services/i18n.ts at import time), stub only useTranslation.
+vi.mock("react-i18next", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: { language: "en" },
