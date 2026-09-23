@@ -22,6 +22,7 @@ import {
   migrate_5_to_6,
   migrate_6_to_7,
 } from "./versions";
+import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
 
 
 // ==================== DEFAULTS ====================
@@ -254,6 +255,26 @@ export function applyLegacyMigrations(raw: any): any {
   // Migrate risk data schema
   if (data.risks) {
     data = { ...data, risks: migrateRiskData(data.risks) };
+  }
+
+  // Repair threat tables: dissolve legacy element-keyed/untitled tables into
+  // their trust-boundary table, align manual threats with their table, make
+  // manual labels unique. Version-independent on purpose — it repairs data
+  // written by any older build, and is a no-op (same arrays) on clean files.
+  if (data.threats) {
+    const repair = (tables: any) =>
+      Array.isArray(tables) ? normalizeThreatTables(tables) : tables;
+    const perElementTables = repair(data.threats.perElementTables);
+    const perInteractionTables = repair(data.threats.perInteractionTables);
+    if (
+      perElementTables !== data.threats.perElementTables ||
+      perInteractionTables !== data.threats.perInteractionTables
+    ) {
+      data = {
+        ...data,
+        threats: { ...data.threats, perElementTables, perInteractionTables },
+      };
+    }
   }
 
   return data;

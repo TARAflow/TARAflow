@@ -38,7 +38,7 @@ import type {
   MitigationDraft,
   VerificationDraft,
 } from "../models/threat-types";
-import { resolveManualSequenceCollisions } from "./threat-sequence";
+import { normalizeThreatTables } from "./threat-table-normalize";
 
 // ==================== NATURAL KEYS ====================
 
@@ -291,13 +291,13 @@ export function mergeGeneratedTables(
 
   if (!options.keepManual || !previousTables) return merged;
 
-  // The generator numbers from 1 without seeing manual threats, so a
-  // re-attached manual threat can land on a label the regeneration just
-  // issued (e.g. a manual DS4-I-1 created before the element had generated
-  // threats). Re-number such manual threats; identity (UUID) is unaffected.
-  return resolveManualSequenceCollisions(
-    reattachManualThreats(merged, previousTables),
-  );
+  // normalizeThreatTables:
+  //  - dissolves legacy/untitled carried-over tables into the table of the
+  //    threat's own trust boundary (see threat-table-normalize.ts);
+  //  - re-numbers manual threats that landed on a label the regeneration just
+  //    issued (the generator numbers from 1 without seeing manual threats).
+  // Identity (UUID) is unaffected.
+  return normalizeThreatTables(reattachManualThreats(merged, previousTables));
 }
 
 /** Grouping key for matching a manual threat's previous table to a fresh one. */
