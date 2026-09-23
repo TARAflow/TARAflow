@@ -105,6 +105,7 @@ import {
   EMPTY_PROJECT_TAGS,
   getDisabledThreatGenerators,
 } from "shared";
+import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
 
 // ==================== COMPONENT ====================
 
@@ -300,7 +301,10 @@ export const WorkspaceLayout: React.FC = () => {
       const current = activeProjectRef.current;
       if (!current) return;
 
-      const graph = updates.dfd?.graph ?? current.dfd?.graph;
+      const graph =
+        updates.dfd?.graph ??
+        current.dfd?.graph ??
+        resolveDfdGraph({ ...current.dfd, ...updates.dfd } as Project["dfd"]);
       if (!graph) {
         throw new Error(
           "[DFD] Invariant violation: graph must exist after DFD update",
@@ -626,20 +630,28 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.dfd?.connections],
   );
 
+  // Stored graph, or rebuilt from the persisted DFD when missing — the
+  // Threats tab is only rendered when a DFD context exists (see
+  // resolveDfdGraph for why this must not depend on a side-effect save).
+  const activeDfdGraph = useMemo(
+    () => resolveDfdGraph(activeProject?.dfd),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeProject?.dfd?.graph,
+      activeProject?.dfd?.elements,
+      activeProject?.dfd?.connections,
+      activeProject?.dfd?.assets,
+    ],
+  );
+
   const memoizedDFDGraphRef = useMemo(
-    () =>
-      activeProject?.dfd?.graph
-        ? toReferenceGraph(activeProject.dfd.graph)
-        : undefined,
-    [activeProject?.dfd?.graph],
+    () => (activeDfdGraph ? toReferenceGraph(activeDfdGraph) : undefined),
+    [activeDfdGraph],
   );
 
   const memoizedDFDContext = useMemo(
-    () =>
-      activeProject?.dfd?.graph
-        ? new DFDGraphAnalysisContext(activeProject.dfd.graph)
-        : null,
-    [activeProject?.dfd?.graph],
+    () => (activeDfdGraph ? new DFDGraphAnalysisContext(activeDfdGraph) : null),
+    [activeDfdGraph],
   );
 
   const memoizedDFDReference = useMemo((): DFDReference | null => {
