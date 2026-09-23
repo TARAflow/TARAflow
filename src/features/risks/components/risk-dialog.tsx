@@ -171,6 +171,10 @@ import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS } from "shared";
 import { RiskScorePanel } from "./shared/risk-score-panel";
 import { SrslBadge } from "./shared/srsl-badge";
 import { SrslReferenceTables } from "./shared/srsl-reference-tables";
+import {
+  mitigationSelectionKey,
+  toSelectedMitigation,
+} from "../models/risk-mitigation-types";
 
 // ==================== CONSTANTS ====================
 
@@ -865,20 +869,27 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mitigationCatalog = useMemo(() => getAllMitigations(), []);
 
+  // Custom (non-catalog) mitigations are selected as { notes } WITHOUT an id;
+  // only catalog entries carry an id. See mitigationSelectionKey.
   const toggleMitigation = useCallback(
-    (id: string) => {
+    (entry: { id?: string; notes?: string }) => {
+      const key = mitigationSelectionKey(entry);
+      const id = entry.id;
       setLocal((prev) => {
         if (!prev) return prev;
-        const has = prev.selectedMitigations.some((m) => m.id === id);
+        const has = prev.selectedMitigations.some(
+          (m) => mitigationSelectionKey(m) === key,
+        );
         const updatedMitigations = has
-          ? prev.selectedMitigations.filter((m) => m.id !== id)
-          : [
-              ...prev.selectedMitigations,
-              { id, status: "open" as MitigationStatus },
-            ];
+          ? prev.selectedMitigations.filter(
+              (m) => mitigationSelectionKey(m) !== key,
+            )
+          : [...prev.selectedMitigations, toSelectedMitigation(entry)];
 
         // Auto-select / auto-deselect linked verifications from catalog
-        const catalogEntry = mitigationCatalog.find((m) => m.id === id);
+        const catalogEntry = id
+          ? mitigationCatalog.find((m) => m.id === id)
+          : undefined;
         const linkedVerifications = catalogEntry?.verifications ?? [];
 
         let updatedVerifications = prev.selectedVerifications;
@@ -2473,7 +2484,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     </Typography>
                     <Stack spacing={0.5}>
                       {displayedMitigations.map((m) => {
-                        const id = m.id ?? m.notes ?? "";
+                        const key = mitigationSelectionKey(m);
                         const isMandated =
                           "isMandated" in m && m.isMandated === true;
                         const label = isMandated
@@ -2483,7 +2494,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             : `${m.id}: ${m.text}`;
                         return (
                           <Paper
-                            key={id}
+                            key={key}
                             variant="outlined"
                             sx={{
                               px: 1.5,
@@ -2497,9 +2508,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                                 <Checkbox
                                   size="small"
                                   checked={local.selectedMitigations.some(
-                                    (sel) => sel.id === id,
+                                    (sel) => mitigationSelectionKey(sel) === key,
                                   )}
-                                  onChange={() => toggleMitigation(id)}
+                                  onChange={() => toggleMitigation(m)}
                                   disabled={isAccepted}
                                 />
                               }
@@ -2526,7 +2537,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                                     />
                                   )}
                                   <MitigationCoverageBadge
-                                    coverage={mitigationCoverage.get(id)}
+                                    coverage={
+                                      m.id ? mitigationCoverage.get(m.id) : undefined
+                                    }
                                   />
                                 </Box>
                               }
@@ -2534,20 +2547,23 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             />
 
                             {/* Scope selector — only for per-interaction risks */}
+                            {/* Catalog mitigations only: the scope is defined
+                                by the catalog entry's affected properties. */}
                             {isPerInteraction &&
+                              m.id &&
                               local.selectedMitigations.some(
-                                (sel) => sel.id === id,
+                                (sel) => sel.id === m.id,
                               ) && (
                                 <MitigationScopeSelector
-                                  mitigationId={id}
+                                  mitigationId={m.id}
                                   selectedMitigation={
                                     local.selectedMitigations.find(
-                                      (sel) => sel.id === id,
+                                      (sel) => sel.id === m.id,
                                     )!
                                   }
                                   catalog={mitigationCatalog}
                                   onChange={(roles) =>
-                                    setScopeOverride(id, roles)
+                                    setScopeOverride(m.id!, roles)
                                   }
                                 />
                               )}

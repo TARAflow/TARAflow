@@ -32,6 +32,7 @@ import {
 import type { RiskConfiguration, RiskValidation } from "./risk-config-types";
 import { DEFAULT_CONFIGURATION } from "./risk-config-types";
 import type { SelectedMitigation } from "./risk-mitigation-types";
+import { repairCustomMitigationSelections } from "./risk-mitigation-types";
 import type { MoSCoWPriority, RiskTreatment } from "./risk-scale-types";
 import type { RiskIntegrationConnection } from "./risk-integration-types";
 import type { Srsl, AttackPotentialBand } from "./en50742-approach-a-core";
@@ -273,6 +274,10 @@ export function migrateRiskData(data: RiskData | null | undefined): RiskData | n
         mitigatedFactorRatings: migrateFactorRatings(
           risk.mitigatedFactorRatings ?? [],
         ),
+        selectedMitigations: repairCustomMitigationSelections(
+          risk.selectedMitigations,
+          risk.proposedMitigations,
+        ) as Risk["selectedMitigations"],
       })),
     };
   }
@@ -294,6 +299,10 @@ export function migrateRiskData(data: RiskData | null | undefined): RiskData | n
       mitigatedFactorRatings: migrateFactorRatings(
         risk.mitigatedFactorRatings ?? [],
       ),
+      selectedMitigations: repairCustomMitigationSelections(
+        risk.selectedMitigations,
+        risk.proposedMitigations,
+      ) as Risk["selectedMitigations"],
     })),
   };
 }

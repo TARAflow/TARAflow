@@ -163,3 +163,60 @@ export function normalizeMitigations(
 ): SelectedMitigation[] {
   return entries.map(normalizeMitigationEntry);
 }
+// ==================== CUSTOM (NON-CATALOG) SELECTIONS ====================
+// A SelectedMitigation with an `id` is a CATALOG mitigation (the id is an i18n
+// / catalog key such as "M-I-003"); a custom analyst entry has NO id and keeps
+// its text in `notes`. The Risk dialog used `m.id ?? m.notes` as a selection
+// key and stored it as `id`, so selecting a custom proposed mitigation wrote
+// its free text into `id`. Every consumer then treated the sentence as a
+// catalog key (i18next "missingKey … <sentence>.mitigation", "M-…: text"
+// labels, catalog/coverage lookups).
+
+/** Stable UI/selection key that cannot confuse custom text with a catalog id. */
+export function mitigationSelectionKey(entry: {
+  id?: string;
+  notes?: string;
+}): string {
+  return entry.id ? entry.id : `custom:${entry.notes ?? ""}`;
+}
+
+/** New selection for a proposed mitigation — custom entries stay id-less. */
+export function toSelectedMitigation(entry: {
+  id?: string;
+  notes?: string;
+}): SelectedMitigation {
+  return entry.id
+    ? { id: entry.id, status: "open" }
+    : { notes: entry.notes ?? "", status: "open" };
+}
+
+/**
+ * Repair selections written by the old Risk dialog: an entry whose `id` equals
+ * the text of a CUSTOM proposed mitigation (no id) becomes `{ notes: text }`.
+ * Precise by construction — only text that is a custom draft of this very risk
+ * is moved; catalog ids are never touched. Returns the same array when clean.
+ */
+export function repairCustomMitigationSelections(
+  selected: (string | SelectedMitigation)[] | undefined,
+  proposed: { id?: string; notes?: string }[] | undefined,
+): (string | SelectedMitigation)[] | undefined {
+  if (!Array.isArray(selected) || !Array.isArray(proposed)) return selected;
+  const customTexts = new Set(
+    proposed.filter((p) => !p.id && p.notes).map((p) => p.notes as string),
+  );
+  if (customTexts.size === 0) return selected;
+
+  let changed = false;
+  const repaired = selected.map((entry) => {
+    if (typeof entry === "string") {
+      if (!customTexts.has(entry)) return entry;
+      changed = true;
+      return { notes: entry, status: "open" as MitigationStatus };
+    }
+    if (!entry.id || !customTexts.has(entry.id)) return entry;
+    changed = true;
+    const { id, ...rest } = entry;
+    return { ...rest, notes: rest.notes || id };
+  });
+  return changed ? repaired : selected;
+}
