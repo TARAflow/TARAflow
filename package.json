@@ -128,7 +128,7 @@
     "@types/node": "^24.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/semver": "^7.8.0",
-    "@vitejs/plugin-react": "4.2.1",
+    "@vitejs/plugin-react": "5.2.0",
     "concurrently": "^9.2.1",
     "dependency-cruiser": "^18.0.0",
     "electron": "^39.2.7",
@@ -139,8 +139,8 @@
     "rimraf": "^6.0.1",
     "tsx": "^4.23.0",
     "typescript": "5.3.3",
-    "vite": "5.0.10",
-    "vitest": "1.2.2",
+    "vite": "7.3.6",
+    "vitest": "4.1.11",
     "wait-on": "^8.0.5"
   }
 }

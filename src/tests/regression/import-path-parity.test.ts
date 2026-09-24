@@ -110,9 +110,12 @@ vi.mock("app/hooks/use-project-file-download", () => ({
 const FAKE_GRAPH = { builtBy: "DefaultDFDGraphBuilder", nodes: [], edges: [] };
 const buildSpy = vi.fn().mockReturnValue(FAKE_GRAPH);
 vi.mock("features/dfd", () => ({
-  DefaultDFDGraphBuilder: vi.fn().mockImplementation(() => ({
-    build: buildSpy,
-  })),
+  // `function`, not an arrow: the code under test calls `new
+  // DefaultDFDGraphBuilder()`, and since Vitest 3 a vi.fn() invoked with `new`
+  // constructs through its implementation — an arrow isn't constructible.
+  DefaultDFDGraphBuilder: vi.fn(function () {
+    return { build: buildSpy };
+  }),
 }));
 
 vi.mock("app/utils/commit-asset-sync", () => ({
