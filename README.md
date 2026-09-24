@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.11.1-alpha`
+> **Current version:** `v0.11.2-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -352,7 +352,7 @@ The main technologies include:
 * **draw.io**
 * **Vitest**
 * **i18next**
-* **CodeMirror / Monaco Editor**
+* **CodeMirror**
 * **D3**
 * **esbuild**
 * **Electron Builder**
@@ -416,6 +416,8 @@ Install dependencies:
 ```bash
 npm install
 ```
+
+Installation only needs the npm registry — no third-party CDN. The one dependency that is not published there, SheetJS (`xlsx`), is vendored as its official release tarball under [`vendor/`](vendor/README.md); a `preinstall` check verifies it against the integrity recorded in `package-lock.json`.
 
 ---
 
@@ -573,11 +575,12 @@ Recent development versions include:
 * `v0.10.0-alpha` — Source Version Binding
 * `v0.11.0-alpha` — ISO/SAE 21434 support
 * `v0.11.1-alpha` — identity and label integrity, DFD thumbnail fixes
+* `v0.11.2-alpha` — dependency and supply-chain hardening
 
 The current development state is represented by:
 
 ```text
-v0.11.1-alpha
+v0.11.2-alpha
 ```
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
@@ -636,7 +639,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.11.1-alpha**
+**TARAflow 0.11.2-alpha**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

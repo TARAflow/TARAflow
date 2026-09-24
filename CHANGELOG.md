@@ -1,3 +1,57 @@
+## [0.11.2-alpha] - 2026-09-24
+
+A maintenance release focused on **dependency and supply-chain hygiene**,
+prompted by feedback from an external security engineer: TARAflow could not be
+installed behind a corporate proxy that blocks third-party CDNs, and
+`npm audit` reported 16 vulnerabilities. Both are resolved — `npm ci` now only
+needs the npm registry, and `npm audit` reports **0 vulnerabilities**.
+
+> **Project format:** unchanged (schema version **7**). Projects are fully
+> compatible with 0.11.1.
+
+### Security
+- **Electron 39 → 44.** Electron 39 is out of support, so the bundled
+  Chromium/Node no longer received security fixes. `npm audit --omit=dev` did
+  not show this because `electron` is a devDependency, although it ships with
+  the application. Also clears the `extract-zip` advisories
+  (GHSA-jmr9-qjv8-65gv, GHSA-7pqw-9j4j-h8q3).
+- **Build and test toolchain.** vite 5.0.10 → 7.3.6, vitest 1.2.2 → 4.1.11,
+  @vitejs/plugin-react 4.2.1 → 5.2.0. Clears the vite dev-server advisories
+  (mostly `server.fs.deny` bypasses), the esbuild dev-server advisory
+  (GHSA-67mh-4wv8-2f99) and two critical vitest API/UI-server advisories
+  (GHSA-9crc-q9x8-hgqq, GHSA-5xrq-8626-4rwp). All are development-time only —
+  they affect a running dev/test server, not the shipped application.
+- **Transitive fixes** for ajv (8.17.1 → 8.20.0), fast-uri, js-yaml, nanoid,
+  joi and @xmldom/xmldom.
+
+### Changed
+- **SheetJS is vendored.** `xlsx` (hazard import from .xlsx/.xls/.ods) was
+  fetched from `cdn.sheetjs.com` during install. The official 0.20.3 release
+  tarball now lives in `vendor/sheetjs/` and is referenced via `file:`; the
+  lockfile integrity is unchanged, i.e. it is the identical artifact. The
+  npm-registry `xlsx@0.18.5` was not an option (frozen, affected by
+  GHSA-4r6h-8v6p-xvw6 / GHSA-5pgg-2g8v-p4x9).
+- **Integrity guard for vendored tarballs.** npm does not verify the lockfile
+  `integrity` of `file:` dependencies, so a swapped tarball would install
+  silently. A `preinstall` script (`scripts/verify-vendored.mjs`) hashes every
+  vendored tarball and aborts the install on a mismatch.
+
+### Removed
+- **Unused dependencies:** `react-router-dom` (never imported; several
+  react-router advisories, e.g. GHSA-wrjc-x8rr-h8h6 and GHSA-337j-9hxr-rhxg,
+  have no fix in the 6.x line), and `monaco-editor`, `@monaco-editor/react`, `monaco-editor-react`
+  together with the unused Monaco-based attack-tree editor backup — the editor
+  runs on CodeMirror. This also removes the vulnerable `dompurify`.
+
+### Internal
+- New smoke test for the xlsx/ods importer's SheetJS layer (it had none) —
+  the tripwire for future SheetJS upgrades, which npm outdated/Dependabot do
+  not track for a vendored tarball.
+- A regression test mock adapted to Vitest 4 (`vi.fn()` called with `new`
+  needs a constructible implementation).
+
+Full commit range: `v0.11.1-alpha..v0.11.2-alpha`
+
 ## [0.11.1-alpha] - 2026-09-23
 
 A maintenance release focused on **identity and label integrity**. Threat and
