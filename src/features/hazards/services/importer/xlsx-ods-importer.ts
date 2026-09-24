@@ -6,8 +6,9 @@
 // multi-row header and "x"-matrix severity/probability columns.
 //
 // SheetJS reads .xlsx AND .ods (and legacy .xls) with one parser, so ODS is
-// just another subclass. INSTALL (current tarball, not frozen npm 0.18.5):
-//   npm i --save https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+// just another subclass. The dependency is the official 0.20.3 tarball,
+// VENDORED under vendor/sheetjs/ (npm's xlsx@0.18.5 is frozen + vulnerable,
+// the SheetJS CDN is blocked by many corporate proxies) — see vendor/README.md.
 
 import * as XLSX from "xlsx";
 import type { HazardImportResult } from "../safety-hazard-importer";

@@ -11,6 +11,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "preinstall": "node scripts/verify-vendored.mjs",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -121,7 +122,7 @@
     "remark-gfm": "^4.0.1",
     "semver": "^7.8.5",
     "simple-git": "^3.30.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    "xlsx": "file:vendor/sheetjs/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "6.1.5",
