@@ -44,6 +44,8 @@ export interface UseElementThreatsResult {
   // Operations
   generateThreats: (options?: { keepManual?: boolean }) => Promise<boolean>;
   deleteAllThreats: (options?: { keepManual?: boolean }) => void;
+  /** Replace the method's tables wholesale (explicit analyst actions, e.g. resolving generation drift). */
+  replaceTables: (tables: ThreatTable[]) => void;
   synchronizeThreats: (options: {
     updateReferences: boolean;
     removeOrphaned: boolean;
@@ -162,6 +164,14 @@ export function useElementThreats({
       notifyUpdate(kept);
     },
     [tables, notifyUpdate],
+  );
+
+  const replaceTables = useCallback(
+    (next: ThreatTable[]) => {
+      setTables(next);
+      notifyUpdate(next);
+    },
+    [notifyUpdate],
   );
 
   const synchronizeThreats = useCallback(
@@ -306,6 +316,7 @@ export function useElementThreats({
     stats,
     generateThreats,
     deleteAllThreats,
+    replaceTables,
     synchronizeThreats,
     updateThreat,
     deleteThreat,

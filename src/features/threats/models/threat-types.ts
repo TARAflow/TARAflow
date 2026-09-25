@@ -838,7 +838,18 @@ export interface ThreatProjectData {
   };
   /** DFD state — used for mitigation coverage badges in Threat Dialog */
   dfd?: DFDReference | null;
+  /**
+   * Risk work attached to a threat, keyed by threat id. Built at the app layer
+   * (features/threats ⊥ features/risks). Used to warn before an action would
+   * drop a threat that carries a risk assessment. Optional: absent = unknown.
+   */
+  riskAttachments?: Record<string, ThreatRiskAttachment>;
   lastModified: string;
+}
+
+export interface ThreatRiskAttachment {
+  /** Number of mitigations selected on the risk. */
+  mitigationCount: number;
 }
 
 // ==================== SYNC STATUS ====================

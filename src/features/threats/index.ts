@@ -11,6 +11,7 @@ export type {
   ThreatSyncResult,
   MitigationEntry,
   MitigationPropertyEffect,
+  ThreatRiskAttachment,
 } from "./models/threat-types";
 
 export type {

@@ -45,6 +45,8 @@ export interface UseInteractionThreatsResult {
   // Operations
   generateThreats: (options?: { keepManual?: boolean }) => Promise<boolean>;
   deleteAllThreats: (options?: { keepManual?: boolean }) => void;
+  /** Replace the method's tables wholesale (explicit analyst actions, e.g. resolving generation drift). */
+  replaceTables: (tables: ThreatTable[]) => void;
   synchronizeThreats: (options: {
     updateReferences: boolean;
     removeOrphaned: boolean;
@@ -196,6 +198,26 @@ export function useInteractionThreats({
     [tables, configuration, notifyUpdate],
   );
 
+  const replaceTables = useCallback(
+    (next: ThreatTable[]) => {
+      setTables(next);
+      // Keep projectRef in step, as deleteAllThreats does.
+      const current = projectRef.current;
+      if (current.threats) {
+        projectRef.current = {
+          ...current,
+          threats: {
+            ...current.threats,
+            perInteractionTables: next,
+            lastModified: new Date().toISOString(),
+          },
+        };
+      }
+      notifyUpdate(next);
+    },
+    [notifyUpdate],
+  );
+
   const synchronizeThreats = useCallback(
     async (options: {
       updateReferences: boolean;
@@ -338,6 +360,7 @@ export function useInteractionThreats({
     stats,
     generateThreats,
     deleteAllThreats,
+    replaceTables,
     synchronizeThreats,
     updateThreat,
     deleteThreat,

@@ -269,6 +269,38 @@
         "generated_full": "Generiert — Element-Properties + CIANAAA-Schutzziele angewendet",
         "fallback": "Keine aktiven Schutzziele — Standard-STRIDE verwendet",
         "impact": "Initialer Impact: {{level}}"
+      },
+      "drift": {
+        "banner": {
+          "title": "Bedrohungen weichen von den aktuellen Generierungsregeln ab",
+          "obsolete_one": "{{count}} gespeicherte Bedrohung würde nicht mehr generiert",
+          "obsolete_other": "{{count}} gespeicherte Bedrohungen würden nicht mehr generiert",
+          "withRisk_one": "davon {{count}} mit Risikobewertung",
+          "withRisk_other": "davon {{count}} mit Risikobewertung",
+          "added_one": "{{count}} Bedrohung käme hinzu",
+          "added_other": "{{count}} Bedrohungen kämen hinzu",
+          "review": "Prüfen"
+        },
+        "dialog": {
+          "title": "Nicht mehr generierte Bedrohungen",
+          "intro": "Die aktuellen Generierungsregeln oder Schutzziele erzeugen diese Bedrohungen nicht mehr. Behalten macht eine Bedrohung zur manuellen Bedrohung: Sie behält ID und Risiko und übersteht jede Neugenerierung. Entfernen löscht sie; ein verknüpftes Risiko wird beim nächsten Risiko-Sync entfernt.",
+          "keepAll": "Alle behalten",
+          "removeWithoutRisk": "Alle ohne Risiko entfernen",
+          "colThreat": "Bedrohung",
+          "colRisk": "Risiko",
+          "colDecision": "Entscheidung",
+          "risk": "Risiko",
+          "riskWithMitigations_one": "Risiko · {{count}} Massnahme",
+          "riskWithMitigations_other": "Risiko · {{count}} Massnahmen",
+          "keep": "Behalten",
+          "remove": "Entfernen",
+          "apply": "Übernehmen"
+        },
+        "regenerate": {
+          "warning_one": "{{count}} Bedrohung wird von den aktuellen Regeln nicht mehr generiert und wird entfernt ({{withRisk}} mit Risikobewertung).",
+          "warning_other": "{{count}} Bedrohungen werden von den aktuellen Regeln nicht mehr generiert und werden entfernt ({{withRisk}} mit Risikobewertung).",
+          "reviewFirst": "Zuerst prüfen"
+        }
       }
     }
   }

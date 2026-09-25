@@ -62,6 +62,7 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
   syncThreatsWithGraph,
+  type ThreatRiskAttachment,
 } from "features/threats";
 
 import { RisksTab, RiskUpdateResult } from "features/risks";
@@ -690,6 +691,16 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.hazards],
   );
 
+  // Risk work per threat id — lets the Threats tab warn before an action would
+  // drop a threat that carries a risk assessment (threats ⊥ risks: built here).
+  const memoizedRiskAttachments = useMemo(() => {
+    const out: Record<string, ThreatRiskAttachment> = {};
+    for (const r of activeProject?.risks?.risks ?? []) {
+      out[r.threatId] = { mitigationCount: r.selectedMitigations?.length ?? 0 };
+    }
+    return out;
+  }, [activeProject?.risks?.risks]);
+
   const memoizedAssetDataRef = useMemo((): AssetDataReference | undefined => {
     const assets = activeProject?.assets?.assets;
     if (!assets || assets.length === 0) return undefined;
@@ -948,6 +959,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdGraph: memoizedDFDGraphRef,
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
+              riskAttachments: memoizedRiskAttachments,
               info: {
                 tags: activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
               },
