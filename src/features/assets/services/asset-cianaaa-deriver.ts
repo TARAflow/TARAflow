@@ -218,6 +218,106 @@ export function deriveCIANAAALevel(
   return numericToCIANAAALevel(maxValue, impactScale);
 }
 
+// ==================== LEVEL EXPLANATION ====================
+
+/**
+ * Why a graph-suggested goal carries the level it does.
+ *
+ * ONE source of truth for the level of a suggested goal: the deriver stores
+ * `.level`, the dialog and the documentation render the rest. Keeping the
+ * decision and its explanation in one function is what stops them drifting.
+ *
+ *   mechanism      — a criterion relevant to the goal's cause mechanism is rated;
+ *                    level = MAX over those (criterionId/value = the driver)
+ *   not-applicable — every relevant criterion present on the asset is "na":
+ *                    the analyst said "no damage via this mechanism" → floor
+ *   fallback       — no relevant criterion is decided yet, but others are
+ *                    rated → MAX over all rated criteria (conservative while
+ *                    the assessment is incomplete)
+ *   floor          — nothing rated at all → floor
+ *
+ * The floor is "low", never "none": the goal is suggested by the graph, and
+ * "none" would silently drop its STRIDE category in the threat generator.
+ */
+export type LevelExplanation =
+  | { kind: "mechanism"; level: CIANAAALevel; criterionId: string; value: number }
+  | { kind: "not-applicable"; level: CIANAAALevel; criterionIds: string[] }
+  | { kind: "fallback"; level: CIANAAALevel; criterionId: string; value: number }
+  | { kind: "floor"; level: CIANAAALevel };
+
+const FLOOR_LEVEL: CIANAAALevel = "low";
+
+function mechanismCriteria(goalType: SecurityGoalType): string[] {
+  const mechanism = (
+    Object.entries(CAUSE_MECHANISM_TO_GOAL) as [CauseMechanismType, SecurityGoalType][]
+  ).find(([, goal]) => goal === goalType)?.[0];
+  return mechanism ? CAUSE_MECHANISM_CRITERIA[mechanism] : [];
+}
+
+function maxRated(
+  ratings: ImpactRating[],
+): (ImpactRating & { value: number }) | null {
+  return ratings
+    .filter(
+      (r): r is ImpactRating & { value: number } =>
+        typeof r.value === "number" && r.value > 0,
+    )
+    .reduce<(ImpactRating & { value: number }) | null>(
+      (max, r) => (!max || r.value > max.value ? r : max),
+      null,
+    );
+}
+
+/**
+ * Explain the level of a graph-suggested goal. Pure — call at render time.
+ * Only meaningful for goals the graph suggests; non-suggested goals are
+ * "none" regardless (see deriveSecurityGoalSuggestions).
+ */
+export function explainLevel(
+  goalType: SecurityGoalType,
+  impactRatings: ImpactRating[],
+  impactScale: ImpactScaleType,
+): LevelExplanation {
+  const criteriaIds = mechanismCriteria(goalType);
+  const relevant = impactRatings.filter((r) =>
+    criteriaIds.includes(r.criterionId),
+  );
+
+  const driver = maxRated(relevant);
+  if (driver) {
+    return {
+      kind: "mechanism",
+      level: numericToCIANAAALevel(driver.value, impactScale),
+      criterionId: driver.criterionId,
+      value: driver.value,
+    };
+  }
+
+  // Explicit "no damage via this mechanism": every relevant criterion present
+  // is "na". Must NOT fall through to the MAX-of-all fallback — that would let
+  // e.g. safety=4 turn a confidentiality goal "critical" although the analyst
+  // just declared confidentiality damage not applicable.
+  if (relevant.length > 0 && relevant.every((r) => r.value === "na")) {
+    return {
+      kind: "not-applicable",
+      level: FLOOR_LEVEL,
+      criterionIds: relevant.map((r) => r.criterionId),
+    };
+  }
+
+  const anyDriver = maxRated(impactRatings);
+  if (anyDriver) {
+    return {
+      kind: "fallback",
+      level: numericToCIANAAALevel(anyDriver.value, impactScale),
+      criterionId: anyDriver.criterionId,
+      value: anyDriver.value,
+    };
+  }
+
+  return { kind: "floor", level: FLOOR_LEVEL };
+}
+
 // ==================== DERIVATION ENGINE ====================
 
 /**
@@ -302,24 +402,13 @@ export function deriveSecurityGoalSuggestions(
       };
     }
 
-    // Derive level from mechanism-specific criteria.
-    const derivedLevel = deriveCIANAAALevel(
-      sg.type,
-      asset.impactRatings,
-      impactScale,
-    );
-
-    // Fallback: when no mechanism-specific criteria are rated, use MAX of all
-    // rated criteria (live, avoids stale overallImpact). "none" is reserved for
-    // "not applicable" — a graph-suggested goal is always at least "low".
-    const activeLevel =
-      derivedLevel !== "none"
-        ? derivedLevel
-        : computeMaxRatingLevel(asset.impactRatings, impactScale);
+    // Level + its reason come from ONE function (see explainLevel) so the
+    // stored level and the displayed/documented explanation cannot diverge.
+    const { level } = explainLevel(sg.type, asset.impactRatings, impactScale);
 
     return {
       ...sg,
-      level: activeLevel,
+      level,
       source: "suggested",
       rationale: sg.rationale,
     };
@@ -382,7 +471,9 @@ export function computeSuggestedLevel(
 ): CIANAAALevel {
   const suggested = computeSuggestedGoalTypes(asset);
   if (!suggested.has(goalType)) return "none";
-  return deriveCIANAAALevel(goalType, asset.impactRatings, impactScale);
+  // Same rule as the stored level — previously this skipped the fallback and
+  // could preview "none" for a goal the deriver stores as "low" or higher.
+  return explainLevel(goalType, asset.impactRatings, impactScale).level;
 }
 
 /**
@@ -431,48 +522,21 @@ export function explainSuggestion(
     }
   }
 
-  // Find which impact criterion is driving the level
-  const mechanism = (
-    Object.entries(CAUSE_MECHANISM_TO_GOAL) as [
-      CauseMechanismType,
-      SecurityGoalType,
-    ][]
-  ).find(([, goal]) => goal === goalType)?.[0];
-
-  let levelDriver: string | null = null;
-  if (mechanism) {
-    const criteriaIds = CAUSE_MECHANISM_CRITERIA[mechanism];
-    const drivingRating = asset.impactRatings
-      .filter(
-        (r): r is ImpactRating & { value: number } =>
-          criteriaIds.includes(r.criterionId) &&
-          typeof r.value === "number" &&
-          r.value > 0,
-      )
-      .reduce<
-        (ImpactRating & { value: number }) | null
-      >((max, r) => (!max || r.value > max.value ? r : max), null);
-
-    if (drivingRating) {
-      const level = numericToCIANAAALevel(drivingRating.value, impactScale);
-      levelDriver = `${drivingRating.criterionId} = ${drivingRating.value} → ${level}`;
-    }
-  }
-
-  // Fallback: if no mechanism-specific criterion found but other criteria are rated,
-  // explain that the level comes from the overall MAX fallback.
-  if (!levelDriver) {
-    const ratedValues = asset.impactRatings.filter(
-      (r): r is ImpactRating & { value: number } =>
-        typeof r.value === "number" && r.value > 0,
-    );
-    if (ratedValues.length > 0) {
-      const topRating = ratedValues.reduce((max, r) =>
-        r.value > max.value ? r : max,
-      );
-      const fallbackLevel = numericToCIANAAALevel(topRating.value, impactScale);
-      levelDriver = `max(${topRating.criterionId} = ${topRating.value}) → ${fallbackLevel} (fallback — no specific criteria rated)`;
-    }
+  const explanation = explainLevel(goalType, asset.impactRatings, impactScale);
+  let levelDriver: string | null;
+  switch (explanation.kind) {
+    case "mechanism":
+      levelDriver = `${explanation.criterionId} = ${explanation.value} → ${explanation.level}`;
+      break;
+    case "not-applicable":
+      levelDriver = `${explanation.criterionIds.join(", ")} = n/a → ${explanation.level} (floor — no damage via this mechanism)`;
+      break;
+    case "fallback":
+      levelDriver = `max(${explanation.criterionId} = ${explanation.value}) → ${explanation.level} (fallback — no specific criteria rated)`;
+      break;
+    case "floor":
+      levelDriver = null;
+      break;
   }
 
   return { reasons, levelDriver };
