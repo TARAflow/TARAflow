@@ -560,6 +560,61 @@ The following table lists all identified assets with their assessment.
      - {{securityGoals}}
 `,
 
+  securityGoals: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: Schutzziele
+
+[FREETEXT]
+Aktive Schutzziele je Asset. *Abgeleitet* = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; *Manuell* = Entscheidung des Analysten, Abweichungen vom Vorschlag sind zu begründen.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 15 10 10 30 20
+
+   * - Asset
+     - Schutzziel
+     - Stufe
+     - Quelle
+     - Grundlage
+     - Schadensfolge
+{{goalRows}}
+[/FREETEXT]
+
+[/SECTION]
+
+`
+      : `[SECTION]
+TITLE: Security Goals
+
+[FREETEXT]
+Active security goals per asset. *Derived* = proposed from DFD relations and impact ratings; *Manual* = analyst decision, deviations from the proposal require a rationale.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 15 10 10 30 20
+
+   * - Asset
+     - Security Goal
+     - Level
+     - Source
+     - Basis
+     - Consequence
+{{goalRows}}
+[/FREETEXT]
+
+[/SECTION]
+
+`,
+
+  securityGoalRow: `   * - {{asset}}
+     - {{goal}}
+     - {{level}}
+     - {{source}}
+     - {{basis}}
+     - {{consequence}}
+`,
+
   // ==================== THREATS ====================
   // Threats become [REQUIREMENT] nodes — traceable in StrictDoc.
   threatsHeader: (

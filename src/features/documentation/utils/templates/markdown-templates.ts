@@ -351,6 +351,30 @@ The following table lists all identified assets with their assessment.
   assetRow: `| {{id}} | {{name}} | {{description}} | {{impactLabel}} | {{securityGoals}} |
 `,
 
+  securityGoals: (lang: DocLanguage) =>
+    lang === "de"
+      ? `### Schutzziele
+
+Aktive Schutzziele je Asset. *Abgeleitet* = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; *Manuell* = Entscheidung des Analysten, Abweichungen vom Vorschlag sind zu begründen.
+
+| Asset | Schutzziel | Stufe | Quelle | Grundlage | Schadensfolge |
+|---|---|---|---|---|---|
+{{goalRows}}
+
+`
+      : `### Security Goals
+
+Active security goals per asset. *Derived* = proposed from DFD relations and impact ratings; *Manual* = analyst decision, deviations from the proposal require a rationale.
+
+| Asset | Security Goal | Level | Source | Basis | Consequence |
+|---|---|---|---|---|---|
+{{goalRows}}
+
+`,
+
+  securityGoalRow: `| {{asset}} | {{goal}} | {{level}} | {{source}} | {{basis}} | {{consequence}} |
+`,
+
   // ==================== THREATS ====================
   threatsHeader: (
     lang: DocLanguage,

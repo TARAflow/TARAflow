@@ -294,6 +294,14 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_TEMPLATES.assetRow;
   }
 
+  getSecurityGoalsTemplate(): string {
+    return SDOC_TEMPLATES.securityGoals(this.ctx.lang);
+  }
+
+  getSecurityGoalRowTemplate(): string {
+    return SDOC_TEMPLATES.securityGoalRow;
+  }
+
   getThreatsHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return SDOC_TEMPLATES.threatsHeader(this.ctx.lang, method);
   }

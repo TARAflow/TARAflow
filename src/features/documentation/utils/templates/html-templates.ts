@@ -390,6 +390,63 @@ export const HTML_TEMPLATES = {
       </tr>
 `,
 
+  securityGoals: (lang: DocLanguage) =>
+    lang === "de"
+      ? `<section id="schutzziele">
+  <h3>Schutzziele</h3>
+  <p>Aktive Schutzziele je Asset. <em>Abgeleitet</em> = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; <em>Manuell</em> = Entscheidung des Analysten, Abweichungen vom Vorschlag sind zu begründen.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Asset</th>
+        <th>Schutzziel</th>
+        <th>Stufe</th>
+        <th>Quelle</th>
+        <th>Grundlage</th>
+        <th>Schadensfolge</th>
+      </tr>
+    </thead>
+    <tbody>
+{{goalRows}}
+    </tbody>
+  </table>
+</section>
+
+`
+      : `<section id="security-goals">
+  <h3>Security Goals</h3>
+  <p>Active security goals per asset. <em>Derived</em> = proposed from DFD relations and impact ratings; <em>Manual</em> = analyst decision, deviations from the proposal require a rationale.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Asset</th>
+        <th>Security Goal</th>
+        <th>Level</th>
+        <th>Source</th>
+        <th>Basis</th>
+        <th>Consequence</th>
+      </tr>
+    </thead>
+    <tbody>
+{{goalRows}}
+    </tbody>
+  </table>
+</section>
+
+`,
+
+  securityGoalRow: `      <tr>
+        <td>{{asset}}</td>
+        <td>{{goal}}</td>
+        <td>{{level}}</td>
+        <td>{{source}}</td>
+        <td>{{basis}}</td>
+        <td>{{consequence}}</td>
+      </tr>
+`,
+
   // ==================== THREATS ====================
   threatsHeader: (
     lang: DocLanguage,

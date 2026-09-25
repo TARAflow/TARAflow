@@ -173,6 +173,14 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_TEMPLATES.assetRow;
   }
 
+  getSecurityGoalsTemplate(): string {
+    return MD_TEMPLATES.securityGoals(this.ctx.lang);
+  }
+
+  getSecurityGoalRowTemplate(): string {
+    return MD_TEMPLATES.securityGoalRow;
+  }
+
   getThreatsHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return MD_TEMPLATES.threatsHeader(this.ctx.lang, method);
   }

@@ -150,6 +150,14 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return ADOC_TEMPLATES.assetRow;
   }
 
+  getSecurityGoalsTemplate(): string {
+    return ADOC_TEMPLATES.securityGoals(this.ctx.lang);
+  }
+
+  getSecurityGoalRowTemplate(): string {
+    return ADOC_TEMPLATES.securityGoalRow;
+  }
+
   getThreatsHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return ADOC_TEMPLATES.threatsHeader(this.ctx.lang, method);
   }

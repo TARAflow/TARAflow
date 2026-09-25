@@ -217,6 +217,14 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.assetRow;
   }
 
+  getSecurityGoalsTemplate(): string {
+    return HTML_TEMPLATES.securityGoals(this.ctx.lang);
+  }
+
+  getSecurityGoalRowTemplate(): string {
+    return HTML_TEMPLATES.securityGoalRow;
+  }
+
   getThreatsHeaderTemplate(method: "per-element" | "per-interaction"): string {
     return HTML_TEMPLATES.threatsHeader(this.ctx.lang, method);
   }

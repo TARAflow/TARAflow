@@ -35,6 +35,7 @@ import {
   type Iso21434Feasibility as Iso21434FeasibilityLevel,
 } from "../../../risks/models/iso21434-core";
 import { assetImpactResolver } from "../../../assets/services/asset-impact-resolver";
+import { buildSecurityGoalDocRows } from "../security-goal-doc-rows";
 import {
   getSecurityLevelText,
   getTrustLevelText,
@@ -287,6 +288,15 @@ export abstract class BaseDocumentGenerator {
   ): string;
   abstract getRisksTableTemplate(): string;
   abstract getRiskRowTemplate(): string;
+  // Security-goal table (asset × active goal) appended to the assets chapter.
+  // Default empty so a format that has not implemented it simply omits the
+  // table, same convention as the SRSL templates below.
+  protected getSecurityGoalsTemplate(): string {
+    return "";
+  }
+  protected getSecurityGoalRowTemplate(): string {
+    return "";
+  }
   // EN 50742 SRSL table — default empty so a format that has not implemented
   // it yet simply produces no SRSL chapter (auto-hidden). Overridden in the
   // markdown and asciidoc generators.
@@ -1068,9 +1078,10 @@ export abstract class BaseDocumentGenerator {
       })
       .join("");
 
-    const content = replacePlaceholders(this.getAssetsTemplate(), {
-      assetRows,
-    });
+    const content =
+      replacePlaceholders(this.getAssetsTemplate(), {
+        assetRows,
+      }) + this.generateSecurityGoalTable(assets);
 
     return {
       id: "assets",
@@ -1078,6 +1089,37 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  /**
+   * Security-goal table: one row per asset × active goal with level, source
+   * (derived / manual), basis (relations + level driver, or the analyst's
+   * rationale) and damage-scenario consequence. Row content comes from
+   * buildSecurityGoalDocRows so every format — incl. pdfmake — says the same.
+   */
+  protected generateSecurityGoalTable(assets: Asset[]): string {
+    const tableTemplate = this.getSecurityGoalsTemplate();
+    if (!tableTemplate) return "";
+
+    const impactScale =
+      this.ctx.project.assets?.configuration?.impactScale ?? "4-level";
+    const rows = buildSecurityGoalDocRows(assets, impactScale, this.ctx.lang);
+    if (rows.length === 0) return "";
+
+    const goalRows = rows
+      .map((row) =>
+        replacePlaceholders(this.getSecurityGoalRowTemplate(), {
+          asset: this.escapeTableText(row.asset),
+          goal: this.escapeTableText(row.goal),
+          level: this.escapeTableText(row.level),
+          source: this.escapeTableText(row.source),
+          basis: this.escapeTableText(row.basis),
+          consequence: this.escapeTableText(row.consequence),
+        }),
+      )
+      .join("");
+
+    return replacePlaceholders(tableTemplate, { goalRows });
   }
 
   // ==================== THREATS ====================

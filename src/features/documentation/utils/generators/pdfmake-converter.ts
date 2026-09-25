@@ -26,6 +26,10 @@ import {
   resolveVerificationDrafts,
 } from "../../../threats/services/threat-catalog-service";
 import { formatRiskLabel } from "../../../../shared/models/risk-label";
+import {
+  buildSecurityGoalDocRows,
+  securityGoalDocLabels,
+} from "../security-goal-doc-rows";
 
 // ==================== LABELS (Phase 6 fix) ====================
 //
@@ -629,9 +633,51 @@ export class PdfMakeConverter {
       margin: [0, 0, 0, 20],
     });
 
+    content.push(...this.createSecurityGoalTable());
+
     content.push({ text: "", pageBreak: "after" });
 
     return content;
+  }
+
+  // Security-goal table (asset × active goal) — same rows as the text formats
+  // via buildSecurityGoalDocRows. Omitted when no asset has an active goal.
+  private createSecurityGoalTable(): Content[] {
+    const impactScale =
+      this.project.assets?.configuration?.impactScale ?? "4-level";
+    const rows = buildSecurityGoalDocRows(
+      this.getAssets(),
+      impactScale,
+      this.lang,
+    );
+    if (rows.length === 0) return [];
+
+    const labels = securityGoalDocLabels(this.lang);
+    const body: TableCell[][] = [
+      labels.headers.map((h) => ({ text: h, style: "tableHeader" })),
+      ...rows.map((r) => [
+        { text: r.asset },
+        { text: r.goal },
+        { text: r.level },
+        { text: r.source },
+        { text: r.basis, fontSize: 8 },
+        { text: r.consequence, fontSize: 8 },
+      ]),
+    ];
+
+    return [
+      { text: labels.title, style: "h2" },
+      { text: labels.intro, margin: [0, 0, 0, 8] },
+      {
+        table: {
+          headerRows: 1,
+          widths: [60, 70, 40, 45, "*", "*"],
+          body,
+        },
+        layout: "lightHorizontalLines",
+        margin: [0, 0, 0, 20],
+      },
+    ];
   }
 
   // ==================== THREATS ====================
