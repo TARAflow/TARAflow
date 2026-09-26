@@ -11,6 +11,7 @@
 import { describe, it, expect } from "vitest";
 import {
   computeSuggestedLevel,
+  computeSuggestedGoalTypes,
   deriveSecurityGoalSuggestions,
   explainLevel,
   explainSuggestion,
@@ -171,5 +172,34 @@ describe("computeSuggestedLevel / explainSuggestion stay consistent with the sto
     const { levelDriver } = explainSuggestion(asset, "C", "4-level");
     expect(levelDriver).toContain("n/a");
     expect(levelDriver).not.toContain("safety");
+  });
+});
+
+describe("single suggestion rule: stored goals follow computeSuggestedGoalTypes", () => {
+  function asset(props: Record<string, unknown>, relation: string): Asset {
+    return {
+      id: "A-9",
+      name: "X",
+      assetGroup: "data",
+      properties: props,
+      impactRatings: [rating("financial_damage", 3), rating("safety", 2)],
+      securityGoals: emptyGoals(),
+      linkedDFDElements: [{ elementId: "E-1", elementName: "E", relationType: relation }],
+    } as unknown as Asset;
+  }
+
+  it.each([
+    ["stores, secure storage (C*)", { isSecureStorage: true }, "stores"],
+    ["stores, no flag", {}, "stores"],
+    ["transports, personal data (Acc**)", { isPersonalData: true }, "transports"],
+    ["transports, no flag", {}, "transports"],
+  ])("%s", (_label, props, relation) => {
+    const a = asset(props, relation);
+    const active = new Set(
+      deriveSecurityGoalSuggestions(a, a.securityGoals, "4-level")
+        .filter((g) => g.level !== "none")
+        .map((g) => g.type),
+    );
+    expect(active).toEqual(computeSuggestedGoalTypes(a));
   });
 });

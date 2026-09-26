@@ -339,52 +339,9 @@ export function deriveSecurityGoalSuggestions(
   existing: SecurityGoal[],
   impactScale: ImpactScaleType = "4-level",
 ): SecurityGoal[] {
-  const flags = extractFlags(asset);
-
-  // Use canonical assetGroup field — NOT the legacy properties.category
-  // Bug fix: was (asset.properties?.category ?? "data")
-  const assetGroup = asset.assetGroup as string;
-
-  const applicability = CIANAAA_APPLICABLE[assetGroup];
-  const suggested = new Set<SecurityGoalType>();
-
-  for (const link of asset.linkedDFDElements) {
-    const relationType = link.relationType ?? "";
-    const qualifier = link.qualifier;
-
-    const key = buildKey(assetGroup, relationType, qualifier);
-    const baseGoals = BASE_RULES[key] ?? [];
-
-    for (const goal of baseGoals) {
-      // Filter by CIANAAA_APPLICABLE matrix
-      if (applicability?.[goal] !== false) {
-        suggested.add(goal);
-      }
-    }
-
-    // (*) Conditional Confidentiality
-    if (
-      CONFIDENTIALITY_STAR_RELATIONS.has(key) &&
-      applicability?.["C"] !== false
-    ) {
-      const isProcess = assetGroup === "process";
-      if (
-        (assetGroup === "data" && flags.isSecureStorage) ||
-        (isProcess && flags.isBusinessSecret)
-      ) {
-        suggested.add("C");
-      }
-    }
-
-    // (**) Conditional Accountability
-    if (
-      ACCOUNTABILITY_STAR_STAR_RELATIONS.has(key) &&
-      flags.isPersonalData &&
-      applicability?.["Acc"] !== false
-    ) {
-      suggested.add("Acc");
-    }
-  }
+  // ONE suggestion rule: the same set the previews, goalState() and the
+  // documentation use (previously a line-by-line copy lived here).
+  const suggested = computeSuggestedGoalTypes(asset);
 
   // Merge suggestions with existing — never overwrite source: "manual"
   return existing.map((sg): SecurityGoal => {
