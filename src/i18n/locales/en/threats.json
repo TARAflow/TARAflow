@@ -288,6 +288,7 @@
           "keepAll": "Keep all",
           "removeWithoutRisk": "Remove all without risk",
           "colThreat": "Threat",
+          "colName": "Name",
           "colRisk": "Risk",
           "colDecision": "Decision",
           "risk": "Risk",

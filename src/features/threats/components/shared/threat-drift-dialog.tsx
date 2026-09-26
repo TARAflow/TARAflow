@@ -114,7 +114,7 @@ export const ThreatDriftDialog: React.FC<ThreatDriftDialogProps> = ({
           <TableHead>
             <TableRow>
               <TableCell>{t("tabs.threats.drift.dialog.colThreat", { defaultValue: "Threat" })}</TableCell>
-              <TableCell>{t("tabs.threats.element", { defaultValue: "Element" })}</TableCell>
+              <TableCell>{t("tabs.threats.drift.dialog.colName", { defaultValue: "Name" })}</TableCell>
               <TableCell>STRIDE</TableCell>
               <TableCell>{t("tabs.threats.drift.dialog.colRisk", { defaultValue: "Risk" })}</TableCell>
               <TableCell align="right">
