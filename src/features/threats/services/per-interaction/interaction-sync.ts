@@ -12,7 +12,10 @@ import {
   DataFlowChange,
   generateThreatIdPerInteraction,
 } from "../../models/per-interaction-types";
-import { interactionThreatGenerator } from "./interaction-generator";
+import {
+  interactionThreatGenerator,
+  isInteractionFlowInScope,
+} from "./interaction-generator";
 import {
   DataFlowReference,
   DFDElementReference,
@@ -256,6 +259,18 @@ export class InteractionThreatSync {
         connection.excludeFromThreatGen ||
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
+
+      // Flows the generator never covers (no trust boundary on either side,
+      // e.g. External Entity → External Entity) are out of scope, not missing:
+      // reporting them made the sync banner permanent — syncing adds nothing.
+      if (
+        !isInteractionFlowInScope(
+          graph.effectiveElementTrustBoundary.get(connection.from) ?? null,
+          graph.effectiveElementTrustBoundary.get(connection.to) ?? null,
+          graph.elementsById.get(connection.to)?.type,
+        )
+      )
+        continue;
 
       if (!threatenedConnections.has(connId)) {
         missingConnections.push(connection);

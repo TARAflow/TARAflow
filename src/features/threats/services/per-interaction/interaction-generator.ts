@@ -58,6 +58,28 @@ import {
 
 type Perspective = "sender" | "receiver";
 
+// ==================== SCOPE ====================
+
+/**
+ * Whether the per-interaction generator produces threats for a data flow at
+ * all. Threats are filed in the table of the trust boundary that owns the
+ * conversation; a flow with no effective trust boundary on EITHER side (e.g.
+ * External Entity → External Entity) is outside the analysed system and no
+ * table owns it. Exception: a flow terminating at a ChipBoundary gets the
+ * receiver perspective in the chip boundary's table.
+ *
+ * Shared with the DFD sync check: a flow the generator never covers must not
+ * be reported as "without threats" — syncing could never resolve it.
+ */
+export function isInteractionFlowInScope(
+  fromEffectiveTB: string | null | undefined,
+  toEffectiveTB: string | null | undefined,
+  targetType: string | undefined,
+): boolean {
+  if (fromEffectiveTB || toEffectiveTB) return true;
+  return targetType === "ChipBoundary";
+}
+
 // ==================== INTERACTION THREAT GENERATOR ====================
 
 export class InteractionThreatGenerator {
@@ -121,6 +143,14 @@ export class InteractionThreatGenerator {
 
       const senderTB = df.fromEffectiveTrustBoundary ?? null;
       const receiverTB = df.toEffectiveTrustBoundary ?? null;
+      if (
+        !isInteractionFlowInScope(
+          senderTB,
+          receiverTB,
+          graph.elementsById.get(df.toElementId)?.type,
+        )
+      )
+        continue;
       const internalFlow = senderTB !== null && senderTB === receiverTB;
 
       // Element props for context-aware template matching:
