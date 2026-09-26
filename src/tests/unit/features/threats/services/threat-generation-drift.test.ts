@@ -10,12 +10,15 @@
 import { describe, it, expect } from "vitest";
 import {
   detectGenerationDrift,
+  projectGenerationDrift,
+  driftCount,
   hasDrift,
   keepThreatsAsManual,
   removeThreats,
   NO_DRIFT,
 } from "features/threats/services/threat-generation-drift";
 import { elementThreatGenerator } from "features/threats/services/per-element/element-generator";
+import { elementThreatService } from "features/threats/services/per-element/element-threat-service";
 import type {
   ThreatConfiguration,
   ThreatProjectData,
@@ -50,8 +53,10 @@ function project(
 ): ThreatProjectData {
   return {
     threats: tables
-      ? { perElementTables: tables, perInteractionTables: [] }
+      ? { configuration: config, perElementTables: tables, perInteractionTables: [] }
       : null,
+    dfdElements: [store],
+    dfdConnections: [],
     dfdGraph: {
       elementsById: new Map([[store.id, store]]),
       connectionsById: new Map(),
@@ -174,5 +179,33 @@ describe("resolution actions", () => {
   it("empty id set is a no-op (same reference)", () => {
     expect(keepThreatsAsManual(stored, new Set())).toBe(stored);
     expect(removeThreats(stored, new Set())).toBe(stored);
+  });
+});
+
+describe("projectGenerationDrift (phase tab badge)", () => {
+  it("reports the same drift as the tab for the active method", () => {
+    const stored = generated(["I", "C"]);
+    const d = projectGenerationDrift(project(["I"], stored), ctx);
+    expect(d.obsolete).toHaveLength(1);
+    expect(driftCount(d)).toBe(1);
+  });
+
+  it("no drift while the DFD sync is not clean (sync's job, not drift)", () => {
+    const stored = generated(["I", "C"]);
+    const p = project(["I"], stored);
+    // a new element the stored threats do not cover yet → DFD out of sync
+    const extra = { ...store, id: "ds-2", displayId: "DS-2", name: "New Store" };
+    (p as any).dfdElements = [store, extra];
+    (p as any).dfdGraph.elementsById.set(extra.id, extra);
+    (p as any).dfdGraph.effectiveElementTrustBoundary.set(extra.id, null);
+    expect(elementThreatService.checkSyncStatus(p, stored).inSync).toBe(false);
+    // detection alone WOULD report something here…
+    expect(hasDrift(detectGenerationDrift(p, ctx, config, "per-element"))).toBe(true);
+    // …but the project-level view defers to the DFD sync
+    expect(projectGenerationDrift(p, ctx)).toEqual(NO_DRIFT);
+  });
+
+  it("nothing generated yet → no drift", () => {
+    expect(projectGenerationDrift(project(["I"]), ctx)).toEqual(NO_DRIFT);
   });
 });

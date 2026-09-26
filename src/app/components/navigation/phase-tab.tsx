@@ -13,6 +13,8 @@ interface PhaseTabProps {
   onClick: () => void;
   errorCount?: number;
   warningCount?: number;
+  /** Extra tooltip lines explaining non-validation warnings (e.g. threat drift). */
+  warningHints?: string[];
 }
 
 export const PhaseTab: React.FC<PhaseTabProps> = ({
@@ -22,6 +24,7 @@ export const PhaseTab: React.FC<PhaseTabProps> = ({
   onClick,
   errorCount = 0,
   warningCount = 0,
+  warningHints = [],
 }) => {
   const { t } = useTranslation();
   const icon = getPhaseStatusIcon(status);
@@ -34,7 +37,9 @@ export const PhaseTab: React.FC<PhaseTabProps> = ({
     if (errorCount > 0) {
       parts.push(`${errorCount} ${t("tabs.dfd.validation.errors")}`);
     }
-    if (warningCount > 0) {
+    if (warningHints.length > 0) {
+      parts.push(...warningHints);
+    } else if (warningCount > 0) {
       parts.push(`${warningCount} ${t("tabs.dfd.validation.warnings")}`);
     }
 

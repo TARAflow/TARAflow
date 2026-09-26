@@ -91,5 +91,11 @@ export {
 } from "./services/threat-catalog-service";
 
 export { syncThreatsWithGraph } from "./services/sync-threats-with-graph";
+export {
+  projectGenerationDrift,
+  driftCount,
+  NO_DRIFT,
+} from "./services/threat-generation-drift";
+export type { GenerationDrift } from "./services/threat-generation-drift";
 
 export { formatDataFlowDisplay } from "./models/per-interaction-types";

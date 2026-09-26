@@ -33,6 +33,8 @@ import {
   elementThreatNaturalKey,
   interactionThreatNaturalKey,
 } from "./threat-identity";
+import { elementThreatService } from "./per-element/element-threat-service";
+import { interactionThreatService } from "./per-interaction/interaction-threat-service";
 
 // ==================== TYPES ====================
 
@@ -156,6 +158,36 @@ export function detectGenerationDrift(
 
 export function hasDrift(drift: GenerationDrift): boolean {
   return drift.obsolete.length > 0 || drift.addedCount > 0;
+}
+
+/**
+ * Drift of a whole project for its active STRIDE method — for surfaces that
+ * are NOT the Threats tab (e.g. the phase tab badge), so the analyst sees the
+ * drift right after changing security goals, without opening the tab.
+ *
+ * Same gating as the Threats tab banner: only evaluated while the DFD sync is
+ * clean — threats for new or deleted elements are the sync's job, not drift.
+ */
+export function projectGenerationDrift(
+  project: ThreatProjectData,
+  dfdContext: DFDAnalysisContext,
+): GenerationDrift {
+  const configuration = project.threats?.configuration;
+  if (!configuration) return NO_DRIFT;
+  const method: StrideMethod = configuration.activeMethod ?? "per-element";
+  const tables = storedTables(project, method);
+  if (!project.dfdElements?.length || tables.length === 0) return NO_DRIFT;
+
+  const service =
+    method === "per-element" ? elementThreatService : interactionThreatService;
+  if (!service.checkSyncStatus(project, tables).inSync) return NO_DRIFT;
+
+  return detectGenerationDrift(project, dfdContext, configuration, method);
+}
+
+/** Number of threats affected by the drift (to be removed + to be added). */
+export function driftCount(drift: GenerationDrift): number {
+  return drift.obsolete.length + drift.addedCount;
 }
 
 // ==================== RESOLUTION (explicit analyst actions) ====================

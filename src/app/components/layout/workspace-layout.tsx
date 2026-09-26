@@ -63,6 +63,9 @@ import {
   getAllMitigations,
   syncThreatsWithGraph,
   type ThreatRiskAttachment,
+  type ThreatProjectData,
+  projectGenerationDrift,
+  NO_DRIFT,
 } from "features/threats";
 
 import { RisksTab, RiskUpdateResult } from "features/risks";
@@ -715,6 +718,44 @@ export const WorkspaceLayout: React.FC = () => {
     memoizedHazardRef,
   ]);
 
+  // ── Threat generation drift (phase tab badge) ────────────────────────────
+  // Same check as the Threats tab banner, evaluated here so the badge appears
+  // right after e.g. a security-goal change in the Asset tab. Runs the threat
+  // generator without writing — cheap for typical DFD sizes; memoized on the
+  // inputs the generator reads.
+  const threatDriftCounts = useMemo(() => {
+    if (!activeProject?.threats || !memoizedDFDContext) return undefined;
+    const driftProject = {
+      id: activeProject.id,
+      name: activeProject.info?.name || "",
+      threats: activeProject.threats,
+      phaseStatus: activeProject.phaseStatus,
+      dfdElements: activeProject.dfd?.elements ?? [],
+      dfdConnections: activeProject.dfd?.connections ?? [],
+      dfdGraph: memoizedDFDGraphRef,
+      assetDataRef: memoizedAssetDataRef,
+      dfd: memoizedDFDReference,
+      info: { tags: activeProject.info?.tags ?? EMPTY_PROJECT_TAGS },
+      lastModified: "",
+    } as unknown as ThreatProjectData;
+    let drift = NO_DRIFT;
+    try {
+      drift = projectGenerationDrift(driftProject, memoizedDFDContext);
+    } catch {
+      // A badge must never break the workspace; the tab shows details.
+    }
+    return { obsolete: drift.obsolete.length, added: drift.addedCount };
+  }, [
+    activeProject?.threats,
+    activeProject?.dfd?.elements,
+    activeProject?.dfd?.connections,
+    activeProject?.info?.tags,
+    memoizedDFDContext,
+    memoizedDFDGraphRef,
+    memoizedAssetDataRef,
+    memoizedDFDReference,
+  ]);
+
   // ── Control instances + security drift ───────────────────────────────────
 
   // getAllMitigations() is a module-level singleton — memoize to ensure
@@ -859,6 +900,7 @@ export const WorkspaceLayout: React.FC = () => {
         project={activeProject}
         activePhase={activePhase}
         onPhaseChange={handlePhaseChange}
+        threatDrift={threatDriftCounts}
       />
 
       <div className="flex-1 overflow-y-auto">

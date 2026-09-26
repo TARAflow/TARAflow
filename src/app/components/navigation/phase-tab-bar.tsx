@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Project } from "../../models/project-types";
 import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
 import { PhaseTab } from "./phase-tab";
@@ -24,13 +25,21 @@ interface PhaseTabsProps {
   project: Project;
   activePhase: number;
   onPhaseChange: (phaseId: number) => void;
+  /**
+   * Stored threats that differ from what the current generation rules /
+   * security goals would produce. Shown as a warning on the Threats tab so the
+   * analyst notices it right after changing goals, without opening the tab.
+   */
+  threatDrift?: { obsolete: number; added: number };
 }
 
 export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   project,
   activePhase,
   onPhaseChange,
+  threatDrift,
 }) => {
+  const { t } = useTranslation();
   const phaseStatus = project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
   // Safety gating: the Hazard phase only appears when safety relevance is on
   const safetyRelevant = project?.info?.safetyRelevant ?? false;
@@ -73,9 +82,29 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
         case PhaseId.Assets:
           // Assets Phase
           return { errors: 0, warnings: 0 };
-        case PhaseId.Threats:
-          // Threats Phase
-          return { errors: 0, warnings: 0 };
+        case PhaseId.Threats: {
+          // Threats Phase — generation drift (not a validation finding)
+          const obsolete = threatDrift?.obsolete ?? 0;
+          const added = threatDrift?.added ?? 0;
+          const hints: string[] = [];
+          if (obsolete > 0) {
+            hints.push(
+              t("tabs.threats.drift.banner.obsolete", {
+                count: obsolete,
+                defaultValue: "{{count}} stored threats would no longer be generated",
+              }),
+            );
+          }
+          if (added > 0) {
+            hints.push(
+              t("tabs.threats.drift.banner.added", {
+                count: added,
+                defaultValue: "{{count}} threats would be added",
+              }),
+            );
+          }
+          return { errors: 0, warnings: obsolete + added, hints };
+        }
         case PhaseId.Risk:
           // Risk Phase
           return { errors: 0, warnings: 0 };
@@ -92,7 +121,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           return { errors: 0, warnings: 0 };
       }
     };
-  }, [project?.dfd?.validation]);
+  }, [project?.dfd?.validation, threatDrift?.obsolete, threatDrift?.added, t]);
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 pt-4">
@@ -103,7 +132,9 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
             const status =
               phaseStatus[phase.id as keyof typeof phaseStatus] ??
               "not-started";
-            const { errors, warnings } = getPhaseValidationCounts(phase.id);
+            const counts = getPhaseValidationCounts(phase.id);
+            const { errors, warnings } = counts;
+            const hints = "hints" in counts ? counts.hints : undefined;
 
             return (
               <PhaseTab
@@ -115,6 +146,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
                 onClick={() => onPhaseChange(phase.id)}
                 errorCount={errors}
                 warningCount={warnings}
+                warningHints={hints}
               />
             );
           })}
