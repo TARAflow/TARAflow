@@ -8,6 +8,22 @@ import { goalFindings, goalStates } from "./asset-goal-state";
 import type { GoalFindingCode } from "./asset-goal-state";
 import type { PhaseStatus } from "shared";
 
+/**
+ * How a validation message names an asset: display id plus name, e.g.
+ * "DA-001 (Calibration data)". Never the internal UUID — the analyst cannot
+ * find an asset by it. Colons are stripped from the name because the message
+ * key uses ":" as separator (key:asset:goal).
+ */
+export function assetLabel(asset: {
+  id: string;
+  displayId?: string;
+  name?: string;
+}): string {
+  const name = asset.name?.trim().replace(/\s*:\s*/g, " ");
+  const id = asset.displayId || asset.id;
+  return name ? `${id} (${name})` : id;
+}
+
 export function validateAssetData(assetData: AssetData): AssetValidation {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -19,14 +35,15 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
   }
 
   for (const asset of assetData.assets) {
+    const label = assetLabel(asset);
     if (!asset.name.trim()) {
-      errors.push(`tabs.assets.validation.noName:${asset.id}`);
+      errors.push(`tabs.assets.validation.noName:${label}`);
     }
 
     // Check if at least one CIANAAA dimension is active (level !== "none")
     // Replaces former: !asset.securityGoals.some((sg) => sg.enabled)
     if (!asset.securityGoals.some((sg) => sg.level !== "none")) {
-      errors.push(`tabs.assets.validation.noSecurityGoal:${asset.id}`);
+      errors.push(`tabs.assets.validation.noSecurityGoal:${label}`);
     }
 
     // Warn about active goals without a formal description
@@ -34,7 +51,7 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
       (sg) => sg.level !== "none" && !sg.formalDescription.trim(),
     )) {
       warnings.push(
-        `tabs.assets.validation.noSecurityGoalDescription:${asset.id}:${sg.type}`,
+        `tabs.assets.validation.noSecurityGoalDescription:${label}:${sg.type}`,
       );
     }
 
@@ -44,21 +61,20 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
       !asset.physicalImpactRationale?.trim()
     ) {
       warnings.push(
-        `tabs.assets.validation.noPhysicalImpactRationale:${asset.id}`,
+        `tabs.assets.validation.noPhysicalImpactRationale:${label}`,
       );
     }
 
     if (asset.linkedDFDElements.length === 0) {
-      warnings.push(`tabs.assets.validation.notLinkedToDFD:${asset.id}`);
+      warnings.push(`tabs.assets.validation.notLinkedToDFD:${label}`);
     }
 
     if (asset.impactRatings.some((r) => r.value === 0)) {
-      warnings.push(`tabs.assets.validation.unratedImpact:${asset.id}`);
+      warnings.push(`tabs.assets.validation.unratedImpact:${label}`);
     }
 
     // Security-goal findings — from the single domain truth (goalStates).
     // Messages name the asset by its display id, not the internal UUID.
-    const label = asset.displayId || asset.name || asset.id;
     const states = goalStates(asset, impactScale);
     asset.securityGoals.forEach((goal, i) => {
       for (const f of goalFindings(states[i], goal)) {
