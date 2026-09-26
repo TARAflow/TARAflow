@@ -194,7 +194,8 @@ const InteractionThreatRows: React.FC<{
   onDelete: (id: string) => void;
 }> = React.memo(
   ({ threats, assetDataRef, showThreatActor = false, t, onEdit, onDelete }) => {
-    const [sortField, setSortField] = useState<ThreatSortField>("priority");
+    // Default: reading order by data flow (DF-1, DF-2 …), then STRIDE.
+    const [sortField, setSortField] = useState<ThreatSortField>("id");
     const [sortDir, setSortDir] = useState<SortDir>("asc");
 
     const formatInteractionDirection = (

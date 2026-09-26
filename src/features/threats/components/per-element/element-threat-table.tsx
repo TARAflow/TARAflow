@@ -3,6 +3,7 @@
 // Grouped by Trust Boundary → nested Element accordions → MUI Table rows.
 // MUI Table replaces DataGrid for 10× faster initial render.
 
+import { compareDisplayIds, compareElementTypes } from "shared";
 import React, { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -54,6 +55,7 @@ import {
   MissingChip,
   ActorCell,
   SourceBadge,
+  compareThreatsByLabel,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
 import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
@@ -563,11 +565,16 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
         }
         groups[elem.elementId].threats.push(threat);
       }
-      return Object.values(groups).sort((a, b) => {
-        const idA = a.displayId || a.elementName || a.elementId;
-        const idB = b.displayId || b.elementName || b.elementId;
-        return idA.localeCompare(idB, undefined, { numeric: true });
-      });
+      // Element kind first (fixed order), then natural display id:
+      // DF-1, DF-2 … DF-10 — not DF-1, DF-10, DF-2 and not stored order.
+      return Object.values(groups).sort(
+        (a, b) =>
+          compareElementTypes(a.elementType, b.elementType) ||
+          compareDisplayIds(
+            a.displayId || a.elementName || a.elementId,
+            b.displayId || b.elementName || b.elementId,
+          ),
+      );
     };
 
     const elementGroups = useMemo(
@@ -579,7 +586,12 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
       () =>
         elementGroups.map((g) => ({
           ...g,
-          threats: sortThreatsByPriority(g.threats, assetDataRef),
+          // Label order first (STRIDE S-T-R-I-D-E), so equal priorities keep
+          // a stable reading order instead of the stored one.
+          threats: sortThreatsByPriority(
+            [...g.threats].sort(compareThreatsByLabel),
+            assetDataRef,
+          ),
         })),
       [elementGroups, assetDataRef],
     );

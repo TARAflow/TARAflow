@@ -37,7 +37,7 @@ import {
   PrecisionManufacturing as ActuatorIcon,
 } from "@mui/icons-material";
 
-import { AssetGroup } from "shared";
+import { AssetGroup, compareDisplayIds } from "shared";
 import type {
   DFDElement,
   DFDConnection,
@@ -88,15 +88,35 @@ interface GroupedElements {
 
 // ==================== HELPER FUNCTIONS ====================
 
-const groupElementsByType = (elements: DFDElement[]): GroupedElements => {
-  return elements.reduce((acc, element) => {
+/**
+ * Group by element type; within a group in natural display-id order
+ * (P-1, P-2 … P-10), not in drawing order.
+ */
+export const groupElementsByType = (elements: DFDElement[]): GroupedElements => {
+  const grouped = elements.reduce((acc, element) => {
     if (!acc[element.type]) {
       acc[element.type] = [];
     }
     acc[element.type].push(element);
     return acc;
   }, {} as GroupedElements);
+  for (const list of Object.values(grouped)) {
+    list.sort((a, b) =>
+      compareDisplayIds(a.displayId ?? a.name, b.displayId ?? b.name),
+    );
+  }
+  return grouped;
 };
+
+/** Data flows in natural display-id order (DF-1, DF-2 … DF-10). */
+export const sortConnectionsByDisplayId = <
+  T extends { displayId?: string; name?: string; id: string },
+>(
+  connections: T[],
+): T[] =>
+  [...connections].sort((a, b) =>
+    compareDisplayIds(a.displayId ?? a.name ?? a.id, b.displayId ?? b.name ?? b.id),
+  );
 
 const isElementDescribed = (element: DFDElement): boolean => {
   return !!element.description && element.description.trim().length > 0;
@@ -254,6 +274,11 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   );
 
   // Group elements by type for better organization
+  const sortedConnections = useMemo(
+    () => sortConnectionsByDisplayId(connections),
+    [connections],
+  );
+
   const groupedElements = useMemo(
     () => groupElementsByType(elements),
     [elements],
@@ -524,7 +549,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
             </AccordionSummary>
 
             <AccordionDetails sx={{ p: 0 }}>
-              {connections.map((connection) => (
+              {sortedConnections.map((connection) => (
                 <ConnectionAccordion
                   key={connection.id}
                   graphContext={graphContext}

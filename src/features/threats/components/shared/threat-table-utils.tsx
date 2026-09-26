@@ -12,13 +12,28 @@ import {
   getPhysicalImpactColor,
   getThreatPriority,
 } from "../../utils/threat-asset-utils";
-import { STRIDE_COLORS } from "shared";
+import { STRIDE_COLORS, compareDisplayIds, compareStride } from "shared";
 import type { StrideCategory } from "shared";
 
 // ==================== SORT TYPES ====================
 
 export type ThreatSortField = "id" | "strideCategory" | "priority";
 export type SortDir = "asc" | "desc";
+
+/**
+ * Reading order of threats: by the data flow (per-interaction) or element
+ * they belong to — natural display id, DF-2 before DF-10 — then STRIDE order
+ * S-T-R-I-D-E, then the threat label (e.g. IN before OUT).
+ */
+export function compareThreatsByLabel(a: Threat, b: Threat): number {
+  const ownerA = a.dataFlow?.dataFlowId ?? a.linkedElement?.displayId;
+  const ownerB = b.dataFlow?.dataFlowId ?? b.linkedElement?.displayId;
+  return (
+    compareDisplayIds(ownerA, ownerB) ||
+    compareStride(a.strideCategory, b.strideCategory) ||
+    compareDisplayIds(a.displayId, b.displayId)
+  );
+}
 
 export function sortThreats(
   threats: Threat[],
@@ -31,16 +46,16 @@ export function sortThreats(
     if (field === "id") {
       // Sort on the human label — a numeric compare on the opaque UUID id
       // would be meaningless.
-      cmp = a.displayId.localeCompare(b.displayId, undefined, {
-        numeric: true,
-      });
+      cmp = compareThreatsByLabel(a, b);
     } else if (field === "strideCategory") {
-      const order = ["S", "T", "R", "I", "D", "E"];
-      cmp = order.indexOf(a.strideCategory) - order.indexOf(b.strideCategory);
+      cmp = compareStride(a.strideCategory, b.strideCategory);
     } else {
       cmp =
         getThreatPriority(a, assetDataRef) - getThreatPriority(b, assetDataRef);
     }
+    // Ties (same priority / same STRIDE) fall back to the reading order, so
+    // equal rows never appear in arbitrary stored order.
+    if (cmp === 0 && field !== "id") cmp = compareThreatsByLabel(a, b);
     return dir === "asc" ? cmp : -cmp;
   });
 }

@@ -235,6 +235,14 @@ export {
 } from "./utils/tag-categories";
 
 export { computeAllMitigationCoverage } from "./utils/mitigation-coverage";
+export {
+  ELEMENT_TYPE_ORDER,
+  STRIDE_ORDER,
+  compareDisplayIds,
+  compareElementTypes,
+  compareStride,
+  compareByTypeAndDisplayId,
+} from "./utils/display-order";
 
 export { type DFDAnalysisContext } from "./ports/dfd-analysis-context";
 

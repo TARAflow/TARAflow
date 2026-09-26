@@ -27,6 +27,7 @@ import type {
   ThreatTable,
 } from "../models/threat-types";
 import type { DFDAnalysisContext } from "shared";
+import { compareDisplayIds, compareElementTypes, compareStride } from "shared";
 import { elementThreatGenerator } from "./per-element/element-generator";
 import { interactionThreatGenerator } from "./per-interaction/interaction-generator";
 import {
@@ -45,6 +46,20 @@ export interface ObsoleteThreat {
   strideCategory: Threat["strideCategory"];
   elementName: string;
   relevance: Threat["relevance"];
+  /** For ordering: element kind ("DataFlow" for per-interaction flows). */
+  elementType?: string;
+  /** For ordering: display id of the element / data flow (DF-3, P-1 …). */
+  ownerDisplayId?: string;
+}
+
+/** Reading order: element kind, then DF-1, DF-2 … DF-10, then S-T-R-I-D-E. */
+function compareObsolete(a: ObsoleteThreat, b: ObsoleteThreat): number {
+  return (
+    compareElementTypes(a.elementType, b.elementType) ||
+    compareDisplayIds(a.ownerDisplayId, b.ownerDisplayId) ||
+    compareStride(a.strideCategory, b.strideCategory) ||
+    compareDisplayIds(a.displayId, b.displayId)
+  );
 }
 
 export interface GenerationDrift {
@@ -148,6 +163,11 @@ export function detectGenerationDrift(
         strideCategory: threat.strideCategory,
         elementName: threatElementName(threat),
         relevance: threat.relevance,
+        elementType: threat.dataFlow
+          ? "DataFlow"
+          : threat.linkedElement?.elementType,
+        ownerDisplayId:
+          threat.dataFlow?.dataFlowId ?? threat.linkedElement?.displayId,
       });
     }
   }
@@ -155,7 +175,7 @@ export function detectGenerationDrift(
   let addedCount = 0;
   for (const key of freshKeys) if (!storedKeys.has(key)) addedCount++;
 
-  return { obsolete, addedCount };
+  return { obsolete: obsolete.sort(compareObsolete), addedCount };
 }
 
 export function hasDrift(drift: GenerationDrift): boolean {
