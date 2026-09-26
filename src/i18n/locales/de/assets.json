@@ -206,7 +206,18 @@
         "noSecurityGoalDescription": "Asset {{id}}: Schutzziel {{type}} hat keine formale Beschreibung",
         "noPhysicalImpactRationale": "Asset {{id}}: manueller Safety Impact erfordert Rationale",
         "notLinkedToDFD": "Asset {{id}}: nicht mit DFD-Element verknüpft",
-        "unratedImpact": "Asset {{id}}: unbewertete Impact-Faktoren vorhanden"
+        "unratedImpact": "Asset {{id}}: unbewertete Impact-Faktoren vorhanden",
+        "goalRationaleMissing": "Asset {{id}}: Schutzziel {{type}} wurde manuell ohne Begründung entschieden",
+        "goalOverrideStale": {
+          "suggestionRemoved": "Asset {{id}}: {{type}} wird nicht mehr vorgeschlagen — die Grundlage der manuellen Entscheidung ist weggefallen",
+          "suggestionAdded": "Asset {{id}}: das manuell hinzugefügte {{type}} wird jetzt auch vom Graph vorgeschlagen",
+          "levelRaised": "Asset {{id}}: die vorgeschlagene Stufe von {{type}} ist seit der manuellen Entscheidung gestiegen — prüfen",
+          "levelLowered": "Asset {{id}}: die vorgeschlagene Stufe von {{type}} ist seit der manuellen Entscheidung gesunken (die manuelle Wahl ist nun konservativer)",
+          "basisChanged": "Asset {{id}}: der Vorschlag für {{type}} beruht jetzt auf einer anderen Grundlage — passt die Begründung noch?"
+        },
+        "goalUnassessed": "Asset {{id}}: {{type}} ist vorgeschlagen, aber kein Impact bewertet — Bewertung erforderlich",
+        "goalProvisional": "Asset {{id}}: die Stufe von {{type}} ist vorläufig — die zielspezifischen Impact-Kriterien sind noch nicht bewertet",
+        "goalNoApplicableImpact": "Asset {{id}}: {{type}} ist vorgeschlagen, alle relevanten Impact-Kriterien sind n/a (Mindeststufe)"
       },
       "columns": {
         "id": "ID",
@@ -265,7 +276,7 @@
           "description": "Abgeleitet aus Impact-Faktoren via CIANAAA-Regeln. Manueller Override möglich.",
           "manual": "Manuell gesetzt",
           "suggested": "Graph-Vorschlag",
-          "excluded": "Manually excluded"
+          "excluded": "Manuell deaktiviert"
         },
         "derived": "Abgeleitet (Graph)",
         "manual": "Manuell (Override)",

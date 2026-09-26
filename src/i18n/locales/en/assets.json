@@ -206,7 +206,18 @@
         "noSecurityGoalDescription": "Asset {{id}}: security goal {{type}} has no formal description",
         "noPhysicalImpactRationale": "Asset {{id}}: manual safety impact requires rationale",
         "notLinkedToDFD": "Asset {{id}}: not linked to any DFD element",
-        "unratedImpact": "Asset {{id}}: has unrated impact factors"
+        "unratedImpact": "Asset {{id}}: has unrated impact factors",
+        "goalRationaleMissing": "Asset {{id}}: security goal {{type}} was decided manually without a rationale",
+        "goalOverrideStale": {
+          "suggestionRemoved": "Asset {{id}}: {{type}} is no longer suggested — the basis of the manual decision is gone",
+          "suggestionAdded": "Asset {{id}}: manually added {{type}} is now also suggested by the graph",
+          "levelRaised": "Asset {{id}}: suggested level of {{type}} has risen since the manual decision — review",
+          "levelLowered": "Asset {{id}}: suggested level of {{type}} has fallen since the manual decision (manual choice is now more conservative)",
+          "basisChanged": "Asset {{id}}: suggestion for {{type}} now rests on a different basis — check whether the rationale still fits"
+        },
+        "goalUnassessed": "Asset {{id}}: {{type}} is suggested, but no impact is rated — assessment required",
+        "goalProvisional": "Asset {{id}}: level of {{type}} is provisional — the goal-specific impact criteria are not rated yet",
+        "goalNoApplicableImpact": "Asset {{id}}: {{type}} is suggested, all relevant impact criteria are n/a (minimum level)"
       },
       "columns": {
         "id": "ID",
@@ -265,7 +276,7 @@
           "description": "Derived from impact factors via CIANAAA rules. Manual override possible.",
           "manual": "Manually set",
           "suggested": "Graph suggestion",
-          "excluded": "Manuell deaktiviert"
+          "excluded": "Manually excluded"
         },
         "derived": "Derived (Graph)",
         "manual": "Manual (Override)",

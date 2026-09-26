@@ -176,7 +176,9 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
           componentsProps={{ tooltip: { sx: { maxWidth: 320 } } }}
           title={
             validation &&
-            (validation.errors.length > 0 || validation.warnings.length > 0) ? (
+            (validation.errors.length > 0 ||
+              validation.warnings.length > 0 ||
+              (validation.infos?.length ?? 0) > 0) ? (
               <Box sx={{ p: 0.5 }}>
                 {validation.errors.map((err, i) => (
                   <Typography
@@ -196,6 +198,16 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
                     color="rgba(255,220,100,1)"
                   >
                     • {translateValidationMessage(warn)}
+                  </Typography>
+                ))}
+                {(validation.infos ?? []).map((info, i) => (
+                  <Typography
+                    key={`i${i}`}
+                    variant="caption"
+                    display="block"
+                    color="rgba(170,210,255,1)"
+                  >
+                    • {translateValidationMessage(info)}
                   </Typography>
                 ))}
               </Box>

@@ -188,6 +188,12 @@ export interface AssetValidation {
   isComplete: boolean;
   errors: string[];
   warnings: string[];
+  /**
+   * Legitimate states worth mentioning in a review (e.g. a goal whose level is
+   * provisional). Never affects completeness. Optional: older persisted
+   * validations have none.
+   */
+  infos?: string[];
   lastValidated: string;
 }
 

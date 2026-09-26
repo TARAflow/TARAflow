@@ -3,11 +3,16 @@
 // Returns structured AssetValidation — no side effects, no service deps.
 
 import type { AssetData, AssetValidation } from "../models/asset-types";
+import type { StaleReason } from "../models/asset-security-goals-types";
+import { goalFindings, goalStates } from "./asset-goal-state";
+import type { GoalFindingCode } from "./asset-goal-state";
 import type { PhaseStatus } from "shared";
 
 export function validateAssetData(assetData: AssetData): AssetValidation {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const infos: string[] = [];
+  const impactScale = assetData.configuration?.impactScale ?? "4-level";
 
   if (assetData.assets.length === 0) {
     errors.push("tabs.assets.validation.noAssets");
@@ -50,15 +55,43 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
     if (asset.impactRatings.some((r) => r.value === 0)) {
       warnings.push(`tabs.assets.validation.unratedImpact:${asset.id}`);
     }
+
+    // Security-goal findings — from the single domain truth (goalStates).
+    // Messages name the asset by its display id, not the internal UUID.
+    const label = asset.displayId || asset.name || asset.id;
+    const states = goalStates(asset, impactScale);
+    asset.securityGoals.forEach((goal, i) => {
+      for (const f of goalFindings(states[i], goal)) {
+        const key = `${GOAL_FINDING_KEY[f.code]}${f.reason ? `.${STALE_KEY[f.reason]}` : ""}:${label}:${f.goal}`;
+        (f.severity === "error" ? errors : f.severity === "warning" ? warnings : infos).push(key);
+      }
+    });
   }
 
   return {
     isComplete: errors.length === 0 && assetData.assets.length > 0,
     errors,
     warnings,
+    infos,
     lastValidated: new Date().toISOString(),
   };
 }
+
+const GOAL_FINDING_KEY: Record<GoalFindingCode, string> = {
+  GOAL_RATIONALE_MISSING: "tabs.assets.validation.goalRationaleMissing",
+  GOAL_OVERRIDE_STALE: "tabs.assets.validation.goalOverrideStale",
+  GOAL_UNASSESSED: "tabs.assets.validation.goalUnassessed",
+  GOAL_PROVISIONAL: "tabs.assets.validation.goalProvisional",
+  GOAL_NO_APPLICABLE_IMPACT: "tabs.assets.validation.goalNoApplicableImpact",
+};
+
+const STALE_KEY: Record<StaleReason, string> = {
+  "suggestion-removed": "suggestionRemoved",
+  "suggestion-added": "suggestionAdded",
+  "level-raised": "levelRaised",
+  "level-lowered": "levelLowered",
+  "basis-changed": "basisChanged",
+};
 
 export function derivePhaseStatus(validation: AssetValidation): PhaseStatus {
   if (validation.isComplete) return "complete";
