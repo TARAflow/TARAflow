@@ -95,3 +95,17 @@ describe("ThreatDriftBanner", () => {
     expect(onRegenerate).toHaveBeenCalled();
   });
 });
+
+import { SourceBadge } from "features/threats/components/shared/threat-table-utils";
+
+describe("SourceBadge for retained threats", () => {
+  it("shows R (retained) instead of M (manual)", () => {
+    render(<SourceBadge source="manual" retainedAt="2026-09-26T10:00:00.000Z" />);
+    expect(screen.getByText("R")).toBeTruthy();
+    expect(screen.queryByText("M")).toBeNull();
+  });
+  it("plain manual threats keep M", () => {
+    render(<SourceBadge source="manual" />);
+    expect(screen.getByText("M")).toBeTruthy();
+  });
+});

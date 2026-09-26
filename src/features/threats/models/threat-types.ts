@@ -405,6 +405,17 @@ export interface Threat {
   lastModified: string;
 
   /**
+   * Set when the analyst KEPT a generated threat that the current generation
+   * rules no longer produce (drift review → Keep). The threat became manual so
+   * it survives regeneration; this records when and from which generated
+   * source, so the decision stays visible and can be undone.
+   */
+  retainedAfterRuleChange?: {
+    at: string;
+    previousSource: ThreatSource;
+  };
+
+  /**
    * Catalog template that produced this threat (e.g. "T-004").
    * Traceability only — text is resolved via domain + i18n, not via this field.
    * undefined for manually added threats and for elements with no template match.

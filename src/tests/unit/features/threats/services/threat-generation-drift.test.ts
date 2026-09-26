@@ -13,6 +13,7 @@ import {
   projectGenerationDrift,
   driftCount,
   threatElementName,
+  releaseRetainedThreat,
   hasDrift,
   keepThreatsAsManual,
   removeThreats,
@@ -224,5 +225,41 @@ describe("threatElementName", () => {
     expect(
       threatElementName({ linkedElement: { elementName: "Controller" }, dataFlow: null } as never),
     ).toBe("Controller");
+  });
+});
+
+describe("retained threats (Keep is recorded and can be undone)", () => {
+  const stored = generated(["I", "C"]);
+  const iThreat = stored[0].threats.find((t) => t.strideCategory === "I")!;
+
+  it("Keep records when and from which generated source", () => {
+    const kept = keepThreatsAsManual(stored, new Set([iThreat.id]), "2026-09-26T10:00:00.000Z");
+    const t = kept.flatMap((x) => x.threats).find((x) => x.id === iThreat.id)!;
+    expect(t.source).toBe("manual");
+    expect(t.retainedAfterRuleChange).toEqual({
+      at: "2026-09-26T10:00:00.000Z",
+      previousSource: iThreat.source,
+    });
+  });
+
+  it("undo restores the generated source → the threat is drift again", () => {
+    const kept = keepThreatsAsManual(stored, new Set([iThreat.id]));
+    expect(drift(["I"], kept)).toEqual(NO_DRIFT);
+
+    const released = kept.map((table) => ({
+      ...table,
+      threats: table.threats.map((t) => {
+        const u = releaseRetainedThreat(t);
+        return u ? { ...t, ...u } : t;
+      }),
+    }));
+    const t = released.flatMap((x) => x.threats).find((x) => x.id === iThreat.id)!;
+    expect(t.source).toBe(iThreat.source);
+    expect(t.retainedAfterRuleChange).toBeUndefined();
+    expect(drift(["I"], released).obsolete.map((o) => o.threatId)).toEqual([iThreat.id]);
+  });
+
+  it("undo is a no-op for threats that were not retained", () => {
+    expect(releaseRetainedThreat(iThreat)).toBeNull();
   });
 });

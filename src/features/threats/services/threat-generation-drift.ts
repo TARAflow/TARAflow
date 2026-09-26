@@ -198,10 +198,13 @@ export function driftCount(drift: GenerationDrift): number {
  * Keep the given threats as manual threats. A manual threat is analyst-owned:
  * it survives every regeneration (keepManual) and keeps its id, so its risk
  * stays linked. It no longer receives generator updates — that is the point.
+ * The decision is recorded (retainedAfterRuleChange) so it stays visible in
+ * the tables and can be undone.
  */
 export function keepThreatsAsManual(
   tables: ThreatTable[],
   threatIds: ReadonlySet<string>,
+  now: string = new Date().toISOString(),
 ): ThreatTable[] {
   if (threatIds.size === 0) return tables;
   return tables.map((table) =>
@@ -209,11 +212,32 @@ export function keepThreatsAsManual(
       ? {
           ...table,
           threats: table.threats.map((t) =>
-            threatIds.has(t.id) ? { ...t, source: "manual" as const } : t,
+            threatIds.has(t.id)
+              ? {
+                  ...t,
+                  source: "manual" as const,
+                  retainedAfterRuleChange: t.retainedAfterRuleChange ?? {
+                    at: now,
+                    previousSource: t.source,
+                  },
+                }
+              : t,
           ),
         }
       : table,
   );
+}
+
+/**
+ * Undo a Keep: the threat returns to its previous generated source. If the
+ * current rules still do not produce it, it shows up in the drift review
+ * again; a regeneration would drop it. Threats that were not retained are
+ * returned unchanged (no update).
+ */
+export function releaseRetainedThreat(threat: Threat): Partial<Threat> | null {
+  const r = threat.retainedAfterRuleChange;
+  if (!r) return null;
+  return { source: r.previousSource, retainedAfterRuleChange: undefined };
 }
 
 /** Remove the given threats; tables left empty are dropped. */

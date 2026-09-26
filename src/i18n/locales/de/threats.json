@@ -209,7 +209,8 @@
           "generated_classic": "Klassisch",
           "generated_properties": "Properties",
           "generated_cianaaa": "CIANAAA",
-          "generated_full": "Vollständig"
+          "generated_full": "Vollständig",
+          "retained": "Behalten"
         },
         "threatList": "Bedrohungen in dieser Gruppe"
       },
@@ -268,7 +269,8 @@
         "generated_cianaaa": "Generiert — CIANAAA-Schutzziele angewendet",
         "generated_full": "Generiert — Element-Properties + CIANAAA-Schutzziele angewendet",
         "fallback": "Keine aktiven Schutzziele — Standard-STRIDE verwendet",
-        "impact": "Initialer Impact: {{level}}"
+        "impact": "Initialer Impact: {{level}}",
+        "retained": "Behalten am {{date}} — von den aktuellen Regeln nicht mehr generiert"
       },
       "drift": {
         "banner": {
@@ -301,6 +303,10 @@
           "warning_one": "{{count}} Bedrohung wird von den aktuellen Regeln nicht mehr generiert und wird entfernt ({{withRisk}} mit Risikobewertung).",
           "warning_other": "{{count}} Bedrohungen werden von den aktuellen Regeln nicht mehr generiert und werden entfernt ({{withRisk}} mit Risikobewertung).",
           "reviewFirst": "Zuerst prüfen"
+        },
+        "undoKeep": {
+          "action": "Behalten rückgängig",
+          "tooltip": "Wieder als generiert behandeln. Erzeugen die aktuellen Regeln sie weiterhin nicht, erscheint sie erneut in der Prüfung der Abweichungen; eine Neugenerierung würde sie entfernen."
         }
       }
     }

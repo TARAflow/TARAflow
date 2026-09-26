@@ -363,6 +363,7 @@ const ThreatRows: React.FC<{
                       <SourceBadge
                         source={threat.source}
                         initialImpact={threat.initialImpact}
+                        retainedAt={threat.retainedAfterRuleChange?.at}
                       />
                     </Stack>
                   </TableCell>

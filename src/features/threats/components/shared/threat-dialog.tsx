@@ -72,6 +72,7 @@ import {
 import { MitigationCoverageBadge, STRIDE_COLORS } from "shared";
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 import { SourceBadge } from "../../components/shared/threat-table-utils";
+import { releaseRetainedThreat } from "../../services/threat-generation-drift";
 
 // ==================== PROPS ====================
 
@@ -574,8 +575,32 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           <SourceBadge
             source={currentThreat.source}
             initialImpact={currentThreat.initialImpact}
+            retainedAt={currentThreat.retainedAfterRuleChange?.at}
             chipStyle
           />
+          {/* Undo a drift-review Keep — the threat returns to its generated
+              source and reappears in the drift review if still not produced */}
+          {currentThreat.retainedAfterRuleChange && (
+            <Tooltip
+              title={t("tabs.threats.drift.undoKeep.tooltip", {
+                defaultValue:
+                  "Treat as generated again. If the current rules still do not produce it, it reappears in the drift review; a regeneration would remove it.",
+              })}
+            >
+              <Button
+                size="small"
+                sx={{ flexShrink: 0, py: 0, minWidth: 0, fontSize: 11 }}
+                onClick={() => {
+                  const updates = releaseRetainedThreat(currentThreat);
+                  if (updates) onSave(currentThreat.id, updates);
+                }}
+              >
+                {t("tabs.threats.drift.undoKeep.action", {
+                  defaultValue: "Undo keep",
+                })}
+              </Button>
+            </Tooltip>
+          )}
         </Stack>
       </DialogTitle>
 
