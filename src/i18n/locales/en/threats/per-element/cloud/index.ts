@@ -7,10 +7,12 @@ import threatsDenial from "./threats-denial.json";
 import threatsElevation from "./threats-elevation.json";
 
 export const CLOUD_ELEMENT_THREATS = {
-  ...threatsSpoofing.cloud,
-  ...threatsTampering.cloud,
-  ...threatsRepudiation.cloud,
-  ...threatsInformation.cloud,
-  ...threatsDenial.cloud,
-  ...threatsElevation.cloud,
+  cloud: {
+    ...threatsSpoofing.cloud,
+    ...threatsTampering.cloud,
+    ...threatsRepudiation.cloud,
+    ...threatsInformation.cloud,
+    ...threatsDenial.cloud,
+    ...threatsElevation.cloud,
+  },
 };

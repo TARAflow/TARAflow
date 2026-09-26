@@ -51,7 +51,7 @@
       "mitigations": ["M-D-007", "M-D-008", "M-D-001"],
       "verifications": ["V-D-006", "V-D-001"],
       "isCustom": false,
-      "domain": "physical"
+      "domain": "embedded"
     },
     {
       "id": "D-004",
@@ -63,7 +63,7 @@
       "mitigations": ["M-D-008", "M-D-001", "M-D-007"],
       "verifications": ["V-D-007", "V-D-006"],
       "isCustom": false,
-      "domain": "physical"
+      "domain": "embedded"
     },
     {
       "id": "D-005",
