@@ -214,16 +214,25 @@ export class UnifiedStrategy implements IGeneratorStrategy {
     // Module 2: CIANAAA Security Goals
     const cianaaaResult = applyCIANAAA(element.id, project);
 
-    // Combine: CIANAAA overrides/extends properties result when both active
+    // Combine by INTERSECTION: a category survives only if it is technically
+    // possible (base table, narrowed by element properties) AND violates an
+    // active security goal of a linked asset.
+    //
+    // Previously the two modules were UNITED whenever a property had fired and
+    // intersected otherwise. That let a derived goal silently override an
+    // explicit analyst assumption (EL0 "internal, trusted" → no I; functional
+    // block → no S/R), and let a property that REDUCES the attack surface
+    // re-add a category no goal asked for. Analyst assumptions win over
+    // derivations — see doc/InProgress/Asset/security-goal-rework-design.md.
     let finalCategories: StrideCategory[];
     if (cianaaaResult.applied) {
-      const combined = new Set([
-        ...cianaaaResult.categories,
-        ...(propsResult.applied ? propsResult.categories : []),
-      ]);
-      // baseCategories are law — CIANAAA and properties cannot add new categories
-      finalCategories = Array.from(combined).filter((c) =>
-        baseCategories.includes(c),
+      const technical = propsResult.applied
+        ? propsResult.categories
+        : baseCategories;
+      // baseCategories are law — neither module can add a category outside it
+      finalCategories = technical.filter(
+        (c) =>
+          baseCategories.includes(c) && cianaaaResult.categories.includes(c),
       );
     } else if (propsResult.applied) {
       finalCategories = propsResult.categories.filter((c) =>
