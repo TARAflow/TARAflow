@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), Phase 0 and Phase 1 merged, Phase 2 in progress
+**Status:** Design final (rev. 3.1, after three external reviews), Phase 0 and Phase 1 merged, Phase 2 delivered (pending merge), Phase 3 next
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -157,14 +157,14 @@ Pure function in `features/assets/services`, not a UI helper. Card, asset table,
 ```ts
 interface GoalState {
   type: SecurityGoalType;
-  visibility: "suggested" | "not-suggested" | "excluded";
+  visibility: "card" | "excluded" | "hidden";
   source: "suggested" | "manual" | "legacy";
   assessment: "assessed" | "provisional" | "no-applicable-impact" | "missing";
   level: CIANAAALevel;               // effective level (internal, incl. minimum level)
   displayLevel: CIANAAALevel | null; // null for assessment = "missing"
   levelReason: LevelExplanation;     // from explainLevel()
   suggestionReasons: string[];       // relations ("Config push → transports")
-  suggestion: { suggested: boolean; level: CIANAAALevel };
+  suggestion: GoalSuggestionSnapshot; // suggested, level, basis, driver
   stale: StaleReason | null;
   rationaleRequired: boolean;
 }
@@ -172,7 +172,9 @@ interface GoalState {
 
 Which rationale question the UI asks (adjust or exclude) follows from `visibility` and is not a separate field. `goalState()` describes the domain state completely but makes no UI decisions.
 
-Findings are **not** part of `goalState()`. Validation produces them from the state (`goalFindings(state)`). This keeps one place responsible for codes and severities.
+`visibility` as implemented (renamed from the earlier draft "suggested / not-suggested / excluded", which mislabelled a manually added, not-suggested active goal): `card` = active or suggested; `excluded` = suggested but deliberately deactivated; `hidden` = neither ("Add goal").
+
+Findings are **not** part of `goalState()`. Validation produces them from the state (`goalFindings(state, goal)`). This keeps one place responsible for codes and severities.
 
 ### 4.2 Point 3 – security-goal cards
 
@@ -414,7 +416,7 @@ Measured result on the analyst's SmokeDetector project after 12: per-element 25,
 
 **Open catalog finding (separate task):** in the embedded per-element denial set, the texts of D-001…D-003 do not match their templates (e.g. D-003 applies to protocol stacks/drivers; EN speaks of a safety-system DoS, DE of injected safety parameters), and EN and DE differ in content. Looks like shifted ids; needs a content review of the catalog, not a code fix.
 
-**Modelling note (SmokeDetector):** DF-29/DF-30/DF-35 (WLAN / internet streams between internal processes, `exposureLevel = EL0`) are still to be remodelled. As long as they are EL0, WLAN eavesdropping is modelled nowhere: the WLAN interface skips I by design (interception belongs to the data flow), and the flows skip I because of EL0.
+**Modelling note (SmokeDetector):** DF-29/DF-30/DF-35 (WLAN / internet streams between internal processes, `exposureLevel = EL0`) are still to be remodelled; in the current project they also carry `protocol = https` with `encryptionInTransit = none`, which contradicts itself. As long as they are EL0, WLAN eavesdropping is modelled nowhere: the WLAN interface skips I by design (interception belongs to the data flow), and the flows skip I because of EL0.
 
 **Known limitation:** the DFD sync reports an element or flow as "missing" when it has no stored threats, even if the generator produces none for it (e.g. all categories filtered by properties and goals). Commit 6 fixes the out-of-scope case; the general case would be solved by defining "missing" as drift-to-be-added for that element. Not done yet.
 
@@ -422,20 +424,25 @@ Measured result on the analyst's SmokeDetector project after 12: per-element 25,
 
 **Done:** all commits merged; the drift banner was checked on the analyst's project in both modes.
 
-### Phase 2 — domain: `goalState()`, `goalFindings()`, snapshot
+### Phase 2 — domain: `goalState()`, `goalFindings()`, snapshot ✅ delivered
 
 **Goal:** the single domain truth all surfaces consume (4.1). No UI.
 
-**Scope:**
-- `features/assets/models/asset-security-goals-types.ts` — optional `suggestionAtDecision`; `StaleReason`, `GoalState` types
-- new `features/assets/services/asset-goal-state.ts` — `goalState(asset, goal, impactScale)`, `goalFindings(state, asset)`, `severityFor(reason)`
-- **Explicit user actions as pure functions** in the same module: `adjustGoal`, `excludeGoal`, `keepDecision`, `resetToSuggestion`. They are the *only* way to create or change a manual goal and its snapshot. Invariant A is thus enforced in the domain, not in the UI.
-- `features/assets/services/asset-validator.ts` — integrate `goalFindings`. **Note:** `AssetValidation` today holds only `errors: string[]` and `warnings: string[]` with i18n keys like `tabs.assets.validation.<code>:<assetId>:<goal>`. Decision needed: extend additively with `infos: string[]` (and show them in the asset toolbar), keeping the key scheme `…:<assetId>:<goal>[:<reason>]`. An error (`GOAL_OVERRIDE_EXCEEDS_ASSET`) sets the phase status to incomplete — intended.
-- i18n `assets.json` en/de for all new keys; fix the swapped `tooltips.cianaaa.excluded` strings (en shows German, de shows English)
+Delivered as three commits (patches 17–19) plus this document (20):
 
-**Tests:** full matrix `source × suggested × kind × snapshot × current suggestion`; invariants A, B, D; every stale reason with its severity; snapshot initialisation for legacy manual goals.
+17. **`refactor(assets)` one suggestion rule** — `deriveSecurityGoalSuggestions()` carried a line-by-line copy of `computeSuggestedGoalTypes()`; it now calls it. `goalState()` uses the same function, so stored goals, previews and states cannot diverge.
+18. **`feat(assets)` goal state** — `features/assets/services/asset-goal-state.ts`:
+    - `SecurityGoal.suggestionAtDecision?: { suggested, level, basis, driver }` (types in `asset-security-goals-types.ts`, with `LevelBasis`, `StaleReason`).
+    - `goalStates(asset, scale)` / `goalState(asset, goal, scale)`, `currentSuggestion()`, `staleReason()`.
+    - `goalFindings(state, goal)`, `severityFor(reason, isExclusion)` — the stale severity depends on whether the decision was an exclusion, not on the current visibility (an excluded goal that is no longer suggested becomes `hidden`, yet its finding is only info).
+    - Explicit actions: `adjustGoal`, `excludeGoal`, `keepDecision`, `resetToSuggestion`, `initializeMissingSnapshots` (to be called when the analyst saves an asset in Phase 3; records the current suggestion as baseline for manual goals decided before snapshots existed).
+19. **`feat(assets)` findings in the asset validation** — `AssetValidation.infos?: string[]` (additive, never affects completeness); keys `tabs.assets.validation.<code>[.<reason>]:<displayId>:<goal>` — the asset is named by its display id, not the UUID; asset toolbar lists infos; i18n en/de; swapped `tooltips.cianaaa.excluded` fixed.
 
-**Done when:** all states and findings are covered by tests; no consumer yet changed.
+Not in Phase 2: `GOAL_OVERRIDE_EXCEEDS_ASSET` and `GOAL_ENVELOPE_SLACK` need per-goal impact and come with Phase 4.
+
+**Tests:** `asset-goal-state.test.ts` (26: assessment per level basis, visibility and source, every stale reason with severity, invariants A, B, D, all actions), `asset-validator.goal-findings.test.ts` (4), `asset-cianaaa-deriver.test.ts` (+4, single suggestion rule).
+
+**Effect on SmokeDetector:** the asset toolbar now shows 3 × "decided manually without a rationale" and 8 × "suggested, but no impact rated — assessment required" (warnings). The phase status is unaffected.
 
 ### Phase 3 — security-goal cards (point 3)
 
@@ -499,3 +506,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.3:** Phase 1 implemented. §2.5 corrected: the union worked in both directions. Phase 1 decision confirmed (intersection); drift detection + explicit Keep/Remove resolution ordered before the rule change; planned `suppressedByGoals` finding dropped in favour of drift detection.
 - **Rev. 3.4:** measurements replaced by the analyst's test results (per-element 5 → 7, per-interaction 2 → 14); wrong earlier estimate explained; commits 5–8 added (phase-tab drift warning, per-interaction sync scope, flow names, per-element data-flow properties); known limitation of the DFD sync documented.
 - **Rev. 3.5:** Phase 1 closed. Follow-up commits 10–15 documented (drift column label, threat text lookup, per-element dedup, retained threats with undo, sync scope robustness, reading order); open catalog finding and SmokeDetector modelling note recorded.
+- **Rev. 3.6:** Phase 2 delivered (patches 17–19): single suggestion rule, `goalState()` / `goalFindings()` / snapshot / explicit actions, findings in the asset validation with `infos`. `GoalState.visibility` renamed to `card | excluded | hidden`; stale severity keyed on "decision was an exclusion".
