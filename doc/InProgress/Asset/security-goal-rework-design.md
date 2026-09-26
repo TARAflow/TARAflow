@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), implementation Phase 0 delivered, Phase 1 next
+**Status:** Design final (rev. 3.1, after three external reviews), Phase 0 merged, Phase 1 delivered (partly merged), Phase 2 next
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -55,11 +55,17 @@ A C threat and an A threat on the same asset get the same risk impact. Badge and
 
 ### 2.5 Security goals affect threat generation (side finding)
 
-Active goals filter an element's STRIDE categories in the generator (`CIANAAA_TO_STRIDE`, `UnifiedStrategy.getStrideCategories`). The combination with property modifiers is asymmetric:
-- without property modification, only the goal categories apply,
-- with modification, the union applies — properties can re-add categories the goals excluded.
+Active goals filter an element's STRIDE categories in the generator (`CIANAAA_TO_STRIDE`, `UnifiedStrategy.getStrideCategories`). The combination with property modifiers was asymmetric:
+- without property modification, only the goal categories applied (base ∩ goals),
+- with modification, the union applied (goals ∪ properties).
 
-Whether e.g. Information Disclosure appears on a data flow thus depends on whether a property modifier happened to fire. Relevant here because goal levels have real effects on the threat list.
+The union works in **both** directions (observed on SmokeDetector):
+- a goal re-adds a category an explicit property assumption removed — `processSemantic = functional_block` removes S and R on P-1, a non-repudiation goal brought R back; in per-interaction mode, `exposureLevel = EL0` ("internal, trusted") removes I on DF-3/4/23/24, a confidentiality goal brought it back;
+- a property keeps a category no goal asks for — P-1 kept E without an authorization goal. A property that *reduces* the attack surface thus *added* a threat compared with the same element without it.
+
+A related bug surfaced while verifying: in **per-element** mode, data-flow properties never reached the strategy at all (the data-flow element was built without `properties`), so e.g. EL0 had no effect on data flows there — unlike per-interaction. Fixed in Phase 1 (commit 8).
+
+Whether e.g. Information Disclosure appeared on a data flow depended on whether a property modifier happened to fire. **Resolved in Phase 1** (intersection).
 
 ## 3. Phase 0 — delivered prerequisites
 
@@ -340,7 +346,7 @@ For `goalState()` (Phase 2), the matrix `source × suggested × kind × snapshot
 4. **Relation to damage scenarios (ISO 21434):** per-goal impact is effectively one damage scenario per asset × property (1:1). Is that enough, or will 1:n (several damage scenarios per goal) be needed?
 5. **EN 50742 Approach A:** there, severity (reversible/non-reversible/fatal) hangs on the safety-function asset, not on a security goal. Must per-goal impact be hidden or mapped differently for this preset?
 
-*Resolved during review:* minimum level low vs. none (rev. 2) · sensitivity of "basis changed" (rev. 3, reasons with direction) · automatic capping (rev. 3, dropped) · generator filter asymmetry (moved into Phase 1).
+*Resolved during review:* minimum level low vs. none (rev. 2) · sensitivity of "basis changed" (rev. 3, reasons with direction) · automatic capping (rev. 3, dropped) · generator filter asymmetry (Phase 1: intersection).
 
 ## 6. Implementation phases
 
@@ -354,7 +360,7 @@ See §3. **Done when:** both patches applied, full test suite green locally (the
 
 **Goal:** a threat category survives if it is *technically possible* (base STRIDE + property modifiers) **and** violates an active security goal. Today this holds only when no property modifier fired (2.5).
 
-**Proposed decision (confirm before coding):** intersection instead of union.
+**Decision (confirmed):** intersection instead of union. Explicit analyst assumptions (properties) win over derived security goals — the ground rule of §4 applied to the generator.
 
 ```
 final = (propsApplied ? propsResult : base) ∩ goalCategories   // when goals applied
@@ -363,18 +369,42 @@ final = propsApplied ? propsResult : base                      // when no goals 
 
 This is the consistent generalisation of today's "props not applied" branch.
 
-**Scope:**
-- `features/threats/services/strategies/unified-strategy.ts` — `getStrideCategories` combination
-- `features/threats/models/strategy-types.ts` — extend `GenerationModules` with `suppressedByGoals: StrideCategory[]` (categories that were technically possible but had no active goal)
-- Surface `suppressedByGoals` as an info finding; where threat-generation findings are displayed must be checked first — if there is no suitable place, carry it in the metadata only and surface it in Phase 6
+**Effect on existing projects (analysed before coding):** stored threats do not change — the rules are code, the threats are data. The new rule takes effect only through
+- the incremental DFD sync, which generates threats for *new* elements only → mixed semantics in one project;
+- a full regeneration, which merges analyst data by natural key (element + STRIDE) but has no successor for a dropped category → the threat's analyst data is lost and the risk sync removes its risk (orphaned) with assessment and mitigations.
 
-**Explicitly not in scope:** per-goal impact, `getInitialImpact`.
+Measured on the analyst's SmokeDetector project (drift banner before → after, same copy, no resolution applied):
+- per-element: 5 → 7 — the rule change affects P-1 (R, E); the 5 of the baseline are older drift on CB-2 and IF-3 (not goal-related, unrated, no risk);
+- per-interaction: 2 → 14 — the rule change affects the I, R, E threats of DF-3, DF-4, DF-23, DF-24 (EL0 flows with a confidentiality goal); visible only after the sync fix (commit 6).
 
-**Tests:** unit tests for all four combinations (goals yes/no × props yes/no) including the case "property re-adds a category the goals excluded"; regression run on the fixtures `SmokeDetector.tara.json` and `cnc-ref.tara.json` with a documented before/after threat diff.
+An earlier estimate ("5 elements / 6 threats" per-element) was wrong: it passed data-flow properties to the strategy directly, which the per-element generator never did (see §2.5).
 
-**Risk:** projects in which property modifiers fired will produce fewer threats. Check how risk sync handles risks whose threat disappears (orphaned risks) and mention it in the release notes.
+Hence the safety net lands **before** the behaviour change. Delivered as eight commits (patch numbers 01–03 and 05–09; patch 04, an earlier revision of this document, was withdrawn):
 
-**Done when:** the behaviour is symmetric, the threat diff on the fixtures is reviewed and explained.
+1. **`feat(threats)` generation drift detection** — `threat-generation-drift.ts` (pure): `detectGenerationDrift()` runs the current generator without writing and compares natural keys with the stored generated threats → obsolete threats + count to be added; manual threats are never obsolete. Explicit actions `keepThreatsAsManual()` (same id, risk stays linked, survives every regeneration) and `removeThreats()`.
+2. **`feat(threats)` drift banner, review dialog, regenerate warning** — banner "N stored threats would no longer be generated (K with a risk assessment) · M would be added", shown only while the DFD sync is clean; review dialog with Keep/Remove per threat, **default Keep**; regenerate confirm warns with counts and offers "Review them first". Risk data reaches the tab via the optional `ThreatProjectData.riskAttachments`, built in `workspace-layout` (threats ⊥ risks). `replaceTables()` on both threat hooks.
+3. **`fix(threats)` intersection** — `UnifiedStrategy.getStrideCategories`:
+
+```
+final = (propsApplied ? propsResult : base) ∩ goalCategories   // when goals applied
+final = propsApplied ? propsResult : base                      // when no goals applied (unchanged)
+```
+
+The `suppressedByGoals` info finding originally planned here was dropped: drift detection compares the actual stored threats with the actual generator output and covers the same need more directly.
+
+5. **`feat(threats)` drift on the phase tab** — the Threats tab in the phase bar shows obsolete + added as a warning count with an explanatory tooltip, so the analyst sees drift right after changing security goals in the Asset tab. `projectGenerationDrift()` (same DFD-sync gating as the banner) is evaluated in `workspace-layout`; watch typing latency on large projects — debounce if needed.
+6. **`fix(threats)` per-interaction sync scope** — a flow with no effective trust boundary on either side (e.g. External Entity → External Entity) is never covered by the per-interaction generator, but the sync check reported it as "data flow without threats"; syncing added nothing and the banner stayed forever (and hid the drift banner). One predicate `isInteractionFlowInScope()` now serves generator and sync check.
+7. **`fix(threats)` flow names in the drift review** — per-interaction threats showed an empty element cell.
+8. **`fix(threats)` per-element data flows pass their properties** — see §2.5. On SmokeDetector this adds 21 I threats on EL0 data flows to the drift. Several of them are WLAN/HTTPS streams modelled as EL0 — the EL values should be checked before resolving, otherwise "Remove all without risk" deletes legitimate disclosure threats.
+9. **`docs(assets)`** — this revision (3.4).
+
+**Tests:** `threat-generation-drift.test.ts` (15), `threat-drift-dialog.test.tsx` (component, 5), `phase-tab.drift-hint.test.tsx` (component, 2), `unified-strategy.goal-filter.test.ts` (8; 4 fail on the old code), `interaction-sync.scope.test.ts` (4), `element-generator.dataflow-properties.test.ts` (3). Threats unit suite and regression suite green.
+
+**Known limitation:** the DFD sync reports an element or flow as "missing" when it has no stored threats, even if the generator produces none for it (e.g. all categories filtered by properties and goals). Commit 6 fixes the out-of-scope case; the general case would be solved by defining "missing" as drift-to-be-added for that element. Not done yet.
+
+**Release note:** after updating, projects in which property modifiers and security goals meet, and per-element projects with data-flow properties, show the drift banner; check the flagged elements' properties, then resolve via "Review" before regenerating.
+
+**Done when:** the three commits are merged and the drift banner has been checked on a real project.
 
 ### Phase 2 — domain: `goalState()`, `goalFindings()`, snapshot
 
@@ -450,3 +480,5 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3:** after second review: ground rule "no silent change of analyst decisions"; automatic capping dropped, instead error finding and conservative calculation until resolved; snapshot extended by basis and driver (instead of hash); stale reasons with direction and graded severity; "Assessment required" instead of minimum level when impact is missing; separate rationale questions for adjust and exclude; excluded goals in the report; formal definition of effective value, upper bound and risk impact (envelope corrected from "= MAX" to upper bound); `goalState()` signature as domain function; explicit rule for finding severities. Not adopted: derivation signature (hash), findings inside `goalState()`.
 - **Rev. 3.1:** after third review: invariants A–E and the overarching invariant as specification; mandatory risk-impact test cases incl. "linked asset without matching goal contributes nothing"; driver defined as deterministic representative driver; `GOAL_OVERRIDE_STALE` as one code with reason-dependent severity; `suggestion-removed` on excluded goals only info; UI wording per stale reason instead of a blanket "outdated"; `rationalePrompt` removed (derivable from `visibility`); `GOAL_ENVELOPE_SLACK` phrased neutrally; open question 1 marked as a pure product question.
 - **Rev. 3.2:** translated to English; detailed implementation phases (§6) with scope, tests, done criteria; validation-infrastructure constraint (`AssetValidation` holds string keys, no info level) and the Phase 1 decision (intersection) made explicit.
+- **Rev. 3.3:** Phase 1 implemented. §2.5 corrected: the union worked in both directions. Phase 1 decision confirmed (intersection); drift detection + explicit Keep/Remove resolution ordered before the rule change; planned `suppressedByGoals` finding dropped in favour of drift detection.
+- **Rev. 3.4:** measurements replaced by the analyst's test results (per-element 5 → 7, per-interaction 2 → 14); wrong earlier estimate explained; commits 5–8 added (phase-tab drift warning, per-interaction sync scope, flow names, per-element data-flow properties); known limitation of the DFD sync documented.
