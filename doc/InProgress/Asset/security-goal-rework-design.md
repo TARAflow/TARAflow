@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), Phase 0 merged, Phase 1 delivered (partly merged), Phase 2 next
+**Status:** Design final (rev. 3.1, after three external reviews), Phase 0 and Phase 1 merged, Phase 2 in progress
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -396,15 +396,31 @@ The `suppressedByGoals` info finding originally planned here was dropped: drift 
 6. **`fix(threats)` per-interaction sync scope** — a flow with no effective trust boundary on either side (e.g. External Entity → External Entity) is never covered by the per-interaction generator, but the sync check reported it as "data flow without threats"; syncing added nothing and the banner stayed forever (and hid the drift banner). One predicate `isInteractionFlowInScope()` now serves generator and sync check.
 7. **`fix(threats)` flow names in the drift review** — per-interaction threats showed an empty element cell.
 8. **`fix(threats)` per-element data flows pass their properties** — see §2.5. On SmokeDetector this adds 21 I threats on EL0 data flows to the drift. Several of them are WLAN/HTTPS streams modelled as EL0 — the EL values should be checked before resolving, otherwise "Remove all without risk" deletes legitimate disclosure threats.
-9. **`docs(assets)`** — this revision (3.4).
+9. **`docs(assets)`** — revision 3.4.
+
+Follow-up commits found while verifying on the analyst's project:
+
+10. **`fix(threats)` drift review column "Name"** — holds element names and data-flow names.
+11. **`fix(threats)` threat text lookup** — the texts existed in EN and DE but were unreachable: the cloud and mobile i18n indexes spread their texts flat instead of under the domain key, and four embedded templates (element D-004/D-005, interaction D-003/D-004) declared domain `dataflow`/`physical` although their texts live under `embedded`. The generator silently fell back to `general.<id>` — the text of a different template. New test: every built-in template has threat/attack/cause in EN and DE under its domain.
+12. **`fix(threats)` per-element dedup** — the final dedup was keyed on the display label alone; a PhysicalBoundary and a ChipBoundary both labelled "SDC" collided and the chip boundary's T/I/E threats were dropped on every regeneration. Now keyed on element id + label.
+13. **`feat(threats)` retained threats** — Keep records `retainedAfterRuleChange { at, previousSource }`; the source badge shows "R" instead of "M"; the threat dialog offers "Undo keep" (the threat returns to its generated source and reappears in the drift review if still not produced).
+14. **`fix(threats)` sync scope robustness** — the scope check of commit 6 crashed on graphs without the trust-boundary map (component-test stubs); without that map every flow counts as in scope.
+15. **`feat(ui)` reading order** — `shared/utils/display-order.ts`: element kind, natural display id (DF-2 before DF-10), STRIDE S-T-R-I-D-E. Applied to per-element groups, the per-interaction table (new default sort), the drift review and the DFD description view.
+16. **`docs(assets)`** — revision 3.5.
+
+Measured result on the analyst's SmokeDetector project after 12: per-element 25, per-interaction 14; after resolution 0 in both modes.
 
 **Tests:** `threat-generation-drift.test.ts` (15), `threat-drift-dialog.test.tsx` (component, 5), `phase-tab.drift-hint.test.tsx` (component, 2), `unified-strategy.goal-filter.test.ts` (8; 4 fail on the old code), `interaction-sync.scope.test.ts` (4), `element-generator.dataflow-properties.test.ts` (3). Threats unit suite and regression suite green.
+
+**Open catalog finding (separate task):** in the embedded per-element denial set, the texts of D-001…D-003 do not match their templates (e.g. D-003 applies to protocol stacks/drivers; EN speaks of a safety-system DoS, DE of injected safety parameters), and EN and DE differ in content. Looks like shifted ids; needs a content review of the catalog, not a code fix.
+
+**Modelling note (SmokeDetector):** DF-29/DF-30/DF-35 (WLAN / internet streams between internal processes, `exposureLevel = EL0`) are still to be remodelled. As long as they are EL0, WLAN eavesdropping is modelled nowhere: the WLAN interface skips I by design (interception belongs to the data flow), and the flows skip I because of EL0.
 
 **Known limitation:** the DFD sync reports an element or flow as "missing" when it has no stored threats, even if the generator produces none for it (e.g. all categories filtered by properties and goals). Commit 6 fixes the out-of-scope case; the general case would be solved by defining "missing" as drift-to-be-added for that element. Not done yet.
 
 **Release note:** after updating, projects in which property modifiers and security goals meet, and per-element projects with data-flow properties, show the drift banner; check the flagged elements' properties, then resolve via "Review" before regenerating.
 
-**Done when:** the three commits are merged and the drift banner has been checked on a real project.
+**Done:** all commits merged; the drift banner was checked on the analyst's project in both modes.
 
 ### Phase 2 — domain: `goalState()`, `goalFindings()`, snapshot
 
@@ -482,3 +498,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.2:** translated to English; detailed implementation phases (§6) with scope, tests, done criteria; validation-infrastructure constraint (`AssetValidation` holds string keys, no info level) and the Phase 1 decision (intersection) made explicit.
 - **Rev. 3.3:** Phase 1 implemented. §2.5 corrected: the union worked in both directions. Phase 1 decision confirmed (intersection); drift detection + explicit Keep/Remove resolution ordered before the rule change; planned `suppressedByGoals` finding dropped in favour of drift detection.
 - **Rev. 3.4:** measurements replaced by the analyst's test results (per-element 5 → 7, per-interaction 2 → 14); wrong earlier estimate explained; commits 5–8 added (phase-tab drift warning, per-interaction sync scope, flow names, per-element data-flow properties); known limitation of the DFD sync documented.
+- **Rev. 3.5:** Phase 1 closed. Follow-up commits 10–15 documented (drift column label, threat text lookup, per-element dedup, retained threats with undo, sync scope robustness, reading order); open catalog finding and SmokeDetector modelling note recorded.
