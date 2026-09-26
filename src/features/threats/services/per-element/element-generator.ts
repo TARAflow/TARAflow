@@ -453,12 +453,17 @@ export class ElementThreatGenerator {
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
 
+      // Properties MUST travel with the element: the strategy's property
+      // modifiers (e.g. EL0 → no S/I) and the template matching read them.
+      // They were dropped here, so data-flow properties never had any effect
+      // in per-element mode (per-interaction always passed them).
       const dataFlowElement: DFDElementReference = {
         id: connection.id,
         type: "DataFlow",
         name: connection.name || connection.label || connection.id,
         displayId: connection.displayId,
-      };
+        properties: (connection as any)?.properties ?? {},
+      } as DFDElementReference;
 
       const sourceTB = graph.effectiveElementTrustBoundary.get(connection.from);
       const targetTB = graph.effectiveElementTrustBoundary.get(connection.to);
