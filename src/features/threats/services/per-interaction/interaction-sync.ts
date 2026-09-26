@@ -263,10 +263,14 @@ export class InteractionThreatSync {
       // Flows the generator never covers (no trust boundary on either side,
       // e.g. External Entity → External Entity) are out of scope, not missing:
       // reporting them made the sync banner permanent — syncing adds nothing.
+      // Without trust-boundary information the scope cannot be judged —
+      // then every flow counts as in scope (previous behaviour).
+      const effectiveTB = graph.effectiveElementTrustBoundary;
       if (
+        effectiveTB &&
         !isInteractionFlowInScope(
-          graph.effectiveElementTrustBoundary.get(connection.from) ?? null,
-          graph.effectiveElementTrustBoundary.get(connection.to) ?? null,
+          effectiveTB.get(connection.from) ?? null,
+          effectiveTB.get(connection.to) ?? null,
           graph.elementsById.get(connection.to)?.type,
         )
       )
