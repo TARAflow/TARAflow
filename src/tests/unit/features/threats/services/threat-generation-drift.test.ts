@@ -12,6 +12,7 @@ import {
   detectGenerationDrift,
   projectGenerationDrift,
   driftCount,
+  threatElementName,
   hasDrift,
   keepThreatsAsManual,
   removeThreats,
@@ -207,5 +208,21 @@ describe("projectGenerationDrift (phase tab badge)", () => {
 
   it("nothing generated yet → no drift", () => {
     expect(projectGenerationDrift(project(["I"]), ctx)).toEqual(NO_DRIFT);
+  });
+});
+
+describe("threatElementName", () => {
+  it("per-interaction threats show the data flow name, not an empty cell", () => {
+    expect(
+      threatElementName({
+        linkedElement: null,
+        dataFlow: { connectionId: "DF-10", dataFlowName: "write calibration data" },
+      } as never),
+    ).toBe("write calibration data");
+  });
+  it("element threats show the element name", () => {
+    expect(
+      threatElementName({ linkedElement: { elementName: "Controller" }, dataFlow: null } as never),
+    ).toBe("Controller");
   });
 });

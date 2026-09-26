@@ -96,9 +96,11 @@ function generateFresh(
       );
 }
 
-function elementNameOf(threat: Threat): string {
+/** Name shown in the drift list: element, or data flow (per-interaction). */
+export function threatElementName(threat: Threat): string {
   return (
     threat.linkedElement?.elementName ??
+    threat.dataFlow?.dataFlowName ??
     threat.dataFlow?.label ??
     threat.dataFlow?.name ??
     ""
@@ -144,7 +146,7 @@ export function detectGenerationDrift(
         threatId: threat.id,
         displayId: threat.displayId ?? threat.id,
         strideCategory: threat.strideCategory,
-        elementName: elementNameOf(threat),
+        elementName: threatElementName(threat),
         relevance: threat.relevance,
       });
     }
