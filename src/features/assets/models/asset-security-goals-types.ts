@@ -92,6 +92,14 @@ export interface SecurityGoal {
 
   /** Required when analyst deviates from graph suggestion (IEC 62443-4-1). */
   rationale?: string;
+
+  /**
+   * Suggestion at the time of the MANUAL decision (source = "manual" only).
+   * Records a past fact — not a derived value — so the tool can tell the
+   * analyst that the suggestion has changed since (goalState().stale).
+   * Absent on manual goals decided before this field existed ("unknown").
+   */
+  suggestionAtDecision?: GoalSuggestionSnapshot;
 }
 
 // ==================== CAUSE MECHANISM ====================
@@ -302,3 +310,31 @@ export const CAUSE_MECHANISM_KEY_PREFIX = "tabs.assets.causeMechanism" as const;
  * Usage: t(`${CIANAAA_LEVEL_KEY_PREFIX}.${level}`)
  */
 export const CIANAAA_LEVEL_KEY_PREFIX = "tabs.assets.cianaaa.level" as const;
+
+// ==================== GOAL STATE (derived, never stored) ====================
+
+/** explainLevel().kind — what the suggested level rests on. */
+export type LevelBasis = "mechanism" | "not-applicable" | "fallback" | "floor";
+
+/** The tool's suggestion for one goal, as recorded at a manual decision. */
+export interface GoalSuggestionSnapshot {
+  suggested: boolean;
+  level: CIANAAALevel;
+  basis: LevelBasis;
+  /** criterionId driving the level (mechanism / fallback). */
+  driver?: string;
+}
+
+/**
+ * Why a manual decision may need review. Direction matters:
+ *   suggestion-removed — the goal is no longer suggested (basis gone)
+ *   suggestion-added   — a manually added goal is now also suggested
+ *   level-raised / level-lowered — the suggested level moved
+ *   basis-changed      — same level, different basis or driving criterion
+ */
+export type StaleReason =
+  | "suggestion-removed"
+  | "suggestion-added"
+  | "level-raised"
+  | "level-lowered"
+  | "basis-changed";
