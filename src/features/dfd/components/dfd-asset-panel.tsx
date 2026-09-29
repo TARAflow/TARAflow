@@ -99,7 +99,16 @@ interface AssetPanelProps {
   onDeleteAsset?: (assetId: string) => void;
   /** Called when user clicks the global "clear all overlays" button */
   onClearAllVisibility?: () => void;
-  selectedAssetId?: string | null;
+  focusAssetRequest?: AssetFocusRequest | null;
+}
+
+/**
+ * One-shot request to focus an asset (e.g. from a notification). A new object
+ * per request, so repeating the same asset re-focuses it. It only SEEDS the
+ * panel's own selection — clicks in the asset tree still win afterwards.
+ */
+export interface AssetFocusRequest {
+  assetId: string;
 }
 
 // ==================== ASSET TREE ====================
@@ -426,7 +435,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   onCreateAsset,
   onDeleteAsset,
   onClearAllVisibility,
-  selectedAssetId: externalSelectedAssetId,
+  focusAssetRequest,
 }) => {
   const { t } = useTranslation();
 
@@ -445,7 +454,15 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
     string | null
   >(null);
 
-  const selectedAssetId = externalSelectedAssetId ?? internalSelectedAssetId;
+  // The tree selection is the only source of truth for what is shown. An
+  // external focus request just seeds it; previously an external id shadowed
+  // every later tree click (`external ?? internal`) and never got cleared, so
+  // the panel stayed pinned to the notification's asset.
+  useEffect(() => {
+    if (focusAssetRequest) setInternalSelectedAssetId(focusAssetRequest.assetId);
+  }, [focusAssetRequest]);
+
+  const selectedAssetId = internalSelectedAssetId;
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId) ?? null;
 

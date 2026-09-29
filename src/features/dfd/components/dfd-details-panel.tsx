@@ -20,7 +20,7 @@ import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
 import { AssetPanel } from "./dfd-asset-panel";
-import type { AssetVisibility } from "./dfd-asset-panel";
+import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 
 // ==================== PROPS ====================
@@ -67,7 +67,7 @@ interface DFDDetailsPanelProps {
   onClearAllVisibility?: () => void;
 
   graphContext?: DFDGraphAnalysisContext | null;
-  selectedAssetId?: string | null;
+  focusAssetRequest?: AssetFocusRequest | null;
 }
 
 // ==================== COMPONENT ====================
@@ -92,7 +92,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onAssetVisibilityChange,
   onClearAllVisibility,
   graphContext,
-  selectedAssetId,
+  focusAssetRequest,
 }) => {
   const { t } = useTranslation();
 
@@ -112,10 +112,10 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   }, [hasSelection]);
 
   useEffect(() => {
-    if (selectedAssetId) {
+    if (focusAssetRequest) {
       setActiveTab("assets");
     }
-  }, [selectedAssetId]);
+  }, [focusAssetRequest]);
 
   const displayId = element?.displayId ?? connection?.displayId;
   const name = element?.name ?? connection?.name;
@@ -315,7 +315,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   elements={elements}
                   connections={connections}
                   visibility={assetVisibility}
-                  selectedAssetId={selectedAssetId}
+                  focusAssetRequest={focusAssetRequest}
                   onVisibilityChange={onAssetVisibilityChange ?? (() => {})}
                   onAssetChange={onAssetChange ?? (() => {})}
                   onCreateAsset={onCreateAssetForGroup}

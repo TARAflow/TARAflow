@@ -42,7 +42,7 @@ import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
 import { DFDConfigDialog } from "./dfd-config-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
-import type { AssetVisibility } from "./dfd-asset-panel";
+import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import type {
   DFDAutoNumberingConfig,
   DFDProjectData,
@@ -98,7 +98,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       () => project.dfd?.autoNumberingConfig ?? DEFAULT_AUTONUMBERING_CONFIG,
     );
 
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [focusAssetRequest, setFocusAssetRequest] =
+    useState<AssetFocusRequest | null>(null);
 
   // ==================== UI STATE HOOK ====================
 
@@ -615,12 +616,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       const asset = dfd?.assets?.find((a) => a.id === id || a.displayId === id);
 
       if (asset) {
-        setSelectedAssetId(asset.id);
+        setFocusAssetRequest({ assetId: asset.id });
         setDetailsPanelOpen(true);
         return;
       }
 
-      setSelectedAssetId(null);
+      setFocusAssetRequest(null);
       editor.selectCell(id);
     },
     [editor, dfd],
@@ -756,7 +757,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onClearAllVisibility={handleClearAllVisibility}
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
-            selectedAssetId={selectedAssetId}
+            focusAssetRequest={focusAssetRequest}
           />
         </Box>
       </Box>
