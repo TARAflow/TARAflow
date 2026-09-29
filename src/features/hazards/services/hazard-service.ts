@@ -45,18 +45,24 @@ function parseHazardNumericId(id: string): number {
   return m ? parseInt(m[1], 10) : 0;
 }
 
+/**
+ * Next sequential Hazard Item id (e.g. "H-01") after the given ids. Ids that
+ * are not in the H-<n> scheme (e.g. legacy import UUIDs) are ignored; the
+ * padding width follows the first H-<n> id found (minimum 2).
+ */
+function generateNextHazardIdFromIds(ids: readonly string[]): HazardItemId {
+  const readable = ids.filter((id) => /H-(\d+)/.test(id));
+  if (readable.length === 0) return "H-01" as HazardItemId;
+
+  const maxNumeric = Math.max(...readable.map(parseHazardNumericId));
+  const padding = readable[0].match(/H-(\d+)/)![1].length;
+
+  return `H-${String(maxNumeric + 1).padStart(Math.max(padding, 2), "0")}` as HazardItemId;
+}
+
 /** Generates the next sequential Hazard Item id (e.g. "H-01"). */
 function generateNextHazardId(existing: readonly HazardItem[]): HazardItemId {
-  if (existing.length === 0) return "H-01" as HazardItemId;
-
-  const maxNumeric = Math.max(...existing.map((h) => parseHazardNumericId(h.id)));
-  const nextNumeric = maxNumeric + 1;
-
-  const sample = existing[0]?.id ?? "H-01";
-  const match = sample.match(/H-(\d+)/);
-  const padding = match ? match[1].length : 2;
-
-  return `H-${String(nextNumeric).padStart(Math.max(padding, 2), "0")}` as HazardItemId;
+  return generateNextHazardIdFromIds(existing.map((h) => h.id));
 }
 
 // ==================== HELPERS ====================
@@ -69,6 +75,7 @@ function withTimestamp(data: HazardData): HazardData {
 
 export const hazardService = {
   generateNextHazardId,
+  generateNextHazardIdFromIds,
 
   /** Builds a fresh Hazard Item with defaults (not yet added to the graph). */
   createHazardItem(

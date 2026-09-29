@@ -96,3 +96,30 @@ describe("hazardService — deriveHazardPhaseStatus", () => {
     expect(hazardService.deriveHazardPhaseStatus(d)).toBe("complete");
   });
 });
+
+describe("hazardService — generateNextHazardIdFromIds", () => {
+  it("starts at H-01 for no ids", () => {
+    expect(hazardService.generateNextHazardIdFromIds([])).toBe("H-01");
+  });
+
+  it("ignores non-H ids such as legacy import UUIDs", () => {
+    expect(
+      hazardService.generateNextHazardIdFromIds([
+        "3f2b8c1e-0000-4000-8000-000000000000",
+        "H-03",
+      ]),
+    ).toBe("H-04");
+  });
+
+  it("keeps the padding of the existing scheme", () => {
+    expect(hazardService.generateNextHazardIdFromIds(["H-009"])).toBe("H-010");
+  });
+
+  it("never repeats when fed its own output (batch import)", () => {
+    const minted: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      minted.push(hazardService.generateNextHazardIdFromIds(["H-01", ...minted]));
+    }
+    expect(minted).toEqual(["H-02", "H-03", "H-04"]);
+  });
+});

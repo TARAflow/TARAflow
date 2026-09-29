@@ -10,7 +10,13 @@
 // Until the persist/sync round-trip completes, they are also merged into the
 // `assets` passed to table/dialog so ids stay collision-free and names resolve.
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Box } from "@mui/material";
 
@@ -96,11 +102,19 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
   );
 
   // ── id factory + Human-target resolver ──────────────────────────────────────
-  // makeHazardItemId: reuse your existing id generator, cast to the branded type.
-  const makeHazardItemId = useCallback(
-    () => crypto.randomUUID() as HazardItemId, // or your hazard-service id helper
-    [],
-  );
+  // Imported hazards get the same readable H-<n> ids as manually created ones.
+  // Ids minted earlier in this session are remembered, so a batch import (all
+  // items minted before the merge) never hands out the same id twice.
+  const hazardIdsRef = useRef<readonly string[]>([]);
+  const mintedHazardIdsRef = useRef<string[]>([]);
+  const makeHazardItemId = useCallback((): HazardItemId => {
+    const id = hazardService.generateNextHazardIdFromIds([
+      ...hazardIdsRef.current,
+      ...mintedHazardIdsRef.current,
+    ]);
+    mintedHazardIdsRef.current.push(id);
+    return id;
+  }, []);
 
   const { importHazards } = useHazardImport({
     makeHazardItemId,
@@ -113,6 +127,7 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
   const [hazardData, setHazardData] = useState<HazardData>(
     () => project.hazards ?? createEmptyHazardData(),
   );
+  hazardIdsRef.current = hazardData.hazards.map((h) => h.id);
   const [isDirty, setIsDirty] = useState(false);
   const [validation, setValidation] = useState<HazardValidation | null>(() =>
     project.hazards ? hazardValidator.validate(project.hazards, assets) : null,
