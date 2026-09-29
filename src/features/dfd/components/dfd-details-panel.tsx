@@ -19,6 +19,7 @@ import type { DFDConnection, DFDElement } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
+import type { AssetUsageLookup } from "shared";
 import { AssetPanel } from "./dfd-asset-panel";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -68,6 +69,8 @@ interface DFDDetailsPanelProps {
 
   graphContext?: DFDGraphAnalysisContext | null;
   focusAssetRequest?: AssetFocusRequest | null;
+  /** Impact lookup for the asset delete confirm dialog. */
+  assetUsage?: AssetUsageLookup;
 }
 
 // ==================== COMPONENT ====================
@@ -93,6 +96,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onClearAllVisibility,
   graphContext,
   focusAssetRequest,
+  assetUsage,
 }) => {
   const { t } = useTranslation();
 
@@ -316,6 +320,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   connections={connections}
                   visibility={assetVisibility}
                   focusAssetRequest={focusAssetRequest}
+                  assetUsage={assetUsage}
                   onVisibilityChange={onAssetVisibilityChange ?? (() => {})}
                   onAssetChange={onAssetChange ?? (() => {})}
                   onCreateAsset={onCreateAssetForGroup}

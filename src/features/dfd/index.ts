@@ -191,3 +191,11 @@ export {
 
 export { addCreatedAssets } from "./services/dfd-asset-creation";
 export { translateFinding } from "./utils/translate-finding";
+// ==================== ASSET DELETION ====================
+// Pure DFD-side asset deletion + invariant restore, so the app layer can delete
+// an asset from outside the DFD tab through the same code path.
+export {
+  stripAssetFromDfd,
+  countDfdAssetReferences,
+} from "./services/dfd-asset-deletion";
+export { finalizeDfd } from "./services/dfd-finalize";

@@ -14,6 +14,7 @@ import React, {
   useRef,
   useEffect,
 } from "react";
+import { ConfirmAssetDeleteDialog, type AssetUsageLookup } from "shared";
 import { useTranslation } from "react-i18next";
 import { Box, Alert, Collapse } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
@@ -64,6 +65,13 @@ export interface AssetTabProps {
   onPhaseComplete?: () => void;
   /** Per-asset hazard links, projected by the app layer (workspace-layout). */
   hazardLinks?: Record<string, AssetHazardSummary>;
+  /**
+   * Project-wide asset deletion (app layer): asset store, DFD, hazards, risks,
+   * threats. Without it the tab offers no delete action.
+   */
+  onDeleteAsset?: (assetId: string) => void;
+  /** Impact lookup for the delete confirm dialog (app layer). */
+  assetUsage?: AssetUsageLookup;
 }
 
 // ==================== COMPONENT ====================
@@ -74,6 +82,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   onDFDAssetUpdate,
   onDirtyChange,
   hazardLinks,
+  onDeleteAsset,
+  assetUsage,
 }) => {
   const { t } = useTranslation();
 
@@ -332,15 +342,32 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     [assetData, markDirty, onDFDAssetUpdate],
   );
 
-  const handleDeleteAsset = useCallback(
-    (assetId: string) => {
-      const updatedData = assetService.deleteAsset(assetData, assetId);
-      setAssetData(updatedData);
-      setValidation(assetService.validate(updatedData));
-      markDirty();
-    },
-    [assetData, markDirty],
+  // Delete = request → confirm dialog → project-wide deletion in the app
+  // layer. The local working copy drops the asset too, so a pending debounced
+  // auto-save (isDirty) cannot write it back into the store afterwards.
+  const [confirmDeleteAsset, setConfirmDeleteAsset] = useState<Asset | null>(
+    null,
   );
+
+  const handleRequestDeleteAsset = useCallback((asset: Asset) => {
+    setConfirmDeleteAsset(asset);
+  }, []);
+
+  const handleConfirmDeleteAsset = useCallback(() => {
+    const asset = confirmDeleteAsset;
+    setConfirmDeleteAsset(null);
+    if (!asset || !onDeleteAsset) return;
+    setAssetData((prev) => {
+      const next = assetService.deleteAsset(prev, asset.id);
+      setValidation(assetService.validate(next));
+      return next;
+    });
+    if (selectedAsset?.id === asset.id) {
+      setShowAssetDialog(false);
+      setSelectedAsset(null);
+    }
+    onDeleteAsset(asset.id);
+  }, [confirmDeleteAsset, onDeleteAsset, selectedAsset]);
 
   const handleCloseAssetDialog = useCallback(() => {
     setShowAssetDialog(false);
@@ -735,9 +762,20 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             configuration={assetData.configuration}
             hazardLinks={hazardLinks}
             onEdit={handleEditAsset}
+            onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
           />
         </Box>
       </Box>
+      {/* Asset delete confirm — project-wide, blocked by attack-tree anchors */}
+      {confirmDeleteAsset && (
+        <ConfirmAssetDeleteDialog
+          open
+          assetLabel={`${confirmDeleteAsset.displayId ?? ""} · ${confirmDeleteAsset.name}`}
+          usage={assetUsage?.(confirmDeleteAsset.id) ?? null}
+          onCancel={() => setConfirmDeleteAsset(null)}
+          onConfirm={handleConfirmDeleteAsset}
+        />
+      )}
       {/* Asset Edit Dialog */}
       {selectedAsset && (
         <AssetDialog

@@ -121,6 +121,29 @@ export function useDFDPersistence(
 
   const pendingXmlRef = useRef<string | null>(null);
 
+  // Asset deletions travel with the NEXT emitted update, whichever channel
+  // emits it. A pending scheduleSave result is overwritten by the next edit
+  // and folded away by the DrawIO autosave — without this accumulator an
+  // asset deleted just before either would survive in the asset store.
+  const pendingDeletedAssetIdsRef = useRef<Set<string>>(new Set());
+
+  const emit = useCallback(
+    (result: DFDUpdateResult) => {
+      const carried = pendingDeletedAssetIdsRef.current;
+      if (carried.size > 0) {
+        pendingDeletedAssetIdsRef.current = new Set();
+        result = {
+          ...result,
+          deletedAssetIds: [
+            ...new Set([...(result.deletedAssetIds ?? []), ...carried]),
+          ],
+        };
+      }
+      onUpdate?.(result);
+    },
+    [onUpdate],
+  );
+
   // ==================== DIRTY STATE ====================
 
   const markDirty = useCallback(() => {
@@ -172,7 +195,7 @@ export function useDFDPersistence(
 
         // Notify parent
         lastCommittedDfdRef.current = updateResult.dfd;
-        onUpdate?.(updateResult);
+        emit(updateResult);
 
         // Mark as clean
         markClean();
@@ -184,7 +207,7 @@ export function useDFDPersistence(
         return null;
       }
     },
-    [project, onUpdate, markClean],
+    [project, emit, markClean],
   );
 
   /**
@@ -212,11 +235,14 @@ export function useDFDPersistence(
       }
 
       const result = updater(base);
+      for (const id of result.deletedAssetIds ?? []) {
+        pendingDeletedAssetIdsRef.current.add(id);
+      }
 
       if (debounceDelay <= 0) {
         // Debouncing disabled, save immediately
         lastCommittedDfdRef.current = result.dfd;
-        onUpdate?.(result);
+        emit(result);
         markClean();
         return;
       }
@@ -236,7 +262,7 @@ export function useDFDPersistence(
 
         if (pendingSaveRef.current) {
           lastCommittedDfdRef.current = pendingSaveRef.current.dfd;
-          onUpdate?.(pendingSaveRef.current);
+          emit(pendingSaveRef.current);
           pendingSaveRef.current = null;
           markClean();
         }
@@ -246,7 +272,7 @@ export function useDFDPersistence(
 
       console.log(`[useDFDPersistence] Save scheduled in ${debounceDelay}ms`);
     },
-    [debounceDelay, onUpdate, markDirty, markClean],
+    [debounceDelay, emit, markDirty, markClean],
   );
 
   /**
@@ -306,7 +332,7 @@ export function useDFDPersistence(
           };
 
           lastCommittedDfdRef.current = updateResult.dfd;
-          onUpdate?.(updateResult);
+          emit(updateResult);
 
           // The pending scheduleSave edit (if any) is now folded into this
           // result. Clear it and cancel its timer so it doesn't fire again
@@ -330,7 +356,7 @@ export function useDFDPersistence(
         drawioSaveTimerRef.current = null;
       }, drawioAutosaveDelay);
     },
-    [markDirty, markClean, onUpdate, onAfterDrawioSave, drawioAutosaveDelay],
+    [markDirty, markClean, emit, onAfterDrawioSave, drawioAutosaveDelay],
   );
 
   /**
@@ -352,11 +378,11 @@ export function useDFDPersistence(
     if (pendingSaveRef.current) {
       console.log("[useDFDPersistence] Flushing pending save...");
       lastCommittedDfdRef.current = pendingSaveRef.current.dfd;
-      onUpdate?.(pendingSaveRef.current);
+      emit(pendingSaveRef.current);
       pendingSaveRef.current = null;
       markClean();
     }
-  }, [onUpdate, markClean]);
+  }, [emit, markClean]);
 
   // ==================== CLEANUP ====================
 

@@ -42,6 +42,7 @@ import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
 import { DFDConfigDialog } from "./dfd-config-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
+import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import type {
   DFDAutoNumberingConfig,
@@ -73,6 +74,8 @@ export interface DFDTabProps {
    * Read-only — DFD Tab shows conflict warnings in DFDNotificationsPanel.
    */
   securityDrifts?: SecurityDrift[];
+  /** Impact lookup for the asset delete confirm dialog (app layer). */
+  assetUsage?: AssetUsageLookup;
 }
 
 // ==================== COMPONENT ====================
@@ -84,6 +87,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   onPhaseComplete,
   controlInstances,
   securityDrifts,
+  assetUsage,
 }) => {
   // ==================== LOCAL UI STATE ====================
 
@@ -338,12 +342,18 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // Delete asset and all its relations atomically
   const handleDeleteAsset = useCallback(
     (assetId: string) => {
-      const newDfd = deleteAsset(assetId);
-      scheduleSave(() => ({
-        dfd: newDfd,
-        phaseStatus: project.phaseStatus,
-        lastModified: newDfd.lastModified!,
-      }));
+      // Build on scheduleSave's `base` (a pending edit may be fresher than
+      // project.dfd) and report the deletion upward: the app layer removes
+      // the asset from every other store (asset store, hazards, risks).
+      scheduleSave((base) => {
+        const newDfd = deleteAsset(assetId, base);
+        return {
+          dfd: newDfd,
+          phaseStatus: project.phaseStatus,
+          lastModified: newDfd.lastModified!,
+          deletedAssetIds: [assetId],
+        };
+      });
     },
     [deleteAsset, scheduleSave, project.phaseStatus],
   );
@@ -758,6 +768,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
             focusAssetRequest={focusAssetRequest}
+            assetUsage={assetUsage}
           />
         </Box>
       </Box>

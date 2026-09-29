@@ -31,6 +31,7 @@ import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-ty
 import { resolveAssetPhysicalImpact } from "app/utils/resolve-asset-physical-impact";
 import {
   Edit as EditIcon,
+  Delete as DeleteIcon,
   Star as StarIcon,
   LocalFireDepartment as FlameIcon,
   AccountTree as DerivedIcon,
@@ -82,6 +83,8 @@ export interface AssetTableProps {
   /** Per-asset hazard links (endangeredBy / contributesTo), projected by the app layer. */
   hazardLinks?: Record<string, AssetHazardSummary>;
   onEdit: (asset: Asset) => void;
+  /** Request deletion (the parent confirms). Omitted → no delete action. */
+  onDelete?: (asset: Asset) => void;
 }
 
 // ==================== CATEGORY ICONS ====================
@@ -175,7 +178,14 @@ function getBusinessImpactBg(level: number, maxLevels: number): string {
 // ==================== COMPONENT ====================
 
 export const AssetTable = React.memo<AssetTableProps>(
-  ({ assets, configuration, a2aRelations = [], hazardLinks, onEdit }) => {
+  ({
+    assets,
+    configuration,
+    a2aRelations = [],
+    hazardLinks,
+    onEdit,
+    onDelete,
+  }) => {
     const { t, i18n } = useTranslation();
     const isGerman = i18n.language === "de";
 
@@ -1255,7 +1265,7 @@ export const AssetTable = React.memo<AssetTableProps>(
         field: "actions",
         type: "actions",
         headerName: t("common.actions", { defaultValue: "Actions" }),
-        width: 70,
+        width: onDelete ? 90 : 70,
         getActions: (params) => [
           <GridActionsCellItem
             key="edit"
@@ -1263,6 +1273,21 @@ export const AssetTable = React.memo<AssetTableProps>(
             label={t("common.edit", { defaultValue: "Edit" })}
             onClick={() => onEdit(params.row)}
           />,
+          ...(onDelete
+            ? [
+                <GridActionsCellItem
+                  key="delete"
+                  icon={<DeleteIcon />}
+                  label={t("common.delete", { defaultValue: "Delete" })}
+                  onClick={(e) => {
+                    // The grid opens the edit dialog on row click — don't
+                    // stack it under the delete confirmation.
+                    e.stopPropagation();
+                    onDelete(params.row);
+                  }}
+                />,
+              ]
+            : []),
         ],
       };
 
@@ -1435,7 +1460,15 @@ export const AssetTable = React.memo<AssetTableProps>(
         linkedElementsColumn,
         actionsColumn,
       ];
-    }, [configuration, t, isGerman, onEdit, downstreamCounts, hazardLinks]);
+    }, [
+      configuration,
+      t,
+      isGerman,
+      onEdit,
+      onDelete,
+      downstreamCounts,
+      hazardLinks,
+    ]);
 
     // ==================== EMPTY STATE ====================
 

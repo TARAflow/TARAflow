@@ -190,6 +190,8 @@ export type {
 } from "./components/dialogs/confirm-dialog";
 
 export { ConfirmDeleteDialog } from "./components/dialogs/confirm-delete-dialog";
+export { ConfirmAssetDeleteDialog } from "./components/dialogs/confirm-asset-delete-dialog";
+export type { ConfirmAssetDeleteDialogProps } from "./components/dialogs/confirm-asset-delete-dialog";
 
 export { SaveDiscardDialog } from "./components/dialogs/save-discard-dialog";
 export type { SaveDiscardDialogProps } from "./components/dialogs/save-discard-dialog";
@@ -283,3 +285,9 @@ export {
 
 export { SafetyAnalysisToggle } from "./components/safety-analysis-toggle";
 export { ProjectTagsEditor } from "./components/project-tags-editor";
+// Asset deletion impact (shared by the DFD and Asset tabs' confirm dialog).
+export type {
+  AssetUsage,
+  AssetUsageBlocker,
+  AssetUsageLookup,
+} from "./models/asset-usage-types";

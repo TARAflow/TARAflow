@@ -6,6 +6,7 @@
 //   Bottom: AssetDescriptionForm for the selected asset, or placeholder
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ConfirmAssetDeleteDialog, type AssetUsageLookup } from "shared";
 import { useTranslation } from "react-i18next";
 import {
   Accordion,
@@ -13,11 +14,6 @@ import {
   AccordionSummary,
   Box,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
   Divider,
   IconButton,
   List,
@@ -100,6 +96,7 @@ interface AssetPanelProps {
   /** Called when user clicks the global "clear all overlays" button */
   onClearAllVisibility?: () => void;
   focusAssetRequest?: AssetFocusRequest | null;
+  assetUsage?: AssetUsageLookup;
 }
 
 /**
@@ -121,6 +118,8 @@ interface AssetTreeProps {
   onVisibilityChange: (group: AssetGroup, assetId: string | null) => void;
   onCreateAsset?: (group: AssetGroup) => void;
   onDeleteAsset?: (assetId: string) => void;
+  /** Impact lookup for the delete confirm dialog (provided by the app layer). */
+  assetUsage?: AssetUsageLookup;
   /** Group to force-expand (e.g. after creating a new asset) */
   expandedGroup?: AssetGroup | null;
 }
@@ -133,6 +132,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   onVisibilityChange,
   onCreateAsset,
   onDeleteAsset,
+  assetUsage,
   expandedGroup,
 }) => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -380,44 +380,21 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         })}
       </Box>
 
-      {/* Confirm delete dialog */}
+      {/* Confirm delete dialog — project-wide deletion, blocked by attack trees */}
       {confirmDeleteId && (
-        <Dialog
+        <ConfirmAssetDeleteDialog
           open
-          onClose={() => setConfirmDeleteId(null)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <DialogTitle>
-            {t("tabs.dfd.assetPanel.confirmDelete.title", {
-              defaultValue: "Delete asset?",
-            })}
-          </DialogTitle>
-          <DialogContent>
-            <Typography variant="body2">
-              {t("tabs.dfd.assetPanel.confirmDelete.message", {
-                defaultValue:
-                  "This will remove the asset and all its relations from the DFD. This action cannot be undone.",
-              })}
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setConfirmDeleteId(null)} size="small">
-              {t("common.cancel", { defaultValue: "Cancel" })}
-            </Button>
-            <Button
-              color="error"
-              variant="contained"
-              size="small"
-              onClick={() => {
-                onDeleteAsset?.(confirmDeleteId);
-                setConfirmDeleteId(null);
-              }}
-            >
-              {t("common.delete", { defaultValue: "Delete" })}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          assetLabel={(() => {
+            const a = assets.find((x) => x.id === confirmDeleteId);
+            return a ? `${a.displayId} · ${a.name}` : "";
+          })()}
+          usage={assetUsage?.(confirmDeleteId) ?? null}
+          onCancel={() => setConfirmDeleteId(null)}
+          onConfirm={() => {
+            onDeleteAsset?.(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }}
+        />
       )}
     </>
   );
@@ -436,6 +413,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   onDeleteAsset,
   onClearAllVisibility,
   focusAssetRequest,
+  assetUsage,
 }) => {
   const { t } = useTranslation();
 
@@ -544,6 +522,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
             onVisibilityChange={onVisibilityChange}
             onCreateAsset={handleCreateAsset}
             onDeleteAsset={onDeleteAsset}
+            assetUsage={assetUsage}
             expandedGroup={expandedGroup}
           />
         </Box>

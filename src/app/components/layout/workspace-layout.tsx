@@ -110,6 +110,11 @@ import {
   getDisabledThreatGenerators,
 } from "shared";
 import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
+import {
+  AssetDeletionBlockedError,
+  collectAssetUsage,
+  purgeAssetFromProject,
+} from "app/services/asset-deletion";
 
 // ==================== COMPONENT ====================
 
@@ -360,11 +365,31 @@ export const WorkspaceLayout: React.FC = () => {
         };
       }
 
+      // 1b) Explicit deletions from the DFD tab. The DFD already lacks the
+      //     asset (the tab stripped it and its relations), but syncFromDFD
+      //     never removes store records — purge the remaining holders here,
+      //     or the asset stays visible in the Asset/Hazard tabs.
+      let hazards = current.hazards;
+      let risks = current.risks;
+      for (const assetId of updates.deletedAssetIds ?? []) {
+        try {
+          const purged = purgeAssetFromProject(
+            { ...current, dfd: dfd as Project["dfd"], assets, hazards, risks },
+            assetId,
+          );
+          ({ assets, hazards, risks } = purged);
+        } catch (err) {
+          // The DFD confirm dialog blocks this case; reaching it means a
+          // caller bypassed the dialog. Keep the other stores untouched.
+          console.error("[DFD] asset deletion not propagated:", err);
+        }
+      }
+
       // 2) Build the enriched asset reference from the freshly-synced store.
       const assetDataRef = assets
         ? buildAssetDataReference(
             assets.assets,
-            buildAssetHazardLinks(current.hazards ?? null),
+            buildAssetHazardLinks(hazards ?? null),
             assets.configuration?.impactScale ?? "4-level",
           )
         : undefined;
@@ -384,6 +409,7 @@ export const WorkspaceLayout: React.FC = () => {
         assets, // persist the reconciled asset store too
         phaseStatus: updates.phaseStatus,
         threats,
+        ...(updates.deletedAssetIds?.length ? { hazards, risks } : {}),
       });
     },
 
@@ -488,6 +514,60 @@ export const WorkspaceLayout: React.FC = () => {
         dfd,
         phaseStatus: updates.phaseStatus,
       });
+    },
+    [updateProject],
+  );
+
+  // ── Asset deletion (Asset tab) ────────────────────────────────────────────
+  // One project-wide operation: asset store, DFD (record + all relations),
+  // hazard edges, risks — then threats re-derive from the rebuilt graph. The
+  // confirm dialog shows collectAssetUsage() first and blocks while attack
+  // trees are anchored on the asset.
+  const assetUsageLookup = useCallback((assetId: string) => {
+    const current = activeProjectRef.current;
+    return current
+      ? collectAssetUsage(current, assetId)
+      : {
+          dfdRelations: 0,
+          assetToAssetRelations: 0,
+          hazardRelations: 0,
+          blockingAttackTrees: [],
+        };
+  }, []);
+
+  const makeAssetDeleteHandler = useCallback(
+    (projectId: string) => async (assetId: string) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
+      if (!current) return;
+
+      let purged;
+      try {
+        purged = purgeAssetFromProject(current, assetId);
+      } catch (err) {
+        if (err instanceof AssetDeletionBlockedError) return; // dialog blocks this
+        throw err;
+      }
+
+      const assetDataRef = purged.assets
+        ? buildAssetDataReference(
+            purged.assets.assets,
+            buildAssetHazardLinks(purged.hazards ?? null),
+            purged.assets.configuration?.impactScale ?? "4-level",
+          )
+        : undefined;
+      const graph = resolveDfdGraph(purged.dfd as Project["dfd"]);
+      const threats = graph
+        ? syncThreatsWithGraph(
+            current.threats ?? null,
+            toGraphReference(graph),
+            assetDataRef,
+            regulationPresetFromTags(
+              current.info?.tags ?? EMPTY_PROJECT_TAGS,
+            ) === "iso-21434",
+          )
+        : current.threats;
+
+      await updateProject({ id: projectId, ...purged, threats });
     },
     [updateProject],
   );
@@ -949,6 +1029,7 @@ export const WorkspaceLayout: React.FC = () => {
               key={dfdTabProject.id}
               project={dfdTabProject}
               onUpdate={handleDFDUpdate}
+              assetUsage={assetUsageLookup}
               controlInstances={controlInstances}
               securityDrifts={securityDrifts}
             />
@@ -979,6 +1060,8 @@ export const WorkspaceLayout: React.FC = () => {
               ),
             }}
             onUpdate={makeAssetsUpdateHandler(activeProject.id)}
+            onDeleteAsset={makeAssetDeleteHandler(activeProject.id)}
+            assetUsage={assetUsageLookup}
             hazardLinks={memoizedHazardRef}
           />
         )}

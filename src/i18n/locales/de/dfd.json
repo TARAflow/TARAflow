@@ -156,11 +156,7 @@
         "hideTree": "Detailansicht erweitern",
         "createAsset": "Neues Asset",
         "deleteAsset": "Asset löschen",
-        "clearAllOverlays": "Alle Overlays löschen",
-        "confirmDelete": {
-          "title": "Asset löschen?",
-          "message": "Das Asset und alle seine Beziehungen werden aus dem DFD entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
-        }
+        "clearAllOverlays": "Alle Overlays löschen"
       },
       "assetGroups": {
         "data": "Daten",

@@ -128,6 +128,19 @@
     "noMessages": "Keine Validierungsmeldungen"
   },
   "dialogs": {
+    "confirmAssetDelete": {
+      "title": "Asset {{asset}} löschen?",
+      "message": "Das Asset wird aus dem ganzen Projekt entfernt (DFD, Assets, Gefährdungen, Bedrohungen, Risiken). Das kann nicht rückgängig gemacht werden.",
+      "alsoRemoved": "Ebenfalls entfernt:",
+      "dfdRelations_one": "{{count}} Relation zu DFD-Elementen/Datenflüssen",
+      "dfdRelations_other": "{{count}} Relationen zu DFD-Elementen/Datenflüssen",
+      "assetToAssetRelations_one": "{{count}} Relation von anderen Assets",
+      "assetToAssetRelations_other": "{{count}} Relationen von anderen Assets",
+      "hazardRelations_one": "{{count}} Verknüpfung in der Gefährdungsanalyse",
+      "hazardRelations_other": "{{count}} Verknüpfungen in der Gefährdungsanalyse",
+      "blocked_one": "Dieses Asset ist Anker von {{count}} Attack Tree. Zuerst umhängen oder löschen:",
+      "blocked_other": "Dieses Asset ist Anker von {{count}} Attack Trees. Zuerst umhängen oder löschen:"
+    },
     "newProject": {
       "title": "Neues Projekt",
       "namePlaceholder": "Projektname eingeben...",

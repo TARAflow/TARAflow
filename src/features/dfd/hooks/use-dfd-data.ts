@@ -13,15 +13,11 @@ import type {
   DFDStats,
   DFDElementType,
 } from "../models/dfd-types";
-import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
-import {
-  isSystemUsesRelation,
-  isInfraAccessesRelation,
-} from "../models/asset-relation-types";
+import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AssetRelation } from "../models/asset-relation-types";
 import { getAllowedRelations } from "../models/asset-constants";
-import { DefaultDFDGraphBuilder } from "../services/dfd-graph-builder";
-import { calculateStats } from "../services/parsers/stats-calculator";
+import { finalizeDfd } from "../services/dfd-finalize";
+import { stripAssetFromDfd } from "../services/dfd-asset-deletion";
 import type { DFDGraph } from "../models/dfd-graph-types";
 import type { AvailableAsset } from "../components/forms/asset-relation-selector";
 // Asset creation now lives in shared so DFD and Hazard mint identical ids/seeds.
@@ -97,69 +93,6 @@ export interface UseDFDDataReturn {
   updateDFD: (updater: (dfd: DFDData) => DFDData, baseDfd?: DFDData) => DFDData;
 }
 
-// ==================== HELPER: SYNC LINKED ELEMENTS ====================
-
-/**
- * Synchronize asset.linkedElements from element.assetRelations
- * and connection.assetRelations.
- *
- * This is the SINGLE SOURCE OF TRUTH sync — called after every updateDFD.
- */
-function syncAssetLinkedElements(
-  elements: DFDElement[],
-  connections: DFDConnection[],
-  assets: DFDAsset[],
-): DFDAsset[] {
-  // Build map: assetId → ElementRelation[]
-  const linksMap = new Map<string, ElementRelation[]>();
-
-  const pushLink = (assetId: string, link: ElementRelation) => {
-    const existing = linksMap.get(assetId) ?? [];
-    linksMap.set(assetId, [...existing, link]);
-  };
-
-  // Elements
-  for (const element of elements) {
-    for (const relation of element.assetRelations ?? []) {
-      pushLink(relation.assetId, {
-        elementId: element.id,
-        elementName: element.name,
-        elementType: element.type,
-        displayId: element.displayId,
-        relationType: relation.relationType,
-        qualifier:
-          isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
-            ? relation.qualifier
-            : undefined,
-        notes: relation.notes,
-      });
-    }
-  }
-
-  // Connections (DataFlows)
-  for (const connection of connections) {
-    for (const relation of connection.assetRelations ?? []) {
-      pushLink(relation.assetId, {
-        elementId: connection.id,
-        elementName: connection.name || "Unnamed DataFlow",
-        elementType: "DataFlow",
-        displayId: connection.displayId,
-        relationType: relation.relationType,
-        qualifier:
-          isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
-            ? relation.qualifier
-            : undefined,
-        notes: relation.notes,
-      });
-    }
-  }
-
-  return assets.map((asset) => ({
-    ...asset,
-    linkedElements: linksMap.get(asset.id) ?? [],
-  }));
-}
-
 // ==================== HELPER: AVAILABLE ASSETS ====================
 
 function toAvailableAssets(assets: DFDAsset[]): AvailableAsset[] {
@@ -210,35 +143,8 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         throw new Error("Cannot update DFD: project.dfd is null");
       }
 
-      // 1. Apply caller's changes
-      const updated = updater(base);
-
-      // 2. Sync asset linkedElements (SINGLE SOURCE OF TRUTH)
-      const syncedAssets = syncAssetLinkedElements(
-        updated.elements,
-        updated.connections,
-        updated.assets,
-      );
-
-      // 3. Rebuild graph
-      const graphBuilder = new DefaultDFDGraphBuilder();
-      const newGraph = graphBuilder.build({ ...updated, assets: syncedAssets });
-
-      // 4. Recalculate stats
-      const newStats = calculateStats(
-        updated.elements,
-        updated.connections,
-        syncedAssets,
-      );
-
-      // 5. Return fully consistent DFD
-      return {
-        ...updated,
-        assets: syncedAssets,
-        graph: newGraph,
-        stats: newStats,
-        lastModified: new Date().toISOString(),
-      };
+      // Apply caller's changes, then restore every derived invariant.
+      return finalizeDfd(updater(base));
     },
     [dfd],
   );
@@ -442,33 +348,7 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
    */
   const deleteAsset = useCallback(
     (assetId: string, baseDfd?: DFDData): DFDData =>
-      updateDFD(
-        (current) => ({
-          ...current,
-          assets: current.assets.filter((a) => a.id !== assetId),
-          elements: current.elements.map((el) =>
-            el.assetRelations?.some((r) => r.assetId === assetId)
-              ? {
-                  ...el,
-                  assetRelations: el.assetRelations!.filter(
-                    (r) => r.assetId !== assetId,
-                  ),
-                }
-              : el,
-          ),
-          connections: current.connections.map((conn) =>
-            conn.assetRelations?.some((r) => r.assetId === assetId)
-              ? {
-                  ...conn,
-                  assetRelations: conn.assetRelations!.filter(
-                    (r) => r.assetId !== assetId,
-                  ),
-                }
-              : conn,
-          ),
-        }),
-        baseDfd,
-      ),
+      updateDFD((current) => stripAssetFromDfd(current, assetId), baseDfd),
     [updateDFD],
   );
 

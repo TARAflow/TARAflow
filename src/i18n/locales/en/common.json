@@ -130,6 +130,19 @@
     "noMessages": "No validation messages"
   },
   "dialogs": {
+    "confirmAssetDelete": {
+      "title": "Delete asset {{asset}}?",
+      "message": "The asset is removed from the whole project (DFD, assets, hazards, threats, risks). This cannot be undone.",
+      "alsoRemoved": "Also removed:",
+      "dfdRelations_one": "{{count}} relation to DFD elements/data flows",
+      "dfdRelations_other": "{{count}} relations to DFD elements/data flows",
+      "assetToAssetRelations_one": "{{count}} relation from other assets",
+      "assetToAssetRelations_other": "{{count}} relations from other assets",
+      "hazardRelations_one": "{{count}} link in the hazard analysis",
+      "hazardRelations_other": "{{count}} links in the hazard analysis",
+      "blocked_one": "This asset anchors {{count}} attack tree. Re-anchor or delete it first:",
+      "blocked_other": "This asset anchors {{count}} attack trees. Re-anchor or delete them first:"
+    },
     "newProject": {
       "title": "New Project",
       "namePlaceholder": "Enter project name...",

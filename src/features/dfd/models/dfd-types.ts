@@ -354,6 +354,13 @@ export interface DFDUpdateResult {
   dfd: DFDData;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
+  /**
+   * Assets the user deleted in the DFD tab since the last emitted update. The
+   * DFD itself already lacks them; the app layer removes them from every OTHER
+   * store (asset store, hazards, risks) — the asset store never drops records
+   * as a side effect of a mirror diff, so the deletion has to be explicit.
+   */
+  deletedAssetIds?: string[];
 }
 
 // ==================== DFD VIEW MODE ====================
