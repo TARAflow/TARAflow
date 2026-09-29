@@ -79,6 +79,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
         anchor = {
           type: "asset",
           assetId: selectedAssetId,
+          assetDisplayId: asset?.displayId,
           assetName: asset ? asset.name : undefined,
           securityGoal: selectedSecurityGoal as SecurityGoalType,
         };
@@ -230,7 +231,7 @@ export const AttackTreeCreateDialog: React.FC<AttackTreeCreateDialogProps> = ({
                 >
                   {assets.map((asset) => (
                     <MenuItem key={asset.id} value={asset.id}>
-                      {asset.id}: {asset.name}
+                      {asset.displayId ?? "?"}: {asset.name}
                     </MenuItem>
                   ))}
                 </Select>

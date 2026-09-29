@@ -419,9 +419,9 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   };
 
   const assetDisplayName =
-    editedAsset.name && editedAsset.id
-      ? `${editedAsset.name} [${editedAsset.id}]`
-      : editedAsset.name || editedAsset.id;
+    editedAsset.name && editedAsset.displayId
+      ? `${editedAsset.name} [${editedAsset.displayId}]`
+      : editedAsset.name || editedAsset.displayId || "";
 
   const handleUseTemplate = (type: SecurityGoalType) => {
     const goalDef = SECURITY_GOALS.find((g) => g.type === type);

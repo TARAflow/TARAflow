@@ -347,6 +347,7 @@ export function generateFromAsset(
   const anchor: AttackTreeAnchor = {
     type: "asset",
     assetId: asset.id,
+    assetDisplayId: asset.displayId,
     assetName: asset.name,
     securityGoal: securityGoal,
   };

@@ -152,7 +152,8 @@ type CreateOption = { create: true; name: string };
 type PickerOption = AssetReference | CreateOption;
 
 const assetFilter = createFilterOptions<PickerOption>({
-  stringify: (o) => ("create" in o ? o.name : `${o.id} ${o.name}`),
+  stringify: (o) =>
+    "create" in o ? o.name : `${o.displayId ?? ""} ${o.name}`,
 });
 
 const AssetPicker: React.FC<{
@@ -181,7 +182,11 @@ const AssetPicker: React.FC<{
       return filtered;
     }}
     getOptionLabel={(o) =>
-      typeof o === "string" ? o : "create" in o ? o.name : `${o.id} · ${o.name}`
+      typeof o === "string"
+        ? o
+        : "create" in o
+          ? o.name
+          : `${o.displayId ?? o.name} · ${o.name}`
     }
     isOptionEqualToValue={(o, v) =>
       typeof o !== "string" &&
@@ -192,7 +197,11 @@ const AssetPicker: React.FC<{
     }
     renderOption={(props, o) => (
       <li {...props} key={"create" in o ? `__create_${o.name}` : o.id}>
-        {"create" in o ? <em>＋ {o.name}</em> : `${o.id} · ${o.name}`}
+        {"create" in o ? (
+          <em>＋ {o.name}</em>
+        ) : (
+          `${o.displayId ?? o.name} · ${o.name}`
+        )}
       </li>
     )}
     onChange={(_e, val) => {

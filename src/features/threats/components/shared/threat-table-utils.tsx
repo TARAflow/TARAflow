@@ -350,7 +350,7 @@ export const AssetsCell: React.FC<{
             title={`${asset.name}${asset.aggregatedImpact ? ` — ${asset.aggregatedImpact}` : ""}`}
           >
             <Chip
-              label={asset.id}
+              label={asset.displayId ?? asset.name}
               size="small"
               sx={{
                 fontSize: "0.65rem",

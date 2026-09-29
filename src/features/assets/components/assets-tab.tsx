@@ -650,7 +650,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
                 count: missingInDFD.length,
                 defaultValue: `${missingInDFD.length} asset(s) not placed in DFD`,
               })}
-              : {missingInDFD.map((a) => a.id).join(", ")}
+              : {missingInDFD.map((a) => a.displayId ?? a.name).join(", ")}
             </Alert>
           )}
         </Box>

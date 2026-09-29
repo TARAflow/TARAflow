@@ -148,6 +148,11 @@ export interface AttackTreeAnchor {
 
   // Asset anchor (Critical Workflow)
   assetId?: string;
+  /**
+   * Display snapshot of the asset label (Asset.displayId, e.g. "SY-003") — for
+   * DSL text only. assetId is an opaque UUID and must never be written into text.
+   */
+  assetDisplayId?: string;
   assetName?: string;
   securityGoal?: SecurityGoalType;
 
@@ -919,7 +924,7 @@ export function getAnchorDisplayName(anchor: AttackTreeAnchor): string {
         : "";
       // Prefer the human asset name; the raw assetId is a UUID and must not
       // surface in tree titles / root-cause text.
-      return (anchor.assetName || anchor.assetId || "Asset") + goalSuffix;
+      return (anchor.assetName || anchor.assetDisplayId || "Asset") + goalSuffix;
     }
     case "threat":
       // threatDisplayId is the friendly label (AT-<n>.<m> / P#-S-#); threatId is
@@ -952,10 +957,10 @@ function generateInitialDSL(anchor: AttackTreeAnchor): string {
         : "# Security Goal: (not specified)";
       return (
         "# Attack Tree: " +
-        (anchor.assetName || anchor.assetId || "Asset") +
+        (anchor.assetName || anchor.assetDisplayId || "Asset") +
         "\n" +
         "# Asset: " +
-        (anchor.assetId || "A-XX") +
+        (anchor.assetDisplayId || "A-XX") +
         "\n" +
         goalComment +
         "\n" +
@@ -964,7 +969,7 @@ function generateInitialDSL(anchor: AttackTreeAnchor): string {
         "\n" +
         "# Method: Extended (f,b,i)\n\n" +
         "Attack Goal [" +
-        (anchor.assetId || "A-XX") +
+        (anchor.assetDisplayId || "A-XX") +
         "];ROOT\n" +
         "\t# TODO: Define attack paths\n" +
         "\tAttack Vector 1;OR\n" +
