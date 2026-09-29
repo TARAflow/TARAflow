@@ -42,7 +42,12 @@ import {
   Download as ImportedIcon,
 } from "@mui/icons-material";
 
-import type { AssetReference, HazardItem, HazardItemId, HazardRelation } from "shared";
+import type {
+  AssetReference,
+  HazardItem,
+  HazardItemId,
+  HazardRelation,
+} from "shared";
 import { isContributesTo, isEndangers } from "shared";
 import type { HazardData } from "../models/hazard-data-types";
 
@@ -58,6 +63,8 @@ export interface HazardTableProps {
 
 interface AssetChip {
   id: string;
+  /** Readable label (e.g. "SY-003"); the id is an opaque UUID and never shown. */
+  displayId?: string;
   name: string;
   group: string;
 }
@@ -197,7 +204,7 @@ const AssetChips: React.FC<{
         // An asset is "unresolved" when it could not be matched against the
         // current asset list (e.g. a freshly minted human target that has not
         // been merged back yet) — then name falls back to the raw id.
-        const resolved = c.name !== c.id && c.group !== "";
+        const resolved = c.displayId !== undefined && c.group !== "";
         const tip = (
           <Box sx={{ lineHeight: 1.4 }}>
             <Box sx={{ fontWeight: 700 }}>{c.name}</Box>
@@ -208,7 +215,7 @@ const AssetChips: React.FC<{
                 opacity: 0.85,
               }}
             >
-              {c.id}
+              {c.displayId ?? "?"}
               {c.group ? ` · ${c.group}` : ""}
             </Box>
             {!resolved && (
@@ -241,7 +248,7 @@ const AssetChips: React.FC<{
                       opacity: 0.7,
                     }}
                   >
-                    {c.id}
+                    {c.displayId ?? "?"}
                   </Box>
                   <Box component="span">{c.name}</Box>
                 </Box>
@@ -287,6 +294,7 @@ export const HazardTable = React.memo<HazardTableProps>(
           | undefined;
         return {
           id,
+          displayId: a?.displayId,
           name: a?.name ?? a?.label ?? id,
           group: a?.assetGroup ?? a?.group ?? "",
         };

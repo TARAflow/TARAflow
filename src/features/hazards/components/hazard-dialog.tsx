@@ -50,6 +50,7 @@ import {
 } from "@mui/icons-material";
 
 import type {
+  AssetGroupConfig,
   AssetReference,
   ContributesToRelation,
   CreatedAsset,
@@ -66,6 +67,7 @@ import {
   isContributesTo,
   isEndangers,
   createAsset as createAssetSeed,
+  ASSET_GROUP_CONFIG,
 } from "shared";
 
 import type { HazardData } from "../models/hazard-data-types";
@@ -118,6 +120,7 @@ function makeImpact(kind: HazardTargetKind, severity: string): HazardImpact {
 function seedToRef(a: CreatedAsset): AssetReference {
   return {
     id: a.id,
+    displayId: a.displayId,
     name: a.name,
     assetGroup: a.assetGroup,
     hasSafetyAnnotation: false,
@@ -229,7 +232,7 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [draft, setDraft] = useState<HazardData>(data);
   const [editingId, setEditingId] = useState<HazardItemId | null>(null);
@@ -263,7 +266,12 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
     () => [...assets, ...sessionAssets.map(seedToRef)],
     [assets, sessionAssets],
   );
-  const existingIds = useMemo(() => allAssets.map((a) => a.id), [allAssets]);
+  // createAsset() mints the next readable label from DISPLAY ids (e.g. "SY-003").
+  // Feeding it the opaque UUIDs matched no group prefix and re-minted "SY-001".
+  const existingDisplayIds = useMemo(
+    () => allAssets.map((a) => a.displayId ?? a.id),
+    [allAssets],
+  );
 
   const item = useMemo(
     () => draft.hazards.find((h) => h.id === editingId) ?? null,
@@ -300,6 +308,30 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
 
   const assetName = (id: string): string =>
     allAssets.find((a) => a.id === id)?.name ?? id;
+  // Readable label for an asset reference; the id itself is an opaque UUID.
+  const assetDisplayId = (id: string): string =>
+    allAssets.find((a) => a.id === id)?.displayId ?? "?";
+  // Asset category chip (same colours/labels as the Asset tab).
+  const assetGroupChip = (id: string) => {
+    const group = allAssets.find((a) => a.id === id)?.assetGroup;
+    if (!group) return null;
+    // AssetReference.assetGroup is a plain string; unknown groups fall back to
+    // the raw value.
+    const cfg = (ASSET_GROUP_CONFIG as Record<string, AssetGroupConfig>)[group];
+    return (
+      <Chip
+        label={
+          cfg ? (i18n.language?.startsWith("de") ? cfg.labelDE : cfg.label) : group
+        }
+        size="small"
+        sx={{
+          fontSize: "0.6rem",
+          height: 18,
+          ...(cfg ? { bgcolor: cfg.colorLight, color: cfg.color } : {}),
+        }}
+      />
+    );
+  };
 
   // ── Field handlers ───────────────────────────────────────────────────────
 
@@ -327,7 +359,7 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
   };
 
   const createCause = (name: string) => {
-    const seed = createAssetSeed(existingIds, name, newCauseGroup);
+    const seed = createAssetSeed(existingDisplayIds, name, newCauseGroup);
     setSessionAssets((s) => [...s, seed]);
     addCause(seed.id);
   };
@@ -366,7 +398,7 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
   };
 
   const createTarget = (name: string) => {
-    const seed = createAssetSeed(existingIds, name, newTargetGroup);
+    const seed = createAssetSeed(existingDisplayIds, name, newTargetGroup);
     setSessionAssets((s) => [...s, seed]);
     addTarget(seedToRef(seed));
   };
@@ -881,16 +913,19 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
                                 >
                                   {assetName(c.from)}
                                 </Typography>
-                                <Chip
-                                  label={c.from}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{
-                                    fontFamily: "monospace",
-                                    fontSize: "0.65rem",
-                                    height: 18,
-                                  }}
-                                />
+                                <Stack direction="row" spacing={0.5}>
+                                  <Chip
+                                    label={assetDisplayId(c.from)}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      fontFamily: "monospace",
+                                      fontSize: "0.65rem",
+                                      height: 18,
+                                    }}
+                                  />
+                                  {assetGroupChip(c.from)}
+                                </Stack>
                               </Box>
                               <FormControl size="small" sx={{ minWidth: 110 }}>
                                 <Select
@@ -1076,7 +1111,7 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
                                   </Typography>
                                   <Stack direction="row" spacing={0.5}>
                                     <Chip
-                                      label={e.to}
+                                      label={assetDisplayId(e.to)}
                                       size="small"
                                       variant="outlined"
                                       sx={{

@@ -52,15 +52,6 @@ export interface HazardTabProps {
   onPhaseComplete?: () => void;
 }
 
-function seedToRef(a: CreatedAsset): AssetReference {
-  return {
-    id: a.id,
-    name: a.name,
-    assetGroup: a.assetGroup,
-    hasSafetyAnnotation: false,
-  };
-}
-
 // ==================== COMPONENT ====================
 
 export const HazardsTab: React.FC<HazardTabProps> = ({
