@@ -76,6 +76,22 @@ function findAsset(
 // ==================== SERVICE ====================
 
 export const hazardRelationService = {
+  // ---- queries --------------------------------------------------------------
+
+  /**
+   * Every asset id referenced by any edge (contributes_to.from, endangers.to).
+   * Used to drop quick-capture assets whose only edge was removed again before
+   * the dialog committed — otherwise they would be created as orphans.
+   */
+  referencedAssetIds(data: HazardData): Set<string> {
+    const ids = new Set<string>();
+    for (const r of data.relations) {
+      if (isContributesTo(r)) ids.add(r.from);
+      else if (isEndangers(r)) ids.add(r.to);
+    }
+    return ids;
+  },
+
   // ---- contributes_to ------------------------------------------------------
 
   /** Adds a contributes_to edge. Idempotent on (asset, hazard). */

@@ -132,3 +132,34 @@ describe("hazardRelationService — endangers + validation", () => {
     expect(errs).toEqual([]);
   });
 });
+
+describe("hazardRelationService — referencedAssetIds", () => {
+  it("collects contributes_to sources and endangers targets", () => {
+    let d = hazardRelationService.addContributesTo(base(), {
+      assetId: "SYS-1",
+      hazardId: HID,
+      relevance: "direct",
+      hazardDistance: 1,
+    });
+    d = hazardRelationService.addEndangers(d, {
+      hazardId: HID,
+      targetAssetId: "HUM-1",
+      impact: fatalHuman,
+    });
+    expect([...hazardRelationService.referencedAssetIds(d)].sort()).toEqual([
+      "HUM-1",
+      "SYS-1",
+    ]);
+  });
+
+  it("forgets an asset once its only edge is removed", () => {
+    let d = hazardRelationService.addContributesTo(base(), {
+      assetId: "SYS-1",
+      hazardId: HID,
+      relevance: "direct",
+      hazardDistance: 1,
+    });
+    d = hazardRelationService.removeContributesTo(d, "SYS-1", HID);
+    expect(hazardRelationService.referencedAssetIds(d).size).toBe(0);
+  });
+});

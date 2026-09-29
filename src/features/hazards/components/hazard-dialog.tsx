@@ -436,7 +436,15 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
 
   // Edits live in the draft; closing commits them (no separate Cancel/Save).
   const commitAndClose = () => {
-    if (!saveDisabled) onSave(draft, sessionAssets);
+    if (!saveDisabled) {
+      // Hand up only the session assets still referenced by an edge: an asset
+      // created and then removed again within this session must not be minted.
+      const referenced = hazardRelationService.referencedAssetIds(draft);
+      onSave(
+        draft,
+        sessionAssets.filter((a) => referenced.has(a.id)),
+      );
+    }
     onClose();
   };
 
