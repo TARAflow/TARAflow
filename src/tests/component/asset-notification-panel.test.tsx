@@ -46,6 +46,42 @@ describe("AssetNotificationPanel", () => {
     expect(onOpen).toHaveBeenCalledWith(findings[1]);
   });
 
+  it("is resizable like the DFD panel: drag the handle up to grow, clamped", () => {
+    // jsdom has no PointerEvent — a MouseEvent subclass carries clientY
+    if (!(window as any).PointerEvent) {
+      (window as any).PointerEvent = class extends MouseEvent {
+        pointerId = 1;
+      };
+    }
+    render(<AssetNotificationPanel findings={findings} onOpen={() => {}} />);
+    const panel = screen.getByTestId("asset-notification-panel");
+    const handle = screen.getByTestId("asset-notification-resize");
+    const height = () => parseInt(getComputedStyle(panel).height, 10);
+    const start = height();
+
+    fireEvent.pointerDown(handle, { clientY: 500, pointerId: 1 });
+    fireEvent.pointerMove(document, { clientY: 400, pointerId: 1 });
+    fireEvent.pointerUp(document, { clientY: 400, pointerId: 1 });
+    expect(height()).toBe(start + 100);
+
+    fireEvent.pointerDown(handle, { clientY: 500, pointerId: 1 });
+    fireEvent.pointerMove(document, { clientY: -2000, pointerId: 1 });
+    fireEvent.pointerUp(document, { pointerId: 1 });
+    expect(height()).toBe(500); // MAX_PANEL_HEIGHT
+
+    fireEvent.pointerDown(handle, { clientY: 0, pointerId: 1 });
+    fireEvent.pointerMove(document, { clientY: 2000, pointerId: 1 });
+    fireEvent.pointerUp(document, { pointerId: 1 });
+    expect(height()).toBe(80); // MIN_PANEL_HEIGHT
+  });
+
+  it("the list scrolls inside the panel", () => {
+    render(<AssetNotificationPanel findings={findings} onOpen={() => {}} />);
+    const list = screen.getByTestId("asset-notification-list");
+    expect(getComputedStyle(list).overflowY).toBe("auto");
+    expect(getComputedStyle(list).maxHeight).not.toBe("none");
+  });
+
   it("renders nothing without findings", () => {
     const { container } = render(<AssetNotificationPanel findings={[]} onOpen={() => {}} />);
     expect(container.firstChild).toBeNull();

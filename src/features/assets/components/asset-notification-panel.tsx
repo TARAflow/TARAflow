@@ -7,7 +7,13 @@
 // goal without a formal requirement text) are behind the info chip so they do
 // not drown the findings that matter.
 
-import React, { useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -30,7 +36,13 @@ import type { AssetFinding } from "../services/asset-validator";
 import { compareDisplayIds } from "shared";
 
 const RANK: Record<AssetFinding["severity"], number> = { error: 0, warning: 1, info: 2 };
-const MAX_LIST_HEIGHT = 180;
+
+// Resizable like the DFD notification panel: drag the handle upward to grow.
+export const MIN_PANEL_HEIGHT = 80;
+export const MAX_PANEL_HEIGHT = 500;
+const DEFAULT_PANEL_HEIGHT = 180;
+const HEADER_HEIGHT = 40;
+const HANDLE_HEIGHT = 8;
 
 export interface AssetNotificationPanelProps {
   findings: AssetFinding[];
@@ -45,6 +57,66 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const [showInfos, setShowInfos] = useState(false);
+
+  // ── Resize (same interaction as the DFD notification panel) ─────────────
+  const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
+  const [isResizing, setIsResizing] = useState(false);
+  const isResizingRef = useRef(false);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(0);
+  const handleRef = useRef<HTMLDivElement | null>(null);
+
+  const handlePointerMove = useCallback((e: PointerEvent) => {
+    if (!isResizingRef.current) return;
+    e.preventDefault();
+    const delta = startYRef.current - e.clientY; // dragging up grows the panel
+    setPanelHeight(
+      Math.max(MIN_PANEL_HEIGHT, Math.min(MAX_PANEL_HEIGHT, startHeightRef.current + delta)),
+    );
+  }, []);
+
+  const handlePointerUp = useCallback(
+    (e: PointerEvent) => {
+      if (!isResizingRef.current) return;
+      isResizingRef.current = false;
+      setIsResizing(false);
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      if (handleRef.current?.hasPointerCapture?.(e.pointerId)) {
+        handleRef.current.releasePointerCapture(e.pointerId);
+      }
+    },
+    [handlePointerMove],
+  );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startYRef.current = e.clientY;
+      startHeightRef.current = panelHeight;
+      isResizingRef.current = true;
+      setIsResizing(true);
+      handleRef.current?.setPointerCapture?.(e.pointerId);
+      document.addEventListener("pointermove", handlePointerMove, { passive: false });
+      document.addEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+    },
+    [panelHeight, handlePointerMove, handlePointerUp],
+  );
+
+  useEffect(
+    () => () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    },
+    [handlePointerMove, handlePointerUp],
+  );
 
   const count = (s: AssetFinding["severity"]) =>
     findings.filter((f) => f.severity === s).length;
@@ -82,8 +154,42 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
+        height: expanded ? panelHeight : "auto",
+        overflow: "hidden",
+        userSelect: isResizing ? "none" : "auto",
       }}
     >
+      {/* Resize handle — drag upward to increase the panel height */}
+      {expanded && (
+        <Box
+          ref={handleRef}
+          data-testid="asset-notification-resize"
+          onPointerDown={handlePointerDown}
+          sx={{
+            height: HANDLE_HEIGHT,
+            flexShrink: 0,
+            cursor: "row-resize",
+            touchAction: "none",
+            backgroundColor: isResizing ? "primary.light" : "grey.200",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: isResizing ? "none" : "background-color 0.2s",
+            "&:hover": { backgroundColor: "primary.light" },
+            "&:active": { backgroundColor: "primary.main" },
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: isResizing ? "primary.contrastText" : "grey.400",
+            }}
+          />
+        </Box>
+      )}
+
       {/* Header */}
       <Box
         sx={{
@@ -92,6 +198,9 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
           gap: 1,
           px: 1.5,
           py: 0.6,
+          minHeight: HEADER_HEIGHT,
+          boxSizing: "border-box",
+          flexShrink: 0,
           cursor: "pointer",
           userSelect: "none",
           borderBottom: expanded ? "1px solid" : "none",
@@ -156,7 +265,13 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
 
       {/* List */}
       <Collapse in={expanded}>
-        <Box sx={{ maxHeight: MAX_LIST_HEIGHT, overflowY: "auto" }}>
+        <Box
+          data-testid="asset-notification-list"
+          sx={{
+            maxHeight: panelHeight - HEADER_HEIGHT - HANDLE_HEIGHT,
+            overflowY: "auto",
+          }}
+        >
           {visible.map((f, i) => {
             const clickable = !!f.assetId;
             const color =
