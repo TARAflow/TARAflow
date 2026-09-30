@@ -425,7 +425,6 @@ export const ProjectShell: React.FC = () => {
                 description: data.description,
                 version: data.version,
                 responsible: data.responsible,
-                isHighImpact: data.isHighImpact,
               });
 
               if (!result.success || !result.data) {
@@ -440,6 +439,11 @@ export const ProjectShell: React.FC = () => {
                   ...result.data.info,
                   tags: data.tags,
                   safetyRelevant: data.safetyRelevant ?? false,
+                  // Set in the dialog when the EN 50742-A tag is chosen;
+                  // otherwise stays undefined (as for a fresh ProjectInfo).
+                  ...(data.windowOfOpportunity
+                    ? { windowOfOpportunity: data.windowOfOpportunity }
+                    : {}),
                 },
               };
 
