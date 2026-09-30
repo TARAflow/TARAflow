@@ -161,23 +161,21 @@ export const TAG_CATEGORIES: TagCategory[] = [
         tooltipKey: "tags.tooltips.iec62351",
         docDescriptionKey: "tags.docDescriptions.iec62351",
       },
-      // Machinery — Approach A (risk-derived: AP = EL×WoO+AC) and Approach B
-      // (Clause 8 fixed IEC 62443-3-3/-4-2 subset) are separate conformance
-      // claims (prEN 50742:2025 Clause 4.1, mutually exclusive — see
-      // tagConflicts.en50742Approach). Only Approach A selects the
-      // `en-50742-a` likelihood preset and therefore locks factors in
-      // risk-config-dialog / asset-config-dialog; Approach B has no risk
-      // method impact (compliance-subset only). Both still require the
-      // Hazard tab (requiresHazardAnalysis).
+      // Machinery — prEN 50742:2025 Approach A (risk-derived: AP = EL×WoO+AC).
+      // Selects the `en-50742-a` likelihood preset (locks factors in
+      // risk-config-dialog / asset-config-dialog) and requires the Hazard tab
+      // (requiresHazardAnalysis).
+      //
+      // Approach B (Clause 8, fixed IEC 62443-3-3/-4-2 compliance subset) is
+      // deliberately NOT offered: TARAflow has no IEC 62443-4-2 support yet,
+      // so a "B" claim could not be backed by the tool. The preset id
+      // `en-50742-b` and the A/B mutual-exclusion check stay in place for when
+      // the Compliance feature delivers it; an existing project that still
+      // carries the tag keeps working (badge without tooltip, removable).
       {
         name: "EN 50742 A",
         tooltipKey: "tags.tooltips.en50742A",
         docDescriptionKey: "tags.docDescriptions.en50742A",
-      },
-      {
-        name: "EN 50742 B",
-        tooltipKey: "tags.tooltips.en50742B",
-        docDescriptionKey: "tags.docDescriptions.en50742B",
       },
     ],
   },
