@@ -37,6 +37,12 @@ import { assetService } from "../services/asset-service";
 import { AssetsToolbar } from "./asset-toolbar";
 import { AssetTable } from "./asset-table";
 import { AssetDialog } from "./asset-dialog";
+import { AssetNotificationPanel } from "./asset-notification-panel";
+import {
+  collectAssetFindings,
+  type AssetFinding,
+} from "../services/asset-validator";
+import type { SecurityGoalType } from "../models/asset-security-goals-types";
 import { AssetConfigDialog } from "./asset-config-dialog";
 import { DFDPreviewPanel } from "shared";
 import {
@@ -108,6 +114,11 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // Dialog state
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [showAssetDialog, setShowAssetDialog] = useState(false);
+  /** Where the dialog opens when started from a finding. */
+  const [dialogFocus, setDialogFocus] = useState<{
+    tab: 0 | 1;
+    goal?: SecurityGoalType;
+  } | null>(null);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [tempConfig, setTempConfig] = useState<AssetConfiguration | null>(null);
   const [showExportImportDialog, setShowExportImportDialog] = useState(false);
@@ -309,6 +320,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   }, [assetData]);
 
   const handleEditAsset = useCallback((asset: Asset) => {
+    setDialogFocus(null);
     setSelectedAsset(asset);
     setShowAssetDialog(true);
   }, []);
@@ -641,6 +653,20 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // ==================== RENDER ====================
 
+  // Validation findings, structured — for the panel below the table.
+  const findings = useMemo(() => collectAssetFindings(assetData), [assetData]);
+
+  const handleOpenFinding = useCallback(
+    (finding: AssetFinding) => {
+      const asset = assetData.assets.find((a) => a.id === finding.assetId);
+      if (!asset) return;
+      setDialogFocus({ tab: finding.dialogTab, goal: finding.goal });
+      setSelectedAsset(asset);
+      setShowAssetDialog(true);
+    },
+    [assetData.assets],
+  );
+
   return (
     <Box
       ref={containerRef}
@@ -765,6 +791,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
           />
         </Box>
+
+        {/* Findings — below the table, like the DFD tab */}
+        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} />
       </Box>
       {/* Asset delete confirm — project-wide, blocked by attack-tree anchors */}
       {confirmDeleteAsset && (
@@ -785,6 +814,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           onSave={handleSaveAsset}
           onClose={handleCloseAssetDialog}
           damageScenarioMode={project.damageScenarioMode ?? false}
+          initialTab={dialogFocus?.tab ?? 0}
+          focusGoal={dialogFocus?.goal}
         />
       )}
       {/* Configuration Dialog */}

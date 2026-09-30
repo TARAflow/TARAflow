@@ -78,3 +78,24 @@ describe("asset label in validation messages", () => {
     expect(assetLabel({ id: "u", displayId: "DA-3" })).toBe("DA-3");
   });
 });
+
+describe("structured findings (notification panel)", () => {
+  it("carry asset id, label, goal and the dialog tab; strings are derived from them", async () => {
+    const { collectAssetFindings } = await import("features/assets/services/asset-validator");
+    const a = { ...asset([]), linkedDFDElements: [] } as Asset;
+    const f = collectAssetFindings(data(a));
+    const unassessed = f.find((x) => x.key.endsWith("goalUnassessed") && x.goal === "C")!;
+    expect(unassessed).toMatchObject({ severity: "warning", assetId: "uuid-1", assetLabel: "A-001 (Config DB)", dialogTab: 1 });
+    expect(f.find((x) => x.key.endsWith("notLinkedToDFD"))).toMatchObject({ dialogTab: 0 });
+    const v = validateAssetData(data(a));
+    expect(v.warnings.length + v.errors.length + (v.infos ?? []).length).toBe(f.length);
+  });
+
+  it("a goal without formal requirement text is an info, not a warning", () => {
+    const a = asset([{ criterionId: "financial_damage", value: 3 }]);
+    const blank = { ...a, securityGoals: a.securityGoals.map((g) => ({ ...g, formalDescription: "" })) } as Asset;
+    const v = validateAssetData(data(blank));
+    expect(v.warnings.some((w) => w.includes("noSecurityGoalDescription"))).toBe(false);
+    expect(v.infos).toContain("tabs.assets.validation.noSecurityGoalDescription:A-001 (Config DB):C");
+  });
+});

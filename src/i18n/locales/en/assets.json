@@ -462,6 +462,14 @@
           "remove": "Remove goal",
           "exclude": "Not relevant for this asset"
         }
+      },
+      "notifications": {
+        "title": "{{count}} finding(s)",
+        "showInfos": "Show infos",
+        "hideInfos": "Hide infos",
+        "open": "Open the asset where this is fixed",
+        "onlyInfos": "No errors or warnings — infos are hidden.",
+        "summary": "{{errors}} errors · {{warnings}} warnings · {{infos}} infos — details below the table"
       }
     }
   }

@@ -97,6 +97,10 @@ interface AssetDialogProps {
    * Kept for API compatibility with callers.
    */
   damageScenarioMode?: boolean;
+  /** Tab to open on (0 = General, 1 = Security Goals) — e.g. from a finding. */
+  initialTab?: 0 | 1;
+  /** Goal card to open and scroll to — e.g. from a finding. */
+  focusGoal?: SecurityGoalType;
 }
 
 interface TabPanelProps {
@@ -142,6 +146,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   onSave,
   onClose,
   damageScenarioMode = false,
+  initialTab = 0,
+  focusGoal,
 }) => {
   const { t } = useTranslation();
 
@@ -150,7 +156,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
   // ==================== STATE ====================
 
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState<number>(initialTab);
 
   const [editedAsset, setEditedAsset] = useState<Asset>(() => {
     const base = {
@@ -185,7 +191,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       ),
     });
     setErrors({});
-    setTabValue(0);
+    setTabValue(initialTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset]);
 
   // Live CIANAAA refresh: when impact ratings change, re-derive levels for suggested goals.
@@ -515,6 +522,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       criterionName={criterionName}
       assetDisplayName={assetDisplayName}
       rationaleError={goalErrorTypes.includes(goal.type)}
+      focused={goal.type === focusGoal}
       onLevel={(lvl) => handleGoalLevel(goal.type, lvl)}
       onExclude={() => handleGoalExclude(goal.type)}
       onKeep={() => handleGoalKeep(goal.type)}

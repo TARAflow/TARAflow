@@ -462,6 +462,14 @@
           "remove": "Ziel entfernen",
           "exclude": "Für dieses Asset nicht relevant"
         }
+      },
+      "notifications": {
+        "title": "{{count}} Befund(e)",
+        "showInfos": "Infos anzeigen",
+        "hideInfos": "Infos ausblenden",
+        "open": "Asset dort öffnen, wo das behoben wird",
+        "onlyInfos": "Keine Fehler oder Warnungen — Infos sind ausgeblendet.",
+        "summary": "{{errors}} Fehler · {{warnings}} Warnungen · {{infos}} Infos — Details unterhalb der Tabelle"
       }
     }
   }

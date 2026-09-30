@@ -10,7 +10,6 @@ import {
   Tooltip,
   Divider,
   Chip,
-  Typography,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -71,16 +70,6 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
           defaultValue: "Errors",
         })}`;
       return t("status.inProgress", { defaultValue: "In Progress" });
-    };
-
-    const translateValidationMessage = (msg: string): string => {
-      // Format: "tabs.assets.validation.key:assetId" or
-      //         "tabs.assets.validation.key:assetId:type"
-      const parts = msg.split(":");
-      const key = parts[0];
-      const id = parts[1] ?? "";
-      const type = parts[2] ?? "";
-      return t(key, { id, type, defaultValue: msg });
     };
 
     return (
@@ -169,53 +158,22 @@ export const AssetsToolbar = React.memo<AssetsToolbarProps>(
           variant="outlined"
         />
 
-        {/* Validation status */}
+        {/* Validation status — details are in the findings panel below the table */}
         <Tooltip
           arrow
           placement="top"
-          componentsProps={{ tooltip: { sx: { maxWidth: 320 } } }}
           title={
-            validation &&
-            (validation.errors.length > 0 ||
-              validation.warnings.length > 0 ||
-              (validation.infos?.length ?? 0) > 0) ? (
-              <Box sx={{ p: 0.5 }}>
-                {validation.errors.map((err, i) => (
-                  <Typography
-                    key={i}
-                    variant="caption"
-                    display="block"
-                    color="rgba(255,180,180,1)"
-                  >
-                    • {translateValidationMessage(err)}
-                  </Typography>
-                ))}
-                {validation.warnings.map((warn, i) => (
-                  <Typography
-                    key={i}
-                    variant="caption"
-                    display="block"
-                    color="rgba(255,220,100,1)"
-                  >
-                    • {translateValidationMessage(warn)}
-                  </Typography>
-                ))}
-                {(validation.infos ?? []).map((info, i) => (
-                  <Typography
-                    key={`i${i}`}
-                    variant="caption"
-                    display="block"
-                    color="rgba(170,210,255,1)"
-                  >
-                    • {translateValidationMessage(info)}
-                  </Typography>
-                ))}
-              </Box>
-            ) : (
-              t("validation.noMessages", {
-                defaultValue: "No validation messages",
-              })
-            )
+            validation
+              ? t("tabs.assets.notifications.summary", {
+                  errors: validation.errors.length,
+                  warnings: validation.warnings.length,
+                  infos: validation.infos?.length ?? 0,
+                  defaultValue:
+                    "{{errors}} errors · {{warnings}} warnings · {{infos}} infos — details below the table",
+                })
+              : t("validation.noMessages", {
+                  defaultValue: "No validation messages",
+                })
           }
         >
           <Box component="span" sx={{ display: "inline-block" }}>

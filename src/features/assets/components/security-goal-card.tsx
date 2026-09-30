@@ -92,6 +92,8 @@ export interface SecurityGoalCardProps {
   /** Save was blocked for this goal's missing rationale — opens the card. */
   rationaleError?: boolean;
   defaultExpanded?: boolean;
+  /** Opened from a finding: expand and scroll into view. */
+  focused?: boolean;
   onLevel: (level: Exclude<CIANAAALevel, "none">) => void;
   onExclude: () => void;
   onKeep: () => void;
@@ -127,6 +129,7 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
   assetDisplayName,
   rationaleError = false,
   defaultExpanded = false,
+  focused = false,
   onLevel,
   onExclude,
   onKeep,
@@ -142,7 +145,11 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
     state.assessment === "missing" ||
     rationaleError ||
     (state.rationaleRequired && !goal.rationale?.trim());
-  const [open, setOpen] = useState(defaultExpanded || needsAttention);
+  const [open, setOpen] = useState(defaultExpanded || needsAttention || focused);
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focused) cardRef.current?.scrollIntoView?.({ block: "center" });
+  }, [focused]);
   // A card that starts needing attention while mounted (e.g. a changed
   // suggestion after an impact edit, or a failed save) opens by itself.
   useEffect(() => {
@@ -217,9 +224,11 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
 
   return (
     <Paper
+      ref={cardRef}
       variant="outlined"
       data-testid={`goal-card-${state.type}`}
       sx={{
+        ...(focused ? { boxShadow: 3 } : {}),
         mb: 1,
         borderLeft: 3,
         borderLeftColor: excluded

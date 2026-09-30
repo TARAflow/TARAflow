@@ -3,7 +3,10 @@
 // Returns structured AssetValidation — no side effects, no service deps.
 
 import type { AssetData, AssetValidation } from "../models/asset-types";
-import type { StaleReason } from "../models/asset-security-goals-types";
+import type {
+  SecurityGoalType,
+  StaleReason,
+} from "../models/asset-security-goals-types";
 import { goalFindings, goalStates } from "./asset-goal-state";
 import type { GoalFindingCode } from "./asset-goal-state";
 import type { PhaseStatus } from "shared";
@@ -24,35 +27,62 @@ export function assetLabel(asset: {
   return name ? `${id} (${name})` : id;
 }
 
-export function validateAssetData(assetData: AssetData): AssetValidation {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const infos: string[] = [];
+/** Asset dialog tab a finding is fixed in: 0 = General, 1 = Security Goals. */
+export type AssetDialogTab = 0 | 1;
+
+/**
+ * One validation finding, structured — for the notification panel below the
+ * asset table (click → open the asset in the right dialog tab). The string
+ * form in AssetValidation is derived from these, so both always agree.
+ */
+export interface AssetFinding {
+  severity: "error" | "warning" | "info";
+  /** i18n key, e.g. tabs.assets.validation.goalOverrideStale.levelRaised */
+  key: string;
+  /** Asset the finding is about; absent for project-level findings. */
+  assetId?: string;
+  assetLabel?: string;
+  goal?: SecurityGoalType;
+  dialogTab: AssetDialogTab;
+}
+
+const GENERAL: AssetDialogTab = 0;
+const GOALS: AssetDialogTab = 1;
+
+export function collectAssetFindings(assetData: AssetData): AssetFinding[] {
+  const out: AssetFinding[] = [];
   const impactScale = assetData.configuration?.impactScale ?? "4-level";
 
   if (assetData.assets.length === 0) {
-    errors.push("tabs.assets.validation.noAssets");
+    out.push({ severity: "error", key: "tabs.assets.validation.noAssets", dialogTab: GENERAL });
   }
 
   for (const asset of assetData.assets) {
-    const label = assetLabel(asset);
-    if (!asset.name.trim()) {
-      errors.push(`tabs.assets.validation.noName:${label}`);
-    }
+    const at = {
+      assetId: asset.id,
+      assetLabel: assetLabel(asset),
+    };
+    const push = (
+      severity: AssetFinding["severity"],
+      key: string,
+      dialogTab: AssetDialogTab,
+      goal?: SecurityGoalType,
+    ) => out.push({ severity, key, dialogTab, ...at, ...(goal ? { goal } : {}) });
 
-    // Check if at least one CIANAAA dimension is active (level !== "none")
-    // Replaces former: !asset.securityGoals.some((sg) => sg.enabled)
+    if (!asset.name.trim()) push("error", "tabs.assets.validation.noName", GENERAL);
+
+    // At least one CIANAAA dimension must be active (level !== "none")
     if (!asset.securityGoals.some((sg) => sg.level !== "none")) {
-      errors.push(`tabs.assets.validation.noSecurityGoal:${label}`);
+      push("error", "tabs.assets.validation.noSecurityGoal", GOALS);
     }
 
-    // Warn about active goals without a formal description
+    // Active goals without a formal requirement text — INFO: the text matters
+    // for the report, not for the analysis (one per goal would drown the
+    // findings that do matter).
     for (const sg of asset.securityGoals.filter(
       (sg) => sg.level !== "none" && !sg.formalDescription.trim(),
     )) {
-      warnings.push(
-        `tabs.assets.validation.noSecurityGoalDescription:${label}:${sg.type}`,
-      );
+      push("info", "tabs.assets.validation.noSecurityGoalDescription", GOALS, sg.type);
     }
 
     // Manual physicalImpact override requires rationale (IEC 62443-4-1)
@@ -60,35 +90,44 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
       asset.physicalImpactSource === "manual" &&
       !asset.physicalImpactRationale?.trim()
     ) {
-      warnings.push(
-        `tabs.assets.validation.noPhysicalImpactRationale:${label}`,
-      );
+      push("warning", "tabs.assets.validation.noPhysicalImpactRationale", GENERAL);
     }
 
     if (asset.linkedDFDElements.length === 0) {
-      warnings.push(`tabs.assets.validation.notLinkedToDFD:${label}`);
+      push("warning", "tabs.assets.validation.notLinkedToDFD", GENERAL);
     }
 
     if (asset.impactRatings.some((r) => r.value === 0)) {
-      warnings.push(`tabs.assets.validation.unratedImpact:${label}`);
+      push("warning", "tabs.assets.validation.unratedImpact", GENERAL);
     }
 
     // Security-goal findings — from the single domain truth (goalStates).
-    // Messages name the asset by its display id, not the internal UUID.
     const states = goalStates(asset, impactScale);
     asset.securityGoals.forEach((goal, i) => {
       for (const f of goalFindings(states[i], goal)) {
-        const key = `${GOAL_FINDING_KEY[f.code]}${f.reason ? `.${STALE_KEY[f.reason]}` : ""}:${label}:${f.goal}`;
-        (f.severity === "error" ? errors : f.severity === "warning" ? warnings : infos).push(key);
+        const key = `${GOAL_FINDING_KEY[f.code]}${f.reason ? `.${STALE_KEY[f.reason]}` : ""}`;
+        push(f.severity, key, GOALS, f.goal);
       }
     });
   }
+  return out;
+}
 
+/** String form "key[:asset[:goal]]" — persisted in AssetValidation. */
+function findingToString(f: AssetFinding): string {
+  return [f.key, f.assetLabel, f.goal].filter(Boolean).join(":");
+}
+
+export function validateAssetData(assetData: AssetData): AssetValidation {
+  const findings = collectAssetFindings(assetData);
+  const by = (sev: AssetFinding["severity"]) =>
+    findings.filter((f) => f.severity === sev).map(findingToString);
+  const errors = by("error");
   return {
     isComplete: errors.length === 0 && assetData.assets.length > 0,
     errors,
-    warnings,
-    infos,
+    warnings: by("warning"),
+    infos: by("info"),
     lastValidated: new Date().toISOString(),
   };
 }
