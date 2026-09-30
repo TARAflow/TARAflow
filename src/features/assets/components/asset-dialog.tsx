@@ -71,6 +71,7 @@ import {
 } from "../services/asset-cianaaa-deriver";
 import {
   adjustGoal,
+  currentSuggestion,
   excludeGoal,
   goalStates,
   initializeMissingSnapshots,
@@ -321,11 +322,21 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     }
   };
 
+  /**
+   * Picking a level. The suggested level on a suggested goal is not a
+   * decision — it returns the goal to the suggestion (rationale and snapshot
+   * go); any other level is an adjustment.
+   */
   const handleGoalLevel = (
     type: SecurityGoalType,
     level: Exclude<CIANAAALevel, "none">,
   ) =>
-    applyGoal(type, (a, g) => adjustGoal(a, g, level, g.rationale ?? "", scaleType));
+    applyGoal(type, (a, g) => {
+      const s = currentSuggestion(a, type, scaleType);
+      return s.suggested && s.level === level
+        ? resetToSuggestion(a, g, scaleType)
+        : adjustGoal(a, g, level, g.rationale ?? "", scaleType);
+    });
 
   const handleGoalExclude = (type: SecurityGoalType) =>
     applyGoal(type, (a, g) => excludeGoal(a, g, g.rationale ?? "", scaleType));

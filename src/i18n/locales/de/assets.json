@@ -425,7 +425,7 @@
         "provisional": "vorläufig",
         "minimumLevel": "Mindeststufe",
         "rationaleMissing": "Begründung fehlt",
-        "rationaleRequired": "Pflicht bei einer manuellen Entscheidung",
+        "rationaleRequired": "Pflicht bei einer Abweichung vom Vorschlag",
         "driver": {
           "mechanism": "Treiber: {{criterion}} = {{value}}",
           "fallback": "Vorläufig: kein zielspezifisches Kriterium bewertet, höchstes ist {{criterion}} = {{value}}",

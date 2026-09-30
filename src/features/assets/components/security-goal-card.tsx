@@ -89,7 +89,7 @@ export interface SecurityGoalCardProps {
   impactRatings: ImpactRating[];
   criterionName: (criterionId: string) => string;
   assetDisplayName: string;
-  /** Mark the rationale field (manual decision without rationale on save). */
+  /** Save was blocked for this goal's missing rationale — opens the card. */
   rationaleError?: boolean;
   defaultExpanded?: boolean;
   onLevel: (level: Exclude<CIANAAALevel, "none">) => void;
@@ -431,35 +431,6 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
             </Stack>
           )}
 
-          {/* Rationale — required for every manual decision */}
-          {prompt && (
-            <FieldRow>
-            <TextField
-              label={t(`${K}.rationale.${prompt}`, {
-                defaultValue:
-                  prompt === "excluded"
-                    ? "Why is this security goal not relevant for this asset?"
-                    : prompt === "added"
-                      ? "Why is this security goal needed in addition?"
-                      : "Why does the suggested level not fit?",
-              })}
-              value={goal.rationale ?? ""}
-              onChange={(e) => onRationale(e.target.value)}
-              error={rationaleMissing && rationaleError}
-              helperText={
-                rationaleMissing
-                  ? t(`${K}.rationaleRequired`, { defaultValue: "Required for a manual decision" })
-                  : undefined
-              }
-              required
-              fullWidth
-              multiline
-              minRows={1}
-              size="small"
-            />
-            </FieldRow>
-          )}
-
           {!excluded && (
             <>
               {/* Formal requirement */}
@@ -507,6 +478,36 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
               />
               </FieldRow>
             </>
+          )}
+
+          {/* Rationale — last field; required for every deviation from the
+              suggestion, outlined red until it is filled in */}
+          {prompt && (
+            <FieldRow>
+            <TextField
+              label={t(`${K}.rationale.${prompt}`, {
+                defaultValue:
+                  prompt === "excluded"
+                    ? "Why is this security goal not relevant for this asset?"
+                    : prompt === "added"
+                      ? "Why is this security goal needed in addition?"
+                      : "Why does the suggested level not fit?",
+              })}
+              value={goal.rationale ?? ""}
+              onChange={(e) => onRationale(e.target.value)}
+              error={rationaleMissing}
+              helperText={
+                rationaleMissing
+                  ? t(`${K}.rationaleRequired`, { defaultValue: "Required when deviating from the suggestion" })
+                  : undefined
+              }
+              required
+              fullWidth
+              multiline
+              minRows={1}
+              size="small"
+            />
+            </FieldRow>
           )}
 
           {/* Actions */}

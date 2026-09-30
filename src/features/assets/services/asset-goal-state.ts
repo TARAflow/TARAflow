@@ -63,7 +63,10 @@ export interface GoalState {
   suggestion: GoalSuggestionSnapshot;
   /** Set when a manual decision's basis has changed since it was made. */
   stale: StaleReason | null;
-  /** Manual decisions (adjusted or excluded) must be justified. */
+  /**
+   * A manual decision that deviates from the suggestion (excluded, added, or
+   * another level) must be justified.
+   */
   rationaleRequired: boolean;
 }
 
@@ -195,7 +198,12 @@ function stateOf(
     suggestionReasons: explainSuggestion(asset, goal.type, impactScale).reasons,
     suggestion,
     stale: manual ? staleReason(goal.suggestionAtDecision, suggestion) : null,
-    rationaleRequired: manual,
+    // A rationale justifies a DEVIATION from the suggestion: an exclusion, an
+    // added (not suggested) goal, or a level other than the suggested one. A
+    // manual goal that sits on the suggested level deviates from nothing.
+    rationaleRequired:
+      manual &&
+      (!active || !suggestion.suggested || goal.level !== suggestion.level),
   };
 }
 

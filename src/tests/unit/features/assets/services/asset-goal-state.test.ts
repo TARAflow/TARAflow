@@ -247,3 +247,22 @@ describe("explicit actions", () => {
     expect(goalStates(a1, S).map((s) => s.type)).toEqual(TYPES);
   });
 });
+
+describe("rationale is required for a deviation only", () => {
+  it("manual goal sitting on the suggested level needs no rationale", () => {
+    const a0 = asset([r("financial_damage", 3)]); // C suggested: high
+    const a = withGoal(a0, { ...goal(a0, "C"), source: "manual", level: "high", rationale: "" });
+    expect(stateOf(a, "C").rationaleRequired).toBe(false);
+    expect(findings(a, "C")).toEqual([]);
+  });
+
+  it("another level, an exclusion or an added goal still need one", () => {
+    const a0 = asset([r("financial_damage", 3), r("operational", 3)]);
+    const adjusted = withGoal(a0, adjustGoal(a0, goal(a0, "C"), "low", "", S));
+    const excluded = withGoal(a0, excludeGoal(a0, goal(a0, "C"), "", S));
+    const added = withGoal(a0, adjustGoal(a0, goal(a0, "A"), "high", "", S));
+    expect(stateOf(adjusted, "C").rationaleRequired).toBe(true);
+    expect(stateOf(excluded, "C").rationaleRequired).toBe(true);
+    expect(stateOf(added, "A").rationaleRequired).toBe(true);
+  });
+});

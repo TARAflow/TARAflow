@@ -225,6 +225,38 @@ describe("AssetDialog — goal cards wiring", () => {
     expect(c.suggestionAtDecision).toMatchObject({ suggested: true, level: "high" });
   });
 
+  it("picking the suggested level returns to the suggestion — field disappears (critical → high → critical)", () => {
+    // C suggested "critical" (financial_damage 4)
+    openDialog(asset([r("financial_damage", 4)]));
+    const card = () => screen.getByTestId("goal-card-C");
+    const field = () => within(card()).queryByLabelText(/Why does the suggested level not fit\?/);
+    const level = (name: string) =>
+      fireEvent.click(within(card()).getByRole("button", { name: `tabs.assets.cianaaa.level.${name}` }));
+
+    fireEvent.click(card().querySelector("[aria-label='expand']")!);
+    level("high");
+    expect(field()).toBeTruthy();
+    expect(within(card()).getByText("Adjusted")).toBeTruthy();
+
+    level("critical"); // the suggested level
+    expect(field()).toBeNull();
+    expect(within(card()).getByText("Suggested")).toBeTruthy();
+  });
+
+  it("the rationale field is the last field and outlined red while empty", () => {
+    openDialog(asset([r("financial_damage", 4)]));
+    const card = screen.getByTestId("goal-card-C");
+    fireEvent.click(card.querySelector("[aria-label='expand']")!);
+    fireEvent.click(within(card).getByRole("button", { name: "tabs.assets.cianaaa.level.low" }));
+    const inputs = Array.from(card.querySelectorAll("textarea:not([aria-hidden])")) as HTMLElement[];
+    const last = inputs[inputs.length - 1];
+    expect(last).toBe(within(card).getByLabelText(/Why does the suggested level not fit\?/));
+    expect(last.closest(".MuiTextField-root")!.querySelector(".Mui-error")).toBeTruthy();
+
+    fireEvent.change(last, { target: { value: "reason" } });
+    expect(last.closest(".MuiTextField-root")!.querySelector(".Mui-error")).toBeNull();
+  });
+
   it("adding a not-suggested goal creates a manual card", () => {
     openDialog(asset([r("operational", 3)]));
     fireEvent.click(screen.getByTestId("add-goal-A"));

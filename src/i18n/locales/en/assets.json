@@ -425,7 +425,7 @@
         "provisional": "provisional",
         "minimumLevel": "minimum level",
         "rationaleMissing": "Rationale missing",
-        "rationaleRequired": "Required for a manual decision",
+        "rationaleRequired": "Required when deviating from the suggestion",
         "driver": {
           "mechanism": "Driver: {{criterion}} = {{value}}",
           "fallback": "Provisional: no goal-specific criterion rated, highest is {{criterion}} = {{value}}",
