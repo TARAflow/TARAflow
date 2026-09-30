@@ -497,7 +497,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 
   const renderGoalCard = (goal: SecurityGoal, state: GoalState) => (
     <SecurityGoalCard
-      key={goal.type}
+      key={`${editedAsset.id}-${goal.type}`}
       goal={goal}
       state={state}
       impactRatings={editedAsset.impactRatings}

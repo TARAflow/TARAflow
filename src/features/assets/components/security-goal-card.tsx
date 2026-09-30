@@ -10,7 +10,7 @@
 //              level selector · rationale (when manual) · requirement ·
 //              consequence · actions
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -63,6 +63,25 @@ const SELECTABLE: Exclude<CIANAAALevel, "none">[] = [
 ];
 
 const K = "tabs.assets.goalCards";
+
+/** Width of the trailing action slot (the template button of the requirement field). */
+const TRAILING_SLOT = 40;
+
+/**
+ * One text field per row, all the same width: every row reserves the
+ * trailing slot the requirement field uses for its template button.
+ */
+const FieldRow: React.FC<{ children: React.ReactNode; trailing?: React.ReactNode }> = ({
+  children,
+  trailing,
+}) => (
+  <Box sx={{ display: "flex", gap: 1, alignItems: "start", mb: 1 }}>
+    <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
+    <Box sx={{ width: TRAILING_SLOT, flexShrink: 0, display: "flex", justifyContent: "center" }}>
+      {trailing}
+    </Box>
+  </Box>
+);
 
 export interface SecurityGoalCardProps {
   goal: SecurityGoal;
@@ -124,6 +143,11 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
     rationaleError ||
     (state.rationaleRequired && !goal.rationale?.trim());
   const [open, setOpen] = useState(defaultExpanded || needsAttention);
+  // A card that starts needing attention while mounted (e.g. a changed
+  // suggestion after an impact edit, or a failed save) opens by itself.
+  useEffect(() => {
+    if (needsAttention) setOpen(true);
+  }, [needsAttention]);
 
   const excluded = state.visibility === "excluded";
   const manual = state.source === "manual";
@@ -291,64 +315,79 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
             </Box>
           )}
 
-          {/* Why this goal? */}
-          <Typography variant="caption" fontWeight="bold" sx={{ display: "block" }}>
-            {t(`${K}.whyGoal`, { defaultValue: "Why this goal?" })}
-          </Typography>
-          {state.suggestion.suggested ? (
-            <>
-              {state.suggestionReasons.map((r) => (
-                <Typography key={r} variant="caption" sx={{ display: "block", pl: 1 }}>
-                  {r}
-                </Typography>
-              ))}
-            </>
-          ) : (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", pl: 1 }}>
-              {t(`${K}.notSuggested`, {
-                defaultValue: "Not suggested by the DFD relations — added manually.",
-              })}
-            </Typography>
-          )}
-          {mechanism && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", pl: 1, mb: 1 }}>
-              {t(`${K}.violation`, { defaultValue: "Violation" })}:{" "}
-              {t(`${CAUSE_MECHANISM_KEY_PREFIX}.${mechanism}.label`)}
-            </Typography>
-          )}
-
-          {/* Why this level? */}
-          <Typography variant="caption" fontWeight="bold" sx={{ display: "block" }}>
-            {t(`${K}.whyLevel`, { defaultValue: "Why this level?" })}
-          </Typography>
-          <Box sx={{ pl: 1, mb: 1 }}>
-            {goalRelevantCriteria(state.type).map((cid) => {
-              const r = impactRatings.find((x) => x.criterionId === cid);
-              if (!r) return null;
-              const isDriver =
-                (reason.kind === "mechanism" || reason.kind === "fallback") &&
-                reason.criterionId === cid;
-              const value = r.value === "na" ? "n/a" : r.value ? String(r.value) : "—";
-              return (
-                <Typography
-                  key={cid}
-                  variant="caption"
-                  sx={{ display: "block", fontWeight: isDriver ? "bold" : "normal" }}
-                >
-                  {isDriver ? "● " : "○ "}
-                  {criterionName(cid)} = {value}
-                  {isDriver ? " ←" : ""}
-                </Typography>
-              );
-            })}
-            {reason.kind === "fallback" && (
-              <Typography variant="caption" sx={{ display: "block", fontWeight: "bold" }}>
-                ● {criterionName(reason.criterionId)} = {reason.value} ←
+          {/* Why this goal? | Why this level? — side by side */}
+          <Box
+            data-testid="goal-card-reasons"
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              columnGap: 2,
+              rowGap: 1,
+              p: 1,
+              mb: 1.5,
+              borderRadius: 1,
+              backgroundColor: "action.hover",
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" fontWeight="bold" sx={{ display: "block" }}>
+                {t(`${K}.whyGoal`, { defaultValue: "Why this goal?" })}
               </Typography>
-            )}
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              {driverLine}
-            </Typography>
+              {state.suggestion.suggested ? (
+                state.suggestionReasons.map((r) => (
+                  <Typography key={r} variant="caption" sx={{ display: "block", pl: 1 }}>
+                    {r}
+                  </Typography>
+                ))
+              ) : (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", pl: 1 }}>
+                  {t(`${K}.notSuggested`, {
+                    defaultValue: "Not suggested by the DFD relations — added manually.",
+                  })}
+                </Typography>
+              )}
+              {mechanism && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", pl: 1 }}>
+                  {t(`${K}.violation`, { defaultValue: "Violation" })}:{" "}
+                  {t(`${CAUSE_MECHANISM_KEY_PREFIX}.${mechanism}.label`)}
+                </Typography>
+              )}
+            </Box>
+
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" fontWeight="bold" sx={{ display: "block" }}>
+                {t(`${K}.whyLevel`, { defaultValue: "Why this level?" })}
+              </Typography>
+              <Box sx={{ pl: 1 }}>
+                {goalRelevantCriteria(state.type).map((cid) => {
+                  const r = impactRatings.find((x) => x.criterionId === cid);
+                  if (!r) return null;
+                  const isDriver =
+                    (reason.kind === "mechanism" || reason.kind === "fallback") &&
+                    reason.criterionId === cid;
+                  const value = r.value === "na" ? "n/a" : r.value ? String(r.value) : "—";
+                  return (
+                    <Typography
+                      key={cid}
+                      variant="caption"
+                      sx={{ display: "block", fontWeight: isDriver ? "bold" : "normal" }}
+                    >
+                      {isDriver ? "● " : "○ "}
+                      {criterionName(cid)} = {value}
+                      {isDriver ? " ←" : ""}
+                    </Typography>
+                  );
+                })}
+                {reason.kind === "fallback" && (
+                  <Typography variant="caption" sx={{ display: "block", fontWeight: "bold" }}>
+                    ● {criterionName(reason.criterionId)} = {reason.value} ←
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  {driverLine}
+                </Typography>
+              </Box>
+            </Box>
           </Box>
 
           {/* Level selector (not for excluded goals) */}
@@ -394,6 +433,7 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
 
           {/* Rationale — required for every manual decision */}
           {prompt && (
+            <FieldRow>
             <TextField
               label={t(`${K}.rationale.${prompt}`, {
                 defaultValue:
@@ -416,14 +456,22 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
               multiline
               minRows={1}
               size="small"
-              sx={{ mb: 1 }}
             />
+            </FieldRow>
           )}
 
           {!excluded && (
             <>
               {/* Formal requirement */}
-              <Box sx={{ display: "flex", gap: 1, alignItems: "start", mb: 1 }}>
+              <FieldRow
+                trailing={
+                  <Tooltip title={t("tabs.assets.dialog.useTemplate", { defaultValue: "Use template" })}>
+                    <IconButton onClick={onUseTemplate} size="small">
+                      <LightbulbIcon />
+                    </IconButton>
+                  </Tooltip>
+                }
+              >
                 <TextField
                   label={t("tabs.assets.dialog.formalDescription", {
                     defaultValue: "Formal Security Requirement",
@@ -438,14 +486,10 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                     assetName: assetDisplayName,
                   })}
                 />
-                <Tooltip title={t("tabs.assets.dialog.useTemplate", { defaultValue: "Use template" })}>
-                  <IconButton onClick={onUseTemplate} size="small">
-                    <LightbulbIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+              </FieldRow>
 
               {/* Damage consequence — all modes (design §4.2) */}
+              <FieldRow>
               <TextField
                 label={t("tabs.assets.dialog.consequence", {
                   defaultValue: "Damage Scenario — Consequence",
@@ -456,12 +500,12 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                 multiline
                 rows={2}
                 size="small"
-                sx={{ mb: 1 }}
                 placeholder={t("tabs.assets.dialog.consequencePlaceholder", {
                   defaultValue:
                     "Adverse consequence of compromising this property — e.g. 'location disclosure enables physical stalking'.",
                 })}
               />
+              </FieldRow>
             </>
           )}
 

@@ -141,6 +141,42 @@ describe("SecurityGoalCard — states", () => {
     expect(h.onExclude).toHaveBeenCalled();
   });
 
+  it("layout: 'Why this goal?' and 'Why this level?' share one two-column block", () => {
+    renderCard(asset([r("financial_damage", 3)]), "C");
+    const block = within(screen.getByTestId("goal-card-C")).getByTestId("goal-card-reasons");
+    expect(within(block).getByText("Why this goal?")).toBeTruthy();
+    expect(within(block).getByText("Why this level?")).toBeTruthy();
+    expect(block.children.length).toBe(2);
+  });
+
+  it("layout: rationale, requirement and consequence rows all reserve the same trailing slot", () => {
+    const a0 = asset([r("financial_damage", 3)]);
+    const a = withGoal(a0, adjustGoal(a0, goal(a0, "C"), "low", "x", S));
+    renderCard(a, "C");
+    const card = screen.getByTestId("goal-card-C");
+    const rows = [
+      within(card).getByLabelText(/Why does the suggested level not fit\?/),
+      within(card).getByLabelText(/Formal Security Requirement/),
+      within(card).getByLabelText(/Consequence/),
+    ].map((input) => input.closest(".MuiTextField-root")!.parentElement!.parentElement!);
+    for (const row of rows) expect(row.children.length).toBe(2); // field + trailing slot
+  });
+
+  it("a collapsed card opens when it starts needing attention", () => {
+    const a0 = asset([r("financial_damage", 3)]);
+    const props = {
+      goal: goal(a0, "C"), state: goalState(a0, goal(a0, "C"), S), impactRatings: a0.impactRatings,
+      criterionName: (id: string) => id, assetDisplayName: "x",
+      onLevel: noop, onExclude: noop, onKeep: noop, onReset: noop, onRationale: noop,
+      onDescription: noop, onConsequence: noop, onUseTemplate: noop,
+    };
+    const { rerender } = render(<SecurityGoalCard {...(props as any)} />);
+    expect(within(screen.getByTestId("goal-card-C")).queryByText("Why this goal?")).toBeNull();
+    const a = withGoal(a0, adjustGoal(a0, goal(a0, "C"), "low", "", S));
+    rerender(<SecurityGoalCard {...(props as any)} goal={goal(a, "C")} state={goalState(a, goal(a, "C"), S)} />);
+    expect(within(screen.getByTestId("goal-card-C")).getByText("Why this goal?")).toBeTruthy();
+  });
+
   it("rationalePrompt is derived from the state", () => {
     const a0 = asset([r("operational", 3)]);
     const added = withGoal(a0, adjustGoal(a0, goal(a0, "A"), "high", "", S));
