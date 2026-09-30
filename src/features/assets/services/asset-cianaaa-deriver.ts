@@ -14,6 +14,7 @@
 //   - Multiple relations on one asset → UNION of all suggested dimensions
 //   - source: "manual" on an existing SecurityGoal is NEVER overwritten
 
+import { effectiveGoalRatings } from "./asset-impact-resolver";
 import type { Asset, AssetConfiguration } from "../models/asset-types";
 import type {
   SecurityGoal,
@@ -247,6 +248,14 @@ export type LevelExplanation =
 
 const FLOOR_LEVEL: CIANAAALevel = "low";
 
+/** Effective ratings of the asset's goal of this type (goal overrides + asset). */
+export function goalRatings(asset: Asset, goalType: SecurityGoalType) {
+  return effectiveGoalRatings(
+    asset,
+    asset.securityGoals?.find((g) => g.type === goalType),
+  );
+}
+
 /** Impact criteria that drive the level of a goal (via its cause mechanism). */
 export function goalRelevantCriteria(goalType: SecurityGoalType): string[] {
   return mechanismCriteria(goalType);
@@ -375,7 +384,7 @@ export function deriveSecurityGoalSuggestions(
 
     // Level + its reason come from ONE function (see explainLevel) so the
     // stored level and the displayed/documented explanation cannot diverge.
-    const { level } = explainLevel(sg.type, asset.impactRatings, impactScale);
+    const { level } = explainLevel(sg.type, effectiveGoalRatings(asset, sg), impactScale);
 
     return {
       ...sg,
@@ -444,7 +453,7 @@ export function computeSuggestedLevel(
   if (!suggested.has(goalType)) return "none";
   // Same rule as the stored level — previously this skipped the fallback and
   // could preview "none" for a goal the deriver stores as "low" or higher.
-  return explainLevel(goalType, asset.impactRatings, impactScale).level;
+  return explainLevel(goalType, goalRatings(asset, goalType), impactScale).level;
 }
 
 /**
@@ -493,7 +502,7 @@ export function explainSuggestion(
     }
   }
 
-  const explanation = explainLevel(goalType, asset.impactRatings, impactScale);
+  const explanation = explainLevel(goalType, goalRatings(asset, goalType), impactScale);
   let levelDriver: string | null;
   switch (explanation.kind) {
     case "mechanism":

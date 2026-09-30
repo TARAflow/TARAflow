@@ -217,7 +217,9 @@
         },
         "goalUnassessed": "Asset {{id}}: {{type}} ist vorgeschlagen, aber kein Impact bewertet — Bewertung erforderlich",
         "goalProvisional": "Asset {{id}}: die Stufe von {{type}} ist vorläufig — die zielspezifischen Impact-Kriterien sind noch nicht bewertet",
-        "goalNoApplicableImpact": "Asset {{id}}: {{type}} ist vorgeschlagen, alle relevanten Impact-Kriterien sind n/a (Mindeststufe)"
+        "goalNoApplicableImpact": "Asset {{id}}: {{type}} ist vorgeschlagen, alle relevanten Impact-Kriterien sind n/a (Mindeststufe)",
+        "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} bewertet {{criterion}} höher als das Asset selbst — Zielwert zurücksetzen oder Asset-Wert erhöhen",
+        "goalEnvelopeSlack": "Asset {{id}}: kein aktives Schutzziel erreicht den Asset-Wert für {{criterion}} — bewusst höherer Worst Case?"
       },
       "columns": {
         "id": "ID",
@@ -453,7 +455,8 @@
         "rationale": {
           "adjusted": "Warum passt die vorgeschlagene Stufe nicht?",
           "excluded": "Warum ist dieses Schutzziel für dieses Asset nicht relevant?",
-          "added": "Warum ist dieses Schutzziel zusätzlich nötig?"
+          "added": "Warum ist dieses Schutzziel zusätzlich nötig?",
+          "impact": "Warum weicht der Impact dieses Ziels vom Asset ab?"
         },
         "actions": {
           "keep": "Entscheidung beibehalten",

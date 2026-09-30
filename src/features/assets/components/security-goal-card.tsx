@@ -107,9 +107,10 @@ export interface SecurityGoalCardProps {
 /** Which rationale question applies — derived, not stored (design §4.1). */
 export function rationalePrompt(
   state: GoalState,
-): "adjusted" | "excluded" | "added" | null {
+): "adjusted" | "excluded" | "added" | "impact" | null {
   if (!state.rationaleRequired) return null;
   if (state.visibility === "excluded") return "excluded";
+  if (state.source !== "manual") return "impact"; // only the per-goal impact deviates
   return state.suggestion.suggested ? "adjusted" : "added";
 }
 
@@ -500,7 +501,9 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                     ? "Why is this security goal not relevant for this asset?"
                     : prompt === "added"
                       ? "Why is this security goal needed in addition?"
-                      : "Why does the suggested level not fit?",
+                      : prompt === "impact"
+                        ? "Why does this goal's impact differ from the asset's?"
+                        : "Why does the suggested level not fit?",
               })}
               value={goal.rationale ?? ""}
               onChange={(e) => onRationale(e.target.value)}

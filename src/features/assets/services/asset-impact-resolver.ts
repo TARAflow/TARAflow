@@ -105,19 +105,31 @@ export function resolveImpactRatings(
   asset: Asset,
   securityGoal: SecurityGoal | undefined,
 ): ResolvedImpact {
-  if (securityGoal?.impactRatings && securityGoal.impactRatings.length > 0) {
-    return {
-      ratings: securityGoal.impactRatings,
-      source: "security-goal",
-      securityGoalType: securityGoal.type,
-    };
-  }
-
+  const overridden = !!securityGoal?.impactRatings?.length;
   return {
-    ratings: asset.impactRatings ?? [],
-    source: "asset",
+    ratings: securityGoal ? effectiveGoalRatings(asset, securityGoal) : (asset.impactRatings ?? []),
+    source: overridden ? "security-goal" : "asset",
     securityGoalType: securityGoal?.type,
   };
+}
+
+/**
+ * Effective impact of ONE goal, per criterion (design doc §4.3):
+ *   eff(X, g, c) = override(g, c) if the goal rates c, else asset(X, c).
+ * A goal overrides single criteria; everything it does not rate is inherited
+ * from the asset. The asset list defines which criteria exist.
+ */
+export function effectiveGoalRatings(
+  asset: Asset,
+  goal: SecurityGoal | undefined,
+): ImpactRating[] {
+  const base = asset.impactRatings ?? [];
+  const overrides = goal?.impactRatings;
+  if (!overrides?.length) return base;
+  return base.map((r) => {
+    const o = overrides.find((x) => x.criterionId === r.criterionId);
+    return o ? { ...r, value: o.value } : r;
+  });
 }
 
 // ==================== CATEGORY BREAKDOWN ====================

@@ -7,7 +7,7 @@ import type {
   SecurityGoalType,
   StaleReason,
 } from "../models/asset-security-goals-types";
-import { goalFindings, goalStates } from "./asset-goal-state";
+import { assetImpactFindings, goalFindings, goalStates } from "./asset-goal-state";
 import type { GoalFindingCode } from "./asset-goal-state";
 import type { PhaseStatus } from "shared";
 
@@ -43,6 +43,8 @@ export interface AssetFinding {
   assetId?: string;
   assetLabel?: string;
   goal?: SecurityGoalType;
+  /** Impact criterion the finding is about (per-goal impact findings). */
+  criterionId?: string;
   dialogTab: AssetDialogTab;
 }
 
@@ -67,7 +69,16 @@ export function collectAssetFindings(assetData: AssetData): AssetFinding[] {
       key: string,
       dialogTab: AssetDialogTab,
       goal?: SecurityGoalType,
-    ) => out.push({ severity, key, dialogTab, ...at, ...(goal ? { goal } : {}) });
+      criterionId?: string,
+    ) =>
+      out.push({
+        severity,
+        key,
+        dialogTab,
+        ...at,
+        ...(goal ? { goal } : {}),
+        ...(criterionId ? { criterionId } : {}),
+      });
 
     if (!asset.name.trim()) push("error", "tabs.assets.validation.noName", GENERAL);
 
@@ -106,16 +117,19 @@ export function collectAssetFindings(assetData: AssetData): AssetFinding[] {
     asset.securityGoals.forEach((goal, i) => {
       for (const f of goalFindings(states[i], goal)) {
         const key = `${GOAL_FINDING_KEY[f.code]}${f.reason ? `.${STALE_KEY[f.reason]}` : ""}`;
-        push(f.severity, key, GOALS, f.goal);
+        push(f.severity, key, GOALS, f.goal, f.criterionId);
       }
     });
+    for (const f of assetImpactFindings(asset)) {
+      push(f.severity, GOAL_FINDING_KEY[f.code], GOALS, undefined, f.criterionId);
+    }
   }
   return out;
 }
 
 /** String form "key[:asset[:goal]]" — persisted in AssetValidation. */
 function findingToString(f: AssetFinding): string {
-  return [f.key, f.assetLabel, f.goal].filter(Boolean).join(":");
+  return [f.key, f.assetLabel, f.goal, f.criterionId].filter(Boolean).join(":");
 }
 
 export function validateAssetData(assetData: AssetData): AssetValidation {
@@ -133,6 +147,8 @@ export function validateAssetData(assetData: AssetData): AssetValidation {
 }
 
 const GOAL_FINDING_KEY: Record<GoalFindingCode, string> = {
+  GOAL_OVERRIDE_EXCEEDS_ASSET: "tabs.assets.validation.goalOverrideExceedsAsset",
+  GOAL_ENVELOPE_SLACK: "tabs.assets.validation.goalEnvelopeSlack",
   GOAL_RATIONALE_MISSING: "tabs.assets.validation.goalRationaleMissing",
   GOAL_OVERRIDE_STALE: "tabs.assets.validation.goalOverrideStale",
   GOAL_UNASSESSED: "tabs.assets.validation.goalUnassessed",

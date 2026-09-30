@@ -141,7 +141,13 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
 
   const borderColor = errors > 0 ? "error.main" : warnings > 0 ? "warning.main" : "info.main";
   const message = (f: AssetFinding) =>
-    t(f.key, { id: f.assetLabel ?? "", type: f.goal ?? "" });
+    t(f.key, {
+      id: f.assetLabel ?? "",
+      type: f.goal ?? "",
+      criterion: f.criterionId
+        ? t(`tabs.assets.impactCriteria.${f.criterionId}.name`, { defaultValue: f.criterionId })
+        : "",
+    });
 
   return (
     <Paper

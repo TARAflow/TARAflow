@@ -30,8 +30,11 @@ import {
   computeSuggestedGoalTypes,
   explainLevel,
   explainSuggestion,
+  goalRatings,
   type LevelExplanation,
 } from "./asset-cianaaa-deriver";
+import { effectiveGoalRatings } from "./asset-impact-resolver";
+import type { ImpactRating } from "../models/asset-impact-types";
 
 // ==================== TYPES ====================
 
@@ -64,13 +67,23 @@ export interface GoalState {
   /** Set when a manual decision's basis has changed since it was made. */
   stale: StaleReason | null;
   /**
-   * A manual decision that deviates from the suggestion (excluded, added, or
-   * another level) must be justified.
+   * A decision that deviates must be justified: a manual decision off the
+   * suggestion (excluded, added, another level), or an impact value of this
+   * goal that differs from the asset's (per-goal impact override).
    */
   rationaleRequired: boolean;
+  /** Criteria this goal rates itself (per-goal impact override). */
+  impactOverrides: string[];
+  /**
+   * Overrides above the asset value (invariant E: flagged, never capped).
+   * Includes overrides on criteria the asset rates n/a or not at all.
+   */
+  exceedsAsset: string[];
 }
 
 export type GoalFindingCode =
+  | "GOAL_OVERRIDE_EXCEEDS_ASSET"
+  | "GOAL_ENVELOPE_SLACK"
   | "GOAL_RATIONALE_MISSING"
   | "GOAL_OVERRIDE_STALE"
   | "GOAL_UNASSESSED"
@@ -85,6 +98,8 @@ export interface GoalFinding {
   goal: SecurityGoalType;
   /** Only for GOAL_OVERRIDE_STALE. */
   reason?: StaleReason;
+  /** Only for the impact findings. */
+  criterionId?: string;
 }
 
 // ==================== SUGGESTION ====================
@@ -110,7 +125,7 @@ export function currentSuggestion(
   impactScale: ImpactScaleType,
   suggestedTypes: Set<SecurityGoalType> = computeSuggestedGoalTypes(asset),
 ): GoalSuggestionSnapshot {
-  const e = explainLevel(type, asset.impactRatings ?? [], impactScale);
+  const e = explainLevel(type, goalRatings(asset, type), impactScale);
   const suggested = suggestedTypes.has(type);
   return {
     suggested,
@@ -157,7 +172,7 @@ function stateOf(
 ): GoalState {
   const levelReason = explainLevel(
     goal.type,
-    asset.impactRatings ?? [],
+    effectiveGoalRatings(asset, goal),
     impactScale,
   );
   const suggestion = currentSuggestion(
@@ -168,6 +183,7 @@ function stateOf(
   );
   const manual = goal.source === "manual";
   const active = goal.level !== "none";
+  const overrides = (goal.impactRatings ?? []).map((r) => r.criterionId);
 
   const visibility: GoalState["visibility"] =
     manual && !active && suggestion.suggested
@@ -199,11 +215,20 @@ function stateOf(
     suggestion,
     stale: manual ? staleReason(goal.suggestionAtDecision, suggestion) : null,
     // A rationale justifies a DEVIATION from the suggestion: an exclusion, an
-    // added (not suggested) goal, or a level other than the suggested one. A
-    // manual goal that sits on the suggested level deviates from nothing.
+    // added (not suggested) goal, a level other than the suggested one — or an
+    // impact value of this goal that differs from the asset's. A manual goal
+    // that sits on the suggested level deviates from nothing.
     rationaleRequired:
-      manual &&
-      (!active || !suggestion.suggested || goal.level !== suggestion.level),
+      (manual &&
+        (!active || !suggestion.suggested || goal.level !== suggestion.level)) ||
+      (active && overrides.length > 0),
+    impactOverrides: overrides,
+    exceedsAsset: overrides.filter((c) =>
+      exceeds(
+        goal.impactRatings!.find((r) => r.criterionId === c)!,
+        (asset.impactRatings ?? []).find((r) => r.criterionId === c),
+      ),
+    ),
   };
 }
 
@@ -263,6 +288,9 @@ export function goalFindings(
     reason?: StaleReason,
   ) => out.push({ code, severity, goal: state.type, ...(reason ? { reason } : {}) });
 
+  for (const c of state.exceedsAsset) {
+    out.push({ code: "GOAL_OVERRIDE_EXCEEDS_ASSET", severity: "error", goal: state.type, criterionId: c });
+  }
   if (state.rationaleRequired && !goal.rationale?.trim()) {
     f("GOAL_RATIONALE_MISSING", "warning");
   }
@@ -274,6 +302,45 @@ export function goalFindings(
     if (state.assessment === "provisional") f("GOAL_PROVISIONAL", "info");
     if (state.assessment === "no-applicable-impact")
       f("GOAL_NO_APPLICABLE_IMPACT", "info");
+  }
+  return out;
+}
+
+// ==================== PER-GOAL IMPACT ====================
+
+/** An override is above the asset value — or the asset has no value there. */
+function exceeds(override: ImpactRating, asset: ImpactRating | undefined): boolean {
+  if (typeof override.value !== "number") return false; // n/a / null never exceed
+  return !asset || typeof asset.value !== "number" || override.value > asset.value;
+}
+
+/**
+ * Asset-level impact findings. GOAL_ENVELOPE_SLACK (info): an asset value no
+ * active goal reaches, because every active goal rates that criterion lower
+ * (at least one by override). Neutral — a deliberately higher worst-case
+ * envelope is legitimate (design §4.3).
+ */
+export function assetImpactFindings(asset: Asset): GoalFinding[] {
+  const active = (asset.securityGoals ?? []).filter((g) => g.level !== "none");
+  if (active.length === 0) return [];
+  const out: GoalFinding[] = [];
+  for (const r of asset.impactRatings ?? []) {
+    if (typeof r.value !== "number") continue;
+    const effs = active.map(
+      (g) => effectiveGoalRatings(asset, g).find((x) => x.criterionId === r.criterionId)?.value,
+    );
+    const anyOverride = active.some((g) =>
+      g.impactRatings?.some((x) => x.criterionId === r.criterionId),
+    );
+    const reached = effs.some((v) => typeof v === "number" && v >= (r.value as number));
+    if (anyOverride && !reached) {
+      out.push({
+        code: "GOAL_ENVELOPE_SLACK",
+        severity: "info",
+        goal: active[0].type,
+        criterionId: r.criterionId,
+      });
+    }
   }
   return out;
 }
@@ -370,4 +437,20 @@ export function initializeMissingSnapshots(
         }
       : g,
   );
+}
+
+/**
+ * Rate one criterion for this goal (per-goal impact override), or return it
+ * to the asset value with `undefined`. The UI caps the choice at the asset
+ * value; the domain does not (invariant E: a later lower asset value leaves
+ * the override as it is and raises GOAL_OVERRIDE_EXCEEDS_ASSET).
+ */
+export function setGoalImpact(
+  goal: SecurityGoal,
+  criterionId: string,
+  value: number | "na" | undefined,
+): SecurityGoal {
+  const rest = (goal.impactRatings ?? []).filter((r) => r.criterionId !== criterionId);
+  const impactRatings = value === undefined ? rest : [...rest, { criterionId, value }];
+  return { ...goal, impactRatings: impactRatings.length ? impactRatings : undefined };
 }
