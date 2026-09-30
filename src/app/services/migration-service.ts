@@ -3,6 +3,7 @@
 // No I/O, no storage — pure data transformation.
 // Imported by ProjectRepository; never by UI components directly.
 
+import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
 import {
   migrateProjectTags,
   EMPTY_PROJECT_TAGS,
@@ -276,6 +277,11 @@ export function applyLegacyMigrations(raw: any): any {
       };
     }
   }
+
+  // Repair hazard edges orphaned by the 5 → 6 asset identity split (they
+  // still point at the old readable label, now the displayId). Idempotent;
+  // no-op on clean files and on pre-v6 files.
+  data = repairHazardAssetRefs(data);
 
   return data;
 }

@@ -22,7 +22,10 @@
  * reference surface (confirmed against the codebase) is these field names,
  * wherever they occur in the project tree:
  *   - assetId                         (DFD element/connection.assetRelations[],
- *                                      risks, attack trees, hazard relations)
+ *                                      risks, attack trees)
+ *   - hazards.relations[]             contributes_to.from / endangers.to —
+ *                                      generic keys, so rewritten TYPED (below),
+ *                                      not via the allowlist
  *   - sourceAssetId / targetAssetId   (asset-to-asset relations)
  *   - linkedAssetIds / assetIds       (threats / risks / attack trees — string[])
  *
@@ -104,6 +107,26 @@ export function migrate_5_to_6(data: any): any {
 
   // ── 2. Repoint every asset-id reference across the whole project ──────────
   let next = rewriteAssetRefs(data, idToUuid);
+
+  // Hazard relations carry the asset id in the generic `from` / `to` keys,
+  // which the key allowlist cannot cover (the other end is a hazard id).
+  // Rewrite them by relation type. (Earlier builds missed this; files already
+  // migrated are healed on load by repairHazardAssetRefs.)
+  if (Array.isArray(next.hazards?.relations)) {
+    next = {
+      ...next,
+      hazards: {
+        ...next.hazards,
+        relations: next.hazards.relations.map((r: any) =>
+          r?.type === "contributes_to" && typeof r.from === "string"
+            ? { ...r, from: idToUuid.get(r.from) ?? r.from }
+            : r?.type === "endangers" && typeof r.to === "string"
+              ? { ...r, to: idToUuid.get(r.to) ?? r.to }
+              : r,
+        ),
+      },
+    };
+  }
 
   // ── 3. Rewrite the asset records themselves: id → UUID, old id → displayId ─
   const rewriteRecord = (asset: any): any => {
