@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–2 merged, Phase 3 delivered (pending merge), Phase 4 next
+**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–3 merged, Phase 4 delivered (pending merge), Phase 5 next
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -467,23 +467,34 @@ Decisions made during implementation:
 
 **Tests:** `security-goal-card.test.tsx` (component, 11): every card state, action routing, dialog wiring, rationale blocks save, snapshot on save, adding a not-suggested goal. Component suite (10 files) and asset unit suite green.
 
-### Phase 4 — per-goal impact through to the risk (point 4)
+**Follow-ups after the analyst's review (patches 24–27):**
+- 24 — layout: "Why this goal?" and "Why this level?" side by side on a light grey block; rationale, requirement and consequence fields share one width; a card opens by itself when it starts needing attention; cards keyed per asset.
+- 25 — **a rationale justifies a deviation only.** Picking the suggested level returns the goal to the suggestion (rationale and snapshot go); `goalState.rationaleRequired` is false for a manual goal on the suggested level. The rationale field is the last field, outlined red while empty.
+- 26 — **findings panel below the asset table** (like the DFD tab): errors and warnings, infos behind their chip; a click opens the asset in the dialog tab where the finding is fixed and focuses the goal card. `collectAssetFindings()` gives structured findings; the persisted strings derive from them. "Goal without formal requirement text" became an info.
+- 27 — the panel is resizable (80–500 px) with its own scrollbar.
 
-**Goal:** the formal definition from 4.3 in code, one definition for badge and risk.
+### Phase 4 — per-goal impact through to the risk (point 4) ✅ delivered
 
-**Scope:**
-- one shared function `resolveThreatImpact(stride, linkedAssets)` implementing steps 1–5 of 4.3. Placement must respect `features/risks ⊥ features/assets`: in `src/app/utils` (app layer bridges both features) or, if the threat generator needs it too, in `src/shared`
-- `app/utils/build-asset-data-reference.ts` — pass `SecurityGoal.impactRatings` and the active goals on to the risk side
-- `applyAssetCriteriaToFactorRatings` — take the STRIDE category and use `resolveThreatImpact`
-- `UnifiedStrategy.getInitialImpact` — same definition
-- goal impact editor (inherited/adjusted, cap with explanation, reset) in the card from Phase 3
-- findings `GOAL_OVERRIDE_EXCEEDS_ASSET`, `GOAL_ENVELOPE_SLACK`
+**Goal:** the formal definition from 4.3 in code.
 
-**Tests:** the five mandatory cases from 4.5; invariant E; badge and risk give the same value for the same threat.
+Delivered as three commits (patches 28–30) plus this document (31):
 
-**Risk:** none for existing projects — goal overrides cannot be set today (no UI), so every goal inherits and results are unchanged. Verify this with a fixture regression run.
+28. **`feat(assets)` impact per goal in the domain**
+    - `effectiveGoalRatings(asset, goal)` — eff = override ?? asset value, **per criterion**. `resolveImpactRatings()` merges per criterion as well (it used to replace the whole list; overrides were never settable, so no project changes).
+    - Goal levels (deriver, `goalState`, previews) follow the goal's effective ratings.
+    - `goalState`: `impactOverrides`, `exceedsAsset`. A per-goal impact is a deviation → rationale required, asked as "Why does this goal's impact differ from the asset's?" (a fourth rationale question).
+    - `GOAL_OVERRIDE_EXCEEDS_ASSET` (error) — also where the asset rates n/a or nothing; never capped (invariant E). `GOAL_ENVELOPE_SLACK` (info, `assetImpactFindings`).
+    - `setGoalImpact(goal, criterion, value | undefined)`.
+29. **`feat(risks)` risk impact from the violated goals** — `shared/utils/threat-impact.ts` `resolveThreatImpactAssets(assets, stride)` implements steps 1, 2, 4, 5 and returns asset snapshots whose ratings are the effective values, so the existing per-factor logic (worst criterion, safety priority via `physicalImpact`) runs unchanged on top. `applyAssetCriteriaToFactorRatings(…, strideCategory?)`; risk sync (both paths) and risk dialog pass the category. `SecurityGoalReference.impactRatings`; `buildAssetDataReference` passes overrides of active goals.
+30. **`feat(assets)` impact editor in the card** — "Impact of this goal (n adjusted)": per rated criterion the asset value, a select (inherited / 1…asset value / n/a) and an inherited/adjusted chip; the cap is explained in a tooltip; a conflict shows "Adjustment 3 exceeds asset value 2" with "Reset to asset value" / "Raise asset value".
 
-**Done when:** the mandatory cases pass and the fixtures produce unchanged risk values.
+**The threat-table badge** (`getInitialImpact`) needed no change: it takes the MAX of the matching goals' levels, and those levels follow the effective ratings since 28. Badge and risk impact therefore rest on the same effective values; they are not the same number (the badge is a goal level, the risk has one value per impact factor), which is by design.
+
+**Effect on existing projects:** without overrides, a risk impact changes only where a linked asset *without* a matching goal carried the highest value (step 4). Measured on SmokeDetector: 78 threats with linked assets, 3 risks — no change. The earlier statement "none for existing projects" was too strong; step 4 alone can change values in projects where elements carry several assets with different goals.
+
+**Not done here:** `THREAT_WITHOUT_GOAL` (step 5 finding) — Phase 6 (cross-checks).
+
+**Tests:** `asset-goal-impact.test.ts` (9), `threat-impact.test.ts` (9: the five mandatory cases through the risk prefill, inactive goals, n/a, previous behaviour without STRIDE, reference builder), `security-goal-card.test.tsx` (+3).
 
 ### Phase 5 — overview and report
 
@@ -518,3 +529,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.5:** Phase 1 closed. Follow-up commits 10–15 documented (drift column label, threat text lookup, per-element dedup, retained threats with undo, sync scope robustness, reading order); open catalog finding and SmokeDetector modelling note recorded.
 - **Rev. 3.6:** Phase 2 delivered (patches 17–19): single suggestion rule, `goalState()` / `goalFindings()` / snapshot / explicit actions, findings in the asset validation with `infos`. `GoalState.visibility` renamed to `card | excluded | hidden`; stale severity keyed on "decision was an exclusion".
 - **Rev. 3.7:** Phase 3 delivered (patch 22): security-goal cards in the asset dialog; rationale enforced on save; baseline snapshots on save; consequence in all modes; third rationale question "added".
+- **Rev. 3.8:** Phase 3 follow-ups (patches 24–27: layout, rationale only for deviations, findings panel, resizable panel) and Phase 4 delivered (patches 28–30: per-goal impact domain, risk impact from the violated goals, impact editor). Corrected the Phase 4 risk statement: step 4 can change values in existing projects.
