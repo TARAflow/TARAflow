@@ -2,24 +2,12 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Edit3, Save, X } from "lucide-react";
 import type { ProjectInfoData } from "../models/overview-types";
-import {
-  SafetyAnalysisToggle,
-  ProjectTagsEditor,
-  regulationPresetFromTags,
-} from "shared";
-import { WindowOfOpportunitySelector } from "./window-of-opportunity-selector";
+import { ProjectInfoFields } from "./project-info-fields";
 
 // ==================== PROJECT INFO ====================
-// Displays and allows editing of project metadata
-// Layout:
-//   Project Name (1/1)
-//   Version (1/2) | Responsible (1/2)
-//   Safety Switch (1/2) | Window of Opportunity (1/2)
-//     -> SafetyAnalysisToggle (shared) | WindowOfOpportunitySelector (shared,
-//        EN 50742 A only — hides itself and Safety Switch takes the full row)
-//   Description (1/1)
-//   Created (1/2) | Last Modified (1/2) - read-only
-//   Tags Section (1/1)                   -> ProjectTagsEditor (shared)
+// Displays and allows editing of project metadata. The fields themselves are
+// ProjectInfoFields (shared with the New Project dialog); this component adds
+// the view/edit toggle and the read-only Created / Last Modified row.
 
 interface ProjectInfoProps {
   info: ProjectInfoData;
@@ -55,9 +43,6 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
       minute: "2-digit",
     });
   };
-
-  // Safety switch + tag editing (incl. EN 50742 hazard coupling and tag
-  // conflict warnings) are now provided by the shared components below.
 
   // ==================== RENDER ====================
 
@@ -96,187 +81,31 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
         )}
       </div>
 
-      <div className="space-y-4">
-        {/* Project Name (1/1) */}
-        <div>
-          <label
-            htmlFor="project-name"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            {t("project.name")}
-          </label>
-          {isEditing ? (
-            <input
-              id="project-name"
-              type="text"
-              value={editData.name}
-              onChange={(e) =>
-                setEditData({ ...editData, name: e.target.value })
-              }
-              placeholder={t("projectInfo.namePlaceholder", {
-                defaultValue: "Enter project name...",
-              })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          ) : (
-            <p className="text-gray-900 py-2">{info.name}</p>
-          )}
-        </div>
-
-        {/* Version (1/2) | Responsible (1/2) */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="project-version"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {t("project.version")}
-            </label>
-            {isEditing ? (
-              <input
-                id="project-version"
-                type="text"
-                value={editData.version}
-                onChange={(e) =>
-                  setEditData({ ...editData, version: e.target.value })
-                }
-                placeholder={t("projectInfo.versionPlaceholder", {
-                  defaultValue: "1.0",
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            ) : (
-              <p className="text-gray-900 py-2">{info.version}</p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="project-responsible"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {t("project.responsible")}
-            </label>
-            {isEditing ? (
-              <input
-                id="project-responsible"
-                type="text"
-                value={editData.responsible}
-                onChange={(e) =>
-                  setEditData({ ...editData, responsible: e.target.value })
-                }
-                placeholder={t("projectInfo.responsiblePlaceholder", {
-                  defaultValue: "Person responsible...",
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            ) : (
-              <p className="text-gray-900 py-2">{info.responsible || "-"}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Safety Switch (1/2) | Window of Opportunity (1/2) — WoO only shows
-            for EN 50742 Approach A; Safety Switch takes the full row when it
-            doesn't (grid-cols-1 below), so there's never an empty half. */}
-        {(() => {
-          const currentTags = isEditing ? editData.tags : info.tags;
-          const wooRelevant =
-            regulationPresetFromTags(currentTags) === "en-50742-a";
-          return (
-            <div
-              className={
-                wooRelevant ? "grid grid-cols-2 gap-4" : "grid grid-cols-1"
-              }
-            >
-              <SafetyAnalysisToggle
-                tags={currentTags}
-                safetyRelevant={
-                  (isEditing ? editData.safetyRelevant : info.safetyRelevant) ??
-                  false
-                }
-                editing={isEditing}
-                onChange={(v) =>
-                  setEditData((d) => ({ ...d, safetyRelevant: v }))
-                }
-              />
-              {wooRelevant && (
-                <WindowOfOpportunitySelector
-                  tags={currentTags}
-                  value={
-                    isEditing
-                      ? editData.windowOfOpportunity
-                      : info.windowOfOpportunity
-                  }
-                  editing={isEditing}
-                  onChange={(v) =>
-                    setEditData((d) => ({ ...d, windowOfOpportunity: v }))
-                  }
-                />
-              )}
+      <ProjectInfoFields
+        value={isEditing ? editData : info}
+        editing={isEditing}
+        onChange={(patch) => setEditData((d) => ({ ...d, ...patch }))}
+        afterDescription={
+          /* Created (1/2) | Last Modified (1/2) - always read-only */
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("project.created")}
+              </label>
+              <p className="text-gray-900 py-2">{formatDate(info.created)}</p>
             </div>
-          );
-        })()}
 
-        {/* Description (1/1) */}
-        <div>
-          <label
-            htmlFor="project-description"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            {t("project.description")}
-          </label>
-          {isEditing ? (
-            <textarea
-              id="project-description"
-              value={editData.description}
-              onChange={(e) =>
-                setEditData({ ...editData, description: e.target.value })
-              }
-              rows={4}
-              placeholder={t("projectInfo.descriptionPlaceholder", {
-                defaultValue: "Describe your project...",
-              })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            />
-          ) : (
-            <p className="text-gray-900 py-2 whitespace-pre-wrap">
-              {info.description || "-"}
-            </p>
-          )}
-        </div>
-
-        {/* Created (1/2) | Last Modified (1/2) - always read-only */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("project.created")}
-            </label>
-            <p className="text-gray-900 py-2">{formatDate(info.created)}</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("project.lastModified")}
+              </label>
+              <p className="text-gray-900 py-2">
+                {formatDate(info.lastModified)}
+              </p>
+            </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("project.lastModified")}
-            </label>
-            <p className="text-gray-900 py-2">
-              {formatDate(info.lastModified)}
-            </p>
-          </div>
-        </div>
-
-        {/* Tags Section */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("project.tags")}
-          </label>
-          <ProjectTagsEditor
-            tags={isEditing ? editData.tags : info.tags}
-            editing={isEditing}
-            onChange={(tags) => setEditData((d) => ({ ...d, tags }))}
-          />
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 };

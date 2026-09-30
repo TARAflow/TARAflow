@@ -5,6 +5,11 @@
 // ==================== COMPONENTS ====================
 export { GeneralTab } from "./components/general-tab";
 export { ProjectInfo } from "./components/project-info";
+export { ProjectInfoFields } from "./components/project-info-fields";
+export type {
+  ProjectInfoFieldsValue,
+  ProjectInfoRequiredField,
+} from "./components/project-info-fields";
 export { ProjectProgress } from "./components/project-progress";
 export { ProjectSettings } from "./components/project-settings";
 
@@ -18,4 +23,3 @@ export type {
 } from "./models/overview-types";
 
 // ==================== HOOKS ====================
-
