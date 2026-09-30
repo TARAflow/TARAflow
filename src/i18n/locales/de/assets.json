@@ -407,6 +407,61 @@
         "exportInfo": "Select what you want to export. The file can be imported into another project.",
         "exportTitle": "Export Asset Data",
         "selectContent": "Select Content to Export"
+      },
+      "goalCards": {
+        "heading": "Schutzziele",
+        "help": "Schutzziele werden aus den DFD-Beziehungen des Assets vorgeschlagen; ihre Stufe folgt den Impact-Kriterien der jeweiligen Verletzung. Einen Vorschlag anpassen oder ausschliessen nur mit Begründung.",
+        "subheading": "Das Schadenspotenzial (Tab 1) ist die Obergrenze. Jede Karte zeigt, warum das Ziel gilt und was seine Stufe bestimmt.",
+        "empty": "Kein Schutzziel vorgeschlagen — Asset mit DFD-Elementen verknüpfen oder unten ein Ziel hinzufügen.",
+        "excludedHeading": "Ausgeschlossene Ziele",
+        "addHeading": "Schutzziel hinzufügen",
+        "rationaleAlert": "Manuelle Entscheidungen brauchen eine Begründung: {{goals}}",
+        "whyGoal": "Warum dieses Ziel?",
+        "whyLevel": "Warum diese Stufe?",
+        "violation": "Verletzung",
+        "notSuggested": "Nicht aus den DFD-Beziehungen vorgeschlagen — manuell hinzugefügt.",
+        "suggestionLabel": "Vorschlag: {{level}}",
+        "assessmentRequired": "Bewertung erforderlich",
+        "provisional": "vorläufig",
+        "minimumLevel": "Mindeststufe",
+        "rationaleMissing": "Begründung fehlt",
+        "rationaleRequired": "Pflicht bei einer manuellen Entscheidung",
+        "driver": {
+          "mechanism": "Treiber: {{criterion}} = {{value}}",
+          "fallback": "Vorläufig: kein zielspezifisches Kriterium bewertet, höchstes ist {{criterion}} = {{value}}",
+          "notApplicable": "Kein anwendbarer Schaden — alle relevanten Kriterien n/a",
+          "floor": "Noch kein Impact bewertet"
+        },
+        "source": {
+          "suggested": "Vorschlag",
+          "adjusted": "Angepasst",
+          "added": "Hinzugefügt",
+          "excluded": "Ausgeschlossen",
+          "legacy": "Frühere Entscheidung"
+        },
+        "stale": {
+          "review": "Prüfen",
+          "changed": "Vorschlag geändert"
+        },
+        "staleMsg": {
+          "suggestionRemoved": "Dieses Ziel wird nicht mehr vorgeschlagen — die Grundlage dieser Entscheidung ist weggefallen.",
+          "suggestionAdded": "Dieses Ziel wird jetzt auch aus den DFD-Beziehungen vorgeschlagen (Vorschlag: {{level}}).",
+          "levelRaised": "Die vorgeschlagene Stufe ist seit dieser Entscheidung auf {{level}} gestiegen — ist deine Stufe noch vertretbar?",
+          "levelLowered": "Die vorgeschlagene Stufe ist seit dieser Entscheidung auf {{level}} gesunken; deine Wahl ist jetzt konservativer.",
+          "basisChanged": "Der Vorschlag ({{level}}) beruht jetzt auf einer anderen Grundlage — passt die Begründung noch?"
+        },
+        "rationale": {
+          "adjusted": "Warum passt die vorgeschlagene Stufe nicht?",
+          "excluded": "Warum ist dieses Schutzziel für dieses Asset nicht relevant?",
+          "added": "Warum ist dieses Schutzziel zusätzlich nötig?"
+        },
+        "actions": {
+          "keep": "Entscheidung beibehalten",
+          "adoptSuggestion": "Vorschlag übernehmen",
+          "reactivate": "Wieder aktivieren (Vorschlag)",
+          "remove": "Ziel entfernen",
+          "exclude": "Für dieses Asset nicht relevant"
+        }
       }
     }
   }

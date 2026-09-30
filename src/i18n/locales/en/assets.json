@@ -407,6 +407,61 @@
         "exportInfo": "Select what you want to export. The file can be imported into another project.",
         "exportTitle": "Export Asset Data",
         "selectContent": "Select Content to Export"
+      },
+      "goalCards": {
+        "heading": "Security goals",
+        "help": "Goals are suggested from the asset's DFD relations; their level follows the impact criteria of the goal's violation. Adjust or exclude a suggestion only with a rationale.",
+        "subheading": "The damage potential (tab 1) is the upper bound. Each card shows why the goal applies and what drives its level.",
+        "empty": "No security goal suggested — link the asset to DFD elements or add a goal below.",
+        "excludedHeading": "Excluded goals",
+        "addHeading": "Add a security goal",
+        "rationaleAlert": "Manual decisions need a rationale: {{goals}}",
+        "whyGoal": "Why this goal?",
+        "whyLevel": "Why this level?",
+        "violation": "Violation",
+        "notSuggested": "Not suggested by the DFD relations — added manually.",
+        "suggestionLabel": "Suggestion: {{level}}",
+        "assessmentRequired": "Assessment required",
+        "provisional": "provisional",
+        "minimumLevel": "minimum level",
+        "rationaleMissing": "Rationale missing",
+        "rationaleRequired": "Required for a manual decision",
+        "driver": {
+          "mechanism": "Driver: {{criterion}} = {{value}}",
+          "fallback": "Provisional: no goal-specific criterion rated, highest is {{criterion}} = {{value}}",
+          "notApplicable": "No applicable damage — all relevant criteria n/a",
+          "floor": "No impact rated yet"
+        },
+        "source": {
+          "suggested": "Suggested",
+          "adjusted": "Adjusted",
+          "added": "Added",
+          "excluded": "Excluded",
+          "legacy": "Earlier decision"
+        },
+        "stale": {
+          "review": "Review",
+          "changed": "Suggestion changed"
+        },
+        "staleMsg": {
+          "suggestionRemoved": "This goal is no longer suggested — the basis of this decision is gone.",
+          "suggestionAdded": "This goal is now also suggested by the DFD relations (suggestion: {{level}}).",
+          "levelRaised": "The suggested level has risen to {{level}} since this decision — is your level still justified?",
+          "levelLowered": "The suggested level has fallen to {{level}} since this decision; your choice is now more conservative.",
+          "basisChanged": "The suggestion ({{level}}) now rests on a different basis — does the rationale still fit?"
+        },
+        "rationale": {
+          "adjusted": "Why does the suggested level not fit?",
+          "excluded": "Why is this security goal not relevant for this asset?",
+          "added": "Why is this security goal needed in addition?"
+        },
+        "actions": {
+          "keep": "Keep decision",
+          "adoptSuggestion": "Adopt suggestion",
+          "reactivate": "Reactivate (suggestion)",
+          "remove": "Remove goal",
+          "exclude": "Not relevant for this asset"
+        }
       }
     }
   }

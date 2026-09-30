@@ -247,6 +247,20 @@ export type LevelExplanation =
 
 const FLOOR_LEVEL: CIANAAALevel = "low";
 
+/** Impact criteria that drive the level of a goal (via its cause mechanism). */
+export function goalRelevantCriteria(goalType: SecurityGoalType): string[] {
+  return mechanismCriteria(goalType);
+}
+
+/** The cause mechanism ("violation") behind a goal type. */
+export function goalMechanism(
+  goalType: SecurityGoalType,
+): CauseMechanismType | undefined {
+  return (
+    Object.entries(CAUSE_MECHANISM_TO_GOAL) as [CauseMechanismType, SecurityGoalType][]
+  ).find(([, goal]) => goal === goalType)?.[0];
+}
+
 function mechanismCriteria(goalType: SecurityGoalType): string[] {
   const mechanism = (
     Object.entries(CAUSE_MECHANISM_TO_GOAL) as [CauseMechanismType, SecurityGoalType][]
