@@ -264,3 +264,62 @@ describe("AssetDialog — goal cards wiring", () => {
     expect(within(card).getByText("Added")).toBeTruthy();
   });
 });
+
+describe("per-goal impact editor (Phase 4)", () => {
+  const config = { ...DEFAULT_ASSET_CONFIGURATION, impactScale: S } as any;
+  function open(a: Asset) {
+    const onSave = vi.fn();
+    render(<AssetDialog open asset={a} configuration={config} onSave={onSave} onClose={noop} />);
+    fireEvent.click(screen.getAllByRole("tab")[1]);
+    return onSave;
+  }
+  const card = (t: SecurityGoalType) => screen.getByTestId(`goal-card-${t}`);
+  const expand = (t: SecurityGoalType) => {
+    const b = card(t).querySelector("[aria-label='expand']");
+    if (b) fireEvent.click(b);
+  };
+  const pick = (t: SecurityGoalType, criterion: string, option: string) => {
+    fireEvent.mouseDown(within(card(t)).getByLabelText(new RegExp(`${criterion}.* impact$`)));
+    fireEvent.click(within(screen.getByRole("listbox")).getByText(option));
+  };
+
+  it("options are capped at the asset value; adjusting lowers the goal level and asks why", () => {
+    open(asset([r("financial_damage", 3)]));
+    expand("C");
+    fireEvent.click(within(card("C")).getByTestId("goal-impact-toggle"));
+    fireEvent.mouseDown(within(card("C")).getByLabelText(/financial_damage.* impact$/));
+    const options = within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent);
+    expect(options).toEqual(["inherited (3)", "1", "2", "3", "n/a"]);
+    fireEvent.click(within(screen.getByRole("listbox")).getByText("1"));
+
+    const row = within(card("C")).getByTestId("goal-impact-financial_damage");
+    expect(within(row).getByText("adjusted")).toBeTruthy();
+    // level follows the effective rating (1 → low), rationale asked as "impact"
+    expect(within(card("C")).getAllByText("tabs.assets.cianaaa.level.low").some((el) => el.closest(".MuiChip-root"))).toBe(true);
+    expect(within(card("C")).getByLabelText(/Why does this goal's impact differ from the asset's\?/)).toBeTruthy();
+
+    pick("C", "financial_damage", "inherited (3)");
+    expect(within(within(card("C")).getByTestId("goal-impact-financial_damage")).getByText("inherited")).toBeTruthy();
+  });
+
+  it("conflict (override above a lowered asset value): shown with reset / raise; raise resolves it", () => {
+    const a0 = asset([r("financial_damage", 2)]);
+    const c = { ...goal(a0, "C"), impactRatings: [{ criterionId: "financial_damage", value: 3 }], rationale: "x" };
+    open(withGoal(a0, c));
+    const row = within(card("C")).getByTestId("goal-impact-financial_damage");
+    expect(within(row).getByText("Adjustment 3 exceeds asset value 2")).toBeTruthy();
+    fireEvent.click(within(row).getByText("Raise asset value"));
+    expect(within(within(card("C")).getByTestId("goal-impact-financial_damage")).queryByText(/exceeds/)).toBeNull();
+  });
+
+  it("saved goal carries its override", () => {
+    const onSave = open(asset([r("financial_damage", 3)]));
+    expand("C");
+    fireEvent.click(within(card("C")).getByTestId("goal-impact-toggle"));
+    pick("C", "financial_damage", "2");
+    fireEvent.change(within(card("C")).getByLabelText(/Why does this goal's impact differ/), { target: { value: "internal only" } });
+    fireEvent.click(screen.getByText("Save"));
+    const saved: Asset = onSave.mock.calls[0][0];
+    expect(saved.securityGoals.find((g) => g.type === "C")!.impactRatings).toEqual([{ criterionId: "financial_damage", value: 2 }]);
+  });
+});

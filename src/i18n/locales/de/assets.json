@@ -464,6 +464,17 @@
           "reactivate": "Wieder aktivieren (Vorschlag)",
           "remove": "Ziel entfernen",
           "exclude": "Für dieses Asset nicht relevant"
+        },
+        "impact": {
+          "toggle": "Impact dieses Ziels ({{count}} angepasst)",
+          "asset": "Asset: {{value}}",
+          "cap": "Maximum {{max}} — vom Schadenspotenzial des Assets. Ist dieser Schaden schwerer, zuerst den Asset-Impact erhöhen.",
+          "inherited": "geerbt ({{value}})",
+          "inheritedChip": "geerbt",
+          "adjusted": "angepasst",
+          "exceeds": "Anpassung {{value}} überschreitet Asset-Wert {{asset}}",
+          "resetToAsset": "Auf Asset-Wert zurücksetzen",
+          "raiseAsset": "Asset-Wert erhöhen"
         }
       },
       "notifications": {

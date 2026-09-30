@@ -464,6 +464,17 @@
           "reactivate": "Reactivate (suggestion)",
           "remove": "Remove goal",
           "exclude": "Not relevant for this asset"
+        },
+        "impact": {
+          "toggle": "Impact of this goal ({{count}} adjusted)",
+          "asset": "Asset: {{value}}",
+          "cap": "Maximum {{max}} — from the asset's damage potential. If this damage is more severe, raise the asset impact first.",
+          "inherited": "inherited ({{value}})",
+          "inheritedChip": "inherited",
+          "adjusted": "adjusted",
+          "exceeds": "Adjustment {{value}} exceeds asset value {{asset}}",
+          "resetToAsset": "Reset to asset value",
+          "raiseAsset": "Raise asset value"
         }
       },
       "notifications": {

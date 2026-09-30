@@ -18,7 +18,9 @@ import {
   Chip,
   Collapse,
   IconButton,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   TextField,
   ToggleButton,
@@ -86,7 +88,16 @@ const FieldRow: React.FC<{ children: React.ReactNode; trailing?: React.ReactNode
 export interface SecurityGoalCardProps {
   goal: SecurityGoal;
   state: GoalState;
+  /** EFFECTIVE ratings of this goal (overrides applied, rest inherited). */
   impactRatings: ImpactRating[];
+  /** The asset's own ratings — the upper bound of every override. */
+  assetRatings?: ImpactRating[];
+  /** Highest value of the impact scale (3, 4 or 5). */
+  scaleMax?: number;
+  /** Rate a criterion for this goal; undefined = inherit from the asset. */
+  onGoalImpact?: (criterionId: string, value: number | "na" | undefined) => void;
+  /** Resolve a conflict by raising the asset value to the goal's value. */
+  onRaiseAsset?: (criterionId: string, value: number) => void;
   criterionName: (criterionId: string) => string;
   assetDisplayName: string;
   /** Save was blocked for this goal's missing rationale — opens the card. */
@@ -126,6 +137,10 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
   goal,
   state,
   impactRatings,
+  assetRatings = impactRatings,
+  scaleMax = 4,
+  onGoalImpact,
+  onRaiseAsset,
   criterionName,
   assetDisplayName,
   rationaleError = false,
@@ -142,11 +157,15 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const needsAttention =
+    state.exceedsAsset.length > 0 ||
     !!state.stale ||
     state.assessment === "missing" ||
     rationaleError ||
     (state.rationaleRequired && !goal.rationale?.trim());
   const [open, setOpen] = useState(defaultExpanded || needsAttention || focused);
+  const [impactOpen, setImpactOpen] = useState(
+    state.impactOverrides.length > 0 || state.exceedsAsset.length > 0,
+  );
   const cardRef = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (focused) cardRef.current?.scrollIntoView?.({ block: "center" });
@@ -399,6 +418,111 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
               </Box>
             </Box>
           </Box>
+
+          {/* Impact of this goal — inherited from the asset or adjusted (§4.3) */}
+          {!excluded && onGoalImpact && (
+            <Box sx={{ mb: 1.5 }}>
+              <Button
+                size="small"
+                onClick={() => setImpactOpen((v) => !v)}
+                sx={{ px: 0, minWidth: 0, textTransform: "none" }}
+                data-testid="goal-impact-toggle"
+              >
+                {t(`${K}.impact.toggle`, {
+                  count: state.impactOverrides.length,
+                  defaultValue: "Impact of this goal ({{count}} adjusted)",
+                })}
+              </Button>
+              <Collapse in={impactOpen} unmountOnExit>
+                <Box sx={{ pl: 1 }}>
+                  {assetRatings
+                    .filter((r) => r.value !== null && r.value !== 0)
+                    .map((ar) => {
+                      const cid = ar.criterionId;
+                      const override = goal.impactRatings?.find((x) => x.criterionId === cid);
+                      const eff = override ? override.value : ar.value;
+                      const max = typeof ar.value === "number" ? ar.value : 0;
+                      const conflict = state.exceedsAsset.includes(cid);
+                      const fmt = (v: ImpactRating["value"]) =>
+                        v === "na" ? "n/a" : v === null ? "—" : String(v);
+                      return (
+                        <Box key={cid} sx={{ mb: 0.5 }} data-testid={`goal-impact-${cid}`}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="caption" sx={{ flex: 1, minWidth: 0 }}>
+                              {criterionName(cid)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ width: 72 }}>
+                              {t(`${K}.impact.asset`, { value: fmt(ar.value), defaultValue: "Asset: {{value}}" })}
+                            </Typography>
+                            <Tooltip
+                              arrow
+                              placement="left"
+                              title={t(`${K}.impact.cap`, {
+                                max: fmt(ar.value),
+                                defaultValue:
+                                  "Maximum {{max}} — from the asset's damage potential. If this damage is more severe, raise the asset impact first.",
+                              })}
+                            >
+                              <Select
+                                size="small"
+                                variant="standard"
+                                value={override ? String(override.value) : "inherit"}
+                                onChange={(e) => {
+                                  const v = e.target.value as string;
+                                  onGoalImpact(cid, v === "inherit" ? undefined : v === "na" ? "na" : Number(v));
+                                }}
+                                sx={{ fontSize: "0.75rem", minWidth: 110 }}
+                                inputProps={{ "aria-label": `${criterionName(cid)} impact` }}
+                              >
+                                <MenuItem value="inherit" sx={{ fontSize: "0.75rem" }}>
+                                  {t(`${K}.impact.inherited`, { value: fmt(ar.value), defaultValue: "inherited ({{value}})" })}
+                                </MenuItem>
+                                {Array.from({ length: Math.min(max, scaleMax) }, (_, k) => k + 1).map((v) => (
+                                  <MenuItem key={v} value={String(v)} sx={{ fontSize: "0.75rem" }}>
+                                    {v}
+                                  </MenuItem>
+                                ))}
+                                {conflict && typeof override?.value === "number" && (
+                                  <MenuItem value={String(override.value)} sx={{ fontSize: "0.75rem" }}>
+                                    {override.value}
+                                  </MenuItem>
+                                )}
+                                <MenuItem value="na" sx={{ fontSize: "0.75rem" }}>n/a</MenuItem>
+                              </Select>
+                            </Tooltip>
+                            {chip(
+                              override
+                                ? t(`${K}.impact.adjusted`, { defaultValue: "adjusted" })
+                                : t(`${K}.impact.inheritedChip`, { defaultValue: "inherited" }),
+                              override ? "#1d4ed8" : "#6b7280",
+                            )}
+                          </Stack>
+                          {conflict && (
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ pl: 1 }}>
+                              <Typography variant="caption" color="error.main" sx={{ flex: 1 }}>
+                                {t(`${K}.impact.exceeds`, {
+                                  value: fmt(eff),
+                                  asset: fmt(ar.value),
+                                  defaultValue: "Adjustment {{value}} exceeds asset value {{asset}}",
+                                })}
+                              </Typography>
+                              <Button size="small" onClick={() => onGoalImpact(cid, undefined)}>
+                                {t(`${K}.impact.resetToAsset`, { defaultValue: "Reset to asset value" })}
+                              </Button>
+                              {onRaiseAsset && typeof eff === "number" && (
+                                <Button size="small" onClick={() => onRaiseAsset(cid, eff)}>
+                                  {t(`${K}.impact.raiseAsset`, { defaultValue: "Raise asset value" })}
+                                </Button>
+                              )}
+                            </Stack>
+                          )}
+                        </Box>
+                      );
+                    })}
+                </Box>
+              </Collapse>
+            </Box>
+          )}
 
           {/* Level selector (not for excluded goals) */}
           {!excluded && (

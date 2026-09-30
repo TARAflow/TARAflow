@@ -77,8 +77,10 @@ import {
   initializeMissingSnapshots,
   keepDecision,
   resetToSuggestion,
+  setGoalImpact,
   type GoalState,
 } from "../services/asset-goal-state";
+import { effectiveGoalRatings } from "../services/asset-impact-resolver";
 import { SecurityGoalCard } from "./security-goal-card";
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 
@@ -361,6 +363,35 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       return adjustGoal(a, g, lvl === "none" ? "low" : lvl, "", scaleType);
     });
 
+  /** Per-goal impact: rate a criterion for this goal, or inherit (undefined). */
+  const handleGoalImpact = (
+    type: SecurityGoalType,
+    criterionId: string,
+    value: number | "na" | undefined,
+  ) =>
+    setEditedAsset((prev) => {
+      const next = {
+        ...prev,
+        securityGoals: prev.securityGoals.map((sg) =>
+          sg.type === type ? setGoalImpact(sg, criterionId, value) : sg,
+        ),
+      };
+      // the goal's suggested level follows its effective ratings
+      return {
+        ...next,
+        securityGoals: deriveSecurityGoalSuggestions(next, next.securityGoals, scaleType),
+      };
+    });
+
+  /** Resolve an override conflict by raising the asset value (explicit action). */
+  const handleRaiseAssetImpact = (criterionId: string, value: number) =>
+    setEditedAsset((prev) => ({
+      ...prev,
+      impactRatings: prev.impactRatings.map((r) =>
+        r.criterionId === criterionId ? { ...r, value } : r,
+      ),
+    }));
+
   const handleGoalRationale = (type: SecurityGoalType, rationale: string) =>
     setEditedAsset((prev) => ({
       ...prev,
@@ -518,7 +549,11 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       key={`${editedAsset.id}-${goal.type}`}
       goal={goal}
       state={state}
-      impactRatings={editedAsset.impactRatings}
+      impactRatings={effectiveGoalRatings(editedAsset, goal)}
+      assetRatings={editedAsset.impactRatings}
+      scaleMax={parseInt(configuration.impactScale.split("-")[0], 10)}
+      onGoalImpact={(c, v) => handleGoalImpact(goal.type, c, v)}
+      onRaiseAsset={handleRaiseAssetImpact}
       criterionName={criterionName}
       assetDisplayName={assetDisplayName}
       rationaleError={goalErrorTypes.includes(goal.type)}
