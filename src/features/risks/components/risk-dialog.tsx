@@ -313,6 +313,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
               linkedAssets,
               assetDataRef,
               configuration,
+              currentRisk.strideCategory,
             ),
           };
         } else {

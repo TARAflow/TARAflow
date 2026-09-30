@@ -237,6 +237,8 @@ export {
 } from "./utils/tag-categories";
 
 export { computeAllMitigationCoverage } from "./utils/mitigation-coverage";
+export { resolveThreatImpactAssets } from "./utils/threat-impact";
+export type { ThreatImpactAssets } from "./utils/threat-impact";
 export {
   ELEMENT_TYPE_ORDER,
   STRIDE_ORDER,

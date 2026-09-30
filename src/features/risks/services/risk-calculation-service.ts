@@ -31,7 +31,12 @@ import type {
   AttackTreeLikelihoodReference,
   LikelihoodMethod,
 } from "shared";
-import { getWorstCriterionValue, normaliseImpactValue } from "shared";
+import {
+  getWorstCriterionValue,
+  normaliseImpactValue,
+  resolveThreatImpactAssets,
+  type StrideCategory,
+} from "shared";
 import {
   ISO21434_FACTOR_LEVELS,
   ISO21434_ELAPSED_TIME_POINTS,
@@ -417,11 +422,21 @@ export function deriveSafetyValue(
  */
 export function applyAssetCriteriaToFactorRatings(
   ratings: FactorRating[],
-  linkedAssets: AssetReference[],
+  allLinkedAssets: AssetReference[],
   assetDataRef: AssetDataReference,
   configuration: RiskConfiguration,
+  /**
+   * STRIDE category of the threat. When given, the impact comes from the
+   * security goals the threat violates (per-goal impact, security-goal
+   * rework §4.3): only assets with an active matching goal count, with their
+   * goal-effective values. Without it: every linked asset, asset values.
+   */
+  strideCategory?: StrideCategory,
 ): FactorRating[] {
-  if (!configuration.useAssetImpact || linkedAssets.length === 0) return ratings;
+  if (!configuration.useAssetImpact || allLinkedAssets.length === 0) return ratings;
+  const linkedAssets = strideCategory
+    ? resolveThreatImpactAssets(allLinkedAssets, strideCategory).assets
+    : allLinkedAssets;
 
   const assetScaleStr = assetDataRef.impactScale ?? "4-level";
   const assetScaleLevels = parseInt(assetScaleStr.split("-")[0], 10);

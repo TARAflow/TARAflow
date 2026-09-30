@@ -68,7 +68,18 @@ export function buildAssetDataReference(
     securityGoals:
       a.securityGoals
         ?.filter((g) => g.level !== "none")
-        .map((g) => ({ type: g.type, level: g.level })) ?? [],
+        .map((g) => ({
+          type: g.type,
+          level: g.level,
+          ...(g.impactRatings?.length
+            ? {
+                impactRatings: g.impactRatings.map((r) => ({
+                  criterionId: r.criterionId,
+                  value: r.value,
+                })),
+              }
+            : {}),
+        })) ?? [],
     impactRatings:
       a.impactRatings?.map((r) => ({
         criterionId: r.criterionId,

@@ -41,6 +41,11 @@ export type SecurityGoalType =
 export interface SecurityGoalReference {
   type: SecurityGoalType;
   level: CIANAAALevel;
+  /**
+   * Per-goal impact overrides (criterion → value). Absent = the goal inherits
+   * every criterion from the asset. See shared/utils/threat-impact.ts.
+   */
+  impactRatings?: { criterionId: string; value: number | null | "na" }[];
 }
 
 // ==================== STRIDE MAPPING ====================

@@ -646,6 +646,7 @@ export function syncRisksFromThreats(
         linkedAssets,
         assetDataRef,
         updatedConfiguration,
+        threat.strideCategory,
       );
       // mitigatedFactorRatings not touched — analyst owns Risk After values
     }
@@ -737,6 +738,7 @@ export function syncRisksFromThreats(
             linkedAssets,
             assetDataRef,
             updatedConfiguration,
+            threat.strideCategory,
           )
         : emptyRisk.factorRatings;
 
