@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), Phase 0 and Phase 1 merged, Phase 2 delivered (pending merge), Phase 3 next
+**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–2 merged, Phase 3 delivered (pending merge), Phase 4 next
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -444,18 +444,28 @@ Not in Phase 2: `GOAL_OVERRIDE_EXCEEDS_ASSET` and `GOAL_ENVELOPE_SLACK` need per
 
 **Effect on SmokeDetector:** the asset toolbar now shows 3 × "decided manually without a rationale" and 8 × "suggested, but no impact rated — assessment required" (warnings). The phase status is unaffected.
 
-### Phase 3 — security-goal cards (point 3)
+### Phase 3 — security-goal cards (point 3) ✅ delivered
 
 **Goal:** the UI from 4.2, consuming `goalState()` and the action functions from Phase 2.
 
-**Scope:**
-- new component `features/assets/components/security-goal-card.tsx` (collapsed/expanded, badges, the stale variant)
-- `asset-dialog.tsx` — replace the cause-mechanism section (~line 1426) and the expert CIANAAA section (~line 1822) with the cards; consequence field in all modes
-- i18n en/de
+Delivered as one commit (patch 22) plus this document (23):
 
-**Tests:** component tests for the card states (vitest component config); invariant C in the dialog (excluded goal stays visible).
+- **`security-goal-card.tsx`** — renders only what `goalState()` says:
+  - header: goal, level chip — or "Assessment required" when nothing is rated (invariant D), source badge (Suggested / Adjusted / Added / Excluded / Earlier decision), provisional / minimum-level markers, "Review" (warning reasons) or "Suggestion changed" (info reasons), "Rationale missing"; below it the one line that explains the level;
+  - expanded: why this goal (relations, violation), why this level (the goal's relevant criteria with the driver marked; `goalRelevantCriteria()` / `goalMechanism()` exported from the deriver), the changed-suggestion block with Keep / Adopt, level selector, rationale with a question per decision type, formal requirement, consequence;
+  - actions: "Not relevant for this asset" (exclude), "Adopt suggestion" / "Reactivate (suggestion)" / "Remove goal" (reset — the label depends on the state).
+  - Cards that need attention (changed suggestion, assessment missing, rationale missing) open expanded.
+- **Asset dialog** — cards for `visibility = card`, a separate list of excluded cards (invariant C), chips "Add a security goal" for hidden goals. All decisions via `adjustGoal` / `excludeGoal` / `keepDecision` / `resetToSuggestion`; the old toggle and level handlers are gone (the dialog shrank from 1986 to 1507 lines).
+- **Rationale is enforced:** save is blocked while a manual decision (adjusted, excluded, added) has no rationale; the alert names the goals.
+- **On save:** `initializeMissingSnapshots()` gives manual goals decided before snapshots existed their baseline.
+- **Consequence** is shown in every mode. `damageScenarioMode` no longer gates it; the prop is kept for callers.
 
-**Done when:** the dialog no longer builds goal conditions itself; every displayed state comes from `goalState()`.
+Decisions made during implementation:
+- The rationale question is derived, not stored: excluded → "not relevant?", manual + suggested → "why does the suggested level not fit?", manual + not suggested → "why is this goal needed in addition?" (a third case the design had not named).
+- Choosing a new level on an already manual goal is a new decision: the snapshot moves to the current suggestion.
+- Existing projects: assets whose manual goals have no rationale (e.g. DA-001, DA-004 in SmokeDetector) cannot be saved from the dialog until the rationale is filled in. Intended — the rationale is an audit requirement.
+
+**Tests:** `security-goal-card.test.tsx` (component, 11): every card state, action routing, dialog wiring, rationale blocks save, snapshot on save, adding a not-suggested goal. Component suite (10 files) and asset unit suite green.
 
 ### Phase 4 — per-goal impact through to the risk (point 4)
 
@@ -507,3 +517,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.4:** measurements replaced by the analyst's test results (per-element 5 → 7, per-interaction 2 → 14); wrong earlier estimate explained; commits 5–8 added (phase-tab drift warning, per-interaction sync scope, flow names, per-element data-flow properties); known limitation of the DFD sync documented.
 - **Rev. 3.5:** Phase 1 closed. Follow-up commits 10–15 documented (drift column label, threat text lookup, per-element dedup, retained threats with undo, sync scope robustness, reading order); open catalog finding and SmokeDetector modelling note recorded.
 - **Rev. 3.6:** Phase 2 delivered (patches 17–19): single suggestion rule, `goalState()` / `goalFindings()` / snapshot / explicit actions, findings in the asset validation with `infos`. `GoalState.visibility` renamed to `card | excluded | hidden`; stale severity keyed on "decision was an exclusion".
+- **Rev. 3.7:** Phase 3 delivered (patch 22): security-goal cards in the asset dialog; rationale enforced on save; baseline snapshots on save; consequence in all modes; third rationale question "added".
