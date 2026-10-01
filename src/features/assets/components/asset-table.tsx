@@ -4,6 +4,8 @@
 // Column order:
 //   ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Actions
 //
+// Sec. Goals: SecurityGoalChips — level + state marker per goal from goalState().
+//
 // Fixes applied vs previous version:
 //   - ASSET_GROUP_CONFIG imported from "shared" (asset-color-constants.ts)
 //   - Category icons kept as local map (React elements cannot go in shared)
@@ -52,20 +54,13 @@ import {
 import type { Asset, AssetConfiguration, AssetToAssetRelationReference } from "../models/asset-types";
 import type { DFDElementLink } from "../models/dfd-asset-link-types";
 import { getDownstreamCount } from "../utils/asset-graph-utils";
+import { SecurityGoalChips } from "./security-goal-chips";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
   SAFETY_CRITERION_ID,
   IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
-import type {
-  SecurityGoal,
-  SecurityGoalType,
-} from "../models/asset-security-goals-types";
-import {
-  SECURITY_GOALS,
-  SECURITY_GOAL_KEY_PREFIX,
-} from "../models/asset-security-goals-types";
 import {
   getImpactLevel,
   calculateOverallImpact,
@@ -999,7 +994,7 @@ export const AssetTable = React.memo<AssetTableProps>(
       const securityGoalsColumn: GridColDef<Asset> = {
         field: "securityGoals",
         headerName: t("tabs.assets.columns.securityGoals"),
-        width: 200,
+        width: 280,
         sortable: false,
         renderHeader: () => (
           <Tooltip
@@ -1030,109 +1025,12 @@ export const AssetTable = React.memo<AssetTableProps>(
             </Typography>
           </Tooltip>
         ),
-        renderCell: (params: GridRenderCellParams<Asset>) => {
-          const row = params.row;
-          if (!row?.securityGoals)
-            return <Typography color="text.disabled">–</Typography>;
-
-          const enabledGoals: SecurityGoal[] = row.securityGoals.filter(
-            (sg: SecurityGoal) => sg.level !== "none",
-          );
-          if (enabledGoals.length === 0)
-            return <Typography color="text.disabled">–</Typography>;
-
-          return (
-            <Stack
-              direction="row"
-              spacing={0.5}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ py: 0.5 }}
-            >
-              {enabledGoals.map((goal: SecurityGoal) => {
-                const isManual = goal.source === "manual";
-                const isSuggested = goal.source === "suggested";
-                const goalName = getSecurityGoalName(goal.type, t);
-
-                return (
-                  <Tooltip
-                    key={goal.type}
-                    arrow
-                    placement="top"
-                    title={
-                      <Box sx={{ p: 0.5 }}>
-                        <Typography
-                          variant="caption"
-                          fontWeight="bold"
-                          display="block"
-                        >
-                          {goalName}
-                        </Typography>
-                        {goal.source && (
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            color="rgba(255,255,255,0.75)"
-                          >
-                            {t(
-                              isManual
-                                ? "tabs.assets.tooltips.cianaaa.manual"
-                                : "tabs.assets.tooltips.cianaaa.suggested",
-                            )}
-                          </Typography>
-                        )}
-                        {goal.formalDescription && (
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            sx={{
-                              mt: 0.5,
-                              maxWidth: 240,
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            {goal.formalDescription}
-                          </Typography>
-                        )}
-                        {goal.rationale && (
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            color="rgba(255,220,0,0.9)"
-                            sx={{
-                              mt: 0.5,
-                              maxWidth: 240,
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            ℹ {goal.rationale}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  >
-                    <Chip
-                      label={goal.type}
-                      size="small"
-                      variant={isManual ? "filled" : "outlined"}
-                      color="primary"
-                      sx={{
-                        fontSize: "0.8rem",
-                        height: 20,
-                        fontWeight: isManual ? 700 : 400,
-                        cursor: "help",
-                        ...(isSuggested && {
-                          borderStyle: "dashed",
-                          opacity: 0.85,
-                        }),
-                      }}
-                    />
-                  </Tooltip>
-                );
-              })}
-            </Stack>
-          );
-        },
+        renderCell: (params: GridRenderCellParams<Asset>) => (
+          <SecurityGoalChips
+            asset={params.row}
+            impactScale={configuration.impactScale}
+          />
+        ),
       };
 
       // ── DFD Links ─────────────────────────────────────────────────────
@@ -1605,10 +1503,6 @@ AssetTable.displayName = "AssetTable";
 export default AssetTable;
 
 // ==================== PURE HELPERS ====================
-
-function getSecurityGoalName(type: SecurityGoalType, t: TFunction): string {
-  return t(`${SECURITY_GOAL_KEY_PREFIX}.${type}.name`, { defaultValue: type });
-}
 
 function getImpactColorByLevel(value: number, maxLevels: number): string {
   const palettes: Record<number, string[]> = {

@@ -44,6 +44,7 @@ import {
 } from "../models/asset-security-goals-types";
 import type { GoalState } from "../services/asset-goal-state";
 import { severityFor } from "../services/asset-goal-state";
+import { goalBadges } from "../utils/goal-badges";
 import {
   goalMechanism,
   goalRelevantCriteria,
@@ -214,16 +215,8 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
     }
   })();
 
-  // ── Badges ───────────────────────────────────────────────────────────────
-  const sourceLabel = excluded
-    ? t(`${K}.source.excluded`, { defaultValue: "Excluded" })
-    : manual
-      ? state.suggestion.suggested
-        ? t(`${K}.source.adjusted`, { defaultValue: "Adjusted" })
-        : t(`${K}.source.added`, { defaultValue: "Added" })
-      : state.source === "legacy"
-        ? t(`${K}.source.legacy`, { defaultValue: "Earlier decision" })
-        : t(`${K}.source.suggested`, { defaultValue: "Suggested" });
+  // ── Badges — shared with the goal chips of the asset table ───────────────
+  const badges = goalBadges(state, goal);
 
   const chip = (label: string, color: string, variant: "filled" | "outlined" = "outlined") => (
     <Chip
@@ -281,20 +274,11 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                     "#d97706",
                     "filled",
                   )}
-            {chip(sourceLabel, manual ? "#1d4ed8" : "#7c3aed")}
-            {!manual && state.assessment === "provisional" &&
-              chip(t(`${K}.provisional`, { defaultValue: "provisional" }), "#0284c7")}
-            {!manual && state.assessment === "no-applicable-impact" &&
-              chip(t(`${K}.minimumLevel`, { defaultValue: "minimum level" }), "#6b7280")}
-            {state.stale &&
-              chip(
-                staleSeverity === "warning"
-                  ? t(`${K}.stale.review`, { defaultValue: "Review" })
-                  : t(`${K}.stale.changed`, { defaultValue: "Suggestion changed" }),
-                staleSeverity === "warning" ? "#d97706" : "#0284c7",
-              )}
-            {rationaleMissing &&
-              chip(t(`${K}.rationaleMissing`, { defaultValue: "Rationale missing" }), "#dc2626")}
+            {badges.map((b) => (
+              <React.Fragment key={b.id}>
+                {chip(t(b.key, { defaultValue: b.defaultValue }), b.color)}
+              </React.Fragment>
+            ))}
           </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
             {manual && !excluded

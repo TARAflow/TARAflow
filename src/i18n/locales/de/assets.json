@@ -428,6 +428,7 @@
         "minimumLevel": "Mindeststufe",
         "rationaleMissing": "Begründung fehlt",
         "rationaleRequired": "Pflicht bei einer Abweichung vom Vorschlag",
+        "exceedsAsset": "Impact über Asset-Wert",
         "driver": {
           "mechanism": "Treiber: {{criterion}} = {{value}}",
           "fallback": "Vorläufig: kein zielspezifisches Kriterium bewertet, höchstes ist {{criterion}} = {{value}}",
@@ -476,6 +477,9 @@
           "resetToAsset": "Auf Asset-Wert zurücksetzen",
           "raiseAsset": "Asset-Wert erhöhen"
         }
+      },
+      "goalChips": {
+        "needsReview": "Prüfbedürftig — siehe Befunde unter der Tabelle"
       },
       "notifications": {
         "title": "{{count}} Befund(e)",
