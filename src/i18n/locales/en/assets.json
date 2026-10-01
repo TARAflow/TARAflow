@@ -478,6 +478,11 @@
           "raiseAsset": "Raise asset value"
         }
       },
+      "reviewFilter": {
+        "label": "Needs review only ({{count}})",
+        "tooltip": "Show only assets with errors or warnings in the findings",
+        "none": "No asset needs review."
+      },
       "goalChips": {
         "needsReview": "Needs review — see the findings below the table"
       },

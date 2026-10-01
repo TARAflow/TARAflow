@@ -39,6 +39,7 @@ import {
   AccountTree as DerivedIcon,
   EditNote as ManualIcon,
   TableRows as ShowColumnsIcon,
+  FilterAlt as ReviewFilterIcon,
   // Category icons — kept local, shared cannot hold React elements
   Article as DataIcon,
   Functions as FunctionIcon,
@@ -80,6 +81,11 @@ export interface AssetTableProps {
   onEdit: (asset: Asset) => void;
   /** Request deletion (the parent confirms). Omitted → no delete action. */
   onDelete?: (asset: Asset) => void;
+  /**
+   * Ids of assets with errors or warnings in the findings. Given → the bar
+   * offers the "Needs review only" filter.
+   */
+  needsReview?: ReadonlySet<string>;
 }
 
 // ==================== CATEGORY ICONS ====================
@@ -180,9 +186,22 @@ export const AssetTable = React.memo<AssetTableProps>(
     hazardLinks,
     onEdit,
     onDelete,
+    needsReview,
   }) => {
     const { t, i18n } = useTranslation();
     const isGerman = i18n.language === "de";
+
+    // ── "Needs review only" filter ────────────────────────────────────────
+    const [reviewOnly, setReviewOnly] = useState(false);
+    const reviewCount = useMemo(
+      () => (needsReview ? assets.filter((a) => needsReview.has(a.id)).length : 0),
+      [assets, needsReview],
+    );
+    const filterActive = reviewOnly && !!needsReview;
+    const rows = useMemo(
+      () => (filterActive ? assets.filter((a) => needsReview!.has(a.id)) : assets),
+      [assets, needsReview, filterActive],
+    );
 
     // ── Column visibility ─────────────────────────────────────────────────
     const factorFields = useMemo(
@@ -1436,12 +1455,49 @@ export const AssetTable = React.memo<AssetTableProps>(
                 : "tabs.assets.tooltips.showFactors",
             )}
           </Button>
+          {needsReview && (
+            <Tooltip
+              arrow
+              title={t("tabs.assets.reviewFilter.tooltip", {
+                defaultValue:
+                  "Show only assets with errors or warnings in the findings",
+              })}
+            >
+              <Button
+                size="small"
+                variant={reviewOnly ? "contained" : "outlined"}
+                startIcon={<ReviewFilterIcon />}
+                onClick={() => setReviewOnly((v) => !v)}
+                color={reviewOnly ? "warning" : "inherit"}
+                aria-pressed={reviewOnly}
+                data-testid="asset-review-filter"
+                sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
+              >
+                {t("tabs.assets.reviewFilter.label", {
+                  count: reviewCount,
+                  defaultValue: "Needs review only ({{count}})",
+                })}
+              </Button>
+            </Tooltip>
+          )}
         </Box>
 
         {/* DataGrid */}
         <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+          {filterActive && rows.length === 0 ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              data-testid="asset-review-empty"
+              sx={{ p: 2 }}
+            >
+              {t("tabs.assets.reviewFilter.none", {
+                defaultValue: "No asset needs review.",
+              })}
+            </Typography>
+          ) : (
           <DataGrid
-            rows={assets}
+            rows={rows}
             columns={columns}
             columnVisibilityModel={columnVisibilityModel}
             onColumnVisibilityModelChange={setColumnVisibilityModel}
@@ -1492,6 +1548,7 @@ export const AssetTable = React.memo<AssetTableProps>(
                 : ""
             }
           />
+          )}
         </Box>
       </Box>
     );

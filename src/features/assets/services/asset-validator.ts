@@ -127,6 +127,19 @@ export function collectAssetFindings(assetData: AssetData): AssetFinding[] {
   return out;
 }
 
+/**
+ * Assets the analyst still has to look at: at least one error or warning in
+ * the findings ("Needs review only" filter of the asset table, design §4.4).
+ * Infos never count — they describe legitimate states.
+ */
+export function assetIdsNeedingReview(findings: AssetFinding[]): Set<string> {
+  const ids = new Set<string>();
+  for (const f of findings) {
+    if (f.assetId && (f.severity === "error" || f.severity === "warning")) ids.add(f.assetId);
+  }
+  return ids;
+}
+
 /** String form "key[:asset[:goal]]" — persisted in AssetValidation. */
 function findingToString(f: AssetFinding): string {
   return [f.key, f.assetLabel, f.goal, f.criterionId].filter(Boolean).join(":");

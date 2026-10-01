@@ -39,6 +39,7 @@ import { AssetTable } from "./asset-table";
 import { AssetDialog } from "./asset-dialog";
 import { AssetNotificationPanel } from "./asset-notification-panel";
 import {
+  assetIdsNeedingReview,
   collectAssetFindings,
   type AssetFinding,
 } from "../services/asset-validator";
@@ -655,6 +656,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Validation findings, structured — for the panel below the table.
   const findings = useMemo(() => collectAssetFindings(assetData), [assetData]);
+  const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 
   const handleOpenFinding = useCallback(
     (finding: AssetFinding) => {
@@ -787,6 +789,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             assets={assetData.assets}
             configuration={assetData.configuration}
             hazardLinks={hazardLinks}
+            needsReview={needsReview}
             onEdit={handleEditAsset}
             onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
           />

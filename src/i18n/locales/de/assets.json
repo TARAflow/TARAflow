@@ -478,6 +478,11 @@
           "raiseAsset": "Asset-Wert erhöhen"
         }
       },
+      "reviewFilter": {
+        "label": "Nur prüfbedürftige ({{count}})",
+        "tooltip": "Nur Assets mit Fehlern oder Warnungen in den Befunden anzeigen",
+        "none": "Kein Asset ist prüfbedürftig."
+      },
       "goalChips": {
         "needsReview": "Prüfbedürftig — siehe Befunde unter der Tabelle"
       },

@@ -5,7 +5,13 @@
 // legitimate-but-notable states. Infos never affect completeness.
 
 import { describe, it, expect } from "vitest";
-import { validateAssetData, derivePhaseStatus } from "features/assets/services/asset-validator";
+import {
+  assetIdsNeedingReview,
+  collectAssetFindings,
+  validateAssetData,
+  derivePhaseStatus,
+  type AssetFinding,
+} from "features/assets/services/asset-validator";
 import { adjustGoal } from "features/assets/services/asset-goal-state";
 import { deriveSecurityGoalSuggestions } from "features/assets/services/asset-cianaaa-deriver";
 import type { AssetData, Asset } from "features/assets/models/asset-types";
@@ -97,5 +103,38 @@ describe("structured findings (notification panel)", () => {
     const v = validateAssetData(data(blank));
     expect(v.warnings.some((w) => w.includes("noSecurityGoalDescription"))).toBe(false);
     expect(v.infos).toContain("tabs.assets.validation.noSecurityGoalDescription:A-001 (Config DB):C");
+  });
+});
+
+// Phase 5: "Needs review only" filter of the asset table.
+describe("assetIdsNeedingReview", () => {
+  const f = (severity: AssetFinding["severity"], assetId?: string): AssetFinding => ({
+    severity,
+    key: "k",
+    dialogTab: 1,
+    ...(assetId ? { assetId } : {}),
+  });
+
+  it("errors and warnings mark an asset; infos and project findings do not", () => {
+    const ids = assetIdsNeedingReview([
+      f("info", "a-info"),
+      f("warning", "a-warn"),
+      f("error", "a-err"),
+      f("error"), // project-level (e.g. no assets)
+    ]);
+    expect([...ids].sort()).toEqual(["a-err", "a-warn"]);
+  });
+
+  it("from the real findings: unassessed goals need review, provisional ones do not", () => {
+    const unassessed = { ...asset([]), id: "u" } as Asset;
+    const provisional = { ...asset([{ criterionId: "safety", value: 3 }]), id: "p" } as Asset;
+    const ids = assetIdsNeedingReview(
+      collectAssetFindings({
+        assets: [unassessed, provisional],
+        configuration: { impactScale: "4-level" },
+      } as unknown as AssetData),
+    );
+    expect(ids.has("u")).toBe(true);
+    expect(ids.has("p")).toBe(false);
   });
 });
