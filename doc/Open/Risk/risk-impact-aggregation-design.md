@@ -1,8 +1,8 @@
-# TARAflow — Risk Impact Aggregation
+# TARAflow — Risk Factors: Impact Aggregation and Likelihood Scales
 
-> **Purpose of this document:** decide how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it. Binding once accepted: the decisions in §5 and the migration rule in §6. Nothing is implemented yet.
+> **Purpose of this document:** decide (A) how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it, and (B) how the levels of the likelihood factors are labelled so they read in the direction they count. Binding once accepted: the decisions in §5, §7.4 and the migration rules in §6, §7.5. Nothing is implemented yet.
 
-**Status:** Draft rev. 1 — open for review
+**Status:** Draft rev. 2 — open for review
 **Code baseline:** `a0f177e`
 **Related:** `doc/InProgress/Asset/security-goal-rework-design.md` (Phase 4 delivers per-goal impact *values* to the risk; this document is about how those values are *combined*)
 
@@ -119,7 +119,7 @@ The risk dialog shows next to the impact how it was formed, e.g.:
 
 ### 5.6 ISO 21434: risk per category (later, optional)
 
-15.8 NOTE 1 allows one risk value per impact category. That would mean four risk values per risk (S, F, O, P), treatment decided per category, the highest shown in the register. It changes the risk model and the register; it is listed as a later phase (§7) and not a prerequisite. `max` already gives the same *highest* risk value.
+15.8 NOTE 1 allows one risk value per impact category. That would mean four risk values per risk (S, F, O, P), treatment decided per category, the highest shown in the register. It changes the risk model and the register; it is listed as a later phase (§8) and not a prerequisite. `max` already gives the same *highest* risk value.
 
 ## 6. Existing projects
 
@@ -128,22 +128,88 @@ The risk dialog shows next to the impact how it was formed, e.g.:
 - New projects get the preset default.
 - The change is recorded like any configuration change (audit trail).
 
-## 7. Implementation phases
+## 7. Likelihood factor scales
+
+### 7.1 Current state (verified in code)
+
+Likelihood factors of the weighted-mean presets (`standard`, the OWASP-derived set, and further optional factors) are rated on the **generic likelihood scale** (`LIKELIHOOD_SCALES`): the risk dialog offers `1 – Very Low`, `2 – Low`, `3 – Medium`, `4 – High` for every factor, whatever it measures (`risk-dialog.tsx`, branch `def.category === "likelihood"`). Factor-specific level texts exist only for:
+- ISO 21434 (`ISO21434_FACTOR_LEVELS`, own rendering `renderIsoFactorRow`) — e.g. expertise *layman … multiple experts*;
+- EN 50742-A (`EN50742_FACTOR_LEVELS`) — EL0…EL4, attacker capability bands;
+- ETSI TVRA has a level registry in its core (`TVRA_FACTOR_LEVELS`), but the risk dialog does **not** use it (no reference found) — TVRA factors appear to be labelled with the generic scale. *To be verified in the app.*
+
+The factor values are oriented **towards likelihood**: a higher value means the attack is more likely (OWASP Risk Rating: skill level 9 = "no technical skills"). The factor *names*, however, describe a property of the attacker or the weakness.
+
+### 7.2 Problem
+
+Name and level label read in opposite directions:
+
+| Factor | Selected | Reads as | Means |
+|---|---|---|---|
+| Skill level | 4 – High | "the attacker needs high skill" | **no** skill needed — the attack is likely |
+| Opportunity | 4 – High | "a lot of opportunity is required" | **no** access or resources required |
+| Intrusion detection | 4 – High | "detection is good" | the attack is **not** logged |
+
+The analyst has to translate every rating mentally; a misread inverts the factor. For TVRA (§7.1) the generic label may even run against the stored level order (value 1 = `<=1day`, the fastest attack, labelled "Very Low").
+
+### 7.3 Requirements
+
+1. Each level of each likelihood factor names the **situation** it stands for, not a direction-free "high / low".
+2. The order stays: value 1 = least likely … highest value = most likely. Calculation, matrix and stored values do not change.
+3. Labels are translatable (i18n), keyed by a stable level key, not by the number.
+4. Works for the 3-, 4- and 5-level scale.
+5. Custom factors without own labels still show the direction.
+
+### 7.4 Proposal
+
+**Per-factor level anchors** — a registry `LIKELIHOOD_FACTOR_LEVELS: Record<factorId, levelKey[]>` (5 anchors, least → most likely), like the existing ISO / TVRA / EN 50742 registries. The 4- and 3-level scales use fixed subsets. Labels: `risks.factorLevels.<factorId>.<levelKey>` (en/de). The dialog shows `4 – No technical skills` instead of `4 – High`; the generic likelihood label stays visible as a small colour chip, so the contribution is still readable.
+
+Proposed anchors — the level descriptions of the OWASP Risk Rating Methodology, from which the standard factor set is derived (OWASP uses 0–9 with three to six named steps per factor); `deployment_scope` is TARAflow's own. Final wording during implementation:
+
+| Factor | 1 (least likely) | 2 | 3 | 4 | 5 (most likely) |
+|---|---|---|---|---|---|
+| `skill_level` — skill required | security penetration skills | network & programming skills | advanced computer user | some technical skills | no technical skills |
+| `motive` — reward for the attacker | low or no reward | | possible reward | | high reward |
+| `opportunity` — access / resources required | full access or expensive resources | special access or resources | some access or resources | | no access or resources |
+| `size` — group of potential attackers | developers, system administrators | intranet users | partners | authenticated users | anonymous internet users |
+| `ease_of_discovery` | practically impossible | difficult | easy | | automated tools available |
+| `ease_of_exploit` | theoretical | difficult | easy | | automated tools available |
+| `awareness` — how known | unknown | hidden | obvious | | public knowledge |
+| `intrusion_detection` | active detection in the application | logged and reviewed | logged, not reviewed | | not logged |
+| `deployment_scope` | single installation | several systems of one customer | all installations of a product type | | all customers (supply chain) |
+
+Empty cells: OWASP names fewer steps for that factor than the 5-level scale has (motive: three; opportunity, discovery, exploit, awareness, detection, deployment scope: four). How three or four anchors spread over the 3-, 4- and 5-level scale is open question 6 (§9).
+
+**Factor names follow the direction where that helps** — e.g. *Skill level* → *Skill required*; descriptions state "higher = attack more likely".
+
+**TVRA:** render `TVRA_FACTOR_LEVELS` in the dialog like the ISO levels (separate fix; verify the order first).
+
+**Custom factors:** keep the generic scale, with the header hint "1 = attack unlikely … N = attack likely".
+
+### 7.5 Existing projects
+
+None affected: only labels change; stored values, calculation and matrix stay as they are. The report shows the new labels as well.
+
+## 8. Implementation phases
 
 1. **Calculation** — `impactAggregation` in `RiskConfiguration` (optional, absent = `weighted-mean`), the three variants in `calculateRiskValues`, preset field and defaults. Pure, fully tested; no UI, no behaviour change for existing projects.
 2. **Configuration and migration** — setting in the risk configuration dialog with explanation and the worked example; preview of changed risks before applying; preset application through the same preview.
 3. **Explanation** — "how the impact was formed" in the risk dialog and in the report.
 4. **One weight source** — impact factor weights from the asset configuration, read-only in the risk configuration.
 5. **Optional: ISO risk per category** (§5.6).
+6. **Likelihood factor labels** (§7) — independent of 1–5, can come first: level registry, i18n en/de, risk dialog and report; TVRA levels in the dialog. No calculation change.
 
-## 8. Open questions
+## 9. Open questions
 
 1. **ETSI TVRA and EN 50742-B:** `safety-floor` or `max`? TVRA's own impact scale is a single value per threat — does it need an aggregation at all?
 2. **EN 50742-A:** severity is a 3-level criterion on the safety-function asset (reversible / non-reversible / fatal) and feeds the SRSL, not `R = I × L`. Does the R-path need a rule there, or is it out of scope?
 3. **Floor for further harm to people and environment?** `physical_damage` and `environmental` describe physical harm as well. Should they share the floor with safety (`max(safety, physical_damage, environmental, mean of the rest)`)?
 4. **Asset tab:** keep `calculationMethod` as an asset-prioritisation setting independent of the risk, or align its default with the preset? (It does not feed the risk.)
 5. **Scope of the preview:** only risk level changes, or also impact changes within the same level?
+6. **Anchors on 3/4/5 levels:** OWASP names three to five steps per factor. Use the named steps where they exist and interpolate wording for the gaps, or keep fewer selectable levels for such factors (e.g. motive: 1 / 3 / 5 only)?
+7. **Rename factors** (*Skill level* → *Skill required*, *Opportunity* → *Access required*)? Changes names in existing reports; keys stay.
+8. **TVRA:** confirm in the app that the dialog shows the generic scale for TVRA factors and in which direction the stored index runs.
 
-## 9. Change history
+## 10. Change history
 
 - **Rev. 1:** draft — problem analysis from code, proposal (three aggregation variants, preset defaults, one weight source, explicit migration), phases, open questions.
+- **Rev. 2:** added Part B (§7): likelihood factor scales — the generic "Very Low … High" labels read against the direction of factors like skill level; proposal: per-factor level anchors (i18n), names following the direction, TVRA levels in the dialog. Phase 6 and open questions 6–8.
