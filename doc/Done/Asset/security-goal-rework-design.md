@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–4 merged, Phase 5 delivered (pending merge), Phase 6 next
+**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–5 merged, Phase 6 delivered (pending merge)
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -285,8 +285,8 @@ With 50 assets, the review must not require opening every dialog. Existing place
 | `GOAL_PROVISIONAL` | info | level from fallback, relevant criteria open |
 | `GOAL_NO_APPLICABLE_IMPACT` | info | minimum level, all relevant criteria n/a – may be entirely correct |
 | `GOAL_ENVELOPE_SLACK` | info | asset value not used by any active goal |
-| `THREAT_WITHOUT_GOAL` *(later)* | warning | threat violates no active goal of a linked asset |
-| `GOAL_WITHOUT_THREAT` *(later)* | info | active goal addressed by no threat |
+| `THREAT_WITHOUT_GOAL` *(Phase 6)* | warning | threat violates no active goal of a linked asset |
+| `GOAL_WITHOUT_THREAT` *(Phase 6)* | info | active goal addressed by no threat |
 
 `GOAL_OVERRIDE_STALE` is **one** code. The severity follows from the stale reason (`severityFor(reason)`), the reason is carried as context. No separate codes per reason.
 
@@ -492,7 +492,7 @@ Delivered as three commits (patches 28–30) plus this document (31):
 
 **Effect on existing projects:** without overrides, a risk impact changes only where a linked asset *without* a matching goal carried the highest value (step 4). Measured on SmokeDetector: 78 threats with linked assets, 3 risks — no change. The earlier statement "none for existing projects" was too strong; step 4 alone can change values in projects where elements carry several assets with different goals.
 
-**Not done here:** `THREAT_WITHOUT_GOAL` (step 5 finding) — Phase 6 (cross-checks).
+**Not done here:** `THREAT_WITHOUT_GOAL` (step 5 finding) — delivered in Phase 6 (cross-checks).
 
 **Tests:** `asset-goal-impact.test.ts` (9), `threat-impact.test.ts` (9: the five mandatory cases through the risk prefill, inactive goals, n/a, previous behaviour without STRIDE, reference builder), `security-goal-card.test.tsx` (+3).
 
@@ -526,14 +526,30 @@ Decisions made during implementation:
 
 **Seen on SmokeDetector, not addressed here:** the asset inventory of the report lists the internal UUID in the ID column for some assets (e.g. sensor firmware) instead of the display id.
 
-### Phase 6 — threat ↔ goal cross-checks
+### Phase 6 — threat ↔ goal cross-checks ✅ delivered
 
-**Scope:**
-- `THREAT_WITHOUT_GOAL`, `GOAL_WITHOUT_THREAT` — cross-feature, therefore validated at the app layer
-- back-reference on the card: "N threats violate this goal"
-- surface `suppressedByGoals` from Phase 1 if not done there
+**Goal:** make the step-5 fallback of the risk impact (§4.3) visible, and show per goal which threats realise it.
 
-**Tests:** both findings on the fixtures; back-reference count.
+Delivered as three commits (patches 38–40) plus this document (41):
+
+38. **`refactor(app)` one threat → asset link rule** — `app/utils/threat-asset-links.ts` (`buildElementToAssetIds`, `resolveThreatAssetIds`): the threat's own `linkedAssetIds`, else the assets of its anchor element (element / data flow / source element), via `linkedDFDElements` or an `is_an` relation. Extracted unchanged from `extractThreatReferences` in workspace-layout, which now uses it.
+39. **`feat(assets)` threat ↔ goal cross-checks**
+    - `shared`: `violatesGoal(goal, stride)` — THE definition of "violates" (active goal, `CIANAAA_TO_STRIDE`), now also used by `resolveThreatImpactAssets`; `goalTypesFor(stride)`; projection type `ThreatGoalLink` (id, display id, STRIDE, linked asset ids).
+    - `app/utils/build-threat-goal-links.ts`: projects the threats of all **enabled** generators (per-element, per-interaction, attack-path of relevant paths without the mitigation gate); dismissed threats (`not_relevant`) are left out; same link rule as the risk register.
+    - `features/assets/services/asset-threat-crosscheck.ts`: `THREAT_WITHOUT_GOAL` (warning) — no linked asset has an active goal the threat violates; reported per asset × STRIDE category with count and threat ids, opens the card of the missing goal. `GOAL_WITHOUT_THREAT` (info) — active goal no linked threat violates. No threats at all → no cross-check (before threat generation).
+    - `collectAssetFindings(assetData, threatLinks?)` adds them to the findings panel (message parameters via `AssetFinding.params`) and thereby to the "Needs review only" filter.
+40. **`feat(assets)` back-reference on the goal card** — "N threats" chip in the card header (ids in the tooltip, at most 10 + "+N"); "no threat" when none; not shown for excluded goals or without threat data. `threatsForGoal()` counts the asset's threats of the goal's STRIDE category, independent of whether the goal is active — so the count is right while the analyst edits.
+
+Decisions made during implementation:
+- **Evaluation in the asset feature, not the app layer.** The design said "validated at the app layer". The app layer only *projects* the threats (`ThreatGoalLink`, a shared type); the asset feature evaluates the projection against its own working copy of the goals. That way the findings and the card follow unsaved edits in the dialog, and the asset feature still imports nothing from `features/threats`.
+- **Panel only, not persisted.** The cross-check findings are not part of `validateAssetData()` / the stored `AssetValidation` (that is built without threat data) and do not change the phase status.
+- **Dismissed threats do not count**, unrated and uncertain ones do. A goal only dismissed threats violate has no threat that realises it.
+- **Grouping per asset × STRIDE** for `THREAT_WITHOUT_GOAL`: a whole data flow of unmatched threats is one finding, not twenty. A threat linked to several assets appears on each of them — adding the goal on any one resolves it.
+- **`suppressedByGoals`** (old scope item): stays dropped, see Phase 1 — drift detection covers it.
+
+**Tests:** `threat-asset-links.test.ts` (2), `build-threat-goal-links.test.ts` (3), `asset-threat-crosscheck.test.ts` (8: matched on one of several assets, grouping, R via N/Acc, excluded goal, unlinked threats, goal without threat, no threats, back-reference count), `asset-validator.goal-findings.test.ts` (+2: message parameters and review filter; nothing without the projection, nothing persisted), `security-goal-card.test.tsx` (+4: count, "no threat", hidden without data / for excluded goals, dialog wiring).
+
+**Seen on SmokeDetector (455 threats, 240 without a linked asset):** 8 `THREAT_WITHOUT_GOAL` groups with 28 threats, 3 `GOAL_WITHOUT_THREAT`. Most of them sit on FU-002 (alarm trigger, goals I and A): per-interaction threats of categories S, R, I and E whose stored `linkedAssetIds` name FU-002, while the generator decided their categories from the goals of the assets on the *data flow*. Generator scope (assets of the flow) and threat link (stored asset ids) are not the same set — a modelling question for a separate look, not a defect of the check. The many threats without any linked asset are not covered by this check.
 
 ---
 
@@ -554,3 +570,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.8:** Phase 3 follow-ups (patches 24–27: layout, rationale only for deviations, findings panel, resizable panel) and Phase 4 delivered (patches 28–30: per-goal impact domain, risk impact from the violated goals, impact editor). Corrected the Phase 4 risk statement: step 4 can change values in existing projects.
 - **Rev. 3.9:** Phase 5 delivered (patches 32–34): goal chips with level and state marker in the asset table (badges shared with the card), filter "Needs review only" (every error or warning of the asset), report rows from `goalStates()` with the state in "Source", excluded goals with rationale, effective ratings as level basis. Moot exclusions not reported.
 - **Rev. 3.10:** Phase 5 follow-up (patch 36): goal chips in the asset table coloured by source (blue outline / blue filled), not by level; the card keeps the level colours.
+- **Rev. 3.11:** Phase 6 delivered (patches 38–40): one threat → asset link rule (extracted), `violatesGoal` shared with the risk impact, `THREAT_WITHOUT_GOAL` / `GOAL_WITHOUT_THREAT` in the asset findings panel (app layer projects the threats, asset feature evaluates against its working copy; not persisted), "N threats" back-reference on the goal card. SmokeDetector observation: generator scope (flow assets) ≠ stored threat links.
