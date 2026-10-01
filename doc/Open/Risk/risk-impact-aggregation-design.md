@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** decide (A) how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it, and (B) how the levels of the likelihood factors are labelled so they read in the direction they count. Binding once accepted: the decisions in §5, §7.4 and the migration rules in §6, §7.5. Nothing is implemented yet.
 
-**Status:** Draft rev. 2 — open for review
+**Status:** Draft rev. 3 — Part B decided, Part A open for review
 **Code baseline:** `a0f177e`
 **Related:** `doc/InProgress/Asset/security-goal-rework-design.md` (Phase 4 delivers per-goal impact *values* to the risk; this document is about how those values are *combined*)
 
@@ -135,7 +135,7 @@ The risk dialog shows next to the impact how it was formed, e.g.:
 Likelihood factors of the weighted-mean presets (`standard`, the OWASP-derived set, and further optional factors) are rated on the **generic likelihood scale** (`LIKELIHOOD_SCALES`): the risk dialog offers `1 – Very Low`, `2 – Low`, `3 – Medium`, `4 – High` for every factor, whatever it measures (`risk-dialog.tsx`, branch `def.category === "likelihood"`). Factor-specific level texts exist only for:
 - ISO 21434 (`ISO21434_FACTOR_LEVELS`, own rendering `renderIsoFactorRow`) — e.g. expertise *layman … multiple experts*;
 - EN 50742-A (`EN50742_FACTOR_LEVELS`) — EL0…EL4, attacker capability bands;
-- ETSI TVRA has a level registry in its core (`TVRA_FACTOR_LEVELS`), but the risk dialog does **not** use it (no reference found) — TVRA factors appear to be labelled with the generic scale. *To be verified in the app.*
+- ETSI TVRA has a level registry in its core (`TVRA_FACTOR_LEVELS`), but the risk dialog does **not** use it (no reference found) — TVRA factors are labelled with the generic scale.
 
 The factor values are oriented **towards likelihood**: a higher value means the attack is more likely (OWASP Risk Rating: skill level 9 = "no technical skills"). The factor *names*, however, describe a property of the attacker or the weakness.
 
@@ -161,27 +161,55 @@ The analyst has to translate every rating mentally; a misread inverts the factor
 
 ### 7.4 Proposal
 
-**Per-factor level anchors** — a registry `LIKELIHOOD_FACTOR_LEVELS: Record<factorId, levelKey[]>` (5 anchors, least → most likely), like the existing ISO / TVRA / EN 50742 registries. The 4- and 3-level scales use fixed subsets. Labels: `risks.factorLevels.<factorId>.<levelKey>` (en/de). The dialog shows `4 – No technical skills` instead of `4 – High`; the generic likelihood label stays visible as a small colour chip, so the contribution is still readable.
+**Per-factor level labels for every scale size (decision, Q6)** — a registry `LIKELIHOOD_FACTOR_LEVELS: Record<factorId, Record<"3-level" | "4-level" | "5-level", levelKey[]>>`, least → most likely, like the existing ISO / TVRA / EN 50742 registries. Each scale size gets its **own fitting label set** — no interpolated numbers, no levels left out. Labels: `risks.factorLevels.<factorId>.<levelKey>` (en/de); a level key shared by several scale sizes has one text. The dialog shows `4 – No technical skills` instead of `4 – High`; the generic likelihood label stays visible as a small colour chip, so the contribution is still readable.
 
-Proposed anchors — the level descriptions of the OWASP Risk Rating Methodology, from which the standard factor set is derived (OWASP uses 0–9 with three to six named steps per factor); `deployment_scope` is TARAflow's own. Final wording during implementation:
+Labels per scale size. Basis: the level descriptions of the OWASP Risk Rating Methodology, from which the standard factor set is derived (OWASP uses 0–9 with three to six named steps per factor); where OWASP names fewer steps than a scale has, the gap is filled with an intermediate wording. `deployment_scope` is TARAflow's own (4-level = its current description). Final wording during implementation.
 
-| Factor | 1 (least likely) | 2 | 3 | 4 | 5 (most likely) |
+**5-level scale** (1 = least likely … 5 = most likely)
+
+| Factor | 1 | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|---|
-| `skill_level` — skill required | security penetration skills | network & programming skills | advanced computer user | some technical skills | no technical skills |
-| `motive` — reward for the attacker | low or no reward | | possible reward | | high reward |
-| `opportunity` — access / resources required | full access or expensive resources | special access or resources | some access or resources | | no access or resources |
-| `size` — group of potential attackers | developers, system administrators | intranet users | partners | authenticated users | anonymous internet users |
-| `ease_of_discovery` | practically impossible | difficult | easy | | automated tools available |
-| `ease_of_exploit` | theoretical | difficult | easy | | automated tools available |
-| `awareness` — how known | unknown | hidden | obvious | | public knowledge |
-| `intrusion_detection` | active detection in the application | logged and reviewed | logged, not reviewed | | not logged |
-| `deployment_scope` | single installation | several systems of one customer | all installations of a product type | | all customers (supply chain) |
+| `skill_level` | security penetration skills | network & programming skills | advanced computer user | some technical skills | no technical skills |
+| `motive` | no reward | low reward | possible reward | considerable reward | high reward |
+| `opportunity` | full access or expensive resources | special access or resources | some access or resources | little access or resources | no access or resources |
+| `size` | developers, system administrators | intranet users | partners | authenticated users | anonymous internet users |
+| `ease_of_discovery` | practically impossible | difficult | moderate | easy | automated tools available |
+| `ease_of_exploit` | theoretical | difficult | moderate | easy | automated tools available |
+| `awareness` | unknown | hidden | known to specialists | obvious | public knowledge |
+| `intrusion_detection` | active detection in the application | logged and reviewed | logged, reviewed occasionally | logged, not reviewed | not logged |
+| `deployment_scope` | single installation | a few installations of one customer | all systems of one customer | all installations of a product type | all customers (supply chain) |
 
-Empty cells: OWASP names fewer steps for that factor than the 5-level scale has (motive: three; opportunity, discovery, exploit, awareness, detection, deployment scope: four). How three or four anchors spread over the 3-, 4- and 5-level scale is open question 6 (§9).
+**4-level scale**
 
-**Factor names follow the direction where that helps** — e.g. *Skill level* → *Skill required*; descriptions state "higher = attack more likely".
+| Factor | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| `skill_level` | security penetration skills | network & programming skills | some technical skills | no technical skills |
+| `motive` | no reward | low reward | possible reward | high reward |
+| `opportunity` | full access or expensive resources | special access or resources | some access or resources | no access or resources |
+| `size` | developers, system administrators | intranet users, partners | authenticated users | anonymous internet users |
+| `ease_of_discovery` | practically impossible | difficult | easy | automated tools available |
+| `ease_of_exploit` | theoretical | difficult | easy | automated tools available |
+| `awareness` | unknown | hidden | obvious | public knowledge |
+| `intrusion_detection` | active detection in the application | logged and reviewed | logged, not reviewed | not logged |
+| `deployment_scope` | single installation | several systems of one customer | all installations of a product type | all customers (supply chain) |
 
-**TVRA:** render `TVRA_FACTOR_LEVELS` in the dialog like the ISO levels (separate fix; verify the order first).
+**3-level scale**
+
+| Factor | 1 | 2 | 3 |
+|---|---|---|---|
+| `skill_level` | expert skills (penetration, programming) | some technical skills | no technical skills |
+| `motive` | low or no reward | possible reward | high reward |
+| `opportunity` | special or full access, expensive resources | some access or resources | no access or resources |
+| `size` | privileged insiders (developers, administrators) | authenticated users, partners | anonymous internet users |
+| `ease_of_discovery` | practically impossible or difficult | easy | automated tools available |
+| `ease_of_exploit` | theoretical or difficult | easy | automated tools available |
+| `awareness` | unknown or hidden | obvious | public knowledge |
+| `intrusion_detection` | actively detected | logged | not logged |
+| `deployment_scope` | single installation | several systems or a whole product type | all customers (supply chain) |
+
+**Factor names stay (decision, Q7).** Renaming *Skill level* to *Skill required* adds little; what matters is the label of the selected value. The factor descriptions (tooltips) state "higher value = attack more likely".
+
+**TVRA (decision, Q8):** the dialog shows the level names of ETSI TS 102 165-1 (`TVRA_FACTOR_LEVELS`) followed by the rating value, e.g. `≤ 1 week (2)`, `Expert (3)`, `Single (1)` — the same "label (value)" form for every factor of this preset. Factors have their norm's number of levels (time 5, intensity 3, the others 4), so the values run (1)…(5), (1)…(3) or (1)…(4). This is a fix of the current dialog, which labels TVRA factors with the generic scale; it does not change stored values or the score-table calculation. Note on direction: the stored TVRA index runs in the norm's table order (1 = ≤ 1 day, layman, public — the easiest attack); the label makes that explicit, so the value no longer suggests "very low" for the most likely case.
 
 **Custom factors:** keep the generic scale, with the header hint "1 = attack unlikely … N = attack likely".
 
@@ -205,11 +233,13 @@ None affected: only labels change; stored values, calculation and matrix stay as
 3. **Floor for further harm to people and environment?** `physical_damage` and `environmental` describe physical harm as well. Should they share the floor with safety (`max(safety, physical_damage, environmental, mean of the rest)`)?
 4. **Asset tab:** keep `calculationMethod` as an asset-prioritisation setting independent of the risk, or align its default with the preset? (It does not feed the risk.)
 5. **Scope of the preview:** only risk level changes, or also impact changes within the same level?
-6. **Anchors on 3/4/5 levels:** OWASP names three to five steps per factor. Use the named steps where they exist and interpolate wording for the gaps, or keep fewer selectable levels for such factors (e.g. motive: 1 / 3 / 5 only)?
-7. **Rename factors** (*Skill level* → *Skill required*, *Opportunity* → *Access required*)? Changes names in existing reports; keys stay.
-8. **TVRA:** confirm in the app that the dialog shows the generic scale for TVRA factors and in which direction the stored index runs.
+*Decided (rev. 3):*
+- **Q6 — anchors on 3/4/5 levels:** one fitting label set per scale size and factor (§7.4 tables); no levels left out.
+- **Q7 — rename factors:** no; the selected value's label is what matters. Descriptions state the direction.
+- **Q8 — TVRA:** the norm's level names with the rating value in parentheses, e.g. `≤ 1 week (2)`.
 
 ## 10. Change history
 
 - **Rev. 1:** draft — problem analysis from code, proposal (three aggregation variants, preset defaults, one weight source, explicit migration), phases, open questions.
 - **Rev. 2:** added Part B (§7): likelihood factor scales — the generic "Very Low … High" labels read against the direction of factors like skill level; proposal: per-factor level anchors (i18n), names following the direction, TVRA levels in the dialog. Phase 6 and open questions 6–8.
+- **Rev. 3:** Part B decided — Q6: own label set per scale size (tables for 3, 4, 5 levels); Q7: factor names stay; Q8: TVRA shows the norm's level names with the value in parentheses.
