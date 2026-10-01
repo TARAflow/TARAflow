@@ -8,6 +8,7 @@
 //
 // Dependencies: shared AssetReference / AssetDataReference (no custom reference types)
 
+import { aggregateImpact } from "./impact-aggregation";
 import type {
   FactorRating,
   AssetImpactLevel,
@@ -185,7 +186,8 @@ export function calculateRiskValues(
     return totalWeight > 0 ? weightedSum / totalWeight : 0;
   };
 
-  const impact = weightedAvg(impactRatings);
+  // Impact: per the configured aggregation (weighted mean / harm floor / max).
+  const impact = aggregateImpact(impactRatings, configuration.impactAggregation).value;
 
   // Likelihood: score-table methods (ISO 21434 / ETSI TVRA) compute from
   // per-level point tables; everything else uses the weighted mean.

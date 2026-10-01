@@ -31,6 +31,17 @@ export type RegulationPresetId =
   | "en-50742-b"
   | "etsi-tvra";
 
+/**
+ * How the impact factor values of one risk become ONE impact
+ * (risk-impact-aggregation design §5):
+ *   "weighted-mean" — weighted mean of all rated impact factors (until rev. 4
+ *                     the only behaviour; absent setting = this)
+ *   "harm-floor"    — max(harm to people / environment, weighted mean of the
+ *                     other rated impact factors); see HARM_FACTOR_IDS
+ *   "max"           — highest rated impact factor, no weights
+ */
+export type ImpactAggregation = "weighted-mean" | "harm-floor" | "max";
+
 /** The default preset when a project has none set. */
 export const DEFAULT_REGULATION_PRESET: RegulationPresetId = "standard";
 
@@ -43,6 +54,12 @@ export interface RegulationPreset {
   /** The likelihood scoring method this preset selects (read by
    * calculateRiskValues via RiskConfiguration.likelihoodMethod). */
   likelihoodMethod: LikelihoodMethod;
+  /**
+   * Impact aggregation this preset recommends (design §5.2). Applied directly
+   * while a project has no risks; with risks it is an explicit decision of
+   * the analyst in the risk configuration (preview before applying, §6).
+   */
+  impactAggregation: ImpactAggregation;
   /**
    * Likelihood factor IDs this regime activates. Omitted → the preset does not
    * manage likelihood factors (applying it is a no-op on activeFactors).
@@ -76,6 +93,7 @@ export interface RegulationPreset {
 export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = {
   standard: {
     id: "standard",
+    impactAggregation: "harm-floor",
     likelihoodMethod: "weighted-mean",
     nameKey: "regulationPresets.standard.name",
     descriptionKey: "regulationPresets.standard.description",
@@ -89,6 +107,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "iso-21434": {
     id: "iso-21434",
+    impactAggregation: "max",
     likelihoodMethod: "iso-21434",
     nameKey: "regulationPresets.iso-21434.name",
     descriptionKey: "regulationPresets.iso-21434.description",
@@ -115,6 +134,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "en-50742-a": {
     id: "en-50742-a",
+    impactAggregation: "harm-floor",
     likelihoodMethod: "en-50742-a",
     nameKey: "regulationPresets.en-50742-a.name",
     descriptionKey: "regulationPresets.en-50742-a.description",
@@ -125,6 +145,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "en-50742-b": {
     id: "en-50742-b",
+    impactAggregation: "harm-floor",
     likelihoodMethod: "weighted-mean",
     nameKey: "regulationPresets.en-50742-b.name",
     descriptionKey: "regulationPresets.en-50742-b.description",
@@ -134,6 +155,7 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
   },
   "etsi-tvra": {
     id: "etsi-tvra",
+    impactAggregation: "max",
     likelihoodMethod: "etsi-tvra",
     nameKey: "regulationPresets.etsi-tvra.name",
     descriptionKey: "regulationPresets.etsi-tvra.description",

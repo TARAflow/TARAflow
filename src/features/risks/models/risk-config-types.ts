@@ -9,6 +9,7 @@
 import type {
   StrideMethod,
   LikelihoodMethod,
+  ImpactAggregation,
   WindowOfOpportunity,
 } from "shared";
 import type { RiskMethodType, RiskScaleType, RiskRoundingMethod } from "./risk-scale-types";
@@ -30,6 +31,14 @@ export interface RiskConfiguration {
    * tables instead of a weighted mean; see calculateRiskValues.
    */
   likelihoodMethod?: LikelihoodMethod;
+  /**
+   * How the impact factor values of a risk become one impact (design §5):
+   * "weighted-mean" | "harm-floor" | "max". Undefined → "weighted-mean" — the
+   * behaviour before this setting existed, so loading an existing project
+   * never changes a risk value. New risk data gets the preset's
+   * recommendation; changing it with risks present goes through a preview.
+   */
+  impactAggregation?: ImpactAggregation;
   /**
    * EN 50742 Approach A: project-global Window of Opportunity (Overview /
    * Security Context), threaded here from project.info by the preset

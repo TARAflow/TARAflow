@@ -103,6 +103,7 @@ export {
   type RegulationPreset,
   type RegulationPresetId,
   type LikelihoodMethod,
+  type ImpactAggregation,
   type WindowOfOpportunity,
 } from "./models/regulation-preset";
 
