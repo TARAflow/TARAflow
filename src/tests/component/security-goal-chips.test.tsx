@@ -105,6 +105,23 @@ describe("SecurityGoalChips", () => {
     expect(chip("I").dataset.marker).toBe("error");
   });
 
+  it("colour encodes who decided, not the level: suggested outlined, manual filled", () => {
+    // The level palette belongs to the impact chips in the same row.
+    const a0 = asset([r("safety", 4), r("operational", 4), r("financial_damage", 1)]);
+    const a = withGoal(a0, adjustGoal(a0, goal(a0, "C"), "high", "Customer data", S));
+    render(<SecurityGoalChips asset={a} impactScale={S} />);
+    expect(chip("I")).toHaveClass("MuiChip-outlined");
+    expect(chip("C")).toHaveClass("MuiChip-filled");
+    expect(chip("C").querySelector('[data-testid="goal-chip-manual"]')).not.toBeNull();
+    expect(chip("I").querySelector('[data-testid="goal-chip-manual"]')).toBeNull();
+  });
+
+  it("missing assessment is outlined, not a colour of its own", () => {
+    const a0 = asset([]);
+    render(<SecurityGoalChips asset={a0} impactScale={S} />);
+    expect(chip("I")).toHaveClass("MuiChip-outlined");
+  });
+
   it("neither active nor suggested goals are not shown; canonical order", () => {
     const a = asset([r("safety", 4), r("financial_damage", 3)]);
     const shown = goalChipEntries(a, S).map((e) => e.goal.type);

@@ -2,13 +2,19 @@
 //
 // The security-goal column of the asset table (design doc §4.4): one chip per
 // goal with its level and a state marker, so 50 assets can be reviewed without
-// opening every dialog. Renders ONLY what goalState() says:
+// opening every dialog. Renders ONLY what goalState() says.
 //
-//   level     — displayLevel; "?" when the assessment is missing (invariant D:
-//               the minimum level is never shown as an ordinary "Low")
-//   excluded  — greyed out and struck through, rationale in the tooltip
-//               (invariant C: an exclusion is a decision and stays visible)
-//   manual    — pen icon (adjusted / added / excluded)
+// Colour encodes WHO DECIDED, not how severe: the level palette belongs to the
+// impact chips in the same row, and a goal chip in the same colours reads as
+// an impact. The level is in the label.
+//
+//   suggested — blue outline ("I · High"); "I · ?" when the assessment is
+//               missing (invariant D: the minimum level is never shown as an
+//               ordinary "Low")
+//   manual    — blue filled + pen icon (adjusted / added)
+//   excluded  — grey outline, struck through, pen icon; rationale in the
+//               tooltip (invariant C: an exclusion is a decision and stays
+//               visible)
 //   marker    — dot for the goal's worst finding (goalFindings — the same
 //               source as the findings panel): red = error, amber = warning.
 //               Infos stay in the tooltip.
@@ -28,10 +34,10 @@ import {
 } from "../models/asset-security-goals-types";
 import { goalStates, type GoalState } from "../services/asset-goal-state";
 import { goalBadges, goalMarker } from "../utils/goal-badges";
-import { GOAL_LEVEL_COLOR } from "./security-goal-card";
 
 const ORDER = SECURITY_GOALS.map((g) => g.type);
-const MISSING_COLOR = "#d97706";
+const GOAL_BLUE = "#1d4ed8";
+const EXCLUDED_GREY = "#9ca3af";
 
 export interface GoalChipEntry {
   goal: SecurityGoal;
@@ -75,12 +81,8 @@ export const SecurityGoalChips: React.FC<SecurityGoalChipsProps> = ({ asset, imp
         const manual = state.source === "manual";
         const marker = goalMarker(state, goal);
         const flagged = marker === "error" || marker === "warning";
-        const color = excluded
-          ? GOAL_LEVEL_COLOR.none
-          : missing
-            ? MISSING_COLOR
-            : GOAL_LEVEL_COLOR[state.displayLevel!];
-        const filled = !excluded && !missing;
+        const color = excluded ? EXCLUDED_GREY : GOAL_BLUE;
+        const filled = manual && !excluded;
         const label = excluded
           ? goal.type
           : `${goal.type} · ${missing ? "?" : levelName(state.displayLevel!)}`;
