@@ -111,6 +111,12 @@
         "addMitigation": "Add Mitigation",
         "notRated": "Not rated",
         "likelihoodDirectionHint": "1 = attack unlikely … {{max}} = attack likely",
+        "impactBasis": {
+          "harmFloor": "Impact {{value}} — {{factor}} (harm floor)",
+          "max": "Impact {{value}} — highest factor: {{factor}}",
+          "mean": "Impact {{value}} — weighted mean of {{count}} factor(s)",
+          "meanOthers": "Impact {{value}} — weighted mean of {{count}} factor(s); no harm factor is higher"
+        },
         "isoPointsPerLevel": "{{points}} ISO 18045 attack-potential points (higher = more attacker effort → lower feasibility)",
         "residualFeasibility": "Residual feasibility (from the factors above)",
         "residualIncomplete": "Rate all five factors to compute residual feasibility",

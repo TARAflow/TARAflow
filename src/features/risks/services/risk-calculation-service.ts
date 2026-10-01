@@ -8,7 +8,7 @@
 //
 // Dependencies: shared AssetReference / AssetDataReference (no custom reference types)
 
-import { aggregateImpact } from "./impact-aggregation";
+import { aggregateImpact, type AggregatedImpact } from "./impact-aggregation";
 import type {
   FactorRating,
   AssetImpactLevel,
@@ -156,6 +156,23 @@ function scoreTableLikelihood(
  * Method: R = Impact × Likelihood (ISO 31000 / IEC 62443-3-2)
  * Severity range: 1 to N² where N = number of scale levels.
  */
+/**
+ * How the impact of these ratings is formed — the value calculateRiskValues
+ * uses plus its basis (which factor sets it, or a mean of how many). For the
+ * explanation in the risk dialog (design §5.5).
+ */
+export function explainImpact(
+  ratings: FactorRating[],
+  configuration: RiskConfiguration,
+): AggregatedImpact {
+  const allFactors = [...ALL_PREDEFINED_FACTORS, ...configuration.customFactors];
+  const impactRatings = ratings.filter((r) => {
+    const factor = allFactors.find((f) => f.id === r.factorId);
+    return factor?.category === "impact" && r.value > 0;
+  });
+  return aggregateImpact(impactRatings, configuration.impactAggregation);
+}
+
 export function calculateRiskValues(
   ratings: FactorRating[],
   configuration: RiskConfiguration,
@@ -164,11 +181,6 @@ export function calculateRiskValues(
     ...ALL_PREDEFINED_FACTORS,
     ...configuration.customFactors,
   ];
-
-  const impactRatings = ratings.filter((r) => {
-    const factor = allFactors.find((f) => f.id === r.factorId);
-    return factor?.category === "impact" && r.value > 0;
-  });
 
   const likelihoodRatings = ratings.filter((r) => {
     // EN 50742 SRSL/AP inputs (EL, AC, WoO) are a SEPARATE assessment dimension
@@ -187,7 +199,7 @@ export function calculateRiskValues(
   };
 
   // Impact: per the configured aggregation (weighted mean / harm floor / max).
-  const impact = aggregateImpact(impactRatings, configuration.impactAggregation).value;
+  const impact = explainImpact(ratings, configuration).value;
 
   // Likelihood: score-table methods (ISO 21434 / ETSI TVRA) compute from
   // per-level point tables; everything else uses the weighted mean.

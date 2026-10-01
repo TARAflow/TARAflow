@@ -710,7 +710,7 @@ VERIFICATION: {{verification}}
 TITLE: Risikobewertung (STRIDE pro Element)
 
 [FREETEXT]
-Die folgenden Risiken wurden für Bedrohungen aus der STRIDE-pro-Element-Analyse bewertet.
+Die folgenden Risiken wurden für Bedrohungen aus der STRIDE-pro-Element-Analyse bewertet. {{impactAggregation}}
 [/FREETEXT]
 
 `
@@ -718,7 +718,7 @@ Die folgenden Risiken wurden für Bedrohungen aus der STRIDE-pro-Element-Analyse
 TITLE: Risikobewertung (STRIDE pro Interaktion)
 
 [FREETEXT]
-Die folgenden Risiken wurden für Bedrohungen aus der STRIDE-pro-Interaktion-Analyse bewertet.
+Die folgenden Risiken wurden für Bedrohungen aus der STRIDE-pro-Interaktion-Analyse bewertet. {{impactAggregation}}
 [/FREETEXT]
 
 `
@@ -727,7 +727,7 @@ Die folgenden Risiken wurden für Bedrohungen aus der STRIDE-pro-Interaktion-Ana
 TITLE: Risk Assessment (STRIDE per Element)
 
 [FREETEXT]
-The following risks were assessed for threats from the STRIDE-per-Element analysis.
+The following risks were assessed for threats from the STRIDE-per-Element analysis. {{impactAggregation}}
 [/FREETEXT]
 
 `
@@ -735,7 +735,7 @@ The following risks were assessed for threats from the STRIDE-per-Element analys
 TITLE: Risk Assessment (STRIDE per Interaction)
 
 [FREETEXT]
-The following risks were assessed for threats from the STRIDE-per-Interaction analysis.
+The following risks were assessed for threats from the STRIDE-per-Interaction analysis. {{impactAggregation}}
 [/FREETEXT]
 
 `,

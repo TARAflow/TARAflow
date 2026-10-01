@@ -111,6 +111,12 @@
         "addMitigation": "Massnahme hinzufügen",
         "notRated": "Nicht bewertet",
         "likelihoodDirectionHint": "1 = Angriff unwahrscheinlich … {{max}} = Angriff wahrscheinlich",
+        "impactBasis": {
+          "harmFloor": "Impact {{value}} — {{factor}} (Schadens-Untergrenze)",
+          "max": "Impact {{value}} — höchster Faktor: {{factor}}",
+          "mean": "Impact {{value}} — gewichteter Mittelwert aus {{count}} Faktor(en)",
+          "meanOthers": "Impact {{value}} — gewichteter Mittelwert aus {{count}} Faktor(en); kein Schadensfaktor liegt höher"
+        },
         "isoPointsPerLevel": "{{points}} ISO-18045-Angriffspotenzial-Punkte (höher = mehr Aufwand → geringere Machbarkeit)",
         "residualFeasibility": "Restmachbarkeit (aus den Faktoren oben)",
         "residualIncomplete": "Alle fünf Faktoren bewerten, um die Restmachbarkeit zu berechnen",

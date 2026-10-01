@@ -519,23 +519,23 @@ The following table lists the threat scenarios derived from attack-path analysis
       ? method === "per-element"
         ? `== Risikobewertung (STRIDE pro Element)
 
-Die folgende Tabelle zeigt die Risikobewertung für Bedrohungen aus der STRIDE-pro-Element-Analyse.
+Die folgende Tabelle zeigt die Risikobewertung für Bedrohungen aus der STRIDE-pro-Element-Analyse. {{impactAggregation}}
 
 `
         : `== Risikobewertung (STRIDE pro Interaktion)
 
-Die folgende Tabelle zeigt die Risikobewertung für Bedrohungen aus der STRIDE-pro-Interaktion-Analyse.
+Die folgende Tabelle zeigt die Risikobewertung für Bedrohungen aus der STRIDE-pro-Interaktion-Analyse. {{impactAggregation}}
 
 `
       : method === "per-element"
       ? `== Risk Assessment (STRIDE per Element)
 
-The following table shows the risk assessment for threats from the STRIDE-per-Element analysis.
+The following table shows the risk assessment for threats from the STRIDE-per-Element analysis. {{impactAggregation}}
 
 `
       : `== Risk Assessment (STRIDE per Interaction)
 
-The following table shows the risk assessment for threats from the STRIDE-per-Interaction analysis.
+The following table shows the risk assessment for threats from the STRIDE-per-Interaction analysis. {{impactAggregation}}
 
 `,
 

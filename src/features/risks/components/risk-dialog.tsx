@@ -107,6 +107,7 @@ function isoFactorPoints(factorId: string, value: number): number {
 }
 import { RiskConfiguration } from "../models/risk-config-types";
 import { factorLevelOptions } from "../utils/factor-level-options";
+import { impactBasisText } from "../utils/impact-basis-text";
 import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
   MoSCoWPriority,
@@ -117,6 +118,7 @@ import {
 } from "../models/risk-scale-types";
 import {
   calculateRiskValues,
+  explainImpact,
   getRiskColor,
   getRiskLabel,
 } from "../services/risk-calculation-service";
@@ -2308,6 +2310,26 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                           defaultValue: "Impact Factors",
                         })}
                       </Typography>
+                      {(() => {
+                        const line = impactBasisText(
+                          explainImpact(local?.factorRatings ?? [], configuration),
+                          t as unknown as (k: string, o?: Record<string, unknown>) => string,
+                          (id) =>
+                            t(`risks.factors.${id}.name`, {
+                              defaultValue: getFactorDefinition(id, configuration.customFactors)?.name ?? id,
+                            }),
+                        );
+                        return line ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            data-testid="impact-basis-before"
+                            sx={{ display: "block", mb: 1 }}
+                          >
+                            {line}
+                          </Typography>
+                        ) : null;
+                      })()}
 
                       <Box
                         sx={{
@@ -3031,6 +3053,26 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                           defaultValue: "Impact Factors (After)",
                         })}
                       </Typography>
+                      {(() => {
+                        const line = impactBasisText(
+                          explainImpact(local?.mitigatedFactorRatings ?? [], configuration),
+                          t as unknown as (k: string, o?: Record<string, unknown>) => string,
+                          (id) =>
+                            t(`risks.factors.${id}.name`, {
+                              defaultValue: getFactorDefinition(id, configuration.customFactors)?.name ?? id,
+                            }),
+                        );
+                        return line ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            data-testid="impact-basis-after"
+                            sx={{ display: "block", mb: 1 }}
+                          >
+                            {line}
+                          </Typography>
+                        ) : null;
+                      })()}
 
                       <Box
                         sx={{

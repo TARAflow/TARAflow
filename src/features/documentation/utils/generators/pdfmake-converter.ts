@@ -5,6 +5,7 @@
 // This converter transforms our structured data into pdfMake's declarative format
 // pdfMake Documentation: http://pdfmake.org/
 
+import { impactAggregationSentence } from "../impact-aggregation-text";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -896,6 +897,13 @@ export class PdfMakeConverter {
       ),
       style: "h1",
       tocItem: true,
+    });
+    content.push({
+      text: impactAggregationSentence(
+        this.project.risks?.configuration?.impactAggregation,
+        this.lang,
+      ),
+      margin: [0, 0, 0, 8],
     });
 
     const tableBody: TableCell[][] = [

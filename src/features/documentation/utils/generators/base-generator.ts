@@ -2,6 +2,7 @@
 // Abstract base class for document generators
 // Location: features/documentation/utils/generators/base-generator.ts
 
+import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
   DocProjectData,
@@ -1349,7 +1350,12 @@ export abstract class BaseDocumentGenerator {
       })
       .join("");
 
-    let content = this.getRisksHeaderTemplate(method);
+    let content = replacePlaceholders(this.getRisksHeaderTemplate(method), {
+      impactAggregation: impactAggregationSentence(
+        project.risks?.configuration?.impactAggregation,
+        this.ctx.lang,
+      ),
+    });
     content += replacePlaceholders(this.getRisksTableTemplate(), { riskRows });
 
     return {

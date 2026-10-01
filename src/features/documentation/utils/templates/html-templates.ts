@@ -550,7 +550,7 @@ export const HTML_TEMPLATES = {
   })</h2>
   <p>Die folgende Tabelle zeigt die Risikobewertung für Bedrohungen aus der STRIDE-pro-${
     method === "per-element" ? "Element" : "Interaktion"
-  }-Analyse.</p>
+  }-Analyse. {{impactAggregation}}</p>
   
 `
       : `<section id="risk-assessment-${method}">
@@ -559,7 +559,7 @@ export const HTML_TEMPLATES = {
   })</h2>
   <p>The following table shows the risk assessment for threats from the STRIDE-per-${
     method === "per-element" ? "Element" : "Interaction"
-  } analysis.</p>
+  } analysis. {{impactAggregation}}</p>
   
 `,
 
