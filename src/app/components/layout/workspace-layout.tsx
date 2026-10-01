@@ -51,6 +51,10 @@ import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
+import {
+  buildElementToAssetIds,
+  resolveThreatAssetIds,
+} from "app/utils/threat-asset-links";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import {
@@ -870,29 +874,10 @@ export const WorkspaceLayout: React.FC = () => {
 
     if (!tables || tables.length === 0) return [];
 
-    const elementToAssetIds = new Map<string, string[]>();
-    if (activeProject?.assets?.assets) {
-      for (const asset of activeProject.assets.assets) {
-        for (const el of asset.linkedDFDElements ?? []) {
-          const ids = elementToAssetIds.get(el.elementId) ?? [];
-          if (!ids.includes(asset.id)) ids.push(asset.id);
-          elementToAssetIds.set(el.elementId, ids);
-        }
-      }
-    }
-    const dfdElements = (activeProject?.dfd as any)?.elements ?? [];
-    for (const el of dfdElements) {
-      for (const rel of (el.assetRelations ?? []) as Array<{
-        assetId: string;
-        relationType: string;
-      }>) {
-        if (rel.relationType === "is_an") {
-          const ids = elementToAssetIds.get(el.id) ?? [];
-          if (!ids.includes(rel.assetId)) ids.push(rel.assetId);
-          elementToAssetIds.set(el.id, ids);
-        }
-      }
-    }
+    const elementToAssetIds = buildElementToAssetIds(
+      activeProject?.assets?.assets,
+      (activeProject?.dfd as any)?.elements,
+    );
 
     const references: ThreatReference[] = [];
     for (const table of tables) {
@@ -912,17 +897,7 @@ export const WorkspaceLayout: React.FC = () => {
           }
         }
 
-        const elementId =
-          threat.linkedElement?.elementId ??
-          threat.dataFlow?.connectionId ??
-          threat.dataFlow?.fromElementId;
-
-        const linkedAssetIds =
-          (threat.linkedAssetIds?.length ?? 0) > 0
-            ? threat.linkedAssetIds!
-            : elementId
-              ? (elementToAssetIds.get(elementId) ?? [])
-              : [];
+        const linkedAssetIds = resolveThreatAssetIds(threat, elementToAssetIds);
 
         references.push({
           id: threat.id,
