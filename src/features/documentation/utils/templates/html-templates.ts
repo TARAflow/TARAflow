@@ -394,7 +394,7 @@ export const HTML_TEMPLATES = {
     lang === "de"
       ? `<section id="schutzziele">
   <h3>Schutzziele</h3>
-  <p>Aktive Schutzziele je Asset. <em>Abgeleitet</em> = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; <em>Manuell</em> = Entscheidung des Analysten, Abweichungen vom Vorschlag sind zu begründen.</p>
+  <p>Schutzziele je Asset, einschliesslich bewusst ausgeschlossener. <em>Abgeleitet</em> = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; <em>Angepasst</em> / <em>Hinzugefügt</em> / <em>Ausgeschlossen</em> = Entscheidung des Analysten, begründet in der Spalte Grundlage; „prüfen“ markiert eine Entscheidung, deren Grundlage sich seither geändert hat.</p>
 
   <table>
     <thead>
@@ -416,7 +416,7 @@ export const HTML_TEMPLATES = {
 `
       : `<section id="security-goals">
   <h3>Security Goals</h3>
-  <p>Active security goals per asset. <em>Derived</em> = proposed from DFD relations and impact ratings; <em>Manual</em> = analyst decision, deviations from the proposal require a rationale.</p>
+  <p>Security goals per asset, including deliberately excluded ones. <em>Derived</em> = proposed from DFD relations and impact ratings; <em>Adjusted</em> / <em>Added</em> / <em>Excluded</em> = analyst decision, justified in the basis column; "review" marks a decision whose basis has changed since it was made.</p>
 
   <table>
     <thead>

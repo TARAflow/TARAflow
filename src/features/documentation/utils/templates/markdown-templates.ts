@@ -355,7 +355,7 @@ The following table lists all identified assets with their assessment.
     lang === "de"
       ? `### Schutzziele
 
-Aktive Schutzziele je Asset. *Abgeleitet* = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; *Manuell* = Entscheidung des Analysten, Abweichungen vom Vorschlag sind zu begründen.
+Schutzziele je Asset, einschliesslich bewusst ausgeschlossener. *Abgeleitet* = aus DFD-Beziehungen und Impact-Bewertung vorgeschlagen; *Angepasst* / *Hinzugefügt* / *Ausgeschlossen* = Entscheidung des Analysten, begründet in der Spalte Grundlage; „prüfen“ markiert eine Entscheidung, deren Grundlage sich seither geändert hat.
 
 | Asset | Schutzziel | Stufe | Quelle | Grundlage | Schadensfolge |
 |---|---|---|---|---|---|
@@ -364,7 +364,7 @@ Aktive Schutzziele je Asset. *Abgeleitet* = aus DFD-Beziehungen und Impact-Bewer
 `
       : `### Security Goals
 
-Active security goals per asset. *Derived* = proposed from DFD relations and impact ratings; *Manual* = analyst decision, deviations from the proposal require a rationale.
+Security goals per asset, including deliberately excluded ones. *Derived* = proposed from DFD relations and impact ratings; *Adjusted* / *Added* / *Excluded* = analyst decision, justified in the basis column; "review" marks a decision whose basis has changed since it was made.
 
 | Asset | Security Goal | Level | Source | Basis | Consequence |
 |---|---|---|---|---|---|

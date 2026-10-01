@@ -1092,9 +1092,9 @@ export abstract class BaseDocumentGenerator {
   }
 
   /**
-   * Security-goal table: one row per asset × active goal with level, source
-   * (derived / manual), basis (relations + level driver, or the analyst's
-   * rationale) and damage-scenario consequence. Row content comes from
+   * Security-goal table: one row per asset × active or excluded goal with
+   * level, source (the goal's state), basis (relations + level driver, or the
+   * analyst's rationale) and damage-scenario consequence. Row content comes from
    * buildSecurityGoalDocRows so every format — incl. pdfmake — says the same.
    */
   protected generateSecurityGoalTable(assets: Asset[]): string {

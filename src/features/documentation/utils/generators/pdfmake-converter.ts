@@ -640,8 +640,8 @@ export class PdfMakeConverter {
     return content;
   }
 
-  // Security-goal table (asset × active goal) — same rows as the text formats
-  // via buildSecurityGoalDocRows. Omitted when no asset has an active goal.
+  // Security-goal table (asset × active or excluded goal) — same rows as the
+  // text formats via buildSecurityGoalDocRows. Omitted when there are none.
   private createSecurityGoalTable(): Content[] {
     const impactScale =
       this.project.assets?.configuration?.impactScale ?? "4-level";
@@ -655,14 +655,18 @@ export class PdfMakeConverter {
     const labels = securityGoalDocLabels(this.lang);
     const body: TableCell[][] = [
       labels.headers.map((h) => ({ text: h, style: "tableHeader" })),
-      ...rows.map((r) => [
-        { text: r.asset },
-        { text: r.goal },
-        { text: r.level },
-        { text: r.source },
-        { text: r.basis, fontSize: 8 },
-        { text: r.consequence, fontSize: 8 },
-      ]),
+      ...rows.map((r) => {
+        // Excluded goals are decisions, not protection needs — set apart.
+        const ex = r.excluded ? { italics: true, color: "#6b7280" } : {};
+        return [
+          { text: r.asset, ...ex },
+          { text: r.goal, ...ex },
+          { text: r.level, ...ex },
+          { text: r.source, fontSize: 8, ...ex },
+          { text: r.basis, fontSize: 8, ...ex },
+          { text: r.consequence, fontSize: 8, ...ex },
+        ];
+      }),
     ];
 
     return [
@@ -671,7 +675,7 @@ export class PdfMakeConverter {
       {
         table: {
           headerRows: 1,
-          widths: [60, 70, 40, 45, "*", "*"],
+          widths: [55, 65, 45, 75, "*", "*"],
           body,
         },
         layout: "lightHorizontalLines",
