@@ -9,7 +9,9 @@ import type {
 } from "../models/asset-security-goals-types";
 import { assetImpactFindings, goalFindings, goalStates } from "./asset-goal-state";
 import type { GoalFindingCode } from "./asset-goal-state";
-import type { PhaseStatus } from "shared";
+import type { PhaseStatus, ThreatGoalLink } from "shared";
+import { compareDisplayIds, goalTypesFor } from "shared";
+import { threatGoalFindings } from "./asset-threat-crosscheck";
 
 /**
  * How a validation message names an asset: display id plus name, e.g.
@@ -45,13 +47,28 @@ export interface AssetFinding {
   goal?: SecurityGoalType;
   /** Impact criterion the finding is about (per-goal impact findings). */
   criterionId?: string;
+  /** Extra message parameters (threat ↔ goal cross-checks: count, threats …). */
+  params?: Record<string, string | number>;
   dialogTab: AssetDialogTab;
 }
 
 const GENERAL: AssetDialogTab = 0;
 const GOALS: AssetDialogTab = 1;
 
-export function collectAssetFindings(assetData: AssetData): AssetFinding[] {
+/** How many threat ids a message lists before it says "…". */
+const MAX_LISTED_THREATS = 5;
+
+/**
+ * @param threatLinks  threats of the enabled generators, projected by the app
+ *                     layer. Given → the threat ↔ goal cross-checks run
+ *                     (Phase 6). They live only in the findings panel and the
+ *                     review filter, not in the persisted AssetValidation —
+ *                     that is built without the threat data.
+ */
+export function collectAssetFindings(
+  assetData: AssetData,
+  threatLinks?: readonly ThreatGoalLink[],
+): AssetFinding[] {
   const out: AssetFinding[] = [];
   const impactScale = assetData.configuration?.impactScale ?? "4-level";
 
@@ -122,6 +139,38 @@ export function collectAssetFindings(assetData: AssetData): AssetFinding[] {
     });
     for (const f of assetImpactFindings(asset)) {
       push(f.severity, GOAL_FINDING_KEY[f.code], GOALS, undefined, f.criterionId);
+    }
+  }
+
+  // Threat ↔ goal cross-checks (only with the app layer's threat projection).
+  if (threatLinks) {
+    const byId = new Map(assetData.assets.map((a) => [a.id, a]));
+    for (const f of threatGoalFindings(assetData.assets, threatLinks)) {
+      const asset = byId.get(f.assetId)!;
+      const ids = f.threats.map((x) => x.displayId).sort(compareDisplayIds);
+      out.push({
+        severity: f.severity,
+        key:
+          f.code === "THREAT_WITHOUT_GOAL"
+            ? "tabs.assets.validation.threatWithoutGoal"
+            : "tabs.assets.validation.goalWithoutThreat",
+        dialogTab: GOALS,
+        assetId: asset.id,
+        assetLabel: assetLabel(asset),
+        goal: f.goal,
+        ...(f.strideCategory
+          ? {
+              params: {
+                count: f.threats.length,
+                stride: f.strideCategory,
+                goals: goalTypesFor(f.strideCategory).join(" / "),
+                threats:
+                  ids.slice(0, MAX_LISTED_THREATS).join(", ") +
+                  (ids.length > MAX_LISTED_THREATS ? ", …" : ""),
+              },
+            }
+          : {}),
+      });
     }
   }
   return out;

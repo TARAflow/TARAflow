@@ -147,6 +147,7 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
       criterion: f.criterionId
         ? t(`tabs.assets.impactCriteria.${f.criterionId}.name`, { defaultValue: f.criterionId })
         : "",
+      ...f.params,
     });
 
   return (

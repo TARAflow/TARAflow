@@ -83,6 +83,7 @@ export type {
   ThreatRelevanceRef,
   MitigationDraftRef,
   ThreatReference,
+  ThreatGoalLink,
 } from "./models/threat-reference-types";
 export { RELEVANCE_COLORS } from "./models/threat-reference-types";
 
@@ -237,7 +238,11 @@ export {
 } from "./utils/tag-categories";
 
 export { computeAllMitigationCoverage } from "./utils/mitigation-coverage";
-export { resolveThreatImpactAssets } from "./utils/threat-impact";
+export {
+  resolveThreatImpactAssets,
+  violatesGoal,
+  goalTypesFor,
+} from "./utils/threat-impact";
 export { formatAssetLabel } from "./utils/asset-label";
 export type { ThreatImpactAssets } from "./utils/threat-impact";
 export {

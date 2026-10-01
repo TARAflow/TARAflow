@@ -55,6 +55,7 @@ import {
   buildElementToAssetIds,
   resolveThreatAssetIds,
 } from "app/utils/threat-asset-links";
+import { buildThreatGoalLinks } from "app/utils/build-threat-goal-links";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import {
@@ -788,6 +789,29 @@ export const WorkspaceLayout: React.FC = () => {
     return out;
   }, [activeProject?.risks?.risks]);
 
+  // Threats → linked assets, for the threat ↔ goal cross-checks of the asset
+  // tab (assets ⊥ threats: projected here). Same generators and link rule as
+  // the risk register.
+  const memoizedThreatGoalLinks = useMemo(
+    () =>
+      buildThreatGoalLinks({
+        threats: activeProject?.threats,
+        assets: activeProject?.assets?.assets,
+        dfdElements: (activeProject?.dfd as any)?.elements,
+        attackTrees: activeProject?.attackTrees,
+        disabledStrideMethods: getDisabledThreatGenerators(
+          regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS),
+        ),
+      }),
+    [
+      activeProject?.threats,
+      activeProject?.assets?.assets,
+      activeProject?.dfd,
+      activeProject?.attackTrees,
+      activeProject?.info?.tags,
+    ],
+  );
+
   const memoizedAssetDataRef = useMemo((): AssetDataReference | undefined => {
     const assets = activeProject?.assets?.assets;
     if (!assets || assets.length === 0) return undefined;
@@ -1038,6 +1062,7 @@ export const WorkspaceLayout: React.FC = () => {
             onDeleteAsset={makeAssetDeleteHandler(activeProject.id)}
             assetUsage={assetUsageLookup}
             hazardLinks={memoizedHazardRef}
+            threatLinks={memoizedThreatGoalLinks}
           />
         )}
 

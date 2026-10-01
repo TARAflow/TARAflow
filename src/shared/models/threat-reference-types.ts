@@ -81,3 +81,20 @@ export interface ThreatReference {
    */
   initialImpact?: CIANAAALevel;
 }
+
+// ==================== THREAT → GOAL LINK ====================
+
+/**
+ * What the asset feature needs to know about a threat for the threat ↔ goal
+ * cross-checks (security-goal rework, Phase 6): which assets it is linked to
+ * and which STRIDE category it is. Projected by the app layer from all
+ * enabled threat generators; threats the analyst dismissed (not_relevant) are
+ * not projected. The assets feature never imports features/threats.
+ */
+export interface ThreatGoalLink {
+  id: string;
+  /** Display id, e.g. "P1-S-1" or "AT-1.2". */
+  displayId: string;
+  strideCategory: StrideCategory;
+  linkedAssetIds: string[];
+}

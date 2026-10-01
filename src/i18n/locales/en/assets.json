@@ -219,7 +219,9 @@
         "goalProvisional": "Asset {{id}}: level of {{type}} is provisional — the goal-specific impact criteria are not rated yet",
         "goalNoApplicableImpact": "Asset {{id}}: {{type}} is suggested, all relevant impact criteria are n/a (minimum level)",
         "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} rates {{criterion}} higher than the asset itself — reset the goal value or raise the asset value",
-        "goalEnvelopeSlack": "Asset {{id}}: no active security goal reaches the asset value for {{criterion}} — intended as a higher worst case?"
+        "goalEnvelopeSlack": "Asset {{id}}: no active security goal reaches the asset value for {{criterion}} — intended as a higher worst case?",
+        "threatWithoutGoal": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — add {{goals}} or check whether the threats belong to this asset",
+        "goalWithoutThreat": "Asset {{id}}: no threat violates {{type}} — is the goal needed, or is a threat missing?"
       },
       "columns": {
         "id": "ID",
@@ -429,6 +431,10 @@
         "rationaleMissing": "Rationale missing",
         "rationaleRequired": "Required when deviating from the suggestion",
         "exceedsAsset": "Impact above asset value",
+        "threatCount": "{{count}} threat(s)",
+        "noThreat": "no threat",
+        "threatsTooltip": "Threats that violate this goal: {{ids}}",
+        "noThreatTooltip": "No threat violates this goal — is the goal needed, or is a threat missing?",
         "driver": {
           "mechanism": "Driver: {{criterion}} = {{value}}",
           "fallback": "Provisional: no goal-specific criterion rated, highest is {{criterion}} = {{value}}",

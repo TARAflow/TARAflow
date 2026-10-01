@@ -219,7 +219,9 @@
         "goalProvisional": "Asset {{id}}: die Stufe von {{type}} ist vorläufig — die zielspezifischen Impact-Kriterien sind noch nicht bewertet",
         "goalNoApplicableImpact": "Asset {{id}}: {{type}} ist vorgeschlagen, alle relevanten Impact-Kriterien sind n/a (Mindeststufe)",
         "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} bewertet {{criterion}} höher als das Asset selbst — Zielwert zurücksetzen oder Asset-Wert erhöhen",
-        "goalEnvelopeSlack": "Asset {{id}}: kein aktives Schutzziel erreicht den Asset-Wert für {{criterion}} — bewusst höherer Worst Case?"
+        "goalEnvelopeSlack": "Asset {{id}}: kein aktives Schutzziel erreicht den Asset-Wert für {{criterion}} — bewusst höherer Worst Case?",
+        "threatWithoutGoal": "Asset {{id}}: {{count}} Bedrohung(en) der Kategorie {{stride}} ({{threats}}) verletzen kein aktives Schutzziel — {{goals}} ergänzen oder prüfen, ob die Bedrohungen zu diesem Asset gehören",
+        "goalWithoutThreat": "Asset {{id}}: keine Bedrohung verletzt {{type}} — ist das Ziel nötig, oder fehlt eine Bedrohung?"
       },
       "columns": {
         "id": "ID",
@@ -429,6 +431,10 @@
         "rationaleMissing": "Begründung fehlt",
         "rationaleRequired": "Pflicht bei einer Abweichung vom Vorschlag",
         "exceedsAsset": "Impact über Asset-Wert",
+        "threatCount": "{{count}} Bedrohung(en)",
+        "noThreat": "keine Bedrohung",
+        "threatsTooltip": "Bedrohungen, die dieses Ziel verletzen: {{ids}}",
+        "noThreatTooltip": "Keine Bedrohung verletzt dieses Ziel — ist das Ziel nötig, oder fehlt eine Bedrohung?",
         "driver": {
           "mechanism": "Treiber: {{criterion}} = {{value}}",
           "fallback": "Vorläufig: kein zielspezifisches Kriterium bewertet, höchstes ist {{criterion}} = {{value}}",

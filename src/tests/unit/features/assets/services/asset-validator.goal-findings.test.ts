@@ -138,3 +138,32 @@ describe("assetIdsNeedingReview", () => {
     expect(ids.has("p")).toBe(false);
   });
 });
+
+// Phase 6: threat ↔ goal cross-checks reach the findings panel — only when
+// the app layer hands in the threat projection.
+describe("collectAssetFindings — threat ↔ goal cross-checks", () => {
+  const a = { ...asset([{ criterionId: "safety", value: 3 }]), id: "u" } as Asset;
+  const d = { assets: [a], configuration: { impactScale: "4-level" } } as unknown as AssetData;
+  const links = [
+    { id: "x1", displayId: "P1-E-2", strideCategory: "E" as const, linkedAssetIds: ["u"] },
+    { id: "x2", displayId: "P1-E-10", strideCategory: "E" as const, linkedAssetIds: ["u"] },
+  ];
+
+  it("threat without goal: warning with count and sorted threat ids; opens the goal card", () => {
+    const f = collectAssetFindings(d, links).find((x) => x.key.endsWith("threatWithoutGoal"))!;
+    expect(f).toMatchObject({
+      severity: "warning",
+      assetId: "u",
+      goal: "AuthZ",
+      dialogTab: 1,
+      params: { count: 2, stride: "E", goals: "AuthZ", threats: "P1-E-2, P1-E-10" },
+    });
+    expect(assetIdsNeedingReview([f]).has("u")).toBe(true);
+  });
+
+  it("without the projection nothing changes, and the persisted validation never carries them", () => {
+    expect(collectAssetFindings(d).some((x) => x.key.includes("hreat"))).toBe(false);
+    const v = validateAssetData(d);
+    expect([...v.errors, ...v.warnings, ...(v.infos ?? [])].some((s) => s.includes("hreat"))).toBe(false);
+  });
+});

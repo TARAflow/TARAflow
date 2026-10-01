@@ -60,6 +60,7 @@ const DEFAULT_DFD_HEIGHT = 250; // Fixed pixel height instead of ratio
 // ==================== ASSET TAB PROPS ====================
 
 import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
+import type { ThreatGoalLink } from "shared";
 
 export interface AssetTabProps {
   project: AssetProjectData;
@@ -79,6 +80,11 @@ export interface AssetTabProps {
   onDeleteAsset?: (assetId: string) => void;
   /** Impact lookup for the delete confirm dialog (app layer). */
   assetUsage?: AssetUsageLookup;
+  /**
+   * Threats of the enabled generators with their linked assets, projected by
+   * the app layer. Given → threat ↔ goal cross-checks in the findings panel.
+   */
+  threatLinks?: ThreatGoalLink[];
 }
 
 // ==================== COMPONENT ====================
@@ -91,6 +97,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   hazardLinks,
   onDeleteAsset,
   assetUsage,
+  threatLinks,
 }) => {
   const { t } = useTranslation();
 
@@ -655,7 +662,10 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   // ==================== RENDER ====================
 
   // Validation findings, structured — for the panel below the table.
-  const findings = useMemo(() => collectAssetFindings(assetData), [assetData]);
+  const findings = useMemo(
+    () => collectAssetFindings(assetData, threatLinks),
+    [assetData, threatLinks],
+  );
   const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 
   const handleOpenFinding = useCallback(
@@ -819,6 +829,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           damageScenarioMode={project.damageScenarioMode ?? false}
           initialTab={dialogFocus?.tab ?? 0}
           focusGoal={dialogFocus?.goal}
+          threatLinks={threatLinks}
         />
       )}
       {/* Configuration Dialog */}

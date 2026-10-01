@@ -19,7 +19,27 @@
 
 import type { AssetImpactRatingRef, AssetReference } from "../models/asset-reference-types";
 import { CIANAAA_TO_STRIDE } from "../models/cianaaa-reference-types";
+import type { SecurityGoalType } from "../models/cianaaa-reference-types";
 import type { StrideCategory } from "../models/common-types";
+
+/**
+ * THE definition of "a threat of STRIDE category s violates goal g": the goal
+ * is active (level ≠ none) and maps to s (CIANAAA_TO_STRIDE; R ← N and Acc).
+ * Risk impact (below) and the threat ↔ goal cross-checks both use it.
+ */
+export function violatesGoal(
+  goal: { type: SecurityGoalType; level: string },
+  strideCategory: StrideCategory,
+): boolean {
+  return goal.level !== "none" && CIANAAA_TO_STRIDE[goal.type] === strideCategory;
+}
+
+/** Goal types a threat of this STRIDE category would violate (R → N, Acc). */
+export function goalTypesFor(strideCategory: StrideCategory): SecurityGoalType[] {
+  return (Object.keys(CIANAAA_TO_STRIDE) as SecurityGoalType[]).filter(
+    (g) => CIANAAA_TO_STRIDE[g] === strideCategory,
+  );
+}
 
 export interface ThreatImpactAssets {
   /** Assets that carry the threat's impact, with effective ratings. */
@@ -42,8 +62,8 @@ export function resolveThreatImpactAssets(
   const carried: AssetReference[] = [];
 
   for (const asset of linkedAssets) {
-    const goals = (asset.securityGoals ?? []).filter(
-      (g) => g.level !== "none" && CIANAAA_TO_STRIDE[g.type] === strideCategory,
+    const goals = (asset.securityGoals ?? []).filter((g) =>
+      violatesGoal(g, strideCategory),
     );
     if (goals.length === 0) continue; // step 4
 

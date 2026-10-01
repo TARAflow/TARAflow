@@ -6,7 +6,7 @@
 // required on save, snapshots on save).
 
 import React from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SecurityGoalCard, rationalePrompt } from "features/assets/components/security-goal-card";
 import AssetDialogDefault, * as AssetDialogModule from "features/assets/components/asset-dialog";
@@ -91,6 +91,27 @@ describe("SecurityGoalCard — states", () => {
       .queryAllByText("tabs.assets.cianaaa.level.low")
       .filter((el) => el.closest(".MuiChip-root"));
     expect(levelChips).toEqual([]);
+  });
+
+  // Phase 6: back-reference "N threats violate this goal".
+  it("back-reference: number of violating threats, ids in the tooltip", () => {
+    renderCard(asset([r("financial_damage", 3)]), "C", { violatingThreats: ["P1-I-1", "P2-I-1"] });
+    expect(screen.getByTestId("goal-threat-count-C")).toHaveTextContent("2 threat(s)");
+  });
+
+  it("back-reference: an active goal no threat violates says so", () => {
+    renderCard(asset([r("financial_damage", 3)]), "C", { violatingThreats: [] });
+    expect(screen.getByTestId("goal-threat-count-C")).toHaveTextContent("no threat");
+  });
+
+  it("back-reference: hidden without threat data and for excluded goals", () => {
+    renderCard(asset([r("financial_damage", 3)]), "C");
+    expect(screen.queryByTestId("goal-threat-count-C")).toBeNull();
+    cleanup();
+    const a0 = asset([r("financial_damage", 3)]);
+    const a = withGoal(a0, excludeGoal(a0, goal(a0, "C"), "public", S));
+    renderCard(a, "C", { violatingThreats: ["P1-I-1"] });
+    expect(screen.queryByTestId("goal-threat-count-C")).toBeNull();
   });
 
   it("provisional and minimum level are marked", () => {
@@ -197,6 +218,27 @@ describe("AssetDialog — goal cards wiring", () => {
     fireEvent.click(screen.getAllByRole("tab")[1]);
     return onSave;
   }
+
+  it("threat links reach the cards as back-references (Phase 6)", () => {
+    const a = asset([r("financial_damage", 3)]);
+    render(
+      <AssetDialog
+        open
+        asset={a}
+        configuration={config}
+        onSave={vi.fn()}
+        onClose={noop}
+        threatLinks={[
+          { id: "t1", displayId: "P1-T-10", strideCategory: "T", linkedAssetIds: [a.id] },
+          { id: "t2", displayId: "P1-T-2", strideCategory: "T", linkedAssetIds: [a.id] },
+          { id: "t3", displayId: "P9-T-1", strideCategory: "T", linkedAssetIds: ["other"] },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getAllByRole("tab")[1]);
+    expect(screen.getByTestId("goal-threat-count-I")).toHaveTextContent("2 threat(s)");
+    expect(screen.getByTestId("goal-threat-count-C")).toHaveTextContent("no threat");
+  });
 
   it("renders a card per suggested goal and offers the others to add", () => {
     openDialog(asset([r("financial_damage", 3)]));

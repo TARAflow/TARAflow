@@ -106,6 +106,11 @@ export interface SecurityGoalCardProps {
   defaultExpanded?: boolean;
   /** Opened from a finding: expand and scroll into view. */
   focused?: boolean;
+  /**
+   * Display ids of the threats that violate this goal (Phase 6 back-reference).
+   * Undefined = no threat data (e.g. before threat generation) → not shown.
+   */
+  violatingThreats?: string[];
   onLevel: (level: Exclude<CIANAAALevel, "none">) => void;
   onExclude: () => void;
   onKeep: () => void;
@@ -125,6 +130,9 @@ export function rationalePrompt(
   if (state.source !== "manual") return "impact"; // only the per-goal impact deviates
   return state.suggestion.suggested ? "adjusted" : "added";
 }
+
+/** Threat ids listed in the back-reference tooltip before "+N". */
+const MAX_TOOLTIP_THREATS = 10;
 
 const STALE_KEY: Record<StaleReason, string> = {
   "suggestion-removed": "suggestionRemoved",
@@ -147,6 +155,7 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
   rationaleError = false,
   defaultExpanded = false,
   focused = false,
+  violatingThreats,
   onLevel,
   onExclude,
   onKeep,
@@ -279,6 +288,38 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                 {chip(t(b.key, { defaultValue: b.defaultValue }), b.color)}
               </React.Fragment>
             ))}
+            {violatingThreats && !excluded && goal.level !== "none" && (
+              <Tooltip
+                arrow
+                title={
+                  violatingThreats.length > 0
+                    ? t(`${K}.threatsTooltip`, {
+                        ids:
+                          violatingThreats.slice(0, MAX_TOOLTIP_THREATS).join(", ") +
+                          (violatingThreats.length > MAX_TOOLTIP_THREATS
+                            ? ` +${violatingThreats.length - MAX_TOOLTIP_THREATS}`
+                            : ""),
+                        defaultValue: "Threats that violate this goal: {{ids}}",
+                      })
+                    : t(`${K}.noThreatTooltip`, {
+                        defaultValue:
+                          "No threat violates this goal — is the goal needed, or is a threat missing?",
+                      })
+                }
+              >
+                <span data-testid={`goal-threat-count-${goal.type}`}>
+                  {chip(
+                    violatingThreats.length > 0
+                      ? t(`${K}.threatCount`, {
+                          count: violatingThreats.length,
+                          defaultValue: "{{count}} threat(s)",
+                        })
+                      : t(`${K}.noThreat`, { defaultValue: "no threat" }),
+                    violatingThreats.length > 0 ? "#475569" : "#9ca3af",
+                  )}
+                </span>
+              </Tooltip>
+            )}
           </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
             {manual && !excluded

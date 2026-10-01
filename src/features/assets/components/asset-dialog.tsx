@@ -82,6 +82,8 @@ import {
 } from "../services/asset-goal-state";
 import { effectiveGoalRatings } from "../services/asset-impact-resolver";
 import { SecurityGoalCard } from "./security-goal-card";
+import { threatsForGoal } from "../services/asset-threat-crosscheck";
+import { compareDisplayIds, type ThreatGoalLink } from "shared";
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 
 
@@ -103,6 +105,8 @@ interface AssetDialogProps {
   initialTab?: 0 | 1;
   /** Goal card to open and scroll to — e.g. from a finding. */
   focusGoal?: SecurityGoalType;
+  /** Threats with their linked assets (app layer) — card back-references. */
+  threatLinks?: ThreatGoalLink[];
 }
 
 interface TabPanelProps {
@@ -150,6 +154,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   damageScenarioMode = false,
   initialTab = 0,
   focusGoal,
+  threatLinks,
 }) => {
   const { t } = useTranslation();
 
@@ -558,6 +563,13 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       assetDisplayName={assetDisplayName}
       rationaleError={goalErrorTypes.includes(goal.type)}
       focused={goal.type === focusGoal}
+      violatingThreats={
+        threatLinks && threatLinks.length > 0
+          ? threatsForGoal(editedAsset.id, goal.type, threatLinks)
+              .map((x) => x.displayId)
+              .sort(compareDisplayIds)
+          : undefined
+      }
       onLevel={(lvl) => handleGoalLevel(goal.type, lvl)}
       onExclude={() => handleGoalExclude(goal.type)}
       onKeep={() => handleGoalKeep(goal.type)}
