@@ -1,8 +1,8 @@
 # TARAflow — Risk Factors: Impact Aggregation and Likelihood Scales
 
-> **Purpose of this document:** decide (A) how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it, and (B) how the levels of the likelihood factors are labelled so they read in the direction they count. Binding once accepted: the decisions in §5, §7.4 and the migration rules in §6, §7.5. Nothing is implemented yet.
+> **Purpose of this document:** decide (A) how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it, and (B) how the levels of the likelihood factors are labelled so they read in the direction they count. Binding: the decisions in §5, §7.4 and the migration rules in §6, §7.5. Implementation status in §10.
 
-**Status:** Draft rev. 3 — Part B decided, Part A open for review
+**Status:** Rev. 4 — decided. Implemented: Part B (§7) and Part A phases 1–3 (§8); phases 4–5 open
 **Code baseline:** `a0f177e`
 **Related:** `doc/InProgress/Asset/security-goal-rework-design.md` (Phase 4 delivers per-goal impact *values* to the risk; this document is about how those values are *combined*)
 
@@ -76,10 +76,10 @@ The weighted mean divides by the sum of the weights, so its result always lies w
 | Value | Impact of a risk |
 |---|---|
 | `"weighted-mean"` | weighted mean of all rated impact factors — **today's behaviour** |
-| `"safety-floor"` | `max(safety, weighted mean of the other rated impact factors)`; without a safety rating = weighted mean |
+| `"harm-floor"` | `max(safety, physical_damage, environmental, weighted mean of the other rated impact factors)`; without a rating of these = weighted mean (rev. 4, Q3; called `safety-floor` up to rev. 3) |
 | `"max"` | maximum of all rated impact factors, no weights |
 
-`safety-floor` is the proposal for "safety always at 1.0": safety enters the impact fully and undiluted; the business factors are still weighed. A mere safety weight of 1.0 would not achieve this — with the mean divided by the weight sum, safety at 1.0 is exactly as strong as every other factor at 1.0.
+`harm-floor` is the answer to "safety always at 1.0": harm to people and environment (`HARM_FACTOR_IDS` = safety, physical_damage, environmental) enters the impact fully and undiluted; the business factors are still weighed. The mean is taken over the *other* factors only. `supply_chain` shares the "physical" category in the asset model but is not harm to people or environment and is not part of the floor. A mere safety weight of 1.0 would not achieve this — with the mean divided by the weight sum, safety at 1.0 is exactly as strong as every other factor at 1.0.
 
 ### 5.2 Defaults per preset
 
@@ -87,11 +87,11 @@ The weighted mean divides by the sum of the weights, so its result always lies w
 
 | Preset | `impactAggregation` | Reason |
 |---|---|---|
-| `standard` | `safety-floor` | weighs business consequences, never dilutes safety (req. 3, 4) |
+| `standard` | `harm-floor` | weighs business consequences, never dilutes harm (req. 3, 4) |
 | `iso-21434` | `max` | SFOP rated equally and unweighted; the worst category determines the risk (15.5, 15.8) |
-| `etsi-tvra` | `safety-floor` | *open — §8* |
-| `en-50742-a` | — | *open — §8*: the SRSL path uses its own severity on the safety-function asset |
-| `en-50742-b` | `safety-floor` | *open — §8* |
+| `etsi-tvra` | `max` | TS 102 165-1 rates one impact per threat; with several impact factors the worst consequence is the closest reading (Q1) |
+| `en-50742-a` | `harm-floor` | the norm's result is the SRSL from the severity on the safety-function asset; R = I × L is a side value there and needs no own rule (Q2) |
+| `en-50742-b` | `harm-floor` | machinery: harm to persons is never diluted, business consequences still weighed (Q1) |
 
 ### 5.3 One source of weights for impact
 
@@ -101,14 +101,14 @@ With `max`, weights do not apply and are hidden for the impact.
 
 ### 5.4 Worked examples
 
-| S | F | O | P | `weighted-mean` | `safety-floor` | `max` |
+| S | F | O | P | `weighted-mean` | `harm-floor` | `max` |
 |---|---|---|---|---|---|---|
 | 4 | 1 | 1 | 1 | 1.75 | **4** | 4 |
 | 1 | 4 | 1 | 1 | 1.75 | 2 | **4** |
 | 2 | 4 | 4 | 1 | 2.75 | 3 | 4 |
 | — | 3 | 1 | — | 2 | 2 | 3 |
 
-Row 2 shows the deliberate trade-off of `safety-floor`: a severe financial consequence is still weighed against mild others. Under ISO 21434 (`max`) it is not.
+Row 2 shows the deliberate trade-off of `harm-floor`: a severe financial consequence is still weighed against mild others. Under ISO 21434 (`max`) it is not.
 
 ### 5.5 Making the impact explainable
 
@@ -228,18 +228,45 @@ None affected: only labels change; stored values, calculation and matrix stay as
 
 ## 9. Open questions
 
-1. **ETSI TVRA and EN 50742-B:** `safety-floor` or `max`? TVRA's own impact scale is a single value per threat — does it need an aggregation at all?
-2. **EN 50742-A:** severity is a 3-level criterion on the safety-function asset (reversible / non-reversible / fatal) and feeds the SRSL, not `R = I × L`. Does the R-path need a rule there, or is it out of scope?
-3. **Floor for further harm to people and environment?** `physical_damage` and `environmental` describe physical harm as well. Should they share the floor with safety (`max(safety, physical_damage, environmental, mean of the rest)`)?
-4. **Asset tab:** keep `calculationMethod` as an asset-prioritisation setting independent of the risk, or align its default with the preset? (It does not feed the risk.)
-5. **Scope of the preview:** only risk level changes, or also impact changes within the same level?
+None. *Decided (rev. 4):*
+- **Q1 — TVRA / EN 50742-B:** TVRA `max` (the norm has one impact value per threat; with several factors the worst consequence comes closest), EN 50742-B `harm-floor`.
+- **Q2 — EN 50742-A:** out of scope for an own rule. The SRSL stays untouched; the side value R = I × L uses `harm-floor`.
+- **Q3 — floor for harm:** yes — safety, physical_damage, environmental (fixed list, not the "physical" category, which also contains supply_chain). Name `harm-floor`.
+- **Q4 — asset tab:** `calculationMethod` stays independent (asset prioritisation; it does not feed the risk).
+- **Q5 — preview:** every impact change, risk level changes listed first and marked; applying is all or nothing.
+
 *Decided (rev. 3):*
 - **Q6 — anchors on 3/4/5 levels:** one fitting label set per scale size and factor (§7.4 tables); no levels left out.
 - **Q7 — rename factors:** no; the selected value's label is what matters. Descriptions state the direction.
 - **Q8 — TVRA:** the norm's level names with the rating value in parentheses, e.g. `≤ 1 week (2)`.
 
-## 10. Change history
+## 10. Implementation (rev. 4)
+
+**Part B — likelihood factor labels** (patch 42)
+- `features/risks/models/likelihood-factor-levels.ts`: registry per factor and scale size (§7.4 tables), English default texts, TVRA level texts; i18n `risks.factorLevels.<factor>.<key>`, `risks.tvraLevels.<key>` (en/de).
+- `features/risks/utils/factor-level-options.ts`: the options of a factor's level select, pure — EN 50742 norm levels, TVRA "≤ 1 week (2)" (only under the `etsi-tvra` method; the legacy ETSI ids keep the generic scale elsewhere), situation labels, generic scale. The risk dialog uses it. The colour dot of the generic level stays.
+- Fix found on the way: TVRA factors offered as many levels as the project scale has; now each factor has its norm's number of levels (time 5, intensity 3, others 4).
+- Custom likelihood factors show "1 = attack unlikely … N = attack likely" under the select; the descriptions of the standard factors state the direction.
+- The report shows no individual standard likelihood factor values, so there was nothing to relabel there (§7.5).
+
+**Part A, phase 1 — calculation** (patch 43)
+- `ImpactAggregation` (shared), `RegulationPreset.impactAggregation` (§5.2 table), `RiskConfiguration.impactAggregation?` (absent = `weighted-mean`).
+- `features/risks/services/impact-aggregation.ts`: `aggregateImpact()` returns value **and basis** (mean of n factors / harm factor / highest factor), `HARM_FACTOR_IDS`. `calculateRiskValues` uses it through `explainImpact()` — the single place the impact is formed; EN 50742 takes its impact from there too.
+
+**Part A, phase 2 — configuration and migration** (patch 44)
+- Risk configuration dialog: section "Impact aggregation" with the three variants, the worked example, the preset's recommendation ("Use") and — when the choice differs from what the risks are calculated with — the preview (`impact-aggregation-preview.ts`): every risk whose impact or risk value changes, risk level changes first and highlighted. Save applies it.
+- A legacy project that keeps the weighted mean stores no field; values never change on load.
+- Recommendation from the app layer (`RiskProjectData.recommendedImpactAggregation`, derived from the tags). **Without risks** it is taken over directly (`withRecommendedImpactAggregation`) — no value can change. **With risks** it is only offered in the dialog; there is no automatic change and no permanent banner — an analyst who keeps the weighted mean on purpose is not nagged.
+
+**Part A, phase 3 — explanation** (patch 45)
+- Risk dialog: under "Impact factors" (before and after mitigation) one line, e.g. "Impact 4 — Safety Impact (harm floor)", "Impact 4 — highest factor: Financial Damage", "Impact 2.5 — weighted mean of 4 factor(s)".
+- Report: the risk assessment chapters state the project's aggregation in one sentence, all formats incl. pdfmake. A per-risk basis column was not added — the register shows risk labels only, no impact values.
+
+**Open:** phase 4 (one weight source), phase 5 (ISO risk per category).
+
+## 11. Change history
 
 - **Rev. 1:** draft — problem analysis from code, proposal (three aggregation variants, preset defaults, one weight source, explicit migration), phases, open questions.
 - **Rev. 2:** added Part B (§7): likelihood factor scales — the generic "Very Low … High" labels read against the direction of factors like skill level; proposal: per-factor level anchors (i18n), names following the direction, TVRA levels in the dialog. Phase 6 and open questions 6–8.
 - **Rev. 3:** Part B decided — Q6: own label set per scale size (tables for 3, 4, 5 levels); Q7: factor names stay; Q8: TVRA shows the norm's level names with the value in parentheses.
+- **Rev. 4:** Q1–Q5 decided (§9): `safety-floor` became `harm-floor` with safety, physical_damage and environmental; ISO 21434 and TVRA `max`, standard and EN 50742 A/B `harm-floor`; EN 50742-A SRSL unaffected; asset `calculationMethod` independent; preview of all impact changes. Implemented Part B and Part A phases 1–3 (§10).
