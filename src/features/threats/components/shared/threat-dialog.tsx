@@ -69,7 +69,7 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../services/threat-catalog-service";
-import { MitigationCoverageBadge, STRIDE_COLORS } from "shared";
+import { MitigationCoverageBadge, STRIDE_COLORS, formatAssetLabel } from "shared";
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 import { SourceBadge } from "../../components/shared/threat-table-utils";
 import { releaseRetainedThreat } from "../../services/threat-generation-drift";
@@ -1006,7 +1006,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                         return (
                           <Chip
                             key={asset.id}
-                            label={`${asset.name}${hasSafety ? " ⚠" : ""}`}
+                            label={`${formatAssetLabel(asset)}${hasSafety ? " ⚠" : ""}`}
                             size="small"
                             variant="outlined"
                             sx={{

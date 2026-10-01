@@ -3,6 +3,7 @@
 // One chip per linked asset: AssetID + aggregatedImpact color + safety icon.
 // Tooltip shows all 3 contributing values per asset.
 
+import { formatAssetLabel } from "shared";
 import React from "react";
 import { Box, Chip, Tooltip, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -123,7 +124,7 @@ export const ImpactCell: React.FC<{
                   <span
                     style={{ fontFamily: "monospace", fontSize: "0.65rem" }}
                   >
-                    {asset.name}
+                    {formatAssetLabel(asset)}
                   </span>
                   {asset.aggregatedImpact && (
                     <span style={{ fontSize: "0.6rem", fontWeight: 700 }}>

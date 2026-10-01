@@ -5,6 +5,7 @@
 // Mitigations/Verifications appear in the context box with delete buttons.
 // Add field always at the bottom.
 
+import { formatAssetLabel } from "shared";
 import React, { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -162,7 +163,7 @@ const ContextBox: React.FC<{
             {linkedAssets.map((a) => (
               <Chip
                 key={a.id}
-                label={a.name}
+                label={formatAssetLabel(a)}
                 size="small"
                 variant="outlined"
                 sx={{ fontSize: "0.65rem", height: 18 }}

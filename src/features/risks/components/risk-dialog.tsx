@@ -167,7 +167,7 @@ import {
   ATTACKER_CAPABILITY_SCORE,
 } from "../models/en50742-approach-a-core";
 import type { SrslAnchorType } from "../models/en50742-approach-a-core";
-import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS } from "shared";
+import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS, formatAssetLabel } from "shared";
 import { RiskScorePanel } from "./shared/risk-score-panel";
 import { SrslBadge } from "./shared/srsl-badge";
 import { SrslReferenceTables } from "./shared/srsl-reference-tables";
@@ -1957,7 +1957,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         return (
                           <Chip
                             key={asset.id}
-                            label={`${asset.name}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
+                            label={`${formatAssetLabel(asset)}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
                             size="small"
                             sx={{
                               fontSize: 11,
@@ -2776,7 +2776,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         return (
                           <Chip
                             key={asset.id}
-                            label={`${asset.name}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
+                            label={`${formatAssetLabel(asset)}${hasSafety ? " ⚠" : ""}${aImpact ? ` · ${aImpact}` : ""}`}
                             size="small"
                             sx={{
                               fontSize: 11,

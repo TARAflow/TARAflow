@@ -12,7 +12,12 @@ import {
   getPhysicalImpactColor,
   getThreatPriority,
 } from "../../utils/threat-asset-utils";
-import { STRIDE_COLORS, compareDisplayIds, compareStride } from "shared";
+import {
+  STRIDE_COLORS,
+  compareDisplayIds,
+  compareStride,
+  formatAssetLabel,
+} from "shared";
 import type { StrideCategory } from "shared";
 
 // ==================== SORT TYPES ====================
@@ -347,7 +352,7 @@ export const AssetsCell: React.FC<{
         return (
           <Tooltip
             key={id}
-            title={`${asset.name}${asset.aggregatedImpact ? ` — ${asset.aggregatedImpact}` : ""}`}
+            title={`${formatAssetLabel(asset)}${asset.aggregatedImpact ? ` — ${asset.aggregatedImpact}` : ""}`}
           >
             <Chip
               label={asset.displayId ?? asset.name}
