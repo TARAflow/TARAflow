@@ -110,6 +110,7 @@
         "mitigationPlaceholder": "Describe the mitigation...",
         "addMitigation": "Add Mitigation",
         "notRated": "Not rated",
+        "likelihoodDirectionHint": "1 = attack unlikely … {{max}} = attack likely",
         "isoPointsPerLevel": "{{points}} ISO 18045 attack-potential points (higher = more attacker effort → lower feasibility)",
         "residualFeasibility": "Residual feasibility (from the factors above)",
         "residualIncomplete": "Rate all five factors to compute residual feasibility",
@@ -503,6 +504,110 @@
         "label": "Rejected"
       }
     },
+    "factorLevels": {
+      "skill_level": {
+        "security_penetration": "Security penetration skills",
+        "network_programming": "Network and programming skills",
+        "advanced_user": "Advanced computer user",
+        "some_technical": "Some technical skills",
+        "no_technical": "No technical skills",
+        "expert": "Expert skills (penetration, programming)"
+      },
+      "motive": {
+        "no_reward": "No reward",
+        "low_reward": "Low reward",
+        "possible_reward": "Possible reward",
+        "considerable_reward": "Considerable reward",
+        "high_reward": "High reward",
+        "low_or_no_reward": "Low or no reward"
+      },
+      "opportunity": {
+        "full_access": "Full access or expensive resources",
+        "special_access": "Special access or resources",
+        "some_access": "Some access or resources",
+        "little_access": "Little access or resources",
+        "no_access": "No access or resources",
+        "special_or_full_access": "Special or full access, expensive resources"
+      },
+      "size": {
+        "developers_admins": "Developers, system administrators",
+        "intranet_users": "Intranet users",
+        "partners": "Partners",
+        "authenticated_users": "Authenticated users",
+        "anonymous_internet": "Anonymous internet users",
+        "intranet_partners": "Intranet users, partners",
+        "privileged_insiders": "Privileged insiders (developers, administrators)",
+        "authenticated_partners": "Authenticated users, partners"
+      },
+      "ease_of_discovery": {
+        "practically_impossible": "Practically impossible",
+        "difficult": "Difficult",
+        "moderate": "Moderate",
+        "easy": "Easy",
+        "automated_tools": "Automated tools available",
+        "impossible_or_difficult": "Practically impossible or difficult"
+      },
+      "ease_of_exploit": {
+        "theoretical": "Theoretical",
+        "difficult": "Difficult",
+        "moderate": "Moderate",
+        "easy": "Easy",
+        "automated_tools": "Automated tools available",
+        "theoretical_or_difficult": "Theoretical or difficult"
+      },
+      "awareness": {
+        "unknown": "Unknown",
+        "hidden": "Hidden",
+        "specialists": "Known to specialists",
+        "obvious": "Obvious",
+        "public_knowledge": "Public knowledge",
+        "unknown_or_hidden": "Unknown or hidden"
+      },
+      "intrusion_detection": {
+        "active_detection": "Active detection in the application",
+        "logged_reviewed": "Logged and reviewed",
+        "logged_occasionally": "Logged, reviewed occasionally",
+        "logged_not_reviewed": "Logged, not reviewed",
+        "not_logged": "Not logged",
+        "actively_detected": "Actively detected",
+        "logged": "Logged"
+      },
+      "deployment_scope": {
+        "single": "Single installation",
+        "few_one_customer": "A few installations of one customer",
+        "all_one_customer": "All systems of one customer",
+        "product_type": "All installations of a product type",
+        "supply_chain": "All customers (supply chain)",
+        "several_one_customer": "Several systems of one customer",
+        "several_or_product_type": "Several systems or a whole product type"
+      }
+    },
+    "tvraLevels": {
+      "<=1day": "≤ 1 day",
+      "<=1week": "≤ 1 week",
+      "<=1month": "≤ 1 month",
+      "<=6months": "≤ 6 months",
+      ">6months": "> 6 months",
+      "layman": "Layman",
+      "proficient": "Proficient",
+      "expert": "Expert",
+      "multiple-experts": "Multiple experts",
+      "public": "Public",
+      "restricted": "Restricted",
+      "sensitive": "Sensitive",
+      "critical": "Critical",
+      "unlimited": "Unlimited",
+      "easy": "Easy",
+      "moderate": "Moderate",
+      "difficult": "Difficult",
+      "standard": "Standard",
+      "specialized": "Specialized",
+      "bespoke": "Bespoke",
+      "multiple-bespoke": "Multiple bespoke",
+      "single": "Single",
+      "moderate-multiple": "Moderate (multiple)",
+      "heavy-multiple": "Heavy (multiple)"
+    },
     "factors": {
       "attack_tree_likelihood": {
         "name": "Attack Tree Likelihood",
@@ -531,42 +636,42 @@
       },
       "skill_level": {
         "name": "Skill Level",
-        "description": "How technically skilled is the attacker?",
+        "description": "How much skill does the attack require? Higher value = less skill needed, attack more likely.",
         "shortName": "Skill"
       },
       "motive": {
         "name": "Motive",
-        "description": "How motivated is the attacker?",
+        "description": "How much does the attacker gain? Higher value = higher reward, attack more likely.",
         "shortName": "Motive"
       },
       "opportunity": {
         "name": "Opportunity",
-        "description": "What resources and opportunities are required?",
+        "description": "What access or resources does the attack require? Higher value = less needed, attack more likely.",
         "shortName": "Opportunity"
       },
       "size": {
         "name": "Size",
-        "description": "How large is the group of potential attackers?",
+        "description": "How large and how anonymous is the group of potential attackers? Higher value = larger group, attack more likely.",
         "shortName": "Size"
       },
       "ease_of_discovery": {
         "name": "Ease of Discovery",
-        "description": "How easy is it to find the vulnerability?",
+        "description": "How easy is it to find the vulnerability? Higher value = easier, attack more likely.",
         "shortName": "Discovery"
       },
       "ease_of_exploit": {
         "name": "Ease of Exploit",
-        "description": "How easy is it to actually exploit the vulnerability?",
+        "description": "How easy is it to exploit the vulnerability? Higher value = easier, attack more likely.",
         "shortName": "Exploit"
       },
       "awareness": {
         "name": "Awareness",
-        "description": "How well known is the vulnerability?",
+        "description": "How well known is the vulnerability? Higher value = better known, attack more likely.",
         "shortName": "Awareness"
       },
       "intrusion_detection": {
         "name": "Intrusion Detection",
-        "description": "How likely is detection of an exploit?",
+        "description": "How likely is an exploit to be detected? Higher value = less detection, attack more likely.",
         "shortName": "Detection"
       },
       "knowledge": {
@@ -702,7 +807,7 @@
       "deployment_scope": {
         "name": "Deployment Scope",
         "shortName": "Depl. Scope",
-        "description": "Can a single successful attack simultaneously compromise multiple installations? 1 = no — each installation must be attacked individually, 2 = partially — attack affects multiple systems at the same customer, 3 = yes — shared infrastructure (cloud, OTA, SCADA) affects all installations of a product type simultaneously, 4 = yes — supply-chain attack compromises all customers at once."
+        "description": "Can a single successful attack compromise several installations at once (shared infrastructure such as cloud, OTA, SCADA; supply chain)? Higher value = more installations at once."
       },
       "iso_elapsed_time": {
         "name": "Elapsed Time",

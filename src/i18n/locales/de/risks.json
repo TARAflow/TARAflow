@@ -110,6 +110,7 @@
         "mitigationPlaceholder": "Massnahme beschreiben...",
         "addMitigation": "Massnahme hinzufügen",
         "notRated": "Nicht bewertet",
+        "likelihoodDirectionHint": "1 = Angriff unwahrscheinlich … {{max}} = Angriff wahrscheinlich",
         "isoPointsPerLevel": "{{points}} ISO-18045-Angriffspotenzial-Punkte (höher = mehr Aufwand → geringere Machbarkeit)",
         "residualFeasibility": "Restmachbarkeit (aus den Faktoren oben)",
         "residualIncomplete": "Alle fünf Faktoren bewerten, um die Restmachbarkeit zu berechnen",
@@ -498,6 +499,110 @@
         "label": "Abgelehnt"
       }
     },
+    "factorLevels": {
+      "skill_level": {
+        "security_penetration": "Kenntnisse in Penetrationstests",
+        "network_programming": "Netzwerk- und Programmierkenntnisse",
+        "advanced_user": "Fortgeschrittener Computernutzer",
+        "some_technical": "Einige technische Kenntnisse",
+        "no_technical": "Keine technischen Kenntnisse",
+        "expert": "Expertenwissen (Penetrationstests, Programmierung)"
+      },
+      "motive": {
+        "no_reward": "Kein Gewinn",
+        "low_reward": "Geringer Gewinn",
+        "possible_reward": "Möglicher Gewinn",
+        "considerable_reward": "Beträchtlicher Gewinn",
+        "high_reward": "Hoher Gewinn",
+        "low_or_no_reward": "Geringer oder kein Gewinn"
+      },
+      "opportunity": {
+        "full_access": "Vollzugriff oder teure Ressourcen",
+        "special_access": "Besonderer Zugang oder Ressourcen",
+        "some_access": "Etwas Zugang oder Ressourcen",
+        "little_access": "Wenig Zugang oder Ressourcen",
+        "no_access": "Kein Zugang, keine Ressourcen",
+        "special_or_full_access": "Besonderer oder voller Zugang, teure Ressourcen"
+      },
+      "size": {
+        "developers_admins": "Entwickler, Systemadministratoren",
+        "intranet_users": "Intranet-Nutzer",
+        "partners": "Partner",
+        "authenticated_users": "Authentifizierte Nutzer",
+        "anonymous_internet": "Anonyme Internetnutzer",
+        "intranet_partners": "Intranet-Nutzer, Partner",
+        "privileged_insiders": "Privilegierte Insider (Entwickler, Administratoren)",
+        "authenticated_partners": "Authentifizierte Nutzer, Partner"
+      },
+      "ease_of_discovery": {
+        "practically_impossible": "Praktisch unmöglich",
+        "difficult": "Schwierig",
+        "moderate": "Mittel",
+        "easy": "Einfach",
+        "automated_tools": "Automatisierte Werkzeuge verfügbar",
+        "impossible_or_difficult": "Praktisch unmöglich oder schwierig"
+      },
+      "ease_of_exploit": {
+        "theoretical": "Theoretisch",
+        "difficult": "Schwierig",
+        "moderate": "Mittel",
+        "easy": "Einfach",
+        "automated_tools": "Automatisierte Werkzeuge verfügbar",
+        "theoretical_or_difficult": "Theoretisch oder schwierig"
+      },
+      "awareness": {
+        "unknown": "Unbekannt",
+        "hidden": "Verborgen",
+        "specialists": "Fachleuten bekannt",
+        "obvious": "Offensichtlich",
+        "public_knowledge": "Öffentlich bekannt",
+        "unknown_or_hidden": "Unbekannt oder verborgen"
+      },
+      "intrusion_detection": {
+        "active_detection": "Aktive Erkennung in der Anwendung",
+        "logged_reviewed": "Protokolliert und ausgewertet",
+        "logged_occasionally": "Protokolliert, gelegentlich ausgewertet",
+        "logged_not_reviewed": "Protokolliert, nicht ausgewertet",
+        "not_logged": "Nicht protokolliert",
+        "actively_detected": "Aktiv erkannt",
+        "logged": "Protokolliert"
+      },
+      "deployment_scope": {
+        "single": "Einzelne Installation",
+        "few_one_customer": "Einige Installationen eines Kunden",
+        "all_one_customer": "Alle Systeme eines Kunden",
+        "product_type": "Alle Installationen eines Produkttyps",
+        "supply_chain": "Alle Kunden (Supply Chain)",
+        "several_one_customer": "Mehrere Systeme eines Kunden",
+        "several_or_product_type": "Mehrere Systeme oder ein ganzer Produkttyp"
+      }
+    },
+    "tvraLevels": {
+      "<=1day": "≤ 1 Tag",
+      "<=1week": "≤ 1 Woche",
+      "<=1month": "≤ 1 Monat",
+      "<=6months": "≤ 6 Monate",
+      ">6months": "> 6 Monate",
+      "layman": "Laie",
+      "proficient": "Fachkundig",
+      "expert": "Experte",
+      "multiple-experts": "Mehrere Experten",
+      "public": "Öffentlich",
+      "restricted": "Eingeschränkt",
+      "sensitive": "Sensibel",
+      "critical": "Kritisch",
+      "unlimited": "Unbegrenzt",
+      "easy": "Einfach",
+      "moderate": "Mittel",
+      "difficult": "Schwierig",
+      "standard": "Standard",
+      "specialized": "Spezialisiert",
+      "bespoke": "Massgefertigt",
+      "multiple-bespoke": "Mehrfach massgefertigt",
+      "single": "Einzeln",
+      "moderate-multiple": "Mässig (mehrfach)",
+      "heavy-multiple": "Intensiv (mehrfach)"
+    },
     "factors": {
       "attack_tree_likelihood": {
         "name": "Angriffsbaum-Eintrittswahrscheinlichkeit",
@@ -526,42 +631,42 @@
       },
       "skill_level": {
         "name": "Fähigkeitsniveau",
-        "description": "Wie technisch versiert ist der Angreifer?",
+        "description": "Wie viel Können erfordert der Angriff? Höherer Wert = weniger Können nötig, Angriff wahrscheinlicher.",
         "shortName": "Fähigkeit"
       },
       "motive": {
         "name": "Motivation",
-        "description": "Wie motiviert ist der Angreifer?",
+        "description": "Wie viel gewinnt der Angreifer? Höherer Wert = höherer Gewinn, Angriff wahrscheinlicher.",
         "shortName": "Motivation"
       },
       "opportunity": {
         "name": "Gelegenheit",
-        "description": "Welche Ressourcen und Gelegenheiten sind erforderlich?",
+        "description": "Welchen Zugang oder welche Ressourcen erfordert der Angriff? Höherer Wert = weniger nötig, Angriff wahrscheinlicher.",
         "shortName": "Gelegenheit"
       },
       "size": {
         "name": "Grösse",
-        "description": "Wie gross ist die Gruppe potenzieller Angreifer?",
+        "description": "Wie gross und wie anonym ist der Kreis möglicher Angreifer? Höherer Wert = grösserer Kreis, Angriff wahrscheinlicher.",
         "shortName": "Grösse"
       },
       "ease_of_discovery": {
         "name": "Einfachheit der Entdeckung",
-        "description": "Wie einfach ist die Schwachstelle zu finden?",
+        "description": "Wie leicht ist die Schwachstelle zu finden? Höherer Wert = leichter, Angriff wahrscheinlicher.",
         "shortName": "Entdeckung"
       },
       "ease_of_exploit": {
         "name": "Einfachheit der Ausnutzung",
-        "description": "Wie einfach ist die Schwachstelle auszunutzen?",
+        "description": "Wie leicht ist die Schwachstelle auszunutzen? Höherer Wert = leichter, Angriff wahrscheinlicher.",
         "shortName": "Ausnutzung"
       },
       "awareness": {
         "name": "Bekanntheit",
-        "description": "Wie bekannt ist die Schwachstelle?",
+        "description": "Wie bekannt ist die Schwachstelle? Höherer Wert = bekannter, Angriff wahrscheinlicher.",
         "shortName": "Bekanntheit"
       },
       "intrusion_detection": {
         "name": "Einbruchserkennung",
-        "description": "Wie wahrscheinlich ist die Erkennung eines Angriffs?",
+        "description": "Wie wahrscheinlich wird ein Angriff erkannt? Höherer Wert = weniger Erkennung, Angriff wahrscheinlicher.",
         "shortName": "Erkennung"
       },
       "knowledge": {
@@ -697,7 +802,7 @@
       "deployment_scope": {
         "name": "Verbreitungsreichweite",
         "shortName": "Reichweite",
-        "description": "Kann ein einzelner erfolgreicher Angriff gleichzeitig mehrere Installationen kompromittieren? 1 = Nein — jede Anlage muss einzeln angegriffen werden, 2 = Teilweise — Angriff betrifft mehrere Systeme beim selben Kunden, 3 = Ja — gemeinsame Infrastruktur (Cloud, OTA, SCADA) betrifft alle Anlagen eines Typs gleichzeitig, 4 = Ja — Supply-Chain-Angriff kompromittiert alle Kunden auf einmal."
+        "description": "Kann ein einzelner erfolgreicher Angriff mehrere Installationen gleichzeitig kompromittieren (gemeinsame Infrastruktur wie Cloud, OTA, SCADA; Supply Chain)? Höherer Wert = mehr Installationen auf einmal."
       },
       "iso_elapsed_time": {
         "name": "Verstrichene Zeit",

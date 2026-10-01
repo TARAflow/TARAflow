@@ -106,6 +106,7 @@ function isoFactorPoints(factorId: string, value: number): number {
   return ISO_AP_POINTS_BY_FACTOR[factorId]?.[levels[value - 1]] ?? 0;
 }
 import { RiskConfiguration } from "../models/risk-config-types";
+import { factorLevelOptions } from "../utils/factor-level-options";
 import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
   MoSCoWPriority,
@@ -113,7 +114,6 @@ import {
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
   RISK_SCALES,
-  LIKELIHOOD_SCALES,
 } from "../models/risk-scale-types";
 import {
   calculateRiskValues,
@@ -158,10 +158,8 @@ import type {
 } from "../models/en50742-approach-a-core";
 import {
   en50742LevelFromRating,
-  en50742LevelLabel,
   mandatedRequirementsForThreat,
   formatMandatedControlLabel,
-  EN50742_FACTOR_LEVELS,
   EN50742_SRSL_FACTOR_IDS,
   EXPOSURE_LEVEL_SCORE,
   ATTACKER_CAPABILITY_SCORE,
@@ -1008,39 +1006,18 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           defaultValue: `Asset-derived value: ${rating?.derivedValue}. Click ↺ to reset.`,
         });
 
-    // EN 50742 rated level factors (exposure_level / attacker_capability) must
-    // render as NORM LEVELS (EL0..EL4 / AC skill bands), not the 1-based
-    // FactorRating.value: EL3 is stored as value 4 (index+1, so EL0=1 can be
-    // told apart from "unrated"=0), and showing that raw 4 read as "EL4" — an
-    // off-by-one against the exposure level the analyst set in the DFD. The
-    // option value stays the 1-based rating index (what the gate/core decode
-    // via en50742LevelFromRating); only the LABEL is the level.
-    const en50742Levels =
-      isEN50742 && EN50742_FACTOR_LEVELS[factor.factorId]
-        ? EN50742_FACTOR_LEVELS[factor.factorId]
-        : undefined;
-    const factorOptions: { value: number; label: string; color?: string }[] =
-      en50742Levels
-        ? en50742Levels.map((key, i) => ({
-            value: i + 1,
-            // i18n label (en/de) with the norm English string from the core as
-            // the fallback — keeps CLI/report and any unlocalised build correct.
-            label: t(`risks.en50742Levels.${factor.factorId}.${key}`, {
-              defaultValue: en50742LevelLabel(factor.factorId, key),
-            }),
-          }))
-        : (def.category === "likelihood" ? LIKELIHOOD_SCALES : RISK_SCALES)[
-            configuration.scale
-          ].levels.map((level) => ({
-            value: level.value,
-            color: level.color,
-            label: `${level.value} – ${t(
-              `risks.scales.${
-                def.category === "likelihood" ? "likelihood" : "impact"
-              }.${level.label.toLowerCase().replace(/ /g, "_")}`,
-              { defaultValue: level.label },
-            )}`,
-          }));
+    // Level labels per factor (EN 50742 norm levels, TVRA norm levels,
+    // situation labels of the likelihood factors, generic scale) — one place,
+    // see factor-level-options.ts. EN 50742 EL3 is stored as value 4
+    // (index+1, so EL0=1 can be told apart from "unrated"=0); the option value
+    // stays the 1-based rating index, only the LABEL is the level.
+    const { options: factorOptions, directionHint } = factorLevelOptions(
+      factor.factorId,
+      def.category === "likelihood" ? "likelihood" : "impact",
+      configuration,
+      isEN50742,
+      t as unknown as (key: string, options?: Record<string, unknown>) => string,
+    );
 
     return (
       <Paper key={factor.factorId} variant="outlined" sx={{ p: 1.5 }}>
@@ -1177,6 +1154,16 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             );
           })}
         </Select>
+        {directionHint && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            data-testid={`factor-direction-hint-${factor.factorId}`}
+            sx={{ display: "block", mt: 0.5 }}
+          >
+            {directionHint}
+          </Typography>
+        )}
       </Paper>
     );
   };
