@@ -22,6 +22,7 @@ import type {
   PhaseStatusMap,
   ThreatReference,
   ThreatRelevanceRef,
+  ImpactAggregation,
 } from "shared";
 import type { FactorRating, RiskFactorDefinition } from "./risk-factor-types";
 import {
@@ -151,6 +152,13 @@ export interface RiskProjectData {
    * selected regardless of how many threats exist. Absent → none disabled.
    */
   disabledStrideMethods?: StrideMethod[];
+  /**
+   * Impact aggregation the active regulation preset recommends (derived at the
+   * app layer from the project tags). Applied directly while there are no
+   * risks; with risks it is only offered in the risk configuration, where a
+   * change is previewed before it is applied (design §6).
+   */
+  recommendedImpactAggregation?: ImpactAggregation;
   /**
    * ISO/SAE 21434 mode (derived at the app layer from the project tags). In
    * this mode per-element/per-interaction STRIDE threats are enumeration that

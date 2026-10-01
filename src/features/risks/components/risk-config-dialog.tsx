@@ -9,7 +9,7 @@
 // - handleToggleFactor sets autoEnabled: false on manual toggle
 // - useAssetImpact description updated to reflect per-criterion prefill
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -82,7 +82,11 @@ import {
   factorLockState,
   type PresetFactorLock,
 } from "../services/regulation-preset-service";
-import type { RegulationPresetId, LikelihoodMethod } from "shared";
+import type { RegulationPresetId, LikelihoodMethod, ImpactAggregation } from "shared";
+import type { RiskData } from "../models/risk-assessment-types";
+import { effectiveImpactAggregation } from "../services/impact-aggregation";
+import { previewImpactAggregation } from "../services/impact-aggregation-preview";
+import { ImpactAggregationSection } from "./impact-aggregation-section";
 
 // Derive impact factors directly from ALL_PREDEFINED_FACTORS — always in sync.
 const ALL_IMPACT_FACTORS = ALL_PREDEFINED_FACTORS.filter(
@@ -105,6 +109,10 @@ interface RiskConfigDialogProps {
   configuration: RiskConfiguration;
   onSave: (config: RiskConfiguration) => void;
   onClose: () => void;
+  /** The risks — for the preview of an impact aggregation change. */
+  riskData?: RiskData;
+  /** Impact aggregation the active regulation preset recommends (app layer). */
+  recommendedImpactAggregation?: ImpactAggregation;
 }
 
 interface TabPanelProps {
@@ -128,8 +136,26 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   configuration,
   onSave,
   onClose,
+  riskData,
+  recommendedImpactAggregation,
 }) => {
   const { t } = useTranslation();
+
+  // ── Impact aggregation (risk-impact-aggregation design §5/§6) ────────────
+  const currentAggregation = effectiveImpactAggregation(configuration.impactAggregation);
+  const [impactAggregation, setImpactAggregation] =
+    useState<ImpactAggregation>(currentAggregation);
+  // The dialog stays mounted: start every opening from the stored setting.
+  useEffect(() => {
+    if (open) setImpactAggregation(effectiveImpactAggregation(configuration.impactAggregation));
+  }, [open, configuration.impactAggregation]);
+  const aggregationChanges = useMemo(
+    () =>
+      riskData && impactAggregation !== currentAggregation
+        ? previewImpactAggregation(riskData, impactAggregation)
+        : [],
+    [riskData, impactAggregation, currentAggregation],
+  );
 
   // ── Local state ───────────────────────────────────────────────────────────
   const [tabValue, setTabValue] = useState(0);
@@ -342,6 +368,11 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       assetImpactMapping,
       severityThresholds,
       treeLikelihoodContribution,
+      // Store the choice only when it says something: an unchanged legacy
+      // project stays without the field (= weighted mean, unchanged values).
+      ...(configuration.impactAggregation !== undefined || impactAggregation !== currentAggregation
+        ? { impactAggregation }
+        : {}),
     });
   };
 
@@ -984,6 +1015,17 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                 })()}
               </Box>
             </Box>
+
+            <Divider />
+
+            {/* Impact aggregation */}
+            <ImpactAggregationSection
+              value={impactAggregation}
+              onChange={setImpactAggregation}
+              current={currentAggregation}
+              recommended={recommendedImpactAggregation}
+              changes={aggregationChanges}
+            />
 
             <Divider />
 

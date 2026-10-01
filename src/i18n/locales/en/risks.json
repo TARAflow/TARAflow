@@ -212,6 +212,32 @@
         "addFactor": "Add Factor",
         "showIndividualFactors": "Show Individual Factors in Table",
         "showIndividualFactorsDesc": "When disabled, only aggregated Impact/Likelihood values are shown. Hover shows details.",
+        "impactAggregation": {
+          "title": "Impact aggregation",
+          "intro": "How the impact factors of a risk become one impact. Example S4 F1 O1 P1: weighted mean 1.75 · harm floor 4 · maximum 4. Example S1 F4 O1 P1: 1.75 · 2 · 4.",
+          "recommended": "The regulation preset recommends: {{name}}",
+          "useRecommended": "Use",
+          "current": "current",
+          "harm-floor": {
+            "name": "Harm floor",
+            "description": "Highest of safety, physical damage and environment — never diluted — or the weighted mean of the other impact factors, whichever is higher."
+          },
+          "max": {
+            "name": "Maximum",
+            "description": "The highest rated impact factor; no weights. ISO/SAE 21434 rates the impact categories equally."
+          },
+          "weighted-mean": {
+            "name": "Weighted mean",
+            "description": "Weighted mean of all rated impact factors (behaviour of earlier versions). Mild factors dilute a severe one."
+          },
+          "previewNone": "No risk changes.",
+          "previewSummary": "{{count}} risk(s) change, {{levels}} of them their risk level. Saving applies the change.",
+          "previewMore": "… and {{count}} more",
+          "colRisk": "Risk",
+          "colImpact": "Impact",
+          "colValue": "Risk value",
+          "colLevel": "Risk level"
+        },
         "roundingMethod": "Level Threshold Calculation",
         "roundingRound": "Standard",
         "roundingRoundTitle": "Standard Rounding (Math.round)",

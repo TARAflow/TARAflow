@@ -213,6 +213,32 @@
         "addFactor": "Faktor hinzufügen",
         "showIndividualFactors": "Einzelne Faktoren in der Tabelle anzeigen",
         "showIndividualFactorsDesc": "Wenn deaktiviert, werden nur aggregierte Auswirkungs-/Wahrscheinlichkeitswerte angezeigt.",
+        "impactAggregation": {
+          "title": "Impact-Aggregation",
+          "intro": "Wie die Impact-Faktoren eines Risikos zu einem Impact werden. Beispiel S4 F1 O1 P1: gewichteter Mittelwert 1,75 · Schadens-Untergrenze 4 · Maximum 4. Beispiel S1 F4 O1 P1: 1,75 · 2 · 4.",
+          "recommended": "Das Regulierungs-Preset empfiehlt: {{name}}",
+          "useRecommended": "Übernehmen",
+          "current": "aktuell",
+          "harm-floor": {
+            "name": "Schadens-Untergrenze",
+            "description": "Höchster Wert aus Safety, Sachschaden und Umwelt — nie verdünnt — oder der gewichtete Mittelwert der übrigen Impact-Faktoren, je nachdem, was höher ist."
+          },
+          "max": {
+            "name": "Maximum",
+            "description": "Der höchste bewertete Impact-Faktor, ohne Gewichte. ISO/SAE 21434 bewertet die Impact-Kategorien gleichrangig."
+          },
+          "weighted-mean": {
+            "name": "Gewichteter Mittelwert",
+            "description": "Gewichteter Mittelwert aller bewerteten Impact-Faktoren (Verhalten früherer Versionen). Leichte Faktoren verdünnen einen schweren."
+          },
+          "previewNone": "Kein Risiko ändert sich.",
+          "previewSummary": "{{count}} Risiko/Risiken ändern sich, davon {{levels}} in der Risikostufe. Speichern wendet die Änderung an.",
+          "previewMore": "… und {{count}} weitere",
+          "colRisk": "Risiko",
+          "colImpact": "Impact",
+          "colValue": "Risikowert",
+          "colLevel": "Risikostufe"
+        },
         "roundingMethod": "Schwellenwert-Berechnung",
         "roundingRound": "Standard",
         "roundingRoundTitle": "Standard-Rundung (Math.round)",

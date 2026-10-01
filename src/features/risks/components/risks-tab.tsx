@@ -68,6 +68,7 @@ import { RisksToolbar } from "./risk-toolbar";
 import { useRiskSync } from "../hooks/use-risk-sync";
 import { useSplitViewResize } from "shared";
 import {
+  withRecommendedImpactAggregation,
   ensureValidRiskData,
   MIN_PANEL_HEIGHT,
   DEFAULT_TOP_HEIGHT,
@@ -510,6 +511,25 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const markDirty = useCallback(() => {
     if (!isDirty) setIsDirty(true);
   }, [isDirty]);
+
+  // Impact aggregation: while there are no risks, the preset's recommendation
+  // is taken over directly — no risk value can change. With risks it is only
+  // offered in the configuration dialog (preview before applying, design §6).
+  useEffect(() => {
+    const next = withRecommendedImpactAggregation(
+      riskData,
+      project.recommendedImpactAggregation,
+    );
+    if (!next) return;
+    setRiskData(next);
+    markDirty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    project.recommendedImpactAggregation,
+    riskData.risks.length,
+    riskData.configuration.impactAggregation,
+    markDirty,
+  ]);
 
   // ==================== HANDLERS ====================
 
@@ -1036,6 +1056,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         configuration={riskData.configuration}
         onSave={handleSaveConfig}
         onClose={() => setShowConfigDialog(false)}
+        riskData={riskData}
+        recommendedImpactAggregation={project.recommendedImpactAggregation}
       />
 
       {showSyncConfirm && (

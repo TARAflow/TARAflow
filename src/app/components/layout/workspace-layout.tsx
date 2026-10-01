@@ -113,6 +113,7 @@ import {
   regulationPresetFromTags,
   EMPTY_PROJECT_TAGS,
   getDisabledThreatGenerators,
+  getRegulationPreset,
 } from "shared";
 import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
 import {
@@ -1120,6 +1121,11 @@ export const WorkspaceLayout: React.FC = () => {
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
               ),
+              recommendedImpactAggregation: getRegulationPreset(
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ),
+              ).impactAggregation,
               disabledStrideMethods: getDisabledThreatGenerators(
                 regulationPresetFromTags(
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
