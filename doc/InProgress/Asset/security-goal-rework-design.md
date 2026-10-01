@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** A new chat (or contributor) should know immediately *what* is being reworked, *why*, *how far it is* and *how to continue*. Binding are the **ground rule** (§4), the **invariants** (§4.5) and the **phase plan** (§6) — ask before deviating from them.
 
-**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–3 merged, Phase 4 delivered (pending merge), Phase 5 next
+**Status:** Design final (rev. 3.1, after three external reviews), Phases 0–4 merged, Phase 5 delivered (pending merge), Phase 6 next
 **Code baseline:** `c080c48` (v0.11.2-alpha)
 **Repo:** `https://github.com/TARAflow/TARAflow` · Stack: Electron + Vite + React + TypeScript, tests with Vitest
 
@@ -290,7 +290,7 @@ With 50 assets, the review must not require opening every dialog. Existing place
 
 `GOAL_OVERRIDE_STALE` is **one** code. The severity follows from the stale reason (`severityFor(reason)`), the reason is carried as context. No separate codes per reason.
 
-- **Report:** the security-goal table from Phase 0 will show the state from 4.1 in the "Source" column. **New:** excluded goals appear too, with their rationale. Today the table filters out all goals with `level = none`. A deliberate exclusion is an audit-relevant decision and must not be missing from the report.
+- **Report:** the security-goal table from Phase 0 shows the state from 4.1 in the "Source" column. Excluded goals appear too, with their rationale — a deliberate exclusion is an audit-relevant decision and must not be missing from the report. An exclusion the graph no longer suggests is moot and is left out (Phase 5).
 
 ### 4.5 Invariants and test cases
 
@@ -496,13 +496,33 @@ Delivered as three commits (patches 28–30) plus this document (31):
 
 **Tests:** `asset-goal-impact.test.ts` (9), `threat-impact.test.ts` (9: the five mandatory cases through the risk prefill, inactive goals, n/a, previous behaviour without STRIDE, reference builder), `security-goal-card.test.tsx` (+3).
 
-### Phase 5 — overview and report
+### Phase 5 — overview and report ✅ delivered
 
-**Scope:**
-- asset table: goal chips with level and state marker, filter "Needs review only"
-- `documentation/utils/security-goal-doc-rows.ts` — build rows from `goalState()`; state in the "Source" column; **excluded goals included** with rationale (invariant C); all formats incl. pdfmake
+**Goal:** the review across all assets without opening every dialog (4.4), and the goal state in the report.
 
-**Tests:** extend `security-goal-doc-rows.test.ts` for states and excluded goals.
+Delivered as three commits (patches 32–34) plus this document (35):
+
+32. **`feat(assets)` goal chips in the asset table**
+    - `features/assets/utils/goal-badges.ts` (pure): `goalSourceKey()`, `goalBadges()` (source badge + state markers as i18n key and colour), `goalMarker()` (worst finding of the goal from `goalFindings()`). The goal card now renders the same badges — card and table cannot drift apart. New in the card header: "Impact above asset value" (`exceedsAsset`), so the error is visible even when the card is collapsed.
+    - `security-goal-chips.tsx`: one chip per active or excluded goal in canonical order — "I · High"; "I · ?" when the assessment is missing (invariant D); excluded goals greyed and struck through, rationale in the tooltip (invariant C); pen icon for manual decisions; a dot for the worst finding (red = error, amber = warning). Infos stay in the tooltip — they describe legitimate states and would drown the markers.
+33. **`feat(assets)` filter "Needs review only"** — `assetIdsNeedingReview(findings)` in the validator: an asset needs review when it has at least one error or warning in `collectAssetFindings()`. Toggle with count in the table bar; an empty result says "No asset needs review." instead of showing an empty grid.
+34. **`feat(docs)` goal table from the goal state** — `buildSecurityGoalDocRows()` builds its rows from `goalStates()`:
+    - rows for active goals **and deliberately excluded goals** (level "-", rationale as basis, `excluded: true`);
+    - "Source" carries the state: Derived / Derived (provisional | minimum level | assessment required) / Adjusted / Added / Excluded / Earlier decision, plus ", impact adjusted" and, for a changed basis, the reason graded like the finding ("— review: suggested level raised to Critical" for warnings, "— suggestion changed: …" for infos);
+    - "Level" reads "Assessment required" instead of the minimum level (invariant D);
+    - "Basis": a deviation is justified by the rationale (missing → "(no rationale given)") plus the suggestion it deviates from; otherwise relations and level driver. Per-goal impacts are listed with the asset value ("Safety Impact = 2 (asset: 4)" / "… (exceeds asset value 2)");
+    - intro text in all four templates and the pdfmake labels; pdfmake sets excluded rows apart (italic, grey) and widens the source column.
+
+Decisions made during implementation:
+- **The filter counts every error and warning of the asset**, not only security-goal findings (e.g. also "not linked to the DFD"). It is the same set the findings panel shows; a goal-only filter would hide assets that still need work.
+- **Moot exclusions are not reported.** An excluded goal that the graph no longer suggests becomes `hidden` (§4.1); its decision has no object any more (the stale finding is only info). It is left out of table and report.
+- **Report wording follows the card:** "Manual" is split into Adjusted / Added, "Unspecified" became "Earlier decision". Existing reports change visibly.
+- **Fix carried along:** the report explained a derived level with `explainLevel()` on the **asset** ratings. Since Phase 4 the level follows the goal's effective ratings, so with a per-goal impact the report cited the asset value as driver (SmokeDetector DA-005 A: "Operational = 4" for a level that rests on 3). The basis now uses `state.levelReason`.
+- A manual goal on the suggested level deviates from nothing: the report shows the derivation, not "(no rationale given)" — consistent with patch 25.
+
+**Tests:** `goal-badges.test.ts` (4), `security-goal-chips.test.tsx` (component, 8, incl. the real DataGrid), `asset-table.review-filter.test.tsx` (component, 3), `asset-validator.goal-findings.test.ts` (+2), `security-goal-doc-rows.test.ts` (+11: excluded with and without rationale, moot exclusion, assessment missing, provisional, stale warning / info / German, effective driver, override above the asset value, manual goal on the suggestion, markdown and pdfmake rows; 14 of the 23 fail on the old code). CLI smoke test on SmokeDetector (md + pdf, de).
+
+**Seen on SmokeDetector, not addressed here:** the asset inventory of the report lists the internal UUID in the ID column for some assets (e.g. sensor firmware) instead of the display id.
 
 ### Phase 6 — threat ↔ goal cross-checks
 
@@ -530,3 +550,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.6:** Phase 2 delivered (patches 17–19): single suggestion rule, `goalState()` / `goalFindings()` / snapshot / explicit actions, findings in the asset validation with `infos`. `GoalState.visibility` renamed to `card | excluded | hidden`; stale severity keyed on "decision was an exclusion".
 - **Rev. 3.7:** Phase 3 delivered (patch 22): security-goal cards in the asset dialog; rationale enforced on save; baseline snapshots on save; consequence in all modes; third rationale question "added".
 - **Rev. 3.8:** Phase 3 follow-ups (patches 24–27: layout, rationale only for deviations, findings panel, resizable panel) and Phase 4 delivered (patches 28–30: per-goal impact domain, risk impact from the violated goals, impact editor). Corrected the Phase 4 risk statement: step 4 can change values in existing projects.
+- **Rev. 3.9:** Phase 5 delivered (patches 32–34): goal chips with level and state marker in the asset table (badges shared with the card), filter "Needs review only" (every error or warning of the asset), report rows from `goalStates()` with the state in "Source", excluded goals with rationale, effective ratings as level basis. Moot exclusions not reported.
