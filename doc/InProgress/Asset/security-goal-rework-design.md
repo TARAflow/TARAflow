@@ -522,6 +522,8 @@ Decisions made during implementation:
 
 **Tests:** `goal-badges.test.ts` (4), `security-goal-chips.test.tsx` (component, 8, incl. the real DataGrid), `asset-table.review-filter.test.tsx` (component, 3), `asset-validator.goal-findings.test.ts` (+2), `security-goal-doc-rows.test.ts` (+11: excluded with and without rationale, moot exclusion, assessment missing, provisional, stale warning / info / German, effective driver, override above the asset value, manual goal on the suggestion, markdown and pdfmake rows; 14 of the 23 fail on the old code). CLI smoke test on SmokeDetector (md + pdf, de).
 
+**Follow-up after the analyst's review (patch 36):** chip colour encodes **who decided**, not the level. With the level palette the goal chips read as impact chips in the same row. Now: suggested = blue outline, manual (adjusted / added) = blue filled + pen icon, excluded = grey outline struck through + pen icon, assessment missing = "I · ?" in the suggested style (the amber marker carries the warning). The level stays in the label. The goal card in the dialog keeps the level colours — it shows one goal at a time, with no impact chip next to it.
+
 **Seen on SmokeDetector, not addressed here:** the asset inventory of the report lists the internal UUID in the ID column for some assets (e.g. sensor firmware) instead of the display id.
 
 ### Phase 6 — threat ↔ goal cross-checks
@@ -551,3 +553,4 @@ After Phase 2, the concept should only be extended when real projects require it
 - **Rev. 3.7:** Phase 3 delivered (patch 22): security-goal cards in the asset dialog; rationale enforced on save; baseline snapshots on save; consequence in all modes; third rationale question "added".
 - **Rev. 3.8:** Phase 3 follow-ups (patches 24–27: layout, rationale only for deviations, findings panel, resizable panel) and Phase 4 delivered (patches 28–30: per-goal impact domain, risk impact from the violated goals, impact editor). Corrected the Phase 4 risk statement: step 4 can change values in existing projects.
 - **Rev. 3.9:** Phase 5 delivered (patches 32–34): goal chips with level and state marker in the asset table (badges shared with the card), filter "Needs review only" (every error or warning of the asset), report rows from `goalStates()` with the state in "Source", excluded goals with rationale, effective ratings as level basis. Moot exclusions not reported.
+- **Rev. 3.10:** Phase 5 follow-up (patch 36): goal chips in the asset table coloured by source (blue outline / blue filled), not by level; the card keeps the level colours.
