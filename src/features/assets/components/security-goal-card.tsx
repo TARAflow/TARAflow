@@ -427,6 +427,16 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                 onClick={() => setImpactOpen((v) => !v)}
                 sx={{ px: 0, minWidth: 0, textTransform: "none" }}
                 data-testid="goal-impact-toggle"
+                aria-expanded={impactOpen}
+                endIcon={
+                  <ExpandMoreIcon
+                    fontSize="small"
+                    sx={{
+                      transform: impactOpen ? "rotate(180deg)" : "none",
+                      transition: "transform 0.15s",
+                    }}
+                  />
+                }
               >
                 {t(`${K}.impact.toggle`, {
                   count: state.impactOverrides.length,

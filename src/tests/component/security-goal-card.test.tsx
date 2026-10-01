@@ -312,6 +312,16 @@ describe("per-goal impact editor (Phase 4)", () => {
     expect(within(within(card("C")).getByTestId("goal-impact-financial_damage")).queryByText(/exceeds/)).toBeNull();
   });
 
+  it("the impact toggle shows a chevron and reports its state", () => {
+    open(asset([r("financial_damage", 3)]));
+    expand("C");
+    const toggle = within(card("C")).getByTestId("goal-impact-toggle");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.querySelector("svg")).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("saved goal carries its override", () => {
     const onSave = open(asset([r("financial_damage", 3)]));
     expand("C");
