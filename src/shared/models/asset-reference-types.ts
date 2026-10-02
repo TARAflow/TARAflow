@@ -70,6 +70,12 @@ export interface AssetDataReference {
   hasSafetyAssets: boolean;
   /** Asset Tab impact scale — defaults to "4-level" when not set. */
   impactScale?: "3-level" | "4-level" | "5-level";
+  /**
+   * Asset criterion weights (AssetConfiguration.impactCriteria), keyed by
+   * criterion id = risk impact factor id. The one weight source for impact
+   * when the risk configuration says impactWeightSource "asset".
+   */
+  criterionWeights?: Record<string, number>;
 }
 
 // ==================== HELPERS ====================

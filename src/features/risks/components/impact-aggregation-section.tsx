@@ -3,9 +3,10 @@
 // Part of the risk configuration dialog (risk-impact-aggregation design §5,
 // §6): how the impact factor values of a risk become one impact. Shows the
 // three variants with the worked example, the regulation preset's
-// recommendation, and — when the choice differs from what the risks are
-// currently calculated with — every risk that changes (before → after, risk
-// level changes first and marked). Saving the dialog applies it.
+// recommendation, the impact weight source (asset criteria, §5.3) and — when
+// a pending choice changes what the risks are calculated with — every risk
+// that changes (before → after, risk level changes first and marked). Saving
+// the dialog applies it.
 
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -58,8 +59,12 @@ export interface ImpactAggregationSectionProps {
   current: ImpactAggregation;
   /** Recommendation of the active regulation preset, if known. */
   recommended?: ImpactAggregation;
-  /** Risks that change when `value` is applied (empty when value === current). */
+  /** Something pending that changes risk values (aggregation or weight source). */
+  pending: boolean;
+  /** Risks whose values the pending change alters. */
   changes: ImpactChangeRow[];
+  /** Control for the impact weight source, shown under the variants. */
+  weightSource?: React.ReactNode;
 }
 
 export const ImpactAggregationSection: React.FC<ImpactAggregationSectionProps> = ({
@@ -67,7 +72,9 @@ export const ImpactAggregationSection: React.FC<ImpactAggregationSectionProps> =
   onChange,
   current,
   recommended,
+  pending,
   changes,
+  weightSource,
 }) => {
   const { t } = useTranslation();
   const name = (v: ImpactAggregation) => t(`${K}.${v}.name`, { defaultValue: DEFAULTS[v].name });
@@ -127,7 +134,9 @@ export const ImpactAggregationSection: React.FC<ImpactAggregationSectionProps> =
         ))}
       </RadioGroup>
 
-      {value !== current && (
+      {weightSource && <Box sx={{ mt: 0.5 }}>{weightSource}</Box>}
+
+      {pending && (
         <Paper variant="outlined" sx={{ p: 1.5, mt: 1 }} data-testid="impact-aggregation-preview">
           <Typography variant="body2" fontWeight="medium" gutterBottom>
             {changes.length === 0

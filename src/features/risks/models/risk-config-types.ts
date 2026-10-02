@@ -18,6 +18,8 @@ import { DEFAULT_ASSET_IMPACT_MAPPINGS } from "./risk-factor-types";
 
 // ==================== RISK CONFIGURATION ====================
 
+export type ImpactWeightSource = "asset" | "risk";
+
 export interface RiskConfiguration {
   method: RiskMethodType;
   scale: RiskScaleType;
@@ -39,6 +41,16 @@ export interface RiskConfiguration {
    * recommendation; changing it with risks present goes through a preview.
    */
   impactAggregation?: ImpactAggregation;
+  /**
+   * Where the impact factor weights come from (design §5.3):
+   *   "asset" — the asset criterion weights are the default; the analyst can
+   *             override a factor's weight here (ActiveFactor.weightManual),
+   *             and then the override applies;
+   *   "risk"  — the weights of this configuration only (behaviour before).
+   * Undefined → "risk", so no existing project changes. New risk data takes
+   * "asset"; switching with risks present is previewed.
+   */
+  impactWeightSource?: ImpactWeightSource;
   /**
    * EN 50742 Approach A: project-global Window of Opportunity (Overview /
    * Security Context), threaded here from project.info by the preset

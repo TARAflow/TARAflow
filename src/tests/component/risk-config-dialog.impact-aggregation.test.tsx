@@ -42,7 +42,7 @@ const riskData = {
   lastModified: "",
 } as unknown as RiskData;
 
-function open(onSave = vi.fn()) {
+function open(onSave = vi.fn(), assetImpactWeights?: Record<string, number>) {
   render(
     <RiskConfigDialog
       open
@@ -51,6 +51,7 @@ function open(onSave = vi.fn()) {
       onClose={() => {}}
       riskData={riskData}
       recommendedImpactAggregation="harm-floor"
+      assetImpactWeights={assetImpactWeights}
     />,
   );
   return onSave;
@@ -78,5 +79,73 @@ describe("RiskConfigDialog — impact aggregation", () => {
     const onSave = open();
     fireEvent.click(screen.getByText("Save"));
     expect("impactAggregation" in onSave.mock.calls[0][0]).toBe(false);
+  });
+});
+
+// Phase 4 (§5.3): asset weights as the default for impact, overridable here.
+describe("RiskConfigDialog — impact weights from the asset configuration", () => {
+  const ASSET = { safety: 0.4, financial_damage: 0.2, operational: 0.2, privacy: 0.2 };
+
+  it("without asset weights the option is disabled", () => {
+    open();
+    expect(screen.getByTestId("impact-weights-from-asset")).toBeDisabled();
+  });
+
+  it("switching previews the change; Save stores the source and the asset weights", () => {
+    const onSave = open(vi.fn(), ASSET);
+    fireEvent.click(screen.getByTestId("impact-weights-from-asset"));
+    // (4·0.4 + 3·1·0.2) / 1 = 2.2 instead of 1.75 (→ 1.8)
+    expect(within(screen.getByTestId("impact-change-r1")).getByText("1.8 → 2.2")).toBeTruthy();
+    fireEvent.click(screen.getByText("Save"));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.impactWeightSource).toBe("asset");
+    expect(saved.activeFactors.find((f: { factorId: string }) => f.factorId === "safety").weight).toBe(0.4);
+    expect("impactAggregation" in saved).toBe(false);
+  });
+
+  it("asset mode: the asset weight is shown as default; moving the slider overrides, reset returns", () => {
+    const assetMode = {
+      ...riskData,
+      configuration: {
+        ...riskData.configuration,
+        impactWeightSource: "asset" as const,
+        activeFactors: riskData.configuration.activeFactors.map((f) =>
+          f.factorId === "safety" ? { ...f, enabled: true } : f,
+        ),
+      },
+    };
+    const onSave = vi.fn();
+    render(
+      <RiskConfigDialog
+        open
+        configuration={assetMode.configuration}
+        onSave={onSave}
+        onClose={() => {}}
+        riskData={assetMode}
+        assetImpactWeights={ASSET}
+      />,
+    );
+    fireEvent.click(screen.getByText("Factors"));
+    const tag = screen.queryAllByTestId("impact-weight-asset-safety");
+    expect(tag.length).toBeGreaterThan(0);
+    const slider = tag[0].parentElement!.querySelector('input[type="range"]') as HTMLInputElement;
+    expect(slider.value).toBe("0.4");
+    fireEvent.change(slider, { target: { value: "0.8" } });
+    fireEvent.click(screen.getByTestId("impact-weight-reset-safety"));
+    expect(screen.getByTestId("impact-weight-asset-safety")).toBeTruthy();
+    const again = screen.getByTestId("impact-weight-asset-safety").parentElement!
+      .querySelector('input[type="range"]') as HTMLInputElement;
+    expect(again.value).toBe("0.4");
+    fireEvent.change(again, { target: { value: "0.8" } });
+    expect(screen.getByTestId("impact-weight-reset-safety")).toBeTruthy();
+    fireEvent.click(screen.getByText("Save"));
+    const safety = onSave.mock.calls[0][0].activeFactors.find((f: { factorId: string }) => f.factorId === "safety");
+    expect(safety).toMatchObject({ weight: 0.8, weightManual: true });
+  });
+
+  it("keeping the own weights stores nothing new", () => {
+    const onSave = open(vi.fn(), ASSET);
+    fireEvent.click(screen.getByText("Save"));
+    expect("impactWeightSource" in onSave.mock.calls[0][0]).toBe(false);
   });
 });

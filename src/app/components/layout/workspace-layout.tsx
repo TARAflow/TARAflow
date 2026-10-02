@@ -820,10 +820,12 @@ export const WorkspaceLayout: React.FC = () => {
       assets,
       memoizedHazardRef,
       activeProject?.assets?.configuration?.impactScale ?? "4-level",
+      activeProject?.assets?.configuration?.impactCriteria,
     );
   }, [
     activeProject?.assets?.assets,
     activeProject?.assets?.configuration?.impactScale,
+    activeProject?.assets?.configuration?.impactCriteria,
     memoizedHazardRef,
   ]);
 

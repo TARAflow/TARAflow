@@ -359,6 +359,12 @@ export interface ActiveFactor {
    * false / undefined → analyst explicitly enabled
    */
   autoEnabled?: boolean;
+  /**
+   * Impact factors under impactWeightSource "asset" (design §5.3): true →
+   * the analyst set this weight in the risk configuration and it overrides
+   * the asset criterion weight; false / undefined → the asset weight applies.
+   */
+  weightManual?: boolean;
 }
 
 // ==================== ASSET IMPACT MAPPING ====================

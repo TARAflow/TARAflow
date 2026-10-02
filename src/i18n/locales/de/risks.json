@@ -219,6 +219,13 @@
         "addFactor": "Faktor hinzufügen",
         "showIndividualFactors": "Einzelne Faktoren in der Tabelle anzeigen",
         "showIndividualFactorsDesc": "Wenn deaktiviert, werden nur aggregierte Auswirkungs-/Wahrscheinlichkeitswerte angezeigt.",
+        "impactWeights": {
+          "useAsset": "Impact-Gewichte: Asset-Konfiguration als Vorgabe, hier anpassbar",
+          "assetTag": "(Asset)",
+          "fromAssetHint": "Aus der Asset-Konfiguration — Verschieben des Reglers überschreibt den Wert hier",
+          "resetHint": "Hier angepasst — zurück zum Asset-Gewicht",
+          "notApplied": "Kein Gewicht (Maximum)"
+        },
         "impactAggregation": {
           "title": "Impact-Aggregation",
           "intro": "Wie die Impact-Faktoren eines Risikos zu einem Impact werden. Beispiel S4 F1 O1 P1: gewichteter Mittelwert 1,75 · Schadens-Untergrenze 4 · Maximum 4. Beispiel S1 F4 O1 P1: 1,75 · 2 · 4.",

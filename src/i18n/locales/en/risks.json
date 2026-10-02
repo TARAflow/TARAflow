@@ -218,6 +218,13 @@
         "addFactor": "Add Factor",
         "showIndividualFactors": "Show Individual Factors in Table",
         "showIndividualFactorsDesc": "When disabled, only aggregated Impact/Likelihood values are shown. Hover shows details.",
+        "impactWeights": {
+          "useAsset": "Impact weights: asset configuration as default, adjustable here",
+          "assetTag": "(asset)",
+          "fromAssetHint": "From the asset configuration — moving the slider overrides it here",
+          "resetHint": "Adjusted here — back to the asset weight",
+          "notApplied": "No weight (maximum)"
+        },
         "impactAggregation": {
           "title": "Impact aggregation",
           "intro": "How the impact factors of a risk become one impact. Example S4 F1 O1 P1: weighted mean 1.75 · harm floor 4 · maximum 4. Example S1 F4 O1 P1: 1.75 · 2 · 4.",

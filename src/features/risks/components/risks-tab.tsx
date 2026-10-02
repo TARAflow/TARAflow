@@ -69,6 +69,7 @@ import { useRiskSync } from "../hooks/use-risk-sync";
 import { useSplitViewResize } from "shared";
 import {
   withRecommendedImpactAggregation,
+  withAssetImpactWeights,
   ensureValidRiskData,
   MIN_PANEL_HEIGHT,
   DEFAULT_TOP_HEIGHT,
@@ -515,6 +516,22 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   // Impact aggregation: while there are no risks, the preset's recommendation
   // is taken over directly — no risk value can change. With risks it is only
   // offered in the configuration dialog (preview before applying, design §6).
+  // One weight source for impact (design §5.3): follow the asset criterion
+  // weights when the configuration says "asset" — or, without risks, switch to
+  // them directly. Existing projects with risks switch in the dialog.
+  useEffect(() => {
+    const next = withAssetImpactWeights(riskData, project.assetDataRef?.criterionWeights);
+    if (!next) return;
+    setRiskData(next);
+    markDirty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    project.assetDataRef?.criterionWeights,
+    riskData.configuration.impactWeightSource,
+    riskData.risks.length,
+    markDirty,
+  ]);
+
   useEffect(() => {
     const next = withRecommendedImpactAggregation(
       riskData,
@@ -1058,6 +1075,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onClose={() => setShowConfigDialog(false)}
         riskData={riskData}
         recommendedImpactAggregation={project.recommendedImpactAggregation}
+        assetImpactWeights={project.assetDataRef?.criterionWeights}
       />
 
       {showSyncConfirm && (

@@ -3,6 +3,7 @@
 // Pure functions without side effects
 
 import type { ImpactAggregation } from "shared";
+import { applyAssetImpactWeights } from "../services/impact-weight-source";
 import {
   RiskData,
   createDefaultRiskData,
@@ -47,4 +48,21 @@ export function withRecommendedImpactAggregation(
   if (!recommended || data.risks.length > 0) return null;
   if (data.configuration.impactAggregation === recommended) return null;
   return { ...data, configuration: { ...data.configuration, impactAggregation: recommended } };
+}
+
+/**
+ * One weight source for impact (design §5.3, phase 4). Follows the asset
+ * criterion weights when the configuration says so; risk data without risks
+ * switches to the asset weights directly (no value can change). An existing
+ * project with risks keeps its own weights until the analyst switches in the
+ * configuration dialog (preview). Returns null when nothing is to do.
+ */
+export function withAssetImpactWeights(
+  data: RiskData,
+  criterionWeights: Readonly<Record<string, number>> | undefined,
+): RiskData | null {
+  const source = data.configuration.impactWeightSource;
+  if (source === "risk") return null;
+  if (source === undefined && data.risks.length > 0) return null;
+  return applyAssetImpactWeights(data, criterionWeights);
 }

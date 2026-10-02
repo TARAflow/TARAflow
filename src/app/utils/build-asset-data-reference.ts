@@ -30,11 +30,14 @@ type AssetHazardLinks = ReturnType<typeof buildAssetHazardLinks>;
  * @param assets       The current asset store (project.assets.assets).
  * @param hazardLinks  Output of buildAssetHazardLinks(project.hazards).
  * @param impactScale  Asset Tab impact scale (defaults applied by caller).
+ * @param impactCriteria  Asset criterion weights — projected as
+ *                     criterionWeights (one weight source for impact).
  */
 export function buildAssetDataReference(
   assets: Asset[],
   hazardLinks: AssetHazardLinks,
   impactScale: "3-level" | "4-level" | "5-level",
+  impactCriteria?: readonly { id: string; weight: number }[],
 ): AssetDataReference {
   const assetRefs: AssetReference[] = assets.map((a) => ({
     id: a.id,
@@ -95,5 +98,8 @@ export function buildAssetDataReference(
     // through hasSafetyData unifies it and removes that silent drift.
     hasSafetyAssets: hasSafetyData(assetRefs),
     impactScale,
+    ...(impactCriteria
+      ? { criterionWeights: Object.fromEntries(impactCriteria.map((c) => [c.id, c.weight])) }
+      : {}),
   };
 }

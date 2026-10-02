@@ -84,8 +84,13 @@ import {
 } from "../services/regulation-preset-service";
 import type { RegulationPresetId, LikelihoodMethod, ImpactAggregation } from "shared";
 import type { RiskData } from "../models/risk-assessment-types";
+import type { ImpactWeightSource } from "../models/risk-config-types";
 import { effectiveImpactAggregation } from "../services/impact-aggregation";
-import { previewImpactAggregation } from "../services/impact-aggregation-preview";
+import { previewRiskDataChange } from "../services/impact-aggregation-preview";
+import {
+  applyAssetImpactWeights,
+  effectiveImpactWeightSource,
+} from "../services/impact-weight-source";
 import { ImpactAggregationSection } from "./impact-aggregation-section";
 
 // Derive impact factors directly from ALL_PREDEFINED_FACTORS — always in sync.
@@ -113,6 +118,8 @@ interface RiskConfigDialogProps {
   riskData?: RiskData;
   /** Impact aggregation the active regulation preset recommends (app layer). */
   recommendedImpactAggregation?: ImpactAggregation;
+  /** Asset criterion weights — the one weight source for impact (§5.3). */
+  assetImpactWeights?: Record<string, number>;
 }
 
 interface TabPanelProps {
@@ -138,6 +145,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   onClose,
   riskData,
   recommendedImpactAggregation,
+  assetImpactWeights,
 }) => {
   const { t } = useTranslation();
 
@@ -145,17 +153,117 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   const currentAggregation = effectiveImpactAggregation(configuration.impactAggregation);
   const [impactAggregation, setImpactAggregation] =
     useState<ImpactAggregation>(currentAggregation);
-  // The dialog stays mounted: start every opening from the stored setting.
+  // One weight source for impact (§5.3): "asset" = asset criterion weights.
+  const currentWeightSource = effectiveImpactWeightSource(configuration.impactWeightSource);
+  const [impactWeightSource, setImpactWeightSource] =
+    useState<ImpactWeightSource>(currentWeightSource);
+  // The dialog stays mounted: start every opening from the stored settings.
   useEffect(() => {
-    if (open) setImpactAggregation(effectiveImpactAggregation(configuration.impactAggregation));
-  }, [open, configuration.impactAggregation]);
-  const aggregationChanges = useMemo(
-    () =>
-      riskData && impactAggregation !== currentAggregation
-        ? previewImpactAggregation(riskData, impactAggregation)
-        : [],
-    [riskData, impactAggregation, currentAggregation],
-  );
+    if (!open) return;
+    setImpactAggregation(effectiveImpactAggregation(configuration.impactAggregation));
+    setImpactWeightSource(effectiveImpactWeightSource(configuration.impactWeightSource));
+  }, [open, configuration.impactAggregation, configuration.impactWeightSource]);
+  const weightsFromAsset = impactWeightSource === "asset" && !!assetImpactWeights;
+  const impactChangePending =
+    impactAggregation !== currentAggregation || impactWeightSource !== currentWeightSource;
+  // Preview of what Save changes in the risk values: aggregation and weight
+  // source together (design §6: explicit decision, no silent change).
+  const aggregationChanges = useMemo(() => {
+    if (!riskData || !impactChangePending) return [];
+    let next: RiskData = {
+      ...riskData,
+      configuration: { ...riskData.configuration, impactAggregation },
+    };
+    if (impactWeightSource === "asset" && currentWeightSource !== "asset") {
+      next = applyAssetImpactWeights(next, assetImpactWeights) ?? next;
+    }
+    return previewRiskDataChange(riskData, next);
+  }, [
+    riskData,
+    impactChangePending,
+    impactAggregation,
+    impactWeightSource,
+    currentWeightSource,
+    assetImpactWeights,
+  ]);
+
+  /**
+   * Weight control of an impact factor, when it is not the slider: under
+   * "max" no weight applies.
+   */
+  /**
+   * Impact factor weight under the asset source (§5.3): the asset criterion
+   * weight is the default; a weight the analyst moves here overrides it
+   * (weightManual) until reset. Null → plain own weight.
+   */
+  const assetWeightView = (
+    factorId: string,
+    category: string,
+  ): { weight: number; manual: boolean } | null => {
+    if (category !== "impact" || !weightsFromAsset || !(factorId in assetImpactWeights!)) {
+      return null;
+    }
+    const af = activeFactors.find((f) => f.factorId === factorId);
+    return af?.weightManual
+      ? { weight: af.weight, manual: true }
+      : { weight: assetImpactWeights![factorId], manual: false };
+  };
+  const setImpactWeightOverride = (factorId: string, weight: number) =>
+    setActiveFactors((prev) =>
+      prev.map((f) => (f.factorId === factorId ? { ...f, weight, weightManual: true } : f)),
+    );
+  const resetImpactWeight = (factorId: string) =>
+    setActiveFactors((prev) =>
+      prev.map((f) =>
+        f.factorId === factorId
+          ? { ...f, weight: assetImpactWeights?.[factorId] ?? f.weight, weightManual: false }
+          : f,
+      ),
+    );
+  const weightSourceTag = (factorId: string, manual: boolean) =>
+    manual ? (
+      <Tooltip
+        title={t("tabs.risks.config.impactWeights.resetHint", {
+          defaultValue: "Adjusted here — back to the asset weight",
+        })}
+      >
+        <IconButton
+          size="small"
+          data-testid={`impact-weight-reset-${factorId}`}
+          onClick={() => resetImpactWeight(factorId)}
+        >
+          <RestartAltIcon sx={{ fontSize: 14 }} />
+        </IconButton>
+      </Tooltip>
+    ) : (
+      <Tooltip
+        title={t("tabs.risks.config.impactWeights.fromAssetHint", {
+          defaultValue: "From the asset configuration — moving the slider overrides it here",
+        })}
+      >
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          data-testid={`impact-weight-asset-${factorId}`}
+        >
+          {t("tabs.risks.config.impactWeights.assetTag", { defaultValue: "(asset)" })}
+        </Typography>
+      </Tooltip>
+    );
+
+  const impactWeightNote = (factorId: string, category: string): React.ReactNode | null => {
+    if (category !== "impact") return null;
+    if (impactAggregation === "max") {
+      return (
+        <Typography variant="caption" color="text.secondary" sx={{ px: 2, mr: 4 }}>
+          {t("tabs.risks.config.impactWeights.notApplied", {
+            defaultValue: "No weight (maximum)",
+          })}
+        </Typography>
+      );
+    }
+    return null;
+  };
 
   // ── Local state ───────────────────────────────────────────────────────────
   const [tabValue, setTabValue] = useState(0);
@@ -312,6 +420,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
           ...f,
           enabled: defaultFactor?.enabled ?? false,
           weight: defaultFactor?.weight ?? f.weight,
+          weightManual: false,
           autoEnabled: undefined,
         };
       }),
@@ -355,13 +464,24 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
             if (state === "locked-off") return { ...f, enabled: false };
             return f;
           });
+    // Asset weights as default (§5.3): impact factors the analyst did not
+    // override carry the asset criterion weight.
+    const weightedFactors = weightsFromAsset
+      ? normalizedFactors.map((f) =>
+          !f.weightManual &&
+          factorGroups.impact.some((d) => d.id === f.factorId) &&
+          f.factorId in assetImpactWeights!
+            ? { ...f, weight: assetImpactWeights![f.factorId] }
+            : f,
+        )
+      : normalizedFactors;
 
     onSave({
       ...configuration,
       method: "complex",
       scale,
       roundingMethod,
-      activeFactors: normalizedFactors,
+      activeFactors: weightedFactors,
       showIndividualFactors,
       customFactors,
       useAssetImpact: impactMandatory || useAssetImpact,
@@ -372,6 +492,10 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
       // project stays without the field (= weighted mean, unchanged values).
       ...(configuration.impactAggregation !== undefined || impactAggregation !== currentAggregation
         ? { impactAggregation }
+        : {}),
+      ...(configuration.impactWeightSource !== undefined ||
+      impactWeightSource !== currentWeightSource
+        ? { impactWeightSource }
         : {}),
     });
   };
@@ -505,7 +629,8 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     })}
                   />
                 </ListItemButton>
-                {checked && (
+                {checked && impactWeightNote(factor.id, category)}
+                {checked && !impactWeightNote(factor.id, category) && (
                   <Box sx={{ px: 2, minWidth: 150 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
@@ -514,21 +639,32 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         })}
                         :
                       </Typography>
-                      <Slider
-                        value={weight}
-                        onChange={(_, v) =>
-                          handleWeightChange(factor.id, v as number)
-                        }
-                        min={0}
-                        max={1}
-                        step={0.1}
-                        size="small"
-                        disabled={lockState === "locked-on"}
-                        sx={{ width: 80 }}
-                      />
-                      <Typography variant="caption" sx={{ minWidth: 30 }}>
-                        {weight.toFixed(1)}
-                      </Typography>
+                      {(() => {
+                        const av = assetWeightView(factor.id, category);
+                        const w = av ? av.weight : weight;
+                        return (
+                          <>
+                            <Slider
+                              value={w}
+                              onChange={(_, v) =>
+                                av
+                                  ? setImpactWeightOverride(factor.id, v as number)
+                                  : handleWeightChange(factor.id, v as number)
+                              }
+                              min={0}
+                              max={1}
+                              step={av ? 0.05 : 0.1}
+                              size="small"
+                              disabled={lockState === "locked-on"}
+                              sx={{ width: 80 }}
+                            />
+                            <Typography variant="caption" sx={{ minWidth: 30 }}>
+                              {av ? w.toFixed(2) : w.toFixed(1)}
+                            </Typography>
+                            {av && weightSourceTag(factor.id, av.manual)}
+                          </>
+                        );
+                      })()}
                     </Stack>
                   </Box>
                 )}
@@ -643,7 +779,8 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                     })}
                   />
                 </ListItemButton>
-                {checked && (
+                {checked && impactWeightNote(factor.id, factor.category)}
+                {checked && !impactWeightNote(factor.id, factor.category) && (
                   <Box sx={{ px: 2, minWidth: 150, mr: 4 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
@@ -652,20 +789,31 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                         })}
                         :
                       </Typography>
-                      <Slider
-                        value={weight}
-                        onChange={(_, v) =>
-                          handleWeightChange(factor.id, v as number)
-                        }
-                        min={0}
-                        max={1}
-                        step={0.1}
-                        size="small"
-                        sx={{ width: 80 }}
-                      />
-                      <Typography variant="caption" sx={{ minWidth: 30 }}>
-                        {weight.toFixed(1)}
-                      </Typography>
+                      {(() => {
+                        const av = assetWeightView(factor.id, factor.category);
+                        const w = av ? av.weight : weight;
+                        return (
+                          <>
+                            <Slider
+                              value={w}
+                              onChange={(_, v) =>
+                                av
+                                  ? setImpactWeightOverride(factor.id, v as number)
+                                  : handleWeightChange(factor.id, v as number)
+                              }
+                              min={0}
+                              max={1}
+                              step={av ? 0.05 : 0.1}
+                              size="small"
+                              sx={{ width: 80 }}
+                            />
+                            <Typography variant="caption" sx={{ minWidth: 30 }}>
+                              {av ? w.toFixed(2) : w.toFixed(1)}
+                            </Typography>
+                            {av && weightSourceTag(factor.id, av.manual)}
+                          </>
+                        );
+                      })()}
                     </Stack>
                   </Box>
                 )}
@@ -1024,7 +1172,29 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
               onChange={setImpactAggregation}
               current={currentAggregation}
               recommended={recommendedImpactAggregation}
+              pending={impactChangePending}
               changes={aggregationChanges}
+              weightSource={
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={impactWeightSource === "asset"}
+                      disabled={!assetImpactWeights}
+                      onChange={(e) => setImpactWeightSource(e.target.checked ? "asset" : "risk")}
+                      inputProps={{ "data-testid": "impact-weights-from-asset" } as never}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2">
+                      {t("tabs.risks.config.impactWeights.useAsset", {
+                        defaultValue:
+                          "Impact weights: asset configuration as default, adjustable here",
+                      })}
+                    </Typography>
+                  }
+                />
+              }
             />
 
             <Divider />
